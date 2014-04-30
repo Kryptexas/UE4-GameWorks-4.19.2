@@ -1207,7 +1207,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
 	{
 		// TODO: Static components without an owner can move, should they be able to?
-		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after begin play"), *GetFullName());
+		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
 		return false;
 	}
 

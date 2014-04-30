@@ -893,9 +893,9 @@ public:
 	void CleanUp();
 
 	/** 
-	 *	Called when owner-UWorld begins play. 
+	 *	Called when owner-UWorld initializes actors
 	 */
-	virtual void OnBeginPlay();
+	virtual void OnInitializeActors();
 
 	/** */
 	virtual void OnWorldInitDone(NavigationSystem::EMode Mode);

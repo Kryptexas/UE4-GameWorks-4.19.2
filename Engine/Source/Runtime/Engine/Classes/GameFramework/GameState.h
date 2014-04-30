@@ -48,6 +48,10 @@ protected:
 	UPROPERTY(replicatedUsing=OnRep_MatchState)
 	FName MatchState;
 
+	/** Previous map state, used to handle if multiple transitions happen per frame */
+	UPROPERTY()
+	FName PreviousMatchState;
+
 	/** Called when the state transitions to WaitingToStart */
 	virtual void HandleMatchIsWaitingToStart();
 

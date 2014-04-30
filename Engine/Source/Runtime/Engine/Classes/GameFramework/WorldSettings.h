@@ -423,9 +423,13 @@ public:
 		return TimeDilation * MatineeTimeDilation;
 	}
 
-	/** Called by GameMode.HandleMatchHasStarted, used to notify native classes of match startup (such as level scripting).
-	 * @todo UE4 Need to send K2 event about match starting here
-	 * Activates LevelStartup and/or LevelBeginning events in the sequences in the world
+	/** 
+	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors
+	 */
+	virtual void NotifyBeginPlay();
+
+	/** 
+	 * Called by GameMode.HandleMatchHasStarted, used to notify native classes of match startup (such as level scripting)
 	 */	
 	virtual void NotifyMatchStarted();
 

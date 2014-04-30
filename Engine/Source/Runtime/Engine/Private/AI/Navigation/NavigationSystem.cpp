@@ -391,7 +391,7 @@ void UNavigationSystem::PostInitProperties()
 	}
 }
 
-void UNavigationSystem::OnBeginPlay()
+void UNavigationSystem::OnInitializeActors()
 {
 	
 }

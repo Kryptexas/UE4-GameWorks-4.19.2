@@ -906,7 +906,7 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 			ModifyLevel( CheckLevel );
 		}
 		
-		if (!HasBegunPlay())
+		if (!AreActorsInitialized())
 		{
 			CheckLevel->Actors.ModifyItem(ActorListIndex);
 		}
@@ -1332,7 +1332,6 @@ double InitActorPhysTime = 0.0;
 double InitActorTime = 0.0;
 double RouteActorInitializeTime = 0.0;
 double CrossLevelRefsTime = 0.0;
-double SequenceBeginPlayTime = 0.0;
 double SortActorListTime = 0.0;
 
 /** Helper class, to add the time between this objects creating and destruction to passed in variable. */
@@ -1406,7 +1405,6 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		InitActorTime = 0.0;
 		RouteActorInitializeTime = 0.0;
 		CrossLevelRefsTime = 0.0;
-		SequenceBeginPlayTime = 0.0;
 		SortActorListTime = 0.0;
 #endif
 	}
@@ -1463,19 +1461,19 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		bExecuteNextStep					= Level->bAreComponentsCurrentlyRegistered;
 	}
 
-	if( IsGameWorld() && HasBegunPlay() )
+	if( IsGameWorld() && AreActorsInitialized() )
 	{
 		// Initialize all actors and start execution.
-		if( bExecuteNextStep && !Level->bAlreadyInitializedActors )
+		if (bExecuteNextStep && !Level->bAlreadyInitializedNetworkActors)
 		{
 			SCOPE_TIME_TO_VAR(&InitActorTime);
 
-			Level->InitializeActors();
-			Level->bAlreadyInitializedActors = true;
-			bExecuteNextStep = (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("initializing actors"), StartTime, Level ));
+			Level->InitializeNetworkActors();
+			Level->bAlreadyInitializedNetworkActors = true;
+			bExecuteNextStep = (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("initializing network actors"), StartTime, Level ));
 		}
 
-		// Route various begin play functions and set volumes.
+		// Route various initialization functions and set volumes.
 		if( bExecuteNextStep && !Level->bAlreadyRoutedActorInitialize )
 		{
 			SCOPE_TIME_TO_VAR(&RouteActorInitializeTime);
@@ -1484,7 +1482,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 			Level->bAlreadyRoutedActorInitialize = true;
 			bStartup = 0;
 
-			bExecuteNextStep = (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("routing BeginPlay on actors"), StartTime, Level ));
+			bExecuteNextStep = (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("routing Initialize on actors"), StartTime, Level ));
 		}
 
 		// Sort the actor list; can't do this on save as the relevant properties for sorting might have been changed by code
@@ -1510,7 +1508,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 	{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		// Log out all of the timing information
-		double TotalTime = MoveActorTime + ShiftActorsTime + UpdateComponentsTime + InitBSPPhysTime + InitActorPhysTime + InitActorTime + RouteActorInitializeTime + CrossLevelRefsTime + SequenceBeginPlayTime + SortActorListTime;
+		double TotalTime = MoveActorTime + ShiftActorsTime + UpdateComponentsTime + InitBSPPhysTime + InitActorPhysTime + InitActorTime + RouteActorInitializeTime + CrossLevelRefsTime + SortActorListTime;
 		UE_LOG(LogStreaming, Log, TEXT("Detailed AddToWorld stats for '%s' - Total %6.2fms"), *Level->GetOutermost()->GetName(), TotalTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Move Actors             : %6.2f ms"), MoveActorTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Shift Actors            : %6.2f ms"), ShiftActorsTime * 1000 );
@@ -1522,9 +1520,8 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		UE_LOG(LogStreaming, Log, TEXT("Init BSP Phys           : %6.2f ms"), InitBSPPhysTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Init Actor Phys         : %6.2f ms"), InitActorPhysTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Init Actors             : %6.2f ms"), InitActorTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("BeginPlay               : %6.2f ms"), RouteActorInitializeTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Initialize               : %6.2f ms"), RouteActorInitializeTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Cross Level Refs        : %6.2f ms"), CrossLevelRefsTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Sequence BeginPlay      : %6.2f ms"), SequenceBeginPlayTime * 1000 );
 		UE_LOG(LogStreaming, Log, TEXT("Sort Actor List         : %6.2f ms"), SortActorListTime * 1000 );	
 #endif // PERF_TRACK_DETAILED_ASYNC_STATS
 
@@ -1534,7 +1531,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		}
 		Level->bAlreadyShiftedActors					= false;
 		Level->bAlreadyUpdatedComponents				= false;
-		Level->bAlreadyInitializedActors				= false;
+		Level->bAlreadyInitializedNetworkActors			= false;
 		Level->bAlreadyRoutedActorInitialize			= false;
 		Level->bAlreadySortedActorList					= false;
 
@@ -2510,8 +2507,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 	return false;
 }
 
-
-void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
+void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 {
 	check(bIsWorldInitialized);
 	double StartTime = FPlatformTime::Seconds();
@@ -2553,7 +2549,7 @@ void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
 	}
 
 	// Init level gameplay info.
-	if( !HasBegunPlay() )
+	if( !AreActorsInitialized() )
 	{
 		// Check that paths are valid
 		if ( !IsNavigationRebuilt() )
@@ -2571,18 +2567,18 @@ void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
 			UE_LOG(LogWorld, Log,  TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::Round(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
 		}
 
-		// Initialize all actors and start execution.
+		// Initialize network actors and start execution.
 		for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
 		{
 			ULevel*	const Level = Levels[LevelIndex];
-			Level->InitializeActors();
+			Level->InitializeNetworkActors();
 		}
 
 		// Enable actor script calls.
-		bStartup	= 1;
-		bBegunPlay	= 1;
+		bStartup = 1;
+		bActorsInitialized = 1;
 
-		// Spawn serveractors
+		// Spawn server actors
 		ENetMode CurNetMode = GEngine != NULL ? GEngine->GetNetMode(this) : NM_Standalone;
 
 		if (CurNetMode == NM_ListenServer || CurNetMode == NM_DedicatedServer)
@@ -2596,7 +2592,7 @@ void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
 			AuthorityGameMode->InitGame( FPaths::GetBaseFilename(InURL.Map), Options, Error );
 		}
 
-		// Route various begin play functions and set volumes.
+		// Route various initialization functions and set volumes.
 		for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
 		{
 			ULevel*	const Level = Levels[LevelIndex];
@@ -2627,7 +2623,7 @@ void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
 	// @note if UWorld starts to host more of these it might a be a good idea to create a generic IManagerInterface of some sort
 	if (NavigationSystem != NULL)
 	{
-		NavigationSystem->OnBeginPlay();
+		NavigationSystem->OnInitializeActors();
 	}
 
 	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
@@ -2646,7 +2642,14 @@ void UWorld::BeginPlay(const FURL& InURL, bool bResetTime)
 	}
 }
 
-
+void UWorld::BeginPlay()
+{
+	AGameMode* const GameMode = GetAuthGameMode();
+	if (GameMode)
+	{
+		GameMode->StartPlay();
+	}
+}
 
 bool UWorld::IsNavigationRebuilt() const
 {
@@ -2871,6 +2874,10 @@ bool UWorld::HasBegunPlay() const
 	return PersistentLevel && PersistentLevel->Actors.Num() && bBegunPlay;
 }
 
+bool UWorld::AreActorsInitialized() const
+{
+	return PersistentLevel && PersistentLevel->Actors.Num() && bActorsInitialized;
+}
 
 float UWorld::GetTimeSeconds() const
 {
@@ -4284,8 +4291,8 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
-			// call begin play functions on everything that wasn't carried over from the old world
-			LoadedWorld->BeginPlay(PendingTravelURL, false);
+			// call initialize functions on everything that wasn't carried over from the old world
+			LoadedWorld->InitializeActorsForPlay(PendingTravelURL, false);
 
 			// send loading complete notifications for all local players
 			for (FLocalPlayerIterator It(GEngine, LoadedWorld); It; ++It)
@@ -4333,8 +4340,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 					UNavigationSystem::InitializeForWorld(LoadedWorld, NavigationSystem::GameMode);
 
 					// inform the new GameMode so it can handle players that persisted
-					GameMode->PostSeamlessTravel();
+					GameMode->PostSeamlessTravel();					
 				}
+
+				// Called after post seamless travel to make sure players are setup correctly first
+				LoadedWorld->BeginPlay();
 
 				FCoreDelegates::PostLoadMap.Broadcast();
 			}

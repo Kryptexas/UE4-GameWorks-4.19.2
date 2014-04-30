@@ -8362,7 +8362,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), NavigationSystem::GameMode);
 
 	// Initialize gameplay for the level.
-	WorldContext.World()->BeginPlay(URL);
+	WorldContext.World()->InitializeActorsForPlay(URL);
+	WorldContext.World()->BeginPlay();
+
+	AGameMode* const GameMode = WorldContext.World()->GetAuthGameMode();
+	if (GameMode)
+	{
+		GameMode->StartPlay();
+	}
 
 	// Remember the URL. Put this before spawning player controllers so that
 	// a player controller can get the map name during initialization and

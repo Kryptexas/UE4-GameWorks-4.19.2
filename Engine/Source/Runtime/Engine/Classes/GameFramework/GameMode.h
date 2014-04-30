@@ -69,6 +69,14 @@ class ENGINE_API AGameMode : public AInfo
 	/** Returns true if the match state is WaitingPostMatch or later */
 	virtual bool HasMatchEnded() const;
 
+	/** Transitions to WaitingToStart and calls BeginPlay on actors. */
+	virtual void StartPlay();
+
+	/**
+	 * Called after a seamless level transition has been completed on the *new* GameMode.
+	 * Used to reinitialize players already in the game as they won't have *Login() called on them
+	 */
+	virtual void PostSeamlessTravel();
 
 	/** Transition from WaitingToStart to InProgress. You can call this manually, will also get called if ReadyToStartMatch returns true */
 	virtual void StartMatch();
@@ -241,8 +249,6 @@ public:
 
 	// Begin AActor interface
 	virtual void PreInitializeComponents() OVERRIDE;
-	/** This sets the match state to WaitingToStart unless we're in seamless travel */
-	virtual void PostInitializeComponents() OVERRIDE; 
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void Reset() OVERRIDE;
 	virtual void Tick(float DeltaSeconds) OVERRIDE;
@@ -542,12 +548,6 @@ public:
 	 * @param NewPC - the new PC that should be used for the player
 	 */
 	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
-
-	/** 
-	 * Called after a seamless level transition has been completed on the *new* GameMode. This transitions to WaitingToStart
-	 * Used to reinitialize players already in the game as they won't have *Login() called on them
-	 */
-	virtual void PostSeamlessTravel();
 
 	/** 
 	 * Handles reinitializing players that remained through a seamless level transition

@@ -118,13 +118,22 @@ float AWorldSettings::GetGravityZ() const
 	return WorldGravityZ;
 }
 
+void AWorldSettings::NotifyBeginPlay()
+{
+	UWorld* World = GetWorld();
+	if (!World->bBegunPlay)
+	{
+		for (FActorIterator It(World); It; ++It)
+		{
+			It->BeginPlay();
+		}
+		World->bBegunPlay = true;
+	}
+}
+
 void AWorldSettings::NotifyMatchStarted()
 {
 	UWorld* World = GetWorld();
-	for (FActorIterator It(World); It; ++It)
-	{
-		It->BeginPlay();
-	}
 	World->bMatchStarted = true;
 }
 

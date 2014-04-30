@@ -323,7 +323,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 	}
 
 	// Can't move non-movable actors during play
-	if( (RootComponent->Mobility == EComponentMobility::Static) && GetWorld()->HasBegunPlay() )
+	if( (RootComponent->Mobility == EComponentMobility::Static) && GetWorld()->AreActorsInitialized() )
 	{
 		return false;
 	}
@@ -573,7 +573,7 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
-	if( ((GetWorld() && (GetWorld()->HasBegunPlay() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
+	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
 		Super::ProcessEvent(Function, Parameters);
 	}
@@ -2108,7 +2108,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// This should be the same sequence for deferred or nondeferred spawning.
 
 	// It's not safe to call UWorld accessor functions till the world info has been spawned.
-	bool const bBegunPlay = GetWorld() && GetWorld()->HasBegunPlay();
+	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
 
 	CreationTime = GetWorld()->GetTimeSeconds();
 
@@ -2136,7 +2136,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 
 #if WITH_EDITOR
 	// When placing actors in the editor, init any random streams 
-	if (!bBegunPlay)
+	if (!bActorsInitialized)
 	{
 		SeedAllRandomStreams();
 	}
@@ -2162,9 +2162,9 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 
 void AActor::PostActorConstruction()
 {
-	bool const bWorldBegunPlay = GetWorld() && GetWorld()->HasBegunPlay();
+	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
 
-	if (bWorldBegunPlay)
+	if (bActorsInitialized)
 	{
 		PreInitializeComponents();
 	}
@@ -2175,7 +2175,7 @@ void AActor::PostActorConstruction()
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
 	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
-	if (bWorldBegunPlay)
+	if (bActorsInitialized)
 	{
 		// Call InitializeComponent on components
 		InitializeComponents();
@@ -2186,7 +2186,7 @@ void AActor::PostActorConstruction()
 			UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName() );
 		}
 
-		if (GetWorld()->bMatchStarted && !deferBeginPlayAndUpdateOverlaps)
+		if (GetWorld()->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
 		{
 			BeginPlay();
 		}
@@ -2263,8 +2263,7 @@ void AActor::PostNetInit()
 	}
 	check(RemoteRole == ROLE_Authority);
 
-	AGameState *GameState = GetWorld()->GameState;
-	if (GameState && GameState->HasMatchStarted())
+	if (GetWorld() && GetWorld()->HasBegunPlay())
 	{
 		BeginPlay();
 	}

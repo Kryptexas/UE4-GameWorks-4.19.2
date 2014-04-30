@@ -1501,13 +1501,12 @@ ALevelScriptActor* ULevel::GetLevelScriptActor() const
 }
 
 
-void ULevel::InitializeActors()
+void ULevel::InitializeNetworkActors()
 {
 	check( OwningWorld );
 	bool			bIsServer				= OwningWorld->IsServer();
-	APhysicsVolume*	DefaultPhysicsVolume	= OwningWorld->GetDefaultPhysicsVolume();
 
-	// Kill non relevant client actors, initialize render time, set initial physic volume, initialize script execution and rigid body physics.
+	// Kill non relevant client actors and set net roles correctly
 	for( int32 ActorIndex=0; ActorIndex<Actors.Num(); ActorIndex++ )
 	{
 		AActor* Actor = Actors[ActorIndex];
@@ -1582,7 +1581,8 @@ void ULevel::RouteActorInitialize()
 		}
 	}
 
-	const bool bCallBeginPlay = OwningWorld->bMatchStarted;
+	const bool bCallBeginPlay = OwningWorld->HasBegunPlay();
+	TArray<AActor *> ActorsToBeginPlay;
 
 	// Send InitializeComponents on components and PostInitializeComponents.
 	for( int32 ActorIndex=0; ActorIndex<Actors.Num(); ActorIndex++ )
@@ -1592,7 +1592,7 @@ void ULevel::RouteActorInitialize()
 		{
 			if( !Actor->bActorInitialized )
 			{
-				// Call BeginPlay on Components.
+				// Call Initialize on Components.
 				Actor->InitializeComponents();
 
 				if(Actor->bWantsInitialize)
@@ -1610,7 +1610,7 @@ void ULevel::RouteActorInitialize()
 
 				if (bCallBeginPlay)
 				{
-					Actor->BeginPlay();
+					ActorsToBeginPlay.Add(Actor);
 				}
 			}
 
@@ -1619,6 +1619,13 @@ void ULevel::RouteActorInitialize()
 			//	     Rather, it was always touching and the mechanics of loading is just an implementation detail.
 			Actor->UpdateOverlaps(false);
 		}
+	}
+
+	// Do this in a second pass to make sure they're all initialized before begin play starts
+	for (int32 ActorIndex = 0; ActorIndex < ActorsToBeginPlay.Num(); ActorIndex++)
+	{
+		AActor* Actor = ActorsToBeginPlay[ActorIndex];
+		Actor->BeginPlay();			
 	}
 }
 

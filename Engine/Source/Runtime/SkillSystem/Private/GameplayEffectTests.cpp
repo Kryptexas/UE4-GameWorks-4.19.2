@@ -3998,8 +3998,9 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	WorldContext.SetCurrentWorld(World);
 	
 	FURL URL;
-	World->BeginPlay(URL);
-
+	World->InitializeActorsForPlay(URL);
+	World->BeginPlay();
+	
 	GameplayEffectsTest_InstantDamage(World, this);
 	GameplayEffectsTest_InstantDamageRemap(World, this);
 	GameplayEffectsTest_InstantDamage_Buffed(World, this);

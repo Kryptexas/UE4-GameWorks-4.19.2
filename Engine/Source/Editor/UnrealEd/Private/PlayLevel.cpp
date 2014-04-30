@@ -2423,7 +2423,8 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
-	PlayWorld->BeginPlay(URL);
+	PlayWorld->InitializeActorsForPlay(URL);
+	PlayWorld->BeginPlay();
 
 	// This must have already been set with a call to DisableRealtimeViewports() outside of this method.
 	check(!IsAnyViewportRealtime());

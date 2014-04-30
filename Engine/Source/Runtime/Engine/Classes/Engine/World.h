@@ -869,8 +869,11 @@ public:
 	/** Whether it was requested that the engine bring up a loading screen and block on async loading. */   
 	uint32 bRequestedBlockOnAsyncLoading:1;
 
-	/** Whether gameplay has begun. */
-	uint32 bBegunPlay:1;		
+	/** Whether actors have been initialized for play */
+	uint32 bActorsInitialized:1;
+
+	/** Whether BeginPlay has been called on actors */
+	uint32 bBegunPlay:1;
 
 	/** Whether the match has been started */
 	uint32 bMatchStarted:1;
@@ -1411,7 +1414,10 @@ public:
 	/** Returns the default brush. */
 	ABrush* GetBrush() const;
 
-	/** Returns true if game has already started, false otherwise. */
+	/** Returns true if the actors have been initialized and are ready to start play */
+	bool AreActorsInitialized() const;
+
+	/** Returns true if gameplay has already started, false otherwise. */
 	bool HasBegunPlay() const;
 
 	/**
@@ -2107,13 +2113,20 @@ public:
 	/** Spawns GameMode for the level. */
 	bool SetGameMode(const FURL& InURL);
 
-	/** BeginPlay - Begins gameplay in the level.
+	/** 
+	 * Initializes all actors and prepares them to start gameplay
 	 * @param InURL commandline URL
 	 * @param bResetTime (optional) whether the WorldSettings's TimeSeconds should be reset to zero
 	 */
-	void BeginPlay(const FURL& InURL, bool bResetTime = true);
+	void InitializeActorsForPlay(const FURL& InURL, bool bResetTime = true);
 
-	/** Looks for a PlayerController that was being swapped by the given NetConnection and, if found, destroys it
+	/**
+	 * Start gameplay. This will cause the game mode to transition to the correct state and call BeginPlay on all actors
+	 */
+	void BeginPlay();
+
+	/** 
+	 * Looks for a PlayerController that was being swapped by the given NetConnection and, if found, destroys it
 	 * (because the swap is complete or the connection was closed)
 	 * @param Connection - the connection that performed the swap
 	 * @return whether a PC waiting for a swap was found

@@ -403,17 +403,6 @@ void AGameMode::PreInitializeComponents()
 	InitGameState();
 }
 
-void AGameMode::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	if (!GetWorld()->IsInSeamlessTravel())
-	{
-		// If this isn't seamless travel, enter waiting state immediately. PostSeamlessTravel handles the state transition otherwise
-		SetMatchState(MatchState::WaitingToStart);
-	}
-}
-
 void AGameMode::RestartPlayer(AController* NewPlayer)
 {
 	if ( NewPlayer == NULL || NewPlayer->IsPendingKillPending() )
@@ -491,12 +480,23 @@ void AGameMode::InitStartSpot(AActor* StartSpot, AController* NewPlayer)
 {
 }
 
+void AGameMode::StartPlay()
+{
+	if (MatchState == MatchState::EnteringMap)
+	{
+		SetMatchState(MatchState::WaitingToStart);
+	}
+}
+
 void AGameMode::HandleMatchIsWaitingToStart()
 {
 	if (GameSession != NULL)
 	{
 		GameSession->HandleMatchIsWaitingToStart();
 	}
+
+	// Calls begin play on actors
+	GetWorldSettings()->NotifyBeginPlay();
 }
 
 bool AGameMode::ReadyToStartMatch()
@@ -508,7 +508,14 @@ bool AGameMode::ReadyToStartMatch()
 	}
 
 	// By default start when we have > 0 players
-	return (GetMatchState() == MatchState::WaitingToStart && NumPlayers + NumBots > 0);
+	if (GetMatchState() == MatchState::WaitingToStart)
+	{
+		if (NumPlayers + NumBots > 0)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void AGameMode::StartMatch()
@@ -1314,7 +1321,7 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 	// If players should start as spectators, leave them in the spectator state
 	if (!bStartPlayersAsSpectators)
 	{
-		// If match is in progress, start the player. Otherwise match will start from the game mode tick
+		// If match is in progress, start the player
 		if (IsMatchInProgress())
 		{
 			RestartPlayer(NewPlayer);
@@ -1322,6 +1329,15 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 			if (NewPlayer->GetPawn() != NULL)
 			{
 				NewPlayer->GetPawn()->ClientSetRotation(NewPlayer->GetPawn()->GetActorRotation());
+			}
+		}
+		// Check to see if we should start right away, avoids a one frame lag in single player games
+		else if (GetMatchState() == MatchState::WaitingToStart)
+		{
+			// Check to see if we should start the match
+			if (ReadyToStartMatch())
+			{
+				StartMatch();
 			}
 		}
 	}
@@ -1609,8 +1625,6 @@ void AGameMode::PostSeamlessTravel()
 			}
 		}
 	}
-
-	SetMatchState(MatchState::WaitingToStart);
 }
 
 void AGameMode::MatineeCancelled()

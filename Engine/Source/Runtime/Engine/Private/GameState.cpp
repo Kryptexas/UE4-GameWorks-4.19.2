@@ -19,11 +19,12 @@ AGameState::AGameState(const class FPostConstructInitializeProperties& PCIP)
 	bReplicateMovement = false;
 
 	// Note: this is very important to set to false. Though all replication infos are spawned at run time, during seamless travel
-	// they are held on to and brought over into the new world. In ULevel::InitializeActors, these PlayerStates may be treated as map/startup actors
+	// they are held on to and brought over into the new world. In ULevel::InitializeNetworkActors, these PlayerStates may be treated as map/startup actors
 	// and given static NetGUIDs. This also causes their deletions to be recorded and sent to new clients, which if unlucky due to name conflicts,
 	// may end up deleting the new PlayerStates they had just spaned.
 	bNetLoadOnClient = false;
 	MatchState = MatchState::EnteringMap;
+	PreviousMatchState = MatchState::EnteringMap;
 }
 
 /** Helper to return the default object of the GameMode class corresponding to this GameState. */
@@ -151,7 +152,11 @@ void AGameState::RemovePlayerState(APlayerState* PlayerState)
 
 void AGameState::HandleMatchIsWaitingToStart()
 {
-
+	if (Role != ROLE_Authority)
+	{
+		// Server handles this in AGameMode::HandleMatchIsWaitingToStart
+		GetWorldSettings()->NotifyBeginPlay();
+	}
 }
 
 void AGameState::HandleMatchHasStarted()
@@ -216,11 +221,13 @@ void AGameState::SetMatchState(FName NewState)
 
 void AGameState::OnRep_MatchState()
 {
-	if (MatchState == MatchState::WaitingToStart)
+	if (MatchState == MatchState::WaitingToStart || PreviousMatchState == MatchState::EnteringMap)
 	{
+		// Call MatchIsWaiting to start even if you join in progress at a later state
 		HandleMatchIsWaitingToStart();
 	}
-	else if (MatchState == MatchState::InProgress)
+	
+	if (MatchState == MatchState::InProgress)
 	{
 		HandleMatchHasStarted();
 	}
@@ -232,6 +239,8 @@ void AGameState::OnRep_MatchState()
 	{
 		HandleLeavingMap();
 	}
+
+	PreviousMatchState = MatchState;
 }
 
 bool AGameState::ShouldShowGore() const

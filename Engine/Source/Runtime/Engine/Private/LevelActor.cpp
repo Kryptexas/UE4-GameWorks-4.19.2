@@ -390,7 +390,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	}
 
 	// In-game deletion rules.
-	if( HasBegunPlay() )
+	if( AreActorsInitialized() )
 	{
 		// Never destroy the world settings actor. This used to be enforced by bNoDelete and is actually needed for 
 		// seamless travel and network games.
