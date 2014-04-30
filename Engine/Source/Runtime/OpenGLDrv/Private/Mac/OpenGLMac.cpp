@@ -816,8 +816,6 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 				}
 
-				uint32 IdleStart = FPlatformTime::Cycles();
-
 				int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 
 				if (Context->SyncInterval != RealSyncInterval)
@@ -837,9 +835,6 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					// Just hope that this will work OK...
 					[SlateCocoaWindow performDeferredOrderFront];
 				}
-				
-				GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-				GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 			}
 		}
 	}

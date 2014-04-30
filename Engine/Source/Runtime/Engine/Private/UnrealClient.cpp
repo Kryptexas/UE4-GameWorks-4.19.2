@@ -885,8 +885,12 @@ void FViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
 {
 	check( IsInRenderingThread() );
 
-
+	uint32 StartTime = FPlatformTime::Cycles();
 	RHIEndDrawingViewport( GetViewportRHI(), bPresent, bLockToVsync );
+	uint32 EndTime = FPlatformTime::Cycles();
+
+	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += EndTime - StartTime;
+	GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 }
 
 void InsertVolume(IInterface_PostProcessVolume* Volume, TArray< IInterface_PostProcessVolume* >& VolumeArray)

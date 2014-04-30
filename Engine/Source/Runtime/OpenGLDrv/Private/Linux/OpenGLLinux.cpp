@@ -350,8 +350,6 @@ void PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 
 		if ( bPresent )
 		{
-			uint32 IdleStart = FPlatformTime::Cycles();
-
 			int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 
 			if ( Context->SyncInterval != RealSyncInterval)
@@ -367,10 +365,7 @@ void PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 			SDL_GL_SwapWindow( Context->hWnd );
 
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
-			//			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
-
-			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
+//			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 		}
 	}
 }
