@@ -121,7 +121,7 @@ bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 		return false;
 	}
 
-	if ( UpdatedComponent->BodyInstance.GetPxRigidDynamic() == NULL )
+	if ( UpdatedComponent->GetBodyInstance() == NULL )
 	{
 		UE_LOG( LogVehicles, Warning, TEXT("Cannot create vehicle for %s. UpdatedComponent has not initialized its rigid body actor."),
 			*GetPathName() );
@@ -150,7 +150,7 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 		if ( CanCreateVehicle() )
 		{
 			check(UpdatedComponent);
-			check(UpdatedComponent->BodyInstance.GetPxRigidDynamic());
+			check(UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic());
 
 			SetupVehicle();
 
@@ -164,7 +164,7 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 
 void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 {
-	PxRigidDynamic* PVehicleActor = UpdatedComponent->BodyInstance.GetPxRigidDynamic();
+	PxRigidDynamic* PVehicleActor = UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic();
 
 	static PxMaterial* WheelMaterial = GPhysXSDK->createMaterial(0.0f, 0.0f, 0.0f);
 
@@ -230,7 +230,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 void UWheeledVehicleMovementComponent::SetupVehicleMass()
 {
-	const FBodyInstance& BodyInst = UpdatedComponent->BodyInstance;
+	const FBodyInstance& BodyInst = *UpdatedComponent->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = BodyInst.GetPxRigidDynamic();
 
 	// Override mass
@@ -252,7 +252,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 
 void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
 {
-	const FBodyInstance& VehicleBodyInstance = UpdatedComponent->BodyInstance;
+	const FBodyInstance& VehicleBodyInstance = *UpdatedComponent->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = VehicleBodyInstance.GetPxRigidDynamic();
 
 	const PxReal LengthScale = 100.f; // Convert default from m to cm
@@ -476,7 +476,10 @@ FVector UWheeledVehicleMovementComponent::GetWheelRestingPosition( const FWheelS
 		if ( Mesh && Mesh->SkeletalMesh )
 		{
 			const FVector BonePosition = Mesh->SkeletalMesh->GetComposedRefPoseMatrix( WheelSetup.BoneName ).GetOrigin() * Mesh->RelativeScale3D;
-			Offset += BonePosition;
+			//BonePosition is local for the root BONE of the skeletal mesh - however, we are using the Root BODY which may have its own transform, so we need to return the position local to the root BODY
+			const FMatrix RootBodyMTX = Mesh->SkeletalMesh->GetComposedRefPoseMatrix(Mesh->GetBodyInstance()->BodySetup->BoneName);
+			const FVector LocalBonePosition = RootBodyMTX.InverseTransformPosition(BonePosition);
+			Offset += LocalBonePosition;
 		}
 	}
 

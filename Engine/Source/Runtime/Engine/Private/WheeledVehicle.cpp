@@ -20,7 +20,7 @@ AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties&
 	Mesh->BodyInstance.bNotifyRigidBodyCollision = true;
 	Mesh->BodyInstance.bUseCCD = true;
 	Mesh->bBlendPhysics = true;
-	Mesh->bUseSingleBodyPhysics = true;
+	Mesh->bUseSingleBodyPhysics = false;
 	Mesh->bGenerateOverlapEvents = true;
 	RootComponent = Mesh;
 

@@ -227,7 +227,7 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 	PxVehicleDrive4W* PVehicleDrive4W = PxVehicleDrive4W::allocate(4);
 	check(PVehicleDrive4W);
 
-	PVehicleDrive4W->setup( GPhysXSDK, UpdatedComponent->BodyInstance.GetPxRigidDynamic(), *PWheelsSimData, DriveData, 0);
+	PVehicleDrive4W->setup( GPhysXSDK, UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic(), *PWheelsSimData, DriveData, 0);
 	PVehicleDrive4W->setToRestState();
 
 	// cleanup
