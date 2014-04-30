@@ -10,6 +10,7 @@
 #include "DeferredShadingCommon.usf"
 #include "DynamicLightingCommon.usf"
 #include "BRDF.usf"
+#include "MonteCarlo.usf"
 #include "IESLightProfilesCommon.usf"
 
 // 0/1, default is 0 as on NV670 there was a slowdown in average scene, keep for further experiments
@@ -154,11 +155,11 @@ float3 PointLightSpecular( FScreenSpaceData ScreenSpaceData, FDeferredLightData 
 	float VoH = saturate( dot(V, H) );
 	
 	// Generalized microfacet specular
-	float  D = Distribution( Roughness, NoH ) / PI;
-	float  G = GeometricVisibility( Roughness, NoV, NoL, VoH, L, V );
+	float D = Distribution( Roughness, NoH );
+	float Vis = GeometricVisibility( Roughness, NoV, NoL, VoH, L, V );
 	float3 F = Fresnel( InGBufferData.SpecularColor, VoH );
 
-	return (Energy * D * G) * F;
+	return (Energy * D * Vis) * F;
 }
 
 float3 SimplePointLightSpecular( FScreenSpaceData ScreenSpaceData, float3 UnitL, float3 V, half3 N )
@@ -173,11 +174,101 @@ float3 SimplePointLightSpecular( FScreenSpaceData ScreenSpaceData, float3 UnitL,
 	float NoH = saturate( dot(N, H) );
 	
 	// Generalized microfacet specular
-	float  D = D_GGX( Roughness, NoH ) / PI;
-	float  G = G_Implicit();
+	float  D = D_GGX( Roughness, NoH );
+	float  Vis = Vis_Implicit();
 	float3 F = F_None( InGBufferData.SpecularColor );
 
-	return (D * G) * F;
+	return (D * Vis) * F;
+}
+
+bool RayHitSphere( float3 R, float3 SphereCenter, float SphereRadius )
+{
+	float3 ClosestPointOnRay = max( 0, dot( SphereCenter, R ) ) * R;
+	float3 CenterToRay = ClosestPointOnRay - SphereCenter;
+	return dot( CenterToRay, CenterToRay ) <= Square( SphereRadius );
+}
+
+bool RayHitRect( float3 R, float3 RectCenter, float3 RectX, float3 RectY, float3 RectZ, float RectExtentX, float RectExtentY )
+{
+	// Intersect ray with plane
+	float3 PointOnPlane = R * max( 0, dot( RectZ, RectCenter ) / dot( RectZ, R ) );
+
+	bool InExtentX = abs( dot( RectX, PointOnPlane - RectCenter ) ) <= RectExtentX;
+	bool InExtentY = abs( dot( RectY, PointOnPlane - RectCenter ) ) <= RectExtentY;
+	return InExtentX && InExtentY;
+}
+
+float3 PointLightSpecularMIS( FScreenSpaceData ScreenSpaceData, FDeferredLightData LightData, float3 LightCenter, float3 V, float3 N, uint2 Random )
+{
+	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+	float Roughness = GBuffer.Roughness;
+
+	float NoV = saturate( dot( N, V ) );
+	NoV = max( 0.001, NoV );
+	
+	const float SourceRadius = max( 1, LightData.SpotAnglesAndSourceRadius.z );
+
+	const float DistanceSqr = dot( LightCenter, LightCenter );
+	const float3 ConeAxis = normalize( LightCenter );
+	const float ConeCos = sqrt( 1 - Square( SourceRadius ) / DistanceSqr );
+
+	const float SampleColor = (16.0/PI) / Square(SourceRadius);
+
+	float3 SpecularLighting = 0;
+
+	const uint NumSamplesGGX = 16;
+	const uint NumSamplesCone = 16;
+	for( uint i = 0; i < NumSamplesGGX + NumSamplesCone; i++ )
+	{
+		bool bSampleBRDF = i < NumSamplesGGX;
+
+		float3 L, H;
+		if( bSampleBRDF )
+		{
+			float2 E = Hammersley( i, NumSamplesCone, Random );
+			H = TangentToWorld( ImportanceSampleGGX( E, Roughness ).xyz, N );
+			L = 2 * dot( V, H ) * H - V;
+		}
+		else
+		{
+			float2 E = Hammersley( i, NumSamplesGGX, Random );
+			L = TangentToWorld( UniformSampleCone( E, ConeCos ).xyz, ConeAxis );
+			H = normalize(V + L);
+		}
+
+		float NoL = saturate( dot(N, L) );
+		float NoH = saturate( dot(N, H) );
+		float VoH = saturate( dot(V, H) );
+		
+		if( NoL > 0 )
+		{
+			if( bSampleBRDF && !RayHitSphere( L, LightCenter, SourceRadius ) )
+			{
+				continue;
+			}
+			
+			// Generalized microfacet specular
+			float D = D_GGX( Roughness, NoH );
+			float Vis = GeometricVisibility( Roughness, NoV, NoL, VoH, L, V );
+			float3 F = Fresnel( GBuffer.SpecularColor, VoH );
+
+			float ConePDF = 1.0 / ( 2 * PI * (1 - ConeCos) );
+			float GGXPDF = D * NoH / (4 * VoH);
+
+			if( bSampleBRDF )
+			{
+				float Weight = MISWeight( NumSamplesGGX, GGXPDF, NumSamplesCone, ConePDF );
+				SpecularLighting += F * ( SampleColor * NoL * Vis * (4 * VoH / NoH) * Weight );
+			}
+			else
+			{
+				float Weight = MISWeight( NumSamplesCone, ConePDF, NumSamplesGGX, GGXPDF );
+				SpecularLighting += F * ( SampleColor * NoL * Vis * D / ConePDF * Weight );
+			}
+		}
+	}
+
+	return SpecularLighting / (NumSamplesGGX + NumSamplesCone);
 }
 
 float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModelId, float3 L, float3 V, half3 N, float SubsurfaceExtinction )
@@ -356,13 +447,24 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 			float3 DiffuseLighting = PointLightDiffuse( ScreenSpaceData, L, -CameraVector, N );
 			float3 SpecularLighting = PointLightSpecular( ScreenSpaceData, LightData, L, -CameraVector, N );
 			float3 SubsurfaceLighting = PointLightSubsurface( ScreenSpaceData, LightingModelId, L, -CameraVector, N, SSSShadowTerm );
+			
+#define RAY_TRACE 0
+#if RAY_TRACE
+			SpecularLighting = PointLightSpecularMIS( ScreenSpaceData, LightData, L, -CameraVector, N, Random );
+#endif
 
 			float4 LightColor4 = float4(LightColor, Luminance(LightColor));
 			float4 DiffuseLighting4 = float4(DiffuseLighting, 0);
 			float4 SpecularLighting4 = float4(SpecularLighting, Luminance(SpecularLighting));
 			float4 SubsurfaceLighting4 = float4(SubsurfaceLighting, 0);
 
+#if RAY_TRACE
+			OutLighting += LightColor4 * ( (NoL * ShadowedAttenuation) * DiffuseLighting4 + SubsurfaceLighting4 * NonShadowedAttenuation );
+			OutLighting += LightColor4 * SpecularLighting4 * (LightRadiusMask * SpotFalloff * OpaqueShadowTerm);
+#else
 			OutLighting += LightColor4 * ( (NoL * ShadowedAttenuation) * (DiffuseLighting4 + SpecularLighting4) + SubsurfaceLighting4 * NonShadowedAttenuation );
+#endif
+
 			EstimatedCost += 0.4f;	// add the cost of the lighting computations (should sum up to sum to 1)
 		}
 	}

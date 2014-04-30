@@ -7,6 +7,9 @@
 // Physically based shading model
 // parameterized with the below options
 
+// Microfacet specular = D*G*F / (4*NoL*NoV) = D*Vis*F
+// Vis = G / (4*NoL*NoV)
+
 // Diffuse model
 // 0: Lambert
 // 1: Burley
@@ -25,7 +28,7 @@
 // 2: Kelemen
 // 3: Schlick
 // 4: Smith (matched to GGX)
-#define PHYSICAL_SPEC_G		3
+#define PHYSICAL_SPEC_G		4
 
 // Fresnel
 // 0: None
@@ -66,7 +69,7 @@ float D_Blinn( float Roughness, float NoH )
 	float m = Roughness * Roughness;
 	float m2 = m * m;
 	float n = 2 / m2 - 2;
-	return (n+2)/ 2 * PhongShadingPow( NoH, n );		// 1 mad, 1 exp, 1 mul, 1 log
+	return (n+2) / (2*PI) * PhongShadingPow( NoH, n );		// 1 mad, 1 exp, 1 mul, 1 log
 }
 
 // [Beckmann 1963, "The scattering of electromagnetic waves from rough surfaces"]
@@ -75,7 +78,7 @@ float D_Beckmann( float Roughness, float NoH )
 	float m = Roughness * Roughness;
 	float m2 = m * m;
 	float NoH2 = NoH * NoH;
-	return exp( (NoH2 - 1) / (m2 * NoH2) ) / ( m2 * NoH2 * NoH2 );
+	return exp( (NoH2 - 1) / (m2 * NoH2) ) / ( PI * m2 * NoH2 * NoH2 );
 }
 
 // GGX / Trowbridge-Reitz
@@ -85,7 +88,7 @@ float D_GGX( float Roughness, float NoH )
 	float m = Roughness * Roughness;
 	float m2 = m * m;
 	float d = ( NoH * m2 - NoH ) * NoH + 1;	// 2 mad
-	return m2 / ( d*d );					// 2 mul, 1 rcp
+	return m2 / ( PI*d*d );					// 3 mul, 1 rcp
 }
 
 // Anisotropic GGX
@@ -97,47 +100,46 @@ float D_GGXaniso( float RoughnessX, float RoughnessY, float NoH, float3 H, float
 	float XoH = dot( X, H );
 	float YoH = dot( Y, H );
 	float d = XoH*XoH / (mx*mx) + YoH*YoH / (my*my) + NoH*NoH;
-	return 1 / ( mx*my * d*d );
+	return 1 / ( PI * mx*my * d*d );
 }
 
-float G_Implicit()
+float Vis_Implicit()
 {
 	return 0.25;
 }
 
 // [Neumann et al. 1999, "Compact metallic reflectance models"]
-float G_Neumann( float NoV, float NoL )
+float Vis_Neumann( float NoV, float NoL )
 {
 	return 1 / ( 4 * max( NoL, NoV ) );
 }
 
 // [Kelemen 2001, "A microfacet based coupled specular-matte brdf model with importance sampling"]
-float G_Kelemen( float3 L, float3 V )
+float Vis_Kelemen( float3 L, float3 V )
 {
 	return 1 / ( 2 + 2 * dot(L, V) );
 }
 
-// Tuned to match behavior of G_Smith
+// Tuned to match behavior of Vis_Smith
 // [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]
-float G_Schlick( float Roughness, float NoV, float NoL )
+float Vis_Schlick( float Roughness, float NoV, float NoL )
 {
 	float k = Square( Roughness ) * 0.5;
-	float G_SchlickV = NoV * (1 - k) + k;
-	float G_SchlickL = NoL * (1 - k) + k;
-	return 0.25 / ( G_SchlickV * G_SchlickL );
+	float Vis_SchlickV = NoV * (1 - k) + k;
+	float Vis_SchlickL = NoL * (1 - k) + k;
+	return 0.25 / ( Vis_SchlickV * Vis_SchlickL );
 }
 
-// Smith term for GGX modified by Disney to be less "hot" for small roughness values
+// Smith term for GGX
 // [Smith 1967, "Geometrical shadowing of a random rough surface"]
-// [Burley 2012, "Physically-Based Shading at Disney"]
-float G_Smith( float Roughness, float NoV, float NoL )
+float Vis_Smith( float Roughness, float NoV, float NoL )
 {
 	float a = Square( Roughness );
 	float a2 = a*a;
 
-	float G_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
-	float G_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
-	return rcp( G_SmithV * G_SmithL );
+	float Vis_SmithV = NoV + sqrt( NoV * (NoV - NoV * a2) + a2 );
+	float Vis_SmithL = NoL + sqrt( NoL * (NoL - NoL * a2) + a2 );
+	return rcp( Vis_SmithV * Vis_SmithL );
 }
 
 float3 F_None( float3 SpecularColor )
@@ -187,18 +189,19 @@ float Distribution( float Roughness, float NoH )
 #endif
 }
 
+// Vis = G / (4*NoL*NoV)
 float GeometricVisibility( float Roughness, float NoV, float NoL, float VoH, float3 L, float3 V )
 {
 #if   PHYSICAL_SPEC_G == 0
-	return G_Implicit();
+	return Vis_Implicit();
 #elif PHYSICAL_SPEC_G == 1
-	return G_Neumann( NoV, NoL );
+	return Vis_Neumann( NoV, NoL );
 #elif PHYSICAL_SPEC_G == 2
-	return G_Kelemen( L, V );
+	return Vis_Kelemen( L, V );
 #elif PHYSICAL_SPEC_G == 3
-	return G_Schlick( Roughness, NoV, NoL );
+	return Vis_Schlick( Roughness, NoV, NoL );
 #elif PHYSICAL_SPEC_G == 4
-	return G_Smith( Roughness, NoV, NoL );
+	return Vis_Smith( Roughness, NoV, NoL );
 #endif
 }
 
@@ -213,69 +216,10 @@ float3 Fresnel( float3 SpecularColor, float VoH )
 #endif
 }
 
-uint BRDFReverseBits( uint bits )
-{
-#if SM5_PROFILE
-	return reversebits( bits );
-#else
-	bits = ( bits << 16) | ( bits >> 16);
-	bits = ( (bits & 0x00ff00ff) << 8 ) | ( (bits & 0xff00ff00) >> 8 );
-	bits = ( (bits & 0x0f0f0f0f) << 4 ) | ( (bits & 0xf0f0f0f0) >> 4 );
-	bits = ( (bits & 0x33333333) << 2 ) | ( (bits & 0xcccccccc) >> 2 );
-	bits = ( (bits & 0x55555555) << 1 ) | ( (bits & 0xaaaaaaaa) >> 1 );
-	return bits;
-#endif
-}
 
-float2 Hammersley( uint Index, uint NumSamples, uint2 Random )
-{
-	float E1 = frac( (float)Index / NumSamples + float( Random.x & 0xffff ) / (1<<16) );
-	float E2 = float( BRDFReverseBits(Index) ^ Random.y ) * 2.3283064365386963e-10;
-	return float2( E1, E2 );
-}
-
-float3 ImportanceSampleBlinn( float2 E, float Roughness, float3 N )
-{
-	float m = Roughness * Roughness;
-	float n = 2 / (m*m) - 2;
-
-	float Phi = 2 * PI * E.x;
-	// Under OpenGL a very small x value to pow will produce NAN/INF so to ensure that
-	// the importance sampling works specify a larger minimum value.
-	float CosTheta = pow( max(E.y, 0.0001), 1 / (n + 1) );
-	float SinTheta = sqrt( 1 - CosTheta * CosTheta );
-
-	float3 H;
-	H.x = SinTheta * cos( Phi );
-	H.y = SinTheta * sin( Phi );
-	H.z = CosTheta;
-
-	float3 UpVector = abs(N.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
-	float3 TangentX = normalize( cross( UpVector, N ) );
-	float3 TangentY = cross( N, TangentX );
-	// tangent to world space
-	return TangentX * H.x + TangentY * H.y + N * H.z;
-}
-
-float3 ImportanceSampleGGX( float2 E, float Roughness, float3 N )
-{
-	float m = Roughness * Roughness;
-
-	float Phi = 2 * PI * E.x;
-	float CosTheta = sqrt( (1 - E.y) / ( 1 + (m*m - 1) * E.y ) );
-	float SinTheta = sqrt( 1 - CosTheta * CosTheta );
-
-	float3 H;
-	H.x = SinTheta * cos( Phi );
-	H.y = SinTheta * sin( Phi );
-	H.z = CosTheta;
-
-	float3 UpVector = abs(N.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
-	float3 TangentX = normalize( cross( UpVector, N ) );
-	float3 TangentY = cross( N, TangentX );
-	// tangent to world space
-	return TangentX * H.x + TangentY * H.y + N * H.z;
-}
+//---------------
+// EnvBRDF
+//---------------
 
 Texture2D		PreIntegratedGF;
 SamplerState	PreIntegratedGFSampler;
