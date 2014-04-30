@@ -1072,6 +1072,11 @@ bool UActorComponent::GetIsReplicated() const
 	return bReplicates;
 }
 
+bool UActorComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+{
+	return false;
+}
+
 bool UActorComponent::GetComponentClassCanReplicate() const
 {
 	return true;

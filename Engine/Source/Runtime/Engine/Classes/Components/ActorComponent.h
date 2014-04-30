@@ -136,6 +136,9 @@ public:
 	/** Returns whether replication is enabled or not. */
 	bool GetIsReplicated() const;
 
+	/** Allows a component to replicate other subobject on the actor  */
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);
+
 	virtual bool GetComponentClassCanReplicate() const;
 
 	/** Returns whether this component is an editor-only object or not */

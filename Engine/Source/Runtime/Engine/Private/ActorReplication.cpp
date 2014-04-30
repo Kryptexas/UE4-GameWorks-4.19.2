@@ -249,6 +249,7 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 		if (ActorComp && ActorComp->GetIsReplicated())
 		{
 			WroteSomething |= Channel->ReplicateSubobject(ActorComp, *Bunch, *RepFlags);
+			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);
 		}
 	}
 	return WroteSomething;
