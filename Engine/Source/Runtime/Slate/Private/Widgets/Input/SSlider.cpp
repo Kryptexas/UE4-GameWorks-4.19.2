@@ -189,3 +189,8 @@ float SSlider::PositionToValue( const FGeometry& MyGeometry, const FVector2D& Ab
 	
 	return FMath::Clamp(RelativeValue, 0.0f, 1.0f);
 }
+
+void SSlider::SetValue(const TAttribute<float>& InValueAttribute)
+{
+	ValueAttribute = InValueAttribute;
+}

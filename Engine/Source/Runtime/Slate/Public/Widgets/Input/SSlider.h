@@ -74,6 +74,13 @@ public:
 		return ValueAttribute.Get();
 	}
 
+	/**
+	* Gets the slider's value.
+	*
+	* @return Slider value.
+	*/
+	void SetValue(const TAttribute<float>& InValueAttribute);
+
 public:
 
 	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;

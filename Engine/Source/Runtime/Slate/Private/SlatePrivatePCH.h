@@ -27,3 +27,4 @@
 #include "ComboBoxWidgetStyle.h"
 #include "ComboButtonWidgetStyle.h"
 #include "TextBlockWidgetStyle.h"
+#include "EditableTextWidgetStyle.h"

@@ -581,6 +581,11 @@ public:
 	void SetToolTip( const TSharedPtr<IToolTip>& InToolTip );
 
 	/**
+	 * Get the cursor that should appear when this widget is hovered
+	 */
+	TOptional<EMouseCursor::Type> GetCursor() const;
+
+	/**
 	 * Set the cursor that should appear when this widget is hovered
 	 */
 	void SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCursor );
