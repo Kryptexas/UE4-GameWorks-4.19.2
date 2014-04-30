@@ -880,13 +880,15 @@ TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const FStr
 
 void FPortableObjectEntry::AddReference( const FString& InReference )
 {
-	// Reference comments can contain multiple references in a single line so we parse those out.
-	TArray<FString> ReferencesToProcess;
-	InReference.ParseIntoArray( &ReferencesToProcess, TEXT(" "), true );
-	for( const FString& Reference : ReferencesToProcess )
-	{
-		ReferenceComments.AddUnique( Reference );
-	}
+	ReferenceComments.AddUnique(InReference);
+
+	//// Reference comments can contain multiple references in a single line so we parse those out.
+	//TArray<FString> ReferencesToProcess;
+	//InReference.ParseIntoArray( &ReferencesToProcess, TEXT(" "), true );
+	//for( const FString& Reference : ReferencesToProcess )
+	//{
+	//	ReferenceComments.AddUnique( Reference );
+	//}
 }
 
 void FPortableObjectEntry::AddReferences( const TArray<FString>& InReferences )
@@ -961,7 +963,7 @@ UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(con
 }
 
 
-bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath, const FString& DestinationPath  )
+bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath, const FString& DestinationPath, const FString& Filename )
 {
 	// Get manifest name.
 	FString ManifestName;
@@ -1067,7 +1069,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 					FString OutputFileName;
 					if (FPaths::GetExtension(DestinationPath) != "po")
 					{
-						OutputFileName = DestinationPath / CultureName + TEXT(".po");
+						OutputFileName = DestinationPath / CultureName / Filename;
 					}
 					else
 					{
@@ -1087,7 +1089,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 	return true;
 }
 
-bool UInternationalizationExportCommandlet::DoImport( const FString& SourcePath, const FString& DestinationPath  )
+bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename)
 {
 	// Get manifest name.
 	FString ManifestName;
@@ -1113,7 +1115,7 @@ bool UInternationalizationExportCommandlet::DoImport( const FString& SourcePath,
 		FString POFilePath;
 		if (FPaths::GetExtension(SourcePath) != "po")
 		{
-			POFilePath = SourcePath / CultureName + TEXT(".po");
+			POFilePath = SourcePath / CultureName / Filename;
 		}
 		else
 		{
@@ -1122,7 +1124,7 @@ bool UInternationalizationExportCommandlet::DoImport( const FString& SourcePath,
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
-			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Could not find file %s"), *POFilePath );
+			UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("Could not find file %s"), *POFilePath );
 			continue;
 		}
 
@@ -1265,6 +1267,13 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	FString Filename; // Name of the file to read or write from
+	if (!GetConfigString(*SectionName, TEXT("PortableObjectName"), Filename, ConfigPath))
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No portable object name specified."));
+		return -1;
+	}
+
 	// Get cultures to generate.
 	if( GetConfigArray(*SectionName, TEXT("CulturesToGenerate"), CulturesToGenerate, ConfigPath) == 0 )
 	{
@@ -1287,7 +1296,7 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 	if( bDoExport )
 	{
-		if( !DoExport( SourcePath, DestinationPath ) )
+		if (!DoExport(SourcePath, DestinationPath, Filename))
 		{
 			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to export localization files."));
 			return -1;
@@ -1296,7 +1305,7 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 
 	if( bDoImport )
 	{
-		if( !DoImport( SourcePath, DestinationPath ) )
+		if (!DoImport(SourcePath, DestinationPath, Filename))
 		{
 			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to import localization files."));
 			return -1;

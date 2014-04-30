@@ -372,8 +372,8 @@ public:
 	virtual int32 Main(const FString& Params) OVERRIDE;
 	// End UCommandlet Interface
 private:
-	bool DoExport( const FString& SourcePath, const FString& DestinationPath );
-	bool DoImport( const FString& SourcePath, const FString& DestinationPath );
+	bool DoExport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename);
+	bool DoImport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename);
 
 	TArray<FString> CulturesToGenerate;
 	FString ConfigPath;

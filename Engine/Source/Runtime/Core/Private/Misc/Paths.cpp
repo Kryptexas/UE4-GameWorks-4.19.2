@@ -277,7 +277,7 @@ const TArray<FString>& FPaths::GetPropertyNameLocalizationPaths()
 	return Results;
 }
 
-const TArray<FString>& FPaths::GetToolTipLocalizationPaths()
+const TArray<FString>& FPaths::GetToolTipLocalizationPaths() 
 {
 	static TArray<FString> Results;
 	static bool HasInitialized = false;
