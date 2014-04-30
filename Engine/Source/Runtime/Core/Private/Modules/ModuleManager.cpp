@@ -123,6 +123,19 @@ bool FModuleManager::IsModuleLoaded( const FName InModuleName ) const
 	return false;
 }
 
+bool FModuleManager::IsModuleUpToDate( const FName InModuleName ) const
+{
+	TMap<FName, FString> ModulePathMap;
+	FindModulePaths(*InModuleName.ToString(), ModulePathMap);
+
+	if(ModulePathMap.Num() != 1)
+	{
+		return false;
+	}
+
+	return CheckModuleCompatibility(*TMap<FName, FString>::TConstIterator(ModulePathMap).Value());
+}
+
 void FModuleManager::AddModule( const FName InModuleName )
 {
 	// Do we already know about this module?  If not, we'll create information for this module now.
@@ -1139,7 +1152,7 @@ bool FModuleManager::GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> Module
 	return false;
 }
 
-void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths)
+void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Search through the engine directory
 	FindModulePathsInDirectory(FPlatformProcess::GetModulesDirectory(), false, NamePattern, OutModulePaths);
@@ -1157,7 +1170,7 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 	}
 }
 
-void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths)
+void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Get the module configuration for this directory type
 	#if UE_BUILD_DEBUG
@@ -1492,6 +1505,17 @@ void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString
 	while (IFileManager::Get().GetFileAgeSeconds(*UniqueModuleFileName) != -1.0);
 }
 
+const TCHAR *FModuleManager::GetUBTConfiguration()
+{
+#if UE_BUILD_DEBUG
+	return TEXT("Debug");
+#elif UE_BUILD_SHIPPING
+	return TEXT("Shipping");
+#else
+	static bool bIsDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	return bIsDebugGame? TEXT("DebugGame") : TEXT("Development");
+#endif
+}
 
 bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
@@ -1503,15 +1527,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 	ModulesThatWereBeingRecompiled = ModulesBeingCompiled;
 
 	const TCHAR* BuildPlatformName = FPlatformMisc::GetUBTPlatform();
-
-	FString BuildConfigurationName = 
-#if UE_BUILD_DEBUG
-		TEXT( "Debug");
-#elif UE_BUILD_SHIPPING
-		TEXT( "Shipping" );
-#else
-		FParse::Param(FCommandLine::Get(), TEXT("debug"))? TEXT( "DebugGame" ) : TEXT( "Development" );
-#endif
+	const TCHAR* BuildConfigurationName = GetUBTConfiguration();
 
 	RecompileModulesCallback = InRecompileModulesCallback;
 
@@ -1554,7 +1570,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 
 	FString CmdLineParams = FString::Printf( TEXT( "%s%s %s %s %s%s" ), 
 		*GameName, *ModuleArg, 
-		BuildPlatformName, *BuildConfigurationName, 
+		BuildPlatformName, BuildConfigurationName, 
 		*ExtraArg, *InAdditionalCmdLineArgs );
 
 	const bool bInvocationSuccessful = InvokeUnrealBuildTool(CmdLineParams, Ar);

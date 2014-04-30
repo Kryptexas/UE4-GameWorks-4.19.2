@@ -68,6 +68,13 @@ public:
 	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) = 0;
 
 	/**
+	 * Checks if the modules for a project are up to date
+	 *
+	 * @return	true if the UBT needs to be run to recompile modules for a project.
+	 */
+	virtual bool AreProjectModulesUpToDate( ) = 0;
+
+	/**
 	 * Gets the name of the text file that contains the most recently loaded filename.
 	 *
 	 * This is NOT the name of the recently loaded .uproject file.

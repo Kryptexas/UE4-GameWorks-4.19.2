@@ -11,9 +11,6 @@ void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
-	// cache the string for the current platform
-	static FString UBTPlatform(FPlatformMisc::GetUBTPlatform());
-
 	for( TArray< FProjectOrPluginInfo::FModuleInfo >::TConstIterator ModuleInfoIt( ProjectOrPluginInfo.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
 	{
 		const FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleInfoIt;
@@ -21,96 +18,22 @@ void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap
 		// Don't need to do anything if this module is already loaded
 		if( !FModuleManager::Get().IsModuleLoaded( ModuleInfo.Name ) )
 		{
-			bool bShouldLoadModule = false;
-			// Only load modules that support this platform
-			if ((ModuleInfo.WhitelistPlatforms.Num() == 0 || ModuleInfo.WhitelistPlatforms.Contains(UBTPlatform)) &&
-				(ModuleInfo.BlacklistPlatforms.Num() == 0 || !ModuleInfo.BlacklistPlatforms.Contains(UBTPlatform)))
+			if( LoadingPhase == ModuleInfo.LoadingPhase && ShouldLoadModule(ModuleInfo) )
 			{
-				bShouldLoadModule = true;
-			}
+				// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
 
-			// Only load modules for the current loading phase
-			if( bShouldLoadModule && LoadingPhase == ModuleInfo.LoadingPhase )
-			{
-				bShouldLoadModule = false;
-				switch( ModuleInfo.Type )
+				// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
+				//       that are part of this project or plugin.  That's totally fine.
+				ELoadModuleFailureReason::Type FailureReason;
+				const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( ModuleInfo.Name, FailureReason );
+				if( ModuleInterface.IsValid() )
 				{
-				case FProjectOrPluginInfo::EModuleType::Runtime:
-					{
-#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-						bShouldLoadModule = true;
-#endif		// WITH_ENGINE
-					}
-					break;
-
-				case FProjectOrPluginInfo::EModuleType::RuntimeNoCommandlet:
-					{
-#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-						if (!IsRunningCommandlet())
-						{
-							bShouldLoadModule = true;
-						}
-#endif		// WITH_ENGINE
-					}
-					break;
-
-				case FProjectOrPluginInfo::EModuleType::Developer:
-					{
-#if WITH_UNREAL_DEVELOPER_TOOLS
-						bShouldLoadModule = true;
-#endif		// WITH_UNREAL_DEVELOPER_TOOLS
-					}
-					break;
-
-				case FProjectOrPluginInfo::EModuleType::Editor:
-					{
-#if WITH_EDITOR
-						if( GIsEditor )
-						{
-							bShouldLoadModule = true;
-						}
-#endif		// WITH_EDITOR
-					}
-					break;
-					
-				case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
-					{
-#if WITH_EDITOR
-						if (GIsEditor && !IsRunningCommandlet())
-						{
-							bShouldLoadModule = true;
-						}
-#endif		// WITH_EDITOR
-					}
-					break;
-
-				case FProjectOrPluginInfo::EModuleType::Program:
-					{
-#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
-						bShouldLoadModule = true;
-#endif		// WITH_PLUGIN_SUPPORT
-					}
-					break;
+					// Module loaded OK (or was already loaded.)
 				}
-
-
-				if( bShouldLoadModule )
+				else 
 				{
-					// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
-
-					// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
-					//       that are part of this project or plugin.  That's totally fine.
-					ELoadModuleFailureReason::Type FailureReason;
-					const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( ModuleInfo.Name, FailureReason );
-					if( ModuleInterface.IsValid() )
-					{
-						// Module loaded OK (or was already loaded.)
-					}
-					else 
-					{
-						// The module failed to load. Note this in the ModuleLoadErrors list.
-						ModuleLoadErrors.Add(ModuleInfo.Name, FailureReason);
-					}
+					// The module failed to load. Note this in the ModuleLoadErrors list.
+					ModuleLoadErrors.Add(ModuleInfo.Name, FailureReason);
 				}
 			}
 		}
@@ -321,6 +244,20 @@ bool FProjectOrPlugin::IsUpToDate( const FString &EngineIdentifier ) const
 	return true;
 }
 
+bool FProjectOrPlugin::AreModulesUpToDate( ) const
+{
+	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
+	for (TArray< FProjectOrPluginInfo::FModuleInfo >::TConstIterator Iter(ProjectOrPluginInfo.Modules); Iter; ++Iter)
+	{
+		const FProjectOrPluginInfo::FModuleInfo &ModuleInfo = *Iter;
+		if (ShouldBuildModule(ModuleInfo) && !FModuleManager::Get().IsModuleUpToDate(ModuleInfo.Name))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void FProjectOrPlugin::UpdateVersionToCurrent( const FString &EngineIdentifier )
 {
 	FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
@@ -346,6 +283,104 @@ void FProjectOrPlugin::ReplaceModulesInProject(const TArray<FString>* StartupMod
 			ProjectOrPluginInfo.Modules.Add(ModuleInfo);
 		}
 	}
+}
+
+bool FProjectOrPlugin::ShouldBuildModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const
+{
+	// Cache the string for the current platform
+	static FString UBTPlatform(FPlatformMisc::GetUBTPlatform());
+
+	// Check the platform is whitelisted
+	if(ModuleInfo.WhitelistPlatforms.Num() > 0 && !ModuleInfo.WhitelistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	// Check the platform is not blacklisted
+	if(ModuleInfo.BlacklistPlatforms.Num() > 0 && ModuleInfo.BlacklistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	// Check the module is compatible with this target. This should match UEBuildTarget.ShouldIncludePluginModule in UBT
+	switch (ModuleInfo.Type)
+	{
+	case FProjectOrPluginInfo::EModuleType::Runtime:
+	case FProjectOrPluginInfo::EModuleType::RuntimeNoCommandlet:
+		return true;
+
+	case FProjectOrPluginInfo::EModuleType::Developer:
+		#if WITH_UNREAL_DEVELOPER_TOOLS
+			return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::Editor:
+	case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
+		#if WITH_EDITOR
+			return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::Program:
+		#if IS_PROGRAM
+			return true;
+		#endif
+		break;
+	}
+
+	return false;
+}
+
+bool FProjectOrPlugin::ShouldLoadModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const
+{
+	// Check that the module is built for this configuration
+	if(!ShouldBuildModule(ModuleInfo))
+	{
+		return false;
+	}
+
+	// Check that the runtime environment allows it to be loaded
+	switch (ModuleInfo.Type)
+	{
+	case FProjectOrPluginInfo::EModuleType::Runtime:
+		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+			return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::RuntimeNoCommandlet:
+		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+			if(!IsRunningCommandlet()) return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::Developer:
+		#if WITH_UNREAL_DEVELOPER_TOOLS
+			return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::Editor:
+		#if WITH_EDITOR
+			if(GIsEditor) return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
+		#if WITH_EDITOR
+			if(GIsEditor && !IsRunningCommandlet()) return true;
+		#endif
+		break;
+
+	case FProjectOrPluginInfo::EModuleType::Program:
+		#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
+			return true;
+		#endif
+		break;
+	}
+
+	return false;
 }
 
 bool FProjectOrPlugin::ReadNumberFromJSON(const TSharedRef< FJsonObject >& FileObject, const FString& PropertyName, int32& OutNumber ) const

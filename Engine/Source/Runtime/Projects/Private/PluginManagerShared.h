@@ -229,6 +229,13 @@ public:
 	bool IsUpToDate( const FString &EngineIdentifier ) const;
 
 	/**
+	 * Checks whether the modules for a project or plugin need to be compiled
+	 *
+	 * @return true if the project or plugin needs to be compiled
+	 */
+	bool AreModulesUpToDate( ) const;
+
+	/**
 	 * Updates all version info to match the currently running executable.
 	 */
 	void UpdateVersionToCurrent( const FString &EngineIdentifier );
@@ -241,6 +248,12 @@ public:
 	void ReplaceModulesInProject(const TArray<FString>* StartupModuleNames);
 
 protected:
+	/** Checks whether a given module should be built for this build configuration */
+	bool ShouldBuildModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
+
+	/** Checks whether a given module should be loaded for this build configuration */
+	bool ShouldLoadModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
+
 	/** @return Exposes access to the project or plugin's descriptor */
 	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() = 0;
 	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const = 0;

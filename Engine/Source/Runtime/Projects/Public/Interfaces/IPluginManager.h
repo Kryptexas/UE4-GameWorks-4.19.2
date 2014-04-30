@@ -97,6 +97,12 @@ public:
 	 */
 	virtual bool IsPluginModule( const FName ModuleName ) const = 0;
 
+	/** 
+	 * Checks whether modules for the enabled plugins are up to date
+	 *
+	 * @returns true if the enabled plugin modules are up to date
+	 */
+	virtual bool AreEnabledPluginModulesUpToDate( ) = 0;
 
 	/**
 	 * Gets status about all currently known plugins

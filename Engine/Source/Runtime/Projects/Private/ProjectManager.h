@@ -86,6 +86,7 @@ public:
 	/** IProjectManager interface */
 	virtual bool LoadProjectFile( const FString& ProjectFile ) OVERRIDE;
 	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
+	virtual bool AreProjectModulesUpToDate( ) OVERRIDE;
 	virtual const FString& GetAutoLoadProjectFileName() OVERRIDE;
 	virtual const FString& NonStaticGetProjectFileExtension() OVERRIDE;
 	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& ModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;

@@ -428,6 +428,14 @@ public:
 	 */
 	void SetGameBinariesDirectory(const TCHAR* InDirectory);
 
+	/**
+	 * Checks to see if the specified module exists and is compatible with the current engine version. 
+	 *
+	 * @param	InModuleName		The base name of the module file.
+	 *
+	 * @return	True if module exists and is up to date.
+	 */
+	bool IsModuleUpToDate( const FName InModuleName ) const;
 
 	/**
 	 * Adds a module to our list of modules, unless it's already known
@@ -446,6 +454,13 @@ public:
 	 * @return	True if the module was found to contain UObjects, or false if it did not (or wasn't loaded.)
 	 */
 	bool DoesLoadedModuleHaveUObjects( const FName ModuleName );
+
+	/**
+	 * Gets the build configuration for compiling modules, as required by UBT.
+	 *
+	 * @return	Configuration name for UBT.
+	 */
+	static const TCHAR *GetUBTConfiguration( );
 
 private:
 
@@ -597,9 +612,11 @@ private:
 	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
 	// End of FExec interface.
 
+public:
 	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
 	static FString MakeUBTArgumentsForModuleCompiling();
 
+private:
 	/** Called during CheckForFinishedModuleDLLCompile() for each successfully recomplied module */
 	void OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
 
@@ -616,10 +633,10 @@ private:
 	static bool GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> ModuleInfo, FDateTime& OutFileTimeStamp);
 
 	/** Finds modules matching a given name wildcard. */
-	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths);
+	void FindModulePaths(const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
 
 	/** Finds modules matching a given name wildcard within a given directory. */
-	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths);
+	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
 
 private:
 

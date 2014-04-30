@@ -125,6 +125,7 @@ public:
 	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) OVERRIDE;
 	virtual bool IsPluginModule( const FName ModuleName ) const OVERRIDE;
+	virtual bool AreEnabledPluginModulesUpToDate() OVERRIDE;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const OVERRIDE;
 	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) OVERRIDE;
 	virtual bool IsRestartRequired() const OVERRIDE;

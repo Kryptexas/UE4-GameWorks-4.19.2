@@ -172,6 +172,11 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 	return bSuccess;
 }
 
+bool FProjectManager::AreProjectModulesUpToDate()
+{
+	return !CurrentlyLoadedProject.IsValid() || CurrentlyLoadedProject->AreModulesUpToDate();
+}
+
 const FString& FProjectManager::GetAutoLoadProjectFileName()
 {
 	static FString RecentProjectFileName = FPaths::Combine(*FPaths::GameAgnosticSavedDir(), TEXT("AutoLoadProject.txt"));
