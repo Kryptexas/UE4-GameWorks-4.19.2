@@ -38,11 +38,7 @@ public:
 	TSharedPtr<FUICommandInfo> ImplementFunction;
 	TSharedPtr<FUICommandInfo> FindEntry;
 	TSharedPtr<FUICommandInfo> DeleteEntry;
-	TSharedPtr<FUICommandInfo> FindUserDefinedEnumInContentBrowser;
-	TSharedPtr<FUICommandInfo> AddNewUserDefinedEnum;
 	TSharedPtr<FUICommandInfo> GotoNativeVarDefinition;
-	TSharedPtr<FUICommandInfo> FindUserDefinedStructInContentBrowser;
-	TSharedPtr<FUICommandInfo> AddNewUserDefinedStruct;
 	// Add New Item
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
@@ -173,8 +169,6 @@ private:
 	bool CanFindEntry() const;
 	void OnDeleteEntry();
 	bool CanDeleteEntry() const;
-	void OnFindUserDefinedEnumInContentBrowser() const;
-	void AddNewUserDefinedEnum();
 	FReply OnAddNewLocalVariable();
 	bool CanRequestRenameOnActionNode() const;
 	bool IsDuplicateActionVisible() const;
@@ -182,8 +176,6 @@ private:
 	void OnDuplicateAction();
 	void GotoNativeCodeVarDefinition();
 	bool IsNativeVariable() const;
-	void OnFindUserDefinedStructInContentBrowser() const;
-	void AddNewUserDefinedStruct();
 
 	/** Callback when the filter is changed, forces the action tree(s) to filter */
 	void OnFilterTextChanged( const FText& InFilterText );
