@@ -252,6 +252,22 @@ void AActor::CheckActorComponents()
 	}
 }
 
+void AActor::ResetOwnedComponents()
+{
+	TArray<UObject*> Children;
+	OwnedComponents.Empty();
+	GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+
+	for (UObject* Child : Children)
+	{
+		UActorComponent* Component = Cast<UActorComponent>(Child);
+		if (Component)
+		{
+			OwnedComponents.Add(Component);
+		}
+	}
+}
+
 void AActor::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -263,18 +279,7 @@ void AActor::PostInitProperties()
 	// This is not necessary for CDOs
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		TArray<UObject*> Children;
-		OwnedComponents.Empty();
-		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
-
-		for (UObject* Child : Children)
-		{
-			UActorComponent* Component = Cast<UActorComponent>(Child);
-			if (Component)
-			{
-				OwnedComponents.Add(Component);
-			}
-		}
+		ResetOwnedComponents();
 	}
 }
 
@@ -549,6 +554,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 	}
 
 	Super::PostLoadSubobjects(OuterInstanceGraph);
+
+	ResetOwnedComponents();
 
 	if (RootComponent && bHadRoot && OldRoot != RootComponent)
 	{

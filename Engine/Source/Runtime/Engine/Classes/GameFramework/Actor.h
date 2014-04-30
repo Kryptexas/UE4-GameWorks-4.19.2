@@ -1954,6 +1954,8 @@ private:
 	UPROPERTY(transient, duplicatetransient)
 	TArray<UActorComponent*> OwnedComponents;
 
+	void ResetOwnedComponents();
+
 public:
 	//=============================================================================
 	// Navigation related functions
