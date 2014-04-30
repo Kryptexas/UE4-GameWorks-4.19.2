@@ -259,7 +259,7 @@ TArray<FColor> FScreenshotRequest::HighresScreenshotMaskColorArray;
 
 int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY)
 {
-	float FrameTime;
+	float DiffTime;
 	if (FApp::IsBenchmarking() || FApp::UseFixedTimeStep())
 	{
 		/** If we're in fixed time step mode, FApp::GetCurrentTime() will be incorrect for benchmarking */
@@ -268,16 +268,16 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 		{
 			LastTime = CurrentTime;
 		}
-		FrameTime = CurrentTime - LastTime;
+		DiffTime = CurrentTime - LastTime;
 		LastTime = CurrentTime;
 	}
 	else
 	{
-		/** Use the FrameTime we computed last frame, because it correctly handles the end of frame idling and corresponds better to the other unit times. */
-		FrameTime = FApp::GetCurrentTime() - FApp::GetLastTime();
+		/** Use the DiffTime we computed last frame, because it correctly handles the end of frame idling and corresponds better to the other unit times. */
+		DiffTime = FApp::GetCurrentTime() - FApp::GetLastTime();
 	}
 
-	RawFrameTime = FrameTime * 1000.0f;
+	RawFrameTime = DiffTime * 1000.0f;
 	FrameTime = 0.9 * FrameTime + 0.1 * RawFrameTime;
 
 	/** Number of milliseconds the gamethread was used last frame. */
