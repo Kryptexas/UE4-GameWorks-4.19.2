@@ -69,28 +69,29 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
 	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
-
+	
 #if ENABLE_SKY_LIGHT
 	BRANCH
 	if (SkyLightParameters.y > 0 && SpecularIBL.a < .001f)
 	{
-		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, View.UseLightmaps);
+		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness);
 		// Add in sky wherever reflection captures don't have coverage
-		SpecularIBL.rgb += (1 - SpecularIBL.a) * SkyLighting;
+		SpecularIBL.rgb = lerp(SkyLighting, SpecularIBL.rgb, SpecularIBL.a);
 	}
 #endif
-	
-	BRANCH
-	if( View.UseLightmaps )
-	{
-		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
-		SpecularIBL.rgb *= Luminance( LowGlossIndirectSpecular );
-	}
-	
-	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
-	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
-	return SpecularIBL.rgb * SpecularColor;
+	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
+	half3 Reflectance = EnvBRDFApprox(SpecularColor, Roughness, NoV);
+
+	// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
+	float MixAlpha = saturate(Roughness * 4 - 3);
+	float3 SmoothColor = Luminance(LowGlossIndirectSpecular) * (1 - MixAlpha);
+	float3 RoughColor = LowGlossIndirectSpecular * MixAlpha;
+	
+	// Combine with brightness from LowGlossIndirectSpecular
+	float3 MixedSpecularIBL = lerp(SpecularIBL.xyz, (SpecularIBL.rgb * SmoothColor + Luminance(SpecularIBL.rgb) * RoughColor), View.ReflectionLightmapMixingMask);
+	return MixedSpecularIBL * Reflectance;
+
 #else
 	return 0;
 #endif
@@ -411,22 +412,7 @@ float3 GetPrecomputedIndirectLighting(
 	#endif
 
 	// Sky lighting must contribute to LowGlossIndirectSpecular for ReflectionEnvironment lightmap mixing
-	float3 SkyLighting = GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV);
-
-	BRANCH
-	if( View.UseLightmaps )
-	{
-		Lighting += SkyLighting;
-	}
-	else
-	{
-	#if TRANSLUCENCY_LIGHTING_SURFACE && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1);
-		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.WorldNormal, CubemapArrayIndex, DiffuseMip);
-		
-		Lighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyLighting;
-	#endif
-	}
+	Lighting += GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV);
 
 	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING
 		Lighting *= View.IndirectLightingColorScale;
