@@ -1371,6 +1371,7 @@ FVector UCanvas::Project( FVector Location )
 
 	if (SceneView != NULL)
 	{
+		Location.DiagnosticCheckNaN();
 		V = SceneView->Project(Location);
 	}
 

@@ -437,6 +437,12 @@ FVector4 FSceneView::PixelToWorld(float X,float Y,float Z) const
 FPlane FSceneView::Project(const FVector& WorldPoint) const
 {
 	FPlane Result = WorldToScreen(WorldPoint);
+
+	if (Result.W == 0)
+	{
+		Result.W = KINDA_SMALL_NUMBER;
+	}
+
 	const float RHW = 1.0f / Result.W;
 
 	return FPlane(Result.X * RHW,Result.Y * RHW,Result.Z * RHW,Result.W);
