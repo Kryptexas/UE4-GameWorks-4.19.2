@@ -620,9 +620,8 @@ namespace AutomationTool
                 string Output;
                 if (!LogP4Output(out Output, "changes " + CommandLine, null, AllowSpew))
                 {
-                    return false;
+                    throw new AutomationException("P4 returned failure.");
                 }
-
                 var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
                 for(int LineIndex = 0; LineIndex < Lines.Length; ++LineIndex)
                 {
@@ -715,8 +714,10 @@ namespace AutomationTool
 					}
                 }
             }
-            catch (Exception)
+            catch (Exception Ex)
             {
+                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Unable to get P4 changes with {0}", CommandLine);
+                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
                 return false;
             }
             ChangeRecords.Sort((A, B) => ChangeRecord.Compare(A, B));

@@ -5012,6 +5012,18 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                     }
                 }
             }
+            {
+                var StartTime = DateTime.UtcNow;
+                foreach (var NodeToDo in OrdereredToDo)
+                {
+                    if (GUBPNodes[NodeToDo].RunInEC() && !NodeIsAlreadyComplete(NodeToDo, LocalOnly)) // if something is already finished, we don't put it into EC
+                    {
+                        CleanSharedTempStorageDirectory(GUBPNodes[NodeToDo].GameNameIfAnyForTempStorage());
+                    }
+                }
+                var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
+                Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
+            }
             string ParentPath = ParseParamValue("ParentPath");
             string BaseArgs = String.Format("createJobStep --parentPath {0}", ParentPath);
 
