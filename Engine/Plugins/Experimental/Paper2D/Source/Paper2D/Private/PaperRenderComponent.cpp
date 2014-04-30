@@ -50,10 +50,7 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform & LocalToWor
 			}
 		}
 
-		// Takes into account that the static mesh collision code nudges collisions out by up to 1 unit.
-		//@TODO: Needed?  (copied from StaticMeshComponent)
-		NewBounds.BoxExtent += FVector(1,1,1);
-		NewBounds.SphereRadius += 1.0f;
+		// Apply bounds scale
 		NewBounds.BoxExtent *= BoundsScale;
 		NewBounds.SphereRadius *= BoundsScale;
 
