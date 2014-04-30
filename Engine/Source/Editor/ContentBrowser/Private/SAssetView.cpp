@@ -1150,28 +1150,6 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 		}
 	}
 
-	if ( InKeyboardEvent.GetKey() == EKeys::Enter )
-	{
-		TArray<FAssetData> SelectedAssets = GetSelectedAssets();
-		TArray<FString> SelectedFolders = GetSelectedFolders();
-		if(SelectedAssets.Num() > 0 && SelectedFolders.Num() == 0)
-		{
-			OnAssetsActivated.ExecuteIfBound( SelectedAssets, EAssetTypeActivationMethod::EnterPressed );
-		}
-		else if(SelectedAssets.Num() == 0 && SelectedFolders.Num() > 0)
-		{
-			OnPathSelected.ExecuteIfBound(SelectedFolders[0]);
-		}
-
-		return FReply::Handled();
-	}
-	else if ( InKeyboardEvent.GetKey() == EKeys::SpaceBar )
-	{
-		OnAssetsActivated.ExecuteIfBound( GetSelectedAssets(), EAssetTypeActivationMethod::SpacePressed );
-
-		return FReply::Handled();
-	}
-
 	return FReply::Unhandled();
 }
 
@@ -2452,6 +2430,25 @@ void SAssetView::RequestScrollIntoView(const TSharedPtr<FAssetViewItem>& Item)
 		case EAssetViewType::Tile: TileView->RequestScrollIntoView(Item); break;
 		case EAssetViewType::Column: ColumnView->RequestScrollIntoView(Item); break;
 	}
+}
+
+void SAssetView::OnOpenAssetsOrFolders()
+{
+	TArray<FAssetData> SelectedAssets = GetSelectedAssets();
+	TArray<FString> SelectedFolders = GetSelectedFolders();
+	if (SelectedAssets.Num() > 0 && SelectedFolders.Num() == 0)
+	{
+		OnAssetsActivated.ExecuteIfBound(SelectedAssets, EAssetTypeActivationMethod::Opened);
+	}
+	else if (SelectedAssets.Num() == 0 && SelectedFolders.Num() > 0)
+	{
+		OnPathSelected.ExecuteIfBound(SelectedFolders[0]);
+	}
+}
+
+void SAssetView::OnPreviewAssets()
+{
+	OnAssetsActivated.ExecuteIfBound(GetSelectedAssets(), EAssetTypeActivationMethod::Previewed);
 }
 
 void SAssetView::ClearSelection()

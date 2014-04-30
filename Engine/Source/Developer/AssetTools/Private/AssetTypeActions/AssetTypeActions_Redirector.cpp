@@ -34,7 +34,7 @@ void FAssetTypeActions_Redirector::GetActions( const TArray<UObject*>& InObjects
 
 void FAssetTypeActions_Redirector::AssetsActivated( const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType )
 {
-	if ( ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::EnterPressed )
+	if ( ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened )
 	{
 		// Sync to the target instead of opening an editor when double clicked
 		TArray<UObjectRedirector*> Redirectors;

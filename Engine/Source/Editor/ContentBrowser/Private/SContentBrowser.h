@@ -195,6 +195,12 @@ private:
 	/** Handler for clicking the history forward button */
 	FReply ForwardClicked();
 
+	/** Handler for opening assets or folders */
+	void OnOpenAssetsOrFolders();
+
+	/** Handler for previewing assets */
+	void OnPreviewAssets();
+
 	/** Handler for clicking the directory up button */
 	void OnDirectoryUp();
 

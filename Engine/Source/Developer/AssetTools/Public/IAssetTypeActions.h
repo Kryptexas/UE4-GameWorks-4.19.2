@@ -22,8 +22,8 @@ namespace EAssetTypeActivationMethod
 	enum Type
 	{
 		DoubleClicked,
-		EnterPressed,
-		SpacePressed
+		Opened,
+		Previewed
 	};
 }
 

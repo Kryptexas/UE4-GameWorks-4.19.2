@@ -591,6 +591,14 @@ void SContentBrowser::BindCommands()
 {
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
 
+	Commands->MapAction(FContentBrowserCommands::Get().OpenAssetsOrFolders, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::OnOpenAssetsOrFolders)
+		));
+
+	Commands->MapAction(FContentBrowserCommands::Get().PreviewAssets, FUIAction(
+		FExecuteAction::CreateSP(this, &SContentBrowser::OnPreviewAssets)
+		));
+
 	Commands->MapAction( FContentBrowserCommands::Get().DirectoryUp, FUIAction(
 		FExecuteAction::CreateSP( this, &SContentBrowser::OnDirectoryUp )
 		));
@@ -1343,7 +1351,7 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	}
 
 	// Finally, open a simple asset editor for all assets which do not have asset type actions if activating with enter or double click
-	if ( ActivationMethod == EAssetTypeActivationMethod::DoubleClicked || ActivationMethod == EAssetTypeActivationMethod::EnterPressed )
+	if ( ActivationMethod == EAssetTypeActivationMethod::DoubleClicked || ActivationMethod == EAssetTypeActivationMethod::Opened )
 	{
 		ContentBrowserUtils::OpenEditorForAsset(ObjectsWithoutTypeActions);
 	}
@@ -1445,6 +1453,16 @@ FReply SContentBrowser::ForwardClicked()
 	HistoryManager.GoForward();
 
 	return FReply::Handled();
+}
+
+void SContentBrowser::OnOpenAssetsOrFolders()
+{
+	AssetViewPtr->OnOpenAssetsOrFolders();
+}
+
+void SContentBrowser::OnPreviewAssets()
+{
+	AssetViewPtr->OnPreviewAssets();
 }
 
 FReply SContentBrowser::OnDirectoryUpClicked()

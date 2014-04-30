@@ -44,7 +44,7 @@ bool FAssetTypeActions_SoundBase::CanExecutePlayCommand(TArray<TWeakObjectPtr<US
 
 void FAssetTypeActions_SoundBase::AssetsActivated( const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType )
 {
-	if (ActivationType == EAssetTypeActivationMethod::SpacePressed)
+	if (ActivationType == EAssetTypeActivationMethod::Previewed)
 	{
 		USoundBase* TargetSound = NULL;
 
