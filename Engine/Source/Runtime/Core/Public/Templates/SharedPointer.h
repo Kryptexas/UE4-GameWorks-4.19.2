@@ -42,10 +42,8 @@
  *		TSharedFromThis - You can derive your own class from this to acquire a TSharedRef from "this"
  *		StaticCastSharedRef() - Static cast utility function, typically used to downcast to a derived type. 
  *		ConstCastSharedRef() - Converts a 'const' reference to 'mutable' smart reference
- *		DynamicCastSharedRef() - Static cast utility function, typically used to downcast to a derived type. 
  *		StaticCastSharedPtr() - Dynamic cast utility function, typically used to downcast to a derived type. 
  *		ConstCastSharedPtr() - Converts a 'const' smart pointer to 'mutable' smart pointer
- *		DynamicCastSharedPtr() - Dynamic cast utility function, typically used to downcast to a derived type. 
  *
  *
  *	Examples:
@@ -121,18 +119,6 @@ template< class CastToType, class CastFromType, ESPMode::Type Mode >
 FORCEINLINE TSharedRef< CastToType, Mode > StaticCastSharedRef( TSharedRef< CastFromType, Mode > const& InSharedRef )
 {
 	return TSharedRef< CastToType, Mode >( InSharedRef, SharedPointerInternals::FStaticCastTag() );
-}
-
-
-/**
- * Casts a shared reference of one type to another type. (dynamic_cast)  Useful for downcasting.
- *
- * @param  InSharedRef  The shared reference to cast
- */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
-FORCEINLINE TSharedRef< CastToType, Mode > DynamicCastSharedRef( TSharedRef< CastFromType, Mode > const& InSharedRef )
-{
-	return TSharedRef< CastToType, Mode >( InSharedRef, SharedPointerInternals::FDynamicCastTag() );
 }
 
 
@@ -247,22 +233,6 @@ public:
 	
   
 	/**
-	 * Special constructor used internally to dynamically cast one shared reference type to another.  You
-	 * should never call this constructor directly.  Instead, use the DynamicCastSharedRef() function.
-	 * This constructor creates a shared reference as a shared reference to an existing shared reference after
-	 * dynamically casting that reference's object.  This constructor is needed for dynamic casts.
-	 *
-	 * @param  InSharedRef  The shared reference whose object we should create an additional reference to
-	 */
-	template< class OtherType >
-	FORCEINLINE TSharedRef( TSharedRef< OtherType, Mode > const& InSharedRef, SharedPointerInternals::FDynamicCastTag )
-		: Object( dynamic_cast< ObjectType* >( InSharedRef.Object ) ),
-		  SharedReferenceCount( InSharedRef.SharedReferenceCount )
-	{
-	}
-
-
-	/**
 	 * Special constructor used internally to create a shared reference from an existing shared reference,
 	 * while using the specified object reference instead of the incoming shared reference's object
 	 * pointer.  This is used by with the TSharedFromThis feature (by UpdateWeakReferenceInternal)
@@ -276,7 +246,19 @@ public:
 		  SharedReferenceCount( OtherSharedRef.SharedReferenceCount )
 	{
 	}
-
+	FORCEINLINE TSharedRef( TSharedRef const& InSharedRef )
+		: Object( InSharedRef.Object ),
+		  SharedReferenceCount( InSharedRef.SharedReferenceCount )
+	{
+	}
+	FORCEINLINE TSharedRef( TSharedRef&& InSharedRef )
+		: Object( InSharedRef.Object ),
+		  SharedReferenceCount( InSharedRef.SharedReferenceCount )
+	{
+		// We're intentionally not moving here, because we don't want to leave InSharedRef in a
+		// null state, because that breaks the class invariant.  But we provide a move constructor
+		// anyway in case the compiler complains that we have a move assign but no move construct.
+	}
 
 	/**
 	 * Assignment operator replaces this shared reference with the specified shared reference.  The object
@@ -287,12 +269,15 @@ public:
 	 */
 	FORCEINLINE TSharedRef& operator=( TSharedRef const& InSharedRef )
 	{
-		SharedPointerInternals::FSharedReferencer< Mode > OldSharedReferenceCount = SharedReferenceCount;
 		SharedReferenceCount = InSharedRef.SharedReferenceCount;
 		Object = InSharedRef.Object;
 		return *this;
 	}
-
+	FORCEINLINE TSharedRef& operator=( TSharedRef&& InSharedRef )
+	{
+		FMemory::Memswap(this, &InSharedRef, sizeof(TSharedRef));
+		return *this;
+	}
 
 	/**
 	 * Assignment operator replaces this shared reference with the specified shared reference.  The object
@@ -397,6 +382,17 @@ private:
 		check( IsValid() );
 	}
 
+	template< class OtherType >
+	FORCEINLINE explicit TSharedRef( TSharedPtr< OtherType, Mode >&& InSharedPtr )
+		: Object( InSharedPtr.Object ),
+		  SharedReferenceCount( MoveTemp(InSharedPtr.SharedReferenceCount) )
+	{
+		InSharedPtr.Object = NULL;
+
+		// If this assert goes off, it means a shared reference was created from a shared pointer that was NULL.
+		// Shared references are never allowed to be null.  Consider using TSharedPtr instead.
+		check( IsValid() );
+	}
 
 	/**
 	 * Checks to see if this shared reference is actually pointing to an object. 
@@ -510,6 +506,17 @@ public:
 		  SharedReferenceCount( InSharedPtr.SharedReferenceCount )
 	{
 	}
+	FORCEINLINE TSharedPtr( TSharedPtr const& InSharedPtr )
+		: Object( InSharedPtr.Object ),
+		  SharedReferenceCount( InSharedPtr.SharedReferenceCount )
+	{
+	}
+	FORCEINLINE TSharedPtr( TSharedPtr&& InSharedPtr )
+		: Object( InSharedPtr.Object ),
+		  SharedReferenceCount( MoveTemp(InSharedPtr.SharedReferenceCount) )
+	{
+		InSharedPtr.Object = NULL;
+	}
 
 
 	/**
@@ -524,6 +531,8 @@ public:
 		: Object( InSharedRef.Object ),
 		  SharedReferenceCount( InSharedRef.SharedReferenceCount )
 	{
+		// There is no rvalue overload of this constructor, because 'stealing' the pointer from a
+		// TSharedRef would leave it as null, which would invalidate its invariant.
 	}
 
 
@@ -554,22 +563,6 @@ public:
 	template< class OtherType >
 	FORCEINLINE TSharedPtr( TSharedPtr< OtherType, Mode > const& InSharedPtr, SharedPointerInternals::FConstCastTag )
 		: Object( const_cast< ObjectType* >( InSharedPtr.Object ) ),
-		  SharedReferenceCount( InSharedPtr.SharedReferenceCount )
-	{
-	}
-	
-  
-	/**
-	 * Special constructor used internally to dynamically cast one shared pointer type to another.  You
-	 * should never call this constructor directly.  Instead, use the DynamicCastSharedPtr() function.
-	 * This constructor creates a shared pointer as a shared reference to an existing shared pointer after
-	 * dynamically casting that pointer's object.  This constructor is needed for dynamic casts.
-	 *
-	 * @param  InSharedPtr  The shared pointer whose object we should create an additional reference to
-	 */
-	template< class OtherType >
-	FORCEINLINE TSharedPtr( TSharedPtr< OtherType, Mode > const& InSharedPtr, SharedPointerInternals::FDynamicCastTag )
-		: Object( dynamic_cast< ObjectType* >( InSharedPtr.Object ) ),
 		  SharedReferenceCount( InSharedPtr.SharedReferenceCount )
 	{
 	}
@@ -612,12 +605,20 @@ public:
 	 */
 	FORCEINLINE TSharedPtr& operator=( TSharedPtr const& InSharedPtr )
 	{
-		SharedPointerInternals::FSharedReferencer< Mode > OldSharedReferenceCount = SharedReferenceCount;
 		SharedReferenceCount = InSharedPtr.SharedReferenceCount;
 		Object = InSharedPtr.Object;
 		return *this;
 	}
-
+	FORCEINLINE TSharedPtr& operator=( TSharedPtr&& InSharedPtr )
+	{
+		if (this != &InSharedPtr)
+		{
+			Object = InSharedPtr.Object;
+			InSharedPtr.Object = NULL;
+			SharedReferenceCount = MoveTemp(InSharedPtr.SharedReferenceCount);
+		}
+		return *this;
+	}
 
 	/**
 	 * Assignment operator replaces this shared pointer with the specified shared pointer.  The object
@@ -851,6 +852,24 @@ public:
 		  WeakReferenceCount( InWeakPtr.WeakReferenceCount )
 	{
 	}
+	template< class OtherType >
+	FORCEINLINE TWeakPtr( TWeakPtr< OtherType, Mode >&& InWeakPtr )
+		: Object            ( InWeakPtr.Object ),
+		  WeakReferenceCount( MoveTemp(InWeakPtr.WeakReferenceCount) )
+	{
+		InWeakPtr.Object = NULL;
+	}
+	FORCEINLINE TWeakPtr( TWeakPtr const& InWeakPtr )
+		: Object            ( InWeakPtr.Object ),
+		  WeakReferenceCount( InWeakPtr.WeakReferenceCount )
+	{
+	}
+	FORCEINLINE TWeakPtr( TWeakPtr&& InWeakPtr )
+		: Object            ( InWeakPtr.Object ),
+		  WeakReferenceCount( MoveTemp(InWeakPtr.WeakReferenceCount) )
+	{
+		InWeakPtr.Object = NULL;
+	}
 
 
 	/**
@@ -875,6 +894,16 @@ public:
 		WeakReferenceCount = InWeakPtr.WeakReferenceCount;
 		return *this;
 	}
+	FORCEINLINE TWeakPtr& operator=( TWeakPtr&& InWeakPtr )
+	{
+		if (this != &InWeakPtr)
+		{
+			Object             = InWeakPtr.Object;
+			InWeakPtr.Object   = NULL;
+			WeakReferenceCount = MoveTemp(InWeakPtr.WeakReferenceCount);
+		}
+		return *this;
+	}
 
 
 	/**
@@ -888,6 +917,14 @@ public:
 	{
 		Object = InWeakPtr.Pin().Get();
 		WeakReferenceCount = InWeakPtr.WeakReferenceCount;
+		return *this;
+	}
+	template <typename OtherType>
+	FORCEINLINE TWeakPtr& operator=( TWeakPtr<OtherType, Mode>&& InWeakPtr )
+	{
+		Object             = InWeakPtr.Object;
+		InWeakPtr.Object   = NULL;
+		WeakReferenceCount = MoveTemp(InWeakPtr.WeakReferenceCount);
 		return *this;
 	}
 
@@ -1365,19 +1402,6 @@ template< class CastToType, class CastFromType, ESPMode::Type Mode >
 FORCEINLINE TSharedRef< CastToType, Mode > ConstCastSharedRef( TSharedRef< CastFromType, Mode > const& InSharedRef )
 {
 	return TSharedRef< CastToType, Mode >( InSharedRef, SharedPointerInternals::FConstCastTag() );
-}
-
-
-
-/**
- * Casts a shared pointer of one type to another type. (dynamic_cast)  Useful for downcasting.
- *
- * @param  InSharedPtr  The shared pointer to cast
- */
-template< class CastToType, class CastFromType, ESPMode::Type Mode >
-FORCEINLINE TSharedPtr< CastToType, Mode > DynamicCastSharedPtr( TSharedPtr< CastFromType, Mode > const& InSharedPtr )
-{
-	return TSharedPtr< CastToType, Mode >( InSharedPtr, SharedPointerInternals::FDynamicCastTag() );
 }
 
 

@@ -259,7 +259,7 @@ TSharedRef< IPropertyTableWidgetHandle > FPropertyEditorModule::CreatePropertyTa
 {
 	TSharedRef< FPropertyTableWidgetHandle > FWidgetHandle = MakeShareable( new FPropertyTableWidgetHandle( SNew( SPropertyTable, PropertyTable ) ) );
 
-	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = DynamicCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
+	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = StaticCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
 
 	 return IWidgetHandle;
 }
@@ -269,7 +269,7 @@ TSharedRef< IPropertyTableWidgetHandle > FPropertyEditorModule::CreatePropertyTa
 	TSharedRef< FPropertyTableWidgetHandle > FWidgetHandle = MakeShareable( new FPropertyTableWidgetHandle( SNew( SPropertyTable, PropertyTable )
 		.ColumnCustomizations( Customizations )));
 
-	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = DynamicCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
+	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = StaticCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
 
 	 return IWidgetHandle;
 }
