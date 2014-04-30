@@ -15,7 +15,6 @@ public class GraphEditor : ModuleRules
 				"Editor/GraphEditor/Private/KismetPins",
 				"Editor/GraphEditor/Private/MaterialNodes",
 				"Editor/GraphEditor/Private/MaterialPins",
-				"Editor/GraphEditor/Private/NoRedist",
 				"Editor/GraphEditor/Private/SoundNodes",
 			}
 		);
