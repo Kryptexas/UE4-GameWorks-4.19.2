@@ -346,7 +346,14 @@ void UDestructibleComponent::DestroyPhysicsState()
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL)
 	{
-		GPhysCommandHandler->DeferredRelease(ApexDestructibleActor);
+		if(UWorld * World = GetWorld())
+		{
+			if(FPhysScene * PhysScene = World->GetPhysicsScene())
+			{
+				PhysScene->DeferredCommandHandler.DeferredRelease(ApexDestructibleActor);
+			}
+		}
+		
 		ApexDestructibleActor = NULL;
 	}
 #endif	// #if WITH_APEX
