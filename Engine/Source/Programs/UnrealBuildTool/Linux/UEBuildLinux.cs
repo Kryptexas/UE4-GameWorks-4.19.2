@@ -49,33 +49,33 @@ namespace UnrealBuildTool.Linux
         /**
          *	Whether the required external SDKs are installed for this platform
          */
-        public override bool HasRequiredSDKsInstalled()
+        public override SDKStatus HasRequiredSDKsInstalled()
         {
             if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
             {
-                return true;
+                return SDKStatus.Valid;
             }
 
             // attempt to switch SDKs
-            if (!base.HasRequiredSDKsInstalled())
+            if (base.HasRequiredSDKsInstalled() == SDKStatus.Valid)
             {
-                return false;
+                return SDKStatus.Valid;
             }
 
             string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
 
             // we don't have an LINUX_ROOT specified
             if (String.IsNullOrEmpty(BaseLinuxPath))
-                return false;
+                return SDKStatus.Invalid;
 
             // paths to our toolchains
             BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
             string ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
             
             if (File.Exists(ClangPath))
-                return true;
+                return SDKStatus.Valid;
 
-            return false;
+            return SDKStatus.Invalid;
         }
 
         /**
@@ -89,7 +89,7 @@ namespace UnrealBuildTool.Linux
 				return;
 			}
 
-            if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
             {
                 bool bRegisterBuildPlatform = true;
 

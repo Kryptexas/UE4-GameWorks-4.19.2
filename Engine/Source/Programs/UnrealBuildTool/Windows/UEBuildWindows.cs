@@ -53,6 +53,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDKStatus.Valid;
+		}
+
 		/**
 		 * Returns VisualStudio common tools path for current compiler.
 		 * 

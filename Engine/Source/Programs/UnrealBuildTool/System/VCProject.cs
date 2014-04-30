@@ -183,7 +183,7 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			if (BuildPlatform.HasRequiredSDKsInstalled() == false)
+			if (BuildPlatform.HasRequiredSDKsInstalled() != UEBuildPlatform.SDKStatus.Valid)
 			{
 				return false;
 			}
@@ -416,7 +416,7 @@ namespace UnrealBuildTool
 							continue;
 						}
 						UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
-						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == true))
+						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
 						{
 							// Now go through all of the target types for this project
 							if( ProjectTargets.Count == 0 )

@@ -181,12 +181,12 @@ namespace UnrealBuildTool
 			// version of Visual Studio.  This is their chance to override that.
 			foreach( var SupportedPlatform in SupportedPlatforms )
 			{
-				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( SupportedPlatform, true );
+				UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( SupportedPlatform, true );				
 				if( BuildPlatform != null )
 				{
 					// Don't worry about platforms that we're missing SDKs for
-					if( BuildPlatform.HasRequiredSDKsInstalled() )
-					{
+					if (BuildPlatform.HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid)
+					{						
 						// Make sure Visual Studio 2013 project files will work...
 						if( ProjectFileFormat == VCProjectFileFormat.VisualStudio2013 )
 						{
@@ -208,7 +208,7 @@ namespace UnrealBuildTool
 								}
 							}
 						}
-					}
+					}					
 				}
 			}
 		}

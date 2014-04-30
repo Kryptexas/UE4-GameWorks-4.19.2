@@ -28,6 +28,15 @@ namespace UnrealBuildTool
             Uninstall
         };
 
+		public enum SDKStatus
+		{
+			Valid,			// Desired SDK is installed and set up.
+			Invalid,		// Could not find the desired SDK, SDK setup failed, etc.
+			Unknown,		// Not enough info to determine SDK state. 
+		};
+
+		public static readonly string SDKRootEnvVar = "UE_SDKS_ROOT";
+
         /**
          * Attempt to convert a string to an UnrealTargetPlatform enum entry
          * 
@@ -203,15 +212,21 @@ namespace UnrealBuildTool
          * 
          * @return Valid SDK string
          */
-        public virtual string GetPathToPlatformSDKs()
+        public virtual string GetPathToPlatformSDKs(out bool SDKRootSet)
         {
-            string SDKRoot = Environment.GetEnvironmentVariable("UE_SDKS_ROOT");
-            if (SDKRoot != null && SDKRoot != "")
-            {
-                return Path.Combine(SDKRoot, "Host" + ExternalExecution.GetRuntimePlatform(), GetSDKTargetPlatformName());
-            }
+            string SDKPath = "";
+            SDKRootSet = false;
 
-            return "";
+            string SDKRoot = Environment.GetEnvironmentVariable(SDKRootEnvVar);
+            if (SDKRoot != null)
+            {
+                SDKRootSet = true;
+                if (SDKRoot != "")
+                {
+                    SDKPath = Path.Combine(SDKRoot, "Host" + ExternalExecution.GetRuntimePlatform(), GetSDKTargetPlatformName());
+                }
+            }
+            return SDKPath;
         }
 
         /**
@@ -333,6 +348,25 @@ namespace UnrealBuildTool
         }
 
         /**
+         * Returns the delimiter used to separate paths in the PATH environment variable for the platform we are executing on.
+         */
+        public String GetPathVarDelimiter()
+        {
+            switch (ExternalExecution.GetRuntimePlatform())
+            {
+                case UnrealTargetPlatform.Linux:
+                case UnrealTargetPlatform.Mac:
+                    return ":";
+                case UnrealTargetPlatform.Win32:
+                case UnrealTargetPlatform.Win64:
+                    return ";";
+                default:
+                    Log.TraceWarning("PATH var delimiter unknown for platform " + ExternalExecution.GetRuntimePlatform().ToString() + " using ';'");
+                    return ";";
+            }
+        }
+
+        /**
          * Loads environment variables from SDK
          * 
          * @param PlatformSDKRoot absolute path to platform SDK
@@ -347,14 +381,19 @@ namespace UnrealBuildTool
             {
                 using (StreamReader Reader = new StreamReader(EnvVarFile))
                 {
-                    for (; ; )
+                    List<string> PathAdds = new List<string>();
+                    List<string> PathRemoves = new List<string>();
+
+                    List<string> EnvVarNames = new List<string>();
+                    List<string> EnvVarValues = new List<string>();
+                    for (; ;)
                     {
                         string VariableString = Reader.ReadLine();
                         if (VariableString == null)
                         {
-                            return true;
+                            break;
                         }
-
+						
                         string[] Parts = VariableString.Split('=');
                         if (Parts.Length != 2)
                         {
@@ -363,12 +402,93 @@ namespace UnrealBuildTool
                             return false;
                         }
 
+                        if (String.Compare(Parts[0], "strippath", true) == 0)
+                        {
+                            PathRemoves.Add(Parts[1]);
+                        }
+                        else if (String.Compare(Parts[0], "addpath", true) == 0)
+                        {
+                            PathAdds.Add(Parts[1]);
+                        }
+                        else
+                        {
+                            // convenience for setup.bat writers.  Trim any accidental whitespace from var names/values.
+                            EnvVarNames.Add(Parts[0].Trim());
+                            EnvVarValues.Add(Parts[1].Trim());
+                        }
+                    }
+
+                    // don't actually set anything until we successfully validate and read all values in.
+                    // we don't want to set a few vars, return a failure, and then have a platform try to
+                    // build against a manually installed SDK with half-set env vars.
+                    for (int i = 0; i < EnvVarNames.Count; ++i)
+                    {
+                        string EnvVarName = EnvVarNames[i];
+                        string EnvVarValue = EnvVarValues[i];
+                        if (String.Compare(EnvVarName, "strippath", true) == 0)
                         if (BuildConfiguration.bPrintDebugInfo)
                         {
-                            Console.WriteLine("Setting variable '{0}' to '{1}'", Parts[0], Parts[1]);
+                            Console.WriteLine("Setting variable '{0}' to '{1}'", EnvVarName, EnvVarValue);
                         }
-                        Environment.SetEnvironmentVariable(Parts[0], Parts[1]);
+                        Environment.SetEnvironmentVariable(EnvVarName, EnvVarValue);
                     }
+                       
+                    
+                    // actually perform the PATH stripping / adding.
+                    String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
+                    String PathDelimiter = GetPathVarDelimiter();
+                    String[] PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+
+                    List<String> ModifiedPathVars = new List<string>();
+                    ModifiedPathVars.AddRange(PathVars);
+
+                    // perform removes first, in case they overlap with any adds.
+                    foreach (String PathRemove in PathRemoves)
+                    {
+                        foreach (String PathVar in PathVars)
+                        {
+                            if (PathVar.IndexOf(PathRemove, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                if (BuildConfiguration.bPrintDebugInfo)
+                                {
+                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
+                                }
+                                ModifiedPathVars.Remove(PathVar);
+                            }
+                        }
+                    }
+
+                    // remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
+                    // If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
+                    foreach (String PathAdd in PathAdds)
+                    {
+                        foreach (String PathVar in PathVars)
+                        {
+                            if (String.Compare(PathAdd, PathVar, true) == 0)
+                            {
+                                if (BuildConfiguration.bPrintDebugInfo)
+                                {
+                                    Console.WriteLine("Removing Path: '{0}'", PathVar);
+                                }
+                                ModifiedPathVars.Remove(PathVar);
+                            }
+                        }
+                    }
+
+                    // perform adds, but don't add duplicates
+                    foreach (String PathAdd in PathAdds)
+                    {
+                        if (!ModifiedPathVars.Contains(PathAdd))
+                        {
+                            Console.WriteLine("Adding Path: '{0}'", PathAdd);
+                            ModifiedPathVars.Add(PathAdd);
+                        }
+                    }
+
+                    String ModifiedPath = String.Join(PathDelimiter, ModifiedPathVars);
+                    Environment.SetEnvironmentVariable("PATH", ModifiedPath);
+
+                    return true;
                 }
             }
 
@@ -378,45 +498,57 @@ namespace UnrealBuildTool
         /**
          *	Whether the required external SDKs are installed for this platform
          */
-		public virtual bool HasRequiredSDKsInstalled()
-		{
+		public virtual SDKStatus HasRequiredSDKsInstalled()
+		{			
             if (PlatformSupportsSDKSwitching())
-            {
+            {				
                 // if we don't have a path to platform SDK's, take no action
-                string PlatformSDKRoot = GetPathToPlatformSDKs();
-                if (PlatformSDKRoot != "")
-                {
-                    string CurrentSDKString;
-                    if (!GetCurrentlyInstalledSDKString(PlatformSDKRoot, out CurrentSDKString) || CurrentSDKString != GetRequiredSDKString())
+                bool bSDKPathSet;
+                string PlatformSDKRoot = GetPathToPlatformSDKs(out bSDKPathSet);				
+                if (bSDKPathSet)
+                {					
+                    if (PlatformSDKRoot != "")
                     {
-                        // switch over (note that version string can be empty)
-                        if (!RunSDKHooks(PlatformSDKRoot, CurrentSDKString, SDKHookType.Uninstall))
+                        string CurrentSDKString;
+                        if (!GetCurrentlyInstalledSDKString(PlatformSDKRoot, out CurrentSDKString) || CurrentSDKString != GetRequiredSDKString())
                         {
-                            Console.WriteLine("Failed to uninstall currently installed SDK {0}", CurrentSDKString);
-                            return false;
-                        }
-                        // delete Manifest file to avoid multiple uninstalls
-                        SetCurrentlyInstalledSDKString(PlatformSDKRoot, "");
+                        
+                            // switch over (note that version string can be empty)
+                            if (!RunSDKHooks(PlatformSDKRoot, CurrentSDKString, SDKHookType.Uninstall))
+                            {
+                                Console.WriteLine("Failed to uninstall currently installed SDK {0}", CurrentSDKString);
+                                return SDKStatus.Invalid;
+                            }
+                            // delete Manifest file to avoid multiple uninstalls
+                            SetCurrentlyInstalledSDKString(PlatformSDKRoot, "");
 
-                        if (!RunSDKHooks(PlatformSDKRoot, GetRequiredSDKString(), SDKHookType.Install, false))
-                        {
-                            Console.WriteLine("Failed to install required SDK {0}", GetRequiredSDKString());
-                            return false;
+                            if (!RunSDKHooks(PlatformSDKRoot, GetRequiredSDKString(), SDKHookType.Install, false))
+                            {								
+                                Console.WriteLine("Failed to install required SDK {0}.  Attemping to uninstall", GetRequiredSDKString());
+                                RunSDKHooks(PlatformSDKRoot, GetRequiredSDKString(), SDKHookType.Uninstall, false);
+
+                                return SDKStatus.Invalid;
+                            }
+                            SetCurrentlyInstalledSDKString(PlatformSDKRoot, GetRequiredSDKString());
                         }
-                        SetCurrentlyInstalledSDKString(PlatformSDKRoot, GetRequiredSDKString());
+
+                        // load environment variables from current SDK
+                        if (!SetupEnvironmentFromSDK(PlatformSDKRoot, GetRequiredSDKString()))
+                        {
+                            Console.WriteLine("Failed to load environment from required SDK {0}", GetRequiredSDKString());
+                            return SDKStatus.Invalid;
+                        }                        
+                        return SDKStatus.Valid;
                     }
-
-                    // load environment variables from current SDK
-                    if (!SetupEnvironmentFromSDK(PlatformSDKRoot, GetRequiredSDKString()))
+                    else
                     {
-                        Console.WriteLine("Failed to load environment from required SDK {0}", GetRequiredSDKString());
-                        return false;
+                        Console.WriteLine("Failed to install required SDK {0}. {1} is blank.", GetRequiredSDKString(), SDKRootEnvVar);
+                        return SDKStatus.Invalid;
                     }
                 }
             }
-
-			return true;
-		}
+            return SDKStatus.Unknown;
+        }
 
         /**
          *	If this platform can be compiled with XGE

@@ -16,6 +16,11 @@ namespace UnrealBuildTool
             return false;
         }
 
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDKStatus.Valid;
+		}
+
 		/**
 		 *	Register the platform with the UEBuildPlatform class
 		 */

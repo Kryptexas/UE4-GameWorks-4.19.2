@@ -42,9 +42,9 @@ namespace UnrealBuildTool
 		/**
 		 *	Whether the required external SDKs are installed for this platform
 		 */
-		public override bool HasRequiredSDKsInstalled()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
-			return IsVisualStudioInstalled();
+			return IsVisualStudioInstalled() ? SDKStatus.Valid : SDKStatus.Invalid;
 		}
 
 		/**

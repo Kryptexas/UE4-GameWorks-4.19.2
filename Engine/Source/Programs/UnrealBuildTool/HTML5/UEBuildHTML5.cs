@@ -29,10 +29,10 @@ namespace UnrealBuildTool
 		/**
 		 *	Whether the required external SDKs are installed for this platform
 		 */
-		public override bool HasRequiredSDKsInstalled()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
 			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			return string.IsNullOrEmpty(BaseSDKPath) == false;
+			return (string.IsNullOrEmpty(BaseSDKPath) == false) ? SDKStatus.Valid : SDKStatus.Invalid;
 		}
 
         public override bool CanUseXGE()
@@ -52,7 +52,7 @@ namespace UnrealBuildTool
 			}
 
 			// Make sure the SDK is installed
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
 			{
 				bool bRegisterBuildPlatform = true;
 

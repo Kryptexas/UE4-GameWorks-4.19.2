@@ -30,14 +30,14 @@ namespace UnrealBuildTool
             return false;
         }
 
-		public override bool HasRequiredSDKsInstalled()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 
 			// we don't have an NDKROOT specified
 			if (String.IsNullOrEmpty(NDKPath))
 			{
-				return false;
+				return SDKStatus.Invalid;
 			}
 
 			NDKPath = NDKPath.Replace("\"", "");
@@ -45,15 +45,15 @@ namespace UnrealBuildTool
 			// can't find llvm-3.3 or llvm-3.1 in the toolchains
 			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
 			{
-				return false;
+				return SDKStatus.Invalid;
 			}
 
-			return true;
+			return SDKStatus.Valid;
 		}
 
 		public override void RegisterBuildPlatform()
 		{
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
 			{
 				bool bRegisterBuildPlatform = true;
 
