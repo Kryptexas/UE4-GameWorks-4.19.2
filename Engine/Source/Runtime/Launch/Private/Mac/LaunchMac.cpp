@@ -12,7 +12,6 @@
 
 static FString GSavedCommandLine;
 extern CORE_API NSWindow* GExtendedAlertWindow;
-extern CORE_API NSWindow* GEULAWindow;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
@@ -45,7 +44,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 @interface UE4AppDelegate : NSObject <NSApplicationDelegate>
 {
 	IBOutlet NSWindow *AlertWindow;
-	IBOutlet NSWindow *EULAWindow;
 #if WITH_EDITOR
 	NSString* Filename;
 	bool bHasFinishedLaunching;
@@ -56,8 +54,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename;
 #endif
 - (IBAction)OnAlertWindowButtonPress:(id)Sender;
-- (IBAction)OnEULAAccepted:(id)Sender;
-- (IBAction)OnEULADeclined:(id)Sender;
 
 @end
 
@@ -70,7 +66,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	bHasFinishedLaunching = false;
 #endif
 	GExtendedAlertWindow = AlertWindow;
-	GEULAWindow = EULAWindow;
 }
 
 #if WITH_EDITOR
@@ -111,16 +106,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 			[NSApp stopModalWithCode: Index];
 		}
 	}
-}
-
-- (IBAction)OnEULAAccepted:(id)Sender
-{
-	[NSApp stopModalWithCode:1];
-}
-
-- (IBAction)OnEULADeclined:(id)Sender
-{
-	_Exit(0);
 }
 
 - (IBAction)OnQuitRequest:(id)Sender

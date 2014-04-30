@@ -24,11 +24,6 @@ namespace CrashTrackerConstants
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC
-/** Virtual screen rectangle including all monitors. */
-extern CORE_API RECT GVirtualScreenRect;
-#endif
-
 static FMatrix CreateProjectionMatrix( uint32 Width, uint32 Height )
 {
 	
@@ -196,10 +191,12 @@ void FSlateRHIRenderer::Initialize()
 #if PLATFORM_WINDOWS || PLATFORM_MAC
 	if (GIsEditor)
 	{
-		const FIntPoint VirtualScreenOrigin = FIntPoint(GVirtualScreenRect.left, GVirtualScreenRect.top);
-		const FIntPoint VirtualScreenLowerRight = FIntPoint(GVirtualScreenRect.right, GVirtualScreenRect.bottom);
+		FDisplayMetrics DisplayMetrics;
+		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+		const FIntPoint VirtualScreenOrigin = FIntPoint(DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top);
+		const FIntPoint VirtualScreenLowerRight = FIntPoint(DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
 		const FIntRect VirtualScreen = FIntRect(VirtualScreenOrigin, VirtualScreenLowerRight);
-	
+
 		CrashTrackerResource = new FSlateCrashReportResource(VirtualScreen);
 		BeginInitResource(CrashTrackerResource);
 	}

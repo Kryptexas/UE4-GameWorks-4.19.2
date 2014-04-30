@@ -39,15 +39,6 @@ void FAndroidMisc::LoadPreInitModules()
 
 void FAndroidMisc::PlatformPreInit()
 {
-#if WITH_ENGINE
-
-	// @todo Android Get the total screen size of the primary monitor.v
-	// virtual screens
-	// Get the screen rect of the primary monitor, excluding taskbar etc.
-	// Refer iOS Misc
-	// needed?
-#endif
-
 	FAndroidAppEntry::PlatformInit();
 }
 
@@ -57,15 +48,6 @@ void FAndroidMisc::PlatformInit()
 	// Display Timer resolution.
 	// Get swap file info
 	// Display memory info
-}
-
-
-void FAndroidMisc::PlatformPostInit()
-{
-	//@todo Android : needed?
-	//Initialize the game window to the main screen.
-	//Should not need to set opaque, since that should be part of the default initialization.
-	// create the main landscape window object
 }
 
 void FAndroidMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)

@@ -10,48 +10,11 @@
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
 
-/** Width of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorWidth = 0;
-/** Height of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorHeight = 0;
-/** Rectangle of the work area on the primary monitor (excluding taskbar, etc) in "virtual screen coordinates" (pixels). */
-CORE_API RECT GPrimaryMonitorWorkRect;
-/** Virtual screen rectangle including all monitors. */
-CORE_API RECT GVirtualScreenRect;
-
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;
 
-/** Settings for the game Window */
-CORE_API UIWindow *GGameWindow = NULL;
-
 /** Global pointer to memory warning handler */
 void (* GMemoryWarningHandler)(const FGenericMemoryWarningContext& Context) = NULL;
-
-void FIOSPlatformMisc::PlatformPreInit()
-{
-#if WITH_ENGINE
-	CGRect ScreenFrame = [[UIScreen mainScreen] bounds];
-	CGRect VisibleFrame = [[UIScreen mainScreen] applicationFrame];
-
-	// Get the total screen size of the primary monitor.
-	GPrimaryMonitorWidth = ScreenFrame.size.width;
-	GPrimaryMonitorHeight = ScreenFrame.size.height;
-	// @todo IOS: virtual screens
-	GVirtualScreenRect.left = 0;
-	GVirtualScreenRect.top = 0;
-	GVirtualScreenRect.right = ScreenFrame.size.width;
-	GVirtualScreenRect.bottom = ScreenFrame.size.height;
-
-	// Get the screen rect of the primary monitor, excluding taskbar etc.
-	//@todo - zombie - The y might be inverted on iOS. Will need to do verification on it. -astarkey
-	GPrimaryMonitorWorkRect.left = VisibleFrame.origin.x;
-	GPrimaryMonitorWorkRect.right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	GPrimaryMonitorWorkRect.top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	GPrimaryMonitorWorkRect.bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
-
-#endif		// WITH_ENGINE
-}
 
 static int32 GetFreeMemoryMB()
 {
@@ -90,23 +53,6 @@ void FIOSPlatformMisc::PlatformInit()
 	GStartupFreeMemoryMB = GetFreeMemoryMB();
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
 }
-
-
-#if WITH_ENGINE
-void FIOSPlatformMisc::PlatformPostInit()
-{
-	if ( FApp::IsGame() )
-	{
-		//Initialize the game window to the main screen.
-		//Should not need to set opaque, since that should be part of the default initialization.
-		// create the main landscape window object
-		CGRect ApplicationRect = [[UIScreen mainScreen] bounds];
-		GGameWindow = [[UIWindow alloc] initWithFrame: ApplicationRect];
-
-		verify( GGameWindow );
-	}
-}
-#endif		// WITH_ENGINE
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()
 {

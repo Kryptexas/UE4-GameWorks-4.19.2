@@ -14,7 +14,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static class GenericApplication* CreateApplication();
 	static void SetGracefulTerminationHandler();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
@@ -47,7 +46,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static void CreateGuid(class FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static void PreventScreenSaver();
-	static void ShowGameWindow( void* StaticWndProc );
 	static bool CommandLineCommands();
 	static bool Is64bitOperatingSystem();
 	static bool IsValidAbsolutePathFormat(const FString& Path);

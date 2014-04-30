@@ -20,25 +20,6 @@
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
-/** Width of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorWidth = 0;
-/** Height of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorHeight = 0;
-/** Rectangle of the work area on the primary monitor (excluding taskbar, etc) in "virtual screen coordinates" (pixels). */
-CORE_API RECT GPrimaryMonitorWorkRect;
-/** Virtual screen rectangle including all monitors. */
-CORE_API RECT GVirtualScreenRect;
-
-
-/** Settings for the game Window */
-CORE_API NSWindow *GGameWindow = NULL;
-CORE_API int32 GGameWindowPosX = 0;
-CORE_API int32 GGameWindowPosY = 0;
-CORE_API int32 GGameWindowWidth = 100;
-CORE_API int32 GGameWindowHeight = 100;
-
-CORE_API NSWindow* GExtendedAlertWindow = NULL;
-CORE_API NSWindow* GEULAWindow = NULL;
 
 /**
  * Information that cannot be obtained during a signal-handler is initialised here.
@@ -185,56 +166,6 @@ struct MacApplicationInfo
 };
 static MacApplicationInfo GMacAppInfo;
 
-void FMacPlatformMisc::PlatformPreInit()
-{
-#if WITH_ENGINE
-	SCOPED_AUTORELEASE_POOL;
-
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect VisibleFrame = [PrimaryScreen visibleFrame];
-
-	// Get the total screen size of the primary monitor.
-	GPrimaryMonitorWidth = ScreenFrame.size.width;
-	GPrimaryMonitorHeight = ScreenFrame.size.height;
-
-	GVirtualScreenRect.left = 0;
-	GVirtualScreenRect.top = 0;
-	GVirtualScreenRect.right = 0;
-	GVirtualScreenRect.bottom = 0;
-
-	for( int32 Index = 0; Index < [AllScreens count]; Index++ )
-	{
-		NSScreen* Screen = (NSScreen*)[AllScreens objectAtIndex: Index];
-		NSRect DisplayFrame = [Screen frame];
-		if(DisplayFrame.origin.x != ScreenFrame.origin.x)
-		{
-			GVirtualScreenRect.right += DisplayFrame.size.width;
-		}
-		else
-		{
-			GVirtualScreenRect.right = FMath::Max(GVirtualScreenRect.right, (int)DisplayFrame.size.width);
-		}
-		if(DisplayFrame.origin.y != ScreenFrame.origin.y)
-		{
-			GVirtualScreenRect.bottom += DisplayFrame.size.height;
-		}
-		else
-		{
-			GVirtualScreenRect.bottom = FMath::Max(GVirtualScreenRect.bottom, (int)DisplayFrame.size.height);
-		}
-	}
-
-	// Get the screen rect of the primary monitor, exclusing taskbar etc.
-	GPrimaryMonitorWorkRect.left = VisibleFrame.origin.x;
-	GPrimaryMonitorWorkRect.right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	GPrimaryMonitorWorkRect.top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	GPrimaryMonitorWorkRect.bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
-#endif		// WITH_ENGINE
-}
-
 void FMacPlatformMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
@@ -278,59 +209,14 @@ void FMacPlatformMisc::PlatformInit()
 	GMacAppInfo.Init();
 }
 
-
-#if WITH_ENGINE
-void FMacPlatformMisc::PlatformPostInit()
-{
-	if ( FApp::IsGame() )
-	{
-		SCOPED_AUTORELEASE_POOL;
-
-		// Obtain width and height of primary monitor.
-		int32 ScreenWidth  = GPrimaryMonitorWidth;
-		int32 ScreenHeight = GPrimaryMonitorHeight;
-		int32 WindowWidth  = ScreenWidth / 2;
-		int32 WindowHeight = ScreenHeight / 2;
-		int32 WindowPosX = (ScreenWidth - WindowWidth ) / 2;
-		int32 WindowPosY = (ScreenHeight - WindowHeight ) / 2;
-
-		const FString Name = FApp::GetGameName();
-
-		NSRect ViewRect = NSMakeRect(WindowPosX, WindowPosY, WindowWidth, WindowHeight);
-
-		GGameWindow = [[NSWindow alloc] initWithContentRect: ViewRect
-									styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
-									  backing: NSBackingStoreBuffered
-										defer: NO];
-
-		if( GGameWindow )
-		{
-			[GGameWindow setAcceptsMouseMovedEvents: YES];
-			[GGameWindow setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary];
-			[GGameWindow setOpaque: YES];
-
-			CFStringRef CFName = FPlatformString::TCHARToCFString( *Name );
-			[GGameWindow setTitle: ( NSString *)CFName];
-			CFRelease( CFName );
-		}
-		verify( GGameWindow );
-	}
-}
-
-#endif		// WITH_ENGINE
-
-/**
- * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
- * Vista in the presence of a group policy for password protected screen saver.
- */
 void FMacPlatformMisc::PreventScreenSaver()
 {
-	CGEventRef LocationEvent = CGEventCreate( NULL );
-	CGPoint MouseLocation = CGEventGetLocation( LocationEvent );
-	CFRelease( LocationEvent );
-	CGEventRef MouseMoveCommand = CGEventCreateMouseEvent( NULL, kCGEventMouseMoved, MouseLocation, 0 );
-	CGEventPost( kCGHIDEventTap, MouseMoveCommand );
-	CFRelease( MouseMoveCommand );
+	CGEventRef LocationEvent = CGEventCreate(NULL);
+	CGPoint MouseLocation = CGEventGetLocation(LocationEvent);
+	CFRelease(LocationEvent);
+	CGEventRef MouseMoveCommand = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, MouseLocation, 0);
+	CGEventPost(kCGHIDEventTap, MouseMoveCommand);
+	CFRelease(MouseMoveCommand);
 }
 
 GenericApplication* FMacPlatformMisc::CreateApplication()
@@ -800,6 +686,8 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 
 	Result = GUID;
 }
+
+CORE_API NSWindow* GExtendedAlertWindow = NULL;
 
 static int32 ShowExtendedAlertWindow( EAppMsgType::Type MsgType, NSString* Text, NSString* Caption )
 {

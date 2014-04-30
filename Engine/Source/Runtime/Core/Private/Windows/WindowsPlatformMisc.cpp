@@ -44,25 +44,6 @@
  */
 #define WITH_FIREWALL_SUPPORT	0
 
-/** Width of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorWidth = 0;
-/** Height of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorHeight = 0;
-/** Rectangle of the work area on the primary monitor (excluding taskbar, etc) in "virtual screen coordinates" (pixels). */
-CORE_API RECT GPrimaryMonitorWorkRect;
-/** Virtual screen rectangle including all monitors. */
-CORE_API RECT GVirtualScreenRect;
-
-
-/** Settings for the game Window */
-CORE_API HWND GGameWindow = NULL;
-CORE_API bool GGameWindowUsingStartupWindowProc = false;	// Whether the game is using the startup window procedure
-CORE_API uint32 GGameWindowStyle = 0;
-CORE_API int32 GGameWindowPosX = 0;
-CORE_API int32 GGameWindowPosY = 0;
-CORE_API int32 GGameWindowWidth = 100;
-CORE_API int32 GGameWindowHeight = 100;
-
 extern "C"
 {
 	CORE_API HINSTANCE hInstance = NULL;
@@ -173,19 +154,6 @@ void FWindowsPlatformMisc::PlatformPreInit()
 		FPlatformMisc::RequestExit( false );
 	}
 
-#if WITH_ENGINE
-	// Get the total screen size of the primary monitor.
-	GPrimaryMonitorWidth = ::GetSystemMetrics( SM_CXSCREEN );
-	GPrimaryMonitorHeight = ::GetSystemMetrics( SM_CYSCREEN );
-	GVirtualScreenRect.left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
-	GVirtualScreenRect.top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );
-	GVirtualScreenRect.right = ::GetSystemMetrics( SM_CXVIRTUALSCREEN ) + GVirtualScreenRect.left;
-	GVirtualScreenRect.bottom = ::GetSystemMetrics( SM_CYVIRTUALSCREEN ) + GVirtualScreenRect.top;
-
-	// Get the screen rect of the primary monitor, exclusing taskbar etc.
-	SystemParametersInfo( SPI_GETWORKAREA, 0, &GPrimaryMonitorWorkRect, 0 );
-#endif		// WITH_ENGINE
-
 	// initialize the file SHA hash mapping
 	InitSHAHashes();
 }
@@ -217,41 +185,6 @@ void FWindowsPlatformMisc::PlatformInit()
 }
 
 
-#if WITH_ENGINE
-/**
- * Temporary window procedure for the game window during startup.
- * It gets replaced later on with SetWindowLong().
- */
-LRESULT CALLBACK StartupWindowProc(HWND hWnd, uint32 Message, WPARAM wParam, LPARAM lParam)
-{
-	switch (Message)
-	{
-		// Prevent power management
-		case WM_POWERBROADCAST:
-		{
-			switch( wParam )
-			{
-				case PBT_APMQUERYSUSPEND:
-				case PBT_APMQUERYSTANDBY:
-					return BROADCAST_QUERY_DENY;
-			}
-		}
-	}
-
-	return DefWindowProc(hWnd, Message, wParam, lParam);
-}
-
-void FWindowsPlatformMisc::PlatformPostInit()
-{
-
-}
-
-#endif		// WITH_ENGINE
-
-/**
- * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
- * Vista in the presence of a group policy for password protected screen saver.
- */
 void FWindowsPlatformMisc::PreventScreenSaver()
 {
 	INPUT Input = { 0 };
@@ -1106,47 +1039,6 @@ EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgT
 	}
 	return EAppReturnType::Cancel;
 }
-
-#if WITH_ENGINE
-void FWindowsPlatformMisc::ShowGameWindow( void* StaticWndProc )
-{
-	if ( FPlatformProperties::SupportsWindowedMode() && GGameWindow && GGameWindowUsingStartupWindowProc )
-	{
-		// Convert position from screen coordinates to workspace coordinates.
-		HMONITOR Monitor = MonitorFromWindow(GGameWindow, MONITOR_DEFAULTTOPRIMARY);
-		MONITORINFO MonitorInfo;
-		MonitorInfo.cbSize = sizeof(MONITORINFO);
-		GetMonitorInfo( Monitor, &MonitorInfo );
-		int32 PosX = GGameWindowPosX - MonitorInfo.rcWork.left;
-		int32 PosY = GGameWindowPosY - MonitorInfo.rcWork.top;
-
-		// Clear out old messages using the old StartupWindowProc
-		WinPumpMessages();
-
-		SetWindowLong(GGameWindow, GWL_STYLE, GGameWindowStyle);
-		SetWindowLongPtr(GGameWindow, GWLP_WNDPROC, (LONG_PTR)StaticWndProc);
-		GGameWindowUsingStartupWindowProc = false;
-
-		// Restore the minimized window to the correct position, size and styles.
-		WINDOWPLACEMENT Placement;
-		FMemory::Memzero(&Placement, sizeof(WINDOWPLACEMENT));
-		Placement.length					= sizeof(WINDOWPLACEMENT);
-		GetWindowPlacement(GGameWindow, &Placement);
-		Placement.flags						= 0;
-		Placement.showCmd					= SW_SHOWNORMAL;	// Restores the minimized window (SW_SHOW won't do that)
-		Placement.rcNormalPosition.left		= PosX;
-		Placement.rcNormalPosition.right	= PosX + GGameWindowWidth;
-		Placement.rcNormalPosition.top		= PosY;
-		Placement.rcNormalPosition.bottom	= PosY + GGameWindowHeight;
-		SetWindowPlacement(GGameWindow, &Placement);
-		UpdateWindow(GGameWindow);
-
-		// Pump the messages using the new (correct) WindowProc
-		WinPumpMessages();
-	}
-}
-#endif		// WITH_ENGINE
-
 
 static bool HandleGameExplorerIntegration()
 {

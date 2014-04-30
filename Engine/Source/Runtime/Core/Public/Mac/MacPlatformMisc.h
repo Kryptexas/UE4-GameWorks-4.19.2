@@ -11,9 +11,7 @@
 **/
 struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
-	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static TArray<uint8> GetMacAddress();
@@ -55,7 +53,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void CreateGuid(class FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static void PreventScreenSaver();
-	static void ShowGameWindow( void* StaticWndProc );
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();

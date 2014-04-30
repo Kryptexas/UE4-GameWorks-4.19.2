@@ -9,9 +9,6 @@
 
 DEFINE_LOG_CATEGORY(LogCrashTracker);
 
-/** Virtual screen rectangle including all monitors. */
-extern CORE_API RECT GVirtualScreenRect;
-
 /*-----------------------------------------------------------------------------
 	Stat declarations.
 -----------------------------------------------------------------------------*/
