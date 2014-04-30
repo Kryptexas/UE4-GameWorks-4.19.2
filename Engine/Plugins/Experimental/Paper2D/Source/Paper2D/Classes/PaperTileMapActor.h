@@ -11,4 +11,10 @@ class APaperTileMapActor : public AActor
 
 	UPROPERTY(Category=TileMapActor, VisibleAnywhere, EditInline)
 	TSubobjectPtr<class UPaperTileMapRenderComponent> RenderComponent;
+
+	// AActor interface
+#if WITH_EDITOR
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+#endif
+	// End of AActor interface
 };

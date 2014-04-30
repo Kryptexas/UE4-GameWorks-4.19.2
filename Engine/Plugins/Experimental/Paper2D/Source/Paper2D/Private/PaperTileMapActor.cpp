@@ -12,3 +12,14 @@ APaperTileMapActor::APaperTileMapActor(const FPostConstructInitializeProperties&
 
 	RootComponent = RenderComponent;
 }
+
+#if WITH_EDITOR
+bool APaperTileMapActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (RenderComponent->DefaultLayerTileSet != nullptr)
+	{
+		Objects.Add(RenderComponent->DefaultLayerTileSet);
+	}
+	return true;
+}
+#endif

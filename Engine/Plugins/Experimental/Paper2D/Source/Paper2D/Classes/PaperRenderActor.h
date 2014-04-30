@@ -12,5 +12,11 @@ class APaperRenderActor : public AActor
 
 	UPROPERTY(Category=Sprite, VisibleAnywhere)
 	TSubobjectPtr<class UPaperRenderComponent> RenderComponent;
+
+	// AActor interface
+#if WITH_EDITOR
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+#endif
+	// End of AActor interface
 };
 

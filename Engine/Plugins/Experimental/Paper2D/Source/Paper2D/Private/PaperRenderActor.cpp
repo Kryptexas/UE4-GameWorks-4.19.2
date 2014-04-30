@@ -13,3 +13,14 @@ APaperRenderActor::APaperRenderActor(const FPostConstructInitializeProperties& P
 
 	RootComponent = RenderComponent;
 }
+
+#if WITH_EDITOR
+bool APaperRenderActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (UPaperSprite* SourceSprite = RenderComponent->GetSprite())
+	{
+		Objects.Add(SourceSprite);
+	}
+	return true;
+}
+#endif
