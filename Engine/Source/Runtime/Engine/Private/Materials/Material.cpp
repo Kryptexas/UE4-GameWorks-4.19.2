@@ -31,6 +31,7 @@ bool FMaterialsWithDirtyUsageFlags::IsUsageFlagDirty(EMaterialUsage UsageFlag)
 FUObjectAnnotationSparseBool GMaterialsThatNeedSamplerFixup;
 FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
+FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
 
 #endif // #if WITH_EDITOR
 
@@ -1612,6 +1613,11 @@ void UMaterial::Serialize(FArchive& Ar)
 	{
 		GMaterialsThatNeedPhysicalConversion.Set( this );
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_FLIP_MATERIAL_COORDS)
+	{
+		GMaterialsThatNeedExpressionsFlipped.Set(this);
+	}
 #endif // #if WITH_EDITOR
 
 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
@@ -1986,12 +1992,13 @@ void UMaterial::PostLoad()
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
-	if (GetLinkerUE4Version() < VER_UE4_FLIP_MATERIAL_COORDS)
+#if WITH_EDITOR
+	if (GMaterialsThatNeedExpressionsFlipped.Get(this))
 	{
+		GMaterialsThatNeedExpressionsFlipped.Clear(this);
 		FlipExpressionPositions(Expressions, EditorComments, this);
 	}
-#endif //WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )

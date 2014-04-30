@@ -9,6 +9,7 @@
 #if WITH_EDITOR
 #include "Slate.h"
 #include "UnrealEd.h"
+#include "UObjectAnnotation.h"
 #endif //WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
@@ -18,6 +19,10 @@ if( ExpressionInput.Expression == ToBeRemovedExpression )										\
 {																								\
 	ExpressionInput.Expression = ToReplaceWithExpression;										\
 }
+
+#if WITH_EDITOR
+FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedExpressionsFlipped;
+#endif // #if WITH_EDITOR
 
 /** Returns whether the given expression class is allowed. */
 bool IsAllowedExpressionType(UClass* Class, bool bMaterialFunction)
@@ -6002,6 +6007,17 @@ void UMaterialFunction::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 }
 #endif // WITH_EDITOR
 
+void UMaterialFunction::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+#if WITH_EDITOR
+	if (Ar.UE4Ver() < VER_UE4_FLIP_MATERIAL_COORDS)
+	{
+		GMaterialFunctionsThatNeedExpressionsFlipped.Set(this);
+	}
+#endif // #if WITH_EDITOR
+}
+
 void UMaterialFunction::PostLoad()
 {
 	Super::PostLoad();
@@ -6038,13 +6054,13 @@ void UMaterialFunction::PostLoad()
 			StateId = FGuid::NewGuid();
 		}
 	}
-#endif
-#if WITH_EDITORONLY_DATA
-	if (GetLinkerUE4Version() < VER_UE4_FLIP_MATERIAL_COORDS)
+
+	if (GMaterialFunctionsThatNeedExpressionsFlipped.Get(this))
 	{
+		GMaterialFunctionsThatNeedExpressionsFlipped.Clear(this);
 		UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments);
 	}
-#endif //WITH_EDITORONLY_DATA
+#endif // #if WITH_EDITOR
 }
 
 void UMaterialFunction::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
