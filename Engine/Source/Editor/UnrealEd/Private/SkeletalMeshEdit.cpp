@@ -353,14 +353,21 @@ void UnFbx::FFbxImporter::FillAndVerifyBoneNames(USkeleton* Skeleton, TArray<Fbx
 	}
 
 	// make sure all bone names are included, if not warn user
+	FString BoneNames;
 	for (int32 I = 0; I < TrackNum; ++I)
 	{
 		FName RawBoneName = OutRawBoneNames[I];
 		if ( RefSkeleton.FindBoneIndex(RawBoneName) == INDEX_NONE)
 		{
-			// warn user
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FBXImport_NoBone", "Could not find bone ({0}) in selected Skeleton({1}) to patch animation from. The data will be lost."), FText::FromName(RawBoneName), FText::FromString(Skeleton->GetFullName()))));
+			BoneNames += RawBoneName.ToString();
+			BoneNames += TEXT("  \n");
 		}
+	}
+
+	if (BoneNames.IsEmpty() == false)
+	{
+		// warn user
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FBXImport_MissingBone", "The following bones exist in the imported animation, but not in the Skeleton asset {0}.  Any animation on these bones will not be imported: \n\n {1}"), FText::FromString(Skeleton->GetName()), FText::FromString(BoneNames) )));
 	}
 }
 //-------------------------------------------------------------------------
