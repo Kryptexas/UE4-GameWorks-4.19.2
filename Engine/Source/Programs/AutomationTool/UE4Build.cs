@@ -12,6 +12,7 @@ namespace AutomationTool
 	[Help("NoXGE", "Toggle to disable the distributed build process")]
 	[Help("ForceNonUnity", "Toggle to disable the unity build system")]
 	[Help("ForceUnity", "Toggle to force enable the unity build system")]
+	[Help("Licensee", "If set, this build is being compiled by a licensee")]
 	public class UE4Build : CommandUtils
 	{
 		private BuildCommand OwnerCommand;
@@ -415,23 +416,33 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null)
 		{
+			bool bIsLicenseeVersion = OwnerCommand.ParseParam("Licensee");
+			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
+			int ChangelistNumber = 0;
+			string ChangelistString = String.Empty;
+			if (bDoUpdateVersionFiles)
+			{
+				ChangelistNumber = ChangelistNumberOverride.GetValueOrDefault(P4Env.Changelist);
+				ChangelistString = ChangelistNumber.ToString();
+			}
+
 			var Result = new List<String>();
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "build.properties");
-                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
+				if (bDoUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
 					Log("  TimestampForBVT={0}", CmdEnv.TimestampAsString);
-					Log("  EngineVersion={0}", P4Env.ChangelistString);
-					Log("  BranchName={0}", Branch);
+					Log("  EngineVersion={0}", ChangelistNumber.ToString());
+					Log("  BranchName={0}", Branch);					
 
 					PrepareBuildProduct(VerFile, false);
 					VersionFileUpdater BuildProperties = new VersionFileUpdater(VerFile);
 					BuildProperties.ReplaceLine("TimestampForBVT=", CmdEnv.TimestampAsString);
-					BuildProperties.ReplaceLine("EngineVersion=", P4Env.ChangelistString);
+					BuildProperties.ReplaceLine("EngineVersion=", ChangelistNumber.ToString());
 					BuildProperties.ReplaceLine("BranchName=", Branch);
                     BuildProperties.Commit();
 				}
@@ -449,13 +460,13 @@ namespace AutomationTool
 
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Core", "Private", "UObject", "ObjectVersion.cpp");
-                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
+				if (bDoUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
-					Log(" #define	ENGINE_VERSION  {0}", P4Env.ChangelistString);
+					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
 
 					VersionFileUpdater ObjectVersionCpp = new VersionFileUpdater(VerFile);
-					ObjectVersionCpp.ReplaceLine("#define	ENGINE_VERSION	", P4Env.ChangelistString);
+					ObjectVersionCpp.ReplaceLine("#define	ENGINE_VERSION	", ChangelistNumber.ToString());
                     ObjectVersionCpp.Commit();
                 }
 				else
@@ -468,21 +479,23 @@ namespace AutomationTool
             string EngineVersionFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
             {
                 string VerFile = EngineVersionFile;
-                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
+				if (bDoUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
-					Log(" #define	ENGINE_VERSION  {0}", P4Env.ChangelistString);
-					Log(" #define	ENGINE_VERSION_HIWORD  {0}", (P4Env.Changelist >> 16).ToString());
-					Log(" #define	ENGINE_VERSION_LOWORD  {0}", (P4Env.Changelist & 0xFFFF).ToString());
+					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
+					Log(" #define	ENGINE_VERSION_HIWORD  {0}", (ChangelistNumber >> 16).ToString());
+					Log(" #define	ENGINE_VERSION_LOWORD  {0}", (ChangelistNumber & 0xFFFF).ToString());					
 					Log(" #define	BRANCH_NAME  {0}", Branch);
-					Log(" #define	BUILT_FROM_CHANGELIST  {0}", P4Env.ChangelistString);
+					Log(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					Log(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
-					VersionH.ReplaceLine("#define ENGINE_VERSION ", P4Env.ChangelistString);
-					VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", (P4Env.Changelist >> 16).ToString());
-					VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", (P4Env.Changelist & 0xFFFF).ToString());
+					VersionH.ReplaceLine("#define ENGINE_VERSION ", ChangelistNumber.ToString());
+					VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", (ChangelistNumber >> 16).ToString());
+					VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", (ChangelistNumber & 0xFFFF).ToString());					
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
-					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", P4Env.ChangelistString);
+					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
+					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
 
                     VersionH.Commit();
                 }
@@ -497,10 +510,10 @@ namespace AutomationTool
                 // Use Version.h data to update MetaData.cs so the assemblies match the engine version.
                 string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Programs", "DotNETCommon", "MetaData.cs");
 
-                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
+				if (bDoUpdateVersionFiles)
                 {
                     // Get the MAJOR/MINOR/PATCH from the Engine Version file, as it is authoritative. The rest we get from the P4Env.
-                    string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile).ToString();
+                    string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile, ChangelistNumber).ToString();
 
                     Log("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
 

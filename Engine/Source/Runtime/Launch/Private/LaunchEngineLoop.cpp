@@ -2438,7 +2438,7 @@ void FEngineLoop::AppInit( )
 	check(sizeof(bool) == 1);
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
-	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion);
+	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || GEngineVersion.IsLicenseeVersion());
 
 	// Culture.
 	TCHAR CookerCulture[8];
