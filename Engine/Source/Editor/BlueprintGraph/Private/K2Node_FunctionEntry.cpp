@@ -161,9 +161,21 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 	}
 }
 
-UEdGraphPin* UK2Node_FunctionEntry::GetWorldContextPin() const
+UEdGraphPin* UK2Node_FunctionEntry::GetAutoWorldContextPin() const
 {
 	return FFunctionEntryHelper::RequireWorldContextParameter(this) ? FindPin(FFunctionEntryHelper::GetWorldContextPinName()) : NULL;
+}
+
+void UK2Node_FunctionEntry::RemoveUnnecessaryAutoWorldContext()
+{
+	auto WorldContextPin = GetAutoWorldContextPin();
+	if (WorldContextPin)
+	{
+		if (!WorldContextPin->LinkedTo.Num())
+		{
+			Pins.Remove(WorldContextPin);
+		}
+	}
 }
 
 void UK2Node_FunctionEntry::RemoveOutputPin(UEdGraphPin* PinToRemove)

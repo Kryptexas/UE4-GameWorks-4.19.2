@@ -1022,6 +1022,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		// Transforms
 		TransformNodes(Context);
 
+		//Now we can safely remove automatically added WorldContext pin from static function.
+		Context.EntryPoint->RemoveUnnecessaryAutoWorldContext();
+
 		// Create the function stub
 		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
 		if(Context.IsDelegateSignature())
@@ -1451,7 +1454,7 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
 	}
 
-	if (auto WorldContextPin = EntryNode->GetWorldContextPin())
+	if (auto WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_DefaultToSelf, *WorldContextPin->PinName); 
 		Function->SetMetaData(TEXT("HidePin"), *WorldContextPin->PinName);

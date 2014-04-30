@@ -1215,7 +1215,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 			{
 				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
 			}
-			else if (auto BetterSelfPin = EntryPoints[0]->GetWorldContextPin())
+			else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 			{
 				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 				FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
