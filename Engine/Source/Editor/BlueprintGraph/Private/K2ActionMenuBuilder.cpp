@@ -1444,12 +1444,14 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 	else
 	{
 		// Find all functions in each function library
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		for (TObjectIterator<UClass> ClassIt(RF_Transient | RF_PendingKill); ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
-			const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
-			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
-				CanUseLibraryFunctionsForScope(TestClass, OwnerClass) && !bIsSkeletonClass)
+			const bool bTransient = (GetTransientPackage() == TestClass->GetOutermost());
+			const UClass* AuthoritativeOwnerClass = OwnerClass ? const_cast<UClass*>(OwnerClass)->GetAuthoritativeClass() : NULL;
+			const bool bCanShowInOwnerClass = !AuthoritativeOwnerClass || !TestClass->IsChildOf(AuthoritativeOwnerClass);
+			const bool bIsProperFucntionLibrary = TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) && CanUseLibraryFunctionsForScope(TestClass, OwnerClass);
+			if (bCanShowInOwnerClass && bIsProperFucntionLibrary && !bTransient)
 			{
 				GetFuncNodesForClass(ListBuilder, TestClass, OwnerClass, DestGraph, FunctionTypes, BaseCategory, TargetInfo);
 			}
@@ -1775,7 +1777,8 @@ void FK2ActionMenuBuilder::GetVariableGettersSettersForClass(FBlueprintGraphActi
 	}
 
 	// Add in self-context variable getter, if needed
-	if( bSelfContext && bWantGetters )
+	const bool bSelfIsAllowed = !Class->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
+	if (bSelfContext && bWantGetters && bSelfIsAllowed)
 	{
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelfVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::VariablesCategory, FText::FromString(SelfString), SelfTooltip);
 

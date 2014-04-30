@@ -18,6 +18,7 @@ class UK2Node_Self : public UK2Node
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetKeywords() const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
