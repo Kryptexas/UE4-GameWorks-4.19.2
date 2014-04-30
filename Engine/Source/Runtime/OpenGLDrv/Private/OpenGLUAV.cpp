@@ -36,7 +36,9 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 
 FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
 {
-	if (Resource)
+    // Don't delete GL resource out from underneath FOpenGLTexture for other targets.
+    // For D3D RHI the texture object is actually retained by the SRV, we may want to match those semantics here too.
+	if (Resource && Target == GL_TEXTURE_BUFFER)
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
 		glDeleteTextures(1, &Resource);
