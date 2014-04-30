@@ -234,7 +234,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 {
 	//UE_LOG(LogWindows, Log,  TEXT("CreateProc %s %s"), URL, Parms );
 
-	FString CommandLine = FString::Printf(TEXT("%s %s"), URL, Parms);
+	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
 
 	PROCESS_INFORMATION ProcInfo;
 	SECURITY_ATTRIBUTES Attr;
