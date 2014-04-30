@@ -137,6 +137,7 @@ public:
 	static ENGINE_API const FName PhysicsActor_ProfileName;
 	static ENGINE_API const FName BlockAllDynamic_ProfileName;
 	static ENGINE_API const FName Pawn_ProfileName;
+	static ENGINE_API const FName Vehicle_ProfileName;
 
 	/** Accessor and initializer **/
 	ENGINE_API static UCollisionProfile * Get();

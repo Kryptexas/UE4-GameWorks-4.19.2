@@ -24,6 +24,10 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	FVector SocketOffset;
 
+	/** Offset at start of spring, applied in world space. Use this if you want a world-space offset from the parent component instead of the usual relative-space offset. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
+	FVector TargetOffset;
+
 	/** How big should the query probe sphere be (in unreal units) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraCollision, meta=(editcondition="bDoCollisionTest"))
 	float ProbeSize;

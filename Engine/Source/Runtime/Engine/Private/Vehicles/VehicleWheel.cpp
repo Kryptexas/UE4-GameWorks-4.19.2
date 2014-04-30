@@ -14,6 +14,9 @@ UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCI
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CollisionMeshObj(TEXT("/Engine/EngineMeshes/Cylinder"));
 	CollisionMesh = CollisionMeshObj.Object;
 
+	static ConstructorHelpers::FObjectFinder<UTireType> TireTypeObj(TEXT("/Engine/EngineTireTypes/DefaultTireType.DefaultTireType"));
+	TireType = TireTypeObj.Object;
+
 	ShapeRadius = 30.0f;
 	ShapeWidth = 10.0f;
 	bAutoAdjustCollisionSize = true;

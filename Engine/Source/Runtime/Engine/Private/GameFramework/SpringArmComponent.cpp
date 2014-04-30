@@ -62,7 +62,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	PreviousDesiredRot = DesiredRot;
 
 
-	FVector ArmOrigin = GetComponentLocation();
+	FVector ArmOrigin = GetComponentLocation() + TargetOffset;
 	FVector DesiredLoc = ArmOrigin;
 	if (bDoLocationLag)
 	{

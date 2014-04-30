@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "DisplayDebugHelpers.h"
 
 FName AWheeledVehicle::VehicleMovementComponentName(TEXT("MovementComp"));
 FName AWheeledVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));
@@ -14,8 +15,7 @@ AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties&
 	: Super(PCIP)
 {
 	Mesh = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, VehicleMeshComponentName);
-	static FName CollisionProfileName(TEXT("Vehicle"));
-	Mesh->SetCollisionProfileName(CollisionProfileName);
+	Mesh->SetCollisionProfileName(UCollisionProfile::Vehicle_ProfileName);
 	Mesh->BodyInstance.bSimulatePhysics = true;
 	Mesh->BodyInstance.bNotifyRigidBodyCollision = true;
 	Mesh->BodyInstance.bUseCCD = true;
@@ -29,3 +29,16 @@ AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties&
 	VehicleMovement->UpdatedComponent = Mesh;
 }
 
+void AWheeledVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
+{
+	static FName NAME_Vehicle = FName(TEXT("Vehicle"));
+
+	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+
+#if WITH_PHYSX
+	if (DebugDisplay.IsDisplayOn(NAME_Vehicle))
+	{
+		GetVehicleMovementComponent()->DrawDebug(Canvas, YL, YPos);
+	}
+#endif
+}

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "VehicleWheel.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
 #if WITH_PHYSX
@@ -86,7 +87,7 @@ struct FWheelSetup
 
 	// The wheel class to use
 	UPROPERTY(EditAnywhere, Category=WheelSetup)
-	TSubclassOf<class UVehicleWheel> WheelClass;
+	TSubclassOf<UVehicleWheel> WheelClass;
 
 	// Bone name on mesh to create wheel at
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
@@ -118,7 +119,7 @@ struct FWheelSetup
 	float Mass;
 
 	FWheelSetup()
-		: WheelClass(NULL)
+		: WheelClass(UVehicleWheel::StaticClass())
 		, BoneName(NAME_None)
 		, AdditionalOffset(0.0f)
 		, SteerAngle(70.0f)

@@ -36,6 +36,7 @@ ENGINE_API const FName UCollisionProfile::BlockAll_ProfileName = FName(TEXT("Blo
 ENGINE_API const FName UCollisionProfile::PhysicsActor_ProfileName = FName(TEXT("PhysicsActor"));
 ENGINE_API const FName UCollisionProfile::BlockAllDynamic_ProfileName = FName(TEXT("BlockAllDynamic"));
 ENGINE_API const FName UCollisionProfile::Pawn_ProfileName = FName(TEXT("Pawn"));
+ENGINE_API const FName UCollisionProfile::Vehicle_ProfileName = FName(TEXT("Vehicle"));
 
 UCollisionProfile::UCollisionProfile(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

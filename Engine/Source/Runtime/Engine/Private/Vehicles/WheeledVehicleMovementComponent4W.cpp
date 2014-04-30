@@ -64,11 +64,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	SteeringCurve[3].InVal = 1.0f;
 	SteeringCurve[3].OutVal = 0.1f;
 
-	WheelSetups.AddZeroed(4);
-	for (int i = 0 ; i < WheelSetups.Num(); ++i)
-	{
-		WheelSetups[i].WheelClass = UVehicleWheel::StaticClass();
-	}
+	WheelSetups.SetNum(4);
 #endif // WITH_PHYSX
 }
 
