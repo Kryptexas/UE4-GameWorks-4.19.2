@@ -27,9 +27,9 @@ FString FGenericScriptCodeGenerator::GenerateFunctionParamDeclaration(const FStr
 	}
 	else
 	{
-		Initializer = FString::Printf(TEXT("%s()"), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue));
+		Initializer = FString::Printf(TEXT("%s()"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue));
 	}
-	return FString::Printf(TEXT("%s %s = %s;"), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue), *Param->GetName(), *Initializer);
+	return FString::Printf(TEXT("%s %s = %s;"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName(), *Initializer);
 }
 
 FString FGenericScriptCodeGenerator::GenerateObjectDeclarationFromContext(const FString& ClassNameCPP, UClass* Class)
@@ -76,7 +76,7 @@ FString FGenericScriptCodeGenerator::ExportFunction(const FString& ClassNameCPP,
 			else
 			{
 				ReturnValue = Param;
-				ReturnValueDeclaration += FString::Printf(TEXT("%s %s = "), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue), *Param->GetName());
+				ReturnValueDeclaration += FString::Printf(TEXT("%s %s = "), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName());
 			}
 		}
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateObjectDeclarationFromContext(ClassNameCPP, Class));

@@ -32,6 +32,8 @@ protected:
 	FString RebaseToBuildPath(const FString& FileName) const;
 	/** Converts a UClass name to C++ class name (with U/A prefix) */
 	FString GetClassNameCPP(UClass* Class);
+	/** Gets C++ friendly property type name. */
+	FString GetPropertyTypeCPP(UProperty* Property, uint32 PortFlags = 0);
 	/** Generates a script glue header filename for the specified class */
 	virtual FString GetScriptHeaderForClass(UClass* Class);
 	/** Returns true if the specified class can be exported */

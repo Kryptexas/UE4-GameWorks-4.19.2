@@ -79,14 +79,14 @@ FString FLuaScriptCodeGenerator::GenerateFunctionParamDeclaration(const FString&
 	}
 	else if (Param->IsA(UObjectPropertyBase::StaticClass()))
 	{
-		Initializer = FString::Printf(TEXT("(%s)(lua_touserdata"), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue), ParamIndex);
+		Initializer = FString::Printf(TEXT("(%s)(lua_touserdata"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), ParamIndex);
 	}
 	else
 	{
 		FError::Throwf(TEXT("Unsupported function param type: %s"), *Param->GetClass()->GetName());
 	}
 
-	return FString::Printf(TEXT("%s %s = %s(InScriptContext, %d));"), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue), *Param->GetName(), *Initializer, ParamIndex);
+	return FString::Printf(TEXT("%s %s = %s(InScriptContext, %d));"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName(), *Initializer, ParamIndex);
 }
 
 FString FLuaScriptCodeGenerator::GenerateObjectDeclarationFromContext(const FString& ClassNameCPP, UClass* Class)
@@ -255,7 +255,7 @@ FString FLuaScriptCodeGenerator::ExportFunction(const FString& ClassNameCPP, UCl
 			else
 			{
 				ReturnValue = Param;
-				ReturnValueDeclaration += FString::Printf(TEXT("%s %s = "), *Param->GetCPPType(NULL, CPPF_ArgumentOrReturnValue), *Param->GetName());
+				ReturnValueDeclaration += FString::Printf(TEXT("%s %s = "), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName());
 			}
 		}		
 		FunctionBody += FString::Printf(TEXT("\t%sObj->%s(%s);\r\n"), *ReturnValueDeclaration, *Function->GetName(), *FunctionCallArguments);
