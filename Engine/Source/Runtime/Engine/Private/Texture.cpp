@@ -286,8 +286,10 @@ void UTexture::PostLoad()
 
 	if( !IsTemplate() )
 	{
+#if WITH_EDITORONLY_DATA
 		// Update cached LOD bias.
 		UpdateCachedLODBias();
+#endif // #if WITH_EDITORONLY_DATA
 
 		// The texture will be cached by the cubemap it is contained within on consoles.
 		UTextureCube* CubeMap = Cast<UTextureCube>(GetOuter());
@@ -441,6 +443,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
 		CVarOnlyStreamInTextures->Set(false);
 
+#if WITH_EDITORONLY_DATA
 		for( TObjectIterator<UTexture2D> It; It; ++It )
 		{
 			UTexture* Texture = *It;
@@ -448,6 +451,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 			// Update cached LOD bias.
 			Texture->UpdateCachedLODBias();
 		}
+#endif // #if WITH_EDITORONLY_DATA
 
 		// Make sure we iterate over all textures by setting it to high value.
 		GStreamingManager->SetNumIterationsForNextFrame( 100 );
@@ -587,21 +591,27 @@ void FTextureLODSettings::ReadEntry( int32 GroupId, const TCHAR* GroupName, cons
 
 int32 FTextureLODSettings::CalculateLODBias( UTexture* Texture, bool bIncTextureMips ) const
 {	
-	check( Texture );
-	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0), Texture->MipGenSettings);
-}
+	check(Texture);
 
-int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels, TextureMipGenSettings InMipGenSetting ) const
-{	
+#if WITH_EDITORONLY_DATA
 	// Find LOD group.
-	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[LODGroup];
+	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[Texture->LODGroup];
 
 	// Test to see if we have no mip generation as in which case the LOD bias will be ignored
-	const TextureMipGenSettings FinalMipGenSetting = (InMipGenSetting == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : InMipGenSetting;
-	if ( FinalMipGenSetting == TMGS_NoMipmaps )
+	const TextureMipGenSettings FinalMipGenSetting = (Texture->MipGenSettings == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : Texture->MipGenSettings;
+	if (FinalMipGenSetting == TMGS_NoMipmaps)
 	{
 		return 0;
 	}
+#endif // #if WITH_EDITORONLY_DATA
+
+	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0));
+}
+
+int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels ) const
+{	
+	// Find LOD group.
+	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[LODGroup];
 
 	// Calculate maximum number of miplevels.
 	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Width, Height ) ) );

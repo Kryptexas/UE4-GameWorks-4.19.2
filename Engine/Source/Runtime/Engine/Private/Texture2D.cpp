@@ -522,7 +522,9 @@ FString UTexture2D::GetDesc()
 	uint32 EffectiveSizeX;
 	uint32 EffectiveSizeY;
 
+#if WITH_EDITORONLY_DATA
 	UpdateCachedLODBias();
+#endif //#if WITH_EDITORONLY_DATA
 
 	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
 
