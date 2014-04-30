@@ -4057,73 +4057,45 @@ public class GUBP : BuildCommand
 
             bool DoASharedPromotable = false;
 
-            int NumShared = 0;
+            int NumSharedCode = 0;
             foreach (var CodeProj in Branch.CodeProjects)
             {
                 var Options = CodeProj.Options(HostPlatform);
 
                 if (Options.bIsPromotable && !Options.bSeparateGamePromotion)
                 {
-                    NumShared++;
-                }
-            }
-            {
-                var Options = Branch.BaseEngineProject.Options(HostPlatform);
-
-                if (!Options.bIsPromotable || Options.bSeparateGamePromotion)
-                {
-                    if (NumShared > 0)
-                    {
-                        throw new AutomationException("We assume that if we have shared promotable, the base engine is in it. Some games are marked as shared and promotable, but the base engine is not.");
-                    }
-                }
-                else if (NumShared > 0)
-                {
-                    DoASharedPromotable = true;
+                    NumSharedCode++;
                 }
             }
 
-            if (!DoASharedPromotable && bBuildRocket)
+            var NonCodeProjectNames = new Dictionary<string, List<UnrealTargetPlatform>>();
+            var NonCodeFormalBuilds = new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
             {
-                throw new AutomationException("we were asked to make a rocket build, but this branch does not have a shared promotable.");
-            }
+                var Target = Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor];
 
-            if (DoASharedPromotable)
-            {
-                AddNode(new NonUnityTestNode(HostPlatform));
-
-                var AgentSharingGroup = "Shared_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
-
-                Dictionary<string, List<UnrealTargetPlatform>> NonCodeProjectNames;
-                var NonCodeFormalBuilds = new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
+                foreach (var Codeless in Target.Rules.GUBP_NonCodeProjects_BaseEditorTypeOnly(HostPlatform))
                 {
-                    var Target = Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor];
-                    NonCodeProjectNames = Target.Rules.GUBP_NonCodeProjects_BaseEditorTypeOnly(HostPlatform);
-
-                    foreach (var Codeless in NonCodeProjectNames)
+                    var Proj = Branch.FindGame(Codeless.Key);
+                    if (Proj == null)
                     {
-                        var Proj = Branch.FindGame(Codeless.Key);
-                        if (Proj == null)
-                        {
-                            Log(System.Diagnostics.TraceEventType.Warning, "{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
-                        }
-                        else if (Proj.Properties.bIsCodeBasedProject)
-                        {
-                            throw new AutomationException("{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it is a code based project.", Codeless.Key);
-                        }
+                        Log(System.Diagnostics.TraceEventType.Warning, "{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
                     }
-
-                    var Options = Branch.BaseEngineProject.Options(HostPlatform);
-
-                    if (!Options.bIsPromotable || Options.bSeparateGamePromotion)
+                    else if (Proj.Properties.bIsCodeBasedProject)
                     {
-                        throw new AutomationException("We assume that if we have shared promotable, the base engine is in it.");
+                        throw new AutomationException("{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it is a code based project.", Codeless.Key);
                     }
+                    else
+                    {
+                        NonCodeProjectNames.Add(Codeless.Key, Codeless.Value);
+                    }
+                }
 
-                    var TempNonCodeFormalBuilds = Target.Rules.GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly();
-                    var HostMonos = GetMonolithicPlatformsForUProject(HostPlatform, Branch.BaseEngineProject, true);
+                var TempNonCodeFormalBuilds = Target.Rules.GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly();
+                var HostMonos = GetMonolithicPlatformsForUProject(HostPlatform, Branch.BaseEngineProject, true);
 
-                    foreach (var Codeless in TempNonCodeFormalBuilds)
+                foreach (var Codeless in TempNonCodeFormalBuilds)
+                {
+                    if (NonCodeProjectNames.ContainsKey(Codeless.Key))
                     {
                         var PlatList = Codeless.Value;
                         var NewPlatList = new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>();
@@ -4139,7 +4111,35 @@ public class GUBP : BuildCommand
                             NonCodeFormalBuilds.Add(Codeless.Key, NewPlatList);
                         }
                     }
+                    else
+                    {
+                        Log(System.Diagnostics.TraceEventType.Warning, "{0} was listed as a codeless formal build GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
+                    }
                 }
+            }
+
+            DoASharedPromotable = NumSharedCode > 0 || NonCodeProjectNames.Count > 0 || NonCodeFormalBuilds.Count > 0;
+
+            if (!DoASharedPromotable && bBuildRocket)
+            {
+                throw new AutomationException("we were asked to make a rocket build, but this branch does not have a shared promotable.");
+            }
+
+            if (DoASharedPromotable)
+            {
+                AddNode(new NonUnityTestNode(HostPlatform));
+
+                var AgentSharingGroup = "Shared_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
+
+                var Options = Branch.BaseEngineProject.Options(HostPlatform);
+
+                if (!Options.bIsPromotable || Options.bSeparateGamePromotion)
+                {
+                    throw new AutomationException("We assume that if we have shared promotable, the base engine is in it.");
+                }
+
+
+
                 if (bAutomatedTesting)
                 {
                     var EditorTests = Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetEditorTests_EditorTypeOnly(HostPlatform);
