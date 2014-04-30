@@ -1451,6 +1451,12 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
 	}
 
+	if (auto WorldContextPin = EntryNode->GetWorldContextPin())
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_DefaultToSelf, *WorldContextPin->PinName); 
+		Function->SetMetaData(TEXT("HidePin"), *WorldContextPin->PinName);
+	}
+
 	for (int32 EntryPinIndex = 0; EntryPinIndex < EntryNode->Pins.Num(); ++EntryPinIndex)
 	{
 		UEdGraphPin* EntryPin = EntryNode->Pins[EntryPinIndex];

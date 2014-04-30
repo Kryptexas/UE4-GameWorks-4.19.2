@@ -93,6 +93,21 @@ public:
 	}
 };
 
+struct FFunctionEntryHelper
+{
+	static const FString& GetWorldContextPinName()
+	{
+		static const FString WorldContextPinName(TEXT("__WorldContext"));
+		return WorldContextPinName;
+	}
+
+	static bool RequireWorldContextParameter(const UK2Node_FunctionEntry* Node)
+	{
+		auto Blueprint = Node->GetBlueprint();
+		ensure(Blueprint);
+		return Blueprint && (BPTYPE_FunctionLibrary == Blueprint->BlueprintType);
+	}
+};
 
 UK2Node_FunctionEntry::UK2Node_FunctionEntry(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -130,6 +145,25 @@ void UK2Node_FunctionEntry::AllocateDefaultPins()
 	}
 
 	Super::AllocateDefaultPins();
+
+	if (FFunctionEntryHelper::RequireWorldContextParameter(this) 
+		&& ensure(!FindPin(FFunctionEntryHelper::GetWorldContextPinName())))
+	{
+		UEdGraphPin* WorldContextPin = CreatePin(
+			EGPD_Output,
+			K2Schema->PC_Object,
+			FString(),
+			UObject::StaticClass(),
+			false,
+			false,
+			FFunctionEntryHelper::GetWorldContextPinName());
+		WorldContextPin->bHidden = true;
+	}
+}
+
+UEdGraphPin* UK2Node_FunctionEntry::GetWorldContextPin() const
+{
+	return FFunctionEntryHelper::RequireWorldContextParameter(this) ? FindPin(FFunctionEntryHelper::GetWorldContextPinName()) : NULL;
 }
 
 void UK2Node_FunctionEntry::RemoveOutputPin(UEdGraphPin* PinToRemove)
