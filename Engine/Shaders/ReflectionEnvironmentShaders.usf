@@ -10,6 +10,7 @@
 #include "SHCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "SkyLightShared.usf"
+#include "MonteCarlo.usf"
 
 struct FCopyToCubeFaceVSOutput
 {
@@ -229,12 +230,12 @@ void ComputeBrightnessMain(
 #define NUM_FILTER_SAMPLES 1
 #endif
 
-float4 ConeSamples[NUM_FILTER_SAMPLES];
+float FilterRoughness;
 
 Texture2D AverageBrightnessTexture;
 SamplerState AverageBrightnessSampler;
 
-void BlurPS(
+void FilterPS(
 	FDownsampleGSOut Input,
 	out float4 OutColor : SV_Target0
 	)
@@ -245,21 +246,28 @@ void BlurPS(
 #define FILTER_CUBEMAP 1
 #if FILTER_CUBEMAP
 
-	// Generate a coordinate system, where the Z axis is the direction from the cubemap to the current texel
-	float3 NormalizedCubeCoordinates = normalize(CubeCoordinates);
-	float3 XAxis = normalize(cross(NormalizedCubeCoordinates, float3(0, 1, 0)));
-	float3 YAxis = cross(NormalizedCubeCoordinates, XAxis);
-	float4 FilteredValue = 0;
+	float3 N = normalize(CubeCoordinates);
+	float Roughness = FilterRoughness;
 
-	// Generate samples in a cone and filter
-	for (int SampleIndex = 0; SampleIndex < NUM_FILTER_SAMPLES; SampleIndex++)
+	float4 FilteredColor = 0;
+	float Weight = 0;
+		
+	LOOP
+	for( uint i = 0; i < NUM_FILTER_SAMPLES; i++ )
 	{
-		float3 SampleVector = FilterData.Samples[SampleIndex].x * XAxis + FilterData.Samples[SampleIndex].y * YAxis + FilterData.Samples[SampleIndex].z * NormalizedCubeCoordinates;
-		float4 Sample = SampleCubemap(SampleVector);
-		FilteredValue += Sample;
+		float2 E = Hammersley( i, NUM_FILTER_SAMPLES, 0 );
+		float3 H = TangentToWorld( ImportanceSampleGGX( E, Roughness ).xyz, N );
+		float3 L = 2 * dot( N, H ) * H - N;
+
+		float NoL = saturate( dot( N, L ) );
+		if( NoL > 0 )
+		{
+			FilteredColor += SampleCubemap(L) * NoL;
+			Weight += NoL;
+		}
 	}
 
-	OutColor = FilteredValue / NUM_FILTER_SAMPLES;
+	OutColor = FilteredColor / max( Weight, 0.001 );
 
 #else
 
@@ -267,12 +275,12 @@ void BlurPS(
 
 #endif
 
+#if NORMALIZE
 	// Remove low frequency
 	// TODO match the frequency removed to the one added. In other words divide out 2nd order SH instead of 1st.
-	float LowFrequencyBrightness = Texture2DSample(AverageBrightnessTexture, AverageBrightnessSampler, float2(0, 0));
-
-	// Using too small a minimum value here will cause some GPUs to emit INF on OS X.
+	float LowFrequencyBrightness = Texture2DSample(AverageBrightnessTexture, AverageBrightnessSampler, float2(0, 0)).r;
 	OutColor.rgb /= max(LowFrequencyBrightness, 0.01f);
+#endif
 }
 
 float4 CoefficientMask0;
@@ -388,17 +396,13 @@ void StandardDeferredReflectionPS(
 		float3 CameraToPixel = normalize(WorldPosition - View.ViewOrigin.xyz);
 		float3 ReflectionVector = reflect(CameraToPixel, InGBufferData.WorldNormal);
 
-		float3 SmoothColor = 0;
-		float3 RoughColor = 0;
-		GetReflectionSmoothAndRoughColor(ScreenSpaceData, CameraToPixel, SmoothColor, RoughColor);
-
 		float3 ProjectedCaptureVector = ReflectionVector;
 		float DistanceAlpha = 0;
 
 		//@todo - find a way to share this code with the compute shader version
 
 		#if SPHERE_CAPTURE
-			float3 RayDirection = ReflectionVector * CapturePositionAndRadius.w;
+			float3 RayDirection = ReflectionVector;
 			float ProjectionSphereRadius = CapturePositionAndRadius.w * 1.2f;
 			float SphereRadiusSquared = ProjectionSphereRadius * ProjectionSphereRadius;
 
@@ -411,19 +415,17 @@ void StandardDeferredReflectionPS(
 
 			// Find the intersection between the ray along the reflection vector and the capture's sphere
 			float3 QuadraticCoef;
-			QuadraticCoef.x = dot(RayDirection, RayDirection);
+			QuadraticCoef.x = 1;
 			QuadraticCoef.y = 2 * dot(RayDirection, ReceiverToSphereCenter);
 			QuadraticCoef.z = ReceiverToSphereCenterSq - SphereRadiusSquared;
 
-			float Determinant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.x * QuadraticCoef.z;
-							 
+			float Determinant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.z;
+
 			BRANCH
 			// Only continue if the ray intersects the sphere
 			if (Determinant >= 0)
 			{ 
-				float Epsilon = .000001f;
-				float InvTwoA = .5 / (QuadraticCoef.x + Epsilon);
-				float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * InvTwoA;
+				float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * 0.5;
 
 				float3 IntersectPosition = WorldPosition + FarIntersection * RayDirection;
 				ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
@@ -469,8 +471,7 @@ void StandardDeferredReflectionPS(
 
 			// Composite using the influence shape's alpha, which allows it to only override where it has valid data
 			// Reflection texture was premultiplied by reflection alpha
-			OutColor.rgb = (Reflection.rgb * SmoothColor + Luminance(Reflection.rgb) * RoughColor) * DistanceAlpha;
-			OutColor.a = saturate(DistanceAlpha * Reflection.a);
+			OutColor = Reflection * DistanceAlpha;
 		}
 	}
 }
@@ -490,63 +491,52 @@ void ReflectionApplyPS(
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
-		
-	float3 ReflectionEnv = Texture2DSample( ReflectionEnvTexture, ReflectionEnvSampler, UV ).rgb;
+
+	OutColor = 0;
 	
-	// The reflection environment can contain NAN/INF on OS X so transform NaNs to black, transform negative colors to black.
-	ReflectionEnv = -min(-ReflectionEnv, 0.0);
-	
-	float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
-
-	// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
-	float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );
-	float NoV = saturate( dot( GBuffer.WorldNormal, V ) );
-	SSR.rgb *= EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
-	
-	// The Screen Space Reflection can contain NAN/INF on OS X so transform NaNs to black, transform negative colors to black.
-	SSR.rgba = -min(-SSR.rgba, 0.0);
-
-	OutColor.rgb = ReflectionEnv * (1 - SSR.a) + SSR.rgb;
-	OutColor.a = 0;
-}
-
-/** Used to apply sky light specular, with or without SSR. */
-void SkyLightSpecularPS(
-	in float4 UVAndScreenPos : TEXCOORD0, 
-	out float4 OutColor : SV_Target0)
-{
-	float2 UV = UVAndScreenPos.xy;
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
-	
-	float3 Lighting = 0; 
-
 	BRANCH
 	// Only light pixels marked as lit
-	if (InGBufferData.LightingModelId > 0 && SkyLightParameters.y > 0)
+	if( GBuffer.LightingModelId > 0 )
 	{
-		float3 SmoothColor = 0;
-		float3 RoughColor = 0;
+		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
+		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );
+		float NoV = saturate( dot( GBuffer.WorldNormal, V ) );
+		float3 SpecularColor = EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
+		
+		float AO = GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+		float SpecularOcclusion = saturate( Square( NoV + AO ) - 1 + AO );
+		SpecularColor *= SpecularOcclusion;
 
-		float3 CameraToPixel = normalize(mul(float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld).xyz);
-		GetReflectionSmoothAndRoughColor(ScreenSpaceData, CameraToPixel, SmoothColor, RoughColor);
+		float4 SpecularLighting = float4(0, 0, 0, 1);
+		
+#if APPLY_REFLECTION_ENV
+		SpecularLighting = Texture2DSample( ReflectionEnvTexture, ReflectionEnvSampler, UV );
+#endif
 
-		float3 ReflectionVector = reflect(CameraToPixel, InGBufferData.WorldNormal);
-		float3 SkyLighting = GetSkyLightReflection(ReflectionVector, InGBufferData.Roughness);
-		Lighting = SkyLighting * SmoothColor + Luminance(SkyLighting) * RoughColor;
+#if APPLY_SKYLIGHT
+		float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
+		SpecularLighting.rgb += SpecularLighting.a * GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, true);
+#endif
+		
+		BRANCH
+		if( View.UseLightmaps )
+		{
+			// We have high frequency directional data but low frequency spatial data in the envmap.
+			// We have high frequency spatial data but low frequency directional data in the lightmap.
+			// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
+			// This is only done with luma so as to not get odd color shifting.
+			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
+			SpecularLighting.rgb *= Luminance( GBuffer.LowGlossIndirectSpecular );
+		}
 
 #if APPLY_SSR
 		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
-
-		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
-		float3 V = -CameraToPixel;
-		float NoV = saturate( dot( InGBufferData.WorldNormal, V ) );
-		SSR.rgb *= EnvBRDF(InGBufferData.SpecularColor, InGBufferData.Roughness, NoV);
-
-		Lighting = Lighting * (1 - SSR.a) + SSR.rgb;
+		SpecularLighting.rgb = SpecularLighting.rgb * (1 - SSR.a) + SSR.rgb;
 #endif
-	}
 
-	OutColor = float4(Lighting, 1); 
+		OutColor.rgb = SpecularLighting.rgb * SpecularColor;
+
+		// Transform NaNs to black, transform negative colors to black.
+		OutColor.rgb = -min(-OutColor.rgb, 0.0);
+	}
 }

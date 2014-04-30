@@ -365,6 +365,11 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = FrameNumber;
 
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
+	const bool bUseLightmaps = CVar->GetInt() == 0;
+
+	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps;
+
 	if(State)
 	{
 		// safe to cast on the renderer side
