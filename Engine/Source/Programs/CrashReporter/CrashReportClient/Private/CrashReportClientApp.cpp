@@ -5,13 +5,13 @@
 	#include "SCrashReportClient.h"
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
+	#include "SlateReflector.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 #include "CrashReportClientUnattended.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "AsyncWork.h"
 
 #include "MainLoopTiming.h"
-#include "SlateReflector.h"
 
 /** Default main window size */
 const FVector2D InitialWindowDimensions(640, 560);
