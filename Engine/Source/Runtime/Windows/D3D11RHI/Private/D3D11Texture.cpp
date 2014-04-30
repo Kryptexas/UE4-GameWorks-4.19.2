@@ -865,9 +865,6 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		bCreateRTV = true;
 	}
 
-	// not yet supported, would require FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture3D
-	check(!(Flags & TexCreate_FastVRAM));
-
 	// Set up the texture bind flags.
 	check(!(Flags & TexCreate_DepthStencilTargetable));
 	check(!(Flags & TexCreate_ResolveTargetable));

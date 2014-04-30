@@ -802,7 +802,7 @@ void FLightPropagationVolume::InitSettings( const FSceneView& View )
 			LPV_GRIDRES,
 			PF_FloatRGBA,
 			TexCreate_HideInVisualizeTexture,
-			TexCreate_ShaderResource | TexCreate_UAV, // | TexCreate_FastVRAM not yet supported
+			TexCreate_ShaderResource | TexCreate_UAV | TexCreate_FastVRAM,
 			false,
 			1));
 
