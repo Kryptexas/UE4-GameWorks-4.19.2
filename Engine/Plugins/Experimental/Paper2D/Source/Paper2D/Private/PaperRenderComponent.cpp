@@ -18,7 +18,7 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 
 	SpriteColor = FLinearColor::White;
 
-	Mobility = EComponentMobility::Movable; //@TODO: Change the default!
+	Mobility = EComponentMobility::Static;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	bTickInEditor = true;
