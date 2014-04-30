@@ -2602,7 +2602,7 @@ void FEdModeMeshPaint::SetSpecificTextureOverrideForMesh(UStaticMeshComponent* I
 
 		if(bIsTextureUsed)
 		{
-			if(TextureData)
+			if(TextureData && TextureData->PaintingMaterials.Num() > 0)
 			{
 				// If there is texture data, that means we have an override ready, so set it. 
 				MaterialToCheck->OverrideTexture( Texture, TextureData->PaintRenderTargetTexture );
