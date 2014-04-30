@@ -377,9 +377,8 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& MenuBuilder) co
 		}
 		MenuBuilder.EndSection();
 	}
-
-	if (AreAnyLevelsSelected() && 
-		StaticCastSharedPtr<FWorldTileModel>(SelectedLevelsList[0])->IsLandscapeBased())
+	
+	if (AreAnySelectedLevelsEditable())
 	{
 		MenuBuilder.BeginSection("Menu_Layers");
 		{
