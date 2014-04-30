@@ -832,7 +832,7 @@ FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow )
 
 	FPlatformRect WorkArea;
 	WorkArea.Left = VisibleFrame.origin.x;
-	WorkArea.Top = ScreenHeight - VisibleFrame.size.height - VisibleFrame.origin.y;
+	WorkArea.Top = ScreenHeight - VisibleFrame.size.height - (VisibleFrame.origin.y - [Screen frame].origin.y);
 	WorkArea.Right = WorkArea.Left + VisibleFrame.size.width;
 	WorkArea.Bottom = WorkArea.Top + VisibleFrame.size.height;
 
