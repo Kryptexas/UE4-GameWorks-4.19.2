@@ -181,4 +181,8 @@ bool FXCodeSourceCodeAccessor::SaveAllOpenDocuments() const
 	return false;
 }
 
+void FXCodeSourceCodeAccessor::Tick(const float DeltaTime)
+{
+}
+
 #undef LOCTEXT_NAMESPACE
