@@ -208,7 +208,7 @@ namespace UnrealBuildTool
 			List<Action> ActionsToExecute = new List<Action>();
 			foreach (Action Action in AllActions)
 			{
-				if (ActionsNeededForThisTarget.ContainsKey(Action) && OutdatedActionDictionary[Action] && Action.CommandPath != null)
+				if (Action.CommandPath != null && ActionsNeededForThisTarget.ContainsKey(Action) && OutdatedActionDictionary[Action])
 				{
 					ActionsToExecute.Add(Action);
 				}
