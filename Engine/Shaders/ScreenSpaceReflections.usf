@@ -9,6 +9,7 @@
 #include "DeferredShadingCommon.usf"
 #include "Random.usf"
 #include "BRDF.usf"
+#include "MonteCarlo.usf"
 
 // 0:reference (slower, potentially higher quality) 1:use mips of the HZB depth (better performance)
 #define USE_HZB		1
@@ -367,7 +368,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 			StepOffset -= 0.5;
 			
 			float2 E = Hammersley( i, NumRays, Random );
-			float3 H = ImportanceSampleBlinn( E, Roughness, N );
+			float3 H = TangentToWorld( ImportanceSampleBlinn( E, Roughness ).xyz, N );
 			float3 R = 2 * dot( V, H ) * H - V;
 
 			float4 HitUVzTime = RayCast( R, Roughness, SceneDepth, PositionTranslatedWorld, NumSteps, StepOffset );
