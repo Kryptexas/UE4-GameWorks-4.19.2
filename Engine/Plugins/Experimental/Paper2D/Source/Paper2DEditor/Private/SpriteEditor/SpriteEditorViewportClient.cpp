@@ -38,7 +38,8 @@ IMPLEMENT_HIT_PROXY(HSpriteSelectableObjectHitProxy, HHitProxy);
 // FSpriteEditorViewportClient
 
 FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SSpriteEditorViewport> InSpriteEditorViewportPtr)
-	: SpriteEditorPtr(InSpriteEditor)
+	: CurrentMode(ESpriteEditorMode::ViewMode)
+	, SpriteEditorPtr(InSpriteEditor)
 	, SpriteEditorViewportPtr(InSpriteEditorViewportPtr)
 {
 	check(SpriteEditorPtr.IsValid() && SpriteEditorViewportPtr.IsValid());
@@ -46,31 +47,6 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	PreviewScene = &OwnedPreviewScene;
 
 	SetRealtime(true);
-
-	//@TODO: Pretty lame hardcoding
-	//@TODO: Doesn't handle negatives either (not really)
-	const bool XX = FMath::IsNearlyEqual(PaperAxisX.X, 1.0f);
-	const bool XY = FMath::IsNearlyEqual(PaperAxisX.Y, 1.0f);
-	const bool YY = FMath::IsNearlyEqual(PaperAxisY.Y, 1.0f);
-	const bool YZ = FMath::IsNearlyEqual(PaperAxisY.Z, 1.0f);
-
-	ViewportType = LVT_OrthoXZ;
-	if (XX && YY)
-	{
-		ViewportType = LVT_OrthoXY;
-	}
-	else if (XX && YZ)
-	{
-		ViewportType = LVT_OrthoXZ;
-	}
-	else if (XY && YZ)
-	{
-		ViewportType = LVT_OrthoYZ;
-	}
-	else
-	{
-		//@TODO: Unsupported axes
-	}
 
 	WidgetMode = FWidget::WM_Translate;
 	bManipulating = false;

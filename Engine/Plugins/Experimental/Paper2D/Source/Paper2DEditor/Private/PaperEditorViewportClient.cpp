@@ -14,6 +14,34 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 	ZoomAmount = 1.0f;
 
 	ModifyCheckerboardTextureColors();
+
+
+	//@TODO: Pretty lame hardcoding
+	//@TODO: Doesn't handle negatives either (not really)
+	const bool XX = FMath::IsNearlyEqual(PaperAxisX.X, 1.0f);
+	const bool XY = FMath::IsNearlyEqual(PaperAxisX.Y, 1.0f);
+	const bool YY = FMath::IsNearlyEqual(PaperAxisY.Y, 1.0f);
+	const bool YZ = FMath::IsNearlyEqual(PaperAxisY.Z, 1.0f);
+
+	ELevelViewportType NewViewportType = LVT_OrthoXZ;
+	if (XX && YY)
+	{
+		NewViewportType = LVT_OrthoXY;
+	}
+	else if (XX && YZ)
+	{
+		NewViewportType = LVT_OrthoXZ;
+	}
+	else if (XY && YZ)
+	{
+		NewViewportType = LVT_OrthoYZ;
+	}
+	else
+	{
+		//@TODO: Unsupported axes
+	}
+	SetViewModes(VMI_Lit, VMI_Lit);
+	SetViewportType(NewViewportType);
 }
 
 FPaperEditorViewportClient::~FPaperEditorViewportClient()

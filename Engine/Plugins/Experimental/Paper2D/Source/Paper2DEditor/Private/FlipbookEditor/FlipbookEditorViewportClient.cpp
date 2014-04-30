@@ -28,8 +28,6 @@ FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UP
 	AnimatedRenderComponent->UpdateBounds();
 	PreviewScene->AddComponent(AnimatedRenderComponent.Get(), FTransform::Identity);
 
-	ViewportType = LVT_OrthoXZ;
-
 	bShowPivot = false;
 	bDeferZoomToSprite = true;
 
