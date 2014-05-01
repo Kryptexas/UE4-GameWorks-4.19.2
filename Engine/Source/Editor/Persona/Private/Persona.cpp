@@ -844,30 +844,6 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		}
 	}
 
-	// Validate the skeleton/meshes attached objects and display a notification to the user if any were broken
-	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
-	if (PreviewComponent->SkeletalMesh)
-	{
-		NumBrokenAssets += PreviewComponent->SkeletalMesh->ValidatePreviewAttachedObjects();
-	}
-
-	if (NumBrokenAssets > 0)
-	{
-		// Tell the user that there were assets that could not be loaded
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("NumBrokenAssets"), NumBrokenAssets);
-		FNotificationInfo Info(FText::Format(LOCTEXT("MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed"), Args));
-
-		Info.bUseLargeFont = false;
-		Info.ExpireDuration = 5.0f;
-
-		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-		if (Notification.IsValid())
-		{
-			Notification->SetCompletionState(SNotificationItem::CS_Fail);
-		}
-	}
-
 	PreviewComponent->SetAnimClass(AnimBlueprint ? AnimBlueprint->GeneratedClass : NULL);
 
 	// We always want a preview instance unless we are using blueprints so that bone manipulation works
@@ -1583,6 +1559,7 @@ void FPersona::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 	}
 	else
 	{
+		ValidatePreviewAttachedAssets(NewPreviewMesh);
 		if (NewPreviewMesh != PreviewComponent->SkeletalMesh)
 		{
 			if ( PreviewComponent->SkeletalMesh != NULL )
@@ -2528,6 +2505,33 @@ FString FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
 		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview").ToString();
 	}
 	return TEXT("");
+}
+
+void FPersona::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
+{
+	// Validate the skeleton/meshes attached objects and display a notification to the user if any were broken
+	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
+	if (PreviewSkeletalMesh)
+	{
+		NumBrokenAssets += PreviewSkeletalMesh->ValidatePreviewAttachedObjects();
+	}
+
+	if (NumBrokenAssets > 0)
+	{
+		// Tell the user that there were assets that could not be loaded
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NumBrokenAssets"), NumBrokenAssets);
+		FNotificationInfo Info(FText::Format(LOCTEXT("MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed"), Args));
+
+		Info.bUseLargeFont = false;
+		Info.ExpireDuration = 5.0f;
+
+		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		if (Notification.IsValid())
+		{
+			Notification->SetCompletionState(SNotificationItem::CS_Fail);
+		}
+	}
 }
 
 /////////////////////////////////////////////////////

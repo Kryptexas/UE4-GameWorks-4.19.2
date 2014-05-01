@@ -105,6 +105,9 @@ public:
 	// Sets the current preview mesh
 	void SetPreviewMesh(USkeletalMesh* NewPreviewMesh);
 
+	// Validate preview attached assets on skeleton and supplied skeletal mesh, notifying user if any are removed
+	void ValidatePreviewAttachedAssets(USkeletalMesh* SkeletalMeshToUse);
+
 	// Thunks for SContentReference
 	UObject* GetMeshAsObject() const;
 	UObject* GetPhysicsAssetAsObject() const;
