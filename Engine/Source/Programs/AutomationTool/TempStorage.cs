@@ -97,6 +97,14 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Could not add {0} to manifest because it does not exist", Filename);
                     }
+
+                    FileInfo Info = new FileInfo(Filename);
+                    Filename = Info.FullName;
+
+                    if (!FileExists_NoExceptions(true, Filename))
+                    {
+                        throw new AutomationException("Could not add {0} to manifest because it does not exist", Filename);
+                    }
                     if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
                     {
                         throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);
@@ -561,7 +569,7 @@ namespace AutomationTool
             return Result;
         }
         public static string SharedTempStorageDirectory(string StorageBlock, string GameFolder = "", bool bClean = true)
-        {
+            {
             return CombinePaths(ResolveSharedTempStorageDirectory(GameFolder, bClean), StorageBlock);
         }
 
