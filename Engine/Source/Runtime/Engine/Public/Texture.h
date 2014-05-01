@@ -913,9 +913,10 @@ struct FTextureLODSettings
 	 * @param	LODGroup					Which LOD group the texture belongs to
 	 * @param	LODBias						LOD bias to include in the calculation
 	 * @param	NumCinematicMipLevels		The texture cinematic mip levels to include in the calculation
+	 * @param	MipGenSetting				Mip generation setting
 	 * @return	LOD bias
 	 */
-	ENGINE_API int32 CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels ) const;
+	ENGINE_API int32 CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels, TextureMipGenSettings MipGenSetting ) const;
 
 	/** 
 	* Useful for stats in the editor.

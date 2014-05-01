@@ -591,27 +591,25 @@ void FTextureLODSettings::ReadEntry( int32 GroupId, const TCHAR* GroupName, cons
 
 int32 FTextureLODSettings::CalculateLODBias( const UTexture* Texture, bool bIncTextureMips ) const
 {	
-	check(Texture);
-
+	check( Texture );
+	TextureMipGenSettings MipGenSetting = TMGS_MAX;
 #if WITH_EDITORONLY_DATA
-	// Find LOD group.
-	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[Texture->LODGroup];
-
-	// Test to see if we have no mip generation as in which case the LOD bias will be ignored
-	const TextureMipGenSettings FinalMipGenSetting = (Texture->MipGenSettings == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : Texture->MipGenSettings;
-	if (FinalMipGenSetting == TMGS_NoMipmaps)
-	{
-		return 0;
-	}
+	MipGenSetting = Texture->MipGenSettings;
 #endif // #if WITH_EDITORONLY_DATA
-
-	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0));
+	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0), MipGenSetting);
 }
 
-int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels ) const
+int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels, TextureMipGenSettings InMipGenSetting ) const
 {	
 	// Find LOD group.
 	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[LODGroup];
+
+	// Test to see if we have no mip generation as in which case the LOD bias will be ignored
+	const TextureMipGenSettings FinalMipGenSetting = (InMipGenSetting == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : InMipGenSetting;
+	if ( FinalMipGenSetting == TMGS_NoMipmaps )
+	{
+		return 0;
+	}
 
 	// Calculate maximum number of miplevels.
 	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Width, Height ) ) );
