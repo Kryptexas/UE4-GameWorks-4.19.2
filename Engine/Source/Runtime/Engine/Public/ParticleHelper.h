@@ -2664,8 +2664,7 @@ public:
 	// While this isn't good OO design, access to everything is made public.
 	// This is to allow custom emitter instances to easily be written when extending the engine.
 	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().Inverse();	}
-	float GetCullDistance()				{	return CullDistance;			}
-	bool GetCastShadow()				{	return bCastShadow;				}
+	bool GetCastShadow() const			{	return bCastShadow;				}
 	const FMaterialRelevance& GetMaterialRelevance() const
 	{
 		return MaterialRelevance;
@@ -2690,7 +2689,6 @@ protected:
 
 	AActor* Owner;
 
-	float CullDistance;
 #if STATS
 	double LastStatCaptureTime;
 	bool bCountedThisFrame;
