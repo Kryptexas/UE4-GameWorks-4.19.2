@@ -26,6 +26,10 @@ public:
 	UPROPERTY(Category = GatherTextStep, EditAnywhere, config)
 	FString DestinationPath;
 
+	/** Filename for the Portable Object format file */
+	UPROPERTY(Category = GatherTextStep, EditAnywhere, config)
+	FString PortableObjectName;
+
 	/** Name of the manifest file */
 	UPROPERTY(Category = GatherTextStep, EditAnywhere, config)
 	FString ManifestName;

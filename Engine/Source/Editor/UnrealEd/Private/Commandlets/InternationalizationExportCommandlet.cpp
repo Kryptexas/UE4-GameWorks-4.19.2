@@ -1066,15 +1066,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 				// Write out the Portable Object to .po file.
 				{
 					FString OutputString = PortableObj.ToString();
-					FString OutputFileName;
-					if (FPaths::GetExtension(DestinationPath) != "po")
-					{
-						OutputFileName = DestinationPath / CultureName / Filename;
-					}
-					else
-					{
-						OutputFileName = DestinationPath;
-					}
+					FString OutputFileName = DestinationPath / Filename;
 
 					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
 					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
@@ -1112,15 +1104,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 	{
 		// Load the Portable Object file if found
 		const FString CultureName = CulturesToGenerate[Culture];
-		FString POFilePath;
-		if (FPaths::GetExtension(SourcePath) != "po")
-		{
-			POFilePath = SourcePath / CultureName / Filename;
-		}
-		else
-		{
-			POFilePath = SourcePath;
-		}
+		FString POFilePath = SourcePath / Filename;
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
@@ -1169,7 +1153,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 			for( auto EntryIter = PortableObject.GetEntriesIterator(); EntryIter; ++EntryIter )
 			{
 				auto POEntry = *EntryIter;
-				if( POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].IsEmpty() )
+				if( POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].Trim().IsEmpty() )
 				{
 					// We ignore the header entry or entries with no translation.
 					continue;

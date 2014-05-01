@@ -152,7 +152,7 @@ void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, c
 	const bool bCreateDefaultToolbar = true;
 	// Need editing object to not be null
 	UTranslationUnit* EditingObject;
-	if (DataManager->GetAllTranslationsArray().Num() > 0)
+	if (DataManager->GetAllTranslationsArray().Num() > 0 && DataManager->GetAllTranslationsArray()[0] != NULL)
 	{
 		EditingObject = DataManager->GetAllTranslationsArray()[0];
 	}
@@ -1125,7 +1125,8 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 
 		if (SaveFilenames.Num() > 0)
 		{
-			ExportSettings->DestinationPath = SaveFilenames[0];
+			ExportSettings->DestinationPath = FPaths::GetPath(SaveFilenames[0]);
+			ExportSettings->PortableObjectName = FPaths::GetCleanFilename(SaveFilenames[0]);
 			LastExportFilePath = FPaths::GetPath(SaveFilenames[0]);
 		}
 
@@ -1248,7 +1249,8 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 
 		if (OpenFilenames.Num() > 0)
 		{
-			ImportSettings->SourcePath = OpenFilenames[0];
+			ImportSettings->SourcePath = FPaths::GetPath(OpenFilenames[0]);
+			ImportSettings->PortableObjectName = FPaths::GetCleanFilename(OpenFilenames[0]);
 			LastImportFilePath = FPaths::GetPath(OpenFilenames[0]);
 		}
 

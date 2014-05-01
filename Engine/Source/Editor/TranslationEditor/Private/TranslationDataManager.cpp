@@ -169,37 +169,46 @@ bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 
 	for (UTranslationUnit* TranslationUnit : Untranslated)
 	{
-		const FLocItem SearchSource(TranslationUnit->Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
-		if ( !TranslationToWrite.Equals(OldTranslation) )
+		if (TranslationUnit != NULL)
 		{
-			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
-			bNeedsWrite = true;
+			const FLocItem SearchSource(TranslationUnit->Source);
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
+			if (!TranslationToWrite.Equals(OldTranslation))
+			{
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				bNeedsWrite = true;
+			}
 		}
 	}
 
 	for (UTranslationUnit* TranslationUnit : Review)
 	{
-		const FLocItem SearchSource(TranslationUnit->Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
-		if ( TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation) )
+		if (TranslationUnit != NULL)
 		{
-			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
-			bNeedsWrite = true;
+			const FLocItem SearchSource(TranslationUnit->Source);
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
+			if (TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation))
+			{
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				bNeedsWrite = true;
+			}
 		}
 	}
 
 	for (UTranslationUnit* TranslationUnit : Complete)
 	{
-		const FLocItem SearchSource(TranslationUnit->Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
-		if ( !TranslationToWrite.Equals(OldTranslation) )
+		if (TranslationUnit != NULL)
 		{
-			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
-			bNeedsWrite = true;
+			const FLocItem SearchSource(TranslationUnit->Source);
+			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+			FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
+			if (!TranslationToWrite.Equals(OldTranslation))
+			{
+				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
+				bNeedsWrite = true;
+			}
 		}
 	}
 
@@ -395,7 +404,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 
 					for (UTranslationUnit* TranslationUnit : TranslationUnits)
 					{
-						if(TranslationUnit->Contexts.Num() > 0)
+						if(TranslationUnit != NULL && TranslationUnit->Contexts.Num() > 0)
 						{
 							for (FTranslationContextInfo& ContextInfo : TranslationUnit->Contexts)
 							{
@@ -496,10 +505,13 @@ void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& Se
 
 	for (UTranslationUnit* TranslationUnit : AllTranslations)
 	{
-		if (TranslationUnit->Source.Contains(SearchFilter) || 
-			TranslationUnit->Translation.Contains(SearchFilter))
+		if (TranslationUnit != NULL)
 		{
-			SearchResults.Add(TranslationUnit);
+			if (TranslationUnit->Source.Contains(SearchFilter) ||
+				TranslationUnit->Translation.Contains(SearchFilter))
+			{
+				SearchResults.Add(TranslationUnit);
+			}
 		}
 	}
 }
@@ -531,67 +543,70 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 		for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
 		{
 			UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
-			AllTranslations.Add(TranslationUnit);
-
-			GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
-
-			const FLocItem SourceSearch(TranslationUnit->Source);
-			TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
-			if (ArchiveEntry.IsValid())
+			if (TranslationUnit != NULL)
 			{
-				const FString PreviousTranslation = TranslationUnit->Translation;
-				TranslationUnit->Translation = ""; // Reset to null string
-				const FString UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
+				AllTranslations.Add(TranslationUnit);
 
-				if (UnescapedTranslatedString.IsEmpty())
+				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
+
+				const FLocItem SourceSearch(TranslationUnit->Source);
+				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
+				if (ArchiveEntry.IsValid())
 				{
-					bool bHasTranslationHistory = false;
-					int32 MostRecentNonNullTranslationIndex = -1;
-					int32 ContextForRecentTranslation = -1;
+					const FString PreviousTranslation = TranslationUnit->Translation;
+					TranslationUnit->Translation = ""; // Reset to null string
+					const FString UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
 
-					for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
+					if (UnescapedTranslatedString.IsEmpty())
 					{
-						for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
+						bool bHasTranslationHistory = false;
+						int32 MostRecentNonNullTranslationIndex = -1;
+						int32 ContextForRecentTranslation = -1;
+
+						for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
 						{
-							if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
+							for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
 							{
-								bHasTranslationHistory = true;
-								MostRecentNonNullTranslationIndex = ChangeIndex;
-								ContextForRecentTranslation = ContextIndex;
+								if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
+								{
+									bHasTranslationHistory = true;
+									MostRecentNonNullTranslationIndex = ChangeIndex;
+									ContextForRecentTranslation = ContextIndex;
+									break;
+								}
+							}
+
+							if (bHasTranslationHistory)
+							{
 								break;
 							}
 						}
 
+						// If we have history, but current translation is empty, this goes in the Needs Review tab
 						if (bHasTranslationHistory)
 						{
-							break;
+							// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
+							TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
+							Review.Add(TranslationUnit);
 						}
-					}
-
-					// If we have history, but current translation is empty, this goes in the Needs Review tab
-					if (bHasTranslationHistory)
-					{
-						// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
-						TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
-						Review.Add(TranslationUnit);
+						else
+						{
+							Untranslated.Add(TranslationUnit);
+						}
 					}
 					else
 					{
-						Untranslated.Add(TranslationUnit);
+						TranslationUnit->Translation = UnescapedTranslatedString;
+						TranslationUnit->HasBeenReviewed = true;
+						Complete.Add(TranslationUnit);
 					}
-				}
-				else
-				{
-					TranslationUnit->Translation = UnescapedTranslatedString;
-					TranslationUnit->HasBeenReviewed = true;
-					Complete.Add(TranslationUnit);
-				}
 
-				// Add to changed array if we're tracking changes
-				if (bTrackChanges && PreviousTranslation != TranslationUnit->Translation)
-				{
-					ChangedOnImport.Add(TranslationUnit);
-					TranslationUnit->TranslationBeforeImport = PreviousTranslation;
+					// Add to changed array if we're tracking changes
+					if (bTrackChanges && PreviousTranslation != TranslationUnit->Translation)
+					{
+						ChangedOnImport.Add(TranslationUnit);
+						TranslationUnit->TranslationBeforeImport = PreviousTranslation;
+					}
 				}
 			}
 		}
