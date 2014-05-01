@@ -1575,7 +1575,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 				else
 				{
 					FOpenGLTexture2DArray* NewRenderTarget2DArray = (FOpenGLTexture2DArray*)NewRenderTargetsRHI[PendingState.FirstNonzeroRenderTarget].Texture->GetTexture2DArray();
-					if(NewRenderTarget3D)
+					if(NewRenderTarget2DArray)
 					{
 						Width = NewRenderTarget2DArray->GetSizeX();
 						Height = NewRenderTarget2DArray->GetSizeY();
