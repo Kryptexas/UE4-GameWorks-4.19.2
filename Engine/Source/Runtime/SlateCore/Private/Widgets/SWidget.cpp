@@ -459,12 +459,6 @@ void SWidget::EnableToolTipForceField( const bool bEnableForceField )
 }
 
 
-TOptional<EMouseCursor::Type> SWidget::GetCursor() const
-{
-	return Cursor.Get();
-}
-
-
 void SWidget::SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCursor )
 {
 	Cursor = InCursor;

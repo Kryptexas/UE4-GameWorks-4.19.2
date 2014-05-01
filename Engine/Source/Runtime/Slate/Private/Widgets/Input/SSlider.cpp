@@ -190,6 +190,11 @@ float SSlider::PositionToValue( const FGeometry& MyGeometry, const FVector2D& Ab
 	return FMath::Clamp(RelativeValue, 0.0f, 1.0f);
 }
 
+float SSlider::GetValue() const
+{
+	return ValueAttribute.Get();
+}
+
 void SSlider::SetValue(const TAttribute<float>& InValueAttribute)
 {
 	ValueAttribute = InValueAttribute;

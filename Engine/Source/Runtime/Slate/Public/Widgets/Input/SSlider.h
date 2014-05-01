@@ -42,7 +42,7 @@ public:
 		/** The style used to draw the slider. */
 		SLATE_STYLE_ARGUMENT( FSliderStyle, Style )
 
-		/** The volume value to display. */
+		/** A value that drives where the slider handle appears. Value is normalized between 0 and 1. */
 		SLATE_ATTRIBUTE( float, Value )
 
 		/** Invoked when the mouse is pressed and a capture begins. */
@@ -51,8 +51,7 @@ public:
 		/** Invoked when the mouse is released and a capture ends. */
 		SLATE_EVENT(FSimpleDelegate, OnMouseCaptureEnd)
 
-
-		/** Called when the value is changed by slider or typing. */
+		/** Called when the value is changed by the slider. */
 		SLATE_EVENT( FOnFloatValueChanged, OnValueChanged )
 
 	SLATE_END_ARGS()
@@ -64,21 +63,10 @@ public:
 	 */
 	void Construct( const SSlider::FArguments& InDeclaration );
 
-	/**
-	 * Gets the slider's value.
-	 *
-	 * @return Slider value.
-	 */
-	float GetValue() const
-	{
-		return ValueAttribute.Get();
-	}
+	/** See the Value attribute */
+	float GetValue() const;
 
-	/**
-	* Gets the slider's value.
-	*
-	* @return Slider value.
-	*/
+	/** See the Value attribute */
 	void SetValue(const TAttribute<float>& InValueAttribute);
 
 public:

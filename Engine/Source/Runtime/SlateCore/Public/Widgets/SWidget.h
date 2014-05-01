@@ -90,7 +90,7 @@ public:
 	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
 	 * @param LayerId           The Layer onto which this widget should be rendered.
 	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- 	 * @param bParentEnabled	True if the parent of this widget is enabled.
+	 * @param bParentEnabled	True if the parent of this widget is enabled.
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
@@ -581,11 +581,6 @@ public:
 	void SetToolTip( const TSharedPtr<IToolTip>& InToolTip );
 
 	/**
-	 * Get the cursor that should appear when this widget is hovered
-	 */
-	TOptional<EMouseCursor::Type> GetCursor() const;
-
-	/**
 	 * Set the cursor that should appear when this widget is hovered
 	 */
 	void SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCursor );
@@ -713,7 +708,7 @@ private:
 
 	// Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
 	// occupied by this widget, and will instead be repelled to an outside edge
- 	bool bToolTipForceFieldEnabled;
+	bool bToolTipForceFieldEnabled;
 
 	/** Is this widget hovered? */
 	bool bIsHovered;
