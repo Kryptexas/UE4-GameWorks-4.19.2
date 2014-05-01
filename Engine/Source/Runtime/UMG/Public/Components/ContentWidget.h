@@ -15,9 +15,12 @@ class UMG_API UContentWidget : public USlateNonLeafWidgetComponent
 	UFUNCTION()
 	virtual void SetContent(USlateWrapperComponent* InContent);
 
+	// USlateNonLeafWidgetComponent
 	virtual int32 GetChildrenCount() const OVERRIDE;
 	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
-	virtual bool AddChild(USlateWrapperComponent* InContent, FVector2D Position) OVERRIDE;
+	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
+	virtual bool RemoveChild(USlateWrapperComponent* Child) OVERRIDE;
+	// End USlateNonLeafWidgetComponent
 
 protected:
 

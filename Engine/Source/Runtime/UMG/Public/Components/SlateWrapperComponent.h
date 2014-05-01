@@ -22,16 +22,40 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	UPanelSlot* Slot;
 #endif
 
-	/** Sets whether this text box can actually be modified interactively by the user */
+	/** Sets whether this widget can be modified interactively by the user */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	bool bIsEnabled;
+
+	//TODO UMG ToolTipWidget
+
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	FText ToolTipText;
+
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	TEnumAsByte<ESlateVisibility::Type> Visiblity;
+
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool GetIsEnabled() const;
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetIsEnabled(bool bInIsEnabled);
-	
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetToolTipText(const FText& InToolTipText);
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
+
+	//TOptional< TEnumAsByte<EMouseCursor::Type> > GetCursor() const;
+
+	//void SetCursor(const TAttribute< TOptional< TEnumAsByte<EMouseCursor::Type> > >& InCursor);
+
 	// UActorComponent interface
 	virtual void OnRegister() OVERRIDE;
 	virtual void OnUnregister() OVERRIDE;
@@ -50,8 +74,10 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 #endif
 
 	// Utility methods
-	//@TODO: Should move elsewhere
+	//@TODO UMG: Should move elsewhere
 	static EVisibility ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input);
+	static TEnumAsByte<ESlateVisibility::Type> ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
+
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
 protected:

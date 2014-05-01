@@ -47,13 +47,28 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, SlateOnTextChanged))
+		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
 }
 
-void UEditableText::SlateOnTextChanged(const FText& Text)
+#if WITH_EDITOR
+
+void UEditableText::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	
+}
+
+#endif
+
+void UEditableText::HandleOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
+}
+
+void UEditableText::HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
 /////////////////////////////////////////////////////

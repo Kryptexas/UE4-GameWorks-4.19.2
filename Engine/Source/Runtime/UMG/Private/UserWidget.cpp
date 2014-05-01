@@ -9,6 +9,10 @@ AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	RootWidget = SNullWidget::NullWidget;
+	Visiblity = ESlateVisibility::Visible;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;
+	bShowCursorWhenVisible = false;
 }
 
 void AUserWidget::PostActorCreated()
@@ -27,6 +31,14 @@ void AUserWidget::RerunConstructionScripts()
 	Super::RerunConstructionScripts();
 
 	RebuildWrapperWidget();
+}
+
+void AUserWidget::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
+{
+	if ( bShowCursorWhenVisible && GetIsVisible() )
+	{
+		GetWorld()->GetFirstLocalPlayerFromController()->PlayerController->bShowMouseCursor = true;
+	}
 }
 
 USlateWrapperComponent* AUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
@@ -63,6 +75,7 @@ void AUserWidget::RebuildWrapperWidget()
 	{
 		UGameViewportClient* Viewport = World->GetGameViewport();
 		Viewport->AddViewportWidgetContent(RootWidget.ToSharedRef());
+		RootWidget->SetVisibility(USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(Visiblity));
 	}
 }
 
@@ -95,4 +108,26 @@ USlateWrapperComponent* AUserWidget::GetHandleFromName(const FString& Name) cons
 TSharedRef<SWidget> AUserWidget::GetRootWidget()
 {
 	return RootWidget.ToSharedRef();
+}
+
+void AUserWidget::Show()
+{
+	RootWidget->SetVisibility(EVisibility::Visible);
+	OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
+}
+
+void AUserWidget::Hide()
+{
+	RootWidget->SetVisibility(EVisibility::Hidden);
+	OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
+}
+
+bool AUserWidget::GetIsVisible()
+{
+	return RootWidget->GetVisibility().IsVisible();
+}
+
+TEnumAsByte<ESlateVisibility::Type> AUserWidget::GetVisiblity()
+{
+	return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
 }

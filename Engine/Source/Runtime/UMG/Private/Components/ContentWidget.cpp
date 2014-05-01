@@ -47,6 +47,17 @@ bool UContentWidget::AddChild(USlateWrapperComponent* InContent, FVector2D Posit
 	return true;
 }
 
+bool UContentWidget::RemoveChild(USlateWrapperComponent* Child)
+{
+	if ( Content == Child )
+	{
+		Content = NULL;
+		return true;
+	}
+
+	return false;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

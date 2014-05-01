@@ -286,7 +286,7 @@ FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEven
 		}
 	}
 
-	return FReply::Handled();
+	return FReply::Unhandled();
 }
 
 bool SUMGDesigner::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
@@ -574,9 +574,10 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 		USlateWrapperComponent* Template = GetTemplateAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
 
+		UWidgetBlueprint* BP = GetBlueprint();
+
 		if ( Template && Template->IsA(USlateNonLeafWidgetComponent::StaticClass()) )
 		{
-			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
 			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Template);
 
 			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
@@ -585,6 +586,19 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 			Parent->AddChild(Widget, LocalPosition);
 			//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
 			//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+
+			// Update the selected template to be the newly created one.
+			SelectedTemplate = Widget;
+
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+			return FReply::Handled();
+		}
+		else if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
+		{
+			// No existing templates so just create it and make it the root widget.
+			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+			SelectedTemplate = Widget;
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 

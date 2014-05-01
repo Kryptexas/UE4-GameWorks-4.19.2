@@ -19,3 +19,13 @@ bool UPanelSlot::CanResize(const FVector2D& Direction) const
 {
 	return false;
 }
+
+void UPanelSlot::MoveTo(const FVector2D& Location)
+{
+
+}
+
+bool UPanelSlot::CanMove() const
+{
+	return false;
+}

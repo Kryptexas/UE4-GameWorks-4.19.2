@@ -279,7 +279,10 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(AActor* InInstance)
 
 	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
 	{
-		DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
+		if ( ensure(DynamicBindingObjects[Index] != NULL) )
+		{
+			DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
+		}
 	}
 
 	// call on super class, if it's a BlueprintGeneratedClass

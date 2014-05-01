@@ -29,6 +29,8 @@ private:
 
 	FReply CreateTestUI();
 	void RefreshTree();
+
+	FReply DeleteSelected();
 	
 private:
 

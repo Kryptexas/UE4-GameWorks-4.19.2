@@ -43,19 +43,21 @@
 #include "VerticalBoxSlot.h"
 #include "VerticalBoxComponent.h"
 
+#include "TextBlockComponent.h"
 #include "BorderComponent.h"
 #include "ButtonComponent.h"
 #include "CheckBoxComponent.h"
-#include "CircularThrobberComponent.h"
 #include "EditableText.h"
 #include "EditableTextBlockComponent.h"
-#include "GridPanelComponent.h"
 #include "ImageComponent.h"
+#include "Slider.h"
+
+#include "GridPanelComponent.h"
 #include "ScrollBoxComponent.h"
 #include "SpacerComponent.h"
 #include "SpinningImageComponent.h"
-#include "TextBlockComponent.h"
 #include "ThrobberComponent.h"
+#include "CircularThrobberComponent.h"
 
 
 /* Blueprint

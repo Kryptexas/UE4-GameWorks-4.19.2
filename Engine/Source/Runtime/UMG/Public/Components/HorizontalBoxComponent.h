@@ -19,6 +19,7 @@ class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
 	virtual int32 GetChildrenCount() const OVERRIDE;
 	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
 	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
+	virtual bool RemoveChild(USlateWrapperComponent* Child) OVERRIDE;
 	// End USlateNonLeafWidgetComponent
 
 #if WITH_EDITOR

@@ -13,12 +13,11 @@ class UMG_API UWidgetTree : public UObject
 	UPROPERTY()
 	TArray<class USlateWrapperComponent*> WidgetTemplates;
 
-	void RenameWidget(USlateWrapperComponent* Widget, FString& NewName)
-	{
-		Widget->Rename(*NewName);
+	void RenameWidget(USlateWrapperComponent* Widget, FString& NewName);
 
-		// TODO Update nodes in the blueprint!
-	}
+	class USlateWrapperComponent* FindWidget(FString& Name) const;
+
+	bool RemoveWidget(class USlateWrapperComponent* Widget);
 
 	template< class T >
 	T* ConstructWidget(TSubclassOf<class USlateWrapperComponent> WidgetType)
@@ -27,20 +26,5 @@ class UMG_API UWidgetTree : public UObject
 		WidgetTemplates.Add(Widget);
 
 		return (T*)Widget;
-	}
-
-	class USlateWrapperComponent* FindWidget(FString& Name) const
-	{
-		FString ExistingName;
-		for ( USlateWrapperComponent* Widget : WidgetTemplates )
-		{
-			Widget->GetName(ExistingName);
-			if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
-			{
-				return Widget;
-			}
-		}
-
-		return NULL;
 	}
 };

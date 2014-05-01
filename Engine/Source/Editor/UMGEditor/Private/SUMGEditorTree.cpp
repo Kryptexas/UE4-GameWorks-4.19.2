@@ -38,6 +38,17 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 		]
 
 		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SButton)
+			.OnClicked(this, &SUMGEditorTree::DeleteSelected)
+			[
+				SNew(STextBlock)
+				.Text(NSLOCTEXT("SUMGEditorTree", "DeleteSelected", "Delete Selected"))
+			]
+		]
+
+		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
 			SAssignNew(WidgetTreeView, STreeView< USlateWrapperComponent* >)
@@ -120,7 +131,11 @@ void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InPar
 	{
 		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
 		{
-			OutChildren.Add( Widget->GetChildAt(i) );
+			USlateWrapperComponent* Child = Widget->GetChildAt(i);
+			if ( Child )
+			{
+				OutChildren.Add(Child);
+			}
 		}
 	}
 }
@@ -188,6 +203,28 @@ FReply SUMGEditorTree::CreateTestUI()
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+	return FReply::Handled();
+}
+
+FReply SUMGEditorTree::DeleteSelected()
+{
+	TArray<USlateWrapperComponent*> SelectedItems = WidgetTreeView->GetSelectedItems();
+	if ( SelectedItems.Num() > 0 )
+	{
+		UWidgetBlueprint* BP = GetBlueprint();
+
+		bool bRemoved = false;
+		for ( USlateWrapperComponent* Item : SelectedItems )
+		{
+			bRemoved = BP->WidgetTree->RemoveWidget(Item);
+		}
+
+		if ( bRemoved )
+		{
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		}
+	}
 
 	return FReply::Handled();
 }

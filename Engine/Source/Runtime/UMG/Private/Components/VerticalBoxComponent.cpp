@@ -27,6 +27,22 @@ bool UVerticalBoxComponent::AddChild(USlateWrapperComponent* Child, FVector2D Po
 	return true;
 }
 
+bool UVerticalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
+{
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	{
+		UVerticalBoxSlot* Slot = Slots[SlotIndex];
+
+		if ( Slot->Content == Child )
+		{
+			Slots.RemoveAt(SlotIndex);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);
@@ -79,7 +95,11 @@ void UVerticalBoxComponent::ConnectEditorData()
 {
 	for ( UVerticalBoxSlot* Slot : Slots )
 	{
-		Slot->Content->Slot = Slot;
+		if ( Slot->Content )
+		{
+			Slot->Content->Slot = Slot;
+		}
+		//TODO UMG Should we auto delete empty slots?
 	}
 }
 

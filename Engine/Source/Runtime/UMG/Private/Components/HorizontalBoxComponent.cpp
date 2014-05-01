@@ -27,6 +27,22 @@ bool UHorizontalBoxComponent::AddChild(USlateWrapperComponent* Child, FVector2D 
 	return true;
 }
 
+bool UHorizontalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
+{
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	{
+		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
+
+		if ( Slot->Content == Child )
+		{
+			Slots.RemoveAt(SlotIndex);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);

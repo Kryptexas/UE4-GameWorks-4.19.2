@@ -16,6 +16,7 @@
 #include "WidgetTemplate.h"
 #include "WidgetTemplateClass.h"
 #include "WidgetTemplateButton.h"
+#include "WidgetTemplateCheckBox.h"
 
 class SWidgetTemplateItem : public SCompoundWidget
 {
@@ -136,6 +137,7 @@ void SUMGEditorWidgetTemplates::BuildClassWidgetList()
 void SUMGEditorWidgetTemplates::BuildSpecialWidgetList()
 {
 	AddWidgetTemplate(MakeShareable(new FWidgetTemplateButton()));
+	AddWidgetTemplate(MakeShareable(new FWidgetTemplateCheckBox()));
 
 	//TODO Make this pluggable.
 }

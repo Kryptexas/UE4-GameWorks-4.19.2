@@ -14,53 +14,86 @@ class UMG_API UButtonComponent : public UContentWidget
 
 public:
 	/** Style of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
 	/** Horizontal positioning of the content within the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Vertical positioning of the content within the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** The padding to add around the button content. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FMargin ContentPadding;
 
 	/** The scaling factor for the button border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D DesiredSizeScale;
 
 	/** The scaling factor for the button content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D ContentScale;
 
 	/** The color multiplier for the button images */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateColor ButtonColorAndOpacity;
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FLinearColor ButtonColorAndOpacity;
 
 	/** The foreground color of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateColor ForegroundColor;
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FLinearColor ForegroundColor;
 
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound PressedSound;
 
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound HoveredSound;
 	
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;
 
+	/*  */
+	UFUNCTION(BlueprintPure, Category="Appearance")
+	FLinearColor GetButtonColorAndOpacity();
+	
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity);
+
+	/*  */
+	UFUNCTION(BlueprintPure, Category="Appearance")
+	FLinearColor GetForegroundColor();
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetForegroundColor(FLinearColor InForegroundColor);
+	
+	/*  */
+	UFUNCTION(BlueprintPure, Category="Appearance")
+	FMargin GetContentPadding();
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetContentPadding(FMargin InContentPadding);
+
+
 	// UContentWidget interface
 	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
 	// End UContentWidget interface
 
 protected:
-	TWeakPtr<class SButton> MyButton;
+	TSharedPtr<class SButton> ButtonWidget() const
+	{
+		if ( MyWidget.IsValid() )
+		{
+			return StaticCastSharedRef<SButton>(MyWidget.ToSharedRef());
+		}
+
+		return TSharedPtr<class SButton>();
+	}
 
 protected:
 	// USlateWrapperComponent interface
@@ -68,8 +101,6 @@ protected:
 	// End of USlateWrapperComponent interface
 
 	FMargin GetContentPadding() const;
-	FSlateColor GetButtonColor() const;
-	FSlateColor GetForegroundColor() const;
 
-	virtual FReply SlateOnClickedCallback();
+	FReply HandleOnClicked();
 };

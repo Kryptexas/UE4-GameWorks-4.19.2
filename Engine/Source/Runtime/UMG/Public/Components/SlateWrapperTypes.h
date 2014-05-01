@@ -59,4 +59,10 @@ struct FSlateChildSize
 		, SizeRule(ESlateSizeRule::Fill)
 	{
 	}
+
+	FSlateChildSize(ESlateSizeRule::Type InSizeRule)
+		: Value(1.0f)
+		, SizeRule(InSizeRule)
+	{
+	}
 };

@@ -10,6 +10,7 @@ USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializePro
 {
 	bIsEnabled = true;
 	bIsVariable = true;
+	Visiblity = ESlateVisibility::Visible;
 }
 
 bool USlateWrapperComponent::GetIsEnabled() const
@@ -24,6 +25,21 @@ void USlateWrapperComponent::SetIsEnabled(bool bInIsEnabled)
 	{
 		MyWidget->SetEnabled(bInIsEnabled);
 	}
+}
+
+TEnumAsByte<ESlateVisibility::Type> USlateWrapperComponent::GetVisibility()
+{
+	return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
+}
+
+void USlateWrapperComponent::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
+{
+	MyWidget->SetVisibility(USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(InVisibility));
+}
+
+void USlateWrapperComponent::SetToolTipText(const FText& InToolTipText)
+{
+	MyWidget->SetToolTipText(ToolTipText);
 }
 
 void USlateWrapperComponent::OnRegister()
@@ -48,6 +64,11 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 	{
 		MyWidget = RebuildWidget();
 		MyWidget->SetEnabled(bIsEnabled);
+		
+		if ( !ToolTipText.IsEmpty() )
+		{
+			MyWidget->SetToolTipText(ToolTipText);
+		}
 	}
 
 	return MyWidget.ToSharedRef();
@@ -76,6 +97,35 @@ EVisibility USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(TEnumAs
 	default:
 		check(false);
 		return EVisibility::Visible;
+	}
+}
+
+TEnumAsByte<ESlateVisibility::Type> USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+{
+	if ( Input == EVisibility::Visible )
+	{
+		return ESlateVisibility::Visible;
+	}
+	else if ( Input == EVisibility::Collapsed )
+	{
+		return ESlateVisibility::Collapsed;
+	}
+	else if ( Input == EVisibility::Hidden )
+	{
+		return ESlateVisibility::Hidden;
+	}
+	else if ( Input == EVisibility::HitTestInvisible )
+	{
+		return ESlateVisibility::HitTestInvisible;
+	}
+	else if ( Input == EVisibility::SelfHitTestInvisible )
+	{
+		return ESlateVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		check(false);
+		return ESlateVisibility::Visible;
 	}
 }
 

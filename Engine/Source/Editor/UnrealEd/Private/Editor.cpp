@@ -529,6 +529,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 
+		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
+		{
+			FModuleManager::Get().LoadModule(TEXT("UMGEditor"));
+		}
+
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("PListEditor"));

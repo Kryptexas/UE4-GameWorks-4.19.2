@@ -15,4 +15,8 @@ class UMG_API UPanelSlot : public UObject
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
 
 	virtual bool CanResize(const FVector2D& Direction) const;
+
+	virtual void MoveTo(const FVector2D& Location);
+
+	virtual bool CanMove() const;
 };

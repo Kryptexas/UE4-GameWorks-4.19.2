@@ -50,19 +50,18 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 		.ButtonStyle(StylePtr)
 		.HAlign(HorizontalAlignment)
 		.VAlign(VerticalAlignment)
-		.ContentPadding(BIND_UOBJECT_ATTRIBUTE(FMargin, GetContentPadding))
-		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateOnClickedCallback))
+		.ContentPadding(ContentPadding)
 		.DesiredSizeScale(DesiredSizeScale)
 		.ContentScale(ContentScale)
-		.ButtonColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetButtonColor))
-		.ForegroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetForegroundColor))
+		.ButtonColorAndOpacity(ButtonColorAndOpacity)
+		.ForegroundColor(ForegroundColor)
 		.PressedSoundOverride(OptionalPressedSound)
 		.HoveredSoundOverride(OptionalHoveredSound)
+		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked))
 		;
 
 	NewButton->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
 	
-	MyButton = NewButton;
 	return NewButton;
 }
 
@@ -70,33 +69,48 @@ void UButtonComponent::SetContent(USlateWrapperComponent* InContent)
 {
 	Super::SetContent(InContent);
 
-	TSharedPtr<SButton> Button = MyButton.Pin();
-	if (Button.IsValid())
+	if ( ButtonWidget().IsValid() )
 	{
-		Button->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
+		ButtonWidget()->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
 	}
 }
 
-FMargin UButtonComponent::GetContentPadding() const
+FLinearColor UButtonComponent::GetButtonColorAndOpacity()
 {
-	return ContentPadding;
+	return ButtonWidget()->GetBorderBackgroundColor().GetSpecifiedColor();
 }
 
-FReply UButtonComponent::SlateOnClickedCallback()
+void UButtonComponent::SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity)
+{
+	ButtonWidget()->SetBorderBackgroundColor(InButtonColorAndOpacity);
+}
+
+FLinearColor UButtonComponent::GetForegroundColor()
+{
+	return ButtonWidget()->GetForegroundColor().GetSpecifiedColor();
+}
+
+void UButtonComponent::SetForegroundColor(FLinearColor InForegroundColor)
+{
+	ButtonWidget()->SetForegroundColor(InForegroundColor);
+}
+
+FMargin UButtonComponent::GetContentPadding()
+{
+	return ButtonWidget()->GetContentPadding();
+}
+
+void UButtonComponent::SetContentPadding(FMargin InContentPadding)
+{
+	ButtonWidget()->SetContentPadding(InContentPadding);
+}
+
+FReply UButtonComponent::HandleOnClicked()
 {
 	OnClicked.Broadcast();
 	return FReply::Handled();
 }
 
-FSlateColor UButtonComponent::GetButtonColor() const
-{
-	return ButtonColorAndOpacity;
-}
-
-FSlateColor UButtonComponent::GetForegroundColor() const
-{
-	return ForegroundColor;
-}
 
 /////////////////////////////////////////////////////
 
