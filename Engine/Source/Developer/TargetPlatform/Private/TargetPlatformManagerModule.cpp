@@ -24,17 +24,11 @@ public:
 	FTargetPlatformManagerModule()
 		: bRestrictFormatsToRuntimeOnly(false), bForceCacheUpdate(true)
 	{
-		UE_LOG(LogInit, Log, TEXT("FTargetPlatformManagerModule constructor"));
 		GetTargetPlatforms();
-		UE_LOG(LogInit, Log, TEXT("GetTargetPlatforms complete"));
 		GetActiveTargetPlatforms();
-		UE_LOG(LogInit, Log, TEXT("GetActiveTargetPlatforms complete"));
 		GetAudioFormats();
-		UE_LOG(LogInit, Log, TEXT("GetAudioFormats complete"));
 		GetTextureFormats();
-		UE_LOG(LogInit, Log, TEXT("GetTextureFormats complete"));
 		GetShaderFormats();
-		UE_LOG(LogInit, Log, TEXT("GetShaderFormats complete"));
 
 		bForceCacheUpdate = false;
 
@@ -183,13 +177,13 @@ public:
 
 			if (!Results.Num())
 			{
-				UE_LOG(LogTargetPlatformManager, Log, TEXT("Not building assets for any platform."));
+				UE_LOG(LogTargetPlatformManager, Display, TEXT("Not building assets for any platform."));
 			}
 			else
 			{
 				for (int32 Index = 0; Index < Results.Num(); Index++)
 				{
-					UE_LOG(LogTargetPlatformManager, Log, TEXT("Building Assets For %s"), *Results[Index]->PlatformName());
+					UE_LOG(LogTargetPlatformManager, Display, TEXT("Building Assets For %s"), *Results[Index]->PlatformName());
 				}
 			}
 		}
