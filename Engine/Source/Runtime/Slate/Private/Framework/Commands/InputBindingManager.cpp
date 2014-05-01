@@ -14,8 +14,8 @@ class FUserDefinedGestures
 {
 public:
 	void LoadGestures();
-	void SaveGestures();
-	bool GetUserDefinedGesture( const FName BindingContext, const FName CommandName, FInputGesture& OutUserDefinedGesture );
+	void SaveGestures() const;
+	bool GetUserDefinedGesture( const FName BindingContext, const FName CommandName, FInputGesture& OutUserDefinedGesture ) const;
 	void SetUserDefinedGesture( const FUICommandInfo& CommandInfo );
 	/** Remove all user defined gestures */
 	void RemoveAll();
@@ -36,12 +36,11 @@ void FUserDefinedGestures::LoadGestures()
 		if (!Gestures.IsValid())
 		{
 			// Gestures have not been loaded from the ini file, try reading them from the txt file now
-			FArchive* Ar = IFileManager::Get().CreateFileReader( *( FPaths::GameSavedDir() / TEXT("Preferences/EditorKeyBindings.txt") ) );
-			if( Ar )
+			TSharedPtr<FArchive> Ar = MakeShareable( IFileManager::Get().CreateFileReader( *( FPaths::GameSavedDir() / TEXT("Preferences/EditorKeyBindings.txt") ) ) );
+			if( Ar.IsValid() )
 			{
-				TSharedRef< TJsonReader<ANSICHAR> > TextReader = TJsonReaderFactory<ANSICHAR>::Create( Ar );
+				TSharedRef< TJsonReader<ANSICHAR> > TextReader = TJsonReaderFactory<ANSICHAR>::Create( Ar.Get() );
 				bResult = FJsonSerializer::Deserialize( TextReader, Gestures );
-				delete Ar;
 			}
 		}
 		
@@ -52,19 +51,19 @@ void FUserDefinedGestures::LoadGestures()
 	}
 }
 
-void FUserDefinedGestures::SaveGestures()
+void FUserDefinedGestures::SaveGestures() const
 {
 	if( Gestures.IsValid() ) 
 	{
 		FString Content;
-		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create( &Content );
+		auto Writer = TJsonWriterFactory< TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create( &Content );
 		FJsonSerializer::Serialize( Gestures.ToSharedRef(), Writer );
 
 		GConfig->SetString(TEXT("UserDefinedGestures"), TEXT("Content"), *FRemoteConfig::ReplaceIniCharWithSpecialChar(Content).ReplaceCharWithEscapedChar(), GEditorKeyBindingsIni);
 	}
 }
 
-bool FUserDefinedGestures::GetUserDefinedGesture( const FName BindingContext, const FName CommandName, FInputGesture& OutUserDefinedGesture )
+bool FUserDefinedGestures::GetUserDefinedGesture( const FName BindingContext, const FName CommandName, FInputGesture& OutUserDefinedGesture ) const
 {
 	bool bResult = false;
 

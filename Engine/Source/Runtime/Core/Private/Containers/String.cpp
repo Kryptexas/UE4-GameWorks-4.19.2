@@ -1001,7 +1001,8 @@ FString FString::ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars/*=NULL*/
 	if ( Len() > 0 && (Chars == NULL || Chars->Num() > 0) )
 	{
 		FString Result(*this);
-		for ( int32 ChIdx = 0; ChIdx < MAX_SUPPORTED_ESCAPE_CHARS; ChIdx++ )
+		// Spin CharToEscapeSeqMap backwards to ensure we're doing the inverse of ReplaceCharWithEscapedChar
+		for ( int32 ChIdx = MAX_SUPPORTED_ESCAPE_CHARS - 1; ChIdx >= 0; ChIdx-- )
 		{
 			if ( Chars == NULL || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
 			{
