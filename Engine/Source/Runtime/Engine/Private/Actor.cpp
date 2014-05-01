@@ -2076,6 +2076,8 @@ void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
 		{
 			if (bNewRelevancy == true)
 			{
+				UE_LOG(LogNavigation, Verbose, TEXT("AActor::SetNavigationRelevancy registering new relevant actor %s"), *GetFullName());
+
 				MyWorld->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
 			}
 			else
