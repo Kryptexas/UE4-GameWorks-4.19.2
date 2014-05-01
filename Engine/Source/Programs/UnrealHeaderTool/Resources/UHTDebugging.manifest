@@ -1,7 +1,9 @@
 {
 	"UseRelativePaths": false,
+	"IsGameTarget": false,
 	"RootLocalPath": "..\\..\\..\\..",
 	"RootBuildPath": "..\\..\\..\\..",
+	"TargetName": "UHTDebugging",
 	"Modules":[{
 			"Name": "CoreUObject",
 			"BaseDirectory": "..\\..\\..\\Runtime\\CoreUObject",

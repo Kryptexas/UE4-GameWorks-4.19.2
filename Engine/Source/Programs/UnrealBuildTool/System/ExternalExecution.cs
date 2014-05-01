@@ -75,10 +75,10 @@ namespace UnrealBuildTool
 		public UHTManifest(bool InUseRelativePaths, UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
 		{
 			UseRelativePaths = InUseRelativePaths;
-			IsGameTarget = TargetRules.IsGameType(Target.Rules.Type);
+			IsGameTarget     = TargetRules.IsGameType(Target.Rules.Type);
 			RootLocalPath    = InRootLocalPath;
 			RootBuildPath    = InRootBuildPath;
-			TargetName = Target.GetTargetName();			
+			TargetName       = Target.GetTargetName();
 
 			Modules = ModuleInfo.Select(Info => new Module{
 				Name                     = Info.ModuleName,

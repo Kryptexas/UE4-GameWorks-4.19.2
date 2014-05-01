@@ -62,19 +62,19 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 	TArray<TSharedPtr<FJsonValue>> ModulesArray;
 
 	GetJsonFieldValue(Result.UseRelativePaths, RootObject, TEXT("UseRelativePaths"), TEXT("{manifest root}"));
-	GetJsonFieldValue(Result.IsGameTarget, RootObject, TEXT("IsGameTarget"), TEXT("{manifest root}"));	
+	GetJsonFieldValue(Result.IsGameTarget,     RootObject, TEXT("IsGameTarget"),     TEXT("{manifest root}"));
 	GetJsonFieldValue(Result.RootLocalPath,    RootObject, TEXT("RootLocalPath"),    TEXT("{manifest root}"));
 	GetJsonFieldValue(Result.RootBuildPath,    RootObject, TEXT("RootBuildPath"),    TEXT("{manifest root}"));
-	GetJsonFieldValue(Result.TargetName, RootObject, TEXT("TargetName"), TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.TargetName,       RootObject, TEXT("TargetName"),       TEXT("{manifest root}"));
 	GetJsonFieldValue(ModulesArray,            RootObject, TEXT("Modules"),          TEXT("{manifest root}"));
 
-	UE_LOG(LogCompile, Log, TEXT("Loaded manifest: %s"), *Filename);
+	UE_LOG(LogCompile, Log, TEXT("Loaded manifest: %s"),          *Filename);
 	UE_LOG(LogCompile, Log, TEXT("Manifest.UseRelativePaths=%s"), Result.UseRelativePaths ? TEXT("True") : TEXT("False"));
-	UE_LOG(LogCompile, Log, TEXT("Manifest.IsGameTarget=%s"), Result.IsGameTarget ? TEXT("True") : TEXT("False"));
-	UE_LOG(LogCompile, Log, TEXT("Manifest.RootLocalPath=%s"), *Result.RootLocalPath);
-	UE_LOG(LogCompile, Log, TEXT("Manifest.RootBuildPath=%s"), *Result.RootBuildPath);
-	UE_LOG(LogCompile, Log, TEXT("Manifest.TargetName=%s"), *Result.TargetName);
-	UE_LOG(LogCompile, Log, TEXT("Manifest.Modules=%d"), ModulesArray.Num());
+	UE_LOG(LogCompile, Log, TEXT("Manifest.IsGameTarget=%s"),     Result.IsGameTarget ? TEXT("True") : TEXT("False"));
+	UE_LOG(LogCompile, Log, TEXT("Manifest.RootLocalPath=%s"),    *Result.RootLocalPath);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.RootBuildPath=%s"),    *Result.RootBuildPath);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.TargetName=%s"),       *Result.TargetName);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.Modules=%d"),          ModulesArray.Num());
 
 	Result.RootLocalPath = FPaths::ConvertRelativePathToFull(FilenamePath, Result.RootLocalPath);
 	Result.RootBuildPath = FPaths::ConvertRelativePathToFull(FilenamePath, Result.RootBuildPath);
