@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GenericPlatformMemoryPoolStats.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentStreaming, Log, All);
 
@@ -906,11 +907,13 @@ struct FStreamingContext
 			// set total size for the pool (used to available)
 			SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize, (int32)AllocatedMemorySize);
 			SET_MEMORY_STAT(STAT_TexturePoolSize, (int32)Stats.TexturePoolSize);
+			SET_MEMORY_STAT(MCR_TexturePool, (int32)Stats.TexturePoolSize);
 		}
 		else
 		{
 			SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize,0);
 			SET_MEMORY_STAT(STAT_TexturePoolSize, 0);
+			SET_MEMORY_STAT(MCR_TexturePool, 0);
 		}
 	}
 
@@ -3719,7 +3722,7 @@ void FStreamingManagerTexture::CheckUserSettings()
 				int64 TotalGraphicsMemory = Stats.TotalGraphicsMemory;
 				if ( GCurrentRendertargetMemorySize > 0 )
 				{
-					TotalGraphicsMemory -= GCurrentRendertargetMemorySize * 1024;
+					TotalGraphicsMemory -= int64(GCurrentRendertargetMemorySize) * 1024;
 				}
 				float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGraphicsMemory);
 
