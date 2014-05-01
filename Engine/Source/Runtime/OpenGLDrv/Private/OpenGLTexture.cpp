@@ -15,6 +15,11 @@ GLint GMaxOpenGLColorSamples = 0;
 GLint GMaxOpenGLDepthSamples = 0;
 GLint GMaxOpenGLIntegerSamples = 0;
 
+// in bytes, never change after RHI, needed to scale game features
+int64 GOpenGLDedicatedVideoMemory = 0;
+// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
+int64 GOpenGLTotalGraphicsMemory = 0;
+
 static bool ShouldCountAsTextureMemory(uint32 Flags)
 {
 	return (Flags & (TexCreate_RenderTargetable | TexCreate_ResolveTargetable | TexCreate_DepthStencilTargetable)) == 0;
@@ -32,7 +37,7 @@ void OpenGLTextureAllocated(FRHITexture* Texture, uint32 Flags)
 	if (( TextureCube = (FOpenGLTextureCube*)Texture->GetTextureCube()) != NULL)
 	{
 		TextureSize = CalcTextureSize( TextureCube->GetSize(), TextureCube->GetSize(), TextureCube->GetFormat(), TextureCube->GetNumMips() );
-		TextureSize *= 6 * TextureCube->GetArraySize();
+		TextureSize *= TextureCube->GetArraySize() * (TextureCube->GetArraySize() == 1 ? 6 : 1);
 		TextureCube->SetMemorySize( TextureSize );
 		TextureCube->SetIsPowerOfTwo(FMath::IsPowerOfTwo(TextureCube->GetSizeX()) && FMath::IsPowerOfTwo(TextureCube->GetSizeY()));
 		if (bRenderTarget)
@@ -175,6 +180,11 @@ void OpenGLTextureDeleted( FRHITexture* Texture )
  */
 void FOpenGLDynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
+	OutStats.DedicatedVideoMemory = GOpenGLDedicatedVideoMemory;
+    OutStats.DedicatedSystemMemory = 0;
+    OutStats.SharedSystemMemory = 0;
+	OutStats.TotalGraphicsMemory = GOpenGLTotalGraphicsMemory ? GOpenGLTotalGraphicsMemory : -1;
+
 	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
@@ -410,14 +420,19 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bo
 	{
 		check( FOpenGL::SupportsMultisampledTextures() );
 		check( BulkData == NULL);
-		FOpenGL::TexImage2DMultisample(
-			Target,
-			NumSamples,
-			GLFormat.InternalFormat[bSRGB],
-			SizeX,
-			SizeY,
-			true
-			);
+
+		// Try to create an immutable texture and fallback if it fails
+		if (!FOpenGL::TexStorage2DMultisample( Target, NumSamples, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, true))
+		{
+			FOpenGL::TexImage2DMultisample(
+				Target,
+				NumSamples,
+				GLFormat.InternalFormat[bSRGB],
+				SizeX,
+				SizeY,
+				true
+				);
+		}
 	}
 	
 	// Determine the attachment point for the texture.	
@@ -1357,22 +1372,106 @@ void FOpenGLDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResource
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
 	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture2D);
-	return new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel);
+
+	FOpenGLShaderResourceView *View = 0;
+
+	if (FOpenGL::SupportsTextureView())
+	{
+		VERIFY_GL_SCOPE();
+
+		GLuint Resource = 0;
+
+		FOpenGL::GenTextures( 1, &Resource);
+		const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Texture2D->GetFormat()];
+		const bool bSRGB = (Texture2D->GetFlags()&TexCreate_SRGB) != 0;
+		
+		FOpenGL::TextureView( Resource, Texture2D->Target, Texture2D->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, 1, 0, 1);
+		
+		View = new FOpenGLShaderResourceView(this, Resource, Texture2D->Target, MipLevel, true);
+	}
+	else
+	{
+		View = new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel, false);
+	}
+
+	return View;
 }
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
 {
-	///the extra functionality doesn't work on OpenGL yet.
 	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture2D);
-	return new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel);	
+
+	FOpenGLShaderResourceView *View = 0;
+
+	if (FOpenGL::SupportsTextureView())
+	{
+		VERIFY_GL_SCOPE();
+
+		GLuint Resource = 0;
+
+		FOpenGL::GenTextures( 1, &Resource);
+
+		if (Format != PF_X24_G8)
+		{
+			const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
+			const bool bSRGB = (Texture2D->GetFlags()&TexCreate_SRGB) != 0;
+		
+			FOpenGL::TextureView( Resource, Texture2D->Target, Texture2D->Resource, GLFormat.InternalFormat[bSRGB], MipLevel, NumMipLevels, 0, 1);
+		}
+		else
+		{
+			// PF_X24_G8 doesn't correspond to a real format under OpenGL
+			// The solution is to create a view with the original format, and convertit to return the stencil index
+			// To match component locations, texture swizzle needs to be setup too
+			const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Texture2D->GetFormat()];
+
+			// create a second depth/stencil view
+			FOpenGL::TextureView( Resource, Texture2D->Target, Texture2D->Resource, GLFormat.InternalFormat[0], MipLevel, NumMipLevels, 0, 1);
+
+			// Use a texture stage that's not likely to be used for draws, to avoid waiting
+			FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+			CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Texture2D->Target, Resource, 0, NumMipLevels);
+
+			//set the texture to return the stencil index, and then force the components to match D3D
+			glTexParameteri( Texture2D->Target, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_STENCIL_INDEX);
+			glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
+			glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_G, GL_RED);
+			glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
+			glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_A, GL_ZERO);
+		}
+		
+		View = new FOpenGLShaderResourceView(this, Resource, Texture2D->Target, MipLevel, true);
+	}
+	else
+	{
+		View = new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel, false);
+	}
+
+	return View;
 }
 
 /** Generates mip maps for the surface. */
-void FOpenGLDynamicRHI::RHIGenerateMips(FTextureRHIParamRef Surface)
+void FOpenGLDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SurfaceRHI)
 {
-	// not supported
+	VERIFY_GL_SCOPE();
 
-	GPUProfilingData.RegisterGPUWork(0);
+	FOpenGLTextureBase* Texture = GetOpenGLTextureFromRHITexture(SurfaceRHI);
+
+	if ( FOpenGL::SupportsGenerateMipmap())
+	{
+		GPUProfilingData.RegisterGPUWork(0);
+
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+		// Setup the texture on a disused unit
+		// need to figure out how to setup mips properly in no views case
+		CachedSetupTextureStage(ContextState, FOpenGL::GetMaxCombinedTextureImageUnits() - 1, Texture->Target, Texture->Resource, -1, 1);
+
+		FOpenGL::GenerateMipmap( Texture->Target);
+	}
+	else
+	{
+		UE_LOG( LogRHI, Fatal, TEXT("Generate Mipmaps unsupported on this OpenGL version"));
+	}
 }
 
 /**

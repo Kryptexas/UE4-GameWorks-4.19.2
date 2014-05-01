@@ -36,6 +36,11 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Uniform buffer pool memory"),STAT_OpenGLFreeUni
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Emulated Uniform buffer time"), STAT_OpenGLEmulatedUniformBufferTime,STATGROUP_OpenGLRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Uniform buffer pool num free"),STAT_OpenGLNumFreeUniformBuffers,STATGROUP_OpenGLRHI, );
 
+#if OPENGLRHI_DETAILED_STATS
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitive Time"),STAT_OpenGLDrawPrimitiveTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitiveUP Time"),STAT_OpenGLDrawPrimitiveUPTime,STATGROUP_OpenGLRHI, );
+#endif
+
 enum EOpenGLCurrentContext
 {
 	CONTEXT_Other = -2,
@@ -266,7 +271,7 @@ inline uint32 FindMaxMipmapLevel(uint32 Width, uint32 Height, uint32 Depth)
 	return FindMaxMipmapLevel((Width > Height) ? Width : Height, Depth);
 }
 
-inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GLenum &DrawMode, GLsizei &NumElements, GLint &PatchSize)
+inline void FindPrimitiveType(uint32 InPrimitiveType, bool bUsingTessellation, uint32 InNumPrimitives, GLenum &DrawMode, GLsizei &NumElements, GLint &PatchSize)
 {
 	DrawMode = GL_TRIANGLES;
 	NumElements = InNumPrimitives;
@@ -275,18 +280,30 @@ inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GL
 	switch (InPrimitiveType)
 	{
 	case PT_TriangleList:
-		DrawMode = GL_TRIANGLES;
-		NumElements = InNumPrimitives * 3;
+		if (bUsingTessellation) // see GetD3D11PrimitiveType
+		{ 
+			DrawMode = GL_PATCHES;
+			PatchSize = 3;
+			NumElements = InNumPrimitives * PatchSize;
+		}
+		else
+		{
+			DrawMode = GL_TRIANGLES;
+			NumElements = InNumPrimitives * 3;
+		}
 		break;
 	case PT_TriangleStrip:
+		check(!bUsingTessellation);
 		DrawMode = GL_TRIANGLE_STRIP;
 		NumElements = InNumPrimitives + 2;
 		break;
 	case PT_LineList:
+		check(!bUsingTessellation);
 		DrawMode = GL_LINES;
 		NumElements = InNumPrimitives * 2;
 		break;
 	case PT_PointList:
+		check(!bUsingTessellation);
 		DrawMode = GL_POINTS;
 		NumElements = InNumPrimitives;
 		break;
@@ -324,7 +341,7 @@ inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GL
 	case PT_32_ControlPointPatchList:
 		DrawMode = GL_PATCHES;
 		PatchSize = InPrimitiveType - uint32(PT_1_ControlPointPatchList) + 1;
-		NumElements = InNumPrimitives / PatchSize;
+		NumElements = InNumPrimitives * PatchSize;
 		break;
 	default:
 		UE_LOG(LogRHI, Fatal,TEXT("Unsupported primitive type %u"), InPrimitiveType);

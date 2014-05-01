@@ -20,6 +20,8 @@
 #include "Mac/OpenGLMac.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
+#elif PLATFORM_ANDROIDGL4
+#include "AndroidGL4/AndroidGL4OpenGL.h"
 #elif PLATFORM_ANDROID
 #include "Android/AndroidOpenGL.h"
 #elif PLATFORM_HTML5
@@ -312,7 +314,7 @@ public:
 	void OnVertexBufferDeletion(GLuint VertexBufferResource);
 	void OnIndexBufferDeletion(GLuint IndexBufferResource);
 	void OnPixelBufferDeletion(GLuint PixelBufferResource);
-	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw);
+	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw,uint32 Offset,uint8* Pointer);
 	void OnProgramDeletion(GLint ProgramResource);
 	void InvalidateTextureResourceInCache(GLuint Resource);
 	void InvalidateUAVResourceInCache(GLuint Resource);
@@ -430,7 +432,8 @@ private:
 
 	void EnableVertexElementCached(FOpenGLContextState& ContextCache, const FOpenGLVertexElement &VertexElement, GLsizei Stride, void *Pointer, GLuint Buffer);
 	void EnableVertexElementCachedZeroStride(FOpenGLContextState& ContextCache, const FOpenGLVertexElement &VertexElement, uint32 NumVertices, FOpenGLVertexBuffer* VertexBuffer);
-	void SetupVertexArrays(FOpenGLContextState& ContextCache, uint32 BaseVertexIndex, FOpenGLRHIState::FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices);
+	void SetupVertexArrays(FOpenGLContextState& ContextCache, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices);
+	void SetupVertexArraysVAB(FOpenGLContextState& ContextCache, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices);
 	void SetupVertexArraysUP(FOpenGLContextState& ContextState, void* Buffer, uint32 Stride);
 
 	/** needs to be called before each draw call */

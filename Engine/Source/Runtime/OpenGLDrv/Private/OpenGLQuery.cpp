@@ -254,13 +254,19 @@ void FOpenGLEventQuery::IssueEvent()
 		Sync = 0;
 	}
 	Sync = FOpenGL::FenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-	check(FOpenGL::IsSync(Sync));
+
+
+	checkSlow(FOpenGL::IsSync(Sync));
+
 }
 
 void FOpenGLEventQuery::WaitForCompletion()
 {
 	VERIFY_GL_SCOPE();
-	check(FOpenGL::IsSync(Sync));
+
+
+	checkSlow(FOpenGL::IsSync(Sync));
+
 
 	// Wait up to 1/2 second for sync execution
 	FOpenGL::EFenceResult Status = FOpenGL::ClientWaitSync( Sync, GL_SYNC_FLUSH_COMMANDS_BIT, 500*1000*1000);
@@ -291,7 +297,7 @@ void FOpenGLEventQuery::InitDynamicRHI()
 	// Initialize the query by issuing an initial event.
 	IssueEvent();
 
-	check(FOpenGL::IsSync(Sync));
+	checkSlow(FOpenGL::IsSync(Sync));
 }
 
 void FOpenGLEventQuery::ReleaseDynamicRHI()
@@ -577,63 +583,66 @@ FOpenGLDisjointTimeStampQuery::FOpenGLDisjointTimeStampQuery(class FOpenGLDynami
 void FOpenGLDisjointTimeStampQuery::StartTracking()
 {
 	VERIFY_GL_SCOPE();
-#if !PLATFORM_DESKTOP
-	// Dummy query to reset the driver's internal disjoint status
-	GLint WasDisjoint = 0;
-	glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
-#endif
-	FOpenGL::BeginQuery( UGL_TIME_ELAPSED, DisjointQuery );
+	if (IsSupported())
+	{
+		// Dummy query to reset the driver's internal disjoint status
+		GLint WasDisjoint = 0;
+		glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
+		FOpenGL::BeginQuery(UGL_TIME_ELAPSED, DisjointQuery);
+	}
 }
 
 void FOpenGLDisjointTimeStampQuery::EndTracking()
 {
 	VERIFY_GL_SCOPE();
-	FOpenGL::EndQuery( UGL_TIME_ELAPSED );
-#if !PLATFORM_DESKTOP
-	// Check if the GPU changed clock frequency since the last time GL_GPU_DISJOINT_EXT was checked.
-	// If so, any timer query will be undefined.
-	GLint WasDisjoint = 0;
-	glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
-	bIsResultValid = WasDisjoint != 0;
-#endif
+
+	if(IsSupported())
+	{
+		FOpenGL::EndQuery( UGL_TIME_ELAPSED );
+
+		// Check if the GPU changed clock frequency since the last time GL_GPU_DISJOINT_EXT was checked.
+		// If so, any timer query will be undefined.
+		GLint WasDisjoint = 0;
+		glGetIntegerv( GL_GPU_DISJOINT_EXT, &WasDisjoint );
+		bIsResultValid = WasDisjoint != 0;
+	}
+
 }
 
 bool FOpenGLDisjointTimeStampQuery::IsResultValid()
 {
-#if PLATFORM_DESKTOP
- 	// OpenGL ToDo: OpenGL presently has no concept of disjoint
- 	// Just return whether the query failed to return
- 	return GetResult();
-#else
+	checkSlow(IsSupported());
 	return bIsResultValid;
-#endif
 }
 
 bool FOpenGLDisjointTimeStampQuery::GetResult( uint64* OutResult/*=NULL*/ )
 {
 	VERIFY_GL_SCOPE();
-	GLuint Result = 0;
-	FOpenGL::GetQueryObject( DisjointQuery, FOpenGL::QM_ResultAvailable, &Result);
-	const double StartTime = FPlatformTime::Seconds();
-
-	while (Result == GL_FALSE && (FPlatformTime::Seconds() - StartTime) < 0.5)
+	
+	if (IsSupported())
 	{
-		FPlatformProcess::Sleep(0.005f);
-		FOpenGL::GetQueryObject( DisjointQuery, FOpenGL::QM_ResultAvailable, &Result);
-	}
+		GLuint Result = 0;
+		FOpenGL::GetQueryObject(DisjointQuery, FOpenGL::QM_ResultAvailable, &Result);
+		const double StartTime = FPlatformTime::Seconds();
 
-	// Presently just discarding the result, because timing is handled by timestamps inside
-	if ( Result != GL_FALSE )
-	{
-		GLuint64 ElapsedTime = 0;
-		FOpenGL::GetQueryObject(DisjointQuery, FOpenGL::QM_Result, &ElapsedTime);
-		if (OutResult)
+		while (Result == GL_FALSE && (FPlatformTime::Seconds() - StartTime) < 0.5)
 		{
-			*OutResult = ElapsedTime;
+			FPlatformProcess::Sleep(0.005f);
+			FOpenGL::GetQueryObject(DisjointQuery, FOpenGL::QM_ResultAvailable, &Result);
 		}
-	}
 
-	bIsResultValid = Result != GL_FALSE;
+		// Presently just discarding the result, because timing is handled by timestamps inside
+		if (Result != GL_FALSE)
+		{
+			GLuint64 ElapsedTime = 0;
+			FOpenGL::GetQueryObject(DisjointQuery, FOpenGL::QM_Result, &ElapsedTime);
+			if (OutResult)
+			{
+				*OutResult = ElapsedTime;
+			}
+		}
+		bIsResultValid = Result != GL_FALSE;
+	}
 	return bIsResultValid;
 }
 

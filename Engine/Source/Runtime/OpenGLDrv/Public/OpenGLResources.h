@@ -12,7 +12,7 @@
 extern void OnVertexBufferDeletion( GLuint VertexBufferResource );
 extern void OnIndexBufferDeletion( GLuint IndexBufferResource );
 extern void OnPixelBufferDeletion( GLuint PixelBufferResource );
-extern void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw );
+extern void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 Offset, uint8* Pointer );
 extern void OnProgramDeletion( GLint ProgramResource );
 
 extern void CachedBindArrayBuffer( GLuint Buffer );
@@ -24,16 +24,58 @@ extern bool IsUniformBufferBound( GLuint Buffer );
 namespace OpenGLConsoleVariables
 {
 	extern int32 bUseMapBuffer;
+	extern int32 bPrereadStaging;
+	extern int32 bUseVAB;
+	extern int32 MaxSubDataSize;
 };
+
+#if PLATFORM_WINDOWS
+#define RESTRICT_SUBDATA_SIZE 1
+#endif
 
 void IncrementBufferMemory(GLenum Type, bool bStructuredBuffer, uint32 NumBytes);
 void DecrementBufferMemory(GLenum Type, bool bStructuredBuffer, uint32 NumBytes);
+
+// Extra stats for finer-grained timing
+// They shouldn't always be on, as they may impact overall performance
+#define OPENGLRHI_DETAILED_STATS 0
+#if OPENGLRHI_DETAILED_STATS
+	DECLARE_CYCLE_STAT_EXTERN(TEXT("MapBuffer time"),STAT_OpenGLMapBufferTime,STATGROUP_OpenGLRHI, );
+	DECLARE_CYCLE_STAT_EXTERN(TEXT("UnmapBuffer time"),STAT_OpenGLUnmapBufferTime,STATGROUP_OpenGLRHI, );
+	#define SCOPE_CYCLE_COUNTER_DETAILED(Stat)	SCOPE_CYCLE_COUNTER(Stat)
+#else
+	#define SCOPE_CYCLE_COUNTER_DETAILED(Stat)
+#endif
 
 typedef void (*BufferBindFunction)( GLuint Buffer );
 
 template <typename BaseType, GLenum Type, BufferBindFunction BufBind>
 class TOpenGLBuffer : public BaseType
 {
+	void LoadData( uint32 InOffset, uint32 InSize, const void* InData)
+	{
+		const uint8* Data = (const uint8*)InData;
+		const uint32 BlockSize = OpenGLConsoleVariables::MaxSubDataSize;
+
+		if (BlockSize > 0)
+		{
+			while ( InSize > 0)
+			{
+				const uint32 Size = FMath::Min<uint32>( BlockSize, InSize);
+			
+				glBufferSubData( Type, InOffset, Size, Data);
+
+				InOffset += Size;
+				InSize -= Size;
+				Data += Size;
+			}
+		}
+		else
+		{
+			glBufferSubData( Type, InOffset, InSize, InData);
+		}
+
+	}
 public:
 
 	GLuint Resource;
@@ -51,7 +93,7 @@ public:
 	, LockBuffer(NULL)
 	, RealSize(InSize)
 	{
-		if( !( InUsage & BUF_ZeroStride ) )
+		if( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || !( InUsage & BUF_ZeroStride ) )
 		{
 			VERIFY_GL_SCOPE();
 			RealSize = ResourceSize ? ResourceSize : InSize;
@@ -69,6 +111,7 @@ public:
 					FOpenGL::GenBuffers(1, &Resource);
 					check( Type != GL_UNIFORM_BUFFER || !IsUniformBufferBound(Resource) );
 					Bind();
+#if !RESTRICT_SUBDATA_SIZE
 					if( InData == NULL || RealSize <= InSize )
 					{
 						glBufferData(Type, RealSize, InData, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
@@ -78,6 +121,13 @@ public:
 						glBufferData(Type, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
 						glBufferSubData(Type, 0, InSize, InData);
 					}
+#else
+					glBufferData(Type, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+					if ( InData != NULL )
+					{
+						LoadData( 0, FMath::Min<uint32>(InSize,RealSize), InData);
+					}
+#endif
 					IncrementBufferMemory(Type, BaseType::IsStructuredBuffer(), RealSize);
 				}
 				else
@@ -91,7 +141,7 @@ public:
 	virtual ~TOpenGLBuffer()
 	{
 		VERIFY_GL_SCOPE();
-		if (Resource != 0 && BaseType::OnDelete(Resource,RealSize,bStreamDraw))
+		if (Resource != 0 && BaseType::OnDelete(Resource,RealSize,bStreamDraw,0))
 		{
 			glDeleteBuffers(1, &Resource);
 			DecrementBufferMemory(Type, BaseType::IsStructuredBuffer(), RealSize);
@@ -112,13 +162,14 @@ public:
 
 	void Bind()
 	{
-		check( ( this->GetUsage() & BUF_ZeroStride ) == 0 );
+		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		BufBind(Resource);
 	}
 
 	uint8 *Lock(uint32 InOffset, uint32 InSize, bool bReadOnly, bool bDiscard)
 	{
-		check( ( this->GetUsage() & BUF_ZeroStride ) == 0 );
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
+		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		check(InOffset + InSize <= this->GetSize());
 		//check( LockBuffer == NULL );	// Only one outstanding lock is allowed at a time!
 		check( !bIsLocked );	// Only one outstanding lock is allowed at a time!
@@ -166,7 +217,8 @@ public:
 
 	uint8 *LockWriteOnlyUnsynchronized(uint32 InOffset, uint32 InSize, bool bDiscard)
 	{
-		check( ( this->GetUsage() & BUF_ZeroStride ) == 0 );
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLMapBufferTime);
+		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		check(InOffset + InSize <= this->GetSize());
 		//check( LockBuffer == NULL );	// Only one outstanding lock is allowed at a time!
 		check( !bIsLocked );	// Only one outstanding lock is allowed at a time!
@@ -209,7 +261,8 @@ public:
 
 	void Unlock()
 	{
-		check( ( this->GetUsage() & BUF_ZeroStride ) == 0 );
+		SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLUnmapBufferTime);
+		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		VERIFY_GL_SCOPE();
 		if (bIsLocked)
 		{
@@ -232,6 +285,7 @@ public:
 			{
 				if (BaseType::GLSupportsType())
 				{
+#if !RESTRICT_SUBDATA_SIZE
 					// Check for the typical, optimized case
 					if( LockSize == RealSize )
 					{
@@ -244,6 +298,10 @@ public:
 						glBufferSubData(Type, LockOffset, LockSize, LockBuffer);
 						check( LockBuffer != NULL );
 					}
+#else
+					LoadData( LockOffset, LockSize, LockBuffer);
+					check( LockBuffer != NULL);
+#endif
 				}
 				check(bLockBufferWasAllocated);
 				FMemory::Free(LockBuffer);
@@ -256,11 +314,15 @@ public:
 
 	void Update(void *InData, uint32 InOffset, uint32 InSize, bool bDiscard)
 	{
-		check( ( this->GetUsage() & BUF_ZeroStride ) == 0 );
+		check( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || ( this->GetUsage() & BUF_ZeroStride ) == 0 );
 		check(InOffset + InSize <= this->GetSize());
 		VERIFY_GL_SCOPE();
 		Bind();
+#if !RESTRICT_SUBDATA_SIZE
 		glBufferSubData(Type, InOffset, InSize, InData);
+#else
+		LoadData( InOffset, InSize, InData);
+#endif
 	}
 
 	bool IsDynamic() const { return (this->GetUsage() & BUF_AnyDynamic) != 0; }
@@ -289,7 +351,7 @@ public:
 	: Size(InSize)
 	, Usage(InUsage)
 	{}
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw)
+	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset)
 	{
 		OnPixelBufferDeletion(Resource);
 		return true;
@@ -319,7 +381,7 @@ class FOpenGLBaseVertexBuffer : public FRHIVertexBuffer
 public:
 	FOpenGLBaseVertexBuffer(uint32 InStride,uint32 InSize,uint32 InUsage): FRHIVertexBuffer(InSize,InUsage), ZeroStrideVertexBuffer(0)
 	{
-		if( InUsage & BUF_ZeroStride )
+		if(!(FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) && InUsage & BUF_ZeroStride )
 		{
 			ZeroStrideVertexBuffer = FMemory::Malloc( InSize );
 		}
@@ -339,7 +401,7 @@ public:
 		return ZeroStrideVertexBuffer;
 	}
 
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw)
+	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset)
 	{
 		OnVertexBufferDeletion(Resource);
 		return true;
@@ -408,7 +470,7 @@ public:
 
 	~FOpenGLEUniformBuffer()
 	{
-		OnUniformBufferDeletion(Resource, RealSize, bStreamDraw);
+		OnUniformBufferDeletion(Resource, RealSize, bStreamDraw, 0, 0);
 	}
 
 	FOpenGLEUniformBufferDataRef Buffer;
@@ -417,13 +479,14 @@ protected:
 	static uint32 UniqueIDCounter;
 };
 
+
 class FOpenGLBaseUniformBuffer : public FRHIUniformBuffer
 {
 public:
 	FOpenGLBaseUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage): FRHIUniformBuffer(InSize) {}
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw)
+	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset,uint8* Pointer)
 	{
-		OnUniformBufferDeletion(Resource,Size,bStreamDraw);
+		OnUniformBufferDeletion(Resource,Size,bStreamDraw,Offset,Pointer);
 		return false;
 	}
 	uint32 GetUsage() const { return 0; }
@@ -441,11 +504,12 @@ public:
 	static bool IsStructuredBuffer() { return false; }
 };
 
+
 class FOpenGLBaseIndexBuffer : public FRHIIndexBuffer
 {
 public:
 	FOpenGLBaseIndexBuffer(uint32 InStride,uint32 InSize,uint32 InUsage): FRHIIndexBuffer(InStride,InSize,InUsage) {}
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw)
+	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset)
 	{
 		OnIndexBufferDeletion(Resource);
 		return true;
@@ -468,7 +532,7 @@ class FOpenGLBaseStructuredBuffer : public FRHIStructuredBuffer
 {
 public:
 	FOpenGLBaseStructuredBuffer(uint32 InStride,uint32 InSize,uint32 InUsage): FRHIStructuredBuffer(InStride,InSize,InUsage) {}
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw)
+	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset)
 	{
 		OnVertexBufferDeletion(Resource);
 		return true;
@@ -488,10 +552,88 @@ public:
 };
 
 typedef TOpenGLBuffer<FOpenGLBasePixelBuffer, GL_PIXEL_UNPACK_BUFFER, CachedBindPixelUnpackBuffer> FOpenGLPixelBuffer;
-typedef TOpenGLBuffer<FOpenGLBaseUniformBuffer, GL_UNIFORM_BUFFER, CachedBindUniformBuffer> FOpenGLUniformBuffer;
 typedef TOpenGLBuffer<FOpenGLBaseVertexBuffer, GL_ARRAY_BUFFER, CachedBindArrayBuffer> FOpenGLVertexBuffer;
 typedef TOpenGLBuffer<FOpenGLBaseIndexBuffer,GL_ELEMENT_ARRAY_BUFFER,CachedBindElementArrayBuffer> FOpenGLIndexBuffer;
 typedef TOpenGLBuffer<FOpenGLBaseStructuredBuffer,GL_ARRAY_BUFFER,CachedBindArrayBuffer> FOpenGLStructuredBuffer;
+
+#define SUBALLOCATED_CONSTANT_BUFFER 1
+
+#if !SUBALLOCATED_CONSTANT_BUFFER
+typedef TOpenGLBuffer<FOpenGLBaseUniformBuffer, GL_UNIFORM_BUFFER, CachedBindUniformBuffer> FOpenGLUniformBuffer;
+#else
+class FOpenGLUniformBuffer : public FOpenGLBaseUniformBuffer
+{
+public:
+	GLuint Resource;
+	bool bStreamDraw;
+	uint32 RealSize;
+	uint32 Offset;
+	uint8* Pointer;
+
+	FOpenGLUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage,
+		const void *InData = NULL, bool bStreamedDraw = false, GLuint ResourceToUse = 0, uint32 ResourceSize = 0, uint32 InOffset = 0, uint8* InPointer = 0)
+	: FOpenGLBaseUniformBuffer(InStride,InSize,InUsage)
+	, Resource(0)
+	, bStreamDraw(bStreamedDraw)
+	, RealSize(InSize)
+	, Offset(InOffset)
+	, Pointer(InPointer)
+	{
+		VERIFY_GL_SCOPE();
+		RealSize = ResourceSize ? ResourceSize : InSize;
+		if( ResourceToUse )
+		{
+			Resource = ResourceToUse;
+			if ( Pointer)
+			{
+				//Want to just use memcpy, no need to bind, etc
+				FMemory::Memcpy( Pointer, InData, InSize);
+			}
+			else
+			{
+				CachedBindUniformBuffer(Resource);
+				glBufferSubData(GL_UNIFORM_BUFFER, Offset, InSize, InData);
+			}
+		}
+		else
+		{
+			check( Offset == 0);
+			check( Pointer == 0);
+			if (GLSupportsType())
+			{
+				FOpenGL::GenBuffers(1, &Resource);
+				CachedBindUniformBuffer(Resource);
+				if( InData == NULL || RealSize <= InSize )
+				{
+					glBufferData(GL_UNIFORM_BUFFER, RealSize, InData, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+				}
+				else
+				{
+					glBufferData(GL_UNIFORM_BUFFER, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
+					glBufferSubData(GL_UNIFORM_BUFFER, 0, InSize, InData);
+				}
+				IncrementBufferMemory(GL_UNIFORM_BUFFER, IsStructuredBuffer(), RealSize);
+			}
+			else
+			{
+				CreateType(Resource, InData, InSize);
+			}
+		}
+	}
+
+	~FOpenGLUniformBuffer()
+	{
+		VERIFY_GL_SCOPE();
+		if (Resource != 0 && OnDelete(Resource,RealSize,bStreamDraw,Offset,Pointer))
+		{
+			glDeleteBuffers(1, &Resource);
+			DecrementBufferMemory(GL_UNIFORM_BUFFER, IsStructuredBuffer(), RealSize);
+		}
+	}
+
+	bool IsDynamic() const { return (this->GetUsage() & BUF_AnyDynamic) != 0; }
+};
+#endif
 
 #define MAX_STREAMED_BUFFERS_IN_ARRAY 2	// must be > 1!
 #define MIN_DRAWS_IN_SINGLE_BUFFER 16
@@ -743,6 +885,14 @@ private:
 	uint32 bIsPowerOfTwo	: 1;
 };
 
+// Temporary Android GL4 WAR
+// Use host pointers instead of PBOs for texture uploads
+#if PLATFORM_ANDROIDGL4
+#define USE_PBO 0
+#else
+#define USE_PBO 1
+#endif
+
 // Textures.
 template<typename BaseType>
 class TOpenGLTexture : public BaseType, public FOpenGLTextureBase
@@ -778,6 +928,9 @@ public:
 	{
 		PixelBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
 		bAllocatedStorage.Init(bInAllocatedStorage, this->GetNumMips() * (bCubemap ? 6 : 1));
+#if !USE_PBO
+		TempBuffers.AddZeroed(this->GetNumMips() * (bCubemap ? 6 : 1) * GetEffectiveSizeZ());
+#endif
 	}
 
 	virtual ~TOpenGLTexture();
@@ -790,10 +943,17 @@ public:
 
 	/** Unlocks a previously locked mip-map. */
 	void Unlock(uint32 MipIndex,uint32 ArrayIndex);
+
+	/** Updates the host accessible version of the texture */
+	void UpdateHost(uint32 MipIndex,uint32 ArrayIndex);
+
+	/** Get PBO Resource for readback */
+	GLuint GetBufferResource(uint32 MipIndex,uint32 ArrayIndex);
 	
 	// Accessors.
 	bool IsDynamic() const { return (this->GetFlags() & TexCreate_Dynamic) != 0; }
 	bool IsCubemap() const { return bCubemap != 0; }
+	bool IsStaging() const { return (this->GetFlags() & TexCreate_CPUReadback) != 0; }
 
 	/**
 	 * Accessors to mark whether or not we have allocated storage for each mip/face.
@@ -825,6 +985,19 @@ public:
 private:
 
 	TArray< TRefCountPtr<FOpenGLPixelBuffer> > PixelBuffers;
+
+#if !USE_PBO
+	struct FTempBuffer
+	{
+		void* Data;
+		uint32 Size;
+		bool bReadOnly;
+
+		FTempBuffer() : Data(0), Size(0), bReadOnly(false)
+		{}
+	};
+	TArray< FTempBuffer> TempBuffers;
+#endif
 
 	uint32 GetEffectiveSizeZ( void ) { return this->GetSizeZ() ? this->GetSizeZ() : 1; }
 
@@ -1099,19 +1272,22 @@ public:
 	,	Target(InTarget)
 	,	LimitMip(-1)
 	,	OpenGLRHI(InOpenGLRHI)
+	,	OwnsResource(true)
 	{}
 
-	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget, GLuint Mip )
+	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget, GLuint Mip, bool InOwnsResource )
 	:	Resource(InResource)
 	,	Target(InTarget)
 	,	LimitMip(Mip)
 	,	OpenGLRHI(InOpenGLRHI)
+	,	OwnsResource(InOwnsResource)
 	{}
 
 	virtual ~FOpenGLShaderResourceView( void );
 
 protected:
 	FOpenGLDynamicRHI* OpenGLRHI;
+	bool OwnsResource;
 };
 
 void OpenGLTextureDeleted( FRHITexture* Texture );

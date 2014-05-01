@@ -430,10 +430,6 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 	}
 	else
 	{
-		// D3D appears to skip all resolves when the source and dest base resource are identical
-		// Technically, this interface can blit between layers in an array, and this would fail
-		// Leaving it to match D3D for now
-		//check(0);
 	}
 }
 
@@ -691,6 +687,7 @@ void FOpenGLDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void
 	
 	FOpenGLTexture2D* Texture2D = (FOpenGLTexture2D*)TextureRHI->GetTexture2D();
 	check(Texture2D);
+	check(Texture2D->IsStaging());
 
 	OutWidth = Texture2D->GetSizeX();
 	OutHeight = Texture2D->GetSizeY();

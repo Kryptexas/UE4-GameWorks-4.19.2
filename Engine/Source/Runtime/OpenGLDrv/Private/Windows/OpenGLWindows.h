@@ -296,7 +296,8 @@
 	EnumMacro(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v)\
 	EnumMacro(PFNGLFENCESYNCPROC, glFenceSync)\
 	EnumMacro(PFNGLGETSYNCIVPROC, glGetSynciv)\
-	EnumMacro(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync)
+	EnumMacro(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync)\
+	EnumMacro(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange)
 
 #define ENUM_GL_ENTRYPOINTS_OPTIONAL(EnumMacro) \
 	EnumMacro(PFNGLDEBUGMESSAGECALLBACKARBPROC,glDebugMessageCallbackARB) \
@@ -335,7 +336,14 @@
 	EnumMacro(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData)\
 	EnumMacro(PFNGLTEXSTORAGE1DPROC, glTexStorage1D)\
 	EnumMacro(PFNGLTEXSTORAGE2DPROC, glTexStorage2D)\
-	EnumMacro(PFNGLTEXSTORAGE3DPROC, glTexStorage3D)
+	EnumMacro(PFNGLTEXSTORAGE3DPROC, glTexStorage3D)\
+	EnumMacro(PFNGLBUFFERSTORAGEPROC, glBufferStorage)\
+	EnumMacro(PFNGLTEXTUREVIEWPROC, glTextureView)\
+	EnumMacro(PFNGLTEXSTORAGE2DMULTISAMPLEPROC, glTexStorage2DMultisample)\
+	EnumMacro(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect)\
+	EnumMacro(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect)\
+	EnumMacro(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT)
+
 
 /** List of all OpenGL entry points. */
 #define ENUM_GL_ENTRYPOINTS_ALL(EnumMacro) \
@@ -398,6 +406,19 @@ struct FWindowsOpenGL : public FOpenGL4
 		}
 	}
 
+	static FORCEINLINE bool TexStorage2DMultisample(GLenum Target, GLsizei Samples, GLint InternalFormat, GLsizei Width, GLsizei Height, GLboolean FixedSampleLocations)
+	{
+		if( glTexStorage2DMultisample != NULL )
+		{
+			glTexStorage2DMultisample(Target, Samples, InternalFormat, Width, Height, FixedSampleLocations);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	static FORCEINLINE void TexStorage3D(GLenum Target, GLint Levels, GLint InternalFormat, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLenum Type)
 	{
 		if (glTexStorage3D)
@@ -430,6 +451,27 @@ struct FWindowsOpenGL : public FOpenGL4
 	{
 		glCopyImageSubData( SrcName, SrcTarget, SrcLevel, SrcX, SrcY, SrcZ, DstName, DstTarget, DstLevel, DstX, DstY, DstZ, Width, Height, Depth);
 	}
+
+	static FORCEINLINE bool SupportsBufferStorage()
+	{
+		return glBufferStorage != NULL;
+	}
+
+	static FORCEINLINE bool SupportsDepthBoundsTest()
+	{
+		return glDepthBoundsEXT != NULL;
+	}
+
+	static FORCEINLINE void BufferStorage(GLenum Target, GLsizeiptr Size, const void *Data, GLbitfield Flags)
+	{
+		glBufferStorage(Target, Size, Data, Flags);
+	}
+
+	static FORCEINLINE void DepthBounds(GLfloat Min, GLfloat Max)
+	{
+		glDepthBoundsEXT( Min, Max);
+	}
+
 };
 
 typedef FWindowsOpenGL FOpenGL;

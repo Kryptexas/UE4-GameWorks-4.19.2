@@ -36,6 +36,9 @@ struct FFlatTessellationHSToDS
 #endif
 };
 
+// GLSL needs those on the domain shader, HLSL on the hull shader, so we replicate them for both
+#define TESSELLATION_ATTRIBUTES [partitioning("fractional_odd")][outputtopology("triangle_cw")]
+
 #if HULLSHADER
 
 	FHullShaderConstantOutput HS_FlatTrianglesConstant( const OutputPatch<FFlatTessellationHSToDS, 3> I )
@@ -78,10 +81,9 @@ struct FFlatTessellationHSToDS
 	}
 
 	[domain("tri")]
-	[partitioning("fractional_odd")]
-	[outputtopology("triangle_cw")]
 	[patchconstantfunc("HS_FlatTrianglesConstant")]
 	[outputcontrolpoints(3)]
+	TESSELLATION_ATTRIBUTES
 	FFlatTessellationHSToDS MainHull( InputPatch<FPassSpecificVSToDS, IN_CONTROL_POINTS> I, uint ControlPointID : SV_OutputControlPointID )
 	{
 		FFlatTessellationHSToDS O = (FFlatTessellationHSToDS) 0;
@@ -117,6 +119,7 @@ struct FFlatTessellationHSToDS
 
 #if DOMAINSHADER
 	[domain("tri")]
+	TESSELLATION_ATTRIBUTES
 	FPassSpecificVSToPS MainDomain(
 		FHullShaderConstantOutput HSConstantData,
 		const OutputPatch<FFlatTessellationHSToDS, 3> I,

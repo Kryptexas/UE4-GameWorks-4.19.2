@@ -16,6 +16,10 @@ struct FOpenGL4 : public FOpenGL3
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return true; }
 	static FORCEINLINE bool SupportsTessellation()						{ return true; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return bSupportsComputeShaders; }
+	static FORCEINLINE bool SupportsDrawIndirect()						{ return true; }
+	static FORCEINLINE bool SupportsVertexAttribBinding()				{ return bSupportsVertexAttribBinding; }
+	static FORCEINLINE bool SupportsTextureView()						{ return bSupportsTextureView; }
+
 
 	// Optional
 
@@ -48,9 +52,45 @@ struct FOpenGL4 : public FOpenGL3
 	{
 		glDispatchCompute(NumGroupsX, NumGroupsY, NumGroupsZ);
 	}
+	static FORCEINLINE void DispatchComputeIndirect(GLintptr Offset)
+	{
+		glDispatchComputeIndirect(Offset);
+	}
 	static FORCEINLINE void MemoryBarrier(GLbitfield Barriers)
 	{
 		glMemoryBarrier(Barriers);
+	}
+	static FORCEINLINE void DrawArraysIndirect (GLenum Mode, const void *Offset)
+	{
+		glDrawArraysIndirect( Mode, Offset);
+	}
+	static FORCEINLINE void DrawElementsIndirect (GLenum Mode, GLenum Type, const void *Offset)
+	{
+		glDrawElementsIndirect( Mode, Type, Offset);
+	}
+	static FORCEINLINE void BindVertexBuffer(GLuint BindingIndex, GLuint Buffer, GLintptr Offset, GLsizei Stride)
+	{
+		glBindVertexBuffer(BindingIndex, Buffer, Offset, Stride);
+	}
+	static FORCEINLINE void VertexAttribFormat(GLuint AttribIndex, GLint Size, GLenum Type, GLboolean Normalized, GLuint RelativeOffset)
+	{
+		glVertexAttribFormat(AttribIndex, Size, Type, Normalized, RelativeOffset);
+	}
+	static FORCEINLINE void VertexAttribIFormat(GLuint AttribIndex, GLint Size, GLenum Type, GLuint RelativeOffset)
+	{
+		glVertexAttribIFormat(AttribIndex, Size, Type, RelativeOffset);
+	}
+	static FORCEINLINE void VertexAttribBinding(GLuint AttribIndex, GLuint BindingIndex)
+	{
+		glVertexAttribBinding(AttribIndex, BindingIndex);
+	}
+	static FORCEINLINE void VertexBindingDivisor(GLuint BindingIndex, GLuint Divisor)
+	{
+		glVertexBindingDivisor(BindingIndex, Divisor);
+	}
+	static FORCEINLINE void TextureView(GLuint ViewName, GLenum ViewTarget, GLuint SrcName, GLenum InternalFormat, GLuint MinLevel, GLuint NumLevels, GLuint MinLayer, GLuint NumLayers)
+	{
+		glTextureView(ViewName, ViewTarget, SrcName, InternalFormat, MinLevel, NumLevels, MinLayer, NumLayers);
 	}
 
 	static void ProcessQueryGLInt();
@@ -59,8 +99,18 @@ struct FOpenGL4 : public FOpenGL3
 	static FORCEINLINE GLint GetMaxComputeTextureImageUnits() { check(MaxComputeTextureImageUnits != -1); return MaxComputeTextureImageUnits; }
 	static FORCEINLINE GLint GetMaxComputeUniformComponents() { check(MaxComputeUniformComponents != -1); return MaxComputeUniformComponents; }
 
+	static uint64 GetVideoMemorySize();
+
 protected:
 	static GLint MaxComputeTextureImageUnits;
 	static GLint MaxComputeUniformComponents;
+
 	static bool bSupportsComputeShaders;
+	static bool bSupportsGPUMemoryInfo;
+	static bool bSupportsTessellation;
+	static bool bSupportsVertexAttribBinding;
+	static bool bSupportsTextureView;
+
+	static int32 MajorVersion;
+	static int32 MinorVersion;
 };

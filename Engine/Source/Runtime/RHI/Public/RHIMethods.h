@@ -1620,3 +1620,18 @@ DEFINE_RHIMETHOD_2(
 	uint32,FirstMip,
 	,
 	);
+
+/**
+ * Enabled/Disables Depth Bounds Testing with the given min/max depth.
+ * @param bEnable	Enable(non-zero)/disable(zero) the depth bounds test
+ * @param MinDepth	The minimum depth for depth bounds test
+ * @param MaxDepth	The maximum depth for depth bounds test.
+ *					The valid values for fMinDepth and fMaxDepth are such that 0 <= fMinDepth <= fMaxDepth <= 1
+ */
+DEFINE_RHIMETHOD_3(
+	void,RHIEnableDepthBoundsTest,
+	bool,bEnable,
+	float,MinDepth,
+	float,MaxDepth,
+	,
+	);

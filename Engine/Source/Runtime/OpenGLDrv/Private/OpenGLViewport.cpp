@@ -125,6 +125,9 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 		RHIOpenGLConsoleVariables::SyncInterval
 	);
 
+	// Always consider the Framebuffer in the rendering context dirty after the blit
+	RenderingContextState.Framebuffer = -1;
+
 	DrawingViewport = NULL;
 
 	// Don't wait on the GPU when using SLI, let the driver determine how many frames behind the GPU should be allowed to get

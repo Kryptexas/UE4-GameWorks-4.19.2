@@ -6,11 +6,37 @@
 
 #include "OpenGLDrvPrivate.h"
 
+
+namespace OpenGLConsoleVariables
+{
+#if (PLATFORM_WINDOWS || PLATFORM_ANDROIDGL4)
+	int32 RequestedUBOPoolSize = 1024*1024*16;
+#else
+	int32 RequestedUBOPoolSize = 0;
+#endif
+
+	static FAutoConsoleVariableRef CVarUBOPoolSize(
+		TEXT("OpenGL.UBOPoolSize"),
+		RequestedUBOPoolSize,
+		TEXT("Size of the UBO pool, 0 disables UBO Pool"),
+		ECVF_ReadOnly
+		);
+
+	int32 bUBODirectWrite = 1;
+
+	static FAutoConsoleVariableRef CVarUBODirectWrite(
+		TEXT("OpenGL.UBODirectWrite"),
+		bUBODirectWrite,
+		TEXT("Enables direct writes to the UBO via Buffer Storage"),
+		ECVF_ReadOnly
+		);
+};
+
 #define NUM_POOL_BUCKETS 45
 
 #define NUM_SAFE_FRAMES 3
 
-const uint32 UniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
+const uint32 RequestedUniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
 	16,32,48,64,80,96,112,128,	// 16-byte increments
 	160,192,224,256,			// 32-byte increments
 	320,384,448,512,			// 64-byte increments
@@ -24,13 +50,77 @@ const uint32 UniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
 
 	// 65536 is current max uniform buffer size for Mac OS X.
 
-	0xFFFFFFFF
+	0xFFFF0000 // Not max uint32 to allow rounding
 };
+
+// Maps desired size buckets to aligment actually 
+TArray<uint32> UniformBufferSizeBuckets;
+
+
+static inline bool IsSuballocatingUBOs()
+{
+#if SUBALLOCATED_CONSTANT_BUFFER
+	if (!IsES2Platform(GRHIShaderPlatform))
+	{
+		return OpenGLConsoleVariables::RequestedUBOPoolSize != 0;
+	}
+#endif
+	return false;
+}
+
+static inline uint32 GetUBOPoolSize()
+{
+	static uint32 UBOPoolSize = 0xFFFFFFFF;
+
+	if ( UBOPoolSize == 0xFFFFFFFF )
+	{
+		GLint Alignment;
+		glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &Alignment);
+
+		UBOPoolSize = (( OpenGLConsoleVariables::RequestedUBOPoolSize + Alignment - 1) / Alignment ) * Alignment;
+	}
+
+	return UBOPoolSize;
+}
+
+// Convert bucket sizes to cbe compatible with present device
+static void RemapBuckets()
+{
+	if (!IsSuballocatingUBOs())
+	{
+		for (int32 Count = 0; Count < NUM_POOL_BUCKETS; Count++)
+		{
+			UniformBufferSizeBuckets.Push(RequestedUniformBufferSizeBuckets[Count]);
+		}
+	}
+	else
+	{
+		GLint Alignment;
+		glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &Alignment);
+
+		for (int32 Count = 0; Count < NUM_POOL_BUCKETS; Count++)
+		{
+			uint32 AlignedSize = ((RequestedUniformBufferSizeBuckets[Count] + Alignment - 1) / Alignment ) * Alignment;
+			if (!UniformBufferSizeBuckets.Contains(AlignedSize))
+			{
+				UniformBufferSizeBuckets.Push(AlignedSize);
+			}
+		}
+		UE_LOG(LogRHI,Log,TEXT("Configured UBO bucket pool to %d buckets based on alignment of %d bytes"), UniformBufferSizeBuckets.Num(), Alignment);
+	}
+}
 
 static uint32 GetPoolBucketIndex(uint32 NumBytes)
 {
+	if (UniformBufferSizeBuckets.Num() == 0)
+	{
+		RemapBuckets();
+	}
+
+	check( UniformBufferSizeBuckets.Num() > 0);
+
 	unsigned long lower = 0;
-	unsigned long upper = NUM_POOL_BUCKETS;
+	unsigned long upper = UniformBufferSizeBuckets.Num();
 	unsigned long middle;
 
 	do
@@ -113,7 +203,9 @@ struct FPooledGLUniformBuffer
 {
 	GLuint Buffer;
 	uint32 CreatedSize;
+	uint32 Offset;
 	uint32 FrameFreed;
+	uint8* Pointer;
 };
 
 // Pool of free uniform buffers, indexed by bucket for constant size search time.
@@ -131,38 +223,46 @@ void BeginFrame_UniformBufferPoolCleanup()
 
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLUniformBufferCleanupTime);
 
-	// Clean a limited number of old entries to reduce hitching when leaving a large level
-	const bool bIsES2 = IsES2Platform(GRHIShaderPlatform);
-	for( int32 StreamedIndex = 0; StreamedIndex < 2; ++StreamedIndex)
+	if (!IsSuballocatingUBOs())
 	{
-		for (int32 BucketIndex = 0; BucketIndex < NUM_POOL_BUCKETS; BucketIndex++)
+		// Clean a limited number of old entries to reduce hitching when leaving a large level
+		const bool bIsES2 = IsES2Platform(GRHIShaderPlatform);
+		for( int32 StreamedIndex = 0; StreamedIndex < 2; ++StreamedIndex)
 		{
-			for (int32 EntryIndex = GLUniformBufferPool[BucketIndex][StreamedIndex].Num() - 1; EntryIndex >= 0; EntryIndex--)
+			for (int32 BucketIndex = 0; BucketIndex < UniformBufferSizeBuckets.Num(); BucketIndex++)
 			{
-				FPooledGLUniformBuffer& PoolEntry = GLUniformBufferPool[BucketIndex][StreamedIndex][EntryIndex];
-
-				check(PoolEntry.Buffer);
-
-				// Clean entries that are unlikely to be reused
-				if (GFrameNumberRenderThread - PoolEntry.FrameFreed > 30)
+				for (int32 EntryIndex = GLUniformBufferPool[BucketIndex][StreamedIndex].Num() - 1; EntryIndex >= 0; EntryIndex--)
 				{
-					DEC_DWORD_STAT(STAT_OpenGLNumFreeUniformBuffers);
-					DEC_MEMORY_STAT_BY(STAT_OpenGLFreeUniformBufferMemory, PoolEntry.CreatedSize);
-					if (bIsES2)
-					{
-						UniformBufferDataFactory.Destroy(PoolEntry.Buffer);
-					}
-					else
-					{
-						glDeleteBuffers( 1, &PoolEntry.Buffer );
-					}
-					GLUniformBufferPool[BucketIndex][StreamedIndex].RemoveAtSwap(EntryIndex);
+					FPooledGLUniformBuffer& PoolEntry = GLUniformBufferPool[BucketIndex][StreamedIndex][EntryIndex];
 
-					--NumToCleanThisFrame;
-					if (NumToCleanThisFrame == 0)
+					check(PoolEntry.Buffer);
+
+					// Clean entries that are unlikely to be reused
+					if (GFrameNumberRenderThread - PoolEntry.FrameFreed > 30)
 					{
-						break;
+						DEC_DWORD_STAT(STAT_OpenGLNumFreeUniformBuffers);
+						DEC_MEMORY_STAT_BY(STAT_OpenGLFreeUniformBufferMemory, PoolEntry.CreatedSize);
+						if (bIsES2)
+						{
+							UniformBufferDataFactory.Destroy(PoolEntry.Buffer);
+						}
+						else
+						{
+							glDeleteBuffers( 1, &PoolEntry.Buffer );
+						}
+						GLUniformBufferPool[BucketIndex][StreamedIndex].RemoveAtSwap(EntryIndex);
+
+						--NumToCleanThisFrame;
+						if (NumToCleanThisFrame == 0)
+						{
+							break;
+						}
 					}
+				}
+
+				if (NumToCleanThisFrame == 0)
+				{
+					break;
 				}
 			}
 
@@ -170,11 +270,6 @@ void BeginFrame_UniformBufferPoolCleanup()
 			{
 				break;
 			}
-		}
-
-		if (NumToCleanThisFrame == 0)
-		{
-			break;
 		}
 	}
 
@@ -184,7 +279,7 @@ void BeginFrame_UniformBufferPoolCleanup()
 	// Merge the bucket into the free pool array
 	for( int32 StreamedIndex = 0; StreamedIndex < 2; ++StreamedIndex)
 	{
-		for (int32 BucketIndex = 0; BucketIndex < NUM_POOL_BUCKETS; BucketIndex++)
+		for (int32 BucketIndex = 0; BucketIndex < UniformBufferSizeBuckets.Num(); BucketIndex++)
 		{
 			GLUniformBufferPool[BucketIndex][StreamedIndex].Append(SafeGLUniformBufferPools[SafeFrameIndex][BucketIndex][StreamedIndex]);
 			SafeGLUniformBufferPools[SafeFrameIndex][BucketIndex][StreamedIndex].Reset();
@@ -199,8 +294,67 @@ static bool IsPoolingEnabled()
 	return CVarValue != 0;
 };
 
+struct TUBOPoolBuffer
+{
+	GLuint Resource;
+	uint32 ConsumedSpace;
+	uint32 AllocatedSpace;
+	uint8* Pointer;
+};
 
-static FUniformBufferRHIRef CreateUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage, const void *InData = NULL, bool bStreamedDraw = false, GLuint ResourceToUse = 0, uint32 ResourceSize = 0)
+TArray<TUBOPoolBuffer> UBOPool;
+
+static void SuballocateUBO( uint32 Size, GLuint& Resource, uint32& Offset, uint8*& Pointer)
+{
+	check( Size <= GetUBOPoolSize());
+	// Find space in previously allocated pool buffers
+	for ( int32 Buffer = 0; Buffer < UBOPool.Num(); Buffer++)
+	{
+		TUBOPoolBuffer &Pool = UBOPool[Buffer];
+		if ( Size < (Pool.AllocatedSpace - Pool.ConsumedSpace))
+		{
+			Resource = Pool.Resource;
+			Offset = Pool.ConsumedSpace;
+			Pointer = Pool.Pointer ? Pool.Pointer + Offset : 0;
+			Pool.ConsumedSpace += Size;
+			return;
+		}
+	}
+
+	// No space was found to use, create a new Pool buffer
+	TUBOPoolBuffer Pool;
+
+	FOpenGL::GenBuffers( 1, &Pool.Resource);
+	
+	CachedBindUniformBuffer(Pool.Resource);
+
+	if (FOpenGL::SupportsBufferStorage() && OpenGLConsoleVariables::bUBODirectWrite)
+	{
+		FOpenGL::BufferStorage( GL_UNIFORM_BUFFER, GetUBOPoolSize(), NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT );
+		Pool.Pointer = (uint8*)FOpenGL::MapBufferRange(GL_UNIFORM_BUFFER, 0, GetUBOPoolSize(), FOpenGL::RLM_WriteOnlyPersistent);
+	}
+	else
+	{
+		glBufferData( GL_UNIFORM_BUFFER, GetUBOPoolSize(), 0, GL_DYNAMIC_DRAW);
+		Pool.Pointer = 0;
+	}
+
+	Pointer = Pool.Pointer;
+	
+	INC_MEMORY_STAT_BY(STAT_OpenGLFreeUniformBufferMemory, GetUBOPoolSize());
+	
+	Pool.ConsumedSpace = Size;
+	Pool.AllocatedSpace = GetUBOPoolSize();
+	
+	Resource = Pool.Resource;
+	Offset = 0;
+	
+	UBOPool.Push(Pool);
+
+	UE_LOG(LogRHI,Log,TEXT("Allocated new buffer for uniform Pool %d buffers with %d bytes"),UBOPool.Num(), UBOPool.Num()*GetUBOPoolSize());
+}
+
+static FUniformBufferRHIRef CreateUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage, const void *InData = NULL, bool bStreamedDraw = false, GLuint ResourceToUse = 0, uint32 ResourceSize = 0, uint32 Offset = 0, uint8 *Pointer = 0)
 {
 	if (IsES2Platform(GRHIShaderPlatform))
 	{
@@ -208,7 +362,11 @@ static FUniformBufferRHIRef CreateUniformBuffer(uint32 InStride,uint32 InSize,ui
 	}
 	else
 	{
+#if !SUBALLOCATED_CONSTANT_BUFFER
 		return new FOpenGLUniformBuffer(InStride, InSize, InUsage, InData, bStreamedDraw, ResourceToUse, ResourceSize);
+#else
+		return new FOpenGLUniformBuffer(InStride, InSize, InUsage, InData, bStreamedDraw, ResourceToUse, ResourceSize, Offset, Pointer);
+#endif
 	}
 }
 
@@ -240,13 +398,24 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 			DEC_DWORD_STAT(STAT_OpenGLNumFreeUniformBuffers);
 			DEC_MEMORY_STAT_BY(STAT_OpenGLFreeUniformBufferMemory, FreeBufferEntry.CreatedSize);
 
-			return CreateUniformBuffer(0,NumBytes,0,Contents,bStreamDraw,FreeBufferEntry.Buffer,FreeBufferEntry.CreatedSize);
+			return CreateUniformBuffer(0,NumBytes,0,Contents,bStreamDraw,FreeBufferEntry.Buffer,FreeBufferEntry.CreatedSize,FreeBufferEntry.Offset,FreeBufferEntry.Pointer);
 		}
 		else
 		{
 			// Nothing usable was found in the free pool, create a new uniform buffer
 			uint32 BufferSize = UniformBufferSizeBuckets[BucketIndex];
-			return CreateUniformBuffer(0,NumBytes,0,Contents,bStreamDraw,0,BufferSize);
+			if (IsSuballocatingUBOs())
+			{
+				GLuint Resource = 0;
+				uint32 Offset = 0;
+				uint8* Pointer = 0;
+				SuballocateUBO( BufferSize, Resource, Offset, Pointer);
+				return CreateUniformBuffer(0,NumBytes,0,Contents,bStreamDraw,Resource,BufferSize,Offset,Pointer);
+			}
+			else
+			{
+				return CreateUniformBuffer(0,NumBytes,0,Contents,bStreamDraw,0,BufferSize);
+			}
 		}
 	}
 	else
@@ -255,7 +424,7 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 	}
 }
 
-void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, bool bStreamDraw )
+void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, bool bStreamDraw, uint32 Offset, uint8* Pointer )
 {
 	if(IsPoolingEnabled())
 	{
@@ -264,6 +433,8 @@ void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, b
 		NewEntry.Buffer = Buffer;
 		NewEntry.FrameFreed = GFrameNumberRenderThread;
 		NewEntry.CreatedSize = BufferSize;
+		NewEntry.Offset = Offset;
+		NewEntry.Pointer = Pointer;
 
 		int StreamedIndex = bStreamDraw ? 1 : 0;
 

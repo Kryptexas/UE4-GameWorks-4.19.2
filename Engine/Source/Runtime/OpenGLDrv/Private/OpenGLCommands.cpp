@@ -45,6 +45,26 @@ namespace OpenGLConsoleVariables
 		bSkipCompute,
 		TEXT("If true, don't issue dispatch work.")
 		);
+
+	int32 bUseVAB = 0;
+	static FAutoConsoleVariableRef CVarUseVAB(
+		TEXT("OpenGL.UseVAB"),
+		bUseVAB,
+		TEXT("If true, use GL_VERTEX_ATTRIB_BINDING instead of traditional vertex array setup."),
+		ECVF_ReadOnly
+		);
+
+#if PLATFORM_WINDOWS
+	int32 MaxSubDataSize = 256*1024;
+#else
+	int32 MaxSubDataSize = 0;
+#endif
+	static FAutoConsoleVariableRef CVarMaxSubDataSize(
+		TEXT("OpenGL.MaxSubDataSize"),
+		MaxSubDataSize,
+		TEXT("Maximum amount of data to send to glBufferSubData in one call"),
+		ECVF_ReadOnly
+		);
 };
 
 TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
@@ -1631,6 +1651,8 @@ void FOpenGLDynamicRHI::EnableVertexElementCached(
 {
 	VERIFY_GL_SCOPE();
 
+	check( !(FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB));
+
 	GLuint AttributeIndex = VertexElement.AttributeIndex;
 	FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 
@@ -1701,8 +1723,13 @@ void FOpenGLDynamicRHI::FreeZeroStrideBuffers()
 	ZeroStrideExpandedBuffersList.Empty();
 }
 
-void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uint32 BaseVertexIndex, FOpenGLRHIState::FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices)
+void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices)
 {
+	if (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB)
+	{
+		SetupVertexArraysVAB(ContextState, BaseVertexIndex, Streams, NumStreams, MaxVertices);
+		return;
+	}
 	VERIFY_GL_SCOPE();
 	bool UsedAttributes[NUM_OPENGL_VERTEX_STREAMS] = { 0 };
 
@@ -1716,7 +1743,7 @@ void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uin
 
 		if ( VertexElement.StreamIndex < NumStreams)
 		{
-			FOpenGLRHIState::FOpenGLStream* Stream = &Streams[VertexElement.StreamIndex];
+			FOpenGLStream* Stream = &Streams[VertexElement.StreamIndex];
 			uint32 Stride = Stream->Stride;
 
 			uint32 AttributeBit = (1 << VertexElement.AttributeIndex);
@@ -1781,6 +1808,144 @@ void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uin
 			glDisableVertexAttribArray(AttribIndex);
 			ContextState.VertexAttrs[AttribIndex].bEnabled = false;
 		}
+	}
+}
+
+void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, uint32 BaseVertexIndex, FOpenGLStream* Streams, uint32 NumStreams, uint32 MaxVertices)
+{
+	VERIFY_GL_SCOPE();
+	bool KnowsDivisor[NUM_OPENGL_VERTEX_STREAMS] = { 0 };
+	uint32 Divisor[NUM_OPENGL_VERTEX_STREAMS] = { 0 };
+	uint32 LastMaxAttrib = ContextState.MaxActiveAttrib;
+	bool UpdateDivisors = false;
+
+	check(IsValidRef(PendingState.BoundShaderState));
+	check(IsValidRef(PendingState.BoundShaderState->VertexShader));
+	FOpenGLVertexDeclaration* VertexDeclaration = PendingState.BoundShaderState->VertexDeclaration;
+	uint32 AttributeMask = PendingState.BoundShaderState->VertexShader->Bindings.InOutMask;
+	if ( ContextState.VertexDecl != VertexDeclaration )
+	{
+		ContextState.MaxActiveStream = 0;
+		ContextState.MaxActiveAttrib = 0;
+		UpdateDivisors = true;
+
+		for (int32 ElementIndex = 0; ElementIndex < VertexDeclaration->VertexElements.Num(); ElementIndex++)
+		{
+			FOpenGLVertexElement& VertexElement = VertexDeclaration->VertexElements[ElementIndex];
+			const uint32 AttributeIndex = VertexElement.AttributeIndex;
+			const uint32 StreamIndex = VertexElement.StreamIndex;
+
+			ContextState.MaxActiveStream = FMath::Max( ContextState.MaxActiveStream, StreamIndex);
+			ContextState.MaxActiveAttrib = FMath::Max( ContextState.MaxActiveAttrib, AttributeIndex);
+
+			if ( VertexElement.StreamIndex < NumStreams)
+			{
+			
+				FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
+
+				// Verify that the Divisor is consistent across the stream
+				check( !KnowsDivisor[StreamIndex] || Divisor[StreamIndex] == VertexElement.Divisor);
+				KnowsDivisor[StreamIndex] = true;
+				Divisor[StreamIndex] = VertexElement.Divisor;
+
+#if 1
+				if (
+					(Attr.StreamOffset != VertexElement.Offset) ||
+					(Attr.Size != VertexElement.Size) ||
+					(Attr.Type != VertexElement.Type) ||
+					(Attr.bNormalized != VertexElement.bNormalized))
+				{
+					if (!VertexElement.bShouldConvertToFloat)
+					{
+						FOpenGL::VertexAttribIFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.Offset);
+					}
+					else
+					{
+						FOpenGL::VertexAttribFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.bNormalized, VertexElement.Offset);
+					}
+
+					Attr.StreamOffset = VertexElement.Offset;
+					Attr.Size = VertexElement.Size;
+					Attr.Type = VertexElement.Type;
+					Attr.bNormalized = VertexElement.bNormalized;
+				}
+
+				if (Attr.StreamIndex != StreamIndex)
+				{
+					FOpenGL::VertexAttribBinding( AttributeIndex, VertexElement.StreamIndex);
+					Attr.StreamIndex = StreamIndex;
+				}
+#else
+				if (!VertexElement.bShouldConvertToFloat)
+				{
+					FOpenGL::VertexAttribIFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.Offset);
+				}
+				else
+				{
+					FOpenGL::VertexAttribFormat( AttributeIndex, VertexElement.Size, VertexElement.Type, VertexElement.bNormalized, VertexElement.Offset);
+				}
+
+				FOpenGL::VertexAttribBinding( AttributeIndex, VertexElement.StreamIndex);
+#endif
+			}
+			else
+			{
+				// bogus stream, make sure current value is zero to match D3D
+				float data[4] = { 0.0f};
+
+				glVertexAttrib4fv( AttributeIndex, data );
+			}
+		}
+		ContextState.VertexDecl = VertexDeclaration;
+	}
+
+	//setup streams
+	for (uint32 StreamIndex = 0; StreamIndex < NumStreams && StreamIndex <= ContextState.MaxActiveStream; StreamIndex++)
+	{
+		FOpenGLStream &CachedStream = ContextState.VertexStreams[StreamIndex];
+		FOpenGLStream &Stream = Streams[StreamIndex];
+		if (Stream.VertexBuffer)
+		{
+			uint32 Offset = BaseVertexIndex * Stream.Stride + Stream.Offset;
+			if ( CachedStream.VertexBuffer != Stream.VertexBuffer || CachedStream.Offset != Offset || CachedStream.Stride != Stream.Stride)
+			{
+				FOpenGL::BindVertexBuffer( StreamIndex, Stream.VertexBuffer->Resource, Offset, Stream.Stride);
+				CachedStream.VertexBuffer = Stream.VertexBuffer;
+				CachedStream.Offset = Offset;
+				CachedStream.Stride = Stream.Stride;
+			}
+			if (UpdateDivisors && CachedStream.Divisor != Divisor[StreamIndex])
+			{
+				FOpenGL::VertexBindingDivisor( StreamIndex, Divisor[StreamIndex]);
+				CachedStream.Divisor = Divisor[StreamIndex];
+			}
+		}
+	}
+
+	// Set the enable/disable state on the arrays
+	uint32 MaskDif = ContextState.ActiveAttribMask ^ AttributeMask;
+	if (MaskDif)
+	{
+		ContextState.ActiveAttribMask = AttributeMask;
+		uint32 MaxAttrib = FMath::Max( ContextState.MaxActiveAttrib, LastMaxAttrib);
+	
+		for (GLuint AttribIndex = 0; AttribIndex < NUM_OPENGL_VERTEX_STREAMS && AttribIndex <= MaxAttrib && MaskDif; AttribIndex++)
+		{
+			if ( MaskDif & 0x1)
+			{
+				if ( AttributeMask & 0x1)
+				{
+					glEnableVertexAttribArray(AttribIndex);
+				}
+				else
+				{
+					glDisableVertexAttribArray(AttribIndex);
+				}
+			}
+			AttributeMask >>= 1;
+			MaskDif >>= 1;
+		}
+		check( MaskDif == 0);
 	}
 }
 
@@ -1890,9 +2055,9 @@ void FOpenGLDynamicRHI::OnPixelBufferDeletion( GLuint PixelBufferResource )
 	}
 }
 
-extern void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, bool bStreamDraw );
+extern void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, bool bStreamDraw, uint32 Offset, uint8* Pointer );
 
-void FOpenGLDynamicRHI::OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw )
+void FOpenGLDynamicRHI::OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 Offset, uint8* Pointer )
 {
 	if (SharedContextState.UniformBufferBound == UniformBufferResource)
 	{
@@ -1917,7 +2082,7 @@ void FOpenGLDynamicRHI::OnUniformBufferDeletion( GLuint UniformBufferResource, u
 		}
 	}
 
-	AddNewlyFreedBufferToUniformBufferPool( UniformBufferResource, AllocatedSize, bStreamDraw );
+	AddNewlyFreedBufferToUniformBufferPool( UniformBufferResource, AllocatedSize, bStreamDraw, Offset, Pointer );
 }
 
 void FOpenGLDynamicRHI::CommitNonComputeShaderConstants()
@@ -1963,6 +2128,7 @@ void FOpenGLDynamicRHI::CommitComputeShaderConstants(FComputeShaderRHIParamRef C
 
 void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexIndex,uint32 NumPrimitives,uint32 NumInstances)
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveTime);
 	VERIFY_GL_SCOPE();
 
 	RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives*NumInstances);
@@ -1984,7 +2150,7 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 	GLenum DrawMode = GL_TRIANGLES;
 	GLsizei NumElements = 0;
 	GLint PatchSize = 0;
-	FindPrimitiveType(PrimitiveType, NumPrimitives, DrawMode, NumElements, PatchSize);
+	FindPrimitiveType(PrimitiveType, ContextState.bUsingTessellation, NumPrimitives, DrawMode, NumElements, PatchSize);
 
 	if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
 	{
@@ -2007,20 +2173,114 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 
 void FOpenGLDynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType,FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
 {
-	UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI does not yet support indirect draw calls."));
+	if (FOpenGL::SupportsDrawIndirect())
+	{
+		VERIFY_GL_SCOPE();
 
-	GPUProfilingData.RegisterGPUWork(0);
+		check(ArgumentBufferRHI);
+		GPUProfilingData.RegisterGPUWork(0);
+
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+		BindPendingFramebuffer(ContextState);
+		SetPendingBlendStateForActiveRenderTargets(ContextState);
+		UpdateViewportInOpenGLContext(ContextState);
+		UpdateScissorRectInOpenGLContext(ContextState);
+		UpdateRasterizerStateInOpenGLContext(ContextState);
+		UpdateDepthStencilStateInOpenGLContext(ContextState);
+		BindPendingShaderState(ContextState);
+		SetupTexturesForDraw(ContextState);
+		CommitNonComputeShaderConstants();
+		CachedBindElementArrayBuffer(ContextState,0);
+
+		// Zero-stride buffer emulation won't work here, need to use VAB with proper zero strides
+		SetupVertexArrays(ContextState, 0, PendingState.Streams, NUM_OPENGL_VERTEX_STREAMS, 1);
+
+		GLenum DrawMode = GL_TRIANGLES;
+		GLsizei NumElements = 0;
+		GLint PatchSize = 0;
+		FindPrimitiveType(PrimitiveType, ContextState.bUsingTessellation, 0, DrawMode, NumElements, PatchSize);
+
+		if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
+		{
+			FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
+		} 
+
+		DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,ArgumentBuffer);
+
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentBuffer->Resource);
+
+		FOpenGL::DrawArraysIndirect( DrawMode, INDEX_TO_VOID(ArgumentOffset));
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
+	}
+	else
+	{
+		UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI does not yet support indirect draw calls."));
+	}
 
 }
 
 void FOpenGLDynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances)
 {
-	check(0);
-	GPUProfilingData.RegisterGPUWork(1);
+	if (FOpenGL::SupportsDrawIndirect())
+	{
+		VERIFY_GL_SCOPE();
+
+		DYNAMIC_CAST_OPENGLRESOURCE(IndexBuffer,IndexBuffer);
+		GPUProfilingData.RegisterGPUWork(1);
+
+		check(ArgumentsBufferRHI);
+
+		//Draw indiect has to have a number of instances
+		check(NumInstances > 1);
+
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+		BindPendingFramebuffer(ContextState);
+		SetPendingBlendStateForActiveRenderTargets(ContextState);
+		UpdateViewportInOpenGLContext(ContextState);
+		UpdateScissorRectInOpenGLContext(ContextState);
+		UpdateRasterizerStateInOpenGLContext(ContextState);
+		UpdateDepthStencilStateInOpenGLContext(ContextState);
+		BindPendingShaderState(ContextState);
+		SetupTexturesForDraw(ContextState);
+		CommitNonComputeShaderConstants();
+		CachedBindElementArrayBuffer(ContextState,IndexBuffer->Resource);
+
+		// Zero-stride buffer emulation won't work here, need to use VAB with proper zero strides
+		SetupVertexArrays(ContextState, 0, PendingState.Streams, NUM_OPENGL_VERTEX_STREAMS, 1);
+
+		GLenum DrawMode = GL_TRIANGLES;
+		GLsizei NumElements = 0;
+		GLint PatchSize = 0;
+		FindPrimitiveType(PrimitiveType, ContextState.bUsingTessellation, 0, DrawMode, NumElements, PatchSize);
+
+		if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
+		{
+			FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
+		} 
+
+		GLenum IndexType = IndexBuffer->GetStride() == sizeof(uint32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+
+		DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,ArgumentsBuffer);
+
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentsBuffer->Resource);
+
+		// Offset is based on an index into the list of structures
+		FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(DrawArgumentsIndex * 5 *sizeof(uint32)));
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
+	}
+	else
+	{
+		UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI does not yet support indirect draw calls."));
+	}
 }
 
 void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBufferRHI,uint32 PrimitiveType,int32 BaseVertexIndex,uint32 MinIndex,uint32 NumVertices,uint32 StartIndex,uint32 NumPrimitives,uint32 NumInstances)
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveTime);
 	VERIFY_GL_SCOPE();
 
 	DYNAMIC_CAST_OPENGLRESOURCE(IndexBuffer,IndexBuffer);
@@ -2043,7 +2303,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	GLenum DrawMode = GL_TRIANGLES;
 	GLsizei NumElements = 0;
 	GLint PatchSize = 0;
-	FindPrimitiveType(PrimitiveType, NumPrimitives, DrawMode, NumElements, PatchSize);
+	FindPrimitiveType(PrimitiveType, ContextState.bUsingTessellation, NumPrimitives, DrawMode, NumElements, PatchSize);
 
 	if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
 	{
@@ -2074,11 +2334,58 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	}
 }
 
-void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIndexBufferRHIParamRef IndexBuffer,FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
+void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIndexBufferRHIParamRef IndexBufferRHI,FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
 {
-	UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI does not yet support indirect draw calls."));
-	
-	GPUProfilingData.RegisterGPUWork(0);
+	if (FOpenGL::SupportsDrawIndirect())
+	{
+		VERIFY_GL_SCOPE();
+
+		DYNAMIC_CAST_OPENGLRESOURCE(IndexBuffer,IndexBuffer);
+		GPUProfilingData.RegisterGPUWork(1);
+
+		check(ArgumentBufferRHI);
+
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+		BindPendingFramebuffer(ContextState);
+		SetPendingBlendStateForActiveRenderTargets(ContextState);
+		UpdateViewportInOpenGLContext(ContextState);
+		UpdateScissorRectInOpenGLContext(ContextState);
+		UpdateRasterizerStateInOpenGLContext(ContextState);
+		UpdateDepthStencilStateInOpenGLContext(ContextState);
+		BindPendingShaderState(ContextState);
+		SetupTexturesForDraw(ContextState);
+		CommitNonComputeShaderConstants();
+		CachedBindElementArrayBuffer(ContextState,IndexBuffer->Resource);
+
+		// @ToDo Zero-stride buffer emulation won't work here, need to use VAB with proper zero strides
+		SetupVertexArrays(ContextState, 0, PendingState.Streams, NUM_OPENGL_VERTEX_STREAMS, 1);
+
+		GLenum DrawMode = GL_TRIANGLES;
+		GLsizei NumElements = 0;
+		GLint PatchSize = 0;
+		FindPrimitiveType(PrimitiveType, ContextState.bUsingTessellation, 0, DrawMode, NumElements, PatchSize);
+
+		if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
+		{
+			FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
+		} 
+
+		GLenum IndexType = IndexBuffer->GetStride() == sizeof(uint32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+
+		DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,ArgumentBuffer);
+
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, ArgumentBuffer->Resource);
+
+		// Offset is based on an index into the list of structures
+		FOpenGL::DrawElementsIndirect( DrawMode, IndexType, INDEX_TO_VOID(ArgumentOffset));
+
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0);
+	}
+	else
+	{
+		UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI does not yet support indirect draw calls."));
+	}
 }
 
 /**
@@ -2091,6 +2398,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FIn
  */
 void FOpenGLDynamicRHI::RHIBeginDrawPrimitiveUP( uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveUPTime);
 	VERIFY_GL_SCOPE();
 	check(PendingState.NumPrimitives == 0);
 
@@ -2136,20 +2444,12 @@ void FOpenGLDynamicRHI::RHIBeginDrawPrimitiveUP( uint32 PrimitiveType, uint32 Nu
  */
 void FOpenGLDynamicRHI::RHIEndDrawPrimitiveUP()
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveUPTime);
 	VERIFY_GL_SCOPE();
 	check(PendingState.NumPrimitives != 0);
 
 	RHI_DRAW_CALL_STATS(PendingState.PrimitiveType,PendingState.NumPrimitives);
 
-	GLenum DrawMode = GL_TRIANGLES;
-	GLsizei NumElements = 0;
-	GLint PatchSize = 0;
-	FindPrimitiveType(PendingState.PrimitiveType, PendingState.NumPrimitives, DrawMode, NumElements, PatchSize);
-
-	if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
-	{
-		FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
-	}
 
 	if(FOpenGL::SupportsFastBufferData()) 
 	{
@@ -2167,6 +2467,17 @@ void FOpenGLDynamicRHI::RHIEndDrawPrimitiveUP()
 	SetupTexturesForDraw(ContextState);
 	CommitNonComputeShaderConstants();
 	CachedBindElementArrayBuffer(ContextState,0);
+
+	GLenum DrawMode = GL_TRIANGLES;
+	GLsizei NumElements = 0;
+	GLint PatchSize = 0;
+	FindPrimitiveType(PendingState.PrimitiveType, ContextState.bUsingTessellation, PendingState.NumPrimitives, DrawMode, NumElements, PatchSize);
+
+	if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES)
+	{
+		FOpenGL::PatchParameteri(GL_PATCH_VERTICES, PatchSize);
+	}
+
 	if(FOpenGL::SupportsFastBufferData()) 
 	{
 		SetupVertexArrays(ContextState, 0, &PendingState.DynamicVertexStream, 1, PendingState.NumVertices);
@@ -2198,6 +2509,7 @@ void FOpenGLDynamicRHI::RHIEndDrawPrimitiveUP()
  */
 void FOpenGLDynamicRHI::RHIBeginDrawIndexedPrimitiveUP( uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData)
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveUPTime);
 	check(PendingState.NumPrimitives == 0);
 	check((sizeof(uint16) == IndexDataStride) || (sizeof(uint32) == IndexDataStride));
 
@@ -2257,6 +2569,7 @@ void FOpenGLDynamicRHI::RHIBeginDrawIndexedPrimitiveUP( uint32 PrimitiveType, ui
  */
 void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 {
+	SCOPE_CYCLE_COUNTER_DETAILED(STAT_OpenGLDrawPrimitiveUPTime);
 	VERIFY_GL_SCOPE();
 	check(PendingState.NumPrimitives != 0);
 
@@ -2292,7 +2605,7 @@ void FOpenGLDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	GLenum DrawMode = GL_TRIANGLES;
 	GLsizei NumElements = 0;
 	GLint PatchSize = 0;
-	FindPrimitiveType(PendingState.PrimitiveType, PendingState.NumPrimitives, DrawMode, NumElements, PatchSize);
+	FindPrimitiveType(PendingState.PrimitiveType, ContextState.bUsingTessellation, PendingState.NumPrimitives, DrawMode, NumElements, PatchSize);
 	GLenum IndexType = (PendingState.IndexDataStride == sizeof(uint32)) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 
 	if (FOpenGL::SupportsTessellation() && DrawMode == GL_PATCHES )
@@ -2741,15 +3054,39 @@ void FOpenGLDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint3
 	}
 }
 
-void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer,uint32 ArgumentOffset)
+void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBufferRHI,uint32 ArgumentOffset)
 {
 	if ( FOpenGL::SupportsComputeShaders() )
 	{
 		VERIFY_GL_SCOPE();
 		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 
-		UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__)); 
-		GPUProfilingData.RegisterGPUWork(1);
+		FComputeShaderRHIParamRef ComputeShaderRHI = PendingState.CurrentComputeShader;
+		check(ComputeShaderRHI);
+
+		DYNAMIC_CAST_OPENGLRESOURCE(ComputeShader,ComputeShader);
+		DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer, ArgumentBuffer);
+
+		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
+
+		GPUProfilingData.RegisterGPUWork(1);		
+
+		SetupTexturesForDraw(ContextState, ComputeShader, FOpenGL::GetMaxComputeTextureImageUnits());
+
+		SetupUAVsForDraw(ContextState, ComputeShader, OGL_MAX_COMPUTE_STAGE_UAV_UNITS);
+	
+		CommitComputeShaderConstants(ComputeShader);
+	
+		FOpenGL::MemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, ArgumentBuffer->Resource);
+	
+		FOpenGL::DispatchComputeIndirect(ArgumentOffset);
+
+		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0);
+	
+		FOpenGL::MemoryBarrier(GL_ALL_BARRIER_BITS);
+
 	}
 	else
 	{
@@ -2759,5 +3096,22 @@ void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRe
 
 
 void FOpenGLDynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
-{ UE_LOG(LogRHI, Fatal,TEXT("OpenGL Render path does not support multiple Viewports!")); }
+{
+	UE_LOG(LogRHI, Fatal,TEXT("OpenGL Render path does not support multiple Viewports!"));
+}
 
+void FOpenGLDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,float MaxDepth)
+{
+	if (FOpenGL::SupportsDepthBoundsTest())
+	{
+		if(bEnable)
+		{
+			glEnable(GL_DEPTH_BOUNDS_TEST_EXT);
+		}
+		else
+		{
+			glDisable(GL_DEPTH_BOUNDS_TEST_EXT);
+		}
+		FOpenGL::DepthBounds(MinDepth,MaxDepth);
+	}
+}

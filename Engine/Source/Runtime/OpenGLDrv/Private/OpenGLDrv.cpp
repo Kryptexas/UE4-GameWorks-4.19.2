@@ -325,11 +325,18 @@ float FOpenGLEventNodeFrame::GetRootTimingResults()
 
 void FOpenGLEventNodeFrame::LogDisjointQuery()
 {
-	UE_LOG(LogRHI, Warning, TEXT("%s"),
-		DisjointQuery.IsResultValid() ?
-		TEXT("Profiled range was continuous.") :
-		TEXT("Profiled range was disjoint!  GPU switched to doing something else while profiling.")
-		);
+	if (DisjointQuery.IsSupported())
+	{
+		UE_LOG(LogRHI, Warning, TEXT("%s"),
+			DisjointQuery.IsResultValid() ?
+			TEXT("Profiled range was continuous.") :
+			TEXT("Profiled range was disjoint! GPU switched to doing something else while profiling.")
+			);
+	}
+	else
+	{
+		TEXT("Profiled range \"disjoinness\" could not be determined due to lack of disjoing timer query functionality on this platform.");
+	}
 }
 
 float FOpenGLEventNode::GetTiming()

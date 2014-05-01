@@ -379,7 +379,7 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
 	{
-		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE));
+		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5));
 	}
 	return false;
 }

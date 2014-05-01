@@ -43,6 +43,9 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
     return (2 * PositionA + PositionB - (dot((PositionB - PositionA), NormalA) * NormalA)) / 3.0f;
 }
 
+// GLSL needs those on the domain shader, HLSL on the hull shader, so we replicate them for both
+#define TESSELLATION_ATTRIBUTES [partitioning("fractional_odd")][outputtopology("triangle_cw")]
+
 #if HULLSHADER
 
 	// Note that we input all control point from AEN, but only their PassSpecificData is valid (see MainHull shader)
@@ -96,10 +99,9 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 	}
 
 	[domain("tri")]
-	[partitioning("fractional_odd")]
-	[outputtopology("triangle_cw")]
 	[patchconstantfunc("PNSharedConstantHull")]
 	[outputcontrolpoints(OUT_CONTROL_POINTS)]
+	TESSELLATION_ATTRIBUTES
 	FPNTessellationHSToDS MainHull( InputPatch<FPassSpecificVSToDS, IN_CONTROL_POINTS> I, uint ControlPointID : SV_OutputControlPointID )
 	{
 		FPNTessellationHSToDS O = (FPNTessellationHSToDS) 0;
@@ -155,6 +157,7 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 
 #if DOMAINSHADER
 	[domain("tri")]
+	TESSELLATION_ATTRIBUTES
 	FPassSpecificVSToPS MainDomain(
 		FHullShaderConstantOutput HSConstantData,
 		const OutputPatch<FPNTessellationHSToDS, OUT_CONTROL_POINTS> I,

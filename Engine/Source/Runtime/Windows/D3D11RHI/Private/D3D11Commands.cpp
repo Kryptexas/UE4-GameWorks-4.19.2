@@ -15,6 +15,11 @@
 #include "GlobalShader.h"
 #include "OneColorShader.h"
 
+#if PLATFORM_DESKTOP
+// For Depth Bounds Test interface
+#include "nvapi.h"
+#endif
+
 FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];
 TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
 
@@ -1810,4 +1815,36 @@ void FD3D11DynamicRHI::RHIBlockUntilGPUIdle()
 uint32 FD3D11DynamicRHI::RHIGetGPUFrameCycles()
 {
 	return GGPUFrameTime;
+}
+
+
+// NVIDIA Depth Bounds Test interface
+void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,float MaxDepth)
+{
+#if PLATFORM_DESKTOP
+	if(!IsRHIDeviceNVIDIA()) return;
+
+	if(MinDepth > MaxDepth)
+	{
+		UE_LOG(LogD3D11RHI, Error,TEXT("RHIEnableDepthBoundsTest(%i,%f, %f) MinDepth > MaxDepth, cannot set DBT."),bEnable,MinDepth,MaxDepth);
+		return;
+	}
+
+	if( MinDepth < 0.f || MaxDepth > 1.f)
+	{
+		UE_LOG(LogD3D11RHI, Verbose,TEXT("RHIEnableDepthBoundsTest(%i,%f, %f) depths out of range, will clamp."),bEnable,MinDepth,MaxDepth);
+	}
+
+	if(MinDepth > 1) MinDepth = 1.f;
+	else if(MinDepth < 0) MinDepth = 0.f;
+
+	if(MaxDepth > 1) MaxDepth = 1.f;
+	else if(MaxDepth < 0) MaxDepth = 0.f;
+
+	auto result = NvAPI_D3D11_SetDepthBoundsTest( Direct3DDevice, bEnable, MinDepth, MaxDepth );
+	if(result != NVAPI_OK)
+	{
+		UE_LOG(LogD3D11RHI, Error,TEXT("NvAPI_D3D11_SetDepthBoundsTest(%i,%f, %f) returned error code %i"),bEnable,MinDepth,MaxDepth,(unsigned int)result);
+	}
+#endif
 }

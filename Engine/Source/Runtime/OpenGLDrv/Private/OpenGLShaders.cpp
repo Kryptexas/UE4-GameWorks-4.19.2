@@ -231,8 +231,8 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		|| (TypeEnum == GL_FRAGMENT_SHADER && Header.FrequencyMarker != 0x5053)
 		|| (TypeEnum == GL_GEOMETRY_SHADER && Header.FrequencyMarker != 0x4753)
 		|| (TypeEnum == GL_COMPUTE_SHADER && Header.FrequencyMarker != 0x4353 && FOpenGL::SupportsComputeShaders())
-		|| (TypeEnum == GL_TESS_CONTROL_SHADER && Header.FrequencyMarker != 0x4853 && FOpenGL::SupportsComputeShaders()) /* hull shader*/
-		|| (TypeEnum == GL_TESS_EVALUATION_SHADER && Header.FrequencyMarker != 0x4453 && FOpenGL::SupportsComputeShaders()) /* domain shader*/
+		|| (TypeEnum == GL_TESS_CONTROL_SHADER && Header.FrequencyMarker != 0x4853 && FOpenGL::SupportsTessellation()) /* hull shader*/
+		|| (TypeEnum == GL_TESS_EVALUATION_SHADER && Header.FrequencyMarker != 0x4453 && FOpenGL::SupportsTessellation()) /* domain shader*/
 		)
 	{
 		UE_LOG(LogRHI,Fatal,
@@ -478,11 +478,17 @@ void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState,
 	for (int32 BufferIndex = 0; BufferIndex < NumUniformBuffers; ++BufferIndex)
 	{
 		GLuint Buffer;
+		uint32 Offset = 0;
+		uint32 Size = ZERO_FILLED_DUMMY_UNIFORM_BUFFER_SIZE;
 		int32 BindIndex = FirstUniformBuffer + BufferIndex;
 		if (BoundUniformBuffers[BufferIndex])
 		{
 			FRHIUniformBuffer* UB = BoundUniformBuffers[BufferIndex];
 			Buffer = ((FOpenGLUniformBuffer*)UB)->Resource;
+			Size = ((FOpenGLUniformBuffer*)UB)->GetSize();
+#if SUBALLOCATED_CONSTANT_BUFFER
+			Offset = ((FOpenGLUniformBuffer*)UB)->Offset;
+#endif
 		}
 		else
 		{
@@ -501,11 +507,12 @@ void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState,
 			Buffer = PendingState.ZeroFilledDummyUniformBuffer;
 		}
 
-		if (ForceUpdate || ContextState.UniformBuffers[BindIndex] != Buffer)
+		if (ForceUpdate || ContextState.UniformBuffers[BindIndex] != Buffer || ContextState.UniformBufferOffsets[BindIndex] != Offset )
 		{
-			FOpenGL::BindBufferBase(GL_UNIFORM_BUFFER, BindIndex, Buffer);
+			FOpenGL::BindBufferRange(GL_UNIFORM_BUFFER, BindIndex, Buffer, Offset, Size);
 			ContextState.UniformBuffers[BindIndex] = Buffer;
-			ContextState.UniformBufferBound = Buffer;	// yes, calling glBindBufferBase also changes uniform buffer binding.
+			ContextState.UniformBufferOffsets[BindIndex] = Offset;
+			ContextState.UniformBufferBound = Buffer;	// yes, calling glBindBufferRange also changes uniform buffer binding.
 		}
 	}
 }
@@ -582,12 +589,14 @@ public:
 	FStagePackedUniformInfo	StagePackedUniformInfo[OGL_NUM_SHADER_STAGES];
 
 	GLuint		Program;
+	bool		bUsingTessellation;
+
 	TBitArray<>	TextureStageNeeds;
 	TBitArray<>	UAVStageNeeds;
 	int32		MaxTextureStage;
 
 	FOpenGLLinkedProgram()
-	: Program(0), MaxTextureStage(-1)
+	: Program(0), bUsingTessellation(false), MaxTextureStage(-1)
 	{
 		TextureStageNeeds.Init( false, FOpenGL::GetMaxCombinedTextureImageUnits() );
 		UAVStageNeeds.Init( false, OGL_MAX_COMPUTE_STAGE_UAV_UNITS );
@@ -1196,6 +1205,7 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	FOpenGLLinkedProgram* LinkedProgram = new FOpenGLLinkedProgram;
 	LinkedProgram->Config = Config;
 	LinkedProgram->Program = Program;
+	LinkedProgram->bUsingTessellation = Config.Shaders[OGL_SHADER_STAGE_HULL].Resource && Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource;
 
 	glUseProgram(Program);
 
@@ -1345,14 +1355,14 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource = GeometryShader->Resource;
 		}
 
-		if ( FOpenGL::SupportsComputeShaders() )
+		if ( FOpenGL::SupportsTessellation())
 		{
 			if ( HullShader)
 			{
 				Config.Shaders[OGL_SHADER_STAGE_HULL].Bindings = HullShader->Bindings;
 				Config.Shaders[OGL_SHADER_STAGE_HULL].Resource = HullShader->Resource;
 			}
-			if (FOpenGL::SupportsComputeShaders() && DomainShader)
+			if ( DomainShader)
 			{
 				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Bindings = DomainShader->Bindings;
 				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource = DomainShader->Resource;
@@ -1407,7 +1417,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 #endif
 					GeometryShader->bSuccessfullyCompiled = VerifyCompiledShader(GeometryShader->Resource, GlslCode);
 				}
-				if ( FOpenGL::SupportsComputeShaders() )
+				if ( FOpenGL::SupportsTessellation() )
 				{
 					if (HullShader && !HullShader->bSuccessfullyCompiled)
 					{
@@ -1450,7 +1460,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 					{
 						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetTypedData()));
 					}
-					if ( FOpenGL::SupportsComputeShaders() )
+					if ( FOpenGL::SupportsTessellation() )
 					{
 						if (HullShader && HullShader->bSuccessfullyCompiled)
 						{
@@ -1512,6 +1522,7 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 	{
 		glUseProgram(PendingProgram);
 		ContextState.Program = PendingProgram;
+		ContextState.bUsingTessellation = PendingState.BoundShaderState->LinkedProgram->bUsingTessellation;
 		MarkShaderParameterCachesDirty(PendingState.ShaderParameters, false);
 		//Disable the forced rebinding to reduce driver overhead
 #if 0
@@ -1521,44 +1532,50 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 
 	if (!IsES2Platform(GRHIShaderPlatform))
 	{
-		BindUniformBufferBase(ContextState, PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers,
+		const int32 VertexShaderNumUniformBuffers   = PendingState.BoundShaderState->VertexShader   ? PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers : 0;
+		const int32 PixelShaderNumUniformBuffers    = PendingState.BoundShaderState->PixelShader    ? PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers : 0;
+		const int32 GeometryShaderNumUniformBuffers = PendingState.BoundShaderState->GeometryShader ? PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers : 0;
+		const int32 HullShaderNumUniformBuffers     = PendingState.BoundShaderState->HullShader     ? PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers : 0;
+		const int32 DomainShaderNumUniformBuffers   = PendingState.BoundShaderState->DomainShader   ? PendingState.BoundShaderState->DomainShader->Bindings.NumUniformBuffers : 0;
+
+		BindUniformBufferBase(ContextState, VertexShaderNumUniformBuffers,
 			PendingState.BoundShaderState->VertexShader->BoundUniformBuffers, OGL_FIRST_UNIFORM_BUFFER, ForceUniformBindingUpdate);
 
-		BindUniformBufferBase(ContextState, PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers,
+		BindUniformBufferBase(ContextState, PixelShaderNumUniformBuffers,
 			PendingState.BoundShaderState->PixelShader->BoundUniformBuffers,
-			OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers,
+			OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers,
 			ForceUniformBindingUpdate);
 
 		if (PendingState.BoundShaderState->GeometryShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers,
+				GeometryShaderNumUniformBuffers,
 				PendingState.BoundShaderState->GeometryShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 
 		if (PendingState.BoundShaderState->HullShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers,
+				HullShaderNumUniformBuffers,
 				PendingState.BoundShaderState->HullShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers +
+				GeometryShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 
 		if (PendingState.BoundShaderState->DomainShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->DomainShader->Bindings.NumUniformBuffers,
+				DomainShaderNumUniformBuffers,
 				PendingState.BoundShaderState->DomainShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers + 
+				GeometryShaderNumUniformBuffers +
+				HullShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 	}
