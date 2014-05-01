@@ -2083,35 +2083,6 @@ public class GUBP : BuildCommand
         }
     }
 
-
-    //@todo copy-paste from temp storage, unify
-    public static string ResolveSharedBuildDirectory(string GameFolder)
-    {
-        string Root = RootSharedTempStorageDirectory();
-        string Result = CombinePaths(Root, GameFolder);
-        if (!DirectoryExists_NoExceptions(Result))
-        {
-            string GameStr = "Game";
-            bool HadGame = false;
-            if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
-            {
-                string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
-                Result = CombinePaths(Root, ShortFolder);
-                HadGame = true;
-            }
-            if (!HadGame || !DirectoryExists_NoExceptions(Result))
-            {
-                Result = CombinePaths(Root, "UE4");
-                if (!DirectoryExists_NoExceptions(Result))
-                {
-                    throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
-                }
-            }
-        }
-        return Result;
-    }
-
-
     public class GamePlatformCookedAndCompiledNode : HostPlatformAggregateNode
     {
         BranchInfo.BranchUProject GameProj;
@@ -2197,14 +2168,17 @@ public class GUBP : BuildCommand
         List<UnrealTargetPlatform> ServerTargetPlatforms;
         List<UnrealTargetConfiguration> ClientConfigs;
         List<UnrealTargetConfiguration> ServerConfigs;
+        bool ClientNotGame;
+        UnrealBuildTool.TargetRules.TargetType GameOrClient;
 
         public FormalBuildNode(GUBP bp,
             BranchInfo.BranchUProject InGameProj,
             UnrealTargetPlatform InHostPlatform,
-            List<UnrealTargetPlatform> InClientTargetPlatforms,
+            List<UnrealTargetPlatform> InClientTargetPlatforms = null,
             List<UnrealTargetConfiguration> InClientConfigs = null,
             List<UnrealTargetPlatform> InServerTargetPlatforms = null,
-            List<UnrealTargetConfiguration> InServerConfigs = null
+            List<UnrealTargetConfiguration> InServerConfigs = null,
+            bool InClientNotGame = false
 
             )
             : base(InHostPlatform)
@@ -2214,15 +2188,64 @@ public class GUBP : BuildCommand
             ServerTargetPlatforms = InServerTargetPlatforms;
             ClientConfigs = InClientConfigs;
             ServerConfigs = InServerConfigs;
+            ClientNotGame = InClientNotGame;
 
-            if (ClientConfigs == null)
+            GameOrClient = TargetRules.TargetType.Game;
+
+            if (ClientNotGame)
             {
-                ClientConfigs = new List<UnrealTargetConfiguration>() { UnrealTargetConfiguration.Development };
+                GameOrClient = TargetRules.TargetType.Client;
+            }
+            
+
+            // verify we actually built these
+            var WorkingGameProject = InGameProj;
+            if (!WorkingGameProject.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
+            {
+                // this is a codeless project, use the base project
+                WorkingGameProject = bp.Branch.BaseEngineProject;
             }
 
-            var AllTargetPlatforms = new List<UnrealTargetPlatform>(ClientTargetPlatforms);
+            var AllTargetPlatforms = new List<UnrealTargetPlatform>();
+            if (ClientTargetPlatforms != null)
+            {
+                if (!WorkingGameProject.Properties.Targets.ContainsKey(GameOrClient))
+                {
+                    throw new AutomationException("Can't make a game build for {0} because it doesn't have a {1} target.", WorkingGameProject.GameName, GameOrClient.ToString());
+                }
+
+                foreach (var Plat in ClientTargetPlatforms)
+                {
+                    if (!AllTargetPlatforms.Contains(Plat))
+                    {
+                        AllTargetPlatforms.Add(Plat);
+                    }
+                }
+                if (ClientConfigs == null)
+                {
+                    ClientConfigs = new List<UnrealTargetConfiguration>() { UnrealTargetConfiguration.Development };
+                }
+                foreach (var Plat in ClientTargetPlatforms)
+                {
+                    if (!WorkingGameProject.Properties.Targets[GameOrClient].Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform).Contains(Plat))
+                    {
+                        throw new AutomationException("Can't make a game/client build for {0} because we didn't build platform {1}.", WorkingGameProject.GameName, Plat.ToString());
+                    }
+                    foreach (var Config in ClientConfigs)
+                    {
+                        if (!WorkingGameProject.Properties.Targets[GameOrClient].Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat).Contains(Config))
+                        {
+                            throw new AutomationException("Can't make a game/client build for {0} because we didn't build platform {1} config {2}.", WorkingGameProject.GameName, Plat.ToString(), Config.ToString());
+                        }
+                    }
+                }
+            }
             if (ServerTargetPlatforms != null)
             {
+                if (!WorkingGameProject.Properties.Targets.ContainsKey(TargetRules.TargetType.Server) && ServerTargetPlatforms != null)
+                {
+                    throw new AutomationException("Can't make a server build for {0} because it doesn't have a server target.", WorkingGameProject.GameName);
+                }
                 foreach (var Plat in ServerTargetPlatforms)
                 {
                     if (!AllTargetPlatforms.Contains(Plat))
@@ -2234,43 +2257,6 @@ public class GUBP : BuildCommand
                 {
                     ServerConfigs = new List<UnrealTargetConfiguration>() { UnrealTargetConfiguration.Development };
                 }
-            }
-
-            // add dependencies for cooked and compiled
-            foreach (var Plat in AllTargetPlatforms)
-            {
-                AddDependency(GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, GameProj, Plat));
-            }
-
-            // verify we actually built these
-            var WorkingGameProject = InGameProj;
-            if (!WorkingGameProject.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                // this is a codeless project, use the base project
-                WorkingGameProject = bp.Branch.BaseEngineProject;
-            }
-
-            if (!WorkingGameProject.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
-            {
-                throw new AutomationException("Can't make a game build for {0} because it doesn't have a game target.", WorkingGameProject.GameName);
-            }
-            //@todo this doesn't support client only 
-            foreach (var Plat in ClientTargetPlatforms)
-            {
-                if (!WorkingGameProject.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform).Contains(Plat))
-                {
-                    throw new AutomationException("Can't make a game build for {0} because we didn't build platform {1}.", WorkingGameProject.GameName, Plat.ToString());
-                }
-                foreach (var Config in ClientConfigs)
-                {
-                    if (!WorkingGameProject.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat).Contains(Config))
-                    {
-                        throw new AutomationException("Can't make a game build for {0} because we didn't build platform {1} config {2}.", WorkingGameProject.GameName, Plat.ToString(), Config.ToString());
-                    }
-                }
-            }
-            if (ServerTargetPlatforms != null)
-            {
                 foreach (var Plat in ServerTargetPlatforms)
                 {
                     if (!WorkingGameProject.Properties.Targets[TargetRules.TargetType.Server].Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform).Contains(Plat))
@@ -2286,24 +2272,52 @@ public class GUBP : BuildCommand
                     }
                 }
             }
+
+            // add dependencies for cooked and compiled
+            foreach (var Plat in AllTargetPlatforms)
+            {
+                AddDependency(GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, GameProj, Plat));
+            }
         }
 
-        public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms, List<UnrealTargetConfiguration> InClientConfigs)
+        public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
             string Infix = "";
-            if (InClientTargetPlatforms.Count == 1)
+            if (InClientNotGame)
             {
-                Infix = "_" + InClientTargetPlatforms[0].ToString();
+                if (InClientTargetPlatforms != null && InClientTargetPlatforms.Count == 1)
+                {
+                    Infix = "_Client_" + InClientTargetPlatforms[0].ToString();
+                }
+                if (InClientConfigs != null && InClientConfigs.Count == 1)
+                {
+                    Infix += "_Client_" + InClientConfigs[0].ToString();
+                }
             }
-            if (InClientConfigs.Count == 1)
+            else
             {
-                Infix += "_" + InClientConfigs[0].ToString();
+                if (InClientTargetPlatforms != null && InClientTargetPlatforms.Count == 1)
+                {
+                    Infix = "_" + InClientTargetPlatforms[0].ToString();
+                }
+                if (InClientConfigs != null && InClientConfigs.Count == 1)
+                {
+                    Infix += "_" + InClientConfigs[0].ToString();
+                }
+            }
+            if (InServerTargetPlatforms != null && InServerTargetPlatforms.Count == 1)
+            {
+                Infix = "_Serv_" + InServerTargetPlatforms[0].ToString();
+            }
+            if (InServerConfigs != null && InServerConfigs.Count == 1)
+            {
+                Infix += "_Serv_" + InServerConfigs[0].ToString();
             }
             return InGameProj.GameName + Infix + "_MakeBuild" + HostPlatformNode.StaticGetHostPlatformSuffix(InHostPlatform);
         }
         public override string GetFullName()
         {
-            return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms, ClientConfigs);
+            return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms, ClientConfigs, ServerTargetPlatforms, ServerConfigs, ClientNotGame);
         }
         public override string GameNameIfAnyForTempStorage()
         {
@@ -2332,31 +2346,42 @@ public class GUBP : BuildCommand
             }
             string Args = String.Format("BuildCookRun{0} -SkipBuild -SkipCook -Stage -Pak -Package -NoSubmit", ProjectArg);
 
-            bool bFirstClient = true;
-            foreach (var Plat in ClientTargetPlatforms)
+            if (ClientTargetPlatforms != null)
             {
-                if (bFirstClient)
+                bool bFirstClient = true;
+                foreach (var Plat in ClientTargetPlatforms)
                 {
-                    bFirstClient = false;
-                    Args += String.Format(" -platform={0}", Plat.ToString());
+                    if (bFirstClient)
+                    {
+                        bFirstClient = false;
+                        Args += String.Format(" -platform={0}", Plat.ToString());
+                    }
+                    else
+                    {
+                        Args += String.Format("+{0}", Plat.ToString());
+                    }
                 }
-                else
+                bool bFirstClientConfig = true;
+                foreach (var Config in ClientConfigs)
                 {
-                    Args += String.Format("+{0}", Plat.ToString());
+                    if (bFirstClientConfig)
+                    {
+                        bFirstClientConfig = false;
+                        Args += String.Format(" -clientconfig={0}", Config.ToString());
+                    }
+                    else
+                    {
+                        Args += String.Format("+{0}", Config.ToString());
+                    }
+                }
+                if (ClientNotGame)
+                {
+                    Args += " -client";
                 }
             }
-            bool bFirstClientConfig = true;
-            foreach (var Config in ClientConfigs)
+            else
             {
-                if (bFirstClientConfig)
-                {
-                    bFirstClientConfig = false;
-                    Args += String.Format(" -clientconfig={0}", Config.ToString());
-                }
-                else
-                {
-                    Args += String.Format("+{0}", Config.ToString());
-                }
+                Args += " -noclient";
             }
             if (ServerTargetPlatforms != null)
             {
@@ -2403,7 +2428,6 @@ public class GUBP : BuildCommand
                 }
                 Args += String.Format(" -Archive -archivedirectory={0}", ArchiveDirectory);
             }
-
 
             string LogFile = CommandUtils.RunUAT(CommandUtils.CmdEnv, Args);
             SaveRecordOfSuccessAndAddToBuildProducts(CommandUtils.ReadAllText(LogFile));
@@ -3532,7 +3556,35 @@ public class GUBP : BuildCommand
                 Log("Cycle in GUBP, could not resolve:");
                 foreach (var NodeToDo in NodesToDo)
                 {
-                    Log("  {0}", NodeToDo);
+                    string Deps = "";
+                    if (!SubSort && GUBPNodes[NodeToDo].AgentSharingGroup != "")
+                    {
+                        foreach (var ChainNode in SortedAgentGroupChains[GUBPNodes[NodeToDo].AgentSharingGroup])
+                        {
+                            foreach (var Dep in GUBPNodes[ChainNode].FullNamesOfDependencies)
+                            {
+                                if (!SortedAgentGroupChains[GUBPNodes[NodeToDo].AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                {
+                                    Deps = Deps + Dep + "[" + ChainNode + "->" + GUBPNodes[NodeToDo].AgentSharingGroup + "]" + " ";
+                                }
+                            }
+                        }
+                    }
+                    foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
+                    {
+                        if (NodesToDo.Contains(Dep))
+                        {
+                            Deps = Deps + Dep + " ";
+                        }
+                    }
+                    foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfPseudosependencies)
+                    {
+                        if (NodesToDo.Contains(Dep))
+                        {
+                            Deps = Deps + Dep + " ";
+                        }
+                    }
+                    Log("  {0}    deps: {1}", NodeToDo, Deps);
                 }
                 throw new AutomationException("Cycle in GUBP");
             }
@@ -4340,7 +4392,7 @@ public class GUBP : BuildCommand
                                             {
                                                 if (PlatPair.Key == Plat)
                                                 {
-                                                    AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() {PlatPair.Value}));
+                                                    var NodeName = AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() {PlatPair.Value}));
                                                     // we don't want this delayed
                                                     // this would normally wait for the testing phase, we just want to build it right away
                                                     RemovePseudodependencyFromNode(
@@ -4350,14 +4402,14 @@ public class GUBP : BuildCommand
                                                         CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform),
                                                         CookNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, CookedPlatform));
 
-                                                    string BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString();
+                                                    string BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
                                                     if (Plat == UnrealTargetPlatform.IOS) // Mac-IOS trashes build products, so we need to use different agents
                                                     {
                                                         BuildAgentSharingGroup = "";
                                                     }
                                                     GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
                                                     GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
-                                                    GUBPNodes[FormalBuildNode.StaticGetFullName(NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() { PlatPair.Value })].AgentSharingGroup = BuildAgentSharingGroup;
+                                                    GUBPNodes[NodeName].AgentSharingGroup = BuildAgentSharingGroup;
 
                                                 }
                                             }
@@ -4497,6 +4549,44 @@ public class GUBP : BuildCommand
                                 {
                                     AddNode(new GamePlatformCookedAndCompiledNode(this, HostPlatform, CodeProj, Plat, true));
                                 }
+#if true
+                                var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform, Plat);
+
+                                foreach (var Config in FormalBuildConfigs)
+                                {
+                                    string FormalNodeName = null;
+                                    if (Kind == TargetRules.TargetType.Client)
+                                    {
+                                        FormalNodeName = AddNode(new FormalBuildNode(this, CodeProj, HostPlatform, InClientTargetPlatforms: new List<UnrealTargetPlatform>() { Plat }, InClientConfigs: new List<UnrealTargetConfiguration>() { Config }, InClientNotGame : true));
+                                    }
+                                    else if (Kind == TargetRules.TargetType.Server)
+                                    {
+                                        FormalNodeName = AddNode(new FormalBuildNode(this, CodeProj, HostPlatform, InServerTargetPlatforms : new List<UnrealTargetPlatform>() { Plat }, InServerConfigs : new List<UnrealTargetConfiguration>() { Config }));
+                                    }
+                                    else if (Kind == TargetRules.TargetType.Game)
+                                    {
+                                        FormalNodeName = AddNode(new FormalBuildNode(this, CodeProj, HostPlatform, InClientTargetPlatforms: new List<UnrealTargetPlatform>() { Plat }, InClientConfigs: new List<UnrealTargetConfiguration>() { Config }));
+                                    }
+                                    // we don't want this delayed
+                                    // this would normally wait for the testing phase, we just want to build it right away
+                                    RemovePseudodependencyFromNode(
+                                        CookNode.StaticGetFullName(HostPlatform, CodeProj, CookedPlatform),
+                                        WaitForTestShared.StaticGetFullName());
+                                    RemovePseudodependencyFromNode(
+                                        CookNode.StaticGetFullName(HostPlatform, CodeProj, CookedPlatform),
+                                        CookNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, CookedPlatform));
+
+                                    string BuildAgentSharingGroup = CodeProj.GameName + "_MakeFormalBuild_" + Plat.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
+                                    if (Plat == UnrealTargetPlatform.IOS) // Mac-IOS trashes build products, so we need to use different agents
+                                    {
+                                        BuildAgentSharingGroup = "";
+                                    }
+                                    GUBPNodes[CookNode.StaticGetFullName(HostPlatform, CodeProj, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
+                                    GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, CodeProj, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
+                                    GUBPNodes[FormalNodeName].AgentSharingGroup = BuildAgentSharingGroup;
+
+                                }
+#endif
                                 if (bAutomatedTesting)
                                 {
 if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works

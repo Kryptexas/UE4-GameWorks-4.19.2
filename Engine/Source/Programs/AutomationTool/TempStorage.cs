@@ -545,28 +545,27 @@ namespace AutomationTool
         }
 
         static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
-        public static string ResolveSharedTempStorageDirectory(string GameFolder)
+        public static string ResolveSharedBuildDirectory(string GameFolder)
         {
             if (ResolveCache.ContainsKey(GameFolder))
             {
                 return ResolveCache[GameFolder];
             }
-            string SharedSubdir = SharedTempStorageDirectory();
             string Root = RootSharedTempStorageDirectory();
-            string Result = CombinePaths(Root, GameFolder, SharedSubdir);
-            if (!DirectoryExists_NoExceptions(Result))
+            string Result = CombinePaths(Root, GameFolder);
+            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
             {
                 string GameStr = "Game";
                 bool HadGame = false;
                 if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
-                    Result = CombinePaths(Root, ShortFolder, SharedSubdir);
+                    Result = CombinePaths(Root, ShortFolder);
                     HadGame = true;
                 }
                 if (!HadGame || !DirectoryExists_NoExceptions(Result))
                 {
-                    Result = CombinePaths(Root, "UE4", SharedSubdir);
+                    Result = CombinePaths(Root, "UE4");
                     if (!DirectoryExists_NoExceptions(Result))
                     {
                         throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
@@ -574,6 +573,21 @@ namespace AutomationTool
                 }
             }
             ResolveCache.Add(GameFolder, Result);
+            return Result;
+        }
+
+        public static string ResolveSharedTempStorageDirectory(string GameFolder)
+        {
+            string SharedSubdir = SharedTempStorageDirectory();
+            string Result = CombinePaths(ResolveSharedBuildDirectory(GameFolder), SharedSubdir);
+            if (!DirectoryExists_NoExceptions(Result))
+            {
+                CreateDirectory_NoExceptions(Result);
+            }
+            if (!DirectoryExists_NoExceptions(Result))
+            {
+                throw new AutomationException("Could not create an appropriate shared temp folder {0}", Result);
+            }
             return Result;
         }
 
