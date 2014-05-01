@@ -16,7 +16,7 @@ fi
 # Applescript uses : instead of / for some reason.
 ProjectFile=${ProjectFile////:}
 
-ProjectName="{$0}_RunIOS"
+ProjectName="{$0}"
 BuildConfiguration=$1
 DeviceName=""
 
