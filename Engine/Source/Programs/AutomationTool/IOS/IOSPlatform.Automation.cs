@@ -478,7 +478,10 @@ public class IOSPlatform : Platform
 			// copy any additional framework assets that will be needed at runtime
 			{
 				string SourcePath = CombinePaths( SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "FrameworkAssets" );
-				SC.StageFiles( StagedFileType.NonUFS, SourcePath, "*.*", true, null, "", true, false );
+				if ( Directory.Exists( SourcePath ) )
+				{
+					SC.StageFiles( StagedFileType.NonUFS, SourcePath, "*.*", true, null, "", true, false );
+				}
 			}
 
 			// copy the icons/launch screens from the game (may stomp the engine copies)
