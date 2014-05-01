@@ -194,8 +194,6 @@ void UCheatManager::Walk()
 				Character->ClientCheatWalk_Implementation();
 			}
 		}
-		
-		GetOuterAPlayerController()->Possess( Pawn );
 	}
 }
 
