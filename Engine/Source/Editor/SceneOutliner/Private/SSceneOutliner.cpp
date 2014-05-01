@@ -2254,8 +2254,13 @@ namespace SceneOutliner
 	}
 
 
-	void SSceneOutliner::OnOutlinerTreeSelectionChanged( FOutlinerTreeItemPtr TreeItem, ESelectInfo::Type /*SelectInfo*/ )
+	void SSceneOutliner::OnOutlinerTreeSelectionChanged( FOutlinerTreeItemPtr TreeItem, ESelectInfo::Type SelectInfo )
 	{
+		if (SelectInfo == ESelectInfo::Direct)
+		{
+			return;
+		}
+
 		if( InitOptions.Mode == ESceneOutlinerMode::ActorPicker )
 		{
 			// In actor picking mode, we check to see if we have a selected actor, and if so, fire
