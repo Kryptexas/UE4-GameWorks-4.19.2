@@ -62,7 +62,7 @@ public:
 	{
 	public:
 
-		SLATE_BEGIN_ARGS(FColumn)
+		SLATE_SLOT_ARGS(FColumn)
 			: _ColumnId()
 			, _DefaultLabel()
 			, _FillWidth( 1.0f )
