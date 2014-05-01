@@ -3,7 +3,7 @@ Machine=BUILD-:Engine\Binaries\Win32\AgentInterface.*
 Machine=BUILD-:Engine\Binaries\Win32\Swarm*.*
 FortniteGame\Binaries\Win64\*FortniteStyle*.dll
 FortniteGame\Binaries\Win32\*FortniteStyle*.dll
-Platform=PS4:Engine\Binaries\Win64\PS4\*.*
+Engine\Binaries\Win64\PS4\*.*
 Platform=Dingo:Engine\Binaries\Win64\Dingo\*.*
 Platform=XboxOne:Engine\Binaries\Win64\XboxOne\*.dll
 Platform=XboxOne:Engine\Binaries\Win64\XboxOne\*.pdb
