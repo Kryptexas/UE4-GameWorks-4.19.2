@@ -40,6 +40,7 @@
 #include "IAnalyticsProvider.h"
 
 #include "EditorActorFolders.h"
+#include "ActorPickerMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -1017,6 +1018,41 @@ void FLevelEditorActionCallbacks::DetachActor_Clicked()
 void FLevelEditorActionCallbacks::AttachSelectedActors()
 {
 	GUnrealEd->AttachSelectedActors();
+}
+
+void FLevelEditorActionCallbacks::AttachActorIteractive()
+{
+	if(GUnrealEd->GetSelectedActorCount())
+	{
+		FActorPickerModeModule& ActorPickerMode = FModuleManager::Get().GetModuleChecked<FActorPickerModeModule>("ActorPickerMode");
+
+		ActorPickerMode.BeginActorPickingMode(
+			FOnGetAllowedClasses(), 
+			FOnShouldFilterActor::CreateStatic(&FLevelEditorActionCallbacks::IsAttachableActor), 
+			FOnActorSelected::CreateStatic(&FLevelEditorActionCallbacks::AttachToActor)
+			);
+	}
+}
+
+bool FLevelEditorActionCallbacks::IsAttachableActor( const AActor* const ParentActor )
+{
+	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	{
+		AActor* Actor = static_cast<AActor*>( *It );
+		if (!GEditor->CanParentActors(ParentActor, Actor))
+		{
+			return false;
+		}
+
+		USceneComponent* ChildRoot = Actor->GetRootComponent();
+		USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+
+		if (ChildRoot != nullptr && ParentRoot != nullptr && ChildRoot->IsAttachedTo(ParentRoot))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked()
@@ -2560,6 +2596,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LockActorMovement, "Lock Actor Movement", "Locks the actor so it cannot be moved", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( DetachFromParent, "Detach", "Detach the actor from its parent", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AttachSelectedActors, "Attach Selected Actors", "Attach the selected actors to the last selected actor", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Alt, EKeys::B) );
+	UI_COMMAND( AttachActorIteractive, "Attach Actor Interactive", "Start an interactive actor picker to let you choose a parent for the currently selected actor", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Alt, EKeys::A) );
 	UI_COMMAND( CreateNewOutlinerFolder, "Create Folder", "Place the selected actors in a new folder", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( HoldToEnableVertexSnapping, "Hold to Enable Vertex Snapping", "When the key binding is pressed and held vertex snapping will be enabled", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::V) );
 

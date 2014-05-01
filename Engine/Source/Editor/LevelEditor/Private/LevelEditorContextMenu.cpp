@@ -704,83 +704,77 @@ void FLevelEditorContextMenuImpl::FillTransformMenu( FMenuBuilder& MenuBuilder )
 
 void FLevelEditorContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 {
+	struct Local
+	{
+		static FReply OnInteractiveActorPickerClicked()
+		{
+			FSlateApplication::Get().DismissAllMenus();
+			FLevelEditorActionCallbacks::AttachActorIteractive();
+			return FReply::Handled();
+		}
+	};
+
 	FSceneOutlinerInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
 		InitOptions.bShowHeaderRow = false;
 		InitOptions.bFocusSearchBoxWhenOpened = true;
 
-		struct Local
-		{
-			static bool IsAttachableActor( const AActor* const ParentActor )
-			{					
-				for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-				{
-					AActor* Actor = static_cast<AActor*>( *It );
-					if (!GEditor->CanParentActors(ParentActor, Actor))
-					{
-						return false;
-					}
-
-					USceneComponent* ChildRoot = Actor->GetRootComponent();
-					USceneComponent* ParentRoot = ParentActor->GetRootComponent();
-
-					if (ChildRoot != nullptr && ParentRoot != nullptr && ChildRoot->IsAttachedTo(ParentRoot))
-					{
-						return false;
-					}
-				}
-				return true;
-			}
-		};
-
 		// Only display Actors that we can attach too
-		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsAttachableActor ) );
+		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &FLevelEditorActionCallbacks::IsAttachableActor) );
 	}		
 
-	// Actor selector to allow the user to choose a parent actor
-	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
-	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.MaxHeight(400.0f)
-		[
-			SceneOutlinerModule.CreateSceneOutliner(
-			InitOptions,
-			FOnActorPicked::CreateStatic( &FLevelEditorActionCallbacks::AttachToActor ) )
-		];
-
-	// Give the scene outliner a border and background
-	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush( "Menu.Background" );
-	TSharedRef< SBorder > RootBorder =
-		SNew( SBorder )
-		.Padding(3)
-		.BorderImage( BackgroundBrush )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
-
-		// Assign the box panel as the child
-		[
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.Padding( 5 )
-			.HAlign( HAlign_Center )
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT( "SelectMatineeActorToEdit", "Select a Matinee actor" ) )
-			]
-
-			+SVerticalBox::Slot()
-			.Padding( 2 )
-			[
-				MiniSceneOutliner
-			]
-		];
 	if(SelectionInfo.bHaveAttachedActor)
 	{
 		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().DetachFromParent, NAME_None, LOCTEXT( "None", "None" ) );
 	}
 
-	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+	// Actor selector to allow the user to choose a parent actor
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
+
+	TSharedRef< SWidget > MenuWidget = 
+		SNew(SHorizontalBox)
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.MaxHeight(400.0f)
+			[
+				SceneOutlinerModule.CreateSceneOutliner(
+					InitOptions,
+					FOnActorPicked::CreateStatic( &FLevelEditorActionCallbacks::AttachToActor )
+					)
+			]
+		]
+	
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Top)
+		.AutoWidth()
+		[
+			SNew(SVerticalBox)
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SButton)
+				.ToolTipText( LOCTEXT( "PickButtonLabel", "Pick a parent actor to attach to").ToString() )
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.OnClicked(FOnClicked::CreateStatic(&Local::OnInteractiveActorPickerClicked))
+				.ContentPadding(4.0f)
+				.ForegroundColor(FSlateColor::UseForeground())
+				.IsFocusable(false)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.Button_PickActorInteractive"))
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			]
+		];
+
+	MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
 }
 
 void FLevelEditorContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder )

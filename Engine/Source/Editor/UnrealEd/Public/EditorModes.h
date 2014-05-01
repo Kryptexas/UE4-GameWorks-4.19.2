@@ -106,6 +106,10 @@ public:
 
 	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y);
 
+	virtual bool ReceivedFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport);
+
+	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport);
+
 	/**
 	 * Called when the mouse is moved while a window input capture is in effect
 	 *
@@ -602,6 +606,12 @@ public:
 
 	/** Notifies all active modes that the mouse has moved */
 	bool MouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 X, int32 Y );
+
+	/** Notifies all active modes that a viewport has received focus */
+	bool ReceivedFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport );
+
+	/** Notifies all active modes that a viewport has lost focus */
+	bool LostFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport );
 
 	/** Draws all active modes */	
 	void DrawActiveModes( const FSceneView* InView, FPrimitiveDrawInterface* PDI );

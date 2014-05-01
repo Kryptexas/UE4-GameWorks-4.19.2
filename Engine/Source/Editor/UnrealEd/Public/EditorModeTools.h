@@ -50,6 +50,10 @@ public:
 
 	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y) { return false; }
 
+	virtual bool ReceivedFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
+
+	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
+
 	/**
 	 * Called when the mouse is moved while a window input capture is in effect
 	 *

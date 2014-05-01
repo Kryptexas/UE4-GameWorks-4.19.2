@@ -8,7 +8,8 @@ public class PropertyEditor : ModuleRules
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
-				"UnrealEd",		
+				"UnrealEd",
+                "ActorPickerMode",
 			}
 		);
 

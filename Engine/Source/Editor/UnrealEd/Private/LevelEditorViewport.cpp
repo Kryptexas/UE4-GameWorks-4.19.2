@@ -4460,6 +4460,18 @@ void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
 	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
 }
 
+void FLevelEditorViewportClient::ReceivedFocus(FViewport* Viewport)
+{
+	FEditorViewportClient::ReceivedFocus(Viewport);
+	GEditorModeTools().ReceivedFocus(this, Viewport);
+}
+
+void FLevelEditorViewportClient::LostFocus(FViewport* Viewport)
+{
+	FEditorViewportClient::LostFocus(Viewport);
+	GEditorModeTools().LostFocus(this, Viewport);
+}
+
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {
 	FSlateRect Rect;

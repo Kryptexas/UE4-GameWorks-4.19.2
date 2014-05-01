@@ -219,12 +219,13 @@ namespace PropertyCustomizationHelpers
 			.OnUseSelected(OnUseSelected);
 	}
 
-	TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnActorSelected OnActorSelectedFromPicker )
+	TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker )
 	{
 		return 
 			SNew( SPropertyEditorInteractiveActorPicker )
 			.ToolTipText( LOCTEXT( "PickButtonLabel", "Pick Actor from scene").ToString() )
 			.OnGetAllowedClasses( OnGetAllowedClasses )
+			.OnShouldFilterActor( OnShouldFilterActor )
 			.OnActorSelected( OnActorSelectedFromPicker );
 	}
 }

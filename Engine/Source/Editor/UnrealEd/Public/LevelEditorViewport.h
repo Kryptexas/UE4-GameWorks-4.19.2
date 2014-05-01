@@ -173,6 +173,8 @@ public:
 	virtual bool IsAspectRatioConstrained() const OVERRIDE;
 	virtual int32 GetCameraSpeedSetting() const OVERRIDE;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) OVERRIDE;
+	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
+	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
 

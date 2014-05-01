@@ -10,6 +10,7 @@
 #include "Editor/BspMode/Public/IBspModeModule.h"
 #include "Editor/MeshPaint/Public/MeshPaintModule.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Editor/ActorPickerMode/Public/ActorPickerMode.h"
 #include "Editor/TextureAlignMode/Public/TextureAlignEdMode.h"
 #include "LevelEditor.h"
 #include "Toolkits/ToolkitManager.h"
@@ -234,6 +235,25 @@ bool FEdMode::MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Vi
 	return false;
 }
 
+bool FEdMode::ReceivedFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport)
+{
+	if( GetCurrentTool() )
+	{
+		return GetCurrentTool()->ReceivedFocus( ViewportClient, Viewport );
+	}
+
+	return false;
+}
+
+bool FEdMode::LostFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport)
+{
+	if( GetCurrentTool() )
+	{
+		return GetCurrentTool()->LostFocus( ViewportClient, Viewport );
+	}
+
+	return false;
+}
 
 /**
  * Called when the mouse is moved while a window input capture is in effect
@@ -1204,6 +1224,7 @@ void FEditorModeTools::Init()
 	FModuleManager::LoadModuleChecked<IBspModeModule>(TEXT("BspMode"));
 	FModuleManager::LoadModuleChecked<FTextureAlignModeModule>(TEXT("TextureAlignMode"));
 	FModuleManager::LoadModuleChecked<FGeometryModeModule>(TEXT("GeometryMode"));
+	FModuleManager::LoadModuleChecked<FActorPickerModeModule>(TEXT("ActorPickerMode"));
 	FModuleManager::LoadModuleChecked<IMeshPaintModule>(TEXT("MeshPaint"));
 	FModuleManager::LoadModuleChecked<ILandscapeEditorModule>(TEXT("LandscapeEditor"));
 	FModuleManager::LoadModuleChecked<IFoliageEditModule>(TEXT("FoliageEdit"));
@@ -1813,6 +1834,26 @@ bool FEditorModeTools::MouseMove( FLevelEditorViewportClient* InViewportClient, 
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bHandled |= ActiveModes[ModeIndex]->MouseMove( InViewportClient, Viewport, X, Y );
+	}
+	return bHandled;
+}
+
+bool FEditorModeTools::ReceivedFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport )
+{
+	bool bHandled = false;
+	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+	{
+		bHandled |= ActiveModes[ModeIndex]->ReceivedFocus( InViewportClient, Viewport );
+	}
+	return bHandled;
+}
+
+bool FEditorModeTools::LostFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport )
+{
+	bool bHandled = false;
+	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+	{
+		bHandled |= ActiveModes[ModeIndex]->LostFocus( InViewportClient, Viewport );
 	}
 	return bHandled;
 }

@@ -42,7 +42,8 @@ public class LevelEditor : ModuleRules
 				"RenderCore",
 				"DeviceProfileServices",
 				"ContentBrowser",
-                "SceneOutliner"
+                "SceneOutliner",
+                "ActorPickerMode"
 			}
 		);
 

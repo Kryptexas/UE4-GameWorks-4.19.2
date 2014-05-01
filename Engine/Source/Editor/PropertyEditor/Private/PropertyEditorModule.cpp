@@ -19,7 +19,6 @@
 #include "PropertyTable.h"
 #include "SPropertyTable.h"
 #include "TextPropertyTableCellPresenter.h"
-#include "SPropertyEditorInteractiveActorPicker.h"
 
 #include "PropertyTableConstants.h"
 
@@ -27,7 +26,6 @@ IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
 
 void FPropertyEditorModule::StartupModule()
 {
-	SPropertyEditorInteractiveActorPicker::RegisterEditMode();
 }
 
 void FPropertyEditorModule::ShutdownModule()
@@ -40,8 +38,6 @@ void FPropertyEditorModule::ShutdownModule()
 
 	AllDetailViews.Empty();
 	AllSinglePropertyViews.Empty();
-
-	SPropertyEditorInteractiveActorPicker::UnregisterEditMode();
 }
 
 void FPropertyEditorModule::NotifyCustomizationModuleChanged()

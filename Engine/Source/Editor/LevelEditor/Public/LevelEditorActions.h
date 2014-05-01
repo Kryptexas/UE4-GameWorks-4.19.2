@@ -211,6 +211,8 @@ public:
 
 	TSharedPtr< FUICommandInfo > AttachSelectedActors;
 
+	TSharedPtr< FUICommandInfo > AttachActorIteractive;
+
 	TSharedPtr< FUICommandInfo > CreateNewOutlinerFolder;
 
 	TSharedPtr< FUICommandInfo > HoldToEnableVertexSnapping;
@@ -754,6 +756,12 @@ public:
 
 	/** Called when attach selected actors is pressed */
 	static void AttachSelectedActors();
+
+	/** Called when the actor picker needs to be used to select a new parent actor */
+	static void AttachActorIteractive();
+
+	/** @return true if the selected actor can be attached to the given parent actor */
+	static bool IsAttachableActor( const AActor* const ParentActor );
 
 	/** Called when create new outliner folder is clicked */
 	static void CreateNewOutlinerFolder_Clicked();

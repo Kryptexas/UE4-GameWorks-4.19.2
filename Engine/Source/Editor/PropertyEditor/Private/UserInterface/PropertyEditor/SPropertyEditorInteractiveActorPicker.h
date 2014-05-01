@@ -9,6 +9,9 @@ public:
 	/** Delegate used to filter allowed actors */
 	SLATE_EVENT( FOnGetAllowedClasses, OnGetAllowedClasses )
 
+	/** Delegate used to filter allowed actors */
+	SLATE_EVENT( FOnShouldFilterActor, OnShouldFilterActor )
+
 	/** Delegate called when an actor is selected */
 	SLATE_EVENT( FOnActorSelected, OnActorSelected )
 
@@ -23,18 +26,15 @@ public:
 	virtual bool SupportsKeyboardFocus() const OVERRIDE;
 	/** End SWidget interface */
 
-	/** Register the picker editor mode */
-	static void RegisterEditMode();
-
-	/** Unregister the picker editor mode */
-	static void UnregisterEditMode();
-
 private:
 	/** Delegate for when the button is clicked */
 	FReply OnClicked();
 
 	/** Delegate used to filter allowed actors */
 	FOnGetAllowedClasses OnGetAllowedClasses;
+
+	/** Delegate used to filter allowed actors */
+	FOnShouldFilterActor OnShouldFilterActor;
 
 	/** Delegate called when an actor is selected */
 	FOnActorSelected OnActorSelected;
