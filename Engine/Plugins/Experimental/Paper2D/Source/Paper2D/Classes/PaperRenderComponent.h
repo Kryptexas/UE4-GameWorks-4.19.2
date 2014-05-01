@@ -64,6 +64,8 @@ public:
 	/** Return the BodySetup to use for this PrimitiveComponent (single body case) */
 	virtual class UBodySetup2D* GetRBBodySetup2D();
 
+	// Returns the wireframe color to use for this component.
+	FLinearColor GetWireframeColor() const;
 
 protected:
 	//@TODO: Document

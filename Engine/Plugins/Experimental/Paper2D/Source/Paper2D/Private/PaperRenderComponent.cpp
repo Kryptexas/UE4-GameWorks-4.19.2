@@ -240,3 +240,8 @@ void UPaperRenderComponent::SetSpriteColor(FLinearColor NewColor)
 		MarkRenderDynamicDataDirty();
 	}
 }
+
+FLinearColor UPaperRenderComponent::GetWireframeColor() const
+{
+	return FLinearColor::Yellow;
+}
