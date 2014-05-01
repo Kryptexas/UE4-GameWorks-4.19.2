@@ -1628,7 +1628,7 @@ public class GenerateAutomationProject : BuildCommand
 
 			{
 				const string OutputPathTag = "<OutputPath>";
-				var OutputPath = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNet", "AutomationScripts");
+                var OutputPath = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET", "AutomationScripts");
 				int PathStart = CSProjFileTemplate.IndexOf(OutputPathTag) + OutputPathTag.Length;
 				int PathEnd = CSProjFileTemplate.IndexOf("</OutputPath>", PathStart);
 				string OldOutputPath = CSProjFileTemplate.Substring(PathStart, PathEnd - PathStart);

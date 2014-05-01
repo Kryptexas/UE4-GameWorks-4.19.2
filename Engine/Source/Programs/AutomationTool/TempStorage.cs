@@ -137,6 +137,10 @@ namespace AutomationTool
                     var Filename = CombinePaths(InFilename);
                     Robust_FileExists_NoExceptions(true, Filename, "Could not add {0} to manifest because it does not exist");
 
+                    FileInfo Info = new FileInfo(Filename);
+                    Filename = Info.FullName;
+                    Robust_FileExists_NoExceptions(true, Filename, "Could not add {0} to manifest because it does not exist2");
+
                     if (!Filename.StartsWith(BaseFolder, StringComparison.InvariantCultureIgnoreCase))
                     {
                         throw new AutomationException("Could not add {0} to manifest because it does not start with the base folder {1}", Filename, BaseFolder);

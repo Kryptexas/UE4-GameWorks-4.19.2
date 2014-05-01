@@ -1377,7 +1377,7 @@ namespace AutomationTool
 		public void AddUATFilesToBuildProducts()
 		{
 			const string ScriptsPostfix = ".Automation.dll";
-			var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNet");
+            var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
 			var UATScriptsLocation = CombinePaths(DotNetOutputLocation, "AutomationScripts");
 			var UATScripts = Directory.GetFiles(UATScriptsLocation, "*" + ScriptsPostfix, SearchOption.AllDirectories);
 			if (IsNullOrEmpty(UATScripts))
