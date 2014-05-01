@@ -136,6 +136,11 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 		TextureFormatText += TEXT("D3D11_BIND_SHADER_RESOURCE ");
 	}
 
+	if (TextureFlags & D3D11_BIND_UNORDERED_ACCESS)
+	{
+		TextureFormatText += TEXT("D3D11_BIND_UNORDERED_ACCESS ");
+	}
+
 	return TextureFormatText;
 }
 
