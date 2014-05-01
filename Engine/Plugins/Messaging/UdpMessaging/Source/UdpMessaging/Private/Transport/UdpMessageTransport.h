@@ -18,9 +18,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InLocalEndpoint - The local IP endpoint to receive messages on.
-	 * @param InMulticastEndpoint - The multicast group endpoint to transport messages to.
-	 * @param InMulticastTtl - The multicast time-to-live.
+	 * @param InLocalEndpoint The local IP endpoint to receive messages on.
+	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
+	 * @param InMulticastTtl The multicast time-to-live.
 	 */
 	FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl );
 

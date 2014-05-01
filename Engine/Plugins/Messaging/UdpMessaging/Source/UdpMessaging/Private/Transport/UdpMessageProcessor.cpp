@@ -17,11 +17,11 @@ const int32 FUdpMessageProcessor::DeadHelloIntervals = 5;
  *****************************************************************************/
 
 FUdpMessageProcessor::FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint )
-	: Beacon(NULL)
+	: Beacon(nullptr)
 	, LastSentMessage(-1)
 	, LocalNodeId(InNodeId)
 	, MulticastEndpoint(InMulticastEndpoint)
-	, Sender(NULL)
+	, Sender(nullptr)
 	, Socket(InSocket)
 	, Stopping(false)
 {
@@ -119,10 +119,10 @@ uint32 FUdpMessageProcessor::Run( )
 	}
 	
 	delete Beacon;
-	Beacon = NULL;
+	Beacon = nullptr;
 
 	delete Sender;
-	Sender = NULL;
+	Sender = nullptr;
 
 	return 0;
 }
@@ -345,7 +345,7 @@ void FUdpMessageProcessor::ProcessDataSegment( FInboundSegment& Segment, FNodeIn
 
 			if (NodeInfo.NodeId.IsValid())
 			{
-				MessageReceivedDelegate.ExecuteIfBound(HackReader, NULL, NodeInfo.NodeId);
+				MessageReceivedDelegate.ExecuteIfBound(HackReader, nullptr, NodeInfo.NodeId);
 			}
 		}
 		else if (NodeInfo.Resequencer.Resequence(Message))
@@ -357,7 +357,7 @@ void FUdpMessageProcessor::ProcessDataSegment( FInboundSegment& Segment, FNodeIn
 			{
 				if (NodeInfo.NodeId.IsValid())
 				{
-					MessageReceivedDelegate.ExecuteIfBound(HackReader, NULL, NodeInfo.NodeId);
+					MessageReceivedDelegate.ExecuteIfBound(HackReader, nullptr, NodeInfo.NodeId);
 				}
 			}
 		}

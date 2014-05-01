@@ -28,7 +28,7 @@ public:
 	/**
 	 * Establishes a tunnel with a remote server.
 	 *
-	 * @param RemoteEndpoint - The endpoint of the server to connect to.
+	 * @param RemoteEndpoint The endpoint of the server to connect to.
 	 *
 	 * @return true if the connection has been established, false otherwise.
 	 *
@@ -39,7 +39,7 @@ public:
 	/** 
 	 * Starts the tunnel server.
 	 *
-	 * @param LocalEndpoint - The IP endpoint to listen for incoming connections on.
+	 * @param LocalEndpoint The IP endpoint to listen for incoming connections on.
 	 *
 	 * @see IsServerRunning
 	 * @see StopServer
@@ -59,7 +59,7 @@ public:
 	/**
 	 * Gets the list of all open tunnel connections.
 	 *
-	 * @param OutConnections - Will hold the list of connections.
+	 * @param OutConnections Will hold the list of connections.
 	 *
 	 * @return The number of connections returned.
 	 *

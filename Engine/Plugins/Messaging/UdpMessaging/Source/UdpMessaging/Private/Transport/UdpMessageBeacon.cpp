@@ -34,13 +34,13 @@ FUdpMessageBeacon::FUdpMessageBeacon(FSocket* InSocket, const FGuid& InSocketId,
 
 FUdpMessageBeacon::~FUdpMessageBeacon()
 {
-	if (Thread != NULL)
+	if (Thread != nullptr)
 	{
 		Thread->Kill(true);
 		delete Thread;
 	}
 
-	MulticastAddress = NULL;
+	MulticastAddress = nullptr;
 
 	delete EndpointLeftEvent;
 }

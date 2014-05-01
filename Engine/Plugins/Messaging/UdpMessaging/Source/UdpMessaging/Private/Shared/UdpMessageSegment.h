@@ -82,14 +82,13 @@ namespace FUdpMessageSegment
 		 */
 		uint8 SegmentType;
 
-
 	public:
 
 		/**
 		 * Serializes the given header from or into the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */
@@ -110,14 +109,13 @@ namespace FUdpMessageSegment
 		 */
 		int32 MessageId;
 
-
 	public:
 
 		/**
 		 * Serializes the given header from or to the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */
@@ -138,14 +136,13 @@ namespace FUdpMessageSegment
 		 */
 		int32 MessageId;
 
-
 	public:
 
 		/**
 		 * Serializes the given header from or into the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */
@@ -196,14 +193,13 @@ namespace FUdpMessageSegment
 		 */
 		TArray<uint8> Data;
 
-
 	public:
 
 		/**
 		 * Serializes the given header from or into the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */
@@ -245,8 +241,8 @@ namespace FUdpMessageSegment
 		/**
 		 * Serializes the given header from or into the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */
@@ -272,8 +268,8 @@ namespace FUdpMessageSegment
 		/**
 		 * Serializes the given header from or into the specified archive.
 		 *
-		 * @param Ar - The archive to serialize from or into.
-		 * @param DateTime - The header to serialize.
+		 * @param Ar The archive to serialize from or into.
+		 * @param DateTime The header to serialize.
 		 *
 		 * @return The archive.
 		 */

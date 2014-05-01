@@ -32,11 +32,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InLocalEndpoint - The local IP endpoint to receive messages on.
-	 * @param InMulticastEndpoint - The multicast group endpoint to transport messages to.
+	 * @param InLocalEndpoint The local IP endpoint to receive messages on.
+	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
 	FUdpMessageTunnel( const FIPv4Endpoint& InUnicastEndpoint, const FIPv4Endpoint& InMulticastEndpoint )
-		: Listener(NULL)
+		: Listener(nullptr)
 		, MulticastEndpoint(InMulticastEndpoint)
 		, Stopping(false)
 		, TotalInboundBytes(0)
@@ -68,23 +68,23 @@ public:
 	 */
 	~FUdpMessageTunnel( )
 	{
-		if (Thread != NULL)
+		if (Thread != nullptr)
 		{
 			Thread->Kill(true);
 			delete Thread;
 		}
 
 		// destroy sockets
-		if (MulticastSocket != NULL)
+		if (MulticastSocket != nullptr)
 		{
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(MulticastSocket);
-			MulticastSocket = NULL;
+			MulticastSocket = nullptr;
 		}
 	
-		if (UnicastSocket != NULL)
+		if (UnicastSocket != nullptr)
 		{
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(UnicastSocket);
-			UnicastSocket = NULL;
+			UnicastSocket = nullptr;
 		}
 	}
 
@@ -134,7 +134,7 @@ public:
 	{
 		FSocket* Socket = FTcpSocketBuilder(TEXT("FUdpMessageTunnel.RemoteConnection"));
 
-		if (Socket != NULL)
+		if (Socket != nullptr)
 		{
 			if (Socket->Connect(*RemoteEndpoint.ToInternetAddr()))
 			{
@@ -175,7 +175,7 @@ public:
 
 	virtual bool IsServerRunning( ) const OVERRIDE
 	{
-		return (Listener != NULL);
+		return (Listener != nullptr);
 	}
 
 	virtual FSimpleDelegate& OnConnectionsChanged( ) OVERRIDE
@@ -194,7 +194,7 @@ public:
 	virtual void StopServer( ) OVERRIDE
 	{
 		delete Listener;
-		Listener = NULL;
+		Listener = nullptr;
 	}
 
 	// End IUdpMessageTunnel interface
@@ -204,7 +204,7 @@ protected:
 	/**
 	 * Removes expired nodes from the specified collection of node infos.
 	 *
-	 * @param Nodes - The collection of nodes to clean up.
+	 * @param Nodes The collection of nodes to clean up.
 	 */
 	void RemoveExpiredNodes( TMap<FGuid, FNodeInfo>& Nodes )
 	{
@@ -254,7 +254,7 @@ protected:
 				{
 					FNodeInfo* LocalNode = LocalNodes.Find(Header.RecipientNodeId);
 
-					if (LocalNode == NULL)
+					if (LocalNode == nullptr)
 					{
 						continue;
 					}
@@ -279,7 +279,7 @@ protected:
 	/**
 	 * Receives all buffered datagrams from the specified socket and forwards them to the tunnels.
 	 *
-	 * @param Socket - The socket to receive from.
+	 * @param Socket The socket to receive from.
 	 */
 	void UdpToTcp( FSocket* Socket )
 	{
@@ -318,7 +318,7 @@ protected:
 				{
 					FNodeInfo* RemoteNode = RemoteNodes.Find(Header.RecipientNodeId);
 
-					if ((RemoteNode != NULL) && (RemoteNode->Connection.IsValid()))
+					if ((RemoteNode != nullptr) && (RemoteNode->Connection.IsValid()))
 					{
 						RemoteNode->Connection->Send(Datagram);
 					}

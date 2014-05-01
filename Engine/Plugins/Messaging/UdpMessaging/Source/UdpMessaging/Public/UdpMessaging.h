@@ -7,13 +7,13 @@
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Networking.h"
 
 
-/* Interfaces
+/* Public Interfaces
  *****************************************************************************/
 
 #include "IUdpMessageTunnelConnection.h"

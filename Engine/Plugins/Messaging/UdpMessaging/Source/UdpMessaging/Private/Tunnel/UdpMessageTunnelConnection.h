@@ -23,12 +23,6 @@ typedef TSharedRef<class FUdpMessageTunnelConnection> FUdpMessageTunnelConnectio
 typedef TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> FSaveByteArrayRef;
 
 
-struct FUdpMessageTunnelPacket
-{
-
-};
-
-
 /**
  * Delegate type for received packets.
  *
@@ -51,8 +45,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSocket - The socket to use for this connection.
-	 * @param InRemoteAddress - The IP endpoint of the remote client.
+	 * @param InSocket The socket to use for this connection.
+	 * @param InRemoteAddress The IP endpoint of the remote client.
 	 */
 	FUdpMessageTunnelConnection( FSocket* InSocket, const FIPv4Endpoint& InRemoteEndpoint )
 		: OpenedTime(FDateTime::UtcNow())
@@ -73,14 +67,14 @@ public:
 	 */
 	~FUdpMessageTunnelConnection( )
 	{
-		if (Thread != NULL)
+		if (Thread != nullptr)
 		{
 			Thread->Kill(true);
 			delete Thread;
 		}
 
 		delete Socket;
-		Socket = NULL;
+		Socket = nullptr;
 	}
 
 public:
@@ -88,7 +82,7 @@ public:
 	/**
 	 * Receives a payload from the connection's inbox.
 	 *
-	 * @param OutPayload - Will hold the received payload, if any.
+	 * @param OutPayload Will hold the received payload, if any.
 	 *
 	 * @return true if a payload was returned, false otherwise.
 	 */
@@ -100,7 +94,7 @@ public:
 	/**
 	 * Sends a payload through this connection.
 	 *
-	 * @param Payload - The payload to send.
+	 * @param Payload The payload to send.
 	 */
 	bool Send( const FArrayReaderPtr& Payload )
 	{
@@ -118,7 +112,7 @@ public:
 
 	virtual bool Init( ) OVERRIDE
 	{
-		return (Socket != NULL);
+		return (Socket != nullptr);
 	}
 
 	virtual uint32 Run( ) OVERRIDE
