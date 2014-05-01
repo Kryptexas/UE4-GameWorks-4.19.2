@@ -13,6 +13,7 @@ USpringArmComponent::USpringArmComponent(const class FPostConstructInitializePro
 	: Super(PCIP)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	
 	bAutoActivate = true;
 	bTickInEditor = true;
