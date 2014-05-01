@@ -242,7 +242,7 @@ TSharedRef<SWidget> FRetargetSourceManagerTabSummoner::CreateTabBody(const FWork
 FAnimBlueprintDefaultsEditorSummoner::FAnimBlueprintDefaultsEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 	: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintDefaultsEditorID, InHostingApp)
 {
-	TabLabel = LOCTEXT("AnimBlueprintDefaultsTabTitle", "Animation Blueprint Editor");
+	TabLabel = LOCTEXT("AnimBlueprintDefaultsTabTitle", "Anim Blueprint Editor");
 
 	bIsSingleton = true;
 
