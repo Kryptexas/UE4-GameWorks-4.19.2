@@ -281,8 +281,8 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(AActor* InInstance)
 	{
 		if ( ensure(DynamicBindingObjects[Index] != NULL) )
 		{
-			DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
-		}
+		DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
+	}
 	}
 
 	// call on super class, if it's a BlueprintGeneratedClass
@@ -369,8 +369,7 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 			{
 				// Create delegate for all keys in this track
 				FScriptDelegate EventDelegate;
-				EventDelegate.SetObject(Actor);
-				EventDelegate.SetFunctionName(TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
+				EventDelegate.BindUFunction(Actor, TimelineTemplate->GetEventTrackFunctionName(TrackIdx));
 
 				// Create an entry in Events for each key of this track
 				for (auto It(EventTrackTemplate->CurveKeys->FloatCurve.GetKeyIterator()); It; ++It)
@@ -412,14 +411,12 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 
 		// Set up delegate that gets called after all properties are updated
 		FScriptDelegate UpdateDelegate;
-		UpdateDelegate.SetObject(Actor);
-		UpdateDelegate.SetFunctionName(TimelineTemplate->GetUpdateFunctionName());
+		UpdateDelegate.BindUFunction(Actor, TimelineTemplate->GetUpdateFunctionName());
 		NewTimeline->SetTimelinePostUpdateFunc(FOnTimelineEvent(UpdateDelegate));
 
 		// Set up finished delegate that gets called after all properties are updated
 		FScriptDelegate FinishedDelegate;
-		FinishedDelegate.SetObject(Actor);
-		FinishedDelegate.SetFunctionName(TimelineTemplate->GetFinishedFunctionName());
+		FinishedDelegate.BindUFunction(Actor, TimelineTemplate->GetFinishedFunctionName());
 		NewTimeline->SetTimelineFinishedFunc(FOnTimelineEvent(FinishedDelegate));
 
 		NewTimeline->RegisterComponent();

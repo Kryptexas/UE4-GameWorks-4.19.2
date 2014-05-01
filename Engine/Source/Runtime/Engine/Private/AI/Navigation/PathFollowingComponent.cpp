@@ -1008,8 +1008,7 @@ bool UPathFollowingComponent::UpdateMovementComponent(bool bForce)
 		if (MyPawn)
 		{
 			FScriptDelegate Delegate;
-			Delegate.SetFunctionName(TEXT("OnActorBump"));
-			Delegate.SetObject(this);
+			Delegate.BindUFunction(this, "OnActorBump");
 			MyPawn->OnActorHit.AddUnique(Delegate);
 
 			SetMovementComponent(MyPawn->FindComponentByClass<UNavMovementComponent>());

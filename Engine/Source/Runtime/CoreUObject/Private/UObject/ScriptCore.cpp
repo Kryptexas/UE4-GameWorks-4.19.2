@@ -1310,8 +1310,7 @@ void UObject::execLetDelegate( FFrame& Stack, RESULT_DECL )
 
 	if (DelegateAddr != NULL)
 	{
-		DelegateAddr->SetFunctionName( Delegate.GetFunctionName() );
-		DelegateAddr->SetObject( Delegate.GetObject() );
+		DelegateAddr->BindUFunction( Delegate.GetUObject(), Delegate.GetFunctionName() );
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LetDelegate, execLetDelegate );
@@ -1618,9 +1617,7 @@ IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {
 	FName FunctionName = Stack.ReadName();
-
-	((FScriptDelegate*)Result)->SetFunctionName( FunctionName );
-	((FScriptDelegate*)Result)->SetObject( (FunctionName == NAME_None) ? NULL : this );
+	((FScriptDelegate*)Result)->BindUFunction( (FunctionName == NAME_None) ? NULL : this, FunctionName );
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceDelegate, execInstanceDelegate );
 
@@ -1640,8 +1637,7 @@ void UObject::execBindDelegate( FFrame& Stack, RESULT_DECL )
 
 	if (DelegateAddr)
 	{
-		DelegateAddr->SetFunctionName(FunctionName);
-		DelegateAddr->SetObject(ObjectForDelegate);
+		DelegateAddr->BindUFunction(ObjectForDelegate, FunctionName);
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_BindDelegate, execBindDelegate );

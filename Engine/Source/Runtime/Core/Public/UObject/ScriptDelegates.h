@@ -19,7 +19,7 @@ public:
 
 	/** Constructor */
 	TScriptDelegate() 
-		: Object( NULL ),
+		: Object( nullptr ),
 		  FunctionName( NAME_None )
 	{ }
 
@@ -32,7 +32,7 @@ private:
 		{
 			if (UObject* ObjectPtr = Object.Get())
 			{
-				return ((UObjectTemplate*)ObjectPtr)->FindFunction(FunctionName) != NULL;
+				return ((UObjectTemplate*)ObjectPtr)->FindFunction(FunctionName) != nullptr;
 			}
 		}
 
@@ -40,6 +40,18 @@ private:
 	}
 
 public:
+
+	/**
+	 * Binds a UFunction to this delegate.
+	 *
+	 * @param InObject The object to call the function on.
+	 * @param InFunctionName The name of the function to call.
+	 */
+	void BindUFunction( class UObject* InObject, const FName& InFunctionName )
+	{
+		Object = InObject;
+		FunctionName = InFunctionName;
+	}
 
 	/** 
 	 * Checks to see if the user object bound to this delegate is still valid
@@ -58,7 +70,7 @@ public:
 	 */
 	inline bool IsBoundToObject(void const* InUserObject) const
 	{
-		return InUserObject && (InUserObject == GetObject());
+		return InUserObject && (InUserObject == GetUObject());
 	}
 
 	/** 
@@ -76,7 +88,7 @@ public:
 	 */
 	void Unbind()
 	{
-		Object = NULL;
+		Object = nullptr;
 		FunctionName = NAME_None;
 	}
 
@@ -98,7 +110,7 @@ public:
 	{
 		if( IsBound() )
 		{
-			return ((UObjectTemplate*)GetObject())->GetPathName() + TEXT(".") + GetFunctionName().ToString();
+			return ((UObjectTemplate*)GetUObject())->GetPathName() + TEXT(".") + GetFunctionName().ToString();
 		}
 		return TEXT( "<Unbound>" );
 	}
@@ -127,32 +139,12 @@ public:
 		FunctionName = Other.FunctionName;
 	}
 
-	/**
-	 * Sets the object name.  Usually, you should never call this yourself.  Use BindDynamic() instead!
-	*
-	 * @param	InObject	New object
-	*/
-	void SetObject( class UObject* InObject )
-	{
-		Object = InObject;
-	}
-
-	/**
-	 * Sets the function name.  Usually, you should never call this yourself.  Use BindDynamic() instead!
-	 *
-	 * @param	InFunctionName	New function name
-	 */
-	void SetFunctionName( const FName InFunctionName )
-	{
-		FunctionName = InFunctionName;
-	}
-
 	/** 
 	 * Gets the object bound to this delegate
 	 *
 	 * @return	The object
 	 */
-	class UObject* GetObject()
+	class UObject* GetUObject()
 	{
 		// Downcast UObjectBase to UObject
 		return static_cast< UObject* >( Object.Get() );
@@ -163,7 +155,7 @@ public:
 	 *
 	 * @return	The object
 	 */
-	const class UObject* GetObject() const
+	const class UObject* GetUObject() const
 	{
 		// Downcast UObjectBase to UObject
 		return static_cast< const UObject* >( Object.Get() );
@@ -209,7 +201,7 @@ public:
 
 protected:
 
-	/** The object bound to this delegate, or NULL if no object is bound */
+	/** The object bound to this delegate, or nullptr if no object is bound */
 	TWeakPtr Object;
 
 	/** Name of the function to call on the bound object */
@@ -400,8 +392,8 @@ public:
 		TArray< UObject* > OutputList;
 		for( typename FInvocationList::TIterator CurDelegate( InvocationList ); CurDelegate; ++CurDelegate )
 		{
-			UObject* CurObject = CurDelegate->GetObject();
-			if( CurObject != NULL )
+			UObject* CurObject = CurDelegate->GetUObject();
+			if( CurObject != nullptr )
 			{
 				OutputList.Add( CurObject );
 			}

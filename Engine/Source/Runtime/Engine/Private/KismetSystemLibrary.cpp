@@ -236,8 +236,7 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 	}
 
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FunctionFName);
+	Delegate.BindUFunction(Object, FunctionFName);
 
 	if (Delegate.IsBound())
 	{
@@ -253,8 +252,7 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -274,8 +272,7 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -292,8 +289,7 @@ void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -310,8 +306,7 @@ void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName
 bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -329,8 +324,7 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -348,8 +342,7 @@ bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionNam
 bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -367,8 +360,7 @@ bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -386,8 +378,7 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{

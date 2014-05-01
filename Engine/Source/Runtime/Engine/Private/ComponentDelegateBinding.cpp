@@ -33,8 +33,7 @@ void UComponentDelegateBinding::BindDynamicDelegates(AActor* InInstance) const
 					FMulticastScriptDelegate* TargetDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Component);
 
 					FScriptDelegate Delegate;
-					Delegate.SetFunctionName(Binding.FunctionNameToBind);
-					Delegate.SetObject(InInstance);
+					Delegate.BindUFunction(InInstance, Binding.FunctionNameToBind);
 					TargetDelegate->AddUnique(Delegate);
 				}
 			}

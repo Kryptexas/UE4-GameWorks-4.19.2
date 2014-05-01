@@ -1144,9 +1144,9 @@ private:
 		if ( DelegateProp != NULL )
 		{
 			FScriptDelegate* DelegateValue = DelegateProp->GetPropertyValuePtr(PropertyValueAddress);
-			if (DelegateValue->GetObject() && DelegateValue->GetObject()->IsDefaultSubobject())
+			if (DelegateValue->GetUObject() && DelegateValue->GetUObject()->IsDefaultSubobject())
 			{
-				Components.AddUnique(DelegateValue->GetObject());
+				Components.AddUnique(DelegateValue->GetUObject());
 			}
 
 			bResult = true;

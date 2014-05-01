@@ -4694,8 +4694,7 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 
 					// Create the delegate, and add it if it doesn't already exist
 					FScriptDelegate Delegate;
-					Delegate.SetFunctionName(TargetFunction);
-					Delegate.SetObject(LevelScriptActor);
+					Delegate.BindUFunction(LevelScriptActor, TargetFunction);
 					TargetDelegate->AddUnique(Delegate);
 				}
 				else

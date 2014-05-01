@@ -509,10 +509,10 @@ void FKismetCppBackend::EmitBindDelegateStatement(FKismetFunctionContext& Functi
 
 	Emit(Body, 
 		*FString::Printf(
-			TEXT("\t\t\tif(FScriptDelegate* __Delegate = %s)\n\t\t\t{\n\t\t\t\t__Delegate->SetFunctionName(%s);\n\t\t\t\t__Delegate->SetObject(%s);\n\t\t\t|\n"),
+			TEXT("\t\t\tif(FScriptDelegate* __Delegate = %s)\n\t\t\t{\n\t\t\t\t__Delegate->BindUFunction(%s,%s);\n\t\t\t|\n"),
 			*Delegate, 
-			*NameTerm, 
-			*ObjectTerm
+			*ObjectTerm,
+			*NameTerm
 		)
 	);
 }

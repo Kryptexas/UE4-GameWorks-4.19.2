@@ -41,8 +41,7 @@ struct TInputUnifiedDelegate
 	inline void BindDelegate(UObject* Object, const FName FuncName)
 	{
 		FuncDelegate.Unbind();
-		FuncDynDelegate.SetObject(Object);
-		FuncDynDelegate.SetFunctionName(FuncName);
+		FuncDynDelegate.BindUFunction(Object, FuncName);
 	}
 
 	DelegateType & GetDelegateForManualSet()

@@ -269,8 +269,7 @@ namespace DelegatePropertyTools
 
 		//UE_LOG(LogProperty, Log, TEXT("... importing delegate FunctionName:'%s'(%s)   Object:'%s'(%s)"),Func != NULL ? *Func->GetName() : TEXT("NULL"), FuncName, Object != NULL ? *Object->GetFullName() : TEXT("NULL"), ObjName);
 	
-		Delegate.SetObject( Func ? Object : NULL );
-		Delegate.SetFunctionName( Func ? Func->GetFName() : NAME_None );
+		Delegate.BindUFunction( Func ? Object : NULL, Func ? Func->GetFName() : NAME_None );
 
 		return ( Func != NULL && Object != NULL ) ? Buffer : NULL;
 	}
