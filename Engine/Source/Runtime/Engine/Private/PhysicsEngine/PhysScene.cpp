@@ -29,18 +29,6 @@ FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
 }
 
 /**
- * Return true if we should be running in single threaded mode, ala dedicated server
-**/
-FORCEINLINE static bool PhysSingleThreadedMode()
-{
-	if (IsRunningDedicatedServer() || FPlatformMisc::NumberOfCores() < 3 || !FPlatformProcess::SupportsMultithreading())
-	{
-		return true;
-	}
-	return false;
-}
-
-/**
  * Return true if we should lag the async scene a frame
 **/
 FORCEINLINE static bool FrameLagAsync()
@@ -299,20 +287,20 @@ void FPhysScene::DeferredDestructibleDamageNotify(const NxApexDamageEventReportD
 
 bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutCompletionEvent)
 {
+#if WITH_PHYSX
 	check(SceneType != PST_Cloth); //we don't bother sub-stepping cloth
 	float UseDelta = UseSyncTime(SceneType)? SyncDeltaSeconds : DeltaSeconds;
 	float SubTime = PhysSubSteppers[SceneType]->UpdateTime(UseDelta);
 	PxScene* PScene = GetPhysXScene(SceneType);
-#if WITH_APEX
-	NxApexScene* ApexScene = GetApexScene(SceneType);
-	if(!ApexScene || SubTime <= 0.f)
+	if(SubTime <= 0.f)
 	{
 		return false;
 	}else
 	{
 		//we have valid scene and subtime so enqueue task
 		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, PScene->getTaskManager());
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateRaw(PhysSubSteppers[SceneType], &FPhysSubstepTask::StepSimulation, ApexScene, Task), TEXT("SubstepSimulationImp"));
+		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(FSimpleDelegateGraphTask::FDelegate::CreateRaw(PhysSubSteppers[SceneType], &FPhysSubstepTask::StepSimulation, Task), TEXT("SubstepSimulationImp"), NULL, NamedThread);
 		return true;
 	}
 #endif
@@ -1119,7 +1107,13 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 #if WITH_SUBSTEPPING
 	//Initialize substeppers
 	//we don't bother sub-stepping cloth
+#if WITH_PHYSX
+#if WITH_APEX
+	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(ApexScene);
+#else
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
+#endif
+#endif
 	if (SceneType == PST_Sync)
 	{
 		PhysSubSteppers[SceneType]->SetVehicleManager(VehicleManager);

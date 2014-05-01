@@ -30,9 +30,8 @@
 #endif
 
 #if WITH_APEX
-
 #ifndef WITH_SUBSTEPPING
-	#define WITH_SUBSTEPPING (1 && WITH_APEX)
+	#define WITH_SUBSTEPPING 1
 #endif
 
 #ifndef WITH_APEX_CLOTHING

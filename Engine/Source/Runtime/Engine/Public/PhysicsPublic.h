@@ -448,6 +448,18 @@ private:
 	TMap< uint32, TMap<struct FRigidBodyIndexPair, bool>* >		CollisionDisableTableLookup;
 };
 
+/**
+* Return true if we should be running in single threaded mode, ala dedicated server
+**/
+FORCEINLINE bool PhysSingleThreadedMode()
+{
+	if (IsRunningDedicatedServer() || FPlatformMisc::NumberOfCores() < 3 || !FPlatformProcess::SupportsMultithreading())
+	{
+		return true;
+	}
+	return false;
+}
+
 #if WITH_PHYSX
 /** Struct used for passing info to the PhysX shader */
 
