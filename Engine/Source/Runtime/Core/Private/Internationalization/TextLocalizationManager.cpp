@@ -226,8 +226,6 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	}
 	CultureTracker.ReportCollisions();
 
-	UE_LOG(LogInit, Log, TEXT("Text localization reported Culture Tracker collisions."));
-
 	// Read base language localization resources.
 	FLocalizationEntryTracker& BaseLanguageTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
 	for(int32 PathIndex = 0; PathIndex < LocalizationPaths.Num(); ++PathIndex)
@@ -243,11 +241,7 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	}
 	BaseLanguageTracker.ReportCollisions();
 
-	UE_LOG(LogInit, Log, TEXT("Text localization reported Base Language Tracker collisions."));
-
 	UpdateLiveTable(LocalizationEntryTrackers);
-
-	UE_LOG(LogInit, Log, TEXT("Text localization Live Table updated."));
 }
 
 void FTextLocalizationManager::UpdateLiveTable(const TArray<FLocalizationEntryTracker>& LocalizationEntryTrackers, const bool FilterUpdatesByTableName)

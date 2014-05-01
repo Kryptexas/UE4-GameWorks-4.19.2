@@ -334,21 +334,13 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 	// If the global shader map hasn't been created yet, create it.
 	if(!GGlobalShaderMap[Platform])
 	{
-		UE_LOG(LogInit, Log, TEXT("Beginning GetGlobalShaderMap"));
-
 		// verify that all shader source files are intact
 		VerifyShaderSourceFiles();
-
-		UE_LOG(LogInit, Log, TEXT("Shader source files verified"));
 
 		// GetGlobalShaderMap is called the first time during startup in the main thread.
 		check(IsInGameThread());
 
-		UE_LOG(LogInit, Log, TEXT("Verified game thread"));
-
 		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
-
-		UE_LOG(LogInit, Log, TEXT("Created global shader map"));
 
 		bool bLoadedFromCacheFile = false;
 
@@ -386,24 +378,18 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 		// Uncooked platform
 		else
 		{
-			UE_LOG(LogInit, Log, TEXT("Preparing global shader map on uncooked platform"));
 			FGlobalShaderMapId ShaderMapId(Platform);
 
 			TArray<uint8> CachedData;
 			const FString DataKey = GetGlobalShaderMapKeyString(ShaderMapId, Platform);
 
-			UE_LOG(LogInit, Log, TEXT("GlobalShaderMapKeyString formed"));
-
 			// Find the shader map in the derived data cache
 			if (GetDerivedDataCacheRef().GetSynchronous(*DataKey, CachedData))
 			{
-				UE_LOG(LogInit, Log, TEXT("GlobalShaderMap DDC data fetched"));
 				FMemoryReader Ar(CachedData, true);
 
 				// Deserialize from the cached data
 				SerializeGlobalShaders(Ar, GGlobalShaderMap[Platform]);
-
-				UE_LOG(LogInit, Log, TEXT("GlobalShaderMap serialized"));
 			}
 		}
 
