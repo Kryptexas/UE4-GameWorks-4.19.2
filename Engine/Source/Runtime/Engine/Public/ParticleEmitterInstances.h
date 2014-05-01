@@ -474,6 +474,12 @@ public:
 		bHaltSpawning = bInHaltSpawning;
 	}
 
+	/** Get the offset of the orbit payload. */
+	int32 GetOrbitPayloadOffset();
+
+	/** Get the position of the particle taking orbit in to account. */
+	FVector GetParticleLocationWithOrbitOffset(FBaseParticle* Particle);
+
 	virtual FBaseParticle* GetParticle(int32 Index);
 	/**
 	 *	Get the physical index of the particle at the given index

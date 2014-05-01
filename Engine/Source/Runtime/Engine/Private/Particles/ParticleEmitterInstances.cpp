@@ -962,6 +962,45 @@ FBox FParticleEmitterInstance::GetBoundingBox()
 	return ParticleBoundingBox;
 }
 
+int32 FParticleEmitterInstance::GetOrbitPayloadOffset()
+{
+	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+
+	int32 OrbitOffsetValue = -1;
+	if (LODLevel->OrbitModules.Num() > 0)
+	{
+		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
+		check(HighestLODLevel);
+
+		UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
+		if (OrbitModule)
+		{
+			uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
+			if (OrbitOffsetIndex)
+			{
+				OrbitOffsetValue = *OrbitOffsetIndex;
+			}
+		}
+	}
+	return OrbitOffsetValue;
+}
+
+FVector FParticleEmitterInstance::GetParticleLocationWithOrbitOffset(FBaseParticle* Particle)
+{
+	int32 OrbitOffsetValue = GetOrbitPayloadOffset();
+	if (OrbitOffsetValue == -1)
+	{
+		return Particle->Location;
+	}
+	else
+	{
+		int32 CurrentOffset = OrbitOffsetValue;
+		const uint8* ParticleBase = (const uint8*)Particle;
+		PARTICLE_ELEMENT(FOrbitChainModuleInstancePayload, OrbitPayload);
+		return Particle->Location + OrbitPayload.Offset;
+	}
+}
+
 /**
  *	Update the bounding box for the emitter
  *
@@ -1005,19 +1044,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		}
 
 		// Store off the orbit offset, if there is one
-		int32 OrbitOffsetValue = -1;
-		if (LODLevel->OrbitModules.Num() > 0)
-		{
-			UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-			if (OrbitModule)
-			{
-				uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
-				if (OrbitOffsetIndex)
-				{
-					OrbitOffsetValue = *OrbitOffsetIndex;
-				}
-			}
-		}
+		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
 		// For each particle, offset the box appropriately 
 		FVector MinVal(HALF_WORLD_MAX);
@@ -1131,19 +1158,7 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		ParticleBoundingBox.Init();
 
 		// Store off the orbit offset, if there is one
-		int32 OrbitOffsetValue = -1;
-		if (LODLevel->OrbitModules.Num() > 0)
-		{
-			UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-			if (OrbitModule)
-			{
-				uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
-				if (OrbitOffsetIndex)
-				{
-					OrbitOffsetValue = *OrbitOffsetIndex;
-				}
-			}
-		}
+		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 

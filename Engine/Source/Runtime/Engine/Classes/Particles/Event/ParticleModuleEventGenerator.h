@@ -35,6 +35,10 @@ struct FParticleEvent_GenerateInfo
 	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)
 	uint32 UseReflectedImpactVector:1;
 
+	/** Use the orbit offset when computing the position at which the event occurred. */
+	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)
+	uint32 bUseOrbitOffset:1;
+
 	/** Should the event tag with a custom name? Leave blank for the default. */
 	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)
 	FName CustomName;
