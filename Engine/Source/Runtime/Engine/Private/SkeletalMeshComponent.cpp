@@ -1200,11 +1200,6 @@ void USkeletalMeshComponent::UnHideBone( int32 BoneIndex )
 
 bool USkeletalMeshComponent::IsAnySimulatingPhysics() const
 {
-	if( bUseSingleBodyPhysics )
-	{
-		return IsSimulatingPhysics();
-	}
-
 	for ( int32 BodyIndex=0; BodyIndex<Bodies.Num(); ++BodyIndex )
 	{
 		if (Bodies[BodyIndex]->IsInstanceSimulatingPhysics())
@@ -1592,51 +1587,44 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
-	if (bUseSingleBodyPhysics)
-	{
-		return UPrimitiveComponent::CalculateMass();
-	}
-	else
-	{
-		float Mass = 0.0f;
+	float Mass = 0.0f;
 
-		if (Bodies.Num())
+	if (Bodies.Num())
+	{
+		for (int32 i = 0; i < Bodies.Num(); ++i)
 		{
-			for (int32 i = 0; i < Bodies.Num(); ++i)
+			//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
+			if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
 			{
-				//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
-				if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
+				Mass += Bodies[i]->BodySetup->CalculateMass(this);
+			}
+		}
+	}
+	else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
+	{
+		TArray<class UBodySetup*> * BodySetups = NULL;
+		if (PhysicsAssetOverride)
+		{
+			BodySetups = &PhysicsAssetOverride->BodySetup;
+		}
+		else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
+		{
+			BodySetups = &PhysicsAsset->BodySetup;
+		}
+
+		if (BodySetups)
+		{
+			for (int32 i = 0; i < BodySetups->Num(); ++i)
+			{
+				if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
 				{
-					Mass += Bodies[i]->BodySetup->CalculateMass(this);
+					Mass += (*BodySetups)[i]->CalculateMass(this);
 				}
 			}
 		}
-		else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
-		{
-			TArray<class UBodySetup*> * BodySetups = NULL;
-			if (PhysicsAssetOverride)
-			{
-				BodySetups = &PhysicsAssetOverride->BodySetup;
-			}
-			else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
-			{
-				BodySetups = &PhysicsAsset->BodySetup;
-			}
-
-			if (BodySetups)
-			{
-				for (int32 i = 0; i < BodySetups->Num(); ++i)
-				{
-					if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
-					{
-						Mass += (*BodySetups)[i]->CalculateMass(this);
-					}
-				}
-			}
-		}
-
-		return Mass;
 	}
+
+	return Mass;
 }
 
 #if WITH_EDITOR

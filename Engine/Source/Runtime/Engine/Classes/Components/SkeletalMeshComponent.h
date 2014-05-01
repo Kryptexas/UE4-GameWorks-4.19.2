@@ -269,13 +269,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	float GlobalAnimRateScale;
 
-	/**
-	 * Only instance Root Bone rigid body for physics. Mostly used by Vehicles.
-	 * Other Rigid Bodies are ignored for physics, but still considered for traces.
-	 */
-	UPROPERTY()
-	uint32 bUseSingleBodyPhysics:1;
-
 	/** If true, there is at least one body in the current PhysicsAsset with a valid bone in the current SkeletalMesh */
 	UPROPERTY(transient)
 	uint32 bHasValidBodies:1;

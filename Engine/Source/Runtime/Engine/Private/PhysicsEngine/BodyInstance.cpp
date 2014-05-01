@@ -501,7 +501,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	// Get skelmeshcomp ID
 	uint32 SkelMeshCompID = 0;
 	USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
-	if(SkelMeshComp != NULL && !SkelMeshComp->bUseSingleBodyPhysics)
+	if(SkelMeshComp != NULL)
 	{
 		SkelMeshCompID = SkelMeshComp->GetUniqueID();
 

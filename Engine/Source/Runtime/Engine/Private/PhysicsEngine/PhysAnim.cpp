@@ -197,11 +197,6 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 bool USkeletalMeshComponent::ShouldBlendPhysicsBones()
 {
-	if (bUseSingleBodyPhysics)
-	{
-		return false;
-	}
-
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
 		if (Bodies[BodyIndex]->PhysicsBlendWeight > 0.f)
@@ -250,7 +245,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 	// - but if we just update physics bone without update current pose, it will have stale data
 	// If desired, pass the animation data to the physics joints so they can be used by motors.
 	// See if we are going to need to update kinematics
-	const bool bUpdateKinematics = (!bUseSingleBodyPhysics && KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
+	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
 
 	// If desired, update physics bodies associated with skeletal mesh component to match.
 	if( !bUpdateKinematics )

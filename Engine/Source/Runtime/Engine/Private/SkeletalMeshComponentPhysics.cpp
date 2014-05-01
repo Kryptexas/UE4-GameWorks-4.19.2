@@ -379,12 +379,6 @@ void USkeletalMeshComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 		return;
 	}
 
-	if(bUseSingleBodyPhysics)
-	{
-		Super::AddRadialImpulse(Origin, Radius, Strength, Falloff, bVelChange);
-		return;
-	}
-
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		Bodies[i]->AddRadialImpulseToBody(Origin, Radius, Strength, Falloff, bVelChange);
@@ -400,12 +394,6 @@ void USkeletalMeshComponent::AddRadialForce(FVector Origin, float Radius, float 
 		return;
 	}
 
-	if(bUseSingleBodyPhysics)
-	{
-		Super::AddRadialForce(Origin, Radius, Strength, Falloff);
-		return;
-	}
-
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		Bodies[i]->AddRadialForceToBody(Origin, Radius, Strength, Falloff);
@@ -415,35 +403,21 @@ void USkeletalMeshComponent::AddRadialForce(FVector Origin, float Radius, float 
 
 void USkeletalMeshComponent::WakeAllRigidBodies()
 {
-	if(bUseSingleBodyPhysics)
+	for (int32 i=0; i < Bodies.Num(); i++)
 	{
-		Super::WakeAllRigidBodies();
-	}
-	else
-	{
-		for (int32 i=0; i < Bodies.Num(); i++)
-		{
-			FBodyInstance* BI = Bodies[i];
-			check(BI);
-			BI->WakeInstance();
-		}
+		FBodyInstance* BI = Bodies[i];
+		check(BI);
+		BI->WakeInstance();
 	}
 }
 
 void USkeletalMeshComponent::PutAllRigidBodiesToSleep()
 {
-	if(bUseSingleBodyPhysics)
+	for (int32 i=0; i < Bodies.Num(); i++)
 	{
-		Super::PutAllRigidBodiesToSleep();
-	}
-	else
-	{
-		for (int32 i=0; i < Bodies.Num(); i++)
-		{
-			FBodyInstance* BI = Bodies[i];
-			check(BI);
-			BI->PutInstanceToSleep();
-		}
+		FBodyInstance* BI = Bodies[i];
+		check(BI);
+		BI->PutInstanceToSleep();
 	}
 }
 
@@ -452,23 +426,16 @@ bool USkeletalMeshComponent::IsAnyRigidBodyAwake()
 {
 	bool bAwake = false;
 
-	if(bUseSingleBodyPhysics)
+	// ..iterate over each body to find any that are awak
+	for(int32 i=0; i<Bodies.Num(); i++)
 	{
-		bAwake = Super::IsAnyRigidBodyAwake();
-	}
-	else
-	{
-		// ..iterate over each body to find any that are awak
-		for(int32 i=0; i<Bodies.Num(); i++)
+		FBodyInstance* BI = Bodies[i];
+		check(BI);
+		if(BI->IsInstanceAwake())
 		{
-			FBodyInstance* BI = Bodies[i];
-			check(BI);
-			if(BI->IsInstanceAwake())
-			{
-				// Found an awake one - so mesh is considered 'awake'
-				bAwake = true;
-				continue;
-			}
+			// Found an awake one - so mesh is considered 'awake'
+			bAwake = true;
+			continue;
 		}
 	}
 
@@ -478,28 +445,17 @@ bool USkeletalMeshComponent::IsAnyRigidBodyAwake()
 
 void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bAddToCurrent)
 {
-	if(bUseSingleBodyPhysics)
+	for (int32 i=0; i < Bodies.Num(); i++)
 	{
-		Super::SetAllPhysicsLinearVelocity(NewVel, bAddToCurrent);
-	}
-	else
-	{
-		for (int32 i=0; i < Bodies.Num(); i++)
-		{
-			FBodyInstance* BodyInstance = Bodies[i];
-			check(BodyInstance);
-			BodyInstance->SetLinearVelocity(NewVel, bAddToCurrent);
-		}
+		FBodyInstance* BodyInstance = Bodies[i];
+		check(BodyInstance);
+		BodyInstance->SetLinearVelocity(NewVel, bAddToCurrent);
 	}
 }
 
 void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
 {
-	if(bUseSingleBodyPhysics)
-	{
-		Super::SetAllPhysicsAngularVelocity(NewAngVel, bAddToCurrent);
-	}
-	else if(RootBodyIndex < Bodies.Num())
+	if(RootBodyIndex < Bodies.Num())
 	{
 		// Find the root actor. We use its location as the center of the rotation.
 		FBodyInstance* RootBodyInst = Bodies[ RootBodyIndex ];
@@ -521,11 +477,7 @@ void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngV
 
 void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 {
-	if(bUseSingleBodyPhysics)
-	{
-		Super::SetAllPhysicsPosition(NewPos);
-	}
-	else if(RootBodyIndex < Bodies.Num())
+	if(RootBodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewPos
 		FBodyInstance* RootBI = Bodies[RootBodyIndex];
@@ -565,11 +517,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 {
-	if(bUseSingleBodyPhysics)
-	{
-		Super::SetAllPhysicsRotation(NewRot);
-	}
-	else if(RootBodyIndex < Bodies.Num())
+	if(RootBodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
 		FBodyInstance* RootBI = Bodies[RootBodyIndex];
@@ -1174,16 +1122,7 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove )
 	{
-		// In the single body case - treat it like a regular one-body component
-		if (bUseSingleBodyPhysics)
-		{
-			// @todo UE4 rather than always pass false, this function should know if it is being teleported or not!
-			SendPhysicsTransform(false);
-		}
-		else
-		{
-			UpdateKinematicBonesToPhysics(false);
-		}
+		UpdateKinematicBonesToPhysics(false);
 	}
 
 #if WITH_APEX_CLOTHING
@@ -1203,18 +1142,11 @@ void USkeletalMeshComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingO
 
 void USkeletalMeshComponent::CreatePhysicsState()
 {
-	if(bUseSingleBodyPhysics)
-	{
-		Super::CreatePhysicsState(); // use PrimitiveComponent implementation
-	}
-	else 
-	{
-		//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
-		// Init physics
-		InitArticulated(World->GetPhysicsScene());
+	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
+	// Init physics
+	InitArticulated(World->GetPhysicsScene());
 
-		USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
-	}
+	USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
 }
 
 
@@ -1330,11 +1262,6 @@ FName USkeletalMeshComponent::FindConstraintBoneName( int32 ConstraintIndex )
 FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName) const
 {
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
-	if( bUseSingleBodyPhysics )
-	{
-		return Super::GetBodyInstance(BoneName);
-	}
-
 	FBodyInstance* BodyInst = NULL;
 
 	if(PhysicsAsset != NULL)
@@ -1476,19 +1403,12 @@ void USkeletalMeshComponent::UpdateHasValidBodies()
 
 void USkeletalMeshComponent::UpdatePhysicsToRBChannels()
 {
-	if(bUseSingleBodyPhysics)
+	// Iterate over each bone/body.
+	for (int32 i = 0; i < Bodies.Num(); i++)
 	{
-		Super::UpdatePhysicsToRBChannels();
-	}
-	else
-	{
-		// Iterate over each bone/body.
-		for (int32 i = 0; i < Bodies.Num(); i++)
-		{
-			FBodyInstance* BI = Bodies[i];
-			check(BI);
-			BI->UpdatePhysicsFilterData();
-		}
+		FBodyInstance* BI = Bodies[i];
+		check(BI);
+		BI->UpdatePhysicsFilterData();
 	}
 }
 
@@ -1500,11 +1420,6 @@ extern float DebugLineLifetime;
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
 {
 	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
-	if( bUseSingleBodyPhysics )
-	{
-		return Super::LineTraceComponent(OutHit, Start, End, Params);
-	}
-
 	bool bHaveHit = false;
 
 	float MinTime = MAX_FLT;
@@ -1539,11 +1454,6 @@ bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const
 
 bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex)
 {
-	if( bUseSingleBodyPhysics )
-	{
-		return Super::SweepComponent(OutHit,Start,End, CollisionShape, bTraceComplex);
-	}
-
 	bool bHaveHit = false;
 
 	for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
@@ -1569,15 +1479,10 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 
 	// if target is skeletalmeshcomponent and do not support singlebody physics
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if (OtherComp && !OtherComp->bUseSingleBodyPhysics)
+	if (OtherComp)
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapComponent : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
-	}
-
-	if( bUseSingleBodyPhysics )
-	{
-		return Super::ComponentOverlapComponent(PrimComp,Pos,Rot, Params);
 	}
 
 	// calculate the test global pose of the actor
@@ -1635,10 +1540,6 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 
 bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape)
 {
-	if( bUseSingleBodyPhysics )
-	{
-		return Super::OverlapComponent(Pos, Rot, CollisionShape);
-	}
 
 #if WITH_PHYSX
 	PxSphereGeometry PSphereGeom;
@@ -1694,11 +1595,6 @@ bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& R
 bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 #if WITH_PHYSX
-
-	if(bUseSingleBodyPhysics)
-	{
-		return UPrimitiveComponent::ComponentOverlapMulti(OutOverlaps, World, Pos, Rot, TestChannel, Params, ObjectQueryParams);
-	}
 
 	OutOverlaps.Reset();
 
@@ -4254,25 +4150,17 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 
 float USkeletalMeshComponent::GetMass() const
 {
-	if (bUseSingleBodyPhysics)
+	float Mass = 0.0f;
+	for (int32 i=0; i < Bodies.Num(); ++i)
 	{
-		return Super::GetMass();
-	}
-	else
-	{
-		float Mass = 0.0f;
-		for (int32 i=0; i < Bodies.Num(); ++i)
+		FBodyInstance* BI = Bodies[i];
+
+		if (BI->IsValidBodyInstance())
 		{
-			FBodyInstance* BI = Bodies[i];
-
-			if (BI->IsValidBodyInstance())
-			{
-				Mass += BI->GetBodyMass();
-			}
+			Mass += BI->GetBodyMass();
 		}
-		return Mass;
 	}
-
+	return Mass;
 }
 
 // blueprint callable methods 
