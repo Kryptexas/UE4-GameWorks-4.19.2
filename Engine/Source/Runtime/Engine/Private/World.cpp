@@ -656,8 +656,8 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	// checked
 	if (DefaultPhysicsVolume == NULL)
 	{
-	DefaultPhysicsVolume = SpawnActor<APhysicsVolume>(ADefaultPhysicsVolume::StaticClass());
-	DefaultPhysicsVolume->Priority = -1000000;
+		DefaultPhysicsVolume = SpawnActor<APhysicsVolume>(ADefaultPhysicsVolume::StaticClass());
+		DefaultPhysicsVolume->Priority = -1000000;
 	}
 
 	// Find gravity
@@ -668,7 +668,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	}
 
 	// Create physics collision handler, if we have a physics scene
-	if(IVS.bCreatePhysicsScene)
+	if (IVS.bCreatePhysicsScene)
 	{
 		AWorldSettings* WorldSettings = GetWorldSettings();
 		// First look for world override
