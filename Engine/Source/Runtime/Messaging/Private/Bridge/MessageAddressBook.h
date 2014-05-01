@@ -35,8 +35,8 @@ public:
 	/**
 	 * Adds an address to the address book.
 	 *
-	 * @Address - The message address to add.
-	 * @NodeId - The identifier of the transport node that handles the message address.
+	 * @Address The message address to add.
+	 * @NodeId The identifier of the transport node that handles the message address.
 	 */
 	void Add( const FMessageAddress& Address, const FGuid& NodeId )
 	{
@@ -58,7 +58,7 @@ public:
 	/**
 	 * Checks whether this address book contains the given address.
 	 *
-	 * @param Address - The address to check.
+	 * @param Address The address to check.
 	 *
 	 * @return true if the address is known, false otherwise.
 	 */
@@ -72,7 +72,7 @@ public:
 	/**
 	 * Gets the transport node identifiers for the specified list of message addresses.
 	 *
-	 * @param Addresses - The address list to retrieve the node identifiers for.
+	 * @param Addresses The address list to retrieve the node identifiers for.
 	 *
 	 * @return The list of node identifiers.
 	 */
@@ -101,7 +101,7 @@ public:
 	 * To remove only the addresses for a specific transport node, use RemoveNode().
 	 * If you are not interested in the removed addresses, use Clear().
 	 *
-	 * @param OutRemovedRecipients - Will hold a list of recipients that were removed.
+	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 *
 	 * @see Clear
 	 * @see RemoveNode
@@ -119,8 +119,8 @@ public:
 	/**
 	 * Removes all known message addresses for the specified transport node identifier.
 	 *
-	 * @param NodeId - The identifier of the transport node to remove.
-	 * @param OutRemovedRecipients - Will hold a list of recipients that were removed.
+	 * @param NodeId The identifier of the transport node to remove.
+	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 *
 	 * @see Clear
 	 * @see RemoveAllNodes

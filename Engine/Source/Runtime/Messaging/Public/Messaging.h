@@ -7,7 +7,7 @@
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "CoreUObject.h"
@@ -15,7 +15,7 @@
 #include "TaskGraphInterfaces.h"
 
 
-/* Interfaces
+/* Public Interfaces
  *****************************************************************************/
 
 #include "IMessageAttachment.h"
@@ -37,7 +37,7 @@
 #include "IMessagingModule.h"
 
 
-/* Common
+/* Public Common
  *****************************************************************************/
 
 #include "FileMessageAttachment.h"

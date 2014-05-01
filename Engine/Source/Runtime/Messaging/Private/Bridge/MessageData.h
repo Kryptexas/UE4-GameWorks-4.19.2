@@ -40,7 +40,7 @@ public:
 	/**
 	 * Updates the state of this message data.
 	 *
-	 * @param InState - The state to set.
+	 * @param InState The state to set.
 	 */
 	void UpdateState( EMessageDataState::Type InState )
 	{

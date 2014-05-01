@@ -17,9 +17,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InMessageContext - The context of the message to forward.
-	 * @param InBus - The message bus to forward the message to.
-	 * @param InBridge - The sender that is forwarding the message.
+	 * @param InMessageContext The context of the message to forward.
+	 * @param InBus The message bus to forward the message to.
+	 * @param InBridge The sender that is forwarding the message.
 	 */
 	FMessageForwardTask( IMessageContextRef InMessageContext, IMessageBusRef InBus, ISendMessagesRef InSender )
 		: BusPtr(InBus)
@@ -32,8 +32,8 @@ public:
 	/**
 	 * Performs the actual task.
 	 *
-	 * @param CurrentThread - The thread that this task is executing on.
-	 * @param MyCompletionGraphEvent - The completion event.
+	 * @param CurrentThread The thread that this task is executing on.
+	 * @param MyCompletionGraphEvent The completion event.
 	 */
 	void DoTask( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent )
 	{

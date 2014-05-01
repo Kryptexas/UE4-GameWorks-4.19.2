@@ -75,7 +75,7 @@ public:
 	/**
 	 * Handles the given message.
 	 *
-	 * @param Context - Will hold the context of the received message.
+	 * @param Context Will hold the context of the received message.
 	 */
 	virtual void ReceiveMessage( const IMessageContextRef& Context ) = 0;
 

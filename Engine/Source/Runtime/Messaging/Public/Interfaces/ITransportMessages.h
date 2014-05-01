@@ -81,9 +81,9 @@ public:
 	/**
 	 * Transports the given message data to the specified network nodes.
 	 *
-	 * @param Data - The serialized message data to transport.
-	 * @param Attachment - An optional message attachment (i.e. file or memory buffer).
-	 * @param Recipients - The transport nodes to send the message to.
+	 * @param Data The serialized message data to transport.
+	 * @param Attachment An optional message attachment (i.e. file or memory buffer).
+	 * @param Recipients The transport nodes to send the message to.
 	 *
 	 * @return true if the message is being transported, false otherwise.
 	 */
@@ -94,21 +94,21 @@ public:
 	/**
 	 * Returns a delegate that is executed when message data has been received.
 	 *
-	 * @param Delegate - The delegate to set.
+	 * @param Delegate The delegate to set.
 	 */
 	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) = 0;
 
 	/**
 	 * Returns a delegate that is executed when a transport node has been discovered.
 	 *
-	 * @param Delegate - The delegate to set.
+	 * @param Delegate The delegate to set.
 	 */
 	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered( ) = 0;
 
 	/**
 	 * Returns a delegate that is executed when a transport node has closed or timed out.
 	 *
-	 * @param Delegate - The delegate to set.
+	 * @param Delegate The delegate to set.
 	 */
 	virtual FOnMessageTransportNodeLost& OnNodeLost( ) = 0;
 

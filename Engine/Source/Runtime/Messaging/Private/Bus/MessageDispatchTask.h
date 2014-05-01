@@ -17,10 +17,10 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InThread - The name of the thread to dispatch the message on.
-	 * @param InContext - The context of the message to dispatch.
-	 * @param InRecipient - The message recipient.
-	 * @param InTracer - The message tracer to notify.
+	 * @param InThread The name of the thread to dispatch the message on.
+	 * @param InContext The context of the message to dispatch.
+	 * @param InRecipient The message recipient.
+	 * @param InTracer The message tracer to notify.
 	 */
 	FMessageDispatchTask( ENamedThreads::Type InThread, IMessageContextRef InContext, IReceiveMessagesWeakPtr InRecipient, FMessageTracerPtr InTracer )
 		: Context(InContext)
@@ -34,8 +34,8 @@ public:
 	/**
 	 * Performs the actual task.
 	 *
-	 * @param CurrentThread - The thread that this task is executing on.
-	 * @param MyCompletionGraphEvent - The completion event.
+	 * @param CurrentThread The thread that this task is executing on.
+	 * @param MyCompletionGraphEvent The completion event.
 	 */
 	void DoTask( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent )
 	{

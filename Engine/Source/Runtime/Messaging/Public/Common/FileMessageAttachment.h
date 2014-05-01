@@ -18,7 +18,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param Filename - The full name and path of the file.
+	 * @param Filename The full name and path of the file.
 	 */
 	FFileMessageAttachment( const FString& InFilename )
 		: AutoDeleteFile(false)
@@ -28,8 +28,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param Filename - The full name and path of the file.
-	 * @param AutoDeleteFile - Whether to delete the file when this attachment is destroyed.
+	 * @param Filename The full name and path of the file.
+	 * @param AutoDeleteFile Whether to delete the file when this attachment is destroyed.
 	 */
 	FFileMessageAttachment( const FString& InFilename, bool InAutoDeleteFile )
 		: AutoDeleteFile(InAutoDeleteFile)

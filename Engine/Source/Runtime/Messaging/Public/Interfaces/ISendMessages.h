@@ -32,8 +32,8 @@ public:
 	/**
 	 * Notifies the sender of errors.
 	 *
-	 * @param Context - The context of the message that generated the error.
-	 * @param Error - The error string.
+	 * @param Context The context of the message that generated the error.
+	 * @param Error The error string.
 	 */
 	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) = 0;
 

@@ -31,8 +31,8 @@ public:
 	/**
 	 * Deserializes a message from an archive.
 	 *
-	 * @param Data - The archive to serialize from.
-	 * @param OutContext - Will hold the context of the deserialized message.
+	 * @param Data The archive to serialize from.
+	 * @param OutContext Will hold the context of the deserialized message.
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
@@ -41,8 +41,8 @@ public:
 	/**
 	 * Serializes a message into an archive.
 	 *
-	 * @param Context - The context of the message to serialize.
-	 * @param Archive - The archive to serialize into.
+	 * @param Context The context of the message to serialize.
+	 * @param Archive The archive to serialize into.
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */

@@ -17,9 +17,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InMessageContext - The context of the message to serialize.
-	 * @param InMessageData - Will hold the serialized message data.
-	 * @param InSerializer - The serializer to use.
+	 * @param InMessageContext The context of the message to serialize.
+	 * @param InMessageData Will hold the serialized message data.
+	 * @param InSerializer The serializer to use.
 	 */
 	FMessageSerializeTask( IMessageContextRef InMessageContext, FMessageDataRef InMessageData, ISerializeMessagesRef InSerializer )
 		: MessageContext(InMessageContext)
@@ -32,8 +32,8 @@ public:
 	/**
 	 * Performs the actual task.
 	 *
-	 * @param CurrentThread - The thread that this task is executing on.
-	 * @param MyCompletionGraphEvent - The completion event.
+	 * @param CurrentThread The thread that this task is executing on.
+	 * @param MyCompletionGraphEvent The completion event.
 	 */
 	void DoTask( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent )
 	{

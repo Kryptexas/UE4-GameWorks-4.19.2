@@ -28,8 +28,8 @@ public:
 	/**
 	 * Authorizes a request to intercept messages of the specified type.
 	 *
-	 * @param Interceptor - The message interceptor to authorize.
-	 * @param MessageType - The type of messages to intercept.
+	 * @param Interceptor The message interceptor to authorize.
+	 * @param MessageType The type of messages to intercept.
 	 *
 	 * @return true if the request was authorized, false otherwise.
 	 */
@@ -38,8 +38,8 @@ public:
 	/**
 	 * Authorizes a request to register the specified recipient.
 	 *
-	 * @param Recipient - The recipient to register.
-	 * @param Address - The recipient's address.
+	 * @param Recipient The recipient to register.
+	 * @param Address The recipient's address.
 	 *
 	 * @return true if the request was authorized, false otherwise.
 	 */
@@ -48,8 +48,8 @@ public:
 	/**
 	 * Authorizes a request to add a subscription for the specified topic pattern.
 	 *
-	 * @param Subscriber - The subscriber.
-	 * @param TopicPattern - The message topic pattern to subscribe to.
+	 * @param Subscriber The subscriber.
+	 * @param TopicPattern The message topic pattern to subscribe to.
 	 *
 	 * @return true if the request is authorized, false otherwise.
 	 */
@@ -58,7 +58,7 @@ public:
 	/**
 	 * Authorizes a request to unregister the specified recipient.
 	 *
-	 * @param Address - The address of the recipient to unregister.
+	 * @param Address The address of the recipient to unregister.
 	 *
 	 * @return true if the request was authorized, false otherwise.
 	 */
@@ -67,8 +67,8 @@ public:
 	/**
 	 * Authorizes a request to remove a subscription for the specified topic pattern.
 	 *
-	 * @param Subscriber - The subscriber.
-	 * @param TopicPattern - The message topic pattern to unsubscribe from.
+	 * @param Subscriber The subscriber.
+	 * @param TopicPattern The message topic pattern to unsubscribe from.
 	 *
 	 * @return true if the request is authorized, false otherwise.
 	 */

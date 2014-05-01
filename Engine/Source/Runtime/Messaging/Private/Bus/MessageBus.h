@@ -19,7 +19,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InRecipientAuthorizer - An optional recipient authorizer.
+	 * @param InRecipientAuthorizer An optional recipient authorizer.
 	 */
 	FMessageBus( const IAuthorizeMessageRecipientsPtr& InRecipientAuthorizer );
 

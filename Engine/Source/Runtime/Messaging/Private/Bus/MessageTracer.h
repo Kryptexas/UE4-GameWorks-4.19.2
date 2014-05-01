@@ -66,8 +66,8 @@ public:
 	/**
 	 * Notifies the tracer that a message interceptor has been added to the message bus.
 	 *
-	 * @param Interceptor - The added interceptor.
-	 * @param MessageType - The type of messages being intercepted.
+	 * @param Interceptor The added interceptor.
+	 * @param MessageType The type of messages being intercepted.
 	 */
 	void TraceAddedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
 	{
@@ -78,8 +78,8 @@ public:
 	/**
 	 * Notifies the tracer that a message recipient has been added to the message bus.
 	 *
-	 * @param Address - The address of the added recipient.
-	 * @param Recipient - The added recipient.
+	 * @param Address The address of the added recipient.
+	 * @param Recipient The added recipient.
 	 */
 	void TraceAddedRecipient( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient )
 	{
@@ -89,7 +89,7 @@ public:
 	/**
 	 * Notifies the tracer that a message subscription has been added to the message bus.
 	 *
-	 * @param Subscription - The added subscription.
+	 * @param Subscription The added subscription.
 	 */
 	void TraceAddedSubscription( const IMessageSubscriptionRef& Subscription )
 	{
@@ -103,9 +103,9 @@ public:
 	/**
 	 * Notifies the tracer that a message has been dispatched.
 	 *
-	 * @param Context - The context of the dispatched message.
-	 * @param Recipient - The message recipient.
-	 * @param Async - Whether the message was dispatched asynchronously.
+	 * @param Context The context of the dispatched message.
+	 * @param Recipient The message recipient.
+	 * @param Async Whether the message was dispatched asynchronously.
 	 */
 	void TraceDispatchedMessage( const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient, bool Async )
 	{
@@ -120,8 +120,8 @@ public:
 	/**
 	 * Notifies the tracer that a message has been handled.
 	 *
-	 * @param Context - The context of the dispatched message.
-	 * @param Recipient - The message recipient that handled the message.
+	 * @param Context The context of the dispatched message.
+	 * @param Recipient The message recipient that handled the message.
 	 */
 	void TraceHandledMessage( const IMessageContextRef& Context, const IReceiveMessagesRef& Recipient )
 	{
@@ -136,8 +136,8 @@ public:
 	/**
 	 * Notifies the tracer that a message has been intercepted.
 	 *
-	 * @param Context - The context of the intercepted message.
-	 * @param Interceptor - The interceptor.
+	 * @param Context The context of the intercepted message.
+	 * @param Interceptor The interceptor.
 	 */
 	void TraceInterceptedMessage( const IMessageContextRef& Context, const IInterceptMessagesRef& Interceptor )
 	{
@@ -150,8 +150,8 @@ public:
 	/**
 	 * Notifies the tracer that a message interceptor has been removed from the message bus.
 	 *
-	 * @param Interceptor - The removed interceptor.
-	 * @param MessageType - The type of messages that is no longer being intercepted.
+	 * @param Interceptor The removed interceptor.
+	 * @param MessageType The type of messages that is no longer being intercepted.
 	 */
 	void TraceRemovedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
 	{
@@ -165,7 +165,7 @@ public:
 	/**
 	 * Notifies the tracer that a recipient has been removed from the message bus.
 	 *
-	 * @param Address - The address of the removed recipient.
+	 * @param Address The address of the removed recipient.
 	 */
 	void TraceRemovedRecipient( const FMessageAddress& Address )
 	{
@@ -179,8 +179,8 @@ public:
 	/**
 	 * Notifies the tracer that a message subscription has been removed from the message bus.
 	 *
-	 * @param Subscriber - The removed subscriber.
-	 * @param MessageType - The type of messages no longer being subscribed to.
+	 * @param Subscriber The removed subscriber.
+	 * @param MessageType The type of messages no longer being subscribed to.
 	 */
 	void TraceRemovedSubscription( const IMessageSubscriptionRef& Subscription, const FName& MessageType )
 	{
@@ -194,7 +194,7 @@ public:
 	/**
 	 * Notifies the tracer that a message has been routed.
 	 *
-	 * @param Context - The context of the routed message.
+	 * @param Context The context of the routed message.
 	 */
 	void TraceRoutedMessage( const IMessageContextRef& Context )
 	{
@@ -215,7 +215,7 @@ public:
 	/**
 	 * Notifies the tracer that a message has been sent.
 	 *
-	 * @param Context - The context of the sent message.
+	 * @param Context The context of the sent message.
 	 */
 	void TraceSentMessage( const IMessageContextRef& Context )
 	{
@@ -333,7 +333,7 @@ protected:
 	/**
 	 * Enqueues a trace action for synchronized processing.
 	 *
-	 * @param Trace - The action to enqueue.
+	 * @param Trace The action to enqueue.
 	 */
 	FORCEINLINE void EnqueueTrace( TBaseDelegate_NoParams<void> Trace )
 	{
@@ -343,85 +343,85 @@ protected:
 	/**
 	 * Processes traces for added message interceptors.
 	 *
-	 * @param Name - The name of the interceptor.
-	 * @param MessageType - The type of messages being intercepted.
-	 * @param TimeSecond - The time at which the interceptor was added.
+	 * @param Name The name of the interceptor.
+	 * @param MessageType The type of messages being intercepted.
+	 * @param TimeSecond The time at which the interceptor was added.
 	 */
 	void ProcessAddedInterceptor( FString Name, FName MessageType, double TimeSeconds );
 
 	/**
 	 * Processes traces for added message recipients.
 	 *
-	 * @param Address - The address of the added recipient.
-	 * @param RecipientInfo - Information about the recipient (name, ID, etc.)
-	 * @param TimeSecond - The time at which the recipient was added.
+	 * @param Address The address of the added recipient.
+	 * @param RecipientInfo Information about the recipient (name, ID, etc.)
+	 * @param TimeSecond The time at which the recipient was added.
 	 */
 	void ProcessAddedRecipient( FMessageAddress Address, FRecipientInfo RecipientInfo, double TimeSeconds );
 
 	/**
 	 * Processes traces for added message subscriptions.
 	 *
-	 * @param TimeSecond - The time at which the subscription was added.
+	 * @param TimeSecond The time at which the subscription was added.
 	 */
 	void ProcessAddedSubscriptionTrace( double TimeSeconds );
 
 	/**
 	 * Processes traces for dispatched messages.
 	 *
-	 * @param Context - The context of the dispatched message.
-	 * @param TimeSecond - The time at which the message was dispatched.
-	 * @param RecipientId - The recipient's unique identifier.
-	 * @param Async - Whether the message was dispatched asynchronously.
+	 * @param Context The context of the dispatched message.
+	 * @param TimeSecond The time at which the message was dispatched.
+	 * @param RecipientId The recipient's unique identifier.
+	 * @param Async Whether the message was dispatched asynchronously.
 	 */
 	void ProcessDispatchedMessage( IMessageContextRef Context, double TimeSeconds, FGuid RecipientId, bool Async );
 
 	/**
 	 * Processes traces for handled messages.
 	 *
-	 * @param Context - The context of the handled message.
-	 * @param TimeSecond - The time at which the message was handled.
-	 * @param RecipientId - The recipient's unique identifier.
+	 * @param Context The context of the handled message.
+	 * @param TimeSecond The time at which the message was handled.
+	 * @param RecipientId The recipient's unique identifier.
 	 */
 	void ProcessHandledMessage( IMessageContextRef Context, double TimeSeconds, FGuid RecipientId );
 
 	/**
 	 * Processes traces for removed message interceptors.
 	 *
-	 * @param Interceptor - The removed interceptor.
-	 * @param MessageType - The type of messages no longer being intercepted.
-	 * @param TimeSecond - The time at which the interceptor was removed.
+	 * @param Interceptor The removed interceptor.
+	 * @param MessageType The type of messages no longer being intercepted.
+	 * @param TimeSecond The time at which the interceptor was removed.
 	 */
 	void ProcessRemovedInterceptor( IInterceptMessagesRef Interceptor, FName MessageType, double TimeSeconds );
 
 	/**
 	 * Processes traces for removed message recipients.
 	 *
-	 * @param Address - The address of the removed recipient.
-	 * @param TimeSecond - The time at which the recipient was removed.
+	 * @param Address The address of the removed recipient.
+	 * @param TimeSecond The time at which the recipient was removed.
 	 */
 	void ProcessRemovedRecipient( FMessageAddress Address, double TimeSeconds );
 
 	/**
 	 * Processes traces for removed message subscriptions.
 	 *
-	 * @param MessageType - The type of messages no longer being subscribed to.
-	 * @param TimeSecond - The time at which the subscription was removed.
+	 * @param MessageType The type of messages no longer being subscribed to.
+	 * @param TimeSecond The time at which the subscription was removed.
 	 */
 	void ProcessRemovedSubscription( FName MessageType, double TimeSeconds );
 
 	/**
 	 * Processes traces for routed messages.
 	 *
-	 * @param Context - The context of the routed message.
-	 * @param TimeSecond - The time at which the message was routed.
+	 * @param Context The context of the routed message.
+	 * @param TimeSecond The time at which the message was routed.
 	 */
 	void ProcessRoutedMessage( IMessageContextRef Context, double TimeSeconds );
 
 	/**
 	 * Processes traces for sent messages.
 	 *
-	 * @param Context - The context of the sent message.
-	 * @param TimeSecond - The time at which the message was sent.
+	 * @param Context The context of the sent message.
+	 * @param TimeSecond The time at which the message was sent.
 	 */
 	void ProcessSentMessage( IMessageContextRef Context, double TimeSeconds );
 
@@ -433,7 +433,7 @@ protected:
 	/**
 	 * Checks whether the tracer should break on the given message.
 	 *
-	 * @param Context - The context of the message to consider for breaking.
+	 * @param Context The context of the message to consider for breaking.
 	 */
 	bool ShouldBreak( const IMessageContextRef& Context ) const;
 

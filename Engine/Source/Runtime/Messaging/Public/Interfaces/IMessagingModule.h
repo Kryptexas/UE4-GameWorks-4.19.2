@@ -21,10 +21,10 @@ public:
 	 * Message bridges translate messages between a message bus and another means of
 	 * message transportation, such as network sockets.
 	 *
-	 * @param Address - The bridge's address on the message bus.
-	 * @param Bus - The message bus to attach the bridge to.
-	 * @param Serializer - The message serializer to use.
-	 * @param Transport - The message transport technology to use.
+	 * @param Address The bridge's address on the message bus.
+	 * @param Bus The message bus to attach the bridge to.
+	 * @param Serializer The message serializer to use.
+	 * @param Transport The message transport technology to use.
 	 *
 	 * @return The new message bridge, or NULL if the bridge couldn't be created.
 	 *
@@ -35,7 +35,7 @@ public:
 	/**
 	 * Creates a new message bus.
 	 *
-	 * @param RecipientAuthorizer - An optional recipient authorizer.
+	 * @param RecipientAuthorizer An optional recipient authorizer.
 	 *
 	 * @return The new message bus, or NULL if the bus couldn't be created.
 	 *
@@ -62,7 +62,7 @@ public:
 	/**
 	 * Gets a reference to the messaging module instance.
 	 *
-	 * @todo gmp - better implementation using dependency injection.
+	 * @todo gmp: better implementation using dependency injection.
 	 *
 	 * @return A reference to the Messaging module.
 	 */
