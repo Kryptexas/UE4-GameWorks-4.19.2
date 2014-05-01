@@ -92,6 +92,9 @@ public:
 	// Map from animation node to their property index
 	TMap<TWeakObjectPtr<class UAnimGraphNode_Base>, int32> NodePropertyToIndexMap;
 
+	// Map from animation node GUID to property index
+	TMap<FGuid, int32> NodeGuidToIndexMap;
+
 	// History of snapshots of animation data
 	TSimpleRingBuffer<FAnimationFrameSnapshot>* SnapshotBuffer;
 
@@ -164,6 +167,17 @@ public:
 #endif
 };
 
+#if WITH_EDITORONLY_DATA
+namespace EPropertySearchMode
+{
+	enum Type
+	{
+		OnlyThis,
+		Hierarchy
+	};
+}
+#endif
+
 UCLASS(dependson=(UAnimBlueprint, UAnimStateMachineTypes))
 class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
@@ -172,7 +186,7 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	// List of state machines present in this blueprint class
 	UPROPERTY()
 	TArray<FBakedAnimationStateMachine> BakedStateMachines;
-	
+
 	/** Target skeleton for this blueprint class */
 	UPROPERTY()
 	class USkeleton* TargetSkeleton;
@@ -198,15 +212,37 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	}
 
 	template<typename StructType>
-	StructType* GetPropertyInstance(UObject* Object, class UAnimGraphNode_Base* Node)
+	const int32* GetNodePropertyIndexFromHierarchy(class UAnimGraphNode_Base* Node)
 	{
-		if (int32* pIndex = AnimBlueprintDebugData.NodePropertyToIndexMap.Find(Node))
+		TArray<const UBlueprintGeneratedClass*> BlueprintHierarchy;
+		GetGeneratedClassesHierarchy(this, BlueprintHierarchy);
+
+		for (const UBlueprintGeneratedClass* Blueprint : BlueprintHierarchy)
+		{
+			if (const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(Blueprint))
+			{
+				const int32* SearchIndex = AnimBlueprintClass->AnimBlueprintDebugData.NodePropertyToIndexMap.Find(Node);
+				if (SearchIndex)
+				{
+					return SearchIndex;
+				}
+			}
+
+		}
+		return NULL;
+	}
+
+	template<typename StructType>
+	UStructProperty* GetPropertyForNode(class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	{
+		const int32* pIndex = SearchMode == EPropertySearchMode::OnlyThis ? AnimBlueprintDebugData.NodePropertyToIndexMap.Find(Node) : GetNodePropertyIndexFromHierarchy<StructType>(Node);
+		if (pIndex)
 		{
 			if (UStructProperty* AnimationProperty = AnimNodeProperties[AnimNodeProperties.Num() - 1 - *pIndex])
 			{
 				if (AnimationProperty->Struct->IsChildOf(StructType::StaticStruct()))
 				{
-					return AnimationProperty->ContainerPtrToValuePtr<StructType>((void*)Object);
+					return AnimationProperty;
 				}
 			}
 		}
@@ -215,7 +251,37 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	}
 
 	template<typename StructType>
-	StructType& GetPropertyInstanceChecked(UObject* Object, class UAnimGraphNode_Base* Node)
+	StructType* GetPropertyInstance(UObject* Object, class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	{
+		UStructProperty* AnimationProperty = GetPropertyForNode<StructType>(Node);
+		if (AnimationProperty)
+		{
+			return AnimationProperty->ContainerPtrToValuePtr<StructType>((void*)Object);
+		}
+
+		return NULL;
+	}
+
+	template<typename StructType>
+	StructType* GetPropertyInstance(UObject* Object, FGuid NodeGuid, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
+	{
+		const int32* pIndex = GetNodePropertyIndexFromGuid(NodeGuid, SearchMode);
+		if (pIndex)
+		{
+			if (UStructProperty* AnimProperty = AnimNodeProperties[AnimNodeProperties.Num() - 1 - *pIndex])
+			{
+				if (AnimProperty->Struct->IsChildOf(StructType::StaticStruct()))
+				{
+					return AnimProperty->ContainerPtrToValuePtr<StructType>((void*)Object);
+				}
+			}
+		}
+
+		return NULL;
+	}
+
+	template<typename StructType>
+	StructType& GetPropertyInstanceChecked(UObject* Object, class UAnimGraphNode_Base* Node, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis)
 	{
 		const int32 Index = AnimBlueprintDebugData.NodePropertyToIndexMap.FindChecked(Node);
 		UStructProperty* AnimationProperty = AnimNodeProperties[AnimNodeProperties.Num() - 1 - Index];
@@ -223,6 +289,9 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 		check(AnimationProperty->Struct->IsChildOf(StructType::StaticStruct()));
 		return AnimationProperty->ContainerPtrToValuePtr<StructType>((void*)Object);
 	}
+
+	const int32* GetNodePropertyIndexFromGuid(FGuid Guid, EPropertySearchMode::Type SearchMode = EPropertySearchMode::OnlyThis);
+
 #endif
 
 	// UStruct interface

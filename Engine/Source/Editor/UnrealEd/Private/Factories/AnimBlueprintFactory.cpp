@@ -378,6 +378,14 @@ UObject* UAnimBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 	else
 	{
 		UAnimBlueprint* NewBP = CastChecked<UAnimBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BlueprintType, UAnimBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext));
+		
+		// Inherit any existing overrides in parent class
+		if (NewBP->ParentAssetOverrides.Num() > 0)
+		{
+			// We've inherited some overrides from the parent graph and need to recompile the blueprint.
+			FKismetEditorUtilities::CompileBlueprint(NewBP);
+		}
+		
 		NewBP->TargetSkeleton = TargetSkeleton;
 
 		// Because the BP itself didn't have the skeleton set when the initial compile occured, it's not set on the generated classes either

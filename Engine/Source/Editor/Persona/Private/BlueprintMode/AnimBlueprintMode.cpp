@@ -17,7 +17,7 @@
 FAnimBlueprintEditAppMode::FAnimBlueprintEditAppMode(TSharedPtr<FPersona> InPersona)
 	: FBlueprintEditorApplicationMode(StaticCastSharedPtr<FBlueprintEditor>(InPersona), FPersonaModes::AnimBlueprintEditMode, false, false)
 {
-	TabLayout = FTabManager::NewLayout( "Persona_AnimBlueprintEditMode_Layout_v5" )
+	TabLayout = FTabManager::NewLayout( "Persona_AnimBlueprintEditMode_Layout_v6" )
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -53,8 +53,8 @@ FAnimBlueprintEditAppMode::FAnimBlueprintEditAppMode(TSharedPtr<FPersona> InPers
 						//	Left bottom - preview settings
 						FTabManager::NewStack()
 						->SetSizeCoefficient(0.5f)
-						->SetHideTabWell(true)
 						->AddTab( FPersonaTabs::AnimBlueprintDefaultsEditorID, ETabState::OpenedTab )
+						->AddTab( FPersonaTabs::AnimBlueprintParentPlayerEditorID, ETabState::ClosedTab )
 					)
 				)
 				->Split
@@ -110,6 +110,7 @@ FAnimBlueprintEditAppMode::FAnimBlueprintEditAppMode(TSharedPtr<FPersona> InPers
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintDefaultsEditorSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimBlueprintParentPlayerEditorSummoner(InPersona)));
 
 	// setup toolbar - clear existing toolbar extender from the BP mode
 	//@TODO: Keep this in sync with BlueprintEditorModes.cpp

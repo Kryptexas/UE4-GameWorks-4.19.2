@@ -143,7 +143,7 @@ void UAnimGraphNode_Base::InternalPinCreation(TArray<UEdGraphPin*>* OldPins)
 	PreloadRequiredAssets();
 
 	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-	if (UStructProperty* NodeStruct = GetFNodeProperty())
+	if (const UStructProperty* NodeStruct = GetFNodeProperty())
 	{
 		// Display any currently visible optional pins
 		{
@@ -233,7 +233,7 @@ TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMen
 	return NodeAction;
 }
 
-void UAnimGraphNode_Base::GetPinAssociatedProperty(UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex)
+void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex)
 {
 	OutProperty = NULL;
 	OutIndex = INDEX_NONE;
@@ -261,7 +261,7 @@ void UAnimGraphNode_Base::GetPinAssociatedProperty(UScriptStruct* NodeType, UEdG
 	}
 }
 
-FPoseLinkMappingRecord UAnimGraphNode_Base::GetLinkIDLocation(UScriptStruct* NodeType, UEdGraphPin* SourcePin)
+FPoseLinkMappingRecord UAnimGraphNode_Base::GetLinkIDLocation(const UScriptStruct* NodeType, UEdGraphPin* SourcePin)
 {
 	if (SourcePin->LinkedTo.Num() > 0)
 	{

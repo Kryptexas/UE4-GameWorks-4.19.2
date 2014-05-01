@@ -669,7 +669,7 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
-		.IsEditable(this, &FBlueprintEditor::InEditingMode)
+		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
 		.TitleBar(TitleBarWidget)
 		.TitleBarEnabledOnly(bIsInterface || bIsDelegate)
 		.Appearance(this, &FBlueprintEditor::GetGraphAppearance)
@@ -3887,7 +3887,8 @@ void FBlueprintEditor::DeleteSelectedNodes()
 bool FBlueprintEditor::CanDeleteNodes() const
 {
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
-	return InEditingMode() && (SelectedNodes.Num() > 0);
+
+	return IsEditable(GetFocusedGraph()) && (SelectedNodes.Num() > 0);
 }
 
 void FBlueprintEditor::DeleteSelectedDuplicatableNodes()
@@ -4282,7 +4283,7 @@ bool FBlueprintEditor::CanPasteNodes() const
 	FString ClipboardContent;
 	FPlatformMisc::ClipboardPaste(ClipboardContent);
 
-	return InEditingMode() && FEdGraphUtilities::CanImportNodesFromText(FocusedGraphEd->GetCurrentGraph(), ClipboardContent);
+	return IsEditable(GetFocusedGraph()) && FEdGraphUtilities::CanImportNodesFromText(FocusedGraphEd->GetCurrentGraph(), ClipboardContent);
 }
 
 void FBlueprintEditor::DuplicateNodes()
@@ -4294,7 +4295,7 @@ void FBlueprintEditor::DuplicateNodes()
 
 bool FBlueprintEditor::CanDuplicateNodes() const
 {
-	return CanCopyNodes() && InEditingMode();
+	return CanCopyNodes() && IsEditable(GetFocusedGraph());
 }
 
 void FBlueprintEditor::OnAssignReferencedActor()
@@ -5697,7 +5698,7 @@ void FBlueprintEditor::OnRenameNode()
 
 bool FBlueprintEditor::CanRenameNodes() const
 {
-	if(InEditingMode())
+	if (IsEditable(GetFocusedGraph()))
 	{
 		const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 		bool bCanRenameNodes = (SelectedNodes.Num() == 1) ? true : false;
@@ -6180,6 +6181,31 @@ UEdGraph* FBlueprintEditor::GetFocusedGraph() const
 		return FocusedGraphEdPtr.Pin()->GetCurrentGraph();
 	}
 	return nullptr;
+}
+
+bool FBlueprintEditor::IsEditable(UEdGraph* InGraph) const
+{
+	return InEditingMode() && InGraph && InGraph->bEditable;
+}
+
+FString FBlueprintEditor::GetGraphDecorationString(UEdGraph* InGraph) const
+{
+	return TEXT("");
+}
+
+bool FBlueprintEditor::IsGraphInCurrentBlueprint(UEdGraph* InGraph) const
+{
+	bool bEditable = true;
+
+	UBlueprint* EditingBP = GetBlueprintObj();
+	if(EditingBP)
+	{
+		TArray<UEdGraph*> Graphs;
+		EditingBP->GetAllGraphs(Graphs);
+		bEditable &= Graphs.Contains(InGraph);
+	}
+
+	return bEditable;
 }
 
 /////////////////////////////////////////////////////

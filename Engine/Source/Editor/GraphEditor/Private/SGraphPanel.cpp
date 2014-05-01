@@ -459,14 +459,26 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 	++MaxLayerId;
 	PaintSurroundSunkenShadow(FEditorStyle::GetBrush(TEXT("Graph.Shadow")), AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
 
-	// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
+	const FSlateBrush* BorderBrush = nullptr;
 	if (bShowPIENotification && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
 	{
+		// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
+		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor"));
+	}
+	else if (!IsEditable.Get())
+	{
+		// Draw a different border when we're not simulating but the graph is read-only
+		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.ReadOnlyBorder"));
+	}
+
+	if (BorderBrush)
+	{
+		// Actually draw the border
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			MaxLayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")),
+			BorderBrush,
 			MyClippingRect
 			);
 	}

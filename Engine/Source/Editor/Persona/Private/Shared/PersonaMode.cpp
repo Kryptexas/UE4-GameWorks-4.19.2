@@ -5,6 +5,7 @@
 #include "Persona.h"
 #include "SSkeletonAnimNotifies.h"
 #include "IDocumentation.h"
+#include "SAnimBlueprintParentPlayerList.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -20,6 +21,8 @@ const FName FPersonaTabs::RetargetSourceManagerID("RetargetSourceManager");
 // Explorer
 // Blueprint Defaults
 const FName FPersonaTabs::AnimBlueprintDefaultsEditorID("AnimBlueprintDefaultsEditor");
+
+const FName FPersonaTabs::AnimBlueprintParentPlayerEditorID("AnimBlueprintParentPlayerEditor");
 // Anim Document
 const FName FPersonaTabs::ScrubberID("ScrubberTab");
 
@@ -366,4 +369,26 @@ void FAnimBlueprintDefaultsEditorSummoner::OnCheckedChanged(ESlateCheckBoxState:
 		CurrentMode = Mode;
 	}
 }
+
+//////////////////////////////////////////////////////////////////////////
+// FAnimBlueprintParentPlayerEditorSummoner
+
+FAnimBlueprintParentPlayerEditorSummoner::FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) 
+: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintParentPlayerEditorID, InHostingApp)
+{
+	TabLabel = LOCTEXT("ParentPlayerOverrideEditor", "Asset Override Editor");
+	bIsSingleton = true;
+}
+
+TSharedRef<SWidget> FAnimBlueprintParentPlayerEditorSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	TWeakPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
+	return SNew(SAnimBlueprintParentPlayerList).Persona(PersonaPtr);
+}
+
+FText FAnimBlueprintParentPlayerEditorSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+{
+	return LOCTEXT("AnimSubClassTabToolTip", "Editor for overriding the animation assets referenced by the parent animation graph.");
+}
+
 #undef LOCTEXT_NAMESPACE

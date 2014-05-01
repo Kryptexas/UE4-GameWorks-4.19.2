@@ -198,12 +198,23 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			FString OverrideText = Appearance.Get().PIENotifyText;
 			return OverrideText.Len() ? OverrideText : DefaultText;
 		}
+
+		static FString GetReadOnlyText(TAttribute<FGraphAppearanceInfo>Appearance, FString DefaultText)
+		{
+			FString OverrideText = Appearance.Get().ReadOnlyText;
+			return OverrideText.Len() ? OverrideText : DefaultText;
+		}
 	};
 	
 	FString DefaultPIENotify(TEXT("SIMULATING"));
 	TAttribute<FString> PIENotifyText = Appearance.IsBound() ?
 		TAttribute<FString>::Create( TAttribute<FString>::FGetter::CreateStatic(&Local::GetPIENotifyText, Appearance, DefaultPIENotify) ) :
 		TAttribute<FString>(DefaultPIENotify);
+
+	FString DefaultReadOnlyText(LOCTEXT("GraphReadOnlyText", "READ-ONLY").ToString());
+	TAttribute<FString> ReadOnlyText = Appearance.IsBound() ?
+		TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateStatic(&Local::GetReadOnlyText, Appearance, DefaultReadOnlyText)) :
+		TAttribute<FString>(DefaultReadOnlyText);
 
 	TSharedPtr<SOverlay> OverlayWidget;
 
@@ -221,7 +232,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnGetContextMenuFor( this, &SGraphEditorImpl::GraphEd_OnGetContextMenuFor )
 			.OnSelectionChanged( InArgs._GraphEvents.OnSelectionChanged )
 			.OnNodeDoubleClicked( InArgs._GraphEvents.OnNodeDoubleClicked )
-			.IsEditable( this->IsEditable )
+			.IsEditable( this, &SGraphEditorImpl::IsGraphEditable )
 			.OnDropActor( InArgs._GraphEvents.OnDropActor )
 			.OnDropStreamingLevel( InArgs._GraphEvents.OnDropStreamingLevel )
 			.IsEnabled(this, &SGraphEditorImpl::GraphEd_OnGetGraphEnabled)
@@ -274,6 +285,18 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.Visibility(this, &SGraphEditorImpl::PIENotification)
 			.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
 			.Text( PIENotifyText )
+		]
+
+		// Top-right corner text indicating read only when not simulating
+		+ SOverlay::Slot()
+		.Padding(20)
+		.VAlign(VAlign_Top)
+		.HAlign(HAlign_Right)
+		[
+			SNew(STextBlock)
+			.Visibility(this, &SGraphEditorImpl::ReadOnlyVisibility)
+			.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
+			.Text(ReadOnlyText)
 		]
 
 		// Bottom-right corner text for notification list position
@@ -409,7 +432,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 		}
 		else
 		{
-			return FActionMenuContent( SNew(STextBlock)  .Text( NSLOCTEXT("GraphEditor", "CannotCreateWhileDebugging", "Cannot create new nodes while debugging").ToString() ) );
+			return FActionMenuContent( SNew(STextBlock)  .Text( NSLOCTEXT("GraphEditor", "CannotCreateWhileDebugging", "Cannot create new nodes in a read only graph").ToString() ) );
 		}
 	}
 	else
@@ -483,7 +506,7 @@ FSlateColor SGraphEditorImpl::GetZoomTextColorAndOpacity() const
 
 bool SGraphEditorImpl::IsGraphEditable() const
 {
-	return (EdGraphObj != NULL) && (EdGraphObj->bEditable) && IsEditable.Get();
+	return (EdGraphObj != NULL) && IsEditable.Get();
 }
 
 TSharedPtr<SWidget> SGraphEditorImpl::GetTitleBar() const
@@ -549,6 +572,15 @@ void SGraphEditorImpl::SetPinVisibility( SGraphEditor::EPinVisibility Visibility
 			NotifyGraphChanged();
 		}
 	}
+}
+
+EVisibility SGraphEditorImpl::ReadOnlyVisibility() const
+{
+	if(PIENotification() == EVisibility::Hidden && !IsEditable.Get())
+	{
+		return EVisibility::Visible;
+	}
+	return EVisibility::Hidden;
 }
 
 

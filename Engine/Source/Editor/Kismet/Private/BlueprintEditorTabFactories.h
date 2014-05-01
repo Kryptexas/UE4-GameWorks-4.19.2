@@ -202,7 +202,12 @@ public:
 		GraphEditor->GetViewLocation(ViewLocation, ZoomAmount);
 
 		UEdGraph* Graph = FTabPayload_UObject::CastChecked<UEdGraph>(Payload);
-		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
+
+		if(BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
+		{
+			// Don't save references to external graphs.
+			BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
+		}
 	}
 
 //	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE

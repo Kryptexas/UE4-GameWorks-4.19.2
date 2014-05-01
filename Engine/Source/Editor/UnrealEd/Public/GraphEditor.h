@@ -27,6 +27,8 @@ struct FGraphAppearanceInfo
 	FString CornerText;
 	/** If set, will be used as override for PIE notify text */
 	FString PIENotifyText;
+	/** If set, will be used as override for read only text */
+	FString ReadOnlyText;
 };
 
 /** Struct used to return info about action menu */

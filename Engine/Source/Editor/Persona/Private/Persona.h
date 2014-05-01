@@ -235,6 +235,8 @@ protected:
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const OVERRIDE;
 	virtual void CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints) OVERRIDE;
 	virtual FGraphAppearanceInfo GetGraphAppearance() const OVERRIDE;
+	virtual bool IsEditable(UEdGraph* InGraph) const OVERRIDE;
+	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const OVERRIDE;
 	// End of FBlueprintEditor interface
 
 	// IAssetEditorInstance interface

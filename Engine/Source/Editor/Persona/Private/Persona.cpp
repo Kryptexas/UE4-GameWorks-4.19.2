@@ -2513,6 +2513,23 @@ bool FPersona::IsRecordAvailable() const
 	return (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode);
 }
 
+bool FPersona::IsEditable(UEdGraph* InGraph) const
+{
+	bool bEditable = FBlueprintEditor::IsEditable(InGraph);
+	bEditable &= IsGraphInCurrentBlueprint(InGraph);
+
+	return bEditable;
+}
+
+FString FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
+{
+	if (!IsGraphInCurrentBlueprint(InGraph))
+	{
+		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview").ToString();
+	}
+	return TEXT("");
+}
+
 /////////////////////////////////////////////////////
 
 FAnimationRecorder::FAnimationRecorder()

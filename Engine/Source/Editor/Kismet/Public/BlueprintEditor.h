@@ -226,6 +226,9 @@ public:
 	// This is used to delay it by one frame when triggered by a tab being closed, so it can finish closing before remembering the new state
 	void RequestSaveEditedObjectState();
 
+	/** Returns whether a graph is editable or not */
+	virtual bool IsEditable(UEdGraph* InGraph) const;
+
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
 
@@ -453,6 +456,12 @@ public:
 
 	/** Called when a node's title is committed for a rename */
 	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
+
+	/** Called by a graph title bar to get any extra information the editor would like to display */
+	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const;
+
+	/** Checks to see if the provided graph is contained within the current blueprint */
+	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
 
 protected:
 	

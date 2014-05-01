@@ -22,6 +22,7 @@ struct FPersonaTabs
 	// Explorer
 	// Blueprint Defaults
 	static const FName AnimBlueprintDefaultsEditorID;
+	static const FName AnimBlueprintParentPlayerEditorID;
 	// Anim Document
 	static const FName ScrubberID;
 	// Toolbar
@@ -246,4 +247,19 @@ private:
 	void OnCheckedChanged(ESlateCheckBoxState::Type NewType, EAnimBlueprintEditorMode::Type Mode);
 	EAnimBlueprintEditorMode::Type CurrentMode;
 };
+
+//////////////////////////////////////////////////////////////////////////
+// FAnimBlueprintParentPlayerEditorSummoner
+class FAnimBlueprintParentPlayerEditorSummoner : public FWorkflowTabFactory
+{
+public:
+	FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE;
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE;
+
+private:
+
+};
+
 #undef LOCTEXT_NAMESPACE

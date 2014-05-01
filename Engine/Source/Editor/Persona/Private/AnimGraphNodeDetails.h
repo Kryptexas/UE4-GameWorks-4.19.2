@@ -2,6 +2,8 @@
 
 #pragma once
 #include "PropertyEditorModule.h"
+#include "AssetData.h"
+#include "PropertyHandle.h"
 
 /////////////////////////////////////////////////////
 // FAnimGraphNodeDetails 
@@ -105,4 +107,121 @@ private:
 	FText FilterText;
 	// Property to change after bone has been picked
 	TSharedPtr<IPropertyHandle> BoneRefProperty;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// 
+
+// Type used to identify rows in a parent player tree list
+namespace EPlayerTreeViewEntryType
+{
+	enum Type
+	{
+		Blueprint,
+		Graph,
+		Node
+	};
+}
+
+// Describes a single row entry in a player tree view
+struct FPlayerTreeViewEntry : public TSharedFromThis<FPlayerTreeViewEntry>
+{
+	FPlayerTreeViewEntry(FString Name, EPlayerTreeViewEntryType::Type InEntryType, FAnimParentNodeAssetOverride* InOverride = NULL)
+	: EntryName(Name)
+	, EntryType(InEntryType)
+	, Override(InOverride)
+	{}
+
+	FORCENOINLINE bool operator==(const FPlayerTreeViewEntry& Other);
+
+	void GenerateNameWidget(TSharedPtr<SHorizontalBox> Box);
+
+	// Name for the row
+	FString EntryName;
+
+	// What the row represents 
+	EPlayerTreeViewEntryType::Type EntryType;
+
+	// Node asset override for rows that represent nodes
+	FAnimParentNodeAssetOverride* Override;
+
+	// Children array for rows that represent blueprints and graphs.
+	TArray<TSharedPtr<FPlayerTreeViewEntry>> Children;
+};
+
+class FAnimGraphParentPlayerDetails : public IDetailCustomization
+{
+public:
+	static TSharedRef<IDetailCustomization> MakeInstance(TWeakPtr<FPersona> InPersona);
+
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder);
+
+private:
+
+	FAnimGraphParentPlayerDetails(TWeakPtr<FPersona> InPersona) : PersonaPtr(InPersona)
+	{}
+
+	TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<FPlayerTreeViewEntry> EventPtr, const TSharedRef< STableViewBase >& OwnerTable);
+	void OnGetChildren(TSharedPtr<FPlayerTreeViewEntry> InParent, TArray< TSharedPtr<FPlayerTreeViewEntry> >& OutChildren);
+
+	// Entries in the tree view
+	TArray<TSharedPtr<FPlayerTreeViewEntry>> ListEntries;
+	
+	// Hosting Persona instance
+	TWeakPtr<FPersona> PersonaPtr;
+
+	// Editor meta-object containing override information
+	UEditorParentPlayerListObj* EditorObject;
+};
+
+class SParentPlayerTreeRow : public SMultiColumnTableRow<TSharedPtr<FAnimGraphParentPlayerDetails>>
+{
+public:
+	SLATE_BEGIN_ARGS(SParentPlayerTreeRow){}
+		SLATE_ARGUMENT(TSharedPtr<FPlayerTreeViewEntry>, Item);
+		SLATE_ARGUMENT(UEditorParentPlayerListObj*, OverrideObject);
+		SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona);
+	SLATE_END_ARGS();
+
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView);
+
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName);
+
+private:
+	
+	// Should an asset be filtered, ensures we only approve assets with matching skeletons
+	bool OnShouldFilterAsset(const FAssetData& AssetData);
+
+	// Sets the override asset when selected from the asset picker
+	void OnAssetSelected(const UObject* Obj);
+
+	void OnCloseMenu(){}
+
+	// Called when the user clicks the focus button, opens a graph panel if necessary in
+	// read only mode and focusses on the node.
+	FReply OnFocusNodeButtonClicked();
+
+	// Gets the current asset, either an override if one is selected or the original from the node.
+	const UAnimationAsset* GetCurrentAssetToUse() const;
+
+	// Whether or not we should show the reset to default button next to the asset picker
+	EVisibility GetResetToDefaultVisibility() const;
+
+	// Resets the selected asset override back to the original node's asset
+	FReply OnResetButtonClicked();
+
+	// Gets the full path to the current asset
+	FString GetCurrentAssetPath() const;
+
+	// Editor object containing all possible overrides
+	UEditorParentPlayerListObj* EditorObject;
+
+	// Tree item we are representing
+	TSharedPtr<FPlayerTreeViewEntry> Item;
+
+	// Graphnode this row represents, if any
+	UAnimGraphNode_Base* GraphNode;
+
+	// Persona editor pointer
+	TWeakPtr<FPersona> Persona;
 };
