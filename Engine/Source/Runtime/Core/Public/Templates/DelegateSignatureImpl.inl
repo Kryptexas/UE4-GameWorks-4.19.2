@@ -6,10 +6,9 @@
 #endif
 
 
-// NOTE: This file in re-included for EVERY delegate signature that we support.  That is, every combination
+// NOTE: This file is re-included for EVERY delegate signature that we support.  That is, every combination
 //		 of parameter count, return value presence or other function modifier will include this file to
 //		 generate a delegate interface type and implementation type for that signature.
-
 
 #define DELEGATE_INSTANCE_INTERFACE_CLASS FUNC_COMBINE( IBaseDelegateInstance_, FUNC_SUFFIX )
 
@@ -85,21 +84,20 @@
 #define PAYLOAD_TEMPLATE_PASSIN_FourVars PAYLOAD_TEMPLATE_PASSIN_ThreeVars, Var4
 
 
-
 /**
- * Single-cast delegate base object.   You'll use the various DECLARE_DELEGATE macros to create the
- * actual delegate type, templated to the function signature the delegate is compatible with.  Then,
- * you can create an instance of that class when you want to bind a function to the delegate.
+ * Single-cast delegate base object.
+ *
+ * Use the various DECLARE_DELEGATE macros to create the actual delegate type, templated to
+ * the function signature the delegate is compatible with. Then, you can create an instance
+ * of that class when you want to bind a function to the delegate.
  */
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class DELEGATE_CLASS
 {
-
 public:
 
 	/** Declare the user's delegate interface (e.g. IMyDelegate) */
 	typedef DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS > IDelegate;
-
 
 	/** Declare the user's "fast" shared pointer-based delegate object (e.g. TSPMyDelegate) */
 	template< class UserClass                                  > class TSPMethodDelegate                 : public SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast > { public: TSPMethodDelegate                ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >::FMethodPtr InMethodPtr                                  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >( InUserObject, InMethodPtr                                    ) {} };
@@ -156,6 +154,7 @@ public:
 	template< PAYLOAD_TEMPLATE_DECL_ThreeVars > class TStaticDelegate_ThreeVars : public STATIC_DELEGATE_INSTANCE_CLASS_ThreeVars< FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_ThreeVars > { public: TStaticDelegate_ThreeVars( typename STATIC_DELEGATE_INSTANCE_CLASS_ThreeVars< FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_ThreeVars >::FFuncPtr InFuncPtr, PAYLOAD_TEMPLATE_ARGS_ThreeVars ) : STATIC_DELEGATE_INSTANCE_CLASS_ThreeVars< FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_ThreeVars >( InFuncPtr, PAYLOAD_TEMPLATE_PASSIN_ThreeVars ) {} };
 	template< PAYLOAD_TEMPLATE_DECL_FourVars  > class TStaticDelegate_FourVars  : public STATIC_DELEGATE_INSTANCE_CLASS_FourVars < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TStaticDelegate_FourVars ( typename STATIC_DELEGATE_INSTANCE_CLASS_FourVars < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >::FFuncPtr InFuncPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : STATIC_DELEGATE_INSTANCE_CLASS_FourVars < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InFuncPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 
+public:
 
 	/**
 	 * Static: Creates a raw C++ pointer global function delegate
@@ -185,10 +184,11 @@ public:
 		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TStaticDelegate_FourVars< PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-	
 	/**
-	 * Static: Creates a raw C++ pointer member function delegate.  Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
-	 * deleted out from underneath your delegate.  Be careful when calling Execute()!
+	 * Static: Creates a raw C++ pointer member function delegate.
+	 *
+	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
+	 * deleted out from underneath your delegate. Be careful when calling Execute()!
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateRaw( UserClass* InUserObject, typename TRawMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -240,10 +240,12 @@ public:
 	{
 		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TRawMethodDelegate_FourVars_Const< UserClass, PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
-
 	
 	/**
-	 * Static: Creates a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Static: Creates a shared pointer-based (fast, not thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateSP( const TSharedRef< UserClass, ESPMode::Fast >& InUserObjectRef, typename TSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -296,9 +298,11 @@ public:
 		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TSPMethodDelegate_FourVars_Const< UserClass, PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Static: Creates a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Static: Creates a shared pointer-based (fast, not thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateSP( UserClass* InUserObject, typename TSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -350,10 +354,12 @@ public:
 	{
 		return CreateSP( StaticCastSharedRef< UserClass >( InUserObject->AsShared() ), InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
-
 	
 	/**
-	 * Static: Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Static: Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateThreadSafeSP( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObjectRef, typename TThreadSafeSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -406,9 +412,11 @@ public:
 		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TThreadSafeSPMethodDelegate_FourVars_Const< UserClass, PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Static: Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Static: Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateThreadSafeSP( UserClass* InUserObject, typename TThreadSafeSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -461,9 +469,11 @@ public:
 		return CreateThreadSafeSP( StaticCastSharedRef< UserClass >( InUserObject->AsShared() ), InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Static: Creates a UObject-based member function delegate.  UObject delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Static: Creates a UObject-based member function delegate.
+	 *
+	 * UObject delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUObject( UserClass* InUserObject, typename TUObjectMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -516,15 +526,14 @@ public:
 		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUObjectMethodDelegate_FourVars_Const< UserClass, PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
+public:
 
 	/**
 	 * Default constructor
 	 */
 	inline DELEGATE_CLASS()
 		: Delegate( NULL )
-	{
-	}
-
+	{ }
 
 	/**
 	 * Delegate instance destructor
@@ -534,16 +543,13 @@ public:
 		Unbind();
 	}
 
-
 	/**
 	 * Construct from a delegate instance pointer.  The delegate will assume ownership of the incoming delegate instance!
 	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
 	 */
 	inline DELEGATE_CLASS( IDelegate* InitDelegate )
 		: Delegate( InitDelegate )
-	{
-	}
-
+	{ }
 
 	/**
 	 * Construct from existing delegate object
@@ -555,7 +561,6 @@ public:
 	{
 		*this = OtherDelegate;
 	}
-
 
 	/**
 	 * Assignment operator
@@ -575,12 +580,11 @@ public:
 			Unbind();
 			Delegate = NewDelegate;
 		}
+
 		return *this;
 	}
 
-
 public:
-
 
 	/**
 	 * Creates a raw C++ pointer global function delegate
@@ -610,10 +614,11 @@ public:
 		*this = CreateStatic( InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Binds a raw C++ pointer delegate.  Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
-	 * deleted out from underneath your delegate.  Be careful when calling Execute()!
+	 * Binds a raw C++ pointer delegate.
+	 *
+	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
+	 * deleted out from underneath your delegate. Be careful when calling Execute()!
 	 */
 	template< class UserClass >
 	inline void BindRaw( UserClass* InUserObject, typename TRawMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -665,7 +670,6 @@ public:
 	{
 		*this = CreateRaw( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
-
 
 	/**
 	 * Binds a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
@@ -721,9 +725,11 @@ public:
 		*this = CreateSP( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Creates a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Creates a shared pointer-based (fast, not thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline void BindSP( UserClass* InUserObject, typename TSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -776,9 +782,11 @@ public:
 		*this = CreateSP( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Binds a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Binds a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline void BindThreadSafeSP( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObjectRef, typename TThreadSafeSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -831,9 +839,11 @@ public:
 		*this = CreateThreadSafeSP( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Creates a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline void BindThreadSafeSP( UserClass* InUserObject, typename TThreadSafeSPMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -886,9 +896,11 @@ public:
 		*this = CreateThreadSafeSP( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
 	/**
-	 * Creates a UObject-based member function delegate.  UObject delegates keep a weak reference to your object.  You can use ExecuteIfBound() to call them.
+	 * Creates a UObject-based member function delegate.
+	 *
+	 * UObject delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
 	 */
 	template< class UserClass >
 	inline void BindUObject( UserClass* InUserObject, typename TUObjectMethodDelegate< UserClass >::FMethodPtr InFunc )
@@ -941,8 +953,6 @@ public:
 		*this = CreateUObject( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
 
-
-
 	/**
 	 * Unbinds this delegate
 	 */
@@ -954,7 +964,6 @@ public:
 			Delegate = NULL;
 		}
 	}
-
 
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
@@ -1007,6 +1016,7 @@ public:
 		{
 			return (class UObject*)Delegate->GetRawUserObject();
 		}
+
 		return NULL;
 	}
 
@@ -1023,10 +1033,10 @@ public:
 		{
 			return Delegate->ExecuteIfSafe( FUNC_PARAM_PASSTHRU );
 		}
+
 		return false;
 	}
 #endif
-
 
 	/**
 	 * Equality operator
@@ -1046,12 +1056,10 @@ public:
 				return true;
 			}
 
-
 			// No match!
 			return false;
 		}
 	}
-
 
 private:
 
@@ -1061,7 +1069,6 @@ private:
 	/** Pointer to the actual delegate object instance.  We need to use a pointer because the actual type of delegate class
 	    that's created will depend on the type of binding (raw, shared pointer, etc) as well as the user's object type */
 	IDelegate* Delegate;
-
 };
 
 
@@ -1077,7 +1084,6 @@ private:
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class BASE_MULTICAST_DELEGATE_CLASS
 {
-
 public:
 
 	/** The actual single-cast delegate class for this multi-cast delegate */
@@ -1096,7 +1102,6 @@ public:
 		// Then check and see if there are any stale delegates and remove them
 		CompactInvocationList();
 	}
-
 
 	/**
 	 * Adds a raw C++ pointer global function delegate
@@ -1128,10 +1133,11 @@ public:
 		Add( FDelegate::CreateStatic( InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Adds a raw C++ pointer delegate.  Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
-	 * deleted out from underneath your delegate.  Be careful when calling Execute()!
+	 * Adds a raw C++ pointer delegate.
+	 *
+	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
+	 * deleted out from underneath your delegate. Be careful when calling Execute()!
 	 *
 	 * @param	InUserObject	User object to bind to
 	 * @param	InFunc			Class method function address
@@ -1187,9 +1193,10 @@ public:
 		Add( FDelegate::CreateRaw( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Adds a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.
+	 * Adds a shared pointer-based (fast, not thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
 	 *
 	 * @param	InUserObjectRef	User object to bind to
 	 * @param	InFunc			Class method function address
@@ -1245,9 +1252,10 @@ public:
 		Add( FDelegate::CreateSP( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Adds a shared pointer-based (fast, not thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.
+	 * Adds a shared pointer-based (fast, not thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
 	 *
 	 * @param	InUserObject	User object to bind to
 	 * @param	InFunc			Class method function address
@@ -1302,7 +1310,6 @@ public:
 	{
 		Add( FDelegate::CreateSP( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
-
 
 	/**
 	 * Adds a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.
@@ -1361,9 +1368,10 @@ public:
 		Add( FDelegate::CreateThreadSafeSP( InUserObjectRef, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Adds a shared pointer-based (slower, conditionally thread-safe) member function delegate.  Shared pointer delegates keep a weak reference to your object.
+	 * Adds a shared pointer-based (slower, conditionally thread-safe) member function delegate.
+	 *
+	 * Shared pointer delegates keep a weak reference to your object.
 	 *
 	 * @param	InUserObject	User object to bind to
 	 * @param	InFunc			Class method function address
@@ -1419,9 +1427,10 @@ public:
 		Add( FDelegate::CreateThreadSafeSP( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
-	 * Adds a UObject-based member function delegate.  UObject delegates keep a weak reference to your object.
+	 * Adds a UObject-based member function delegate.
+	 *
+	 * UObject delegates keep a weak reference to your object.
 	 *
 	 * @param	InUserObject	User object to bind to
 	 * @param	InFunc			Class method function address
@@ -1477,7 +1486,6 @@ public:
 		Add( FDelegate::CreateUObject( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-
 	/**
 	 *	Removes all functions from this multi-cast delegate's invocation list that are bound to the specified UserObject.
 	 *	Note that the order of the delegates may not be preserved!
@@ -1490,7 +1498,6 @@ public:
 		// Check for any delegates that may have expired
 		CompactInvocationList();
 	}
-
 
 	/**
 	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
@@ -1512,7 +1519,6 @@ public:
 		CompactInvocationList();
 	}
 
-
 	// NOTE: These direct Remove methods are only supported for multi-cast delegates with no payload attached.
 	// See the comment in the multi-cast delegate Remove() method above for more details.
 
@@ -1526,7 +1532,6 @@ public:
 	{
 		Remove( FDelegate::CreateStatic( InFunc ) );
 	}
-
 
 	/**
 	 * Removes a raw C++ pointer delegate (performance is O(N)).  Note that the order of the delegates may not
@@ -1546,7 +1551,6 @@ public:
 		Remove( FDelegate::CreateRaw( InUserObject, InFunc ) );
 	}
 
-
 	/**
 	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
 	 * the delegates may not be preserved!
@@ -1564,7 +1568,6 @@ public:
 	{
 		Remove( FDelegate::CreateSP( InUserObjectRef, InFunc ) );
 	}
-
 
 	/**
 	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
@@ -1584,7 +1587,6 @@ public:
 		Remove( FDelegate::CreateSP( InUserObject, InFunc ) );
 	}
 
-
 	/**
 	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
 	 * the delegates may not be preserved!
@@ -1603,7 +1605,6 @@ public:
 		Remove( FDelegate::CreateThreadSafeSP( InUserObjectRef, InFunc ) );
 	}
 
-
 	/**
 	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
 	 * the delegates may not be preserved!
@@ -1621,7 +1622,6 @@ public:
 	{
 		Remove( FDelegate::CreateThreadSafeSP( InUserObject, InFunc ) );
 	}
-
 
 	/**
 	 * Removes a UObject-based member function delegate (performance is O(N)).  Note that the order of the
@@ -1667,12 +1667,12 @@ protected:
 	 */
 	inline BASE_MULTICAST_DELEGATE_CLASS()
 		: ExpirableObjectCount( 0 )
-	{
-	}
-
+	{ }
 
 	/**
-	 * Checks to see if any functions are bound to this multi-cast delegate. Private to avoid assumptions about only one delegate existing
+	 * Checks to see if any functions are bound to this multi-cast delegate.
+	 *
+	 * This method is protected to avoid assumptions about only one delegate existing.
 	 *
 	 * @return	True if any functions are bound
 	 */
@@ -1680,7 +1680,6 @@ protected:
 	{
 		return InvocationList.Num() > 0;
 	}
-
 
 	/**
 	 * Removes all functions from this delegate's invocation list
@@ -1690,7 +1689,6 @@ protected:
 		InvocationList.Empty();
 		ExpirableObjectCount = 0;
 	}
-
 
 	/**
 	 * Broadcasts this delegate to all bound objects, except to those that may have expired
@@ -1720,7 +1718,6 @@ protected:
 			}
 		}
 	}
-
 
 private:
 
@@ -1752,7 +1749,6 @@ private:
 			++ExpirableObjectCount;
 		}
 	}
-
 
 	/**
 	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
@@ -1815,7 +1811,6 @@ private:
 		}
 	}
 
-
 	/** Cleans up any delegates in our invocation list that have expired (performance is O(N)) */
 	void CompactInvocationList() const
 	{
@@ -1836,7 +1831,6 @@ private:
 		}
 	}
 
-
 private:
 
 	/** Ordered list functions to invoke when the Broadcast function is called */
@@ -1852,9 +1846,6 @@ private:
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class MULTICAST_DELEGATE_CLASS : public BASE_MULTICAST_DELEGATE_CLASS< FUNC_TEMPLATE_DECL >
 {
-private:  // Prevents erroneous use by other classes.
-	typedef BASE_MULTICAST_DELEGATE_CLASS< FUNC_TEMPLATE_DECL > Super;
-
 public:
 
 	/**
@@ -1867,7 +1858,6 @@ public:
 		return Super::IsBound();
 	}
 
-
 	/**
 	 * Removes all functions from this delegate's invocation list
 	 */
@@ -1876,7 +1866,6 @@ public:
 		return Super::Clear();
 	}
 
-
 	/**
 	 * Broadcasts this delegate to all bound objects, except to those that may have expired
 	 */
@@ -1884,9 +1873,13 @@ public:
 	{
 		return Super::Broadcast( FUNC_PARAM_PASSTHRU );
 	}
+
+private: 
+	
+	// Prevents erroneous use by other classes.
+	typedef BASE_MULTICAST_DELEGATE_CLASS< FUNC_TEMPLATE_DECL > Super;
 };
 #endif		// FUNC_IS_VOID
-
 
 
 /**
@@ -1898,16 +1891,12 @@ template< FUNC_TEMPLATE_DECL_TYPENAME, typename TWeakPtr = FWeakObjectPtr >
 class DYNAMIC_DELEGATE_CLASS
 	: public TScriptDelegate<TWeakPtr>
 {
-
 public:
 
 	/**
 	 * Default constructor
 	 */
-	DYNAMIC_DELEGATE_CLASS()
-	{
-	}
-
+	DYNAMIC_DELEGATE_CLASS() { }
 
 	/**
 	 * Construction from an FScriptDelegate must be explicit.  This is really only used by UObject system internals.
@@ -1916,9 +1905,7 @@ public:
 	 */
 	explicit DYNAMIC_DELEGATE_CLASS( const TScriptDelegate<TWeakPtr>& InScriptDelegate )
 		: TScriptDelegate<TWeakPtr>( InScriptDelegate )
-	{
-	}
-
+	{ }
 
 	/**
 	 * Templated helper class to define a typedef for user's method pointer, then used below
@@ -1926,12 +1913,10 @@ public:
 	template< class UserClass >
 	class TMethodPtrResolver
 	{
-
 	public:
 
 		typedef RetValType ( UserClass::*FMethodPtr )( FUNC_PARAM_LIST );
 	};
-
 
 	/**
 	 * Binds a UObject instance and a UObject method address to this delegate.
@@ -1969,9 +1954,7 @@ public:
 	// NOTE:  Execute() method must be defined in derived classes
 
 	// NOTE:  ExecuteIfBound() method must be defined in derived classes
-
 };
-
 
 
 /**
@@ -1984,20 +1967,15 @@ template< FUNC_TEMPLATE_DECL_TYPENAME, typename TWeakPtr = FWeakObjectPtr >
 class DYNAMIC_MULTICAST_DELEGATE_CLASS
 	: public TMulticastScriptDelegate<TWeakPtr>
 {
-
 public:
 
 	/** The actual single-cast delegate class for this multi-cast delegate */
 	typedef DYNAMIC_DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > FDelegate;
 
-
 	/**
 	 * Default constructor
 	 */
-	DYNAMIC_MULTICAST_DELEGATE_CLASS()
-	{
-	}
-
+	DYNAMIC_MULTICAST_DELEGATE_CLASS() { }
 
 	/**
 	 * Construction from an FMulticastScriptDelegate must be explicit.  This is really only used by UObject system internals.
@@ -2006,9 +1984,7 @@ public:
 	 */
 	explicit DYNAMIC_MULTICAST_DELEGATE_CLASS( const TMulticastScriptDelegate<TWeakPtr>& InMulticastScriptDelegate )
 		: TMulticastScriptDelegate<TWeakPtr>( InMulticastScriptDelegate )
-	{
-	}
-
+	{ }
 
 	/**
 	 * Tests if a UObject instance and a UObject method address pair are already bound to this multi-cast delegate.
@@ -2034,7 +2010,6 @@ public:
 		return this->Contains( NewDelegate );
 	}
 
-
 	/**
 	 * Binds a UObject instance and a UObject method address to this multi-cast delegate.
 	 *
@@ -2057,7 +2032,6 @@ public:
 
 		this->Add( NewDelegate );
 	}
-
 
 	/**
 	 * Binds a UObject instance and a UObject method address to this multi-cast delegate, but only if it hasn't been bound before.
@@ -2082,7 +2056,6 @@ public:
 		this->AddUnique( NewDelegate );
 	}
 
-
 	/**
 	 * Unbinds a UObject instance and a UObject method address from this multi-cast delegate.
 	 *
@@ -2106,11 +2079,8 @@ public:
 		this->Remove( NewDelegate );
 	}
 
-
 	// NOTE:  Broadcast() method must be defined in derived classes
-
 };
-
 
 
 #undef PAYLOAD_TEMPLATE_DECL_OneVar
@@ -2164,5 +2134,3 @@ public:
 #undef STATIC_DELEGATE_INSTANCE_CLASS_FourVars
 
 #undef DELEGATE_INSTANCE_INTERFACE_CLASS
-
-

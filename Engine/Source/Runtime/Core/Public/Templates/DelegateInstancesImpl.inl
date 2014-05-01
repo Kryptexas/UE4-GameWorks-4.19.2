@@ -15,7 +15,6 @@
 //		 of parameter count, return value presence or other function modifier will include this file to
 //		 generate a delegate interface type and implementation type for that signature.
 
-
 #define DELEGATE_INSTANCE_INTERFACE_CLASS FUNC_COMBINE( IBaseDelegateInstance_, FUNC_SUFFIX )
 #define SP_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseSPMethodDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
 #define RAW_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseRawMethodDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
@@ -53,6 +52,7 @@
 template< class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME > class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
 template< class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME > class RAW_METHOD_DELEGATE_INSTANCE_CLASS;
 
+
 /**
  * Shared pointer-based delegate instance class for methods.  For internal use only.
  */
@@ -60,7 +60,6 @@ template< class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME, ESPMode::Type SP
 class SP_METHOD_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >
 {
-
 	/**
 	 * Internal, inlined and non-virtual version of GetRawUserObject interface.
 	 */
@@ -82,7 +81,6 @@ public:
 	/** Pointer-to-member typedef */
 	typedef RetValType ( UserClass::*FMethodPtr )( DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST ) DELEGATE_QUALIFIER;
 
-
 	/**
 	 * Static helper function that returns a newly-created delegate object for
 	 * the specified user class and class method
@@ -97,7 +95,6 @@ public:
 		return new SP_METHOD_DELEGATE_INSTANCE_CLASS< UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS, SPMode >( InUserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU );
 	}
 
-	
 	/**
 	 * Static helper function that returns a newly-created delegate object for
 	 * the specified user class and class method.  Requires that the supplied object derives from TSharedFromThis.
@@ -113,7 +110,6 @@ public:
 		TSharedRef< UserClass > UserObjectRef( StaticCastSharedRef< UserClass >( InUserObject->AsShared() ) );
 		return Create( UserObjectRef, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU );
 	}
-
 
 	/**
 	 * Constructor
@@ -131,7 +127,6 @@ public:
 		checkSlow( MethodPtr != NULL );
 	}
 
-
 	/**
 	 * Returns the type of delegate instance
 	 *
@@ -142,7 +137,6 @@ public:
 		return SPMode == ESPMode::ThreadSafe ? EDelegateInstanceType::ThreadSafeSharedPointerMethod : EDelegateInstanceType::SharedPointerMethod;
 	}
 
-
 	/**
 	 * Creates a copy of the delegate instance
 	 *
@@ -152,7 +146,6 @@ public:
 	{
 		return Create( UserObject.Pin(), MethodPtr DELEGATE_COMMA_PAYLOAD_PASSIN );
 	}
-
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -177,7 +170,6 @@ public:
 
 		return false;
 	}
-
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,
@@ -223,7 +215,6 @@ public:
 		return ( MutableUserObject->*MethodPtr )( DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN );
 	}
 
-
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
@@ -233,7 +224,6 @@ public:
 	{
 		return UserObject.IsValid();
 	}
-
 
 #if FUNC_IS_VOID
 	/**
@@ -254,7 +244,6 @@ public:
 	}
 #endif
 
-
 private:
 
 	// Declare ourselves as a friend so we can access other template permutations in IsSameFunction()
@@ -273,7 +262,6 @@ private:
 	/** Payload member variables (if any) */
 	FUNC_PAYLOAD_MEMBERS
 };
-
 
 
 /**
@@ -321,7 +309,6 @@ public:
 		return new RAW_METHOD_DELEGATE_INSTANCE_CLASS< UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS >( InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU );
 	}
 
-
 	/**
 	 * Constructor
 	 *
@@ -337,7 +324,6 @@ public:
 		check( InUserObject != NULL && MethodPtr != NULL );
 	}
 
-
 	/**
 	 * Returns the type of delegate instance
 	 *
@@ -348,7 +334,6 @@ public:
 		return EDelegateInstanceType::RawMethod;
 	}
 
-
 	/**
 	 * Creates a copy of the delegate instance
 	 *
@@ -358,7 +343,6 @@ public:
 	{
 		return Create( UserObject, MethodPtr DELEGATE_COMMA_PAYLOAD_PASSIN );
 	}
-
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -383,7 +367,6 @@ public:
 
 		return false;
 	}
-
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,
@@ -425,7 +408,6 @@ public:
 		return ( MutableUserObject->*MethodPtr )( DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN );
 	}
 
-
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
@@ -437,7 +419,6 @@ public:
 		// trust the user in this case.  Prefer using a shared-pointer based delegate type instead!
 		return true;
 	}
-
 
 #if FUNC_IS_VOID
 	/**
@@ -454,7 +435,6 @@ public:
 	}
 #endif
 
-
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
@@ -470,7 +450,6 @@ private:
 	/** Payload member variables (if any) */
 	FUNC_PAYLOAD_MEMBERS
 };
-
 
 
 /**
@@ -518,7 +497,6 @@ public:
 		return new UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS< UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS >( InUserObject, InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU );
 	}
 
-
 	/**
 	 * Constructor
 	 *
@@ -535,7 +513,6 @@ public:
 		checkSlow( MethodPtr != NULL );
 	}
 
-
 	/**
 	 * Returns the type of delegate instance
 	 *
@@ -546,7 +523,6 @@ public:
 		return EDelegateInstanceType::UObjectMethod;
 	}
 
-
 	/**
 	 * Creates a copy of the delegate instance
 	 *
@@ -556,7 +532,6 @@ public:
 	{
 		return Create( UserObject.Get(), MethodPtr DELEGATE_COMMA_PAYLOAD_PASSIN );
 	}
-
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -625,7 +600,6 @@ public:
 		return ( MutableUserObject->*MethodPtr )( DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN );
 	}
 
-
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
@@ -660,7 +634,6 @@ public:
 	}
 #endif
 
-
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
@@ -678,7 +651,6 @@ private:
 };
 
 
-
 /**
  * Delegate type implementation class for global functions.  For internal use only.
  */
@@ -686,14 +658,12 @@ template< FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME >
 class STATIC_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >
 {
-
 public:
 
 	/** Static function pointer typedef */
 	// NOTE: Static C++ functions can never be const, so 'const' is always omitted here.  That means there is
 	//       usually an extra static delegate class created with a 'const' name, even though it doesn't use const.
 	typedef RetValType ( *FFuncPtr )( DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST );
-
 
 	/**
 	 * Static helper function that returns a newly-created delegate object for a
@@ -708,7 +678,6 @@ public:
 		return new STATIC_DELEGATE_INSTANCE_CLASS< FUNC_PAYLOAD_TEMPLATE_ARGS >( InFunc DELEGATE_COMMA_PAYLOAD_PASSTHRU );
 	}
 
-
 	/**
 	 * Constructor
 	 *
@@ -721,7 +690,6 @@ public:
 		check( StaticFuncPtr != NULL );
 	}
 
-
 	/**
 	 * Returns the type of delegate instance
 	 *
@@ -732,7 +700,6 @@ public:
 		return EDelegateInstanceType::Raw;
 	}
 
-
 	/**
 	 * Creates a copy of the delegate instance
 	 *
@@ -742,7 +709,6 @@ public:
 	{
 		return Create( StaticFuncPtr DELEGATE_COMMA_PAYLOAD_PASSIN );
 	}
-
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -770,7 +736,6 @@ public:
 
 		return false;
 	}
-
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,
@@ -806,7 +771,6 @@ public:
 		return true;
 	}
 
-
 	/**
 	 * Execute the delegate.  If the function pointer is not valid, an error will occur.
 	 */
@@ -818,7 +782,6 @@ public:
 
 		return StaticFuncPtr( DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN );
 	}
-
 
 #if FUNC_IS_VOID
 	/**
@@ -833,7 +796,6 @@ public:
 	}
 #endif
 
-
 private:
 
 	/** C++ function pointer */
@@ -842,7 +804,6 @@ private:
 	/** Payload member variables (if any) */
 	FUNC_PAYLOAD_MEMBERS
 };
-
 
 
 #undef SP_METHOD_DELEGATE_INSTANCE_CLASS

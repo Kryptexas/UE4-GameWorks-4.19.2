@@ -10,9 +10,7 @@
 //		 of parameter count, return value presence or other function modifier will include this file to
 //		 generate a delegate interface type and implementation type for that signature.
 
-
 #define DELEGATE_INSTANCE_INTERFACE_CLASS FUNC_COMBINE( IBaseDelegateInstance_, FUNC_SUFFIX )
-
 
 
 /**
@@ -22,7 +20,6 @@
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class DELEGATE_INSTANCE_INTERFACE_CLASS
 {
-
 public:
 
 	/**
@@ -34,7 +31,6 @@ public:
 		// destructed when the delegate instance is destroyed.
 	}
 
-
 	/**
 	 * Returns the type of delegate instance
 	 *
@@ -42,14 +38,12 @@ public:
 	 */
 	virtual EDelegateInstanceType::Type GetType() const = 0;
 
-
 	/**
 	 * Creates a copy of the delegate instance
 	 *
 	 * @return	The newly created copy
 	 */
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >* CreateCopy() = 0;
-
 
 	/**
 	 * Returns true if this delegate points to exactly the same object and method as the specified delegate,
@@ -60,7 +54,6 @@ public:
 	 * @return  True if delegates match
 	 */
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >& InOtherDelegate ) const = 0;
-
 
 	/**
 	 * Returns true if this delegate is bound to the specified UserObject,
@@ -90,14 +83,12 @@ public:
 	 */
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const = 0;
 
-
 	/**
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
 	 * @return  True if the user object is still valid and it's safe to execute the function call
 	 */
 	virtual bool IsSafeToExecute() const = 0;
-
 
 	/**
 	 * Checks to see if the user object bound to this delegate can ever be valid again.
@@ -119,11 +110,7 @@ public:
 	// NOTE: Currently only delegates with no return value support ExecuteIfSafe() 
 	virtual bool ExecuteIfSafe( FUNC_PARAM_LIST ) const = 0;
 #endif
-
 };
 
 
-
 #undef DELEGATE_INSTANCE_INTERFACE_CLASS
-
-

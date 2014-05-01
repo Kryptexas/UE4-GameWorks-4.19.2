@@ -6,8 +6,8 @@
 
 #pragma once
 
-
 #include "WeakObjectPtrTemplates.h"
+
 
 /**
  * Script delegate base class
@@ -15,17 +15,16 @@
 template <typename TWeakPtr = FWeakObjectPtr>
 class TScriptDelegate
 {
-
 public:
 
 	/** Constructor */
 	TScriptDelegate() 
 		: Object( NULL ),
 		  FunctionName( NAME_None )
-	{
-	}
+	{ }
 
 private:
+
 	template <class UObjectTemplate>
 	inline bool IsBound_Internal() const
 	{
@@ -41,6 +40,7 @@ private:
 	}
 
 public:
+
 	/** 
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
@@ -103,14 +103,12 @@ public:
 		return TEXT( "<Unbound>" );
 	}
 
-
 	/** Delegate serialization */
 	friend FArchive& operator<<( FArchive& Ar, TScriptDelegate& D )
 	{
 		Ar << D.Object << D.FunctionName;
 		return Ar;
 	}
-
 
 	/** Comparison operators */
 	FORCEINLINE bool operator==( const TScriptDelegate& Other ) const
@@ -139,7 +137,6 @@ public:
 		Object = InObject;
 	}
 
-
 	/**
 	 * Sets the function name.  Usually, you should never call this yourself.  Use BindDynamic() instead!
 	 *
@@ -149,7 +146,6 @@ public:
 	{
 		FunctionName = InFunctionName;
 	}
-
 
 	/** 
 	 * Gets the object bound to this delegate
@@ -162,7 +158,6 @@ public:
 		return static_cast< UObject* >( Object.Get() );
 	}
 
-
 	/**
 	 * Gets the object bound to this delegate (const)
 	 *
@@ -174,7 +169,6 @@ public:
 		return static_cast< const UObject* >( Object.Get() );
 	}
 
-
 	/**
 	 * Gets the name of the function to call on the bound object
 	 *
@@ -184,7 +178,6 @@ public:
 	{
 		return FunctionName;
 	}
-
 
 	/**
 	 * Executes a delegate by calling the named function on the object bound to the delegate.  You should
@@ -226,6 +219,7 @@ protected:
 	friend class FCallDelegateHelper;
 };
 
+
 template<typename TWeakPtr> struct TIsZeroConstructType<TScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<TWeakPtr>::Value }; };
 
 
@@ -235,16 +229,14 @@ template<typename TWeakPtr> struct TIsZeroConstructType<TScriptDelegate<TWeakPtr
 template <typename TWeakPtr = FWeakObjectPtr>
 class TMulticastScriptDelegate
 {
-
 public:
 
 	/**
 	 * Default constructor
 	 */
-	inline TMulticastScriptDelegate()
-	{
-	}
+	inline TMulticastScriptDelegate() { }
 
+public:
 
 	/**
 	 * Checks to see if any functions are bound to this multi-cast delegate
@@ -255,7 +247,6 @@ public:
 	{
 		return InvocationList.Num() > 0;
 	}
-
 
 	/**
 	 * Checks whether a function delegate is already a member of this multi-cast delegate's invocation list
@@ -313,7 +304,6 @@ public:
 		CompactInvocationList();
 	}
 
-
 	/**
 	 * Removes all functions from this delegate's invocation list
 	 */
@@ -321,7 +311,6 @@ public:
 	{
 		InvocationList.Empty();
 	}
-
 
 	/**
 	 * Converts this delegate to a string representation
@@ -348,7 +337,6 @@ public:
 		return TEXT( "<Unbound>" );
 	}
 
-
 	/** Multi-cast delegate serialization */
 	friend FArchive& operator<<( FArchive& Ar, TMulticastScriptDelegate<TWeakPtr>& D )
 	{
@@ -368,7 +356,6 @@ public:
 
 		return Ar;
 	}
-
 
 	/**
 	 * Executes a multi-cast delegate by calling all functions on objects bound to the delegate.  Always
@@ -422,7 +409,6 @@ public:
 		return OutputList;
 	}
 
-
 protected:
 
 	/**
@@ -455,7 +441,6 @@ protected:
 		InvocationList.AddUnique( InDelegate );
 	}
 
-
 	/**
 	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
 	 * order of the delegates may not be preserved!
@@ -477,7 +462,6 @@ protected:
 		}
 	}
 
-
 	/** Cleans up any delegates in our invocation list that have expired (performance is O(N)) */
 	void CompactInvocationList() const
 	{
@@ -491,7 +475,6 @@ protected:
 		}
 	}
 
-
 protected:
 
 	/** Ordered list functions to invoke when the Broadcast function is called */
@@ -504,5 +487,6 @@ protected:
 	// 
 	friend class FCallDelegateHelper;
 };
+
 
 template<typename TWeakPtr> struct TIsZeroConstructType<TMulticastScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<TWeakPtr>::Value }; };
