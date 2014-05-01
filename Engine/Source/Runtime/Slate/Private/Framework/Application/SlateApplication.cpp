@@ -2079,12 +2079,15 @@ void FSlateApplication::QueryCursor()
 			if (MouseCaptor.IsValid())
 			{
 				FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath();
-				TSharedRef< SWindow > CaptureWindow = MouseCaptorPath.GetWindow();
-			
-				// Never query the mouse captor path if it is outside an active modal window
-				if (!ActiveModalWindow.IsValid() || (CaptureWindow == ActiveModalWindow || CaptureWindow->IsDescendantOf(ActiveModalWindow)))
+				if ( MouseCaptorPath.IsValid() )
 				{
-					WidgetsToQueryForCursor = MouseCaptorPath;
+					TSharedRef< SWindow > CaptureWindow = MouseCaptorPath.GetWindow();
+
+					// Never query the mouse captor path if it is outside an active modal window
+					if ( !ActiveModalWindow.IsValid() || ( CaptureWindow == ActiveModalWindow || CaptureWindow->IsDescendantOf(ActiveModalWindow) ) )
+					{
+						WidgetsToQueryForCursor = MouseCaptorPath;
+					}
 				}
 			}
 			else
