@@ -519,7 +519,7 @@ void ReflectionApplyPS(
 #endif
 		
 		BRANCH
-		if( View.UseLightmaps )
+		if( View.UseLightmaps > 0 )
 		{
 			// We have high frequency directional data but low frequency spatial data in the envmap.
 			// We have high frequency spatial data but low frequency directional data in the lightmap.
