@@ -1119,10 +1119,7 @@ void FLevelCollectionModel::SCCDiffAgainstDepot(const FLevelModelList& InList, U
 							FString NewTextFilename = AssetToolsModule.Get().DumpAssetToTempFile(OriginalPackage);
 							FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-							// args are just 2 temp filenames
-							FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-							AssetToolsModule.Get().CreateDiffProcess(DiffCommand, DiffArgs);
+							AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 							AssetToolsModule.Get().DiffAssets(OldPackage, OriginalPackage, OldRevision, NewRevision);
 						}
 					}

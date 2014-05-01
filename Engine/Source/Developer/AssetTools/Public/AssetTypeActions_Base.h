@@ -40,12 +40,12 @@ public:
 		}
 	}
 
-	virtual bool CanFilter() 
+	virtual bool CanFilter() OVERRIDE
 	{
 		return true;
 	}
 
-	virtual bool ShouldForceWorldCentric()
+	virtual bool ShouldForceWorldCentric() OVERRIDE
 	{
 		return false;
 	}
@@ -60,10 +60,8 @@ public:
 		FString NewTextFilename = DumpAssetToTempFile(NewAsset);
 		FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-		// args are just 2 temp filenames
-		FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-		CreateDiffProcess(DiffCommand, DiffArgs);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 	}
 
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const OVERRIDE
@@ -89,13 +87,6 @@ protected:
 	{
 		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		return AssetToolsModule.Get().DumpAssetToTempFile(Asset);
-	}
-
-	/* Attempt to spawn diff tool as external process */
-	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const
-	{
-		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-		return AssetToolsModule.Get().CreateDiffProcess(DiffCommand, DiffArgs);
 	}
 
 	/** Returns additional tooltip information for the specified asset, if it has any (otherwise return the null widget) */

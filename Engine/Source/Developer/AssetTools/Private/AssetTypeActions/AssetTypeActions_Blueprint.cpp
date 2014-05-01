@@ -240,10 +240,8 @@ void FAssetTypeActions_Blueprint::OpenInDefaults( class UBlueprint* OldBlueprint
 		const FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
 		const FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-		// args are just 2 temp filenames
-		const FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-		CreateDiffProcess(DiffCommand, DiffArgs);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+     	AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 	}
 }
 

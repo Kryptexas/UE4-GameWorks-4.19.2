@@ -92,8 +92,16 @@ public:
 	/** Util for dumping an asset to a temporary text file. Returns absolute filename to temp file */
 	virtual FString DumpAssetToTempFile(UObject* Asset) const = 0;
 
-	/* Attempt to spawn diff tool as external process */
-	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const = 0;
+	/* Attempt to spawn Diff tool as external process 
+	 *
+	 * @param DiffCommand -		Command used to launch the diff tool
+	 * @param OldTextFilename - File path to original file 
+	 * @param NewTextFilename - File path to new file
+	 * @param DiffArgs -		Any extra command line arguments (defaulted to empty)
+	 *
+	 * @return Returns true if the process has successfully been created.
+	 */
+	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& OldTextFilename, const FString& NewTextFilename, const FString& DiffArgs = FString("")) const = 0;
 
 	/* Migrate packages to another game content folder */
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const = 0;
