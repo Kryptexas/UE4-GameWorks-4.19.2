@@ -2,6 +2,25 @@
 
 #pragma once
 
+#include "SProgressBar.generated.h"
+
+/**
+ * SProgressBar Fill Type 
+ */
+UENUM()
+namespace EProgressBarFillType
+{
+	enum Type
+	{
+		// will fill up from the left side to the right
+		LeftToRight,
+		// will fill up from the right side to the left side
+		RightToLeft,
+		// will fill up from the center to the outer edges
+		FillFromCenter,
+	};
+}
+
 /** A progress bar widget.*/
 class SLATE_API SProgressBar : public SLeafWidget
 {
@@ -9,6 +28,7 @@ class SLATE_API SProgressBar : public SLeafWidget
 public:
 	SLATE_BEGIN_ARGS(SProgressBar)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FProgressBarStyle>("ProgressBar") )
+		, _BarFillType(EProgressBarFillType::LeftToRight)
 		, _Percent( TOptional<float>() )
 		, _FillColorAndOpacity( FLinearColor::White )
 		, _BorderPadding( FVector2D(1,0) )
@@ -16,6 +36,9 @@ public:
 
 		/** Style used for the progress bar */
 		SLATE_STYLE_ARGUMENT( FProgressBarStyle, Style )
+
+		/** Defines if this progress bar fills Left to right or right to left*/
+		SLATE_ARGUMENT( EProgressBarFillType::Type, BarFillType )
 
 		/** Used to determine the fill position of the progress bar ranging 0..1 */
 		SLATE_ATTRIBUTE( TOptional<float>, Percent )
@@ -43,6 +66,8 @@ private:
 
 	/** The text displayed over the progress bar */
 	TAttribute< TOptional<float> > Percent;
+
+	EProgressBarFillType::Type BarFillType;
 
 	/** Background image to use for the progress bar */
 	const FSlateBrush* BackgroundImage;

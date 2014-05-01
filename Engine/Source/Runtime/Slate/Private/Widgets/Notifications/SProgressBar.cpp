@@ -9,6 +9,8 @@ void SProgressBar::Construct( const FArguments& InArgs )
 
 	Percent = InArgs._Percent;
 
+	BarFillType = InArgs._BarFillType;
+
 	BackgroundImage = &InArgs._Style->BackgroundImage;
 	FillImage = &InArgs._Style->FillImage;
 	MarqueeImage = &InArgs._Style->MarqueeImage;
@@ -49,20 +51,61 @@ int32 SProgressBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect
 	
 	if( ProgressFraction.IsSet() )
 	{
-		const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
-
-		// Draw Fill
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			RetLayerId++,
-			AllottedGeometry.ToPaintGeometry(
-				FVector2D::ZeroVector,
-				FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
-			FillImage,
-			ForegroundClippingRect,
-			DrawEffects,
-			FillColorAndOpacitySRGB
-			);
+		switch (BarFillType)
+		{
+			case EProgressBarFillType::RightToLeft:
+			{
+				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
+				// Draw Fill
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D( AllottedGeometry.Size.X - (AllottedGeometry.Size.X * ( ClampedFraction )) , 0.0f),
+						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+					FillImage,
+					ForegroundClippingRect,
+					DrawEffects,
+					FillColorAndOpacitySRGB
+					);
+				break;
+			}
+			case EProgressBarFillType::FillFromCenter:
+			{
+				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
+				// Draw Fill
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D( (AllottedGeometry.Size.X * 0.5f) - ((AllottedGeometry.Size.X * ( ClampedFraction ))*0.5), 0.0f),
+						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+					FillImage,
+					ForegroundClippingRect,
+					DrawEffects,
+					FillColorAndOpacitySRGB
+					);
+				break;
+			}
+			case EProgressBarFillType::LeftToRight:
+			default:
+			{
+				const float ClampedFraction = FMath::Clamp( ProgressFraction.GetValue(), 0.0f, 1.0f  );
+				// Draw Fill
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D::ZeroVector,
+						FVector2D( AllottedGeometry.Size.X * ( ClampedFraction ) , AllottedGeometry.Size.Y )),
+					FillImage,
+					ForegroundClippingRect,
+					DrawEffects,
+					FillColorAndOpacitySRGB
+					);
+				break;
+			}
+		}
 		
 	}
 	else
