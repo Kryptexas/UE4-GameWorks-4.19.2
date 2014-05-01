@@ -7,7 +7,8 @@
  * This code was salvaged from the deprecated EpicContent plug-in.
  */
 class FCdnNewsFeedTitleFile
-	: public IOnlineTitleFile
+	: public TSharedFromThis<FCdnNewsFeedTitleFile, ESPMode::ThreadSafe>
+	, public IOnlineTitleFile
 {
 	/** Info used to send request for a file */
 	struct FPendingFileRequest
