@@ -6,7 +6,7 @@
 #include "ModuleInterface.h"
 
 /**
- * Content browser module
+ * Game Project Generation module
  */
 class FGameProjectGenerationModule : public IModuleInterface
 {
@@ -61,6 +61,9 @@ public:
 
 	/** Update code resource files */
 	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+
+	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
+	virtual void CheckAndWarnProjectFilenameValid();
 
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;

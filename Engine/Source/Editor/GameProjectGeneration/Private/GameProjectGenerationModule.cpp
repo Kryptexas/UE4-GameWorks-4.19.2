@@ -77,4 +77,9 @@ bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutC
 	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
 }
 
+void FGameProjectGenerationModule::CheckAndWarnProjectFilenameValid()
+{
+	GameProjectUtils::CheckAndWarnProjectFilenameValid();
+}
+
 #undef LOCTEXT_NAMESPACE

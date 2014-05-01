@@ -21,6 +21,7 @@ checkAtCompileTime(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE 
 #define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
+TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
 
 bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason)
 {
@@ -134,14 +135,6 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 	if ( !FChar::IsAlpha(BaseProjectFile[0]) )
 	{
 		OutFailReason = LOCTEXT( "ProjectNameMustBeginWithACharacter", "Project names must begin with an alphabetic character." );
-		return false;
-	}
-
-	if ( BaseProjectFile.Len() > MAX_PROJECT_NAME_LENGTH )
-	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("MaxProjectNameLength"), MAX_PROJECT_NAME_LENGTH );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameTooLong", "Project names must not be longer than {MaxProjectNameLength} characters." ), Args );
 		return false;
 	}
 
@@ -402,6 +395,53 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 				}
 			}
 		}
+	}
+}
+
+void GameProjectUtils::CheckAndWarnProjectFilenameValid()
+{
+	const FString& LoadedProjectFilePath = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
+	if ( !LoadedProjectFilePath.IsEmpty() )
+	{
+		const FString BaseProjectFile = FPaths::GetBaseFilename(LoadedProjectFilePath);
+		if ( BaseProjectFile.Len() > MAX_PROJECT_NAME_LENGTH )
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("MaxProjectNameLength"), MAX_PROJECT_NAME_LENGTH );
+			const FText WarningReason = FText::Format( LOCTEXT( "WarnProjectNameTooLong", "Project names must not be longer than {MaxProjectNameLength} characters.\nYou might have problems saving or modifying a project with a longer name." ), Args );
+			const FText WarningReasonOkText = LOCTEXT("WarningReasonOkText", "Ok");
+
+			FNotificationInfo Info(WarningReason);
+			Info.bFireAndForget = false;
+			Info.bUseLargeFont = false;
+			Info.bUseThrobber = false;
+			Info.bUseSuccessFailIcons = false;
+			Info.FadeOutDuration = 3.f;
+			Info.ButtonDetails.Add(FNotificationButtonInfo(WarningReasonOkText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnWarningReasonOk)));
+
+			if (WarningProjectNameNotification.IsValid())
+			{
+				WarningProjectNameNotification.Pin()->ExpireAndFadeout();
+				WarningProjectNameNotification.Reset();
+			}
+
+			WarningProjectNameNotification = FSlateNotificationManager::Get().AddNotification(Info);
+
+			if (WarningProjectNameNotification.IsValid())
+			{
+				WarningProjectNameNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+			}
+		}
+	}
+}
+
+void GameProjectUtils::OnWarningReasonOk()
+{
+	if ( WarningProjectNameNotification.IsValid() )
+	{
+		WarningProjectNameNotification.Pin()->SetCompletionState(SNotificationItem::CS_None);
+		WarningProjectNameNotification.Pin()->ExpireAndFadeout();
+		WarningProjectNameNotification.Reset();
 	}
 }
 

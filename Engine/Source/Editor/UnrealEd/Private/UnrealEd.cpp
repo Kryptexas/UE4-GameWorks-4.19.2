@@ -103,6 +103,7 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FGameProjectGenerationModule::Get().CheckForOutOfDateGameProjectFile();
+		FGameProjectGenerationModule::Get().CheckAndWarnProjectFilenameValid();
 	}
 
 	// =================== EDITOR STARTUP FINISHED ===================

@@ -23,6 +23,9 @@ public:
 	/** Prompts the user to update his project file, if necessary. */
 	static void CheckForOutOfDateGameProjectFile();
 
+	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
+	static void CheckAndWarnProjectFilenameValid();
+
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
 	static bool UpdateGameProject(const FString &EngineIdentifier);
 
@@ -218,6 +221,10 @@ private:
 	/** Internal handler for AddCodeToProject*/
 	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
+	/** Handler for the user confirming they've read the name legnth warning */
+	static void OnWarningReasonOk();
+
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;
+	static TWeakPtr<SNotificationItem> WarningProjectNameNotification;
 };
