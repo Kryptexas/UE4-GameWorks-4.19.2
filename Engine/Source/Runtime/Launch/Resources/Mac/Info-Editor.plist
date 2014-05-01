@@ -8,7 +8,11 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
-			<array/>
+			<array>
+				<string>uproject</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>UProject.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Unreal Project</string>
 			<key>CFBundleTypeRole</key>

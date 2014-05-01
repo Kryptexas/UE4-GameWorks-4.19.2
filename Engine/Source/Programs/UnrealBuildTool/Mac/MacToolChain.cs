@@ -852,6 +852,11 @@ namespace UnrealBuildTool
 						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/{1}.icns\" \"{2}.app/Contents/Resources/{1}.icns\"", EngineSourcePath, IconName, ExeName);
 					}
 
+					if (ExeName.StartsWith("UE4Editor"))
+					{
+						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
+					}
+
 					string InfoPlistFile = EngineSourcePath + "/Programs/" + GameName + "/Resources/Mac/Info.plist";
 					if (!File.Exists(InfoPlistFile))
 					{
@@ -999,7 +1004,7 @@ namespace UnrealBuildTool
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}; cd {2}/..; zip -r -y -1 {3}.dSYM.zip {3}.dSYM'",
+			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}'",
 				DeveloperDir,
 				MachOBinary.AbsolutePath,
 				FullDestPathRoot,
