@@ -49,6 +49,11 @@ FSocket * UIpNetDriver::CreateSocket()
 	return SocketSubsystem->CreateSocket( NAME_DGram, TEXT( "Unreal" ) );
 }
 
+int UIpNetDriver::GetClientPort()
+{
+	return 0;
+}
+
 bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error )
 {
 	if (!Super::InitBase(bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error))
@@ -102,19 +107,10 @@ bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const
 	// Bind socket to our port.
 	LocalAddr = SocketSubsystem->GetLocalBindAddr(*GLog);
 	
-	// Try the specific port first, even for clients. Required for some platforms.
-	LocalAddr->SetPort(bInitAsClient ? 0 : URL.Port);
+	LocalAddr->SetPort(bInitAsClient ? GetClientPort() : URL.Port);
 	
 	int32 AttemptPort = LocalAddr->GetPort();
 	int32 BoundPort = SocketSubsystem->BindNextPort( Socket, *LocalAddr, MaxPortCountToTry + 1, 1 );
-	if (BoundPort == 0 && bInitAsClient)
-	{
-		// If initializing as a client, and the specific port failed, retry with port 0 (any port)
-		LocalAddr->SetPort(0);
-		AttemptPort = LocalAddr->GetPort();
-		BoundPort = SocketSubsystem->BindNextPort( Socket, *LocalAddr, 1, 1 );
-	}
-
 	if (BoundPort == 0)
 	{
 		Error = FString::Printf( TEXT("%s: binding to port %i failed (%i)"), SocketSubsystem->GetSocketAPIName(), AttemptPort,

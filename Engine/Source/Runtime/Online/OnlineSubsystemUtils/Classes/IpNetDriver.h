@@ -48,6 +48,15 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 
 	// Begin UIpNetDriver interface.
 	virtual FSocket * CreateSocket();
+
+	/**
+	 * Returns the port number to use when a client is creating a socket.
+	 * Platforms that can't use the default of 0 (system-selected port) may override
+	 * this function.
+	 *
+	 * @return The port number to use for client sockets. Base implementation returns 0.
+	 */
+	virtual int GetClientPort();
 	// End UIpNetDriver interface.
 
 	// Begin FExec Interface
@@ -60,5 +69,5 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 	bool HandleSocketsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 
 	/** @return TCPIP connection to server */
-	UIpConnection* GetServerConnection();
+	class UIpConnection* GetServerConnection();
 };
