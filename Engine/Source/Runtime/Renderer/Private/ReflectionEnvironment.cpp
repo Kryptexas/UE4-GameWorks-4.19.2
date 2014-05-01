@@ -708,7 +708,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 					RHISetRenderTarget(GSceneRenderTargets.LightAccumulation->GetRenderTargetItem().TargetableTexture, NULL);
 
 					// Clear to no reflection contribution, alpha of 1 indicates full background contribution
-					RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, View.ViewRect);
+					RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
 
 					RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
