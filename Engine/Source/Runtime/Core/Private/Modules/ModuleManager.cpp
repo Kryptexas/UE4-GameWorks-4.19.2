@@ -344,7 +344,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 
 			// Try to dynamically load the DLL
 
-			UE_LOG(LogModuleManager, Verbose, TEXT( "ModuleManager: Load Module '%s' DLL '%s'" ), *InModuleName.ToString(), *ModuleInfo->Filename);
+			UE_LOG(LogModuleManager, Log, TEXT( "ModuleManager: Load Module '%s' DLL '%s'" ), *InModuleName.ToString(), *ModuleInfo->Filename);
 
 			// Determine which file to load for this module.
 			const FString ModuleFileToLoad = ModuleInfo->Filename;
