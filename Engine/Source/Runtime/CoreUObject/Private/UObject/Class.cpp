@@ -2763,7 +2763,33 @@ void UClass::Serialize( FArchive& Ar )
 		Ar << ComponentNameToDefaultObjectMapSerialized;
 	}
 
-	Ar << Interfaces;
+	int32 NumInterfaces = 0;
+	int64 InterfacesStart = 0L;
+	if(Ar.IsLoading())
+	{
+		// Always start with no interfaces
+		Interfaces.Empty();
+
+		// In older versions, interface classes were serialized before linking. In case of cyclic dependencies, we need to skip over the serialized array and defer the load until after Link() is called below.
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			// Get our current position
+			InterfacesStart = Ar.Tell();
+
+			// Load the length of the Interfaces array
+			Ar << NumInterfaces;
+
+			// Seek past the Interfaces array
+			struct FSerializedInterfaceReference
+			{
+				FPackageIndex Class;
+				int32 PointerOffset;
+				bool bImplementedByK2;
+			};
+			Ar.Seek(InterfacesStart + sizeof(NumInterfaces) + NumInterfaces * sizeof(FSerializedInterfaceReference));
+		}
+	}
+
 	Ar << ClassGeneratedBy;
 
 	if(Ar.IsLoading())
@@ -2772,6 +2798,38 @@ void UClass::Serialize( FArchive& Ar )
 		checkf(!HasAnyClassFlags(CLASS_Intrinsic), TEXT("Class %s loaded with CLASS_Intrinsic....we should not be loading any intrinsic classes."), *GetFullName());
 		ClassFlags &= ~ CLASS_ShouldNeverBeLoaded;
 		Link(Ar, true);
+	}
+
+	if(Ar.IsLoading())
+	{
+		// Save current position
+		int64 CurrentOffset = Ar.Tell();
+
+		// In older versions, we need to seek backwards to the start of the interfaces array
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			Ar.Seek(InterfacesStart);
+		}
+		
+		// Load serialized interface classes
+		TArray<FImplementedInterface> SerializedInterfaces;
+		Ar << SerializedInterfaces;
+
+		// Apply loaded interfaces only if we have not already set them (i.e. during compile-on-load)
+		if(Interfaces.Num() == 0 && SerializedInterfaces.Num() > 0)
+		{
+			Interfaces = SerializedInterfaces;
+		}
+
+		// In older versions, seek back to our current position after linking
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			Ar.Seek(CurrentOffset);
+		}
+	}
+	else
+	{
+		Ar << Interfaces;
 	}
 
 	if( Ar.UE4Ver() < VER_UE4_DONTSORTCATEGORIES_REMOVED )

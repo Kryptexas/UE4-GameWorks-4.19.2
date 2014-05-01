@@ -534,6 +534,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS,
 	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s part two (missed conversion for some variables
 	VER_UE4_VEHICLES_UNIT_CHANGE2,
+	// Changed order of interface class serialization
+	VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING,
  
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
