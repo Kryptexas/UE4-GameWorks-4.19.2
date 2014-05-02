@@ -3724,7 +3724,7 @@ public class GUBP : BuildCommand
 
         {
             var AdditonalEmails = "";
-            if (ParseParam("CIS") && !GUBPNodes[NodeToDo].SendSuccessEmail())
+            if (ParseParam("CIS") && !GUBPNodes[NodeToDo].SendSuccessEmail() && !GUBPNodes[NodeToDo].TriggerNode())
             {
                 if (NumPeople > 50 || NumPeople == 0)
                 {
