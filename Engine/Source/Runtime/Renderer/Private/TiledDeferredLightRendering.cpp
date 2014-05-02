@@ -105,9 +105,11 @@ public:
 
 	void SetParameters(
 		const FSceneView& View, 
+		int32 ViewIndex,
+		int32 NumViews,
 		const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
 		int32 NumLightsToRenderInSortedLights, 
-		const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights, 
+		const FSimpleLightArray& SimpleLights, 
 		int32 StartIndex, 
 		int32 NumThisPass)
 	{
@@ -186,8 +188,10 @@ public:
 			}
 			else
 			{
-				const FSimpleLightEntry& SimpleLight = SimpleLights[StartIndex + LightIndex - NumLightsToRenderInSortedLights];
-				LightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(SimpleLight.PositionAndRadius), 1.0f / SimpleLight.PositionAndRadius.W);
+				int32 SimpleLightIndex = StartIndex + LightIndex - NumLightsToRenderInSortedLights;
+				const FSimpleLightEntry& SimpleLight = SimpleLights.InstanceData[SimpleLightIndex];
+				const FSimpleLightPerViewEntry& SimpleLightPerViewData = SimpleLights.GetViewDependentData(SimpleLightIndex, ViewIndex, NumViews);
+				LightData.LightPositionAndInvRadius[LightIndex] = FVector4(SimpleLightPerViewData.Position, 1.0f / SimpleLight.Radius);
 				LightData.LightColorAndFalloffExponent[LightIndex] = FVector4(SimpleLight.Color, SimpleLight.Exponent);
 				LightData2.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(FVector(1, 0, 0), 0);
 				LightData2.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(-2, 1, 0, 1);
@@ -259,17 +263,19 @@ bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLi
 
 template <bool bVisualizeLightCulling>
 static void SetShaderTemplTiledLighting(
-	const FSceneView& View, 
-	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, 
-	int32 NumLightsToRenderInSortedLights, 
-	const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights, 
+	const FSceneView& View,
+	int32 ViewIndex,
+	int32 NumViews,
+	const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights,
+	int32 NumLightsToRenderInSortedLights,
+	const FSimpleLightArray& SimpleLights,
 	int32 StartIndex, 
 	int32 NumThisPass)
 {
 	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(GetGlobalShaderMap());
 	RHISetComputeShader(ComputeShader->GetComputeShader());
 
-	ComputeShader->SetParameters(View, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+	ComputeShader->SetParameters(View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
 
 	uint32 GroupSizeX = (View.ViewRect.Size().X + GDeferredLightTileSizeX - 1) / GDeferredLightTileSizeX;
 	uint32 GroupSizeY = (View.ViewRect.Size().Y + GDeferredLightTileSizeY - 1) / GDeferredLightTileSizeY;
@@ -279,23 +285,22 @@ static void SetShaderTemplTiledLighting(
 }
 
 
-void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights)
+void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights)
 {
 	check(GUseTiledDeferredShading);
 	check(SortedLights.Num() >= NumUnshadowedLights);
 
-	const int32 NumLightsToRender = NumUnshadowedLights + SimpleLights.Num();
+	const int32 NumLightsToRender = NumUnshadowedLights + SimpleLights.InstanceData.Num();
 	const int32 NumLightsToRenderInSortedLights = NumUnshadowedLights;
 
 	if (NumLightsToRender > 0)
 	{
 		INC_DWORD_STAT_BY(STAT_NumLightsUsingTiledDeferred, NumLightsToRender);
-		INC_DWORD_STAT_BY(STAT_NumLightsUsingSimpleTiledDeferred, SimpleLights.Num());
+		INC_DWORD_STAT_BY(STAT_NumLightsUsingSimpleTiledDeferred, SimpleLights.InstanceData.Num());
 		SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 
 		// Determine how many compute shader passes will be needed to process all the lights
 		const int32 NumPassesNeeded = FMath::DivideAndRoundUp(NumLightsToRender, GMaxNumTiledDeferredLights);
-
 		for (int32 PassIndex = 0; PassIndex < NumPassesNeeded; PassIndex++)
 		{
 			const int32 StartIndex = PassIndex * GMaxNumTiledDeferredLights;
@@ -313,11 +318,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 
 					if(View.Family->EngineShowFlags.VisualizeLightCulling)
 					{
-						SetShaderTemplTiledLighting<1>(View, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+						SetShaderTemplTiledLighting<1>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
 					}
 					else
 					{
-						SetShaderTemplTiledLighting<0>(View, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+						SetShaderTemplTiledLighting<0>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
 					}
 				}
 			}

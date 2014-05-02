@@ -98,11 +98,12 @@ void SetSimpleDeferredLightParameters(
 	const ShaderRHIParamRef ShaderRHI, 
 	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
 	const FSimpleLightEntry& SimpleLight,
+	const FSimpleLightPerViewEntry &SimpleLightPerViewData,
 	const FSceneView& View)
 {
 	FDeferredLightUniformStruct DeferredLightUniformsValue;
-	DeferredLightUniformsValue.LightPosition = SimpleLight.PositionAndRadius;
-	DeferredLightUniformsValue.LightInvRadius = 1.0f / SimpleLight.PositionAndRadius.W;
+	DeferredLightUniformsValue.LightPosition = SimpleLightPerViewData.Position;
+	DeferredLightUniformsValue.LightInvRadius = 1.0f / SimpleLight.Radius;
 	DeferredLightUniformsValue.LightColor = SimpleLight.Color;
 	DeferredLightUniformsValue.LightFalloffExponent = SimpleLight.Exponent;
 	DeferredLightUniformsValue.NormalizedLightDirection = FVector(1, 0, 0);

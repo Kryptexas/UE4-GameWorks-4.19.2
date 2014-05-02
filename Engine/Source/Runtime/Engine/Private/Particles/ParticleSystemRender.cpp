@@ -1195,7 +1195,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	}
 }
 
-void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, const FMatrix& InLocalToWorld, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights)
+void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, const FMatrix& InLocalToWorld, const FSceneViewFamily& InViewFamily, FSimpleLightArray& OutParticleLights)
 {
 	if (Source.LightDataOffset != 0)
 	{
@@ -1208,8 +1208,18 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 			ParticleCount = Source.MaxDrawCount;
 		}
 
-		OutParticleLights.Reserve(OutParticleLights.Num() + ParticleCount);
-
+		OutParticleLights.InstanceData.Reserve(OutParticleLights.InstanceData.Num() + ParticleCount);
+		
+		// Reserve memory for per-view data. If camera offset is not used then all views can share per-view data in order to save memory.
+		if(Source.CameraPayloadOffset != 0)
+		{
+			OutParticleLights.PerViewData.Reserve(OutParticleLights.PerViewData.Num() + ParticleCount * InViewFamily.Views.Num());
+		}
+		else
+		{
+			OutParticleLights.PerViewData.Reserve(OutParticleLights.PerViewData.Num() + ParticleCount);
+		}
+		
 		const uint8* ParticleData = Source.ParticleData.GetData();
 		const uint16* ParticleIndices = Source.ParticleIndices.GetData();
 
@@ -1229,6 +1239,19 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 			if (LightPayload->bValid)
 			{
 				const FVector2D Size = GetParticleSize(Particle, Source);
+				
+				FSimpleLightEntry ParticleLight;
+				ParticleLight.Radius =  LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f;
+				ParticleLight.Color = FVector(Particle.Color) * Particle.Color.A * LightPayload->ColorScale;
+				ParticleLight.Exponent = LightPayload->LightExponent;
+				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
+
+				// Early out if the light will have no visible contribution
+				if (ParticleLight.Radius <= KINDA_SMALL_NUMBER
+					&& ParticleLight.Color.GetMax() <= KINDA_SMALL_NUMBER)
+				{
+					continue;
+				}
 
 				FVector ParticlePosition = Particle.Location;
 				FOrbitChainModuleInstancePayload* LocalOrbitPayload = NULL;
@@ -1238,28 +1261,40 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 
 				ApplyOrbitToPosition(Particle, Source, InLocalToWorld, LocalOrbitPayload, Unused, Unused2, ParticlePosition, Unused3);
 
-				FSimpleLightEntry ParticleLight;
 
 				FVector LightPosition = Source.bUseLocalSpace ? FVector(InLocalToWorld.TransformPosition(ParticlePosition)) : ParticlePosition;
-				ParticleLight.PositionAndRadius = FVector4(LightPosition, LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f);
-				ParticleLight.Color = FVector(Particle.Color) * Particle.Color.A * LightPayload->ColorScale;
-				ParticleLight.Exponent = LightPayload->LightExponent;
-				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
-
-				// Only create a light if it will have visible contribution
-				if (ParticleLight.PositionAndRadius.W > KINDA_SMALL_NUMBER
-					&& ParticleLight.Color.GetMax() > KINDA_SMALL_NUMBER)
+				
+				// Calculate light positions per-view if we are using a camera offset.
+				if (Source.CameraPayloadOffset != 0)
 				{
-					OutParticleLights.Add(ParticleLight);
+					for(int32 ViewIndex = 0; ViewIndex < InViewFamily.Views.Num(); ++ViewIndex)
+					{
+						FSimpleLightPerViewEntry PerViewData;
+						const FVector& ViewOrigin = InViewFamily.Views[ViewIndex]->ViewMatrices.ViewOrigin;
+						FVector CameraOffset = GetCameraOffsetFromPayload(Source.CameraPayloadOffset, Particle, ParticlePosition, ViewOrigin);
+						PerViewData.Position = LightPosition + CameraOffset;
+
+						OutParticleLights.PerViewData.Add(PerViewData);
+					}
 				}
+				else
+				{
+					// When not using camera-offset, output one position for all views to share. 
+					FSimpleLightPerViewEntry PerViewData;
+					PerViewData.Position = LightPosition;
+					OutParticleLights.PerViewData.Add(PerViewData);
+				}
+
+				// Add an entry for the light instance.
+				OutParticleLights.InstanceData.Add(ParticleLight);
 			}
 		}
 	}
 }
 
-void FDynamicSpriteEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FDynamicSpriteEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
-	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), OutParticleLights);
+	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), ViewFamily, OutParticleLights);
 }
 
 /**
@@ -1938,9 +1973,9 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 	}
 }
 
-void FDynamicMeshEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FDynamicMeshEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
-	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), OutParticleLights);
+	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), ViewFamily, OutParticleLights);
 }
 
 void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, const FQuat& PointToLockedAxis, 
@@ -7228,7 +7263,7 @@ void FParticleSystemSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily
 	}
 }
 
-void FParticleSystemSceneProxy::GatherSimpleLights(TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
 	if (DynamicData != NULL)
 	{
@@ -7237,7 +7272,7 @@ void FParticleSystemSceneProxy::GatherSimpleLights(TArray<FSimpleLightEntry, Sce
 			const FDynamicEmitterDataBase* DynamicEmitterData = DynamicData->DynamicEmitterDataArray[EmitterIndex];
 			if (DynamicEmitterData)
 			{
-				DynamicEmitterData->GatherSimpleLights(this, OutParticleLights);
+				DynamicEmitterData->GatherSimpleLights(this, ViewFamily, OutParticleLights);
 			}
 		}
 	}

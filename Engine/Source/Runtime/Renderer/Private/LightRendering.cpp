@@ -65,11 +65,11 @@ public:
 		SetDeferredLightParameters(ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
 	}
 
-	void SetParametersSimpleLight(const FSceneView& View, const FSimpleLightEntry& SimpleLight)
+	void SetParametersSimpleLight(const FSceneView& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		SetParametersBase(ShaderRHI, View, NULL);
-		SetSimpleDeferredLightParameters(ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), SimpleLight, View);
+		SetSimpleDeferredLightParameters(ShaderRHI, GetUniformBufferParameter<FDeferredLightUniformStruct>(), SimpleLight, SimpleLightPerViewData, View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -219,7 +219,7 @@ IMPLEMENT_SHADER_TYPE(template<>, TDeferredLightOverlapPS<true>, TEXT("Stationar
 IMPLEMENT_SHADER_TYPE(template<>, TDeferredLightOverlapPS<false>, TEXT("StationaryLightOverlapShaders"), TEXT("OverlapDirectionalPixelMain"), SF_Pixel);
 
 /** Gathers simple lights from visible primtives in the passed in views. */
-void GatherSimpleLights(const TArray<FViewInfo>& Views, TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights)
+void GatherSimpleLights(const FSceneViewFamily& ViewFamily, const TArray<FViewInfo>& Views, FSimpleLightArray& SimpleLights)
 {
 	TArray<const FPrimitiveSceneInfo*, SceneRenderingAllocator> PrimitivesWithSimpleLights;
 
@@ -245,7 +245,7 @@ void GatherSimpleLights(const TArray<FViewInfo>& Views, TArray<FSimpleLightEntry
 	for (int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitivesWithSimpleLights.Num(); PrimitiveIndex++)
 	{
 		const FPrimitiveSceneInfo* Primitive = PrimitivesWithSimpleLights[PrimitiveIndex];
-		Primitive->Proxy->GatherSimpleLights(SimpleLights);
+		Primitive->Proxy->GatherSimpleLights(ViewFamily, SimpleLights);
 	}
 }
 
@@ -287,8 +287,8 @@ void FDeferredShadingSceneRenderer::RenderLights()
 	SCOPE_CYCLE_COUNTER(STAT_LightingDrawTime);
 	SCOPE_CYCLE_COUNTER(STAT_LightRendering);
 
-	TArray<FSimpleLightEntry, SceneRenderingAllocator> SimpleLights;
-	GatherSimpleLights(Views, SimpleLights);
+	FSimpleLightArray SimpleLights;
+	GatherSimpleLights(ViewFamily, Views, SimpleLights);
 
 	TArray<FSortedLightSceneInfo, SceneRenderingAllocator> SortedLights;
 	SortedLights.Empty(Scene->Lights.Num());
@@ -399,19 +399,19 @@ void FDeferredShadingSceneRenderer::RenderLights()
 				}
 
 				// Use tiled deferred shading on any unshadowed lights without a texture light profile
-				if (!ShouldUseTiledDeferred(SupportedByTiledDeferredLightEnd, SimpleLights.Num()) || bAnyUnsupportedByTiledDeferred || bAnyViewIsStereo)
+				if (!ShouldUseTiledDeferred(SupportedByTiledDeferredLightEnd, SimpleLights.InstanceData.Num()) || bAnyUnsupportedByTiledDeferred || bAnyViewIsStereo)
 				{
 					NumSortedLightsTiledDeferred = 0;
 				}
 
-				if (NumSortedLightsTiledDeferred > 0 || SimpleLights.Num() > 0)
+				if (NumSortedLightsTiledDeferred > 0 || SimpleLights.InstanceData.Num() > 0)
 				{
 					// Update the range that needs to be processed by standard deferred to exclude the lights done with tiled
 					StandardDeferredStart = NumSortedLightsTiledDeferred;
 					RenderTiledDeferredLighting(SortedLights, NumSortedLightsTiledDeferred, SimpleLights);
 				}
 			}
-			else if (SimpleLights.Num() > 0)
+			else if (SimpleLights.InstanceData.Num() > 0)
 			{
 				GSceneRenderTargets.BeginRenderingSceneColor();
 				RenderSimpleLightsStandardDeferred(SimpleLights);
@@ -443,7 +443,7 @@ void FDeferredShadingSceneRenderer::RenderLights()
 					InjectTranslucentVolumeLightingArray(SortedLights, AttenuationLightStart);
 				}
 				
-				if (SimpleLights.Num() > 0)
+				if (SimpleLights.InstanceData.Num() > 0)
 				{
 					SCOPED_DRAW_EVENT(InjectSimpleLightsTranslucentLighting, DEC_SCENE_ITEMS);
 					InjectSimpleTranslucentVolumeLightingArray(SimpleLights);
@@ -673,20 +673,22 @@ template<bool bUseIESProfile, bool bRadialAttenuation, bool bInverseSquaredFallo
 static void SetShaderTemplLightingSimple(
 	const FSceneView& View, 
 	FShader* VertexShader,
-	const FSimpleLightEntry& SimpleLight)
+	const FSimpleLightEntry& SimpleLight,
+	const FSimpleLightPerViewEntry& SimpleLightPerViewData)
 {
 	if(View.Family->EngineShowFlags.VisualizeLightCulling)
 	{
 		TShaderMapRef<TDeferredLightPS<false, bRadialAttenuation, false, true> > PixelShader(GetGlobalShaderMap());
 		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
-		PixelShader->SetParametersSimpleLight(View, SimpleLight);
+		PixelShader->SetParametersSimpleLight(View, SimpleLight, SimpleLightPerViewData);
 	}
 	else
 	{
 		TShaderMapRef<TDeferredLightPS<bUseIESProfile, bRadialAttenuation, bInverseSquaredFalloff, false> > PixelShader(GetGlobalShaderMap());
 		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
-		PixelShader->SetParametersSimpleLight(View, SimpleLight);
-	}}
+		PixelShader->SetParametersSimpleLight(View, SimpleLight, SimpleLightPerViewData);
+	}
+}
 
 /**
  * Used by RenderLights to render a light to the scene color buffer.
@@ -819,23 +821,25 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights)
+void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const FSimpleLightArray& SimpleLights)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
-	INC_DWORD_STAT_BY(STAT_NumLightsUsingStandardDeferred, SimpleLights.Num());
+	INC_DWORD_STAT_BY(STAT_NumLightsUsingStandardDeferred, SimpleLights.InstanceData.Num());
 	SCOPED_DRAW_EVENT(StandardDeferredSimpleLights, DEC_SCENE_ITEMS);
 	
 	// Use additive blending for color
 	RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
-
-	for (int32 LightIndex = 0; LightIndex < SimpleLights.Num(); LightIndex++)
+	const int32 NumViews = Views.Num();
+	for (int32 LightIndex = 0; LightIndex < SimpleLights.InstanceData.Num(); LightIndex++)
 	{
-		const FSimpleLightEntry& SimpleLight = SimpleLights[LightIndex];
-		const FSphere LightBounds(SimpleLight.PositionAndRadius, SimpleLight.PositionAndRadius.W);
-
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		const FSimpleLightEntry& SimpleLight = SimpleLights.InstanceData[LightIndex];
+		
+		for (int32 ViewIndex = 0; ViewIndex < NumViews; ViewIndex++)
 		{
+			const FSimpleLightPerViewEntry& SimpleLightPerViewData = SimpleLights.GetViewDependentData(LightIndex, ViewIndex, NumViews);
+			const FSphere LightBounds(SimpleLightPerViewData.Position, SimpleLight.Radius);
+
 			FViewInfo& View = Views[ViewIndex];
 			// Set the device viewport for the view.
 			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
@@ -847,12 +851,12 @@ void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const TAr
 			if (SimpleLight.Exponent == 0)
 			{
 				// inverse squared
-				SetShaderTemplLightingSimple<false, true, true>(View, *VertexShader, SimpleLight);
+				SetShaderTemplLightingSimple<false, true, true>(View, *VertexShader, SimpleLight, SimpleLightPerViewData);
 			}
 			else
 			{
 				// light's exponent, not inverse squared
-				SetShaderTemplLightingSimple<false, true, false>(View, *VertexShader, SimpleLight);
+				SetShaderTemplLightingSimple<false, true, false>(View, *VertexShader, SimpleLight, SimpleLightPerViewData);
 			}
 
 			VertexShader->SetSimpleLightParameters(View, LightBounds);

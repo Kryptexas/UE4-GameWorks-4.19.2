@@ -13,10 +13,50 @@
 class FSimpleLightEntry
 {
 public:
-	FVector4 PositionAndRadius;
 	FVector Color;
+	float Radius;
 	float Exponent;
 	bool bAffectTranslucency;
+};
+
+/** Data for a simple dynamic light which could change per-view. */
+class FSimpleLightPerViewEntry
+{
+public:
+	FVector Position;
+};
+
+/** Data pertaining to a set of simple dynamic lights */
+class FSimpleLightArray
+{
+public:
+	/** Data per simple dynamic light instance, independent of view */
+	TArray<FSimpleLightEntry, SceneRenderingAllocator> InstanceData;
+	/** Per-view data for each light */
+	TArray<FSimpleLightPerViewEntry, SceneRenderingAllocator> PerViewData;
+
+public:
+
+	/**
+	* Returns the per-view data for a simple light entry.
+	* @param LightIndex - The index of the simple light
+	* @param ViewIndex - The index of the view
+	* @param NumViews - The number of views in the ViewFamily.
+	*/
+	inline const FSimpleLightPerViewEntry& GetViewDependentData(int32 LightIndex, int32 ViewIndex, int32 NumViews) const
+	{
+		// If InstanceData has an equal number of elements to PerViewData then all views share the same PerViewData.
+		if (InstanceData.Num() == PerViewData.Num())
+		{
+			return PerViewData[LightIndex];
+		}
+		else 
+		{
+			// Calculate strided per-view index.
+			const int32 PerViewDataIndex = (LightIndex * NumViews) + ViewIndex;
+			return PerViewData[PerViewDataIndex];
+		}
+	}
 };
 
 namespace EDrawDynamicFlags
@@ -125,7 +165,7 @@ public:
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) {}
 
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
-	virtual void GatherSimpleLights(TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutSimpleLights) const {}
+	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
 
 	/**
 	 *	Determines the relevance of this primitive's elements to the given light.

@@ -183,7 +183,7 @@ private:
 	bool ShouldUseTiledDeferred(int32 NumUnshadowedLights, int32 NumSimpleLights) const;
 
 	/** Renders the lights in SortedLights in the range [0, NumUnshadowedLights) using tiled deferred shading. */
-	void RenderTiledDeferredLighting(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights);
+	void RenderTiledDeferredLighting(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights);
 
 	/** Renders the scene's lighting. */
 	void RenderLights();
@@ -294,7 +294,7 @@ private:
 	void RenderLight(const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
 
 	/** Renders an array of simple lights using standard deferred shading. */
-	void RenderSimpleLightsStandardDeferred(const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights);
+	void RenderSimpleLightsStandardDeferred(const FSimpleLightArray& SimpleLights);
 
 	/** Clears the translucency lighting volumes before light accumulation. */
 	void ClearTranslucentVolumeLighting();
@@ -318,7 +318,7 @@ private:
 	void InjectTranslucentVolumeLightingArray(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumLights);
 
 	/** Accumulates direct lighting for simple lights. */
-	void InjectSimpleTranslucentVolumeLightingArray(const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights);
+	void InjectSimpleTranslucentVolumeLightingArray(const FSimpleLightArray& SimpleLights);
 
 	/** Filters the translucency lighting volumes to reduce aliasing. */
 	void FilterTranslucentVolumeLighting();

@@ -1738,12 +1738,13 @@ public:
 	}
 	FSimpleLightTranslucentLightingInjectPS() {}
 
-	void SetParameters(const FViewInfo& View, const FSimpleLightEntry& SimpleLight, int32 VolumeCascadeIndexValue)
+	void SetParameters(const FViewInfo& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData, int32 VolumeCascadeIndexValue)
 	{
 		FGlobalShader::SetParameters(GetPixelShader(), View);
 
+		FVector4 PositionAndRadius(SimpleLightPerViewData.Position, SimpleLight.Radius);
 		SetShaderValue(GetPixelShader(), VolumeCascadeIndex, VolumeCascadeIndexValue);
-		SetShaderValue(GetPixelShader(), SimpleLightPositionAndRadius, SimpleLight.PositionAndRadius);
+		SetShaderValue(GetPixelShader(), SimpleLightPositionAndRadius, PositionAndRadius);
 		SetShaderValue(GetPixelShader(), SimpleLightColorAndExponent, FVector4(SimpleLight.Color, SimpleLight.Exponent));
 	}
 
@@ -1766,15 +1767,15 @@ IMPLEMENT_SHADER_TYPE(,FSimpleLightTranslucentLightingInjectPS,TEXT("Translucent
 
 FGlobalBoundShaderState InjectSimpleLightBoundShaderState;
 
-void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(const TArray<FSimpleLightEntry, SceneRenderingAllocator>& SimpleLights)
+void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(const FSimpleLightArray& SimpleLights)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TranslucentInjectTime);
 
 	int32 NumLightsToInject = 0;
 
-	for (int32 LightIndex = 0; LightIndex < SimpleLights.Num(); LightIndex++)
+	for (int32 LightIndex = 0; LightIndex < SimpleLights.InstanceData.Num(); LightIndex++)
 	{
-		if (SimpleLights[LightIndex].bAffectTranslucency)
+		if (SimpleLights.InstanceData[LightIndex].bAffectTranslucency)
 		{
 			NumLightsToInject++;
 		}
@@ -1782,8 +1783,9 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(c
 
 	if (NumLightsToInject > 0)
 	{
-		//@todo - support multiple views
+		//@todo - support multiple views 
 		const FViewInfo& View = Views[0];
+		const int32 ViewIndex = 0;
 
 		INC_DWORD_STAT_BY(STAT_NumLightsInjectedIntoTranslucency, NumLightsToInject);
 
@@ -1806,13 +1808,16 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(c
 			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
 			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-			for (int32 LightIndex = 0; LightIndex < SimpleLights.Num(); LightIndex++)
+		
+			for (int32 LightIndex = 0; LightIndex < SimpleLights.InstanceData.Num(); LightIndex++)
 			{
-				const FSimpleLightEntry& SimpleLight = SimpleLights[LightIndex];
+				const FSimpleLightEntry& SimpleLight = SimpleLights.InstanceData[LightIndex];
+				const FSimpleLightPerViewEntry& SimpleLightPerViewData = SimpleLights.GetViewDependentData(LightIndex, ViewIndex, Views.Num());
 
 				if (SimpleLight.bAffectTranslucency)
 				{
-					const FVolumeBounds VolumeBounds = CalculateLightVolumeBounds((const FSphere&)SimpleLight.PositionAndRadius, View, VolumeCascadeIndex, false);
+					const FSphere LightBounds(SimpleLightPerViewData.Position, SimpleLight.Radius);
+					const FVolumeBounds VolumeBounds = CalculateLightVolumeBounds(LightBounds, View, VolumeCascadeIndex, false);
 
 					if (VolumeBounds.IsValid())
 					{
@@ -1823,7 +1828,7 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(c
 
 						VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
 						GeometryShader->SetParameters(VolumeBounds);
-						PixelShader->SetParameters(View, SimpleLight, VolumeCascadeIndex);
+						PixelShader->SetParameters(View, SimpleLight, SimpleLightPerViewData, VolumeCascadeIndex);
 
 						// Accumulate the contribution of multiple lights
 						RHISetBlendState(TStaticBlendState<
