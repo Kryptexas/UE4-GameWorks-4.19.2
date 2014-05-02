@@ -795,7 +795,19 @@ bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 {
 	Super::Exec(InWorld, TEXT("Pause"),Ar);
 
-	FSlateApplication::Get().ResetToDefaultInputSettings();
+	if (!InWorld->IsPaused())
+	{
+		if (ViewportClient && ViewportClient->Viewport)
+		{
+			ViewportClient->Viewport->CaptureJoystickInput(true);
+			ViewportClient->Viewport->CaptureMouse(true);
+		}
+	}
+	else
+	{
+		FSlateApplication::Get().ResetToDefaultInputSettings();
+	}
+	
 
 	return true;
 }
