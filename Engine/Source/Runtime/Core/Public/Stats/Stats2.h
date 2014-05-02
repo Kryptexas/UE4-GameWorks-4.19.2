@@ -35,6 +35,8 @@ public:
 	};
 };
 
+// Pass a console command directly to the stats system, return true if it is known command, false means it might be a stats command
+CORE_API bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion = false, FOutputDevice* Ar = nullptr);
 
 #if STATS
 
@@ -192,9 +194,6 @@ namespace EStatAllFields
 }
 
 checkAtCompileTime(EStatAllFields::StartShift > 0, too_many_stat_fields);
-
-// Pass a console command directly to the stats system, return true if it is known command, false means it might be a stats command
-CORE_API bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion = false, FOutputDevice* Ar = nullptr);
 
 FORCEINLINE int64 ToPackedCallCountDuration(uint32 CallCount, uint32 Duration)
 {

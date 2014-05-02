@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
+#include "TaskGraphInterfaces.h"
+#include "DefaultValueHelper.h"
 
 #if STATS
 
-#include "TaskGraphInterfaces.h"
 #include "StatsData.h"
 #include "StatsFile.h"
-#include "DefaultValueHelper.h"
 
 DECLARE_CYCLE_STAT(TEXT("Hitch Scan"),STAT_HitchScan,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
@@ -436,6 +436,44 @@ static void DumpHitch(int64 Frame)
 	}
 }
 
+#endif
+
+static bool HandleCommandBroadcast(const FName& InStatName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	bOutCurrentEnabled = true;
+	bOutOthersEnabled = false;
+
+	// Check to see if all stats have been disabled... 
+	static const FName NAME_NoGroup = FName(TEXT("STATGROUP_None"));
+	if (InStatName == NAME_NoGroup)
+	{
+		// Iterate through all enabled groups.
+		FCoreDelegates::StatDisableAll.Broadcast(true);
+
+		return false;
+	}
+
+	// Check to see if/how this is already enabled.. (default to these incase it's not bound)
+	FString StatString = InStatName.ToString();
+	StatString.RemoveFromStart("STATGROUP_");
+	if (FCoreDelegates::StatCheckEnabled.IsBound())
+	{
+		FCoreDelegates::StatCheckEnabled.Broadcast(*StatString, bOutCurrentEnabled, bOutOthersEnabled);
+		if (!bOutCurrentEnabled)
+		{
+			FCoreDelegates::StatEnabled.Broadcast(*StatString);
+		}
+		else
+		{
+			FCoreDelegates::StatDisabled.Broadcast(*StatString);
+		}
+	}
+
+	return true;
+}
+
+#if STATS
+
 FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 {
 	static FHUDGroupGameThreadRenderer Singleton;
@@ -541,14 +579,10 @@ struct FHUDGroupManager
 
 		ResizeFramesHistory( Params.MaxHistoryFrames.Get() );
 
-		static const FName FName_StatGroup_None = TEXT("STATGROUP_None");
-		const FString MaybeStatString = Params.Group.Get().GetPlainNameString();
-		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeStatString));
-		if (MaybeGroupFName == FName_StatGroup_None)
+		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString()));
+		bool bCurrentEnabled, bOthersEnabled;
+		if (!HandleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled))
 		{
-			// Iterate through all enabled groups.
-			FCoreDelegates::StatDisableAll.Broadcast(true);
-
 			// Remove all groups.
 			EnabledGroups.Empty();
 		}
@@ -556,23 +590,6 @@ struct FHUDGroupManager
 		{
 			// Is this a group stat (as opposed to a simple stat?)
 			const bool bGroupStat = Stats.Groups.Contains(MaybeGroupFName);
-
-			// Check to see if/how this is already enabled.. (default to these incase it's not bound)
-			bool bCurrentEnabled = true;
-			bool bOthersEnabled = false;
-			if (FCoreDelegates::StatCheckEnabled.IsBound())
-			{
-				FCoreDelegates::StatCheckEnabled.Broadcast(*MaybeStatString, bCurrentEnabled, bOthersEnabled);
-				if (!bCurrentEnabled)
-				{
-					FCoreDelegates::StatEnabled.Broadcast(*MaybeStatString);
-				}
-				else
-				{
-					FCoreDelegates::StatDisabled.Broadcast(*MaybeStatString);
-				}
-			}
-
 			if (bGroupStat)
 			{
 				// Is this group stat currently enabled?
@@ -1125,11 +1142,13 @@ static void CommandTestFile()
 	}
 }
 
+#endif
+
 static void StatCmd(FString InCmd)
 {
-	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	const TCHAR* Cmd = *InCmd;
-
+#if STATS
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	DumpCull = 5.0f;
 	MaxDepth = MAX_int32;
 	NameFilter.Empty();
@@ -1248,8 +1267,8 @@ static void StatCmd(FString InCmd)
 		FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
 	}
 	else
+#endif
 	{
-		FStatsThreadState& LocalStats = FStatsThreadState::GetLocalState();
 		FString MaybeGroup;
 		FParse::Token(Cmd, MaybeGroup, false);
 
@@ -1263,10 +1282,17 @@ static void StatCmd(FString InCmd)
 				MaybeGroup.RemoveAt(PlusPos,1,false);
 			}
 
+			const FName MaybeGroupFName = FName(*MaybeGroup);
+#if STATS
 			// Try to parse.
 			FStatGroupParams Params( Cmd );
-			Params.Group.Set( FName(*MaybeGroup) );
-			FHUDGroupManager::Get(LocalStats).HandleCommand(Params, bHierarchy);
+			Params.Group.Set( MaybeGroupFName );
+			FHUDGroupManager::Get(Stats).HandleCommand(Params, bHierarchy);
+#else
+			// If stats aren't enabled, broadcast so engine stats can still be triggered
+			bool bCurrentEnabled, bOthersEnabled;
+			HandleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled);
+#endif
 		}
 		else
 		{
@@ -1297,6 +1323,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 
 		FString ArgNoWhitespaces = FDefaultValueHelper::RemoveWhitespaces(TempCmd);
 		const bool bIsEmpty = ArgNoWhitespaces.IsEmpty();
+#if STATS
 		if( bIsEmpty && Ar )
 		{
 			PrintStatsHelpToOutputDevice( *Ar );
@@ -1354,6 +1381,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else
+#endif
 		{
 			bResult = false;
 		}
@@ -1361,15 +1389,22 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		check(IsInGameThread());
 		if( !bIsEmpty )
 		{
+			ENamedThreads::Type ThreadType = ENamedThreads::GameThread;
+#if STATS
+			if (FPlatformProcess::SupportsMultithreading())
+			{
+				ThreadType = ENamedThreads::StatsThread;
+			}
+
 			// make sure these are initialized on the game thread
 			FHUDGroupGameThreadRenderer::Get();
 			FStatGroupGameThreadNotifier::Get();
-
+#endif
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs)
 				, TEXT("StatCmd")
 				, NULL
-				, FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+				, ThreadType
 				);
 			if (bBlockForCompletion)
 			{
@@ -1380,6 +1415,8 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 	}
 	return bResult;
 }
+
+#if STATS
 
 static void GetPermanentStats_StatsThread(TArray<FStatMessage>* OutStats)
 {
