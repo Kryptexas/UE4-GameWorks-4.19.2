@@ -1329,10 +1329,7 @@ namespace UnrealBuildTool
 				Log.TraceInformation("Skipping project file write, as it didn't change...");
 			}
 
-			if (!bGeneratingRunIOSProject)
-			{
-				WriteSchemes(XcodeProjectPath, ProjectTargets, UE4ProjectTarget, UE4XcodeHelperTarget);
-			}
+			WriteSchemes(XcodeProjectPath, ProjectTargets, UE4ProjectTarget, UE4XcodeHelperTarget);
 		}
 
 		/// <summary>
