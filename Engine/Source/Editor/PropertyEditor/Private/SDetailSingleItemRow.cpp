@@ -168,7 +168,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	this->ChildSlot
 	[	
 		SNew( SBorder )
-		.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
+		.BorderImage( this, &SDetailSingleItemRow::GetBorderImage )
 		.Padding( 0.0f )
 		[
 			Widget
@@ -185,11 +185,21 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 
 bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
 {
-	if( Customization->HasPropertyNode() )
+	if( Customization->HasPropertyNode() || Customization->GetWidgetRow().IsCopyPasteBound() )
 	{
-		FUIAction CopyAction( FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnCopyProperty ) );
+		FUIAction CopyAction  = Customization->GetWidgetRow().CopyMenuAction;
+		FUIAction PasteAction = Customization->GetWidgetRow().PasteMenuAction;
 
-		FUIAction PasteAction( FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnPasteProperty ), FCanExecuteAction::CreateSP( this, &SDetailSingleItemRow::CanPasteProperty ) );
+		if( !CopyAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
+		{
+			CopyAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnCopyProperty );
+		}
+
+		if( !PasteAction.ExecuteAction.IsBound() && Customization->HasPropertyNode() )
+		{
+			PasteAction.ExecuteAction = FExecuteAction::CreateSP( this, &SDetailSingleItemRow::OnPasteProperty );
+			PasteAction.CanExecuteAction = FCanExecuteAction::CreateSP( this, &SDetailSingleItemRow::CanPasteProperty );
+		}
 
 		MenuBuilder.AddMenuSeparator();
 
@@ -248,10 +258,22 @@ void SDetailSingleItemRow::OnPasteProperty()
 bool SDetailSingleItemRow::CanPasteProperty() const
 {
 	FString ClipboardContent;
-	if( Customization->HasPropertyNode() && OwnerTreeNode.IsValid() )
+	if( OwnerTreeNode.IsValid() )
 	{
 		FPlatformMisc::ClipboardPaste(ClipboardContent);
 	}
 
 	return !ClipboardContent.IsEmpty();
+}
+
+const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
+{
+	if (IsHovered())
+	{
+		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle_Hovered");
+	}
+	else
+	{
+		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle");
+	}
 }

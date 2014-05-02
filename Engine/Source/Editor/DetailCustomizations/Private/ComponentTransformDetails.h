@@ -4,13 +4,22 @@
 
 #include "AssetSelection.h"
 
+namespace ETransformField
+{
+	enum Type
+	{
+		Location,
+		Rotation,
+		Scale
+	};
+}
 /**
  * Manages the Transform section of a details view                    
  */
 class FComponentTransformDetails : public TSharedFromThis<FComponentTransformDetails>, public IDetailCustomNodeBuilder
 {
 public:
-	FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, FNotifyHook* NotifyHook );
+	FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, IDetailLayoutBuilder& DetailBuilder );
 
 	/**
 	 * Caches the representation of the actor transform for the user input boxes                   
@@ -94,34 +103,99 @@ private:
 	void OnPreserveScaleRatioToggled( ESlateCheckBoxState::Type NewState );
 
 	/**
-	 * @return the Label to display for translation                   
+	 * Builds a transform field label
+	 *
+	 * @param TransformField The field to build the label for
+	 * @return The label widget
 	 */
-	FString GetLocationLabel() const;
+	TSharedRef<SWidget> BuildTransformFieldLabel( ETransformField::Type TransformField );
 
 	/**
-	 * @return the Label to display for rotation                   
+	 * Gets display text for a transform field
+	 *
+	 * @param TransformField	The field to get the text for
+	 * @return The text label for TransformField
 	 */
-	FString GetRotationLabel() const;
+	FText GetTransformFieldText( ETransformField::Type TransformField ) const;
 
 	/**
-	 * @return the Label to display for scale                   
+	 * @return the text to display for translation                   
 	 */
-	FString GetScaleLabel() const;
+	FText GetLocationText() const;
 
 	/**
-	 * Called when the location label is clicked (toggles between absolute and relative)                   
+	 * @return the text to display for rotation                   
 	 */
-	void OnLocationLabelClicked( );
+	FText GetRotationText() const;
 
 	/**
-	 * Called when the rotation label is clicked (toggles between absolute and relative)                   
+	 * @return the text to display for scale                   
 	 */
-	void OnRotationLabelClicked( );
+	FText GetScaleText() const;
 
 	/**
-	 * Called when the scale label is clicked (toggles between absolute and relative)                   
+	 * Enables or disables absolute location
+	 *
+	 * @param bEnable True to enable, false to disable (use relative location)
 	 */
-	void OnScaleLabelClicked( );
+	void OnToggleAbsoluteLocation( bool bEnable );
+
+	/**
+	 * Enables or disables absolute rotation
+	 *
+	 * @param bEnable True to enable, false to disable (use relative rotation)
+	 */
+	void OnToggleAbsoluteRotation( bool bEnable );
+
+	/**
+	 * Enables or disables absolute scale
+	 *
+	 * @param bEnable True to enable, false to disable (use relative scale)
+	 */
+	void OnToggleAbsoluteScale( bool bEnable );
+
+	/**
+	 * Sets relative transform on the specified field
+	 *
+	 * @param The field that should be set to relative
+	 */
+	void OnSetRelativeTransform( ETransformField::Type TransformField );
+
+	/**
+	 * Sets world transform on the specified field
+	 *
+	 * @param The field that should be set to world
+	 */
+	void OnSetWorldTransform( ETransformField::Type TransformField );
+
+	/** @return true if relative transform is enabled for the specified field */
+	bool IsRelativeTransformChecked( ETransformField::Type TransformField ) const;
+
+	/** @return true if world transform is enabled for the specified field */
+	bool IsWorldTransformChecked( ETransformField::Type TransformField ) const;
+
+	/** @return true of copy is enabled for the specified field */
+	bool OnCanCopy( ETransformField::Type TransformField ) const;
+
+	/**
+	 * Copies the specified transform field to the clipboard
+	 */
+	void OnCopy( ETransformField::Type TransformField );
+
+	/**
+	 * Pastes the specified transform field from the clipboard
+	 */
+	void OnPaste( ETransformField::Type TransformField );
+
+	/**
+	 * Creates a UI action for copying a specified transform field
+	 */
+	FUIAction CreateCopyAction( ETransformField::Type TransformField ) const;
+
+	/**
+	 * Creates a UI action for pasting a specified transform field
+	 */
+	FUIAction CreatePasteAction( ETransformField::Type TransformField ) const;
 
 	/** Called when the "Reset to Default" button for the location has been clicked */
 	FReply OnLocationResetClicked();

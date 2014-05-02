@@ -85,11 +85,11 @@ static void PropagateTransformPropertyChange(UObject* InObject, UProperty* InPro
 }
 
 
-FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, FNotifyHook* InNotifyHook )
+FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjectPtr<UObject> >& InSelectedObjects, const FSelectedActorInfo& InSelectedActorInfo, IDetailLayoutBuilder& DetailBuilder )
 	: SelectedActorInfo( InSelectedActorInfo )
 	, SelectedObjects( InSelectedObjects )
 	, bPreserveScaleRatio( false )
-	, NotifyHook( InNotifyHook )
+	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
 	, bEditingRotationInUI( false )
 {
 	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
@@ -113,29 +113,292 @@ FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjec
 	}
 }
 
+TSharedRef<SWidget> FComponentTransformDetails::BuildTransformFieldLabel( ETransformField::Type TransformField )
+{
+	FText Label;
+	switch( TransformField )
+	{
+	case ETransformField::Rotation:
+		Label = LOCTEXT( "RotationLabel", "Rotation");
+		break;
+	case ETransformField::Scale:
+		Label = LOCTEXT( "ScaleLabel", "Scale" );
+		break;
+	case ETransformField::Location:
+	default:
+		Label = LOCTEXT("LocationLabel", "Location");
+		break;
+	}
+
+	FMenuBuilder MenuBuilder( true, NULL, NULL );
+
+	FUIAction SetRelativeLocationAction
+	(
+		FExecuteAction::CreateSP( this, &FComponentTransformDetails::OnSetRelativeTransform, TransformField ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &FComponentTransformDetails::IsRelativeTransformChecked, TransformField )
+	);
+
+	FUIAction SetWorldLocationAction
+	(
+		FExecuteAction::CreateSP( this, &FComponentTransformDetails::OnSetWorldTransform, TransformField ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &FComponentTransformDetails::IsWorldTransformChecked, TransformField )
+	);
+
+	MenuBuilder.BeginSection( TEXT("TransformType"), FText::Format( LOCTEXT("TransformType", "{0} Type"), Label ) );
+
+	MenuBuilder.AddMenuEntry
+	(
+		FText::Format( LOCTEXT( "RelativeLabel", "Relative"), Label ),
+		FText::Format( LOCTEXT( "RelativeLabel_ToolTip", "{0} is relative to its parent"), Label ),
+		FSlateIcon(),
+		SetRelativeLocationAction,
+		NAME_None, 
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		FText::Format( LOCTEXT( "WorldLabel", "World"), Label ),
+		FText::Format( LOCTEXT( "WorldLabel_ToolTip", "{0} is relative to the world"), Label ),
+		FSlateIcon(),
+		SetWorldLocationAction,
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.EndSection();
+
+
+	return 
+		SNew(SComboButton)
+		.ContentPadding( 0 )
+		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+		.ForegroundColor( FSlateColor::UseForeground() )
+		.MenuContent()
+		[
+			MenuBuilder.MakeWidget()
+		]
+		.ButtonContent()
+		[
+			SNew( SBox )
+			.Padding( FMargin( 0.0f, 0.0f, 2.0f, 0.0f ) )
+			[
+				SNew(STextBlock)
+				.Text(this, &FComponentTransformDetails::GetTransformFieldText, TransformField)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		];
+}
+
+FText FComponentTransformDetails::GetTransformFieldText( ETransformField::Type TransformField ) const
+{
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		return GetLocationText();
+		break;
+	case ETransformField::Rotation:
+		return GetRotationText();
+		break;
+	case ETransformField::Scale:
+		return GetScaleText();
+		break;
+	default:
+		return FText::GetEmpty();
+		break;
+	}
+}
+
+void FComponentTransformDetails::OnSetRelativeTransform(  ETransformField::Type TransformField )
+{
+	const bool bEnable = false;
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		OnToggleAbsoluteLocation(bEnable);
+		break;
+	case ETransformField::Rotation:
+		OnToggleAbsoluteRotation( bEnable );
+		break;
+	case ETransformField::Scale:
+		OnToggleAbsoluteScale( bEnable );
+		break;
+	default:
+		break;
+	}
+}
+
+bool FComponentTransformDetails::IsRelativeTransformChecked( ETransformField::Type TransformField ) const
+{
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		return !bAbsoluteLocation;
+		break;
+	case ETransformField::Rotation:
+		return !bAbsoluteRotation;
+		break;
+	case ETransformField::Scale:
+		return !bAbsoluteScale;
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
+void FComponentTransformDetails::OnSetWorldTransform( ETransformField::Type TransformField )
+{
+	const bool bEnable = true;
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		OnToggleAbsoluteLocation(bEnable);
+		break;
+	case ETransformField::Rotation:
+		OnToggleAbsoluteRotation(bEnable);
+		break;
+	case ETransformField::Scale:
+		OnToggleAbsoluteScale(bEnable);
+		break;
+	default:
+		break;
+	}
+}
+
+bool FComponentTransformDetails::IsWorldTransformChecked( ETransformField::Type TransformField ) const
+{
+	return !IsRelativeTransformChecked( TransformField );
+}
+
+bool FComponentTransformDetails::OnCanCopy( ETransformField::Type TransformField ) const
+{
+	// We can only copy values if the whole field is set.  If multiple values are defined we do not copy since we are unable to determine the value
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		return CachedLocation.IsSet();
+		break;
+	case ETransformField::Rotation:
+		return CachedRotation.IsSet();
+		break;
+	case ETransformField::Scale:
+		return CachedScale.IsSet();
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
+void FComponentTransformDetails::OnCopy( ETransformField::Type TransformField )
+{
+	CacheTransform();
+
+	FString CopyStr;
+	switch (TransformField)
+	{
+	case ETransformField::Location:
+		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedLocation.X.GetValue(), CachedLocation.Y.GetValue(), CachedLocation.Z.GetValue());
+		break;
+	case ETransformField::Rotation:
+		CopyStr = FString::Printf(TEXT("P=%f Y=%f R=%f"), CachedRotation.Y.GetValue(), CachedRotation.Z.GetValue(), CachedRotation.X.GetValue());
+		break;
+	case ETransformField::Scale:
+		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedScale.X.GetValue(), CachedScale.Y.GetValue(), CachedScale.Z.GetValue());
+		break;
+	default:
+		break;
+	}
+
+	if( !CopyStr.IsEmpty() )
+	{
+		FPlatformMisc::ClipboardCopy( *CopyStr );
+	}
+}
+
+void FComponentTransformDetails::OnPaste( ETransformField::Type TransformField )
+{
+	FString PastedText;
+	FPlatformMisc::ClipboardPaste(PastedText);
+
+	switch (TransformField)
+	{
+		case ETransformField::Location:
+		{
+			FVector Location;
+			if (Location.InitFromString(PastedText))
+			{
+				FScopedTransaction Transaction(LOCTEXT("PasteLocation", "Paste Location"));
+				OnSetLocation(Location.X, ETextCommit::Default, 0);
+				OnSetLocation(Location.Y, ETextCommit::Default, 1);
+				OnSetLocation(Location.Z, ETextCommit::Default, 2);
+			}
+		}
+		break;
+	case ETransformField::Rotation:
+		{
+			FRotator Rotation;
+			if (Rotation.InitFromString(PastedText))
+			{
+				FScopedTransaction Transaction(LOCTEXT("PasteRotation", "Paste Rotation"));
+				OnSetRotation(Rotation.Roll, ETextCommit::Default, 0);
+				OnSetRotation(Rotation.Pitch, ETextCommit::Default, 1);
+				OnSetRotation(Rotation.Yaw, ETextCommit::Default, 2);
+			}
+		}
+		break;
+	case ETransformField::Scale:
+		{
+			FVector Scale;
+			if (Scale.InitFromString(PastedText))
+			{
+				FScopedTransaction Transaction(LOCTEXT("PasteScale", "Paste Scale"));
+				OnSetScale(Scale.X, ETextCommit::Default, 0);
+				OnSetScale(Scale.Y, ETextCommit::Default, 1);
+				OnSetScale(Scale.Z, ETextCommit::Default, 2);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+FUIAction FComponentTransformDetails::CreateCopyAction( ETransformField::Type TransformField ) const
+{
+	return
+		FUIAction
+		(
+			FExecuteAction::CreateSP(this, &FComponentTransformDetails::OnCopy, TransformField ),
+			FCanExecuteAction::CreateSP(this, &FComponentTransformDetails::OnCanCopy, TransformField )
+		);
+}
+
+FUIAction FComponentTransformDetails::CreatePasteAction( ETransformField::Type TransformField ) const
+{
+	return 
+		 FUIAction( FExecuteAction::CreateSP(this, &FComponentTransformDetails::OnPaste, TransformField ) );
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	UClass* SceneComponentClass = USceneComponent::StaticClass();
 		
-
 	FSlateFontInfo FontInfo = IDetailLayoutBuilder::GetDetailFont();
-		
+
 	// Location
-	ChildrenBuilder.AddChildContent( LOCTEXT("Location", "Location").ToString() )
+	ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
+		.CopyAction( CreateCopyAction( ETransformField::Location ) )
+		.PasteAction( CreatePasteAction( ETransformField::Location ) )
 		.NameContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		[
-			SNew( SBox )
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.Padding( FMargin( 2.0f, 0.0f ) )
-			[
-				SNew( SHyperlink )
-				.Text( this, &FComponentTransformDetails::GetLocationLabel )
-				.IsEnabled( this, &FComponentTransformDetails::GetIsEnabled )
-				.OnNavigate( this, &FComponentTransformDetails::OnLocationLabelClicked )
-				.TextStyle(FEditorStyle::Get(), "DetailsView.HyperlinkStyle")
-			]
+			BuildTransformFieldLabel( ETransformField::Location )
 		]
 		.ValueContent()
 		.MinDesiredWidth(125.0f * 3.0f)
@@ -186,19 +449,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	
 	// Rotation
 	ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
+		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
+		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
 		.NameContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		[
-			SNew( SBox )
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.Padding( FMargin( 2.0f, 0.0f ) )
-			[
-				SNew( SHyperlink )
-				.Text( this, &FComponentTransformDetails::GetRotationLabel )
-				.IsEnabled( this, &FComponentTransformDetails::GetIsEnabled )
-				.OnNavigate( this, &FComponentTransformDetails::OnRotationLabelClicked )
-				.TextStyle(FEditorStyle::Get(), "DetailsView.HyperlinkStyle")
-			]
+			BuildTransformFieldLabel(ETransformField::Rotation)
 		]
 		.ValueContent()
 		.MinDesiredWidth(125.0f * 3.0f)
@@ -254,19 +511,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 
 			
 	ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
+		.CopyAction( CreateCopyAction(ETransformField::Scale) )
+		.PasteAction( CreatePasteAction(ETransformField::Scale) )
 		.NameContent()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		[
-			SNew( SBox )
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.Padding( FMargin( 2.0f, 0.0f ) )
-			[
-				SNew( SHyperlink )
-				.Text( this, &FComponentTransformDetails::GetScaleLabel )
-				.IsEnabled( this, &FComponentTransformDetails::GetIsEnabled )
-				.OnNavigate( this, &FComponentTransformDetails::OnScaleLabelClicked )
-				.TextStyle(FEditorStyle::Get(), "DetailsView.HyperlinkStyle")
-			]
+			BuildTransformFieldLabel(ETransformField::Scale)
 		]
 		.ValueContent()
 		.MinDesiredWidth(125.0f * 3.0f)
@@ -355,22 +606,22 @@ void FComponentTransformDetails::OnPreserveScaleRatioToggled( ESlateCheckBoxStat
 	GConfig->SetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 }
 
-FString FComponentTransformDetails::GetLocationLabel() const
+FText FComponentTransformDetails::GetLocationText() const
 {
-	return bAbsoluteLocation ? LOCTEXT( "AbsoluteLocation", "Absolute Location" ).ToString() : LOCTEXT( "Location", "Location" ).ToString();
+	return bAbsoluteLocation ? LOCTEXT( "AbsoluteLocation", "Absolute Location" ) : LOCTEXT( "Location", "Location" );
 }
 
-FString FComponentTransformDetails::GetRotationLabel() const
+FText FComponentTransformDetails::GetRotationText() const
 {
-	return bAbsoluteRotation ? LOCTEXT( "AbsoluteRotation", "Absolute Rotation" ).ToString() : LOCTEXT( "Rotation", "Rotation" ).ToString();
+	return bAbsoluteRotation ? LOCTEXT( "AbsoluteRotation", "Absolute Rotation" ) : LOCTEXT( "Rotation", "Rotation" );
 }
 
-FString FComponentTransformDetails::GetScaleLabel() const
+FText FComponentTransformDetails::GetScaleText() const
 {
-	return bAbsoluteScale ? LOCTEXT( "AbsoluteScale", "Absolute Scale" ).ToString() : LOCTEXT( "Scale", "Scale" ).ToString();
+	return bAbsoluteScale ? LOCTEXT( "AbsoluteScale", "Absolute Scale" ) : LOCTEXT( "Scale", "Scale" );
 }
 
-void FComponentTransformDetails::OnLocationLabelClicked( )
+void FComponentTransformDetails::OnToggleAbsoluteLocation( bool bEnable )
 {
 	UProperty* AbsoluteLocationProperty = FindField<UProperty>( USceneComponent::StaticClass(), "bAbsoluteLocation" );
 
@@ -382,7 +633,7 @@ void FComponentTransformDetails::OnLocationLabelClicked( )
 		{
 			UObject* Object = ObjectPtr.Get();
 			USceneComponent* RootComponent = FComponentEditorUtils::GetSceneComponent( Object );
-			if( RootComponent )
+			if( RootComponent && RootComponent->bAbsoluteLocation != bEnable )
 			{
 				if( !bBeganTransaction )
 				{
@@ -436,7 +687,7 @@ void FComponentTransformDetails::OnLocationLabelClicked( )
 
 }
 
-void FComponentTransformDetails::OnRotationLabelClicked( )
+void FComponentTransformDetails::OnToggleAbsoluteRotation( bool bEnable )
 {
 	UProperty* AbsoluteRotationProperty = FindField<UProperty>( USceneComponent::StaticClass(), "bAbsoluteRotation" );
 
@@ -448,7 +699,7 @@ void FComponentTransformDetails::OnRotationLabelClicked( )
 		{
 			UObject* Object = ObjectPtr.Get();
 			USceneComponent* RootComponent = FComponentEditorUtils::GetSceneComponent( Object );
-			if( RootComponent )
+			if( RootComponent && RootComponent->bAbsoluteRotation != bEnable )
 			{
 				if( !bBeganTransaction )
 				{
@@ -501,7 +752,7 @@ void FComponentTransformDetails::OnRotationLabelClicked( )
 	}
 }
 
-void FComponentTransformDetails::OnScaleLabelClicked( )
+void FComponentTransformDetails::OnToggleAbsoluteScale( bool bEnable )
 {
 	UProperty* AbsoluteScaleProperty = FindField<UProperty>( USceneComponent::StaticClass(), "bAbsoluteScale" );
 
@@ -513,7 +764,7 @@ void FComponentTransformDetails::OnScaleLabelClicked( )
 		{
 			UObject* Object = ObjectPtr.Get();
 			USceneComponent* RootComponent = FComponentEditorUtils::GetSceneComponent( Object );
-			if( RootComponent )
+			if( RootComponent && RootComponent->bAbsoluteScale != bEnable )
 			{
 				if( !bBeganTransaction )
 				{
