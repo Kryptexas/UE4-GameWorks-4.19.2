@@ -136,6 +136,9 @@ void FBlueprintCompileReinstancer::GenerateFieldMappings(TMap<UObject*, UObject*
 		UFunction* NewFunction = ClassToReinstance->FindFunctionByName(Func.Key, EIncludeSuperFlag::ExcludeSuper);
 		FieldMapping.Add(Func.Value, NewFunction);
 	}
+
+	UObject* NewCDO = ClassToReinstance->GetDefaultObject();
+	FieldMapping.Add(OriginalCDO, NewCDO);
 }
 
 FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
