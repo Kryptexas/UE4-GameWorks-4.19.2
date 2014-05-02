@@ -687,179 +687,177 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 	Result = GUID;
 }
 
-CORE_API NSWindow* GExtendedAlertWindow = NULL;
-
-static int32 ShowExtendedAlertWindow( EAppMsgType::Type MsgType, NSString* Text, NSString* Caption )
+EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
 	SCOPED_AUTORELEASE_POOL;
-
-	checkf(GExtendedAlertWindow);
-
-	// Update window contents
-	NSArray* SubViews = [[GExtendedAlertWindow contentView] subviews];
-	for (NSView* SubView in SubViews)
-	{
-		if ([SubView isMemberOfClass:[NSTextField class]])
-		{
-			// Set the caption and message text
-			NSTextField* TextField = (NSTextField*)SubView;
-			if ([[TextField stringValue] isEqualToString: @"Caption"])
-			{
-				[TextField setStringValue: Caption];
-			}
-			else if ([[TextField stringValue] isEqualToString: @"Message"])
-			{
-				[TextField setStringValue: Text];
-			}
-		}
-		else if (MsgType == EAppMsgType::YesNoYesAllNoAll && [SubView isMemberOfClass:[NSButton class]])
-		{
-			// Remove Cancel button if it's not needed
-			NSButton* Button = (NSButton*)SubView;
-			if ([[Button title] isEqualToString: @"Cancel"])
-			{
-				[SubView setHidden: true];
-			}
-		}
-	}
-
-	// UE4AppDelegate's OnAlertWindowButtonPress will close the window and set the correct return code
-	return [NSApp runModalForWindow: GExtendedAlertWindow];
-}
-
-EAppReturnType::Type FMacPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	NSString* CocoaText = Text ? (NSString*)FPlatformString::TCHARToCFString(Text) : NULL;
-	NSString* CocoaCaption = Caption ? (NSString*)FPlatformString::TCHARToCFString(Caption) : NULL;
 
 	EAppReturnType::Type RetValue = EAppReturnType::Cancel;
 	NSInteger Result;
 
-	if(MacApplication)
+	if (MacApplication)
 	{
 		MacApplication->UseMouseCaptureWindow(false);
 	}
-	
+
+	NSAlert* AlertPanel = [NSAlert new];
+	[AlertPanel setInformativeText:FString(Text).GetNSString()];
+	[AlertPanel setMessageText:FString(Caption).GetNSString()];
+
 	switch (MsgType)
 	{
-	case EAppMsgType::YesNo:
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Yes", @"No", NULL);
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		break;
-	case EAppMsgType::OkCancel:
-		// return 1 for Ok, 0 for Cancel
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"OK", @"Cancel", NULL);
-		if (Result == NSAlertDefaultReturn)
-		{
+		case EAppMsgType::Ok:
+			[AlertPanel addButtonWithTitle:@"OK"];
+			[AlertPanel runModal];
 			RetValue = EAppReturnType::Ok;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::YesNoCancel:
-		// return 0 for Yes, 1 for No, 2 for Cancel
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Yes", @"No", @"Cancel");
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::CancelRetryContinue:
-		// return 0 for Cancel, 1 for Retry, 2 for Continue
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Continue", @"Retry", @"Cancel");
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Continue;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::Retry;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::YesNoYesAllNoAll:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll
-		Result = ShowExtendedAlertWindow(MsgType, CocoaText, CocoaCaption);
-		if (Result == 0)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else if (Result == 1)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == 2)
-		{
-			RetValue = EAppReturnType::YesAll;
-		}
-		else
-		{
-			RetValue = EAppReturnType::NoAll;
-		}
-		break;
-	case EAppMsgType::YesNoYesAllNoAllCancel:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll, 4 for Cancel
-		Result = ShowExtendedAlertWindow(MsgType, CocoaText, CocoaCaption);
-		if (Result == 0)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else if (Result == 1)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == 2)
-		{
-			RetValue = EAppReturnType::YesAll;
-		}
-		else if (Result == 3)
-		{
-			RetValue = EAppReturnType::NoAll;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	default:
-		NSRunAlertPanel(CocoaCaption, CocoaText, @"OK", NULL, NULL);
-		break;
-	}
-	
-	if(MacApplication)
-	{
-		MacApplication->UseMouseCaptureWindow(true);
+			break;
+
+		case EAppMsgType::YesNo:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			break;
+
+		case EAppMsgType::OkCancel:
+			[AlertPanel addButtonWithTitle:@"OK"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Ok;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoCancel:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::CancelRetryContinue:
+			[AlertPanel addButtonWithTitle:@"Continue"];
+			[AlertPanel addButtonWithTitle:@"Retry"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Continue;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::Retry;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAllNoAll:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			[AlertPanel addButtonWithTitle:@"No to all"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else if (Result == NSAlertThirdButtonReturn)
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			else
+			{
+				RetValue = EAppReturnType::NoAll;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAllNoAllCancel:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			[AlertPanel addButtonWithTitle:@"No to all"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else if (Result == NSAlertThirdButtonReturn)
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			else if (Result == NSAlertThirdButtonReturn + 1)
+			{
+				RetValue = EAppReturnType::NoAll;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAll:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			break;
+
+		default:
+			break;
 	}
 
-	if (CocoaCaption)
+	[AlertPanel release];
+
+	if (MacApplication)
 	{
-		CFRelease((CFStringRef)CocoaCaption);
-	}
-	if (CocoaText)
-	{
-		CFRelease((CFStringRef)CocoaText);
+		MacApplication->UseMouseCaptureWindow(true);
 	}
 
 	return RetValue;

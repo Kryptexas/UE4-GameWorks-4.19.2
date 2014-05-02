@@ -11,7 +11,6 @@
 
 
 static FString GSavedCommandLine;
-extern CORE_API NSWindow* GExtendedAlertWindow;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
@@ -43,7 +42,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 @interface UE4AppDelegate : NSObject <NSApplicationDelegate>
 {
-	IBOutlet NSWindow *AlertWindow;
 #if WITH_EDITOR
 	NSString* Filename;
 	bool bHasFinishedLaunching;
@@ -53,7 +51,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 #if WITH_EDITOR
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename;
 #endif
-- (IBAction)OnAlertWindowButtonPress:(id)Sender;
 
 @end
 
@@ -65,7 +62,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	Filename = nil;
 	bHasFinishedLaunching = false;
 #endif
-	GExtendedAlertWindow = AlertWindow;
 }
 
 #if WITH_EDITOR
@@ -92,21 +88,6 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	}
 }
 #endif
-
-- (IBAction)OnAlertWindowButtonPress:(id)Sender
-{
-	static NSString* AllNames[] = { @"No", @"Yes", @"Yes to all", @"No to all", @"Cancel" };
-
-	NSString* ButtonName = [(NSButton*)Sender title];
-
-	for (int32 Index = 0; Index < sizeof(AllNames) / sizeof(AllNames[0]); Index++)
-	{
-		if ([ButtonName isEqualToString: AllNames[Index]])
-		{
-			[NSApp stopModalWithCode: Index];
-		}
-	}
-}
 
 - (IBAction)OnQuitRequest:(id)Sender
 {
