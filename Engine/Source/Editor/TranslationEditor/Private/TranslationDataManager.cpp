@@ -100,6 +100,11 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 	GWarn->EndSlowTask();
 }
 
+FTranslationDataManager::~FTranslationDataManager()
+{
+	RemoveTranslationUnitArrayfromRoot(AllTranslations); // Re-enable garbage collection for all current UTranslationDataObjects
+}
+
 TSharedPtr< FInternationalizationManifest > FTranslationDataManager::ReadManifest( const FString& ManifestFilePathToRead )
 {
 	
@@ -539,12 +544,15 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 		Complete.Empty();
 		ChangedOnImport.Empty();
 
-
 		for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
 		{
 			UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
 			if (TranslationUnit != NULL)
 			{
+				if (!TranslationUnit->IsRooted())
+				{
+					TranslationUnit->AddToRoot(); // Disable garbage collection for UTranslationUnit objects
+				}
 				AllTranslations.Add(TranslationUnit);
 
 				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
@@ -622,6 +630,14 @@ void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTrans
 	}
 	
 	GWarn->EndSlowTask();
+}
+
+void FTranslationDataManager::RemoveTranslationUnitArrayfromRoot(TArray<UTranslationUnit*>& TranslationUnits)
+{
+	for (UTranslationUnit* TranslationUnit : TranslationUnits)
+	{
+		TranslationUnit->RemoveFromRoot();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

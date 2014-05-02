@@ -17,6 +17,8 @@ public:
 
 	FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath);
 
+	virtual ~FTranslationDataManager();
+
 	TArray<UTranslationUnit*>& GetAllTranslationsArray()
 	{
 		return AllTranslations;
@@ -79,6 +81,9 @@ private:
 
 	/** Get the history data for a given translation unit */
 	void GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& ManifestFilePath );
+
+	/** Removes each UTranslationUnit in the passed array from the root set, allowing it to be garbage collected */
+	void RemoveTranslationUnitArrayfromRoot( TArray<UTranslationUnit*>& TranslationUnits );
 
 	// Arrays containing the translation data
 	TArray<UTranslationUnit*> AllTranslations;
