@@ -540,7 +540,8 @@ private:
 	const FSlateBrush* GetWindowTitlebackgroundImage( ) const
 	{
 		TSharedPtr<SWindow> OwnerWindow = OwnerWindowPtr.Pin();
-		const bool bIsActive = FSlateApplication::Get().GetActiveTopLevelWindow() == OwnerWindow || OwnerWindow->HasActiveChildren();
+		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
+		const bool bIsActive = NativeWindow.IsValid() && NativeWindow->IsForegroundWindow();
 
 		return bIsActive ? &Style->ActiveTitleBrush : &Style->InactiveTitleBrush;
 	}
