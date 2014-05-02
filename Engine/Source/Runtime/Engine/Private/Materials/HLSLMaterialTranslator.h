@@ -349,28 +349,35 @@ public:
 
 			check(FunctionStack.Num() == 1);
 
-		
-			int32 WPOFreq = (int32)GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset);
-			FShaderCodeChunk& WPOChunk = CodeChunks[MP_WorldPositionOffset][WPOFreq][Chunk[MP_WorldPositionOffset]];
-			FMaterialRenderContext DummyContext( NULL, *Material, NULL );
-			
-			// Determine whether the world position offset is used. 
-			// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then WPO isn't used.
-			MaterialCompilationOutput.bModifiesMeshPosition = true;
-			if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
+			if (Chunk[MP_WorldPositionOffset] == -1)
 			{
-				float DummyFloat;
-				FColor DummyColor;
-				FVector DefaultVector;
-				GetDefaultForMaterialProperty(MP_WorldPositionOffset, DummyFloat,DummyColor,DefaultVector);
+				MaterialCompilationOutput.bModifiesMeshPosition = false;
+			}
+			else
+			{
+				int32 WPOFreq = (int32)GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset);
+				FShaderCodeChunk& WPOChunk = CodeChunks[MP_WorldPositionOffset][WPOFreq][Chunk[MP_WorldPositionOffset]];
+				FMaterialRenderContext DummyContext( NULL, *Material, NULL );
 
-				FLinearColor WPOValue;
-				WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
-				if( FVector(WPOValue) == DefaultVector)
+				// Determine whether the world position offset is used. 
+				// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then WPO isn't used.
+				MaterialCompilationOutput.bModifiesMeshPosition = true;
+				if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
 				{
-					MaterialCompilationOutput.bModifiesMeshPosition = false;
+					float DummyFloat;
+					FColor DummyColor;
+					FVector DefaultVector;
+					GetDefaultForMaterialProperty(MP_WorldPositionOffset, DummyFloat,DummyColor,DefaultVector);
+
+					FLinearColor WPOValue;
+					WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
+					if( FVector(WPOValue) == DefaultVector)
+					{
+						MaterialCompilationOutput.bModifiesMeshPosition = false;
+					}
 				}
 			}
+
 
 			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetLightingModel() != MLM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{

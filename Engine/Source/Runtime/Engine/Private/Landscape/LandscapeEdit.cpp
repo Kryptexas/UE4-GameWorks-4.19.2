@@ -3733,9 +3733,13 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			LandscapeEdit.RecalculateNormals();
 		}
 
-		for (auto It = Info->XYtoComponentMap.CreateIterator(); It; ++It )
+		TArray<ULandscapeComponent*> AllComponents;
+		Info->XYtoComponentMap.GenerateValueArray(AllComponents);
+
+		// We cannot iterate the XYtoComponentMap directly because reregistering components modifies the array.
+		for (auto It = AllComponents.CreateIterator(); It; ++It)
 		{
-			ULandscapeComponent* Comp = It.Value();
+			ULandscapeComponent* Comp = *It;
 			if( Comp )
 			{
 				if( bNeedsRecalcBoundingBox )
