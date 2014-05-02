@@ -5,15 +5,19 @@
 #include "Canvas.h"
 #include "CanvasRenderTarget2D.generated.h"
 
-/** This delegate allows developers to bind a function to be called every time the texture is updated, so that they can use the supplied canvas to draw to the texture. */
-DECLARE_DELEGATE_OneParam( FOnCanvasRenderTargetUpdate, class UCanvas* );
+/** This delegate is assignable through Blueprint and has similar functionality to the above. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCanvasRenderTargetUpdate, UCanvas*, Canvas, int32, Width, int32, Height);
 
 /**
  * CanvasRenderTarget2D is 2D render target which exposes a Canvas interface to allow you to draw elements onto 
- * it directly.
+ * it directly.  Use FindCanvasRenderTarget2D() to find or create a render target texture by unique name, then
+ * bind a function to the OnCanvasRenderTargetUpdate delegate which will be called when the render target is
+ * updated.  If you need to repaint your canvas every single frame, simply call UpdateResource() on it from a Tick
+ * function.  Also, remember to hold onto your new canvas render target with a reference so that it doesn't get
+ * garbage collected.
  */
-UCLASS(MinimalAPI)
-class UCanvasRenderTarget2D : public UTextureRenderTarget2D
+UCLASS()
+class ENGINE_API UCanvasRenderTarget2D : public UTextureRenderTarget2D
 {
 	GENERATED_UCLASS_BODY()
 
@@ -30,18 +34,42 @@ public:
 	virtual void UpdateResource();
 
 	/**
-	 * Assigns a user delegate to be called every time the texture needs to be refreshed for rendering.  This delegate
-	 * passes along a Canvas object that you can use to draw to the texture directly!
+	 * Statically finds a canvas render target from the global map of canvas render targets. It can optionally create a new render target if not found as well.
 	 *
-	 * @param	InDelegate	The canvas update delegate to use.  You can change this at any time.
+	 * @param	InRenderTargetName	Name of the render target. This should be unique.
+	 * @param	Width				Width of the render target.
+	 * @param	Height				Height of the render target.
+	 * @param	bCreateIfNotFound	True to create the render target if we couldn't find one with this name
+	 * @return						Returns the instanced render target.
 	 */
-	void SetOnCanvasRenderTargetUpdate( const FOnCanvasRenderTargetUpdate& InDelegate )
-	{
-		OnCanvasRenderTargetUpdate = InDelegate;
-	}
+	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D")
+	static UCanvasRenderTarget2D* FindCanvasRenderTarget2D(FName InRenderTargetName, int32 Width, int32 Height, bool bCreateIfNotFound=false);
 
-private:
+	/**
+	 * Updates a specific render target from the global map of canvas render targets.  Does not trigger an error if the specified render target can't be found.
+	 *
+	 * @param	InRenderTargetName		Name of the render target to update.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D")
+	static void UpdateCanvasRenderTarget(FName InRenderTargetName);
 
-	/** Texture update delegate */
+	/**
+	 * Gets a specific render target's size from the global map of canvas render targets.  Does not trigger an error if the specified render target can't be found.
+	 *
+	 * @param	Width	Out: The width of this render target
+	 * @param	Height	Out: The height of this render target
+	 */
+	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D")
+	static void GetCanvasRenderTargetSize(FName InRenderTargetName, int32& Width, int32& Height);
+
+
+	/** Called when this Canvas Render Target is asked to update its texture resource. */
+	UPROPERTY(BlueprintAssignable, Category="Canvas Render Target 2D")
 	FOnCanvasRenderTargetUpdate OnCanvasRenderTargetUpdate;
+
+
+protected:
+
+	/** Global mapped array of all canvas render targets */
+	static TMap<FName, TAutoWeakObjectPtr<UCanvasRenderTarget2D>> GCanvasRenderTarget2Ds;
 };
