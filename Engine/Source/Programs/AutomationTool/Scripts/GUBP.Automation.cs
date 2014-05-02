@@ -4757,8 +4757,15 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                 {
                     Note = "always";
                 }
-                Log("  {0}: {1}", Node, Note);
-                FullNodeList.Add(Node, Note);
+                if (GUBPNodes[Node].RunInEC())
+                {
+                    Log("  {0}: {1}", Node, Note);
+                    FullNodeList.Add(Node, Note);
+                }
+                else
+                {
+                    Log("  {0}: {1} [Aggregate]", Node, Note);
+                }
             }
         }
 
