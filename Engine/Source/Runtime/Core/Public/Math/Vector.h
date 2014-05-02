@@ -1772,4 +1772,14 @@ FORCEINLINE float FVector::BoxPushOut( const FVector & Normal, const FVector & S
 	return FMath::Abs(Normal.X*Size.X) + FMath::Abs(Normal.Y*Size.Y) + FMath::Abs(Normal.Z*Size.Z);
 }
 
+/** Component-wise clamp for FVector */
+FORCEINLINE FVector ClampVector( const FVector& V, const FVector& Min, const FVector& Max )
+{
+	return FVector(
+		FMath::Clamp(V.X,Min.X,Max.X),
+		FMath::Clamp(V.Y,Min.Y,Max.Y),
+		FMath::Clamp(V.Z,Min.Z,Max.Z)
+		);
+}
+
 template <> struct TIsPODType<FVector> { enum { Value = true }; };

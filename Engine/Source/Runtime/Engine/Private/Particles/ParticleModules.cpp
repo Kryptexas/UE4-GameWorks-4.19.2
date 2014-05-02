@@ -3918,6 +3918,14 @@ UParticleModuleAttractorPoint::UParticleModuleAttractorPoint(const class FPostCo
 	bAffectBaseVelocity = false;
 	bOverrideVelocity = false;
 	bSupported3DDrawMode = true;
+
+	Positive_X = true;
+	Positive_Y = true;
+	Positive_Z = true;
+
+	Negative_X = true;
+	Negative_Y = true;
+	Negative_Z = true;
 }
 
 void UParticleModuleAttractorPoint::InitializeDefaults()
@@ -3991,6 +3999,9 @@ void UParticleModuleAttractorPoint::Update(FParticleEmitterInstance* Owner, int3
 
 	AttractorRange *= ScaleSize;
 
+	FVector MinNormalizedDir(Negative_X ? -1.0f : 0.0f, Negative_Y ? -1.0f : 0.0f, Negative_Z ? -1.0f : 0.0f);
+	FVector MaxNormalizedDir(Positive_X ? +1.0f : 0.0f, Positive_Y ? +1.0f : 0.0f, Positive_Z ? +1.0f : 0.0f);
+
 	BEGIN_UPDATE_LOOP;
 		// If the particle is within range...
 		FVector Dir = AttractorPosition - Particle.Location;
@@ -4022,8 +4033,17 @@ void UParticleModuleAttractorPoint::Update(FParticleEmitterInstance* Owner, int3
 				AttractorStrength *= ScaleSize;
 			}
 
-			// Adjust the VELOCITY of the particle based on the attractor... 
 			Dir.Normalize();
+
+			// If the strength is negative, flip direction before clamping.
+			if (AttractorStrength < 0.0f)
+			{
+				Dir = -Dir;
+				AttractorStrength = -AttractorStrength;
+			}
+
+			// Adjust the VELOCITY of the particle based on the attractor...
+			Dir = ClampVector(Dir,MinNormalizedDir,MaxNormalizedDir);
     		Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
 			if (bAffectBaseVelocity)
 			{

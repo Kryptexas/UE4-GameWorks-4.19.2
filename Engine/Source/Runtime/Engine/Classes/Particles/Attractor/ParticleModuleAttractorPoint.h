@@ -37,6 +37,30 @@ class UParticleModuleAttractorPoint : public UParticleModuleAttractorBase
 	UPROPERTY(EditAnywhere, Category=Attractor)
 	uint32 bUseWorldSpacePosition:1;
 
+	/** Whether particles can move along the positive X axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Positive_X:1;
+
+	/** Whether particles can move along the positive Y axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Positive_Y:1;
+
+	/** Whether particles can move along the positive Z axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Positive_Z:1;
+
+	/** Whether particles can move along the negative X axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Negative_X:1;
+
+	/** Whether particles can move along the negative Y axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Negative_Y:1;
+
+	/** Whether particles can move along the negative Z axis. */
+	UPROPERTY(EditAnywhere, Category=Attractor)
+	uint32 Negative_Z:1;
+
 	/** Initializes the default values for this property */
 	void InitializeDefaults();
 
