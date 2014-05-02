@@ -19,10 +19,20 @@ public:
 	UNREALED_API static FName FindIconNameForActor( const TWeakObjectPtr<AActor>& InActor );
 
 	/** Find the small icon to use for the supplied class */
-	UNREALED_API static const FSlateBrush* FindIconForClass(UClass* InClass, const FName& InDefaultName = FName() );
+	UNREALED_API static const FSlateBrush* FindIconForClass(const UClass* InClass, const FName& InDefaultName = FName() );
 
 	/** Find the small icon name to use for the supplied class */
-	UNREALED_API static FName FindIconNameForClass(UClass* InClass, const FName& InDefaultName = FName() );
+	UNREALED_API static FName FindIconNameForClass(const UClass* InClass, const FName& InDefaultName = FName() );
+
+	/** Find the small icon to use for the supplied class */
+	UNREALED_API static const FSlateBrush* FindThumbnailForClass(const UClass* InClass, const FName& InDefaultName = FName() );
+
+	/** Find the large thumbnail name to use for the supplied class */
+	UNREALED_API static FName FindThumbnailNameForClass(const UClass* InClass, const FName& InDefaultName = FName() );
+
+private:
+	/** Find a thumbnail/icon name to use for the supplied class */
+	UNREALED_API static FName FindIconNameImpl(const UClass* InClass, const FName& InDefaultName = FName(), const TCHAR* StyleRoot = TEXT("ClassIcon") );
 };
 
 #endif // __ActorIconFinder_h__

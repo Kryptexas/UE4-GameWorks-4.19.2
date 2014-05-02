@@ -100,23 +100,6 @@ void FBspModeStyle::Initialize()
 	StyleSet->Set( "BspMode.AddVolume", new IMAGE_BRUSH( "Icons/icon_volume_40x", Icon40x40 ) );
 	StyleSet->Set( "BspMode.AddVolume.Small", new IMAGE_BRUSH( "Icons/icon_volume_40x", Icon20x20 ) );
 
-	StyleSet->Set( "BspMode.BlockingVolume", new IMAGE_BRUSH( "Icons/icon_volume_Blocking_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.CullDistanceVolume", new IMAGE_BRUSH( "Icons/icon_volume_CullDistance_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.LevelStreamingVolume", new IMAGE_BRUSH( "Icons/icon_volume_LevelStreaming_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.LightmassCharacterIndirectDetailVolume", new IMAGE_BRUSH( "Icons/icon_volume_LightmassCharacterIndirectDetail_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.LightmassImportanceVolume", new IMAGE_BRUSH( "Icons/icon_volume_LightmassImportance_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.MassiveLODOverrideVolume", new IMAGE_BRUSH( "Icons/icon_volume_MassiveLODOverride_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.NavMeshBoundsVolume", new IMAGE_BRUSH( "Icons/icon_volume_NavMeshBounds_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.NavModifierVolume", new IMAGE_BRUSH( "Icons/icon_volume_NavMeshModifier_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.PainCausingVolume", new IMAGE_BRUSH( "Icons/icon_volume_PainCausing_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.PhysicsVolume", new IMAGE_BRUSH( "Icons/icon_volume_Physics_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.PostProcessVolume", new IMAGE_BRUSH( "Icons/icon_volume_PostProcess_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.PrecomputedVisibilityOverrideVolume", new IMAGE_BRUSH( "Icons/icon_volume_precomputedVisibilityOverride_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.PrecomputedVisibilityVolume", new IMAGE_BRUSH( "Icons/icon_volume_PrecomputedVisibility_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.ReverbVolume", new IMAGE_BRUSH( "Icons/icon_volume_Reverb_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.ReverbVolumeToggleable", new IMAGE_BRUSH( "Icons/icon_volume_ReverbToggleable_16x", Icon16x16 ) );
-	StyleSet->Set( "BspMode.TriggerVolume", new IMAGE_BRUSH( "Icons/icon_volume_Trigger_16x", Icon16x16 ) );
-
 	StyleSet->Set( "BspMode.TableRow", FTableRowStyle()
 		.SetEvenRowBackgroundBrush( FSlateNoResource() )
 		.SetEvenRowBackgroundHoveredBrush( IMAGE_BRUSH( "Common/Selection", Icon8x8, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f) ) )
