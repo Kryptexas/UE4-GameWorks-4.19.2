@@ -1616,7 +1616,6 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 					UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
 					const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
-					FBlueprintEditorUtils::RefreshAllNodes(Blueprint);
 					Blueprint->BroadcastChanged();
 
 					UE_LOG(LogPlayLevel, Log, TEXT("[PIE] Compiling %s before PIE..."), *Blueprint->GetName());
