@@ -372,7 +372,7 @@ extern void OnQueryInvalidation( void );
 // @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
 static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
 		TEXT("r.Mac.UseFrameBufferSRGB"),
-		-1,
+		0,
 		TEXT("Flag to toggle use of GL_FRAMEBUFFER_SRGB for better color accuracy.\n"),
 		ECVF_RenderThreadSafe
 		);
@@ -613,18 +613,6 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	if (VendorName.Contains(TEXT("Intel ")))
 	{
 		GIsRunningOnIntelCard = true;
-	}
-	else if (VendorName.Contains(TEXT("AMD ")) || VendorName.Contains(TEXT("ATI ")))
-	{
-		if(CVarMacUseFrameBufferSRGB.GetValueOnRenderThread() == -1)
-		{
-			CVarMacUseFrameBufferSRGB.AsVariable()->Set(0);
-		}
-	}
-	
-	if(CVarMacUseFrameBufferSRGB.GetValueOnRenderThread() == -1)
-	{
-		CVarMacUseFrameBufferSRGB.AsVariable()->Set(1);
 	}
 	
 	// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
