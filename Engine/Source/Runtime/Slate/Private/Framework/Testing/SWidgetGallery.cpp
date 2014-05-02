@@ -4,8 +4,6 @@
 #include "SWidgetGallery.h"
 #include "TestStyle.h"
 
-#include "SUserWidgetTest.h"
-
 
 #define LOCTEXT_NAMESPACE "WidgetGallery"
 
@@ -758,20 +756,6 @@ public:
 										.Volume(0.6f)
 								]
 						]
-
-					+ SGridPanel::Slot(0, 31)
-					[
-						SNew(STextBlock)
-							.Text(LOCTEXT("SUserWidgetLabel", "SUserWidgetExample"))
-					]
-
-					+ SGridPanel::Slot(1, 31)
-					.HAlign(HAlign_Left)
-					.Padding(0.0f, 5.0f)
-					[
-						SNew(SUserWidgetExample)
-						.Title( LOCTEXT("SUserWidgetTest", "UserWidgetTest.cpp") )
-					]
 				]
 		];
 

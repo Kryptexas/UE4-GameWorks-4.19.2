@@ -44,68 +44,11 @@
 
 #define SLATE_BEGIN_ARGS( WidgetType ) \
 	public: \
-	static TSharedRef<WidgetType> New(){ return PrivateAllocateWidget<WidgetType>(); } \
 	struct FArguments : public TSlateBaseNamedArgs<WidgetType> \
 	{ \
 		typedef FArguments WidgetArgsType; \
 		FORCENOINLINE FArguments()
-
-/**
- * Just like SLATE_BEGIN_ARGS but requires the user to implement the New() method in the .CPP.
- * Allows for widget implementation details to be entirely reside in the .CPP file.
- * e.g.
- *   SMyWidget.h:
- *   ----------------------------------------------------------------
- *    SLATE_USER_ARGS( SMyWidget )
- *    {}
- *    SLATE_END_ARGS()
- *    
- *    virtual void DoStuff() = nullptr;
- *
- *   SMyWidget.cpp:
- *   ----------------------------------------------------------------
- *   namespace Implementation{
- *   class SMyWidget : public SMyWidget{
- *     void Construct( const FArguments& InArgs )
- *     {
- *         SUserWidget::Construct( SUSerWidget::FArguments()
- *         [
- *             SNew(STextBlock) .Text( "Implementation Details!" )
- *         ] );
- *     }
- *
- *     virtual void DoStuff() OVERRIDE {}
- *     
- *     // Truly private. All handlers can be inlined (less boilerplate).
- *     // All private members are truly private.
- *     private:
- *     FReply OnButtonClicked
- *     {
- *     }
- *     TSharedPtr<SButton> MyButton;
- *   }
- *   }
- */
-#define SLATE_USER_ARGS( WidgetType ) \
-	public: \
-	static TSharedRef<WidgetType> New(); \
-	struct FArguments; \
-	virtual void Construct( const FArguments& InArgs ) = 0; \
-	struct FArguments : public TSlateBaseNamedArgs<WidgetType> \
-	{ \
-		typedef FArguments WidgetArgsType; \
-		FORCENOINLINE FArguments()
-
-
-// @todo UMG: Probably remove this?
-#define SLATE_SLOT_ARGS( WidgetType ) \
-	public: \
-	struct FArguments : public TSlateBaseNamedArgs<WidgetType> \
-	{ \
-		typedef FArguments WidgetArgsType; \
-		FORCENOINLINE FArguments()
-
-
+		
 
 #define SLATE_END_ARGS() \
 	};
@@ -1151,12 +1094,6 @@ namespace RequiredArgs
 	}
 }
 
-/** Responsible for allocating the widget. */
-template<typename WidgetType>
-static TSharedRef<WidgetType> PrivateAllocateWidget()
-{
-	return MakeShareable( new WidgetType() );
-}
 
 /**
  * Utility class used during widget instantiation.
@@ -1171,7 +1108,7 @@ template<class WidgetType, typename RequiredArgsPayloadType>
 struct TDecl
 {
 	TDecl( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine, const RequiredArgsPayloadType& InRequiredArgs )
-		: _Widget( WidgetType::New() )
+		: _Widget( new WidgetType() )
 		, _RequiredArgs( InRequiredArgs )
 	{
 		_Widget->SetDebugInfo( InType, InFile, OnLine );
@@ -1208,8 +1145,7 @@ struct TDecl
 	 */
 	TSharedRef<WidgetType> operator<<=( const typename WidgetType::FArguments& InArgs ) const
 	{
-		//@todo UMG: This should be removed in favor of all widgets calling their superclass construct.
-		_Widget->SWidgetConstruct(
+		_Widget->SWidget::Construct(
 			InArgs._ToolTipText,
 			InArgs._ToolTip ,
 			InArgs._Cursor ,

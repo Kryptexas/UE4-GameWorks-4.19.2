@@ -21,13 +21,13 @@ private:
 	void operator= (const FSlateControlledConstruction& Other){}
 
 	/** Widgets should only ever be constructed via SNew or SAssignNew */
-	void* operator new ( const size_t InSize )
+	void* operator new (const size_t InSize )
 	{
 		return FMemory::Malloc(InSize);
 	}
 
-	template<class WidgetType>
-	friend TSharedRef<WidgetType> PrivateAllocateWidget();
+	template<class WidgetType, typename RequiredArgsPayloadType>
+	friend struct TDecl;
 
 public:
 	void operator delete(void * mem)
@@ -76,16 +76,6 @@ public:
 		const TAttribute<bool> & InEnabledState ,
 		const TAttribute<EVisibility> & InVisibility,
 		const FName& InTag );
-
-	void SWidgetConstruct( const TAttribute<FString> & InToolTipText ,
-		const TSharedPtr<IToolTip> & InToolTip ,
-		const TAttribute< TOptional<EMouseCursor::Type> > & InCursor ,
-		const TAttribute<bool> & InEnabledState ,
-		const TAttribute<EVisibility> & InVisibility,
-		const FName& InTag )
-	{
-		Construct(InToolTipText, InToolTip, InCursor, InEnabledState, InVisibility, InTag);
-	}
 
 	//
 	// GENERAL EVENTS

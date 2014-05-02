@@ -143,7 +143,6 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "DeclarativeSyntaxSupport.h"
 #include "SWidget.h"
 #include "SCompoundWidget.h"
-#include "SUserWidget.h"
 #include "SLeafWidget.h"
 #include "SPanel.h"
 #include "WidgetPath.inl"
