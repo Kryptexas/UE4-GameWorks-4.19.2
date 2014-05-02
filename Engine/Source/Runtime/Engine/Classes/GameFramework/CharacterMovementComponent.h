@@ -202,12 +202,10 @@ public:
 	uint8 CustomMovementMode;
 
 	/** Save Base location to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
-	UPROPERTY()
 	FVector OldBaseLocation;
 
 	/** Save Base rotation to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
-	UPROPERTY()
-	FRotator OldBaseRotation;
+	FQuat OldBaseQuat;
 
 	/** Custom gravity scale. Gravity is multiplied by this amount for the character. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)

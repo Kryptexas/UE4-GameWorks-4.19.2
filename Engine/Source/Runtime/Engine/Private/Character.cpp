@@ -479,7 +479,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 			{
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
-				CharacterMovement->OldBaseRotation = MovementBase->GetComponentRotation();
+				CharacterMovement->OldBaseQuat = MovementBase->GetComponentQuat();
 			}
 			else
 			{
