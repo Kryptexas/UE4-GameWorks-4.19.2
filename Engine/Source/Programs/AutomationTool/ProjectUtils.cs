@@ -168,6 +168,13 @@ namespace AutomationTool
 				}
 			}
 
+			// check to see if the uproject loads modules, only if we haven't already determined it is a code based project
+			if (!Properties.bIsCodeBasedProject)
+			{
+				string uprojectStr = File.ReadAllText(RawProjectPath);
+				Properties.bIsCodeBasedProject = uprojectStr.Contains("\"Modules\"");
+			}
+
 			return Properties;
 		}
 
