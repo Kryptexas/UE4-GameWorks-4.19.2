@@ -59,7 +59,7 @@ UCookCommandlet::UCookCommandlet( const class FPostConstructInitializeProperties
 /* UCookCommandlet interface
  *****************************************************************************/
 
-bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForceClose )
+bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForceClose )
 {
 	UCookOnTheFlyServer *CookOnTheFlyServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
 
@@ -82,10 +82,20 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 
 	CookOnTheFlyServer->Initialize( bCompressed, bIterativeCooking, bSkipEditorContent );
 
+	bool BindAnyPort = InstanceId.IsValid();
 
 	if ( CookOnTheFlyServer->StartNetworkFileServer(BindAnyPort) == false )
+	{
 		return false;
+	}
 
+	if ( InstanceId.IsValid() )
+	{
+		if ( CookOnTheFlyServer->BroadcastFileserverPresence(InstanceId) == false )
+		{
+			return false;
+		}
+	}
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map
@@ -105,15 +115,14 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
 	bool bHadConnection = false;
 
-	
-
+	bool bCookedAMapSinceLastGC = false;
 	while (!GIsRequestingExit)
 	{
 		uint32 TickResults = 0;
 		static const float CookOnTheSideTimeSlice = 10.0f;
 		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
 
-		bool bCookedAMapSinceLastGC = TickResults & UCookOnTheFlyServer::COSR_CookedMap;
+		bCookedAMapSinceLastGC |= TickResults & UCookOnTheFlyServer::COSR_CookedMap;
 		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
 		{
 			LastCookActionTime = FPlatformTime::Seconds();
@@ -130,7 +139,13 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 					bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
 						((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
 				}
-				bShouldGC |= bCookedAMapSinceLastGC;
+
+				// delay the gc until we process some unsolicited packages
+				if ( bCookedAMapSinceLastGC && (CookOnTheFlyServer->HasUnsolicitedCookRequests() == false) )
+				{
+					UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
+					bShouldGC |= bCookedAMapSinceLastGC;
+				}
 
 				if (bShouldGC)
 				{
@@ -497,6 +512,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		FString InstanceIdString;
 		bool bForceClose = Switches.Contains(TEXT("FORCECLOSE"));
 
+		FGuid InstanceId;
 		if (FParse::Value(*Params, TEXT("InstanceId="), InstanceIdString))
 		{
 			if (!FGuid::Parse(InstanceIdString, InstanceId))
@@ -505,7 +521,13 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 			}
 		}
 
-		CookOnTheFly( InstanceId.IsValid() );
+		int32 Timeout = 180;
+		if (!FParse::Value(*Params, TEXT("timeout="), Timeout))
+		{
+			Timeout = 180;
+		}
+
+		CookOnTheFly( InstanceId, Timeout, bForceClose);
 	}
 	else
 	{

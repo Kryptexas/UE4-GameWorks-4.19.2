@@ -99,6 +99,9 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
 		CookServer->Initialize( false, false, false, true, true );
 		CookServer->StartNetworkFileServer( false );
+
+		FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged) );
+		FCoreDelegates::OnObjectModified.Add( FCoreDelegates::FOnObjectModified::FDelegate::CreateUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified) );
 	}
 }
 
@@ -199,6 +202,12 @@ UUnrealEdEngine::~UUnrealEdEngine()
 
 void UUnrealEdEngine::FinishDestroy()
 {
+	if( CookServer)
+	{
+		FCoreDelegates::OnObjectPropertyChanged.RemoveAll( CookServer );
+		FCoreDelegates::OnObjectModified.RemoveAll( CookServer );
+	}
+
 	if(PackageAutoSaver.Get())
 	{
 		// We've finished shutting down, so disable the auto-save restore

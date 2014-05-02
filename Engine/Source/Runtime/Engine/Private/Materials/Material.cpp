@@ -348,36 +348,6 @@ void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>& PlatformMaterialResourcesToSave, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
 {
-
-	/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-	{
-		// shouldn't ever load into this saved material resources array
-		// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-		TArray<FMaterialResource*> SavedMaterialResources;
-		SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
-		check( SavedMaterialResources.Num() == 0);
-	}
-	else if ( Ar.IsSaving() )
-	{
-		check( Ar.IsCooking() );
-		const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-		// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-		if ( CachedMaterialResourcesForPlatform != NULL )
-		{
-			SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
-		}
-		else
-		{
-			// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
-			//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
-			//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
-			check( Ar.GetLinker() == NULL );
-		}
-
-	}*/
-
-
-
 	if (Ar.IsSaving())
 	{
 		int32 NumResourcesToSave = 0;

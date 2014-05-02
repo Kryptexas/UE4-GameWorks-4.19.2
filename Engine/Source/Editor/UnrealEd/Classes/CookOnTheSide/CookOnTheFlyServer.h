@@ -28,10 +28,6 @@ private:
 	bool bAsyncSaveLoad;
 	/** Should we auto tick (used in the editor) */
 	bool bIsAutoTick;
-
-	/** Holds the instance identifier. */
-	FGuid InstanceId;
-
 	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	/** Cook on the fly server uses the NetworkFileServer */
@@ -40,29 +36,29 @@ private:
 	/** We hook this up to a delegate to avoid reloading textures and whatnot */
 	TSet<FString> PackagesToNotReload;
 
-
+private:
 
 	/** Array which has been made thread safe :) */
-	template<typename Type>
-	struct FThreadSafeQueue
+	template<typename Type, typename SynchronizationObjectType, typename ScopeLockType>
+	struct FUnsyncronizedQueue
 	{
 	private:
-		mutable FCriticalSection	SynchronizationObject; // made this mutable so this class can have const functions and still be thread safe
+		mutable SynchronizationObjectType	SynchronizationObject; // made this mutable so this class can have const functions and still be thread safe
 		TArray<Type>		Items;
 	public:
 		void Enqueue(const Type& Item)
 		{
-			FScopeLock ScopeLock(&SynchronizationObject);
+			ScopeLockType ScopeLock(&SynchronizationObject);
 			Items.Add(Item);
 		}
 		void EnqueueUnique( const Type& Item )
 		{
-			FScopeLock ScopeLock(&SynchronizationObject);
+			ScopeLockType ScopeLock(&SynchronizationObject);
 			Items.AddUnique(Item);
 		}
 		bool Dequeue(Type* Result)
 		{
-			FScopeLock ScopeLock(&SynchronizationObject);
+			ScopeLockType ScopeLock(&SynchronizationObject);
 			if (Items.Num())
 			{
 				*Result = Items[0];
@@ -73,65 +69,70 @@ private:
 		}
 		void DequeueAll(TArray<Type>& Results)
 		{
-			FScopeLock ScopeLock(&SynchronizationObject);
+			ScopeLockType ScopeLock(&SynchronizationObject);
 			Results += Items;
 			Items.Empty();
 		}
 
 		bool HasItems() const
 		{
-			FScopeLock ScopeLock( &SynchronizationObject );
+			ScopeLockType ScopeLock( &SynchronizationObject );
 			return Items.Num() > 0;
 		}
 
 		void Remove( const Type& Item ) 
 		{
-			FScopeLock ScopeLock( &SynchronizationObject );
+			ScopeLockType ScopeLock( &SynchronizationObject );
 			Items.Remove( Item );
+		}
+
+		void CopyItems( TArray<Type> &InItems ) const
+		{
+			ScopeLockType ScopeLock( &SynchronizationObject );
+			InItems = Items;
+		}
+
+		int Num() const 
+		{
+			ScopeLockType ScopeLock( &SynchronizationObject );
+			return Items.Num();
 		}
 	};
 
-	/** Normal queue to match the interface of FThreadSafeQueue :) */
-	template<typename Type>
-	struct FQueue
+
+
+	struct FDummyCriticalSection
 	{
-	private:
-		TArray<Type>		Items;
 	public:
-		void Enqueue(const Type& Item)
-		{
-			Items.Add(Item);
-		}
-		void EnqueueUnique( const Type& Item )
-		{
-			Items.AddUnique(Item);
-		}
-		bool Dequeue(Type* Result)
-		{
-			if (Items.Num())
-			{
-				*Result = Items[0];
-				Items.RemoveAt(0);
-				return true;
-			}
-			return false;
-		}
-		void DequeueAll(TArray<Type>& Results)
-		{
-			Results += Items;
-			Items.Empty();
-		}
+		FORCEINLINE void Lock() { }
+		FORCEINLINE void Unlock() { }
+	};
 
-		bool HasItems() const
-		{
-			return Items.Num() > 0;
-		}
+	struct FDummyScopeLock
+	{
+	public:
+		FDummyScopeLock( FDummyCriticalSection * ) { }
+	};
+
+public:
 
 
-		void Remove( const Type& Item ) 
-		{
-			Items.Remove( Item );
-		}
+	template<typename Type>
+	struct FThreadSafeQueue : public FUnsyncronizedQueue<Type, FCriticalSection, FScopeLock>
+	{
+		/**
+		 * Don't add any functions here, this is just a overqualified typedef
+		 * Add functions / functionality to the FUnsyncronizedQueue
+		 */
+	};
+
+	template<typename Type>
+	struct FQueue : public FUnsyncronizedQueue<Type, FDummyCriticalSection, FDummyScopeLock>
+	{
+		/**
+		 * Don't add any functions here, this is just a overqualified typedef
+		 * Add functions / functionality to the FUnsyncronizedQueue
+		 */
 	};
 
 public:
@@ -140,12 +141,12 @@ public:
 	{
 	public:
 		FFilePlatformRequest() { }
-		FFilePlatformRequest( const FString &InFilename, const FString &InPlatformname ) : Filename( FPaths::ConvertRelativePathToFull( InFilename) ), Platformname( InPlatformname ) 
+		FFilePlatformRequest( const FString &InFilename, const FName &InPlatformname ) : Filename( InFilename ), Platformname( InPlatformname ) 
 		{
 		}
 
 		FString Filename;
-		FString Platformname;
+		FName Platformname;
 
 		bool IsValid()  const
 		{
@@ -154,7 +155,6 @@ public:
 
 		void Clear()
 		{
-
 			Filename = TEXT("");
 			Platformname = TEXT("");
 		}
@@ -171,7 +171,7 @@ public:
 
 		FORCEINLINE FString ToString() const
 		{
-			return FString::Printf( TEXT("%s %s"), *Filename, *Platformname );
+			return FString::Printf( TEXT("%s %s"), *Filename, *Platformname.ToString() );
 		}
 
 	};
@@ -179,27 +179,42 @@ public:
 private:
 
 	FThreadSafeQueue<FFilePlatformRequest> FileRequests; // list of requested files
-	FQueue<FFilePlatformRequest> UnsolicitedFileRequests;
-	FThreadSafeQueue<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which haven't been requested but we think should cook based on previous requests
-
+	FQueue<FFilePlatformRequest> UnsolicitedFileRequests; // list of files which haven't been requested but we think should cook based on previous requests
+	FThreadSafeQueue<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which weren't requested but were cooked (based on UnsolicitedFileRequests)
 
 
 	/** Helper list of all files which have been cooked */
 	struct FThreadSafeFilenameSet
 	{
-		FCriticalSection	SynchronizationObject;
+	private:
+		mutable FCriticalSection	SynchronizationObject;
 		TSet<FFilePlatformRequest> FilesProcessed;
-
+	public:
 		void Add(const FFilePlatformRequest &Filename)
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			check(Filename.IsValid());
 			FilesProcessed.Add(Filename);
 		}
-		bool Exists(const FFilePlatformRequest &Filename)
+		bool Exists(const FFilePlatformRequest &Filename) const
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			return FilesProcessed.Contains(Filename);
+		}
+		int RemoveAll( const FString &Filename )
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			int NumRemoved = 0;
+			// for ( TSet<FFilePlatformRequest>::TIterator It( FilesProcessed ); It; ++It )
+			for ( auto It = FilesProcessed.CreateIterator(); It; ++It )
+			{
+				if ( It->Filename == Filename )
+				{
+					It.RemoveCurrent();
+					++NumRemoved;
+				}
+			}
+			return NumRemoved;
 		}
 	};
 	FThreadSafeFilenameSet ThreadSafeFilenameSet; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
@@ -246,6 +261,17 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	bool StartNetworkFileServer( bool BindAnyPort );
+
+	/**
+	 * Broadcast our the fileserver presence on the network
+	 */
+	bool BroadcastFileserverPresence( const FGuid &InstanceId );
+	/** 
+	 * Stop the network file server
+	 *
+	 */
+	void EndNetworkFileServer();
+
 	
 	/**
 	 * Handles cook package requests until there are no more requests, then returns
@@ -267,12 +293,6 @@ public:
 
 	bool HasRecompileShaderRequests() const { return RecompileRequests.HasItems(); }
 
-	/** 
-	 * Stop the network file server
-	 *
-	 */
-	void EndNetworkFileServer();
-
 
 	uint32 NumConnections() const;
 
@@ -280,14 +300,30 @@ public:
 
 
 	virtual void BeginDestroy() OVERRIDE;
+	
 
+
+
+	/**
+	 * Callbacks from editor 
+	 */
+
+	void OnObjectModified( UObject *ObjectMoving );
+	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
+	void OnObjectUpdated( UObject *Object );
+
+	/**
+	 * Marks a package as dirty for cook
+	 * causes package to be recooked on next request (and all dependent packages which are currently cooked)
+	 */
+	void MarkPackageDirtyForCooker( UPackage *Package );
 
 
 
 private:
 	
 
-	bool ShouldCook(const FString& InFileName, const FString &InPlatformName);
+	bool ShouldCook(const FString& InFileName, const FName &InPlatformName);
 
 	/**
 	 * Returns cooker output directory.
@@ -328,9 +364,7 @@ private:
 	 *
 	 *	@return	bool			true if packages was cooked
 	 */
-	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames );
-
-	// bool ShouldCook(const FString& InFilename, const FString &InPlatformname = TEXT(""));
+	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames );
 
 	// Callback for handling a network file request.
 	void HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles );

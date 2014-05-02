@@ -1543,30 +1543,6 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 			StaticParameters.Serialize(Ar);
 
 			SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, StaticPermutationMaterialResources );
-
-
-			/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-			{
-				// shouldn't ever load into this saved material resources array
-				// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-				TArray<FMaterialResource*> SavedMaterialResources;
-				SerializeInlineShaderMaps( SavedMaterialResources, Ar, StaticPermutationMaterialResources );
-				check( SavedMaterialResources.Num() == 0);
-			}
-			else if ( Ar.IsSaving() )
-			{
-				check( Ar.IsCooking() );
-				const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-				// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-				if ( CachedMaterialResourcesForPlatform != NULL )
-				{
-					SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, StaticPermutationMaterialResources);
-				}
-				else
-				{
-					check( Ar.GetLinker() == NULL );
-				}
-			}*/
 		}
 		else
 		{

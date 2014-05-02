@@ -701,6 +701,9 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 			MarkPackageDirty();
 		}
 	}
+#if WITH_EDITOR
+	FCoreDelegates::OnObjectModified.Broadcast(this);
+#endif
 	return bSavedToTransactionBuffer;
 }
 

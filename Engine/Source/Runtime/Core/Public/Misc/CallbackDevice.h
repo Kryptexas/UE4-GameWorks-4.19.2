@@ -54,6 +54,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreObjectPropertyChanged, UObject*);
 
 	#if WITH_EDITOR
+	// Callback for all object modifications
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
+
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
 	#endif	//WITH_EDITOR
@@ -115,6 +118,9 @@ public:
 	static FOnActorLabelChanged OnActorLabelChanged;
 
 #if WITH_EDITOR
+	// Called when any object is modified at all 
+	static FOnObjectModified OnObjectModified;
+
 	// Called when an asset is loaded
 	static FOnAssetLoaded OnAssetLoaded;
 

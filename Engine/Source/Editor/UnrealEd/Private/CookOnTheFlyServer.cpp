@@ -24,7 +24,7 @@
 
 
 
-DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogCookOnTheFly, Log, All);
 
 #define DEBUG_COOKONTHEFLY 0
 
@@ -103,11 +103,20 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( bool BindAnyPort )
 	NetworkFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
 		.CreateNetworkFileServer(BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate);
 
+
+	// loop while waiting for requests
+	GIsRequestingExit = false;
+	return true;
+}
+
+
+bool UCookOnTheFlyServer::BroadcastFileserverPresence( const FGuid &InstanceId )
+{
 	TArray<TSharedPtr<FInternetAddr> > AddressList;
 
 	if ((NetworkFileServer == NULL) || !NetworkFileServer->GetAddressList(AddressList))
 	{
-		UE_LOG(LogCookCommandlet, Error, TEXT("Failed to create network file server"));
+		UE_LOG(LogCookOnTheFly, Error, TEXT("Failed to create network file server"));
 
 		return false;
 	}
@@ -129,9 +138,6 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( bool BindAnyPort )
 			MessageEndpoint->Publish(new FFileServerReady(AddressStringList, InstanceId), EMessageScope::Network);
 		}		
 	}
-
-	// loop while waiting for requests
-	GIsRequestingExit = false;
 	return true;
 }
 
@@ -147,10 +153,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	// This is all the target platforms which we needed to process requests for this iteration
 	// we use this in the unsolicited packages processing below
-	TArray<FString> AllTargetPlatformNames;
-	bool bCookedPackage = false;
+	TArray<FName> AllTargetPlatformNames;
+
 	while (!GIsRequestingExit)
 	{
+		bool bCookedPackage = false;
 		FFilePlatformRequest ToBuild;
 
 		bool bIsUnsolicitedRequest = false;
@@ -170,38 +177,72 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 
 		check( ToBuild.IsValid() );
-		TArray<FString> TargetPlatformNames;
+		TArray<FName> TargetPlatformNames;
 		
-		if( ToBuild.Platformname.Len() )
+		if( ToBuild.Platformname != NAME_None )
 		{
-			TargetPlatformNames.Add( ToBuild.Platformname );
+			TargetPlatformNames.AddUnique( ToBuild.Platformname );
 		}
 
 		bool bWasUpToDate = false;
-		FString Name = FPackageName::FilenameToLongPackageName(*ToBuild.Filename);
+
 		if (!ThreadSafeFilenameSet.Exists(ToBuild))
 		{
+
 			// if we have no target platforms then we want to cook because this will cook for all target platforms in that case
-			bool bShouldCook = TargetPlatformNames.Num() > 0 ? false : true;
+			bool bShouldCook = TargetPlatformNames.Num() > 0 ? false : ShouldCook( ToBuild.Filename, NAME_None );
 			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
 			{
 				bShouldCook |= ShouldCook( ToBuild.Filename, TargetPlatformNames[Index] );
 			}
 
+			
 			if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 			{
-				//  if the package is already loaded then don't do any work :)
-				UPackage* Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
+				FString PackageName;	
+				UPackage *Package = NULL;
+				if ( FPackageName::TryConvertFilenameToLongPackageName(ToBuild.Filename, PackageName) )
+				{
+					Package = FindObject<UPackage>( ANY_PACKAGE, *PackageName );
+				}
+
+				UE_LOG( LogCookOnTheFly, Display, TEXT("Processing request %s"), *ToBuild.Filename)
+
+				//  if the package is already loaded then try to avoid reloading it :)
+				if ( ( Package == NULL ) || ( Package->IsFullyLoaded() == false ) )
+				{
+					Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
+				}
+				else
+				{
+					UE_LOG(LogCookOnTheFly, Display, TEXT("Package already loaded %s avoiding reload"), *ToBuild.Filename);
+				}
 
 				if( Package == NULL )
 				{
-					UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
+					UE_LOG(LogCookOnTheFly, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
 					Result |= COSR_ErrorLoadingPackage;
 				}
 				else
 				{
 					if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate, TargetPlatformNames) )
 					{
+						FString Name = Package->GetPathName();
+						FString PackageFilename(GetPackageFilename(Package));
+						FPaths::MakeStandardFilename(PackageFilename);
+
+						if ( PackageFilename != ToBuild.Filename )
+						{
+							// we have saved something which we didn't mean to load 
+							//  sounds unpossible.... but it is due to searching for files and such
+							//  mark the original request as processed (if this isn't actually the file they were requesting then it will fail)
+							//	and then also save our new request as processed so we don't do it again
+							ThreadSafeFilenameSet.Add( ToBuild );
+							UE_LOG( LogCookOnTheFly, Display, TEXT("Request for %s received saved %s"), *ToBuild.Filename, *PackageFilename );
+							ToBuild.Filename = PackageFilename;
+						}
+						// ToBuild.Filename = PackageFilename;
+
 						// Update flags used to determine garbage collection.
 						if (Package->ContainsMap())
 						{
@@ -238,12 +279,10 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						(bWasUpToDate == false))
 					{
 						UnsolicitedCookedPackages.EnqueueUnique( FileRequest );
-						UE_LOG(LogCookCommandlet, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.Filename);
+						UE_LOG(LogCookOnTheFly, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.Filename);
 					}
 				}
 
-				UnsolicitedCookedPackages.Remove( FileRequest );
-				
 				ThreadSafeFilenameSet.Add( FileRequest );
 
 
@@ -251,9 +290,46 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 		else
 		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("Package for platform already cooked %s, discarding request"), *ToBuild.Filename);
+			UE_LOG(LogCookOnTheFly, Display, TEXT("Package for platform already cooked %s, discarding request"), *ToBuild.Filename);
 		}
-		
+
+
+		if ( bCookedPackage && !bIsUnsolicitedRequest)
+		{
+			TArray<UObject *> ObjectsInOuter;
+			GetObjectsWithOuter(NULL, ObjectsInOuter, false);
+			for( int32 Index = 0; Index < ObjectsInOuter.Num() && !GIsRequestingExit; Index++ )
+			{
+				UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
+
+				if (Package)
+				{
+					FString Name = Package->GetPathName();
+					FString PackageFilename(GetPackageFilename(Package));
+					FPaths::MakeStandardFilename(PackageFilename);
+
+					const FString FullPath = FPaths::ConvertRelativePathToFull(PackageFilename);
+
+					bool AlreadyCooked = true;
+					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
+					{
+						if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(PackageFilename, AllTargetPlatformNames[Index])) )
+						{
+							AlreadyCooked = false;
+							break;
+						}
+					}
+					if ( !AlreadyCooked )
+					{
+						for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
+						{
+							const FFilePlatformRequest Request( PackageFilename, AllTargetPlatformNames[Index] );
+							UnsolicitedFileRequests.EnqueueUnique(Request);
+						}
+					}
+				}
+			}
+		}
 
 		if ( (FPlatformTime::Seconds() - StartTime) > TimeSlice)
 		{
@@ -261,43 +337,37 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 	}
 
-	if ( bCookedPackage )
-	{
-		TArray<UObject *> ObjectsInOuter;
-		GetObjectsWithOuter(NULL, ObjectsInOuter, false);
-		for( int32 Index = 0; Index < ObjectsInOuter.Num() && !GIsRequestingExit; Index++ )
-		{
-			UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
-
-			if (Package)
-			{
-				FString Name = Package->GetPathName();
-				FString PackageFilename(GetPackageFilename(Package));
-				FPaths::MakeStandardFilename(PackageFilename);
-
-				const FString FullPath = FPaths::ConvertRelativePathToFull(PackageFilename);
-
-				bool AlreadyCooked = true;
-				for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
-				{
-					if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(FullPath, AllTargetPlatformNames[Index])) )
-					{
-						AlreadyCooked = false;
-						break;
-					}
-				}
-				if ( !AlreadyCooked )
-				{
-					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
-					{
-						const FFilePlatformRequest Request( FullPath, AllTargetPlatformNames[Index] );
-						UnsolicitedFileRequests.EnqueueUnique(Request);
-					}
-				}
-			}
-		}
-	}
 	return Result;
+}
+
+void UCookOnTheFlyServer::OnObjectModified( UObject *ObjectMoving )
+{
+	OnObjectUpdated( ObjectMoving );
+}
+
+void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+{
+	OnObjectUpdated( ObjectBeingModified );
+}
+
+void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
+{
+	// get the outer of the object
+	UPackage *Package = Object->GetOutermost();
+
+	MarkPackageDirtyForCooker( Package );
+}
+
+void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
+{
+	// force that package to be recooked
+	const FString Name = Package->GetPathName();
+	FString PackageFilename(GetPackageFilename(Package));
+	FPaths::MakeStandardFilename(PackageFilename);
+	UE_LOG(LogCookOnTheFly, Display, TEXT("Modification detected to package %s"), *PackageFilename);
+	ThreadSafeFilenameSet.RemoveAll( PackageFilename );
+
+	// TODO: go through package dependencies of this package, if a found dependency is not loaded then mark it as need recooking.
 }
 
 
@@ -365,12 +435,12 @@ bool UCookOnTheFlyServer::GetPackageTimestamp( const FString& InFilename, FDateT
 
 bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate ) 
 {
-	TArray<FString> TargetPlatformNames; 
+	TArray<FName> TargetPlatformNames; 
 	return SaveCookedPackage( Package, SaveFlags, bOutWasUpToDate, TargetPlatformNames );
 }
 
 
-bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &InPlatformName)
+bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FName &InPlatformName)
 {
 	bool bDoCook = false;
 
@@ -385,7 +455,7 @@ bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &I
 
 		if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
 		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find dependency timestamp for: %s"), *PkgFilename);
+			UE_LOG(LogCookOnTheFly, Display, TEXT("Failed to find dependency timestamp for: %s"), *PkgFilename);
 		}
 	}
 
@@ -398,9 +468,9 @@ bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &I
 
 	TArray<ITargetPlatform*> Platforms;
 
-	if ( InPlatformName.Len() > 0 )
+	if ( InPlatformName != NAME_None )
 	{
-		Platforms.Add( TPM.FindTargetPlatform( InPlatformName ) );
+		Platforms.Add( TPM.FindTargetPlatform( InPlatformName.ToString() ) );
 	}
 	else 
 	{
@@ -428,7 +498,7 @@ bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &I
 	return bDoCook;
 }
 
-bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames )
+bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames )
 {
 
 
@@ -452,7 +522,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 
 			if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
 			{
-				UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find depedency timestamp for: %s"), *PkgFilename);
+				UE_LOG(LogCookOnTheFly, Display, TEXT("Failed to find depedency timestamp for: %s"), *PkgFilename);
 			}
 		}
 
@@ -479,7 +549,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 		{
 			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
 			{
-				const FString &TargetPlatformName = TargetPlatformNames[Index];
+				const FString TargetPlatformName = TargetPlatformNames[Index].ToString();
 
 
 				const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();	
@@ -501,7 +571,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 
 			for ( int Index = 0; Index < Platforms.Num(); ++Index )
 			{
-				TargetPlatformNames.Add( Platforms[Index]->PlatformName() );
+				TargetPlatformNames.Add( FName(*Platforms[Index]->PlatformName()) );
 			}
 		}
 		
@@ -535,7 +605,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 					Package->FullyLoad();
 					if (!Package->IsFullyLoaded())
 					{
-						UE_LOG(LogCookCommandlet, Warning, TEXT("Package %s supposed to be fully loaded but isn't. RF_WasLoaded is %s"), 
+						UE_LOG(LogCookOnTheFly, Warning, TEXT("Package %s supposed to be fully loaded but isn't. RF_WasLoaded is %s"), 
 							*Package->GetName(), Package->HasAnyFlags(RF_WasLoaded) ? TEXT("set") : TEXT("not set"));
 					}
 					bPackageFullyLoaded = true;
@@ -549,7 +619,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 					Flags = World ? RF_NoFlags : RF_Standalone;
 				}
 
-				UE_LOG(LogCookCommandlet, Display, TEXT("Cooking %s -> %s"), *Package->GetName(), *PlatFilename);
+				UE_LOG(LogCookOnTheFly, Display, TEXT("Cooking %s -> %s"), *Package->GetName(), *PlatFilename);
 
 				bool bSwap = (!Target->IsLittleEndian()) ^ (!PLATFORM_LITTLE_ENDIAN);
 
@@ -570,7 +640,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 
 				if( PlatFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
 				{
-					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
+					UE_LOG( LogCookOnTheFly, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
 					bSavedCorrectly = false;
 				}
 				else
@@ -583,7 +653,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 			}
 			else
 			{
-				UE_LOG(LogCookCommandlet, Display, TEXT("Up to date: %s"), *PlatFilename);
+				UE_LOG(LogCookOnTheFly, Display, TEXT("Up to date: %s"), *PlatFilename);
 
 				bOutWasUpToDate = true;
 			}
@@ -602,7 +672,7 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 	FString Name = Package->GetName();
 	if (PackagesToNotReload.Contains(Name))
 	{
-		UE_LOG(LogCookCommandlet, Verbose, TEXT("Marking %s already loaded."), *Name);
+		UE_LOG(LogCookOnTheFly, Verbose, TEXT("Marking %s already loaded."), *Name);
 		Package->PackageFlags |= PKG_ReloadingForCooker;
 	}
 }
@@ -719,7 +789,7 @@ void UCookOnTheFlyServer::CleanSandbox(const TArray<ITargetPlatform*>& Platforms
 
 						if (Diff < 0.0)
 						{
-							UE_LOG(LogCookCommandlet, Display, TEXT("Deleting out of date cooked file: %s"), *CookedFilename);
+							UE_LOG(LogCookOnTheFly, Display, TEXT("Deleting out of date cooked file: %s"), *CookedFilename);
 
 							IFileManager::Get().Delete(*CookedFilename);
 						}
@@ -732,7 +802,7 @@ void UCookOnTheFlyServer::CleanSandbox(const TArray<ITargetPlatform*>& Platforms
 		}
 	}
 
-	UE_LOG(LogCookCommandlet, Display, TEXT("Sandbox cleanup took %5.3f seconds"), SandboxCleanTime);
+	UE_LOG(LogCookOnTheFly, Display, TEXT("Sandbox cleanup took %5.3f seconds"), SandboxCleanTime);
 }
 
 void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms)
@@ -744,7 +814,7 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 	double GenerateAssetRegistryTime = 0.0;
 	{
 		SCOPE_SECONDS_COUNTER(GenerateAssetRegistryTime);
-		UE_LOG(LogCookCommandlet, Display, TEXT("Creating asset registry [is editor: %d]"), GIsEditor);
+		UE_LOG(LogCookOnTheFly, Display, TEXT("Creating asset registry [is editor: %d]"), GIsEditor);
 
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
@@ -765,7 +835,7 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 			// write it out to a memory archive
 			FArrayWriter SerializedAssetRegistry;
 			AssetRegistry.Serialize(SerializedAssetRegistry);
-			UE_LOG(LogCookCommandlet, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
+			UE_LOG(LogCookOnTheFly, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
 
 			// now save it in each cooked directory
 			FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
@@ -779,7 +849,7 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 			}
 		}
 	}
-	UE_LOG(LogCookCommandlet, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
+	UE_LOG(LogCookOnTheFly, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
 	
 }
 
@@ -803,7 +873,7 @@ void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 			}
 			else
 			{
-				UE_LOG(LogCookCommandlet, Warning, TEXT("Unable to generate long package name for %s"), *FileInPath);
+				UE_LOG(LogCookOnTheFly, Warning, TEXT("Unable to generate long package name for %s"), *FileInPath);
 			}
 		}
 	}
@@ -819,19 +889,33 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 {
 	bool bIsCookable = FPackageName::IsPackageExtension(*FPaths::GetExtension(Filename, true));
 
+
+	FName PlatformFname = FName( *Platformname );
+
 	if (!bIsCookable)
 	{
 		TArray<FFilePlatformRequest> FileRequests;
 		UnsolicitedCookedPackages.DequeueAll(FileRequests);
 		for ( int Index=  0; Index < FileRequests.Num(); ++Index)
 		{
-			UnsolicitedFiles.Add( FileRequests[Index].Filename);
+			const FFilePlatformRequest &Request = FileRequests[Index];
+			if ( Request.Platformname == PlatformFname )
+			{
+				FString StandardFilename = FileRequests[Index].Filename;
+				FPaths::MakeStandardFilename( StandardFilename );
+				UnsolicitedFiles.Add( StandardFilename );
+			}
+			else
+			{
+				UnsolicitedCookedPackages.Enqueue( Request );
+			}
 		}
 		UPackage::WaitForAsyncFileWrites();
 		return;
 	}
-
-	FFilePlatformRequest FileRequest( Filename, Platformname );
+	FString StandardFileName = Filename;
+	FPaths::MakeStandardFilename( StandardFileName );
+	FFilePlatformRequest FileRequest( StandardFileName, PlatformFname );
 	FileRequests.Enqueue(FileRequest);
 
 	do
@@ -839,6 +923,8 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 		FPlatformProcess::Sleep(0.0f);
 	}
 	while (!ThreadSafeFilenameSet.Exists(FileRequest));
+
+	UE_LOG( LogCookOnTheFly, Display, TEXT("Cook complete %s"), *FileRequest.Filename)
 
 	TArray<FFilePlatformRequest> FileRequests;
 	UnsolicitedCookedPackages.DequeueAll(FileRequests);
@@ -849,23 +935,22 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 		{
 			// don't do anything we don't want this guy
 		}
-		else if ( Request.Platformname == Platformname )
+		else if ( Request.Platformname == PlatformFname )
 		{
-			FString StandardFilename = FileRequests[Index].Filename;
-			FPaths::MakeStandardFilename( StandardFilename );
-			UnsolicitedFiles.Add( StandardFilename );
+			UE_LOG( LogCookOnTheFly, Display, TEXT("Returning unsolicited file %s"), *Request.Filename );
+			UnsolicitedFiles.Add( Request.Filename );
 		}
 		else
 		{
 			UnsolicitedCookedPackages.Enqueue( Request );
 		}
 	}
-	
+
 	UPackage::WaitForAsyncFileWrites();
 
 
 #if DEBUG_COOKONTHEFLY
-	UE_LOG( LogCookCommandlet, Display, TEXT("Processed file request %s"), *Filename );
+	UE_LOG( LogCookOnTheFly, Display, TEXT("Processed file request %s"), *Filename );
 #endif
 
 }
@@ -876,7 +961,7 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 	// if we aren't in the game thread, we need to push this over to the game thread and wait for it to finish
 	if (!IsInGameThread())
 	{
-		UE_LOG(LogCookCommandlet, Display, TEXT("Got a recompile request on non-game thread"));
+		UE_LOG(LogCookOnTheFly, Display, TEXT("Got a recompile request on non-game thread"));
 
 		// make a new request
 		FRecompileRequest* Request = new FRecompileRequest;
@@ -892,7 +977,7 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 			FPlatformProcess::Sleep(0);
 		}
 		delete Request;
-		UE_LOG(LogCookCommandlet, Display, TEXT("Completed recompile..."));
+		UE_LOG(LogCookOnTheFly, Display, TEXT("Completed recompile..."));
 
 		// at this point, we are done on the game thread, and ModifiedFiles will have been filled out
 		return;

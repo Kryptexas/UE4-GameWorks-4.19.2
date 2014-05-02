@@ -2499,31 +2499,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
-
-
-			// Kick off any Precaching required for the target platform to save these objects
-			// only need to do this if we are cooking a different platform then the one which is currently running
-			// TODO: if save package is cancelled then call ClearCache on each object
-			TArray<UObject*> CachedObjects;
-			if ( !!TargetPlatform )
-			{
-				TArray<UObject*> TagExpObjects;
-				GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
-				for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
-				{
-					UObject *ExpObject = TagExpObjects[Index];
-					if ( ExpObject->HasAnyMarks( OBJECTMARK_TagExp ) )
-					{
-						ExpObject->BeginCacheForCookedPlatformData( TargetPlatform );
-						CachedObjects.Add( ExpObject );
-					}
-				}
-			}
-
-			
-
-
-			UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
 		
 			{
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly
@@ -2543,6 +2518,33 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 				UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
+
+
+
+				// Kick off any Precaching required for the target platform to save these objects
+				// only need to do this if we are cooking a different platform then the one which is currently running
+				// TODO: if save package is cancelled then call ClearCache on each object
+				TArray<UObject*> CachedObjects;
+				if ( !!TargetPlatform )
+				{
+					TArray<UObject*> TagExpObjects;
+					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+					for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
+					{
+						UObject *ExpObject = TagExpObjects[Index];
+						if ( ExpObject->HasAnyMarks( OBJECTMARK_TagExp ) )
+						{
+							ExpObject->BeginCacheForCookedPlatformData( TargetPlatform );
+							CachedObjects.Add( ExpObject );
+						}
+					}
+				}
+
+
+
+
+				UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
+
 
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3561,12 +3563,13 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 			
+
+				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+				{
+					CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
+				}
 			}
 
-			for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
-			{
-				CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
-			}
 		}
 		if( Success == true )
 		{

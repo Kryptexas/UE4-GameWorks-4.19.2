@@ -28,7 +28,9 @@ FCoreDelegates::FOnHandleSystemError FCoreDelegates::OnHandleSystemError;
 FCoreDelegates::FOnPreObjectPropertyChanged FCoreDelegates::OnPreObjectPropertyChanged;
 FCoreDelegates::FOnObjectPropertyChanged FCoreDelegates::OnObjectPropertyChanged;
 FCoreDelegates::FOnActorLabelChanged FCoreDelegates::OnActorLabelChanged;
+
 #if WITH_EDITOR
+	FCoreDelegates::FOnObjectModified  FCoreDelegates::OnObjectModified;
 	FCoreDelegates::FOnAssetLoaded FCoreDelegates::OnAssetLoaded;
 	FSimpleMulticastDelegate FCoreDelegates::PreModal;
 	FSimpleMulticastDelegate FCoreDelegates::PostModal;

@@ -46,7 +46,7 @@ class UCookCommandlet
 	 *
 	 * @return true on success, false otherwise.
 	 */
-	bool CookOnTheFly( bool BindAnyPort, int32 Timeout = 180, bool bForceClose = false );
+	bool CookOnTheFly( FGuid InstanceId, int32 Timeout = 180, bool bForceClose = false );
 
 	/**
 	 * Returns cooker output directory.
@@ -100,9 +100,6 @@ public:
 	// End UCommandlet Interface
 
 private:
-
-	/** Holds the instance identifier. */
-	FGuid InstanceId;
 
 	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
