@@ -1618,7 +1618,7 @@ namespace SceneOutliner
 
 			if (FolderToTreeItemMap.Find(NewPath))
 			{
-				OutErrorMessage = LOCTEXT("RenameFailed_AlreadyExists", "This folder already exists");
+				OutErrorMessage = LOCTEXT("RenameFailed_AlreadyExists", "A folder with this name already exists at this level");
 				return false;
 			}
 		}
