@@ -937,7 +937,7 @@ namespace UnrealBuildTool
 						// delete the temp project
 						if (Project.Contains ("_IOS.xcodeproj"))
 						{
-//							Directory.Delete (Project, true);
+							Directory.Delete (Project, true);
 						}
 
 						if (OutputReceivedDataEventHandlerEncounteredError)
