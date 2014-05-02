@@ -147,7 +147,7 @@ namespace UnrealBuildTool
 
 				try
 				{
-					MacPath = Path.GetFullPath(MacPath);
+					Utils.CollapseRelativeDirectories(ref MacPath);
 				}
 				catch (Exception Ex)
 				{
