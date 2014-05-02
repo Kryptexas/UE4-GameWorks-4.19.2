@@ -2398,6 +2398,9 @@ void UMaterial::UpdateExpressionDynamicParameterNames(UMaterialExpression* Expre
 				{
 					CheckParam->ParamNames[NameIndex] = DynParam->ParamNames[NameIndex];
 				}
+#if WITH_EDITORONLY_DATA
+				CheckParam->GraphNode->ReconstructNode();
+#endif // WITH_EDITORONLY_DATA
 			}
 		}
 	}
