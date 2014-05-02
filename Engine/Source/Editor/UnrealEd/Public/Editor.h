@@ -83,6 +83,8 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMapOpened, const FString& /* Filename */, bool /*bAsTemplate*/);
 	/** delegate type for triggering when the Blueprint ContextMenu is created */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintContextMenuCreated, FBlueprintGraphActionListBuilder &/*ContextMenuBuilder*/);
+	/** Delegate used for entering or exiting an editor mode */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnEditorModeTransitioned, FEdMode* /*Mode*/);
 
 	/** Called when the CurrentLevel is switched to a new level.  Note that this event won't be fired for temporary
 		changes to the current level, such as when copying/pasting actors. */
@@ -117,9 +119,9 @@ struct UNREALED_API FEditorDelegates
 	/** Called when load errors are about to be displayed */
 	static FSimpleMulticastDelegate DisplayLoadErrors;
 	/** Called when an editor mode is being entered */
-	static FSimpleMulticastDelegate EditorModeEnter;
+	static FOnEditorModeTransitioned EditorModeEnter;
 	/** Called when an editor mode is being exited */
-	static FSimpleMulticastDelegate EditorModeExit;
+	static FOnEditorModeTransitioned EditorModeExit;
 	/** Sent after an undo/redo operation takes place */
 	static FSimpleMulticastDelegate Undo;
 	/** Sent when a PIE session is beginning */

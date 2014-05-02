@@ -556,7 +556,7 @@ void FEdMode::Enter()
 		SelectedActor->MarkComponentsRenderStateDirty();
 	}
 
-	FEditorDelegates::EditorModeEnter.Broadcast();
+	FEditorDelegates::EditorModeEnter.Broadcast( this );
 	const bool bIsEnteringMode = true;
 	GEditorModeTools().BroadcastEditorModeChanged( this, bIsEnteringMode );
 }
@@ -565,7 +565,7 @@ void FEdMode::Exit()
 {
 	const bool bIsEnteringMode = false;
 	GEditorModeTools().BroadcastEditorModeChanged( this, bIsEnteringMode );
-	FEditorDelegates::EditorModeExit.Broadcast();
+	FEditorDelegates::EditorModeExit.Broadcast( this );
 }
 
 void FEdMode::SetCurrentTool( EModeTools InID )

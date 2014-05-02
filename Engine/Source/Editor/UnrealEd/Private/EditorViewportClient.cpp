@@ -311,7 +311,10 @@ void FEditorViewportClient::RequestInvalidateHitProxy(FViewport* InViewport)
 
 void FEditorViewportClient::OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering)
 {
-	RequestInvalidateHitProxy(Viewport);
+	if (Viewport)
+	{
+		RequestInvalidateHitProxy(Viewport);
+	}
 }
 
 float FEditorViewportClient::GetOrthoUnitsPerPixel(const FViewport* InViewport) const
