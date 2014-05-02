@@ -194,7 +194,7 @@ public:
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const;
 
 	/**
-	 * Slide smoothly along a surface, and slide away from multiple impacts using TwoWallAdjust if necessary. Calls HandleImpact for the first surface hit, if requested.
+	 * Slide smoothly along a surface, and slide away from multiple impacts using TwoWallAdjust if necessary. Calls HandleImpact for each surface hit, if requested.
 	 * Uses SafeMoveUpdatedComponent for movement, and ComputeSlideVector to determine the slide direction.
 	 * @param bHandleImpact - Whether to call HandleImpact on each hit.
 	 * @return The percent of the Time value actually applied to movement (between 0 and 1). 0 if no movement occurred, non-zero if movement occurred (in which case Hit.Time is the result of the last move).
