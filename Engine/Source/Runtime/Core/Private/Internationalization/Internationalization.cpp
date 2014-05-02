@@ -38,6 +38,14 @@ FInternationalization& FInternationalization::Get()
 	return *Instance;
 }
 
+void FInternationalization::TearDown()
+{
+	if (Instance && Instance->IsInitialized())
+	{
+		Instance->Terminate();
+	}
+}
+
 void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs)
 {
 	TimeZonesIDs.Empty();

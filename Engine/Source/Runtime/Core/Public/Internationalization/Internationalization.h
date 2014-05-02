@@ -29,6 +29,8 @@ class FInternationalization
 public:
 	static CORE_API FInternationalization& Get();
 
+	static CORE_API void TearDown();
+
 	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( const TCHAR* InTextLiteral, const TCHAR* Namespace, const TCHAR* Key )
 	{
 		return FText( InTextLiteral, Namespace, Key );
@@ -57,8 +59,6 @@ public:
 		return InvariantCulture.ToSharedRef();
 	}
 
-	CORE_API void Initialize();
-	CORE_API void Terminate();
 
 	CORE_API bool IsInitialized() {return bIsInitialized;}
 
@@ -76,6 +76,9 @@ private:
 
 	//@return index of a culture by given name, or -1 if not found
 	CORE_API int32 GetCultureIndex(const FString& Name);
+
+	CORE_API void Initialize();
+	CORE_API void Terminate();
 
 private:
 	static FInternationalization* Instance;

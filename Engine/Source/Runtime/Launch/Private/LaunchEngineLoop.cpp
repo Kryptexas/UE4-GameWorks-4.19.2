@@ -2514,7 +2514,7 @@ void FEngineLoop::AppExit( )
 		GLog->TearDown();
 	}
 
-	FInternationalization::Get().Terminate();
+	FInternationalization::TearDown();
 }
 
 #undef LOCTEXT_NAMESPACE
