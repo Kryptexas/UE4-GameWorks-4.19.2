@@ -2,8 +2,7 @@
 
 #pragma once
 
-// Forward Declarations
-class UEdGraphSchema_K2;
+#include "EdGraphSchema_K2.h" // for FFunctionTargetInfo
 
 /*******************************************************************************
 * FBlueprintGraphActionListBuilder
@@ -36,24 +35,24 @@ public:
 * FK2ActionMenuBuilder
 *******************************************************************************/
 
-class FK2ActionMenuBuilder
+class BLUEPRINTGRAPH_API FK2ActionMenuBuilder
 {
 public:
 	/** Utility to create a component node add action */
-	static TSharedPtr<FEdGraphSchemaAction_K2AddComponent> CreateAddComponentAction(UObject* TemporaryOuter, const UBlueprint* Blueprint, TSubclassOf<UActorComponent> DestinationComponentType, UObject* Asset);
+	static TSharedPtr<struct FEdGraphSchemaAction_K2AddComponent> CreateAddComponentAction(UObject* TemporaryOuter, const UBlueprint* Blueprint, TSubclassOf<UActorComponent> DestinationComponentType, UObject* Asset);
 
 	/** Utility to create a node creating action */
-	BLUEPRINTGRAPH_API static TSharedPtr<FEdGraphSchemaAction_K2NewNode> AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip, const int32 Grouping = 0, const FString& Keywords = FString());
+	static TSharedPtr<struct FEdGraphSchemaAction_K2NewNode> AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip, const int32 Grouping = 0, const FString& Keywords = FString());
 
 	/** Utility that creates a 'new event' entry based on the function supplied. Can either override that function, or simply use the function as its signature. */
-	BLUEPRINTGRAPH_API static void AddEventForFunction(FGraphActionListBuilderBase& ActionMenuBuilder, class UFunction* Function);
+	static void AddEventForFunction(FGraphActionListBuilderBase& ActionMenuBuilder, class UFunction* Function);
 
 	/** 
 	 * Adds macro action to passed array of schema actions
 	 * @param [in,out]	ActionMenuBuilder		Menu builder to append macro actions to
 	 * @param [in]		MacroGraph				The macro graph to attach		
 	 */
-	BLUEPRINTGRAPH_API static void AttachMacroGraphAction(FGraphActionListBuilderBase& ActionMenuBuilder, UEdGraph* MacroGraph);
+	static void AttachMacroGraphAction(FGraphActionListBuilderBase& ActionMenuBuilder, UEdGraph* MacroGraph);
 
 	/**
 	 * Converts a UFunction into a single spawn info record and adds that to the specified array.
@@ -67,12 +66,12 @@ public:
 	 * @param	PlaceOnTop			Don't use category, place the node on top
 	 * @param [in,out]	ListBuilder	List builder.
 	 */
-	BLUEPRINTGRAPH_API static void AddSpawnInfoForFunction(const UFunction* Function, bool bIsParentContext, const FFunctionTargetInfo& TargetInfo, const struct FMemberReference& CallOnMember,  const FString& BaseCategory, int32 const ActionGrouping, FGraphActionListBuilderBase& ListBuilder, bool bCalledForEach = false, bool bPlaceOnTop = false);
+	static void AddSpawnInfoForFunction(const UFunction* Function, bool bIsParentContext, struct FFunctionTargetInfo const& TargetInfo, const struct FMemberReference& CallOnMember, const FString& BaseCategory, int32 const ActionGrouping, FGraphActionListBuilderBase& ListBuilder, bool bCalledForEach = false, bool bPlaceOnTop = false);
 
 	// This variable allows potentially unsafe (given the current known context) commands to appear in the context menu
 	// It defaults to off, but can be enabled via a console command when creating macros for internal use, where safety
 	// is guaranteed by higher level code.
-	BLUEPRINTGRAPH_API static int32 bAllowUnsafeCommands;
+	static int32 bAllowUnsafeCommands;
 
 public:
 	FK2ActionMenuBuilder(UEdGraphSchema_K2 const* Schema);
