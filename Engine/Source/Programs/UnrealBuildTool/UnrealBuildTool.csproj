@@ -176,7 +176,7 @@
   <Choose>
     <When Condition="Exists('System\NoRedist\TelemetryProviderET.cs')">
       <ItemGroup>
-        <Compile Include="System\NoRedist\TelemetryProviderET.cs" />
+        <Compile Include="System\NotForLicensees\TelemetryProviderET.cs" />
       </ItemGroup>
     </When>
   </Choose>
@@ -288,6 +288,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="System\NoRedist\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
