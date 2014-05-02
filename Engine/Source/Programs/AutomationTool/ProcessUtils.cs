@@ -687,8 +687,6 @@ namespace AutomationTool
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
         public static void RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default)
         {
-            Log("Running {0} {1}", App, CommandLine);
-
             ProcessResult Result = Run(App, CommandLine, Input, Options);
             if (Result.Output.Length > 0 && Logfile != null)
             {
@@ -719,8 +717,6 @@ namespace AutomationTool
         /// <returns>Whether the program executed successfully or not.</returns>
         public static string RunAndLog(string App, string CommandLine, out int SuccessCode, string Logfile = null)
         {
-            Log("Running {0} {1}", App, CommandLine);
-
             ProcessResult Result = Run(App, CommandLine);
             SuccessCode = Result.ExitCode;
             if (Result.Output.Length > 0 && Logfile != null)

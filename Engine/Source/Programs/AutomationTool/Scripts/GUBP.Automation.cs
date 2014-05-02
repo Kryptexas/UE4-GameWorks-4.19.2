@@ -2989,7 +2989,7 @@ public class GUBP : BuildCommand
             ERunOptions Opts = ERunOptions.Default;
             if (bQuiet)
             {
-                Opts = Opts & ~ERunOptions.AllowSpew;
+                Opts = (Opts & ~ERunOptions.AllowSpew) | ERunOptions.NoLoggingOfRunCommand;
             }
             RunAndLog("ectool", Args, Options: Opts);
         }
@@ -3683,11 +3683,18 @@ public class GUBP : BuildCommand
             if (History.LastSucceeded > 0 && History.LastSucceeded < P4Env.Changelist)
             {
                 var ChangeRecords = GetChanges(History.LastSucceeded, P4Env.Changelist, History.LastSucceeded);
-                int NumChanges = 0;
                 foreach (var Record in ChangeRecords)
                 {
                     FailCauserEMails = GUBPNode.MergeSpaceStrings(FailCauserEMails, Record.UserEmail);
-                    if (++NumChanges > 50)
+                    int NumPeople = 1;
+                    foreach (var AChar in FailCauserEMails.ToCharArray())
+                    {
+                        if (AChar == ' ')
+                        {
+                            NumPeople++;
+                        }
+                    }
+                    if (NumPeople > 50)
                     {
                         FailCauserEMails = "";
                         EMailNote = String.Format("This step has been broken for more than 50 changes. It last succeeded at CL {0}. ", History.LastSucceeded);

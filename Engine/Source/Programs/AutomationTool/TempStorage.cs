@@ -632,7 +632,7 @@ namespace AutomationTool
                 throw new AutomationException("Saver manifest differs has wrong number of files {0} != {1}", Saver.GetFileCount(), Files.Count);
             }
             var TempFilename = FinalFilename + ".temp";
-            if (FileExists_NoExceptions(TempFilename))
+            if (FileExists_NoExceptions(true, TempFilename))
             {
                 throw new AutomationException("Temp manifest file already exists {0}", TempFilename);
             }
@@ -724,6 +724,8 @@ namespace AutomationTool
             var Local = SaveLocalTempStorageManifest(Env, BaseFolder, StorageBlockName, Files); 
             if (!bLocalOnly)
             {
+                var StartTime = DateTime.UtcNow;
+
                 var BlockPath = SharedTempStorageDirectory(StorageBlockName, GameFolder);
                 Log("Storing to {0}", BlockPath);
                 if (DirectoryExists_NoExceptions(BlockPath))
@@ -763,7 +765,12 @@ namespace AutomationTool
                     RenameFile_NoExceptions(SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder), SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder) + ".broken");
                     throw new AutomationException("Shared and Local manifest mismatch.");
                 }
-
+                float BuildDuration = (float)((DateTime.UtcNow - StartTime).TotalSeconds);
+                if (BuildDuration > 60.0f && Shared.GetTotalSize() > 0)
+                {
+                    var MBSec = (((float)(Shared.GetTotalSize())) / (1024.0f * 1024.0f)) / BuildDuration;
+                    Log("Wrote to shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
+                }
             }
 
         }
@@ -799,6 +806,7 @@ namespace AutomationTool
                 return Files;
             }
             WasLocal = false;
+            var StartTime = DateTime.UtcNow;
 
             var BlockPath = CombinePaths(SharedTempStorageDirectory(StorageBlockName, GameFolder), "/");
             if (!BlockPath.EndsWith("/") && !BlockPath.EndsWith("\\"))
@@ -853,6 +861,12 @@ namespace AutomationTool
                 // we will rename this so it can't be used, but leave it around for inspection
                 RenameFile_NoExceptions(LocalManifest, LocalManifest + ".broken");
                 throw new AutomationException("Shared and Local manifest mismatch.");
+            }
+            float BuildDuration = (float)((DateTime.UtcNow - StartTime).TotalSeconds);
+            if (BuildDuration > 60.0f && Shared.GetTotalSize() > 0)
+            {
+                var MBSec = (((float)(Shared.GetTotalSize())) / (1024.0f * 1024.0f)) / BuildDuration;
+                Log("Read from shared temp storage at {0} MB/s    {1}B {2}s", MBSec, Shared.GetTotalSize(), BuildDuration);
             }
             return DestFiles;
         }
