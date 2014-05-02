@@ -414,14 +414,14 @@ void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics 
 	SystemParametersInfo( SPI_GETWORKAREA, 0, &WorkAreaRect, 0 );
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = WorkAreaRect.left;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = WorkAreaRect.top;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 1.0f + WorkAreaRect.right;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 1.0f + WorkAreaRect.bottom;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = WorkAreaRect.right;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = WorkAreaRect.bottom;
 
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
 	OutDisplayMetrics.VirtualDisplayRect.Top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );
-	OutDisplayMetrics.VirtualDisplayRect.Right = 1.0f + ::GetSystemMetrics( SM_CXVIRTUALSCREEN );
-	OutDisplayMetrics.VirtualDisplayRect.Bottom = 1.0f + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
+	OutDisplayMetrics.VirtualDisplayRect.Right = OutDisplayMetrics.VirtualDisplayRect.Left + ::GetSystemMetrics( SM_CXVIRTUALSCREEN );
+	OutDisplayMetrics.VirtualDisplayRect.Bottom = OutDisplayMetrics.VirtualDisplayRect.Top + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
 
 	// Get connected monitor information
 	GetMonitorInfo(OutDisplayMetrics.MonitorInfo);

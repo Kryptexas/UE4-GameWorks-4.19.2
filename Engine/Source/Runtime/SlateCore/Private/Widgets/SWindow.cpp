@@ -221,12 +221,12 @@ void SWindow::Construct(const FArguments& InArgs)
 		}
 
 		float PrimaryWidthPadding = DisplayMetrics.PrimaryDisplayWidth - 
-			(PrimaryDisplayRect.Right - 1 - PrimaryDisplayRect.Left);
+			(PrimaryDisplayRect.Right - PrimaryDisplayRect.Left);
 		float PrimaryHeightPadding = DisplayMetrics.PrimaryDisplayHeight - 
-			(PrimaryDisplayRect.Bottom - 1 - PrimaryDisplayRect.Top);
+			(PrimaryDisplayRect.Bottom - PrimaryDisplayRect.Top);
 
-		float VirtualWidth = (VirtualDisplayRect.Right - 1 - VirtualDisplayRect.Left);
-		float VirtualHeight = (VirtualDisplayRect.Bottom - 1 - VirtualDisplayRect.Top);
+		float VirtualWidth = (VirtualDisplayRect.Right - VirtualDisplayRect.Left);
+		float VirtualHeight = (VirtualDisplayRect.Bottom - VirtualDisplayRect.Top);
 
 		// Make sure that the window size is no larger than the virtual display area.
 		WindowSize.X = FMath::Clamp(WindowSize.X, 0.0f, VirtualWidth - PrimaryWidthPadding);
