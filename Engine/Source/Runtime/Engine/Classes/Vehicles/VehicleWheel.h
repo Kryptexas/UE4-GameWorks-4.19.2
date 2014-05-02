@@ -73,10 +73,6 @@ class ENGINE_API UVehicleWheel : public UObject
 	UPROPERTY(EditAnywhere, Category=Tire, meta=(ClampMin = "0.01", UIMin = "0.01"))
 	float											LatStiffValue;
 
-	/** Multiplier for the output lateral tire forces */
-	UPROPERTY(EditAnywhere, Category=Tire)
-	float											LatStiffFactor;
-
 	/** How much longitudinal stiffness to have given longitudinal slip */
 	UPROPERTY(EditAnywhere, Category=Tire)
 	float											LongStiffValue;

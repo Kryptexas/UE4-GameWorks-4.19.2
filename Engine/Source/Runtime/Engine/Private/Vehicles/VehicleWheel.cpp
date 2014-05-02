@@ -28,12 +28,11 @@ UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCI
 	DampingRate = 0.25f;
 	LatStiffMaxLoad = 2.0f;
 	LatStiffValue = 17.0f;
-	LatStiffFactor = 1.0f;
 	LongStiffValue = 1000.0f;
 	SuspensionForceOffset = 0.0f;
-	SuspensionMaxRaise = 20.0f;
-	SuspensionMaxDrop = 20.0f;
-	SuspensionNaturalFrequency = 5.0f;
+	SuspensionMaxRaise = 10.0f;
+	SuspensionMaxDrop = 10.0f;
+	SuspensionNaturalFrequency = 7.0f;
 	SuspensionDampingRatio = 1.0f;
 }
 
