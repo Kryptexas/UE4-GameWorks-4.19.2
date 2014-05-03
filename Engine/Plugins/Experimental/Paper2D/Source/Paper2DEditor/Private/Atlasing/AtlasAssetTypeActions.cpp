@@ -3,7 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 
 #include "AtlasAssetTypeActions.h"
-//#include "FlipbookEditor/FlipbookEditor.h"
+#include "AssetData.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
