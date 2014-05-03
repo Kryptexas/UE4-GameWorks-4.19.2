@@ -2,9 +2,12 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "Paper2DEditorModule.h"
+
 #include "SpriteAssetTypeActions.h"
 #include "FlipbookAssetTypeActions.h"
 #include "TileSetAssetTypeActions.h"
+#include "Atlasing/AtlasAssetTypeActions.h"
+
 #include "AssetToolsModule.h"
 #include "PropertyEditorModule.h"
 #include "PaperStyle.h"
@@ -18,8 +21,6 @@
 #include "AssetEditorToolkit.h"
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
-
-
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DEditor
@@ -42,7 +43,7 @@ private:
 	TSharedPtr<FExtensibilityManager> FlipbookEditor_MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> FlipbookEditor_ToolBarExtensibilityManager;
 
-	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
+	/** All created asset type actions.  Cached here so that we can unregister them during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
 
 	TSharedPtr<FEdModeTileMap> TileMapEditorModePtr;
@@ -69,6 +70,7 @@ public:
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FSpriteAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFlipbookAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileSetAssetTypeActions));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAtlasAssetTypeActions));
 
 		PaperSpriteBroker = MakeShareable(new FPaperSpriteAssetBroker);
 		FComponentAssetBrokerage::RegisterBroker(PaperSpriteBroker, UPaperRenderComponent::StaticClass(), true, true);
