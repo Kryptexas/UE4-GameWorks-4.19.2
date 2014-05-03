@@ -273,7 +273,7 @@ bool UActorComponent::ComponentIsInPersistentLevel(bool bIncludeLevelStreamingPe
 														MyWorld->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
 }
 
-FString UActorComponent::GetReadableName()
+FString UActorComponent::GetReadableName() const
 {
 	FString Result = GetNameSafe(GetOwner()) + TEXT(".") + GetName();
 	UObject const *Add = AdditionalStatObject();

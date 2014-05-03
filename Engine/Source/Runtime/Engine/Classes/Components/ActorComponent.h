@@ -392,10 +392,10 @@ public:
 	virtual void OnActorEnableCollisionChanged() {}
 
 	/** 
-		Give a readable name for this component, including asset name if applicable 
-		By default this appends a space plus AdditionalStatObject()
-	**/
-	virtual FString GetReadableName();
+	 * Returns a readable name for this component, including the asset name if applicable 
+	 * By default this appends a space plus AdditionalStatObject()
+	 */
+	virtual FString GetReadableName() const;
 
 	/** Give a readable name for this component, including asset name if applicable */
 	virtual UObject const* AdditionalStatObject() const
