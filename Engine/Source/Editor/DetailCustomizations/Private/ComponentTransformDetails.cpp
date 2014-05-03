@@ -8,6 +8,7 @@
 #include "ActorEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ScopedTransaction.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FComponentTransformDetails"
 
