@@ -53,6 +53,7 @@ public:
 	// UActorComponent interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) OVERRIDE;
 	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
+	virtual const UObject* AdditionalStatObject() const OVERRIDE;
 	// End of UActorComponent interface
 
 	// UPrimitiveComponent interface

@@ -104,4 +104,9 @@ void UPaperTileMapRenderComponent::UpdateBodySetup()
 	}
 }
 
+const UObject* UPaperTileMapRenderComponent::AdditionalStatObject() const
+{
+	return DefaultLayerTileSet;
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -245,3 +245,8 @@ FLinearColor UPaperRenderComponent::GetWireframeColor() const
 {
 	return FLinearColor::Yellow;
 }
+
+const UObject* UPaperRenderComponent::AdditionalStatObject() const
+{
+	return SourceSprite;
+}

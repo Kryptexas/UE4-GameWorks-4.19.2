@@ -45,6 +45,7 @@ public:
 	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
 	virtual void CreatePhysicsState() OVERRIDE;
 	virtual void DestroyPhysicsState() OVERRIDE;
+	virtual const UObject* AdditionalStatObject() const OVERRIDE;
 	// End of UActorComponent interface
 
 	// USceneComponent interface
