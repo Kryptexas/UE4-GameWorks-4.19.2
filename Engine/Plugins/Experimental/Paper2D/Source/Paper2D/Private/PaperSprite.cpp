@@ -3,6 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PaperCustomVersion.h"
 
 #if WITH_EDITORONLY_DATA
 #include "GeomTools.h"
@@ -566,7 +567,7 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			// Create a new box primitive
 			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
-			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(BoxSize3D.X, BoxSize3D.Y, BoxSize3D.Z);
+			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
 			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
 
 			BodySetup3D->InvalidatePhysicsData();
@@ -1094,4 +1095,23 @@ void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& Ou
 		const FPaperSpriteSocket& Socket = Sockets[SocketIndex];
 		new (OutSockets) FComponentSocketDescription(Socket.SocketName, EComponentSocketType::Socket);
 	}
+}
+
+void UPaperSprite::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperSprite::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::FixedNegativeVolume)
+	{
+		RebuildCollisionData();
+	}
+#endif
 }

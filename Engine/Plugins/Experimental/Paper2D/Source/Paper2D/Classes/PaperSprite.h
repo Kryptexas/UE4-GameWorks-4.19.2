@@ -113,6 +113,8 @@ public:
 #if WITH_EDITORONLY_DATA
 	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostLoad() OVERRIDE;
 	// End of UObject interface
 
 	FVector2D ConvertTextureSpaceToPivotSpace(FVector2D Input) const;
