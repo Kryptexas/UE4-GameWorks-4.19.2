@@ -58,9 +58,9 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 	Input.WheelOmega = wheelOmega;
 	Input.WheelRadius = wheelRadius;
 	Input.RecipWheelRadius = recipWheelRadius;
-	Input.NormalizedTireLoad = FMath::Clamp( normalisedTireLoad, Wheel->VehicleSim->MinNormalizedTireLoad, Wheel->VehicleSim->MaxNormalizedTireLoad );
+	Input.NormalizedTireLoad = normalisedTireLoad;
 	Input.RestTireLoad = restTireLoad;
-	Input.TireLoad = restTireLoad * Input.NormalizedTireLoad;
+	Input.TireLoad = tireLoad;
 	Input.Gravity = gravity;
 	Input.RecipGravity = recipGravity;
 
@@ -108,6 +108,16 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 	HandbrakeInputRate.FallRate = 12.0f;
 	SteeringInputRate.RiseRate = 2.5f;
 	SteeringInputRate.FallRate = 5.0f;
+
+
+#if WITH_PHYSX
+	// tire load filtering
+	PxVehicleTireLoadFilterData PTireLoadFilterDef;
+	MinNormalizedTireLoad = PTireLoadFilterDef.mMinNormalisedLoad;
+	MinNormalizedTireLoadFiltered = PTireLoadFilterDef.mMinFilteredNormalisedLoad;
+	MaxNormalizedTireLoad = PTireLoadFilterDef.mMaxNormalisedLoad;
+	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
+#endif
 }
 
 #if WITH_PHYSX
@@ -342,6 +352,16 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PWheelsSimData->setWheelShapeMapping( WheelIdx, WheelShapeIndex );
 		PWheelsSimData->setSceneQueryFilterData( WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
 	}
+
+	// tire load filtering
+	PxVehicleTireLoadFilterData PTireLoadFilter;
+	PTireLoadFilter.mMinNormalisedLoad = MinNormalizedTireLoad;
+	PTireLoadFilter.mMinFilteredNormalisedLoad = MinNormalizedTireLoadFiltered;
+	PTireLoadFilter.mMaxNormalisedLoad = MaxNormalizedTireLoad;
+	PTireLoadFilter.mMaxFilteredNormalisedLoad = MaxNormalizedTireLoadFiltered;
+	PWheelsSimData->setTireLoadFilterData(PTireLoadFilter);
+
+	
 }
  ////////////////////////////////////////////////////////////////////////////
 //Default tire force shader function.
@@ -456,9 +476,6 @@ void UWheeledVehicleMovementComponent::GenerateTireForces( UVehicleWheel* Wheel,
 	//UE_LOG( LogVehicles, Warning, TEXT("Friction = %f	LongSlip = %f	LatSlip = %f"), Input.TireFriction, Input.LongSlip, Input.LatSlip );	
 	//UE_LOG( LogVehicles, Warning, TEXT("WheelTorque= %f	LongForce = %f	LatForce = %f"), Output.WheelTorque, Output.LongForce, Output.LatForce );
 	//UE_LOG( LogVehicles, Warning, TEXT("RestLoad= %f	NormLoad = %f	TireLoad = %f"),Input.RestTireLoad, Input.NormalizedTireLoad, Input.TireLoad );
-	
-	//Output.LatForce *= FMath::Lerp( Wheel->WheelSetup->LatStiffFactor, Wheel->WheelSetup->HandbrakeLatStiffFactor, OutputHandbrake );
-	//Output.LatForce *= Wheel->LatStiffFactor;
 }
 
 void UWheeledVehicleMovementComponent::PostSetupVehicle()

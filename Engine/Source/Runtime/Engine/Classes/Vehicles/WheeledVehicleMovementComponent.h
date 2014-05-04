@@ -233,8 +233,16 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	float MinNormalizedTireLoad;
 
 	/** Clamp normalized tire load to this value */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, AdvancedDisplay)
+	float MinNormalizedTireLoadFiltered;
+
+	/** Clamp normalized tire load to this value */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	float MaxNormalizedTireLoad;
+
+	/** Clamp normalized tire load to this value */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, AdvancedDisplay)
+	float MaxNormalizedTireLoadFiltered;
 
 	// Our instanced wheels
 	UPROPERTY(transient, duplicatetransient, BlueprintReadOnly, Category=Vehicle)
