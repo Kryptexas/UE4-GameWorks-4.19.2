@@ -699,25 +699,6 @@ public:
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) = 0;
 
-	SLATE_BEGIN_ARGS( SMultiColumnTableRow< ItemType > )
-		: _Style( &FCoreStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row") )
-		, _Padding( FMargin(0) )
-		, _ShowSelection(true)
-		{}
-	
-		SLATE_STYLE_ARGUMENT( FTableRowStyle, Style )
-
-		SLATE_EVENT( FOnDragDetected, OnDragDetected )
-		SLATE_EVENT( FOnTableRowDragEnter, OnDragEnter )
-		SLATE_EVENT( FOnTableRowDragLeave, OnDragLeave )
-		SLATE_EVENT( FOnTableRowDrop,      OnDrop )
-
-		SLATE_ATTRIBUTE( FMargin, Padding )
-	
-		SLATE_ARGUMENT( bool, ShowSelection )
-		
-	SLATE_END_ARGS()
-
 	typedef SMultiColumnTableRow< ItemType > FSuperRowType;
 	typedef typename STableRow<ItemType>::FArguments FTableRowArgs;
 
