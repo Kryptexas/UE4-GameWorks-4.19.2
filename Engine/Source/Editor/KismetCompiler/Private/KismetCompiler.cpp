@@ -269,22 +269,11 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	{
 		//@todo:  This is modifying the model, but is acceptable to save another prepass on the pins
 		UEdGraphPin* MutablePin = const_cast<UEdGraphPin*>(Pin);
-		if( Blueprint->GeneratedClass)
-		{
-			if (MutablePin->PinType.PinSubCategoryObject.Get() == Blueprint->GeneratedClass)
-			{
-				MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
-				MutablePin->PinType.PinSubCategoryObject = NULL;
-			}
-		}
 
-		if( Blueprint->SkeletonGeneratedClass)
+		if (NewClass && MutablePin->PinType.PinSubCategoryObject.Get() == NewClass)
 		{
-			if (MutablePin->PinType.PinSubCategoryObject.Get() == Blueprint->SkeletonGeneratedClass)
-			{
-				MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
-				MutablePin->PinType.PinSubCategoryObject = NULL;
-			}
+			MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
+			MutablePin->PinType.PinSubCategoryObject = NULL;
 		}
 	}
 
