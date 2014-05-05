@@ -1958,6 +1958,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 	return NULL;
 }
 
+// returns if Blueprint depends on TestBlueprint
 bool FBlueprintEditorUtils::IsBlueprintDependentOn(UBlueprint const* Blueprint, UBlueprint const* TestBlueprint)
 {
 	if ( Blueprint && (Blueprint != TestBlueprint) )
@@ -4018,13 +4019,19 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 			// destroy the old event node (this will also break all pin links and remove it from the graph)
 			EventNode->DestroyNode();
 
-			// have to rename so it doesn't conflict with the graph we're about to add
-			CustomEventNode->RenameCustomEventCloseToName();
+			if (InterfaceFunction)
+			{
+				// have to rename so it doesn't conflict with the graph we're about to add
+				CustomEventNode->RenameCustomEventCloseToName();
+			}
 			EventGraph->Nodes.Add(CustomEventNode);
 
 			// warn the user that their old functionality won't work (it's now connected 
 			// to a custom node that isn't triggered anywhere)
-			FText WarningMessageText = LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.");
+			FText WarningMessageText = InterfaceFunction ?
+				LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.") :
+				LOCTEXT("InterfaceEventRemovedNodeReplaced_Warn", "'%s' was removed from its interface - it has been replaced by a custom event, which won't trigger unless you call it manually.");
+
 			Blueprint->Message_Warn(FString::Printf(*WarningMessageText.ToString(), *FunctionName.ToString()));
 		}
 
