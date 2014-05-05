@@ -18,11 +18,9 @@ struct FRuntimeFloatCurve
 
 	FRuntimeFloatCurve();
 
-	/** Evaluate this curve at the specified time */
-	float Eval(float InTime) const;
-
-	/** Get range of input time values. Outside this region curve continues constantly the start/end values. */
-	void GetTimeRange(float& MinTime, float& MaxTime) const;
+	/** Get the current curve struct */
+	FRichCurve* GetRichCurve();
+	const FRichCurve* GetRichCurveConst() const;
 };
 
 UCLASS(BlueprintType, MinimalAPI)

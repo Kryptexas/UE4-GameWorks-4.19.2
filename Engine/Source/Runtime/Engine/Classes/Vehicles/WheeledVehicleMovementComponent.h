@@ -157,21 +157,6 @@ struct FVehicleInputRate
 	}
 };
 
-// Temporary until curve editing in
-USTRUCT()
-struct FFloatPair
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=FloatPair)
-	float InVal;
-
-	UPROPERTY(EditAnywhere, Category=FloatPair)
-	float OutVal;
-};
-
-void ConvertCurve( const TArray<FFloatPair>& Pairs, struct FRichCurve& OutCurve );
-
 /**
  * Component to handle the vehicle simulation for an actor.
  */

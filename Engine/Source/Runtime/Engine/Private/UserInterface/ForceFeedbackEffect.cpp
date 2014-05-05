@@ -30,7 +30,7 @@ float UForceFeedbackEffect::GetDuration()
 		float MinTime, MaxTime;
 		for (int32 Index = 0; Index < ChannelDetails.Num(); ++Index)
 		{
-			ChannelDetails[Index].Curve.GetTimeRange(MinTime, MaxTime);
+			ChannelDetails[Index].Curve.GetRichCurve()->GetTimeRange(MinTime, MaxTime);
 
 			if (MaxTime > Duration)
 			{
@@ -47,7 +47,7 @@ void UForceFeedbackEffect::GetValues(const float EvalTime, FForceFeedbackValues&
 	for (int32 Index = 0; Index < ChannelDetails.Num(); ++Index)
 	{
 		const FForceFeedbackChannelDetails& Details = ChannelDetails[Index];
-		const float Value = Details.Curve.Eval(EvalTime);
+		const float Value = Details.Curve.GetRichCurveConst()->Eval(EvalTime);
 
 		if (Details.bAffectsLeftLarge)
 		{

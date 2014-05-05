@@ -22,11 +22,19 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 
 	PxVehicleEngineData DefEngineData;
 	EngineSetup.MOI = DefEngineData.mMOI;
-	EngineSetup.PeakTorque = DefEngineData.mPeakTorque;
 	EngineSetup.MaxRPM = OmegaToRPM(DefEngineData.mMaxOmega);
 	EngineSetup.DampingRateFullThrottle = DefEngineData.mDampingRateFullThrottle;
 	EngineSetup.DampingRateZeroThrottleClutchEngaged = DefEngineData.mDampingRateZeroThrottleClutchEngaged;
 	EngineSetup.DampingRateZeroThrottleClutchDisengaged = DefEngineData.mDampingRateZeroThrottleClutchDisengaged;
+
+	// Convert from PhysX curve to ours
+	FRichCurve* TorqueCurveData = EngineSetup.TorqueCurve.GetRichCurve();
+	for(PxU32 KeyIdx=0; KeyIdx<DefEngineData.mTorqueCurve.getNbDataPairs(); KeyIdx++)
+	{
+		float Input = DefEngineData.mTorqueCurve.getX(KeyIdx);
+		float Output = DefEngineData.mTorqueCurve.getY(KeyIdx) * DefEngineData.mPeakTorque;
+		TorqueCurveData->AddKey(Input, Output);
+	}
 
 	PxVehicleClutchData DefClutchData;
 	TransmissionSetup.ClutchStrength = DefClutchData.mStrength;
@@ -53,17 +61,12 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 		TransmissionSetup.ForwardGears.Add(GearData);
 	}
 	
-	MaxSteeringSpeed = 100.f; // editable in vehicle blueprint
-	SteeringCurve.AddZeroed(4);
-	SteeringCurve[0].InVal = 0.0f;
-	SteeringCurve[0].OutVal = 0.75f;
-	SteeringCurve[1].InVal = 0.05f;
-	SteeringCurve[1].OutVal = 0.75f;
-	SteeringCurve[2].InVal = 0.25f;
-	SteeringCurve[2].OutVal = 0.125f;
-	SteeringCurve[3].InVal = 1.0f;
-	SteeringCurve[3].OutVal = 0.1f;
+	// Init steering speed curve
+	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+	SteeringCurveData->AddKey(0.f, 1.f);
+	SteeringCurveData->AddKey(50.f, 1.f);
 
+	// Initialize WheelSetups array with 4 wheels
 	WheelSetups.SetNum(4);
 #endif // WITH_PHYSX
 }
@@ -88,6 +91,16 @@ void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FProperty
 		{
 			FVehicleGearData & GearData = TransmissionSetup.ForwardGears[GearIdx];
 			GearData.UpRatio = FMath::Max(GearData.DownRatio, GearData.UpRatio);
+		}
+	}
+	else if (PropertyName == TEXT("SteeringCurve"))
+	{
+		//make sure values are capped between 0 and 1
+		TArray<FRichCurveKey> SteerKeys = SteeringCurve.GetRichCurve()->GetCopyOfKeys();
+		for (int32 KeyIdx = 0; KeyIdx < SteerKeys.Num(); ++KeyIdx)
+		{
+			float NewValue = FMath::Clamp(SteerKeys[KeyIdx].Value, 0.f, 1.f);
+			SteeringCurve.GetRichCurve()->UpdateOrAddKey(SteerKeys[KeyIdx].Time, NewValue);
 		}
 	}
 }
@@ -129,14 +142,39 @@ static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setu
 	PxSetup.mRearBias = Setup.RearBias;
 }
 
+float FVehicleEngineData::FindPeakTorque() const
+{
+	// Find max torque
+	float PeakTorque = 0.f;
+	TArray<FRichCurveKey> TorqueKeys = TorqueCurve.GetRichCurveConst()->GetCopyOfKeys();
+	for (int32 KeyIdx = 0; KeyIdx < TorqueKeys.Num(); KeyIdx++)
+	{
+		FRichCurveKey& Key = TorqueKeys[KeyIdx];
+		PeakTorque = FMath::Max(PeakTorque, Key.Value);
+	}
+	return PeakTorque;
+}
+
 static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngineData& PxSetup)
 {
 	PxSetup.mMOI = M2ToCm2(Setup.MOI);
-	PxSetup.mPeakTorque = M2ToCm2(Setup.PeakTorque);	//convert Nm to (kg cm^2/s^2)
 	PxSetup.mMaxOmega = RPMToOmega(Setup.MaxRPM);
 	PxSetup.mDampingRateFullThrottle = M2ToCm2(Setup.DampingRateFullThrottle);
 	PxSetup.mDampingRateZeroThrottleClutchEngaged = M2ToCm2(Setup.DampingRateZeroThrottleClutchEngaged);
 	PxSetup.mDampingRateZeroThrottleClutchDisengaged = M2ToCm2(Setup.DampingRateZeroThrottleClutchDisengaged);
+
+	float PeakTorque = Setup.FindPeakTorque(); // In Nm
+	PxSetup.mPeakTorque = M2ToCm2(PeakTorque);	// convert Nm to (kg cm^2/s^2)
+
+	// Convert from our curve to PhysX
+	PxSetup.mTorqueCurve.clear();
+	TArray<FRichCurveKey> TorqueKeys = Setup.TorqueCurve.GetRichCurveConst()->GetCopyOfKeys();
+	int32 NumTorqueCurveKeys = FMath::Min<int32>(TorqueKeys.Num(), PxVehicleEngineData::eMAX_NB_ENGINE_TORQUE_CURVE_ENTRIES);
+	for (int32 KeyIdx = 0; KeyIdx < NumTorqueCurveKeys; KeyIdx++)
+	{
+		FRichCurveKey& Key = TorqueKeys[KeyIdx];
+		PxSetup.mTorqueCurve.addPair(FMath::Clamp(Key.Time, 0.f, 1.f), Key.Value/PeakTorque); // Normalize torque to 0-1 range
+	}
 }
 
 static void GetVehicleGearSetup(const FVehicleTransmissionData& Setup, PxVehicleGearsData& PxSetup)
@@ -239,16 +277,9 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 	PVehicleDrive = PVehicleDrive4W;
 
 	// MSS Using PxVehicle built-in automatic transmission for now. No reverse yet, have to fix that.
- //SetUseAutoGears(bUseGearAutoBox);
+	//SetUseAutoGears(bUseGearAutoBox);
 	SetUseAutoGears(true);
 	//SetTargetGear(1, true);
-
-	const int MaxSteeringSamples = FMath::Min(8, SteeringCurve.Num());
-	for (int i = 0; i < 8; i++)
-	{
-		SteeringMap[i*2 + 0] = (i < MaxSteeringSamples) ? (SteeringCurve[i].InVal * KmHToCmS(MaxSteeringSpeed)) : PX_MAX_F32;
-		SteeringMap[i*2 + 1] = (i < MaxSteeringSamples) ? FMath::Clamp<float>(SteeringCurve[i].OutVal, 0.0f, 1.0f) : PX_MAX_F32;
-	}
 }
 
 void UWheeledVehicleMovementComponent4W::UpdateSimulation(float DeltaTime)
@@ -268,7 +299,16 @@ void UWheeledVehicleMovementComponent4W::UpdateSimulation(float DeltaTime)
 		RawInputData.setGearDown(bRawGearDownInput);
 	}
 
-	PxFixedSizeLookupTable<8> SpeedSteerLookup(SteeringMap,4);
+	// Convert from our curve to PxFixedSizeLookupTable
+	PxFixedSizeLookupTable<8> SpeedSteerLookup;
+	TArray<FRichCurveKey> SteerKeys = SteeringCurve.GetRichCurve()->GetCopyOfKeys();
+	const int32 MaxSteeringSamples = FMath::Min(8, SteerKeys.Num());
+	for (int32 KeyIdx = 0; KeyIdx < MaxSteeringSamples; KeyIdx++)
+	{
+		FRichCurveKey& Key = SteerKeys[KeyIdx];
+		SpeedSteerLookup.addPair(KmHToCmS(Key.Time), FMath::Clamp(Key.Value, 0.f, 1.f));
+	}
+
 	PxVehiclePadSmoothingData SmoothData = {
 		{ ThrottleInputRate.RiseRate, BrakeInputRate.RiseRate, HandbrakeInputRate.RiseRate, SteeringInputRate.RiseRate, SteeringInputRate.RiseRate },
 		{ ThrottleInputRate.FallRate, BrakeInputRate.FallRate, HandbrakeInputRate.FallRate, SteeringInputRate.FallRate, SteeringInputRate.FallRate }
@@ -344,16 +384,13 @@ void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 		float DefaultRPM = OmegaToRPM(DefEngineData.mMaxOmega);
 		
 		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
-		BackwardsConvertCm2ToM2(EngineSetup.PeakTorque, DefEngineData.mPeakTorque);
 		EngineSetup.MaxRPM = EngineSetup.MaxRPM != DefaultRPM ? OmegaToRPM(EngineSetup.MaxRPM) : DefaultRPM;	//need to convert from rad/s to RPM
-		MaxSteeringSpeed = MaxSteeringSpeed != 100.f ? CmSToKmH(MaxSteeringSpeed) : 100.f;	//we now store as km/h instead of cm/s
 	}
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE2)
 	{
 		PxVehicleEngineData DefEngineData;
 		PxVehicleClutchData DefClutchData;
-		float DefaultRPM = OmegaToRPM(DefEngineData.mMaxOmega);
 
 		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
 		BackwardsConvertCm2ToM2(EngineSetup.DampingRateFullThrottle, DefEngineData.mDampingRateFullThrottle);

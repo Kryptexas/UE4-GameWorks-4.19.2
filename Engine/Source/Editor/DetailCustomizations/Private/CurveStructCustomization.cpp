@@ -55,6 +55,8 @@ void FCurveStructCustomization::CustomizeStructHeader( TSharedRef<class IPropert
 				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
 			]
 			.ValueContent()
+			.MinDesiredWidth(0.f)
+			.MaxDesiredWidth(0.f)
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()

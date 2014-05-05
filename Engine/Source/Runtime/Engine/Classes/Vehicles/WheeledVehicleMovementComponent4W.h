@@ -59,9 +59,9 @@ struct FVehicleEngineData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Maximum torque available to apply to the engine (Nm). */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float PeakTorque;
+	/** Torque (Nm) at a given normalized RPM (0-1, internally scaled by MaxRPM). */
+	UPROPERTY(EditAnywhere, Category = Setup)
+	FRuntimeFloatCurve TorqueCurve;
 
 	/** Maximum revolutions per minute of the engine */
 	UPROPERTY(EditAnywhere, Category=Setup)
@@ -82,6 +82,9 @@ struct FVehicleEngineData
 	/** Damping rate of engine in at zero throttle when the clutch is disengaged (in neutral gear) (Kgm^2/s)*/
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
 	float DampingRateZeroThrottleClutchDisengaged;
+
+	/** Find the peak torque produced by the TorqueCurve */
+	float FindPeakTorque() const;
 };
 
 
@@ -157,17 +160,14 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleTransmissionData TransmissionSetup;
 
-	/** Max speed value in steering curve (km/h)*/
-	UPROPERTY(EditAnywhere, Category=SteeringSetup)
-	float MaxSteeringSpeed;
+	/** Maximum steering angle versus forward speed (km/h) */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup)
+	FRuntimeFloatCurve SteeringCurve;
 
 	/** Accuracy of Ackermann steer calculation (range: 0..1) */
 	UPROPERTY(EditAnywhere, Category = SteeringSetup, AdvancedDisplay)
 	float AckermannAccuracy;
 
-	/** Steering strength defined for speed in normalized range [0 .. 1] */
-	UPROPERTY(EditAnywhere, Category=SteeringSetup)
-	TArray<FFloatPair> SteeringCurve;
 
 	virtual void Serialize(FArchive & Ar) OVERRIDE;
 	virtual void ComputeConstants() OVERRIDE;
@@ -178,8 +178,6 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 protected:
 
 #if WITH_PHYSX
-
-	float SteeringMap[8*2];
 
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicle() OVERRIDE;

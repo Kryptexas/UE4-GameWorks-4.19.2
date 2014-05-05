@@ -11,27 +11,27 @@ FRuntimeFloatCurve::FRuntimeFloatCurve()
 {
 }
 
-float FRuntimeFloatCurve::Eval(float InTime) const
+FRichCurve* FRuntimeFloatCurve::GetRichCurve()
 {
-	if (ExternalCurve)
+	if(ExternalCurve != NULL)
 	{
-		return ExternalCurve->GetFloatValue(InTime);
+		return &(ExternalCurve->FloatCurve);
 	}
 	else
 	{
-		return EditorCurveData.Eval(InTime);
+		return &EditorCurveData;
 	}
 }
 
-void FRuntimeFloatCurve::GetTimeRange(float& MinTime, float& MaxTime) const
+const FRichCurve* FRuntimeFloatCurve::GetRichCurveConst() const
 {
-	if (ExternalCurve)
+	if (ExternalCurve != NULL)
 	{
-		return ExternalCurve->GetTimeRange(MinTime, MaxTime);
+		return &(ExternalCurve->FloatCurve);
 	}
 	else
 	{
-		return EditorCurveData.GetTimeRange(MinTime, MaxTime);
+		return &EditorCurveData;
 	}
 }
 

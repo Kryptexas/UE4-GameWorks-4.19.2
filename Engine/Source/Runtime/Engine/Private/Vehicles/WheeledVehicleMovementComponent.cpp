@@ -9,17 +9,6 @@
 #include "PhysXVehicleManager.h"
 #endif //WITH_PHYSX
 
-// Temporary until curve editing in
-void ConvertCurve( const TArray<FFloatPair>& Pairs, FRichCurve& OutCurve )
-{
-	OutCurve.Reset();
-
-	for ( auto It = Pairs.CreateConstIterator(); It; ++It )
-	{
-		OutCurve.AddKey( It->InVal, It->OutVal );
-	}
-}
-
 #if WITH_PHYSX
 
 /**
