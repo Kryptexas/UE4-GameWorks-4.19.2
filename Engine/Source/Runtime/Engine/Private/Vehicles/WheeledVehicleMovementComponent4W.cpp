@@ -64,7 +64,9 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	// Init steering speed curve
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 	SteeringCurveData->AddKey(0.f, 1.f);
-	SteeringCurveData->AddKey(50.f, 1.f);
+	SteeringCurveData->AddKey(20.f, 0.9f);
+	SteeringCurveData->AddKey(60.f, 0.8f);
+	SteeringCurveData->AddKey(120.f, 0.7f);
 
 	// Initialize WheelSetups array with 4 wheels
 	WheelSetups.SetNum(4);

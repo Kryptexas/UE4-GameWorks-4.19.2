@@ -160,7 +160,7 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleTransmissionData TransmissionSetup;
 
-	/** Maximum steering angle versus forward speed (km/h) */
+	/** Maximum steering versus forward speed (km/h) */
 	UPROPERTY(EditAnywhere, Category = SteeringSetup)
 	FRuntimeFloatCurve SteeringCurve;
 
