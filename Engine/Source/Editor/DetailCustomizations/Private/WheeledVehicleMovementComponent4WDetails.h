@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SCurveEditor.h"
+
 class FWheeledVehicleMovementComponent4WDetails : public IDetailCustomization
 {
 public:
@@ -10,10 +12,28 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	
 private:
-	void SetGearShiftRatio(float NewValue, ETextCommit::Type CommitInfo, bool bShiftUp, int32 GearIdx);
-	void FillAutoBoxWidget(UWheeledVehicleMovementComponent4W * VehicleMovement, FDetailWidgetRow & AutoBoxSetup);
+
+	struct FSteeringCurveEditor : public FCurveOwnerInterface
+	{
+		FSteeringCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle = NULL);
+		/** FCurveOwnerInterface interface */
+		virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
+		virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
+		virtual UObject* GetOwner() OVERRIDE;
+		virtual void ModifyOwner() OVERRIDE;
+		virtual void MakeTransactional() OVERRIDE;
+
+	private:
+		UWheeledVehicleMovementComponent4W * VehicleComponent;
+		UObject * Owner;
+
+	} SteeringCurveEditor;
 
 	TArray<TWeakObjectPtr<UObject> > SelectedObjects;	//the objects we're showing details for
+	
+	/** Steering curve widget */
+	TSharedPtr<class SCurveEditor> SteeringCurveWidget;
 };
 
