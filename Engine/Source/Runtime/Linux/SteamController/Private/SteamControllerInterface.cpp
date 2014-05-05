@@ -12,6 +12,7 @@
 #define RIGHT_THUMBPAD_DEADZONE 0
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, SteamController );
+DEFINE_LOG_CATEGORY(LogSteamController);
 
 TSharedRef< SteamControllerInterface > SteamControllerInterface::Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {
@@ -23,16 +24,19 @@ SteamControllerInterface::SteamControllerInterface( const TSharedRef< FGenericAp
 {
 	if(SteamController() != NULL)
 	{
-		printf("MichaelL - SteamController Init!\n");
 		FString vdfPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::GeneratedConfigDir(), TEXT("controller.vdf")));
-		printf("vdfPath: %s\n", TCHAR_TO_ANSI(*vdfPath));
-		SteamController()->Init( TCHAR_TO_ANSI(*vdfPath) );
+		bool bInited = SteamController()->Init(TCHAR_TO_ANSI(*vdfPath));
+		UE_LOG(LogSteamController, Log, TEXT("SteamController %s initialized with vdf file '%s'."), bInited ? TEXT("could not be") : TEXT("has been"), *vdfPath);
 
-		memset(ControllerStates, 0, sizeof(FControllerState) * MAX_STEAM_CONTROLLERS);
+		// [RCL] 2014-05-05 FIXME: disable when could not init?
+		if (bInited)
+		{
+			FMemory::MemZero(ControllerStates);
+		}
 	}
 	else
 	{
-		printf("MichaelL - SteamController failed...\n");
+		UE_LOG(LogSteamController, Log, TEXT("SteamController is not available"));
 	}
 
 	InitialButtonRepeatDelay = 0.2f;
