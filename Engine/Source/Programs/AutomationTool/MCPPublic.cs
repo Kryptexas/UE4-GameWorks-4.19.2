@@ -547,7 +547,6 @@ namespace EpicGames.MCP.Config
             {
                 throw new AutomationException("Unable to find requested McpConfig: {0}", ConfigName);
             }
-            CommandUtils.Log("Found config for {0}", ConfigName);
             return LoadedConfig;
         }
     }
