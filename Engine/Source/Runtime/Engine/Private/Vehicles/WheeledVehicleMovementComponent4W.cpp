@@ -31,7 +31,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	FRichCurve* TorqueCurveData = EngineSetup.TorqueCurve.GetRichCurve();
 	for(PxU32 KeyIdx=0; KeyIdx<DefEngineData.mTorqueCurve.getNbDataPairs(); KeyIdx++)
 	{
-		float Input = DefEngineData.mTorqueCurve.getX(KeyIdx);
+		float Input = DefEngineData.mTorqueCurve.getX(KeyIdx) * EngineSetup.MaxRPM;
 		float Output = DefEngineData.mTorqueCurve.getY(KeyIdx) * DefEngineData.mPeakTorque;
 		TorqueCurveData->AddKey(Input, Output);
 	}
@@ -175,7 +175,7 @@ static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngi
 	for (int32 KeyIdx = 0; KeyIdx < NumTorqueCurveKeys; KeyIdx++)
 	{
 		FRichCurveKey& Key = TorqueKeys[KeyIdx];
-		PxSetup.mTorqueCurve.addPair(FMath::Clamp(Key.Time, 0.f, 1.f), Key.Value/PeakTorque); // Normalize torque to 0-1 range
+		PxSetup.mTorqueCurve.addPair(FMath::Clamp(Key.Time / Setup.MaxRPM, 0.f, 1.f), Key.Value/PeakTorque); // Normalize torque to 0-1 range
 	}
 }
 

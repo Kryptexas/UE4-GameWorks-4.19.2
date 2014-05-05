@@ -31,9 +31,28 @@ private:
 
 	} SteeringCurveEditor;
 
+	struct FTorqueCurveEditor : public FCurveOwnerInterface
+	{
+		FTorqueCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle = NULL);
+		/** FCurveOwnerInterface interface */
+		virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
+		virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
+		virtual UObject* GetOwner() OVERRIDE;
+		virtual void ModifyOwner() OVERRIDE;
+		virtual void MakeTransactional() OVERRIDE;
+
+	private:
+		UWheeledVehicleMovementComponent4W * VehicleComponent;
+		UObject * Owner;
+
+	} TorqueCurveEditor;
+
 	TArray<TWeakObjectPtr<UObject> > SelectedObjects;	//the objects we're showing details for
 	
 	/** Steering curve widget */
 	TSharedPtr<class SCurveEditor> SteeringCurveWidget;
+
+	/** Torque curve widget */
+	TSharedPtr<class SCurveEditor> TorqueCurveWidget;
 };
 

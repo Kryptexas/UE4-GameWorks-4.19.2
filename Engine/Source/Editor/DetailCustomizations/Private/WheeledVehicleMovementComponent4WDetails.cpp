@@ -31,38 +31,64 @@ void FWheeledVehicleMovementComponent4WDetails::CustomizeDetails(IDetailLayoutBu
 	else if (UWheeledVehicleMovementComponent4W * VehicleComponent = Cast<UWheeledVehicleMovementComponent4W>(SelectedObjects[0].Get()))
 	{
 		SteeringCurveEditor = FSteeringCurveEditor(VehicleComponent);
+		TorqueCurveEditor = FTorqueCurveEditor(VehicleComponent);
 	}
 	else
 	{
 		return;
 	}
 
-	// See which categories are hidden
-	TArray<FString> HideCategories;
-	DetailBuilder.GetDetailsView().GetBaseClass()->GetHideCategories(HideCategories);
-	
-	IDetailCategoryBuilder& SteeringCategory = DetailBuilder.EditCategory("SteeringSetup");
-	TSharedRef<IPropertyHandle> SteeringCurveHandle = DetailBuilder.GetProperty("SteeringCurve");
-	SteeringCategory.AddProperty(SteeringCurveHandle).CustomWidget()
-	.NameContent()
-	[
-		SteeringCurveHandle->CreatePropertyNameWidget()
-	]
-	.ValueContent()
-	.MinDesiredWidth(125.f * 3.f)
-	[
-		SAssignNew(SteeringCurveWidget, SCurveEditor)
-		.ViewMinInput(0.f)
-		.ViewMaxInput(150.f)
-		.ViewMinOutput(0.f)
-		.ViewMaxOutput(1.f)
-		.TimelineLength(150)
-		.HideUI(false)
-		.ZoomToFit(false)
-		.DesiredSize(FVector2D(512, 128))
-	];
+	//Torque curve
+	{
+		IDetailCategoryBuilder& MechanicalCategory = DetailBuilder.EditCategory("MechanicalSetup");
+		TSharedRef<IPropertyHandle> TorqueCurveHandle = DetailBuilder.GetProperty("EngineSetup.TorqueCurve");
 
-	SteeringCurveWidget->SetCurveOwner(&SteeringCurveEditor);
+		MechanicalCategory.AddProperty(TorqueCurveHandle).CustomWidget()
+		.NameContent()
+			[
+				TorqueCurveHandle->CreatePropertyNameWidget()
+			]
+		.ValueContent()
+			.MinDesiredWidth(125.f * 3.f)
+			[
+				SAssignNew(TorqueCurveWidget, SCurveEditor)
+				.ViewMinInput(0.f)
+				.ViewMaxInput(70000.f)
+				.ViewMinOutput(0.f)
+				.ViewMaxOutput(1.f)
+				.TimelineLength(7000.f)
+				.HideUI(false)
+				.DesiredSize(FVector2D(512, 128))
+			];
+
+		TorqueCurveWidget->SetCurveOwner(&TorqueCurveEditor);
+	}
+	
+	//Steering curve
+	{
+		IDetailCategoryBuilder& SteeringCategory = DetailBuilder.EditCategory("SteeringSetup");
+		TSharedRef<IPropertyHandle> SteeringCurveHandle = DetailBuilder.GetProperty("SteeringCurve");
+		SteeringCategory.AddProperty(SteeringCurveHandle).CustomWidget()
+			.NameContent()
+			[
+				SteeringCurveHandle->CreatePropertyNameWidget()
+			]
+		.ValueContent()
+			.MinDesiredWidth(125.f * 3.f)
+			[
+				SAssignNew(SteeringCurveWidget, SCurveEditor)
+				.ViewMinInput(0.f)
+				.ViewMaxInput(150.f)
+				.ViewMinOutput(0.f)
+				.ViewMaxOutput(1.f)
+				.TimelineLength(150)
+				.HideUI(false)
+				.ZoomToFit(false)
+				.DesiredSize(FVector2D(512, 128))
+			];
+
+		SteeringCurveWidget->SetCurveOwner(&SteeringCurveEditor);
+	}
 }
 
 TArray<FRichCurveEditInfoConst> FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetCurves() const
@@ -103,6 +129,50 @@ void FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::MakeTransa
 }
 
 FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::FSteeringCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle)
+{
+	VehicleComponent = InVehicle;
+	Owner = VehicleComponent;
+}
+
+
+TArray<FRichCurveEditInfoConst> FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetCurves() const
+{
+	TArray<FRichCurveEditInfoConst> Curves;
+	Curves.Add(&VehicleComponent->EngineSetup.TorqueCurve.EditorCurveData);
+
+	return Curves;
+}
+
+TArray<FRichCurveEditInfo> FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetCurves()
+{
+	TArray<FRichCurveEditInfo> Curves;
+	Curves.Add(&VehicleComponent->EngineSetup.TorqueCurve.EditorCurveData);
+
+	return Curves;
+}
+
+UObject * FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetOwner()
+{
+	return Owner;
+}
+
+void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::ModifyOwner()
+{
+	if (Owner)
+	{
+		Owner->Modify();
+	}
+}
+
+void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::MakeTransactional()
+{
+	if (Owner)
+	{
+		Owner->SetFlags(Owner->GetFlags() | RF_Transactional);
+	}
+}
+
+FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::FTorqueCurveEditor(UWheeledVehicleMovementComponent4W * InVehicle)
 {
 	VehicleComponent = InVehicle;
 	Owner = VehicleComponent;
