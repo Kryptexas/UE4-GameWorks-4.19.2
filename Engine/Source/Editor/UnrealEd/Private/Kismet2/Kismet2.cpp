@@ -482,7 +482,7 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	const bool bCanCreateBlueprint =
 		!Class->HasAnyClassFlags(CLASS_Deprecated)
 		&& !Class->HasAnyClassFlags(CLASS_NewerVersionExists)
-		&& (!Class->ClassGeneratedBy || bAllowDerivedBlueprints);
+		&& (!Class->ClassGeneratedBy || (bAllowDerivedBlueprints && !IsClassABlueprintSkeleton(Class)));
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase) 
@@ -1298,11 +1298,11 @@ bool FKismetEditorUtilities::IsClassABlueprintSkeleton(const UClass* Class)
 {
 	// Find generating blueprint for a class
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(Class->ClassGeneratedBy);
-	if( GeneratingBP )
+	if( GeneratingBP && GeneratingBP->SkeletonGeneratedClass )
 	{
 		return (Class == GeneratingBP->SkeletonGeneratedClass) && (GeneratingBP->SkeletonGeneratedClass != GeneratingBP->GeneratedClass);
 	}
-	return false;
+	return Class->HasAnyFlags(RF_Transient) && Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 }
 
 /** Run over the components references, and then NULL any that fall outside this blueprint's scope (e.g. components brought over after reparenting from another class, which are now in the transient package) */

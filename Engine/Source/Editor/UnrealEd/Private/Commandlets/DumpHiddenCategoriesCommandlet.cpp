@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 //#include "DumpHiddenCategoriesCommandlet.h"
 #include "ObjectEditorUtils.h"
+#include "KismetEditorUtilities.h"
 
 /*******************************************************************************
  * Static Helpers
@@ -108,7 +109,7 @@ static int32 GetHiddenFunctions(uint32 Indent, UClass* Class, bool bShowFunLibs,
 		{
 			UClass* TestClass = *ClassIt;
 			// if this is a skeleton class, don't bother
-			if (TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+			if (FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass))
 			{
 				continue;
 			}

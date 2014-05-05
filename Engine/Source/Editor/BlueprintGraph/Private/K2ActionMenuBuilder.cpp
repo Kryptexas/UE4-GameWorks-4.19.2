@@ -1033,7 +1033,7 @@ struct FClassDynamicCastHelper
 	static bool CanCastToClass(const UClass* TestClass, const UEdGraphSchema_K2* K2Schema)
 	{
 		check(TestClass && K2Schema);
-		const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+		const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 		const bool bProperClass = TestClass->HasAnyFlags(RF_Public) && !TestClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists);
 		const bool bAllowedByBPComms = K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy;
 		return !bIsSkeletonClass && bProperClass && bAllowedByBPComms;
@@ -1225,7 +1225,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 					for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 					{
 						UClass* TestClass = *ClassIt;
-						bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+						bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 
 						if (TestClass->HasAnyFlags(RF_Public) && !bIsSkeletonClass && !TestClass->HasAnyClassFlags(CLASS_Deprecated|CLASS_NewerVersionExists) && (K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy))
 						{
@@ -1451,7 +1451,7 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 			const UClass* AuthoritativeOwnerClass = OwnerClass ? const_cast<UClass*>(OwnerClass)->GetAuthoritativeClass() : NULL;
 			const bool bCanShowInOwnerClass = !AuthoritativeOwnerClass || !TestClass->IsChildOf(AuthoritativeOwnerClass);
 			const bool bIsProperFucntionLibrary = TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) && CanUseLibraryFunctionsForScope(TestClass, OwnerClass);
-			const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 			if (bCanShowInOwnerClass && bIsProperFucntionLibrary && !bTransient && !bIsSkeletonClass)
 			{
 				GetFuncNodesForClass(ListBuilder, TestClass, OwnerClass, DestGraph, FunctionTypes, BaseCategory, TargetInfo);
@@ -2479,7 +2479,7 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
-			const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
 				CanUseLibraryFunctionsForScope(OwnerClass, TestClass) && !bIsSkeletonClass)
 			{

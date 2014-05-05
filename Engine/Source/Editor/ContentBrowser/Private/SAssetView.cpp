@@ -11,6 +11,7 @@
 #include "FileHelpers.h"
 #include "ContentBrowserModule.h"
 #include "ObjectTools.h"
+#include "KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1333,7 +1334,7 @@ void SAssetView::RefreshSourceItems()
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			// Don't offer skeleton classes
-			bool bIsSkeletonClass = ClassIt->HasAnyFlags(RF_Transient) && ClassIt->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
 
 			if ( !ClassIt->HasAllClassFlags(CLASS_NotPlaceable) &&
 				!ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&
