@@ -926,24 +926,20 @@ int32 FServiceConnection::FindOrAddThread(const FStatNameAndInfo& Thread)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PC_FindOrAddThread);
 
-	CurrentThreadState.Threads;
-
 	// The description of a thread group contains the thread id
 	const FString Desc = Thread.GetDescription();
 	const uint32 ThreadID = FStatsUtils::ParseThreadID( Desc );
 
-	{
-		const FName ShortName = Thread.GetShortName();
+	const FName ShortName = Thread.GetShortName();
 
-		// add to the meta data
-		FScopeLock ScopeLock(&CriticalSection);
-		const int32 OldNum = MetaData.ThreadDescriptions.Num();
-		MetaData.ThreadDescriptions.Add( ThreadID, ShortName.ToString() );
-		const int32 NewNum = MetaData.ThreadDescriptions.Num();
+	// add to the meta data
+	FScopeLock ScopeLock( &CriticalSection );
+	const int32 OldNum = MetaData.ThreadDescriptions.Num();
+	MetaData.ThreadDescriptions.Add( ThreadID, ShortName.ToString() );
+	const int32 NewNum = MetaData.ThreadDescriptions.Num();
 
-		// meta data has been updated
-		CurrentData.MetaDataUpdated = CurrentData.MetaDataUpdated || OldNum != NewNum;
-	}
+	// meta data has been updated
+	CurrentData.MetaDataUpdated = CurrentData.MetaDataUpdated || OldNum != NewNum;
 
 	return ThreadID;
 }

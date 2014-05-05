@@ -605,6 +605,11 @@ struct CORE_API FStatsUtils
 	static FString ToEscapedFString(const TCHAR* Source);
 	static FString FromEscapedFString(const TCHAR* Escaped);
 
+	static FString BuildRenderThreadName( uint32 ThreadIndex )
+	{
+		return FString::Printf( TEXT( "%s %u" ), *FName(NAME_RenderThread).GetPlainNameString(), ThreadIndex );
+	}
+	
 	static FString BuildUniqueThreadName( uint32 InThreadID )
 	{
 		// Make unique name.

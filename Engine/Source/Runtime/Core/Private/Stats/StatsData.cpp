@@ -1019,7 +1019,7 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 		if (!ThreadRoot)
 		{
 			FString ThreadIdName = FStatsUtils::BuildUniqueThreadName( Packet.ThreadId );
-			ThreadRoot = Root.Children.Add( ThreadName, new FRawStatStackNode( FStatMessage( ThreadName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), NULL, *ThreadIdName, true, true ) ) );
+			ThreadRoot = Root.Children.Add( ThreadName, new FRawStatStackNode( FStatMessage( ThreadName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupCategory(), *ThreadIdName, true, true ) ) );
 			ThreadRoot->Meta.NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 			ThreadRoot->Meta.Clear();
 		}
@@ -1251,8 +1251,8 @@ void FStatsThreadState::Condense(int64 TargetFrame, TArray<FStatMessage>& OutSta
 
 void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 {
-	FName LongName = Item.NameAndInfo.GetRawName();
-	FName ShortName = Item.NameAndInfo.GetShortName();
+	const FName LongName = Item.NameAndInfo.GetRawName();
+	const FName ShortName = Item.NameAndInfo.GetShortName();
 
 	FStatMessage* Result = ShortNameToLongName.Find(ShortName);
 	if (!Result)
@@ -1260,7 +1260,7 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 		check(ShortName != LongName);
 		FStatMessage AsSet(Item);
 		AsSet.Clear();
-		
+
 		const FName GroupName = Item.NameAndInfo.GetGroupName();
 
 		// Whether to add to the threads group.
