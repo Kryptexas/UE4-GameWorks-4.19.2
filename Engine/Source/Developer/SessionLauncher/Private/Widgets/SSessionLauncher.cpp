@@ -14,6 +14,11 @@
 
 SSessionLauncher::~SSessionLauncher( )
 {
+	if (LauncherWorker.IsValid())
+	{
+		LauncherWorker->Cancel();
+		FPlatformProcess::Sleep(0.5f);
+	}
 	Model->OnProfileSelected().RemoveAll(this);
 }
 
