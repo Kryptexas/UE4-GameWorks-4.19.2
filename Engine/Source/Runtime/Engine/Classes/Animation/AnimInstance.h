@@ -205,9 +205,9 @@ struct FSlotEvaluationPose
 	}
 
 	FSlotEvaluationPose(FAnimMontageInstance * InMontageInstance, float InWeight, EAdditiveAnimationType InAdditiveType)
-		: MontageInstance(InMontageInstance)
+		: AdditiveType(InAdditiveType)
 		, Weight(InWeight)
-		, AdditiveType(InAdditiveType)
+		, MontageInstance(InMontageInstance)
 	{
 	}
 };
