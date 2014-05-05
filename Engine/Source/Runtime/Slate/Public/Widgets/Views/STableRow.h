@@ -82,7 +82,7 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	 void Construct(const STableRow<ItemType>::FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
+	 void Construct(const typename STableRow<ItemType>::FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		ConstructInternal(InArgs, InOwnerTableView);
 
