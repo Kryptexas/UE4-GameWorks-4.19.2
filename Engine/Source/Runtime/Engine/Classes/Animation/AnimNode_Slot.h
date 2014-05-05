@@ -21,8 +21,13 @@ struct ENGINE_API FAnimNode_Slot : public FAnimNode_Base
 	FName SlotName;
 
 protected:
-	bool bNeedToEvaluateSource;
+	/** Weight of Source Branch. This is the weight of the input pose coming from children.
+	This is different than (1.f - SourceWeight) since the Slot can play additive animations, which are overlayed on top of the source pose. */
+	float SourceWeight;
+
+	/** Weight of Slot Node. Determined by Montages weight playing on this slot */
 	float SlotNodeWeight;
+
 public:	
 	FAnimNode_Slot();
 

@@ -179,6 +179,39 @@ struct FPerBoneBlendWeights
 
 };
 
+/** Helper struct for Slot node pose evaluation. */
+USTRUCT()
+struct FSlotEvaluationPose
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Type of additive for pose */
+	UPROPERTY()
+	TEnumAsByte<EAdditiveAnimationType> AdditiveType;
+
+	/** Weight of pose */
+	UPROPERTY()
+	float Weight;
+
+	/** Pose */
+	UPROPERTY()
+	FA2Pose Pose;
+
+	/** Pointer to Montage Instance */
+	FAnimMontageInstance * MontageInstance;
+	
+	FSlotEvaluationPose()
+	{
+	}
+
+	FSlotEvaluationPose(FAnimMontageInstance * InMontageInstance, float InWeight, EAdditiveAnimationType InAdditiveType)
+		: MontageInstance(InMontageInstance)
+		, Weight(InWeight)
+		, AdditiveType(InAdditiveType)
+	{
+	}
+};
+
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, DependsOn(UAnimStateMachineTypes), BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
@@ -229,11 +262,10 @@ public:
 	void BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping);
 
 	// skeletal control related functions
-	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
+	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
 
 	// slotnode interfaces
-	bool NeedToTickChildren(FName SlotNodeName, float SlotNodeWeight);
-	float GetSlotWeight(FName SlotNodeName);
+	void GetSlotWeight(FName const & SlotNodeName, float & out_SlotNodeWeight, float & out_SourceWeight) const;
 	void SlotEvaluatePose(FName SlotNodeName, const struct FA2Pose & SourcePose, struct FA2Pose & BlendedPose, float SlotNodeWeight);
 
 	// slot node run-time functions
