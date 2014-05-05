@@ -240,7 +240,7 @@ namespace iPhonePackager
 			// Create a rules dict that includes (by wildcard) everything but Info.plist and the rules file
 			Dictionary<string, object> Rules = new Dictionary<string, object>();
 			Rules.Add(".*", true);
-			Rules.Add("Info.plist", CreateOmittedResource(10));
+			Rules.Add("^Info.plist", CreateOmittedResource(10));
 			Rules.Add(CFBundleResourceSpecification, CreateOmittedResource(100));
 
 			// Write the rules file out 
