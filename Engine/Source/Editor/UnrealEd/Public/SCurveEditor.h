@@ -467,6 +467,8 @@ private:
 
 	/** Gradient editor */
 	TSharedPtr<class SColorGradientEditor> GradientViewer;
+
+	void SetInputMinMax(float NewMin, float NewMax);
 protected:
 	/** Minimum input of view range  */
 	TAttribute<float>	ViewMinInput;

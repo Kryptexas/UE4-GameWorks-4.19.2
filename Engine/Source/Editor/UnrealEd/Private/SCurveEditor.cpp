@@ -1138,11 +1138,7 @@ FReply SCurveEditor::OnMouseMove( const FGeometry& InMyGeometry, const FPointerE
 
 				// clamp to data input if set
 				ClampViewRangeToDataIfBound(NewMinInput, NewMaxInput, DataMinInput, DataMaxInput, ScaleInfo.ViewInputRange);
-				if (SetInputViewRangeHandler.IsBound())
-				{
-					SetInputViewRangeHandler.Execute(NewMinInput, NewMaxInput);
-				}
-				
+				SetInputMinMax(NewMinInput, NewMaxInput);
 			}
 
 			return FReply::Handled();
@@ -1172,11 +1168,7 @@ FReply SCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEv
 		const float NewMinInput = ViewMinInput.Get() - (InputChange * 0.5f);
 		const float NewMaxInput = ViewMaxInput.Get() + (InputChange * 0.5f);
 
-
-		if (SetInputViewRangeHandler.IsBound())
-		{
-			SetInputViewRangeHandler.Execute(NewMinInput, NewMaxInput);
-		}
+		SetInputMinMax(NewMinInput, NewMaxInput);
 	}
 
 	return FReply::Handled();
@@ -1516,10 +1508,7 @@ FReply SCurveEditor::ZoomToFitHorizontal()
 			InMax = (CONST_DefaultZoomRange + CONST_FitMargin)*2.0;
 		}
 
-		if (SetInputViewRangeHandler.IsBound())
-		{
-			SetInputViewRangeHandler.Execute(InMin, InMax);
-		}
+		SetInputMinMax(InMin, InMax);
 	}
 	return FReply::Handled();
 }
@@ -1719,6 +1708,27 @@ FText SCurveEditor::GetCurveName( FRichCurve* Curve ) const
 		}
 	}
 	return FText::GetEmpty();
+}
+
+void SCurveEditor::SetInputMinMax(float NewMin, float NewMax)
+{
+	if (SetInputViewRangeHandler.IsBound())
+	{
+		SetInputViewRangeHandler.Execute(NewMin, NewMax);
+	}
+	else
+	{
+		//if no delegate and view min input isn't using a delegate just set value directly
+		if (ViewMinInput.IsBound() == false)
+		{
+			ViewMinInput.Set(NewMin);
+		}
+
+		if (ViewMaxInput.IsBound() == false)
+		{
+			ViewMaxInput.Set(NewMax);
+		}
+	}
 }
 
 bool SCurveEditor::HitTestCurves(  const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
