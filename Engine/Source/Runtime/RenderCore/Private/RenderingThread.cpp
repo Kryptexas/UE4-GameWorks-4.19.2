@@ -441,6 +441,11 @@ struct FConsoleRenderThreadPropagation : public IConsoleThreadPropagation
 
 };
 
+static FString BuildRenderingThreadName( uint32 ThreadIndex )
+{
+	return FString::Printf( TEXT( "%s %u" ), *FName( NAME_RenderThread ).GetPlainNameString(), ThreadIndex );
+}
+
 void StartRenderingThread()
 {
 	static uint32 ThreadCount = 0;
@@ -454,7 +459,7 @@ void StartRenderingThread()
 
 	EThreadPriority RenderingThreadPrio = TPri_Normal;
 
-	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *FStatsUtils::BuildRenderThreadName( ThreadCount ), 0, 0, 0, RenderingThreadPrio );
+	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, 0, 0, RenderingThreadPrio );
 
 	// Wait for render thread to have taskgraph bound before we dispatch any tasks for it.
 	((FRenderingThread*)GRenderingThreadRunnable)->TaskGraphBoundSyncEvent->Wait();
