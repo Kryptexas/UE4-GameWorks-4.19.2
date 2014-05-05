@@ -76,7 +76,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	if (!CrashDebugHelper)
 	{
 		// Not localized: should never be seen
-		return FText::FromString(TEXT("Failed to load CrashDebugHelper"));
+		return FText::FromString(TEXT("Failed to load CrashDebugHelper."));
 	}
 
 	FString DumpFilename;
@@ -84,13 +84,20 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	{
 		if (!FindFirstReportFileWithExtension(DumpFilename, TEXT(".mdmp")))
 		{
-			return LOCTEXT("MinidumpNotFound", "No minidump found for this crash");
+			return LOCTEXT("MinidumpNotFound", "No minidump found for this crash.");
 		}
 	}
 
 	if (!CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename))
 	{
-		return LOCTEXT("NoDebuggingSymbols", "You do not have any debugging symbols required to display the callstack for this crash");
+		if ( FRocketSupport::IsRocket() )
+		{
+			return LOCTEXT("NoDebuggingSymbolsRocket", "We apologize for the inconvenience.\nPlease send this crash report to help improve our software.");
+		}
+		else
+		{
+			return LOCTEXT("NoDebuggingSymbols", "You do not have any debugging symbols required to display the callstack for this crash.");
+		}
 	}
 
 	// There's a callstack, so write it out to save the server trying to do it
