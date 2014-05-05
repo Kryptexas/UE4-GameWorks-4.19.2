@@ -184,6 +184,10 @@ UActorComponent* ACharacter::FindComponentByClass(const TSubclassOf<UActorCompon
 	return Super::FindComponentByClass(ComponentClass);
 }
 
+void ACharacter::OnWalkingOffLedge_Implementation()
+{
+}
+
 
 void ACharacter::Landed(const FHitResult& Hit)
 {

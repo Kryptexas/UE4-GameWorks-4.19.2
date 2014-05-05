@@ -2691,7 +2691,12 @@ bool UCharacterMovementComponent::CheckFall(FHitResult &Hit, FVector Delta, FVec
 
 	if (bMustJump || CanWalkOffLedges())
 	{
-		StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+		CharacterOwner->OnWalkingOffLedge();
+		if (IsMovingOnGround())
+		{
+			// If still walking, then fall. If not, assume the user set a different mode they want to keep.
+			StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+		}
 		return true;
 	}
 	return false;
@@ -2999,7 +3004,12 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			{
 				if (ShouldCatchAir(OldFloor, CurrentFloor))
 				{
-					StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+					CharacterOwner->OnWalkingOffLedge();
+					if (IsMovingOnGround())
+					{
+						// If still walking, then fall. If not, assume the user set a different mode they want to keep.
+						StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+					}
 					return;
 				}
 

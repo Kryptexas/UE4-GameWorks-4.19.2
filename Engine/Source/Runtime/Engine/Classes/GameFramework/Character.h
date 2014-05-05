@@ -375,6 +375,13 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnLanded(const FHitResult& Hit);
 
+	/**
+	 * Event fired when the Character is walking off a surface and is about to fall because CharacterMovement->CurrentFloor became unwalkable.
+	 * If CharacterMovement->MovementMode does not change (from Walking) during this event then the character will start falling.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	void OnWalkingOffLedge();
+
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
 	virtual void MoveBlockedBy(const FHitResult& Impact) {};
