@@ -6,7 +6,8 @@
 enum EPhysAssetFitGeomType
 {
 	EFG_Box,
-	EFG_SphylSphere,
+	EFG_Sphyl,
+	EFG_Sphere,
 	EFG_SingleConvexHull,
 	EFG_MultiConvexHull
 };
