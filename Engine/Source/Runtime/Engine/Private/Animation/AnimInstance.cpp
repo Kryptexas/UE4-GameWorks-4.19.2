@@ -1153,7 +1153,6 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNo
 		if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
 		{
 			NodeTotalWeight += MontageInstance->Weight;
-
 			if( !MontageInstance->Montage->IsValidAdditive() )
 			{
 				NonAdditiveTotalWeight += MontageInstance->Weight;
@@ -1168,9 +1167,9 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNo
 	// this can happen when it's blending in OR when newer animation comes in with shorter blendtime
 	// say #1 animation was blending out time with current blendtime 1.0 #2 animation was blending in with 1.0 (old) but got blend out with new blendtime 0.2f
 	// #3 animation was blending in with the new blendtime 0.2f, you'll have sum of #1, 2, 3 exceeds 1.f
-	if (NodeTotalWeight > 1.f + ZERO_ANIMWEIGHT_THRESH)
+	if (NodeTotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
 	{
-		// Renormalize instance weights.
+		// Re-normalize instance weights.
 		for (int32 Index = 0; Index < MontageInstances.Num(); Index++)
 		{
 			FAnimMontageInstance * MontageInstance = MontageInstances[Index];
@@ -1180,9 +1179,9 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNo
 			}
 		} 
 
-		// Renormalize totals
-		NodeTotalWeight = 1.f;
+		// Re-normalize totals
 		NonAdditiveTotalWeight /= NodeTotalWeight;
+		NodeTotalWeight = 1.f;
 	}
 #if DEBUGMONTAGEWEIGHT
 	else if (TotalDesiredWeight == 1.f && TotalSum < 1.f - ZERO_ANIMWEIGHT_THRESH)
@@ -1269,8 +1268,8 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			NonAdditivePoses[Index].Weight /= TotalWeight;
 		}
 		// Re-normalize totals.
-		TotalWeight = 1.f;
 		NonAdditiveWeight /= TotalWeight;
+		TotalWeight = 1.f;
 	}
 
 	// Make sure we have at least one montage here.
