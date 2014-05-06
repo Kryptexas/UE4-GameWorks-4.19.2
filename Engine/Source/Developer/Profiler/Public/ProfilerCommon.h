@@ -115,3 +115,55 @@ public:
 		return Result;
 	}
 };
+
+/** Implements binary search for the various cases. */
+class FBinaryFindIndex
+{
+public:
+	template<class T>
+	static int32 LessEqual( const TArray<T>& Array, const T& Item, const int32 FirstIndex = 0, const int32 LastIndex = INDEX_NONE )
+	{
+		const int32 LocalLastIndex = LastIndex == INDEX_NONE ? Array.Num() : LastIndex;
+		int32 Lenght = LocalLastIndex - FirstIndex;
+		int32 Middle = Lenght / 2;
+		int32 Offset = FirstIndex;
+
+		while( Middle > 0 )
+		{
+			Middle = Lenght / 2;
+			if( Array[Offset + Middle] <= Item )
+			{
+				Offset += Middle;
+			}
+			Lenght -= Middle;
+		}
+		return Offset;
+	}
+
+	template<class T>
+	static int32 GreaterEqual( const TArray<T>& Array, const T& Item, const int32 FirstIndex = 0, const int32 LastIndex = INDEX_NONE )
+	{
+		const int32 LocalLastIndex = LastIndex == INDEX_NONE ? Array.Num() : LastIndex;
+		int32 Lenght = LocalLastIndex - FirstIndex;
+		int32 Middle = Lenght / 2;
+		int32 Offset = FirstIndex;
+		int32 Edge = 0;
+
+		while( Middle > 0 )
+		{
+			Middle = Lenght / 2;
+			if( Array[Offset + Middle] >= Item )
+			{
+				Edge = 0;
+			}
+			else
+			{
+				Edge = 1;
+				Offset += Middle;		
+			}
+
+			Lenght -= Middle;
+		}
+		return Offset+Edge;
+	}
+};

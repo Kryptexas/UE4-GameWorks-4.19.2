@@ -6,30 +6,6 @@
 	Declarations
 -----------------------------------------------------------------------------*/
 
-class FBinaryFindIndex
-{
-public:
-	template<class T> 
-	static int32 LessEqual( const TArray<T>& Array, const T& Item, const int32 FirstIndex = 0, const int32 LastIndex = INDEX_NONE )
-	{
-		const int32 LocalLastIndex = LastIndex == INDEX_NONE ? Array.Num() : LastIndex;
-		int32 MaxIndex = LocalLastIndex;
-		int32 MidIndex = LocalLastIndex;
-		int32 MinIndex = FMath::Min( FirstIndex, (MaxIndex-1) / 2 );
-
-		while( MidIndex > 0 )
-		{
-			MidIndex = MaxIndex / 2;
-			if( Array[ MinIndex + MidIndex ] <= Item ) 
-			{
-				MinIndex += MidIndex;
-			}
-			MaxIndex -= MidIndex;
-		}
-		return MinIndex;
-	}
-};
-
 /** Data provider interface, acts as a container for profiler samples. */
 class IDataProvider : public TSharedFromThis<IDataProvider>
 {
