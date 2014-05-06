@@ -352,7 +352,7 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		{
 			if (Minor >= 4)
 			{
-				DeviceType = IOS_IPadMini;
+				DeviceType = IOS_IPadMini2;
 			}
 			else
 			{
