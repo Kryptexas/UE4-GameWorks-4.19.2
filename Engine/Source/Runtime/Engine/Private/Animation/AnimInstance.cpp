@@ -1258,18 +1258,19 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			BlendedPose = SourcePose;
 			return;
 		}
-		TotalWeight = 1.f;
-		NonAdditiveWeight /= TotalWeight;
-
+		// Re-normalize additive poses
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
 			AdditivePoses[Index].Weight /= TotalWeight;
 		}
-
+		// Re-normalize non-additive poses
 		for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
 		{
 			NonAdditivePoses[Index].Weight /= TotalWeight;
 		}
+		// Re-normalize totals.
+		TotalWeight = 1.f;
+		NonAdditiveWeight /= TotalWeight;
 	}
 
 	// Make sure we have at least one montage here.
