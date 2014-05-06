@@ -114,11 +114,17 @@ bool FOpenGLES2::SupportsDisjointTimeQueries()
 
 void FOpenGLES2::ProcessQueryGLInt()
 {
+#ifndef __clang__
+#define LOG_AND_GET_GL_INT(IntEnum,Default,Dest) if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest)
+#else
+#define LOG_AND_GET_GL_INT(IntEnum,Default,Dest) if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Dest)
+#endif
 	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_UNIFORM_VECTORS, 0, MaxVertexUniformComponents);
 	LOG_AND_GET_GL_INT(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 0, MaxPixelUniformComponents);
 	MaxVertexUniformComponents *= 4;
 	MaxPixelUniformComponents *= 4;
 	MaxGeometryUniformComponents = 0;
+#undef LOG_AND_GET_GL_INT
 
 	MaxGeometryTextureImageUnits = 0;
 	MaxHullTextureImageUnits = 0;

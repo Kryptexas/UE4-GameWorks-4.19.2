@@ -11,43 +11,6 @@
 
 #define GL_CHECK(x)		x; do { GLint Err = glGetError(); if (Err != 0) {FPlatformMisc::LowLevelOutputDebugStringf(TEXT("(%s:%d) GL_CHECK Failed '%s'! %d (%x)\n"), ANSI_TO_TCHAR(__FILE__), __LINE__, ANSI_TO_TCHAR( #x ), Err, Err); check(!Err);}} while (0)
 
-#ifndef __clang__
-	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
-		do \
-		{ \
-			Dest = GL_INVALID_ENUM; \
-			if (IntEnum) \
-			{ \
-				glGetIntegerv(IntEnum, &Dest); \
-			}; \
-			\
-			if (Dest == GL_INVALID_ENUM)  \
-			{ \
-				Dest = Default; \
-			}; \
-			/*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest);*/ \
-		} \
-		while (0)
-#else
-	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
-		do \
-		{ \
-			Dest = GL_INVALID_ENUM; \
-			if (IntEnum) \
-			{ \
-				glGetIntegerv(IntEnum, &Dest); \
-			}; \
-			\
-			if (Dest == GL_INVALID_ENUM)  \
-			{ \
-				Dest = Default; \
-			}; \
-			/*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  " #IntEnum ": %d"), Dest);*/ \
-		} \
-		while (0)
-#endif
-
-
 /**
  * The OpenGL RHI stats.
  */
