@@ -29,7 +29,7 @@ public partial class Project : CommandUtils
 		string UE4EditorExe = HostPlatform.Current.GetUE4ExePath(Params.UE4Exe);
 		if (!FileExists(UE4EditorExe))
 		{
-			throw new AutomationException("Missing " + Params.UE4Exe + " executable. Needs to be built first.");
+			throw new AutomationException("Missing " + UE4EditorExe + " executable. Needs to be built first.");
 		}
 
 		var PlatformsToCook = new List<string>();
