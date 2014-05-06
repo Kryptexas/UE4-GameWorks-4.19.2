@@ -960,8 +960,6 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		return;
 	}
 
-	DisableRealtimeViewports();
-
 	FString GameNameOrProjectFile;
 	FString AdditionalParameters(TEXT(""));
 	if (FPaths::IsProjectFilePathSet())
