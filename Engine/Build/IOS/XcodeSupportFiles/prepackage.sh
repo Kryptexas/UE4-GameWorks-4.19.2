@@ -56,6 +56,7 @@ then
   then
     cp -R $1-Info.plist ../../../../$1/Intermediate/IOS/$1-Info.plist
   else
+    mkdir -p ../../../../Engine/Binaries/IOS/Engine/Intermediate/IOS/
     cp -R $1-Info.plist ../../../../Engine/Binaries/IOS/Engine/Intermediate/IOS/$1-Info.plist
   fi
 fi
