@@ -79,7 +79,7 @@ bool FRenderTargetPoolEvent::NeedsDeallocEvent()
 		if(Pointer)
 		{
 			IPooledRenderTarget* ValidPointer = GetValidatedPointer();
-			if(ValidPointer->IsFree())
+			if(!ValidPointer || ValidPointer->IsFree())
 			{
 				Pointer = 0;
 				return true;
