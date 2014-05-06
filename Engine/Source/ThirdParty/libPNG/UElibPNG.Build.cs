@@ -49,15 +49,23 @@ public class UElibPNG : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {
-			if (Target.Architecture == "-armv7")
-        {
-            PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARMv7");
-        }
-			else
-        {
-            PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x86");
+			switch (Target.Architecture)
+			{
+			case "-armv7":
+				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARMv7");
+				break;
+			case "-arm64":
+				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/ARM64");
+				break;
+			case "-x86":
+				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x86");
+				break;
+			case "-x64":
+				PublicLibraryPaths.Add(libPNGPath + "/lib/Android/x64");
+				break;
 			}
-            PublicAdditionalLibraries.Add("png");
+
+			PublicAdditionalLibraries.Add("png");
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {

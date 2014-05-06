@@ -49,14 +49,22 @@ public class Vorbis : ModuleRules
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			if (Target.Architecture == "-armv7")
+			switch (Target.Architecture)
 			{
+			case "-armv7":
 				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARMv7");
-			}
-			else
-			{
+				break;
+			case "-arm64":
+				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARM64");
+				break;
+			case "-x86":
 				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x86");
+				break;
+			case "-x64":
+				PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x64");
+				break;
 			}
+
 			PublicAdditionalLibraries.Add("vorbis");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
