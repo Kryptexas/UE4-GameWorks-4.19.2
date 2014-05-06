@@ -5956,7 +5956,8 @@ bool FBlueprintEditor::IsSelectionNativeFunction()
 
 		if( FunctionNode && SelectedNodes.Num() == 1 )
 		{
-			UClass* OwningClass = FunctionNode->FunctionReference.GetMemberParentClass( FunctionNode );
+			UFunction* FunctionPtr = FunctionNode->FunctionReference.ResolveMember<UFunction>( FunctionNode );
+			UClass* OwningClass = FunctionPtr ? FunctionPtr->GetOuterUClass() : NULL;
 
 			if( OwningClass && OwningClass->HasAllClassFlags( CLASS_Native ))
 			{
