@@ -16,7 +16,7 @@ struct ENGINE_API FCameraShakeInstance
 
 	/** source shake */
 	UPROPERTY()
-	class UCameraShake* SourceShake;
+	const class UCameraShake* SourceShake;
 
 	/** Used to identify shakes when single instances are desired */
 	UPROPERTY()

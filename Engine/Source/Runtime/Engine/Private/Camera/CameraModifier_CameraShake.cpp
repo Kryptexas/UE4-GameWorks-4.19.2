@@ -234,7 +234,7 @@ void UCameraModifier_CameraShake::ReinitShake(FCameraShakeInstance& ShakeInst, f
 	}
 	ShakeInst.Scale = NewScale;
 
-	UCameraShake* const SourceShake = ShakeInst.SourceShake;
+	UCameraShake const* const SourceShake = ShakeInst.SourceShake;
 
 	if (SourceShake->OscillationDuration != 0.f)
 	{
@@ -279,7 +279,7 @@ FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<cl
 	Inst.SourceShakeName = NewShake->GetFName();
 
 	// Create a camera shake object of class NewShake
-	UCameraShake* const SourceShake = Cast<UCameraShake>(StaticConstructObject(NewShake, this));
+	UCameraShake const* const SourceShake = CastChecked<UCameraShake>(NewShake->GetDefaultObject());
 	Inst.SourceShake = SourceShake;
 
 	Inst.Scale = Scale;
