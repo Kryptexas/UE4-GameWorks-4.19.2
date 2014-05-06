@@ -48,14 +48,22 @@ public class Recast : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
-			if (Target.Architecture == "-armv7")
-		{
-			PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/ARMv7");
-		}
-			else
-		{
-			PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/x86");
+			switch (Target.Architecture)
+			{
+			case "-armv7":
+				PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/ARMv7");
+				break;
+			case "-arm64":
+				PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/ARM64");
+				break;
+			case "-x86":
+				PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/x86");
+				break;
+			case "-x64":
+				PublicLibraryPaths.Add(RecastPath + "Epic/lib/Android/x64");
+				break;
 			}
+
 			PublicAdditionalLibraries.Add("recast");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
