@@ -135,12 +135,13 @@ bool IsIndirectLightingCacheAllowed()
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
-	return GIndirectLightingCache != 0 && (GSupportsVolumeTextureRendering || GRHIFeatureLevel == ERHIFeatureLevel::ES2) && bAllowStaticLighting;
+	return GIndirectLightingCache != 0 && bAllowStaticLighting;
 }
 
 bool CanIndirectLightingCacheUseVolumeTexture()
 {
-	return GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	// @todo Mac OS X/OpenGL: For OpenGL devices which don't support volume-texture rendering we need to use the simpler point indirect lighting shaders.
+	return GRHIFeatureLevel >= ERHIFeatureLevel::SM3 && GSupportsVolumeTextureRendering;
 }
 
 FIndirectLightingCache::FIndirectLightingCache()

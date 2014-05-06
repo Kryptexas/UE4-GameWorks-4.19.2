@@ -13,9 +13,10 @@
 
 // false:use 256x16 texture / true:use volume texture (faster, requires geometry shader)
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
-static bool UseVolumeTextureLUT() 
-{	
-	return (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GSupportsVolumeTextureRendering);
+static bool UseVolumeTextureLUT(EShaderPlatform Platform) 
+{
+	// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
+	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && !PLATFORM_MAC);
 }
 
 // including the neutral one at index 0
@@ -143,7 +144,7 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 
 		OutEnvironment.SetDefine(TEXT("BLENDCOUNT"), BlendCount);
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT());
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -211,7 +212,7 @@ void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 BlendCo
 	}
 #undef CASE_COUNT
 	check(LocalBoundShaderState != NULL);
-	if(UseVolumeTextureLUT())
+	if(UseVolumeTextureLUT(GRHIShaderPlatform))
 	{
 		TShaderMapRef<FWriteToSliceVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FWriteToSliceGS> GeometryShader(GetGlobalShaderMap());
@@ -381,7 +382,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	}
 
 	// for a 3D texture, the viewport is 16x16 (per slice), for a 2D texture, it's unwrapped to 256x16
-	FIntPoint DestSize(UseVolumeTextureLUT() ? 16 : 256, 16);
+	FIntPoint DestSize(UseVolumeTextureLUT(GRHIShaderPlatform) ? 16 : 256, 16);
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -398,7 +399,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 	SetLUTBlenderShader(Context, LocalCount, LocalTextures, LocalWeights, VolumeBounds);
 
-	if(UseVolumeTextureLUT())
+	if(UseVolumeTextureLUT(GRHIShaderPlatform))
 	{
 		// use volume texture 16x16x16
 		RasterizeToVolumeTexture(VolumeBounds);
@@ -426,7 +427,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 {
 	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(256, 16), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
 
-	if(UseVolumeTextureLUT())
+	if(UseVolumeTextureLUT(GRHIShaderPlatform))
 	{
 		Ret.Extent = FIntPoint(16, 16);
 		Ret.Depth = 16;
