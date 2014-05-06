@@ -679,7 +679,7 @@ void SProfilerMiniView::ProcessData()
 		float CurrentFrameIndex = 0.0f;
 		for( int32 SampleIndex = 0; SampleIndex < WindowNumSamples; ++SampleIndex )
 		{
-			const int FrameIndex = FMath::Trunc( CurrentFrameIndex );
+			const int FrameIndex = FMath::TruncToInt( CurrentFrameIndex );
 			const FFrameThreadTimes& FrameThreadTimes = AllFrames[FrameIndex];
 
 			FMiniViewThreadTimes& Dest = WindowFrames[SampleIndex];

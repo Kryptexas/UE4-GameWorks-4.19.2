@@ -131,7 +131,7 @@ class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 
 	/** 
 	 *	The distance step size for tessellation.
-	 *	# Tessellation Points = Trunc((Distance Between Spawned Particles) / DistanceTessellationStepSize))
+	 *	# Tessellation Points = TruncToInt((Distance Between Spawned Particles) / DistanceTessellationStepSize))
 	 */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	float DistanceTessellationStepSize;

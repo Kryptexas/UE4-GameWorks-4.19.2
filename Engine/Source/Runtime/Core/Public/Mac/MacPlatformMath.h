@@ -16,7 +16,7 @@ struct FMacPlatformMath : public FGenericPlatformMath
 		return _mm_cvtt_ss2si(_mm_set_ss(F));
 	}
 
-	static FORCEINLINE float TruncFloat(float F)
+	static FORCEINLINE float TruncToFloat(float F)
 	{
 		return (float)TruncToInt(F); // same as generic implementation, but this will call the faster trunc
 	}

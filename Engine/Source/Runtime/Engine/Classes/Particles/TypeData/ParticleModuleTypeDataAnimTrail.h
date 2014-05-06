@@ -43,7 +43,7 @@ class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 
 	/** 
 	 *	The distance step size for tessellation.
-	 *	# Tessellation Points = Trunc((Distance Between Spawned Particles) / DistanceTessellationStepSize)). If 0 then there is no distance tessellation.
+	 *	# Tessellation Points = TruncToInt((Distance Between Spawned Particles) / DistanceTessellationStepSize)). If 0 then there is no distance tessellation.
 	 */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	float DistanceTessellationStepSize;
