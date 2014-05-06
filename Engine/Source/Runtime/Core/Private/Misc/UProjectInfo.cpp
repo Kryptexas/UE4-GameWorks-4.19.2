@@ -7,30 +7,23 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogUProjectInfo, Verbose, All);
 DEFINE_LOG_CATEGORY(LogUProjectInfo);
 
-bool FUProjectInfoHelper::bProjectInfoFilled = false;
-TMap<FString, FUProjectInfo> FUProjectInfoHelper::ProjectInfoDictionary;
-TMap<FString, FString> FUProjectInfoHelper::ShortProjectNameDictionary;
-
-void FUProjectInfoHelper::FillProjectInfo()
+FUProjectDictionary::FUProjectDictionary(const FString& InRootDir)
 {
-	if (bProjectInfoFilled == true)
-	{
-		return;
-	}
-
 	double StartTime = FPlatformTime::Seconds();
+
+	FString RootDir = InRootDir;
+	FPaths::NormalizeDirectoryName(RootDir);
 
 	TArray<FString> DirectoriesToSearch;
 	
 	// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
 	TArray<FString> UProjectDirsFiles;
-
-	FString SearchPath = FPaths::RootDir() / FString(TEXT("*.uprojectdirs"));
+	FString SearchPath = RootDir / FString(TEXT("*.uprojectdirs"));
 	IFileManager::Get().FindFiles(UProjectDirsFiles, *SearchPath, true, false);
 
 	for (int32 FileIndex = 0; FileIndex < UProjectDirsFiles.Num(); ++FileIndex)
 	{
-		FString ProjDirsFile = FPaths::RootDir() / UProjectDirsFiles[FileIndex];
+		FString ProjDirsFile = RootDir / UProjectDirsFiles[FileIndex];
 		UE_LOG(LogUProjectInfo, Log, TEXT("Found uprojectdirs file %s"), *ProjDirsFile);
 
 		TArray<FString> FileStrings;
@@ -49,7 +42,7 @@ void FUProjectInfoHelper::FillProjectInfo()
 					}
 					else
 					{
-						DirectoriesToSearch.Add(FPaths::RootDir() / ProjDirEntry);
+						DirectoriesToSearch.Add(RootDir / ProjDirEntry);
 					}
 				}
 			}
@@ -84,41 +77,49 @@ void FUProjectInfoHelper::FillProjectInfo()
 
 			for (int32 UProjIdx = 0; UProjIdx < SubDirFiles.Num(); UProjIdx++)
 			{
-				FString UProject = SubDir / SubDirFiles[UProjIdx];
-				FString RelativePath = UProject;
-				FPaths::MakePathRelativeTo(RelativePath, FPlatformProcess::BaseDir());
-				RelativePath = RelativePath.Replace(TEXT("\\"), TEXT("/"));
-				UE_LOG(LogUProjectInfo, Log, TEXT("\t\t\t\t%s"), *RelativePath);
+				FString ProjectFileName = SubDir / SubDirFiles[UProjIdx];
+				FPaths::NormalizeFilename(ProjectFileName);
 
-				if (ProjectInfoDictionary.Find(RelativePath) == NULL)
-				{
-					FUProjectInfo NewProjectInfo;
-					NewProjectInfo.ProjectName = FPaths::GetBaseFilename(RelativePath);
-					NewProjectInfo.ProjectFileFolder = FPaths::GetPath(RelativePath);
-					if (NewProjectInfo.ProjectFileFolder.EndsWith("/"))
-					{
-						NewProjectInfo.ProjectFileFolder = NewProjectInfo.ProjectFileFolder.Left(NewProjectInfo.ProjectFileFolder.Len() - 1);
-					}
-					FString ProjectSourceDirectory = FPaths::GetPath(RelativePath) / TEXT("Source");
-					ProjectInfoDictionary.Add(RelativePath, NewProjectInfo);
-					ShortProjectNameDictionary.Add(NewProjectInfo.ProjectName, RelativePath);
-				}
+				FString ShortName = FPaths::GetBaseFilename(ProjectFileName);
+				ShortProjectNameDictionary.Add(ShortName, ProjectFileName);
 			}
 		}
 	}
 
 	double TotalProjectInfoTime = FPlatformTime::Seconds() - StartTime;
 	UE_LOG(LogUProjectInfo, Log, TEXT("FillProjectInfo took %5.4f seconds"), TotalProjectInfoTime);
-
-	bProjectInfoFilled = true;
 }
 
-FString FUProjectInfoHelper::GetProjectForGame(const TCHAR* InGameName)
+bool FUProjectDictionary::IsForeignProject(const FString& InProjectFileName)
+{
+	FString ProjectFileName = InProjectFileName;
+	FPaths::NormalizeFilename(ProjectFileName);
+
+	for(TMap<FString, FString>::TConstIterator Iter(ShortProjectNameDictionary); Iter; ++Iter)
+	{
+		if(Iter.Value() == ProjectFileName)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+FString FUProjectDictionary::GetRelativeProjectPathForGame(const TCHAR* InGameName, const FString& BaseDir)
 {
 	FString* ProjectFile = ShortProjectNameDictionary.Find(*(FString(InGameName).ToLower()));
 	if (ProjectFile != NULL)
 	{
-		return *ProjectFile;
+		FString RelativePath = *ProjectFile;
+		FPaths::MakePathRelativeTo(RelativePath, *BaseDir);
+		return RelativePath;
 	}
 	return TEXT("");
+}
+
+FUProjectDictionary& FUProjectDictionary::GetDefault()
+{
+	static FUProjectDictionary DefaultDictionary(FPaths::RootDir());
+	return DefaultDictionary;
 }

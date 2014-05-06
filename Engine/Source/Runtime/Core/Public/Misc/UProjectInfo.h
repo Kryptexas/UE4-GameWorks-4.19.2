@@ -2,38 +2,23 @@
 
 #pragma once
 
-//@NOTE: This is more or less exactly mirrored in UnrealBuildTool.UProjectInfo
-// The UBT one contains more functionality as it needs to match build Targets to UProjects.
-
-/** Helper struct for tracking UProject information */
-struct FUProjectInfo
-{
-	/** Name of the project file */
-	FString ProjectName;
-	/** Folder the project file is located in */
-	FString ProjectFileFolder;
-};
-
-class FUProjectInfoHelper
+/** Dictionary of all the non-foreign projects for an engine installation, found by parsing .uprojectdirs files for source directories. */
+class CORE_API FUProjectDictionary
 {
 public:
-	/** Fill in the project info */
-	static CORE_API void FillProjectInfo();
+	/** Scans the engine root directory for all the known projects */
+	FUProjectDictionary(const FString& InRootDir);
+	
+	/** Determines whether a project is a foreign project or not */
+	bool IsForeignProject(const FString& ProjectFileName);
 
-	/** 
-	 *	Get the project path for the given game name.
-	 *
-	 *	@param	InGameName		The game of interest
-	 *
-	 *	@return	FString			The path to the UProject file, empty if not found
-	 */
-	static CORE_API FString GetProjectForGame(const TCHAR* InGameName);
+	/** Gets the project filename for the given game. Empty if not found. */
+	FString GetRelativeProjectPathForGame(const TCHAR* GameName, const FString& BaseDir);
 
-protected:
-	/** True if project info has already been filled... */
-	static bool bProjectInfoFilled;
-	/** Map of relative or complete project file names to the project info */
-	static TMap<FString, FUProjectInfo> ProjectInfoDictionary;
-	/** Map of short project file names to the relative or complete project file name */
-	static TMap<FString, FString> ShortProjectNameDictionary;
+	/** Gets the project dictionary for the active engine installation */
+	static FUProjectDictionary& GetDefault();
+
+private:
+	/** Map of short game names to full project paths */
+	TMap<FString, FString> ShortProjectNameDictionary;
 };

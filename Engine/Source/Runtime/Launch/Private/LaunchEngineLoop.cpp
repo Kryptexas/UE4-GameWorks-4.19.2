@@ -607,8 +607,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
-				FUProjectInfoHelper::FillProjectInfo();
-				FString GameProjectFile = FUProjectInfoHelper::GetProjectForGame(GGameName);
+				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
 				if (GameProjectFile.IsEmpty() == false)
 				{
 					UE_LOG(LogInit, Display, TEXT("\tFound project file %s."), *GameProjectFile);
