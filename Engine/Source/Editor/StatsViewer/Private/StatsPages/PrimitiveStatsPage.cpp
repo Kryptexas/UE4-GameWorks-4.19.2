@@ -428,7 +428,7 @@ void FPrimitiveStatsPage::GenerateTotals( const TArray< TWeakObjectPtr<UObject> 
 			TotalEntry->LightsLM += StatsEntry->LightsLM;
 			TotalEntry->LightsOther += StatsEntry->LightsOther;
 			TotalEntry->LightsTotal += StatsEntry->LightsTotal;
-			TotalEntry->ObjLightCost += FMath::Trunc( StatsEntry->ObjLightCost );
+			TotalEntry->ObjLightCost += FMath::TruncToFloat( StatsEntry->ObjLightCost );
 			TotalEntry->LightMapData += StatsEntry->LightMapData;
 			TotalEntry->LMSMResolution += StatsEntry->LMSMResolution;
 			TotalEntry->RadiusMin = FMath::Min(TotalEntry->RadiusMin, StatsEntry->RadiusMin);

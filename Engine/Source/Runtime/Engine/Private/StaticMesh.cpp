@@ -1344,7 +1344,7 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	{
 		Bounds = RenderData->Bounds;
 	}
-	const FString ApproxSizeStr = FString::Printf(TEXT("%dx%dx%d"), FMath::Round(Bounds.BoxExtent.X * 2.0f), FMath::Round(Bounds.BoxExtent.Y * 2.0f), FMath::Round(Bounds.BoxExtent.Z * 2.0f));
+	const FString ApproxSizeStr = FString::Printf(TEXT("%dx%dx%d"), FMath::RoundToInt(Bounds.BoxExtent.X * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Y * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Z * 2.0f));
 
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );

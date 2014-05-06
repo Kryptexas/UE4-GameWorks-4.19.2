@@ -308,7 +308,7 @@ void FTimerManager::Tick(float DeltaTime)
 
 			// Determine how many times the timer may have elapsed (e.g. for large DeltaTime on a short looping timer)
 			int32 const CallCount = CurrentlyExecutingTimer.bLoop ? 
-				FMath::Trunc( (InternalTime - CurrentlyExecutingTimer.ExpireTime) / CurrentlyExecutingTimer.Rate ) + 1
+				FMath::TruncToInt( (InternalTime - CurrentlyExecutingTimer.ExpireTime) / CurrentlyExecutingTimer.Rate ) + 1
 				: 1;
 
 			// Now call the function

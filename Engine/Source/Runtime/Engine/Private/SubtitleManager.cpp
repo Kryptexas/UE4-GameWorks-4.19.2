@@ -113,7 +113,7 @@ void FSubtitleManager::DisplaySubtitle( FCanvas* Canvas, FActiveSubtitle* Subtit
 
 	float FontHeight = GEngine->GetSubtitleFont()->GetMaxCharHeight();
 	float HeightTest = Canvas->GetRenderTarget()->GetSizeXY().Y;
-	int32 SubtitleHeight = FMath::Trunc( ( FontHeight * MULTILINE_SPACING_SCALING ) );
+	int32 SubtitleHeight = FMath::TruncToInt( ( FontHeight * MULTILINE_SPACING_SCALING ) );
 	FIntRect BackgroundBoxOffset = DrawStringOutlineBoxOffset;
 
 	// Needed to add a drop shadow and doing all 4 sides was the only way to make them look correct.  If this shows up as a framerate hit we'll have to think of a different way of dealing with this.

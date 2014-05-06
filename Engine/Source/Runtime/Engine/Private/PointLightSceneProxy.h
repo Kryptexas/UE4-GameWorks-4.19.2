@@ -47,11 +47,11 @@ static bool GetPointLightBounds(
 			float X = (Dot3(P,Axis) / P.W + 1.0f * AxisSign) / 2.0f * AxisSign;
 			if(FMath::IsNegativeFloat(Nxa) ^ FMath::IsNegativeFloat(AxisSign))
 			{
-				OutMaxX = FMath::Min<int64>(FMath::Ceil(ViewSizeX * X + ViewX),OutMaxX);
+				OutMaxX = FMath::Min<int64>(FMath::CeilToInt(ViewSizeX * X + ViewX),OutMaxX);
 			}
 			else
 			{
-				OutMinX = FMath::Max<int64>(FMath::Floor(ViewSizeX * X + ViewX),OutMinX);
+				OutMinX = FMath::Max<int64>(FMath::FloorToInt(ViewSizeX * X + ViewX),OutMinX);
 			}
 		}
 
@@ -63,11 +63,11 @@ static bool GetPointLightBounds(
 			float X = (Dot3(P,Axis) / P.W + 1.0f * AxisSign) / 2.0f * AxisSign;
 			if(FMath::IsNegativeFloat(Nxb) ^ FMath::IsNegativeFloat(AxisSign))
 			{
-				OutMaxX = FMath::Min<int64>(FMath::Ceil(ViewSizeX * X + ViewX),OutMaxX);
+				OutMaxX = FMath::Min<int64>(FMath::CeilToInt(ViewSizeX * X + ViewX),OutMaxX);
 			}
 			else
 			{
-				OutMinX = FMath::Max<int64>(FMath::Floor(ViewSizeX * X + ViewX),OutMinX);
+				OutMinX = FMath::Max<int64>(FMath::FloorToInt(ViewSizeX * X + ViewX),OutMinX);
 			}
 		}
 	}

@@ -94,7 +94,7 @@ void SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled( float ScrollOffset
  
 	HorizontalScrollBar->SetState( ScrollOffset, ThumbSizeFraction );
  
-	GraphOffset = FMath::Trunc( ScrollOffset * NumDataPoints );
+	GraphOffset = FMath::TruncToInt( ScrollOffset * NumDataPoints );
 	DataGraph->ScrollTo( GraphOffset );
 
 	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxChanged( GraphOffset, GraphOffset + NumVisiblePoints );

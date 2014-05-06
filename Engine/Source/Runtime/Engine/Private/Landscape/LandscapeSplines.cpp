@@ -1204,7 +1204,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 	const float StartRoll = FMath::DegreesToRadians(StartRollDegrees);
 	const float EndRoll = FMath::DegreesToRadians(EndRollDegrees);
 
-	int32 NumPoints = FMath::Ceil(SplineLength / OuterSplines->SplineResolution);
+	int32 NumPoints = FMath::CeilToInt(SplineLength / OuterSplines->SplineResolution);
 	NumPoints = FMath::Clamp(NumPoints, 1, 1000);
 
 	float OldKeyTime = 0;
@@ -1227,7 +1227,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		// If not the first keypoint, interp from the last keypoint.
 		if(i > 0)
 		{
-			int32 NumSteps = FMath::Ceil( (NewKeyTime - OldKeyTime) * NumPoints );
+			int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime) * NumPoints );
 			float DrawSubstep = (NewKeyTime - OldKeyTime) / NumSteps;
 
 			// Add a point for each substep, except the ends because that's the point added outside the interp'ing.

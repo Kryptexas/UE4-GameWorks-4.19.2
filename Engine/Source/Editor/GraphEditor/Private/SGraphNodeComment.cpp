@@ -131,8 +131,8 @@ FReply SGraphNodeComment::OnMouseMove(const FGeometry& MyGeometry, const FPointe
 
 		const FVector2D PreviousUserSize = UserSize;
 		const float SnapSize = SNodePanel::GetSnapGridSize();
-		UserSize.X = SnapSize * FMath::Round(StoredUserSize.X/SnapSize);
-		UserSize.Y = SnapSize * FMath::Round(StoredUserSize.Y/SnapSize);
+		UserSize.X = SnapSize * FMath::RoundToFloat(StoredUserSize.X/SnapSize);
+		UserSize.Y = SnapSize * FMath::RoundToFloat(StoredUserSize.Y/SnapSize);
 
 		FVector2D DeltaNodePos(0,0);
 		//Modify node position (resizing top and left sides)
@@ -468,8 +468,8 @@ FReply SGraphNodeComment::OnMouseButtonUp( const FGeometry& MyGeometry, const FP
 		bUserIsDragging = false;
 
 		// Resize the node	
-		UserSize.X = FPlatformMath::Round(UserSize.X);
-		UserSize.Y =FPlatformMath::Round(UserSize.Y);
+		UserSize.X = FPlatformMath::RoundToFloat(UserSize.X);
+		UserSize.Y =FPlatformMath::RoundToFloat(UserSize.Y);
 
 		GetNodeObj()->ResizeNode(UserSize);
 		return FReply::Handled().ReleaseMouseCapture();

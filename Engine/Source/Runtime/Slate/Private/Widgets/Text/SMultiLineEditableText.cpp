@@ -109,9 +109,9 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, int8 
 			NumLinesScrollOffset = NewWrappedCursorPosition;
 			UpdateScrollbar( CachedLastFrameGeometry );
 		}
-		else if ( FMath::Floor(NumLinesScrollOffset + NumLinesOnScreen - 1) < NewWrappedCursorPosition )
+		else if ( FMath::FloorToInt(NumLinesScrollOffset + NumLinesOnScreen - 1) < NewWrappedCursorPosition )
 		{
-			NumLinesScrollOffset = FMath::Clamp( FMath::Floor(NewWrappedCursorPosition - NumLinesOnScreen + 1 ), 0, WrappedText.Num());
+			NumLinesScrollOffset = FMath::Clamp( FMath::FloorToInt(NewWrappedCursorPosition - NumLinesOnScreen + 1 ), 0, WrappedText.Num());
 			UpdateScrollbar( CachedLastFrameGeometry );
 		}
 	}
@@ -212,7 +212,7 @@ int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const 
 	const bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	const ESlateDrawEffect::Type DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	const int32 WholeLinesOffset = FMath::Floor( NumLinesScrollOffset );
+	const int32 WholeLinesOffset = FMath::FloorToInt( NumLinesScrollOffset );
 	const float PartialLineOffset = FMath::Fractional( NumLinesScrollOffset );
 
 
@@ -347,7 +347,7 @@ int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const 
 					const bool bForceCursorVisible = (CurrentTime - LastCursorInteractionTime) < EditableTextDefs::CaretBlinkPauseTime;
 					const float CursorOpacity = (bForceCursorVisible)
 						? 1.0f
-						: FMath::Round( FMath::MakePulsatingValue( CurrentTime, EditableTextDefs::BlinksPerSecond ));
+						: FMath::RoundToInt( FMath::MakePulsatingValue( CurrentTime, EditableTextDefs::BlinksPerSecond ));
 
 					const int32 CursorOffsetInWrappedLine = CursorPosition.GetOffset() - ThisWrappedLine.FirstCharIndex;
 					const FVector2D SlateUnitsCursorOffsetInLine = FontMeasureService->Measure( StringToPaint.Left(CursorOffsetInWrappedLine), FontInfo, AllottedGeometry.Scale );

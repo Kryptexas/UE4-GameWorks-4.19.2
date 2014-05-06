@@ -762,7 +762,7 @@ public:
 			FrameTime += AnimatedVectorField->FramesPerSecond * DeltaSeconds;
 
 			// Compute the two frames to lerp.
-			const int32 FrameA_Unclamped = FMath::Trunc(FrameTime);
+			const int32 FrameA_Unclamped = FMath::TruncToInt(FrameTime);
 			const int32 FrameA = AnimatedVectorField->bLoop ?
 				(FrameA_Unclamped % AnimatedVectorField->FrameCount) :
 				FMath::Min<int32>(FrameA_Unclamped, AnimatedVectorField->FrameCount - 1);

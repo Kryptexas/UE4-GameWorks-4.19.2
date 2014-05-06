@@ -246,7 +246,7 @@ public:
 	FORCEINLINE const uint32 GetStartIndexFromTimeRange( const float StartTimeMS, const float EndTimeMS ) const
 	{
 		CheckInvariants( StartTimeMS, EndTimeMS );
-		const uint32 Index = FMath::Trunc( StartTimeMS * InvTimeAccuracyMS );
+		const uint32 Index = FMath::TruncToInt( StartTimeMS * InvTimeAccuracyMS );
 		return Index;
 	}
 
@@ -267,7 +267,7 @@ public:
 		Type Result = (Type)0;
 		const uint32 Index = GetStartIndexFromTimeRange( StartTimeMS, EndTimeMS );
 		const uint32 CurrentChunkIndex = Index / ThisCacheDataContainer::NumElementsPerChunk;
-		const uint32 TotalNumFrames = FMath::Trunc( static_cast<const ManagerClass*>(this)->GetTotalTimeMS() * InvTimeAccuracyMS );
+		const uint32 TotalNumFrames = FMath::TruncToInt( static_cast<const ManagerClass*>(this)->GetTotalTimeMS() * InvTimeAccuracyMS );
 
 		const uint32 NumNeededChunks = (TotalNumFrames + ThisCacheDataContainer::NumElementsPerChunk - 1) / ThisCacheDataContainer::NumElementsPerChunk;
 		const uint32 NumMissingValues = TotalNumFrames - ThisCacheDataContainer::CachedValues.Num();
@@ -627,7 +627,7 @@ public:
 	{	
 		if( GetSourcesNum() > 0 )
 		{
-			return FMath::Trunc( GetTotalTimeMS() * InvTimeAccuracyMS );
+			return FMath::TruncToInt( GetTotalTimeMS() * InvTimeAccuracyMS );
 		}
 		else
 		{

@@ -222,7 +222,7 @@ public:
 			Total += Width;
 		}
 
-		return( FMath::Ceil( Total ) );
+		return( FMath::CeilToInt( Total ) );
 	}
 
 	/**
@@ -243,7 +243,7 @@ public:
 			Total = FMath::Max( Total, Height );
 		}
 
-		return( FMath::Ceil( Total ) );
+		return( FMath::CeilToInt( Total ) );
 	}
 
 	// Begin UObject interface

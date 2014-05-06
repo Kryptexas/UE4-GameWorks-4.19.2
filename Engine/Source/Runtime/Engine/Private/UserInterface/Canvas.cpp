@@ -756,8 +756,8 @@ ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
 	// this functionality has been moved to a static function in UIString
 	FTextSizingParameters Parameters(Font,1.f,1.f);
 	UCanvas::CanvasStringSize(Parameters, Text);
-	XL = FMath::Trunc(Parameters.DrawXL);
-	YL = FMath::Trunc(Parameters.DrawYL);
+	XL = FMath::TruncToInt(Parameters.DrawXL);
+	YL = FMath::TruncToInt(Parameters.DrawYL);
 }
 
 /**
@@ -1104,8 +1104,8 @@ void UCanvas::UpdateSafeZoneData()
 		FDisplayMetrics DisplayMetrics;
 		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
 	
-		SafeZonePadX = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.X);
-		SafeZonePadY = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.Y);
+		SafeZonePadX = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.X);
+		SafeZonePadY = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.Y);
 
 		CachedDisplayWidth = DisplayMetrics.PrimaryDisplayWidth;
 		CachedDisplayHeight = DisplayMetrics.PrimaryDisplayHeight;
@@ -1141,7 +1141,7 @@ void UCanvas::SetLinearDrawColor(FLinearColor InColor, float OpacityOverride)
 
 	if( OpacityOverride != -1 )
 	{
-		DrawColor.A = FMath::Clamp(FMath::Trunc(OpacityOverride * 255.0f),0,255);
+		DrawColor.A = FMath::Clamp(FMath::TruncToInt(OpacityOverride * 255.0f),0,255);
 	}
 }
 
@@ -1224,8 +1224,8 @@ void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL,
 		FTextSizingParameters Parameters(Font,ScaleX,ScaleY);
 		CanvasStringSize(Parameters, Text);
 
-		XL = FMath::Trunc(Parameters.DrawXL);
-		YL = FMath::Trunc(Parameters.DrawYL);
+		XL = FMath::TruncToInt(Parameters.DrawXL);
+		YL = FMath::TruncToInt(Parameters.DrawYL);
 	}
 }
 
@@ -1248,7 +1248,7 @@ float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, fl
 
 	if (RenderInfo.bClipText)
 	{
-		FCanvasTextItem TextItem(FVector2D(FMath::Trunc(OrgX + X), FMath::Trunc(OrgY + Y)), InText, InFont, DrawColor);
+		FCanvasTextItem TextItem(FVector2D(FMath::TruncToFloat(OrgX + X), FMath::TruncToFloat(OrgY + Y)), InText, InFont, DrawColor);
 		TextItem.Scale = FVector2D(XScale, YScale),
 			TextItem.BlendMode = SE_BLEND_Translucent;
 		TextItem.FontRenderInfo = RenderInfo;
@@ -1327,8 +1327,8 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 		YL += Font->GetMaxCharHeight() * ScaleY;
 	}
 
-	out_XL = FMath::Trunc(XL);
-	out_YL = FMath::Trunc(YL);
+	out_XL = FMath::TruncToInt(XL);
+	out_YL = FMath::TruncToInt(YL);
 	return WrappedStrings.Num();
 }
 

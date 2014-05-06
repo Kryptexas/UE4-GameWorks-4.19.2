@@ -375,7 +375,7 @@ void FLevelEditorModule::StartImmersivePlayInEditorSession()
 				ActiveLevelViewport->MakeImmersive( bWantImmersive, bAllowAnimation );
 				FVector2D WindowSize = Window->GetSizeInScreen();
 				// Set the initial size of the viewport to be the size of the window. This must be done because Slate has not ticked yet so the viewport will have no initial size
-				ActiveLevelViewport->GetActiveViewport()->SetInitialSize( FIntPoint( FMath::Trunc( WindowSize.X ), FMath::Trunc( WindowSize.Y ) ) );
+				ActiveLevelViewport->GetActiveViewport()->SetInitialSize( FIntPoint( FMath::TruncToInt( WindowSize.X ), FMath::TruncToInt( WindowSize.Y ) ) );
 			}
 
 			// Launch PIE

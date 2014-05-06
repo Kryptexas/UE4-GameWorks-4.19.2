@@ -477,7 +477,7 @@ void SGraphNode_BehaviorTree::Tick( const FGeometry& AllottedGeometry, const dou
 				{
 					NewFlashAlpha =
 						(DebuggerStateDuration > FlashStartTime + SearchPathBlink) ? 1.0f :
-						(FMath::Trunc(DebuggerStateDuration * SearchPathBlinkFreq) % 2) ? 1.0f : 0.0f;
+						(FMath::TruncToInt(DebuggerStateDuration * SearchPathBlinkFreq) % 2) ? 1.0f : 0.0f;
 				} 
 			}
 

@@ -75,7 +75,7 @@ int32 SSequencerObjectTrack::OnPaint(const FGeometry& AllottedGeometry, const FS
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId+1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::Trunc(KeyMarkSize.X/2.f), FMath::Trunc(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
+			AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::TruncToFloat(KeyMarkSize.X/2.f), FMath::TruncToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
 			FEditorStyle::GetBrush("Sequencer.KeyMark"),
 			MyClippingRect,
 			ESlateDrawEffect::None,

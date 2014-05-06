@@ -513,8 +513,8 @@ class ULandscapeEditorObject : public UObject
 	void NewLandscape_ClampSize()
 	{
 		// Max size is either whole components below 8192 verts, or 32 components
-		NewLandscape_ComponentCount.X = FMath::Clamp(NewLandscape_ComponentCount.X, 1, FMath::Min(32, FMath::Floor(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
-		NewLandscape_ComponentCount.Y = FMath::Clamp(NewLandscape_ComponentCount.Y, 1, FMath::Min(32, FMath::Floor(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
+		NewLandscape_ComponentCount.X = FMath::Clamp(NewLandscape_ComponentCount.X, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
+		NewLandscape_ComponentCount.Y = FMath::Clamp(NewLandscape_ComponentCount.Y, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
 	}
 
 	void UpdateComponentCount()

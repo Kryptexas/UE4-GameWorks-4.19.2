@@ -1195,7 +1195,7 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 	if (View.Family->LandscapeLODOverride >= 0)
 	{
 		float fLOD = FMath::Clamp<float>(View.Family->LandscapeLODOverride, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
-		return FMath::Floor(fLOD);
+		return FMath::FloorToInt(fLOD);
 	}
 #endif
 
@@ -1206,7 +1206,7 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 		float ComponentDistance = FVector2D(CurrentCameraLocalPos-ComponentPosition).Size() + DistDiff;
 		// Clamp calculated distance based LOD with LODBiased values
 		float fLOD = FMath::Clamp<float>( ComponentDistance / LODDistance, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD+LODBias) );
-		return FMath::Floor( fLOD );
+		return FMath::FloorToInt( fLOD );
 	}
 	else
 	{
@@ -1214,7 +1214,7 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 
 		// The "/ 5.0f" is totally arbitrary
 		float fLOD = FMath::Clamp<float>(FMath::Sqrt(Scale / 5.0f), FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
-		return FMath::Floor(fLOD);
+		return FMath::FloorToInt(fLOD);
 	}
 }
 
@@ -1586,10 +1586,10 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 					{
 						for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
 						{
-							int32 x0 = FMath::Round((float)x * MipRatio);
-							int32 y0 = FMath::Round((float)y * MipRatio);
-							int32 x1 = FMath::Round((float)(x + 1) * MipRatio);
-							int32 y1 = FMath::Round((float)(y + 1) * MipRatio);
+							int32 x0 = FMath::RoundToInt((float)x * MipRatio);
+							int32 y0 = FMath::RoundToInt((float)y * MipRatio);
+							int32 x1 = FMath::RoundToInt((float)(x + 1) * MipRatio);
+							int32 y1 = FMath::RoundToInt((float)(y + 1) * MipRatio);
 
 							FLandscapeVertexRef V00(x0, y0, SubX, SubY);
 							FLandscapeVertexRef V10(x1, y0, SubX, SubY);

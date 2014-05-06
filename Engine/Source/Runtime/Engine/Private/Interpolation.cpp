@@ -7367,8 +7367,8 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 						// @todo: This will need to be updated if we decide to support notifies in reverse.
 						if(AnimSeq.bReverse == false)
 						{
-							int32 FromLoopNum = FMath::Floor( (((FromTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
-							int32 ToLoopNum = FMath::Floor( (((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
+							int32 FromLoopNum = FMath::FloorToInt( (((FromTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
+							int32 ToLoopNum = FMath::FloorToInt( (((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
 							int32 NumLoopsToJump = ToLoopNum - FromLoopNum;
 
 							for(int32 i=0; i<NumLoopsToJump; i++)
@@ -9405,7 +9405,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 				if( bHaveReplayStartKey )
 				{
 					const float TimeWithinReplay = NewPosition - CurrentReplayStartKey.Time;
-					const int32 ReplayFrameIndex = FMath::Trunc( TimeWithinReplay / FMath::Max( ( float )KINDA_SMALL_NUMBER, FixedTimeStep ) );
+					const int32 ReplayFrameIndex = FMath::TruncToInt( TimeWithinReplay / FMath::Max( ( float )KINDA_SMALL_NUMBER, FixedTimeStep ) );
 
 
 					// Check to see if we have a clip

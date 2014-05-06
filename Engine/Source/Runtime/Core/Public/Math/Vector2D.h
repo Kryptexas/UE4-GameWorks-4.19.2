@@ -719,7 +719,7 @@ FORCEINLINE float FVector2D::Component( int32 Index ) const
 
 FORCEINLINE FIntPoint FVector2D::IntPoint() const
 {
-	return FIntPoint( FMath::Round(X), FMath::Round(Y) );
+	return FIntPoint( FMath::RoundToInt(X), FMath::RoundToInt(Y) );
 }
 
 FORCEINLINE FVector2D FVector2D::ClampAxes( float MinAxisVal, float MaxAxisVal ) const

@@ -45,13 +45,13 @@ void APlayerState::UpdatePing(float InPing)
 		CurPingBucketTimestamp = CurTime;
 
 
-		PingBucket[CurPingBucket].PingSum = FMath::Floor(InPing * 1000.f);
+		PingBucket[CurPingBucket].PingSum = FMath::FloorToInt(InPing * 1000.f);
 		PingBucket[CurPingBucket].PingCount = 1;
 	}
 	// Limit the number of pings we accept per-bucket, to avoid overflowing PingBucket values
 	else if (PingBucket[CurPingBucket].PingCount < 7)
 	{
-		PingBucket[CurPingBucket].PingSum += FMath::Floor(InPing * 1000.f);
+		PingBucket[CurPingBucket].PingSum += FMath::FloorToInt(InPing * 1000.f);
 		PingBucket[CurPingBucket].PingCount++;
 	}
 }

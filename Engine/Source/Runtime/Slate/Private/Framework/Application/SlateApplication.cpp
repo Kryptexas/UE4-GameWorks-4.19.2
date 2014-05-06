@@ -2036,10 +2036,10 @@ void FSlateApplication::LockCursor( const TSharedPtr<SWidget>& Widget )
 				// Note: We round the upper left coordinate of the clip rect so we guarantee the rect is inside the geometry of the widget.  If we truncated when there is a half pixel we would cause the clip
 				// rect to be half a pixel larger than the geometry and cause the mouse to go outside of the geometry.
 				RECT ClipRect;
-				ClipRect.left = FMath::Round( SlateClipRect.Left );
-				ClipRect.top = FMath::Round( SlateClipRect.Top );
-				ClipRect.right = FMath::Trunc( SlateClipRect.Right );
-				ClipRect.bottom = FMath::Trunc( SlateClipRect.Bottom );
+				ClipRect.left = FMath::RoundToInt( SlateClipRect.Left );
+				ClipRect.top = FMath::RoundToInt( SlateClipRect.Top );
+				ClipRect.right = FMath::TruncToInt( SlateClipRect.Right );
+				ClipRect.bottom = FMath::TruncToInt( SlateClipRect.Bottom );
 
 				// Lock the mouse to the widget
 				PlatformApplication->Cursor->Lock( &ClipRect );
@@ -2864,10 +2864,10 @@ FSlateRect FSlateApplication::GetPreferredWorkArea() const
 FSlateRect FSlateApplication::GetWorkArea( const FSlateRect& InRect ) const
 {
 	FPlatformRect InPlatformRect;
-	InPlatformRect.Left = FMath::Trunc(InRect.Left);
-	InPlatformRect.Top = FMath::Trunc(InRect.Top);
-	InPlatformRect.Right = FMath::Trunc(InRect.Right);
-	InPlatformRect.Bottom = FMath::Trunc(InRect.Bottom);
+	InPlatformRect.Left = FMath::TruncToInt(InRect.Left);
+	InPlatformRect.Top = FMath::TruncToInt(InRect.Top);
+	InPlatformRect.Right = FMath::TruncToInt(InRect.Right);
+	InPlatformRect.Bottom = FMath::TruncToInt(InRect.Bottom);
 
 	const FPlatformRect OutPlatformRect = PlatformApplication->GetWorkArea( InPlatformRect );
 	return FSlateRect( OutPlatformRect.Left, OutPlatformRect.Top, OutPlatformRect.Right, OutPlatformRect.Bottom );

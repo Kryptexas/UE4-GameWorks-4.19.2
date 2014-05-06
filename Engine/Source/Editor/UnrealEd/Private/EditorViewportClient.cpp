@@ -2137,7 +2137,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	// Put it in mm to start off with
 	UnrealUnits *= 10.f;
 
-	const int32 OrderOfMagnitude = UnrealUnits > 0 ? FMath::Trunc(FMath::LogX(10.0f, UnrealUnits)) : 0;
+	const int32 OrderOfMagnitude = UnrealUnits > 0 ? FMath::TruncToInt(FMath::LogX(10.0f, UnrealUnits)) : 0;
 
 	// Get an exponent applied to anything >= 1,000,000,000mm (1000km)
 	const int32 Exponent = (OrderOfMagnitude - 6)  / 3;
@@ -2158,7 +2158,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	{
 		const int32 ScaledOrder = OrderOfMagnitude % (FMath::Max(OrderOfThousands, 1) * 3);
 		const float RoundingDivisor = FMath::Pow(10.f, ScaledOrder) / 10.f;
-		const int32 Rounded = FMath::Trunc(ScaledNumber / RoundingDivisor) * RoundingDivisor;
+		const int32 Rounded = FMath::TruncToInt(ScaledNumber / RoundingDivisor) * RoundingDivisor;
 		if (ScaledNumber - Rounded > KINDA_SMALL_NUMBER)
 		{
 			ScaledNumber = Rounded;
@@ -2179,7 +2179,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	}
 	else
 	{
-		return FString::Printf(TEXT("%s%d%s%s"), Approximation, FMath::Trunc(ScaledNumber), *ExponentString, UnitText[FMath::Min(OrderOfThousands, 2)]);
+		return FString::Printf(TEXT("%s%d%s%s"), Approximation, FMath::TruncToInt(ScaledNumber), *ExponentString, UnitText[FMath::Min(OrderOfThousands, 2)]);
 	}
 }
 
@@ -2189,7 +2189,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 
 	// Find the closest power of ten to our target width
 	static const int32 ApproxTargetMarkerWidthPx = 100;
-	const float SegmentWidthUnits = UnitsPerPixel > 0 ? FMath::Pow(10.f, FMath::Round(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx))) : 0.f;
+	const float SegmentWidthUnits = UnitsPerPixel > 0 ? FMath::Pow(10.f, FMath::RoundToFloat(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx))) : 0.f;
 
 	const FString DisplayText = UnrealUnitsToSiUnits(SegmentWidthUnits);
 	

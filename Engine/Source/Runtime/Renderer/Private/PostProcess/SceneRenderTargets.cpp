@@ -1101,7 +1101,7 @@ FIntPoint FSceneRenderTargets::GetPreShadowCacheTextureResolution() const
 	const int32 ExpandFactor = 2;
 
 	auto CVarPreShadowResolutionFactor = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.PreShadowResolutionFactor"));
-	return FIntPoint(FMath::Trunc(ShadowDepthResolution.X * CVarPreShadowResolutionFactor->GetValueOnRenderThread()), FMath::Trunc(ShadowDepthResolution.Y * CVarPreShadowResolutionFactor->GetValueOnRenderThread())) * ExpandFactor;
+	return FIntPoint(FMath::TruncToInt(ShadowDepthResolution.X * CVarPreShadowResolutionFactor->GetValueOnRenderThread()), FMath::TruncToInt(ShadowDepthResolution.Y * CVarPreShadowResolutionFactor->GetValueOnRenderThread())) * ExpandFactor;
 }
 
 FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() const

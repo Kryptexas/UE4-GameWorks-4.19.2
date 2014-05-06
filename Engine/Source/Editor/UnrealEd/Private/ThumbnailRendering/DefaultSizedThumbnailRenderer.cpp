@@ -9,6 +9,6 @@ UDefaultSizedThumbnailRenderer::UDefaultSizedThumbnailRenderer(const class FPost
 
 void UDefaultSizedThumbnailRenderer::GetThumbnailSize(UObject*, float Zoom, uint32& OutWidth, uint32& OutHeight) const
 {
-	OutWidth = FMath::Trunc(DefaultSizeX * Zoom);
-	OutHeight = FMath::Trunc(DefaultSizeY * Zoom);
+	OutWidth = FMath::TruncToInt(DefaultSizeX * Zoom);
+	OutHeight = FMath::TruncToInt(DefaultSizeY * Zoom);
 }

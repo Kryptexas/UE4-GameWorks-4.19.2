@@ -192,11 +192,11 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 	{
 		float LookupTime = ((float)(X - 0.5f) / (float)GetSize().X) * DrawRangeSize + DrawRange.GetLowerBoundValue();
 		float LookupFraction = (LookupTime - AudioTrueRange.GetLowerBoundValue()) / TrueRangeSize;
-		int32 LookupIndex = FMath::Trunc(LookupFraction * LookupSize);
+		int32 LookupIndex = FMath::TruncToInt(LookupFraction * LookupSize);
 		
 		float NextLookupTime = ((float)(X + 0.5f) / (float)GetSize().X) * DrawRangeSize + DrawRange.GetLowerBoundValue();
 		float NextLookupFraction = (NextLookupTime - AudioTrueRange.GetLowerBoundValue()) / TrueRangeSize;
-		int32 NextLookupIndex = FMath::Trunc(NextLookupFraction * LookupSize);
+		int32 NextLookupIndex = FMath::TruncToInt(NextLookupFraction * LookupSize);
 
 		DrawWaveformLine(OutData, SoundWave->NumChannels, LookupData, LookupIndex, NextLookupIndex, LookupSize, X, GetSize().Y / 2, GetSize().Y / 2);
 	}
@@ -242,7 +242,7 @@ void FAudioThumbnail::DrawWaveformLine(TArray<uint8>& OutData, int32 NumChannels
 		for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex)
 		{
 			int32 DataPoint = LookupData[i + ChannelIndex];
-			int32 HistogramData = FMath::Clamp(FMath::Trunc(FMath::Abs(DataPoint) / 32768.f * MaxAmplitude), 0, MaxAmplitude - 1);
+			int32 HistogramData = FMath::Clamp(FMath::TruncToInt(FMath::Abs(DataPoint) / 32768.f * MaxAmplitude), 0, MaxAmplitude - 1);
 
 			++ChannelData[ChannelIndex].Histogram[HistogramData];
 			++ChannelData[ChannelIndex].HistogramSum;
@@ -284,14 +284,14 @@ void FAudioThumbnail::DrawWaveformLine(TArray<uint8>& OutData, int32 NumChannels
 	}
 	float RootMeanSquare = FMath::Sqrt(SummedData / (float)Samples);
 	
-	int32 RMSHeight = FMath::Clamp(FMath::Trunc(RootMeanSquare / 32768.f * MaxAmplitude), 1, MaxAmplitude);
-	int32 MaxHeight = FMath::Clamp(FMath::Trunc(DataAmplitude / 32768.f * MaxAmplitude), 1, MaxAmplitude);
+	int32 RMSHeight = FMath::Clamp(FMath::TruncToInt(RootMeanSquare / 32768.f * MaxAmplitude), 1, MaxAmplitude);
+	int32 MaxHeight = FMath::Clamp(FMath::TruncToInt(DataAmplitude / 32768.f * MaxAmplitude), 1, MaxAmplitude);
 	float HeightRange = FMath::Max(1, MaxHeight - RMSHeight);
 	
 	for (int32 i = 0; i < MaxHeight; ++i)
 	{
 		float Intensity = (MaxHeight - i) / HeightRange;
-		int32 IntegralIntensity = FMath::Clamp(FMath::Trunc(Intensity * 255), 0, 255);
+		int32 IntegralIntensity = FMath::Clamp(FMath::TruncToInt(Intensity * 255), 0, 255);
 
 		int32 Y = XAxisHeight - i;
 		int32 Index = (Y * GetSize().X + X) * GPixelFormats[PF_B8G8R8A8].BlockBytes;

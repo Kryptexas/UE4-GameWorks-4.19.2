@@ -646,7 +646,7 @@ public:
 			OutSizeY = 0;
 			return false;
 		}
-		OutSizeX = OutSizeY = FMath::Trunc(GlobalSize * SizeScale);
+		OutSizeX = OutSizeY = FMath::TruncToInt(GlobalSize * SizeScale);
 		return true;
 	}
 

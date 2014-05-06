@@ -3903,7 +3903,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 
 
 										// Also store values as frame numbers instead of time values if a frame rate is selected
-										const int32 SoundFrameIndex = bSnapToFrames ? FMath::Trunc( CurSound.Time / SnapAmount ) : 0;
+										const int32 SoundFrameIndex = bSnapToFrames ? FMath::TruncToInt( CurSound.Time / SnapAmount ) : 0;
 
 										FString TextLine = FString::Printf(
 											TEXT( "%s,%s,%s,%0.2f,%i" ),
@@ -3917,7 +3917,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 										if( FoundAnimName.Len() > 0 )
 										{
 											// Also store values as frame numbers instead of time values if a frame rate is selected
-											const int32 AnimFrameIndex = bSnapToFrames ? FMath::Trunc( FoundAnimTime / SnapAmount ) : 0;
+											const int32 AnimFrameIndex = bSnapToFrames ? FMath::TruncToInt( FoundAnimTime / SnapAmount ) : 0;
 
 											TextLine += FString::Printf(
 												TEXT( ",%s,%.2f,%i" ),
@@ -4513,7 +4513,7 @@ void FMatinee::NormalizeVelocity()
 				ZAxisTrack->Modify();
 			
 				const float TotalTime = FullEndTime - FullStartTime;
-				const int32 NumSteps = FMath::Ceil(TotalTime/(1.0f/60.0f));
+				const int32 NumSteps = FMath::CeilToInt(TotalTime/(1.0f/60.0f));
 				const float Interval = (SegmentEndTime-SegmentStartTime)/NumSteps; 
 
 				// An array of points that were created in order to normalize velocity

@@ -643,7 +643,7 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutK
 	const float KeyPos = ((float)NumKeys * Time) / SequenceLength;
 
 	// Find the integer part (ensuring within range) and that gives us the 'starting' key index.
-	const int32 KeyIndex1 = FMath::Clamp<int32>( FMath::Floor(KeyPos), 0, NumFrames-1 );  // @todo should be changed to FMath::Trunc
+	const int32 KeyIndex1 = FMath::Clamp<int32>( FMath::FloorToInt(KeyPos), 0, NumFrames-1 );  // @todo should be changed to FMath::TruncToInt
 
 	// The alpha (fractional part) is then just the remainder.
 	const float Alpha = KeyPos - (float)KeyIndex1;

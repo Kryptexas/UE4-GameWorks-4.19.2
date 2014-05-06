@@ -4737,10 +4737,10 @@ class FHDRExportHelper
 			int32 Exponent;
 			const float Scale	 = frexp(Primary, &Exponent) / Primary * 255.f;
 
-			ReturnColor.R = FMath::Clamp(FMath::Trunc((R* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.G = FMath::Clamp(FMath::Trunc((G* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.B = FMath::Clamp(FMath::Trunc((B* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.A = FMath::Clamp(FMath::Trunc(Exponent), -128, 127) + 128;
+			ReturnColor.R = FMath::Clamp(FMath::TruncToInt((R* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.G = FMath::Clamp(FMath::TruncToInt((G* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.B = FMath::Clamp(FMath::TruncToInt((B* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.A = FMath::Clamp(FMath::TruncToInt(Exponent), -128, 127) + 128;
 		}
 
 		return ReturnColor;

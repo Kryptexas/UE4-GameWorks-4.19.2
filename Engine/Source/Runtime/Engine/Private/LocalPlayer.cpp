@@ -580,10 +580,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		return false;
 	}
 
-	int32 X = FMath::Trunc(Origin.X * Viewport->GetSizeXY().X);
-	int32 Y = FMath::Trunc(Origin.Y * Viewport->GetSizeXY().Y);
-	uint32 SizeX = FMath::Trunc(Size.X * Viewport->GetSizeXY().X);
-	uint32 SizeY = FMath::Trunc(Size.Y * Viewport->GetSizeXY().Y);
+	int32 X = FMath::TruncToInt(Origin.X * Viewport->GetSizeXY().X);
+	int32 Y = FMath::TruncToInt(Origin.Y * Viewport->GetSizeXY().Y);
+	uint32 SizeX = FMath::TruncToInt(Size.X * Viewport->GetSizeXY().X);
+	uint32 SizeY = FMath::TruncToInt(Size.Y * Viewport->GetSizeXY().Y);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

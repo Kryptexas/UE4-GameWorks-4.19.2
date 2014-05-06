@@ -721,7 +721,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 
 	const int32 UncompressedSize = UncompressedBuffer.Num();
 	const int32 HeaderSize = sizeof(int32);
-	EQSRepData.Init(0, HeaderSize + FMath::Trunc(1.1f * UncompressedSize));
+	EQSRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedSize));
 
 	int32 CompressedSize = EQSRepData.Num() - HeaderSize;
 	uint8* DestBuffer = EQSRepData.GetTypedData();
@@ -736,7 +736,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	UE_LOG(LogEQS, Log, TEXT("Preparing EQS data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
 		EQSRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
 		1000.0f * (Timer2 - Timer1),
-		FMath::Trunc(100.0f * EQSRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
+		FMath::TruncToInt(100.0f * EQSRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 
 	if (GetWorld()->GetNetMode() != NM_DedicatedServer)
 	{
@@ -1005,7 +1005,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	const double Timer2 = FPlatformTime::Seconds();
 
 	const int32 HeaderSize = sizeof(int32);
-	NavmeshRepData.Init(0, HeaderSize + FMath::Trunc(1.1f * UncompressedBuffer.Num()));
+	NavmeshRepData.Init(0, HeaderSize + FMath::TruncToInt(1.1f * UncompressedBuffer.Num()));
 
 	const int32 UncompressedSize = UncompressedBuffer.Num();
 	int32 CompressedSize = NavmeshRepData.Num() - HeaderSize;
@@ -1022,7 +1022,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	UE_LOG(LogNavigation, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
 		NavmeshRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
 		1000.0f * (Timer2 - Timer1),
-		FMath::Trunc(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
+		FMath::TruncToInt(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 #endif
 
 	if (GetWorld()->GetNetMode() != NM_DedicatedServer)

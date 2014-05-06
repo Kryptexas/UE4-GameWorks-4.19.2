@@ -233,12 +233,12 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 	// if we have range -.2 to .3, we need space for the -1 .. 0 wrap, and the 0 to 1 wrap (ie 2 iterations)
 	// @todo UE4: Actually, if the Min was used to modify the UV when looping through the Corners array,
 	// we wouldn't need full integer ranges
-	const int32 NumIterationsX = (FMath::Floor(MaxUV.X) - FMath::Floor(MinUV.X)) + 1;
-	const int32 NumIterationsY = (FMath::Floor(MaxUV.Y) - FMath::Floor(MinUV.Y)) + 1;
+	const int32 NumIterationsX = (FMath::FloorToInt(MaxUV.X) - FMath::FloorToInt(MinUV.X)) + 1;
+	const int32 NumIterationsY = (FMath::FloorToInt(MaxUV.Y) - FMath::FloorToInt(MinUV.Y)) + 1;
 
 	// calculate the bias and scale needed to map the random UV range into 0 .. NumIterations when rasterizing
 	// into the TexelToCornersMap
-	const FVector2D UVBias(-FMath::Floor(MinUV.X), -FMath::Floor(MinUV.Y));
+	const FVector2D UVBias(-FMath::FloorToFloat(MinUV.X), -FMath::FloorToFloat(MinUV.Y));
 	const FVector2D UVScale(1.0f / NumIterationsX, 1.0f / NumIterationsY);
 
 	for (int32 MaterialIndex = 0; MaterialIndex < MaterialElements.Num(); MaterialIndex++)

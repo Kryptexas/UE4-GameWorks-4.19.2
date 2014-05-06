@@ -1104,7 +1104,7 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
 		const uint32 TileIndex = Tiles[Index];
 		TileOffset[Index] = FVector2D(
 			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
+			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
 									  );
 	}
 	for ( ; Index < AlignedTileCount; ++Index )
@@ -1777,7 +1777,7 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 		const uint32 TileIndex = InTiles[Index];
 		const FVector2D TileOffset(
 			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
+			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
 			);
 		for ( int32 ParticleY = 0; ParticleY < GParticleSimulationTileSize; ++ParticleY )
 		{
@@ -3294,7 +3294,7 @@ private:
 		if (AllowedLoopCount == 0)
 		{
 			const int32 EstMaxTiles = (EmitterInfo.MaxParticleCount + GParticlesPerTile - 1) / GParticlesPerTile;
-			const int32 SlackTiles = FMath::Ceil(FXConsoleVariables::ParticleSlackGPU * (float)EstMaxTiles);
+			const int32 SlackTiles = FMath::CeilToInt(FXConsoleVariables::ParticleSlackGPU * (float)EstMaxTiles);
 			return FMath::Min<int32>(EstMaxTiles + SlackTiles, FXConsoleVariables::MaxParticleTilePreAllocation);
 		}
 		return 0;
@@ -3401,7 +3401,7 @@ private:
 		uint32 TileIndex = (AllocatedTiles.IsValidIndex(TileToAllocateFrom)) ? AllocatedTiles[TileToAllocateFrom] : INDEX_NONE;
 		FVector2D TileOffset(
 			FMath::Fractional((float)TileIndex / (float)GParticleSimulationTileCountX),
-			FMath::Fractional(FMath::TruncFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY)
+			FMath::Fractional(FMath::TruncToFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY)
 			);
 
 		for (int32 ParticleIndex = 0; ParticleIndex < NumNewParticles; ++ParticleIndex)
@@ -3435,7 +3435,7 @@ private:
 				ActiveTileCount++;
 				TileIndex = AllocatedTiles[TileToAllocateFrom];
 				TileOffset.X = FMath::Fractional((float)TileIndex / (float)GParticleSimulationTileCountX);
-				TileOffset.Y = FMath::Fractional(FMath::TruncFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY);
+				TileOffset.Y = FMath::Fractional(FMath::TruncToFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY);
 				FreeParticlesInTile = GParticlesPerTile;
 			}
 			FNewParticle& Particle = *new(InNewParticles) FNewParticle();
@@ -3483,7 +3483,7 @@ private:
 		// Determine how many to spawn.
 		FSpawnInfo Info;
 		float AccumSpawnCount = SpawnFraction + SpawnRate * DeltaSeconds;
-		Info.Count = FMath::Min(FMath::Trunc(AccumSpawnCount), FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame);
+		Info.Count = FMath::Min(FMath::TruncToInt(AccumSpawnCount), FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame);
 		Info.Increment = (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 		Info.StartTime = DeltaSeconds + SpawnFraction * Info.Increment - Info.Increment;
 		SpawnFraction = AccumSpawnCount - Info.Count;

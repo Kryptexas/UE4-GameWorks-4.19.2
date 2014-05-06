@@ -441,7 +441,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 						//Figure out the text height
 						FTextSizingParameters Parameters(GEngine->GetSmallFont(), 1.0f, 1.0f);
 						UCanvas::CanvasStringSize(Parameters, *Socket->SocketName.ToString());
-						int32 YL = FMath::Trunc(Parameters.DrawYL);
+						int32 YL = FMath::TruncToInt(Parameters.DrawYL);
 
 						DrawAngles(&Canvas, XPos, YPos + YL, 
 							Widget->GetCurrentAxis(), 

@@ -593,13 +593,13 @@ int32 FDirectionalLight::GetNumDirectPhotons(float DirectPhotonDensity) const
 		const float ImportanceDiskAreaMillions = (float)PI * FMath::Square(ImportanceBounds.SphereRadius) / 1000000.0f;
 		checkSlow(SceneBounds.SphereRadius > ImportanceBounds.SphereRadius);
 		const float OutsideImportanceDiskAreaMillions = (float)PI * (FMath::Square(SceneBounds.SphereRadius) - FMath::Square(ImportanceBounds.SphereRadius)) / 1000000.0f;
-		NumDirectPhotons = FMath::Trunc(ImportanceDiskAreaMillions * DirectPhotonDensity + OutsideImportanceDiskAreaMillions * OutsideImportanceVolumeDensity);
+		NumDirectPhotons = FMath::TruncToInt(ImportanceDiskAreaMillions * DirectPhotonDensity + OutsideImportanceDiskAreaMillions * OutsideImportanceVolumeDensity);
 	}
 	else
 	{
 		// Gather enough photons to meet DirectPhotonDensity everywhere in the scene
 		const float SceneDiskAreaMillions = (float)PI * FMath::Square(SceneBounds.SphereRadius) / 1000000.0f;
-		NumDirectPhotons = FMath::Trunc(SceneDiskAreaMillions * DirectPhotonDensity);
+		NumDirectPhotons = FMath::TruncToInt(SceneDiskAreaMillions * DirectPhotonDensity);
 	}
 	return NumDirectPhotons == appTruncErrorCode ? INT_MAX : NumDirectPhotons;
 }
@@ -757,7 +757,7 @@ void FDirectionalLight::SampleDirection(
 	checkSlow(IndirectPathRays.Num() > 0);
 
 	const FVector2D DiskPosition2D = GetUniformUnitDiskPosition(RandomStream);
-	const int32 RayIndex = FMath::Trunc(RandomStream.GetFraction() * IndirectPathRays.Num());
+	const int32 RayIndex = FMath::TruncToInt(RandomStream.GetFraction() * IndirectPathRays.Num());
 	checkSlow(RayIndex >= 0 && RayIndex < IndirectPathRays.Num());
 
 	// Create the ray using a disk centered at the scene's origin, whose radius is the size of the scene
@@ -780,8 +780,8 @@ void FDirectionalLight::SampleDirection(
 	checkSlow(SampleLightSurfacePosition.X >= GridCenter.X - GridExtent && SampleLightSurfacePosition.X <= GridCenter.X + GridExtent);
 	checkSlow(SampleLightSurfacePosition.Y >= GridCenter.Y - GridExtent && SampleLightSurfacePosition.Y <= GridCenter.Y + GridExtent);
 	// Calculate the cell indices that the generated position falls into
-	const int32 CellX = FMath::Clamp(FMath::Trunc(GridSize * (SampleLightSurfacePosition.X - GridCenter.X + GridExtent) / (2.0f * GridExtent)), 0, GridSize - 1);
-	const int32 CellY = FMath::Clamp(FMath::Trunc(GridSize * (SampleLightSurfacePosition.Y - GridCenter.Y + GridExtent) / (2.0f * GridExtent)), 0, GridSize - 1);
+	const int32 CellX = FMath::Clamp(FMath::TruncToInt(GridSize * (SampleLightSurfacePosition.X - GridCenter.X + GridExtent) / (2.0f * GridExtent)), 0, GridSize - 1);
+	const int32 CellY = FMath::Clamp(FMath::TruncToInt(GridSize * (SampleLightSurfacePosition.Y - GridCenter.Y + GridExtent) / (2.0f * GridExtent)), 0, GridSize - 1);
 	const TArray<int32>& CurrentGridCell = PathRayGrid[CellY * GridSize + CellX];
 	// The cell containing the sample position must contain at least the index of the path used to generate this sample position
 	checkSlow(CurrentGridCell.Num() > 0);
@@ -878,7 +878,7 @@ int32 FPointLight::GetNumDirectPhotons(float DirectPhotonDensity) const
 {
 	// Gather enough photons to meet DirectPhotonDensity at the influence radius of the point light.
 	const float InfluenceSphereSurfaceAreaMillions = 4.0f * (float)PI * FMath::Square(Radius) / 1000000.0f;
-	const int32 NumDirectPhotons = FMath::Trunc(InfluenceSphereSurfaceAreaMillions * DirectPhotonDensity);
+	const int32 NumDirectPhotons = FMath::TruncToInt(InfluenceSphereSurfaceAreaMillions * DirectPhotonDensity);
 	return NumDirectPhotons == appTruncErrorCode ? INT_MAX : NumDirectPhotons;
 }
 
@@ -1013,7 +1013,7 @@ void FPointLight::SampleDirection(
 {
 	checkSlow(IndirectPathRays.Num() > 0);
 	// Pick an indirect path ray with uniform probability
-	const int32 RayIndex = FMath::Trunc(RandomStream.GetFraction() * IndirectPathRays.Num());
+	const int32 RayIndex = FMath::TruncToInt(RandomStream.GetFraction() * IndirectPathRays.Num());
 	checkSlow(RayIndex >= 0 && RayIndex < IndirectPathRays.Num());
 
 	const FVector4 PathRayDirection = IndirectPathRays[RayIndex].UnitDirection;
@@ -1227,7 +1227,7 @@ int32 FSpotLight::GetNumDirectPhotons(float DirectPhotonDensity) const
 	// Find the fraction of the sphere's surface area that is inside the cone
 	const float ConeSurfaceAreaSphereFraction = ConeSolidAngle / (4.0f * (float)PI);
 	// Gather enough photons to meet DirectPhotonDensity on the spherical cap at the influence radius of the spot light.
-	const int32 NumDirectPhotons = FMath::Trunc(InfluenceSphereSurfaceAreaMillions * ConeSurfaceAreaSphereFraction * DirectPhotonDensity);
+	const int32 NumDirectPhotons = FMath::TruncToInt(InfluenceSphereSurfaceAreaMillions * ConeSurfaceAreaSphereFraction * DirectPhotonDensity);
 	return NumDirectPhotons == appTruncErrorCode ? INT_MAX : NumDirectPhotons;
 }
 
@@ -1347,7 +1347,7 @@ int32 FMeshAreaLight::GetNumDirectPhotons(float DirectPhotonDensity) const
 	// Clamp the influence radius to the importance or scene radius for the purposes of emitting photons
 	// This prevents huge mesh area lights from emitting more photons than are needed
 	const float InfluenceSphereSurfaceAreaMillions = 4.0f * (float)PI * FMath::Square(FMath::Min(ImportanceBounds.SphereRadius, InfluenceRadius)) / 1000000.0f;
-	const int32 NumDirectPhotons = FMath::Trunc(InfluenceSphereSurfaceAreaMillions * DirectPhotonDensity);
+	const int32 NumDirectPhotons = FMath::TruncToInt(InfluenceSphereSurfaceAreaMillions * DirectPhotonDensity);
 	return NumDirectPhotons == appTruncErrorCode ? INT_MAX : NumDirectPhotons;
 }
 
@@ -1383,8 +1383,8 @@ void FMeshAreaLight::SetPrimitives(
 		}
 		const FVector2D SphericalCoordinates = FVector(CurrentPrimitive.SurfaceNormal).UnitCartesianToSpherical();
 		// Determine grid cell the primitive's normal falls into based on spherical coordinates
-		const int32 CacheX = FMath::Clamp(FMath::Trunc(SphericalCoordinates.X / (float)PI * MeshAreaLightGridSize), 0, MeshAreaLightGridSize - 1);
-		const int32 CacheY = FMath::Clamp(FMath::Trunc((SphericalCoordinates.Y + (float)PI) / (2 * (float)PI) * MeshAreaLightGridSize), 0, MeshAreaLightGridSize - 1);
+		const int32 CacheX = FMath::Clamp(FMath::TruncToInt(SphericalCoordinates.X / (float)PI * MeshAreaLightGridSize), 0, MeshAreaLightGridSize - 1);
+		const int32 CacheY = FMath::Clamp(FMath::TruncToInt((SphericalCoordinates.Y + (float)PI) / (2 * (float)PI) * MeshAreaLightGridSize), 0, MeshAreaLightGridSize - 1);
 		CachedPrimitiveNormals[CacheY * MeshAreaLightGridSize + CacheX].Add(CurrentPrimitive.SurfaceNormal);
 	}
 
@@ -1622,7 +1622,7 @@ void FMeshAreaLight::SampleDirection(
 {
 	checkSlow(IndirectPathRays.Num() > 0);
 	// Pick an indirect path ray with uniform probability
-	const int32 RayIndex = FMath::Trunc(RandomStream.GetFraction() * IndirectPathRays.Num());
+	const int32 RayIndex = FMath::TruncToInt(RandomStream.GetFraction() * IndirectPathRays.Num());
 	checkSlow(RayIndex >= 0 && RayIndex < IndirectPathRays.Num());
 	const FIndirectPathRay& ChosenPathRay = IndirectPathRays[RayIndex];
 	const FVector4 PathRayDirection = ChosenPathRay.UnitDirection;
@@ -1703,7 +1703,7 @@ void FMeshAreaLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSur
 	float FloatPrimitiveIndex;
 	// Pick a primitive with probability proportional to the primitive's fraction of the light's total surface area
 	Sample1dCDF(PrimitivePDFs, PrimitiveCDFs, UnnormalizedIntegral, RandomStream, PrimitivePDF, FloatPrimitiveIndex);
-	const int32 PrimitiveIndex = FMath::Trunc(FloatPrimitiveIndex * Primitives.Num());
+	const int32 PrimitiveIndex = FMath::TruncToInt(FloatPrimitiveIndex * Primitives.Num());
 	check(PrimitiveIndex >= 0 && PrimitiveIndex < Primitives.Num());
 
 	const FMeshLightPrimitive& SelectedPrimitive = Primitives[PrimitiveIndex];

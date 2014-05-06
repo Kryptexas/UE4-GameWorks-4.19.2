@@ -794,7 +794,7 @@ void FLevelEditorActionCallbacks::SetLightingResolutionMaxBSPs( float Value )
 
 int32 FLevelEditorActionCallbacks::GetLightingResolutionRatio()
 {
-	return FMath::Round(FLightmapResRatioAdjustSettings::Get().Ratio * 100.0f);
+	return FMath::RoundToInt(FLightmapResRatioAdjustSettings::Get().Ratio * 100.0f);
 }
 
 void FLevelEditorActionCallbacks::SetLightingResolutionRatio( int32 Value )

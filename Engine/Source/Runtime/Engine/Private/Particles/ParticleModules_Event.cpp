@@ -340,24 +340,24 @@ bool UParticleModuleEventReceiverSpawn::ProcessParticleEvent(FParticleEmitterIns
 		{
 		case EPET_Spawn:
 		case EPET_Burst:
-			Count = FMath::Round(SpawnCount.GetValue(InEvent.EmitterTime));
+			Count = FMath::RoundToInt(SpawnCount.GetValue(InEvent.EmitterTime));
 			break;
 		case EPET_Death:
 			{
 				FParticleEventDeathData* DeathData = (FParticleEventDeathData*)(&InEvent);
-				Count = FMath::Round(SpawnCount.GetValue(bUseParticleTime ? DeathData->ParticleTime : InEvent.EmitterTime));
+				Count = FMath::RoundToInt(SpawnCount.GetValue(bUseParticleTime ? DeathData->ParticleTime : InEvent.EmitterTime));
 			}
 			break;
 		case EPET_Collision:
 			{
 				FParticleEventCollideData* CollideData = (FParticleEventCollideData*)(&InEvent);
-				Count = FMath::Round(SpawnCount.GetValue(bUseParticleTime ? CollideData->ParticleTime : InEvent.EmitterTime));
+				Count = FMath::RoundToInt(SpawnCount.GetValue(bUseParticleTime ? CollideData->ParticleTime : InEvent.EmitterTime));
 			}
 			break;
 		case EPET_Blueprint:
 			{
 				FParticleEventKismetData* KismetData = (FParticleEventKismetData*)(&InEvent);
-				Count = FMath::Round(SpawnCount.GetValue(InEvent.EmitterTime));
+				Count = FMath::RoundToInt(SpawnCount.GetValue(InEvent.EmitterTime));
 			}
 			break;
 		}

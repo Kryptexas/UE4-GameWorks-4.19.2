@@ -349,7 +349,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 
 	// Render CPU thread and GPU frame times.
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
-	const int32 SafeZone = FPlatformProperties::SupportsWindowedMode() ? 0 : FMath::Trunc(InViewport->GetSizeXY().X * 0.05f);
+	const int32 SafeZone = FPlatformProperties::SupportsWindowedMode() ? 0 : FMath::TruncToInt(InViewport->GetSizeXY().X * 0.05f);
 
 	FColor Color;
 	int32 X3 = InViewport->GetSizeXY().X - SafeZone;
@@ -359,7 +359,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	}
 	const int32 X2 = X3 - Font->GetStringSize(TEXT(" 000.00 ms "));
 	const int32 X1 = X2 - Font->GetStringSize(TEXT("Frame: "));
-	const int32 RowHeight = FMath::Trunc(Font->GetMaxCharHeight() * 1.1f);
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
 
 	// 0-34 ms: Green, 34-50 ms: Yellow, 50+ ms: Red
@@ -560,7 +560,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 				{
 					const int32 AlertPadding = 1;
 					float MaxValue = TimeValues[CurUnitIndex];
-					int32 MinCheckFrames = FMath::Min<int32>(FPlatformMath::Ceil((float)AlertPrintWidth / GraphHorizPixelsPerFrame) + 10, NumberOfSamples);
+					int32 MinCheckFrames = FMath::Min<int32>(FPlatformMath::CeilToInt((float)AlertPrintWidth / GraphHorizPixelsPerFrame) + 10, NumberOfSamples);
 					int32 CheckIndex = CurUnitIndex + 1;
 					for (; CheckIndex < MinCheckFrames; ++CheckIndex)
 					{
@@ -605,9 +605,9 @@ int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32
 			if (GEngine->ActiveMatinee.IsValid())
 			{
 				float MatineeTime = GEngine->ActiveMatinee.Get()->InterpPosition;
-				float MatineeMM = FPlatformMath::TruncFloat(MatineeTime / 60.0f);
-				float MatineeSS = FPlatformMath::TruncFloat(MatineeTime - MatineeMM * 60.0f);
-				float MatineeMS = FPlatformMath::TruncFloat((MatineeTime - MatineeMM * 60.0f - MatineeSS) * 1000.0f);
+				float MatineeMM = FPlatformMath::TruncToFloat(MatineeTime / 60.0f);
+				float MatineeSS = FPlatformMath::TruncToFloat(MatineeTime - MatineeMM * 60.0f);
+				float MatineeMS = FPlatformMath::TruncToFloat((MatineeTime - MatineeMM * 60.0f - MatineeSS) * 1000.0f);
 				UE_LOG(LogClient, Warning, TEXT("HITCH @ %02dm:%02d.%03ds,%d,%d,%d"),
 					(int32)MatineeMM, (int32)MatineeSS, (int32)MatineeMS, int32(MatineeTime * 1000), int32(DeltaSeconds * 1000), Count++);
 			}
@@ -1377,15 +1377,15 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 		if( AspectRatioDifference > 0.0f )
 		{
 			// Calculate desired Y size.
-			const int32 NewSizeY = FMath::Max(1, FMath::Round( CurrentSizeX / AdjustedAspectRatio ) );
-			Result.Min.Y = FMath::Round( 0.5f * (CurrentSizeY - NewSizeY) );
+			const int32 NewSizeY = FMath::Max(1, FMath::RoundToInt( CurrentSizeX / AdjustedAspectRatio ) );
+			Result.Min.Y = FMath::RoundToInt( 0.5f * (CurrentSizeY - NewSizeY) );
 			Result.Max.Y = Result.Min.Y + NewSizeY;
 		}
 		// Otherwise - will place bars on the sides.
 		else
 		{
-			const int32 NewSizeX = FMath::Max(1, FMath::Round( CurrentSizeY * AdjustedAspectRatio ) );
-			Result.Min.X = FMath::Round( 0.5f * (CurrentSizeX - NewSizeX) );
+			const int32 NewSizeX = FMath::Max(1, FMath::RoundToInt( CurrentSizeY * AdjustedAspectRatio ) );
+			Result.Min.X = FMath::RoundToInt( 0.5f * (CurrentSizeX - NewSizeX) );
 			Result.Max.X = Result.Min.X + NewSizeX;
 		}
 	}

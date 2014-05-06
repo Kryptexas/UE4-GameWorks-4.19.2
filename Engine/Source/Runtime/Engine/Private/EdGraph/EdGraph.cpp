@@ -487,8 +487,8 @@ void UEdGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut
 
 void UEdGraphNode::SnapToGrid(float GridSnapSize)
 {
-	NodePosX = GridSnapSize * FMath::Round(NodePosX/GridSnapSize);
-	NodePosY = GridSnapSize * FMath::Round(NodePosY/GridSnapSize);
+	NodePosX = GridSnapSize * FMath::RoundToInt(NodePosX/GridSnapSize);
+	NodePosY = GridSnapSize * FMath::RoundToInt(NodePosY/GridSnapSize);
 }
 
 void UEdGraphNode::DestroyNode()

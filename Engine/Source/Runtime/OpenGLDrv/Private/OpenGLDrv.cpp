@@ -142,7 +142,7 @@ void FOpenGLGPUProfiler::EndFrame()
 	{
 		uint64 GPUTiming = FrameTiming.GetTiming();
 		uint64 GPUFreq = FrameTiming.GetTimingFrequency();
-		GGPUFrameTime = FMath::Trunc( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
+		GGPUFrameTime = FMath::TruncToInt( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
 	}
 	else if (FOpenGLDisjointTimeStampQuery::IsSupported() && GNumActiveGPUsForRendering == 1)
 	{
@@ -152,7 +152,7 @@ void FOpenGLGPUProfiler::EndFrame()
 		int OldestQueryIndex = (CurrentGPUFrameQueryIndex + 1) % MAX_GPUFRAMEQUERIES;
 		if ( DisjointGPUFrameTimeQuery[OldestQueryIndex].IsResultValid() && DisjointGPUFrameTimeQuery[OldestQueryIndex].GetResult(&GPUTiming) )
 		{
-			GGPUFrameTime = FMath::Trunc( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
+			GGPUFrameTime = FMath::TruncToInt( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
 			GLastGPUFrameTime = GGPUFrameTime;
 		}
 		else

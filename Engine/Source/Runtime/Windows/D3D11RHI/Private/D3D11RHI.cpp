@@ -309,7 +309,7 @@ void FD3DGPUProfiler::EndFrame()
 	{
 		uint64 GPUTiming = FrameTiming.GetTiming();
 		uint64 GPUFreq = FrameTiming.GetTimingFrequency();
-		GGPUFrameTime = FMath::Trunc( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
+		GGPUFrameTime = FMath::TruncToInt( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
 	}
 	else
 	{

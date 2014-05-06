@@ -87,10 +87,10 @@ static void CopyImage(const FImage& SrcImage, FImage& DestImage)
 				for (int32 TexelIndex = 0; TexelIndex < NumTexels; ++TexelIndex)
 				{
 					int32 DestIndex = TexelIndex * 4;
-					DestColors[DestIndex + 0] = FMath::Clamp(FMath::Floor(SrcColors[TexelIndex].R * 65535.999f), 0, 65535);
-					DestColors[DestIndex + 1] = FMath::Clamp(FMath::Floor(SrcColors[TexelIndex].G * 65535.999f), 0, 65535);
-					DestColors[DestIndex + 2] = FMath::Clamp(FMath::Floor(SrcColors[TexelIndex].B * 65535.999f), 0, 65535);
-					DestColors[DestIndex + 3] = FMath::Clamp(FMath::Floor(SrcColors[TexelIndex].A * 65535.999f), 0, 65535);
+					DestColors[DestIndex + 0] = FMath::Clamp(FMath::FloorToInt(SrcColors[TexelIndex].R * 65535.999f), 0, 65535);
+					DestColors[DestIndex + 1] = FMath::Clamp(FMath::FloorToInt(SrcColors[TexelIndex].G * 65535.999f), 0, 65535);
+					DestColors[DestIndex + 2] = FMath::Clamp(FMath::FloorToInt(SrcColors[TexelIndex].B * 65535.999f), 0, 65535);
+					DestColors[DestIndex + 3] = FMath::Clamp(FMath::FloorToInt(SrcColors[TexelIndex].A * 65535.999f), 0, 65535);
 				}
 			}
 			break;

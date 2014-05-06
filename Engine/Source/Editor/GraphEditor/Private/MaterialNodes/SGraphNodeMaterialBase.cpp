@@ -87,16 +87,16 @@ void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const 
 	FSlateRect ClippedCanvasRect = SlateCanvasRect.IntersectionWith(MyClippingRect);
 
 	FIntRect CanvasRect(
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Left) ),
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Top) ),
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Right) ), 
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Bottom) ) );
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Left) ),
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Top) ),
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Right) ), 
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Bottom) ) );
 
 	FIntRect ClippingRect(
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Left) ),
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Top) ),
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Right) ), 
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Bottom) ) );
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Left) ),
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Top) ),
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Right) ), 
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Bottom) ) );
 
 	bool bIsRealtime = MaterialNode->RealtimeDelegate.IsBound() ? MaterialNode->RealtimeDelegate.Execute() : false;
 

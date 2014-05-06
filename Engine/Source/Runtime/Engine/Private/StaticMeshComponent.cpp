@@ -1307,14 +1307,14 @@ void UStaticMeshComponent::GetTextureLightAndShadowMapMemoryUsage(int32 InWidth,
 {
 	// Stored in texture.
 	const float MIP_FACTOR = 1.33f;
-	OutShadowMapMemoryUsage = FMath::Trunc(MIP_FACTOR * InWidth * InHeight); // G8
+	OutShadowMapMemoryUsage = FMath::TruncToInt(MIP_FACTOR * InWidth * InHeight); // G8
 	if( AllowHighQualityLightmaps() )
 	{
-		OutLightMapMemoryUsage = FMath::Trunc(NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight); // DXT5
+		OutLightMapMemoryUsage = FMath::TruncToInt(NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight); // DXT5
 	}
 	else
 	{
-		OutLightMapMemoryUsage = FMath::Trunc(NUM_LQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight / 2); // DXT1
+		OutLightMapMemoryUsage = FMath::TruncToInt(NUM_LQ_LIGHTMAP_COEF * MIP_FACTOR * InWidth * InHeight / 2); // DXT1
 	}
 }
 

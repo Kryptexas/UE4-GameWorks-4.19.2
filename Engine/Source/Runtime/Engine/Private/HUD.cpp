@@ -382,7 +382,7 @@ void AHUD::DrawDebugTextList()
 				TextItem.SetColor( DebugTextList[Idx].TextColor );
 				TextItem.Text = FText::FromString( DebugTextList[Idx].DebugText );
 				TextItem.Scale = FVector2D( DebugTextList[Idx].FontScale, DebugTextList[Idx].FontScale);
-				DebugCanvas->DrawItem( TextItem, FVector2D( FMath::Ceil(ScreenLoc.X), FMath::Ceil(ScreenLoc.Y) ) );
+				DebugCanvas->DrawItem( TextItem, FVector2D( FMath::CeilToFloat(ScreenLoc.X), FMath::CeilToFloat(ScreenLoc.Y) ) );
 			}
 
 			// do this at the end so even small durations get at least one frame

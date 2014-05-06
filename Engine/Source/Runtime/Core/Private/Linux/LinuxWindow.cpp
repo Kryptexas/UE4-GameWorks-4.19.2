@@ -72,10 +72,10 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	const float WidthInitial = Definition->WidthDesiredOnScreen;
 	const float HeightInitial = Definition->HeightDesiredOnScreen;
 
-	int32 X = FMath::Trunc( XInitialRect );
-	int32 Y = FMath::Trunc( YInitialRect );
-	int32 ClientWidth = FMath::Trunc( WidthInitial );
-	int32 ClientHeight = FMath::Trunc( HeightInitial );
+	int32 X = FMath::TruncToInt( XInitialRect );
+	int32 Y = FMath::TruncToInt( YInitialRect );
+	int32 ClientWidth = FMath::TruncToInt( WidthInitial );
+	int32 ClientHeight = FMath::TruncToInt( HeightInitial );
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 

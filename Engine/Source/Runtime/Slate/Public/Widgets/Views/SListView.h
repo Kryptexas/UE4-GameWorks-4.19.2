@@ -755,7 +755,7 @@ public:
 
 			// Index of the item at which we start generating based on how far scrolled down we are
 			// Note that we must generate at LEAST one item.
-			int32 StartIndex = FMath::Clamp( FMath::Floor(ScrollOffset), 0, SourceItems->Num()-1 );
+			int32 StartIndex = FMath::Clamp( FMath::FloorToInt(ScrollOffset), 0, SourceItems->Num()-1 );
 
 			// Height of the first item that is generated. This item is at the location where the user requested we scroll
 			float FirstItemHeight = 0.0f;

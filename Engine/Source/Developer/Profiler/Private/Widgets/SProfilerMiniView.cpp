@@ -129,13 +129,13 @@ int32 SProfilerMiniView::OnPaint( const FGeometry& AllottedGeometry, const FSlat
 		float NextSamplePosX = GetNumPixelsPerSample();
 		for( const FMiniViewSample& MiniViewSample : MiniViewSamples )
 		{
-			const float AllSizeY = FMath::TruncFloat( MiniViewSample.TotalThreadTime*SampleScaleY );
-			const float GTSizeY = FMath::TruncFloat( MiniViewSample.GameThreadTime*SampleScaleY );
-			const float RTSizeY = FMath::TruncFloat( MiniViewSample.RenderThreadTime*SampleScaleY );
+			const float AllSizeY = FMath::TruncToFloat( MiniViewSample.TotalThreadTime*SampleScaleY );
+			const float GTSizeY = FMath::TruncToFloat( MiniViewSample.GameThreadTime*SampleScaleY );
+			const float RTSizeY = FMath::TruncToFloat( MiniViewSample.RenderThreadTime*SampleScaleY );
 			const float OtherSizeY = AllSizeY - GTSizeY - RTSizeY;
 
-			const float DestSamplePosX0 = FMath::TruncFloat( CurrentSamplePosX );
-			const float DestSamplePosX1 = FMath::TruncFloat( NextSamplePosX );
+			const float DestSamplePosX0 = FMath::TruncToFloat( CurrentSamplePosX );
+			const float DestSamplePosX1 = FMath::TruncToFloat( NextSamplePosX );
 			const float DestSampleSizeX = DestSamplePosX1 - DestSamplePosX0;
 
 			// The game thread on the bottom.
@@ -186,8 +186,8 @@ int32 SProfilerMiniView::OnPaint( const FGeometry& AllottedGeometry, const FSlat
 		
 		const int32 MaxFrameIndex = AllFrames.Num() - 1;
 		
-		const int32 SelectionBoxX0 = FMath::Trunc( FrameIndexToPosition( SelectionBoxFrameStart ) );
-		const int32 SelectionBoxX1 = FMath::Trunc( FrameIndexToPosition( SelectionBoxFrameEnd + 1 ) );
+		const int32 SelectionBoxX0 = FMath::TruncToInt( FrameIndexToPosition( SelectionBoxFrameStart ) );
+		const int32 SelectionBoxX1 = FMath::TruncToInt(FrameIndexToPosition(SelectionBoxFrameEnd + 1));
 
 		if( SelectionBoxFrameStart > 0 )
 		{
@@ -617,7 +617,7 @@ const int32 SProfilerMiniView::PositionToFrameIndex( const float InPositionX ) c
 		const float ScaleRatio = (float)NumAllFrames / (float)NumMiniViewSamples;
 		const float MouseSampleIndex = InPositionX / GetNumPixelsPerSample();
 
-		FrameIndex = FMath::Trunc( MouseSampleIndex * ScaleRatio );
+		FrameIndex = FMath::TruncToInt(MouseSampleIndex * ScaleRatio);
 		FrameIndex = FMath::Clamp( FrameIndex, 0, NumAllFrames - 1 );
 	}
 
@@ -639,7 +639,7 @@ void SProfilerMiniView::ProcessData()
 
 	UpdateNumPixelsPerSample();
 
-	const int32 NumMiniViewSamples = FMath::Trunc( ThisGeometry.Size.X / GetNumPixelsPerSample() );
+	const int32 NumMiniViewSamples = FMath::TruncToInt(ThisGeometry.Size.X / GetNumPixelsPerSample());
 	MiniViewSamples.Reset( NumMiniViewSamples );
 
 	MiniViewSamples.AddZeroed( NumMiniViewSamples );
@@ -657,7 +657,7 @@ void SProfilerMiniView::ProcessData()
 		for( int32 FrameIndex = 0; FrameIndex < NumAllFrames; ++FrameIndex )
 		{
 			const FFrameThreadTimes& FrameThreadTimes = AllFrames[FrameIndex];
-			const int32 SampleIndex = FMath::Trunc( CurrentSample );
+			const int32 SampleIndex = FMath::TruncToInt(CurrentSample);
 
 			FMiniViewSample& Dest = MiniViewSamples[SampleIndex];
 			Dest.AddFrameAndFindMax( FrameThreadTimes );

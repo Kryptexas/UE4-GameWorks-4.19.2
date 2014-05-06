@@ -133,7 +133,7 @@ void UParticleModuleCollision::Spawn(FParticleEmitterInstance* Owner, int32 Offs
 		PARTICLE_ELEMENT(FParticleCollisionPayload, CollisionPayload);
 		CollisionPayload.UsedDampingFactor = DampingFactor.GetValue(Owner->EmitterTime, Owner->Component);
 		CollisionPayload.UsedDampingFactorRotation = DampingFactorRotation.GetValue(Owner->EmitterTime, Owner->Component);
-		CollisionPayload.UsedCollisions = FMath::Round(MaxCollisions.GetValue(Owner->EmitterTime, Owner->Component));
+		CollisionPayload.UsedCollisions = FMath::RoundToInt(MaxCollisions.GetValue(Owner->EmitterTime, Owner->Component));
 		CollisionPayload.Delay = DelayAmount.GetValue(Owner->EmitterTime, Owner->Component);
 		if (CollisionPayload.Delay > SpawnTime)
 		{

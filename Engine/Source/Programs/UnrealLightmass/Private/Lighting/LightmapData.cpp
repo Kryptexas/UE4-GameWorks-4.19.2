@@ -274,11 +274,11 @@ namespace Lightmass
 			const float BentNormalLength = BentNormal.Size();
 			const FVector NormalizedBentNormal = BentNormal.SafeNormal() * FVector(.5f) + FVector(.5f);
 
-			DestCoefficients.SkyOcclusion[0] = (uint8)FMath::Clamp<int32>( FMath::Round( NormalizedBentNormal[0] * 255.0f ), 0, 255 );
-			DestCoefficients.SkyOcclusion[1] = (uint8)FMath::Clamp<int32>( FMath::Round( NormalizedBentNormal[1] * 255.0f ), 0, 255 );
-			DestCoefficients.SkyOcclusion[2] = (uint8)FMath::Clamp<int32>( FMath::Round( NormalizedBentNormal[2] * 255.0f ), 0, 255 );
+			DestCoefficients.SkyOcclusion[0] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( NormalizedBentNormal[0] * 255.0f ), 0, 255 );
+			DestCoefficients.SkyOcclusion[1] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( NormalizedBentNormal[1] * 255.0f ), 0, 255 );
+			DestCoefficients.SkyOcclusion[2] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( NormalizedBentNormal[2] * 255.0f ), 0, 255 );
 			// Sqrt on length to allocate more precision near 0
-			DestCoefficients.SkyOcclusion[3] = (uint8)FMath::Clamp<int32>( FMath::Round( FMath::Sqrt(BentNormalLength) * 255.0f ), 0, 255 );
+			DestCoefficients.SkyOcclusion[3] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( FMath::Sqrt(BentNormalLength) * 255.0f ), 0, 255 );
 
 			{
 				float L, U, V, W;
@@ -292,24 +292,24 @@ namespace Lightmass
 				W = W * CoefficientMultiply[0][2] + CoefficientAdd[0][2];
 				LogL = LogL * CoefficientMultiply[0][3] + CoefficientAdd[0][3];
 
-				float Residual = LogL * 255.0f - FMath::Round( LogL * 255.0f ) + 0.5f;
+				float Residual = LogL * 255.0f - FMath::RoundToFloat( LogL * 255.0f ) + 0.5f;
 
 				// U, V, W, LogL
 				// UVW stored in gamma space
-				DestCoefficients.Coefficients[0][0] = (uint8)FMath::Clamp<int32>( FMath::Round( FMath::Pow( U, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[0][1] = (uint8)FMath::Clamp<int32>( FMath::Round( FMath::Pow( V, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[0][2] = (uint8)FMath::Clamp<int32>( FMath::Round( FMath::Pow( W, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[0][3] = (uint8)FMath::Clamp<int32>( FMath::Round( LogL * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[0][0] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( FMath::Pow( U, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[0][1] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( FMath::Pow( V, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[0][2] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( FMath::Pow( W, 1.0f / 2.2f ) * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[0][3] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( LogL * 255.0f ), 0, 255 );
 				
 				float Dx = SourceSample.Coefficients[1][0] * CoefficientMultiply[1][0] + CoefficientAdd[1][0];
 				float Dy = SourceSample.Coefficients[1][1] * CoefficientMultiply[1][1] + CoefficientAdd[1][1];
 				float Dz = SourceSample.Coefficients[1][2] * CoefficientMultiply[1][2] + CoefficientAdd[1][2];
 
 				// Dx, Dy, Dz, Residual
-				DestCoefficients.Coefficients[1][0] = (uint8)FMath::Clamp<int32>( FMath::Round( Dx * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[1][1] = (uint8)FMath::Clamp<int32>( FMath::Round( Dy * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[1][2] = (uint8)FMath::Clamp<int32>( FMath::Round( Dz * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[1][3] = (uint8)FMath::Clamp<int32>( FMath::Round( Residual * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[1][0] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dx * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[1][1] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dy * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[1][2] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dz * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[1][3] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Residual * 255.0f ), 0, 255 );
 			}
 
 			{
@@ -324,9 +324,9 @@ namespace Lightmass
 				float LogB = LogL * W * CoefficientMultiply[2][2] + CoefficientAdd[2][2];
 				
 				// LogR, LogG, LogB
-				DestCoefficients.Coefficients[2][0] = (uint8)FMath::Clamp<int32>( FMath::Round( LogR * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[2][1] = (uint8)FMath::Clamp<int32>( FMath::Round( LogG * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[2][2] = (uint8)FMath::Clamp<int32>( FMath::Round( LogB * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[2][0] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( LogR * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[2][1] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( LogG * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[2][2] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( LogB * 255.0f ), 0, 255 );
 				DestCoefficients.Coefficients[2][3] = 255;
 
 				float Dx = SourceSample.Coefficients[3][0] * CoefficientMultiply[3][0] + CoefficientAdd[3][0];
@@ -334,9 +334,9 @@ namespace Lightmass
 				float Dz = SourceSample.Coefficients[3][2] * CoefficientMultiply[3][2] + CoefficientAdd[3][2];
 
 				// Dx, Dy, Dz
-				DestCoefficients.Coefficients[3][0] = (uint8)FMath::Clamp<int32>( FMath::Round( Dx * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[3][1] = (uint8)FMath::Clamp<int32>( FMath::Round( Dy * 255.0f ), 0, 255 );
-				DestCoefficients.Coefficients[3][2] = (uint8)FMath::Clamp<int32>( FMath::Round( Dz * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[3][0] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dx * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[3][1] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dy * 255.0f ), 0, 255 );
+				DestCoefficients.Coefficients[3][2] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Dz * 255.0f ), 0, 255 );
 				DestCoefficients.Coefficients[3][3] = 255;
 			}
 		}
@@ -370,7 +370,7 @@ namespace Lightmass
 			}
 #endif
 			// Convert linear input values to gamma space before quantizing, which preserves more detail in the darks where banding would be noticeable otherwise
-			QuantizedValue.Visibility = (uint8)FMath::Clamp<int32>(FMath::Trunc(FMath::Pow(Value.Visibility, 1.0f / 2.2f) * 255.0f), 0, 255);
+			QuantizedValue.Visibility = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(FMath::Pow(Value.Visibility, 1.0f / 2.2f) * 255.0f), 0, 255);
 			QuantizedValue.Coverage = Value.bIsMapped ? 255 : 0;
 		}
 		Data.Empty();
@@ -408,8 +408,8 @@ namespace Lightmass
 				int32 TempBreak = 0;
 			}
 #endif
-			QuantizedValue.Distance = (uint8)FMath::Clamp<int32>(FMath::Trunc(Value.Distance * 255.0f), 0, 255);
-			QuantizedValue.PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::Trunc(Value.PenumbraSize * 255.0f), 0, 255);
+			QuantizedValue.Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(Value.Distance * 255.0f), 0, 255);
+			QuantizedValue.PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(Value.PenumbraSize * 255.0f), 0, 255);
 			QuantizedValue.Coverage = Value.bIsMapped ? 255 : 0;
 		}
 		Data.Empty();

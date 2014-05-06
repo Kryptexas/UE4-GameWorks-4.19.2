@@ -791,7 +791,7 @@ protected:
 		for (int32 KeyIndex = 0; KeyIndex < NumKeys; ++KeyIndex)
 		{
 			// Convert the frame time into a frame index and write it out
-			FrameIndexType FrameIndex = (FrameIndexType)FMath::Clamp(FMath::Trunc(Times[KeyIndex] * FramesPerSecond), 0, NumFrames - 1);
+			FrameIndexType FrameIndex = (FrameIndexType)FMath::Clamp(FMath::TruncToInt(Times[KeyIndex] * FramesPerSecond), 0, NumFrames - 1);
 			AppendBytes(&FrameIndex, sizeof(FrameIndexType));
 		}
 

@@ -202,7 +202,7 @@ public:
 				ALandscape::UnpackKey(It.Key(), X, Y);
 				float Weight = It.Value();
 
-				AveragePoint += FVector( (float)X * Weight, (float)Y * Weight, (float)DATA_AT(OriginalData,FMath::Floor(X),FMath::Floor(Y)) * Weight );
+				AveragePoint += FVector( (float)X * Weight, (float)Y * Weight, (float)DATA_AT(OriginalData,FMath::FloorToInt(X),FMath::FloorToInt(Y)) * Weight );
 
 				FVector SampleNormal = DATA_AT(Normals,X,Y);
 				AverageNormal += SampleNormal * Weight;
@@ -270,22 +270,22 @@ public:
 
 				if( bInvert )
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(FMath::Round(PaintValue), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(FMath::RoundToInt(PaintValue), CurrentValue) );
 				}
 				else
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(FMath::Round(PaintValue), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(FMath::RoundToInt(PaintValue), CurrentValue) );
 				}
 			}
 			else
 			{
 				if( bInvert )
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(SourceValue - FMath::Round(PaintAmount), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue) );
 				}
 				else
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(SourceValue + FMath::Round(PaintAmount), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue) );
 				}
 			}
 		}
@@ -445,8 +445,8 @@ public:
 			bInitializedFlattenHeight = false;
 			float FlattenX = MousePositions[0].PositionX;
 			float FlattenY = MousePositions[0].PositionY;
-			int32 FlattenHeightX = FMath::Floor(FlattenX);
-			int32 FlattenHeightY = FMath::Floor(FlattenY);
+			int32 FlattenHeightX = FMath::FloorToInt(FlattenX);
+			int32 FlattenHeightY = FMath::FloorToInt(FlattenY);
 
 			this->Cache.CacheData(FlattenHeightX,FlattenHeightY,FlattenHeightX+1,FlattenHeightY+1);
 			float HeightValue = this->Cache.GetValue(FlattenX, FlattenY);
@@ -583,9 +583,9 @@ public:
 
 			const FTransform LocalToWorld = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy()->ActorToWorld();
 			FVector Origin;
-			Origin.X = FMath::Round(LastMousePosition.X);
-			Origin.Y = FMath::Round(LastMousePosition.Y);
-			Origin.Z = (FMath::Round((this->EdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z) * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
+			Origin.X = FMath::RoundToFloat(LastMousePosition.X);
+			Origin.Y = FMath::RoundToFloat(LastMousePosition.Y);
+			Origin.Z = (FMath::RoundToFloat((this->EdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z) * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
 			MeshComponent->SetRelativeLocation(Origin, false);
 		}
 
@@ -683,7 +683,7 @@ public:
 						}
 						break;
 					}
-					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = ToolTarget::CacheClass::ClampValue( FMath::Round(FMath::Lerp( OriginalValue, DestValue, It.Value() * UISettings->ToolStrength * Pressure)) );
+					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = ToolTarget::CacheClass::ClampValue( FMath::RoundToInt(FMath::Lerp( OriginalValue, DestValue, It.Value() * UISettings->ToolStrength * Pressure)) );
 				}
 				else
 				{

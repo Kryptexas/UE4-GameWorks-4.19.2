@@ -152,7 +152,7 @@ FVector2D FMacCursor::GetPosition() const
 	CGPoint CursorPos = CGEventGetLocation(Event);
 	CFRelease(Event);
 	
-	return FVector2D(FMath::Trunc(CursorPos.x), FMath::Trunc(CursorPos.y));
+	return FVector2D(FMath::TruncToFloat(CursorPos.x), FMath::TruncToFloat(CursorPos.y));
 }
 
 void FMacCursor::SetPosition( const int32 X, const int32 Y )
@@ -200,10 +200,10 @@ void FMacCursor::Lock( const RECT* const Bounds )
 	}
 	else
 	{
-		CusorClipRect.Min.X = FMath::Trunc(Bounds->left);
-		CusorClipRect.Min.Y = FMath::Trunc(Bounds->top);
-		CusorClipRect.Max.X = FMath::Trunc(Bounds->right) - 1;
-		CusorClipRect.Max.Y = FMath::Trunc(Bounds->bottom) - 1;
+		CusorClipRect.Min.X = FMath::TruncToInt(Bounds->left);
+		CusorClipRect.Min.Y = FMath::TruncToInt(Bounds->top);
+		CusorClipRect.Max.X = FMath::TruncToInt(Bounds->right) - 1;
+		CusorClipRect.Max.Y = FMath::TruncToInt(Bounds->bottom) - 1;
 	}
 
 	FVector2D CurrentPosition = GetPosition();
@@ -267,7 +267,7 @@ void FMacCursor::UpdateVisibility()
 
 void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 {
-	CGWarpMouseCursorPosition( NSMakePoint( FMath::Trunc( X ), FMath::Trunc( Y ) ) );
+	CGWarpMouseCursorPosition( NSMakePoint( FMath::TruncToInt( X ), FMath::TruncToInt( Y ) ) );
 }
 
 FVector2D FMacCursor::GetMouseWarpDelta( bool const bClearAccumulatedDelta )

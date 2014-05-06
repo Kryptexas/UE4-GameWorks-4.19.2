@@ -44,7 +44,7 @@ namespace nLiveEditorKismetLibrary
 		}
 		else
 		{
-			T NewValue = CurValue+(T)FMath::Round(Delta);
+			T NewValue = CurValue+(T)FMath::RoundToInt(Delta);
 			return NewValue;
 		}
 	}

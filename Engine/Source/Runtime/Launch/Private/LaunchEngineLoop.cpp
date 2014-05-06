@@ -1709,7 +1709,7 @@ void FEngineLoop::InitTime()
 #endif // !UE_BUILD_SHIPPING
 
 	// convert FloatMaxTickTime into number of frames (using 1 / FApp::GetFixedDeltaTime() to convert fps to seconds )
-	MaxFrameCounter = FMath::Trunc(MaxTickTime / FApp::GetFixedDeltaTime());
+	MaxFrameCounter = FMath::TruncToInt(MaxTickTime / FApp::GetFixedDeltaTime());
 }
 
 void FlushStatsFrame(bool bDiscardCallstack)

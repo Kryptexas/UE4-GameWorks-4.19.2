@@ -78,8 +78,8 @@ void FWidget::DrawHUD (FCanvas* Canvas)
 {
 	if (HUDString.Len())
 	{
-		int32 StringPosX = FMath::Floor(HUDInfoPos.X);
-		int32 StringPosY = FMath::Floor(HUDInfoPos.Y);
+		int32 StringPosX = FMath::FloorToInt(HUDInfoPos.X);
+		int32 StringPosY = FMath::FloorToInt(HUDInfoPos.Y);
 
 		//measure string size
 		int32 StringSizeX, StringSizeY;
@@ -1465,7 +1465,7 @@ void FWidget::DrawThickArc (const FThickArcParams& InParams, const FVector& Axis
 	const int32 CircleSides = (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment > 0) 
 		? AXIS_CIRCLE_SIDES + (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment / 5)
 		: AXIS_CIRCLE_SIDES;
-	const int32 NumPoints = FMath::Trunc(CircleSides * (InEndAngle-InStartAngle)/(PI/2)) + 1;
+	const int32 NumPoints = FMath::TruncToInt(CircleSides * (InEndAngle-InStartAngle)/(PI/2)) + 1;
 
 	FColor TriangleColor = InColor;
 	FColor RingColor = InColor;

@@ -1362,13 +1362,13 @@ FVolumeBounds CalculateLightVolumeBounds(const FSphere& LightBounds, const FView
 		const FVector MinPosition = (LightBounds.Center - LightBounds.W - View.TranslucencyLightingVolumeMin[VolumeCascadeIndex]) / View.TranslucencyVolumeVoxelSize[VolumeCascadeIndex];
 		const FVector MaxPosition = (LightBounds.Center + LightBounds.W - View.TranslucencyLightingVolumeMin[VolumeCascadeIndex]) / View.TranslucencyVolumeVoxelSize[VolumeCascadeIndex];
 
-		VolumeBounds.MinX = FMath::Max(FMath::Trunc(MinPosition.X), 0);
-		VolumeBounds.MinY = FMath::Max(FMath::Trunc(MinPosition.Y), 0);
-		VolumeBounds.MinZ = FMath::Max(FMath::Trunc(MinPosition.Z), 0);
+		VolumeBounds.MinX = FMath::Max(FMath::TruncToInt(MinPosition.X), 0);
+		VolumeBounds.MinY = FMath::Max(FMath::TruncToInt(MinPosition.Y), 0);
+		VolumeBounds.MinZ = FMath::Max(FMath::TruncToInt(MinPosition.Z), 0);
 
-		VolumeBounds.MaxX = FMath::Min(FMath::Trunc(MaxPosition.X) + 1, GTranslucencyLightingVolumeDim);
-		VolumeBounds.MaxY = FMath::Min(FMath::Trunc(MaxPosition.Y) + 1, GTranslucencyLightingVolumeDim);
-		VolumeBounds.MaxZ = FMath::Min(FMath::Trunc(MaxPosition.Z) + 1, GTranslucencyLightingVolumeDim);
+		VolumeBounds.MaxX = FMath::Min(FMath::TruncToInt(MaxPosition.X) + 1, GTranslucencyLightingVolumeDim);
+		VolumeBounds.MaxY = FMath::Min(FMath::TruncToInt(MaxPosition.Y) + 1, GTranslucencyLightingVolumeDim);
+		VolumeBounds.MaxZ = FMath::Min(FMath::TruncToInt(MaxPosition.Z) + 1, GTranslucencyLightingVolumeDim);
 	}
 
 	return VolumeBounds;

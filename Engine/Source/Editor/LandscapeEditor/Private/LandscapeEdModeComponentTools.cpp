@@ -53,8 +53,8 @@ public:
 				if (!bInitializedComponentInvert)
 				{
 					// Get the component under the mouse location. Copied from FLandscapeBrushComponent::ApplyBrush()
-					const int32 MouseX = FMath::Round(MousePositions[0].PositionX);
-					const int32 MouseY = FMath::Round(MousePositions[0].PositionY);
+					const int32 MouseX = FMath::RoundToInt(MousePositions[0].PositionX);
+					const int32 MouseY = FMath::RoundToInt(MousePositions[0].PositionY);
 					const int32 MouseComponentIndexX = (MouseX >= 0.f) ? MouseX / LandscapeInfo->ComponentSizeQuads : (MouseX+1) / LandscapeInfo->ComponentSizeQuads - 1;
 					const int32 MouseComponentIndexY = (MouseY >= 0.f) ? MouseY / LandscapeInfo->ComponentSizeQuads : (MouseY+1) / LandscapeInfo->ComponentSizeQuads - 1;
 					ULandscapeComponent* MouseComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(MouseComponentIndexX, MouseComponentIndexY));
@@ -139,7 +139,7 @@ public:
 							LandscapeInfo->SelectedRegion.Add(Key, FMath::Min(Value + PaintValue, 1.0f));
 						}
 
-						Data[(Key.X-X1) + (Key.Y-Y1)*(1+X2-X1)] = FMath::Clamp<int32>(FMath::Round(LandscapeInfo->SelectedRegion.FindRef(Key) * 255), 0, 255);
+						Data[(Key.X-X1) + (Key.Y-Y1)*(1+X2-X1)] = FMath::Clamp<int32>(FMath::RoundToInt(LandscapeInfo->SelectedRegion.FindRef(Key) * 255), 0, 255);
 					}
 				}
 
@@ -245,7 +245,7 @@ public:
 						Value = 255; // Just on and off for visibility, for masking...
 					}
 
-					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = FMath::Clamp<int32>(FMath::Round(Value), 0, 255);
+					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = FMath::Clamp<int32>(FMath::RoundToInt(Value), 0, 255);
 				}
 			}
 
@@ -1141,8 +1141,8 @@ public:
 			Gizmo->CachedScaleXY = ScaleXY;
 
 			// Rasterize Gizmo regions
-			int32 SizeX = FMath::Ceil(Width  / ScaleXY);
-			int32 SizeY = FMath::Ceil(Height / ScaleXY);
+			int32 SizeX = FMath::CeilToInt(Width  / ScaleXY);
+			int32 SizeY = FMath::CeilToInt(Height / ScaleXY);
 
 			const float W = (Width - ScaleXY) / (2 * ScaleXY);
 			const float H = (Height - ScaleXY) / (2 * ScaleXY);
@@ -1163,8 +1163,8 @@ public:
 				for (int32 X = 0; X < SizeX; ++X)
 				{
 					FVector LandscapeLocal = GizmoLocalToLandscape.TransformPosition(FVector( -W + X, -H + Y, 0 ));
-					int32 LX = FMath::Floor(LandscapeLocal.X);
-					int32 LY = FMath::Floor(LandscapeLocal.Y);
+					int32 LX = FMath::FloorToInt(LandscapeLocal.X);
+					int32 LY = FMath::FloorToInt(LandscapeLocal.Y);
 
 					{
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i )
@@ -1529,8 +1529,8 @@ public:
 					GizmoLocal.X *= ScaleX * SignX;
 					GizmoLocal.Y *= ScaleY * SignY;
 
-					int32 LX = FMath::Floor(GizmoLocal.X);
-					int32 LY = FMath::Floor(GizmoLocal.Y);
+					int32 LX = FMath::FloorToInt(GizmoLocal.X);
+					int32 LY = FMath::FloorToInt(GizmoLocal.Y);
 
 					float FracX = GizmoLocal.X - LX;
 					float FracY = GizmoLocal.Y - LY;

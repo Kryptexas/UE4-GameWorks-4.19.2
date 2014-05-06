@@ -811,7 +811,7 @@ FText FWorldTileModel::GetPositionText() const
 FText FWorldTileModel::GetBoundsExtentText() const
 {
 	FVector2D Size = GetLevelSize2D();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::Round(Size.X*0.5f), FMath::Round(Size.Y*0.5f)));
+	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(Size.X*0.5f), FMath::RoundToInt(Size.Y*0.5f)));
 }
 
 FText FWorldTileModel::GetLevelLayerNameText() const

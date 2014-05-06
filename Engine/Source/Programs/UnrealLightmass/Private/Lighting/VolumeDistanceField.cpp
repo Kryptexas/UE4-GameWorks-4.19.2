@@ -26,9 +26,9 @@ void FStaticLightingSystem::BeginCalculateVolumeDistanceField()
 	UnclampedDistanceFieldVolumeBounds.Max = UnclampedDistanceFieldVolumeBounds.Min + DoubleExtent;
 
 	const FVector4 VolumeSizes = UnclampedDistanceFieldVolumeBounds.GetExtent() * 2.0f / VolumeDistanceFieldSettings.VoxelSize;
-	VolumeSizeX = FMath::Trunc(VolumeSizes.X + DELTA);
-	VolumeSizeY = FMath::Trunc(VolumeSizes.Y + DELTA);
-	VolumeSizeZ = FMath::Trunc(VolumeSizes.Z + DELTA);
+	VolumeSizeX = FMath::TruncToFloat(VolumeSizes.X + DELTA);
+	VolumeSizeY = FMath::TruncToFloat(VolumeSizes.Y + DELTA);
+	VolumeSizeZ = FMath::TruncToFloat(VolumeSizes.Z + DELTA);
 
 	// Use a float to avoid 32 bit integer overflow with large volumes
 	const float NumVoxels = VolumeSizeX * VolumeSizeY * VolumeSizeZ;
@@ -49,9 +49,9 @@ void FStaticLightingSystem::BeginCalculateVolumeDistanceField()
 		DistanceFieldVolumeBounds.Max = DistanceFieldVolumeBounds.Min + DoubleExtent;
 
 		const FVector4 ClampedVolumeSizes = DistanceFieldVolumeBounds.GetExtent() * 2.0f / DistanceFieldVoxelSize;
-		VolumeSizeX = FMath::Trunc(ClampedVolumeSizes.X + DELTA);
-		VolumeSizeY = FMath::Trunc(ClampedVolumeSizes.Y + DELTA);
-		VolumeSizeZ = FMath::Trunc(ClampedVolumeSizes.Z + DELTA);
+		VolumeSizeX = FMath::TruncToFloat(ClampedVolumeSizes.X + DELTA);
+		VolumeSizeY = FMath::TruncToFloat(ClampedVolumeSizes.Y + DELTA);
+		VolumeSizeZ = FMath::TruncToFloat(ClampedVolumeSizes.Z + DELTA);
 		
 		LogSolverMessage(FString::Printf(TEXT("CalculateVolumeDistanceField %ux%ux%u, clamped to %ux%ux%u"), OldSizeX, OldSizeY, OldSizeZ, VolumeSizeX, VolumeSizeY, VolumeSizeZ));
 	}
@@ -76,8 +76,8 @@ void FStaticLightingSystem::CalculateVolumeDistanceFieldWorkRange(int32 ZIndex)
 
 	TArray<FVector4> SampleDirections;
 	TArray<FVector2D> SampleDirectionUniforms;
-	const int32 NumThetaSteps = FMath::Trunc(FMath::Sqrt(VolumeDistanceFieldSettings.NumVoxelDistanceSamples / (2.0f * (float)PI)));
-	const int32 NumPhiSteps = FMath::Trunc(NumThetaSteps * (float)PI);
+	const int32 NumThetaSteps = FMath::TruncToInt(FMath::Sqrt(VolumeDistanceFieldSettings.NumVoxelDistanceSamples / (2.0f * (float)PI)));
+	const int32 NumPhiSteps = FMath::TruncToInt(NumThetaSteps * (float)PI);
 	FLMRandomStream RandomStream(0);
 	GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, SampleDirections, SampleDirectionUniforms);
 	TArray<FVector4> OtherHemisphereSamples;
@@ -164,8 +164,8 @@ void FStaticLightingSystem::CalculateVolumeDistanceFieldWorkRange(int32 ZIndex)
 			const float NormalizedDistance1 = FMath::Clamp(MinDistance[1] / VolumeDistanceFieldSettings.VolumeMaxDistance + .5f, 0.0f, 1.0f);
 
 			const FColor FinalValue(
-				FMath::Clamp<uint8>(FMath::Trunc(NormalizedDistance0 * 255), 0, 255), 
-				FMath::Clamp<uint8>(FMath::Trunc(NormalizedDistance1 * 255), 0, 255), 
+				FMath::Clamp<uint8>(FMath::TruncToInt(NormalizedDistance0 * 255), 0, 255), 
+				FMath::Clamp<uint8>(FMath::TruncToInt(NormalizedDistance1 * 255), 0, 255), 
 				Mask0,
 				Mask1
 				);

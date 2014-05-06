@@ -48,7 +48,7 @@ float FAnimSegment::ConvertTrackPosToAnimPos(const float & TrackPosition) const
 	const float AnimPositionUnWrapped = (TrackPosition - StartPos) * GetValidPlayRate();
 
 	// Figure out how many times animation is allowed to be looped.
-	const float LoopCount = FMath::Min(FMath::Floor(AnimPositionUnWrapped / AnimLength), FMath::Max(LoopingCount-1, 0));
+	const float LoopCount = FMath::Min(FMath::FloorToInt(AnimPositionUnWrapped / AnimLength), FMath::Max(LoopingCount-1, 0));
 	// Position within AnimSequence
 	const float AnimPosition = AnimStartTime + AnimPositionUnWrapped - float(LoopCount) * AnimLength;
 	

@@ -1345,7 +1345,7 @@ void FOculusRiftHMD::PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *I
 {
 	if (StereoPass != eSSP_FULL)
 	{
-		int32 SideSizeX = FMath::Trunc(InViewport->GetSizeXY().X * 0.5);
+		int32 SideSizeX = FMath::TruncToInt(InViewport->GetSizeXY().X * 0.5);
 
 		// !AB: temporarily assuming all canvases are at Z = 1.0f and calculating
 		// stereo disparity right here. Stereo disparity should be calculated for each

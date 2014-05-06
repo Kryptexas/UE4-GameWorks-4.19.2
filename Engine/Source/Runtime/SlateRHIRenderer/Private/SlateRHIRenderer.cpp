@@ -292,8 +292,8 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		const FVector2D WindowSize = Window->GetSizeInScreen();
 		// Clamp the window size to a reasonable default anything below 8 is a d3d warning and 8 is used anyway.
 		// @todo Slate: This is a hack to work around menus being summoned with 0,0 for window size until they are ticked.
-		const uint32 Width = FMath::Max(8,FMath::Trunc(WindowSize.X));
-		const uint32 Height = FMath::Max(8,FMath::Trunc(WindowSize.Y));
+		const uint32 Width = FMath::Max(8,FMath::TruncToInt(WindowSize.X));
+		const uint32 Height = FMath::Max(8,FMath::TruncToInt(WindowSize.Y));
 
 		FViewportInfo* NewInfo = new FViewportInfo();
 		// Create Viewport RHI if it doesn't exist (this must be done on the game thread)

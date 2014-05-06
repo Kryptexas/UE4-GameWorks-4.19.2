@@ -170,7 +170,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 				{
 					SMComp->Modify();
 					float AdjustedResolution = (float)CurrentResolution * (Settings.Ratio);
-					int32 NewResolution = FMath::Trunc(AdjustedResolution);
+					int32 NewResolution = FMath::TruncToInt(AdjustedResolution);
 					NewResolution = FMath::Max(NewResolution + 3 & ~3,4);
 					SMComp->SetStaticLightingMapping(true, NewResolution);
 					SMComp->InvalidateLightingCache();
@@ -220,7 +220,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 					if (bConvertIt == true)
 					{
 						Model->ModifySurf( SurfaceIndex, true );
-						int32 NewResolution = FMath::Trunc(Surf.LightMapScale * Scalar);
+						int32 NewResolution = FMath::TruncToInt(Surf.LightMapScale * Scalar);
 						NewResolution = FMath::Max(NewResolution + 3 & ~3,4);
 						Surf.LightMapScale = (float)NewResolution;
 						if (Surf.Actor != NULL)

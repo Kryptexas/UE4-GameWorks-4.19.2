@@ -646,19 +646,19 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	// Finally, let's initialize the new native window object.  Calling this function will often cause OS
 	// window messages to be sent! (such as activation messages)
 
-	const int32 X = FMath::Trunc( Definition->XDesiredPositionOnScreen );
+	const int32 X = FMath::TruncToInt( Definition->XDesiredPositionOnScreen );
 
 	NSScreen* TargetScreen = Application->FindScreenByPoint( X, Definition->YDesiredPositionOnScreen );
 
-	int32 Y = FMath::Trunc( Definition->YDesiredPositionOnScreen );
+	int32 Y = FMath::TruncToInt( Definition->YDesiredPositionOnScreen );
 
 	// Make sure it's not under the menu bar on whatever display being targeted
-	const int32 ScreenHeight = FMath::Trunc( [TargetScreen frame].size.height );
-	const int32 VisibleHeight = FMath::Trunc( [TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height );
+	const int32 ScreenHeight = FMath::TruncToInt( [TargetScreen frame].size.height );
+	const int32 VisibleHeight = FMath::TruncToInt( [TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height );
 	Y = FMath::Max( Y, ScreenHeight - VisibleHeight );
 
-	const int32 SizeX = FMath::Max(FMath::Trunc( Definition->WidthDesiredOnScreen ), 1);
-	const int32 SizeY = FMath::Max(FMath::Trunc( Definition->HeightDesiredOnScreen ), 1);
+	const int32 SizeX = FMath::Max(FMath::TruncToInt( Definition->WidthDesiredOnScreen ), 1);
+	const int32 SizeY = FMath::Max(FMath::TruncToInt( Definition->HeightDesiredOnScreen ), 1);
 
 	PositionX = X;
 	PositionY = Y;

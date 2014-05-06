@@ -123,8 +123,8 @@ void FMultiBoxCustomizationData::LoadCustomizedBlocks()
 			{
 				FString CommandName = SavedCommand->GetStringField( TEXT("CommandName") );
 				FString Context = SavedCommand->GetStringField( TEXT("Context") );
-				int32 Index = FMath::Trunc( SavedCommand->GetNumberField( TEXT("Index") ) );
-				FCustomBlockTransaction::ETransactionType TransType = (FCustomBlockTransaction::ETransactionType)FMath::Trunc( SavedCommand->GetNumberField("TransactionType") );
+				int32 Index = FMath::TruncToInt( SavedCommand->GetNumberField( TEXT("Index") ) );
+				FCustomBlockTransaction::ETransactionType TransType = (FCustomBlockTransaction::ETransactionType)FMath::TruncToInt( SavedCommand->GetNumberField("TransactionType") );
 
 				if( !CommandName.IsEmpty() && !Context.IsEmpty() && Index >= 0 )
 				{

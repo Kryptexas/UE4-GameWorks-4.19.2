@@ -1819,7 +1819,7 @@ void FProjectedShadowInfo::RenderProjection(int32 ViewIndex, const FViewInfo* Vi
 			else if (LocalQuality > 2 && !bWholeSceneShadow)
 			{
 				auto CVarPreShadowResolutionFactor = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.PreShadowResolutionFactor"));
-				const int32 TargetResolution = bPreShadow ? FMath::Trunc(512 * CVarPreShadowResolutionFactor->GetValueOnRenderThread()) : 512;
+				const int32 TargetResolution = bPreShadow ? FMath::TruncToInt(512 * CVarPreShadowResolutionFactor->GetValueOnRenderThread()) : 512;
 
 				int32 Reduce = 0;
 

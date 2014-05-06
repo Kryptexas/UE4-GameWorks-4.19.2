@@ -641,7 +641,7 @@ float FParticleBeam2EmitterInstance::SpawnBeamParticles(float OldLeftover, float
 	float	NewLeftover = OldLeftover + DeltaTime * Rate;
 
 	// Ensure continous spawning... lots of fiddling.
-	int32		Number		= FMath::Floor(NewLeftover);
+	int32		Number		= FMath::FloorToInt(NewLeftover);
 	float	Increment	= 1.f / Rate;
 	float	StartTime	= DeltaTime + OldLeftover * Increment - Increment;
 	NewLeftover			= NewLeftover - Number;
@@ -681,11 +681,11 @@ float FParticleBeam2EmitterInstance::SpawnBeamParticles(float OldLeftover, float
 	{
 		if (DeltaTime < 0.25f)
 		{
-			bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1);
+			bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1);
 		}
 		else
 		{
-			bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1), false);
+			bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1), false);
 		}
 	}
 

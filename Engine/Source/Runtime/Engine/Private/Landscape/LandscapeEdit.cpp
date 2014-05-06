@@ -580,11 +580,11 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 	float CollisionQuadRatio = (float)CollisionSubsectionSizeQuads / (float)SubsectionSizeQuads;
 
 	// XY offset into heightmap mip data
-	int32 HeightmapOffsetX = FMath::Round(HeightmapScaleBias.Z * (float)HeightmapSizeU) >> CollisionMipLevel;
-	int32 HeightmapOffsetY = FMath::Round(HeightmapScaleBias.W * (float)HeightmapSizeV) >> CollisionMipLevel;
+	int32 HeightmapOffsetX = FMath::RoundToInt(HeightmapScaleBias.Z * (float)HeightmapSizeU) >> CollisionMipLevel;
+	int32 HeightmapOffsetY = FMath::RoundToInt(HeightmapScaleBias.W * (float)HeightmapSizeV) >> CollisionMipLevel;
 
-	//int32 WeightmapOffsetX = FMath::Round(WeightmapScaleBias.Z * (float)XYMipSizeU) >> CollisionMipLevel;
-	//int32 WeightmapOffsetY = FMath::Round(WeightmapScaleBias.W * (float)XYMipSizeV) >> CollisionMipLevel;
+	//int32 WeightmapOffsetX = FMath::RoundToInt(WeightmapScaleBias.Z * (float)XYMipSizeU) >> CollisionMipLevel;
+	//int32 WeightmapOffsetY = FMath::RoundToInt(WeightmapScaleBias.W * (float)XYMipSizeV) >> CollisionMipLevel;
 
 	for( int32 SubsectionY = 0;SubsectionY < NumSubsections;SubsectionY++ )
 	{
@@ -611,10 +611,10 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			int32 SubY2 = ComponentY2 - SubsectionSizeQuads*SubsectionY;
 
 			// Area to update in collision mip level coords
-			int32 CollisionSubX1 = FMath::Floor( (float)SubX1 * CollisionQuadRatio );
-			int32 CollisionSubY1 = FMath::Floor( (float)SubY1 * CollisionQuadRatio );
-			int32 CollisionSubX2 = FMath::Ceil(  (float)SubX2 * CollisionQuadRatio );
-			int32 CollisionSubY2 = FMath::Ceil(  (float)SubY2 * CollisionQuadRatio );
+			int32 CollisionSubX1 = FMath::FloorToInt( (float)SubX1 * CollisionQuadRatio );
+			int32 CollisionSubY1 = FMath::FloorToInt( (float)SubY1 * CollisionQuadRatio );
+			int32 CollisionSubX2 = FMath::CeilToInt(  (float)SubX2 * CollisionQuadRatio );
+			int32 CollisionSubY2 = FMath::CeilToInt(  (float)SubY2 * CollisionQuadRatio );
 
 			// Clamp area to update
 			int32 VertX1 = FMath::Clamp<int32>(CollisionSubX1, 0, CollisionSubsectionSizeQuads);
@@ -688,10 +688,10 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		}
 		else
 		{
-			int32 CollisionCompX1 = FMath::Floor( (float)ComponentX1 * CollisionQuadRatio );
-			int32 CollisionCompY1 = FMath::Floor( (float)ComponentY1 * CollisionQuadRatio );
-			int32 CollisionCompX2 = FMath::Ceil(  (float)ComponentX2 * CollisionQuadRatio );
-			int32 CollisionCompY2 = FMath::Ceil(  (float)ComponentY2 * CollisionQuadRatio );
+			int32 CollisionCompX1 = FMath::FloorToInt( (float)ComponentX1 * CollisionQuadRatio );
+			int32 CollisionCompY1 = FMath::FloorToInt( (float)ComponentY1 * CollisionQuadRatio );
+			int32 CollisionCompX2 = FMath::CeilToInt(  (float)ComponentX2 * CollisionQuadRatio );
+			int32 CollisionCompY2 = FMath::CeilToInt(  (float)ComponentY2 * CollisionQuadRatio );
 			CollisionComp->UpdateHeightfieldRegion(CollisionCompX1, CollisionCompY1, CollisionCompX2, CollisionCompY2);
 		}
 	}
@@ -823,10 +823,10 @@ void ULandscapeComponent::UpdateCollisionLayerData(TArray<FColor*>& WeightmapTex
 					int32 SubY2 = ComponentY2 - SubsectionSizeQuads*SubsectionY;
 
 					// Area to update in collision mip level coords
-					int32 CollisionSubX1 = FMath::Floor( (float)SubX1 * CollisionQuadRatio );
-					int32 CollisionSubY1 = FMath::Floor( (float)SubY1 * CollisionQuadRatio );
-					int32 CollisionSubX2 = FMath::Ceil(  (float)SubX2 * CollisionQuadRatio );
-					int32 CollisionSubY2 = FMath::Ceil(  (float)SubY2 * CollisionQuadRatio );
+					int32 CollisionSubX1 = FMath::FloorToInt( (float)SubX1 * CollisionQuadRatio );
+					int32 CollisionSubY1 = FMath::FloorToInt( (float)SubY1 * CollisionQuadRatio );
+					int32 CollisionSubX2 = FMath::CeilToInt(  (float)SubX2 * CollisionQuadRatio );
+					int32 CollisionSubY2 = FMath::CeilToInt(  (float)SubY2 * CollisionQuadRatio );
 
 					// Clamp area to update
 					int32 VertX1 = FMath::Clamp<int32>(CollisionSubX1, 0, CollisionSubsectionSizeQuads);
@@ -933,8 +933,8 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 	int32 HeightmapSizeU = HeightmapTexture->Source.GetSizeX();
 	int32 HeightmapSizeV = HeightmapTexture->Source.GetSizeY();
 
-	int32 HeightmapOffsetX = FMath::Round(HeightmapScaleBias.Z * (float)HeightmapSizeU);
-	int32 HeightmapOffsetY = FMath::Round(HeightmapScaleBias.W * (float)HeightmapSizeV);
+	int32 HeightmapOffsetX = FMath::RoundToInt(HeightmapScaleBias.Z * (float)HeightmapSizeU);
+	int32 HeightmapOffsetY = FMath::RoundToInt(HeightmapScaleBias.W * (float)HeightmapSizeV);
 
 	for( int32 SubsectionY = 0;SubsectionY < NumSubsections;SubsectionY++ )
 	{
@@ -981,10 +981,10 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 				int32 MipHeightmapOffsetY = HeightmapOffsetY>>Mip;
 
 				// Area to update in current mip level coords
-				int32 MipSubX1 = FMath::Floor( (float)MipSubsectionSizeQuads * (float)PrevMipSubX1 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubY1 = FMath::Floor( (float)MipSubsectionSizeQuads * (float)PrevMipSubY1 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubX2 = FMath::Ceil(  (float)MipSubsectionSizeQuads * (float)PrevMipSubX2 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubY2 = FMath::Ceil(  (float)MipSubsectionSizeQuads * (float)PrevMipSubY2 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubX1 = FMath::FloorToInt( (float)MipSubsectionSizeQuads * (float)PrevMipSubX1 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubY1 = FMath::FloorToInt( (float)MipSubsectionSizeQuads * (float)PrevMipSubY1 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubX2 = FMath::CeilToInt(  (float)MipSubsectionSizeQuads * (float)PrevMipSubX2 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubY2 = FMath::CeilToInt(  (float)MipSubsectionSizeQuads * (float)PrevMipSubY2 * InvPrevMipSubsectionSizeQuads );
 
 				// Clamp area to update
 				int32 VertX1 = FMath::Clamp<int32>(MipSubX1, 0, MipSubsectionSizeQuads);
@@ -1006,13 +1006,13 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 						// above to process all verts from 0 .. MipSubsectionSizeQuads.
 						if( VertX < VertX1 || VertX > VertX2 )
 						{
-							check( FMath::Ceil(PrevMipVertX) < PrevMipSubX1 || FMath::Floor(PrevMipVertX) > PrevMipSubX2 );
+							check( FMath::CeilToInt(PrevMipVertX) < PrevMipSubX1 || FMath::FloorToInt(PrevMipVertX) > PrevMipSubX2 );
 							continue;
 						}
 
 						if( VertY < VertY1 || VertY > VertY2 )
 						{
-							check( FMath::Ceil(PrevMipVertY) < PrevMipSubY1 || FMath::Floor(PrevMipVertY) > PrevMipSubY2 );
+							check( FMath::CeilToInt(PrevMipVertY) < PrevMipSubY1 || FMath::FloorToInt(PrevMipVertY) > PrevMipSubY2 );
 							continue;
 						}
 #endif
@@ -1024,9 +1024,9 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 						float fPrevMipTexX = (float)(PrevMipHeightmapOffsetX) + (float)((PrevMipSubsectionSizeQuads+1) * SubsectionX) + PrevMipVertX;
 						float fPrevMipTexY = (float)(PrevMipHeightmapOffsetY) + (float)((PrevMipSubsectionSizeQuads+1) * SubsectionY) + PrevMipVertY;
 
-						int32 PrevMipTexX = FMath::Floor(fPrevMipTexX);
+						int32 PrevMipTexX = FMath::FloorToInt(fPrevMipTexX);
 						float fPrevMipTexFracX = FMath::Fractional(fPrevMipTexX);
-						int32 PrevMipTexY = FMath::Floor(fPrevMipTexY);
+						int32 PrevMipTexY = FMath::FloorToInt(fPrevMipTexY);
 						float fPrevMipTexFracY = FMath::Fractional(fPrevMipTexY);
 
 						checkSlow( TexX >= 0 && TexX < MipSizeU );
@@ -1071,7 +1071,7 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 						uint16 PrevMipHeightValue01 = PreMipTexData01->R << 8 | PreMipTexData01->G;
 						uint16 PrevMipHeightValue10 = PreMipTexData10->R << 8 | PreMipTexData10->G;
 						uint16 PrevMipHeightValue11 = PreMipTexData11->R << 8 | PreMipTexData11->G;
-						uint16 HeightValue = FMath::Round(
+						uint16 HeightValue = FMath::RoundToInt(
 							FMath::Lerp(
 							FMath::Lerp( (float)PrevMipHeightValue00, (float)PrevMipHeightValue10, fPrevMipTexFracX),
 							FMath::Lerp( (float)PrevMipHeightValue01, (float)PrevMipHeightValue11, fPrevMipTexFracX),
@@ -1081,13 +1081,13 @@ void ULandscapeComponent::GenerateHeightmapMips( TArray<FColor*>& HeightmapTextu
 						TexData->G = HeightValue & 255;
 
 						// Lerp tangents
-						TexData->B = FMath::Round(
+						TexData->B = FMath::RoundToInt(
 							FMath::Lerp(
 							FMath::Lerp( (float)PreMipTexData00->B, (float)PreMipTexData10->B, fPrevMipTexFracX),
 							FMath::Lerp( (float)PreMipTexData01->B, (float)PreMipTexData11->B, fPrevMipTexFracX),
 							fPrevMipTexFracY) );
 
-						TexData->A = FMath::Round(
+						TexData->A = FMath::RoundToInt(
 							FMath::Lerp(
 							FMath::Lerp( (float)PreMipTexData00->A, (float)PreMipTexData10->A, fPrevMipTexFracX),
 							FMath::Lerp( (float)PreMipTexData01->A, (float)PreMipTexData11->A, fPrevMipTexFracX),
@@ -1206,7 +1206,7 @@ namespace
 	template<typename DataType>
 	void BiLerpTextureData(DataType* Output, const DataType* Data00, const DataType* Data10, const DataType* Data01, const DataType* Data11, float FracX, float FracY)
 	{
-		*Output = FMath::Round(
+		*Output = FMath::RoundToInt(
 			FMath::Lerp(
 			FMath::Lerp( (float)*Data00, (float)*Data10, FracX),
 			FMath::Lerp( (float)*Data01, (float)*Data11, FracX),
@@ -1216,22 +1216,22 @@ namespace
 	template<>
 	void BiLerpTextureData(FColor* Output, const FColor* Data00, const FColor* Data10, const FColor* Data01, const FColor* Data11, float FracX, float FracY)
 	{
-		Output->R = FMath::Round(
+		Output->R = FMath::RoundToInt(
 			FMath::Lerp(
 			FMath::Lerp( (float)Data00->R, (float)Data10->R, FracX),
 			FMath::Lerp( (float)Data01->R, (float)Data11->R, FracX),
 			FracY) );
-		Output->G = FMath::Round(
+		Output->G = FMath::RoundToInt(
 			FMath::Lerp(
 			FMath::Lerp( (float)Data00->G, (float)Data10->G, FracX),
 			FMath::Lerp( (float)Data01->G, (float)Data11->G, FracX),
 			FracY) );
-		Output->B = FMath::Round(
+		Output->B = FMath::RoundToInt(
 			FMath::Lerp(
 			FMath::Lerp( (float)Data00->B, (float)Data10->B, FracX),
 			FMath::Lerp( (float)Data01->B, (float)Data11->B, FracX),
 			FracY) );
-		Output->A = FMath::Round(
+		Output->A = FMath::RoundToInt(
 			FMath::Lerp(
 			FMath::Lerp( (float)Data00->A, (float)Data10->A, FracX),
 			FMath::Lerp( (float)Data01->A, (float)Data11->A, FracX),
@@ -1321,10 +1321,10 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 				float InvMipSubsectionSizeQuads = 1.f / (float)MipSubsectionSizeQuads;
 
 				// Area to update in current mip level coords
-				int32 MipSubX1 = FMath::Floor( (float)MipSubsectionSizeQuads * (float)PrevMipSubX1 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubY1 = FMath::Floor( (float)MipSubsectionSizeQuads * (float)PrevMipSubY1 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubX2 = FMath::Ceil(  (float)MipSubsectionSizeQuads * (float)PrevMipSubX2 * InvPrevMipSubsectionSizeQuads );
-				int32 MipSubY2 = FMath::Ceil(  (float)MipSubsectionSizeQuads * (float)PrevMipSubY2 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubX1 = FMath::FloorToInt( (float)MipSubsectionSizeQuads * (float)PrevMipSubX1 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubY1 = FMath::FloorToInt( (float)MipSubsectionSizeQuads * (float)PrevMipSubY1 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubX2 = FMath::CeilToInt(  (float)MipSubsectionSizeQuads * (float)PrevMipSubX2 * InvPrevMipSubsectionSizeQuads );
+				int32 MipSubY2 = FMath::CeilToInt(  (float)MipSubsectionSizeQuads * (float)PrevMipSubY2 * InvPrevMipSubsectionSizeQuads );
 
 				// Clamp area to update
 				int32 VertX1 = FMath::Clamp<int32>(MipSubX1, 0, MipSubsectionSizeQuads);
@@ -1347,9 +1347,9 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 						float fPrevMipTexX = (float)((PrevMipSubsectionSizeQuads+1) * SubsectionX) + PrevMipVertX;
 						float fPrevMipTexY = (float)((PrevMipSubsectionSizeQuads+1) * SubsectionY) + PrevMipVertY;
 
-						int32 PrevMipTexX = FMath::Floor(fPrevMipTexX);
+						int32 PrevMipTexX = FMath::FloorToInt(fPrevMipTexX);
 						float fPrevMipTexFracX = FMath::Fractional(fPrevMipTexX);
-						int32 PrevMipTexY = FMath::Floor(fPrevMipTexY);
+						int32 PrevMipTexY = FMath::FloorToInt(fPrevMipTexY);
 						float fPrevMipTexFracY = FMath::Fractional(fPrevMipTexY);
 
 						check( TexX >= 0 && TexX < MipSizeU );
@@ -1479,10 +1479,10 @@ float ULandscapeComponent::GetLayerWeightAtLocation( const FVector& InLocation, 
 	float TestY = (InLocation.Y-Landscape->GetActorLocation().Y) / DrawScale.Y - (float)GetSectionBase().Y;
 
 	// Find data
-	int32 X1 = FMath::Floor(TestX);
-	int32 Y1 = FMath::Floor(TestY);
-	int32 X2 = FMath::Ceil(TestX);
-	int32 Y2 = FMath::Ceil(TestY);
+	int32 X1 = FMath::FloorToInt(TestX);
+	int32 Y1 = FMath::FloorToInt(TestY);
+	int32 X2 = FMath::CeilToInt(TestX);
+	int32 Y2 = FMath::CeilToInt(TestY);
 
 	int32 Stride = (SubsectionSizeQuads+1) * NumSubsections;
 
@@ -2151,8 +2151,8 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 
 							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].R = HeightValue >> 8;
 							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].G = HeightValue & 255;
-							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].B = FMath::Round( 127.5f * (Normal.X + 1.f) );
-							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].A = FMath::Round( 127.5f * (Normal.Y + 1.f) );
+							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
+							HeightmapInfo.HeightmapTextureMipData[0][HeightTexDataIdx].A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
 
 							for( int32 WeightmapIndex=0;WeightmapIndex<WeightValues.Num(); WeightmapIndex++ )
 							{
@@ -2482,10 +2482,10 @@ FVector ULandscapeInfo::GetLandscapeCenterPos(float& LengthZ, int32 MinX /*= MAX
 
 		const int32 Dist = (ComponentSizeQuads+1) >> 1; // Should be same in ALandscapeGizmoActiveActor::SetTargetLandscape
 		FVector2D MidPoint(((float)(MinX+MaxX))/2.f, ((float)(MinY+MaxY))/2.f);
-		MinX = FMath::Floor(MidPoint.X) - Dist;
-		MaxX = FMath::Ceil(MidPoint.X) + Dist;
-		MinY = FMath::Floor(MidPoint.Y) - Dist;
-		MaxY = FMath::Ceil(MidPoint.Y) + Dist;
+		MinX = FMath::FloorToInt(MidPoint.X) - Dist;
+		MaxX = FMath::CeilToInt(MidPoint.X) + Dist;
+		MinY = FMath::FloorToInt(MidPoint.Y) - Dist;
+		MaxY = FMath::CeilToInt(MidPoint.Y) + Dist;
 		check(MidPoint.X == ((float)(MinX+MaxX))/2.f && MidPoint.Y == ((float)(MinY+MaxY))/2.f );
 	}
 
@@ -2838,10 +2838,10 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 		FBox LandscapeBounds = ControlPoint->GetBounds();
 		LandscapeBounds = LandscapeBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
 
-		int32 MinX = FMath::Ceil(LandscapeBounds.Min.X);
-		int32 MinY = FMath::Ceil(LandscapeBounds.Min.Y);
-		int32 MaxX = FMath::Floor(LandscapeBounds.Max.X);
-		int32 MaxY = FMath::Floor(LandscapeBounds.Max.Y);
+		int32 MinX = FMath::CeilToInt(LandscapeBounds.Min.X);
+		int32 MinY = FMath::CeilToInt(LandscapeBounds.Min.Y);
+		int32 MaxX = FMath::FloorToInt(LandscapeBounds.Max.X);
+		int32 MaxY = FMath::FloorToInt(LandscapeBounds.Max.Y);
 
 		FLandscapeEditDataInterface LandscapeEdit(this);
 		TArray<FLandscapeSplineInterpPoint> Points = ControlPoint->GetPoints();
@@ -2991,10 +2991,10 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 		FBox LandscapeBounds = Segment->GetBounds();
 		LandscapeBounds = LandscapeBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
 
-		int32 MinX = FMath::Ceil(LandscapeBounds.Min.X);
-		int32 MinY = FMath::Ceil(LandscapeBounds.Min.Y);
-		int32 MaxX = FMath::Floor(LandscapeBounds.Max.X);
-		int32 MaxY = FMath::Floor(LandscapeBounds.Max.Y);
+		int32 MinX = FMath::CeilToInt(LandscapeBounds.Min.X);
+		int32 MinY = FMath::CeilToInt(LandscapeBounds.Min.Y);
+		int32 MaxX = FMath::FloorToInt(LandscapeBounds.Max.X);
+		int32 MaxY = FMath::FloorToInt(LandscapeBounds.Max.Y);
 
 		FLandscapeEditDataInterface LandscapeEdit(this);
 		TArray<FLandscapeSplineInterpPoint> Points = Segment->GetPoints();
@@ -4903,10 +4903,10 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 				{
 					for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
 					{
-						int32 x0 = FMath::Round((float)x * MipRatio);
-						int32 y0 = FMath::Round((float)y * MipRatio);
-						int32 x1 = FMath::Round((float)(x + 1) * MipRatio);
-						int32 y1 = FMath::Round((float)(y + 1) * MipRatio);
+						int32 x0 = FMath::RoundToInt((float)x * MipRatio);
+						int32 y0 = FMath::RoundToInt((float)y * MipRatio);
+						int32 x1 = FMath::RoundToInt((float)(x + 1) * MipRatio);
+						int32 y1 = FMath::RoundToInt((float)(y + 1) * MipRatio);
 
 						FLandscapeVertexRef V1(x0, y0, SubX, SubY);
 						FLandscapeVertexRef V2(x1, y0, SubX, SubY);
@@ -4955,8 +4955,8 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 
 		float HeightmapScaleBiasZ = HeightmapScaleBias.Z + HeightmapSubsectionOffsetU * (float)SubX;
 		float HeightmapScaleBiasW = HeightmapScaleBias.W + HeightmapSubsectionOffsetV * (float)SubY;
-		int32 BaseMipOfsX = FMath::Round(HeightmapScaleBiasZ * (float)HeightmapTexture->Source.GetSizeX());
-		int32 BaseMipOfsY = FMath::Round(HeightmapScaleBiasW * (float)HeightmapTexture->Source.GetSizeY());
+		int32 BaseMipOfsX = FMath::RoundToInt(HeightmapScaleBiasZ * (float)HeightmapTexture->Source.GetSizeX());
+		int32 BaseMipOfsY = FMath::RoundToInt(HeightmapScaleBiasW * (float)HeightmapTexture->Source.GetSizeY());
 
 		DstVert->Position[0] = X;
 		DstVert->Position[1] = Y;
@@ -4979,8 +4979,8 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 			int32 CurrentMipOfsY = BaseMipOfsY >> Mip;
 
 			float MipRatio = (float)MipSubsectionSizeQuads / (float)SubsectionSizeQuads; // Morph Base to current MIP
-			int32 MipX = FMath::Round((float)X * MipRatio);
-			int32 MipY = FMath::Round((float)Y * MipRatio);
+			int32 MipX = FMath::RoundToInt((float)X * MipRatio);
+			int32 MipY = FMath::RoundToInt((float)Y * MipRatio);
 
 			FColor* CurrentMipSrcRow = HeightmapMipData[Mip] + (CurrentMipOfsY + MipY) * MipSizeX + CurrentMipOfsX;
 			uint16 Height = CurrentMipSrcRow[MipX].R << 8 | CurrentMipSrcRow[MipX].G;
@@ -4999,11 +4999,11 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 		{
 			if (Mip < 4)
 			{
-				DstVert->LODHeights[4 + Mip] = FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255);
+				DstVert->LODHeights[4 + Mip] = FMath::RoundToInt(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255);
 			}
 			else // Mip 4 5 packed into SubX, SubY
 			{
-				DstVert->Position[Mip - 2] += (FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255)) & (0xfffe);
+				DstVert->Position[Mip - 2] += (FMath::RoundToInt(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255)) & (0xfffe);
 			}
 		}
 

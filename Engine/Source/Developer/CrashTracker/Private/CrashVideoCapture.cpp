@@ -220,14 +220,14 @@ void FCrashVideoCapture::SaveFinalCapture( const FString& CapturePath )
 	// this may not be useful with a crash on a non-game thread, because the final frame can't be drawn
 	if (FinalFrame)
 	{
-		int32 ExtraFramesAdded = FMath::Trunc(1.f / CrashTrackerConstants::CaptureFrequency);
+		int32 ExtraFramesAdded = FMath::TruncToInt(1.f / CrashTrackerConstants::CaptureFrequency);
 		for (int32 i = 0; i < ExtraFramesAdded; ++i)
 		{
 			OrderedDataFrames.Add(FinalFrame);
 		}
 	}
 
-	DumpOutMJPEGAVI(OrderedDataFrames, CapturePath, Width, Height, FMath::Trunc(1.f / CrashTrackerConstants::CaptureFrequency));
+	DumpOutMJPEGAVI(OrderedDataFrames, CapturePath, Width, Height, FMath::TruncToInt(1.f / CrashTrackerConstants::CaptureFrequency));
 
 	UE_LOG(LogCrashTracker, Log, TEXT("Finished dumping out crash capture video. %i Frames at %ix%i"), OrderedDataFrames.Num(), Width, Height);
 }
@@ -263,7 +263,7 @@ void FCrashVideoCapture::Update(float DeltaSeconds)
 		CurrentAccumSeconds += DeltaSeconds;
 		if (CurrentAccumSeconds > CrashTrackerConstants::CaptureFrequency)
 		{
-			CurrentAccumSeconds -= FMath::Trunc(CurrentAccumSeconds / CrashTrackerConstants::CaptureFrequency) * CrashTrackerConstants::CaptureFrequency;
+			CurrentAccumSeconds -= FMath::TruncToFloat(CurrentAccumSeconds / CrashTrackerConstants::CaptureFrequency) * CrashTrackerConstants::CaptureFrequency;
 			bShouldUpdate = true;
 		}
 

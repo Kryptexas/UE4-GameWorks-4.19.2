@@ -1016,7 +1016,7 @@ bool FParticleRibbonEmitterInstance::GetSpawnPerUnitAmount(float DeltaTime, int3
 				NewLeftover += CheckTangent * TrailTypeData->TangentSpawningScalar;
 
 				const float InvDeltaTime = DeltaTime > 0.0f ? 1.0f / DeltaTime : 0.0f;
-				OutCount = (TrailTypeData->bSpawnInitialParticle && !ActiveParticles && (NewLeftover < 1.0f))? 1: FMath::Floor(NewLeftover);
+				OutCount = (TrailTypeData->bSpawnInitialParticle && !ActiveParticles && (NewLeftover < 1.0f))? 1: FMath::FloorToInt(NewLeftover);
 				OutRate = OutCount * InvDeltaTime;
 				NewTravelLeftover = (TravelDistance + LeftoverTravel) - (OutCount * SpawnPerUnitModule->UnitScalar);
 				SourceDistanceTraveled[InTrailIdx] = FMath::Max<float>(0.0f, NewTravelLeftover);
@@ -1223,7 +1223,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 	const int32 LocalMaxParticleInTrailCount = TrailTypeData->MaxParticleInTrailCount;
 	float SafetyLeftover = OldLeftover;
 	float NewLeftover = OldLeftover + DeltaTime * SpawnRate;
-	int32 SpawnNumber	= FMath::Floor(NewLeftover);
+	int32 SpawnNumber	= FMath::FloorToInt(NewLeftover);
 	float SliceIncrement = (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 	float SpawnStartTime = DeltaTime + OldLeftover * SliceIncrement - SliceIncrement;
 	SpawnFraction = NewLeftover - SpawnNumber;
@@ -1251,11 +1251,11 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 	{
 		if (DeltaTime < 0.25f)
 		{
-			bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1);
+			bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1);
 		}
 		else
 		{
-			bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1), false);
+			bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1), false);
 		}
 	}
 
@@ -1585,11 +1585,11 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 		{
 			if (DeltaTime < 0.25f)
 			{
-				bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1);
+				bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1);
 			}
 			else
 			{
-				bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1), false);
+				bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt((float)NewCount)) + 1), false);
 			}
 		}
 
@@ -2188,7 +2188,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						{
 						case EPSSM_Random:
 							{
-								Index = FMath::Trunc(FMath::FRand() * SourceEmitter->ActiveParticles);
+								Index = FMath::TruncToInt(FMath::FRand() * SourceEmitter->ActiveParticles);
 							}
 							break;
 						case EPSSM_Sequential:
@@ -2431,7 +2431,7 @@ void FParticleRibbonEmitterInstance::DetermineVertexAndTriangleCount()
 
 					//@todo. Need to adjust the tangent diff count when the distance is REALLY small...
 					float TangDiff = CheckTangent * TrailTypeData->TangentTessellationScalar;
-					int32 InterpCount = FMath::Trunc(DistDiff) + FMath::Trunc(TangDiff);
+					int32 InterpCount = FMath::TruncToInt(DistDiff) + FMath::TruncToInt(TangDiff);
 
 					// There always is at least 1 point (the source particle itself)
 					InterpCount = (InterpCount > 0) ? InterpCount : 1;
@@ -3306,7 +3306,7 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 
 	float SafetyLeftover = OldLeftover;
 	float NewLeftover = OldLeftover + DeltaTime * SpawnRate;
-	int32 SpawnNumber	= FMath::Floor(NewLeftover);
+	int32 SpawnNumber	= FMath::FloorToInt(NewLeftover);
 	float SliceIncrement = (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 	float SpawnStartTime = DeltaTime + OldLeftover * SliceIncrement - SliceIncrement;
 	SpawnFraction = NewLeftover - SpawnNumber;
@@ -3332,11 +3332,11 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	{
 		if (DeltaTime < 0.25f)
 		{
-			bProcessSpawn = Resize(TotalCount + FMath::Trunc(FMath::Sqrt((float)TotalCount)) + 1);
+			bProcessSpawn = Resize(TotalCount + FMath::TruncToInt(FMath::Sqrt((float)TotalCount)) + 1);
 		}
 		else
 		{
-			bProcessSpawn = Resize((TotalCount + FMath::Trunc(FMath::Sqrt((float)TotalCount)) + 1), false);
+			bProcessSpawn = Resize((TotalCount + FMath::TruncToInt(FMath::Sqrt((float)TotalCount)) + 1), false);
 		}
 	}
 
@@ -3747,7 +3747,7 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 						// Determine the number of rendered interpolated points between these two particles
 						float CheckDistance = (CurrParticle->Location - PrevParticle->Location).Size();
 						float DistDiff = CheckDistance / TrailTypeData->DistanceTessellationStepSize;
-						InterpCount += FMath::Trunc(DistDiff);
+						InterpCount += FMath::TruncToInt(DistDiff);
 					}
 					
 					if (bApplyTangentTessellation )
@@ -3766,7 +3766,7 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 							CheckTangent = FMath::Max( CheckTangent, NextCheckTangent );
 						}		
 						float TangDiff = CheckTangent / TangentTessellationStepSize;
-						InterpCount += FMath::Trunc(TangDiff);
+						InterpCount += FMath::TruncToInt(TangDiff);
 					}
 
 					if( bApplyWidthTessellation )
@@ -3778,7 +3778,7 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 							CheckWidth = FMath::Max( CheckWidth, FMath::Abs(NextTrailData->Length - CurrTrailData->Length) );
 						}
 						float WidthDiff = CheckWidth / TrailTypeData->WidthTessellationStepSize;
-						InterpCount += FMath::Trunc(WidthDiff);
+						InterpCount += FMath::TruncToInt(WidthDiff);
 					}
 
 					// Store off the rendering interp count for this particle

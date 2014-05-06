@@ -98,7 +98,7 @@ FORCEINLINE float GetBasisDeterminantSign( const FVector& XAxis, const FVector& 
 */
 FORCEINLINE uint8 GetBasisDeterminantSignByte( const FPackedNormal& XAxis, const FPackedNormal& YAxis, const FPackedNormal& ZAxis )
 {
-	return FMath::Trunc(GetBasisDeterminantSign(XAxis,YAxis,ZAxis) * 127.5f + 127.5f);
+	return FMath::TruncToInt(GetBasisDeterminantSign(XAxis,YAxis,ZAxis) * 127.5f + 127.5f);
 }
 
 /** Information about a pixel format. */

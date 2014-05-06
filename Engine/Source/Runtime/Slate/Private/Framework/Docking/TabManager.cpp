@@ -195,7 +195,7 @@ TSharedPtr<FTabManager::FLayout> FTabManager::FLayout::NewFromString( const FStr
 	{
 		const FString LayoutName = JsonObject->GetStringField(TEXT("Name"));
 		TSharedRef<FTabManager::FLayout> NewLayout = FTabManager::NewLayout( *LayoutName );
-		int32 PrimaryAreaIndex = FMath::Trunc( JsonObject->GetNumberField(TEXT("PrimaryAreaIndex")) );
+		int32 PrimaryAreaIndex = FMath::TruncToInt( JsonObject->GetNumberField(TEXT("PrimaryAreaIndex")) );
 
 		TArray< TSharedPtr<FJsonValue> > Areas = JsonObject->GetArrayField(TEXT("Areas"));
 		for(int32 AreaIndex=0; AreaIndex < Areas.Num(); ++AreaIndex)

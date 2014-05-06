@@ -110,7 +110,7 @@ struct FDistributionLookupTable
 		LerpAlpha = FMath::Fractional(Time);
 
 		// get the entries to lerp between
-		const uint32 Index = FMath::Trunc(Time);
+		const uint32 Index = FMath::TruncToInt(Time);
 		const uint32 Index1 = FMath::Min<uint32>( Index + 0, EntryCount - 1 ) * EntryStride;
 		const uint32 Index2 = FMath::Min<uint32>( Index + 1, EntryCount - 1 ) * EntryStride;
 		Entry1 = &Values[Index1];

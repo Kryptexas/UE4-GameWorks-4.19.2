@@ -140,8 +140,8 @@ namespace
 		float Ratio = (float)(LODHeightmapSize) / (HeightmapStride);
 		float Offset = 0.5f * Ratio;
 
-		int32 CurrentHeightmapOffsetX = FMath::Round((float)(LODHeightmapSize)* LandscapeComponent->HeightmapScaleBias.Z);
-		int32 CurrentHeightmapOffsetY = FMath::Round((float)(LODHeightmapSize)* LandscapeComponent->HeightmapScaleBias.W);
+		int32 CurrentHeightmapOffsetX = FMath::RoundToInt((float)(LODHeightmapSize)* LandscapeComponent->HeightmapScaleBias.Z);
+		int32 CurrentHeightmapOffsetY = FMath::RoundToInt((float)(LODHeightmapSize)* LandscapeComponent->HeightmapScaleBias.W);
 
 		// Need to match for component edge cases, otherwise it causes a little 
 		float XX = FMath::Clamp<float>((X - HeightmapOffsetX) * Ratio - Offset, 0.f, ComponentSize - 1.f) + CurrentHeightmapOffsetX;
@@ -161,11 +161,11 @@ namespace
 		FColor H3 = HeightMipData[XI + FMath::Min(YI + 1, LODHeightmapSize - 1) * LODHeightmapSize];
 		FColor H4 = HeightMipData[FMath::Min(XI + 1, LODHeightmapSize - 1) + FMath::Min(YI + 1, LODHeightmapSize - 1) * LODHeightmapSize];
 
-		uint16 Height = FMath::Round(FMath::Lerp(FMath::Lerp<float>(((H1.R << 8) + H1.G), ((H2.R << 8) + H2.G), XF),
+		uint16 Height = FMath::RoundToInt(FMath::Lerp(FMath::Lerp<float>(((H1.R << 8) + H1.G), ((H2.R << 8) + H2.G), XF),
 			FMath::Lerp<float>(((H3.R << 8) + H3.G), ((H4.R << 8) + H4.G), XF), YF));
-		uint8 B = FMath::Round(FMath::Lerp(FMath::Lerp<float>((H1.B), (H2.B), XF),
+		uint8 B = FMath::RoundToInt(FMath::Lerp(FMath::Lerp<float>((H1.B), (H2.B), XF),
 			FMath::Lerp<float>((H3.B), (H4.B), XF), YF));
-		uint8 A = FMath::Round(FMath::Lerp<float>(FMath::Lerp((H1.A), (H2.A), XF),
+		uint8 A = FMath::RoundToInt(FMath::Lerp<float>(FMath::Lerp((H1.A), (H2.A), XF),
 			FMath::Lerp<float>((H3.A), (H4.A), XF), YF));
 
 		OutHeight = FColor((Height >> 8), Height & 255, B, A);
@@ -177,9 +177,9 @@ namespace
 			FColor X3 = XYOffsetMipData[XI + FMath::Min(YI + 1, LODHeightmapSize - 1) * LODHeightmapSize];
 			FColor X4 = XYOffsetMipData[FMath::Min(XI + 1, LODHeightmapSize - 1) + FMath::Min(YI + 1, LODHeightmapSize - 1) * LODHeightmapSize];
 
-			uint16 XComp = FMath::Round(FMath::Lerp(FMath::Lerp<float>(((X1.R << 8) + X1.G), ((X2.R << 8) + X2.G), XF),
+			uint16 XComp = FMath::RoundToInt(FMath::Lerp(FMath::Lerp<float>(((X1.R << 8) + X1.G), ((X2.R << 8) + X2.G), XF),
 				FMath::Lerp<float>(((X3.R << 8) + X3.G), ((X4.R << 8) + X4.G), XF), YF));
-			uint16 YComp = FMath::Round(FMath::Lerp(FMath::Lerp<float>(((X1.B << 8) + X1.A), ((X2.B << 8) + X2.A), XF),
+			uint16 YComp = FMath::RoundToInt(FMath::Lerp(FMath::Lerp<float>(((X1.B << 8) + X1.A), ((X2.B << 8) + X2.A), XF),
 				FMath::Lerp<float>(((X3.B << 8) + X3.A), ((X4.B << 8) + X4.A), XF), YF));
 
 			OutXYOffset = FColor((XComp >> 8), XComp & 255, YComp >> 8, YComp & 255);
@@ -319,21 +319,21 @@ namespace
 							// Need interpolation
 							uint16 Height0 = (Height[0].R << 8) + Height[0].G;
 							uint16 Height1 = (Height[1].R << 8) + Height[1].G;
-							uint16 LerpHeight = FMath::Round(FMath::Lerp<float>(Height0, Height1, MorphAlpha));
+							uint16 LerpHeight = FMath::RoundToInt(FMath::Lerp<float>(Height0, Height1, MorphAlpha));
 
 							CompHeightData[X + Y * HeightmapStride] =
 								FColor((LerpHeight >> 8), LerpHeight & 255,
-								FMath::Round(FMath::Lerp<float>(Height[0].B, Height[1].B, MorphAlpha)),
-								FMath::Round(FMath::Lerp<float>(Height[0].A, Height[1].A, MorphAlpha)));
+								FMath::RoundToInt(FMath::Lerp<float>(Height[0].B, Height[1].B, MorphAlpha)),
+								FMath::RoundToInt(FMath::Lerp<float>(Height[0].A, Height[1].A, MorphAlpha)));
 							if (LandscapeComponent->XYOffsetmapTexture)
 							{
 								uint16 XComp0 = (XYOffset[0].R << 8) + XYOffset[0].G;
 								uint16 XComp1 = (XYOffset[1].R << 8) + XYOffset[1].G;
-								uint16 LerpXComp = FMath::Round(FMath::Lerp<float>(XComp0, XComp1, MorphAlpha));
+								uint16 LerpXComp = FMath::RoundToInt(FMath::Lerp<float>(XComp0, XComp1, MorphAlpha));
 
 								uint16 YComp0 = (XYOffset[0].B << 8) + XYOffset[0].A;
 								uint16 YComp1 = (XYOffset[1].B << 8) + XYOffset[1].A;
-								uint16 LerpYComp = FMath::Round(FMath::Lerp<float>(YComp0, YComp1, MorphAlpha));
+								uint16 LerpYComp = FMath::RoundToInt(FMath::Lerp<float>(YComp0, YComp1, MorphAlpha));
 
 								CompXYOffsetData[X + Y * HeightmapStride] =
 									FColor(LerpXComp >> 8, LerpXComp & 255, LerpYComp >> 8, LerpYComp & 255);

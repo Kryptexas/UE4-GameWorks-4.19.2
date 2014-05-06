@@ -247,7 +247,7 @@ float FPhysSubstepTask::UpdateTime(float UseDelta)
 
 	//Figure out how big dt to make for desired framerate
 	DeltaSeconds = UseDelta;
-	NumSubsteps = FMath::Ceil(UseDelta * FrameRateInv);
+	NumSubsteps = FMath::CeilToInt(UseDelta * FrameRateInv);
 	NumSubsteps = FMath::Max(NumSubsteps > MaxSubSteps ? MaxSubSteps : NumSubsteps, (uint32) 1);
 	SubTime = UseDelta / NumSubsteps;
 

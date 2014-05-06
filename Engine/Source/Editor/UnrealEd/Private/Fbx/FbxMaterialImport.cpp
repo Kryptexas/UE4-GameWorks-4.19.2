@@ -256,8 +256,8 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 						MaterialInput.Expression = UnrealTextureExpression;
 						UnrealTextureExpression->Texture = UnrealTexture;
 						UnrealTextureExpression->SamplerType = bSetupAsNormalMap ? SAMPLERTYPE_Normal : SAMPLERTYPE_Color;
-						UnrealTextureExpression->MaterialExpressionEditorX = FMath::Trunc(Location.X);
-						UnrealTextureExpression->MaterialExpressionEditorY = FMath::Trunc(Location.Y);
+						UnrealTextureExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X);
+						UnrealTextureExpression->MaterialExpressionEditorY = FMath::TruncToInt(Location.Y);
 
 						// add/find UVSet and set it to the texture
 						FbxString UVSetName = FbxTexture->UVSet.Get();
@@ -272,8 +272,8 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 							MyCoordExpression->UTiling = ScaleU;
 							MyCoordExpression->VTiling = ScaleV;
 							UnrealTextureExpression->Coordinates.Expression = MyCoordExpression;
-							MyCoordExpression->MaterialExpressionEditorX = FMath::Trunc(Location.X+175);
-							MyCoordExpression->MaterialExpressionEditorY = FMath::Trunc(Location.Y);
+							MyCoordExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X+175);
+							MyCoordExpression->MaterialExpressionEditorY = FMath::TruncToInt(Location.Y);
 
 						}
 

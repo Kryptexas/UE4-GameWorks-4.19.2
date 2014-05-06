@@ -139,8 +139,8 @@ struct FLandscapeComponentDataInterface
 
 		// Offset and stride for this component's data in heightmap texture
 		HeightmapStride = Component->HeightmapTexture->Source.GetSizeX() >> MipLevel;
-		HeightmapComponentOffsetX = FMath::Round( (float)(Component->HeightmapTexture->Source.GetSizeX() >> MipLevel) * Component->HeightmapScaleBias.Z );
-		HeightmapComponentOffsetY = FMath::Round( (float)(Component->HeightmapTexture->Source.GetSizeY() >> MipLevel) * Component->HeightmapScaleBias.W );
+		HeightmapComponentOffsetX = FMath::RoundToInt( (float)(Component->HeightmapTexture->Source.GetSizeX() >> MipLevel) * Component->HeightmapScaleBias.Z );
+		HeightmapComponentOffsetY = FMath::RoundToInt( (float)(Component->HeightmapTexture->Source.GetSizeY() >> MipLevel) * Component->HeightmapScaleBias.W );
 		HeightmapSubsectionOffset = (Component->SubsectionSizeQuads + 1) >> MipLevel;
 
 		ComponentSizeVerts = (Component->ComponentSizeQuads + 1) >> MipLevel;

@@ -66,7 +66,7 @@ void UBlendSpace1D::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArra
 
 	FVector NormalizedBlendInput = GetNormalizedBlendInput(BlendInput);
 
-	float GridIndex = FMath::Trunc(NormalizedBlendInput.X);
+	float GridIndex = FMath::TruncToFloat(NormalizedBlendInput.X);
 	float Remainder = NormalizedBlendInput.X - GridIndex;
 
 	const FEditorElement* BeforeElement = GetGridSampleInternal(GridIndex);

@@ -155,9 +155,9 @@ void FCellPlacementRasterPolicy::ProcessPixel(int32 X,int32 Y,const InterpolantT
 int32 FStaticLightingSystem::GetGroupCellIndex(FVector BoxCenter) const
 {
 	const FVector GridPosition = FVector(GroupVisibilityGridSizeXY, GroupVisibilityGridSizeXY, GroupVisibilityGridSizeZ) * (BoxCenter - VisibilityGridBounds.Min) / (VisibilityGridBounds.Max - VisibilityGridBounds.Min);
-	const int32 GridX = FMath::Trunc(GridPosition.X);
-	const int32 GridY = FMath::Trunc(GridPosition.Y);
-	const int32 GridZ = FMath::Trunc(GridPosition.Z);
+	const int32 GridX = FMath::TruncToInt(GridPosition.X);
+	const int32 GridY = FMath::TruncToInt(GridPosition.Y);
+	const int32 GridZ = FMath::TruncToInt(GridPosition.Z);
 	const int32 CellIndex = GridZ * GroupVisibilityGridSizeXY * GroupVisibilityGridSizeZ + GridY * GroupVisibilityGridSizeXY + GridX;
 	
 	if (GridX > 0 && GridX < GroupVisibilityGridSizeXY 
@@ -192,8 +192,8 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 
 	const FBoxSphereBounds PrecomputedVisibilityBounds = Scene.GetVisibilityVolumeBounds();
 	const FVector4 VolumeSizes = PrecomputedVisibilityBounds.BoxExtent * 2.0f / PrecomputedVisibilitySettings.CellSize;
-	const int32 SizeX = FMath::Trunc(VolumeSizes.X + DELTA) + 1;
-	const int32 SizeY = FMath::Trunc(VolumeSizes.Y + DELTA) + 1;
+	const int32 SizeX = FMath::TruncToInt(VolumeSizes.X + DELTA) + 1;
+	const int32 SizeY = FMath::TruncToInt(VolumeSizes.Y + DELTA) + 1;
 
 	if (!PrecomputedVisibilitySettings.bPlaceCellsOnlyAlongCameraTracks)
 	{
@@ -532,7 +532,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 		VisibilityGridBounds = FBox(0);
 		// Drop last 10% of meshes which will expand the grid bounds 
 		// This is to handle distant skybox type meshes
-		const int32 MaxMeshIndex = FMath::Min(FMath::Max(FMath::Trunc(.9f * SortMeshes.Num()), 1), SortMeshes.Num() - 1);
+		const int32 MaxMeshIndex = FMath::Min(FMath::Max(FMath::TruncToInt(.9f * SortMeshes.Num()), 1), SortMeshes.Num() - 1);
 
 		for (int32 MeshIndex = 0; MeshIndex < MaxMeshIndex; MeshIndex++)
 		{
@@ -543,7 +543,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 		const float TargetNumGroupsAsFractionOfMeshes = .3f;
 		const int32 ZDimensionDivisor = 4;
 		// Determine grid X and Y size using SizeX * SizeY * SizeZ = NumMeshes * TargetNumGroupsAsFractionOfMeshes
-		GroupVisibilityGridSizeXY = FMath::Max(FMath::Trunc(FMath::Pow((ZDimensionDivisor * TargetNumGroupsAsFractionOfMeshes * VisibilityMeshes.Num()), 1.0f / 3.0f)), 1);
+		GroupVisibilityGridSizeXY = FMath::Max(FMath::TruncToInt(FMath::Pow((ZDimensionDivisor * TargetNumGroupsAsFractionOfMeshes * VisibilityMeshes.Num()), 1.0f / 3.0f)), 1);
 		GroupVisibilityGridSizeZ = FMath::Max(GroupVisibilityGridSizeXY / ZDimensionDivisor, 1);
 
 		const int32 GridSizeXY = GroupVisibilityGridSizeXY;
@@ -769,7 +769,7 @@ bool ComputeBoxVisibility(
 	const float SizeRatio = MeshSize / Distance;
 	// Use MaxMeshSamples for meshes with a large projected angle, and MinMeshSamples for meshes with a small projected angle
 	// Meshes with a large projected angle require more samples to determine visibility accurately
-	const int32 NumMeshSamples = FMath::Clamp(FMath::Trunc(SizeRatio * PrecomputedVisibilitySettings.MaxMeshSamples), PrecomputedVisibilitySettings.MinMeshSamples, PrecomputedVisibilitySettings.MaxMeshSamples);
+	const int32 NumMeshSamples = FMath::Clamp(FMath::TruncToInt(SizeRatio * PrecomputedVisibilitySettings.MaxMeshSamples), PrecomputedVisibilitySettings.MinMeshSamples, PrecomputedVisibilitySettings.MaxMeshSamples);
 
 	// Treat meshes whose projected angle is greater than 90 degrees as visible, since it becomes overly costly to determine if these are visible
 	// (consider a large close mesh that only has a tiny part visible)
@@ -797,13 +797,13 @@ bool ComputeBoxVisibility(
 					// Generate a sample on the visible faces of the cell, picking a face with probability proportional to the projected angle of the cell face onto the mesh's origin
 					//@todo - weight by face area, since cells have a different height from their x and y sizes
 					Sample1dCDF(VisibleCellFacePDFs, VisibleCellFaceCDFs, UnnormalizedIntegral, RandomStream, PDF, Sample);
-					const int32 ChosenCellFaceIndex = FMath::Trunc(Sample * VisibleCellFaces.Num());
+					const int32 ChosenCellFaceIndex = FMath::TruncToInt(Sample * VisibleCellFaces.Num());
 					const FAxisAlignedCellFace& ChosenFace = CellFaces[VisibleCellFaces[ChosenCellFaceIndex]];
 					NewSample.CellPosition = ChosenFace.FaceMin + ChosenFace.FaceExtent * FVector4(RandomStream.GetFraction(), RandomStream.GetFraction(), RandomStream.GetFraction());
 				}
 				{
 					// Generate a sample on the visible faces of the mesh
-					const int32 ChosenFaceIndex = FMath::Trunc(RandomStream.GetFraction() * VisibleMeshFaces.Num());
+					const int32 ChosenFaceIndex = FMath::TruncToInt(RandomStream.GetFraction() * VisibleMeshFaces.Num());
 					const FAxisAlignedCellFace& ChosenFace = MeshBoxFaces[VisibleMeshFaces[ChosenFaceIndex]];
 					NewSample.MeshPosition = ChosenFace.FaceMin + ChosenFace.FaceExtent * FVector4(RandomStream.GetFraction(), RandomStream.GetFraction(), RandomStream.GetFraction());
 				}
@@ -911,7 +911,7 @@ bool ComputeBoxVisibility(
 			for (int32 ImportanceSampleIndex = 0; ImportanceSampleIndex < PrecomputedVisibilitySettings.NumImportanceSamples && !bVisible; ImportanceSampleIndex++)
 			{
 				// Pick one of the furthest samples with uniform probability
-				const int32 SampleIndex = FMath::Trunc(RandomStream.GetFraction() * FurthestSamples.Num());
+				const int32 SampleIndex = FMath::TruncToInt(RandomStream.GetFraction() * FurthestSamples.Num());
 				const FVisibilityQuerySample& CurrentSample = *FurthestSamples[SampleIndex];
 				const float VectorLength = (CurrentSample.CellPosition - CurrentSample.MeshPosition).Size3();
 				const FVector4 CurrentDirection = (CurrentSample.MeshPosition - CurrentSample.CellPosition).SafeNormal();

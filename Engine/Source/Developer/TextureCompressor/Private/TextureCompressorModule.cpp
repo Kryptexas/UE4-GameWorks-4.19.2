@@ -380,7 +380,7 @@ static void GenerateSharpenedMipB8G8R8A8Templ(
 
 				if ( FilteredColor.A > AlphaThreshold )
 				{
-					FilteredColor.A = FMath::Trunc( FMath::Lerp( MinRandomAlpha, MaxRandomAlpha, RandomStream.GetFraction() ) );
+					FilteredColor.A = FMath::TruncToInt( FMath::Lerp( MinRandomAlpha, MaxRandomAlpha, RandomStream.GetFraction() ) );
 				}
 			}
 
@@ -1103,7 +1103,7 @@ static void GenerateAngularFilteredMips(TArray<FImage>& InOutMipChain, int32 Num
 		//	float FloatInputMip = FMath::Log2(FMath::Sqrt(AreaCoveredInNormalizedArea)) + InputMipCount - QualityBias;
 		// optimized
 		float FloatInputMip = 0.5f * FMath::Log2(AreaCoveredInNormalizedArea) + NumMips - QualityBias;
-		uint32 InputMip = FMath::Clamp(FMath::Trunc(FloatInputMip), 0, NumMips - 1);
+		uint32 InputMip = FMath::Clamp(FMath::TruncToInt(FloatInputMip), 0, NumMips - 1);
 
 		FImage* Mip = new(InOutMipChain) FImage(Extent, Extent, 6, ERawImageFormat::RGBA32F);
 		GenerateAngularFilteredMip(Mip, SrcMipChain[InputMip], ConeAngle);

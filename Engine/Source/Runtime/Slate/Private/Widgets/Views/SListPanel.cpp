@@ -57,7 +57,7 @@ void SListPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 		float WidthSoFar = 0;
 		float LocalItemWidth = ItemWidth.Get();
 		float LocalItemHeight = ItemHeight.Get();
-		float HeightSoFar = -FMath::Floor(SmoothScrollOffsetInItems * LocalItemHeight);
+		float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * LocalItemHeight);
 
 		for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 		{
@@ -79,7 +79,7 @@ void SListPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedCh
 		if (Children.Num() > 0)
 		{
 			// This is a normal list, arrange items vertically
-			float HeightSoFar = -FMath::Floor(SmoothScrollOffsetInItems * Children[0].Widget->GetDesiredSize().Y);
+			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].Widget->GetDesiredSize().Y);
 			for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 			{
 					const FVector2D ItemDesiredSize = Children[ItemIndex].Widget->GetDesiredSize();
@@ -109,8 +109,8 @@ void SListPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 		if (TotalItemSize > 0.0f && NumChildren > 0)
 		{
-			int32 NumColumns = FMath::Clamp(FMath::Ceil(AllottedWidth / TotalItemSize) - 1, 1, NumChildren);
-			PreferredRowNum = FMath::Ceil(NumChildren / (float)NumColumns);
+			int32 NumColumns = FMath::Clamp(FMath::CeilToInt(AllottedWidth / TotalItemSize) - 1, 1, NumChildren);
+			PreferredRowNum = FMath::CeilToInt(NumChildren / (float)NumColumns);
 		}
 		else
 		{
@@ -192,7 +192,7 @@ float SListPanel::GetItemWidth() const
 float SListPanel::GetItemPadding(const FGeometry& AllottedGeometry) const
 {
 	float LocalItemWidth = ItemWidth.Get();
-	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::Floor(AllottedGeometry.Size.X / LocalItemWidth) : 0;
+	const int32 NumItemsWide = LocalItemWidth > 0 ? FMath::FloorToInt(AllottedGeometry.Size.X / LocalItemWidth) : 0;
 	
 	// Only add padding between items if we have more total items that we can fit on a single row.  Otherwise,
 	// the padding around items would continue to change proportionately with the (ample) free horizontal space

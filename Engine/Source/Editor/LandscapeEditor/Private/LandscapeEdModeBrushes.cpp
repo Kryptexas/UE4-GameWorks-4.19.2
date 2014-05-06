@@ -108,10 +108,10 @@ public:
 			float Falloff = EdMode->UISettings->BrushFalloff * EdMode->UISettings->BrushRadius / ScaleXY;
 
 			// Set brush material.
-			int32 X1 = FMath::Floor(LastMousePosition.X - (Radius+Falloff));
-			int32 Y1 = FMath::Floor(LastMousePosition.Y - (Radius+Falloff));
-			int32 X2 = FMath::Ceil(LastMousePosition.X + (Radius+Falloff));
-			int32 Y2 = FMath::Ceil(LastMousePosition.Y + (Radius+Falloff));
+			int32 X1 = FMath::FloorToInt(LastMousePosition.X - (Radius+Falloff));
+			int32 Y1 = FMath::FloorToInt(LastMousePosition.Y - (Radius+Falloff));
+			int32 X2 = FMath::CeilToInt(LastMousePosition.X + (Radius+Falloff));
+			int32 Y2 = FMath::CeilToInt(LastMousePosition.Y + (Radius+Falloff));
 
 			TSet<ULandscapeComponent*> NewComponents;
 
@@ -224,10 +224,10 @@ public:
 				float MousePositionX = MousePositions[MoveIdx].PositionX;
 				float MousePositionY = MousePositions[MoveIdx].PositionY;
 
-				int32 ThisMoveX1 = FMath::Floor(MousePositionX - (Radius+Falloff));
-				int32 ThisMoveY1 = FMath::Floor(MousePositionY - (Radius+Falloff));
-				int32 ThisMoveX2 = FMath::Ceil(MousePositionX + (Radius+Falloff));
-				int32 ThisMoveY2 = FMath::Ceil(MousePositionY + (Radius+Falloff));
+				int32 ThisMoveX1 = FMath::FloorToInt(MousePositionX - (Radius+Falloff));
+				int32 ThisMoveY1 = FMath::FloorToInt(MousePositionY - (Radius+Falloff));
+				int32 ThisMoveX2 = FMath::CeilToInt(MousePositionX + (Radius+Falloff));
+				int32 ThisMoveY2 = FMath::CeilToInt(MousePositionY + (Radius+Falloff));
 				
 				if( MoveIdx == 0 )
 				{
@@ -348,8 +348,8 @@ public:
 			ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 			if (LandscapeInfo && LandscapeInfo->ComponentSizeQuads > 0)
 			{
-				int32 X = FMath::Floor(LastMousePosition.X);
-				int32 Y = FMath::Floor(LastMousePosition.Y);
+				int32 X = FMath::FloorToInt(LastMousePosition.X);
+				int32 Y = FMath::FloorToInt(LastMousePosition.Y);
 
 				int32 ComponentIndexX = (X >= 0.f) ? X / LandscapeInfo->ComponentSizeQuads : (X + 1) / LandscapeInfo->ComponentSizeQuads - 1;
 				int32 ComponentIndexY = (Y >= 0.f) ? Y / LandscapeInfo->ComponentSizeQuads : (Y + 1) / LandscapeInfo->ComponentSizeQuads - 1;
@@ -427,8 +427,8 @@ public:
 		if( EdMode->LandscapeRenderAddCollision )
 		{
 			// Apply Brush size..
-			int32 X = FMath::Floor(LastMousePosition.X);
-			int32 Y = FMath::Floor(LastMousePosition.Y);
+			int32 X = FMath::FloorToInt(LastMousePosition.X);
+			int32 Y = FMath::FloorToInt(LastMousePosition.Y);
 
 			int32 ComponentIndexX = (X >= 0.f) ? X / LandscapeInfo->ComponentSizeQuads : (X+1) / LandscapeInfo->ComponentSizeQuads - 1;
 			int32 ComponentIndexY = (Y >= 0.f) ? Y / LandscapeInfo->ComponentSizeQuads : (Y+1) / LandscapeInfo->ComponentSizeQuads - 1;
@@ -903,9 +903,9 @@ public:
 		int32 SizeY = EdMode->UISettings->AlphaTextureSizeY;
 
 		// Bilinear interpolate the values from the alpha texture
-		int32 SampleX0 = FMath::Floor(SampleX);
+		int32 SampleX0 = FMath::FloorToInt(SampleX);
 		int32 SampleX1 = (SampleX0+1) % SizeX;
-		int32 SampleY0 = FMath::Floor(SampleY);
+		int32 SampleY0 = FMath::FloorToInt(SampleY);
 		int32 SampleY1 = (SampleY0+1) % SizeY;
 
 		const uint8* AlphaData = EdMode->UISettings->AlphaTextureData.GetData();
@@ -955,10 +955,10 @@ public:
 		int32 SizeX = EdMode->UISettings->AlphaTextureSizeX;
 		int32 SizeY = EdMode->UISettings->AlphaTextureSizeY;
 
-		X1 = FMath::Floor(LastMousePosition.X - (Radius+Falloff));
-		Y1 = FMath::Floor(LastMousePosition.Y - (Radius+Falloff));
-		X2 = FMath::Ceil(LastMousePosition.X + (Radius+Falloff));
-		Y2 = FMath::Ceil(LastMousePosition.Y + (Radius+Falloff));
+		X1 = FMath::FloorToInt(LastMousePosition.X - (Radius+Falloff));
+		Y1 = FMath::FloorToInt(LastMousePosition.Y - (Radius+Falloff));
+		X2 = FMath::CeilToInt(LastMousePosition.X + (Radius+Falloff));
+		Y2 = FMath::CeilToInt(LastMousePosition.Y + (Radius+Falloff));
 
 		for( int32 Y=Y1;Y<=Y2;Y++ )
 		{
@@ -1081,10 +1081,10 @@ public:
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 		if( OldMousePosition.IsZero() )
 		{
-			X1 = FMath::Floor(LastMousePosition.X);
-			Y1 = FMath::Floor(LastMousePosition.Y);
-			X2 = FMath::Ceil(LastMousePosition.X);
-			Y2 = FMath::Ceil(LastMousePosition.Y);
+			X1 = FMath::FloorToInt(LastMousePosition.X);
+			Y1 = FMath::FloorToInt(LastMousePosition.Y);
+			X2 = FMath::CeilToInt(LastMousePosition.X);
+			Y2 = FMath::CeilToInt(LastMousePosition.Y);
 			OldMousePosition = LastMousePosition;
 			LastMouseAngle = 0.f;
 			LastMouseSampleTime = FPlatformTime::Seconds();
@@ -1098,10 +1098,10 @@ public:
 			float MaxSize = 2.f * FMath::Sqrt( FMath::Square(Radius) / 2.f );
 			float AlphaBrushScale = MaxSize / (float)FMath::Max<int32>(SizeX,SizeY);
 
-			X1 = FMath::Floor(LastMousePosition.X - Radius);
-			Y1 = FMath::Floor(LastMousePosition.Y - Radius);
-			X2 = FMath::Ceil(LastMousePosition.X + Radius);
-			Y2 = FMath::Ceil(LastMousePosition.Y + Radius);
+			X1 = FMath::FloorToInt(LastMousePosition.X - Radius);
+			Y1 = FMath::FloorToInt(LastMousePosition.Y - Radius);
+			X2 = FMath::CeilToInt(LastMousePosition.X + Radius);
+			Y2 = FMath::CeilToInt(LastMousePosition.Y + Radius);
 
 			for( int32 Y=Y1;Y<=Y2;Y++ )
 			{

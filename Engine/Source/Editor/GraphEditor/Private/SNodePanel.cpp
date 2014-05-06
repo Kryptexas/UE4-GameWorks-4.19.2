@@ -606,7 +606,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 
 			TotalMouseDeltaY += CursorDelta.Y;
 
-			const int32 ZoomLevelDelta = FMath::Floor(TotalMouseDeltaY * NodePanelDefs::MouseZoomScaling);
+			const int32 ZoomLevelDelta = FMath::FloorToInt(TotalMouseDeltaY * NodePanelDefs::MouseZoomScaling);
 
 			// Get rid of mouse movement that's been 'used up' by zooming
 			if (ZoomLevelDelta != 0)
@@ -657,8 +657,8 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 
 						// Snap to grid
 						const float SnapSize = GetSnapGridSize();
-						AnchorNodeNewPos.X = SnapSize * FMath::Round(AnchorNodeNewPos.X/SnapSize);
-						AnchorNodeNewPos.Y = SnapSize * FMath::Round(AnchorNodeNewPos.Y/SnapSize);
+						AnchorNodeNewPos.X = SnapSize * FMath::RoundToFloat(AnchorNodeNewPos.X/SnapSize);
+						AnchorNodeNewPos.Y = SnapSize * FMath::RoundToFloat(AnchorNodeNewPos.Y/SnapSize);
 
 						// Dragging an unselected node automatically selects it.
 						SelectionManager.StartDraggingNode(NodeBeingDragged->GetObjectBeingDisplayed(), MouseEvent);
@@ -847,8 +847,8 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 			const FVector2D ScreenSpaceCursorPos = MyGeometry.LocalToAbsolute( GraphCoordToPanelCoord( SoftwareCursorPosition ) );
 
 			FIntPoint BestPositionInViewport(
-				FMath::Round( FMath::Clamp( ScreenSpaceCursorPos.X, ThisPanelScreenSpaceRect.Left, ThisPanelScreenSpaceRect.Right ) ),
-				FMath::Round( FMath::Clamp( ScreenSpaceCursorPos.Y, ThisPanelScreenSpaceRect.Top, ThisPanelScreenSpaceRect.Bottom ) )
+				FMath::RoundToInt( FMath::Clamp( ScreenSpaceCursorPos.X, ThisPanelScreenSpaceRect.Left, ThisPanelScreenSpaceRect.Right ) ),
+				FMath::RoundToInt( FMath::Clamp( ScreenSpaceCursorPos.Y, ThisPanelScreenSpaceRect.Top, ThisPanelScreenSpaceRect.Bottom ) )
 				);
 
 			if (!bCursorInDeadZone)
@@ -867,7 +867,7 @@ FReply SNodePanel::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent
 {
 	// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
 	const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
-	const int32 ZoomLevelDelta = FMath::Floor( MouseEvent.GetWheelDelta() );
+	const int32 ZoomLevelDelta = FMath::FloorToInt( MouseEvent.GetWheelDelta() );
 	ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, MouseEvent.IsControlDown());
 
 	return FReply::Handled();

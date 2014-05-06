@@ -392,16 +392,16 @@ void FEdModeLandscape::Enter()
 			// Restore Sampled Data if exist...
 			if (CurrentGizmoActor->CachedScaleXY > 0.f)
 			{
-				int32 SizeX = FMath::Ceil(CurrentGizmoActor->CachedWidth  / CurrentGizmoActor->CachedScaleXY);
-				int32 SizeY = FMath::Ceil(CurrentGizmoActor->CachedHeight / CurrentGizmoActor->CachedScaleXY);
+				int32 SizeX = FMath::CeilToInt(CurrentGizmoActor->CachedWidth  / CurrentGizmoActor->CachedScaleXY);
+				int32 SizeY = FMath::CeilToInt(CurrentGizmoActor->CachedHeight / CurrentGizmoActor->CachedScaleXY);
 				for (int32 Y = 0; Y < CurrentGizmoActor->SampleSizeY; ++Y)
 				{
 					for (int32 X = 0; X < CurrentGizmoActor->SampleSizeX; ++X)
 					{
 						float TexX = X * SizeX / CurrentGizmoActor->SampleSizeX;
 						float TexY = Y * SizeY / CurrentGizmoActor->SampleSizeY;
-						int32 LX = FMath::Floor(TexX);
-						int32 LY = FMath::Floor(TexY);
+						int32 LX = FMath::FloorToInt(TexX);
+						int32 LY = FMath::FloorToInt(TexY);
 
 						float FracX = TexX - LX;
 						float FracY = TexY - LY;
@@ -1383,7 +1383,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Negative_Y_Positive:
 				{
 					const int32 InitialComponentCountX = UISettings->NewLandscape_ComponentCount.X;
-					const int32 Delta = FMath::Round(HitLocation.X + (float)InitialComponentCountX / 2);
+					const int32 Delta = FMath::RoundToInt(HitLocation.X + (float)InitialComponentCountX / 2);
 					UISettings->NewLandscape_ComponentCount.X = InitialComponentCountX - Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.X - InitialComponentCountX;
@@ -1395,7 +1395,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Positive:
 				{
 					const int32 InitialComponentCountX = UISettings->NewLandscape_ComponentCount.X;
-					int32 Delta = FMath::Round(HitLocation.X - (float)InitialComponentCountX / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.X - (float)InitialComponentCountX / 2);
 					UISettings->NewLandscape_ComponentCount.X = InitialComponentCountX + Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.X - InitialComponentCountX;
@@ -1411,7 +1411,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Negative:
 				{
 					const int32 InitialComponentCountY = UISettings->NewLandscape_ComponentCount.Y;
-					int32 Delta = FMath::Round(HitLocation.Y + (float)InitialComponentCountY / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.Y + (float)InitialComponentCountY / 2);
 					UISettings->NewLandscape_ComponentCount.Y = InitialComponentCountY - Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.Y - InitialComponentCountY;
@@ -1423,7 +1423,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Positive:
 				{
 					const int32 InitialComponentCountY = UISettings->NewLandscape_ComponentCount.Y;
-					int32 Delta = FMath::Round(HitLocation.Y - (float)InitialComponentCountY / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.Y - (float)InitialComponentCountY / 2);
 					UISettings->NewLandscape_ComponentCount.Y = InitialComponentCountY + Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.Y - InitialComponentCountY;

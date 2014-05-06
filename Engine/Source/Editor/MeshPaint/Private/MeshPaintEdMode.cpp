@@ -909,10 +909,10 @@ bool FEdModeMeshPaint::PaintVertex( const FVector& InVertexPosition,
 
 
 			// Save the new color
-			InOutVertexColor.R = FMath::Clamp( FMath::Round( NewColor.R * 255.0f ), 0, 255 );
-			InOutVertexColor.G = FMath::Clamp( FMath::Round( NewColor.G * 255.0f ), 0, 255 );
-			InOutVertexColor.B = FMath::Clamp( FMath::Round( NewColor.B * 255.0f ), 0, 255 );
-			InOutVertexColor.A = FMath::Clamp( FMath::Round( NewColor.A * 255.0f ), 0, 255 );
+			InOutVertexColor.R = FMath::Clamp( FMath::RoundToInt( NewColor.R * 255.0f ), 0, 255 );
+			InOutVertexColor.G = FMath::Clamp( FMath::RoundToInt( NewColor.G * 255.0f ), 0, 255 );
+			InOutVertexColor.B = FMath::Clamp( FMath::RoundToInt( NewColor.B * 255.0f ), 0, 255 );
+			InOutVertexColor.A = FMath::Clamp( FMath::RoundToInt( NewColor.A * 255.0f ), 0, 255 );
 
 
 			// UE_LOG(LogMeshPaintEdMode, Log,  TEXT( "Painted Vertex:  OldColor=[%.2f,%.2f,%.2f,%.2f], NewColor=[%.2f,%.2f,%.2f,%.2f]" ), OldColor.R, OldColor.G, OldColor.B, OldColor.A, NewColor.R, NewColor.G, NewColor.B, NewColor.A );
@@ -2215,20 +2215,20 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 		FVector2D UVOffset( 0.0f, 0.0f );
 		if( UVMax.X > 1.0f )
 		{
-			UVOffset.X = -FMath::Floor( UVMin.X );
+			UVOffset.X = -FMath::FloorToFloat( UVMin.X );
 		}
 		else if( UVMin.X < 0.0f )
 		{
-			UVOffset.X = 1.0f + FMath::Floor( -UVMax.X );
+			UVOffset.X = 1.0f + FMath::FloorToFloat( -UVMax.X );
 		}
 			
 		if( UVMax.Y > 1.0f )
 		{
-			UVOffset.Y = -FMath::Floor( UVMin.Y );
+			UVOffset.Y = -FMath::FloorToFloat( UVMin.Y );
 		}
 		else if( UVMin.Y < 0.0f )
 		{
-			UVOffset.Y = 1.0f + FMath::Floor( -UVMax.Y );
+			UVOffset.Y = 1.0f + FMath::FloorToFloat( -UVMax.Y );
 		}
 		
 		// Note that we "wrap" the texture coordinates here to handle the case where the user
@@ -3474,20 +3474,20 @@ bool FEdModeMeshPaint::GenerateSeamMask(UStaticMeshComponent* StaticMeshComponen
 			FVector2D UVOffset( 0.0f, 0.0f );
 			if( UVMax.X > 1.0f )
 			{
-				UVOffset.X = -FMath::Floor( UVMin.X );
+				UVOffset.X = -FMath::FloorToInt( UVMin.X );
 			}
 			else if( UVMin.X < 0.0f )
 			{
-				UVOffset.X = 1.0f + FMath::Floor( -UVMax.X );
+				UVOffset.X = 1.0f + FMath::FloorToInt( -UVMax.X );
 			}
 
 			if( UVMax.Y > 1.0f )
 			{
-				UVOffset.Y = -FMath::Floor( UVMin.Y );
+				UVOffset.Y = -FMath::FloorToInt( UVMin.Y );
 			}
 			else if( UVMin.Y < 0.0f )
 			{
-				UVOffset.Y = 1.0f + FMath::Floor( -UVMax.Y );
+				UVOffset.Y = 1.0f + FMath::FloorToInt( -UVMax.Y );
 			}
 
 

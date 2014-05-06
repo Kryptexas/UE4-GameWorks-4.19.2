@@ -16,8 +16,8 @@ void UFontThumbnailRenderer::GetThumbnailSize(UObject* Object, float Zoom,uint32
 	{
 		// Get the texture interface for the font text
 		UTexture2D* Tex = Font->Textures[0];
-		OutWidth = FMath::Trunc(Zoom * (float)Tex->GetSurfaceWidth());
-		OutHeight = FMath::Trunc(Zoom * (float)Tex->GetSurfaceHeight());
+		OutWidth = FMath::TruncToInt(Zoom * (float)Tex->GetSurfaceWidth());
+		OutHeight = FMath::TruncToInt(Zoom * (float)Tex->GetSurfaceHeight());
 	}
 	else
 	{

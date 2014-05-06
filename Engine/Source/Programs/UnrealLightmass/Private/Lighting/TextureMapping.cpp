@@ -269,8 +269,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 	const FBoxSphereBounds ImportanceBounds = Scene.GetImportanceBounds();
 
 	// Cache irradiance photons at a lower resolution than what lighting is being calculated for, since the extra resolution is usually not noticeable
-	TextureMapping->IrradiancePhotonCacheSizeX = FMath::Max(FMath::Trunc(TextureMapping->CachedSizeX / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
-	TextureMapping->IrradiancePhotonCacheSizeY = FMath::Max(FMath::Trunc(TextureMapping->CachedSizeY / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
+	TextureMapping->IrradiancePhotonCacheSizeX = FMath::Max(FMath::TruncToInt(TextureMapping->CachedSizeX / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
+	TextureMapping->IrradiancePhotonCacheSizeY = FMath::Max(FMath::TruncToInt(TextureMapping->CachedSizeY / PhotonMappingSettings.CachedIrradiancePhotonDownsampleFactor), 6);
 
 	FTexelToVertexMap TexelToVertexMap(TextureMapping->IrradiancePhotonCacheSizeX, TextureMapping->IrradiancePhotonCacheSizeY);
 
@@ -281,8 +281,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 	int32 IrradiancePhotonCacheDebugY = -1;
 	if (bDebugThisMapping)
 	{
-		IrradiancePhotonCacheDebugX = FMath::Trunc(Scene.DebugInput.LocalX / (float)TextureMapping->CachedSizeX * TextureMapping->IrradiancePhotonCacheSizeX);
-		IrradiancePhotonCacheDebugY = FMath::Trunc(Scene.DebugInput.LocalY / (float)TextureMapping->CachedSizeY * TextureMapping->IrradiancePhotonCacheSizeY);
+		IrradiancePhotonCacheDebugX = FMath::TruncToInt(Scene.DebugInput.LocalX / (float)TextureMapping->CachedSizeX * TextureMapping->IrradiancePhotonCacheSizeX);
+		IrradiancePhotonCacheDebugY = FMath::TruncToInt(Scene.DebugInput.LocalY / (float)TextureMapping->CachedSizeY * TextureMapping->IrradiancePhotonCacheSizeY);
 	}
 #endif
 
@@ -1149,7 +1149,7 @@ void FStaticLightingSystem::CalculateDirectLightingTextureMappingFiltered(
 						{
 							if (ShadowMapData(SubX,SubY).bIsMapped)
 							{
-								Visibility += FMath::Trunc(Filter[FilterX][FilterY] * ShadowMapData(SubX,SubY).Visibility);
+								Visibility += FMath::TruncToInt(Filter[FilterX][FilterY] * ShadowMapData(SubX,SubY).Visibility);
 								Coverage += Filter[FilterX][FilterY];
 							}
 						}
@@ -1823,7 +1823,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 		// Choose an upsample factor based on the average texels/world space ratio
 		// The result is that small, high resolution meshes will not upsample as much, since they don't need it, 
 		// But large, low resolution meshes will upsample a lot.
-		const int32 TargetUpsampleFactor = FMath::Trunc(ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance / (RightTriangleSide * ShadowSettings.MaxTransitionDistanceWorldSpace));
+		const int32 TargetUpsampleFactor = FMath::TruncToInt(ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance / (RightTriangleSide * ShadowSettings.MaxTransitionDistanceWorldSpace));
 		// Round up to the nearest odd factor, so each destination texel has a high resolution source texel at its center
 		// Clamp the upscale factor to be less than 13, since the quality improvements of upsampling higher than that are negligible.
 		UpsampleFactor = FMath::Clamp(TargetUpsampleFactor - TargetUpsampleFactor % 2 + 1, ShadowSettings.MinDistanceFieldUpsampleFactor, 13);
@@ -2251,8 +2251,8 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 									// Scatter to all distance field texels within MaxTransitionDistanceWorldSpace, rounded up.
 									// This is an approximation to the actual set of distance field texels that are within MaxTransitionDistanceWorldSpace that tends to work out well.
 									// Apply a clamp to avoid a performance cliff with some texels, whose adjacent texel in lightmap space is actually far away in world space
-									const int32 NumLowResScatterTexelsY = FMath::Min(FMath::Trunc(ShadowSettings.MaxTransitionDistanceWorldSpace / (WorldSpacePerHighResTexelY * UpsampleFactor)) + 1, 100);
-									const int32 NumLowResScatterTexelsX = FMath::Min(FMath::Trunc(ShadowSettings.MaxTransitionDistanceWorldSpace / (WorldSpacePerHighResTexelX * UpsampleFactor)) + 1, 100);
+									const int32 NumLowResScatterTexelsY = FMath::Min(FMath::TruncToInt(ShadowSettings.MaxTransitionDistanceWorldSpace / (WorldSpacePerHighResTexelY * UpsampleFactor)) + 1, 100);
+									const int32 NumLowResScatterTexelsX = FMath::Min(FMath::TruncToInt(ShadowSettings.MaxTransitionDistanceWorldSpace / (WorldSpacePerHighResTexelX * UpsampleFactor)) + 1, 100);
 									MappingContext.Stats.NumSignedDistanceFieldScatters++;
 									for (int32 ScatterOffsetY = -NumLowResScatterTexelsY; ScatterOffsetY <= NumLowResScatterTexelsY; ScatterOffsetY++)
 									{
@@ -3415,8 +3415,8 @@ const FIrradiancePhoton* FStaticLightingTextureMapping::GetCachedIrradiancePhoto
 {
 	checkSlow(IrradiancePhotonCacheSizeX > 0 && IrradiancePhotonCacheSizeY > 0);
 	// Clamping is necessary since the UV's may be outside the [0, 1) range
-	const int32 PhotonX = FMath::Clamp(FMath::Trunc(Vertex.TextureCoordinates[1].X * IrradiancePhotonCacheSizeX), 0, IrradiancePhotonCacheSizeX - 1);
-	const int32 PhotonY = FMath::Clamp(FMath::Trunc(Vertex.TextureCoordinates[1].Y * IrradiancePhotonCacheSizeY), 0, IrradiancePhotonCacheSizeY - 1);
+	const int32 PhotonX = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].X * IrradiancePhotonCacheSizeX), 0, IrradiancePhotonCacheSizeX - 1);
+	const int32 PhotonY = FMath::Clamp(FMath::TruncToInt(Vertex.TextureCoordinates[1].Y * IrradiancePhotonCacheSizeY), 0, IrradiancePhotonCacheSizeY - 1);
 	const int32 PhotonIndex = PhotonY * IrradiancePhotonCacheSizeX + PhotonX;
 
 	const FIrradiancePhoton* ClosestPhoton = CachedIrradiancePhotons[PhotonIndex];

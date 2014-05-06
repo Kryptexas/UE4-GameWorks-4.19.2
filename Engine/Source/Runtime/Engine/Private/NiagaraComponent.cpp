@@ -395,7 +395,7 @@ private:
 	int32 CalcNumToSpawn(float DeltaSeconds)
 	{
 		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * SpawnRate);
-		int32 NumToSpawn = FMath::Floor(FloatNumToSpawn);
+		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
 		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
 		return NumToSpawn;
 	}

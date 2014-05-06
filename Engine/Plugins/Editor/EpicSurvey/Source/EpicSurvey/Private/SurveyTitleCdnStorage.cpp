@@ -311,7 +311,7 @@ void FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete(FHttpRequestPtr 
 						}
 						if (JsonFileHeader->HasField(TEXT("length")))
 						{
-							FileHeader.FileSize = FMath::Trunc(JsonFileHeader->GetNumberField(TEXT("length")));
+							FileHeader.FileSize = FMath::TruncToInt(JsonFileHeader->GetNumberField(TEXT("length")));
 						}
 
 						if (FileHeader.FileName.IsEmpty())

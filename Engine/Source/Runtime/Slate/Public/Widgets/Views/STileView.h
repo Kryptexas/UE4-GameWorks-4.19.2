@@ -178,7 +178,7 @@ public:
 			float WidthUsedSoFar = 0.0f;
 			float HeightUsedSoFar = 0.0f;
 			// Index of the item at which we start generating based on how far scrolled down we are
-			int32 StartIndex = FMath::Max( 0, FMath::Floor(ClampedScrollOffset / NumItemsWide) * NumItemsWide );
+			int32 StartIndex = FMath::Max( 0, FMath::FloorToInt(ClampedScrollOffset / NumItemsWide) * NumItemsWide );
 
 			// Let the WidgetGenerator that we are starting a pass so that it can keep track of data items and widgets.
 			this->WidgetGenerator.OnBeginGenerationPass();
@@ -251,7 +251,7 @@ protected:
 	virtual int32 GetNumItemsWide() const OVERRIDE
 	{
 		const float ItemWidth = this->GetItemWidth();
-		const int32 NumItemsWide = ItemWidth > 0 ? FMath::Floor(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;
+		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;
 		return FMath::Max(1, NumItemsWide);
 	}
 };

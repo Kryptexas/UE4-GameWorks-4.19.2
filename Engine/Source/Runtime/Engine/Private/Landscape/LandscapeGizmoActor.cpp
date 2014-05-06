@@ -771,8 +771,8 @@ void ALandscapeGizmoActiveActor::SampleData(int32 SizeX, int32 SizeY)
 			{
 				float TexX = X * SizeX / TexSizeX;
 				float TexY = Y * SizeY / TexSizeY;
-				int32 LX = FMath::Floor(TexX);
-				int32 LY = FMath::Floor(TexY);
+				int32 LX = FMath::FloorToInt(TexX);
+				int32 LY = FMath::FloorToInt(TexY);
 
 				float FracX = TexX - LX;
 				float FracY = TexY - LY;

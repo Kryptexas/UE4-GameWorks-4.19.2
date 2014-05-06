@@ -253,7 +253,7 @@ void UAnimCompress::BitwiseCompressAnimationTracks(
 						// write the frame values for each key
 						float KeyTime= SrcTrans.Times[KeyIndex];
 						float FrameTime = KeyTime * FrameRate;
-						int32 FrameIndex= FMath::Clamp(FMath::Trunc(FrameTime), 0, LastFrame);
+						int32 FrameIndex= FMath::Clamp(FMath::TruncToInt(FrameTime), 0, LastFrame);
 						AC_UnalignedWriteToStream( &FrameIndex, FrameSize );
 					}
 
@@ -355,7 +355,7 @@ void UAnimCompress::BitwiseCompressAnimationTracks(
 						// write the frame values for each key
 						float KeyTime = SrcRot.Times[KeyIndex];
 						float FrameTime = KeyTime * FrameRate;
-						int32 FrameIndex = FMath::Clamp(FMath::Trunc(FrameTime), 0, LastFrame);
+						int32 FrameIndex = FMath::Clamp(FMath::TruncToInt(FrameTime), 0, LastFrame);
 						AC_UnalignedWriteToStream( &FrameIndex, FrameSize );
 					}
 
@@ -441,7 +441,7 @@ void UAnimCompress::BitwiseCompressAnimationTracks(
 							// write the frame values for each key
 							float KeyTime= SrcScale.Times[KeyIndex];
 							float FrameTime = KeyTime * FrameRate;
-							int32 FrameIndex= FMath::Clamp(FMath::Trunc(FrameTime), 0, LastFrame);
+							int32 FrameIndex= FMath::Clamp(FMath::TruncToInt(FrameTime), 0, LastFrame);
 							AC_UnalignedWriteToStream( &FrameIndex, FrameSize );
 						}
 

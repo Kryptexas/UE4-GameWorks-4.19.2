@@ -844,12 +844,12 @@ public:
 			I = Byte;
 			return 1;
 		}
-		else if( TokenType==TOKEN_Const && Type==CPT_Float && Float==FMath::Trunc(Float))
+		else if( TokenType==TOKEN_Const && Type==CPT_Float && Float==FMath::TruncToInt(Float))
 		{
 			I = (int32) Float;
 			return 1;
 		}
-		else if( TokenType==TOKEN_Const && Type==CPT_Double && Float==FMath::Trunc(Double))
+		else if (TokenType == TOKEN_Const && Type == CPT_Double && Float == FMath::TruncToInt(Double))
 		{
 			I = (int32) Double;
 			return 1;

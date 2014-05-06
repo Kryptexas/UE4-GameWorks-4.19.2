@@ -208,7 +208,7 @@ void FCascadeEmitterCanvasClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	// Draw module errors and warnings.
 	{
 		UFont* ErrorFont = GEngine->GetSmallFont();
-		const int32 LineHeight = FMath::Trunc( ErrorFont->GetMaxCharHeight() );
+		const int32 LineHeight = FMath::TruncToInt( ErrorFont->GetMaxCharHeight() );
 		int32 DrawY = ViewY - 2 - LineHeight;
 
 		for (int32 i = 0; i < ModuleErrorStrings.Num(); ++i)

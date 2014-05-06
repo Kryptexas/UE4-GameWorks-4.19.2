@@ -977,7 +977,7 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 				float Exponent = FMath::LogX(MaxCubemapsRoundUpBase, ReflectionSceneData.AllocatedReflectionCapturesGameThread.Num());
 
 				// Round up to the next integer exponent to provide stability and reduce reallocations
-				DesiredMaxCubemaps = FMath::Pow(MaxCubemapsRoundUpBase, FMath::Trunc(Exponent) + 1);
+				DesiredMaxCubemaps = FMath::Pow(MaxCubemapsRoundUpBase, FMath::TruncToInt(Exponent) + 1);
 			}
 
 			DesiredMaxCubemaps = FMath::Min(DesiredMaxCubemaps, GMaxNumReflectionCaptures);

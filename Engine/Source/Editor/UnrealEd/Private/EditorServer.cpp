@@ -6166,7 +6166,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 		NewStaticMesh->LightMapCoordinateIndex = LightmapUVChannel;
 
 		// figure out how much to grow the lightmap resolution by, since it needs to be square, start by sqrt'ing the number
-		int32 LightmapMultiplier = FMath::Trunc(FMath::Sqrt(MergeComponents.Num()));
+		int32 LightmapMultiplier = FMath::TruncToInt(FMath::Sqrt(MergeComponents.Num()));
 
 		// increase the sqrt by 1 unless it was a perfect square
 		if (LightmapMultiplier * LightmapMultiplier != MergeComponents.Num())

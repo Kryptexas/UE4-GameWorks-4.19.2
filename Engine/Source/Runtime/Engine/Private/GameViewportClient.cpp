@@ -54,7 +54,7 @@ public:
 		if ( GShowDebugSelectedLightmap && GDebugSelectedComponent && GDebugSelectedLightmap )
 		{
 			float Radius = GDebugSelectedComponent->Bounds.SphereRadius;
-			int32 Sides = FMath::Clamp<int32>( FMath::Trunc(Radius*Radius*4.0f*PI/(80.0f*80.0f)), 8, 200 );
+			int32 Sides = FMath::Clamp<int32>( FMath::TruncToInt(Radius*Radius*4.0f*PI/(80.0f*80.0f)), 8, 200 );
 			DrawWireSphere( PDI, GDebugSelectedComponent->Bounds.Origin, FColor(255,130,0), GDebugSelectedComponent->Bounds.SphereRadius, Sides, SDPG_Foreground );
 		}
 #endif
@@ -814,7 +814,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			MinY = FMath::Min<uint32>(UpscaledViewRect.Min.Y, MinY);
 			MaxX = FMath::Max<uint32>(UpscaledViewRect.Max.X, MaxX);
 			MaxY = FMath::Max<uint32>(UpscaledViewRect.Max.Y, MaxY);
-			TotalArea += FMath::Trunc(UpscaledViewRect.Width()) * FMath::Trunc(UpscaledViewRect.Height());
+			TotalArea += FMath::TruncToInt(UpscaledViewRect.Width()) * FMath::TruncToInt(UpscaledViewRect.Height());
 		}
 
 		// To draw black borders around the rendered image (prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)
@@ -894,7 +894,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					if (View != NULL)
 					{
 						// rendering to directly to viewport target
-						FVector CanvasOrigin(FMath::Trunc(View->UnscaledViewRect.Min.X), FMath::Trunc(View->UnscaledViewRect.Min.Y), 0.f);
+						FVector CanvasOrigin(FMath::TruncToFloat(View->UnscaledViewRect.Min.X), FMath::TruncToInt(View->UnscaledViewRect.Min.Y), 0.f);
 												
 						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 
@@ -942,7 +942,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
 							uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
-							FIntRect SubtitleRegion(FMath::Trunc(SizeX * MinPos.X), FMath::Trunc(SizeY * MinPos.Y), FMath::Trunc(SizeX * MaxPos.X), FMath::Trunc(SizeY * MaxPos.Y));
+							FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
 							// We need a world to do this
 							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, GetWorld()->GetAudioTimeSeconds() );
 						}

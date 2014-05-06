@@ -272,8 +272,8 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			// its position based on mouse move delta
 			if( DraggedWindow )
 			{
-				const int32 X = FMath::Trunc(CurrentEventWindow->PositionX + [Event deltaX]);
-				const int32 Y = FMath::Trunc(CurrentEventWindow->PositionY + [Event deltaY]);
+				const int32 X = FMath::TruncToInt(CurrentEventWindow->PositionX + [Event deltaX]);
+				const int32 Y = FMath::TruncToInt(CurrentEventWindow->PositionY + [Event deltaY]);
 				if( CurrentEventWindow.IsValid() )
 				{
 					MessageHandler->OnMovedWindow( CurrentEventWindow.ToSharedRef(), X, Y );
@@ -775,7 +775,7 @@ FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow )
 
 	NSScreen* Screen = FindScreenByPoint( CurrentWindow.Left, CurrentWindow.Top );
 
-	const int32 ScreenHeight = FMath::Trunc([Screen frame].size.height);
+	const int32 ScreenHeight = FMath::TruncToInt([Screen frame].size.height);
 	const NSRect VisibleFrame = [Screen visibleFrame];
 
 	FPlatformRect WorkArea;
@@ -974,8 +974,8 @@ void FMacApplication::OnWindowDidResize( FSlateCocoaWindow* Window )
 		if([Window windowMode] != EWindowMode::Windowed)
 		{
 			// Grab current monitor data for sizing
-			Width = FMath::Trunc([[Window screen] frame].size.width);
-			Height = FMath::Trunc([[Window screen] frame].size.height);
+			Width = FMath::TruncToInt([[Window screen] frame].size.width);
+			Height = FMath::TruncToInt([[Window screen] frame].size.height);
 		}
 		
 		MessageHandler->OnSizeChanged( EventWindow.ToSharedRef(), Width, Height );

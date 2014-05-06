@@ -90,7 +90,7 @@ void UParticleModuleLocation::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 		{
 			FVector Min, Max;
 			StartLocation.Distribution->GetRange(Min, Max);
-			FVector Lerped = FMath::Lerp(Min, Max, FMath::TruncFloat((FMath::SRand() * (DistributeOverNPoints - 1.0f)) + 0.5f)/(DistributeOverNPoints - 1.0f));
+			FVector Lerped = FMath::Lerp(Min, Max, FMath::TruncToFloat((FMath::SRand() * (DistributeOverNPoints - 1.0f)) + 0.5f)/(DistributeOverNPoints - 1.0f));
 			LocationOffset.Set(Lerped.X, Lerped.Y, Lerped.Z);
 		}
 	}
@@ -442,7 +442,7 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 			{
 			case ELESM_Random:
 				{
-					Index = FMath::Trunc(FMath::SRand() * LocationEmitterInst->ActiveParticles);
+					Index = FMath::TruncToInt(FMath::SRand() * LocationEmitterInst->ActiveParticles);
 					if (Index >= LocationEmitterInst->ActiveParticles)
 					{
 						Index = LocationEmitterInst->ActiveParticles - 1;
@@ -1545,7 +1545,7 @@ void UParticleModuleLocationBoneSocket::Spawn(FParticleEmitterInstance* Owner, i
 	else if (SelectionMethod == BONESOCKETSEL_Random)
 	{
 		// Note: This can select the same socket over and over...
-		SourceIndex = FMath::Trunc(FMath::SRand() * (SourceLocations.Num() - 1));
+		SourceIndex = FMath::TruncToInt(FMath::SRand() * (SourceLocations.Num() - 1));
 		InstancePayload->LastSelectedIndex = SourceIndex;
 	}
 
@@ -2079,7 +2079,7 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 	{
 		int32 SourceLocationsCount(SkelMeshResource->LODModels[0].VertexBufferGPUSkin.GetNumVertices());
 
-		SourceIndex = FMath::Trunc(FMath::SRand() * ((float)SourceLocationsCount) - 1);
+		SourceIndex = FMath::TruncToInt(FMath::SRand() * ((float)SourceLocationsCount) - 1);
 		InstancePayload->VertIndex = SourceIndex;
 
 		if(SourceIndex != -1)
@@ -2099,10 +2099,10 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 	{
 		FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
 		int32 SectionCount = LODModel.Sections.Num();
-		int32 RandomSection = FMath::Round(FMath::SRand() * ((float)SectionCount-1));
+		int32 RandomSection = FMath::RoundToInt(FMath::SRand() * ((float)SectionCount-1));
 
 		SourceIndex = LODModel.Sections[RandomSection].BaseIndex +
-			(FMath::Trunc(FMath::SRand() * ((float)LODModel.Sections[RandomSection].NumTriangles))*3);
+			(FMath::TruncToInt(FMath::SRand() * ((float)LODModel.Sections[RandomSection].NumTriangles))*3);
 
 		InstancePayload->VertIndex = SourceIndex;
 

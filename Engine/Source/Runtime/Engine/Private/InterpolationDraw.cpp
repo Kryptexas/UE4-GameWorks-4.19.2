@@ -50,7 +50,7 @@ void UInterpTrack::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInter
 	{
 		float KeyTime = GetKeyframeTime(i);
 
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FIntPoint A(PixelPos - KeyHalfTriSize,	Params.TrackHeight - KeyVertOffset);
 		FIntPoint B(PixelPos + KeyHalfTriSize,	Params.TrackHeight - KeyVertOffset);
@@ -139,7 +139,7 @@ void UInterpTrackMove::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FI
 	{
 		float KeyTime = GetKeyframeTime(KeyIndex);
 
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FIntPoint A(PixelPos - KeyHalfTriSize,	Params.TrackHeight - KeyVertOffset);
 		FIntPoint B(PixelPos + KeyHalfTriSize,	Params.TrackHeight - KeyVertOffset);
@@ -244,7 +244,7 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 		if( TotalTime > 0.0f )
 		{
 			// Determine the number of steps to draw.  More steps means a smoother curve
-			int32 NumSteps = FMath::Ceil( TotalTime/DrawTrackTimeRes );
+			int32 NumSteps = FMath::CeilToInt( TotalTime/DrawTrackTimeRes );
 			// Ensure the number of steps to draw wont cause a rendering perf hit.
 			NumSteps = FMath::Min( 100, NumSteps );
 			float DrawSubstep = TotalTime/NumSteps;
@@ -402,7 +402,7 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 			// If not the first keypoint, draw a line to the last keypoint.
 			if(i>0)
 			{
-				int32 NumSteps = FMath::Ceil( (NewKeyTime - OldKeyTime)/DrawTrackTimeRes );
+				int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime)/DrawTrackTimeRes );
 								// Limit the number of steps to prevent a rendering performance hit
 				NumSteps = FMath::Min( 100, NumSteps );
 				float DrawSubstep = (NewKeyTime - OldKeyTime)/NumSteps;
@@ -596,7 +596,7 @@ void UInterpTrackToggle::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const 
 	for (int32 i=0; i<NumKeys; i++)
 	{
 		float KeyTime = GetKeyframeTime(i);
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FToggleTrackKey& Key = ToggleTrack[i];
 		if ((Key.ToggleAction == ETTA_Off) && bLastPosWasOn)
@@ -623,7 +623,7 @@ void UInterpTrackToggle::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const 
 	{
 		float KeyTime = GetKeyframeTime(i);
 
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FIntPoint A, A_Offset;
 		FIntPoint B, B_Offset;
@@ -813,7 +813,7 @@ void UInterpTrackEvent::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 	for(int32 i=0; i<EventTrack.Num(); i++)
 	{
 		float KeyTime = EventTrack[i].Time;
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		int32 XL, YL;
 		FString Str = EventTrack[i].EventName.ToString();
@@ -872,14 +872,14 @@ void UInterpTrackDirector::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, cons
 		// If its valid, and its not this track, draw a box over duration of shot.
 		if((CutGroupIndex != INDEX_NONE) && (CutTrack[i].TargetCamGroup != Group->GroupName))
 		{
-			int32 StartPixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
-			int32 EndPixelPos = FMath::Trunc((NextKeyTime - Params.StartTime) * Params.PixelsPerSec);
+			int32 StartPixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+			int32 EndPixelPos = FMath::TruncToInt((NextKeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 			if ( bAllowBarSelection )
 			{
 				Canvas->SetHitProxy( new HInterpTrackKeypointProxy( Group, this, i ) );
 			}
-			Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, Data->InterpGroups[CutGroupIndex]->GroupColor );
+			Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, Data->InterpGroups[CutGroupIndex]->GroupColor );
 			if ( bAllowBarSelection )
 			{
 				Canvas->SetHitProxy( NULL );
@@ -894,7 +894,7 @@ void UInterpTrackDirector::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, cons
 	for(int32 i=0; i<CutTrack.Num(); i++)
 	{
 		float KeyTime = CutTrack[i].Time;
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		int32 XL, YL;
 		//Append the shot name to the target group name
@@ -1080,8 +1080,8 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 			LoopEndTime = Data->InterpLength;
 		}
 
-		int32 StartPixelPos = FMath::Trunc((SeqStartTime - Params.StartTime) * Params.PixelsPerSec);
-		int32 EndPixelPos = FMath::Trunc((SeqEndTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 StartPixelPos = FMath::TruncToInt((SeqStartTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 EndPixelPos = FMath::TruncToInt((SeqEndTime - Params.StartTime) * Params.PixelsPerSec);
 
 		// Find if this key is one of the selected ones.
 		bool bKeySelected = false;
@@ -1098,14 +1098,14 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 
 		if( Seq && CurKey.bLooping )
 		{
-			int32 LoopEndPixelPos = FMath::Ceil((LoopEndTime - Params.StartTime) * Params.PixelsPerSec);
+			int32 LoopEndPixelPos = FMath::CeilToInt((LoopEndTime - Params.StartTime) * Params.PixelsPerSec);
 
 			if ( bAllowBarSelection )
 			{
 				Canvas->SetHitProxy( new HInterpTrackKeypointProxy( Group, this, i ) );
 			}
-			Canvas->DrawTile( StartPixelPos, KeyVertOffset, LoopEndPixelPos - StartPixelPos, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FColor(0,0,0) );
-			Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, LoopEndPixelPos - StartPixelPos - 1, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f, FColor(0,75,150) );
+			Canvas->DrawTile( StartPixelPos, KeyVertOffset, LoopEndPixelPos - StartPixelPos, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FColor(0,0,0) );
+			Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, LoopEndPixelPos - StartPixelPos - 1, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f, FColor(0,75,150) );
 			if ( bAllowBarSelection )
 			{
 				Canvas->SetHitProxy( NULL );
@@ -1116,7 +1116,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 
 			while(LoopTime < LoopEndTime)
 			{
-				int32 DashPixelPos = FMath::Trunc((LoopTime - Params.StartTime) * Params.PixelsPerSec);
+				int32 DashPixelPos = FMath::TruncToInt((LoopTime - Params.StartTime) * Params.PixelsPerSec);
 				LineItem.Draw( Canvas, FVector2D(DashPixelPos, KeyVertOffset + 2), FVector2D(DashPixelPos, Params.TrackHeight - KeyVertOffset - 2) );
 				LoopTime += SeqLength;
 			}
@@ -1128,7 +1128,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 		}
 		
 		// Draw background blocks
-		Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos + 1, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, BorderColor );
+		Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos + 1, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, BorderColor );
 
 		// If the current key is reversed then change the color of the block.
 		FColor BlockColor;
@@ -1142,7 +1142,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 			BlockColor = NormalBlockColor;
 		}
 
-		Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, EndPixelPos - StartPixelPos - 1, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f,  BlockColor);
+		Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, EndPixelPos - StartPixelPos - 1, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f,  BlockColor);
 
 		if ( bAllowBarSelection )
 		{
@@ -1154,11 +1154,11 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 		{
 			// Left Edge
 			Canvas->SetHitProxy(new HInterpEdInputInterface(this, FInterpEdInputData(ACDT_AnimBlockLeftEdge, i)));
-			Canvas->DrawTile( StartPixelPos-2, KeyVertOffset, 4, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
+			Canvas->DrawTile( StartPixelPos-2, KeyVertOffset, 4, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
 
 			// Right Edge
 			Canvas->SetHitProxy(new HInterpEdInputInterface(this, FInterpEdInputData(ACDT_AnimBlockRightEdge, i)));
-			Canvas->DrawTile( EndPixelPos-1, KeyVertOffset, 4, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
+			Canvas->DrawTile( EndPixelPos-1, KeyVertOffset, 4, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
 
 			Canvas->SetHitProxy(NULL);
 		}
@@ -1177,7 +1177,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 				if( Params.bPreferFrameNumbers && Params.SnapAmount > KINDA_SMALL_NUMBER )
 				{
 					// Convert to the animation time values to frame numbers
-					const int32 CursorFrameWithinAnim = FMath::Trunc( CursorPosWithinAnim / Params.SnapAmount );
+					const int32 CursorFrameWithinAnim = FMath::TruncToInt( CursorPosWithinAnim / Params.SnapAmount );
 					TimeCursorString = FString::Printf( TEXT( "%i" ), CursorFrameWithinAnim );
 				}
 				else
@@ -1206,7 +1206,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 		}
 
 		float SeqStartTime = CurKey.StartTime;
-		int32 PixelPos = FMath::Trunc((SeqStartTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((SeqStartTime - Params.StartTime) * Params.PixelsPerSec);
 
 		UAnimSequence* Seq = CurKey.AnimSeq;
 		FString SeqString = Seq != NULL ? Seq->GetName() : FString::Printf(TEXT("NULL"));
@@ -1219,8 +1219,8 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 				if( Params.bPreferFrameNumbers && Params.SnapAmount > KINDA_SMALL_NUMBER )
 				{
 					// Convert to the animation time values to frame numbers
-					const int32 AnimFrameOffsetFromStart = FMath::Round( CurKey.AnimStartOffset / Params.SnapAmount );
-					const int32 AnimFrameOffsetFromEnd = FMath::Round( ( Seq->SequenceLength - CurKey.AnimEndOffset ) / Params.SnapAmount );
+					const int32 AnimFrameOffsetFromStart = FMath::RoundToInt( CurKey.AnimStartOffset / Params.SnapAmount );
+					const int32 AnimFrameOffsetFromEnd = FMath::RoundToInt( ( Seq->SequenceLength - CurKey.AnimEndOffset ) / Params.SnapAmount );
 					SeqString += FString::Printf( TEXT(" (%i->%i)"), AnimFrameOffsetFromStart, AnimFrameOffsetFromEnd );
 				}
 				else
@@ -1269,7 +1269,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 
 
 		const int32 TimeCursorPixelPos =
-			FMath::Trunc( ( Params.TimeCursorPosition - Params.StartTime ) * Params.PixelsPerSec );
+			FMath::TruncToInt( ( Params.TimeCursorPosition - Params.StartTime ) * Params.PixelsPerSec );
 
 		int32 XL, YL;
 		StringSize( GEngine->GetTinyFont(), XL, YL, *TimeCursorString );
@@ -1356,8 +1356,8 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 			}
 		}
 
-		int32 StartPixelPos = FMath::Trunc((SoundStartTime - Params.StartTime) * Params.PixelsPerSec);
-		int32 EndPixelPos = FMath::Trunc((SoundEndTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 StartPixelPos = FMath::TruncToInt((SoundStartTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 EndPixelPos = FMath::TruncToInt((SoundEndTime - Params.StartTime) * Params.PixelsPerSec);
 
 		// Find if this sound is one of the selected ones.
 		bool bKeySelected = false;
@@ -1376,8 +1376,8 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 		{
 			Canvas->SetHitProxy( new HInterpTrackKeypointProxy( Group, this, i ) );
 		}
-		Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos + 1, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, BorderColor );
-		Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, EndPixelPos - StartPixelPos - 1, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f, FColor(0,200,100) );
+		Canvas->DrawTile( StartPixelPos, KeyVertOffset, EndPixelPos - StartPixelPos + 1, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, BorderColor );
+		Canvas->DrawTile( StartPixelPos+1, KeyVertOffset+1, EndPixelPos - StartPixelPos - 1, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset) - 2, 0.f, 0.f, 1.f, 1.f, FColor(0,200,100) );
 		if( bAllowBarSelection )
 		{
 			Canvas->SetHitProxy( NULL );
@@ -1391,7 +1391,7 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 	for (int32 i = 0; i < Sounds.Num(); i++)
 	{
 		float SoundStartTime = Sounds[i].Time;
-		int32 PixelPos = FMath::Trunc((SoundStartTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((SoundStartTime - Params.StartTime) * Params.PixelsPerSec);
 
 		USoundBase* Sound = Sounds[i].Sound;
 	
@@ -1492,7 +1492,7 @@ void UInterpTrackVisibility::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, co
 	for (int32 i=0; i<NumKeys; i++)
 	{
 		float KeyTime = GetKeyframeTime(i);
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FVisibilityTrackKey& Key = VisibilityTrack[i];
 		if ((Key.Action == EVTA_Hide) && bLastPosWasOn)
@@ -1519,7 +1519,7 @@ void UInterpTrackVisibility::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, co
 	{
 		float KeyTime = GetKeyframeTime(i);
 
-		int32 PixelPos = FMath::Trunc((KeyTime - Params.StartTime) * Params.PixelsPerSec);
+		int32 PixelPos = FMath::TruncToInt((KeyTime - Params.StartTime) * Params.PixelsPerSec);
 
 		FIntPoint A, A_Offset;
 		FIntPoint B, B_Offset;
@@ -1674,7 +1674,7 @@ void UInterpTrackParticleReplay::ObjectDragged(FInterpEdInputData& InputData)
 						// Snap the new time position
 						if( FixedTimeStep > SMALL_NUMBER )
 						{
-							const int32 InterpPositionInFrames = FMath::Round( SelectedKey.Time / FixedTimeStep );
+							const int32 InterpPositionInFrames = FMath::RoundToInt( SelectedKey.Time / FixedTimeStep );
 							SelectedKey.Time = InterpPositionInFrames * FixedTimeStep;
 						}
 
@@ -1705,7 +1705,7 @@ void UInterpTrackParticleReplay::ObjectDragged(FInterpEdInputData& InputData)
 						{
 							float EndTime = SelectedKey.Time + SelectedKey.Duration;
 
-							const int32 InterpPositionInFrames = FMath::Round( EndTime / FixedTimeStep );
+							const int32 InterpPositionInFrames = FMath::RoundToInt( EndTime / FixedTimeStep );
 							EndTime = InterpPositionInFrames * FixedTimeStep;
 
 							if( EndTime < SelectedKey.Time )
@@ -1740,8 +1740,8 @@ void UInterpTrackParticleReplay::DrawTrack( FCanvas* Canvas, UInterpGroup* Group
 
 		float KeyTime = GetKeyframeTime( CurKeyIndex );
 
-		const int32 StartPixelPos = FMath::Trunc( ( KeyTime - Params.StartTime ) * Params.PixelsPerSec );
-		const int32 EndPixelPos = FMath::Trunc( ( KeyTime - Params.StartTime + CurKey.Duration ) * Params.PixelsPerSec );
+		const int32 StartPixelPos = FMath::TruncToInt( ( KeyTime - Params.StartTime ) * Params.PixelsPerSec );
+		const int32 EndPixelPos = FMath::TruncToInt( ( KeyTime - Params.StartTime + CurKey.Duration ) * Params.PixelsPerSec );
 
 
 		// Is this key selected?
@@ -1775,7 +1775,7 @@ void UInterpTrackParticleReplay::DrawTrack( FCanvas* Canvas, UInterpGroup* Group
 				StartPixelPos,
 				KeyVertOffset,
 				EndPixelPos - StartPixelPos + 1,
-				FMath::Trunc( Params.TrackHeight - 2.0f * KeyVertOffset ),
+				FMath::TruncToFloat( Params.TrackHeight - 2.0f * KeyVertOffset ),
 				0.f, 0.f, 1.f, 1.f,
 				BackgroundTileColor );
 
@@ -1791,11 +1791,11 @@ void UInterpTrackParticleReplay::DrawTrack( FCanvas* Canvas, UInterpGroup* Group
 		{
 			// Left Edge
 			Canvas->SetHitProxy(new HInterpEdInputInterface(this, FInterpEdInputData(PRDT_LeftEdge, CurKeyIndex)));
-			Canvas->DrawTile( StartPixelPos-2, KeyVertOffset, 4, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
+			Canvas->DrawTile( StartPixelPos-2, KeyVertOffset, 4, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
 
 			// Right Edge
 			Canvas->SetHitProxy(new HInterpEdInputInterface(this, FInterpEdInputData(PRDT_RightEdge, CurKeyIndex)));
-			Canvas->DrawTile( EndPixelPos-1, KeyVertOffset, 4, FMath::Trunc(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
+			Canvas->DrawTile( EndPixelPos-1, KeyVertOffset, 4, FMath::TruncToFloat(Params.TrackHeight - 2.f*KeyVertOffset), 0.f, 0.f, 1.f, 1.f, FLinearColor::Black );
 
 			Canvas->SetHitProxy(NULL);
 		}
@@ -1803,7 +1803,7 @@ void UInterpTrackParticleReplay::DrawTrack( FCanvas* Canvas, UInterpGroup* Group
 
 		// Draw key frame information text
 		{
-			const int32 DurationInFrames = FMath::Round( CurKey.Duration / FixedTimeStep );
+			const int32 DurationInFrames = FMath::RoundToInt( CurKey.Duration / FixedTimeStep );
 			FString InfoText = FString::Printf( TEXT( "[Clip %i] %i frames (%.2f s)" ), CurKey.ClipIDNumber, DurationInFrames, CurKey.Duration );
 
 			int32 XL, YL;

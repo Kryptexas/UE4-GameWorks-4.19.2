@@ -217,9 +217,9 @@ void FIndirectLightingCache::CalculateBlockPositionAndSize(const FBoxSphereBound
 	RoundedBoundsSize.Z = FMath::LogX(BoundSizeRoundUpBase, Bounds.BoxExtent.Z * 2);
 
 	// Round up to the next integer exponent to provide stability even when Bounds.BoxExtent is changing
-	RoundedBoundsSize.X = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.X) + 1);
-	RoundedBoundsSize.Y = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.Y) + 1);
-	RoundedBoundsSize.Z = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.Z) + 1);
+	RoundedBoundsSize.X = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.X) + 1);
+	RoundedBoundsSize.Y = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.Y) + 1);
+	RoundedBoundsSize.Z = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.Z) + 1);
 
 	// For single sample allocations, use an effective texel size of 5 for snapping
 	const int32 EffectiveTexelSize = TexelSize > 2 ? TexelSize : 5;
@@ -233,9 +233,9 @@ void FIndirectLightingCache::CalculateBlockPositionAndSize(const FBoxSphereBound
 	const FVector BoundsMin = Bounds.Origin - Bounds.BoxExtent;
 
 	FVector SnappedMin;
-	SnappedMin.X = CellSize.X * FMath::Floor(BoundsMin.X / CellSize.X);
-	SnappedMin.Y = CellSize.Y * FMath::Floor(BoundsMin.Y / CellSize.Y);
-	SnappedMin.Z = CellSize.Z * FMath::Floor(BoundsMin.Z / CellSize.Z);
+	SnappedMin.X = CellSize.X * FMath::FloorToFloat(BoundsMin.X / CellSize.X);
+	SnappedMin.Y = CellSize.Y * FMath::FloorToFloat(BoundsMin.Y / CellSize.Y);
+	SnappedMin.Z = CellSize.Z * FMath::FloorToFloat(BoundsMin.Z / CellSize.Z);
 
 	if (TexelSize > 2)
 	{
@@ -778,9 +778,9 @@ void FIndirectLightingCache::InterpolateBlock(
 
 			// Number of cells to increment by for query blocks
 			FIntVector NumStepCells;
-			NumStepCells.X = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.X));
-			NumStepCells.Y = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.Y));
-			NumStepCells.Z = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.Z));
+			NumStepCells.X = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.X));
+			NumStepCells.Y = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.Y));
+			NumStepCells.Z = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.Z));
 			FIntVector NumQueryStepCells(0, 0, 0);
 
 			// World space size to increment by for query blocks

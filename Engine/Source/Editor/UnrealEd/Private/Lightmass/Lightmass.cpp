@@ -2003,25 +2003,25 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 
 		float NumShadowRaysScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumShadowRaysScale"), NumShadowRaysScale, GLightmassIni));
-		Scene.ShadowSettings.NumShadowRays = FMath::Trunc(Scene.ShadowSettings.NumShadowRays * NumShadowRaysScale);
+		Scene.ShadowSettings.NumShadowRays = FMath::TruncToInt(Scene.ShadowSettings.NumShadowRays * NumShadowRaysScale);
 
 		float NumPenumbraShadowRaysScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumPenumbraShadowRaysScale"), NumPenumbraShadowRaysScale, GLightmassIni));
-		Scene.ShadowSettings.NumPenumbraShadowRays = FMath::Trunc(Scene.ShadowSettings.NumPenumbraShadowRays * NumPenumbraShadowRaysScale);
+		Scene.ShadowSettings.NumPenumbraShadowRays = FMath::TruncToInt(Scene.ShadowSettings.NumPenumbraShadowRays * NumPenumbraShadowRaysScale);
 
 		float ApproximateHighResTexelsPerMaxTransitionDistanceScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("ApproximateHighResTexelsPerMaxTransitionDistanceScale"), ApproximateHighResTexelsPerMaxTransitionDistanceScale, GLightmassIni));
-		Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance = FMath::Trunc(Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance * ApproximateHighResTexelsPerMaxTransitionDistanceScale);
+		Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance = FMath::TruncToInt(Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance * ApproximateHighResTexelsPerMaxTransitionDistanceScale);
 
 		verify(GConfig->GetInt(QualitySectionNames[QualityLevel], TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
 
 		float NumHemisphereSamplesScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumHemisphereSamplesScale"), NumHemisphereSamplesScale, GLightmassIni));
-		Scene.ImportanceTracingSettings.NumHemisphereSamples = FMath::Trunc(Scene.ImportanceTracingSettings.NumHemisphereSamples * NumHemisphereSamplesScale);
+		Scene.ImportanceTracingSettings.NumHemisphereSamples = FMath::TruncToInt(Scene.ImportanceTracingSettings.NumHemisphereSamples * NumHemisphereSamplesScale);
 
 		float NumImportanceSearchPhotonsScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumImportanceSearchPhotonsScale"), NumImportanceSearchPhotonsScale, GLightmassIni));
-		Scene.PhotonMappingSettings.NumImportanceSearchPhotons = FMath::Trunc(Scene.PhotonMappingSettings.NumImportanceSearchPhotons * NumImportanceSearchPhotonsScale);
+		Scene.PhotonMappingSettings.NumImportanceSearchPhotons = FMath::TruncToInt(Scene.PhotonMappingSettings.NumImportanceSearchPhotons * NumImportanceSearchPhotonsScale);
 
 		float NumDirectPhotonsScale;
 		verify(GConfig->GetFloat(QualitySectionNames[QualityLevel], TEXT("NumDirectPhotonsScale"), NumDirectPhotonsScale, GLightmassIni));
@@ -3130,10 +3130,10 @@ void FLightmassProcessor::ApplyPrecomputedVisibility()
 			const FUncompressedPrecomputedVisibilityCell& CurrentCell = CombinedPrecomputedVisibilityCells[CellIndex];
 
 			const float FloatOffsetX = (CurrentCell.Bounds.Min.X - CellBucketOriginXY.X + .5f * CellSize) / CellSize;
-			// FMath::Trunc rounds toward 0, we want to always round down
-			const int32 BucketIndexX = FMath::Abs((FMath::Trunc(FloatOffsetX) - (FloatOffsetX < 0.0f ? 1 : 0)) / CellBucketSize % NumCellBuckets);
+			// FMath::TruncToInt rounds toward 0, we want to always round down
+			const int32 BucketIndexX = FMath::Abs((FMath::TruncToInt(FloatOffsetX) - (FloatOffsetX < 0.0f ? 1 : 0)) / CellBucketSize % NumCellBuckets);
 			const float FloatOffsetY = (CurrentCell.Bounds.Min.Y - CellBucketOriginXY.Y + .5f * CellSize) / CellSize;
-			const int32 BucketIndexY = FMath::Abs((FMath::Trunc(FloatOffsetY) - (FloatOffsetY < 0.0f ? 1 : 0)) / CellBucketSize % NumCellBuckets);
+			const int32 BucketIndexY = FMath::Abs((FMath::TruncToInt(FloatOffsetY) - (FloatOffsetY < 0.0f ? 1 : 0)) / CellBucketSize % NumCellBuckets);
 
 			const int32 BucketIndex = BucketIndexY * CellBucketSize + BucketIndexX;
 			CellRenderingBuckets[BucketIndex].Add(&CurrentCell);
@@ -3931,8 +3931,8 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 		LightMapTypeModifier = NUM_LQ_LIGHTMAP_COEF;
 	}
 
-	int32 WastedMemory = FMath::Trunc(MemoryAmount * BytesPerPixel * MIP_FACTOR * LightMapTypeModifier);
-	int32 TotalMemory = FMath::Trunc(TotalMemoryAmount * BytesPerPixel * MIP_FACTOR * LightMapTypeModifier);
+	int32 WastedMemory = FMath::TruncToInt(MemoryAmount * BytesPerPixel * MIP_FACTOR * LightMapTypeModifier);
+	int32 TotalMemory = FMath::TruncToInt(TotalMemoryAmount * BytesPerPixel * MIP_FACTOR * LightMapTypeModifier);
 	
 	FStatsViewerModule& StatsViewerModule = FModuleManager::Get().LoadModuleChecked<FStatsViewerModule>(TEXT("StatsViewer"));
 	ULightingBuildInfo* LightingBuildInfo = ConstructObject<ULightingBuildInfo>(ULightingBuildInfo::StaticClass());

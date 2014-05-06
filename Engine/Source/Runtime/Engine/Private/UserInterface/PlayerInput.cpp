@@ -1084,7 +1084,7 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 	float DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
 
 	// actual num samples should be either this or this+1
-	int32 ExpectedNumSamplesThisFrame = FMath::Trunc(DeltaTime * DetectedMouseSampleHz);
+	int32 ExpectedNumSamplesThisFrame = FMath::TruncToInt(DeltaTime * DetectedMouseSampleHz);
 
 	if (DeltaTime < 0.25f)
 	{

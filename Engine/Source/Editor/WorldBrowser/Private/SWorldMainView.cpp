@@ -604,7 +604,7 @@ FString SWorldMainView::GetCurrentLevelText() const
 FString SWorldMainView::GetMouseLocationText() const
 {
 	FVector2D MouseLocation = LevelsGridView->GetMouseWorldLocation();
-	return FString::Printf(TEXT("%d, %d"), FMath::Round(MouseLocation.X), FMath::Round(MouseLocation.Y));
+	return FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(MouseLocation.X), FMath::RoundToInt(MouseLocation.Y));
 }
 
 FString	SWorldMainView::GetMarqueeSelectionSizeText() const
@@ -612,7 +612,7 @@ FString	SWorldMainView::GetMarqueeSelectionSizeText() const
 	FVector2D MarqueeSize = LevelsGridView->GetMarqueeWorldSize();
 	if (MarqueeSize.Size() > 0)
 	{
-		return FString::Printf(TEXT("%d x %d"), FMath::Round(MarqueeSize.X), FMath::Round(MarqueeSize.Y));
+		return FString::Printf(TEXT("%d x %d"), FMath::RoundToInt(MarqueeSize.X), FMath::RoundToInt(MarqueeSize.Y));
 	}
 	else
 	{

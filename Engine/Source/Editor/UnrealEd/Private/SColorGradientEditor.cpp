@@ -142,7 +142,7 @@ int32 SColorGradientEditor::OnPaint( const FGeometry& AllottedGeometry, const FS
 
 		// The start and end location in slate units of the area to draw
 		int32 Start = 0;
-		int32 Finish = FMath::Trunc( AllottedGeometry.Size.X );
+		int32 Finish = FMath::TruncToInt( AllottedGeometry.Size.X );
 
 		TArray<FSlateGradientStop> Stops;
 

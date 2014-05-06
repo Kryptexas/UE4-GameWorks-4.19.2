@@ -168,7 +168,7 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 
 	if(InPayload.BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType)
 	{
-		FVector2D Position( FMath::Trunc(InPosition.X), FMath::Trunc(InPosition.Y) );
+		FVector2D Position( FMath::TruncToInt(InPosition.X), FMath::TruncToInt(InPosition.Y) );
 
 		const float Angle = InPayload.Angle;
 		const FVector2D RotationPoint = InPayload.RotationPoint;
@@ -297,8 +297,8 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 
 			FVector2D EndPos = FVector2D(Position.X, Position.Y) + Size;
 
-			EndPos.X = FMath::Trunc( EndPos.X );
-			EndPos.Y = FMath::Trunc( EndPos.Y );
+			EndPos.X = FMath::TruncToInt( EndPos.X );
+			EndPos.Y = FMath::TruncToInt( EndPos.Y );
 
 			BatchVertices.Add( FSlateVertex( Position,									StartUV,									Tiling,	Tint, InClippingRect ) ); //0
 			BatchVertices.Add( FSlateVertex( FVector2D( Position.X, TopMarginY ),		FVector2D( StartUV.X, TopMarginV ),			Tiling,	Tint, InClippingRect ) ); //1
@@ -452,8 +452,8 @@ void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVec
 
 	int32 Kerning = 0;
 
-	int32 PosX = FMath::Trunc(Position.X);
-	int32 PosY = FMath::Trunc(Position.Y);
+	int32 PosX = FMath::TruncToInt(Position.X);
+	int32 PosY = FMath::TruncToInt(Position.Y);
 
 	LineX = PosX;
 	
@@ -687,7 +687,7 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 
 	const float DirectLength = (InPayload.EndPt - InPayload.StartPt).Size();
 	const float HandleLength = ((InPayload.EndPt - InPayload.EndDir) - (InPayload.StartPt + InPayload.StartDir)).Size();
-	float NumSteps = FMath::Clamp<float>(FMath::Ceil(FMath::Max(DirectLength,HandleLength)/15.0f), 1, 256);
+	float NumSteps = FMath::Clamp<float>(FMath::CeilToInt(FMath::Max(DirectLength,HandleLength)/15.0f), 1, 256);
 
 	// 1 is the minimum thickness we support
 	float InThickness = FMath::Max( 1.0f, InPayload.Thickness );
@@ -697,7 +697,7 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 
 	// Compute the actual size of the line we need based on thickness.  Need to ensure pixels that are at least Thickness/2 + Sample radius are generated so that we have enough pixels to blend.
 	// The idea for the spline anti-alising technique is based on the fast prefiltered lines technique published in GPU Gems 2 
-	const float LineThickness = FMath::Ceil( (2.0f * Radius + InThickness ) * FMath::Sqrt(2.0f) );
+	const float LineThickness = FMath::CeilToInt( (2.0f * Radius + InThickness ) * FMath::Sqrt(2.0f) );
 
 	// The amount we increase each side of the line to generate enough pixels
 	const float HalfThickness = LineThickness * .5f + Radius;
@@ -832,7 +832,7 @@ void FSlateElementBatcher::AddLineElement( const FVector2D& Position, const FVec
 
 		// Compute the actual size of the line we need based on thickness.  Need to ensure pixels that are at least Thickness/2 + Sample radius are generated so that we have enough pixels to blend.
 		// The idea for the anti-aliasing technique is based on the fast prefiltered lines technique published in GPU Gems 2 
-		const float LineThickness = FMath::Ceil( (2.0f * Radius + RequestedThickness ) * FMath::Sqrt(2.0f) );
+		const float LineThickness = FMath::CeilToInt( (2.0f * Radius + RequestedThickness ) * FMath::Sqrt(2.0f) );
 
 		// The amount we increase each side of the line to generate enough pixels
 		const float HalfThickness = LineThickness * .5f + Radius;
@@ -1005,8 +1005,8 @@ void FSlateElementBatcher::AddViewportElement( const FVector2D& InPosition, cons
 		bRequiresVsync |= ViewportPin->RequiresVsync();
 	}
 
-	FVector2D Position = FVector2D( FMath::Trunc( InPosition.X ), FMath::Trunc( InPosition.Y ) );
-	FVector2D Size = FVector2D( FMath::Trunc( InSize.X ), FMath::Trunc( InSize.Y ) );
+	FVector2D Position = FVector2D( FMath::TruncToInt( InPosition.X ), FMath::TruncToInt( InPosition.Y ) );
+	FVector2D Size = FVector2D( FMath::TruncToInt( InSize.X ), FMath::TruncToInt( InSize.Y ) );
 
 	// Determine the four corners of the quad
 	FVector2D TopLeft = Position;
@@ -1051,7 +1051,7 @@ void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const 
 
 	check( InPayload.BrushResource );
 
-	const FVector2D Position( FMath::Trunc(InPosition.X), FMath::Trunc(InPosition.Y) );
+	const FVector2D Position( FMath::TruncToInt(InPosition.X), FMath::TruncToInt(InPosition.Y) );
 
 	uint32 TextureWidth = 1;
 	uint32 TextureHeight = 1;
@@ -1136,8 +1136,8 @@ void FSlateElementBatcher::AddBorderElement( const FVector2D& InPosition, const 
 
 	FVector2D EndPos = FVector2D(Position.X, Position.Y) + Size;
 
-	EndPos.X = FMath::Trunc(EndPos.X);
-	EndPos.Y = FMath::Trunc(EndPos.Y);
+	EndPos.X = FMath::TruncToInt(EndPos.X);
+	EndPos.Y = FMath::TruncToInt(EndPos.Y);
 
 	// The start index of these vertices in the index buffer
 	uint32 IndexStart = BatchVertices.Num();

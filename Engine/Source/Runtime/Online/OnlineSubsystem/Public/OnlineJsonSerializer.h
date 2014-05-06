@@ -270,7 +270,7 @@ public:
 	{
 		if (JsonObject->HasField(Name))
 		{
-			Value = FMath::Trunc(JsonObject->GetNumberField(Name));
+			Value = FMath::TruncToInt(JsonObject->GetNumberField(Name));
 		}
 	}
 	/**
@@ -283,7 +283,7 @@ public:
 	{
 		if (JsonObject->HasField(Name))
 		{
-			Value = FMath::Trunc(JsonObject->GetNumberField(Name));
+			Value = FMath::TruncToInt(JsonObject->GetNumberField(Name));
 		}
 	}
 	/**

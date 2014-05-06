@@ -263,7 +263,7 @@ void SDataGraph::UpdateState()
 			NumDataPoints = (int32)GraphDesc->CombinedGraphDataSource->GetNumFrames();
 		}
 
-		NumVisiblePoints = FMath::Max( 0, FMath::Trunc(ThisGeometry.Size.X) / DistanceBetweenPoints );
+		NumVisiblePoints = FMath::Max( 0, FMath::TruncToInt(ThisGeometry.Size.X) / DistanceBetweenPoints );
 		// GraphOffset - Updated by OnMouseMove or by ScrollTo
 		GraphOffset = FMath::Clamp( GraphOffset, 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
 		
@@ -587,7 +587,7 @@ int32 SDataGraph::OnPaint
 			{
 				const float MarkerPosX = (FrameIndex - GraphOffset) * DistanceBetweenPoints;
 				const float ElapsedFrameTimeMS = FrameIndex * FTimeAccuracy::AsFrameTime( TimeBasedAccuracy );
-				const int32 ElapsedFrameTime = FMath::Max( FMath::Round( ElapsedFrameTimeMS * 0.001f ) - 1, 0 );
+				const int32 ElapsedFrameTime = FMath::Max( FMath::RoundToInt( ElapsedFrameTimeMS * 0.001f ) - 1, 0 );
 				const int32 AccumulatedFrameCounter = bCanBeDisplayedAsMulti ? FrameIndex : DataProvider->GetAccumulatedFrameCounter(ElapsedFrameTime);
 
 				LinePoints.Add( FVector2D(MarkerPosX, 0.0) );
@@ -1144,7 +1144,7 @@ FReply SDataGraph::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 			const float ScrollByAmount = -MouseEvent.GetCursorDelta().X * (1.0f/DistanceBetweenPoints);
 			RealGraphOffset += ScrollByAmount;
 
-			GraphOffset = FMath::Clamp( FMath::Trunc( RealGraphOffset ), 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
+			GraphOffset = FMath::Clamp( FMath::TruncToInt( RealGraphOffset ), 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
 			OnGraphOffsetChanged.ExecuteIfBound( GraphOffset );
 
 			Reply = FReply::Handled();
@@ -1157,7 +1157,7 @@ FReply SDataGraph::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 const int32 SDataGraph::CalculateFrameIndex( const FVector2D InMousePosition ) const
 {
 	const float ScaleX = 1.0f/DistanceBetweenPoints;
-	const int32 MousePositionOffset = FMath::Trunc( (InMousePosition.X+HalfGraphMarkerWidth) * ScaleX );
+	const int32 MousePositionOffset = FMath::TruncToInt( (InMousePosition.X+HalfGraphMarkerWidth) * ScaleX );
 	return FMath::Clamp( GraphOffset+MousePositionOffset, 0, NumDataPoints-1 );
 }
 

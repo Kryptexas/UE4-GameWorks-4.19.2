@@ -221,8 +221,8 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 			// Octree used for interpolating lighting for debugging
 			VolumeLightingInterpolationOctree = FVolumeLightingInterpolationOctree(VolumeBounds.Origin, VolumeBounds.BoxExtent.GetMax());
 			// Determine the resolution that the scene should be rasterized at based on SurfaceLightSampleSpacing and the scene's extent
-			const int32 RasterSizeX = FMath::Trunc(2.0f * VolumeBounds.BoxExtent.X / DynamicObjectSettings.SurfaceLightSampleSpacing);
-			const int32 RasterSizeY = FMath::Trunc(2.0f * VolumeBounds.BoxExtent.Y / DynamicObjectSettings.SurfaceLightSampleSpacing);
+			const int32 RasterSizeX = FMath::TruncToInt(2.0f * VolumeBounds.BoxExtent.X / DynamicObjectSettings.SurfaceLightSampleSpacing);
+			const int32 RasterSizeY = FMath::TruncToInt(2.0f * VolumeBounds.BoxExtent.Y / DynamicObjectSettings.SurfaceLightSampleSpacing);
 
 			FTriangleRasterizer<FVolumeSamplePlacementRasterPolicy> Rasterizer(
 				FVolumeSamplePlacementRasterPolicy(
@@ -379,7 +379,7 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 			}
 
 			const float VolumeSpacingCubed = DynamicObjectSettings.VolumeLightSampleSpacing * DynamicObjectSettings.VolumeLightSampleSpacing * DynamicObjectSettings.VolumeLightSampleSpacing;
-			int32 RequestedVolumeSamples = FMath::Trunc(8.0f * VolumeBounds.BoxExtent.X * VolumeBounds.BoxExtent.Y * VolumeBounds.BoxExtent.Z / VolumeSpacingCubed);
+			int32 RequestedVolumeSamples = FMath::TruncToInt(8.0f * VolumeBounds.BoxExtent.X * VolumeBounds.BoxExtent.Y * VolumeBounds.BoxExtent.Z / VolumeSpacingCubed);
 			RequestedVolumeSamples = RequestedVolumeSamples == appTruncErrorCode ? INT_MAX : RequestedVolumeSamples;
 			float EffectiveVolumeSpacing = DynamicObjectSettings.VolumeLightSampleSpacing;
 
@@ -424,8 +424,8 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 			const int32 NumUpperVolumeSamples = ImportanceTracingSettings.NumHemisphereSamples * DynamicObjectSettings.NumHemisphereSamplesScale;
 			// Volume samples don't do any importance sampling so they need more samples for the same amount of variance as surface samples
 			const float NumThetaStepsFloat = FMath::Sqrt(NumUpperVolumeSamples / (float)PI);
-			const int32 NumThetaSteps = FMath::Trunc(NumThetaStepsFloat);
-			const int32 NumPhiSteps = FMath::Trunc(NumThetaStepsFloat * (float)PI);
+			const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
+			const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
 
 			GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, UniformHemisphereSamples, UniformHemisphereSampleUniforms);
 

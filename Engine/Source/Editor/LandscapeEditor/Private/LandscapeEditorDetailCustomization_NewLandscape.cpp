@@ -654,7 +654,7 @@ TOptional<int32> FLandscapeEditorDetailCustomization_NewLandscape::GetMaxLandsca
 	{
 		// Max size is either whole components below 8192 verts, or 32 components
 		const int32 QuadsPerComponent = (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection);
-		//return (float)(FMath::Min(32, FMath::Floor(8191 / QuadsPerComponent)) * QuadsPerComponent);
+		//return (float)(FMath::Min(32, FMath::FloorToInt(8191 / QuadsPerComponent)) * QuadsPerComponent);
 		return (8191 / QuadsPerComponent) * QuadsPerComponent + 1;
 	}
 
@@ -885,8 +885,8 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnFillWorldButtonClicke
 		NewLandscapeLocation.Y = 0;
 
 		const int32 QuadsPerComponent = LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection;
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = FMath::Ceil(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.X);
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = FMath::Ceil(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.Y);
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = FMath::CeilToInt(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.X);
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = FMath::CeilToInt(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.Y);
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
 
@@ -1075,7 +1075,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilename
 					// Find all possible heightmap sizes, up to 8192 width/height
 					int32 InsertIndex = 0;
 					const int32 MinWidth = FMath::DivideAndRoundUp(ImportFileSize, (int64)8192);
-					const int32 MaxWidth = FMath::Trunc(FMath::Sqrt(ImportFileSize));
+					const int32 MaxWidth = FMath::TruncToInt(FMath::Sqrt(ImportFileSize));
 					for (int32 Width = MinWidth; Width <= MaxWidth; Width++)
 					{
 						if (ImportFileSize % Width == 0)

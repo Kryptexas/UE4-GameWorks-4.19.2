@@ -140,7 +140,7 @@ void FEnvQueryParamSetupCustomization::OnParamNumValueChanged(float FloatValue) 
 	}
 	else if (ParamType == EEnvQueryParam::Int)
 	{
-		const int32 IntValue = FMath::Trunc(FloatValue);
+		const int32 IntValue = FMath::TruncToInt(FloatValue);
 		ValueProp->SetValue(IntValue);
 	}
 }

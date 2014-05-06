@@ -15,8 +15,8 @@ void FSlateOpenGLViewport::Initialize( TSharedRef<SWindow> InWindow, const FSlat
 	RenderingContext.Initialize(NativeWindow->GetOSWindowHandle(), &SharedContext);
 
 	// Create an OpenGL viewport
-	const int32 Width = FMath::Trunc(InWindow->GetSizeInScreen().X);
-	const int32 Height = FMath::Trunc(InWindow->GetSizeInScreen().Y);
+	const int32 Width = FMath::TruncToInt(InWindow->GetSizeInScreen().X);
+	const int32 Height = FMath::TruncToInt(InWindow->GetSizeInScreen().Y);
 
 	ProjectionMatrix = CreateProjectionMatrix( Width, Height );
 

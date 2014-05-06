@@ -1371,11 +1371,11 @@ float FParticleEmitterInstance::GetCurrentBurstRateOffset(float& DeltaTime, int3
 							int32 Count = BurstEntry->Count;
 							if (BurstEntry->CountLow > -1)
 							{
-								Count = BurstEntry->CountLow + FMath::Round(FMath::SRand() * (float)(BurstEntry->Count - BurstEntry->CountLow));
+								Count = BurstEntry->CountLow + FMath::RoundToInt(FMath::SRand() * (float)(BurstEntry->Count - BurstEntry->CountLow));
 							}
 							// Take in to account scale.
 							float Scale = LODLevel->SpawnModule->BurstScale.GetValue(EmitterTime, Component);
-							Count = FMath::Ceil(Count * Scale);
+							Count = FMath::CeilToInt(Count * Scale);
 							SpawnRateInc += Count / DeltaTime;
 							Burst += Count;
 							LocalBurstFired.Fired[BurstIdx] = true;
@@ -1755,7 +1755,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		if (DetailMode != DM_High)
 		{
 			SpawnRate = FMath::Max<float>(0.0f, SpawnRate * SpriteTemplate->MediumDetailSpawnRateScale);
-			BurstCount = FMath::Ceil(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
+			BurstCount = FMath::CeilToInt(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
 		}
 	}
 	else
@@ -1772,7 +1772,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		float SafetyLeftover = OldLeftover;
 		// Ensure continuous spawning... lots of fiddling.
 		float	NewLeftover = OldLeftover + DeltaTime * SpawnRate;
-		int32		Number		= FMath::Floor(NewLeftover);
+		int32		Number		= FMath::FloorToInt(NewLeftover);
 		float	Increment	= (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 		float	StartTime	= DeltaTime + OldLeftover * Increment - Increment;
 		NewLeftover			= NewLeftover - Number;
@@ -1794,11 +1794,11 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		{
 			if (DeltaTime < PeakActiveParticleUpdateDelta)
 			{
-				bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
+				bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
 			}
 			else
 			{
-				bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
+				bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
 			}
 		}
 
@@ -1949,11 +1949,11 @@ void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, i
 		{
 			if (DeltaTime < PeakActiveParticleUpdateDelta)
 			{
-				bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
+				bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
 			}
 			else
 			{
-				bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
+				bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
 			}
 		}
 

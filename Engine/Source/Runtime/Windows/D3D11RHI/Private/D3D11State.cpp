@@ -199,7 +199,7 @@ FRasterizerStateRHIRef FD3D11DynamicRHI::RHICreateRasterizerState(const FRasteri
 	RasterizerDesc.FillMode = TranslateFillMode(Initializer.FillMode);
 	RasterizerDesc.SlopeScaledDepthBias = Initializer.SlopeScaleDepthBias;
 	RasterizerDesc.FrontCounterClockwise = true;
-	RasterizerDesc.DepthBias = FMath::Floor(Initializer.DepthBias * (float)(1 << 24));
+	RasterizerDesc.DepthBias = FMath::FloorToInt(Initializer.DepthBias * (float)(1 << 24));
 	RasterizerDesc.DepthClipEnable = true;
 	RasterizerDesc.MultisampleEnable = Initializer.bAllowMSAA;
 	RasterizerDesc.ScissorEnable = true;

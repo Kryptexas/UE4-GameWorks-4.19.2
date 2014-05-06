@@ -1251,7 +1251,7 @@ struct FTileCacheCompressor : public dtTileCacheCompressor
 
 	virtual int32 maxCompressedSize(const int32 bufferSize)
 	{
-		return FMath::Trunc(bufferSize * 1.1f) + sizeof(FCompressedCacheHeader);
+		return FMath::TruncToInt(bufferSize * 1.1f) + sizeof(FCompressedCacheHeader);
 	}
 
 	virtual dtStatus compress(const uint8* buffer, const int32 bufferSize,
@@ -3007,7 +3007,7 @@ void FRecastNavMeshGenerator::Init()
 		const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 		Config.AgentIndex = NavSys ? NavSys->GetSupportedAgentIndex(NavGenParams) : 0;
 
-		Config.tileSize = FMath::Trunc(NavGenParams->TileSizeUU / CellSize);
+		Config.tileSize = FMath::TruncToInt(NavGenParams->TileSizeUU / CellSize);
 
 		Config.regionChunkSize = Config.tileSize / NavGenParams->LayerChunkSplits;
 		Config.TileCacheChunkSize = Config.tileSize / NavGenParams->RegionChunkSplits;
@@ -3049,7 +3049,7 @@ void FRecastNavMeshGenerator::Init()
 	// limit max amount of tiles: 64 bit poly address
 	const int32 MaxTileBits = 30;
 	const float AvgLayersPerTile = 8.0f;
-	const int32 MaxAllowedGridCells = FMath::Trunc((1 << MaxTileBits) / AvgLayersPerTile);
+	const int32 MaxAllowedGridCells = FMath::TruncToInt((1 << MaxTileBits) / AvgLayersPerTile);
 	const int32 NumRequestedCells = NewTilesWidth * NewTilesHeight;
 	if (NumRequestedCells < 0 || NumRequestedCells > MaxAllowedGridCells)
 	{
@@ -3126,7 +3126,7 @@ void FRecastNavMeshGenerator::Init()
 	// identifying a tile and a polygon.
 	int32 TileBits = MaxTileBits;
 	const float MaxLayers = TilesWidth * TilesHeight * AvgLayersPerTile;
-	TileBits = FMath::Min(FMath::Trunc(FMath::Log2(FMath::RoundUpToPowerOfTwo(MaxLayers))), MaxTileBits);
+	TileBits = FMath::Min(FMath::TruncToInt(FMath::Log2(FMath::RoundUpToPowerOfTwo(MaxLayers))), MaxTileBits);
 	MaxActiveTiles = 1 << TileBits;
 
 	const int32 PolyBits = FMath::Min(30, (int)(sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) - TileBits);
@@ -3214,7 +3214,7 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 	Config.walkableSlopeAngle = AgentMaxSlope;
 	Config.walkableHeight = (int32)ceilf(AgentMinHeight / CellHeight);
 	Config.walkableClimb = (int32)ceilf(AgentMaxClimb / CellHeight);
-	const float WalkableRadius = FMath::Ceil(AgentRadius / CellSize);
+	const float WalkableRadius = FMath::CeilToFloat(AgentRadius / CellSize);
 	Config.walkableRadius = WalkableRadius;
 	
 	// store original sizes
@@ -3916,10 +3916,10 @@ void FRecastNavMeshGenerator::MarkDirtyGenerators()
 	for (int32 i = 0; i < DirtyAreasCopy.Num(); ++i, ++DirtyArea)
 	{
 		const FBox RCBB = Unreal2RecastBox(GrowBoundingBox(DirtyArea->Bounds));
-		const int32 XMin = FMath::Max(FMath::Trunc((RCBB.Min.X - RCNavBounds.Min.X) * InvTileCellSize), 0);
-		const int32 YMin = FMath::Max(FMath::Trunc((RCBB.Min.Z - RCNavBounds.Min.Z) * InvTileCellSize), 0);
-		const int32 XMax = FMath::Min(FMath::Trunc((RCBB.Max.X - RCNavBounds.Min.X) * InvTileCellSize), TilesWidth-1);
-		const int32 YMax = FMath::Min(FMath::Trunc((RCBB.Max.Z - RCNavBounds.Min.Z) * InvTileCellSize), TilesHeight-1);
+		const int32 XMin = FMath::Max(FMath::TruncToInt((RCBB.Min.X - RCNavBounds.Min.X) * InvTileCellSize), 0);
+		const int32 YMin = FMath::Max(FMath::TruncToInt((RCBB.Min.Z - RCNavBounds.Min.Z) * InvTileCellSize), 0);
+		const int32 XMax = FMath::Min(FMath::TruncToInt((RCBB.Max.X - RCNavBounds.Min.X) * InvTileCellSize), TilesWidth-1);
+		const int32 YMax = FMath::Min(FMath::TruncToInt((RCBB.Max.Z - RCNavBounds.Min.Z) * InvTileCellSize), TilesHeight-1);
 
 		for (int32 y = YMin; y <= YMax; ++y)
 		{

@@ -202,8 +202,8 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
 {
 #if(_WIN32_WINNT >= 0x0601) 
-	POINT AnchorPoint = { FMath::Trunc(InAnchor.Left), FMath::Trunc(InAnchor.Top) };
-	SIZE WindowSize = { FMath::Trunc(InSize.X), FMath::Trunc(InSize.Y) };
+	POINT AnchorPoint = { FMath::TruncToInt(InAnchor.Left), FMath::TruncToInt(InAnchor.Top) };
+	SIZE WindowSize = { FMath::TruncToInt(InSize.X), FMath::TruncToInt(InSize.Y) };
 
 	RECT WindowPos;
 	::CalculatePopupWindowPosition( &AnchorPoint, &WindowSize, TPM_CENTERALIGN | TPM_VCENTERALIGN, NULL, &WindowPos );

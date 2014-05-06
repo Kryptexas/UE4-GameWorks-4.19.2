@@ -336,7 +336,7 @@ void FSpriteEditorViewportClient::DrawSocketNames(FViewport& InViewport, FSceneV
 // 				// Figure out the text height
 // 				FTextSizingParameters Parameters(GEngine->GetSmallFont(), 1.0f, 1.0f);
 // 				UCanvas::CanvasStringSize(Parameters, *Socket->SocketName.ToString());
-// 				int32 YL = FMath::Trunc(Parameters.DrawYL);
+// 				int32 YL = FMath::TruncToInt(Parameters.DrawYL);
 // 
 // 				DrawAngles(&Canvas, XPos, YPos + YL, 
 // 					Widget->GetCurrentAxis(), 
@@ -737,8 +737,8 @@ void FSpriteEditorViewportClient::SnapAllVerticesToPixelGrid()
 			{
 				FVector2D& Vertex = Poly.Vertices[VertexIndex];
 
-				Vertex.X = FMath::Round(Vertex.X);
-				Vertex.Y = FMath::Round(Vertex.Y);
+				Vertex.X = FMath::RoundToInt(Vertex.X);
+				Vertex.Y = FMath::RoundToInt(Vertex.Y);
 				bManipulationDirtiedSomething = true;
 			}
 		}

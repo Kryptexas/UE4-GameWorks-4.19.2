@@ -109,12 +109,12 @@ struct FSlateVertex
 		, Color( InColor )
 	{
 
-		Position[0] = FMath::Trunc(InPosition.X);
-		Position[1] = FMath::Trunc(InPosition.Y);
-		ClipCoords[0] = FMath::Trunc(InClipCoords.Left);
-		ClipCoords[1] = FMath::Trunc(InClipCoords.Top);
-		ClipCoords[2] = FMath::Trunc(InClipCoords.Right);
-		ClipCoords[3] = FMath::Trunc(InClipCoords.Bottom);
+		Position[0] = FMath::TruncToInt(InPosition.X);
+		Position[1] = FMath::TruncToInt(InPosition.Y);
+		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
+		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
+		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
+		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
 	}
 
 	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FVector4& InClipCoords) 
@@ -122,12 +122,12 @@ struct FSlateVertex
 		, Color( InColor )
 	{
 
-		Position[0] = FMath::Trunc(InPosition.X);
-		Position[1] = FMath::Trunc(InPosition.Y);
-		ClipCoords[0] = FMath::Trunc(InClipCoords.X);
-		ClipCoords[1] = FMath::Trunc(InClipCoords.Y);
-		ClipCoords[2] = FMath::Trunc(InClipCoords.Z);
-		ClipCoords[3] = FMath::Trunc(InClipCoords.W);
+		Position[0] = FMath::TruncToInt(InPosition.X);
+		Position[1] = FMath::TruncToInt(InPosition.Y);
+		ClipCoords[0] = FMath::TruncToInt(InClipCoords.X);
+		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Y);
+		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Z);
+		ClipCoords[3] = FMath::TruncToInt(InClipCoords.W);
 	}
 
 	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRect& InClipCoords ) 
@@ -135,12 +135,12 @@ struct FSlateVertex
 		, Color( InColor )
 	{
 
-		Position[0] = FMath::Trunc(InPosition.X);
-		Position[1] = FMath::Trunc(InPosition.Y);
-		ClipCoords[0] = FMath::Trunc(InClipCoords.Left);
-		ClipCoords[1] = FMath::Trunc(InClipCoords.Top);
-		ClipCoords[2] = FMath::Trunc(InClipCoords.Right);
-		ClipCoords[3] = FMath::Trunc(InClipCoords.Bottom);
+		Position[0] = FMath::TruncToInt(InPosition.X);
+		Position[1] = FMath::TruncToInt(InPosition.Y);
+		ClipCoords[0] = FMath::TruncToInt(InClipCoords.Left);
+		ClipCoords[1] = FMath::TruncToInt(InClipCoords.Top);
+		ClipCoords[2] = FMath::TruncToInt(InClipCoords.Right);
+		ClipCoords[3] = FMath::TruncToInt(InClipCoords.Bottom);
 	}
 
 	FORCEINLINE FSlateVertex( const FVector2D& InPosition, const FVector2D& InTexCoord, const uint32 InDWORD ) 
@@ -148,8 +148,8 @@ struct FSlateVertex
 		, Color( InDWORD )
 	{
 
-		Position[0] = FMath::Trunc(InPosition.X);
-		Position[1] = FMath::Trunc(InPosition.Y);
+		Position[0] = FMath::TruncToInt(InPosition.X);
+		Position[1] = FMath::TruncToInt(InPosition.Y);
 		ClipCoords[0] = 0;
 		ClipCoords[1] = 0;
 		ClipCoords[2] = 0;

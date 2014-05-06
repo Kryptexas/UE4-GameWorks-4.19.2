@@ -1440,11 +1440,11 @@ void UNetConnection::Tick()
 	// Update queued byte count.
 	// this should be at the end so that the cap is applied *after* sending (and adjusting QueuedBytes for) any remaining data for this tick
 	float DeltaBytes = CurrentNetSpeed * DeltaTime;
-	QueuedBytes -= FMath::Trunc(DeltaBytes);
+	QueuedBytes -= FMath::TruncToInt(DeltaBytes);
 	float AllowedLag = 2.f * DeltaBytes;
 	if (QueuedBytes < -AllowedLag)
 	{
-		QueuedBytes = FMath::Trunc(-AllowedLag);
+		QueuedBytes = FMath::TruncToInt(-AllowedLag);
 	}
 }
 

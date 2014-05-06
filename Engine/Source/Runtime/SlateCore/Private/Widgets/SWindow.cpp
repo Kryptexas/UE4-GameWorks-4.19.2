@@ -627,7 +627,7 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 {
 	if (NativeWindow.IsValid())
 	{
-		NativeWindow->MoveWindowTo( FMath::Trunc(NewPosition.X), FMath::Trunc(NewPosition.Y) );
+		NativeWindow->MoveWindowTo( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y) );
 	}
 	else
 	{
@@ -639,7 +639,7 @@ void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 {
 	if (NativeWindow.IsValid())
 	{
-		NativeWindow->ReshapeWindow( FMath::Trunc(NewPosition.X), FMath::Trunc(NewPosition.Y), FMath::Trunc(NewSize.X), FMath::Trunc(NewSize.Y) );
+		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::TruncToInt(NewSize.X), FMath::TruncToInt(NewSize.Y) );
 	}
 	else
 	{
@@ -662,7 +662,7 @@ void SWindow::Resize( FVector2D NewSize )
 	{
 		if (NativeWindow.IsValid())
 		{
-			NativeWindow->ReshapeWindow( FMath::Trunc(ScreenPosition.X), FMath::Trunc(ScreenPosition.Y), FMath::Trunc(NewSize.X), FMath::Trunc(NewSize.Y) );
+			NativeWindow->ReshapeWindow( FMath::TruncToInt(ScreenPosition.X), FMath::TruncToInt(ScreenPosition.Y), FMath::TruncToInt(NewSize.X), FMath::TruncToInt(NewSize.Y) );
 		}
 		else
 		{
@@ -1110,7 +1110,7 @@ bool SWindow::IsTopmostWindow() const
 bool SWindow::IsScreenspaceMouseWithin(FVector2D ScreenspaceMouseCoordinate) const
 {
 	const FVector2D LocalMouseCoordinate = GetWindowGeometryInScreen().AbsoluteToLocal(ScreenspaceMouseCoordinate);
-	return NativeWindow->IsPointInWindow(FMath::Trunc(LocalMouseCoordinate.X), FMath::Trunc(LocalMouseCoordinate.Y));
+	return NativeWindow->IsPointInWindow(FMath::TruncToInt(LocalMouseCoordinate.X), FMath::TruncToInt(LocalMouseCoordinate.Y));
 }
 
 /** @return true if this is a user-sized window with a thick edge */

@@ -285,9 +285,9 @@ public:
 
 		for( uint32 i = 0; i < NumVerts; i++ )
 		{
-			Verts[i].Position.x = 0.0625f * FMath::Round( 16.0f * Verts[i].Position.X );
-			Verts[i].Position.y = 0.0625f * FMath::Round( 16.0f * Verts[i].Position.Y );
-			Verts[i].Position.z = 0.0625f * FMath::Round( 16.0f * Verts[i].Position.Z );
+			Verts[i].Position.x = 0.0625f * FMath::RoundToFloat( 16.0f * Verts[i].Position.X );
+			Verts[i].Position.y = 0.0625f * FMath::RoundToFloat( 16.0f * Verts[i].Position.Y );
+			Verts[i].Position.z = 0.0625f * FMath::RoundToFloat( 16.0f * Verts[i].Position.Z );
 		}
 
 		for( uint32 i = 0; i < NumVerts; i++ )

@@ -938,7 +938,7 @@ bool UConsole::InputKey_Open( int32 ControllerId, FKey Key, EInputEvent Event, f
 void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 {
 	// the height of the buffer will be 75% of the height of the screen
-	float Height = FMath::Floor(Canvas->ClipY * 0.75f);
+	float Height = FMath::FloorToFloat(Canvas->ClipY * 0.75f);
 
 	// shrink for TVs
 	float ClipX = Canvas->ClipX;

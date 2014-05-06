@@ -100,7 +100,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	const float CircumferenceLength = 2.f * PI * RadiusValue;
 	const float ArcAnglePercentage = Angle.Value / 360.f;
 	const float ArcLength = CircumferenceLength * ArcAnglePercentage;
-	const int32 StepsCount = FMath::Ceil(ArcLength / ItemSpace) + 1;
+	const int32 StepsCount = FMath::CeilToInt(ArcLength / ItemSpace) + 1;
 	const float AngleStep = AngleDegree / (StepsCount - 1);
 
 	FVector StartDirection = CalcDirection(QueryInstance);

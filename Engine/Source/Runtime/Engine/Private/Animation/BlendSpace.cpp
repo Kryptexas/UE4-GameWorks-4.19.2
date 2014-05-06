@@ -18,8 +18,8 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 	FVector NormalizedBlendInput = GetNormalizedBlendInput(BlendInput);
 	
 	FVector GridIndex;
-	GridIndex.X = FMath::Trunc(NormalizedBlendInput.X);
-	GridIndex.Y = FMath::Trunc(NormalizedBlendInput.Y);
+	GridIndex.X = FMath::TruncToFloat(NormalizedBlendInput.X);
+	GridIndex.Y = FMath::TruncToFloat(NormalizedBlendInput.Y);
 	GridIndex.Z = 0.f;
 
 	FVector Remainder = NormalizedBlendInput - GridIndex;

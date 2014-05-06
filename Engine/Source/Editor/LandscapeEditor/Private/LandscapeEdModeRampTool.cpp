@@ -209,8 +209,8 @@ public:
 		{
 			if (InKey == EKeys::End && InEvent == IE_Pressed)
 			{
-				const int32 MinX = FMath::Floor(Points[SelectedPoint].X);
-				const int32 MinY = FMath::Floor(Points[SelectedPoint].Y);
+				const int32 MinX = FMath::FloorToInt(Points[SelectedPoint].X);
+				const int32 MinY = FMath::FloorToInt(Points[SelectedPoint].Y);
 				const int32 MaxX = MinX + 1;
 				const int32 MaxY = MinY + 1;
 
@@ -236,7 +236,7 @@ public:
 				checkSlow(ValidMaxX == MaxX);
 				checkSlow(ValidMaxY == MaxY);
 
-				Points[SelectedPoint].Z = (FMath::BiLerp<float>(Data[0], Data[1], Data[2], Data[3], FMath::Fractional(Points[SelectedPoint].X), FMath::Fractional(Points[SelectedPoint].Y)) - LandscapeDataAccess::MidValue) * LANDSCAPE_ZSCALE;
+				Points[SelectedPoint].Z = (FMath::BiLerp<float>(Data[0], Data[1], Data[2], Data[3], FMath::Frac(Points[SelectedPoint].X), FMath::Frac(Points[SelectedPoint].Y)) - LandscapeDataAccess::MidValue) * LANDSCAPE_ZSCALE;
 
 				return true;
 			}
@@ -262,7 +262,7 @@ public:
 				NewValue = FMath::Max(NewValue, OldValue + 1.f);
 			}
 
-			NewValue = FMath::Round(FMath::Clamp(NewValue, SliderMin, SliderMax));
+			NewValue = FMath::RoundToFloat(FMath::Clamp(NewValue, SliderMin, SliderMax));
 
 			EdMode->UISettings->RampWidth = NewValue;
 
@@ -448,10 +448,10 @@ public:
 		Heights[0] = Points[0].Z * LANDSCAPE_INV_ZSCALE + LandscapeDataAccess::MidValue;
 		Heights[1] = Points[1].Z * LANDSCAPE_INV_ZSCALE + LandscapeDataAccess::MidValue;
 
-		int32 MinX = FMath::Ceil( FMath::Min(FMath::Min(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Min(OuterVerts[1][0].X, OuterVerts[1][1].X))) - 1; // +/- 1 to make sure we have enough data for calculating correct normals
-		int32 MinY = FMath::Ceil( FMath::Min(FMath::Min(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Min(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) - 1;
-		int32 MaxX = FMath::Floor(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
-		int32 MaxY = FMath::Floor(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
+		int32 MinX = FMath::CeilToInt( FMath::Min(FMath::Min(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Min(OuterVerts[1][0].X, OuterVerts[1][1].X))) - 1; // +/- 1 to make sure we have enough data for calculating correct normals
+		int32 MinY = FMath::CeilToInt( FMath::Min(FMath::Min(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Min(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) - 1;
+		int32 MaxX = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
+		int32 MaxY = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
 
 		FLandscapeEditDataInterface LandscapeEdit(EdMode->CurrentToolTarget.LandscapeInfo.Get());
 

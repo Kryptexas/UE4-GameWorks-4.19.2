@@ -31,9 +31,9 @@ FString SGraphNodeSequencePlayer::GetPositionTooltip() const
 	int32 FrameCount;
 	if (GetSequencePositionInfo(/*out*/ Position, /*out*/ Length, /*out*/ FrameCount))
 	{
-		const int32 Minutes = FMath::Trunc(Position/60.0f);
-		const int32 Seconds = FMath::Trunc(Position) % 60;
-		const int32 Hundredths = FMath::Trunc(FMath::Fractional(Position)*100);
+		const int32 Minutes = FMath::TruncToInt(Position/60.0f);
+		const int32 Seconds = FMath::TruncToInt(Position) % 60;
+		const int32 Hundredths = FMath::TruncToInt(FMath::Fractional(Position)*100);
 
 		FString MinuteStr;
 		if (Minutes > 0)
@@ -45,7 +45,7 @@ FString SGraphNodeSequencePlayer::GetPositionTooltip() const
 
 		const FString HundredthsStr = FString::Printf(TEXT(".%02d"), Hundredths);
 
-		const int32 CurrentFrame = FMath::Trunc((Position / Length) * FrameCount);
+		const int32 CurrentFrame = FMath::TruncToInt((Position / Length) * FrameCount);
 
 		const FString FramesStr = FString::Printf(TEXT("Frame %d"), CurrentFrame);
 

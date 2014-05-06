@@ -87,14 +87,14 @@ static bool SquarifyImage(FImage& Image, uint32 MinSquareSize)
 	if(MultX == 1 || MultY == 1)
 	{
 		float FOverhead = float(FMath::Min(Image.SizeX, Image.SizeY)) / float(SquareSize);
-		int32 POverhead = FMath::Round(100.0f - (FOverhead * 100.0f));
+		int32 POverhead = FMath::RoundToInt(100.0f - (FOverhead * 100.0f));
 		UE_LOG(LogTextureFormatPVR, Warning, TEXT("Expanding mip (%d,%d) to (%d, %d). Memory overhead: ~%d%%"),
 			Image.SizeX, Image.SizeY, SquareSize, SquareSize, POverhead);
 	}
 	else if (MultX != MultY)
 	{
 		float FOverhead = float(FMath::Min(Image.SizeX, Image.SizeY)) / float(FMath::Max(Image.SizeX, Image.SizeY));
-		int32 POverhead = FMath::Round(100.0f - (FOverhead * 100.0f));
+		int32 POverhead = FMath::RoundToInt(100.0f - (FOverhead * 100.0f));
 		UE_LOG(LogTextureFormatPVR, Warning, TEXT("Expanding mip (%d,%d) to (%d, %d). Memory overhead: ~%d%%"),
 			Image.SizeX, Image.SizeY, FMath::Max(Image.SizeX, Image.SizeY), FMath::Max(Image.SizeX, Image.SizeY), POverhead);
 	}
@@ -154,7 +154,7 @@ static void DeriveNormalZ(FImage& Image)
 				const float NormalX = SourceColor.R / 255.0f * 2 - 1;
 				const float NormalY = SourceColor.G / 255.0f * 2 - 1;
 				const float NormalZ = FMath::Sqrt(FMath::Clamp<float>(1 - (NormalX * NormalX + NormalY * NormalY), 0, 1));
-				SourceColor.B = FMath::Trunc((NormalZ + 1) / 2.0f * 255.0f);
+				SourceColor.B = FMath::TruncToInt((NormalZ + 1) / 2.0f * 255.0f);
 			}
 		}
 	}

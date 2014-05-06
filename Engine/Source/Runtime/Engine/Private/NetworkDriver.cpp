@@ -142,23 +142,23 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		float RealTime = Time - StatUpdateTime;
 
 		// Use the elapsed time to keep things scaled to one measured unit
-		InBytes = FMath::Trunc(InBytes / RealTime);
-		OutBytes = FMath::Trunc(OutBytes / RealTime);
+		InBytes = FMath::TruncToInt(InBytes / RealTime);
+		OutBytes = FMath::TruncToInt(OutBytes / RealTime);
 
-		NetGUIDOutBytes = FMath::Trunc(NetGUIDOutBytes / RealTime);
-		NetGUIDInBytes = FMath::Trunc(NetGUIDInBytes / RealTime);
+		NetGUIDOutBytes = FMath::TruncToInt(NetGUIDOutBytes / RealTime);
+		NetGUIDInBytes = FMath::TruncToInt(NetGUIDInBytes / RealTime);
 
 		// Save off for stats later
 
 		InBytesPerSecond = InBytes;
 		OutBytesPerSecond = OutBytes;
 
-		InPackets = FMath::Trunc(InPackets / RealTime);
-		OutPackets = FMath::Trunc(OutPackets / RealTime);
-		InBunches = FMath::Trunc(InBunches / RealTime);
-		OutBunches = FMath::Trunc(OutBunches / RealTime);
-		OutPacketsLost = FMath::Trunc(100.f * OutPacketsLost / FMath::Max((float)OutPackets,1.f));
-		InPacketsLost = FMath::Trunc(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost,1.f));
+		InPackets = FMath::TruncToInt(InPackets / RealTime);
+		OutPackets = FMath::TruncToInt(OutPackets / RealTime);
+		InBunches = FMath::TruncToInt(InBunches / RealTime);
+		OutBunches = FMath::TruncToInt(OutBunches / RealTime);
+		OutPacketsLost = FMath::TruncToInt(100.f * OutPacketsLost / FMath::Max((float)OutPackets,1.f));
+		InPacketsLost = FMath::TruncToInt(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost,1.f));
 		
 #if STATS
 
@@ -167,7 +167,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// Copy the net status values over
 			if (ServerConnection != NULL && ServerConnection->PlayerController != NULL && ServerConnection->PlayerController->PlayerState != NULL)
 			{
-				SET_DWORD_STAT(STAT_Ping, FMath::Trunc(1000.0f * ServerConnection->PlayerController->PlayerState->ExactPing));
+				SET_DWORD_STAT(STAT_Ping, FMath::TruncToInt(1000.0f * ServerConnection->PlayerController->PlayerState->ExactPing));
 			}
 			else
 			{
@@ -195,17 +195,17 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			SET_DWORD_STAT(STAT_NetGUIDOutRate,NetGUIDOutBytes);
 
 			// Use the elapsed time to keep things scaled to one measured unit
-			VoicePacketsSent = FMath::Trunc(VoicePacketsSent / RealTime);
+			VoicePacketsSent = FMath::TruncToInt(VoicePacketsSent / RealTime);
 			SET_DWORD_STAT(STAT_VoicePacketsSent,VoicePacketsSent);
-			VoicePacketsRecv = FMath::Trunc(VoicePacketsRecv / RealTime);
+			VoicePacketsRecv = FMath::TruncToInt(VoicePacketsRecv / RealTime);
 			SET_DWORD_STAT(STAT_VoicePacketsRecv,VoicePacketsRecv);
-			VoiceBytesSent = FMath::Trunc(VoiceBytesSent / RealTime);
+			VoiceBytesSent = FMath::TruncToInt(VoiceBytesSent / RealTime);
 			SET_DWORD_STAT(STAT_VoiceBytesSent,VoiceBytesSent);
-			VoiceBytesRecv = FMath::Trunc(VoiceBytesRecv / RealTime);
+			VoiceBytesRecv = FMath::TruncToInt(VoiceBytesRecv / RealTime);
 			SET_DWORD_STAT(STAT_VoiceBytesRecv,VoiceBytesRecv);
 			// Determine voice percentages
-			VoiceInPercent = (InBytes > 0) ? FMath::Trunc(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
-			VoiceOutPercent = (OutBytes > 0) ? FMath::Trunc(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
+			VoiceInPercent = (InBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
+			VoiceOutPercent = (OutBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
 
 			SET_DWORD_STAT(STAT_PercentInVoice,VoiceInPercent);
 			SET_DWORD_STAT(STAT_PercentOutVoice,VoiceOutPercent);
@@ -1662,7 +1662,7 @@ FActorPriority::FActorPriority(UNetConnection* InConnection, UActorChannel* InCh
 	Priority = 0;
 	for (int32 i = 0; i < Viewers.Num(); i++)
 	{
-		Priority = FMath::Max<int32>(Priority, FMath::Round(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, InChannel, Time, bLowBandwidth)));
+		Priority = FMath::Max<int32>(Priority, FMath::RoundToInt(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, InChannel, Time, bLowBandwidth)));
 	}
 }
 
@@ -1734,7 +1734,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			//@todo - ideally we wouldn't want to tick more clients with a higher deltatime as that's not going to be good for performance and probably saturate bandwidth in hitchy situations, maybe 
 			// come up with a solution that is greedier with higher framerates, but still won't risk saturating server upstream bandwidth
 			float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * (DeltaSeconds + DeltaTimeOverflow) * (LanPlay ? 2.f : 1.f);
-			NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::Trunc(ClientUpdatesThisFrame));
+			NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::TruncToInt(ClientUpdatesThisFrame));
 			//UE_LOG(LogNet, Log, TEXT("%2.3f: Ticking %d clients this frame, %2.3f/%2.4f"),GetWorld()->GetTimeSeconds(),NumClientsToTick,DeltaSeconds,ClientUpdatesThisFrame);
 			if (NumClientsToTick == 0)
 			{

@@ -102,8 +102,8 @@ static bool UpdateSelectedTexel(
 			int32 LightmapIndex = Lightmap2D->AllowsHighQualityLightmaps() ? 0 : 1;
 			UTexture2D* CurrentLightmap = Lightmap2D->GetTexture( LightmapIndex );
 			// UV's in the lightmap atlas
-			NewSelectedTexel.LightmapX = FMath::Trunc(LightmapUV.X * CurrentLightmap->GetSizeX());
-			NewSelectedTexel.LightmapY = FMath::Trunc(LightmapUV.Y * CurrentLightmap->GetSizeY());
+			NewSelectedTexel.LightmapX = FMath::TruncToInt(LightmapUV.X * CurrentLightmap->GetSizeX());
+			NewSelectedTexel.LightmapY = FMath::TruncToInt(LightmapUV.Y * CurrentLightmap->GetSizeY());
 			// Write the selection color to the selected lightmap texel
 			WriteTexel(CurrentLightmap, NewSelectedTexel.LightmapX, NewSelectedTexel.LightmapY, GTexelSelectionColor, NewSelectedTexel.OriginalColor);
 
@@ -243,8 +243,8 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 							PaddedSizeY -= 2;
 						}
 
-						const int32 LocalX = FMath::Trunc(InterpolatedUV.X * PaddedSizeX);
-						const int32 LocalY = FMath::Trunc(InterpolatedUV.Y * PaddedSizeY);
+						const int32 LocalX = FMath::TruncToInt(InterpolatedUV.X * PaddedSizeX);
+						const int32 LocalY = FMath::TruncToInt(InterpolatedUV.Y * PaddedSizeY);
 						if (LocalX < 0 || LocalX >= PaddedSizeX
 							|| LocalY < 0 || LocalY >= PaddedSizeY)
 						{
@@ -296,8 +296,8 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 					PaddedSizeY -= 2;
 				}
 
-				const int32 LocalX = FMath::Trunc(InterpolatedUV.X * PaddedSizeX);
-				const int32 LocalY = FMath::Trunc(InterpolatedUV.Y * PaddedSizeY);
+				const int32 LocalX = FMath::TruncToInt(InterpolatedUV.X * PaddedSizeX);
+				const int32 LocalY = FMath::TruncToInt(InterpolatedUV.Y * PaddedSizeY);
 				if (LocalX < 0 || LocalX >= PaddedSizeX
 					|| LocalY < 0 || LocalY >= PaddedSizeY)
 				{
@@ -405,8 +405,8 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 
 							// Apply the transform to the intersection position to find the local texel coordinates
 							const FVector4 StaticLightingTextureCoordinate = WorldToMap.TransformPosition(ClickLocation);
-							const int32 LocalX = FMath::Trunc(StaticLightingTextureCoordinate.X * PaddedSizeX);
-							const int32 LocalY = FMath::Trunc(StaticLightingTextureCoordinate.Y * PaddedSizeY);
+							const int32 LocalX = FMath::TruncToInt(StaticLightingTextureCoordinate.X * PaddedSizeX);
+							const int32 LocalY = FMath::TruncToInt(StaticLightingTextureCoordinate.Y * PaddedSizeY);
 							check(LocalX >= 0 && LocalX < PaddedSizeX && LocalY >= 0 && LocalY < PaddedSizeY);
 
 							bFoundLightmapSample = UpdateSelectedTexel(

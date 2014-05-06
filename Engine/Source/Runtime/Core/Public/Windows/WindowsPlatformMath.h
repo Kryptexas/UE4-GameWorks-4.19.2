@@ -13,28 +13,49 @@
 struct FWindowsPlatformMath : public FGenericPlatformMath
 {
 #if PLATFORM_ENABLE_VECTORINTRINSICS
-	static FORCEINLINE int32 Trunc( float F )
+	static FORCEINLINE int32 TruncToInt(float F)
 	{
-		return _mm_cvtt_ss2si( _mm_set_ss( F ) );
+		return _mm_cvtt_ss2si(_mm_set_ss(F));
 	}
+
 	static FORCEINLINE float TruncFloat( float F )
 	{
-		return (float)Trunc(F); // same as generic implementation, but this will call the faster trunc
+		return (float)TruncToInt(F); // same as generic implementation, but this will call the faster trunc
 	}
-	static FORCEINLINE int32 Round( float F )
+
+	static FORCEINLINE int32 RoundToInt( float F )
 	{
 		// Note: the x2 is to workaround the rounding-to-nearest-even-number issue when the fraction is .5
 		return _mm_cvt_ss2si( _mm_set_ss(F + F + 0.5f) ) >> 1;
 	}
-	static FORCEINLINE int32 Floor( float F )
+
+	static FORCEINLINE float RoundToFloat(float F)
 	{
-		return _mm_cvt_ss2si( _mm_set_ss(F + F - 0.5f) ) >> 1;
+		return (float)RoundToInt(F);
 	}
-	static FORCEINLINE int32 Ceil( float F )
+
+	static FORCEINLINE int32 FloorToInt(float F)
+	{
+		return _mm_cvt_ss2si(_mm_set_ss(F + F - 0.5f)) >> 1;
+	}
+
+	static FORCEINLINE float FloorToFloat(float F)
+	{
+		return (float)FloorToInt(F);
+	}
+
+	static FORCEINLINE int32 CeilToInt(float F)
 	{
 		// Note: the x2 is to workaround the rounding-to-nearest-even-number issue when the fraction is .5
-		return -(_mm_cvt_ss2si( _mm_set_ss(-0.5f - (F + F))) >> 1);
+		return -(_mm_cvt_ss2si(_mm_set_ss(-0.5f - (F + F))) >> 1);
 	}
+
+	static FORCEINLINE float CeilToFloat(float F)
+	{
+		// Note: the x2 is to workaround the rounding-to-nearest-even-number issue when the fraction is .5
+		return (float)CeilToInt(F);
+	}
+
 	static FORCEINLINE bool IsNaN( float A ) { return _isnan(A) != 0; }
 	static FORCEINLINE bool IsFinite( float A ) { return _finite(A) != 0; }
 

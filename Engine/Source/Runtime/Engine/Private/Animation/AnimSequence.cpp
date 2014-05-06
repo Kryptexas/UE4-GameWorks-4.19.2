@@ -995,7 +995,7 @@ bool UAnimSequence::CropRawAnimData( float CurrentTime, bool bFromStart )
 	// The reason I'm changing to TotalNumOfFrames is CT/SL = KeyIndexWithFraction/TotalNumOfFrames
 	// To play TotalNumOfFrames, it takes SequenceLength. Each key will take SequenceLength/TotalNumOfFrames
 	float const KeyIndexWithFraction = (CurrentTime * (float)(TotalNumOfFrames)) / SequenceLength;
-	int32 KeyIndex = bFromStart ? FMath::Floor(KeyIndexWithFraction) : FMath::Ceil(KeyIndexWithFraction);
+	int32 KeyIndex = bFromStart ? FMath::FloorToInt(KeyIndexWithFraction) : FMath::CeilToInt(KeyIndexWithFraction);
 	// Ensure KeyIndex is in range.
 	KeyIndex = FMath::Clamp<int32>(KeyIndex, 1, TotalNumOfFrames-1); 
 	// determine which keys need to be removed.

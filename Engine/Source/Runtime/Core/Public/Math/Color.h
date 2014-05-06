@@ -351,10 +351,10 @@ public:
 	FColor(const FLinearColor& C)
 		// put these into the body for proper ordering with INTEL vs non-INTEL_BYTE_ORDER
 	{
-		R = FMath::Clamp(FMath::Trunc(FMath::Pow(C.R,1.0f / 2.2f) * 255.0f),0,255);
-		G = FMath::Clamp(FMath::Trunc(FMath::Pow(C.G,1.0f / 2.2f) * 255.0f),0,255);
-		B = FMath::Clamp(FMath::Trunc(FMath::Pow(C.B,1.0f / 2.2f) * 255.0f),0,255);
-		A = FMath::Clamp(FMath::Trunc(       C.A              * 255.0f),0,255);
+		R = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.R,1.0f / 2.2f) * 255.0f),0,255);
+		G = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.G,1.0f / 2.2f) * 255.0f),0,255);
+		B = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.B,1.0f / 2.2f) * 255.0f),0,255);
+		A = FMath::Clamp(FMath::TruncToInt(       C.A              * 255.0f),0,255);
 	}
 
 	FORCEINLINE explicit FColor( uint32 InColor )

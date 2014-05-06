@@ -34,7 +34,7 @@ void UEnvQueryGenerator_PathingGrid::GenerateItems(struct FEnvQueryInstance& Que
 		return;
 	}
 
-	const int32 ItemCount = FPlatformMath::Trunc((PathDistanceValue * 2.0f / DensityValue) + 1);
+	const int32 ItemCount = FPlatformMath::TruncToInt((PathDistanceValue * 2.0f / DensityValue) + 1);
 	const int32 ItemCountHalf = ItemCount / 2;
 
 	TArray<FVector> ContextLocations;

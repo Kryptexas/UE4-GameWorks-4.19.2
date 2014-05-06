@@ -179,8 +179,8 @@ void FSlateOpenGLRenderer::RequestResize( const TSharedPtr<SWindow>& InWindow, u
 
 void FSlateOpenGLRenderer::Private_ResizeViewport( const FVector2D& WindowSize, FSlateOpenGLViewport& InViewport, bool bFullscreen )
 {
-	uint32 Width = FMath::Trunc(WindowSize.X);
-	uint32 Height = FMath::Trunc(WindowSize.Y);
+	uint32 Width = FMath::TruncToInt(WindowSize.X);
+	uint32 Height = FMath::TruncToInt(WindowSize.Y);
 
 	InViewport.Resize( Width, Height, bFullscreen );
 }

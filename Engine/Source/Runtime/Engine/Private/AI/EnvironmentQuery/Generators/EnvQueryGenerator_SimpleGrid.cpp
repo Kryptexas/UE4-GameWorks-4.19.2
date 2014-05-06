@@ -34,7 +34,7 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(struct FEnvQueryInstance& Quer
 	}
 #endif // WITH_RECAST
 
-	const int32 ItemCount = FPlatformMath::Trunc((RadiusValue * 2.0f / DensityValue) + 1);
+	const int32 ItemCount = FPlatformMath::TruncToInt((RadiusValue * 2.0f / DensityValue) + 1);
 	const int32 ItemCountHalf = ItemCount / 2;
 
 	TArray<FVector> ContextLocations;

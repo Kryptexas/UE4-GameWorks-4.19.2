@@ -1062,7 +1062,7 @@ void DrawDashedLine(FPrimitiveDrawInterface* PDI, const FVector& Start, const FV
 		LineDir /= LineLeft;
 	}
 
-	const int32 nLines = FMath::Ceil(LineLeft / (DashSize*2));
+	const int32 nLines = FMath::CeilToInt(LineLeft / (DashSize*2));
 	PDI->AddReserveLines(DepthPriority, nLines, DepthBias != 0);
 
 	const FVector Dash = (DashSize * LineDir);
@@ -1447,11 +1447,11 @@ void ClampUVs(FVector2D* UVs, int32 NumUVs)
 
 	if (MinU < -FudgeFactor || MinU > (1.0f+FudgeFactor))
 	{
-		Bias.X = FMath::Floor(MinU);
+		Bias.X = FMath::FloorToFloat(MinU);
 	}
 	if (MinV < -FudgeFactor || MinV > (1.0f+FudgeFactor))
 	{
-		Bias.Y = FMath::Floor(MinV);
+		Bias.Y = FMath::FloorToFloat(MinV);
 	}
 
 	for (int32 i = 0; i < NumUVs; i++)

@@ -36,8 +36,8 @@ void UParticleSystemThumbnailRenderer::GetThumbnailSize(UObject* Object, float Z
 			(PSys->ThumbnailImage) || 
 			(NoImage))
 		{
-			OutWidth = FMath::Trunc(1024 * Zoom);
-			OutHeight = FMath::Trunc(1024 * Zoom);
+			OutWidth = FMath::TruncToInt(1024 * Zoom);
+			OutHeight = FMath::TruncToInt(1024 * Zoom);
 		}
 		else
 		{

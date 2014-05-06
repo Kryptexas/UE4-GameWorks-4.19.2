@@ -936,12 +936,12 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 
 			if (bInPortraitMode)
 			{
-				TargetHeight = FMath::Round(InDisplayMetrics.PrimaryDisplayHeight * Scales[ScaleIndex]);
+				TargetHeight = FMath::RoundToFloat(InDisplayMetrics.PrimaryDisplayHeight * Scales[ScaleIndex]);
 				TargetWidth = TargetHeight * Aspect;
 			}
 			else
 			{
-				TargetWidth = FMath::Round(InDisplayMetrics.PrimaryDisplayWidth * Scales[ScaleIndex]);
+				TargetWidth = FMath::RoundToFloat(InDisplayMetrics.PrimaryDisplayWidth * Scales[ScaleIndex]);
 				TargetHeight = TargetWidth * Aspect;
 			}
 

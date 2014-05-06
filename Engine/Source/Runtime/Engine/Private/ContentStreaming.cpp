@@ -499,7 +499,7 @@ FFloatMipLevel FFloatMipLevel::FromScreenSizeInTexels(float ScreenSizeInTexels)
 	FFloatMipLevel Ret;
 
 	// int
-//	Ret.MipLevel = 1 + FMath::CeilLogTwo( FMath::Trunc(ScreenSizeInTexels) );
+//	Ret.MipLevel = 1 + FMath::CeilLogTwo( FMath::TruncToInt(ScreenSizeInTexels) );
 	// float
 	Ret.MipLevel = 1.0f + FMath::Log2(ScreenSizeInTexels);
 
@@ -3727,7 +3727,7 @@ void FStreamingManagerTexture::CheckUserSettings()
 				float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGraphicsMemory);
 
 				// Truncate the pool size to MB (but still count in bytes)
-				TexturePoolSize = int64(FGenericPlatformMath::TruncFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+				TexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
 			}
 			else
 			{
@@ -5348,7 +5348,7 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 
 								if (MinLODValue <= 0)
 								{
-									WantedMipCount = FMath::Max(WantedMipCount, FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips - 13 - FMath::Floor(MinLODValue)));
+									WantedMipCount = FMath::Max(WantedMipCount, FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips - 13 - FMath::FloorToInt(MinLODValue)));
 									if (WantedMipCount >= FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips))
 									{
 										MinDistance = 1.0f;

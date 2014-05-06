@@ -845,9 +845,9 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 		CurYOffset += YL + 2;
 		InfoString = FString::Printf(TEXT("Approximate Size: %ix%ix%i"), 
-			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
-			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
-			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
+			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
+			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
+			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
 		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
 
 		uint32 NumNotiesWithErrors = PreviewSkelMeshComp->AnimNotifyErrors.Num();

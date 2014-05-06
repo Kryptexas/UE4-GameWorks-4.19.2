@@ -5906,7 +5906,7 @@ bool UEngine::HandleLogoutStatLevelsCommand( const TCHAR* Cmd, FOutputDevice& Ar
 		}
 		else if( GetAsyncLoadPercentage( *LevelName ) >= 0 )
 		{
-			const int32 Percentage = FMath::Trunc( GetAsyncLoadPercentage( *LevelName ) );
+			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( *LevelName ) );
 			LevelName += FString::Printf(TEXT(" - %3i %%"), Percentage ); 
 		}
 
@@ -6087,10 +6087,10 @@ static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDispla
 		int32 XL2 = XL;
 		if (TextLines.Num() > 0)
 		{
-			XL2 += FMath::Trunc(TextLines[0].LineExtent.X);
+			XL2 += FMath::TruncToInt(TextLines[0].LineExtent.X);
 			for (int32 i = 1; i < TextLines.Num(); i++)
 			{
-				XL2 = FMath::Max<int32>(XL2, FMath::Trunc(TextLines[i].LineExtent.X));
+				XL2 = FMath::Max<int32>(XL2, FMath::TruncToInt(TextLines[i].LineExtent.X));
 			}
 		}
 		Canvas->DrawTile(  X, Y, XL2 + 1, YL * FMath::Max<int>(TextLines.Num(), 1), 0, 0, CanvasObject->DefaultTexture->GetSizeX(), CanvasObject->DefaultTexture->GetSizeY(),
@@ -6367,7 +6367,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 	{
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
-		int32 Y = (GEngine->IsStereoscopic3D()) ? FMath::Trunc(Viewport->GetSizeXY().Y * 0.40f) : FMath::Trunc(Viewport->GetSizeXY().Y * 0.20f);
+		int32 Y = (GEngine->IsStereoscopic3D()) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
 
 		//give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
@@ -9850,7 +9850,7 @@ int32 UEngine::RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas
 	FColor FPSColor = GAverageFPS < 20.0f ? FColor(255, 0, 0) : (GAverageFPS < 29.5f ? FColor(255, 255, 0) : FColor(0, 255, 0));
 
 	// Start drawing the various counters.
-	const int32 RowHeight = FMath::Trunc(Font->GetMaxCharHeight() * 1.1f);
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	// Draw the FPS counter.
 	Canvas->DrawShadowedString(
 		X,
@@ -9910,7 +9910,7 @@ int32 UEngine::RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Ca
 		FColor(30, 144, 255)
 		);
 
-	const int32 RowHeight = FMath::Trunc(Font->GetMaxCharHeight() * 1.1f);
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	Y += RowHeight;
 	return Y;
 }
@@ -9946,10 +9946,10 @@ int32 UEngine::RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* 
 {
 	UFont* Font = GetTinyFont();
 
-	const int32 LineHeight = FMath::Trunc(Font->GetMaxCharHeight());
+	const int32 LineHeight = FMath::TruncToInt(Font->GetMaxCharHeight());
 	const int32 ColorsNum = GColorList.GetColorsNum();
 	const int32 MaxLinesInColumn = 35;
-	const int32 ColumnsNum = FMath::Ceil((float)ColorsNum / (float)MaxLinesInColumn);
+	const int32 ColumnsNum = FMath::CeilToInt((float)ColorsNum / (float)MaxLinesInColumn);
 
 	Y += 16;
 	const int32 SavedY = Y;
@@ -10041,7 +10041,7 @@ int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Can
 		}
 		else if (GetAsyncLoadPercentage(*LevelName) >= 0)
 		{
-			const int32 Percentage = FMath::Trunc(GetAsyncLoadPercentage(*LevelName));
+			const int32 Percentage = FMath::TruncToInt(GetAsyncLoadPercentage(*LevelName));
 			LevelName += FString::Printf(TEXT(" - %3i %%"), Percentage);
 		}
 
@@ -10399,7 +10399,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 		R = G = B = 0;
 		int32 Max = AudioDevice->MaxChannels / 2;
 		float f = FMath::Clamp<float>((float)(ActiveInstances - Max) / (float)Max, 0.f, 1.f);
-		R = FMath::Trunc(f * 255);
+		R = FMath::TruncToInt(f * 255);
 		if (ActiveInstances > Max)
 		{
 			f = FMath::Clamp<float>((float)(Max - ActiveInstances) / (float)Max, 0.5f, 1.f);
@@ -10408,7 +10408,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 		{
 			f = 1.0f;
 		}
-		G = FMath::Trunc(f * 255);
+		G = FMath::TruncToInt(f * 255);
 
 		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT(" Total: %i"), ActiveInstances), GetSmallFont(), FColor(R, G, B));
 		Y += 12;
@@ -10797,7 +10797,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 
 	}
 
-	const int32 RowHeight = FMath::Trunc(Font->GetMaxCharHeight() * 1.1f);
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
 	Canvas->DrawShadowedString(
 		X,
 		Y,

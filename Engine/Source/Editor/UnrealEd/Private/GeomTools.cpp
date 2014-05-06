@@ -118,10 +118,10 @@ FClipSMVertex InterpolateVert(const FClipSMVertex& V0, const FClipSMVertex& V1, 
 		Result.UVs[i] = FMath::Lerp(V0.UVs[i], V1.UVs[i], Alpha);
 	}
 	
-	Result.Color.R = FMath::Clamp( FMath::Trunc(FMath::Lerp(float(V0.Color.R), float(V1.Color.R), Alpha)), 0, 255 );
-	Result.Color.G = FMath::Clamp( FMath::Trunc(FMath::Lerp(float(V0.Color.G), float(V1.Color.G), Alpha)), 0, 255 );
-	Result.Color.B = FMath::Clamp( FMath::Trunc(FMath::Lerp(float(V0.Color.B), float(V1.Color.B), Alpha)), 0, 255 );
-	Result.Color.A = FMath::Clamp( FMath::Trunc(FMath::Lerp(float(V0.Color.A), float(V1.Color.A), Alpha)), 0, 255 );
+	Result.Color.R = FMath::Clamp( FMath::TruncToInt(FMath::Lerp(float(V0.Color.R), float(V1.Color.R), Alpha)), 0, 255 );
+	Result.Color.G = FMath::Clamp( FMath::TruncToInt(FMath::Lerp(float(V0.Color.G), float(V1.Color.G), Alpha)), 0, 255 );
+	Result.Color.B = FMath::Clamp( FMath::TruncToInt(FMath::Lerp(float(V0.Color.B), float(V1.Color.B), Alpha)), 0, 255 );
+	Result.Color.A = FMath::Clamp( FMath::TruncToInt(FMath::Lerp(float(V0.Color.A), float(V1.Color.A), Alpha)), 0, 255 );
 	return Result;
 }
 

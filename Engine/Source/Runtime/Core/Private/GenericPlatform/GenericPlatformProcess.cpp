@@ -224,7 +224,7 @@ void FGenericPlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
-	const int32 usec = FPlatformMath::Trunc(Seconds * 1000000.0f);
+	const int32 usec = FPlatformMath::TruncToInt(Seconds * 1000000.0f);
 	if (usec > 0)
 	{
 		usleep(usec);

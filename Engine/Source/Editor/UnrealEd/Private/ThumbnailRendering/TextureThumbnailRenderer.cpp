@@ -25,8 +25,8 @@ void UTextureThumbnailRenderer::GetThumbnailSize(UObject* Object, float Zoom, ui
 
 	if (Texture != nullptr)
 	{
-		OutWidth = FMath::Trunc(Zoom * (float)Texture->GetSurfaceWidth());
-		OutHeight = FMath::Trunc(Zoom * (float)Texture->GetSurfaceHeight());
+		OutWidth = FMath::TruncToInt(Zoom * (float)Texture->GetSurfaceWidth());
+		OutHeight = FMath::TruncToInt(Zoom * (float)Texture->GetSurfaceHeight());
 	}
 	else
 	{

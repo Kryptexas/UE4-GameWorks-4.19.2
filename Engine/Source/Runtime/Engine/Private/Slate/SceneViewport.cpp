@@ -245,7 +245,7 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
 	/** Check to see if the viewport should be resized */
-	FIntPoint DrawSize = FIntPoint( FMath::Trunc( AllottedGeometry.GetDrawSize().X ), FMath::Trunc( AllottedGeometry.GetDrawSize().Y ) );
+	FIntPoint DrawSize = FIntPoint( FMath::TruncToInt( AllottedGeometry.GetDrawSize().X ), FMath::TruncToInt( AllottedGeometry.GetDrawSize().Y ) );
 	if( GetSizeXY() != DrawSize )
 	{
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
@@ -258,10 +258,10 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	float CanvasMinX = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.X);
 	float CanvasMinY = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.Y);
 	FIntRect CanvasRect(
-		FMath::Trunc( CanvasMinX ),
-		FMath::Trunc( CanvasMinY ),
-		FMath::Trunc( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
-		FMath::Trunc( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
+		FMath::TruncToInt( CanvasMinX ),
+		FMath::TruncToInt( CanvasMinY ),
+		FMath::TruncToInt( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
+		FMath::TruncToInt( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
 
 
 	DebugCanvasDrawer->BeginRenderingCanvas( CanvasRect );

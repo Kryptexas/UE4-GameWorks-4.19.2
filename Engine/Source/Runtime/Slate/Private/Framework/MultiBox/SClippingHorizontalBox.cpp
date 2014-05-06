@@ -25,7 +25,7 @@ void SClippingHorizontalBox::ArrangeChildren( const FGeometry& AllottedGeometry,
 	for (int32 ChildIdx = NumChildren - 2; ChildIdx >= 0; --ChildIdx)
 	{
 		const FArrangedWidget& CurWidget = ArrangedChildren(ChildIdx);
-		if (FMath::Trunc(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::Trunc(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X))
+		if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X))
 		{
 			ArrangedChildren.Remove(ChildIdx);
 			IndexClippedAt = ChildIdx;
@@ -47,7 +47,7 @@ void SClippingHorizontalBox::ArrangeChildren( const FGeometry& AllottedGeometry,
 		for (int32 ChildIdx = IndexClippedAt - 1; ChildIdx >= 0; --ChildIdx)
 		{
 			const FArrangedWidget& CurWidget = ArrangedChildren(ChildIdx);
-			if (FMath::Trunc(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::Trunc(ArrangedButton.Geometry.AbsolutePosition.X))
+			if (FMath::TruncToInt(CurWidget.Geometry.AbsolutePosition.X + CurWidget.Geometry.Size.X) > FMath::TruncToInt(ArrangedButton.Geometry.AbsolutePosition.X))
 			{
 				ArrangedChildren.Remove(ChildIdx);
 			}
@@ -77,7 +77,7 @@ int32 SClippingHorizontalBox::OnPaint( const FGeometry& AllottedGeometry, const 
 		if (IndexClippedAt == ArrangedChildren.Num() - 2)
 		{
 			// Only recalculate the alloted geometry size if said size is fitted to the toolbar/menubar
-			if (FMath::Trunc(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X) <= FMath::Trunc(LastChild.Geometry.AbsolutePosition.X + LastChild.Geometry.Size.X))
+			if (FMath::TruncToInt(AllottedGeometry.AbsolutePosition.X + AllottedGeometry.Size.X) <= FMath::TruncToInt(LastChild.Geometry.AbsolutePosition.X + LastChild.Geometry.Size.X))
 			{
 				// Calculate the size of the custom border
 				ResizedGeometry.Size.X = LastCippedChild.Geometry.AbsolutePosition.X + LastCippedChild.Geometry.Size.X - FirstChild.Geometry.AbsolutePosition.X;

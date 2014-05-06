@@ -2560,11 +2560,11 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		// Lock the level.
 		if(WorldType == EWorldType::Preview)
 		{
-			UE_LOG(LogWorld, Verbose,  TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::Round(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
+			UE_LOG(LogWorld, Verbose,  TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
 		}
 		else
 		{
-			UE_LOG(LogWorld, Log,  TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::Round(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
+			UE_LOG(LogWorld, Log,  TEXT("Bringing %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
 		}
 
 		// Initialize network actors and start execution.

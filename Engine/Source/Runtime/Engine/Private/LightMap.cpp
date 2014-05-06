@@ -150,15 +150,15 @@ static int32 AdjustTextureMappingSize(int32 InSize)
 	int32 NewSize = InSize;
 	if (InSize > TextureMappingMinDownsampleSize0 && InSize <= TextureMappingMinDownsampleSize1)
 	{
-		NewSize = FMath::Trunc(InSize * TextureMappingDownsampleFactor0);
+		NewSize = FMath::TruncToInt(InSize * TextureMappingDownsampleFactor0);
 	}
 	else if (InSize > TextureMappingMinDownsampleSize1 && InSize <= TextureMappingMinDownsampleSize2)
 	{
-		NewSize = FMath::Trunc(InSize * TextureMappingDownsampleFactor1);
+		NewSize = FMath::TruncToInt(InSize * TextureMappingDownsampleFactor1);
 	}
 	else if (InSize > TextureMappingMinDownsampleSize2)
 	{
-		NewSize = FMath::Trunc(InSize * TextureMappingDownsampleFactor2);
+		NewSize = FMath::TruncToInt(InSize * TextureMappingDownsampleFactor2);
 	}
 	return NewSize;
 }

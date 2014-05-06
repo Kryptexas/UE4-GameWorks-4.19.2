@@ -308,7 +308,7 @@ FGatheredLightSample FStaticLightingSystem::IncomingRadianceImportancePhotons(
 				// Select a direction with uniform probability in a cone around the photon's incident direction
 				// See the "Extended Photon Map Implementation" paper
 				//@todo - select a direction with probability proportional to the power of the photon from that direction
-				const int32 PhotonIndex = FMath::Trunc(RandomStream.GetFraction() * ImportancePhotonDirections.Num());
+				const int32 PhotonIndex = FMath::TruncToInt(RandomStream.GetFraction() * ImportancePhotonDirections.Num());
 				checkSlow(PhotonIndex >= 0 && PhotonIndex < ImportancePhotonDirections.Num());
 				const FVector4& CurrentPhotonDirection = ImportancePhotonDirections[PhotonIndex];
 				checkSlow(Dot3(CurrentPhotonDirection, Vertex.TriangleNormal) > 0);
@@ -614,9 +614,9 @@ public:
 	const FLightingAndOcclusion& GetValue(FVector2D UV)
 	{
 		// Theta is radius, clamp
-		const int32 ThetaIndex = FMath::Clamp(FMath::Floor(UV.X * NumThetaSteps), 0, NumThetaSteps - 1);
+		const int32 ThetaIndex = FMath::Clamp(FMath::FloorToInt(UV.X * NumThetaSteps), 0, NumThetaSteps - 1);
 		// Phi is angle around the hemisphere axis, wrap on both ends
-		const int32 PhiIndex = (FMath::Floor(UV.Y * NumPhiSteps) + NumPhiSteps) % NumPhiSteps;
+		const int32 PhiIndex = (FMath::FloorToInt(UV.Y * NumPhiSteps) + NumPhiSteps) % NumPhiSteps;
 		const float CellU = FMath::Fractional(FMath::Clamp(UV.X, 0.0f, .9999f) * NumThetaSteps);
 		const float CellV = FMath::Abs(FMath::Fractional(UV.Y * NumPhiSteps));
 		const FSimpleQuadTree<FRefinementElement>& QuadTree = Cells[ThetaIndex * NumPhiSteps + PhiIndex];
@@ -1048,7 +1048,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 
 	FFinalGatherInfo FinalGatherInfo;
 
-	const int32 NumThetaSteps = FMath::Trunc(FMath::Sqrt(UniformHemisphereSamples.Num() / (float)PI) + .5f);
+	const int32 NumThetaSteps = FMath::TruncToInt(FMath::Sqrt(UniformHemisphereSamples.Num() / (float)PI) + .5f);
 	const int32 NumPhiSteps = UniformHemisphereSamples.Num() / NumThetaSteps;
 	checkSlow(NumThetaSteps * NumPhiSteps == UniformHemisphereSamples.Num());
 
@@ -1430,9 +1430,9 @@ void FStaticLightingSystem::CalculateIrradianceGradients(
 	{
 		// Extract Theta and Phi steps from the number of hemisphere samples requested
 		const float NumThetaStepsFloat = FMath::Sqrt(GetNumUniformHemisphereSamples(BounceNumber) / (float)PI);
-		const int32 NumThetaSteps = FMath::Trunc(NumThetaStepsFloat);
+		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
 		// Using PI times more Phi steps as Theta steps
-		const int32 NumPhiSteps = FMath::Trunc(NumThetaStepsFloat * (float)PI);
+		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
 		checkSlow(NumThetaSteps > 0 && NumPhiSteps > 0);
 
 		// Calculate the rotational gradient

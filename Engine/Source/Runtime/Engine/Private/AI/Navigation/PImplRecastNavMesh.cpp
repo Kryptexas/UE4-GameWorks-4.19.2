@@ -1762,7 +1762,7 @@ void FPImplRecastNavMesh::GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, i
  	if (DetourNavMesh)
  	{
  		dtNavMeshParams const* Params = DetourNavMesh->getParams();
-		NumTilesX = FMath::TruncFloat( FMath::Sqrt((float)Params->maxTiles) );
+		NumTilesX = FMath::TruncToFloat( FMath::Sqrt((float)Params->maxTiles) );
 		NumTilesY = NumTilesX;
 
  		FVector const Mn = Recast2UnrVector(Params->orig);

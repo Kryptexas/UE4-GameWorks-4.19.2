@@ -827,9 +827,9 @@ void ULevel::CreateModelComponents()
 				}
 				else
 				{
-					Key.X				= FMath::Floor(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
-					Key.Y				= FMath::Floor(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
-					Key.Z				= FMath::Floor(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
+					Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
+					Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
+					Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
 				}
 
 				Key.MaskedPolyFlags = Surf.PolyFlags & PF_ModelComponentMask;

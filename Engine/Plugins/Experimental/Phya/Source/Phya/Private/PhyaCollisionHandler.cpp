@@ -134,7 +134,7 @@ void UPhyaCollisionHandler::StreamingWaveUnderflow(USoundWaveStreaming* InStream
 
 	const int32 QueuedSamples = StreamingWave->GetAvailableAudioByteCount()/sizeof(uint16);
 	const int32 SamplesNeeded = SamplesRequired - QueuedSamples;
-	const int32 BlocksNeeded = FMath::Ceil(SamplesNeeded/BlockSize);
+	const int32 BlocksNeeded = FMath::CeilToInt(SamplesNeeded/BlockSize);
 
 	UE_LOG(LogTemp, Log, TEXT("Creating %d blocks for %s"), BlocksNeeded, *GetWorld()->GetPathName());
 

@@ -345,8 +345,8 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 							if( VertexNormals && LandscapeX > X1 && LandscapeX < X2 && LandscapeY > Y1 && LandscapeY < Y2 )
 							{
 								FVector Normal = VertexNormals[DataIndex].SafeNormal();
-								TexData.B = FMath::Round( 127.5f * (Normal.X + 1.f) );
-								TexData.A = FMath::Round( 127.5f * (Normal.Y + 1.f) );
+								TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
+								TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
 							}
 							else if (NormalData)
 							{
@@ -495,8 +495,8 @@ void FLandscapeEditDataInterface::RecalculateNormals()
 
 						// Update the texture
 						FVector Normal = VertexNormals[DataIndex].SafeNormal();
-						TexData.B = FMath::Round( 127.5f * (Normal.X + 1.f) );
-						TexData.A = FMath::Round( 127.5f * (Normal.Y + 1.f) );
+						TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
+						TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
 					}
 				}
 			}
@@ -1650,7 +1650,7 @@ void ULandscapeComponent::DeleteLayer( ULandscapeLayerInfoObject* LayerInfo, str
 								if( LayerIdx != DeleteLayerIdx && LayerNoWeightBlends[LayerIdx]==false )
 								{
 									uint8& Weight = LayerDataPtrs[LayerIdx][TexDataIndex];
-									Weight = FMath::Clamp<int32>( FMath::Round(255.f * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
+									Weight = FMath::Clamp<int32>( FMath::RoundToInt(255.f * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
 								}
 							}
 						}
@@ -2349,7 +2349,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 											// Exclude bNoWeightBlend layers
 											if (LayerNoWeightBlends[LayerIdx] == false)
 											{
-												Weight = FMath::Clamp<uint8>( FMath::Round((float)(255 - NewWeight) * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
+												Weight = FMath::Clamp<uint8>( FMath::RoundToInt((float)(255 - NewWeight) * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
 											}
 										}
 

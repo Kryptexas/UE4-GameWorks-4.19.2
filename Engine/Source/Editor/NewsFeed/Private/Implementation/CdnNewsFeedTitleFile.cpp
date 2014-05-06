@@ -307,7 +307,7 @@ void FCdnNewsFeedTitleFile::EnumerateFiles_HttpRequestComplete(FHttpRequestPtr H
 						}
 						if (JsonFileHeader->HasField(TEXT("length")))
 						{
-							FileHeader.FileSize = FMath::Trunc(JsonFileHeader->GetNumberField(TEXT("length")));
+							FileHeader.FileSize = FMath::TruncToInt(JsonFileHeader->GetNumberField(TEXT("length")));
 						}
 
 						if (FileHeader.FileName.IsEmpty())

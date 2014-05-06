@@ -1770,7 +1770,7 @@ void ARecastNavMesh::PostEditChangeProperty( struct FPropertyChangedEvent& Prope
 				}
 
 				// tile's dimension can't exceed 2^16 x cell size, as it's being stored on 2 bytes
-				const int32 DimensionVX = FMath::Ceil(TileSizeUU / CellSize);
+				const int32 DimensionVX = FMath::CeilToInt(TileSizeUU / CellSize);
 				if (DimensionVX > MAX_uint16)
 				{
 					TileSizeUU = MAX_uint16 * CellSize;

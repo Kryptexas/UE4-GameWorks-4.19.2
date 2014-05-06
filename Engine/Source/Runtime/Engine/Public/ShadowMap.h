@@ -37,12 +37,12 @@ struct FQuantizedSignedDistanceFieldShadowSample
 	{
 		if (Index == 0)
 		{
-			Distance = (uint8)FMath::Clamp<int32>(FMath::Trunc(InComponent * 255.0f),0,255);
+			Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f),0,255);
 		}
 		else
 		{
 			checkSlow(Index == 1);
-			PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::Trunc(InComponent * 255.0f),0,255);
+			PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InComponent * 255.0f),0,255);
 		}
 	}
 
@@ -57,8 +57,8 @@ struct FQuantizedSignedDistanceFieldShadowSample
 	FQuantizedSignedDistanceFieldShadowSample() {}
 	FQuantizedSignedDistanceFieldShadowSample(const FSignedDistanceFieldShadowSample& InSample)
 	{
-		Distance = (uint8)FMath::Clamp<int32>(FMath::Trunc(InSample.Distance * 255.0f),0,255);
-		PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::Trunc(InSample.PenumbraSize * 255.0f),0,255);
+		Distance = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.Distance * 255.0f),0,255);
+		PenumbraSize = (uint8)FMath::Clamp<int32>(FMath::TruncToInt(InSample.PenumbraSize * 255.0f),0,255);
 		Coverage = InSample.IsMapped ? 255 : 0;
 	}
 };

@@ -166,7 +166,7 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FGeometry& AllottedGeometry, co
 	//Convert Offset to FrameOffset
 	float FrameOffset = (-Offset/Zoom)*MaxFrames.Get();
 
-	int32 StartPointIndex = FMath::Floor( FrameOffset );
+	int32 StartPointIndex = FMath::FloorToInt( FrameOffset );
 
 	if(StartPointIndex <= 0)
 		StartPointIndex = 0;

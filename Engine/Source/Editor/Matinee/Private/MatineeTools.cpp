@@ -1645,7 +1645,7 @@ void FMatinee::SetShowTimeCursorPosForAllKeys( bool bInValue )
 float FMatinee::SnapTimeToNearestFrame( float InTime ) const
 {
 	// Compute the new time value by rounding
-	const int32 InterpPositionInFrames = FMath::Round( InTime / SnapAmount );
+	const int32 InterpPositionInFrames = FMath::RoundToInt( InTime / SnapAmount );
 	const float NewTime = InterpPositionInFrames * SnapAmount;
 
 	return NewTime;

@@ -32,8 +32,8 @@ namespace
 		float Height[4];
 		for (int32 Idx = 0; Idx < 4; ++Idx)
 		{
-			int32 XX = FMath::Clamp(FMath::Floor(X+XYOffset.X + XOffsets[Idx]), MinX, MaxX);
-			int32 YY = FMath::Clamp(FMath::Floor(Y+XYOffset.Y + YOffsets[Idx]), MinY, MaxY);
+			int32 XX = FMath::Clamp(FMath::FloorToInt(X+XYOffset.X + XOffsets[Idx]), MinX, MaxX);
+			int32 YY = FMath::Clamp(FMath::FloorToInt(Y+XYOffset.Y + YOffsets[Idx]), MinY, MaxY);
 			Height[Idx] = XYOffsetVectorData[ XX - MinX + (YY - MinY) * (MaxX-MinX+1) ].Z;
 		}
 		float FracX = FMath::Fractional(X+XYOffset.X);
@@ -242,7 +242,7 @@ public:
 				int32 IterNum = 0;
 				float TotalHeightError = 0.f;
 
-				while( NewXYOffset[ (Y - Y1) * (X2-X1+1) ].Y + Y > XYOffsetVectorData[(FPlatformMath::Floor(YOffset) - Y1) * (X2-X1+1) ].Y + FPlatformMath::Floor(YOffset) )
+				while( NewXYOffset[ (Y - Y1) * (X2-X1+1) ].Y + Y > XYOffsetVectorData[(FPlatformMath::FloorToInt(YOffset) - Y1) * (X2-X1+1) ].Y + FPlatformMath::FloorToInt(YOffset) )
 				{
 					YOffset = YOffset+1.f;
 					if (YOffset >= Y2)
@@ -272,9 +272,9 @@ public:
 								P[Idx] = FVector( GetWorldPos( LocalToWorld, FVector2D(XX - Comp->GetSectionBase().X, Y - Comp->GetSectionBase().Y), NewXYOffset[ XX - X1 + (Y - Y1) * (X2-X1+1) ] ) );
 							}
 
-							int32 YY0 = FMath::Clamp<int32>(FMath::Floor(YOffset-1), Y1, Y2);
-							int32 YY1 = FMath::Clamp<int32>(FMath::Floor(YOffset), Y1, Y2);
-							int32 YY2 = FMath::Clamp<int32>(FMath::Floor(1+YOffset), Y1, Y2);
+							int32 YY0 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset-1), Y1, Y2);
+							int32 YY1 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset), Y1, Y2);
+							int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1+YOffset), Y1, Y2);
 							// Search for valid YOffset...
 							for (int32 Idx = 2; Idx < 4; ++Idx)
 							{
@@ -349,8 +349,8 @@ public:
 					RemainQuads -= QuadY[Y - Y1];
 					for (int32 X = MinX[Y-Y1]; X < MaxX[Y-Y1]; ++X)
 					{
-						int32 YY1 = FMath::Clamp<int32>(FMath::Floor(YOffset), Y1, Y2);
-						int32 YY2 = FMath::Clamp<int32>(FMath::Floor(1+YOffset), Y1, Y2);
+						int32 YY1 = FMath::Clamp<int32>(FMath::FloorToInt(YOffset), Y1, Y2);
+						int32 YY2 = FMath::Clamp<int32>(FMath::FloorToInt(1+YOffset), Y1, Y2);
 						FVector P1 = XYOffsetVectorData[ X - X1 + (YY1 - Y1) * (X2-X1+1) ];
 						//P1.X = X+P1.X;
 						P1.Y = YY1+P1.Y;
@@ -389,7 +389,7 @@ public:
 				int32 IterNum = 0;
 				float TotalHeightError = 0.f;
 
-				while( NewXYOffset[X - X1].X + X > NewYOffsets[FMath::Floor(XOffset) - X1].X + FMath::Floor(XOffset) )
+				while( NewXYOffset[X - X1].X + X > NewYOffsets[FMath::FloorToInt(XOffset) - X1].X + FMath::FloorToFloat(XOffset) )
 				{
 					XOffset = XOffset+1.f;
 					if (XOffset >= X2)
@@ -417,9 +417,9 @@ public:
 								P[Idx] = FVector( GetWorldPos( LocalToWorld, FVector2D(X - Comp->GetSectionBase().X, YY - Comp->GetSectionBase().Y), NewXYOffset[ X - X1 + (YY - Y1) * (X2-X1+1) ] ) );
 							}
 
-							int32 XX0 = FMath::Clamp<int32>(FMath::Floor(XOffset-1), X1, X2);
-							int32 XX1 = FMath::Clamp<int32>(FMath::Floor(XOffset), X1, X2);
-							int32 XX2 = FMath::Clamp<int32>(FMath::Floor(1+XOffset), X1, X2);
+							int32 XX0 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset-1), X1, X2);
+							int32 XX1 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset), X1, X2);
+							int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1+XOffset), X1, X2);
 
 							// Search for valid YOffset...
 							for (int32 Idx = 1; Idx < 4; Idx+=2)
@@ -496,8 +496,8 @@ public:
 
 					for (int32 Y = MinY[X-X1]; Y < MaxY[X-X1]; ++Y)
 					{
-						int32 XX1 = FMath::Clamp<int32>(FMath::Floor(XOffset), X1, X2);
-						int32 XX2 = FMath::Clamp<int32>(FMath::Floor(1+XOffset), X1, X2);
+						int32 XX1 = FMath::Clamp<int32>(FMath::FloorToInt(XOffset), X1, X2);
+						int32 XX2 = FMath::Clamp<int32>(FMath::FloorToInt(1+XOffset), X1, X2);
 						FVector P1 = NewYOffsets[ XX1 - X1 + (Y - Y1) * (X2-X1+1) ];
 						P1.X = XX1+P1.X;
 						FVector P2 = NewYOffsets[ XX2 - X1 + (Y - Y1) * (X2-X1+1) ];

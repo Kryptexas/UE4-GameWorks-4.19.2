@@ -721,11 +721,11 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			// Special case for one loop... 
 			if (ParticleLifetime < MaxDuration)
 			{
-				MaxAPC += FMath::Ceil(ParticleLifetime * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(ParticleLifetime * MaxSpawnRate);
 			}
 			else
 			{
-				MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate);
 			}
 			// Safety zone...
 			MaxAPC += 1;
@@ -736,11 +736,11 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 		{
 			if (ParticleLifetime < MaxDuration)
 			{
-				MaxAPC += FMath::Ceil(ParticleLifetime * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(ParticleLifetime * MaxSpawnRate);
 			}
 			else
 			{
-				MaxAPC += (FMath::Ceil(FMath::Ceil(MaxDuration * MaxSpawnRate) * ParticleLifetime));
+				MaxAPC += (FMath::CeilToInt(FMath::CeilToInt(MaxDuration * MaxSpawnRate) * ParticleLifetime));
 			}
 			// Safety zone...
 			MaxAPC += 1;
@@ -748,7 +748,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			MaxAPC += MaxBurstCount;
 			if (ParticleLifetime > MaxDuration)
 			{
-				MaxAPC += MaxBurstCount * FMath::Ceil(ParticleLifetime - MaxDuration);
+				MaxAPC += MaxBurstCount * FMath::CeilToInt(ParticleLifetime - MaxDuration);
 			}
 		}
 	}
@@ -758,7 +758,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 		// Single loop case is all we will worry about. Safer base estimate - but not ideal.
 		if (ParticleLifetime < MaxDuration)
 		{
-			MaxAPC += FMath::Ceil(ParticleLifetime * FMath::Ceil(MaxSpawnRate));
+			MaxAPC += FMath::CeilToInt(ParticleLifetime * FMath::CeilToInt(MaxSpawnRate));
 		}
 		else
 		{
@@ -766,21 +766,21 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			{
 				if (ParticleLifetime <= MaxDuration)
 				{
-					MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate);
+					MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate);
 				}
 				else //if (ParticleLifetime > MaxDuration)
 				{
-					MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate) * ParticleLifetime;
+					MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate) * ParticleLifetime;
 				}
 			}
 			else
 			{
 				// No lifetime, no duration...
-				MaxAPC += FMath::Ceil(MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(MaxSpawnRate);
 			}
 		}
 		// Safety zone...
-		MaxAPC += FMath::Max<int32>(FMath::Ceil(MaxSpawnRate * 0.032f), 2);
+		MaxAPC += FMath::Max<int32>(FMath::CeilToInt(MaxSpawnRate * 0.032f), 2);
 		// Burst
 		MaxAPC += MaxBurstCount;
 	}

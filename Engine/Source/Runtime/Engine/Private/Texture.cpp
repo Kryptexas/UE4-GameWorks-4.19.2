@@ -612,7 +612,7 @@ int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LO
 	}
 
 	// Calculate maximum number of miplevels.
-	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Width, Height ) ) );
+	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::TruncToInt( FMath::Max( Width, Height ) ) );
 
 	// Calculate LOD bias.
 	int32 UsedLODBias	= LODGroupInfo.LODBias + LODBias + NumCinematicMipLevels;
@@ -630,8 +630,8 @@ int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LO
 */
 void FTextureLODSettings::ComputeInGameMaxResolution(int32 LODBias, UTexture &Texture, uint32 &OutSizeX, uint32 &OutSizeY) const
 {
-	uint32 ImportedSizeX = FMath::Trunc(Texture.GetSurfaceWidth());
-	uint32 ImportedSizeY = FMath::Trunc(Texture.GetSurfaceHeight());
+	uint32 ImportedSizeX = FMath::TruncToInt(Texture.GetSurfaceWidth());
+	uint32 ImportedSizeY = FMath::TruncToInt(Texture.GetSurfaceHeight());
 	
 	const FTextureLODGroup& LODGroup = GetTextureLODGroup((TextureGroup)Texture.LODGroup);
 

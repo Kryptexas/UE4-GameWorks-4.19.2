@@ -547,14 +547,14 @@ static bool CheckVertexColor(const UInstancedFoliageSettings* MeshSettings, cons
 
 	if( MeshSettings->VertexColorMaskInvert )
 	{
-		if( ColorChannel > FMath::Round(MeshSettings->VertexColorMaskThreshold * 255.f) )
+		if( ColorChannel > FMath::RoundToInt(MeshSettings->VertexColorMaskThreshold * 255.f) )
 		{
 			return false;
 		}
 	}
 	else
 	{
-		if( ColorChannel < FMath::Round(MeshSettings->VertexColorMaskThreshold * 255.f) )
+		if( ColorChannel < FMath::RoundToInt(MeshSettings->VertexColorMaskThreshold * 255.f) )
 		{
 			return false;
 		}
@@ -597,7 +597,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 						float HitWeight = HitLandscape->GetLayerWeightAtLocation( Instance.Location, HitLandscape->GetLandscapeInfo()->GetLayerInfoByName(LandscapeLayerName), LayerCache );
 
 						// Add count to bucket.
-						ExistingInstanceBuckets[FMath::Round(HitWeight * (float)(NUM_INSTANCE_BUCKETS-1))]++;
+						ExistingInstanceBuckets[FMath::RoundToInt(HitWeight * (float)(NUM_INSTANCE_BUCKETS-1))]++;
 					}
 				}
 			}
@@ -692,7 +692,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 					}
 				}
 
-				new(PotentialInstanceBuckets[FMath::Round(HitWeight * (float)(NUM_INSTANCE_BUCKETS-1))]) FPotentialInstance( Hit.Location, Hit.Normal, Hit.Component.Get(), HitWeight );
+				new(PotentialInstanceBuckets[FMath::RoundToInt(HitWeight * (float)(NUM_INSTANCE_BUCKETS-1))]) FPotentialInstance( Hit.Location, Hit.Normal, Hit.Component.Get(), HitWeight );
 			}
 		}
 
@@ -703,7 +703,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 
 			// We use the number that actually succeeded in placement (due to parameters) as the target
 			// for the number that should be in the brush region.
-			int32 AdditionalInstances = FMath::Clamp<int32>( FMath::Round( BucketFraction * (float)(PotentialInstances.Num() - ExistingInstanceBuckets[BucketIdx]) * Pressure), 0, PotentialInstances.Num() );
+			int32 AdditionalInstances = FMath::Clamp<int32>( FMath::RoundToInt( BucketFraction * (float)(PotentialInstances.Num() - ExistingInstanceBuckets[BucketIdx]) * Pressure), 0, PotentialInstances.Num() );
 			for( int32 Idx=0;Idx<AdditionalInstances;Idx++ )
 			{
 				FFoliageInstance Inst;
@@ -719,7 +719,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 /** Remove instances inside the brush to match DesiredInstanceCount */
 void FEdModeFoliage::RemoveInstancesForBrush( AInstancedFoliageActor* IFA, FFoliageMeshInfo& MeshInfo, int32 DesiredInstanceCount, TArray<int32>& ExistingInstances, float Pressure )
 {
-	int32 InstancesToRemove = FMath::Round( (float)(ExistingInstances.Num() - DesiredInstanceCount) * Pressure);
+	int32 InstancesToRemove = FMath::RoundToInt( (float)(ExistingInstances.Num() - DesiredInstanceCount) * Pressure);
 	int32 InstancesToKeep = ExistingInstances.Num() - InstancesToRemove;
 	if( InstancesToKeep > 0 )
 	{						
@@ -1131,7 +1131,7 @@ void FEdModeFoliage::ApplyBrush( FLevelEditorViewportClient* ViewportClient )
 					if( SnapShot ) 
 					{
 						// Use snapshot to determine number of instances at the start of the brush stroke
-						int32 NewInstanceCount = FMath::Round( (float)SnapShot->CountInstancesInsideSphere(BrushSphere) * MeshSettings->ReapplyDensityAmount );
+						int32 NewInstanceCount = FMath::RoundToInt( (float)SnapShot->CountInstancesInsideSphere(BrushSphere) * MeshSettings->ReapplyDensityAmount );
 						if( MeshSettings->ReapplyDensityAmount > 1.f && NewInstanceCount > Instances.Num() )
 						{
 							AddInstancesForBrush( World , IFA, MeshIt.Key(), MeshInfo, NewInstanceCount, Instances, Pressure );
@@ -1153,7 +1153,7 @@ void FEdModeFoliage::ApplyBrush( FLevelEditorViewportClient* ViewportClient )
 				// Shift unpaints
 				if( IsShiftDown(ViewportClient->Viewport) )
 				{
-					int32 DesiredInstanceCount =  FMath::Round(BrushArea * MeshSettings->Density * UISettings.GetUnpaintDensity() / (1000.f*1000.f));
+					int32 DesiredInstanceCount =  FMath::RoundToInt(BrushArea * MeshSettings->Density * UISettings.GetUnpaintDensity() / (1000.f*1000.f));
 
 					if( DesiredInstanceCount < Instances.Num() )
 					{
@@ -1166,7 +1166,7 @@ void FEdModeFoliage::ApplyBrush( FLevelEditorViewportClient* ViewportClient )
 					float DesiredInstanceCountFloat = BrushArea * MeshSettings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
 
 					// Allow a single instance with a random chance, if the brush is smaller than the density
-					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::Round(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
+					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
 
 					AddInstancesForBrush( World, IFA, MeshIt.Key(), MeshInfo, DesiredInstanceCount, Instances, Pressure );
 				}
@@ -1354,7 +1354,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 						float DesiredInstanceCountFloat = Triangle.Area * MeshSettings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
 
 						// Allow a single instance with a random chance, if the brush is smaller than the density
-						int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::Round(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
+						int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
 				
 						for( int32 Idx=0;Idx<DesiredInstanceCount;Idx++ )
 						{

@@ -2414,7 +2414,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 
 			float SubImageIndex = SubUVPayload->ImageIndex;
 			float SubImageLerp = FMath::Fractional(SubImageIndex);
-			int32 SubImageA = FMath::Floor(SubImageIndex);
+			int32 SubImageA = FMath::FloorToInt(SubImageIndex);
 			int32 SubImageB = SubImageA + 1;
 			int32 SubImageAH = SubImageA % SubImagesX;
 			int32 SubImageBH = SubImageB % SubImagesX;
@@ -4887,7 +4887,7 @@ int32 FDynamicBeam2EmitterData::FillData_InterpolatedNoise(FAsyncBufferFillData&
 		float InterpFraction = FMath::Fractional(InterpStepSize);
 		//bool bInterpFractionIsZero = (FMath::Abs(InterpFraction) < KINDA_SMALL_NUMBER) ? true : false;
 		bool bInterpFractionIsZero = false;
-		int32 InterpIndex = FMath::Trunc(InterpStepSize);
+		int32 InterpIndex = FMath::TruncToInt(InterpStepSize);
 
 		FVector* NoisePoints	= TargetNoisePoints;
 		FVector* NextNoise		= NextNoisePoints;
@@ -5817,12 +5817,12 @@ void FDynamicRibbonEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy, FP
 
 					DrawPosition = DebugParticle->Location;
 					DrawSize = DebugParticle->Size.X * Source.Scale.X;
-					int32 Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					int32 Green = FMath::Trunc(255.0f * ColorScale);
+					int32 Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+					int32 Green = FMath::TruncToInt(255.0f * ColorScale);
 					ColorScale += Increment;
 					DrawColor = FColor(Red,Green,0);
-					Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					Green = FMath::Trunc(255.0f * ColorScale);
+					Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+					Green = FMath::TruncToInt(255.0f * ColorScale);
 					PrevDrawColor = FColor(Red,Green,0);
 
 					if (bRenderParticles == true)
@@ -6495,12 +6495,12 @@ void FDynamicAnimTrailEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy,
 			{
 				RenderData.CalcVertexData(0.0f, DrawPosition, DrawFirstEdgePosition, DrawSecondEdgePosition,TiledU, DrawSize, DummyColor, NULL);
 
-				int32 Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-				int32 Green = FMath::Trunc(255.0f * ColorScale);
+				int32 Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+				int32 Green = FMath::TruncToInt(255.0f * ColorScale);
 				ColorScale += Increment;
 				DrawColor = FColor(Red,Green,0);
-				Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-				Green = FMath::Trunc(255.0f * ColorScale);
+				Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+				Green = FMath::TruncToInt(255.0f * ColorScale);
 				PrevDrawColor = FColor(Red,Green,0);
 
 				if (bRenderParticles == true)

@@ -730,10 +730,10 @@ namespace LandscapeEditorUtils
 			{
 				const float OldY = Y * YScale;
 				const float OldX = X * XScale;
-				const int32 X0 = FMath::Floor(OldX);
-				const int32 X1 = FMath::Min(FMath::Floor(OldX) + 1, OldWidth - 1);
-				const int32 Y0 = FMath::Floor(OldY);
-				const int32 Y1 = FMath::Min(FMath::Floor(OldY) + 1, OldHeight - 1);
+				const int32 X0 = FMath::FloorToInt(OldX);
+				const int32 X1 = FMath::Min(FMath::FloorToInt(OldX) + 1, OldWidth - 1);
+				const int32 Y0 = FMath::FloorToInt(OldY);
+				const int32 Y1 = FMath::Min(FMath::FloorToInt(OldY) + 1, OldHeight - 1);
 				const T& Original00 = Data[Y0 * OldWidth + X0];
 				const T& Original10 = Data[Y0 * OldWidth + X1];
 				const T& Original01 = Data[Y1 * OldWidth + X0];

@@ -349,8 +349,8 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 					const float NormalizedX = (Intersection.X + 0.5f * TileMap->TileWidth) / WX;
 					const float NormalizedY = (-Intersection.Z + 0.5f * TileMap->TileHeight) / WY;
 
-					OutTileX = FMath::Floor(NormalizedX * TileMap->MapWidth);
-					OutTileY = FMath::Floor(NormalizedY * TileMap->MapHeight);
+					OutTileX = FMath::FloorToInt(NormalizedX * TileMap->MapWidth);
+					OutTileY = FMath::FloorToInt(NormalizedY * TileMap->MapHeight);
 					
 					if ((OutTileX > -BrushWidth) && (OutTileX < TileMap->MapWidth) && (OutTileY > -BrushHeight) && (OutTileY < TileMap->MapHeight))
 						//(NormalizedX >= 0.0f) && (NormalizedX < 1.0f) && (NormalizedY >= 0.0f) && (NormalizedY < 1.0f))

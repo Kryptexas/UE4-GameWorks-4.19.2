@@ -617,5 +617,5 @@ float FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius( float KernelR
 
 int FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius( float KernelRadius )
 {
-	return FMath::Min<int32>(FMath::Ceil(GetClampedKernelRadius(KernelRadius)), GetMaxNumSamples() - 1);
+	return FMath::Min<int32>(FMath::CeilToInt(GetClampedKernelRadius(KernelRadius)), GetMaxNumSamples() - 1);
 }

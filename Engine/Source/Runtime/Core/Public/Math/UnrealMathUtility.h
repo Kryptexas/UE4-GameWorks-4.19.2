@@ -90,7 +90,7 @@ struct FMath : public FPlatformMath
 	static FORCEINLINE int32 RandHelper(int32 A)
 	{
 		// RAND_MAX+1 give interval [0..A) with even distribution.
-		return A>0 ? Trunc(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
+		return A>0 ? TruncToInt(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
 	}
 
 	/** Helper function for rand implementations. Returns a random number >= Min and <= Max */
@@ -231,7 +231,7 @@ struct FMath : public FPlatformMath
 		if( Grid==0.f )	return Location;
 		else			
 		{
-			return Floor((Location + 0.5*Grid)/Grid)*Grid;
+			return FloorToFloat((Location + 0.5*Grid)/Grid)*Grid;
 		}
 	}
 

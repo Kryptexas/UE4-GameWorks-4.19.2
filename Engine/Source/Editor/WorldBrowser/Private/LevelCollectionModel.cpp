@@ -733,8 +733,8 @@ void FLevelCollectionModel::UpdateAllLevels()
 	
 	// Update world size
 	FBox WorldBounds = GetLevelsBoundingBox(AllLevelsList, false);
-	WorldSize.X = FMath::Round(WorldBounds.GetSize().X);
-	WorldSize.Y = FMath::Round(WorldBounds.GetSize().Y);
+	WorldSize.X = FMath::RoundToInt(WorldBounds.GetSize().X);
+	WorldSize.Y = FMath::RoundToInt(WorldBounds.GetSize().Y);
 }
 
 void FLevelCollectionModel::RedrawAllLevels()

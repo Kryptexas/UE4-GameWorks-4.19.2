@@ -982,13 +982,13 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 				// otherwise, we end up w/ 100,000s of steps.
 				float Scalar = 1.0f;
 				float KeyDiffTemp = KeyDiff;
-				while (FMath::Trunc(KeyDiffTemp / Scalar) > 1.0f)
+				while (FMath::TruncToInt(KeyDiffTemp / Scalar) > 1)
 				{
 					Scalar *= 10.0f;
 				}
 				float DrawTrackInRes = CurveDrawRes/PixelsPerIn;
 				DrawTrackInRes *= Scalar;
-				int32 NumSteps = FMath::Ceil(KeyDiff/DrawTrackInRes);
+				int32 NumSteps = FMath::CeilToInt(KeyDiff/DrawTrackInRes);
 
 				if(Scalar > 1.0f)
 				{
@@ -1126,8 +1126,8 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 					FVector2D HandleDir = CalcTangentDir((PixelsPerOut/PixelsPerIn) * ArriveTangent);
 
 					FIntPoint HandlePos;
-					HandlePos.X = NewKeyPos.X - FMath::Round(HandleDir.X * HandleLength);
-					HandlePos.Y = NewKeyPos.Y - FMath::Round(HandleDir.Y * HandleLength);
+					HandlePos.X = NewKeyPos.X - FMath::RoundToInt(HandleDir.X * HandleLength);
+					HandlePos.Y = NewKeyPos.Y - FMath::RoundToInt(HandleDir.Y * HandleLength);
 					LineItem.SetColor( FLinearColor::White );
 					LineItem.Draw( Canvas, NewKeyPos, HandlePos );
 					
@@ -1143,8 +1143,8 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 					FVector2D HandleDir = CalcTangentDir((PixelsPerOut/PixelsPerIn) * LeaveTangent);
 
 					FIntPoint HandlePos;
-					HandlePos.X = NewKeyPos.X + FMath::Round(HandleDir.X * HandleLength);
-					HandlePos.Y = NewKeyPos.Y + FMath::Round(HandleDir.Y * HandleLength);
+					HandlePos.X = NewKeyPos.X + FMath::RoundToInt(HandleDir.X * HandleLength);
+					HandlePos.Y = NewKeyPos.Y + FMath::RoundToInt(HandleDir.Y * HandleLength);
 
 					LineItem.SetColor( FLinearColor::White );
 					LineItem.Draw( Canvas, NewKeyPos, HandlePos );
@@ -1163,7 +1163,7 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 				FString KeyComment;
 				if (bSnapToFrames)
 				{
-					KeyComment = FString::Printf(TEXT("(%df,%3.2f)"), FMath::Round(NewKey.X/InSnapAmount), NewKey.Y);
+					KeyComment = FString::Printf(TEXT("(%df,%3.2f)"), FMath::RoundToInt(NewKey.X/InSnapAmount), NewKey.Y);
 				}
 				else
 				{
@@ -1194,7 +1194,7 @@ namespace CurveEditor
 	/** Calculate the best frames' density. */
 	uint32 CalculateBestFrameStep(float SnapAmount, float PixelsPerSec, float MinPixelsPerGrid)
 	{
-		uint32 FrameRate = FMath::Ceil(1.0f / SnapAmount);
+		uint32 FrameRate = FMath::CeilToInt(1.0f / SnapAmount);
 		uint32 FrameStep = 1;
 
 		// Calculate minimal-symmetric integer divisor.
@@ -1278,7 +1278,7 @@ void FCurveEditorViewportClient::DrawGrid(FViewport* Viewport, FCanvas* Canvas)
 
 	// Draw input grid
 	FCanvasLineItem LineItem;
-	int32 InNum = FMath::Floor(SharedData->StartIn/InGridSpacing);
+	int32 InNum = FMath::FloorToInt(SharedData->StartIn/InGridSpacing);
 	while(InNum*InGridSpacing < SharedData->EndIn)
 	{
 		FColor LineColor = GridColor;
@@ -1305,7 +1305,7 @@ void FCurveEditorViewportClient::DrawGrid(FViewport* Viewport, FCanvas* Canvas)
 	}
 
 	// Draw output grid
-	int32 OutNum = FMath::Floor(SharedData->StartOut/OutGridSpacing);
+	int32 OutNum = FMath::FloorToInt(SharedData->StartOut/OutGridSpacing);
 	while(OutNum*OutGridSpacing < SharedData->EndOut)
 	{
 		FIntPoint GridPos = CalcScreenPos(FVector2D(0.f, OutNum*OutGridSpacing));
@@ -1324,7 +1324,7 @@ void FCurveEditorViewportClient::DrawGrid(FViewport* Viewport, FCanvas* Canvas)
 	// Draw input labels
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), GEditor->GetSmallFont(), GridTextColor );
 	
-	InNum = FMath::Floor(SharedData->StartIn/InGridSpacing);
+	InNum = FMath::FloorToInt(SharedData->StartIn/InGridSpacing);
 	while(InNum*InGridSpacing < SharedData->EndIn)
 	{
 		// Draw value label
@@ -1352,7 +1352,7 @@ void FCurveEditorViewportClient::DrawGrid(FViewport* Viewport, FCanvas* Canvas)
 
 	// Draw output labels
 
-	OutNum = FMath::Floor(SharedData->StartOut/OutGridSpacing);
+	OutNum = FMath::FloorToInt(SharedData->StartOut/OutGridSpacing);
 	while(OutNum*OutGridSpacing < SharedData->EndOut)
 	{
 		FIntPoint GridPos = CalcScreenPos(FVector2D(0.f, OutNum*OutGridSpacing));
@@ -1395,19 +1395,19 @@ FColor FCurveEditorViewportClient::GetLineColor(FCurveEdInterface* EdInterface, 
 
 			Value = EdInterface->EvalSub(0, InVal);
 			Value *= 255.9f;
-			StepColor.R = FMath::Trunc(FMath::Clamp<float>(Value, 0.f, 255.9f));
+			StepColor.R = FMath::TruncToInt(FMath::Clamp<float>(Value, 0.f, 255.9f));
 			Value = EdInterface->EvalSub(1, InVal);
 			Value *= 255.9f;
-			StepColor.G = FMath::Trunc(FMath::Clamp<float>(Value, 0.f, 255.9f));
+			StepColor.G = FMath::TruncToInt(FMath::Clamp<float>(Value, 0.f, 255.9f));
 			Value = EdInterface->EvalSub(2, InVal);
 			Value *= 255.9f;
-			StepColor.B = FMath::Trunc(FMath::Clamp<float>(Value, 0.f, 255.9f));
+			StepColor.B = FMath::TruncToInt(FMath::Clamp<float>(Value, 0.f, 255.9f));
 		}
 		else
 		{
-			StepColor.R = FMath::Trunc(FMath::Clamp<float>(EdInterface->EvalSub(0, InVal), 0.f, 255.9f));
-			StepColor.G = FMath::Trunc(FMath::Clamp<float>(EdInterface->EvalSub(1, InVal), 0.f, 255.9f));
-			StepColor.B = FMath::Trunc(FMath::Clamp<float>(EdInterface->EvalSub(2, InVal), 0.f, 255.9f));
+			StepColor.R = FMath::TruncToInt(FMath::Clamp<float>(EdInterface->EvalSub(0, InVal), 0.f, 255.9f));
+			StepColor.G = FMath::TruncToInt(FMath::Clamp<float>(EdInterface->EvalSub(1, InVal), 0.f, 255.9f));
+			StepColor.B = FMath::TruncToInt(FMath::Clamp<float>(EdInterface->EvalSub(2, InVal), 0.f, 255.9f));
 		}
 		StepColor.A = 255;
 	}
@@ -1419,11 +1419,11 @@ FColor FCurveEditorViewportClient::GetLineColor(FCurveEdInterface* EdInterface, 
 
 			Value = EdInterface->EvalSub(0, InVal);
 			Value *= 255.9f;
-			StepColor.R = FMath::Trunc(FMath::Clamp<float>(Value, 0.f, 255.9f));
+			StepColor.R = FMath::TruncToInt(FMath::Clamp<float>(Value, 0.f, 255.9f));
 		}
 		else
 		{
-			StepColor.R = FMath::Trunc(FMath::Clamp<float>(EdInterface->EvalSub(0, InVal), 0.f, 255.9f));
+			StepColor.R = FMath::TruncToInt(FMath::Clamp<float>(EdInterface->EvalSub(0, InVal), 0.f, 255.9f));
 		}
 		StepColor.G = StepColor.R;
 		StepColor.B = StepColor.R;
@@ -1688,7 +1688,7 @@ float FCurveEditorViewportClient::SnapIn(float InValue)
 {
 	if(bSnapEnabled)
 	{
-		return InSnapAmount * FMath::Round(InValue/InSnapAmount);
+		return InSnapAmount * FMath::RoundToFloat(InValue/InSnapAmount);
 	}
 	else
 	{

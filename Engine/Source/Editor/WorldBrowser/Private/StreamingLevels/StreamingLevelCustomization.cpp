@@ -202,7 +202,7 @@ TOptional<int32> FStreamingLevelCustomization::GetLevelRotation() const
 	FQuat RotQ;
 	if (LevelRotationProperty->GetValue(RotQ) == FPropertyAccess::Success)
 	{
-		int32 YawValue = FMath::Round(RotQ.Rotator().Yaw);
+		int32 YawValue = FMath::RoundToInt(RotQ.Rotator().Yaw);
 		return YawValue < 0 ? (YawValue + 360) : YawValue;
 	}
 

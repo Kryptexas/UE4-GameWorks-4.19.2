@@ -1331,10 +1331,10 @@ void FComposableDistribution::QuantizeVector4(
 	Values = Table.Values.GetTypedData();
 	for ( int32 EntryIndex = 0; EntryIndex < EntryCount; ++EntryIndex )
 	{
-		QuantizedValues->R = FMath::Clamp<int32>( FMath::Trunc( (Values[0] - Bias.X) * InvScale.X ), 0, 255 );
-		QuantizedValues->G = FMath::Clamp<int32>( FMath::Trunc( (Values[1] - Bias.Y) * InvScale.Y ), 0, 255 );
-		QuantizedValues->B = FMath::Clamp<int32>( FMath::Trunc( (Values[2] - Bias.Z) * InvScale.Z ), 0, 255 );
-		QuantizedValues->A = FMath::Clamp<int32>( FMath::Trunc( (Values[3] - Bias.W) * InvScale.W ), 0, 255 );
+		QuantizedValues->R = FMath::Clamp<int32>( FMath::TruncToInt( (Values[0] - Bias.X) * InvScale.X ), 0, 255 );
+		QuantizedValues->G = FMath::Clamp<int32>( FMath::TruncToInt( (Values[1] - Bias.Y) * InvScale.Y ), 0, 255 );
+		QuantizedValues->B = FMath::Clamp<int32>( FMath::TruncToInt( (Values[2] - Bias.Z) * InvScale.Z ), 0, 255 );
+		QuantizedValues->A = FMath::Clamp<int32>( FMath::TruncToInt( (Values[3] - Bias.W) * InvScale.W ), 0, 255 );
 		Values += EntryStride;
 		QuantizedValues++;
 	}

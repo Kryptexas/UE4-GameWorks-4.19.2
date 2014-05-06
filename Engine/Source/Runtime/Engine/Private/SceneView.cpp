@@ -467,8 +467,8 @@ void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_Wor
 
 void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewMatrix, const FMatrix& InvProjectionMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection)
 {
-	int32 PixelX = FMath::Trunc(ScreenPos.X);
-	int32 PixelY = FMath::Trunc(ScreenPos.Y);
+	int32 PixelX = FMath::TruncToInt(ScreenPos.X);
+	int32 PixelY = FMath::TruncToInt(ScreenPos.Y);
 
 	// Get the eye position and direction of the mouse cursor in two stages (inverse transform projection, then inverse transform view).
 	// This avoids the numerical instability that occurs when a view matrix with large translation is composed with a projection matrix
@@ -1197,8 +1197,8 @@ void FSceneViewFamily::ComputeFamilySize()
 
 	// We render to the actual position of the viewports so with black borders we need the max.
 	// We could change it by rendering all to left top but that has implications for splitscreen. 
-	FamilySizeX = FMath::Trunc(MaxFamilyX);
-	FamilySizeY = FMath::Trunc(MaxFamilyY);	
+	FamilySizeX = FMath::TruncToInt(MaxFamilyX);
+	FamilySizeY = FMath::TruncToInt(MaxFamilyY);	
 
 	check(bInitializedExtents);
 }

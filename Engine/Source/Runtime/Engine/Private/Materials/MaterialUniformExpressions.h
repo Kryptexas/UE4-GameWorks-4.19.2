@@ -804,10 +804,10 @@ public:
 	{
 		X->GetNumberValue(Context, OutValue);
 
-		OutValue.R = FMath::Floor(OutValue.R);
-		OutValue.G = FMath::Floor(OutValue.G);
-		OutValue.B = FMath::Floor(OutValue.B);
-		OutValue.A = FMath::Floor(OutValue.A);
+		OutValue.R = FMath::FloorToInt(OutValue.R);
+		OutValue.G = FMath::FloorToInt(OutValue.G);
+		OutValue.B = FMath::FloorToInt(OutValue.B);
+		OutValue.A = FMath::FloorToInt(OutValue.A);
 	}
 	virtual bool IsConstant() const
 	{
@@ -848,10 +848,10 @@ public:
 	{
 		X->GetNumberValue(Context, OutValue);
 
-		OutValue.R = FMath::Ceil(OutValue.R);
-		OutValue.G = FMath::Ceil(OutValue.G);
-		OutValue.B = FMath::Ceil(OutValue.B);
-		OutValue.A = FMath::Ceil(OutValue.A);
+		OutValue.R = FMath::CeilToInt(OutValue.R);
+		OutValue.G = FMath::CeilToInt(OutValue.G);
+		OutValue.B = FMath::CeilToInt(OutValue.B);
+		OutValue.A = FMath::CeilToInt(OutValue.A);
 	}
 	virtual bool IsConstant() const
 	{
@@ -892,10 +892,10 @@ public:
 	{
 		X->GetNumberValue(Context, OutValue);
 
-		OutValue.R = OutValue.R - FMath::Floor(OutValue.R);
-		OutValue.G = OutValue.G - FMath::Floor(OutValue.G);
-		OutValue.B = OutValue.B - FMath::Floor(OutValue.B);
-		OutValue.A = OutValue.A - FMath::Floor(OutValue.A);
+		OutValue.R = OutValue.R - FMath::FloorToInt(OutValue.R);
+		OutValue.G = OutValue.G - FMath::FloorToInt(OutValue.G);
+		OutValue.B = OutValue.B - FMath::FloorToInt(OutValue.B);
+		OutValue.A = OutValue.A - FMath::FloorToInt(OutValue.A);
 	}
 	virtual bool IsConstant() const
 	{

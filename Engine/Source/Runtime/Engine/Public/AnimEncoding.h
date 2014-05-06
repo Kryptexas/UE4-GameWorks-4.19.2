@@ -575,7 +575,7 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 					const float KeyPos = RelativePos * float(NumKeys);
 					checkSlow(KeyPos >= 0.0f);
 					const float KeyPosFloor = floorf(KeyPos);
-					PosIndex0CacheOut = FMath::Min( FMath::Trunc(KeyPosFloor), NumKeys );
+					PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys );
 					AlphaCacheOut = KeyPos - KeyPosFloor;
 					PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys );
 				}
@@ -601,7 +601,7 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 						const float KeyPos = RelativePos * float(NumFrames);
 						checkSlow(KeyPos >= 0.0f);
 						const float KeyPosFloor = floorf(KeyPos);
-						PosIndex0CacheOut = FMath::Min( FMath::Trunc(KeyPosFloor), NumFrames - 1 );
+						PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumFrames - 1 );
 						AlphaCacheOut = KeyPos - KeyPosFloor;
 						PosIndex1CacheOut = PosIndex0CacheOut + 1;
 					}
@@ -621,7 +621,7 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 						float const KeyPos = AdjustedPosition * float(NumKeys-1);
 						checkSlow(KeyPos >= 0.0f);
 						float const KeyPosFloor = floorf(KeyPos);
-						PosIndex0CacheOut = FMath::Min( FMath::Trunc(KeyPosFloor), NumKeys - 1 );
+						PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys - 1 );
 						AlphaCacheOut = KeyPos - KeyPosFloor;
 						PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys - 1 );
 					}
@@ -744,8 +744,8 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 		const int32 LastFrame= TotalFrames-1;
 		const float KeyPos = RelativePos * (float)LastKey;
 		const float FramePos = RelativePos * (float)TotalFrames;
-		const int32 FramePosFloor = FMath::Clamp(FMath::Trunc(FramePos), 0, LastFrame);
-		const int32 KeyEstimate = FMath::Clamp(FMath::Trunc(KeyPos), 0, LastKey);
+		const int32 FramePosFloor = FMath::Clamp(FMath::TruncToInt(FramePos), 0, LastFrame);
+		const int32 KeyEstimate = FMath::Clamp(FMath::TruncToInt(KeyPos), 0, LastKey);
 
 		int32 LowFrame = 0;
 		int32 HighFrame = 0;

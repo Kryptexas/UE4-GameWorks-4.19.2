@@ -191,10 +191,10 @@ void FLinuxCursor::Lock( const RECT* const Bounds )
 	else
 	{
 		SDL_SetWindowGrab( NULL, SDL_TRUE );
-		CursorClipRect.Min.X = FMath::Trunc(Bounds->left);
-		CursorClipRect.Min.Y = FMath::Trunc(Bounds->top);
-		CursorClipRect.Max.X = FMath::Trunc(Bounds->right) - 1;
-		CursorClipRect.Max.Y = FMath::Trunc(Bounds->bottom) - 1;
+		CursorClipRect.Min.X = FMath::TruncToInt(Bounds->left);
+		CursorClipRect.Min.Y = FMath::TruncToInt(Bounds->top);
+		CursorClipRect.Max.X = FMath::TruncToInt(Bounds->right) - 1;
+		CursorClipRect.Max.Y = FMath::TruncToInt(Bounds->bottom) - 1;
 	}
 
 	FVector2D CurrentPosition = GetPosition();

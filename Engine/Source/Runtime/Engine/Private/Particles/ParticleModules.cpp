@@ -638,13 +638,13 @@ uint32 UParticleModule::PrepRandomSeedInstancePayload(FParticleEmitterInstance* 
 			{
 				if (InRandSeedInfo.bInstanceSeedIsIndex == false)
 				{
-					InRandSeedPayload->RandomStream.Initialize(FMath::Round(SeedValue));
+					InRandSeedPayload->RandomStream.Initialize(FMath::RoundToInt(SeedValue));
 				}
 				else
 				{
 					if (InRandSeedInfo.RandomSeeds.Num() > 0)
 					{
-						int32 Index = FMath::Min<int32>((InRandSeedInfo.RandomSeeds.Num() - 1), FMath::Trunc(SeedValue));
+						int32 Index = FMath::Min<int32>((InRandSeedInfo.RandomSeeds.Num() - 1), FMath::TruncToInt(SeedValue));
 						InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[Index]);
 						return 0;
 					}
@@ -1970,7 +1970,7 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 
 		if (InterpMethod == PSUVIM_Linear)
 		{
-			ImageIndex = FMath::TruncFloat(ImageIndex);
+			ImageIndex = FMath::TruncToFloat(ImageIndex);
 		}
 	}
 	else if ((InterpMethod == PSUVIM_Random) || (InterpMethod == PSUVIM_Random_Blend))
@@ -1980,13 +1980,13 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 			(SubUVPayload.RandomImageTime == 0.0f))
 		{
 			const float RandomNumber = FMath::SRand();
-			ImageIndex = FMath::Trunc(RandomNumber * TotalSubImages);
+			ImageIndex = FMath::TruncToInt(RandomNumber * TotalSubImages);
 			SubUVPayload.RandomImageTime	= Particle->RelativeTime;
 		}
 
 		if (InterpMethod == PSUVIM_Random)
 		{
-			ImageIndex = FMath::TruncFloat(ImageIndex);
+			ImageIndex = FMath::TruncToFloat(ImageIndex);
 		}
 	}
 	else
@@ -2118,7 +2118,7 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 			}
 			else if (StartingFrame == 0)
 			{
-				MoviePayload.Time = FMath::Trunc(FMath::SRand() * (iTotalSubImages-1));
+				MoviePayload.Time = FMath::TruncToFloat(FMath::SRand() * (iTotalSubImages-1));
 			}
 
 			// Update the payload
@@ -2159,7 +2159,7 @@ float UParticleModuleSubUVMovie::DetermineImageIndex(FParticleEmitterInstance* O
 	float ImageIndex = MoviePayload.Time * UserSetFrameRate;
 	if (InterpMethod != PSUVIM_Linear_Blend)
 	{
-		ImageIndex = FMath::TruncFloat(ImageIndex);
+		ImageIndex = FMath::TruncToFloat(ImageIndex);
 	}
 	return ImageIndex;
 }
@@ -3750,7 +3750,7 @@ void UParticleModuleAttractorParticle::Spawn(FParticleEmitterInstance* Owner, in
 			switch (SelectionMethod)
 			{
 			case EAPSM_Random:
-				LastSelIndex		= FMath::Trunc(FMath::SRand() * AttractorEmitterInst->ActiveParticles);
+				LastSelIndex		= FMath::TruncToInt(FMath::SRand() * AttractorEmitterInst->ActiveParticles);
 				Data.SourceIndex	= LastSelIndex;
 				break;
 			case EAPSM_Sequential:

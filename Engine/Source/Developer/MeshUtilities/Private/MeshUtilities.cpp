@@ -1498,7 +1498,7 @@ static void ComputeStreamingTextureFactors(
 			// Disregard upper 75% of texel ratios.
 			// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
 			TexelRatios[UVIndex].Sort( TGreater<float>() );
-			float TexelRatio = TexelRatios[UVIndex][ FMath::Trunc(TexelRatios[UVIndex].Num() * 0.75f) ];
+			float TexelRatio = TexelRatios[UVIndex][ FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f) ];
 			OutStreamingTextureFactors[UVIndex] = TexelRatio;
 		}
 	}
@@ -2900,7 +2900,7 @@ public:
 		SortedLightmaps.Sort([](TPair<int32, uint32> L, TPair<int32, uint32> R) { return R.Value < L.Value; });
 		
 		// Try to pack, increasing atlas resolution with each step
-		uint32 PackedSize = FMath::RoundUpToPowerOfTwo(FMath::Round(FMath::Sqrt(TotalArea)));
+		uint32 PackedSize = FMath::RoundUpToPowerOfTwo(FMath::RoundToInt(FMath::Sqrt(TotalArea)));
 		for (int32 i = 0; i < 10; ++i) // 2 iterations should be enough >.<
 		{
 			PackedLightmapAtlas = new FLightmapAtlas(PackedSize);

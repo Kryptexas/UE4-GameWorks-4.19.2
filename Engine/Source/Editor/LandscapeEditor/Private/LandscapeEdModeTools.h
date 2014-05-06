@@ -111,8 +111,8 @@ private:
 
 	float PerlinNoise2D(float X,float Y) const
 	{
-		int32		TruncX = FMath::Trunc(X),
-			TruncY = FMath::Trunc(Y),
+		int32		TruncX = FMath::TruncToInt(X),
+			TruncY = FMath::TruncToInt(Y),
 			IntX = TruncX & 255,
 			IntY = TruncY & 255;
 		float	FracX = X - TruncX,
@@ -374,8 +374,8 @@ struct TLandscapeEditCache
 
 	float GetValue(float LandscapeX, float LandscapeY)
 	{
-		int32 X = FMath::Floor(LandscapeX);
-		int32 Y = FMath::Floor(LandscapeY);
+		int32 X = FMath::FloorToInt(LandscapeX);
+		int32 Y = FMath::FloorToInt(LandscapeY);
 		AccessorType* P00 = CachedData.Find(ALandscape::MakeKey(X, Y));
 		AccessorType* P10 = CachedData.Find(ALandscape::MakeKey(X+1, Y));
 		AccessorType* P01 = CachedData.Find(ALandscape::MakeKey(X, Y+1));

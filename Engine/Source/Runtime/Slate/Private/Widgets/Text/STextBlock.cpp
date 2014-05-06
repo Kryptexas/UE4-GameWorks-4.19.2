@@ -242,7 +242,7 @@ void STextBlock::CacheDesiredSize()
 		if(bWrapText)
 		{
 			// WrapText takes care of clearing CachedWrappedLineData
-			CachedWrappedString = SlateWordWrapper::WrapText(CachedOriginalString, FontInfo, FMath::Trunc(WrappingWidth), 1.0f, &CachedWrappedLineData);
+			CachedWrappedString = SlateWordWrapper::WrapText(CachedOriginalString, FontInfo, FMath::TruncToInt(WrappingWidth), 1.0f, &CachedWrappedLineData);
 		}
 		else
 		{

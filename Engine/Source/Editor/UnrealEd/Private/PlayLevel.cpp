@@ -2359,8 +2359,8 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 
 							if (index <= 0)
 							{
-								LevelEditorPlaySettings->NewWindowPosition.X = FPlatformMath::Round(PIEWindowPos.X);
-								LevelEditorPlaySettings->NewWindowPosition.Y = FPlatformMath::Round(PIEWindowPos.Y);
+								LevelEditorPlaySettings->NewWindowPosition.X = FPlatformMath::RoundToInt(PIEWindowPos.X);
+								LevelEditorPlaySettings->NewWindowPosition.Y = FPlatformMath::RoundToInt(PIEWindowPos.Y);
 							}
 							else
 							{
