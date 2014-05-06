@@ -682,6 +682,19 @@ namespace UnrealBuildTool
 			{
 				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
 			}
+			else if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../../../../");
+				if (EngineRelative.IndexOf(':') == 1)
+				{
+					EngineRelative = EngineRelative.Substring(2);
+				}
+				if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
+				{
+					UEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+					EngineRelative = Toolchain.ConvertPath(EngineRelative);
+				}
+			}
 
 			if (!bGeneratingRocketProjectFiles)
 			{
