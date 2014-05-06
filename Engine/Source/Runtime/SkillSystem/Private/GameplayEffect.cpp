@@ -56,13 +56,13 @@ bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const TSet<FName>& 
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect * InDef, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData)
-	: Def(InDef)
-	, ModifierLevel(InLevel)
-	, Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
-	, Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
-	, StackingPolicy(EGameplayEffectStackingPolicy::Unlimited)
-	, StackedAttribName(NAME_None)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *Owner, float Level, const FGlobalCurveDataOverride *CurveData)
+: Def(InDef)
+, ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Owner)))
+, Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
+, Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
+, StackingPolicy(EGameplayEffectStackingPolicy::Unlimited)
+, StackedAttribName(NAME_None)
 {
 	Duration.Get()->RegisterLevelDependancies();
 	Period.Get()->RegisterLevelDependancies();
@@ -145,10 +145,18 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect * InDef, TSharedP
 		}
 	}
 
-	InitModifiers(CurveData);
+	InitModifiers(CurveData, Owner, Level);
+
+	if (InDef)
+	{
+		for (UGameplayEffect* TargetDef : InDef->TargetEffects)
+		{
+			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Owner, Level, CurveData)));
+		}
+	}
 }
 
-void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData)
+void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
 {
 	check(Def);
 
@@ -165,7 +173,7 @@ void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveDat
 		ModifierLevel->ApplyNewDef(ModInfo.LevelInfo, NewLevelSpec);
 
 		// This creates a new FModifierSpec that we own.
-		Modifiers.Emplace(FModifierSpec(ModInfo, NewLevelSpec, CurveData));
+		Modifiers.Emplace(FModifierSpec(ModInfo, NewLevelSpec, CurveData, Owner, Level));
 	}	
 }
 
@@ -177,7 +185,7 @@ void FGameplayEffectSpec::MakeUnique()
 	}
 }
 
-int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext)
+int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext)
 {
 	SKILL_LOG_SCOPE(TEXT("FGameplayEffectSpec::ApplyModifiersFrom %s. InSpec: %s"), *this->ToSimpleString(), *InSpec.ToSimpleString());
 
@@ -222,6 +230,12 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec,
 			{
 				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
 				NumApplied++;
+				break;
+			}
+
+			case EGameplayModEffect::LinkedGameplayEffect:
+			{
+				TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
 				break;
 			}
 		}
@@ -345,6 +359,17 @@ bool FModifierSpec::CanModifyModifier(FModifierSpec &Other, const FModifierQuali
 	// Tag checking is done at the FAggregator level. So all we do here is the attribute check.
 
 	return true;
+}
+
+FModifierSpec::FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
+: Info(InInfo)
+, Aggregator(new FAggregator(FGameplayModifierData(InInfo, CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString())))
+{
+	Aggregator.Get()->RegisterLevelDependancies();
+	if (InInfo.TargetEffect)
+	{
+		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Level, CurveData));
+	}
 }
 
 void FModifierSpec::ApplyModTo(FModifierSpec &Other, bool TakeSnapshot) const
@@ -1034,12 +1059,12 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const
+void FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	FActiveGameplayEffectHandle().IsValid();
 
 	SKILL_LOG_SCOPE(TEXT("ApplyActiveEffectsTo: %s %s"), *Spec.ToSimpleString(), *QualifierContext.ToString());
-	for (const FActiveGameplayEffect & ActiveEffect : GameplayEffects)
+	for (FActiveGameplayEffect & ActiveEffect : GameplayEffects)
 	{
 		// We dont want to use FModifierQualifier::TestTarget here, since we aren't the 'target'. We are applying stuff to Spec which will be applied to a target.
 		if (QualifierContext.IgnoreHandle().IsValid() && QualifierContext.IgnoreHandle() == ActiveEffect.Handle)
@@ -1051,7 +1076,7 @@ void FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSp
 }
 
 /** This is the main function that applies/attaches a GameplayEffect on Attributes and ActiveGameplayEffects */
-void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
+void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	for (const FModifierSpec &Mod : Spec.Modifiers)
 	{
@@ -1573,7 +1598,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, GameplayEffect->LevelInfo, Instigator)), Owner->GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, Owner->GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(Instigator);
 

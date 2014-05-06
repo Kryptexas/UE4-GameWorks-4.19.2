@@ -22,6 +22,8 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExected, co
 	#define SKILL_AGG_DEBUG( Format, ... ) NULL
 #endif
 
+class UGameplayEffect;
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -52,7 +54,7 @@ namespace EGameplayMod
 		Attribute = 0,		// Modifies this Attributes
 		OutgoingGE,			// Modifies Outgoing Gameplay Effects (that modify this Attribute)
 		IncomingGE,			// Modifies Incoming Gameplay Effects (that modify this Attribute)
-		ActiveGE,
+		ActiveGE,			// Modifies currently active Gameplay Effects
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
@@ -71,6 +73,7 @@ namespace EGameplayModEffect
 		Duration			= 0x02,		// Modifies duration of a GameplayEffect
 		ChanceApplyTarget	= 0x04,		// Modifies chance to apply GameplayEffect to target
 		ChanceApplyEffect	= 0x08,		// Modifies chance to apply GameplayEffect to GameplayEffect
+		LinkedGameplayEffect= 0x10,		// Adds a linked GameplayEffect to a GameplayEffect
 
 		// This must always be at the end
 		All					= 0xFF		UMETA(DisplayName="Invalid")
@@ -176,6 +179,7 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 		: ModifierType( EGameplayMod::Attribute )
 		, ModifierOp( EGameplayModOp::Additive )
 		, EffectType( EGameplayModEffect::Magnitude )
+		, TargetEffect( NULL )
 	{
 
 	}
@@ -198,6 +202,10 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 	/** If we modify an effect, this is what we modify about it (Duration, Magnitude, etc) */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	TEnumAsByte<EGameplayModEffect::Type> EffectType;
+
+	/** If we are linking a gameplay effect to another effect, this is the effect to link */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	UGameplayEffect* TargetEffect;
 
 	// The thing I modify requires these tags
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
@@ -316,6 +324,10 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Application, meta = (GameplayAttribute = "True"))
 	FScalableFloat	ChanceToApplyToGameplayEffect;
+
+	// other gameplay effects  that will be applied to the target of this effect
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TArray<UGameplayEffect*> TargetEffects;
 
 	// Modify duration of CEs
 
@@ -1019,17 +1031,14 @@ private:
  */
 struct FModifierSpec
 {
-	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData)
-		: Info(InInfo)
-		, Aggregator(new FAggregator(FGameplayModifierData(InInfo, CurveData), InLevel,  SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString() )))
-	{
-		Aggregator.Get()->RegisterLevelDependancies();
-	}
+	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData, AActor *Owner = NULL, float Level = 0.f);
 
 	// Hard Ref to what we modify, this stuff is const and never changes
 	const FGameplayModifierInfo &Info;
 	
 	FAggregatorRef Aggregator;
+
+	TSharedPtr<FGameplayEffectSpec> TargetEffectSpec;
 
 	bool CanModifyInContext(const FModifierQualifier &QualifierContext) const;
 	// returns true if this GameplayEffect can modify Other, false otherwise
@@ -1073,7 +1082,7 @@ struct FGameplayEffectSpec
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( const UGameplayEffect * InDef, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData );
+	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Owner, float Level, const FGlobalCurveDataOverride *CurveData );
 	
 	UPROPERTY()
 	const UGameplayEffect * Def;
@@ -1086,13 +1095,18 @@ struct FGameplayEffectSpec
 
 	float GetDuration() const;
 	float GetPeriod() const;
+	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
+
+	// other effects that need to be applied to the target if this effect is successful
+	TArray< TSharedRef< FGameplayEffectSpec > > TargetEffectSpecs;
 
 	UPROPERTY()
 	FAggregatorRef	Duration;
 
 	FAggregatorRef	Period;
 
+	// How this combines with other gameplay effects
 	EGameplayEffectStackingPolicy::Type StackingPolicy;
 	FName StackedAttribName;
 
@@ -1103,14 +1117,12 @@ struct FGameplayEffectSpec
 
 	void MakeUnique();
 
-	void InitModifiers(const FGlobalCurveDataOverride *CurveData);
+	void InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level);
 
-	int32 ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
+	int32 ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
-
-	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
 	FString ToSimpleString() const
 	{
@@ -1277,9 +1289,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	
 	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec);
 
-	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const;
+	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
-	void ApplySpecToActiveEffectsAndAttributes(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 		
 	void ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 	
