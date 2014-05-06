@@ -163,8 +163,8 @@ FReply SGraphNodeComment::OnMouseMove(const FGeometry& MyGeometry, const FPointe
 			UserSize.X = SCommentNodeDefs::MinWidth;
 			DeltaNodePos.X = GetCorrectedNodePosition().X - GetPosition().X;
 		}
-
-		SGraphNode::MoveTo( GetPosition() + DeltaNodePos );
+		SGraphNode::FNodeSet NodeFilter;
+		SGraphNode::MoveTo( GetPosition() + DeltaNodePos, NodeFilter );
 	}
 	else
 	{
@@ -549,12 +549,10 @@ bool SGraphNodeComment::OnHitTest( const FGeometry& MyGeometry, FVector2D InAbso
 	return (InMouseZone != CWZ_NotInWindow) && (InMouseZone != CWZ_InWindow);
 }
 
-void SGraphNodeComment::MoveTo( const FVector2D& NewPosition ) 
+void SGraphNodeComment::MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilter ) 
 {
 	FVector2D PositionDelta = NewPosition - GetPosition();
-	SGraphNode::MoveTo(NewPosition);
-
-
+	SGraphNode::MoveTo(NewPosition, NodeFilter);
 	// Don't drag note content if either of the shift keys are down.
 	FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
 	if(!KeysState.IsShiftDown())
@@ -570,8 +568,9 @@ void SGraphNodeComment::MoveTo( const FVector2D& NewPosition )
 			{
 				if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
 				{
-					if ( !Panel->SelectionManager.IsNodeSelected(Node))
+					if ( !Panel->SelectionManager.IsNodeSelected(Node) && !NodeFilter.Find( Node->NodeWidget.Pin() ))
 					{
+						NodeFilter.Add( Node->NodeWidget.Pin() );
 						Node->NodePosX += PositionDelta.X;
 						Node->NodePosY += PositionDelta.Y;
 					}

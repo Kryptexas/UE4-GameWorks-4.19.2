@@ -72,13 +72,14 @@ void AutoArrangeNodes(UBehaviorTreeGraphNode* ParentNode, FBBNode& BBoxTree, flo
 		if ( ParentNode->Pins[i]->Direction == EGPD_Output)
 		{
 			UEdGraphPin* Pin =  ParentNode->Pins[i];
+			SGraphNode::FNodeSet NodeFilter;
 			for (int32 Index=0; Index < Pin->LinkedTo.Num(); ++Index)
 			{
 				UBehaviorTreeGraphNode* GraphNode = Cast<UBehaviorTreeGraphNode>(Pin->LinkedTo[Index]->GetOwningNode());
 				if (GraphNode != NULL && BBoxTree.Children.Num() > 0)
 				{
 					AutoArrangeNodes(GraphNode, *BBoxTree.Children[BBoxIndex], PosX, PosY + GraphNode->NodeWidget.Pin()->GetDesiredSize().Y * 2.5f);
-					GraphNode->NodeWidget.Pin()->MoveTo(FVector2D(BBoxTree.Children[BBoxIndex]->SubGraphBBox.X /2 - GraphNode->NodeWidget.Pin()->GetDesiredSize().X /2 + PosX, PosY));
+					GraphNode->NodeWidget.Pin()->MoveTo(FVector2D(BBoxTree.Children[BBoxIndex]->SubGraphBBox.X /2 - GraphNode->NodeWidget.Pin()->GetDesiredSize().X /2 + PosX, PosY), NodeFilter);
 					PosX += BBoxTree.Children[BBoxIndex]->SubGraphBBox.X + 20;
 				}
 				BBoxIndex++;

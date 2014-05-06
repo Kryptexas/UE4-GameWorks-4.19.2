@@ -506,7 +506,8 @@ void SGraphPanel::UpdateSelectedNodesPositions (FVector2D PositionIncrement)
 		if (pWidget != NULL)
 		{
 			SNode& Widget = pWidget->Get();
-			Widget.MoveTo(Widget.GetPosition() + PositionIncrement);
+			SNode::FNodeSet NodeFilter;
+			Widget.MoveTo(Widget.GetPosition() + PositionIncrement, NodeFilter);
 		}
 	}
 }
