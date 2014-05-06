@@ -89,7 +89,6 @@
 	public: \
 	static TSharedRef<WidgetType> New(); \
 	struct FArguments; \
-	virtual void Construct( const FArguments& InArgs ) = 0; \
 	struct FArguments : public TSlateBaseNamedArgs<WidgetType> \
 	{ \
 		typedef FArguments WidgetArgsType; \

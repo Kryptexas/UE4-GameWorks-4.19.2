@@ -12,6 +12,8 @@ class SUserWidgetExample : public SUserWidget
 		SLATE_ARGUMENT( FText, Title )
 	SLATE_END_ARGS()
 
+	virtual void Construct(const FArguments& InArgs) = 0;
+
 	virtual void DoStuff() = 0;
 };
 
