@@ -11,6 +11,7 @@ FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 	check(Size / Stride > 0 && Size % Stride == 0);
 
 	D3D11_BUFFER_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_BUFFER_DESC ) );
 	Desc.ByteWidth = Size;
 	Desc.Usage = (InUsage & BUF_AnyDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 	Desc.BindFlags = 0;
@@ -115,6 +116,7 @@ void* FD3D11DynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef Str
 		{
 			// If the static buffer is being locked for reading, create a staging buffer.
 			D3D11_BUFFER_DESC StagingBufferDesc;
+			ZeroMemory( &StagingBufferDesc, sizeof( D3D11_BUFFER_DESC ) );
 			StagingBufferDesc.ByteWidth = Size;
 			StagingBufferDesc.Usage = D3D11_USAGE_STAGING;
 			StagingBufferDesc.BindFlags = 0;
@@ -180,6 +182,9 @@ void FD3D11DynamicRHI::RHIUnlockStructuredBuffer(FStructuredBufferRHIParamRef St
 		{
 			// Copy the contents of the temporary memory buffer allocated for writing into the VB.
 			Direct3DDeviceIMContext->UpdateSubresource(StructuredBuffer->Resource,LockedKey.Subresource,NULL,LockedData->GetData(),LockedData->Pitch,0);
+
+			// Check the copy is finished before freeing...
+			Direct3DDeviceIMContext->Flush();
 
 			// Free the temporary memory buffer.
 			LockedData->FreeData();

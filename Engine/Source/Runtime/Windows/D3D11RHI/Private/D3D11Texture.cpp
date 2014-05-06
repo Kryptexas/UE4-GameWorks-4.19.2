@@ -523,6 +523,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	// Describe the texture.
 	D3D11_TEXTURE2D_DESC TextureDesc;
+	ZeroMemory( &TextureDesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	TextureDesc.Width = SizeX;
 	TextureDesc.Height = SizeY;
 	TextureDesc.MipLevels = NumMips;
@@ -841,6 +842,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	// Describe the texture.
 	D3D11_TEXTURE3D_DESC TextureDesc;
+	ZeroMemory( &TextureDesc, sizeof( D3D11_TEXTURE3D_DESC ) );
 	TextureDesc.Width = SizeX;
 	TextureDesc.Height = SizeY;
 	TextureDesc.Depth = SizeZ;

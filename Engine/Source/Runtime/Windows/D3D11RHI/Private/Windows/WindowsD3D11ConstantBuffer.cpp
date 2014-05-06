@@ -11,6 +11,7 @@ void FWinD3D11ConstantBuffer::InitDynamicRHI()
 {
 	TRefCountPtr<ID3D11Buffer> CBuffer = NULL;
 	D3D11_BUFFER_DESC BufferDesc;
+	ZeroMemory( &BufferDesc, sizeof( D3D11_BUFFER_DESC ) );
 	// Verify constant buffer ByteWidth requirements
 	check(MaxSize <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT && (MaxSize % 16) == 0);
 	BufferDesc.ByteWidth = MaxSize;

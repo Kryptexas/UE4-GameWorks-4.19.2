@@ -592,6 +592,7 @@ TRefCountPtr<ID3D11Texture2D> FD3D11DynamicRHI::GetStagingTexture(FTextureRHIPar
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE2D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.MipLevels = 1;
@@ -1026,6 +1027,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIn
 
 	// Create a non-MSAA render target to resolve individual samples of the source surface to.
 	D3D11_TEXTURE2D_DESC NonMSAADesc;
+	ZeroMemory( &NonMSAADesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	NonMSAADesc.Width = SizeX;
 	NonMSAADesc.Height = SizeY;
 	NonMSAADesc.MipLevels = 1;
@@ -1054,6 +1056,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIn
 	// Create a CPU-accessible staging texture to copy the resolved sample data to.
 	TRefCountPtr<ID3D11Texture2D> StagingTexture2D;
 	D3D11_TEXTURE2D_DESC StagingDesc;
+	ZeroMemory( &StagingDesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	StagingDesc.Width = SizeX;
 	StagingDesc.Height = SizeY;
 	StagingDesc.MipLevels = 1;
@@ -1191,6 +1194,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FI
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE2D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.MipLevels = 1;
@@ -1266,6 +1270,7 @@ void FD3D11DynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE3D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE3D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.Depth = SizeZ;
