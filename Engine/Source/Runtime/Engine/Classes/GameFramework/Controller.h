@@ -266,13 +266,17 @@ public:
 	virtual FVector GetNavAgentLocation() const OVERRIDE;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
 	// End INavAgentInterface Interface
-
+	
 	/** prepares path finding and path following components */
 	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp);
 
 	/** If controller has any navigation-related components then this function 
 	 *	makes them update their cached data */
 	virtual void UpdateNavigationComponents();
+
+	/** Aborts the move the controller is currently performing */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
+	virtual void StopMovement();
 
 protected:
 	/** State entered when inactive (no possessed pawn, not spectating, etc). */

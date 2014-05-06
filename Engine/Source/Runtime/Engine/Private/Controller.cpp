@@ -592,6 +592,17 @@ void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, 
 	}
 }
 
+void AController::StopMovement()
+{
+	UE_VLOG(this, LogNavigation, Log, TEXT("AController::StopMovement: %s STOP MOVEMENT"), *GetNameSafe(GetPawn()));
+
+	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
+	if (PathFollowingComp != NULL)
+	{
+		PathFollowingComp->AbortMove(TEXT("StopMovement"));
+	}
+}
+
 void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );

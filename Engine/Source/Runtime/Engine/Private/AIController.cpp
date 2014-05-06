@@ -546,7 +546,7 @@ bool AAIController::ResumeMove(FAIRequestID RequestToResume)
 
 void AAIController::StopMovement()
 {
-	UE_VLOG(this, LogNavigation, Log, TEXT("%s STOP MOVEMENT"), *GetNameSafe(GetPawn()) );
+	UE_VLOG(this, LogNavigation, Log, TEXT("AAIController::StopMovement: %s STOP MOVEMENT"), *GetNameSafe(GetPawn()) );
 	PathFollowingComponent->AbortMove(TEXT("StopMovement"));
 }
 

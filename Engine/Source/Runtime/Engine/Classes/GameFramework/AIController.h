@@ -154,9 +154,8 @@ public:
 	/** resumes last AI-performed, paused request provided it's ID was equivalent to RequestToResume */
 	bool ResumeMove(FAIRequestID RequestToResume);
 
-	/** Aborts the move AI is currently performing */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	virtual void StopMovement();
+	/** Aborts the move the controller is currently performing */
+	virtual void StopMovement() OVERRIDE;
 
 	/** Called on completing current movement request */
 	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
