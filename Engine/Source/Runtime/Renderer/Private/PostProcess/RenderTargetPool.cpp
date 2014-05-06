@@ -170,6 +170,9 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 		Found = new FPooledRenderTarget(Desc);
 
 		PooledRenderTargets.Add(Found);
+		
+		// TexCreate_UAV should be used on Desc.TargetableFlags
+		check(!(Desc.Flags & TexCreate_UAV));
 
 		if(Desc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV))
 		{

@@ -273,7 +273,7 @@ void FSceneRenderTargets::AllocSceneColor()
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
 		// to allow better sharing with later elements
-		Desc.Flags |= TexCreate_UAV;
+		Desc.TargetableFlags |= TexCreate_UAV;
 		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
 	}
 

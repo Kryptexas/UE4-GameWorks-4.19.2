@@ -268,7 +268,7 @@ public:
 		NumSamples = 1;
 
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
-		Flags &= (~TexCreate_UAV);
+		TargetableFlags &= (~TexCreate_UAV);
 	}
 
 	/** In pixels, (0,0) if not set, (x,0) for cube maps, todo: make 3d int vector for volume textures */

@@ -565,16 +565,14 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 	const bool bReflectionsWithCompute = GRHIFeatureLevel == ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.CubemapArray.IsValid();
 
 	TRefCountPtr<IPooledRenderTarget>	NewSceneColor;
-	FUnorderedAccessViewRHIRef			NewSceneColorUAV;
 	if( bReflectionEnv && bReflectionsWithCompute && !bAnyViewIsReflectionCapture )
 	{
 		GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
-		Desc.Flags |= TexCreate_UAV;
+		Desc.TargetableFlags |= TexCreate_UAV;
 
-		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
-		NewSceneColorUAV = RHICreateUnorderedAccessView( NewSceneColor->GetRenderTargetItem().TargetableTexture );
+		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColorEnv") );
 	}
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -644,7 +642,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 
 					RHISetComputeShader(ComputeShader->GetComputeShader());
 
-					ComputeShader->SetParameters(View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, NewSceneColorUAV);
+					ComputeShader->SetParameters(View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, NewSceneColor->GetRenderTargetItem().UAV);
 					//ComputeShader->SetParameters(View, DestRenderTarget.UAV);
 
 					uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
@@ -811,6 +809,4 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 			}
 		}
 	}
-
-	NewSceneColorUAV.SafeRelease();
 }
