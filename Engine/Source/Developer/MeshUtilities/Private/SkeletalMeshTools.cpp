@@ -309,10 +309,10 @@ namespace SkeletalMeshTools
 				FRigidSkinVertex* RigidVert = &Chunk.RigidVertices[i];
 				int32 BoneIndex = Chunk.BoneMap[RigidVert->Bone];
 
-				FVector LocalPos = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformPosition(RigidVert->Position);
+				FVector LocalPos = RigidVert->Position;
 				Infos[BoneIndex].Positions.Add(LocalPos);
 
-				FVector LocalNormal = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformVector(RigidVert->TangentZ);
+				FVector LocalNormal = RigidVert->TangentZ;
 				Infos[BoneIndex].Normals.Add(LocalNormal);
 			}
 
@@ -324,10 +324,10 @@ namespace SkeletalMeshTools
 				{
 					int32 BoneIndex = Chunk.BoneMap[GetDominantBoneIndex(SoftVert)];
 
-					FVector LocalPos = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformPosition(SoftVert->Position);
+					FVector LocalPos = SoftVert->Position;
 					Infos[BoneIndex].Positions.Add(LocalPos);
 
-					FVector LocalNormal = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformVector(SoftVert->TangentZ);
+					FVector LocalNormal = SoftVert->TangentZ;
 					Infos[BoneIndex].Normals.Add(LocalNormal);
 				}
 				else
@@ -338,10 +338,10 @@ namespace SkeletalMeshTools
 						{
 							int32 BoneIndex = Chunk.BoneMap[SoftVert->InfluenceBones[j]];
 
-							FVector LocalPos = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformPosition(SoftVert->Position);
+							FVector LocalPos = SoftVert->Position;
 							Infos[BoneIndex].Positions.Add(LocalPos);
 
-							FVector LocalNormal = SkeletalMesh->RefBasesInvMatrix[BoneIndex].TransformVector(SoftVert->TangentZ);
+							FVector LocalNormal = SoftVert->TangentZ;
 							Infos[BoneIndex].Normals.Add(LocalNormal);
 						}
 					}
