@@ -332,8 +332,22 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	// Allocate the maximum scene render target space for the current view family.
 	GSceneRenderTargets.Allocate(ViewFamily);
 
-	// Write to the hit proxy render target.
-	GSceneRenderTargets.BeginRenderingHitProxies();
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
+
+	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		GRenderTargetPool.FindFreeElement(Desc, HitProxyRT, TEXT("HitProxy"));
+	}
+
+	if(!HitProxyRT)
+	{
+		// HitProxyRT==0 should never happen but better we don't crash
+		return;
+	}
+
+	RHISetRenderTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 
 	// Clear color for each view.
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -427,7 +441,9 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	}
 
 	// Finish drawing to the hit proxy render target.
-	GSceneRenderTargets.FinishRenderingHitProxies();
+	RHICopyToResolveTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, HitProxyRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	// to be able to observe results with VisualizeTexture
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(HitProxyRT);
 
 	// After scene rendering, disable the depth buffer.
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
@@ -438,7 +454,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	
 	// Set up a FTexture that is used to draw the hit proxy buffer to the view family's render target.
 	FTexture HitProxyRenderTargetTexture;
-	HitProxyRenderTargetTexture.TextureRHI = GSceneRenderTargets.GetHitProxyTexture();
+	HitProxyRenderTargetTexture.TextureRHI = HitProxyRT->GetRenderTargetItem().ShaderResourceTexture;
 	HitProxyRenderTargetTexture.SamplerStateRHI = TStaticSamplerState<>::GetRHI();
 
 	// Generate the vertices and triangles mapping the hit proxy RT pixels into the view family's RT pixels.

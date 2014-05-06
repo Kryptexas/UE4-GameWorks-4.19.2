@@ -33,12 +33,12 @@ public:
 	}
 	FDistortionApplyScreenPS() {}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(const FRenderingCompositePassContext& Context, IPooledRenderTarget& DistortionRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FTextureRHIParamRef DistortionTextureValue = GSceneRenderTargets.LightAttenuation->GetRenderTargetItem().ShaderResourceTexture;
-		FTextureRHIParamRef SceneColorTextureValue = GSceneRenderTargets.SceneColor->GetRenderTargetItem().ShaderResourceTexture;
+		FTextureRHIParamRef DistortionTextureValue = DistortionRT.GetRenderTargetItem().ShaderResourceTexture;
+		FTextureRHIParamRef SceneColorTextureValue = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture;
 
 		// Here we use SF_Point as in fullscreen the pixels are 1:1 mapped.
 		SetTextureParameter(
@@ -774,43 +774,64 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 
 	bool bDirty = false;
 
+	TRefCountPtr<IPooledRenderTarget> DistortionRT;
+
 	// Render accumulated distortion offsets
 	if( bRender)
 	{
 		SCOPED_DRAW_EVENT(DistortionAccum, DEC_SCENE_ITEMS);
 
-		GSceneRenderTargets.BeginRenderingDistortionAccumulation();
-
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 		{
-			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+			Desc.Flags |= TexCreate_FastVRAM;
+			GRenderTargetPool.FindFreeElement(Desc, DistortionRT, TEXT("Distortion"));
 
-			FViewInfo& View = Views[ViewIndex];
-			// viewport to match view size
-			RHISetViewport(View.ViewRect.Min.X,View.ViewRect.Min.Y,0.0f,View.ViewRect.Max.X,View.ViewRect.Max.Y,1.0f);
-
-			// clear offsets to 0, stencil to 0
-			RHIClear(true,FLinearColor(0,0,0,0),false,0,true,0,FIntRect());
-
-			// enable depth test but disable depth writes
-			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
-
-			// additive blending of offsets (or complexity if the shader complexity viewmode is enabled)
-			RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
-
-			// draw only distortion meshes to accumulate their offsets
-			bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(&View,false);
+			// use RGBA8 light target for accumulating distortion offsets	
+			// R = positive X offset
+			// G = positive Y offset
+			// B = negative X offset
+			// A = negative Y offset
 		}
 
-		if (bDirty)
+		// DistortionRT==0 should never happen but better we don't crash
+		if(DistortionRT)
 		{
-			// restore default stencil state
-			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+			RHISetRenderTarget(DistortionRT->GetRenderTargetItem().TargetableTexture,GSceneRenderTargets.GetSceneDepthSurface());
 
-			// resolve using the current ResolveParams 
-			GSceneRenderTargets.FinishRenderingDistortionAccumulation();
+			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+			{
+				SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
+
+				FViewInfo& View = Views[ViewIndex];
+				// viewport to match view size
+				RHISetViewport(View.ViewRect.Min.X,View.ViewRect.Min.Y,0.0f,View.ViewRect.Max.X,View.ViewRect.Max.Y,1.0f);
+
+				// clear offsets to 0, stencil to 0
+				RHIClear(true,FLinearColor(0,0,0,0),false,0,true,0,FIntRect());
+
+				// enable depth test but disable depth writes
+				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+
+				// additive blending of offsets (or complexity if the shader complexity viewmode is enabled)
+				RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
+
+				// draw only distortion meshes to accumulate their offsets
+				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(&View,false);
+			}
+
+			if (bDirty)
+			{
+				// restore default stencil state
+				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+				RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+
+				// resolve using the current ResolveParams 
+				RHICopyToResolveTarget(DistortionRT->GetRenderTargetItem().TargetableTexture, DistortionRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+				// to be able to observe results with VisualizeTexture
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(DistortionRT);
+			}
 		}
 	}
 
@@ -822,12 +843,12 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 
 // OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-		GRenderTargetPool.FindFreeElement(GSceneRenderTargets.SceneColor->GetDesc(), NewSceneColor, TEXT("RefractedSceneColor"));
+		GRenderTargetPool.FindFreeElement(GSceneRenderTargets.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("RefractedSceneColor"));
 		const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
 // OCULUS END
 
 		// Apply distortion as a full-screen pass		
-		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		for(int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ++ViewIndex)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
@@ -849,7 +870,7 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 
 				RHISetRenderTarget( DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
-				// useful wehen we move this into the compositing graph
+				// useful when we move this into the compositing graph
 				FRenderingCompositePassContext Context(View);
 
 				// Set the view family's render target/viewport.
@@ -862,7 +883,7 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 				SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				VertexShader->SetParameters(Context);
-				PixelShader->SetParameters(Context);
+				PixelShader->SetParameters(Context, *DistortionRT);
 
 				// Draw a quad mapping scene color to the view's render target
 				DrawRectangle(
@@ -871,15 +892,15 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 					View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 					View.ViewRect.Width(), View.ViewRect.Height(),
 					View.ViewRect.Size(),
-					GSceneRenderTargets.SceneColor->GetDesc().Extent,
+					GSceneRenderTargets.GetBufferSizeXY(),
 					*VertexShader,
 					EDRF_UseTriangleOptimization);
 
 				RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 // OCULUS BEGIN
-// 				GSceneRenderTargets.SceneColor = NewSceneColor;
-// 				check(GSceneRenderTargets.SceneColor);
+// 				GSceneRenderTargets.SetSceneColor(NewSceneColor);
+// 				check(GSceneRenderTargets.GetSceneColor());
 // OCULUS END				
 
 			}
@@ -887,9 +908,10 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 		}
 
 // OCULUS BEGIN
-		GSceneRenderTargets.SceneColor = NewSceneColor;
-		check(GSceneRenderTargets.SceneColor);
+		GSceneRenderTargets.SetSceneColor(NewSceneColor);
+		check(GSceneRenderTargets.GetSceneColor());
 // OCULUS END				
+		// Distortions RT is no longer needed, buffer can be reused by the pool, see BeginRenderingDistortionAccumulation() call above
 		GSceneRenderTargets.FinishRenderingSceneColor(false);
 	}
 }

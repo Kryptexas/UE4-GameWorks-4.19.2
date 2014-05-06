@@ -278,12 +278,15 @@ public:
 
 		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 		{
-			SetTextureParameter(
-				ShaderRHI,
-				LightAttenuation,
-				LightAttenuationSampler,
-				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				GSceneRenderTargets.GetLightAttenuationTexture());
+			if(LightAttenuation.IsBound())
+			{
+				SetTextureParameter(
+					ShaderRHI,
+					LightAttenuation,
+					LightAttenuationSampler,
+					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					GSceneRenderTargets.GetLightAttenuationTexture());
+			}
 		}
 
 		// if we are in a postprocessing pass

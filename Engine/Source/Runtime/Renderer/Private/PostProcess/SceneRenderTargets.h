@@ -171,9 +171,6 @@ public:
 	void FinishRenderingSeparateTranslucency(const FViewInfo& View);
 	void FreeSeparateTranslucency();
 
-	void BeginRenderingDistortionAccumulation();
-	void FinishRenderingDistortionAccumulation();
-
 	void ResolveSceneDepthTexture();
 	void ResolveSceneDepthToAuxiliaryTexture();
 
@@ -185,9 +182,6 @@ public:
 
 	void BeginRenderingLightAttenuation();
 	void FinishRenderingLightAttenuation();
-
-	void BeginRenderingHitProxies();
-	void FinishRenderingHitProxies();
 
 	/**
 	 * Cleans up editor primitive targets that we no longer need
@@ -221,7 +215,7 @@ public:
 
 	// Texture Accessors -----------
 
-	const FTexture2DRHIRef& GetSceneColorTexture() const { return (const FTexture2DRHIRef&)SceneColor->GetRenderTargetItem().ShaderResourceTexture; }
+	const FTextureRHIRef& GetSceneColorTexture() const;
 	const FTexture2DRHIRef& GetSceneAlphaCopyTexture() const { return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().ShaderResourceTexture; }
 	bool HasSceneAlphaCopyTexture() const { return SceneAlphaCopy.GetReference() != 0; }
 	const FTexture2DRHIRef& GetSceneDepthTexture() const { return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture; }
@@ -267,7 +261,6 @@ public:
 	{ 
 		return (const FTextureCubeRHIRef&)CubeShadowDepthZ[GetCubeShadowDepthZIndex(ShadowResolution)]->GetRenderTargetItem().ShaderResourceTexture; 
 	}
-	const FTexture2DRHIRef& GetHitProxyTexture() const { return (const FTexture2DRHIRef&)LightAttenuation->GetRenderTargetItem().ShaderResourceTexture; }
 	const FTexture2DRHIRef& GetGBufferATexture() const { return (const FTexture2DRHIRef&)GBufferA->GetRenderTargetItem().ShaderResourceTexture; }
 
 	/** 
@@ -288,14 +281,14 @@ public:
 	}
 	const FTextureRHIRef& GetLightAttenuationTexture() const
 	{
-		return *(FTextureRHIRef*)&LightAttenuation->GetRenderTargetItem().ShaderResourceTexture;
+		return *(FTextureRHIRef*)&GetLightAttenuation()->GetRenderTargetItem().ShaderResourceTexture;
 	}
 	const FTextureRHIRef& GetLightAccumulationTexture() const
 	{
 		return *(FTextureRHIRef*)&LightAccumulation->GetRenderTargetItem().ShaderResourceTexture;
 	}
 
-	const FTexture2DRHIRef& GetSceneColorSurface() const							{ return (const FTexture2DRHIRef&)SceneColor->GetRenderTargetItem().TargetableTexture; }
+	const FTextureRHIRef& GetSceneColorSurface() const;
 	const FTexture2DRHIRef& GetSceneAlphaCopySurface() const						{ return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSceneDepthSurface() const							{ return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSmallDepthSurface() const							{ return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
@@ -312,8 +305,7 @@ public:
 	{ 
 		return (const FTextureCubeRHIRef&)CubeShadowDepthZ[GetCubeShadowDepthZIndex(ShadowResolution)]->GetRenderTargetItem().TargetableTexture; 
 	}
-	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)LightAttenuation->GetRenderTargetItem().TargetableTexture; }
-	const FTexture2DRHIRef& GetHitProxySurface() const							{ return (const FTexture2DRHIRef&)LightAttenuation->GetRenderTargetItem().TargetableTexture; }
+	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetAuxiliarySceneDepthSurface() const 
 	{	
 		check(!GSupportsDepthFetchDuringDepthTest); 
@@ -359,10 +351,38 @@ public:
 	int32 GetNumGBufferTargets() const;
 
 	// ---
+
+	// needs to be called between AllocSceneColor() and ReleaseSceneColor()
+	const TRefCountPtr<IPooledRenderTarget>& GetSceneColor() const;
+
+	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
+
+	void SetSceneColor(IPooledRenderTarget* In);
+
+	// ---
+
+	void SetLightAttenuation(IPooledRenderTarget* In);
+
+	// needs to be called between AllocSceneColor() and SetSceneColor(0)
+	const TRefCountPtr<IPooledRenderTarget>& GetLightAttenuation() const;
+
+	TRefCountPtr<IPooledRenderTarget>& GetLightAttenuation();
+
+	// ---
+
+private: // use SceneColor() or LightAttenuation() instead of direct access
+
+	// 0 before BeginRenderingSceneColor and after tone mapping
 	TRefCountPtr<IPooledRenderTarget> SceneColor;
-	TRefCountPtr<IPooledRenderTarget> SceneAlphaCopy; // Mobile without framebuffer fetch (to get depth from alpha).
+	// also used as LDR scene color
+	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
+public:
+
+	//
 	TRefCountPtr<IPooledRenderTarget> SceneDepthZ;
-	// Auxillary scene depth target. The scene depth is resolved to this surface when targeting SM4. 
+	// Mobile without frame buffer fetch (to get depth from alpha).
+	TRefCountPtr<IPooledRenderTarget> SceneAlphaCopy;
+	// Auxiliary scene depth target. The scene depth is resolved to this surface when targeting SM4. 
 	TRefCountPtr<IPooledRenderTarget> AuxiliarySceneDepthZ;
 	// Render target for a quarter-sized version of the scene depths.
 	TRefCountPtr<IPooledRenderTarget> SmallDepthZ;
@@ -381,8 +401,6 @@ public:
 
 	// for AmbientOcclusion, only valid for a short time during the frame to allow reuse
 	TRefCountPtr<IPooledRenderTarget> ScreenSpaceAO;
-	// also used for hit proxy and as LDR scene color
-	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 	// used by the CustomDepth material feature, is allocated on demand or if r.CustomDepth is 2
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
 	// Used for accumulating tiled deferred VPL indirect lighting
@@ -460,6 +478,12 @@ private:
 
 	/** Determine the appropriate render target dimensions. */
 	FIntPoint GetSceneRenderTargetSize(const FSceneViewFamily & ViewFamily) const;
+
+	void AllocSceneColor();
+
+	void AllocLightAttenuation();
+
+	EPixelFormat GetSceneColorFormat() const;
 
 private:
 
@@ -562,7 +586,7 @@ public:
 					);
 			}
 
-			if (SceneDepthTextureParameter.IsBound())
+			if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
 			{
 				const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
 				SetTextureParameter(
@@ -582,13 +606,25 @@ public:
 			{
 				if(GSupportsDepthFetchDuringDepthTest)
 				{
-					SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetSceneDepthSurface());
-					SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetSceneDepthTexture());
+					if(SceneDepthSurfaceParameter.IsBound())
+					{
+						SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetSceneDepthSurface());
+					}
+					if(SceneDepthTextureNonMS.IsBound())
+					{
+						SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetSceneDepthTexture());
+					}
 				}
 				else
 				{
-					SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
-					SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
+					if(SceneDepthSurfaceParameter.IsBound())
+					{
+						SetTextureParameter(ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
+					}
+					if(SceneDepthTextureNonMS.IsBound())
+					{
+						SetTextureParameter(ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
+					}
 				}
 			}
 		}

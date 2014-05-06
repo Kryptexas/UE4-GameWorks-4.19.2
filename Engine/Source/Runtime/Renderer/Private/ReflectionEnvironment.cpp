@@ -197,7 +197,7 @@ public:
 
 		SetTextureParameter( ShaderRHI, ScreenSpaceReflections, SSRTexture );
 
-		SetTextureParameter( ShaderRHI, InSceneColor, GSceneRenderTargets.SceneColor->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter( ShaderRHI, InSceneColor, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture );
 		OutSceneColor.SetTexture(ShaderRHI, NULL, OutSceneColorUAV);
 
 		SetShaderValue(ShaderRHI, ViewDimensionsParameter, View.ViewRect);
@@ -570,7 +570,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 	{
 		GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
-		FPooledRenderTargetDesc Desc = GSceneRenderTargets.SceneColor->GetDesc();
+		FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
 		Desc.Flags |= TexCreate_UAV;
 
 		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
@@ -656,8 +656,8 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 					const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
 					RHICopyToResolveTarget( DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams() );
 
-					GSceneRenderTargets.SceneColor = NewSceneColor;
-					check(GSceneRenderTargets.SceneColor);
+					GSceneRenderTargets.SetSceneColor(NewSceneColor);
+					check(GSceneRenderTargets.GetSceneColor());
 
 					bRequiresApply = false;
 				}

@@ -624,7 +624,7 @@ public:
 			InTexture, 
 			InTextureSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-			GSceneRenderTargets.SceneColor->GetRenderTargetItem().ShaderResourceTexture);		
+			GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture);		
 
 		FVector SkyLightParametersValue = FVector::ZeroVector;
 		FScene* Scene = (FScene*)View.Family->Scene;

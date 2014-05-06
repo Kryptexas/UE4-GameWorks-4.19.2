@@ -213,6 +213,8 @@ void FSceneRenderTargets::BeginRenderingSceneColor( bool bGBufferPass )
 	{
 		bGBufferPass = false;
 	}
+	
+	AllocSceneColor();
 
 	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
 	if (bGBufferPass && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
@@ -253,6 +255,145 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 	}
 	return NumGBufferTargets;
 }
+
+void FSceneRenderTargets::AllocSceneColor()
+{
+	if(SceneColor)
+	{
+		// no work needed
+		return;
+	}
+
+	// create SceneColor on demand so it can be shared with other pooled RT
+
+	EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
+
+	// Create the scene color.
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		// to allow better sharing with later elements
+		Desc.Flags |= TexCreate_UAV;
+		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
+	}
+
+	// otherwise we have a severe problem
+	check(SceneColor);
+}
+
+void FSceneRenderTargets::AllocLightAttenuation()
+{
+	if(LightAttenuation)
+	{
+		// no work needed
+		return;
+	}
+
+	// create LightAttenuation on demand so it can be shared with other pooled RT
+
+	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		GRenderTargetPool.FindFreeElement(Desc, LightAttenuation, TEXT("LightAttenuation"));
+
+		// the channel assignment is documented in ShadowRendering.cpp (look for Light Attenuation channel assignment)
+	}
+
+	// otherwise we have a severe problem
+	check(LightAttenuation);
+}
+
+const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() const
+{
+	if(!SceneColor)
+	{
+		// to avoid log/ensure spam
+		static bool bFirst = true;
+		if(bFirst)
+		{
+			bFirst = false;
+
+			// the first called should be AllocSceneColor(), contact MartinM if that happens
+			ensure(SceneColor);
+		}
+
+		return GSystemTextures.BlackDummy;
+	}
+
+	return SceneColor;
+}
+
+TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
+{
+	if(!SceneColor)
+	{
+		// to avoid log/ensure spam
+		static bool bFirst = true;
+		if(bFirst)
+		{
+			bFirst = false;
+
+			// the first called should be AllocSceneColor(), contact MartinM if that happens
+			ensure(SceneColor);
+		}
+
+		return GSystemTextures.BlackDummy;
+	}
+
+	return SceneColor;
+}
+
+void FSceneRenderTargets::SetSceneColor(IPooledRenderTarget* In)
+{
+	SceneColor = In;
+}
+
+void FSceneRenderTargets::SetLightAttenuation(IPooledRenderTarget* In)
+{
+	LightAttenuation = In;
+}
+
+const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuation() const
+{
+	if(!LightAttenuation)
+	{
+		// to avoid log/ensure spam
+		static bool bFirst = true;
+		if(bFirst)
+		{
+			bFirst = false;
+
+			// First we need to call AllocLightAttenuation(), contact MartinM if that happens
+			ensure(LightAttenuation);
+		}
+
+		return GSystemTextures.WhiteDummy;
+	}
+
+	return LightAttenuation;
+}
+
+TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuation()
+{
+	if(!LightAttenuation)
+	{
+		// to avoid log/ensure spam
+		static bool bFirst = true;
+		if(bFirst)
+		{
+			bFirst = false;
+
+			// the first called should be AllocLightAttenuation(), contact MartinM if that happens
+			ensure(LightAttenuation);
+		}
+
+		return GSystemTextures.WhiteDummy;
+	}
+
+	return LightAttenuation;
+}
+
 
 void FSceneRenderTargets::FinishRenderingSceneColor(bool bKeepChanges, const FResolveRect& ResolveRect)
 {
@@ -324,7 +465,7 @@ void FSceneRenderTargets::BeginRenderingPrePass()
 
 	// Set the scene depth surface and a DUMMY buffer as color buffer
 	// (as long as it's the same dimension as the depth buffer),
-	RHISetRenderTarget( GetLightAttenuationSurface(), GetSceneDepthSurface());
+	RHISetRenderTarget( FTextureRHIRef(), GetSceneDepthSurface());
 }
 
 void FSceneRenderTargets::FinishRenderingPrePass()
@@ -406,7 +547,9 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation()
 {
 	SCOPED_DRAW_EVENT(BeginRenderingLightAttenuation, DEC_SCENE_ITEMS);
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.LightAttenuation);
+	AllocLightAttenuation();
+
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetLightAttenuation());
 
 	// Set the light attenuation surface as the render target, and the scene depth buffer as the depth-stencil surface.
 	RHISetRenderTarget(GetLightAttenuationSurface(),GetSceneDepthSurface());
@@ -419,7 +562,7 @@ void FSceneRenderTargets::FinishRenderingLightAttenuation()
 	// Resolve the light attenuation surface.
 	RHICopyToResolveTarget(GetLightAttenuationSurface(), LightAttenuation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
 	
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.LightAttenuation);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetLightAttenuation());
 }
 
 void FSceneRenderTargets::BeginRenderingTranslucency(const FViewInfo& View)
@@ -475,29 +618,6 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(const FViewInfo& V
 	}
 }
 
-void FSceneRenderTargets::BeginRenderingDistortionAccumulation()
-{
-	SCOPED_DRAW_EVENT(BeginRenderingDistortionAccumulation, DEC_SCENE_ITEMS);
-
-	// use RGBA8 light target for accumulating distortion offsets	
-	// R = positive X offset
-	// G = positive Y offset
-	// B = negative X offset
-	// A = negative Y offset
-
-	RHISetRenderTarget(GetLightAttenuationSurface(),GetSceneDepthSurface());
-}
-
-void FSceneRenderTargets::FinishRenderingDistortionAccumulation()
-{
-	SCOPED_DRAW_EVENT(FinishRenderingDistortionAccumulation, DEC_SCENE_ITEMS);
-
-	RHICopyToResolveTarget(GetLightAttenuationSurface(), GetLightAttenuationTexture(), false, FResolveParams());
-
-	// to be able to observe results with VisualizeTexture
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(LightAttenuation);
-}
-
 void FSceneRenderTargets::ResolveSceneDepthTexture()
 {
 	SCOPED_DRAW_EVENT(ResolveSceneDepthTexture, DEC_SCENE_ITEMS);
@@ -516,16 +636,6 @@ void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture()
 
 		RHICopyToResolveTarget(GetSceneDepthSurface(), GetAuxiliarySceneDepthTexture(), true, FResolveParams());
 	}
-}
-
-void FSceneRenderTargets::BeginRenderingHitProxies()
-{
-	RHISetRenderTarget(GetHitProxySurface(),GetSceneDepthSurface());
-}
-
-void FSceneRenderTargets::FinishRenderingHitProxies()
-{
-	RHICopyToResolveTarget(GetHitProxySurface(), GetHitProxyTexture(), false, FResolveParams());
 }
 
 void FSceneRenderTargets::CleanUpEditorPrimitiveTargets()
@@ -667,18 +777,14 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 	{
 		// Create a texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
 		GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 	}
 
 	EPixelFormat Format = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
 	if (!IsMobileHDR() || IsMobileHDR32bpp()) 
 	{
-			Format = PF_B8G8R8A8;
-	}
-	// Create the scene color.
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, Format, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
+		Format = PF_B8G8R8A8;
 	}
 
 	// For 64-bit ES2 without framebuffer fetch, create extra render target for copy of alpha channel.
@@ -723,32 +829,12 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		Desc.Flags |= TexCreate_FastVRAM;
 		GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 	}
-		
+
 	// When targeting DX Feature Level 10, create an auxiliary texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 	if(!GSupportsDepthFetchDuringDepthTest)
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		GRenderTargetPool.FindFreeElement(Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
-	}
-
-	// Potentially allocate an alpha channel in the scene color texture to store the resolved scene depth.
-	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
-
-	switch(CurrentSceneColorFormat)
-	{
-		case 0:
-			SceneColorBufferFormat = PF_R8G8B8A8; break;
-		case 1:
-			SceneColorBufferFormat = PF_A2B10G10R10; break;
-		case 2:	
-			SceneColorBufferFormat = PF_FloatR11G11B10; break;
-		case 3:	
-			SceneColorBufferFormat = PF_FloatRGB; break;
-		case 4:
-			// default
-			break;
-		case 5:
-			SceneColorBufferFormat = PF_A32B32G32R32F; break;
 	}
 
 	// Create a quarter-sized version of the scene depth.
@@ -757,22 +843,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SmallDepthZSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, true));
 		GRenderTargetPool.FindFreeElement(Desc, SmallDepthZ, TEXT("SmallDepthZ"));
-	}
-
-	// Create the scene color.
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
-		Desc.Flags |= TexCreate_FastVRAM;
-		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
-	}
-
-	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
-		Desc.Flags |= TexCreate_FastVRAM;
-		GRenderTargetPool.FindFreeElement(Desc, LightAttenuation, TEXT("LightAttenuation"));
-
-		// the channel assignment is documented in ShadowRendering.cpp (look for Light Attenuation channel assignment)
 	}
 
 	// Set up quarter size scene color shared texture
@@ -964,6 +1034,8 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 	}
 
 	{
+		EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
+
 		uint32 LightAccumulationUAVFlag = GRHIFeatureLevel == ERHIFeatureLevel::SM5 ? TexCreate_UAV : 0;
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable | LightAccumulationUAVFlag, false));
 		GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
@@ -992,6 +1064,31 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 			}
 		}
 	}
+}
+
+EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
+{
+	// Potentially allocate an alpha channel in the scene color texture to store the resolved scene depth.
+	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
+
+	switch(CurrentSceneColorFormat)
+	{
+		case 0:
+			SceneColorBufferFormat = PF_R8G8B8A8; break;
+		case 1:
+			SceneColorBufferFormat = PF_A2B10G10R10; break;
+		case 2:	
+			SceneColorBufferFormat = PF_FloatR11G11B10; break;
+		case 3:	
+			SceneColorBufferFormat = PF_FloatRGB; break;
+		case 4:
+			// default
+			break;
+		case 5:
+			SceneColorBufferFormat = PF_A32B32G32R32F; break;
+	}
+
+	return SceneColorBufferFormat;
 }
 
 void FSceneRenderTargets::InitDynamicRHI()
@@ -1121,6 +1218,26 @@ static int32 GetCustomDepthCVar()
 	
 	check(CVar);
 	return CVar->GetValueOnRenderThread();
+}
+
+const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const							
+{
+	if(!SceneColor)
+	{
+		return GBlackTexture->TextureRHI;
+	}
+
+	return (const FTextureRHIRef&)SceneColor->GetRenderTargetItem().TargetableTexture; 
+}
+
+const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
+{
+	if(!SceneColor)
+	{
+		return GBlackTexture->TextureRHI;
+	}
+
+	return (const FTextureRHIRef&)GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture; 
 }
 
 IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(bool bPrimitives)
