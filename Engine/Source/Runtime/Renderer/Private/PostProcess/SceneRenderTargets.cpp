@@ -271,9 +271,13 @@ void FSceneRenderTargets::AllocSceneColor()
 	// Create the scene color.
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
+
 		Desc.Flags |= TexCreate_FastVRAM;
-		// to allow better sharing with later elements
+
+		// with TexCreate_UAV it would allow better sharing with later elements but it might come at a high cost:
+		// GCNPerformanceTweets.pdf Tip 37: Warning: Causes additional synchronization between draw calls when using a render target allocated with this flag, use sparingly
 		Desc.TargetableFlags |= TexCreate_UAV;
+
 		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
 	}
 
