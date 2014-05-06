@@ -9,8 +9,6 @@
 #include <Shlwapi.h>
 #include <Shellapi.h>
 
-const TCHAR *InstallationsSubKey = TEXT("SOFTWARE\\Epic Games\\Unreal Engine\\Builds");
-
 struct FEngineLabelSortPredicate
 {
 	bool operator()(const FString &A, const FString &B) const
@@ -141,11 +139,8 @@ private:
 		FString NewIdentifier;
 		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, NewIdentifier))
 		{
-			if(!FPlatformInstallation::RegisterEngineInstallation(NewEngineRootDir, NewIdentifier))
-			{
-				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't register engine installation."), TEXT("Error"));
-				return false;
-			}
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't register engine installation."), TEXT("Error"));
+			return false;
 		}
 
 		// Update the identifier and return
@@ -153,21 +148,6 @@ private:
 		return true;
 	}
 };
-
-bool FWindowsPlatformInstallation::RegisterEngineInstallation(const FString &RootDirName, FString &OutIdentifier)
-{
-	OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
-
-	HKEY hRootKey;
-	if(RegCreateKeyEx(HKEY_CURRENT_USER, InstallationsSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hRootKey, NULL) != ERROR_SUCCESS)
-	{
-		return false;
-	}
-
-	LRESULT SetResult = RegSetValueEx(hRootKey, *OutIdentifier, 0, REG_SZ, (const BYTE*)*RootDirName, (RootDirName.Len() + 1) * sizeof(TCHAR));
-	RegCloseKey(hRootKey);
-	return SetResult == ERROR_SUCCESS;
-}
 
 bool FWindowsPlatformInstallation::LaunchEditor(const FString &RootDirName, const FString &Arguments)
 {

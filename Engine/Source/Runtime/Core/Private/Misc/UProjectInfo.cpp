@@ -90,7 +90,7 @@ FUProjectDictionary::FUProjectDictionary(const FString& InRootDir)
 	UE_LOG(LogUProjectInfo, Log, TEXT("FillProjectInfo took %5.4f seconds"), TotalProjectInfoTime);
 }
 
-bool FUProjectDictionary::IsForeignProject(const FString& InProjectFileName)
+bool FUProjectDictionary::IsForeignProject(const FString& InProjectFileName) const
 {
 	FString ProjectFileName = InProjectFileName;
 	FPaths::NormalizeFilename(ProjectFileName);
@@ -106,9 +106,9 @@ bool FUProjectDictionary::IsForeignProject(const FString& InProjectFileName)
 	return true;
 }
 
-FString FUProjectDictionary::GetRelativeProjectPathForGame(const TCHAR* InGameName, const FString& BaseDir)
+FString FUProjectDictionary::GetRelativeProjectPathForGame(const TCHAR* InGameName, const FString& BaseDir) const
 {
-	FString* ProjectFile = ShortProjectNameDictionary.Find(*(FString(InGameName).ToLower()));
+	const FString* ProjectFile = ShortProjectNameDictionary.Find(*(FString(InGameName).ToLower()));
 	if (ProjectFile != NULL)
 	{
 		FString RelativePath = *ProjectFile;

@@ -10,10 +10,10 @@ public:
 	FUProjectDictionary(const FString& InRootDir);
 	
 	/** Determines whether a project is a foreign project or not */
-	bool IsForeignProject(const FString& ProjectFileName);
+	bool IsForeignProject(const FString& ProjectFileName) const;
 
 	/** Gets the project filename for the given game. Empty if not found. */
-	FString GetRelativeProjectPathForGame(const TCHAR* GameName, const FString& BaseDir);
+	FString GetRelativeProjectPathForGame(const TCHAR* GameName, const FString& BaseDir) const;
 
 	/** Gets the project dictionary for the active engine installation */
 	static FUProjectDictionary& GetDefault();

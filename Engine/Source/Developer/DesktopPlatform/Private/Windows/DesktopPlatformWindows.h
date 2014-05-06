@@ -15,6 +15,7 @@ public:
 	virtual bool OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags) OVERRIDE;
 	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) OVERRIDE;
 
+	virtual bool RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier) OVERRIDE;
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
 
 	virtual bool IsSourceDistribution(const FString &RootDir) OVERRIDE;

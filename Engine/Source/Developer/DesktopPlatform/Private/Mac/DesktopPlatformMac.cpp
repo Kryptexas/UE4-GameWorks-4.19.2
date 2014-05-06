@@ -513,6 +513,11 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 	return bSuccess;
 }
 
+bool FDesktopPlatformMac::RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier)
+{
+	return false;
+}
+
 void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
 	EnumerateLauncherEngineInstallations(OutInstallations);

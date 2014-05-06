@@ -125,6 +125,15 @@ public:
 	virtual FString GetCurrentEngineIdentifier() = 0;
 
 	/**
+	* Registers a directory as containing an engine installation
+	*
+	* @param	RootDir				Root directory for the engine installation
+	* @param	OutIdentifier		Identifier which is assigned to the engine
+	* @return true if the directory was added. OutIdentifier will be set to the assigned identifier.
+	*/
+	virtual bool RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier) = 0;
+
+	/**
 	* Enumerates all the registered engine installations.
 	*
 	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known installations. Identifiers are typically

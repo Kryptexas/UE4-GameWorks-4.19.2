@@ -2,6 +2,7 @@
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "DesktopPlatformBase.h"
+#include "UProjectInfo.h"
 
 FString FDesktopPlatformBase::GetCurrentEngineIdentifier()
 {
@@ -53,7 +54,9 @@ bool FDesktopPlatformBase::GetEngineIdentifierFromRootDir(const FString &RootDir
 			return true;
 		}
 	}
-	return false;
+
+	// Otherwise just try to add it
+	return RegisterEngineInstallation(RootDir, OutIdentifier);
 }
 
 bool FDesktopPlatformBase::GetDefaultEngineIdentifier(FString &OutId)
@@ -123,28 +126,70 @@ bool FDesktopPlatformBase::IsValidRootDirectory(const FString &RootDir)
 	return IFileManager::Get().DirectoryExists(*EngineBinariesDirName);
 }
 
-bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier)
+bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &InIdentifier)
 {
+	// Load the project file
 	TSharedPtr<FJsonObject> ProjectFile = LoadProjectFile(ProjectFileName);
 	if (!ProjectFile.IsValid())
 	{
 		return false;
 	}
 
+	// Check if the project is a non-foreign project of the given engine installation. If so, blank the identifier 
+	// string to allow portability between source control databases. GetEngineIdentifierForProject will translate
+	// the association back into a local identifier on other machines or syncs.
+	FString Identifier = InIdentifier;
+	if(Identifier.Len() > 0)
+	{
+		FString RootDir;
+		if(GetEngineRootDirFromIdentifier(Identifier, RootDir))
+		{
+			FUProjectDictionary Dictionary(RootDir);
+			if(!Dictionary.IsForeignProject(ProjectFileName))
+			{
+				Identifier.Empty();
+			}
+		}
+	}
+
+	// Set the association on the project and save it
 	ProjectFile->SetStringField(TEXT("EngineAssociation"), Identifier);
 	return SaveProjectFile(ProjectFileName, ProjectFile);
 }
 
 bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier)
 {
+	// Load the project file
 	TSharedPtr<FJsonObject> ProjectFile = LoadProjectFile(ProjectFileName);
 	if(!ProjectFile.IsValid())
 	{
 		return false;
 	}
 
+	// Read the identifier from it
 	OutIdentifier = ProjectFile->GetStringField(TEXT("EngineAssociation"));
-	return true;
+	if(OutIdentifier.Len() > 0)
+	{
+		return true;
+	}
+
+	// Otherwise scan up through the directory hierarchy to find an installation which references it through .uprojectdirs
+	FString ParentDir = FPaths::GetPath(ProjectFileName);
+	FPaths::NormalizeDirectoryName(ParentDir);
+
+	int32 SeparatorIdx;
+	while(ParentDir.FindLastChar(TEXT('/'), SeparatorIdx))
+	{
+		ParentDir.RemoveAt(SeparatorIdx, ParentDir.Len() - SeparatorIdx);
+
+		FUProjectDictionary Dictionary(ParentDir);
+		if(!Dictionary.IsForeignProject(ProjectFileName) && GetEngineIdentifierFromRootDir(ParentDir, OutIdentifier))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FDesktopPlatformBase::CheckForLauncherEngineInstallation(const FString &AppId, const FString &Identifier, TMap<FString, FString> &OutInstallations)

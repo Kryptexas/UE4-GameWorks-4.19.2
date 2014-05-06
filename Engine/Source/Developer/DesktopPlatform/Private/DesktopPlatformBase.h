@@ -10,6 +10,7 @@ class FDesktopPlatformBase : public IDesktopPlatform
 public:
 	// IDesktopPlatform Implementation
 	virtual FString GetCurrentEngineIdentifier() OVERRIDE;
+
 	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
 	virtual bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir) OVERRIDE;
 	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) OVERRIDE;

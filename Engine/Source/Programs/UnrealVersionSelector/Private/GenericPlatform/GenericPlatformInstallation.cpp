@@ -5,12 +5,6 @@
 #include "../PlatformInstallation.h"
 #include "Runtime/Launch/Resources/Version.h"
 
-bool FGenericPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
-{
-	// No default implementation
-	return true;
-}
-
 bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
 {
 	// Canonicalize the engine path and remove the last backslash.

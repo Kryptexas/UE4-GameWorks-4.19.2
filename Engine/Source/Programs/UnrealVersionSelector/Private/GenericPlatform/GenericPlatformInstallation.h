@@ -6,9 +6,6 @@
 
 struct FGenericPlatformInstallation
 {
-	// Register an engine installation
-	static bool RegisterEngineInstallation(const FString &Id, const FString &RootDirName);
-
 	// Validate and normalize an engine root directory name
 	static bool NormalizeEngineRootDir(FString &RootDir);
 

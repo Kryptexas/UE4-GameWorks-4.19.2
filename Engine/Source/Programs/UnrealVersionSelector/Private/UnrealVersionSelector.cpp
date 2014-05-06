@@ -21,11 +21,8 @@ bool RegisterCurrentEngineDirectory()
 	FString Identifier;
 	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(EngineRootDir, Identifier))
 	{
-		if(!FPlatformInstallation::RegisterEngineInstallation(EngineRootDir, Identifier))
-		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
-			return false;
-		}
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
+		return false;
 	}
 
 	// If the launcher isn't installed, set up the file associations
