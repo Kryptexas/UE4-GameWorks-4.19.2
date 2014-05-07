@@ -338,7 +338,7 @@ void FCompositionLighting::ProcessLighting(const FViewInfo& View)
 		CompositeContext.Process(TEXT("CompositionLighting_Lighting"));
 	}
 
-	// The RT should be released as early as possible to allow shading of that memory for other purposes.
+	// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 	// This becomes even more important with some limited VRam (XBoxOne).
 	GSceneRenderTargets.SetLightAttenuation(0);
 }
