@@ -24,7 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchEndSignature, ETo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndTouchOverSignature, ETouchIndex::Type, FingerIndex );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorDestroyedSignature );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorEndPlaySignature );
 
 DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, class AActor*, float, class APawn*, const FVector&);
 
@@ -995,14 +995,13 @@ public:
 	bool Destroy(bool bNetForce = false, bool bShouldModifyLevel = true );
 
 	/** Event to notify blueprints this actor is about to be deleted. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "Destroyed"))
-	virtual void ReceiveDestroyed();
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
+	virtual void ReceiveEndPlay();
 
 	/** Called when the actor is destroyed. */
 	UPROPERTY(BlueprintAssignable)
-	FActorDestroyedSignature OnDestroyed;
+	FActorEndPlaySignature OnEndPlay;
 	
-
 	// Begin UObject Interface
 	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
@@ -1626,8 +1625,16 @@ public:
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();
 	
-	/** Called when this actor is in a level which is being removed from the world (e.g. my level is getting UWorld::RemoveFromWorld called on it) */
-	virtual void OnRemoveFromWorld();
+	enum EEndPlayReason
+	{
+		ActorDestroyed,		// When the Actor is explicitly destroyed
+		LevelTransition,	// When the world is being unloaded for a level transition
+		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
+		RemovedFromWorld,	// When the level it is a member of is streamed out
+	};
+
+	/** Called whenever this actor is being removed from a level */
+	virtual void EndPlay(const EEndPlayReason EndPlayReason);
 
 	/** iterates up the Base chain to see whether or not this Actor is based on the given Actor
 	 * @param Other the Actor to test for

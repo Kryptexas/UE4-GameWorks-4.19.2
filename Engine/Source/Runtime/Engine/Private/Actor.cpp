@@ -677,13 +677,14 @@ bool AActor::IsActorTickEnabled() const
 
 bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	if (NewOuter)
-	{
-		RegisterAllActorTickFunctions(false, true); // unregister all tick functions
-	}
+	RegisterAllActorTickFunctions(false, true); // unregister all tick functions
+	UnregisterAllComponents();
+
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
-	if (NewOuter)
+
+	if (NewOuter && NewOuter->IsA<ULevel>())
 	{
+		RegisterAllComponents();
 		RegisterAllActorTickFunctions(true, true); // register all tick functions
 	}
 	return bSuccess;
@@ -1513,13 +1514,19 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 void AActor::OnRep_Instigator() {}
 
 
-void AActor::OnRemoveFromWorld()
+void AActor::EndPlay(const EEndPlayReason EndPlayReason)
 {
-	bActorInitialized = false;
+	// Dispatch the blueprint events
+	ReceiveEndPlay();
+	OnEndPlay.Broadcast();
 
-	SetNavigationRelevancy(false);
-
-	GetWorld()->RemoveNetworkActor( this );
+	// Behaviors specific to an actor being unloaded due to a streaming level removal
+	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
+	{
+		bActorInitialized = false;
+		SetNavigationRelevancy(false);
+		GetWorld()->RemoveNetworkActor(this);
+	}
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -1580,8 +1587,10 @@ FTransform AActor::GetTransform() const
 
 void AActor::Destroyed()
 {
-	ReceiveDestroyed();
-	OnDestroyed.Broadcast();
+	if (bActorInitialized)
+	{
+		EndPlay(EEndPlayReason::ActorDestroyed);
+	}
 	GetWorld()->RemoveNetworkActor( this );
 }
 

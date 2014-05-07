@@ -1589,7 +1589,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			AActor* Actor = Level->Actors[ActorIdx];
 			if (Actor != NULL)
 			{
-				Actor->OnRemoveFromWorld();
+				Actor->EndPlay(AActor::EEndPlayReason::RemovedFromWorld);
 				if (NetDriver)
 				{
 					NetDriver->NotifyActorLevelUnloaded(Actor);
@@ -4106,15 +4106,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 		{
 			// Make sure there are no pending visibility requests.
 			CurrentWorld->FlushLevelStreaming( NULL, true );
-			// only consider session ended if we're making the final switch so that HUD, etc. UI elements stay around until the end
-			CurrentWorld->CleanupWorld(bSwitchedToDefaultMap); 
-			CurrentWorld->RemoveFromRoot();
-			CurrentWorld->ClearFlags(RF_Standalone);
-			// Stop all audio to remove references to old world
-			if (GEngine != NULL && GEngine->GetAudioDevice() != NULL)
-			{
-				GEngine->GetAudioDevice()->Flush( NULL );
-			}
 
 			if (CurrentWorld->GameState)
 			{
@@ -4123,12 +4114,19 @@ UWorld* FSeamlessTravelHandler::Tick()
 			
 			// mark actors we want to keep
 			FUObjectAnnotationSparseBool KeepAnnotation;
+			TArray<AActor*> KeepActors;
 
-			// keep GameMode if traveling to entry
-			if (!bSwitchedToDefaultMap && CurrentWorld->GetAuthGameMode() != NULL)
+			AGameMode* AuthGameMode = CurrentWorld->GetAuthGameMode();
+			if (AuthGameMode)
 			{
-				KeepAnnotation.Set(CurrentWorld->GetAuthGameMode());
+				// keep GameMode if traveling to transition map
+				if (!bSwitchedToDefaultMap)
+				{
+					KeepAnnotation.Set(CurrentWorld->GetAuthGameMode());
+				}
+				AuthGameMode->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
 			}
+
 			// always keep Controllers that belong to players
 			if (CurrentWorld->GetNetMode() == NM_Client)
 			{
@@ -4152,12 +4150,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
-			// ask the game class what else we should keep
-			TArray<AActor*> KeepActors;
-			if (CurrentWorld->GetAuthGameMode() != NULL)
-			{
-				CurrentWorld->GetAuthGameMode()->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
-			}
 			// ask players what else we should keep
 			for (FLocalPlayerIterator It(GEngine, CurrentWorld); It; ++It)
 			{
@@ -4197,11 +4189,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 					// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
 					if (Cast<AController>(TheActor))
 					{
-						LoadedWorld->AddController(Cast<AController>(TheActor) );
+						LoadedWorld->AddController(static_cast<AController*>(TheActor));
 					}
 					else if (Cast<APawn>(TheActor))
 					{
-						LoadedWorld->AddPawn(Cast<APawn>(TheActor));
+						LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
 					}
 					// add to new world's actor list and remove from old
 					LoadedWorld->PersistentLevel->Actors.Add(TheActor);
@@ -4210,6 +4202,16 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 				else
 				{
+					if (bShouldKeep)
+					{
+						UE_LOG(LogWorld, Warning, TEXT("Actor '%s' was indicated to be kept but exists in level '%s', not the persistent level.  Actor will not travel."), *TheActor->GetName(), *TheActor->GetLevel()->GetOutermost()->GetName());
+					}
+
+					if (TheActor->bActorInitialized)
+					{
+						TheActor->EndPlay(AActor::EEndPlayReason::LevelTransition);
+					}
+
 					// otherwise, set to be deleted
 					KeepAnnotation.Clear(TheActor);
 					TheActor->MarkPendingKill();
@@ -4223,6 +4225,16 @@ UWorld* FSeamlessTravelHandler::Tick()
 			}
 
 			CopyWorldData(); // This copies the net driver too (LoadedWorld now has whatever NetDriver was previously held by CurrentWorld)
+
+			// only consider session ended if we're making the final switch so that HUD, etc. UI elements stay around until the end
+			CurrentWorld->CleanupWorld(bSwitchedToDefaultMap);
+			CurrentWorld->RemoveFromRoot();
+			CurrentWorld->ClearFlags(RF_Standalone);
+			// Stop all audio to remove references to old world
+			if (GEngine != NULL && GEngine->GetAudioDevice() != NULL)
+			{
+				GEngine->GetAudioDevice()->Flush(NULL);
+			}
 
 			// Copy the standby cheat status
 			bool bHasStandbyCheatTriggered = (CurrentWorld->NetworkManager) ? CurrentWorld->NetworkManager->bHasStandbyCheatTriggered : false;

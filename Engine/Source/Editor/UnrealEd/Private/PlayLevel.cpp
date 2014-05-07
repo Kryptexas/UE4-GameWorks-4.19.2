@@ -403,8 +403,6 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 							}	
 						}
 					}
-
-					World->CleanupWorld();
 				}
 			}
 		}
@@ -424,7 +422,13 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 			}
 		}
 	}
-	
+
+	// Go through and let all the PlayWorld Actor's know they are being destroyed
+	for (FActorIterator ActorIt(PlayWorld); ActorIt; ++ActorIt)
+	{
+		ActorIt->EndPlay(AActor::EEndPlayReason::EndPlayInEditor);
+	}
+
 	// Move blueprint debugging pointers back to the objects in the editor world
 	PlayWorld->TransferBlueprintDebugReferences(EditorWorld);
 
