@@ -2381,30 +2381,11 @@ bool UStaticMesh::CanLODsShareStaticLighting() const
 	}
 	return bCanShareData;
 }
-#endif // #if WITH_EDITORONLY_DATA
-
-UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
-{
-	if(InSocketName == NAME_None)
-	{
-		return NULL;
-	}
-
-	for(int32 i=0; i<Sockets.Num(); i++)
-	{
-		UStaticMeshSocket* Socket = Sockets[i];
-		if(Socket && Socket->SocketName == InSocketName)
-		{
-			return Socket;
-		}
-	}
-	return NULL;
-}
 
 void UStaticMesh::ConvertLegacyLODDistance()
 {
 	check(SourceModels.Num() > 0);
-	
+
 	if(SourceModels.Num() == 1)
 	{
 		// Only one model, 
@@ -2443,6 +2424,26 @@ void UStaticMesh::ConvertLegacyLODDistance()
 			}
 		}
 	}
+}
+
+#endif // #if WITH_EDITORONLY_DATA
+
+UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
+{
+	if(InSocketName == NAME_None)
+	{
+		return NULL;
+	}
+
+	for(int32 i=0; i<Sockets.Num(); i++)
+	{
+		UStaticMeshSocket* Socket = Sockets[i];
+		if(Socket && Socket->SocketName == InSocketName)
+		{
+			return Socket;
+		}
+	}
+	return NULL;
 }
 
 /*-----------------------------------------------------------------------------
