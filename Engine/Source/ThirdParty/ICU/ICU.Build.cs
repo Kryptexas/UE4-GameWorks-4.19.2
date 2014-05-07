@@ -44,6 +44,28 @@ public class ICU : ModuleRules
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            string LibraryNamePrefix = "libicu";
+            string[] LibraryNameStems =
+			{
+				"data", // Data
+				"uc",   // Unicode Common
+				"i18n", // Internationalization
+				"le",   // Layout Engine
+				"lx",   // Layout Extensions
+				"io"	// Input/Output
+			};
+            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
+                "d" : string.Empty;
+            string LibraryExtension = "a";
+
+            foreach (string Stem in LibraryNameStems)
+            {
+                string LibraryName = ICURootPath + "Linux/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+                PublicAdditionalLibraries.Add(LibraryName);
+            }
+        }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			string LibraryNamePrefix = "libicu";
@@ -91,8 +113,9 @@ public class ICU : ModuleRules
 
 		// common defines
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
-			(Target.Platform == UnrealTargetPlatform.Win32) ||
-			(Target.Platform == UnrealTargetPlatform.Mac ||
+            (Target.Platform == UnrealTargetPlatform.Win32) ||
+            (Target.Platform == UnrealTargetPlatform.Linux) ||
+            (Target.Platform == UnrealTargetPlatform.Mac ||
 			(Target.Platform == UnrealTargetPlatform.PS4)))
 		{
 			// Definitions
