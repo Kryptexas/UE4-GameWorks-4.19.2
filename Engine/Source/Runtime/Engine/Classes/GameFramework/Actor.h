@@ -1004,7 +1004,7 @@ public:
 	
 
 	// Begin UObject Interface
-	virtual void CheckActorComponents() OVERRIDE;
+	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
@@ -1706,6 +1706,11 @@ protected:
 
 	/** Runs UserConstructionScript, delays component registration until it's complete. */
 	void ProcessUserConstructionScript();
+
+	/**
+	* Checks components for validity, implemented in AActor
+	*/
+	bool CheckActorComponents();
 
 public:
 

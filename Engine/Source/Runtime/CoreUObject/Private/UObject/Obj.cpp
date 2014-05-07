@@ -964,19 +964,29 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheckSubobjects, Fatal, All);
 		UE_LOG(LogCheckSubobjects, Log, TEXT("CompCheck %s failed."), TEXT(#Pred)); \
 	} 
 
-bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 {
+	bool bCanCheck = true;
+	bResult = true;
 	if (!this)
 	{
-		return false; // these aren't in a suitable spot in their lifetime for testing
+		bResult = false; // these aren't in a suitable spot in their lifetime for testing
+		bCanCheck = false;
 	}
 	if (HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill) || GIsDuplicatingClassForReinstancing)
 	{
-		return true; // these aren't in a suitable spot in their lifetime for testing
+		bResult = true; // these aren't in a suitable spot in their lifetime for testing
+		bCanCheck = false;
 	}
-	bool Result = true;
 	// If errors are suppressed, we will not take the time to run this test unless forced to.
-	if (bForceCheck || UE_LOG_ACTIVE(LogCheckSubobjects, Error))
+	bCanCheck = bCanCheck && (bForceCheck || UE_LOG_ACTIVE(LogCheckSubobjects, Error));
+	return bCanCheck;
+}
+
+bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+{
+	bool Result = true;	
+	if (CanCheckDefaultSubObjects(bForceCheck, Result))
 	{
 		CompCheck(this);
 		UClass* Class = GetClass();

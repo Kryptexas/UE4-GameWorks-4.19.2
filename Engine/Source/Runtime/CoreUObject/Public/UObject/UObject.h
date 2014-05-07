@@ -582,14 +582,7 @@ public:
 	 * @param bForceCheck Force checks even if not enabled globally.
 	 * @return true if the assumptions are met, false otherwise.
 	 */
-	bool CheckDefaultSubobjects(bool bForceCheck = false);
-
-	/**
-	 * Checks components for validity, implemented in AActor
-	 */
-	virtual void CheckActorComponents()
-	{
-	}
+	virtual bool CheckDefaultSubobjects(bool bForceCheck = false);
 
 	/**
 	 * Save configuration.
@@ -952,6 +945,11 @@ public:
 		Parms.EntryPoint=EntryPoint;
 		ProcessEvent(FindFunctionChecked(NAME_ExecuteUbergraph),&Parms);
 	}
+
+protected: 
+
+	/** Checks it's ok to perform subobjects check at this time. */
+	bool CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult);
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);

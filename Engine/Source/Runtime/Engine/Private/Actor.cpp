@@ -190,11 +190,22 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
+bool AActor::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+{
+	bool Result = true;
+	if (CanCheckDefaultSubObjects(bForceCheck, Result))
+	{
+		Result = Super::CheckDefaultSubobjects(bForceCheck);
+		Result = Result && CheckActorComponents();
+	}
+	return Result;
+}
 
-void AActor::CheckActorComponents()
+bool AActor::CheckActorComponents()
 {
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
+	bool bResult = true;
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
 
@@ -212,6 +223,7 @@ void AActor::CheckActorComponents()
 		if (Inner->IsTemplate() && !IsTemplate())
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("Component is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		UObject* Archetype = Inner->GetArchetype();
 		if (Archetype != Inner->GetClass()->GetDefaultObject())
@@ -219,6 +231,7 @@ void AActor::CheckActorComponents()
 			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
 			{
 				UE_LOG(LogCheckComponents, Error, TEXT("Component archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
+				bResult = false;
 			}
 		}
 	}
@@ -232,6 +245,7 @@ void AActor::CheckActorComponents()
 		if (Inner->GetOuter() != this)
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent does not have me as an outer. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		if (Inner->IsPendingKill())
 		{
@@ -240,6 +254,7 @@ void AActor::CheckActorComponents()
 		if (Inner->IsTemplate() && !IsTemplate())
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		UObject* Archetype = Inner->GetArchetype();
 		if (Archetype != Inner->GetClass()->GetDefaultObject())
@@ -247,9 +262,11 @@ void AActor::CheckActorComponents()
 			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
 			{
 				UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
+				bResult = false;
 			}
 		}
 	}
+	return bResult;
 }
 
 void AActor::ResetOwnedComponents()
