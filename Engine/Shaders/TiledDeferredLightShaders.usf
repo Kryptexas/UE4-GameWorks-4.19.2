@@ -31,7 +31,8 @@ groupshared uint TileNumSimpleLights;
 groupshared uint TileSimpleLightIndices[MAX_LIGHTS];
 
 /** Output HDR target. */
-RWTexture2D<float4> RWLightAccumulation;
+Texture2D<float4> InTexture;
+RWTexture2D<float4> RWOutTexture;
 
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void TiledDeferredLightingMain(
@@ -229,6 +230,7 @@ void TiledDeferredLightingMain(
 	BRANCH
     if (all(DispatchThreadId.xy < ViewDimensions.zw)) 
 	{
-		RWLightAccumulation[PixelPos.xy] = CompositedLighting;
+		// One some hardware we can read and write from the same UAV with a 32 bit format. We don't do that yet.
+		RWOutTexture[PixelPos.xy] = InTexture[PixelPos.xy] + CompositedLighting;
     }
 }

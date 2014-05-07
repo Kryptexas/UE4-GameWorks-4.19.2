@@ -651,9 +651,6 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 
 					ComputeShader->UnsetParameters();
 
-					const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
-					RHICopyToResolveTarget( DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams() );
-
 					GSceneRenderTargets.SetSceneColor(NewSceneColor);
 					check(GSceneRenderTargets.GetSceneColor());
 
