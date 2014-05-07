@@ -22,8 +22,11 @@ public:
 	 * Default constructor.
 	 */
 	TLinuxTargetPlatform( )
-	{
+	{		
+#if PLATFORM_LINUX
+		// only add local device if actually running on Linux
 		LocalDevice = MakeShareable(new FLinuxTargetDevice(*this, FTargetDeviceId(PlatformName(), FPlatformProcess::ComputerName())));
+#endif
 	
 		#if WITH_ENGINE
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
@@ -43,7 +46,10 @@ public:
 	{
 		// TODO: ping all the machines in a local segment and/or try to connect to port 22 of those that respond
 		OutDevices.Reset();
-		OutDevices.Add(LocalDevice);
+		if (LocalDevice.IsValid())
+		{
+			OutDevices.Add(LocalDevice);
+		}
 	}
 
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const OVERRIDE
@@ -58,7 +64,12 @@ public:
 
 	virtual ITargetDevicePtr GetDefaultDevice( ) const OVERRIDE
 	{
-		return LocalDevice;
+		if (LocalDevice.IsValid())
+		{
+			return LocalDevice;
+		}
+
+		return nullptr;
 	}
 
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) OVERRIDE
@@ -69,7 +80,7 @@ public:
 		}
 
 		FTargetDeviceId UATFriendlyId(TEXT("linux"), DeviceId.GetDeviceName());
-		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId));
+		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
 	}
 
 	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE
