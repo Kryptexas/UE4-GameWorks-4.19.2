@@ -3044,6 +3044,12 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 				bCheckedFall = true;
 			}
 		}
+
+		// If we didn't move at all this iteration then abort (since future iterations will also be stuck).
+		if (CharacterOwner->GetActorLocation() == subLoc)
+		{
+			break;
+		}
 	}
 
 	// Allow overlap events and such to change physics state and velocity
