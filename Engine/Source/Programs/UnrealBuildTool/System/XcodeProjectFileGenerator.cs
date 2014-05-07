@@ -885,7 +885,23 @@ namespace UnrealBuildTool
 				XcodeProject.UE4CmdLineRunFileGuid = UE4CmdLineRunMFileGuid;
 				XcodeProject.UE4CmdLineRunFileRefGuid = UE4CmdLineRunMFileRefGuid;
 
-				XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
+				if (bGeneratingRunIOSProject)
+				{
+					foreach (var CurSourceFile in XcodeProject.SourceFiles)
+					{
+						XcodeSourceFile SourceFile = CurSourceFile as XcodeSourceFile;
+						string GroupPath = Path.GetFullPath(Path.GetDirectoryName(SourceFile.FilePath));
+						XcodeFileGroup Group = XcodeProject.FindGroupByFullPath(ref Groups, GroupPath);
+						if (Group != null)
+						{
+							Group.bReference = true;
+						}
+					}
+				}
+				else
+				{
+					XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
+				}
 
 				foreach (var CurPath in XcodeProject.IntelliSenseIncludeSearchPaths)
 				{
@@ -920,6 +936,23 @@ namespace UnrealBuildTool
 				// Add UnrealBuildTool to the master project
 				string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool_Mono.csproj");
 				AddPreGeneratedProject(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups, ProjectPath);
+			}
+		}
+
+		private void AppendReferenceGroups(ref string PBXFileReferenceSection, ref Dictionary<string, XcodeFileGroup> Groups)
+		{
+			string RelativePath = "../../../";
+
+			foreach (XcodeFileGroup Group in Groups.Values)
+			{
+				Group.bReference = true;
+				string GroupPath = RelativePath + Group.GroupPath;
+
+				// Add File reference.
+				PBXFileReferenceSection += "\t\t" + Group.GroupGuid + " /* " + Group.GroupName + " */ = {"
+											+ "isa = PBXFileReference; lastKnownFileType = folder; "
+											+ "name = " + Group.GroupName + "; "
+											+ "path = " + Utils.CleanDirectorySeparators(GroupPath, '/') + "; sourceTree = \"<group>\"; };" + ProjectFileGenerator.NewLine;
 			}
 		}
 
@@ -1429,11 +1462,8 @@ namespace UnrealBuildTool
 			AppendBuildPhases(ProjectTargets, ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref PBXResourcesBuildPhaseSection, ref PBXFrameworksBuildPhaseSection,
 				ref PBXShellScriptBuildPhaseSection, TestFrameworkFiles, UE4CmdLineRunMFileGuid);
 
-			if (!bGeneratingRunIOSProject)
-			{
-				AppendSourceFiles(ProjectTargets, ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups, UE4XcodeHelperTarget, UE4CmdLineRunMFileGuid,
-					ref IncludeDirectories, ref SystemIncludeDirectories, ref PreprocessorDefinitions);
-			}
+			AppendSourceFiles(ProjectTargets, ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups, UE4XcodeHelperTarget, UE4CmdLineRunMFileGuid,
+				ref IncludeDirectories, ref SystemIncludeDirectories, ref PreprocessorDefinitions);
 
 			foreach (XcodeProjectTarget Target in ProjectTargets)
 			{
@@ -1452,6 +1482,11 @@ namespace UnrealBuildTool
 						PBXFileReferenceSection += "\t\t" + Target.PlistGuid + " /* " + Target.TargetName + "-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = \"" + Target.TargetName + "-Info.plist\"; path = " + Target.TargetName + "/Build/IOS/" + Target.TargetName + "-Info.plist; sourceTree = \"<group>\"; };" + ProjectFileGenerator.NewLine;
 					}
 				}
+			}
+
+			if (bGeneratingRunIOSProject)
+			{
+				AppendReferenceGroups(ref PBXFileReferenceSection, ref Groups);
 			}
 
 			PBXBuildFileSection += "/* End PBXBuildFile section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine;
