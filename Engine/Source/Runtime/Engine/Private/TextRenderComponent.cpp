@@ -504,7 +504,7 @@ void FTextRenderSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 		Mesh.bDisableBackfaceCulling = false;
 		Mesh.Type = PT_TriangleList;
 		Mesh.DepthPriorityGroup = SDPG_World;
-		PDI->DrawMesh(Mesh,0.0, FLT_MAX);
+		PDI->DrawMesh(Mesh, 1.0f);
 	}
 }
 

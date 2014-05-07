@@ -38,8 +38,7 @@ public:
 	}
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float MinDrawDistance,
-		float MaxDrawDistance,
+		float ScreenSize,
 		bool bShadowOnly
 		)
 	{
@@ -52,8 +51,7 @@ public:
 		FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
 			PrimitiveSceneInfo,
 			Mesh,
-			FMath::Square(FMath::Max(0.0f,MinDrawDistance)),
-			FMath::Square(FMath::Max(0.0f,MaxDrawDistance)),
+			ScreenSize,
 			bShadowOnly,
 			CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
 			);

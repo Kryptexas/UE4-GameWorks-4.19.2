@@ -90,42 +90,6 @@ static FAutoConsoleVariableRef CVarDistanceFadeMaxTravel( TEXT("r.DistanceFadeMa
 	Visibility determination.
 ------------------------------------------------------------------------------*/
 
-int8 ComputeLODForMeshes(
-	const TIndirectArray<FStaticMesh>& StaticMeshes,
-	float DistanceSquared,
-	float MaxDrawDistanceScaleSquared,
-	int32 ForcedLODLevel
-	)
-{
-	int8 LODToRender = INDEX_NONE;
-	int32 NumStaticMeshes = StaticMeshes.Num();
-
-	if (ForcedLODLevel >= 0)
-	{
-		int8 MaxLOD = 0;
-		for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)
-		{
-			const FStaticMesh& StaticMesh = StaticMeshes[MeshIndex];
-			MaxLOD = FMath::Max(MaxLOD, StaticMesh.LODIndex);
-		}
-		LODToRender = FMath::Clamp<int8>((int8)ForcedLODLevel, 0, MaxLOD);
-	}
-	else
-	{
-		for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)
-		{
-			const FStaticMesh& StaticMesh = StaticMeshes[MeshIndex];
-			if (DistanceSquared >= StaticMesh.MinDrawDistanceSquared 
-				&& DistanceSquared < StaticMesh.MaxDrawDistanceSquared * MaxDrawDistanceScaleSquared)
-			{
-				LODToRender = StaticMesh.LODIndex;
-				break;
-			}
-		}
-	}
-	return LODToRender;
-}
-
 /**
  * Update a primitive's fading state.
  * @param FadingState - State to update.
@@ -830,18 +794,15 @@ static void MarkRelevantStaticMeshesForView(
 		const FPrimitiveSceneInfo * RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
 		const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
 		const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
+		
+		static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
+		check(StaticMeshLODDistanceScale);
+		const float LODScale = StaticMeshLODDistanceScale->GetValueOnRenderThread();
+
+		int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ForcedLODLevel, LODScale);
 
 		float DistanceSquared = (Bounds.Origin - ViewOrigin).SizeSquared();
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * InvLODScale);
-
-		// Go through the meshes and find the LOD to render
-		int8 LODToRender = ComputeLODForMeshes(
-			PrimitiveSceneInfo->StaticMeshes,
-			LODFactorDistanceSquared,
-			MaxDrawDistanceScaleSquared,
-			ForcedLODLevel
-			);
-
+		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * (1.0f / LODScale));
 		const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
 		const bool bDrawDepthOnly = bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 		

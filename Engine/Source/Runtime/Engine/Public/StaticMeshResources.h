@@ -596,8 +596,8 @@ public:
 	/** Per-LOD resources. */
 	TIndirectArray<FStaticMeshLODResources> LODResources;
 
-	/** Distance at which to switch LODs. */
-	float LODDistance[MAX_STATIC_MESH_LODS+1];
+	/** Screen size to switch LODs */
+	float ScreenSize[MAX_STATIC_MESH_LODS];
 
 	/** Streaming texture factors. */
 	float StreamingTextureFactors[MAX_STATIC_TEXCOORDS];
@@ -888,6 +888,13 @@ protected:
 	 * @param CurrentLevel - the LOD to find the max distance for
 	 */
 	float GetMaxLODDist(int32 CurrentLevel) const;
+
+	/**
+	 * Returns the display factor for the given LOD level
+	 *
+	 * @Param LODIndex - The LOD to get the display factor for
+	 */
+	float GetScreenSize(int32 LODIndex) const;
 };
 
 #if WITH_EDITORONLY_DATA

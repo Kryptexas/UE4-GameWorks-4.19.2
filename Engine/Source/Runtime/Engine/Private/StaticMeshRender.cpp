@@ -372,7 +372,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 				FMeshBatch MeshElement;
 				if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 				{
-					PDI->DrawMesh(MeshElement, 0, FLT_MAX);
+					PDI->DrawMesh(MeshElement, 0.0f);
 				}
 			}
 		} 
@@ -381,8 +381,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 			for(int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 			{
 				const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
-				float MinDist = GetMinLODDist(LODIndex);
-				float MaxDist = GetMaxLODDist(LODIndex);
+				float ScreenSize = GetScreenSize(LODIndex);
 
 				bool bHaveShadowOnlyMesh = false;
 				if (GUseShadowIndexBuffer
@@ -414,7 +413,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 						if (GetShadowMeshElement(LODIndex, PrimitiveDPG, MeshElement))
 						{
 							bHaveShadowOnlyMesh = true;
-							PDI->DrawMesh(MeshElement,MinDist,MaxDist,/*bShadowOnly=*/true);
+							PDI->DrawMesh(MeshElement, ScreenSize, /*bShadowOnly=*/true);
 						}
 					}
 				}
@@ -437,7 +436,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 					{
 						// If we have submitted an optimized shadow-only mesh, remaining mesh elements must not cast shadows.
 						MeshElement.CastShadow = MeshElement.CastShadow && !bHaveShadowOnlyMesh;
-						PDI->DrawMesh(MeshElement, MinDist, MaxDist);
+						PDI->DrawMesh(MeshElement, ScreenSize);
 					}
 				}
 			}
@@ -999,14 +998,9 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 	return FLightInteraction::Dynamic();
 }
 
-float FStaticMeshSceneProxy::GetMinLODDist(int32 LODIndex) const 
+float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const
 {
-	return RenderData->LODDistance[LODIndex];
-}
-
-float FStaticMeshSceneProxy::GetMaxLODDist(int32 LODIndex) const 
-{
-	return RenderData->LODDistance[LODIndex+1];
+	return RenderData->ScreenSize[LODIndex];
 }
 
 /**
@@ -1036,29 +1030,8 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 	}
 #endif
 
-	// Note: These distance calculations must match up with the main renderer!
-#if !WITH_EDITOR
-	const FVector ViewOriginForDistance = View->ViewMatrices.ViewOrigin;
-#else
-	const FVector ViewOriginForDistance = View->IsPerspectiveProjection() ? View->ViewMatrices.ViewOrigin : View->OverrideLODViewOrigin;
-#endif
-
-	float DistanceSquared = (GetBounds().Origin - ViewOriginForDistance).SizeSquared();
-
-	for(int32 LODIndex = LODs.Num() - 1; LODIndex >= 0; LODIndex--)
-	{
-		// Use the same distances as FStaticMeshSceneProxy::DrawStaticElements 
-		// To ensure that LODs change the same way when drawn in a static draw list or when rendered through DrawDynamicElements
-		const float MinDist = GetMinLODDist(LODIndex);
-		const float MaxDist = GetMaxLODDist(LODIndex);
-		
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View->LODDistanceFactor);
-		if (LODFactorDistanceSquared >= FMath::Square(MinDist) && LODFactorDistanceSquared < FMath::Square(MaxDist))
-		{
-			return LODIndex;
-		}
-	}
-	return INDEX_NONE;
+	const FBoxSphereBounds& Bounds = GetBounds();
+	return ComputeStaticMeshLOD(RenderData, Bounds.Origin, Bounds.SphereRadius, *View);
 }
 
 FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()

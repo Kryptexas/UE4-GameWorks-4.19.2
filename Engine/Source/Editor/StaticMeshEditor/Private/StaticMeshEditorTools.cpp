@@ -980,10 +980,11 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 
 	for (int32 i = 0; i < MAX_STATIC_MESH_LODS; ++i)
 	{
-		LODDistances[i] = 0.0f;
 		bBuildSettingsExpanded[i] = false;
 		bReductionSettingsExpanded[i] = false;
 		bSectionSettingsExpanded[i] = (i == 0);
+
+		LODScreenSizes[i] = 0.0f;
 	}
 
 	LODCount = StaticMeshEditor.GetStaticMesh()->GetNumLODs();
@@ -1148,7 +1149,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 					BuildSettingsWidgets[LODIndex]->UpdateSettings(SrcModel.BuildSettings);
 				}
 
-				LODDistances[LODIndex] = SrcModel.LODDistance;
+				LODScreenSizes[LODIndex] = SrcModel.ScreenSize;
 			}
 			else if (LODIndex > 0)
 			{
@@ -1160,10 +1161,10 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 					ReductionSettingsWidgets[LODIndex]->UpdateSettings(ReductionSettings);
 				}
 
-				if (LODDistances[LODIndex] <= LODDistances[LODIndex-1])
+				if(LODScreenSizes[LODIndex] >= LODScreenSizes[LODIndex-1])
 				{
-					const float DefaultLODDistance = 1000.0f;
-					LODDistances[LODIndex] = LODDistances[LODIndex-1] + DefaultLODDistance;
+					const float DefaultScreenSizeDifference = 0.01f;
+					LODScreenSizes[LODIndex] = LODScreenSizes[LODIndex-1] - DefaultScreenSizeDifference;
 				}
 			}
 
@@ -1181,12 +1182,12 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 				[
 					SNew( SHorizontalBox )
 					+ SHorizontalBox::Slot()
-					.Padding( FMargin( 5.0f, 0.0f ) )
+					.Padding(FMargin(5.0f, 0.0f))
 					.AutoWidth()
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-						.Text(this, &FLevelOfDetailSettingsLayout::GetLODDistanceTitle, LODIndex)
+						.Text(this, &FLevelOfDetailSettingsLayout::GetLODScreenSizeTitle, LODIndex)
 						.Visibility( LODIndex > 0 ? EVisibility::Visible : EVisibility::Collapsed )
 					]
 					+ SHorizontalBox::Slot()
@@ -1212,28 +1213,25 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex ) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
-			if (LODIndex > 0)
-			{
-				LODCategory.AddCustomRow( LOCTEXT("Distance", "Distance").ToString() )
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-					.Text(LOCTEXT("Distance", "Distance"))
-				]
-				.ValueContent()
-				[
-					SNew(SSpinBox<float>)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-					.MinValue(0.0f)
-					.MaxValue(WORLD_MAX)
-					.SliderExponent(2.0f)
-					.Value(this, &FLevelOfDetailSettingsLayout::GetLODDistance, LODIndex)
-					.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnLODDistanceChanged, LODIndex)
-					.OnValueCommitted(this, &FLevelOfDetailSettingsLayout::OnLODDistanceCommitted, LODIndex)
-					.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanChangeLODDistance)
-				];
-			}
+			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize").ToString()))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("ScreenSizeName", "Screen Size"))
+			]
+			.ValueContent()
+			[
+				SNew(SSpinBox<float>)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.MinValue(0.0f)
+				.MaxValue(WORLD_MAX)
+				.SliderExponent(2.0f)
+				.Value(this, &FLevelOfDetailSettingsLayout::GetLODScreenSize, LODIndex)
+				.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged, LODIndex)
+				.OnValueCommitted(this, &FLevelOfDetailSettingsLayout::OnLODScreenSizeCommitted, LODIndex)
+				.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanChangeLODScreenSize)
+			];
 
 			if (BuildSettingsWidgets[LODIndex].IsValid())
 			{
@@ -1260,62 +1258,58 @@ int32 FLevelOfDetailSettingsLayout::GetLODCount() const
 	return LODCount;
 }
 
-float FLevelOfDetailSettingsLayout::GetLODDistance(int32 LODIndex) const
+float FLevelOfDetailSettingsLayout::GetLODScreenSize( int32 LODIndex ) const
 {
-	check(LODIndex > 0 && LODIndex < MAX_STATIC_MESH_LODS);
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	float Distance = LODDistances[FMath::Clamp<int32>(LODIndex,0,MAX_STATIC_MESH_LODS-1)];
-	if (StaticMesh->bAutoComputeLODDistance)
+	check(LODIndex < MAX_STATIC_MESH_LODS);
+	UStaticMesh* Mesh = StaticMeshEditor.GetStaticMesh();
+	float ScreenSize = LODScreenSizes[FMath::Clamp(LODIndex, 0, MAX_STATIC_MESH_LODS-1)];
+	if(Mesh->bAutoComputeLODScreenSize)
 	{
-		Distance = StaticMesh->RenderData->LODDistance[LODIndex];
-		if (Distance == FLT_MAX)
-		{
-			Distance = 0.0f;
-		}
+		ScreenSize = Mesh->RenderData->ScreenSize[LODIndex];
 	}
-	else if (StaticMesh->SourceModels.IsValidIndex(LODIndex))
+	else if(Mesh->SourceModels.IsValidIndex(LODIndex))
 	{
-		Distance = StaticMesh->SourceModels[LODIndex].LODDistance;
+		ScreenSize = Mesh->SourceModels[LODIndex].ScreenSize;
 	}
-	return Distance;
+	return ScreenSize;
 }
 
-FText FLevelOfDetailSettingsLayout::GetLODDistanceTitle(int32 LODIndex) const
+FText FLevelOfDetailSettingsLayout::GetLODScreenSizeTitle( int32 LODIndex ) const
 {
-	return FText::Format( LOCTEXT("Distance_MeshSimplification", "Distance: {0}"), FText::AsNumber( LODIndex > 0 ? GetLODDistance( LODIndex ) : 0.0f ) );
+	return FText::Format( LOCTEXT("ScreenSize_MeshSimplification", "Screen Size: {0}"), FText::AsNumber(GetLODScreenSize(LODIndex)));
 }
 
-bool FLevelOfDetailSettingsLayout::CanChangeLODDistance() const
+bool FLevelOfDetailSettingsLayout::CanChangeLODScreenSize() const
 {
 	return !IsAutoLODEnabled();
 }
 
-void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LODIndex)
+void FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged( float NewValue, int32 LODIndex )
 {
-	check(LODIndex > 0 && LODIndex < MAX_STATIC_MESH_LODS);
+	check(LODIndex < MAX_STATIC_MESH_LODS);
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	if (!StaticMesh->bAutoComputeLODDistance)
+	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		// First propagate any changes from the source models to our local scratch.
 		for (int32 i = 0; i < StaticMesh->SourceModels.Num(); ++i)
 		{
-			LODDistances[i] = StaticMesh->SourceModels[i].LODDistance;
+			LODScreenSizes[i] = StaticMesh->SourceModels[i].ScreenSize;
 		}
 
-		// Update LOD distances for all further LODs.
-		float Delta = NewValue - LODDistances[LODIndex];
-		LODDistances[LODIndex] = NewValue;
+		// Update Display factors for further LODs
+		float Delta = NewValue - LODScreenSizes[LODIndex];
+		LODScreenSizes[LODIndex] = NewValue;
 		for (int32 i = LODIndex + 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
-			LODDistances[i] += Delta;
+			LODScreenSizes[i] += Delta;
 		}
 
-		// Enforce that LODs don't swap in before the previous LOD.
-		const float MinLODDistance = 100.0f;
+		// Make sure we aren't trying to ovelap or have more than one LOD for a value
+		const float MinimumDifferenceInScreenSize = 0.01f;
 		for (int32 i = 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
-			float MinDistance = LODDistances[i-1] + MinLODDistance;
-			LODDistances[i] = FMath::Max(LODDistances[i], MinDistance);
+			float MaxValue = FMath::Clamp(LODScreenSizes[i-1] - MinimumDifferenceInScreenSize, 0.0f, 1.0f);
+			LODScreenSizes[i] = FMath::Min(LODScreenSizes[i], MaxValue);
 		}
 
 		// Push changes immediately.
@@ -1323,12 +1317,12 @@ void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LO
 		{
 			if (StaticMesh->SourceModels.IsValidIndex(i))
 			{
-				StaticMesh->SourceModels[i].LODDistance = LODDistances[i];
+				StaticMesh->SourceModels[i].ScreenSize = LODScreenSizes[i];
 			}
 			if (StaticMesh->RenderData
 				&& StaticMesh->RenderData->LODResources.IsValidIndex(i))
 			{
-				StaticMesh->RenderData->LODDistance[i] = LODDistances[i];
+				StaticMesh->RenderData->ScreenSize[i] = LODScreenSizes[i];
 			}
 		}
 
@@ -1342,9 +1336,9 @@ void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LO
 	}
 }
 
-void FLevelOfDetailSettingsLayout::OnLODDistanceCommitted(float NewValue, ETextCommit::Type CommitType, int32 LODIndex)
+void FLevelOfDetailSettingsLayout::OnLODScreenSizeCommitted( float NewValue, ETextCommit::Type CommitType, int32 LODIndex )
 {
-	OnLODDistanceChanged(NewValue, LODIndex);
+	OnLODScreenSizeChanged(NewValue, LODIndex);
 }
 
 void FLevelOfDetailSettingsLayout::UpdateLODNames()
@@ -1414,7 +1408,7 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 			{
 				StaticMesh->SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
 			}
-			StaticMesh->bAutoComputeLODDistance = true;
+			StaticMesh->bAutoComputeLODScreenSize = true;
 			StaticMesh->LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
 		}
 		StaticMesh->PostEditChange();
@@ -1426,7 +1420,7 @@ bool FLevelOfDetailSettingsLayout::IsAutoLODEnabled() const
 {
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
-	return StaticMesh->bAutoComputeLODDistance;
+	return StaticMesh->bAutoComputeLODScreenSize;
 }
 
 ESlateCheckBoxState::Type FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
@@ -1439,16 +1433,16 @@ void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ESlateCheckBoxState::Type Ne
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
 	StaticMesh->Modify();
-	StaticMesh->bAutoComputeLODDistance = (NewState == ESlateCheckBoxState::Checked) ? true : false;
-	if (!StaticMesh->bAutoComputeLODDistance)
+	StaticMesh->bAutoComputeLODScreenSize = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		if (StaticMesh->SourceModels.IsValidIndex(0))
 		{
-			StaticMesh->SourceModels[0].LODDistance = 0.0f;
+			StaticMesh->SourceModels[0].ScreenSize = 1.0f;
 		}
 		for (int32 LODIndex = 1; LODIndex < StaticMesh->SourceModels.Num(); ++LODIndex)
 		{
-			StaticMesh->SourceModels[LODIndex].LODDistance = StaticMesh->RenderData->LODDistance[LODIndex];
+			StaticMesh->SourceModels[LODIndex].ScreenSize = StaticMesh->RenderData->ScreenSize[LODIndex];
 		}
 	}
 	StaticMesh->PostEditChange();
@@ -1556,16 +1550,19 @@ void FLevelOfDetailSettingsLayout::ApplyChanges()
 
 		if (LODIndex == 0)
 		{
-			SrcModel.LODDistance = 0.0f;
+			SrcModel.ScreenSize = 1.0f;
 		}
 		else
 		{
-			SrcModel.LODDistance = LODDistances[LODIndex];
+			SrcModel.ScreenSize = LODScreenSizes[LODIndex];
 			FStaticMeshSourceModel& PrevModel = StaticMesh->SourceModels[LODIndex-1];
-			if (SrcModel.LODDistance <= PrevModel.LODDistance)
+			if(SrcModel.ScreenSize >= PrevModel.ScreenSize)
 			{
-				const float DefaultLODDistance = 1000.0f;
-				SrcModel.LODDistance = PrevModel.LODDistance + DefaultLODDistance;
+				const float DefaultScreenSizeDifference = 0.01f;
+				LODScreenSizes[LODIndex] = LODScreenSizes[LODIndex-1] - DefaultScreenSizeDifference;
+
+				// Make sure there are no incorrectly overlapping values
+				SrcModel.ScreenSize = 1.0f - 0.01f * LODIndex;
 			}
 		}
 	}

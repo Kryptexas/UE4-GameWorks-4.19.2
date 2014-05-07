@@ -458,13 +458,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	int32 CurrentLODLevel = StaticMeshEditorPtr.Pin()->GetCurrentLODLevel();
 	if (CurrentLODLevel == 0)
 	{
-		// NOTE: Does not account for MaxDrawDistanceScale.
-		float DistanceSquared = (StaticMeshComponent->Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor);
-		while (CurrentLODLevel < MAX_STATIC_MESH_LODS && LODFactorDistanceSquared >= FMath::Square(StaticMesh->RenderData->LODDistance[CurrentLODLevel+1]))
-		{
-			CurrentLODLevel++;
-		}
+		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData, StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View);
 	}
 	else
 	{
@@ -475,6 +469,20 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		6,
 		YPos,
 		*FText::Format( NSLOCTEXT("UnrealEd", "LOD_F", "LOD:  {0}"), FText::AsNumber(CurrentLODLevel) ).ToString(),
+		GEngine->GetSmallFont(),
+		FLinearColor::White
+		);
+	YPos += 18;
+
+	float CurrentScreenSize = ComputeBoundsScreenSize(StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View);
+	FNumberFormattingOptions FormatOptions;
+	FormatOptions.MinimumFractionalDigits = 3;
+	FormatOptions.MaximumFractionalDigits = 6;
+	FormatOptions.MaximumIntegralDigits = 6;
+	Canvas.DrawShadowedString(
+		6,
+		YPos,
+		*FText::Format( NSLOCTEXT("UnrealEd", "ScreenSize_F", "Current Screen Size:  {0}"), FText::AsNumber(CurrentScreenSize, &FormatOptions)).ToString(),
 		GEngine->GetSmallFont(),
 		FLinearColor::White
 		);

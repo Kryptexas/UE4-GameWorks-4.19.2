@@ -536,6 +536,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_VEHICLES_UNIT_CHANGE2,
 	// Changed order of interface class serialization
 	VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING,
+	// Change from LOD distances to display factors
+	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
  
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

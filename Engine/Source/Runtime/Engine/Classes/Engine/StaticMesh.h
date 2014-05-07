@@ -178,11 +178,14 @@ struct FStaticMeshSourceModel
 
 	/** Reduction settings to apply when building render data. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	FMeshReductionSettings ReductionSettings;
+	FMeshReductionSettings ReductionSettings; 
 
-	/** The distance at which this LOD swaps in. */
+	UPROPERTY()
+	float LODDistance_DEPRECATED;
+
+	/** ScreenSize to display this LOD */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float LODDistance;
+	float ScreenSize;
 
 	/** Default constructor. */
 	ENGINE_API FStaticMeshSourceModel();
@@ -329,7 +332,13 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 	/** If true, the distances at which LODs swap are computed automatically. */
 	UPROPERTY()
-	uint32 bAutoComputeLODDistance:1;
+	uint32 bAutoComputeLODScreenSize:1;
+
+	/**
+	* If true on post load we need to calculate Display Factors from the
+	* loaded LOD distances.
+	*/
+	bool bRequiresLODDistanceConversion : 1;
 #endif // #if WITH_EDITORONLY_DATA
 
 	/** Materials used by this static mesh. Individual sections index in to this array. */
@@ -410,6 +419,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/** The stored camera position to use as a default for the static mesh editor */
 	UPROPERTY()
 	FAssetEditorOrbitCameraPosition EditorCameraPosition;
+
 #endif // WITH_EDITORONLY_DATA
 
 	/** For simplified meshes, this is the CRC of the high res mesh we were originally duplicated from. */
@@ -625,6 +635,11 @@ private:
 	 * Serializes in legacy source data and constructs the necessary source models.
 	 */
 	void SerializeLegacySouceData(class FArchive& Ar, const struct FBoxSphereBounds& LegacyBounds);
+
+	/**
+	 * Converts legacy LODDistance in the source models to Display Factor
+	 */
+	void ConvertLegacyLODDistance();
 
 	/**
 	 * Fixes up static meshes that were imported with sections that had zero triangles.

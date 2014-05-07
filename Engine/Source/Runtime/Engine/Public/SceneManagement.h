@@ -1512,8 +1512,7 @@ public:
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float MinDrawDistance,
-		float MaxDrawDistance,
+		float ScreenSize,
 		bool bShadowOnly = false
 		) = 0;
 };
@@ -3073,3 +3072,29 @@ extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 I
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
 bool RequiresAdjacencyInformation( class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType );
+/**
+ * Computes the screen size of a given sphere bounds in the given view
+ * @param Origin - Origin of the bounds in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the display factor for
+ * @return float - The screen size calculated
+ */
+float ENGINE_API ComputeBoundsScreenSize(const FVector4& Origin, const float SphereRadius, const FSceneView& View);
+
+/**
+ * Computes the LOD level for the given static meshes render data in the given view.
+ * @param RenderData - Render data for the mesh
+ * @param Origin - Origin of the bounds of the mesh in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the LOD level for
+ */
+int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, float FactorScale = 1.0f);
+
+/**
+ * Computes the LOD to render for the list of static meshes in the given view.
+ * @param StaticMeshes - List of static meshes.
+ * @param View - The view to render the LOD level for 
+ * @param Origin - Origin of the bounds of the mesh in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ */
+int8 ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);

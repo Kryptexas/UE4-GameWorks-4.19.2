@@ -530,7 +530,7 @@ FStaticMeshRenderData::FStaticMeshRenderData()
 {
 	for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS+1; ++LODIndex)
 	{
-		LODDistance[LODIndex] = FLT_MAX;
+		ScreenSize[LODIndex] = 0.0f;
 	}
 
 	for (int32 TexCoordIndex = 0; TexCoordIndex < MAX_STATIC_TEXCOORDS; ++TexCoordIndex)
@@ -551,6 +551,7 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 		Ar << WedgeMap;
 		Ar << MaterialIndexToImportIndex;
 	}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	LODResources.Serialize(Ar, Owner);
@@ -568,7 +569,33 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 	{
 		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS+1; ++LODIndex)
 		{
-			Ar << LODDistance[LODIndex];
+			if(Ar.UE4Ver() < VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS)
+			{
+				// We're loading in old data; which will be a LOD distance so we need
+				// to make an appropriate display factor from the distance;
+				float LODDistance = 0.0f;
+				Ar << LODDistance;
+
+				// Assuming an FOV of 90 and a screen size of 1920x1080 to estimate an appropriate display factor.
+				const float HalfFOV = PI / 4.0f;
+				const float ScreenWidth = 1920.0f;
+				const float ScreenHeight = 1080.0f;
+				const FVector4 PointToTest(0.0f, 0.0f, LODDistance, 1.0f);
+				FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+
+				const float Divisor =  Dot3(-PointToTest, ProjMatrix.GetColumn(2));
+
+				FVector4 ScreenPosition = ProjMatrix.TransformFVector4(PointToTest);
+				const float ScreenMultiple = ScreenWidth / 2.0f * ProjMatrix.M[0][0];
+				const float ScreenRadius = ScreenMultiple * Bounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+				const float ScreenArea = ScreenWidth * ScreenHeight;
+				const float BoundsArea = PI * ScreenRadius * ScreenRadius;
+				ScreenSize[LODIndex] = FMath::Clamp(BoundsArea / ScreenArea, 0.0f, 1.0f);
+			}
+			else
+			{
+				Ar << ScreenSize[LODIndex];
+			}
 		}
 	}
 }
@@ -632,7 +659,8 @@ static float CalculateViewDistance(float MaxDeviation, float AllowedPixelError)
 void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 {
 	int32 LODIndex = 0;
-	for (; LODIndex < LODResources.Num(); ++LODIndex)
+	int32 MaxLODs = LODResources.Num();
+	for (; LODIndex < MaxLODs; ++LODIndex)
 	{
 		FStaticMeshLODResources& LOD = LODResources[LODIndex];
 		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
@@ -646,34 +674,38 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 
 		if (LODIndex == 0)
 		{
-			LODDistance[LODIndex] = 0.0f;
+			ScreenSize[LODIndex] = 1.0f;
 		}
-		else if (Owner->bAutoComputeLODDistance)
+		else if (Owner->bAutoComputeLODScreenSize)
 		{
-			if (LOD.MaxDeviation <= 0.0f)
+			if(LOD.MaxDeviation <= 0.0f)
 			{
-				const float MinAutoLODDistance = (LODIndex*2) * Bounds.SphereRadius;
-				LODDistance[LODIndex] = LODDistance[LODIndex-1] + MinAutoLODDistance;
+				ScreenSize[LODIndex] = 1.0f / (MaxLODs * LODIndex);
 			}
 			else
 			{
-				const float MinAutoLODDistance = 100.0f;
-				const float AutoLODDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->AutoLODPixelError);
-				LODDistance[LODIndex] = FMath::Max<float>(AutoLODDistance, LODDistance[LODIndex-1] + MinAutoLODDistance);
+				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->AutoLODPixelError);
+				ScreenSize[LODIndex] = 2.0f * Bounds.SphereRadius / ViewDistance;
 			}
 		}
 		else if (Owner->SourceModels.IsValidIndex(LODIndex))
 		{
-			LODDistance[LODIndex] = Owner->SourceModels[LODIndex].LODDistance;
+			ScreenSize[LODIndex] = Owner->SourceModels[LODIndex].ScreenSize;
 		}
 		else
 		{
-			LODDistance[LODIndex] = FLT_MAX;
+			// No valid source model and we're not auto-generating. Auto-generate in this case
+			// because we have nothing else to go on.
+			const float Tolerance = 0.01f;
+			float AutoDisplayFactor = 1.0f / (MaxLODs * LODIndex);
+
+			// Make sure this fits in with the previous LOD
+			ScreenSize[LODIndex] = FMath::Clamp(AutoDisplayFactor, 0.0f, ScreenSize[LODIndex-1] - Tolerance);
 		}
 	}
 	for (; LODIndex < MAX_STATIC_MESH_LODS + 1; ++LODIndex)
 	{
-		LODDistance[LODIndex] = FLT_MAX;
+		ScreenSize[LODIndex] = 0.0f;
 	}
 }
 
@@ -1062,7 +1094,7 @@ UStaticMesh::UStaticMesh(const FPostConstructInitializeProperties& PCIP)
 	bHasNavigationData=true;
 #if WITH_EDITORONLY_DATA
 	AutoLODPixelError = 1.0f;
-	bAutoComputeLODDistance=true;
+	bAutoComputeLODScreenSize=true;
 #endif // #if WITH_EDITORONLY_DATA
 	LpvBiasMultiplier = 1.0f;
 }
@@ -1280,14 +1312,14 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	AutoLODPixelError = FMath::Max(AutoLODPixelError, 1.0f);
 
-	if (!bAutoComputeLODDistance
+	if (!bAutoComputeLODScreenSize
 		&& RenderData
 		&& PropertyThatChanged
 		&& PropertyThatChanged->GetName() == TEXT("bAutoComputeLODDistance"))
 		{
 		for (int32 LODIndex = 1; LODIndex < SourceModels.Num(); ++LODIndex)
 		{
-			SourceModels[LODIndex].LODDistance = RenderData->LODDistance[LODIndex];
+			SourceModels[LODIndex].ScreenSize = RenderData->ScreenSize[LODIndex];
 		}
 	}
 
@@ -1364,7 +1396,7 @@ FStaticMeshSourceModel::FStaticMeshSourceModel()
 {
 #if WITH_EDITOR
 	RawMeshBulkData = new FRawMeshBulkData();
-	LODDistance = 0.0f;
+	ScreenSize = 0.0f;
 #endif // #if WITH_EDITOR
 }
 
@@ -1657,6 +1689,10 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			SrcModel.SerializeBulkData(Ar, this);
 		}
 		SectionInfoMap.Serialize(Ar);
+
+		// Need to set a flag rather than do conversion in place as RenderData is not
+		// created until postload and it is needed for bounding information
+		bRequiresLODDistanceConversion = Ar.UE4Ver() < VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS;
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -1669,6 +1705,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			RenderData = new FStaticMeshRenderData();
 			RenderData->Serialize(Ar, this, bCooked);
 		}
+
 #if WITH_EDITORONLY_DATA
 		else if (Ar.IsSaving())
 		{
@@ -1732,6 +1769,13 @@ void UStaticMesh::PostLoad()
 	}
 
 	CacheDerivedData();
+
+	// Only required in an editor build as other builds process this in a different place
+	if(bRequiresLODDistanceConversion)
+	{
+		// Convert distances to Display Factors
+		ConvertLegacyLODDistance();
+	}
 
 	if(RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
 	{
@@ -2357,7 +2401,49 @@ UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
 	return NULL;
 }
 
+void UStaticMesh::ConvertLegacyLODDistance()
+{
+	check(SourceModels.Num() > 0);
+	
+	if(SourceModels.Num() == 1)
+	{
+		// Only one model, 
+		SourceModels[0].ScreenSize = 1.0f;
+	}
+	else
+	{
+		// Multiple models, we should have LOD distance data.
+		// Assuming an FOV of 90 and a screen size of 1920x1080 to estimate an appropriate display factor.
+		const float HalfFOV = PI / 4.0f;
+		const float ScreenWidth = 1920.0f;
+		const float ScreenHeight = 1080.0f;
 
+		for(int32 ModelIndex = 0 ; ModelIndex < SourceModels.Num() ; ++ModelIndex)
+		{
+			FStaticMeshSourceModel& SrcModel = SourceModels[ModelIndex];
+
+			if(SrcModel.LODDistance_DEPRECATED == 0.0f)
+			{
+				SrcModel.ScreenSize = 1.0f;
+				RenderData->ScreenSize[ModelIndex] = SrcModel.ScreenSize;
+			}
+			else
+			{
+				// Create a screen position from the LOD distance
+				const FVector4 PointToTest(0.0f, 0.0f, SrcModel.LODDistance_DEPRECATED, 1.0f);
+				FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+				FVector4 ScreenPosition = ProjMatrix.TransformFVector4(PointToTest);
+				// Convert to a percentage of the screen
+				const float ScreenMultiple = ScreenWidth / 2.0f * ProjMatrix.M[0][0];
+				const float ScreenRadius = ScreenMultiple * GetBounds().SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+				const float ScreenArea = ScreenWidth * ScreenHeight;
+				const float BoundsArea = PI * ScreenRadius * ScreenRadius;
+				SrcModel.ScreenSize = FMath::Clamp(BoundsArea / ScreenArea, 0.0f, 1.0f);
+				RenderData->ScreenSize[ModelIndex] = SrcModel.ScreenSize;
+			}
+		}
+	}
+}
 
 /*-----------------------------------------------------------------------------
 UStaticMeshSocket

@@ -123,11 +123,8 @@ public:
 		virtual void Remove() = 0;
 	};
 
-	/** The squared minimum distance to draw the primitive at. */
-	float MinDrawDistanceSquared;
-
-	/** The squared maximum distance to draw the primitive at. */
-	float MaxDrawDistanceSquared;
+	/** The screen space size to draw this primitive at */
+	float ScreenSize;
 
 	/** The render info for the primitive which created this mesh. */
 	FPrimitiveSceneInfo* PrimitiveSceneInfo;
@@ -145,14 +142,12 @@ public:
 	FStaticMesh(
 		FPrimitiveSceneInfo* InPrimitiveSceneInfo,
 		const FMeshBatch& InMesh,
-		float InMinDrawDistanceSquared,
-		float InMaxDrawDistanceSquared,
+		float InScreenSize,
 		bool bInShadowOnly,
 		FHitProxyId InHitProxyId
 		):
 		FMeshBatch(InMesh),
-		MinDrawDistanceSquared(InMinDrawDistanceSquared),
-		MaxDrawDistanceSquared(InMaxDrawDistanceSquared),
+		ScreenSize(InScreenSize),
 		PrimitiveSceneInfo(InPrimitiveSceneInfo),
 		HitProxyId(InHitProxyId),
 		Id(INDEX_NONE),
@@ -182,8 +177,7 @@ private:
 	/** Private copy constructor. */
 	FStaticMesh(const FStaticMesh& InStaticMesh):
 		FMeshBatch(InStaticMesh),
-		MinDrawDistanceSquared(InStaticMesh.MinDrawDistanceSquared),
-		MaxDrawDistanceSquared(InStaticMesh.MaxDrawDistanceSquared),
+		ScreenSize(InStaticMesh.ScreenSize),
 		PrimitiveSceneInfo(InStaticMesh.PrimitiveSceneInfo),
 		HitProxyId(InStaticMesh.HitProxyId),
 		Id(InStaticMesh.Id)

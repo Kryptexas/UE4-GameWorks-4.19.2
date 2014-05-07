@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "../../Renderer/Private/ScenePrivate.h"
 
 /*
 TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUniformBufferImmediate(
@@ -79,4 +80,76 @@ FLightMapInteraction FLightMapInteraction::Texture(
 	Result.CoordinateScale = InCoordinateScale;
 	Result.CoordinateBias = InCoordinateBias;
 	return Result;
+}
+
+float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
+{
+	// Only need one component from a view transformation; just calculate the one we're interested in.
+	const float Divisor =  Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2));
+
+	// Get projection multiple accounting for view scaling.
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+
+	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
+	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
+	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+}
+
+int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, float FactorScale )
+{
+	const int32 NumLODs = MAX_STATIC_MESH_LODS+1;
+
+	const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
+
+	// Walk backwards and return the first matching LOD
+	for(int32 LODIndex = NumLODs - 1 ; LODIndex >= 0 ; --LODIndex)
+	{
+		if(RenderData->ScreenSize[LODIndex] > ScreenSize)
+		{
+			return LODIndex;
+		}
+	}
+
+	return 0;
+}
+
+int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes, FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale )
+{
+	int8 LODToRender = 0;
+
+	// Handle forced LOD level first
+	if(ForcedLODLevel >= 0)
+	{
+		int8 MaxLOD = 0;
+		for(int32 MeshIndex = 0 ; MeshIndex < StaticMeshes.Num() ; ++MeshIndex)
+		{
+			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
+			MaxLOD = FMath::Max(MaxLOD, Mesh.LODIndex);
+		}
+		LODToRender = FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD);
+	}
+	else
+	{
+		int32 NumMeshes = StaticMeshes.Num();
+
+		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View);
+
+		for(int32 MeshIndex = NumMeshes-1 ; MeshIndex > 0 ; --MeshIndex)
+		{
+			const FStaticMesh& Mesh = StaticMeshes[MeshIndex];
+
+			if(View.Family->EngineShowFlags.LOD == 1)
+			{
+				float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
+
+				if(MeshScreenSize > ScreenSize)
+				{
+					LODToRender = Mesh.LODIndex;
+					break;
+				}
+			}
+		}
+	}
+	return LODToRender;
 }

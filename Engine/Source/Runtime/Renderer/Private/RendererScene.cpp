@@ -1359,12 +1359,6 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Roll, SH_LEAF_2_ROLL_MAX_SCALE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindFrondRipple, SH_FROND_RIPPLE_TIME);
 
-				// @todo This needs to be broken out into its own constant buffer so it can change per instance
-				// Right now smooth SpeedTree LOD only works with the LOD distances set on the UStaticMesh
-				UniformParameters.LodInfo.Set((float)StaticMesh->RenderData->LODResources.Num(), 
-												1.0f / StaticMesh->RenderData->LODDistance[StaticMesh->RenderData->LODResources.Num() - 1], 
-												0.0f, 0.0f);
-
 				//BeginSetUniformBufferContents(WindComputation->UniformBuffer, UniformParameters);
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
 			}

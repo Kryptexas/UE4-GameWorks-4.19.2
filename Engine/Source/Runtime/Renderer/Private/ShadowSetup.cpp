@@ -826,18 +826,10 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 						// The old LOD will continue to be drawn even though a different LOD would be chosen by distance.
 						else
 						{
-							float DistanceSquared = 0.0f;
-							if (CurrentView.IsPerspectiveProjection())
-							{	
-								// Calculate LOD in the same way it is done for other static mesh draw lists
-								DistanceSquared = PrimitiveSceneInfo->Proxy->GetBounds().GetBox().ComputeSquaredDistanceToPoint(CurrentView.ShadowViewMatrices.ViewOrigin);
-							}
-							DistanceSquared *= FMath::Square(CurrentView.LODDistanceFactor);
-
+							int8 LODToRender = 0;
 							int32 ForcedLODLevel = (CurrentView.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 
 							// Add the primitive's static mesh elements to the draw lists.
-							int8 LODToRender;
 							if ( bReflectiveShadowmap) 
 							{
 								LODToRender = -CHAR_MAX;
@@ -849,13 +841,10 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							}
 							else
 							{
-								// Add the primitive's static mesh elements to the draw lists.
-							    LODToRender = ComputeLODForMeshes(
-								PrimitiveSceneInfo->StaticMeshes,
-								DistanceSquared,
-								GetCachedScalabilityCVars().ViewDistanceScaleSquared,
-								ForcedLODLevel
-								);
+								FPrimitiveBounds PrimitiveBounds;
+								PrimitiveBounds.Origin = Bounds.Origin;
+								PrimitiveBounds.SphereRadius = Bounds.SphereRadius;
+								LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, CurrentView, PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius, ForcedLODLevel);
 							}
 
 							for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)

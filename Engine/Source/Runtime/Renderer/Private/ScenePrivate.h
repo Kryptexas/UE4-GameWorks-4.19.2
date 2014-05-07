@@ -1541,18 +1541,4 @@ private:
 	bool bHasSkyLight;
 };
 
-/**
- * Computes the LOD to render for the list of static meshes.
- * @param List of static meshes.
- * @param The squared distance to the primitive.
- * @param Squared scale to apply to the squared max draw distance.
- * @param ForcedLODLevel from "r.ForceLOD"
- */
-int8 ComputeLODForMeshes(
-	const TIndirectArray<class FStaticMesh>& StaticMeshes,
-	float DistanceSquared,
-	float MaxDrawDistanceScaleSquared,
-	int32 ForcedLODLevel
-	);
-
 #endif // __SCENEPRIVATE_H__
