@@ -1766,9 +1766,34 @@ class TestKillAll : BuildCommand
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
-		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
 
 		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
-		Thread.Sleep(1000);
+		Thread.Sleep(10000);
+	}
+}
+
+[Help("Spawns a process to test if it can be killed.")]
+class TestStopProcess : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		Log("*********************** TestStopProcess");
+
+		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
+		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -ddc=noshared -abslog=" + ClientLogFile;
+
+		for (int Attempt = 0; Attempt < 5; ++Attempt)
+		{
+			Log("Attempt: {0}", Attempt);
+			var Proc = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+			Thread.Sleep(10000);
+			Proc.StopProcess();
+		}
+
+		Log("One final attempt to test KillAll");
+		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+		Thread.Sleep(10000);
 	}
 }

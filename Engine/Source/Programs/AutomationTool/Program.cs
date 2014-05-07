@@ -60,6 +60,12 @@ namespace AutomationTool
 			CommandUtils.ClearDirStack();
 			Environment.ExitCode = Result;
 
+			// Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
+			if (ShouldKillProcesses)
+			{
+				ProcessManager.KillAll();
+			}
+
 			Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", Result);
 			return Result;
 		}
