@@ -75,7 +75,13 @@ private:
 	TRefCountPtr<FRHIShaderResourceView> StencilSRV;
 	FTextureRHIRef StencilSRVSrc;
 
+	// The view rectangle that we are drawing to
 	FIntRect ViewRect;
+
+	// View rectange, constrained to the camera aspect ratio (if required). In game modes, the view rectangle is set to the correct aspect ratio constrained rectangle, but
+	// in the editor it is set to the full viewport window, and separate black bars are drawn to simulate the contrained area. We need to know about that so we can keep
+	// the texture visualization image inside this area
+	FIntRect AspectRatioConstrainedViewRect;
 
 	// is called by FPooledRenderTarget
 

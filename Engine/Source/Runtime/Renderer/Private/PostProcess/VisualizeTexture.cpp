@@ -285,16 +285,23 @@ FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSi
 			FIntPoint HalfMax = InputTextureSize - HalfMin;
 
 			ret = FIntRect(Center - HalfMin, Center + HalfMax);
+			break;
 		}
-		break;
 
 		// whole texture in PIP
 		case 3:
-			ret = FIntRect(80, ViewExtent.Y - ViewExtent.Y / 3 - 10, ViewExtent.X / 3 + 10, ViewExtent.Y - 10) + ViewRect.Min;
+		{
+			int32 LeftOffset = AspectRatioConstrainedViewRect.Min.X;
+			int32 BottomOffset = AspectRatioConstrainedViewRect.Max.Y - ViewRect.Max.Y;
+
+			ret = FIntRect(LeftOffset + 80, ViewExtent.Y - ViewExtent.Y / 3 - 10 + BottomOffset, ViewExtent.X / 3 + 10, ViewExtent.Y - 10 + BottomOffset) + ViewRect.Min;
 			break;
+		}
 
 		default:
+		{
 			break;
+		}
 	}
 
 	return ret;
@@ -867,6 +874,7 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
 	ViewRect = View.UnscaledViewRect;
+	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// VisualizeTexture observed render target is set each frame

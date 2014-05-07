@@ -1295,7 +1295,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 	}
 }
 
-bool FEditorViewportClient::CalculateSafeFrameRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport)
+bool FEditorViewportClient::CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport)
 {
 	const int32 SizeX = InViewport->GetSizeXY().X;
 	const int32 SizeY = InViewport->GetSizeXY().Y;
@@ -1342,7 +1342,7 @@ void FEditorViewportClient::DrawSafeFrames(FViewport& InViewport, FSceneView& Vi
 	if (EngineShowFlags.CameraAspectRatioBars || EngineShowFlags.CameraSafeFrames)
 	{
 		FSlateRect SafeRect;
-		if (CalculateSafeFrameRect(SafeRect, &InViewport))
+		if (CalculateEditorConstrainedViewRect(SafeRect, &InViewport))
 		{
 			if (EngineShowFlags.CameraSafeFrames)
 			{
@@ -2493,6 +2493,13 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	FSceneView* View = CalcSceneView( &ViewFamily );
 
 	SetupViewForRendering(ViewFamily,*View);
+
+	FSlateRect SafeFrame;
+	View->CameraConstrainedViewRect = View->UnscaledViewRect;
+	if (CalculateEditorConstrainedViewRect(SafeFrame, Viewport))
+	{
+		View->CameraConstrainedViewRect = FIntRect(SafeFrame.Left, SafeFrame.Top, SafeFrame.Right, SafeFrame.Bottom);
+	}
 
 	if (IsAspectRatioConstrained())
 	{

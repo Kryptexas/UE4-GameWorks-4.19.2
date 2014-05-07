@@ -738,6 +738,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 						View->CurrentBufferVisualizationMode = CurrentBufferVisualizationMode;
 
+						View->CameraConstrainedViewRect = View->UnscaledViewRect;
+
 						// If this is the primary drawing pass, update things that depend on the view location
 						if( i == 0 )
 						{
