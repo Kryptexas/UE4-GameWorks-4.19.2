@@ -8,7 +8,6 @@
 #include "DeferredShadingCommon.usf"  
 #include "BRDF.usf"
 #include "ReflectionEnvironmentShared.usf"
-#include "SkyLightShared.usf"
 
 #if TILED_DEFERRED_CULL_SHADER
 
@@ -578,7 +577,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
 		// This is only done with luma so as to not get odd color shifting.
 		// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
-		SpecularLighting.rgb *= Luminance( GBuffer.LowGlossIndirectSpecular );
+		SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
 #else
 		OutColor.rgb += DiffuseLighting.rgb * GBuffer.DiffuseColor * AO;
 #endif

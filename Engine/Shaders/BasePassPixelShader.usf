@@ -12,6 +12,7 @@
 #include "LightmapCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
 #include "BRDF.usf"
+#include "Random.usf"
 
 #include "DeferredShadingCommon.usf"
 
@@ -65,7 +66,7 @@ SamplerState ReflectionCubemapSampler;
 int CubemapArrayIndex;
 #endif
 
-half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half3 LowGlossIndirectSpecular)
+half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
@@ -85,7 +86,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	if( View.UseLightmaps > 0 )
 	{
 		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
-		SpecularIBL.rgb *= Luminance( LowGlossIndirectSpecular );
+		SpecularIBL.rgb *= IndirectIrradiance;
 	}
 	
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
@@ -100,7 +101,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 
 /** Calculates lighting for translucency. */
-float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, float3 DiffuseColor, half Roughness, half3 SpecularColor, float3 LowGlossIndirectSpecular, float MaterialAO)
+float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, float3 DiffuseColor, half Roughness, half3 SpecularColor, float IndirectIrradiance, float MaterialAO)
 {
 	float3 InterpolatedLighting = 0;
 
@@ -232,7 +233,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 			// Compute diffuse lighting which takes the normal into account
 			float3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
-			LowGlossIndirectSpecular += DiffuseGI;
+			IndirectIrradiance += Luminance(DiffuseGI);
 
 			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
 
@@ -241,7 +242,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 			float3 PointIndirectLighting = float3(IndirectLightingSHCoefficients[0].x, IndirectLightingSHCoefficients[1].x, IndirectLightingSHCoefficients[2].x);
 			//@todo - why is /2 needed to match directional?
 			float3 DiffuseGI = PointIndirectLighting / (SHAmbientFunction() * 2);
-			LowGlossIndirectSpecular += DiffuseGI;
+			IndirectIrradiance += Luminance(DiffuseGI);
 
 			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
 
@@ -249,7 +250,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 	#endif
 
 	#if TRANSLUCENCY_LIGHTING_SURFACE
-		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, LowGlossIndirectSpecular);
+		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, IndirectIrradiance);
 	#endif
 
 	return InterpolatedLighting;
@@ -361,9 +362,9 @@ float3 GetPrecomputedIndirectLighting(
 	FMaterialPixelParameters MaterialParameters, 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	out float3 LowGlossIndirectSpecular)
+	out float IndirectIrradiance)
 {
-	LowGlossIndirectSpecular = 0;
+	IndirectIrradiance = 0;
 	float3 Lighting = 0;
 	float2 SkyOcclusionUV = 0;
 
@@ -411,7 +412,7 @@ float3 GetPrecomputedIndirectLighting(
 
 	#endif
 
-	// Sky lighting must contribute to LowGlossIndirectSpecular for ReflectionEnvironment lightmap mixing
+	// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
 	float3 SkyLighting = GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV);
 
 	BRANCH
@@ -431,7 +432,7 @@ float3 GetPrecomputedIndirectLighting(
 
 	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING
 		Lighting *= View.IndirectLightingColorScale;
-		LowGlossIndirectSpecular = Lighting;
+		IndirectIrradiance = Luminance(Lighting);
 	#endif
 
 	return Lighting;
@@ -619,11 +620,11 @@ void Main(
 
 
 	half3 Color = 0;
-	float3 LowGlossIndirectSpecular = 0;
+	float IndirectIrradiance = 0;
 
 	#if !MATERIAL_LIGHTINGMODEL_UNLIT
 
-		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, LowGlossIndirectSpecular) * DiffuseColor * MaterialAO;
+		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, IndirectIrradiance) * DiffuseColor * MaterialAO;
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
@@ -649,7 +650,7 @@ void Main(
 		
 	// Volume lighting for lit translucency
 	#if (MATERIAL_LIGHTINGMODEL_DEFAULT_LIT || MATERIAL_LIGHTINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
-		Color += GetTranslucencyLighting(MaterialParameters, DiffuseColor, Roughness, SpecularColor, LowGlossIndirectSpecular, MaterialAO);
+		Color += GetTranslucencyLighting(MaterialParameters, DiffuseColor, Roughness, SpecularColor, IndirectIrradiance, MaterialAO);
 	#endif
 
 	#if !MATERIAL_LIGHTINGMODEL_UNLIT
@@ -710,7 +711,7 @@ void Main(
 #endif
 		Data.Roughness = Roughness;
 		Data.SubsurfaceColor = SubsurfaceColor;
-		Data.LowGlossIndirectSpecular = LowGlossIndirectSpecular;
+		Data.IndirectIrradiance = IndirectIrradiance;
 		Data.PrecomputedShadowFactors = PrecomputedShadowFactors;
 		Data.GBufferAO = MaterialAO;
 		Data.Opacity = Opacity;
@@ -732,7 +733,8 @@ void Main(
 			float4 OutGBufferE = 0;
 		#endif
 
-		EncodeGBuffer(Data,OutGBufferA,OutGBufferB,OutGBufferC,OutGBufferD,OutGBufferE);
+		float QuantizationBias = PseudoRandom( MaterialParameters.SVPosition ) * 0.5 - 0.5;
+		EncodeGBuffer(Data, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, QuantizationBias);
 	#endif 
 	
 

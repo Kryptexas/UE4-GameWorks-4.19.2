@@ -9,7 +9,6 @@
 #include "BRDF.usf"
 #include "SHCommon.usf"
 #include "ReflectionEnvironmentShared.usf"
-#include "SkyLightShared.usf"
 #include "MonteCarlo.usf"
 
 struct FCopyToCubeFaceVSOutput
@@ -367,7 +366,7 @@ void SpecularBouncePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor 
 	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
 
 	// Factors derived from EnvBRDFApprox( SpecularColor, 1, 1 ) == SpecularColor * 0.4524 - 0.0024
-	OutColor = float4( 0.45 * GBuffer.SpecularColor * GBuffer.LowGlossIndirectSpecular, 0 );
+	OutColor = float4( 0.45 * GBuffer.SpecularColor * GBuffer.IndirectIrradiance, 0 );
 }
 
 float4 CapturePositionAndRadius;
@@ -526,7 +525,7 @@ void ReflectionApplyPS(
 			// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
 			// This is only done with luma so as to not get odd color shifting.
 			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
-			SpecularLighting.rgb *= Luminance( GBuffer.LowGlossIndirectSpecular );
+			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
 		}
 
 #if APPLY_SSR

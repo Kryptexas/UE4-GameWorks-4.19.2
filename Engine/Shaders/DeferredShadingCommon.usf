@@ -13,6 +13,105 @@
 	#define MSAA_SAMPLE_COUNT 2
 #endif
 
+float3 RGBToYCoCg( float3 RGB )
+{
+	float Y  = dot( RGB, float3(  1, 2,  1 ) ) * 0.25;
+	float Co = dot( RGB, float3(  2, 0, -2 ) ) * 0.25 + ( 0.5 * 256.0 / 255.0 );
+	float Cg = dot( RGB, float3( -1, 2, -1 ) ) * 0.25 + ( 0.5 * 256.0 / 255.0 );
+	
+	float3 YCoCg = float3( Y, Co, Cg );
+	return YCoCg;
+}
+
+float3 YCoCgToRGB( float3 YCoCg )
+{
+	float Y  = YCoCg.x;
+	float Co = YCoCg.y - ( 0.5 * 256.0 / 255.0 );
+	float Cg = YCoCg.z - ( 0.5 * 256.0 / 255.0 );
+
+	float R = Y + Co - Cg;
+	float G = Y + Cg;
+	float B = Y - Co - Cg;
+
+	float3 RGB = float3( R, G, B );
+	return RGB;
+}
+
+// Octahedron Normal Vectors
+// [Cigolle 2014, "A Survey of Efficient Representations for Independent Unit Vectors"]
+//						Mean	Max
+// oct		8:8			0.33709 0.94424
+// snorm	8:8:8		0.17015 0.38588
+// oct		10:10		0.08380 0.23467
+// snorm	10:10:10	0.04228 0.09598
+// oct		12:12		0.02091 0.05874
+
+float2 UnitVectorToOctahedron( float3 N )
+{
+	N.xy /= dot( 1, abs(N) );
+	if( N.z <= 0 )
+	{
+		N.xy = ( 1 - abs(N.yx) ) * ( N.xy >= 0 ? 1 : -1 );
+	}
+	return N.xy;
+}
+
+float3 OctahedronToUnitVector( float2 Oct )
+{
+	float3 N = float3( Oct, 1 - dot( 1, abs(Oct) ) );
+	if( N.z < 0 )
+	{
+		N.xy = ( 1 - abs(N.yx) ) * ( N.xy >= 0 ? 1 : -1 );
+	}
+	return normalize(N);
+}
+
+float3 Pack1212To888( float2 x )
+{
+	// Pack 12:12 to 8:8:8
+#if 0
+	uint2 x1212 = (uint2)( x * 4095.0 );
+	uint2 High = x1212 >> 8;
+	uint2 Low = x1212 & 255;
+	uint3 x888 = uint3( Low, High.x | (High.y << 4) );
+	return x888 / 255.0;
+#else
+	float2 x1212 = floor( x * 4095 );
+	float2 High = floor( x1212 / 256 );	// x1212 >> 8
+	float2 Low = x1212 - High * 256;	// x1212 & 255
+	float3 x888 = float3( Low, High.x + High.y * 16 );
+	return saturate( x888 / 255 );
+#endif
+}
+
+float2 Pack888To1212( float3 x )
+{
+	// Pack 8:8:8 to 12:12
+#if 0
+	uint3 x888 = (uint3)( x * 255.0 );
+	uint High = x888.z >> 4;
+	uint Low = x888.z & 15;
+	uint2 x1212 = x888.xy | uint2( Low << 8, High << 8 );
+	return x1212 / 4095.0;
+#else
+	float3 x888 = floor( x * 255 );
+	float High = floor( x888.z / 16 );	// x888.z >> 4
+	float Low = x888.z - High * 16;		// x888.z & 15
+	float2 x1212 = x888.xy + float2( Low, High ) * 256;
+	return saturate( x1212 / 4095 );
+#endif
+}
+
+float3 EncodeNormal( float3 N )
+{
+	return Pack1212To888( UnitVectorToOctahedron( N ) * 0.5 + 0.5 );
+}
+
+float3 DecodeNormal( float3 N )
+{
+	return OctahedronToUnitVector( Pack888To1212( N )* 2 - 1 );
+}
+
 float3 EncodeSpecularColor(float3 SpecularColor)
 {
 	// Allocate more precision to the darks, which is necessary with bright specular lighting and strong Fresnel
@@ -37,7 +136,6 @@ float3 DecodeDiffuseColor(float3 DiffuseColor)
 	return DiffuseColor;
 }
 
-// TODO Can sRGB writes do this for us?
 float3 EncodeBaseColor(float3 BaseColor)
 {
 	// we use sRGB on the render target to give more precision to the darks
@@ -83,16 +181,19 @@ float3 DecodeSubsurfaceColor(float3 SubsurfaceColor)
 	return Square(SubsurfaceColor);
 }
 
-float3 EncodeIndirectSpecularColor(float3 IndirectSpecularColor)
+float EncodeIndirectIrradiance(float IndirectIrradiance)
 {
-	// Allocate more precision to the darks
-	//@todo - Any indirect lighting higher than 1 is currently clamped
-	return sqrt(saturate(IndirectSpecularColor));
+	float L = IndirectIrradiance;
+	const float LogBlackPoint = 0.00390625;	// exp2(-8);
+	return log2( L + LogBlackPoint ) / 16 + 0.5;
 }
 
-float3 DecodeIndirectSpecularColor(float3 EncodedValue)
+float DecodeIndirectIrradiance(float IndirectIrradiance)
 {
-	return Square(EncodedValue);
+	// LogL -> L
+	float LogL = IndirectIrradiance;
+	const float LogBlackPoint = 0.00390625;	// exp2(-8);
+	return exp2( LogL * 16 - 8 ) - LogBlackPoint;		// 1 exp2, 1 smad, 1 ssub
 }
 
 float ComputeAngleFromRoughness( float Roughness, const float Threshold = 0.04f )
@@ -168,8 +269,8 @@ struct FGBufferData
 	float Specular;
 	// 0..1
 	float3 SubsurfaceColor;
-	// Indirect specular from the lightmap
-	float3 LowGlossIndirectSpecular;
+	// Indirect irradiance luma
+	float IndirectIrradiance;
 	// Static shadow factors for channels assigned by Lightmass
 	// Lights using static shadowing will pick up the appropriate channel in their deferred pass
 	float4 PrecomputedShadowFactors;
@@ -225,7 +326,8 @@ void EncodeGBuffer(
 	out float4 OutGBufferB,
 	out float4 OutGBufferC,
 	out float4 OutGBufferD,
-	out float4 OutGBufferE
+	out float4 OutGBufferE,
+	float QuantizationBias = 0		// -0.5 to 0.5 random float. Used to bias quantization.
 	)
 {
 	OutGBufferA.rgb = float3(Data.WorldNormal * 0.5f + 0.5f);
@@ -241,23 +343,22 @@ void EncodeGBuffer(
 	}
 	else
 	{
+		bool bSubsurface = (Data.LightingModelId == LIGHTINGMODELID_SUBSURFACE || Data.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
+
 #if DIFFUSE_SPEC_INPUTS
-		OutGBufferB = float4(EncodeSpecularColor(Data.SpecularColor), Data.GBufferAO);
+		OutGBufferB.rgb = EncodeSpecularColor(Data.SpecularColor);
 		OutGBufferC.rgb = EncodeDiffuseColor(Data.DiffuseColor);
 #else
 		// NOTE OutGBufferB.b is currently unused!
-		OutGBufferB.r = Data.Metallic;
+		OutGBufferB.r = bSubsurface ? Data.Opacity : Data.Metallic;
 		OutGBufferB.g = Data.Specular;
 		OutGBufferB.b = 0;
-		OutGBufferB.a = Data.GBufferAO;
 		OutGBufferC.rgb = EncodeBaseColor(Data.BaseColor);
 #endif
+		OutGBufferB.a = Encode71(Data.GBufferAO, Data.DecalMask);;
+		OutGBufferC.a = EncodeIndirectIrradiance(Data.IndirectIrradiance) + QuantizationBias * (1.0 / 255.0);
 
-		bool bSubsurface = (Data.LightingModelId == LIGHTINGMODELID_SUBSURFACE || Data.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
-
-		OutGBufferC.a = Encode71(Data.Opacity, Data.DecalMask);
-
-		float3 BufferDColor = bSubsurface ? EncodeSubsurfaceColor(Data.SubsurfaceColor) : EncodeIndirectSpecularColor(Data.LowGlossIndirectSpecular);
+		float3 BufferDColor = bSubsurface ? EncodeSubsurfaceColor(Data.SubsurfaceColor) : float3(0, 0, 0);
 
 		// Roughness in OutGBufferD.r instead of OutGBufferB.a so that deferred decals can blend in roughness while using MRT
 		OutGBufferD = float4(Data.Roughness, BufferDColor.r, BufferDColor.g, BufferDColor.b);
@@ -292,6 +393,10 @@ FGBufferData DecodeGBufferData(
 		ret.WorldNormal = normalize(ret.WorldNormal);
 	}
 
+	ret.LightingModelId = DecodeLightingModelId(InGBufferA);
+	
+	bool bSubsurface = (ret.LightingModelId == LIGHTINGMODELID_SUBSURFACE || ret.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
+
 #if DIFFUSE_SPEC_INPUTS
 	ret.BaseColor = 0;
 	ret.Metallic = 0;
@@ -300,15 +405,15 @@ FGBufferData DecodeGBufferData(
 	ret.DiffuseColor = DecodeDiffuseColor(InGBufferC.rgb);
 	ret.SpecularColor = DecodeSpecularColor(InGBufferB.rgb);
 #else
-	ret.BaseColor = DecodeDiffuseColor(InGBufferC.rgb);
-	ret.Metallic = InGBufferB.r;
+	ret.BaseColor = DecodeBaseColor(InGBufferC.rgb);
+	ret.Metallic = bSubsurface ? 0 : InGBufferB.r;
 	ret.Specular = InGBufferB.g;
 
-	ret.DiffuseColor = lerp( ret.BaseColor, float3(0, 0, 0), ret.Metallic.xxx );
+	ret.DiffuseColor = ret.BaseColor - ret.BaseColor * ret.Metallic;
 	ret.SpecularColor = lerp( 0.08 * ret.Specular.xxx, ret.BaseColor, ret.Metallic );
 
-// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
+	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		ret.DiffuseColor = ret.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
@@ -318,13 +423,20 @@ FGBufferData DecodeGBufferData(
 
 #endif
 
+	if( bSubsurface )
+	{
+		ret.SubsurfaceColor = DecodeSubsurfaceColor(InGBufferD.gba);
+		ret.Opacity = InGBufferB.r;
+	}
+	else
+	{
+		ret.SubsurfaceColor = 0;
+		ret.Opacity = 0;
+	}
+	
 	ret.Roughness = InGBufferD.r;
-	ret.LightingModelId = DecodeLightingModelId(InGBufferA);
-	bool bSubsurface = (ret.LightingModelId == LIGHTINGMODELID_SUBSURFACE || ret.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
-	ret.Opacity = Decode71(InGBufferC.a, ret.DecalMask);
-	ret.GBufferAO = InGBufferB.a;
-	ret.SubsurfaceColor = bSubsurface ? DecodeSubsurfaceColor(InGBufferD.gba) : float3(0, 0, 0);
-	ret.LowGlossIndirectSpecular = bSubsurface ? float3(0, 0, 0) : DecodeIndirectSpecularColor(InGBufferD.gba);
+	ret.GBufferAO = Decode71(InGBufferB.a, ret.DecalMask);
+	ret.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
 	ret.PrecomputedShadowFactors = InGBufferE;
 	ret.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
 	ret.Depth = SceneDepth;

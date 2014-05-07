@@ -133,12 +133,12 @@ void Main(
 #endif
 	
 	half3 Color = 0;
-	half LowGlossIndirectSpecularBrightness = 0;
+	half IndirectIrradiance = 0;
 
 	#if LQ_TEXTURE_LIGHTMAP
 		half4 LightmapColor = GetLightMapColorLQ( GetLightMapCoordinate(Interpolants), MaterialParameters.WorldNormal );
 		Color += LightmapColor.rgb * DiffuseColor;
-		LowGlossIndirectSpecularBrightness = LightmapColor.a;
+		IndirectIrradiance = LightmapColor.a;
 	#elif CACHED_POINT_INDIRECT_LIGHTING
 		#if MATERIALBLENDING_MASKED || MATERIALBLENDING_SOLID
 
@@ -153,7 +153,7 @@ void Main(
 			// Compute diffuse lighting which takes the normal into account
 			half3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
 
-			LowGlossIndirectSpecularBrightness = Luminance(DiffuseGI);
+			IndirectIrradiance = Luminance(DiffuseGI);
 			Color += DiffuseColor * DiffuseGI;
 
 		#else 
@@ -164,7 +164,7 @@ void Main(
 			half3 PointIndirectLighting = IndirectLightingSHCoefficients[0];
 			half3 DiffuseGI = PointIndirectLighting;
 
-			LowGlossIndirectSpecularBrightness = Luminance(DiffuseGI);
+			IndirectIrradiance = Luminance(DiffuseGI);
 			Color += DiffuseColor * DiffuseGI;
 
 		#endif
@@ -185,7 +185,7 @@ void Main(
 		#if !MATERIAL_FULLY_ROUGH
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);
 			// Environment map has been prenormalized, scale by lightmap luminance
-			Color += SpecularIBL * LowGlossIndirectSpecularBrightness * SpecularColor;
+			Color += SpecularIBL * IndirectIrradiance * SpecularColor;
 		#endif
 	#endif
 			 
