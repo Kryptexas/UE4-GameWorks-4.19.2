@@ -217,7 +217,8 @@ namespace AutomationTool
 			"svchost",
 			"services",
 			"lsass",
-            "conhost"
+            "conhost",
+            "oobe"
 		};
 		public override string[] DontKillProcessList
 		{
