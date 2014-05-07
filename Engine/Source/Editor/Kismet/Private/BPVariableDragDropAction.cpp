@@ -7,6 +7,7 @@
 #include "GraphEditorDragDropAction.h"
 #include "BPVariableDragDropAction.h"
 #include "SBlueprintPalette.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "VariableDragDropAction"
 
