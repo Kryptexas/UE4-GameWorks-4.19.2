@@ -4301,10 +4301,10 @@ public class GUBP : BuildCommand
                     var EditorTestNodes = new List<string>();
                     foreach (var Test in EditorTests)
                     {
-                        EditorTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, Branch.BaseEngineProject, Test.Key, Test.Value, AgentSharingGroup)));
-
                         if (bAutomatedTesting)
                         {
+                            EditorTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, Branch.BaseEngineProject, Test.Key, Test.Value, AgentSharingGroup)));
+
                             foreach (var NonCodeProject in Branch.NonCodeProjects)
                             {
                                 if (!NonCodeProjectNames.ContainsKey(NonCodeProject.GameName))
