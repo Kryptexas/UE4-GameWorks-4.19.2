@@ -68,7 +68,7 @@ public:
 	/**
 	 * The maximum number of news items to show.
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Display)
+	UPROPERTY(config, EditAnywhere, Category=Display, meta=(DisplayName="Number Of Most Recent Items To Show"))
 	int32 MaxItemsToShow;
 
 	/**
