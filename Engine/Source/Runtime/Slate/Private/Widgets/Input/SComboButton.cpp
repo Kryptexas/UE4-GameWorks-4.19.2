@@ -136,3 +136,8 @@ void SComboButton::SetMenuContent( const TSharedRef< SWidget >& InContent )
 			]
 		];
 }
+
+void SComboButton::SetOnGetMenuContent(FOnGetContent InOnGetMenuContent)
+{
+	OnGetMenuContent = InOnGetMenuContent;
+}

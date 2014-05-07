@@ -33,8 +33,13 @@ public:
 		SLATE_STYLE_ARGUMENT( FButtonStyle, ButtonStyle )
 		
 		SLATE_NAMED_SLOT( FArguments, ButtonContent )
+		
+		/** Optional static menu content.  If the menu content needs to be dynamically built, use the OnGetMenuContent event */
 		SLATE_NAMED_SLOT( FArguments, MenuContent )
+		
+		/** Sets an event handler to generate a widget dynamically when the menu is needed. */
 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
+		
 		SLATE_EVENT( FOnComboBoxOpened, OnComboBoxOpened )
 		SLATE_ARGUMENT( bool, IsFocusable )
 		SLATE_ARGUMENT( bool, HasDownArrow )
@@ -61,6 +66,9 @@ public:
 	 * @param	InContent	The widget to use as content for this button
 	 */
 	void SetMenuContent( const TSharedRef< SWidget >& InContent );
+
+	/** See the OnGetMenuContent event */
+	void SetOnGetMenuContent( FOnGetContent InOnGetMenuContent );
 
 	/**
 	 * Construct the widget from a declaration
