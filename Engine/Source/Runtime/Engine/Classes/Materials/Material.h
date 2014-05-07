@@ -1149,11 +1149,17 @@ public:
 	/**
 	 * Flip the X coordinates of a material's expressions and space them out more
 	 *
-	 * @param	Expressions	Array of material expressions
-	 * @param	Comments	Array of material expression comments
-	 * @param	Material	The Material to flip its home coords (optional)
+	 * @param	Expressions		Array of material expressions
+	 * @param	Comments		Array of material expression comments
+	 * @param	bScaleCoords	Whether to scale the coordinates to space out nodes
+	 * @param	Material		The Material to flip its home coords (optional)
 	 */
-	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* Material = NULL);
+	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* Material = NULL);
+
+	/**
+	 * Checks whether a Material is arranged in the old style, with inputs flowing from right to left
+	 */
+	bool HasFlippedCoordinates();
 #endif //WITH_EDITORONLY_DATA
 
 private:

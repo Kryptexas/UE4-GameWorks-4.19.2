@@ -538,6 +538,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING,
 	// Change from LOD distances to display factors
 	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
+	// Requires test of material coords to ensure they're saved correctly
+	VER_UE4_FIX_MATERIAL_COORDS,
  
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

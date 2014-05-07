@@ -86,6 +86,11 @@ public:
 
 	void UpdateInputOutputTypes();
 
+	/**
+	 * Checks whether a Material Function is arranged in the old style, with inputs flowing from right to left
+	 */
+	bool HasFlippedCoordinates() const;
+
 	UPROPERTY(AssetRegistrySearchable)
 	uint32 CombinedInputTypes;
 

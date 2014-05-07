@@ -22,6 +22,7 @@ if( ExpressionInput.Expression == ToBeRemovedExpression )										\
 
 #if WITH_EDITOR
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedExpressionsFlipped;
+FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCoordinateCheck;
 #endif // #if WITH_EDITOR
 
 /** Returns whether the given expression class is allowed. */
@@ -6015,6 +6016,10 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 	{
 		GMaterialFunctionsThatNeedExpressionsFlipped.Set(this);
 	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COORDS)
+	{
+		GMaterialFunctionsThatNeedCoordinateCheck.Set(this);
+	}
 #endif // #if WITH_EDITOR
 }
 
@@ -6058,7 +6063,15 @@ void UMaterialFunction::PostLoad()
 	if (GMaterialFunctionsThatNeedExpressionsFlipped.Get(this))
 	{
 		GMaterialFunctionsThatNeedExpressionsFlipped.Clear(this);
-		UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments);
+		UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments, true);
+	}
+	else if (GMaterialFunctionsThatNeedCoordinateCheck.Get(this))
+	{
+		GMaterialFunctionsThatNeedCoordinateCheck.Clear(this);
+		if (HasFlippedCoordinates())
+		{
+			UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments, false);
+		}
 	}
 #endif // #if WITH_EDITOR
 }
@@ -6355,6 +6368,33 @@ void UMaterialFunction::AppendReferencedTextures(TArray<UTexture*>& InOutTexture
 		}
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+bool UMaterialFunction::HasFlippedCoordinates() const
+{
+	uint32 ReversedInputCount = 0;
+	uint32 StandardInputCount = 0;
+
+	for (int32 Index = 0; Index < FunctionExpressions.Num(); ++Index)
+	{
+		UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(FunctionExpressions[Index]);
+		if (FunctionOutput && FunctionOutput->A.Expression)
+		{
+			if (FunctionOutput->A.Expression->MaterialExpressionEditorX > FunctionOutput->MaterialExpressionEditorX)
+			{
+				++ReversedInputCount;
+			}
+			else
+			{
+				++StandardInputCount;
+			}
+		}
+	}
+
+	// Can't be sure coords are flipped if most are set out correctly
+	return ReversedInputCount > StandardInputCount;
+}
+#endif //WITH_EDITORONLY_DATA
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionMaterialFunctionCall

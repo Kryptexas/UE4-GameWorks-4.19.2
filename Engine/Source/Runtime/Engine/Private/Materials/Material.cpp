@@ -32,6 +32,7 @@ FUObjectAnnotationSparseBool GMaterialsThatNeedSamplerFixup;
 FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
 FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
+FUObjectAnnotationSparseBool GMaterialsThatNeedCoordinateCheck;
 
 #endif // #if WITH_EDITOR
 
@@ -1588,6 +1589,10 @@ void UMaterial::Serialize(FArchive& Ar)
 	{
 		GMaterialsThatNeedExpressionsFlipped.Set(this);
 	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COORDS)
+	{
+		GMaterialsThatNeedCoordinateCheck.Set(this);
+	}
 #endif // #if WITH_EDITOR
 
 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
@@ -1966,7 +1971,15 @@ void UMaterial::PostLoad()
 	if (GMaterialsThatNeedExpressionsFlipped.Get(this))
 	{
 		GMaterialsThatNeedExpressionsFlipped.Clear(this);
-		FlipExpressionPositions(Expressions, EditorComments, this);
+		FlipExpressionPositions(Expressions, EditorComments, true, this);
+	}
+	else if (GMaterialsThatNeedCoordinateCheck.Get(this))
+	{
+		GMaterialsThatNeedCoordinateCheck.Clear(this);
+		if (HasFlippedCoordinates())
+		{
+			FlipExpressionPositions(Expressions, EditorComments, false, this);
+		}
 	}
 #endif // #if WITH_EDITOR
 }
@@ -3475,10 +3488,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 }
 
 #if WITH_EDITORONLY_DATA
-void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* InMaterial)
+void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* InMaterial)
 {
 	// Rough estimate of average increase in node size for the new editor
-	const float PosScaling = 1.25f;
+	const float PosScaling = bScaleCoords ? 1.25f : 1.0f;
 
 	if (InMaterial)
 	{
@@ -3498,5 +3511,31 @@ void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expr
 		Comment->SizeX *= PosScaling;
 		Comment->SizeY *= PosScaling;
 	}
+}
+
+bool UMaterial::HasFlippedCoordinates()
+{
+	uint32 ReversedInputCount = 0;
+	uint32 StandardInputCount = 0;
+
+	// Check inputs to see if they are right of the root node
+	for (int32 InputIndex = 0; InputIndex < MP_MAX; InputIndex++)
+	{
+		FExpressionInput* Input = GetExpressionInputForProperty((EMaterialProperty)InputIndex);
+		if (Input->Expression)
+		{
+			if (Input->Expression->MaterialExpressionEditorX > EditorX)
+			{
+				++ReversedInputCount;
+			}
+			else
+			{
+				++StandardInputCount;
+			}
+		}
+	}
+
+	// Can't be sure coords are flipped if most are set out correctly
+	return ReversedInputCount > StandardInputCount;
 }
 #endif //WITH_EDITORONLY_DATA
