@@ -486,6 +486,13 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		}
 	}
 
+#if PLATFORM_WINDOWS
+	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformName == TEXT("IOS"))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+		return;
+	}
+#endif
 
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
 

@@ -1133,8 +1133,6 @@ static void HandleHyperlinkNavigate()
 
 void UEditorEngine::PlayUsingLauncher()
 {
-	//	FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported. This feature will be available again soon.") );
-
 	if (!PlayUsingLauncherDeviceId.IsEmpty())
 	{
 		ILauncherServicesModule& LauncherServicesModule = FModuleManager::LoadModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
@@ -1147,6 +1145,15 @@ void UEditorEngine::PlayUsingLauncher()
 		// does the project have any code?
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 		bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+
+#if PLATFORM_WINDOWS
+		if (bHasCode && FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS"))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+			bPlayUsingLauncher = false;
+			return;
+		}
+#endif
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
 		LauncherProfile->SetBuildGame((bHasCode && FSourceCodeNavigation::IsCompilerAvailable()) || !FRocketSupport::IsRocket());
@@ -1199,7 +1206,7 @@ void UEditorEngine::PlayUsingLauncher()
 
 		for (const FString& MapName : MapNames)
 		{
-		LauncherProfile->AddCookedMap(MapName);
+			LauncherProfile->AddCookedMap(MapName);
 		}
 
 		ILauncherPtr Launcher = LauncherServicesModule.CreateLauncher();
