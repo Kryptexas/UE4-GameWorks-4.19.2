@@ -11,6 +11,45 @@
 
 #define GL_CHECK(x)		x; do { GLint Err = glGetError(); if (Err != 0) {FPlatformMisc::LowLevelOutputDebugStringf(TEXT("(%s:%d) GL_CHECK Failed '%s'! %d (%x)\n"), ANSI_TO_TCHAR(__FILE__), __LINE__, ANSI_TO_TCHAR( #x ), Err, Err); check(!Err);}} while (0)
 
+#ifndef __GNUC__
+	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
+		do \
+		{ \
+			Dest = Default; \
+			extern bool GDisableOpenGLDebugOutput; \
+			GDisableOpenGLDebugOutput = true; \
+			glGetIntegerv(IntEnum, &Dest); \
+			GDisableOpenGLDebugOutput = false; \
+			\
+			UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest); \
+		} \
+		while (0)
+#else
+	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
+		do \
+		{ \
+			Dest = Default; \
+			extern bool GDisableOpenGLDebugOutput; \
+			GDisableOpenGLDebugOutput = true; \
+			glGetIntegerv(IntEnum, &Dest); \
+			GDisableOpenGLDebugOutput = false; \
+			UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Dest); \
+		} \
+		while (0)
+#endif
+
+#define GET_GL_INT(IntEnum, Default, Dest) \
+	do \
+	{ \
+		Dest = Default; \
+		extern bool GDisableOpenGLDebugOutput; \
+		GDisableOpenGLDebugOutput = true; \
+		glGetIntegerv(IntEnum, &Dest); \
+		GDisableOpenGLDebugOutput = false; \
+		} \
+	while (0)
+
+
 /**
  * The OpenGL RHI stats.
  */
