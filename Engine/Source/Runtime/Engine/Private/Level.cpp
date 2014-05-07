@@ -608,6 +608,10 @@ void ULevel::PostLoad()
 	} 
 }
 
+UWorld* ULevel::GetWorld() const
+{
+	return OwningWorld;
+}
 
 void ULevel::ClearLevelComponents()
 {

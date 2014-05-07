@@ -465,6 +465,7 @@ public:
 	virtual void BeginDestroy() OVERRIDE;
 	virtual bool IsReadyForFinishDestroy() OVERRIDE;
 	virtual void FinishDestroy() OVERRIDE;
+	virtual UWorld* GetWorld() const OVERRIDE;
 
 #if	WITH_EDITOR
 	virtual void PreEditUndo() OVERRIDE;
