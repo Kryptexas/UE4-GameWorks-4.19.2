@@ -75,10 +75,10 @@ class UTemplateProjectDefs : public UObject
 	/** Fixes up all strings in this definitions object to replace %TEMPLATENAME% with the supplied template name and %PROJECTNAME% with the supplied project name */
 	void FixupStrings(const FString& TemplateName, const FString& ProjectName);
 
-	/** Returns the display name for the current culture */
+	/** Returns the display name for the current culture, or English if the current culture has no translation */
 	FText GetDisplayNameText();
 
-	/** Returns the display name for the current culture */
+	/** Returns the display name for the current culture, or English if the current culture has no translation */
 	FText GetLocalizedDescription();
 
 private:
