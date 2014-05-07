@@ -3304,7 +3304,7 @@ namespace ThumbnailTools
 		{
 			FlushAsyncLoading();
 
-			GStreamingManager->StreamAllResources( 100.0f );
+			IStreamingManager::Get().StreamAllResources( 100.0f );
 		}
 
 		// If this object's thumbnail will be rendered to a texture on the GPU.

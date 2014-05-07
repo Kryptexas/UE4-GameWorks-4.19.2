@@ -265,9 +265,9 @@ bool APlayerController::ServerUpdateLevelVisibility_Validate(FName PackageName, 
 
 void APlayerController::ClientAddTextureStreamingLoc_Implementation(FVector InLoc, float Duration, bool bOverrideLocation )
 {
-	if (GStreamingManager != NULL)
+	if (!IStreamingManager::HasShutdown())
 	{
-		GStreamingManager->AddViewSlaveLocation(InLoc, 1.0f, bOverrideLocation, Duration);
+		IStreamingManager::Get().AddViewSlaveLocation(InLoc, 1.0f, bOverrideLocation, Duration);
 	}
 }
 

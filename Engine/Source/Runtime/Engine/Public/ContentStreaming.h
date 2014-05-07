@@ -156,17 +156,24 @@ struct FStreamingViewInfo
 /**
  * Pure virtual base class of a streaming manager.
  */
-struct FStreamingManagerBase
+struct IStreamingManager
 {
-	FStreamingManagerBase()
+	IStreamingManager()
 	:	NumWantingResources(0)
 	,	NumWantingResourcesCounter(0)
 	{
 	}
 
 	/** Virtual destructor */
-	virtual ~FStreamingManagerBase()
+	virtual ~IStreamingManager()
 	{}
+
+	ENGINE_API static struct FStreamingManagerCollection& Get();
+
+	ENGINE_API static void Shutdown();
+
+	/** Checks if the streaming manager has already been shut down. **/
+	ENGINE_API static bool HasShutdown();
 
 	/**
 	 * Calls UpdateResourceStreaming(), and does per-frame cleaning. Call once per frame.
@@ -193,15 +200,6 @@ struct FStreamingManagerBase
 	virtual int32 StreamAllResources( float TimeLimit=0.0f )
 	{
 		return 0;
-	}
-
-	/**
-	 * Updates streaming for an individual texture, taking into account all view infos.
-	 *
-	 * @param Texture		Texture to update
-	 */
-	virtual void UpdateIndividualResource( UTexture2D* Texture )
-	{
 	}
 
 	/**
@@ -257,22 +255,6 @@ struct FStreamingManagerBase
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) = 0;
 
 	/**
-	 * Temporarily boosts the streaming distance factor by the specified number.
-	 * This factor is automatically reset to 1.0 after it's been used for mip-calculations.
-	 */
-	virtual void BoostTextures( AActor* Actor, float BoostFactor ) = 0;
-
-	/**
-	 *	Try to stream out texture mip-levels to free up more memory.
-	 *	@param RequiredMemorySize	- Required minimum available texture memory
-	 *	@return						- Whether it succeeded or not
-	 **/
-	virtual bool StreamOutTextureData( int32 RequiredMemorySize )
-	{
-		return false;
-	}
-
-	/**
 	 * Allows the streaming manager to process exec commands.
 	 *
 	 * @param InWorld World context
@@ -290,16 +272,6 @@ struct FStreamingManagerBase
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) = 0;
-
-	/** Adds a new texture to the streaming manager. */
-	virtual void AddStreamingTexture( UTexture2D* Texture )
-	{
-	}
-
-	/** Removes a texture from the streaming manager. */
-	virtual void RemoveStreamingTexture( UTexture2D* Texture )
-	{
-	}
 
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor )
@@ -386,9 +358,6 @@ struct FStreamingManagerBase
 		return NumWantingResourcesCounter;
 	}
 
-	/** Returns true if this is a streaming resource that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingResource( const UTexture2D* Texture2D ) = 0;
-
 protected:
 
 	/**
@@ -468,10 +437,45 @@ protected:
 };
 
 /**
+ * Interface to add functions specifically related to texture streaming
+ */
+struct ITextureStreamingManager : public IStreamingManager
+{
+	/**
+	* Updates streaming for an individual texture, taking into account all view infos.
+	*
+	* @param Texture		Texture to update
+	*/
+	virtual void UpdateIndividualTexture(UTexture2D* Texture) = 0;
+
+	/**
+	* Temporarily boosts the streaming distance factor by the specified number.
+	* This factor is automatically reset to 1.0 after it's been used for mip-calculations.
+	*/
+	virtual void BoostTextures(AActor* Actor, float BoostFactor) = 0;
+
+	/**
+	*	Try to stream out texture mip-levels to free up more memory.
+	*	@param RequiredMemorySize	- Required minimum available texture memory
+	*	@return						- Whether it succeeded or not
+	**/
+	virtual bool StreamOutTextureData(int32 RequiredMemorySize) = 0;
+
+	/** Adds a new texture to the streaming manager. */
+	virtual void AddStreamingTexture(UTexture2D* Texture) = 0;
+
+	/** Removes a texture from the streaming manager. */
+	virtual void RemoveStreamingTexture(UTexture2D* Texture) = 0;
+
+	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
+	virtual bool IsManagedStreamingTexture(const UTexture2D* Texture2D) = 0;
+};
+
+/**
  * Streaming manager collection, routing function calls to streaming managers that have been added
  * via AddStreamingManager.
  */
-struct FStreamingManagerCollection : public FStreamingManagerBase
+struct FStreamingManagerCollection : public IStreamingManager
 {
 	/** Default constructor, initializing all member variables. */
 	ENGINE_API FStreamingManagerCollection();
@@ -499,13 +503,6 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	 * @return							Number of streaming requests still in flight, if the time limit was reached before they were finished.
 	 */
 	virtual int32 StreamAllResources( float TimeLimit=0.0f );
-
-	/**
-	 * Updates streaming for an individual texture, taking into account all view infos.
-	 *
-	 * @param Texture	Texture to update
-	 */
-	virtual void UpdateIndividualResource( UTexture2D* Texture );
 
 	/**
 	 * Blocks till all pending requests are fulfilled.
@@ -537,21 +534,34 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	 */
 	virtual void NotifyLevelChange();
 
+	/**
+	 * Checks whether any kind of streaming is active
+	 */
+	bool IsStreamingEnabled() const;
+
+	/**
+	 * Checks whether texture streaming is active
+	 */
 	virtual bool IsTextureStreamingEnabled() const;
+
+	/**
+	 * Gets a reference to the Texture Streaming Manager interface
+	 */
+	ITextureStreamingManager& GetTextureStreamingManager() const;
 
 	/**
 	 * Adds a streaming manager to the array of managers to route function calls to.
 	 *
 	 * @param StreamingManager	Streaming manager to add
 	 */
-	void AddStreamingManager( FStreamingManagerBase* StreamingManager );
+	void AddStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Removes a streaming manager from the array of managers to route function calls to.
 	 *
 	 * @param StreamingManager	Streaming manager to remove
 	 */
-	void RemoveStreamingManager( FStreamingManagerBase* StreamingManager );
+	void RemoveStreamingManager( IStreamingManager* StreamingManager );
 
 	/**
 	 * Sets the number of iterations to use for the next time UpdateResourceStreaming is being called. This 
@@ -565,12 +575,6 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames );
 
 	/**
-	 * Temporarily boosts the streaming distance factor by the specified number.
-	 * This factor is automatically reset to 1.0 after it's been used for mip-calculations.
-	 */
-	virtual void BoostTextures( AActor* Actor, float BoostFactor );
-
-	/**
 	 * Disables resource streaming. Enable with EnableResourceStreaming. Disable/enable can be called multiple times nested
 	 */
 	void DisableResourceStreaming();
@@ -582,13 +586,6 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	void EnableResourceStreaming();
 
 	/**
-	 *	Try to stream out texture mip-levels to free up more memory.
-	 *	@param RequiredMemorySize	- Required minimum available texture memory
-	 *	@return						- Whether it succeeded or not
-	 **/
-	virtual bool StreamOutTextureData( int32 RequiredMemorySize );
-
-	/**
 	 * Allows the streaming manager to process exec commands.
 	 *
 	 * @param InWorld World context
@@ -597,12 +594,6 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	 * @return		true if the command was handled
 	 */
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
-
-	/** Adds a new texture to the streaming manager. */
-	virtual void AddStreamingTexture( UTexture2D* Texture );
-
-	/** Removes a texture from the streaming manager. */
-	virtual void RemoveStreamingTexture( UTexture2D* Texture );
 
 	/** Adds a ULevel to the streaming manager. */
 	virtual void AddLevel( class ULevel* Level );
@@ -637,15 +628,12 @@ struct FStreamingManagerCollection : public FStreamingManagerBase
 	 */
 	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive );
 
-	/** Returns true if this is a streaming resource that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingResource( const UTexture2D* Texture2D );
-
 protected:
 
 	virtual void AddOrRemoveTextureStreamingManagerIfNeeded(bool bIsInit=false);
 
 	/** Array of streaming managers to route function calls to */
-	TArray<FStreamingManagerBase*> StreamingManagers;
+	TArray<IStreamingManager*> StreamingManagers;
 	/** Number of iterations to perform. Gets reset to 1 each frame. */
 	int32 NumIterations;
 
@@ -734,9 +722,6 @@ struct FStreamMemoryTracker
 	Globals.
 -----------------------------------------------------------------------------*/
 
-/** Global streaming manager */
-ENGINE_API extern FStreamingManagerCollection*	GStreamingManager;
-
 /** Texture streaming memory tracker. */
 extern FStreamMemoryTracker GStreamMemoryTracker;
 
@@ -789,7 +774,7 @@ struct FStreamableTextureInstance4
 /**
  * Streaming manager dealing with textures.
  */
-struct FStreamingManagerTexture : public FStreamingManagerBase
+struct FStreamingManagerTexture : public ITextureStreamingManager
 {
 	/** Constructor, initializing all members */
 	FStreamingManagerTexture();
@@ -809,7 +794,7 @@ struct FStreamingManagerTexture : public FStreamingManagerBase
 	 *
 	 * @param Texture	Texture to update
 	 */
-	virtual void UpdateIndividualResource( UTexture2D* Texture );
+	virtual void UpdateIndividualTexture( UTexture2D* Texture );
 
 	/**
 	 * Blocks till all pending requests are fulfilled.
@@ -954,13 +939,7 @@ struct FStreamingManagerTexture : public FStreamingManagerBase
 	FStreamingTexture& GetStreamingTexture( const UTexture2D* Texture2D );
 
 	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
-	bool IsManagedStreamingTexture( const UTexture2D* Texture2D );
-
-	/** Returns true if this is a streaming resource that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingResource( const UTexture2D* Texture2D )
-	{
-		return IsManagedStreamingTexture( Texture2D );
-	}
+	virtual bool IsManagedStreamingTexture( const UTexture2D* Texture2D );
 
 	/** Updates the I/O state of a texture (allowing it to progress to the next stage) and some stats. */
 	void UpdateTextureStatus( FStreamingTexture& StreamingTexture, FStreamingContext& Context );

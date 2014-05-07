@@ -266,7 +266,7 @@ void UPrimitiveComponent::OnRegister()
 	Super::OnRegister();
 
 	// Notify the streaming system. Will only update the component data if it's already tracked.
-	GStreamingManager->NotifyPrimitiveUpdated(this);
+	IStreamingManager::Get().NotifyPrimitiveUpdated(this);
 
 	AActor* Owner = GetOwner();
 	if (bCanEverAffectNavigation && Owner != NULL)

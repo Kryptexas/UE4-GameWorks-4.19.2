@@ -436,7 +436,7 @@ UEnum* UTexture::GetPixelFormatEnum()
 
 bool UTexture::ForceUpdateTextureStreaming()
 {
-	if ( GStreamingManager )
+	if (!IStreamingManager::HasShutdown())
 	{
 		// Make sure textures can be streamed out so that we can unload current mips.
 		static auto CVarOnlyStreamInTextures = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
@@ -454,11 +454,11 @@ bool UTexture::ForceUpdateTextureStreaming()
 #endif // #if WITH_EDITORONLY_DATA
 
 		// Make sure we iterate over all textures by setting it to high value.
-		GStreamingManager->SetNumIterationsForNextFrame( 100 );
+		IStreamingManager::Get().SetNumIterationsForNextFrame( 100 );
 		// Update resource streaming with updated texture LOD bias/ max texture mip count.
-		GStreamingManager->UpdateResourceStreaming( 0 );
+		IStreamingManager::Get().UpdateResourceStreaming( 0 );
 		// Block till requests are finished.
-		GStreamingManager->BlockTillAllRequestsFinished();
+		IStreamingManager::Get().BlockTillAllRequestsFinished();
 
 		// Restore streaming out of textures.
 		CVarOnlyStreamInTextures->Set(bOldOnlyStreamInTextures);

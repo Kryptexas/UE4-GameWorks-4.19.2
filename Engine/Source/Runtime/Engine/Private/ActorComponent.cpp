@@ -624,7 +624,7 @@ void UActorComponent::UnregisterComponent()
 	const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(this);
 	if ( Primitive )
 	{
-		GStreamingManager->NotifyPrimitiveDetached( Primitive );
+		IStreamingManager::Get().NotifyPrimitiveDetached( Primitive );
 	}
 
 	AActor* Owner = GetOwner(); // Get Owner while we are still registered

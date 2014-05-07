@@ -1108,7 +1108,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
-	GStreamingManager = new FStreamingManagerCollection();
+	IStreamingManager::Get();
 
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
@@ -1839,10 +1839,10 @@ void FEngineLoop::Exit()
 	FlushAsyncLoading();
 
 	// Block till all outstanding resource streaming requests are fulfilled.
-	if (GStreamingManager != NULL)
+	if (!IStreamingManager::HasShutdown())
 	{
 		UTexture2D::CancelPendingTextureStreaming();
-		GStreamingManager->BlockTillAllRequestsFinished();
+		IStreamingManager::Get().BlockTillAllRequestsFinished();
 	}
 
 #if WITH_ENGINE
@@ -1899,8 +1899,7 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 
-	delete GStreamingManager;
-	GStreamingManager	= NULL;
+	IStreamingManager::Shutdown();
 
 	FIOSystem::Shutdown();
 }

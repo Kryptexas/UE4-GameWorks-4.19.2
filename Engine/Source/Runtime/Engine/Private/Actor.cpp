@@ -2217,7 +2217,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// Notify the texture streaming manager about the new actor.
-	GStreamingManager->NotifyActorSpawned(this);
+	IStreamingManager::Get().NotifyActorSpawned(this);
 }
 
 void AActor::SetReplicates(bool bInReplicates)

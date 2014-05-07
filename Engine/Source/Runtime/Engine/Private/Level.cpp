@@ -649,10 +649,10 @@ void ULevel::ClearLevelComponents()
 
 void ULevel::BeginDestroy()
 {
-	if ( GStreamingManager )
+	if (!IStreamingManager::HasShutdown())
 	{
 		// At this time, referenced UTexture2Ds are still in memory.
-		GStreamingManager->RemoveLevel( this );
+		IStreamingManager::Get().RemoveLevel( this );
 	}
 
 	Super::BeginDestroy();
@@ -1268,7 +1268,7 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 	if ( UpdateSpecificTextureOnly == NULL )
 	{
 		// Reset the streaming manager, when building data for a whole Level
-		GStreamingManager->RemoveLevel( this );
+		IStreamingManager::Get().RemoveLevel( this );
 		TextureToInstancesMap.Empty();
 		DynamicTextureInstances.Empty();
 		ForceStreamTextures.Empty();
@@ -1426,7 +1426,7 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 		bTextureStreamingBuilt = true;
 
 		// Update the streaming manager.
-		GStreamingManager->AddPreparedLevel( this );
+		IStreamingManager::Get().AddPreparedLevel( this );
 	}
 }
 

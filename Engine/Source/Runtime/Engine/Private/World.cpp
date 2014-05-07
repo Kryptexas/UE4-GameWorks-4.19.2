@@ -1558,7 +1558,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		Level->InitializeRenderingResources();
 
 		// Notify the texture streaming system now that everything is set up.
-		GStreamingManager->AddLevel( Level );
+		IStreamingManager::Get().AddLevel( Level );
 
 		Level->bIsVisible = true;
 	
@@ -1616,7 +1616,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		Level->ReleaseRenderingResources();
 
 		// Remove from the world's level array and destroy actor components.
-		GStreamingManager->RemoveLevel( Level );
+		IStreamingManager::Get().RemoveLevel( Level );
 		
 		Level->ClearLevelComponents();
 
@@ -2629,7 +2629,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
 	{
 		ULevel*	Level = Levels[LevelIndex];
-		GStreamingManager->AddLevel( Level );
+		IStreamingManager::Get().AddLevel( Level );
 	}
 
 	if(WorldType == EWorldType::Preview)

@@ -1139,7 +1139,7 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
-	GStreamingManager->NotifyPrimitiveAttached( this, DPT_Spawned );
+	IStreamingManager::Get().NotifyPrimitiveAttached( this, DPT_Spawned );
 
 	// Since we have new mesh, we need to update bounds
 	UpdateBounds();

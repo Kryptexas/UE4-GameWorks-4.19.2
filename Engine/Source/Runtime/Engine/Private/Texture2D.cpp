@@ -397,17 +397,17 @@ float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale
 
 void UTexture2D::LinkStreaming()
 {
-	if (!IsTemplate())
+	if (!IsTemplate() && IStreamingManager::Get().IsTextureStreamingEnabled())
 	{
-		GStreamingManager->AddStreamingTexture(this);
+		IStreamingManager::Get().GetTextureStreamingManager().AddStreamingTexture(this);
 	}
 }
 
 void UTexture2D::UnlinkStreaming()
 {
-	if (!IsTemplate())
+	if (!IsTemplate() && IStreamingManager::Get().IsTextureStreamingEnabled())
 	{
-		GStreamingManager->RemoveStreamingTexture(this);
+		IStreamingManager::Get().GetTextureStreamingManager().RemoveStreamingTexture(this);
 	}
 }
 
@@ -549,7 +549,10 @@ bool UTexture2D::IsReadyForStreaming()
 
 void UTexture2D::WaitForStreaming()
 {
-	GStreamingManager->UpdateIndividualResource( this );
+	if (IStreamingManager::Get().IsTextureStreamingEnabled())
+	{
+		IStreamingManager::Get().GetTextureStreamingManager().UpdateIndividualTexture( this );
+	}
 
 	int32 RequestStatus = PendingMipChangeRequestStatus.GetValue();
 
@@ -831,7 +834,7 @@ FTextureResource* UTexture2D::CreateResource()
 	int32 NumMips = GetNumMips();
 
 	// Determine whether or not this texture can be streamed.
-	bIsStreamable = GStreamingManager->IsTextureStreamingEnabled() &&
+	bIsStreamable = IStreamingManager::Get().IsTextureStreamingEnabled() &&
 					!NeverStream && 
 					(NumMips > 1) && 
 					(LODGroup != TEXTUREGROUP_UI) && 

@@ -1010,7 +1010,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 						if(View)
 						{
 							// Add view information for resource streaming.
-							GStreamingManager->AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
+							IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
 							World->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 						}
 					}

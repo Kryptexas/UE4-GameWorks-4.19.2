@@ -706,7 +706,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	OnTravelFailure().AddUObject(this, &UEngine::HandleTravelFailure);
 	OnNetworkFailure().AddUObject(this, &UEngine::HandleNetworkFailure);
 
-	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), GStreamingManager->IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
+	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), IStreamingManager::Get().IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
 
 	IOnlineSubsystem* SubSystem = IOnlineSubsystem::Get();
 	if(SubSystem)
@@ -2320,7 +2320,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		// console variable interaction (get value, set value or get help)
 		return true;
 	}
-	else if (GStreamingManager && GStreamingManager->Exec( InWorld, Cmd,Ar ))
+	else if (!IStreamingManager::HasShutdown() && IStreamingManager::Get().Exec( InWorld, Cmd,Ar ))
 	{
 		// The streaming manager has handled the exec command.
 	}
@@ -2990,7 +2990,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		int32				DroppedMips			= Texture->GetNumMips() - Texture->ResidentMips;
 		int32				CurSizeX			= Texture->GetSizeX() >> DroppedMips;
 		int32				CurSizeY			= Texture->GetSizeY() >> DroppedMips;
-		bool			bIsStreamingTexture = GStreamingManager->IsManagedStreamingResource( Texture );
+		bool			bIsStreamingTexture		= IStreamingManager::Get().IsTextureStreamingEnabled() ? IStreamingManager::Get().GetTextureStreamingManager().IsManagedStreamingTexture( Texture ) : false;
 		int32				MaxSize				= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );
@@ -5588,7 +5588,7 @@ void UEngine::EnableScreenSaver( bool bEnable )
  */
 void UEngine::AddTextureStreamingSlaveLoc(FVector InLoc, float BoostFactor, bool bOverrideLocation, float OverrideDuration)
 {
-	GStreamingManager->AddViewSlaveLocation(InLoc, BoostFactor, bOverrideLocation, OverrideDuration);
+	IStreamingManager::Get().AddViewSlaveLocation(InLoc, BoostFactor, bOverrideLocation, OverrideDuration);
 }
 
 /** Looks up the GUID of a package on disk. The package must NOT be in the autodownload cache.
@@ -8110,9 +8110,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
 
 	// Cancels the Forced StreamType for textures using a timer.
-	if ( GStreamingManager )
+	if (!IStreamingManager::HasShutdown())
 	{
-		GStreamingManager->CancelForcedResources();
+		IStreamingManager::Get().CancelForcedResources();
 	}
 
 	if (FPlatformProperties::RequiresCookedData())
@@ -8392,7 +8392,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	}
 
 	// Prime texture streaming.
-	GStreamingManager->NotifyLevelChange();
+	IStreamingManager::Get().NotifyLevelChange();
 
 	WorldContext.World()->BeginPlay();
 	}
@@ -8407,7 +8407,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	RedrawViewports(false);
 
 	// RedrawViewports() may have added a dummy playerstart location. Remove all views to start from fresh the next Tick().
-	GStreamingManager->RemoveStreamingViews( RemoveStreamingViews_All );
+	IStreamingManager::Get().RemoveStreamingViews( RemoveStreamingViews_All );
 	
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapEnd( URL.Map ); )
 
@@ -9233,7 +9233,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		Context.PendingMapChangeFailureDescription = TEXT("");
 
 		// Prime texture streaming.
-		GStreamingManager->NotifyLevelChange();
+		IStreamingManager::Get().NotifyLevelChange();
 
 		// tell the game we are done switching levels
 		AGameMode* const GameMode = Context.World()->GetAuthGameMode();

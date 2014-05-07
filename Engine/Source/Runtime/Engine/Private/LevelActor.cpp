@@ -434,7 +434,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	ThisActor->bPendingKillPending = true;
 
 	// Notify the texture streaming manager about the destruction of this actor.
-	GStreamingManager->NotifyActorDestroyed( ThisActor );
+	IStreamingManager::Get().NotifyActorDestroyed( ThisActor );
 
 	// Tell this actor it's about to be destroyed.
 	ThisActor->Destroyed();

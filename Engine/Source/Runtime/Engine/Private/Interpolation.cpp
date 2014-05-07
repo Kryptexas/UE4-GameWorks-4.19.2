@@ -580,7 +580,7 @@ void AMatineeActor::UpdateStreamingForCameraCuts(float CurrentTime, bool bPrevie
 			float TimeDifference = CutInfo.TimeStamp - CurrentTime;
 			if ( TimeDifference > 0.0f && TimeDifference < GCameraCutLookAhead )
 			{
-				GStreamingManager->AddViewSlaveLocation( CutInfo.Location );
+				IStreamingManager::Get().AddViewSlaveLocation( CutInfo.Location );
 			}
 			else if ( TimeDifference >= GCameraCutLookAhead )
 			{

@@ -1005,11 +1005,11 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 		if( GIsClient )
 		{
-			// GStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
+			// IStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
 			// Will need to take another look when trying to support multiple worlds.
 
 			// Update resource streaming after viewports have had a chance to update view information. Normal update.
-			GStreamingManager->Tick( DeltaSeconds );
+			IStreamingManager::Get().Tick( DeltaSeconds );
 
 			if ( Context.World()->bTriggerPostLoadMap )
 			{

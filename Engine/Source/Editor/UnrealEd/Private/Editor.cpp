@@ -1375,7 +1375,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Update resource streaming after both regular Editor viewports and PIE had a chance to add viewers.
-		GStreamingManager->Tick( DeltaSeconds );
+		IStreamingManager::Get().Tick( DeltaSeconds );
 	}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
@@ -1573,7 +1573,7 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 		// Add view information for perspective viewports.
 		if( InViewportClient->IsPerspective() )
 		{
-			GStreamingManager->AddViewInformation( InViewportClient->GetViewLocation(), InViewportClient->Viewport->GetSizeXY().X, InViewportClient->Viewport->GetSizeXY().X / FMath::Tan(InViewportClient->ViewFOV) );
+			IStreamingManager::Get().AddViewInformation( InViewportClient->GetViewLocation(), InViewportClient->Viewport->GetSizeXY().X, InViewportClient->Viewport->GetSizeXY().X / FMath::Tan(InViewportClient->ViewFOV) );
 			GWorld->ViewLocationsRenderedLastFrame.Add(InViewportClient->GetViewLocation());
 	
 			// If we're currently simulating in editor, then we'll need to make sure that sub-levels are streamed in.
