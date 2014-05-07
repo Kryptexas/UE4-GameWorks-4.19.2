@@ -111,13 +111,14 @@ public:
 		int32 NumLightsToRenderInSortedLights, 
 		const FSimpleLightArray& SimpleLights, 
 		int32 StartIndex, 
-		int32 NumThisPass)
+		int32 NumThisPass,
+		IPooledRenderTarget& InOutTexture)
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
 		FGlobalShader::SetParameters(ShaderRHI, View);
 		DeferredParameters.Set(ShaderRHI, View);
-		LightAccumulation.SetTexture(ShaderRHI, GSceneRenderTargets.GetLightAccumulationTexture(), GSceneRenderTargets.LightAccumulation->GetRenderTargetItem().UAV);
+		LightAccumulation.SetTexture(ShaderRHI, InOutTexture.GetRenderTargetItem().ShaderResourceTexture, InOutTexture.GetRenderTargetItem().UAV);
 
 		SetShaderValue(ShaderRHI, ViewDimensions, View.ViewRect);
 
@@ -270,12 +271,13 @@ static void SetShaderTemplTiledLighting(
 	int32 NumLightsToRenderInSortedLights,
 	const FSimpleLightArray& SimpleLights,
 	int32 StartIndex, 
-	int32 NumThisPass)
+	int32 NumThisPass,
+	IPooledRenderTarget& InOutTexture)
 {
 	TShaderMapRef<FTiledDeferredLightingCS<bVisualizeLightCulling> > ComputeShader(GetGlobalShaderMap());
 	RHISetComputeShader(ComputeShader->GetComputeShader());
 
-	ComputeShader->SetParameters(View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+	ComputeShader->SetParameters(View, ViewIndex, NumViews, SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InOutTexture);
 
 	uint32 GroupSizeX = (View.ViewRect.Size().X + GDeferredLightTileSizeX - 1) / GDeferredLightTileSizeX;
 	uint32 GroupSizeY = (View.ViewRect.Size().Y + GDeferredLightTileSizeY - 1) / GDeferredLightTileSizeY;
@@ -292,6 +294,8 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 
 	const int32 NumLightsToRender = NumUnshadowedLights + SimpleLights.InstanceData.Num();
 	const int32 NumLightsToRenderInSortedLights = NumUnshadowedLights;
+
+	IPooledRenderTarget& InOutTexture = *GSceneRenderTargets.LightAccumulation;
 
 	if (NumLightsToRender > 0)
 	{
@@ -318,11 +322,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 
 					if(View.Family->EngineShowFlags.VisualizeLightCulling)
 					{
-						SetShaderTemplTiledLighting<1>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+						SetShaderTemplTiledLighting<1>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InOutTexture);
 					}
 					else
 					{
-						SetShaderTemplTiledLighting<0>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass);
+						SetShaderTemplTiledLighting<0>(View, ViewIndex, Views.Num(), SortedLights, NumLightsToRenderInSortedLights, SimpleLights, StartIndex, NumThisPass, InOutTexture);
 					}
 				}
 			}
@@ -348,7 +352,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 					
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
-					ScreenPixelShader->SetParameters(TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetLightAccumulationTexture());
+					ScreenPixelShader->SetParameters(TStaticSamplerState<SF_Point>::GetRHI(), InOutTexture.GetRenderTargetItem().ShaderResourceTexture);
 
 					DrawRectangle( 
 						0, 0,

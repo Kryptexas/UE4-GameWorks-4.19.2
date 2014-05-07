@@ -781,7 +781,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 						TShaderMapRef< FReflectionApplyPS<A,B,C> > PixelShader(GetGlobalShaderMap()); \
 						static FGlobalBoundShaderState BoundShaderState; \
 						SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
-						PixelShader->SetParameters( View, GSceneRenderTargets.GetLightAccumulationTexture(), SSROutput->GetRenderTargetItem().ShaderResourceTexture ); \
+						PixelShader->SetParameters( View, GSceneRenderTargets.LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, SSROutput->GetRenderTargetItem().ShaderResourceTexture ); \
 					}; \
 					break
 

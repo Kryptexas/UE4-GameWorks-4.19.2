@@ -111,12 +111,6 @@ public:
 	 */
 	void Allocate(const FSceneViewFamily& ViewFamily);
 	/**
-	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
-	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
-	 * be halved in size several times.
-	 */
-	void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY) const;
-	/**
 	 *
 	 */
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
@@ -282,10 +276,6 @@ public:
 	const FTextureRHIRef& GetLightAttenuationTexture() const
 	{
 		return *(FTextureRHIRef*)&GetLightAttenuation()->GetRenderTargetItem().ShaderResourceTexture;
-	}
-	const FTextureRHIRef& GetLightAccumulationTexture() const
-	{
-		return *(FTextureRHIRef*)&LightAccumulation->GetRenderTargetItem().ShaderResourceTexture;
 	}
 
 	const FTextureRHIRef& GetSceneColorSurface() const;
@@ -457,6 +447,13 @@ public:
 	bool bPreshadowCacheNewlyAllocated;
 
 private:
+	/**
+	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
+	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
+	 * be halved in size several times.
+	 */
+	void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY) const;
+
 	/**
 	 * Initializes the editor primitive color render target
 	 */
