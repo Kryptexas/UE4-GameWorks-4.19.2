@@ -4,7 +4,7 @@
 #include "OnlineSubsystemSteam.h"
 #include "ModuleManager.h"
 
-#include "IpAddressSteam.h"
+#include "IPAddressSteam.h"
 #include "OnlineSubsystemUtilsClasses.h"
 #include "OnlineSubsystemSteamClasses.h"
 
