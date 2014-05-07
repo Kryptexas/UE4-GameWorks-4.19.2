@@ -1006,7 +1006,7 @@ protected:
 	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const { return false; }
 
 	/** Helper function to calculate the safe frame rectangle on the current viewport */
-	bool CalculateSafeFrameRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
+	bool CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
 
 private:
 	/** @return Whether or not the camera should be panned or dollied */

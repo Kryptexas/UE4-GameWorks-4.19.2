@@ -4475,7 +4475,7 @@ void FLevelEditorViewportClient::LostFocus(FViewport* Viewport)
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {
 	FSlateRect Rect;
-	if (CalculateSafeFrameRect(Rect, Viewport))
+	if (CalculateEditorConstrainedViewRect(Rect, Viewport))
 	{
 		FSlateRect InnerRect = Rect.InsetBy(FMargin(0.5f * SafePadding * Rect.GetSize().Size()));
 		OutCaptureRegion = FIntRect((int32)InnerRect.Left, (int32)InnerRect.Top, (int32)(InnerRect.Left + InnerRect.GetSize().X), (int32)(InnerRect.Top + InnerRect.GetSize().Y));
