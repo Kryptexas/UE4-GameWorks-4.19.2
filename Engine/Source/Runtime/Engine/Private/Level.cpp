@@ -625,7 +625,10 @@ void ULevel::ClearLevelComponents()
 	// Remove the actors' components from the scene and build a list of relevant worlds
 	for( AActor* Actor : Actors )
 	{
-		Actor->UnregisterAllComponents();
+		if (Actor)
+		{
+			Actor->UnregisterAllComponents();
+		}
 	}
 
 	if (IsPersistentLevel())
