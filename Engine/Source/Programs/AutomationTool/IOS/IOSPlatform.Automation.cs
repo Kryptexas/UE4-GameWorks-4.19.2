@@ -522,7 +522,7 @@ public class IOSPlatform : Platform
 					SourceProvision = GameSourceProvision;
 				}
 
-				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", false, false, "embedded.mobileprovision");
+				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", GlobalCommandLine.Rocket, false, "embedded.mobileprovision");
 			}
 		}
 	}
