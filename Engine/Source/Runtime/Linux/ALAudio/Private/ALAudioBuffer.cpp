@@ -91,6 +91,21 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioResourceCreationTime );
 
+	// Check to see if thread has finished decompressing on the other thread
+	if (Wave->AudioDecompressor != NULL)
+	{
+		if (!Wave->AudioDecompressor->IsDone())
+		{
+			// Don't play this sound just yet
+			UE_LOG(LogAudio, Log, TEXT("Waiting for sound to decompress: %s"), *Wave->GetName());
+			return(NULL);
+		}
+
+		// Remove the decompressor
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
+	}
+
 	// Can't create a buffer without any source data
 	if( Wave == NULL || Wave->NumChannels == 0 )
 	{
