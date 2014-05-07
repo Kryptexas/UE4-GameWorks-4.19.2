@@ -83,7 +83,7 @@ public abstract class BaseLinuxPlatform : Platform
             }
         }
 
-        SC.StageFiles(StagedFileType.NonUFS, SC.ProjectRoot, SC.ShortProjectName + ".png", false, null, SC.RelativeProjectRootForStage);
+        SC.StageFiles(StagedFileType.NonUFS, SC.ProjectRoot, "*.png", false, null, SC.RelativeProjectRootForStage);
     }
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
