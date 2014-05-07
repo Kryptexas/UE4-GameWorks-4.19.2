@@ -274,6 +274,8 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 
 	if (TargetNode && (VariableName != TargetNode->GetVarName()))
 	{
+		const FScopedTransaction Transaction( LOCTEXT("ReplacePinVariable", "Replace Pin Variable") );
+
 		UProperty* VariableProperty = GetVariableProperty();
 		const FString OldVarName = TargetNode->GetVarNameString();
 		const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(TargetNode->GetSchema());
@@ -283,9 +285,13 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 
 		// Change the variable name and context
 		UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetNode->GetGraph());
+		UEdGraphPin* Pin = TargetNode->FindPin(OldVarName);
+		DropOnBlueprint->Modify();
+		TargetNode->Modify();
+		Pin->Modify();
+
 		ConfigureVarNode(TargetNode, VariableName, VariableSourceClass.Get(), DropOnBlueprint);
 
-		UEdGraphPin* Pin = TargetNode->FindPin(OldVarName);
 
 		if ((Pin == NULL) || (Pin->LinkedTo.Num() == BadLinks.Num()) || (Schema == NULL))
 		{
