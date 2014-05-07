@@ -7,6 +7,7 @@
 #include "CorePrivate.h"
 #include "../../Launch/Resources/Version.h"
 #include <mach-o/dyld.h>
+#include <libproc.h>
 
 void* FMacPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -509,11 +510,25 @@ bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	}
 	return false;
 }
+
 bool FMacPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 {
 	errno = 0;
 	getpriority(PRIO_PROCESS, ProcessId);
 	return errno == 0;
+}
+
+FString FMacPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	FString Output = TEXT("");
+
+	char Buffer[MAX_PATH];
+	int32 Ret = proc_pidpath(ProcessId, Buffer, sizeof(Buffer));
+	if (Ret > 0)
+	{
+		Output = ANSI_TO_TCHAR(Buffer);
+	}
+	return Output;
 }
 
 bool FMacPlatformProcess::IsThisApplicationForeground()

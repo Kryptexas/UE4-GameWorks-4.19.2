@@ -327,8 +327,10 @@ struct CORE_API FGenericPlatformProcess
 	static bool IsApplicationRunning( uint32 ProcessId );
 	/** Returns true if the specified application is running */
 	static bool IsApplicationRunning( const TCHAR* ProcName );
+	/** Returns the Name of process given by the PID.  Returns Empty string "" if PID not found. */
+	static FString GetApplicationName( uint32 ProcessId );
 	/** Returns true if the specified application has a visible window, and that window is active/has focus/is selected */
-	static bool IsThisApplicationForeground();
+	static bool IsThisApplicationForeground();	
 
 	/**
 	 * Executes a process, returning the return code, stdout, and stderr. This

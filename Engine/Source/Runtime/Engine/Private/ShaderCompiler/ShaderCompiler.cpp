@@ -298,7 +298,7 @@ struct FShaderCompileWorkerInfo
 	uint32 WorkerAppId;
 
 	/** Tracks whether tasks have been issued to the worker. */
-	bool bIssuedTasksToWorker;
+	bool bIssuedTasksToWorker;	
 
 	/** Whether the worker has been launched for this set of tasks. */
 	bool bLaunchedWorker;
@@ -321,7 +321,7 @@ struct FShaderCompileWorkerInfo
 
 	FShaderCompileWorkerInfo() :
 		WorkerAppId(0),
-		bIssuedTasksToWorker(false),
+		bIssuedTasksToWorker(false),		
 		bLaunchedWorker(false),
 		bComplete(false),
 #if PLATFORM_SUPPORTS_NAMED_PIPES
@@ -345,7 +345,7 @@ struct FShaderCompileWorkerInfo
 			if (bWorkerForPipeWasLaunched)
 			{
 				// Make sure it's alive
-				if (!FPlatformProcess::IsApplicationRunning(WorkerAppId))
+				if (!FShaderCompilingManager::IsShaderCompilerWorkerRunning(WorkerAppId))
 				{
 					bAllocNameForPipe = true;
 					bWorkerForPipeWasLaunched = false;
@@ -548,8 +548,9 @@ int32 FShaderCompileThreadRunnable::PullTasksFromQueue()
 						CurrentWorkerInfo.QueuedJobs.Add(Manager->CompileQueue[JobIndex]);
 					}
 
-					// Update the worker state as having new tasks that need to be issued
-					CurrentWorkerInfo.bIssuedTasksToWorker = false;
+					// Update the worker state as having new tasks that need to be issued					
+					// don't reset worker app ID, because the shadercompilerworkers don't shutdown immediately after finishing a single job queue.
+					CurrentWorkerInfo.bIssuedTasksToWorker = false;					
 					CurrentWorkerInfo.bLaunchedWorker = false;
 					CurrentWorkerInfo.StartTime = FPlatformTime::Seconds();
 					NumActiveThreads++;
@@ -694,7 +695,7 @@ void FShaderCompileThreadRunnable::LaunchWorkerIfNeeded(FShaderCompileWorkerInfo
 			LastCheckForWorkersTime = CurrentTime;
 		}
 
-		if (bCheckForWorkerRunning && !FPlatformProcess::IsApplicationRunning(CurrentWorkerInfo.WorkerAppId))
+		if (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerAppId))
 		{
 			// Worker died, so clear this pipe and make a new one
 			CurrentWorkerInfo.PipeWorker.DestroyPipe();
@@ -711,12 +712,14 @@ void FShaderCompileThreadRunnable::LaunchWorkerIfNeeded(FShaderCompileWorkerInfo
 
 		// Store the Id with this thread so that we will know not to launch it again
 		const FString& PipeName = CurrentWorkerInfo.PipeWorker.NamedPipe.GetName();
-		CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, PipeName, PipeName, true, !GShaderPipeConfig.bReuseNamedPipeAndProcess);
+		CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, PipeName, PipeName, true, !GShaderPipeConfig.bReuseNamedPipeAndProcess);		
 		CurrentWorkerInfo.bLaunchedWorker = true;
 		CurrentWorkerInfo.bWorkerForPipeWasLaunched = true;
 	}
 #endif
 }
+
+
 
 bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 {
@@ -747,12 +750,13 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 		else
 #endif	// PLATFORM_SUPPORTS_NAMED_PIPES
 		{
-			if (CurrentWorkerInfo.WorkerAppId == 0 || (bCheckForWorkerRunning && !FPlatformProcess::IsApplicationRunning(CurrentWorkerInfo.WorkerAppId)))
+			if (CurrentWorkerInfo.WorkerAppId == 0 || (bCheckForWorkerRunning && !FShaderCompilingManager::IsShaderCompilerWorkerRunning(CurrentWorkerInfo.WorkerAppId)))
 			{
 				bool bLaunchAgain = true;
 
 				// Detect when the worker has exited due to fatal error
-				if (CurrentWorkerInfo.bLaunchedWorker && !FPlatformProcess::IsApplicationRunning(CurrentWorkerInfo.WorkerAppId))
+				// bLaunchedWorker check here is necessary to distinguish between 'process isn't running because it crashed' and 'process isn't running because it exited cleanly and the outputfile was already consumed'
+				if (CurrentWorkerInfo.WorkerAppId != 0 && CurrentWorkerInfo.bLaunchedWorker)
 				{
 					const FString WorkingDirectory = Manager->AbsoluteShaderBaseWorkingDirectory + FString::FromInt(WorkerIndex) + TEXT("/");
 					const FString OutputFileNameAndPath = WorkingDirectory + TEXT("WorkerOutputOnly.out");
@@ -760,7 +764,7 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 					if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*OutputFileNameAndPath))
 					{
 						// If the worker is no longer running but it successfully wrote out the output, no need to assert
-						bLaunchAgain = false;
+						bLaunchAgain = false;						
 					}
 					else
 					{
@@ -769,6 +773,9 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 						bAbandonWorkers = true;
 						break;
 					}
+
+					// shader compiler exited one way or another, so clear out the stale PID.
+					CurrentWorkerInfo.WorkerAppId = 0;
 				}
 
 				if (bLaunchAgain)
@@ -778,7 +785,7 @@ bool FShaderCompileThreadRunnable::LaunchWorkersIfNeeded()
 					FString OutputFileName(TEXT("WorkerOutputOnly.out"));
 
 					// Store the Id with this thread so that we will know not to launch it again
-					CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, InputFileName, OutputFileName, false, false);
+					CurrentWorkerInfo.WorkerAppId = Manager->LaunchWorker(WorkingDirectory, Manager->ProcessId, WorkerIndex, InputFileName, OutputFileName, false, false);					
 					CurrentWorkerInfo.bLaunchedWorker = true;
 				}
 			}
@@ -1890,6 +1897,19 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 	{
 		check(CompileQueue.Num() == 0);
 	}
+}
+
+bool FShaderCompilingManager::IsShaderCompilerWorkerRunning(uint32 ProcessId)
+{
+	bool bRunning = false;
+	// make sure the PID we're inspecting is actually a shader compiler worker.
+	FString ProcessName = FPlatformProcess::GetApplicationName(ProcessId);
+
+	if (ProcessName.Find(FString(TEXT("ShaderCompileWorker"))) != -1)
+	{
+		bRunning = FPlatformProcess::IsApplicationRunning(ProcessId);
+	}
+	return bRunning;
 }
 
 /** Enqueues a shader compile job with GShaderCompilingManager. */

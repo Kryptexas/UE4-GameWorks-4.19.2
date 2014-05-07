@@ -126,6 +126,23 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 	return CachedResult;
 }
 
+FString FLinuxPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	FString Output = TEXT("");
+
+	const int32 ReadLinkSize = 1024;	
+	char ReadLinkCmd[ReadLinkSize] = {0};
+	FCStringAnsi::Sprintf(ReadLinkCmd, "/proc/%d/exe", ProcessId);
+	
+	char ProcessPath[ PlatformProcessLimits::MaxBaseDirLength ] = {0};
+	int32 Ret = readlink(ReadLinkCmd, ProcessPath, ARRAY_COUNT(ProcessPath) - 1);
+	if (Ret != -1)
+	{
+		Output = ANSI_TO_TCHAR(ProcessPath);
+	}
+	return Output;
+}
+
 FPipeHandle::~FPipeHandle()
 {
 	close(PipeDesc);

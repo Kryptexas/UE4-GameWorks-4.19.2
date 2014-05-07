@@ -94,6 +94,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
 	static bool IsApplicationRunning( uint32 ProcessId );
 	static bool IsApplicationRunning( const TCHAR* ProcName );
+	static FString GetApplicationName( uint32 ProcessId );	
 	static bool IsThisApplicationForeground();
 	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
 	static bool ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode);

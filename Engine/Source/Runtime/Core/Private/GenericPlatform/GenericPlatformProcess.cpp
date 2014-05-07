@@ -188,6 +188,12 @@ bool FGenericPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	return false;
 }
 
+FString FGenericPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::GetApplicationName not implemented on this platform"));
+	return FString(TEXT(""));
+}
+
 bool FGenericPlatformProcess::IsThisApplicationForeground()
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::IsThisApplicationForeground not implemented on this platform"));

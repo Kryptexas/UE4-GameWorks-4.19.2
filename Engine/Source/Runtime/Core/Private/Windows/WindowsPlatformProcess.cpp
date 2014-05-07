@@ -430,6 +430,25 @@ bool FWindowsPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	return false;
 }
 
+FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	FString Output = TEXT("");
+	HANDLE ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, ProcessId);
+	if (ProcessHandle != NULL)
+	{
+		const int32 ProcessNameBufferSize = 4096;
+		TCHAR ProcessNameBuffer[ProcessNameBufferSize];
+		
+		int32 InOutSize = ProcessNameBufferSize;
+		checkAtCompileTime(sizeof(::DWORD) == sizeof(int32), "DWORD size doesn't match int32.  Is it the future or the past?");
+		QueryFullProcessImageName(ProcessHandle, 0, ProcessNameBuffer, (PDWORD)(&InOutSize));
+		Output = ProcessNameBuffer;
+	}
+
+	return Output;
+}
+
+
 bool FWindowsPlatformProcess::IsThisApplicationForeground()
 {
 	uint32 ForegroundProcess;

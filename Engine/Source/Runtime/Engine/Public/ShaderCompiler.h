@@ -304,6 +304,11 @@ public:
 	 *		This must be done before using global shaders for rendering.
 	 */
 	ENGINE_API void ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion);
+
+	/**
+	 * Returns true if the given PID is actually a ShaderCompilerWorker, and it's still running.
+	 */
+	static bool IsShaderCompilerWorkerRunning(uint32 ProcessId);
 };
 
 /** The global shader compiling thread manager. */
