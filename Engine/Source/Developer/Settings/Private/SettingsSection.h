@@ -103,7 +103,7 @@ public:
 
 	virtual bool CanSaveDefaults( ) const OVERRIDE
 	{
-		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
 	}
 
 	virtual bool Export( const FString& Filename ) OVERRIDE
