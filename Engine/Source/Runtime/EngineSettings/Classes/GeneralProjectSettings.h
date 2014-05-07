@@ -9,7 +9,7 @@
 #include "GeneralProjectSettings.generated.h"
 
 
-UCLASS(config=Game,defaultconfig)
+UCLASS(config=Game, defaultconfig)
 class ENGINESETTINGS_API UGeneralProjectSettings
 	: public UObject
 {

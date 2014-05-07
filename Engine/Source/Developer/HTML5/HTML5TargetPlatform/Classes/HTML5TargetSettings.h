@@ -12,7 +12,7 @@
 /**
  * Implements the settings for the HTML5 target platform.
  */
-UCLASS()
+UCLASS(config=Engine, defaultconfig)
 class HTML5TARGETPLATFORM_API UHTML5TargetSettings
 	: public UObject
 {

@@ -72,7 +72,7 @@ struct FGooglePlayLeaderboardMapping
 /**
  * Implements the settings for the Android runtime platform.
  */
-UCLASS(config = Engine)
+UCLASS(config=Engine, defaultconfig)
 class ANDROIDRUNTIMESETTINGS_API UAndroidRuntimeSettings : public UObject
 {
 public:

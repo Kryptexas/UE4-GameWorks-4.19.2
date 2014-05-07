@@ -7,6 +7,10 @@
 
 #include "Console.generated.h"
 
+
+/**
+ * Structure for auto-complete commands and their descriptions.
+ */
 USTRUCT()
 struct FAutoCompleteCommand
 {
@@ -20,7 +24,10 @@ struct FAutoCompleteCommand
 
 };
 
-/** Node for storing an auto-complete tree based on each char in the command */
+
+/**
+ * Node for storing an auto-complete tree based on each char in the command.
+ */
 USTRUCT()
 struct FAutoCompleteNode
 {
@@ -30,37 +37,39 @@ struct FAutoCompleteNode
 	UPROPERTY()
 	int32 IndexChar;
 
-	/** Indicies into AutoCompleteList for commands that match to this level */
+	/** Indices into AutoCompleteList for commands that match to this level */
 	UPROPERTY()
 	TArray<int32> AutoCompleteListIndices;
 
+	/** Children for further matching */
+	TArray<FAutoCompleteNode*> ChildNodes;
 
+	FAutoCompleteNode()
+	{
+		IndexChar = INDEX_NONE;
+	}
 
-		/** Children for further matching */
-		TArray<FAutoCompleteNode*> ChildNodes;
+	FAutoCompleteNode(int32 NewChar)
+	{
+		IndexChar = NewChar;
+	}
 
-		FAutoCompleteNode()
+	~FAutoCompleteNode()
+	{
+		for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
 		{
-			IndexChar = INDEX_NONE;
+			FAutoCompleteNode *Node = ChildNodes[Idx];
+			delete Node;
 		}
-		FAutoCompleteNode(int32 NewChar)
-		{
-			IndexChar = NewChar;
-		}
-		~FAutoCompleteNode()
-		{
-			for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
-			{
-				FAutoCompleteNode *Node = ChildNodes[Idx];
-				delete Node;
-			}
-			ChildNodes.Empty();
-		}
-	
+		ChildNodes.Empty();
+	}	
 };
 
-UCLASS(Within=GameViewportClient, transient, config=Input)
-class ENGINE_API UConsole : public UObject, public FOutputDevice
+
+UCLASS(Within=GameViewportClient, config=Input, defaultconfig, transient)
+class ENGINE_API UConsole
+	: public UObject
+	, public FOutputDevice
 {
 	GENERATED_UCLASS_BODY()
 
@@ -148,7 +157,6 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 
 	/** Current list of matching commands for auto-complete, @see UpdateCompleteIndices() */
 	TArray<int32> AutoCompleteIndices;
-
 
 	/** Max number of command history entries */
 	static const int32 MAX_HISTORY_ENTRIES = 16;
@@ -250,7 +258,6 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	 */
 	virtual void PostRender_Console_Open(class UCanvas* Canvas);
 
-
 	/** Perform actions on transition to the Open state */
 	virtual void BeginState_Open(FName PreviousStateName);
 
@@ -290,6 +297,3 @@ private:
 	*/
 	virtual void PurgeCommandFromHistory(const FString& Command);
 };
-
-
-

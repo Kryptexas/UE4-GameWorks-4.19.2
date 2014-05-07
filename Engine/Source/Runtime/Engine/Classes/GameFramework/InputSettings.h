@@ -4,8 +4,10 @@
 #include "PlayerInput.h"
 #include "InputSettings.generated.h"
 
-UCLASS(config=Input)
-class ENGINE_API UInputSettings : public UObject
+
+UCLASS(config=Input, defaultconfig)
+class ENGINE_API UInputSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 

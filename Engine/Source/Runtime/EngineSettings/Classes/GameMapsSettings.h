@@ -8,6 +8,7 @@
 
 #include "GameMapsSettings.generated.h"
 
+
 UENUM()
 namespace ETwoPlayerSplitScreenType
 {
@@ -17,6 +18,7 @@ namespace ETwoPlayerSplitScreenType
 		Vertical
 	};
 }
+
 
 UENUM()
 namespace EThreePlayerSplitScreenType
@@ -28,7 +30,8 @@ namespace EThreePlayerSplitScreenType
 	};
 }
 
-UCLASS(config=Engine)
+
+UCLASS(config=Engine, defaultconfig)
 class ENGINESETTINGS_API UGameMapsSettings
 	: public UObject
 {

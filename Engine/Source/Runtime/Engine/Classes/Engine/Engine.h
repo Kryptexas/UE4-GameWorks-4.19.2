@@ -465,8 +465,10 @@ class IAnalyticsProvider;
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
 DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 
-UCLASS(abstract, config=Engine, transient)
-class ENGINE_API UEngine : public UObject, public FExec
+UCLASS(abstract, config=Engine, defaultconfig, transient)
+class ENGINE_API UEngine
+	: public UObject
+	, public FExec
 {
 	GENERATED_UCLASS_BODY()
 

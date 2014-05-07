@@ -41,7 +41,6 @@ public:
 
 	// End ISettingsViewer interface
 
-
 public:
 
 	// Begin IModuleInterface interface
@@ -75,7 +74,6 @@ public:
 	}
 
 	// End IModuleInterface interface
-
 
 protected:
 
@@ -132,7 +130,6 @@ protected:
 			LOCTEXT("NavigationMeshSettingsDescription", "Settings for the navigation mesh."),
 			GetMutableDefault<ARecastNavMesh>()
 		);
-
 /*
 		// network settings
 		SettingsModule.RegisterSettings("Project", "Engine", "NetworkManager",
@@ -238,7 +235,6 @@ protected:
 		}
 	}
 
-
 private:
 
 	// Handles creating the project settings tab.
@@ -267,7 +263,6 @@ private:
 				SettingsEditor
 			];
 	}
-
 
 private:
 

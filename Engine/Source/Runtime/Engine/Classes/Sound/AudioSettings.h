@@ -4,8 +4,13 @@
 
 #include "AudioSettings.generated.h"
 
-UCLASS(config=Engine)
-class ENGINE_API UAudioSettings : public UObject
+
+/**
+ * Implements audio related settings.
+ */
+UCLASS(config=Engine, defaultconfig)
+class ENGINE_API UAudioSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 

@@ -12,7 +12,7 @@
 /**
  * Implements the settings for the Windows target platform.
  */
-UCLASS()
+UCLASS(config=Engine, defaultconfig)
 class WINDOWSTARGETPLATFORM_API UWindowsTargetSettings
 	: public UObject
 {
