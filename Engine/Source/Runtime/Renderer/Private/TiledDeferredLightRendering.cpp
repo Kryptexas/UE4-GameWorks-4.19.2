@@ -117,7 +117,7 @@ public:
 
 		FGlobalShader::SetParameters(ShaderRHI, View);
 		DeferredParameters.Set(ShaderRHI, View);
-		LightAccumulation.SetTexture(ShaderRHI, GSceneRenderTargets.GetLightAccumulationTexture(), GSceneRenderTargets.LightAccumulationUAV);
+		LightAccumulation.SetTexture(ShaderRHI, GSceneRenderTargets.GetLightAccumulationTexture(), GSceneRenderTargets.LightAccumulation->GetRenderTargetItem().UAV);
 
 		SetShaderValue(ShaderRHI, ViewDimensions, View.ViewRect);
 

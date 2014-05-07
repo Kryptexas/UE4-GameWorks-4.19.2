@@ -432,9 +432,6 @@ public:
 	/** Temporary storage, used during reflection capture filtering. */
 	TRefCountPtr<IPooledRenderTarget> ReflectionBrightness;
 
-	/** Used to accumulate HDR values in screenspace. */
-	FUnorderedAccessViewRHIRef LightAccumulationUAV;
-
 	/** Volume textures used for lighting translucency. */
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeAmbient[NumTranslucentVolumeRenderTargetSets];
 	TRefCountPtr<IPooledRenderTarget> TranslucencyLightingVolumeDirectional[NumTranslucentVolumeRenderTargetSets];

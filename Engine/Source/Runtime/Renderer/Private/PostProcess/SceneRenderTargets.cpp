@@ -1062,13 +1062,17 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 		uint32 LightAccumulationUAVFlag = GRHIFeatureLevel == ERHIFeatureLevel::SM5 ? TexCreate_UAV : 0;
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable | LightAccumulationUAVFlag, false));
+
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		{
+			Desc.TargetableFlags |= TexCreate_UAV;
+		}
+
 		GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
 	}
 
-	if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
-		LightAccumulationUAV = RHICreateUnorderedAccessView(LightAccumulation->GetRenderTargetItem().TargetableTexture);
-
 		// Create the reflective shadow map textures for LightPropagationVolume feature
 		if(bCurrentLightPropagationVolume)
 		{
@@ -1164,7 +1168,6 @@ void FSceneRenderTargets::ReleaseDynamicRHI()
 
 	ShadowDepthZ.SafeRelease();
 	PreShadowCacheDepthZ.SafeRelease();
-	LightAccumulationUAV.SafeRelease();
 	
 	for(int32 Index = 0; Index < NumCubeShadowDepthSurfaces; ++Index)
 	{
