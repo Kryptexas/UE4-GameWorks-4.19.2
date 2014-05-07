@@ -1248,15 +1248,15 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 		}
 	}
 
-	// Make sure weights normalize to 1.f, otherwise re-normalize.
-	if (!FMath::IsNearlyEqual(TotalWeight, 1.f))
+	// nothing else to do here, there is no weight
+	if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
-		// nothing else to do here, there is no weight
-		if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
-		{
-			BlendedPose = SourcePose;
-			return;
-		}
+		BlendedPose = SourcePose;
+		return;
+	}
+	// Make sure weights don't exceed 1.f, otherwise re-normalize.
+	else if (TotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
+	{
 		// Re-normalize additive poses
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
