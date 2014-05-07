@@ -240,9 +240,10 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @param	InitialScope	The scope the field was initially defined in.  The function will search up into parent scopes to attempt to find remappings
 	 * @param	InitialName		The name of the field to attempt to find a redirector for
+	 * @param	bInitialScopeMustBeOwnerOfField		if true the InitialScope must be Child of the field's owner
 	 * @return	The remapped field, if one exists
 	 */
-	BLUEPRINTGRAPH_API static UField* FindRemappedField(UClass* InitialScope, FName InitialName);
+	BLUEPRINTGRAPH_API static UField* FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField = false);
 
 	// Renames an existing pin on the node.
 	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false);
@@ -494,7 +495,7 @@ public:
 		UClass* TargetScope = bSelfContext ? SelfScope : (UClass*)MemberParentClass;
 		if( TargetScope != NULL &&  !GIsSavingPackage )
 		{
-			ReturnField = Cast<TFieldType>(UK2Node::FindRemappedField(TargetScope, MemberName));
+			ReturnField = Cast<TFieldType>(UK2Node::FindRemappedField(TargetScope, MemberName, true));
 		}
 
 		if(ReturnField != NULL)

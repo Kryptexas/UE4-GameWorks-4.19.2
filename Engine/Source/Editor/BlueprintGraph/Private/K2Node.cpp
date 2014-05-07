@@ -682,7 +682,7 @@ void UK2Node::InitFieldRedirectMap()
 	}
 }
 
-UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName)
+UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField)
 {
 	FFieldRemapInfo NewFieldInfo;
 
@@ -711,8 +711,15 @@ UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName)
 		UField* NewField = FindField<UField>(SearchClass, NewFieldInfo.FieldName);
 		if( NewField != NULL )
 		{
-			UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Fixed up old field '%s' to new name '%s' on class '%s'."), *InitialName.ToString(), *NewFieldInfo.FieldName.ToString(), *SearchClass->GetName());
-			return NewField;
+			if (bInitialScopeMustBeOwnerOfField && !InitialScope->IsChildOf(SearchClass))
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Unable to update field. Remapped field '%s' in not owned by given scope. Scope: '%s', Owner: '%s'."), *InitialName.ToString(), *InitialScope->GetName(), *NewFieldInfo.FieldClass.ToString());
+			}
+			else
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Fixed up old field '%s' to new name '%s' on class '%s'."), *InitialName.ToString(), *NewFieldInfo.FieldName.ToString(), *SearchClass->GetName());
+				return NewField;
+			}
 		}
 		else if (SearchClass != NULL)
 		{
