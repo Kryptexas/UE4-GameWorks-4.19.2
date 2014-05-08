@@ -235,10 +235,14 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 		if (ObjectClass->IsChildOf(UBlueprint::StaticClass()))
 		{
 			UBlueprint* BlueprintObj = StaticCast<UBlueprint*>(ObjToUse);
-			check(BlueprintObj->ParentClass == BlueprintObj->GeneratedClass->GetSuperClass());
-			if (BlueprintObj->GeneratedClass->HasAnyClassFlags(CLASS_NotPlaceable | CLASS_Abstract))
+			bPlace = BlueprintObj->GeneratedClass != NULL;
+			if(bPlace)
 			{
-				bPlace = false;
+				check(BlueprintObj->ParentClass == BlueprintObj->GeneratedClass->GetSuperClass());
+				if (BlueprintObj->GeneratedClass->HasAnyClassFlags(CLASS_NotPlaceable | CLASS_Abstract))
+				{
+					bPlace = false;
+				}
 			}
 		}
 
