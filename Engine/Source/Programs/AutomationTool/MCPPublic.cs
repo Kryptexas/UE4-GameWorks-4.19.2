@@ -587,55 +587,9 @@ namespace EpicGames.MCP.Config
 
     public class McpConfigMapper
     {
-        class MapEntry
-        {
-            public string App;
-            public string Branch;
-            public string McpConfigName;
-            public MapEntry(string InApp, string InBranch, string InMcpConfigName)
-            {
-                App = InApp;
-                Branch = InBranch;
-                McpConfigName = InMcpConfigName;
-            }
-
-        }
-        static List<MapEntry> ConfigMap = null;
-
         static public McpConfigData FromMcpConfigKey(string McpConfigKey)
         {
-            string McpConfigNameToLookup = null;
-            if (!CommandUtils.P4Enabled)
-            {
-                throw new AutomationException("Cannot find McpConfigs unless P4 is enabled because we can't tell what the branch is.");
-            }
-
-            if (ConfigMap == null)
-            {
-                ConfigMap = new List<MapEntry>();
-
-				// Promotions will copy builds to Prod BuildInfo.  Mapping will be needed once ReleaseQA BuildInfo is setup as default for branch builds.
-                ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4", "MainGameDevNet"));
-				ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4-LauncherReleases", "MainGameDevNet"));
-                ConfigMap.Add(new MapEntry("UE", "//depot/UE4", "MainGameDevNet"));
-				ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.0", "MainGameDevNet"));
-                ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.1", "MainGameDevNet"));
-				ConfigMap.Add(new MapEntry("Fortnite", "//depot/UE4-Fortnite", "MainGameDevNet"));
-            }
-            string NormalizedBranch = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.P4Env.BuildRootP4, "/");
-            foreach (var Map in ConfigMap)
-            {
-                if (McpConfigKey.Equals(Map.App, StringComparison.InvariantCultureIgnoreCase) &&
-                    NormalizedBranch.Equals(CommandUtils.CombinePaths(PathSeparator.Slash, Map.Branch, "/"), StringComparison.InvariantCultureIgnoreCase))
-                {
-                    McpConfigNameToLookup = Map.McpConfigName;
-                }
-            }
-            if (String.IsNullOrEmpty(McpConfigNameToLookup))
-            {
-                throw new AutomationException("Could not find a branch mapping for {0} {1}. This branch needs to be added to the table if you intend to use it with MCP.", McpConfigKey, NormalizedBranch);
-            }
-            return McpConfigHelper.Find(McpConfigNameToLookup);
+            return McpConfigHelper.Find("MainGameDevNet");
         }
 
         static public McpConfigData FromStagingInfo(EpicGames.MCP.Automation.BuildPatchToolStagingInfo StagingInfo)
@@ -643,7 +597,7 @@ namespace EpicGames.MCP.Config
             string McpConfigNameToLookup = null;
             if (StagingInfo.OwnerCommand != null)
             {
-                StagingInfo.OwnerCommand.ParseParamValue("MCPConfig");
+                McpConfigNameToLookup = StagingInfo.OwnerCommand.ParseParamValue("MCPConfig");
             }
             if (String.IsNullOrEmpty(McpConfigNameToLookup))
             {
