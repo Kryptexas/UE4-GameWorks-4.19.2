@@ -111,6 +111,9 @@ private:
 	/** Checks the name for illegal characters */
 	static bool NameContainsOnlyLegalCharacters(const FString& TestName, FString& OutIllegalCharacters);
 
+	/** Checks the name for an underscore and the existence of XB1 XDK */
+	static bool NameContainsUnderscoreAndXB1Installed(const FString& TestName);
+
 	/** Returns true if the project file exists on disk */
 	static bool ProjectFileExists(const FString& ProjectFile);
 
