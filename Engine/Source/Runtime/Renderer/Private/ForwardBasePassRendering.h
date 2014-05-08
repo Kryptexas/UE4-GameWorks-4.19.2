@@ -286,7 +286,7 @@ public:
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions);
+			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions, View->GetFeatureLevel());
 		}
 		else
 #endif
@@ -325,7 +325,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState()
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
@@ -385,7 +385,7 @@ public:
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions);
+			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions, View.GetFeatureLevel());
 		}
 		else
 #endif
@@ -443,11 +443,11 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		// Ignore non-opaque materials in the opaque base pass.
 		// Note: blend mode does not depend on the feature level.
-		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 };
 
@@ -469,8 +469,8 @@ void ProcessBasePassMeshForForwardShading(
 
 	if (LightMapInteraction.GetType() == LMIT_Texture)
 	{
-		const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-			? Parameters.Mesh.LCI->GetShadowMapInteraction() 
+		const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+			? Parameters.Mesh.LCI->GetShadowMapInteraction()
 			: FShadowMapInteraction();
 
 		if (ShadowMapInteraction.GetType() == SMIT_Texture)
@@ -482,11 +482,11 @@ void ProcessBasePassMeshForForwardShading(
 		}
 		else
 		{
-			Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >( Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
+			Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
 		}
 	}
-	else if (bIsLitMaterial 
-		&& IsIndirectLightingCacheAllowed()
+	else if (bIsLitMaterial
+		&& IsIndirectLightingCacheAllowed(GRHIFeatureLevel)
 		&& Parameters.PrimitiveSceneProxy
 		// Movable objects need to get their GI from the indirect lighting cache
 		&& Parameters.PrimitiveSceneProxy->IsMovable())

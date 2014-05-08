@@ -348,7 +348,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 	float CurrentRealTime = View.Family->CurrentRealTime;
 	if (ViewState)
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 		{
 			bool bClearQueries = !View.Family->EngineShowFlags.HitProxies;
 			bool bSubmitQueries = !View.bDisableQuerySubmissions;
@@ -731,7 +731,7 @@ static void ComputeRelevanceForView(
 		if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
 			// In ES2, the per-object reflection is used for everything
 			// Otherwise it is just used on translucency
-			&& (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
+			&& (Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
 		{
 			PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIt.GetIndex()].Origin);
 			PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
@@ -994,7 +994,7 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 			{
 				float SampleX, SampleY;
 
-				if( GRHIFeatureLevel < ERHIFeatureLevel::SM4 )
+				if (Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4)
 				{
 					// Only support 2 samples for mobile temporal AA.
 					TemporalAASamples = 2;
@@ -1409,7 +1409,7 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 	}
 
 	bool bCheckLightShafts = false;
-	if(GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES2)
 	{
 		// Clear the mobile light shaft data.
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)

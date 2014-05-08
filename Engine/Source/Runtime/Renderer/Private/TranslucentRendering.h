@@ -51,10 +51,10 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		// Note: blend mode does not depend on the feature level.
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 
 
@@ -115,10 +115,10 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		// Note: blend mode does not depend on the feature level.
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 };
 

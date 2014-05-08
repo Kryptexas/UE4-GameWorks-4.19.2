@@ -79,7 +79,8 @@ public:
 				LightMapPolicy,
 				Parameters.BlendMode,
 				Parameters.TextureMode
-				)
+				),
+			Scene->GetFeatureLevel()
 			);
 	}
 };
@@ -87,7 +88,7 @@ public:
 void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.
@@ -167,7 +168,7 @@ public:
 			);
 		DrawingPolicy.DrawShared(
 			&View,
-			DrawingPolicy.CreateBoundShaderState()
+			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
 
 		for( int32 BatchElementIndex=0;BatchElementIndex<Parameters.Mesh.Elements.Num();BatchElementIndex++ )
@@ -205,7 +206,7 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.

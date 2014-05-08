@@ -121,6 +121,11 @@ FRenderingCompositePassContext::~FRenderingCompositePassContext()
 	Graph.Free();
 }
 
+ERHIFeatureLevel::Type FRenderingCompositePassContext::GetFeatureLevel() const
+{
+	return View.GetFeatureLevel();
+}
+
 void FRenderingCompositePassContext::Process(const TCHAR *GraphDebugName)
 {
 	if(Root)

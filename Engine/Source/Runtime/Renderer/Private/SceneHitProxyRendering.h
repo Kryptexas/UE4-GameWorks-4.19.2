@@ -17,7 +17,8 @@ public:
 
 	FHitProxyDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
-		const FMaterialRenderProxy* InMaterialRenderProxy
+		const FMaterialRenderProxy* InMaterialRenderProxy,
+		ERHIFeatureLevel::Type InFeatureLevel
 		);
 
 	// FMeshDrawingPolicy interface.
@@ -36,7 +37,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
 		const FSceneView& View,
@@ -74,7 +75,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return false;
 	}

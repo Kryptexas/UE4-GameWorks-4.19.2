@@ -207,7 +207,7 @@ public:
 };
 
 /** Returns true if the indirect lighting cache can be used at all. */
-extern bool IsIndirectLightingCacheAllowed();
+extern bool IsIndirectLightingCacheAllowed(ERHIFeatureLevel::Type InFeatureLevel);
 
 /** Returns true if the indirect lighting cache can use the volume texture atlas on this feature level. */
-extern bool CanIndirectLightingCacheUseVolumeTexture();
+extern bool CanIndirectLightingCacheUseVolumeTexture(ERHIFeatureLevel::Type InFeatureLevel);

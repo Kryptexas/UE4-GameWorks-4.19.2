@@ -694,7 +694,7 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 			if (Material)
 			{
-				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel,QualityLevel);
+				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
 				GetTextureExpressionValues(MaterialResource, OutTextures);
 			}
 			else
@@ -713,7 +713,7 @@ void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UT
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = {GRHIFeatureLevel,ERHIFeatureLevel::ES2};
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
 	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
@@ -1197,7 +1197,7 @@ void UMaterialInstance::GetMaterialResourceId(EShaderPlatform ShaderPlatform, EM
 
 	// TODO: Is this right?
 	// ERHIFeatureLevel::Type FeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
-	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(GRHIFeatureLevel,QualityLevel);
+	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
 
 	GetMaterialResourceId(BaseResource, ShaderPlatform, CompositedStaticParameters, OutId);
 }

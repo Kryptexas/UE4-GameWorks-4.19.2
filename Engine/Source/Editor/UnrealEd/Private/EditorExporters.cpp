@@ -695,7 +695,7 @@ public:
 	FExportMaterialProxy()
 	: FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	FExportMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialProperty InPropertyToCompile)
@@ -703,7 +703,7 @@ public:
 	, MaterialInterface(InMaterialInterface)
 	, PropertyToCompile(InPropertyToCompile)
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
 		Material->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);

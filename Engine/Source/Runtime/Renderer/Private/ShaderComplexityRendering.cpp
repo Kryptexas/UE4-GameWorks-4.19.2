@@ -12,17 +12,18 @@ ShaderComplexityRendering.cpp: Contains definitions for rendering the shader com
 /**
  * Gets the maximum shader complexity count from the ini settings.
  */
-float GetMaxShaderComplexityCount()
+float GetMaxShaderComplexityCount(ERHIFeatureLevel::Type InFeatureType)
 {
-	return GRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GEngine->MaxES2PixelShaderAdditiveComplexityCount : GEngine->MaxPixelShaderAdditiveComplexityCount;
+	return InFeatureType == ERHIFeatureLevel::ES2 ? GEngine->MaxES2PixelShaderAdditiveComplexityCount : GEngine->MaxPixelShaderAdditiveComplexityCount;
 }
 
 void FShaderComplexityAccumulatePS::SetParameters(
 	uint32 NumVertexInstructions, 
-	uint32 NumPixelInstructions)
+	uint32 NumPixelInstructions,
+	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	//normalize the complexity so we can fit it in a low precision scene color which is necessary on some platforms
-	const float NormalizedComplexityValue = float(NumPixelInstructions) / GetMaxShaderComplexityCount();
+	const float NormalizedComplexityValue = float(NumPixelInstructions) / GetMaxShaderComplexityCount(InFeatureLevel);
 
 	SetShaderValue( GetPixelShader(), NormalizedComplexity, NormalizedComplexityValue);
 }
@@ -95,9 +96,9 @@ public:
 		const TArray<FLinearColor>& Colors
 		)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(),*View);
+		FGlobalShader::SetParameters(GetPixelShader(), *View);
 
-		SceneTextureParams.Set(GetPixelShader());
+		SceneTextureParams.Set(GetPixelShader(), *View);
 
 		//Make sure there are at least NumShaderComplexityColors colors specified in the ini.
 		//If there are more than NumShaderComplexityColors they will be ignored.

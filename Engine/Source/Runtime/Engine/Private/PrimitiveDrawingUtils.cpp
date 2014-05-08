@@ -1230,7 +1230,7 @@ int32 DrawRichMesh(
 			BaseColor = LevelColor;
 		}
 
-		if(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
 		{
 			// If the material is mesh-modifying, we cannot rely on substitution
 			const FOverrideSelectionColorMaterialRenderProxy WireframeMaterialInstance(
@@ -1399,7 +1399,7 @@ int32 DrawRichMesh(
 		if(EngineShowFlags.MeshEdges)
 		{
 			// Draw the mesh's edges in blue, on top of the base geometry.
-			if(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+			if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
 			{
 				const FSceneView* View = PDI->View;
 

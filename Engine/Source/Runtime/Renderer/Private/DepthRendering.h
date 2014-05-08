@@ -52,7 +52,7 @@ public:
 	* @param DynamicStride - optional stride for dynamic vertex data
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
 		const FSceneView& View,
@@ -103,7 +103,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
 		const FSceneView& View,
@@ -158,7 +158,7 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy);
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
 	/**

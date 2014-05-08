@@ -134,7 +134,7 @@ FParticleSystemThumbnailScene::FParticleSystemThumbnailScene()
 	bForceAllUsedMipsResident = false;
 	PartComponent = NULL;
 
-	ThumbnailFXSystem = FFXSystemInterface::Create();
+	ThumbnailFXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 	GetScene()->SetFXSystem( ThumbnailFXSystem );
 }
 

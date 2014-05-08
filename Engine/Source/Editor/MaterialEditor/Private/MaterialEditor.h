@@ -17,7 +17,7 @@ public:
 	{
 		// Register this FMaterial derivative with AddEditorLoadedMaterialResource since it does not have a corresponding UMaterialInterface
 		FMaterial::AddEditorLoadedMaterialResource(this);
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	FMatExpressionPreview(UMaterialExpression* InExpression)
@@ -29,7 +29,7 @@ public:
 
 		check(InExpression->Material && InExpression->Material->Expressions.Contains(InExpression));
 		InExpression->Material->AppendReferencedTextures(ReferencedTextures);
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	~FMatExpressionPreview()

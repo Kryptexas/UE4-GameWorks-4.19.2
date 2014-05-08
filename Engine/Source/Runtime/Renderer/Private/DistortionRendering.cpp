@@ -125,7 +125,7 @@ public:
 	
 	void SetParameters(const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),*View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -219,8 +219,7 @@ public:
 		const FSceneView& View
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
-
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 
 		float Ratio = View.UnscaledViewRect.Width() / (float)View.UnscaledViewRect.Height();
 		float Params[4];
@@ -302,7 +301,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/**
 	* Sets the render states for drawing a mesh.
@@ -448,7 +447,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::DrawShared(
 * @return new bound shader state object
 */
 template<class DistortMeshPolicy>
-FBoundShaderStateRHIRef TDistortionMeshDrawingPolicy<DistortMeshPolicy>::CreateBoundShaderState()
+FBoundShaderStateRHIRef TDistortionMeshDrawingPolicy<DistortMeshPolicy>::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
@@ -571,7 +570,7 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* Material);
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* Material, ERHIFeatureLevel::Type InFeatureLevel);
 };
 
 /**
@@ -589,7 +588,8 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 	FHitProxyId HitProxyId
 	)
 {
-	bool bDistorted = Mesh.MaterialRenderProxy && Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsDistorted();
+	const auto FeatureLevel = View.GetFeatureLevel();
+	bool bDistorted = Mesh.MaterialRenderProxy && Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsDistorted();
 
 	if(bDistorted && !bBackFace)
 	{
@@ -597,11 +597,11 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 		TDistortionMeshDrawingPolicy<DistortMeshPolicy> DrawingPolicy(
 			Mesh.VertexFactory,
 			Mesh.MaterialRenderProxy,
-			*Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),
+			*Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel),
 			bInitializeOffsets,
 			View.Family->EngineShowFlags.ShaderComplexity
 			);
-		DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+		DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 		for( int32 BatchElementIndex=0;BatchElementIndex < Mesh.Elements.Num();BatchElementIndex++ )
 		{
 			DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType());
@@ -631,7 +631,8 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 	FHitProxyId HitProxyId
 	)
 {
-	bool bDistorted = StaticMesh.MaterialRenderProxy && StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsDistorted();
+	const auto FeatureLevel = View->GetFeatureLevel();
+	bool bDistorted = StaticMesh.MaterialRenderProxy && StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsDistorted();
 	
 	if(bDistorted && !bBackFace)
 	{
@@ -639,11 +640,11 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 		TDistortionMeshDrawingPolicy<DistortMeshPolicy> DrawingPolicy(
 			StaticMesh.VertexFactory,
 			StaticMesh.MaterialRenderProxy,
-			*StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),
+			*StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel),
 			bInitializeOffsets,
 			View->Family->EngineShowFlags.ShaderComplexity
 			);
-		DrawingPolicy.DrawShared(View,DrawingPolicy.CreateBoundShaderState());
+		DrawingPolicy.DrawShared(View,DrawingPolicy.CreateBoundShaderState(FeatureLevel));
 		int32 BatchElementIndex = 0;
 		do
 		{
@@ -665,10 +666,10 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 }
 
 template<typename DistortMeshPolicy>
-bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// Non-distorted materials are ignored when rendering distortion.
-	return MaterialRenderProxy && !MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsDistorted();
+	return MaterialRenderProxy && !MaterialRenderProxy->GetMaterial(InFeatureLevel)->IsDistorted();
 }
 
 /*-----------------------------------------------------------------------------

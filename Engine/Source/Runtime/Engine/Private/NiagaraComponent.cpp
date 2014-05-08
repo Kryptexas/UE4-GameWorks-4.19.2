@@ -154,7 +154,7 @@ private:
 		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(IsSelected(),IsHovered());
 
 		if (DynamicVertexAllocation.IsValid()
-			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy)))
+			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy, View->GetFeatureLevel())))
 		{
 			FMeshBatch MeshBatch;
 			MeshBatch.VertexFactory = &VertexFactory;

@@ -1511,6 +1511,16 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetMaterialQualityLevel, (EMaterialQualityLevel::Type)EMaterialQualityLevel::High ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked, (EMaterialQualityLevel::Type)EMaterialQualityLevel::High ) );
+
+
+	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
+	{
+		ActionList.MapAction(
+			Commands.FeatureLevelPreview[i],
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetFeatureLevelPreview, (ERHIFeatureLevel::Type)i),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked, (ERHIFeatureLevel::Type)i));
+	}
 }
 	
 #undef LOCTEXT_NAMESPACE

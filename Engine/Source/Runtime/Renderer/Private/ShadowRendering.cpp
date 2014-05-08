@@ -634,7 +634,8 @@ IMPLEMENT_SHADER_TYPE(template<>,TOnePassPointShadowProjectionPS<5>,TEXT("Shadow
 void OverrideWithDefaultMaterialForShadowDepth(
 	const FMaterialRenderProxy*& InOutMaterialRenderProxy, 
 	const FMaterial*& InOutMaterialResource,
-	bool bReflectiveShadowmap)
+	bool bReflectiveShadowmap,
+	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// Override with the default material when possible.
 	if (!InOutMaterialResource->IsMasked() &&						// Don't override masked materials.
@@ -642,7 +643,7 @@ void OverrideWithDefaultMaterialForShadowDepth(
 		!bReflectiveShadowmap)										// Don't override when rendering reflective shadow maps.
 	{
 		const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
-		const FMaterial* DefaultMaterialResource = DefaultProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* DefaultMaterialResource = DefaultProxy->GetMaterial(InFeatureLevel);
 
 		// Override with the default material for opaque materials that don't modify mesh position.
 		InOutMaterialRenderProxy = DefaultProxy;
@@ -873,7 +874,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawShared(const
  * @return new bound shader state object
  */
 template <bool bRenderingReflectiveShadowMaps>
-FBoundShaderStateRHIRef FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::CreateBoundShaderState()
+FBoundShaderStateRHIRef FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FVertexDeclarationRHIRef VertexDeclaration;
 	if (bUsePositionOnlyVS)
@@ -951,7 +952,7 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 	if (StaticMesh->CastShadow)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 		const EBlendMode BlendMode = Material->GetBlendMode();
 		const EMaterialLightingModel LightingModel = Material->GetLightingModel();
 
@@ -974,13 +975,14 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 						StaticMesh->VertexFactory,
 						MaterialRenderProxy,
 						bTwoSided,
-						StaticMesh->ReverseCulling)
+						StaticMesh->ReverseCulling),
+					Scene->GetFeatureLevel()
 					);
 			}
 		}
 		if ( bLitOpaque )
 		{
-			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, false); 
+			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, false, Scene->GetFeatureLevel()); 
 
 			// Add the static mesh to the shadow's subject draw list.
 			Scene->WholeSceneShadowDepthDrawList.AddMesh(
@@ -994,7 +996,8 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 					StaticMesh->VertexFactory,
 					MaterialRenderProxy,
 					bTwoSided,
-					StaticMesh->ReverseCulling)
+					StaticMesh->ReverseCulling),
+				Scene->GetFeatureLevel()
 				);
 		}
 	}
@@ -1016,7 +1019,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 	if (Mesh.CastShadow)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 		const EBlendMode BlendMode = Material->GetBlendMode();
 		const EMaterialLightingModel LightingModel = Material->GetLightingModel();
 
@@ -1029,12 +1032,12 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 			const bool bPreShadow = Context.ShadowInfo->bPreShadow;
 			const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneProxy->CastsShadowAsTwoSided();
 
-			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap);
+			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, View.GetFeatureLevel());
 
 			if(bReflectiveShadowmap)
 			{
 				FShadowDepthDrawingPolicy<true> DrawingPolicy(
-					MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),
+					MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()),
 					bDirectionalLight,
 					bOnePassPointLightShadow,
 					bPreShadow,
@@ -1044,7 +1047,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					Mesh.ReverseCulling
 					);
 
-				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 				for( int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
@@ -1054,7 +1057,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 			else
 			{
 				FShadowDepthDrawingPolicy<false> DrawingPolicy(
-					MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),
+					MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()),
 					bDirectionalLight,
 					bOnePassPointLightShadow,
 					bPreShadow,
@@ -1064,7 +1067,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					Mesh.ReverseCulling
 					);
 
-				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+				DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 				for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
@@ -1084,11 +1087,11 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 	FProjectedShadowInfo
 -----------------------------------------------------------------------------*/
 
-static void CheckShadowDepthMaterials(const FMaterialRenderProxy* InRenderProxy, const FMaterial* InMaterial, bool bReflectiveShadowmap)
+static void CheckShadowDepthMaterials(const FMaterialRenderProxy* InRenderProxy, const FMaterial* InMaterial, bool bReflectiveShadowmap, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	const FMaterialRenderProxy* RenderProxy = InRenderProxy;
 	const FMaterial* Material = InMaterial;
-	OverrideWithDefaultMaterialForShadowDepth(RenderProxy, Material, bReflectiveShadowmap);
+	OverrideWithDefaultMaterialForShadowDepth(RenderProxy, Material, bReflectiveShadowmap, InFeatureLevel);
 	check(RenderProxy == InRenderProxy);
 	check(Material == InMaterial);
 }
@@ -1154,7 +1157,7 @@ void DrawMeshElements(FShadowDepthDrawingPolicy<bReflectiveShadowmap>& SharedDra
 #if UE_BUILD_DEBUG
 	// During shadow setup we should have already overridden materials with default material where needed.
 	// Make sure of it!
-	CheckShadowDepthMaterials(State.RenderProxy, State.MaterialResource, bReflectiveShadowmap);
+	CheckShadowDepthMaterials(State.RenderProxy, State.MaterialResource, bReflectiveShadowmap, View.GetFeatureLevel());
 #endif
 
 #if UE_BUILD_DEBUG
@@ -1222,7 +1225,7 @@ void DrawShadowMeshElements(const FViewInfo& View, const FProjectedShadowInfo& S
 			OldState = CurrentState;
 
 			SharedDrawingPolicy.UpdateElementState(CurrentState);
-			SharedDrawingPolicy.DrawShared(&View, SharedDrawingPolicy.CreateBoundShaderState());
+			SharedDrawingPolicy.DrawShared(&View, SharedDrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 		}
 
 		DrawMeshElements(SharedDrawingPolicy, OldState, View, ShadowMesh.Mesh);
@@ -2912,7 +2915,7 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows( const FLightSceneInf
 
 	bAttenuationBufferDirty |= RenderCachedPreshadows(LightSceneInfo);
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		bAttenuationBufferDirty |= RenderOnePassPointLightShadows(LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume);
 	}

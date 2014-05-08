@@ -1050,7 +1050,7 @@ void FMaterialEditor::RegenerateCodeView()
 	}
 
 	FString MarkupSource;
-	if( Material->GetMaterialResource(GRHIFeatureLevel)->GetMaterialExpressionSource( MarkupSource, ExpressionCodeMap) )
+	if (Material->GetMaterialResource(GRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource, ExpressionCodeMap))
 	{
 		// Remove line-feeds and leave just CRs so the character counts match the selection ranges.
 		MarkupSource.ReplaceInline(TEXT("\r"), TEXT(""));

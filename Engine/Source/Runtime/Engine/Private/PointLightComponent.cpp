@@ -69,7 +69,7 @@ public:
 	 */
 	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, TArray<FWholeSceneProjectedShadowInitializer, TInlineAllocator<6> >& OutInitializers) const
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4
 			&& GAllowPointLightCubemapShadows != 0)
 		{
 			FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;

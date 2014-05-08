@@ -83,6 +83,9 @@ private:
 	// the texture visualization image inside this area
 	FIntRect AspectRatioConstrainedViewRect;
 
+	// Flag to determine whether texture visualization is enabled, currently based on the feature level we are rendering with
+	bool bEnabled;
+
 	// is called by FPooledRenderTarget
 
 	void GenerateContent(const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc);
@@ -108,5 +111,5 @@ struct FVisualizeTextureData
 	bool bSaturateInsteadOfFrac;
 	int32 InputValueMapping;
 	int32 ArrayIndex;
-	int32 CustomMip;	
+	int32 CustomMip;
 };

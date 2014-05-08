@@ -170,6 +170,8 @@ struct FRenderingCompositePassContext
 		return ViewPortRect.Min != ViewPortRect.Max;
 	}
 
+	ERHIFeatureLevel::Type GetFeatureLevel() const;
+
 	FRenderingCompositePass* Root;
 
 	FRenderingCompositionGraph Graph;
@@ -624,6 +626,8 @@ public:
 				// Pass doesn't have more inputs
 				break;
 			}
+
+			const auto FeatureLevel = Context.GetFeatureLevel();
 
 			FRenderingCompositeOutput* Input = OutputRef->GetOutput();
 

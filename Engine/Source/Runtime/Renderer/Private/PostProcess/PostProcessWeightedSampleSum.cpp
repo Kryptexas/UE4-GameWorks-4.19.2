@@ -269,10 +269,10 @@ static float NormalDistributionUnscaled(float X,float Mean,float Variance)
  * @return NumSamples >0
  */
 
-static uint32 Compute1DGaussianFilterKernel(float KernelRadius, FVector2D OutOffsetAndWeight[MAX_FILTER_SAMPLES], uint32 MaxFilterSamples)
+static uint32 Compute1DGaussianFilterKernel(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius, FVector2D OutOffsetAndWeight[MAX_FILTER_SAMPLES], uint32 MaxFilterSamples)
 {
-	float ClampedKernelRadius = FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius( KernelRadius );
-	int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius( KernelRadius );
+	float ClampedKernelRadius = FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius( InFeatureLevel, KernelRadius );
+	int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius( InFeatureLevel, KernelRadius );
 
 	// smallest IntegerKernelRadius will be 1
 
@@ -362,10 +362,12 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	FLinearColor BlurWeights[MAX_FILTER_SAMPLES];
 	FVector2D OffsetAndWeight[MAX_FILTER_SAMPLES];
 
-	// compute 1D filtered samples
-	uint32 MaxNumSamples = GetMaxNumSamples();
+	const auto FeatureLevel = Context.View.GetFeatureLevel();
 
-	uint32 NumSamples = Compute1DGaussianFilterKernel(EffectiveBlurRadius, OffsetAndWeight, MaxNumSamples);
+	// compute 1D filtered samples
+	uint32 MaxNumSamples = GetMaxNumSamples(FeatureLevel);
+
+	uint32 NumSamples = Compute1DGaussianFilterKernel(FeatureLevel, EffectiveBlurRadius, OffsetAndWeight, MaxNumSamples);
 
 	// compute weights as weighted contributions of the TintValue
 	for(uint32 i = 0; i < NumSamples; ++i)
@@ -442,7 +444,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 	bool bRequiresClear = true;
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (bHasMultipleQuads || GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (bHasMultipleQuads || Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
 	{
 		RHIClear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bRequiresClear = false;
@@ -592,14 +594,14 @@ void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect S
 		EDRF_UseTriangleOptimization);
 }
 
-uint32 FRCPassPostProcessWeightedSampleSum::GetMaxNumSamples()
+uint32 FRCPassPostProcessWeightedSampleSum::GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	uint32 MaxNumSamples;
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		MaxNumSamples = MAX_FILTER_SAMPLES;
 	}
-	else if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	else if (InFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		MaxNumSamples = 16;
 	}
@@ -610,12 +612,12 @@ uint32 FRCPassPostProcessWeightedSampleSum::GetMaxNumSamples()
 	return MaxNumSamples;
 }
 
-float FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius( float KernelRadius )
+float FRCPassPostProcessWeightedSampleSum::GetClampedKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius)
 {
-	return FMath::Clamp<float>(KernelRadius, DELTA, GetMaxNumSamples() - 1);
+	return FMath::Clamp<float>(KernelRadius, DELTA, GetMaxNumSamples(InFeatureLevel) - 1);
 }
 
-int FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius( float KernelRadius )
+int FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius)
 {
-	return FMath::Min<int32>(FMath::CeilToInt(GetClampedKernelRadius(KernelRadius)), GetMaxNumSamples() - 1);
+	return FMath::Min<int32>(FMath::CeilToInt(GetClampedKernelRadius(InFeatureLevel, KernelRadius)), GetMaxNumSamples(InFeatureLevel) - 1);
 }

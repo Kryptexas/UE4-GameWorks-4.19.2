@@ -54,7 +54,7 @@ public:
 	virtual void SetHitProxy(HHitProxy* HitProxy) OVERRIDE;
 	virtual bool IsRenderingSelectionOutline() const OVERRIDE { return bIsSelectionOutlineRendering; }
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) OVERRIDE;
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy) const OVERRIDE;
+	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const OVERRIDE;
 	virtual int32 DrawMesh(const FMeshBatch& Mesh) OVERRIDE;
 	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) OVERRIDE;
 	virtual void DrawSprite(

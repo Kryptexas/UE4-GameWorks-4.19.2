@@ -180,7 +180,7 @@ public:
 	 */
 	virtual void InitRHI() OVERRIDE
 	{
-		if ( VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
@@ -710,7 +710,7 @@ public:
 	 */
 	virtual void InitRHI() OVERRIDE
 	{
-		if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			check(SizeX > 0);
 			check(SizeY > 0);

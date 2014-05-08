@@ -227,7 +227,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 
 	check(CaptureComponent);
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && CaptureComponent->TextureTarget)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4 && CaptureComponent->TextureTarget)
 	{
 		const float FOV = 90 * (float)PI / 360.0f;
 		for (int32 faceidx = 0; faceidx < (int32)ECubeFace::CubeFace_MAX; faceidx++)

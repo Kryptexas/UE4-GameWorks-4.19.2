@@ -1466,9 +1466,10 @@ public:
 	/**
 	 * Determines whether a particular material will be ignored in this context.
 	 * @param MaterialRenderProxy - The render proxy of the material to check.
+	 * @param InFeatureLevel - The feature level we are currently rendering at
 	 * @return true if meshes using the material will be ignored in this context.
 	 */
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy) const
+	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		return false;
 	}
@@ -1705,7 +1706,7 @@ public:
 	/**
 	 * Creates any needed motion blur infos if needed and saves the transforms of the frame we just completed
 	 */
-	void UpdateMotionBlurCache();
+	void UpdateMotionBlurCache(class FScene* InScene);
 
 	/**
 	 * Call if you want to keep the existing motionblur
@@ -2033,6 +2034,8 @@ public:
 	virtual bool HasAnyLights() const = 0;
 
 	virtual bool IsEditorScene() const { return false; }
+
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GRHIFeatureLevel; }
 
 protected:
 	virtual ~FSceneInterface() {}
@@ -2522,7 +2525,6 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	}
 };
 
-
 /**
  * A projection from scene space into a 2D screen region.
  */
@@ -2766,6 +2768,9 @@ public:
 
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
+
+	/** Get the feature level for this view **/
+	ERHIFeatureLevel::Type GetFeatureLevel() const;
 };
 
 

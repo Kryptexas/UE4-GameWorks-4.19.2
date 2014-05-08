@@ -34,7 +34,8 @@ public class DetailCustomizations : ModuleRules
 				"MoviePlayer",
 				"SourceControl",
                 "InternationalizationSettings",
-				"SourceCodeAccess"
+				"SourceCodeAccess",
+				"RHI"
 			}
 		);
 

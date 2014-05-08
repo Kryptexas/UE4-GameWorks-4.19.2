@@ -166,6 +166,7 @@ private:
 		TArray<FElement>			Elements;
 		DrawingPolicyType			DrawingPolicy;
 		FBoundShaderStateRHIRef		BoundShaderState;
+		ERHIFeatureLevel::Type		FeatureLevel;
 
 		/** Used when sorting policy links */
 		FSphere						CachedBoundingSphere;
@@ -176,8 +177,9 @@ private:
 		TStaticMeshDrawList* DrawList;
 
 		/** Initialization constructor. */
-		FDrawingPolicyLink(TStaticMeshDrawList* InDrawList,const DrawingPolicyType& InDrawingPolicy):
+		FDrawingPolicyLink(TStaticMeshDrawList* InDrawList, const DrawingPolicyType& InDrawingPolicy, ERHIFeatureLevel::Type InFeatureLevel) :
 			DrawingPolicy(InDrawingPolicy),
+			FeatureLevel(InFeatureLevel),
 			DrawList(InDrawList)
 		{
 			CreateBoundShaderState();
@@ -195,7 +197,7 @@ private:
 
 		void CreateBoundShaderState()
 		{
-			BoundShaderState = DrawingPolicy.CreateBoundShaderState();
+			BoundShaderState = DrawingPolicy.CreateBoundShaderState(FeatureLevel);
 		}
 	};
 
@@ -235,11 +237,13 @@ public:
 	 * @param Mesh - The mesh to add.
 	 * @param PolicyData - The drawing policy data for the mesh.
 	 * @param InDrawingPolicy - The drawing policy to use to draw the mesh.
+	 * @param InFeatureLevel - The feature level of the scene we're rendering
 	 */
 	void AddMesh(
 		FStaticMesh* Mesh,
 		const ElementPolicyDataType& PolicyData,
-		const DrawingPolicyType& InDrawingPolicy
+		const DrawingPolicyType& InDrawingPolicy,
+		ERHIFeatureLevel::Type InFeatureLevel
 		);
 
 	/**

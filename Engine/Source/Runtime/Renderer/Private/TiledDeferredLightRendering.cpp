@@ -257,7 +257,7 @@ VARIATION1(0)			VARIATION1(1)
 
 bool FDeferredShadingSceneRenderer::CanUseTiledDeferred() const
 {
-	return GUseTiledDeferredShading != 0 && GRHIFeatureLevel >= ERHIFeatureLevel::SM5;
+	return GUseTiledDeferredShading != 0 && Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5;
 }
 
 bool FDeferredShadingSceneRenderer::ShouldUseTiledDeferred(int32 NumUnshadowedLights, int32 NumSimpleLights) const

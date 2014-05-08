@@ -171,7 +171,7 @@ public:
 	void SetParameters(const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 	{
 		FGlobalShader::SetParameters(GetPixelShader(), View);
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 		AtmosphereTextureParameters.Set(GetPixelShader(), View);
 
 		if (OcclusionTextureParameter.IsBound())
@@ -390,7 +390,7 @@ void SetAtmosphericFogShaders(FScene* Scene, const FViewInfo& View, TRefCountPtr
 void FDeferredShadingSceneRenderer::RenderAtmosphere(FLightShaftsOutput LightShaftsOutput)
 {
 	// Atmospheric fog?
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && Scene->HasAtmosphericFog())
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4 && Scene->HasAtmosphericFog())
 	{
 		SCOPED_DRAW_EVENT(Fog, DEC_SCENE_ITEMS);
 

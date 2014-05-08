@@ -146,9 +146,9 @@ public:
 	}
 	FCopySceneColorPS() {}
 
-	void SetParameters()
+	void SetParameters(const FViewInfo& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -182,7 +182,7 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 	TShaderMapRef<FCopySceneColorPS> PixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters();
+	PixelShader->SetParameters(View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -271,7 +271,7 @@ public:
 			);
 		DrawingPolicy.DrawShared(
 			&View,
-			DrawingPolicy.CreateBoundShaderState()
+			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
 
 		int32 BatchElementIndex = 0;
@@ -315,7 +315,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	bool bDirty = false;
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const EMaterialLightingModel LightingModel = Material->GetLightingModel();
 
@@ -360,7 +360,8 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				HitProxyId,
 				DrawingContext.TranslucentSelfShadow,
 				PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow()
-			)
+			),
+			View.GetFeatureLevel()
 		);
 
 		if (bDisableDepthTest || bEnableResponsiveAA)
@@ -520,7 +521,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					// Only render static mesh elements using translucent materials
 					&& StaticMesh.IsTranslucent() 
-					&& (StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
+					&& (StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 						View,
@@ -549,8 +550,10 @@ void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneI
 	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
 	// UE4_TODO: also account for DPG in the sort key.
 
+	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
+
 	if(bUseSeparateTranslucency 
-		&& GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		&& FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		// add to list of translucent prims that use scene color
 		new(SortedSeparateTranslucencyPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
@@ -558,7 +561,7 @@ void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneI
 
 	if (bUseNormalTranslucency 
 		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-		|| (bUseSeparateTranslucency && GRHIFeatureLevel < ERHIFeatureLevel::SM3))
+		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM3))
 	{
 		// add to list of translucent prims
 		new(SortedPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());

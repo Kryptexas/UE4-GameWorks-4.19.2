@@ -15,6 +15,12 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "EngineBuildSettings.h"
 
+static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
+	TEXT("r.FeatureLevelPreview"),
+	0,
+	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
+	ECVF_RenderThreadSafe);
+
 /**
  * Static: Creates a widget for the level editor tool bar
  *
@@ -466,6 +472,18 @@ static void MakeMaterialQualityLevelMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.EndSection();
 }
 
+static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ShaderModelPreviewHeading", "Shader Model Preview"));
+	{
+		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
+		}
+	}
+	MenuBuilder.EndSection();
+}
+
 static void MakeScalabilityMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.AddWidget(SNew(SScalabilitySettings), FText(), true);
@@ -525,6 +543,14 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 			LOCTEXT( "MaterialQualityLevelSubMenu", "Material Quality Level" ),
 			LOCTEXT( "MaterialQualityLevelSubMenu_ToolTip", "Sets the value of the CVar \"r.MaterialQualityLevel\" (low=0, high=1). This affects materials via the QualitySwitch material expression." ),
 			FNewMenuDelegate::CreateStatic( &MakeMaterialQualityLevelMenu ) );
+
+		if (CVarFeatureLevelPreview.GetValueOnGameThread() != 0)
+		{
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("ShaderModelPreviewSubMenu", "Shader Model Preview"),
+				LOCTEXT("ShaderModelPreviewSubMenu_ToolTip", "Sets the shader model preview mode"),
+				FNewMenuDelegate::CreateStatic(&MakeShaderModelPreviewMenu));
+		}
 	}
 	MenuBuilder.EndSection();
 

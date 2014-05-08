@@ -97,7 +97,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(GRHIFeatureLevel), *View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View->GetFeatureLevel()), *View, true, ESceneRenderTargetsMode::SetTextures);
 
 		// Set the transform from screen space to light space.
 		if ( ScreenToLight.IsBound() )
@@ -184,7 +184,7 @@ bool FDeferredShadingSceneRenderer::CheckForLightFunction( const FLightSceneInfo
 {
 	// NOTE: The extra check is necessary because there could be something wrong with the material.
 	if( LightSceneInfo->Proxy->GetLightFunctionMaterial() && 
-		LightSceneInfo->Proxy->GetLightFunctionMaterial()->GetMaterial(GRHIFeatureLevel)->IsLightFunction() )
+		LightSceneInfo->Proxy->GetLightFunctionMaterial()->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction())
 	{
 		FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
 		for (int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -236,13 +236,13 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(const FLightS
 {
 	bool bRenderedLightFunction = false;
 
-	if (MaterialProxy && MaterialProxy->GetMaterial(GRHIFeatureLevel)->IsLightFunction())
+	if (MaterialProxy && MaterialProxy->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction())
 	{
 		GSceneRenderTargets.BeginRenderingLightAttenuation();
 
 		bRenderedLightFunction = true;
 
-		const FMaterial* Material = MaterialProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialProxy->GetMaterial(Scene->GetFeatureLevel());
 		SCOPED_DRAW_EVENTF(LightFunction, DEC_SCENE_ITEMS, TEXT("LightFunction Material=%s"), *Material->GetFriendlyName());
 
 		const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();

@@ -267,6 +267,7 @@ FVisualizeTexture::FVisualizeTexture()
 	bOutputStencil = false;
 	bFullList = false;
 	SortOrder = -1;
+	bEnabled = true;
 }
 
 FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSize) const
@@ -482,7 +483,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 
 	if(!VisualizeTextureContent 
 		|| !IsValidRef(RenderTargetTexture)
-		|| GRHIFeatureLevel < ERHIFeatureLevel::SM3)
+		|| !bEnabled)
 	{
 		// visualize feature is deactivated
 		return;
@@ -617,7 +618,7 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 void FVisualizeTexture::SetCheckPoint(const IPooledRenderTarget* PooledRenderTarget)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!PooledRenderTarget || GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (!PooledRenderTarget || !bEnabled)
 	{
 		// Don't checkpoint on ES2 to avoid TMap alloc/reallocations
 		return;
@@ -873,6 +874,7 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
+	bEnabled = View.GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

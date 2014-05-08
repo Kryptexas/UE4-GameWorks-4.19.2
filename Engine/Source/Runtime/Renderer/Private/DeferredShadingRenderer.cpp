@@ -424,7 +424,7 @@ void FDeferredShadingSceneRenderer::RenderFinish()
 	//grab the new transform out of the proxies for next frame
 	if(ViewFamily.EngineShowFlags.MotionBlur || ViewFamily.EngineShowFlags.TemporalAA)
 	{
-		Scene->MotionBlurInfoData.UpdateMotionBlurCache();
+		Scene->MotionBlurInfoData.UpdateMotionBlurCache(Scene);
 	}
 
 	// Some RT should be released as early as possible to allow sharing of that memory for other purposes.
@@ -445,6 +445,8 @@ void FDeferredShadingSceneRenderer::Render()
 
 	SCOPED_DRAW_EVENT(Scene,DEC_SCENE_ITEMS);
 
+	const auto FeatureLevel = Scene->GetFeatureLevel();
+
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures();
 
@@ -455,7 +457,6 @@ void FDeferredShadingSceneRenderer::Render()
 	InitViews();
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
-
 	static const auto ClearMethodCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearSceneMethod"));
 	bool bRequiresRHIClear = true;
 	bool bRequiresFarZQuadClear = false;
@@ -622,7 +623,7 @@ void FDeferredShadingSceneRenderer::Render()
 	
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
-		&& GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewFamily.EngineShowFlags.DeferredLighting
 		)
 	{
@@ -667,7 +668,7 @@ void FDeferredShadingSceneRenderer::Render()
 	}
 
 	if( ViewFamily.EngineShowFlags.StationaryLightOverlap &&
-		GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		RenderStationaryLightOverlap();
 	}
@@ -987,7 +988,7 @@ public:
 		SetShaderValue(GetPixelShader(), SourceTexelOffsets01, Offsets01);
 		const FVector4 Offsets23(0.0f, 1.0f / DownsampledBufferSizeY, 1.0f / DownsampledBufferSizeX, 1.0f / DownsampledBufferSizeY);
 		SetShaderValue(GetPixelShader(), SourceTexelOffsets23, Offsets23);
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)

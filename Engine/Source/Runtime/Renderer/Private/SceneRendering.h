@@ -412,6 +412,8 @@ public:
 	FLinearColor LightShaftColorApply;
 	bool bLightShaftUse;
 
+	ERHIFeatureLevel::Type FeatureLevel;
+
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
 	 */
@@ -581,7 +583,7 @@ protected:
 	void RenderForwardShadingBasePass();
 
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
-	void CopySceneAlpha(void);
+	void CopySceneAlpha(const FSceneView& View);
 
 	/** Renders the base pass for translucency. */
 	void RenderTranslucency();

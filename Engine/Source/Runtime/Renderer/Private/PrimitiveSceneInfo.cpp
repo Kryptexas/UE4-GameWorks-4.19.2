@@ -157,7 +157,7 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists)
 	// Allocate space in the indirect lighting cache so that it can be used for previewing indirect lighting
 	if (Proxy->HasStaticLighting() 
 		&& Proxy->NeedsUnbuiltPreviewLighting() 
-		&& IsIndirectLightingCacheAllowed())
+		&& IsIndirectLightingCacheAllowed(Scene->GetFeatureLevel()))
 	{
 		FIndirectLightingCacheAllocation* PrimitiveAllocation = Scene->IndirectLightingCache.FindPrimitiveAllocation(PrimitiveComponentId);
 

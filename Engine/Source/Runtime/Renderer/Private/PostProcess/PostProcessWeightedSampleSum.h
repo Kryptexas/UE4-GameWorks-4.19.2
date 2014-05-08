@@ -120,12 +120,12 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 	// retrieve runtime filter kernel properties.
-	static float GetClampedKernelRadius(float KernelRadius);
-	static int GetIntegerKernelRadius(float KernelRadius);
+	static float GetClampedKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
+	static int GetIntegerKernelRadius(ERHIFeatureLevel::Type InFeatureLevel, float KernelRadius);
 
 private:
 	void DrawQuad(bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
-	static uint32 GetMaxNumSamples();
+	static uint32 GetMaxNumSamples(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// e.g. EFS_Horiz or EFS_Vert
 	EFilterShape FilterShape;

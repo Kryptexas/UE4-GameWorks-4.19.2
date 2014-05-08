@@ -4262,7 +4262,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.NumPrimitives = Section.NumTriangles;
 	if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 	{
-		if( Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent )
+		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
 		{
 			BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 			if( BatchElement.NumPrimitives == 0 )

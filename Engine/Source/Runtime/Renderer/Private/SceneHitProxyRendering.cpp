@@ -19,7 +19,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -125,7 +125,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -153,9 +153,10 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyPS,TEXT("HitProxyPixelShader"),TEXT("Ma
 
 FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
-	const FMaterialRenderProxy* InMaterialRenderProxy
-	):
-	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(GRHIFeatureLevel))
+	const FMaterialRenderProxy* InMaterialRenderProxy,
+	ERHIFeatureLevel::Type InFeatureLevel
+	) :
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(InFeatureLevel))
 {
 	HullShader = NULL;
 	DomainShader = NULL;
@@ -196,7 +197,7 @@ void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View, FBoundShaderStat
 * as well as the shaders needed to draw the mesh
 * @return new bound shader state object
 */
-FBoundShaderStateRHIRef FHitProxyDrawingPolicy::CreateBoundShaderState()
+FBoundShaderStateRHIRef FHitProxyDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FBoundShaderStateRHIRef BoundShaderState;
 
@@ -256,7 +257,7 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 
 	// Add the static mesh to the DPG's hit proxy draw list.
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-	const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 	if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition())
 	{
 		// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
@@ -266,7 +267,8 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	Scene->HitProxyDrawList.AddMesh(
 		StaticMesh,
 		StaticMesh->HitProxyId,
-		FHitProxyDrawingPolicy(StaticMesh->VertexFactory,MaterialRenderProxy)
+		FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
+		Scene->GetFeatureLevel()
 		);
 
 #if WITH_EDITOR
@@ -278,7 +280,8 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 		Scene->HitProxyDrawList_OpaqueOnly.AddMesh(
 			StaticMesh,
 			StaticMesh->HitProxyId,
-			FHitProxyDrawingPolicy(StaticMesh->VertexFactory,MaterialRenderProxy)
+			FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
+			Scene->GetFeatureLevel()
 			);
 	}
 #endif
@@ -298,7 +301,7 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 	if (!PrimitiveSceneProxy || PrimitiveSceneProxy->IsSelectable())
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 #if WITH_EDITOR
 		const HHitProxy* HitProxy = GetHitProxyById( HitProxyId );
 		// Only draw translucent primitives to the hit proxy if the user wants those objects to be selectable
@@ -310,8 +313,8 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 				// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			}
-			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy );
-			DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState());
+			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy, View.GetFeatureLevel() );
+			DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 			for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++ )
 			{
 				DrawingPolicy.SetMeshRenderState(View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId);
@@ -326,6 +329,9 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 void FDeferredShadingSceneRenderer::RenderHitProxies()
 {
 #if WITH_EDITOR
+
+	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures();
 

@@ -17,7 +17,7 @@ public:
 
 	void SetParameters(const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FViewInfo& View)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
@@ -93,7 +93,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FViewInfo& View)
 	{
-		FMeshMaterialShader::SetParameters(GetDomainShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(GRHIFeatureLevel), View, ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(GetDomainShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
 protected:
@@ -146,7 +146,7 @@ public:
 
 	void SetParameters(const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FViewInfo& View)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
@@ -312,7 +312,7 @@ bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitive
 	return true;
 }
 
-FBoundShaderStateRHIRef FVelocityDrawingPolicy::CreateBoundShaderState()
+FBoundShaderStateRHIRef FVelocityDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FBoundShaderStateRHIRef BoundShaderState;
 
@@ -347,8 +347,9 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 	// Velocity only needs to be directly rendered for movable meshes.
 	if(StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable())
 	{
+		const auto FeatureLevel = Scene->GetFeatureLevel();
 	    const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-	    const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 	    EBlendMode BlendMode = Material->GetBlendMode();
 	    if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 	    {
@@ -358,11 +359,11 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 			    MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 		    }
 
-			FVelocityDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel));
+			FVelocityDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel));
 			if (DrawingPolicy.SupportsVelocity())
 			{
 				// Add the static mesh to the depth-only draw list.
-				Scene->VelocityDrawList.AddMesh(StaticMesh, FVelocityDrawingPolicy::ElementDataType(), DrawingPolicy);
+				Scene->VelocityDrawList.AddMesh(StaticMesh, FVelocityDrawingPolicy::ElementDataType(), DrawingPolicy, Scene->GetFeatureLevel());
 			}
 	    }
 	}
@@ -379,8 +380,9 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 	)
 {
 	// Only draw opaque materials in the depth pass.
+	const auto FeatureLevel = View.GetFeatureLevel();
 	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-	const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 	EBlendMode BlendMode = Material->GetBlendMode();
 
 	if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
@@ -393,10 +395,10 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 			// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 			MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 		}
-		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(GRHIFeatureLevel));
+		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel));
 		if(DrawingPolicy.SupportsVelocity())
 		{			
-			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(FeatureLevel));
 			for(int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); ++BatchElementIndex)
 			{
 				DrawingPolicy.SetMeshRenderState(View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, FMeshDrawingPolicy::ElementDataType());
@@ -425,7 +427,7 @@ int32 GetMotionBlurQualityFromCVar()
 
 bool IsMotionBlurEnabled(const FViewInfo& View)
 {
-	if(!(GRHIFeatureLevel >= ERHIFeatureLevel::SM4))
+	if (!(View.GetFeatureLevel() >= ERHIFeatureLevel::SM4))
 	{
 		return false; 
 	}

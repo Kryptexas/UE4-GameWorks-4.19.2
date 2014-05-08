@@ -183,7 +183,7 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	}
 
 	// Construct an FX system for this preview.
-	FXSystem = FFXSystemInterface::Create();
+	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 
 	ParticleSystemComponent = ConstructObject<UCascadeParticleSystemComponent>(UCascadeParticleSystemComponent::StaticClass());
 

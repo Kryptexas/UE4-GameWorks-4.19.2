@@ -125,11 +125,11 @@ struct FTransientDecalRenderData
 	const FDeferredDecalProxy* DecalProxy;
 	bool bHasNormal;
 
-	FTransientDecalRenderData(FDeferredDecalProxy* InDecalProxy)
+	FTransientDecalRenderData(const FScene& InScene, FDeferredDecalProxy* InDecalProxy)
 		: DecalProxy(InDecalProxy)
 	{
 		MaterialProxy = InDecalProxy->DecalMaterial->GetRenderProxy(InDecalProxy->bOwnerSelected);
-		MaterialResource = MaterialProxy->GetMaterial(GRHIFeatureLevel);
+		MaterialResource = MaterialProxy->GetMaterial(InScene.GetFeatureLevel());
 		bHasNormal = MaterialResource->HasNormalConnected();
 		DecalBlendMode = ComputeFinalDecalBlendMode((EDecalBlendMode)MaterialResource->GetDecalBlendMode(), bHasNormal);
 		check(MaterialProxy && MaterialResource);
@@ -469,7 +469,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(GRHIFeatureLevel), View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
 
 		FTransform ComponentTrans = DecalProxy.ComponentTrans;
 
@@ -806,7 +806,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		if (bIsShown)
 		{
-			FTransientDecalRenderData Data(DecalProxy);
+			FTransientDecalRenderData Data(Scene, DecalProxy);
 
 			uint32 DecalRenderStage = ComputeRenderStage(Data.DecalBlendMode);
 

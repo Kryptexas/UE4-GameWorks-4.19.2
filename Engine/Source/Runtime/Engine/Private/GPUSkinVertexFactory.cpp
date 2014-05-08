@@ -384,7 +384,7 @@ public:
 
 			bool bLocalPerBoneMotionBlur = false;
 			
-			if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsLocked())
+			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsLocked())
 			{
 				// we are in the velocity rendering pass
 

@@ -166,7 +166,7 @@ class FLightmassMaterialProxy : public FMaterial, public FMaterialRenderProxy
 public:
 	FLightmassMaterialProxy(): FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	/** Initializes the material proxy and kicks off async shader compiling. */

@@ -792,6 +792,8 @@ FLightPropagationVolume::~FLightPropagationVolume()
 */
 void FLightPropagationVolume::InitSettings( const FSceneView& View )
 	{
+	check(View.GetFeatureLevel() >= ERHIFeatureLevel::SM5);
+
 #if LPV_VOLUME_TEXTURE
 	if ( !bInitialized )
 	{
@@ -927,7 +929,6 @@ void FLightPropagationVolume::Clear()
 	}
 
 	SCOPED_DRAW_EVENT(LpvClear, DEC_LIGHT);
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 
 	if ( !LpvWriteUniformBuffer.IsInitialized() )
 	{
@@ -1040,7 +1041,6 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	const FLightSceneProxy* LightProxy = ProjectedShadowInfo.LightSceneInfo->Proxy;
 	{
 		SCOPED_DRAW_EVENT(LpvInjectDirectionalLightRSM, DEC_LIGHT);
-		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 
 		SetVplInjectionConstants( ProjectedShadowInfo, LightProxy );
 
@@ -1095,9 +1095,6 @@ void FLightPropagationVolume::Propagate()
 	{
 		return;
 	}
-
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
-
 
 	// Inject the VPLs into the LPV
 	if ( mInjectedLightCount )
@@ -1204,8 +1201,6 @@ void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
 		//@TODO - Only point lights supported right now
 		return;
 	}
-
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 
 	// A geometry volume is required for direct light injection. This currently requires a directional light to be injected
 	//@TODO: Add support for generating a GV when there's no directional light

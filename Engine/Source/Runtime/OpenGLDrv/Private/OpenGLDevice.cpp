@@ -602,7 +602,7 @@ static void InitRHICapabilitiesForGL()
 	const GLint MinorVersion = FOpenGL::GetMinorVersion();
 
 	// Shader platform & RHI feature level
-	GRHIFeatureLevel = FOpenGL::GetFeatureLevel();
+	SetMaxRHIFeatureLevel(FOpenGL::GetFeatureLevel());
 	GRHIShaderPlatform = FOpenGL::GetShaderPlatform();
 
 	FString FeatureLevelName;
@@ -646,7 +646,7 @@ static void InitRHICapabilitiesForGL()
 	GProjectionSignY = 1.0f;
 
 	// Disable texture streaming on ES2 unless we have the GL_APPLE_copy_texture_levels extension
-	if(GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels() )
+	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels())
 	{
 		GRHISupportsTextureStreaming = false;
 	}

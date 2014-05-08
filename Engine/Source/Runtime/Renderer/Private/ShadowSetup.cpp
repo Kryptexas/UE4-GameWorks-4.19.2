@@ -889,7 +889,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							if(((!IsTranslucentBlendMode(BlendMode)) && LightingModel != MLM_Unlit) || (bReflectiveShadowmap && Material->ShouldInjectEmissiveIntoLPV())) 
 							{
 								const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
-								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap);
+								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, GRHIFeatureLevel);
 								SubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
 							}
 						}
@@ -1349,7 +1349,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			}
 
 			if (bTranslucentRelevance
-				&& GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+				&& Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4
 				&& bCreateTranslucentObjectShadow 
 				&& (bTranslucentShadowIsVisibleThisFrame || bShadowIsPotentiallyVisibleNextFrame))
 			{

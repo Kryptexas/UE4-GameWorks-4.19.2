@@ -786,7 +786,9 @@ void FSceneRenderer::RenderFinish()
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	ERHIFeatureLevel::Type FeatureLevel = InViewFamily->Scene->GetFeatureLevel();
+
+	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		return new FForwardShadingSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
@@ -897,7 +899,7 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
 
     {
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
-
+		
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.

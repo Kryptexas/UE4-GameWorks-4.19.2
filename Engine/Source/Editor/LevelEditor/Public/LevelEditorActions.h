@@ -536,6 +536,8 @@ public:
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_Low;
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_High;
 
+	TSharedPtr< FUICommandInfo > FeatureLevelPreview[ERHIFeatureLevel::Num];
+	
 	///**
 	// * Mode Commands                   
 	// */
@@ -715,6 +717,8 @@ public:
 	static void AttachToSocketSelection(FName SocketName, AActor* ParentActorPtr);
 	static void SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel );
 	static bool IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel );
+	static void SetFeatureLevelPreview(ERHIFeatureLevel::Type InFeatureLevel);
+	static bool IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InFeatureLevel);
 	
 	/**
 	 * Called when the Scene Stats button is clicked.  Invokes the Primitive Stats dialog.

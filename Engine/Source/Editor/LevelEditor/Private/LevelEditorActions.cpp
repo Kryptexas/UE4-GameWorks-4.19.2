@@ -443,6 +443,17 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 	return TestQualityLevel == MaterialQualityLevel;
 }
 
+void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
+{
+	// Here be dragons...
+}
+
+bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
+{
+	// For now, we just stay stuck on the system max feature level
+	return InPreviewFeatureLevel == GRHIFeatureLevel;
+}
+
 void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLightingBuildOptions& Options )
 {
 	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"),		Options.bOnlyBuildSelected,			GEditorUserSettingsIni );
@@ -2754,6 +2765,22 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputGesture() );
+
+	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
+	{
+		FName Name;
+		GetFeatureLevelName((ERHIFeatureLevel::Type)i, Name);
+
+		FeatureLevelPreview[i] =
+			FUICommandInfoDecl(
+			this->AsShared(),
+			Name,
+			//FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreview", "Preview scenes using feature level {0}"), TEXT("Thing")),
+			FText::FromName(Name),
+			FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip", "Preview scenes using feature level {0}"), FText::FromName(Name)))
+			.UserInterfaceType(EUserInterfaceActionType::Button)
+			.DefaultGesture(FInputGesture());
+	}
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

@@ -45,6 +45,8 @@ void FForwardShadingSceneRenderer::Render()
 		return;
 	}
 
+	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures();
 

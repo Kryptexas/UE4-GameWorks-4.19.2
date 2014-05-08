@@ -1308,7 +1308,9 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpriteRenderingTime);
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const auto FeatureLevel = View->GetFeatureLevel();
+
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
 
 	if (bValid == false)
 	{
@@ -1324,7 +1326,7 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 	{
 		// Don't render if the material will be ignored
 		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-		if (PDI->IsMaterialIgnored(MaterialResource[bSelected]) && !bIsWireframe)
+		if (PDI->IsMaterialIgnored(MaterialResource[bSelected], FeatureLevel) && !bIsWireframe)
 		{
 			return 0;
 		}
@@ -1724,7 +1726,7 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 
 				// If the material is ignored by the PDI (or not there at all...), 
 				// do not add it to the list of valid elements.
-				if ((MaterialProxy && !PDI->IsMaterialIgnored(MaterialProxy)) || View->Family->EngineShowFlags.Wireframe)
+				if ((MaterialProxy && !PDI->IsMaterialIgnored(MaterialProxy, View->GetFeatureLevel())) || View->Family->EngineShowFlags.Wireframe)
 				{
 					ValidSectionIndices.Add(ElementIndex);
 					bNoValidElements = false;
@@ -2660,7 +2662,7 @@ int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimit
 	}
 
 	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-	bool bMaterialIgnored = PDI->IsMaterialIgnored(MaterialResource[bSelected]);
+	bool bMaterialIgnored = PDI->IsMaterialIgnored(MaterialResource[bSelected], View->GetFeatureLevel());
 	if (bMaterialIgnored && !bIsWireframe)
 	{
 		return 0;
@@ -5446,7 +5448,7 @@ int32 FDynamicTrailsEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 	bool const bIsWireframe = View->Family->EngineShowFlags.Wireframe;
 
 	// Don't render if the material will be ignored
-	if (PDI->IsMaterialIgnored(MaterialResource[bSelected]) && !bIsWireframe)
+	if (PDI->IsMaterialIgnored(MaterialResource[bSelected], View->GetFeatureLevel()) && !bIsWireframe)
 	{
 		return 0;
 	}

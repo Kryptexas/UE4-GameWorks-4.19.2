@@ -833,7 +833,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	ClothVertexFactories.Empty(Chunks.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
 	{
-		if(Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (Chunks[FactoryIdx].HasApexClothData() && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{

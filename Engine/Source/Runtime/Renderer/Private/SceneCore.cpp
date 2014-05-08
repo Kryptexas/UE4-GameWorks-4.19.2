@@ -276,7 +276,7 @@ void FStaticMesh::UnlinkDrawList(FStaticMesh::FDrawListElementLink* Link)
 
 void FStaticMesh::AddToDrawLists(FScene* Scene)
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 	{
 		if (CastShadow)
 		{

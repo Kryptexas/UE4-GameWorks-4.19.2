@@ -21,7 +21,7 @@ public:
 	virtual bool SupportsDynamicReloading() OVERRIDE { return true; }
 
 	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) OVERRIDE;
-	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies) OVERRIDE;
+	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) OVERRIDE;
 	virtual void RemoveScene(FSceneInterface* Scene) OVERRIDE;
 	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials) OVERRIDE;
 	virtual FSceneViewStateInterface* AllocateViewState() OVERRIDE;

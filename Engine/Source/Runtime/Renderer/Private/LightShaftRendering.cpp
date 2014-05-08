@@ -299,7 +299,7 @@ public:
 		const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 		FVector2D SampleOffsets(1.0f / BufferSize.X, 1.0f / BufferSize.Y);
 		SetShaderValue(GetPixelShader(),SampleOffsetsParameter,SampleOffsets);
-		SceneTextureParams.Set(GetPixelShader());
+		SceneTextureParams.Set(GetPixelShader(), View);
 	}
 
 private:

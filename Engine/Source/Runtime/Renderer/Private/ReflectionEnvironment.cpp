@@ -44,12 +44,12 @@ static int GetReflectionEnvironmentCVar()
 	return 1;
 }
 
-bool IsReflectionEnvironmentAvailable()
+bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnAnyThread() != 0);
 
-	return (GRHIFeatureLevel >= ERHIFeatureLevel::SM4) && (GetReflectionEnvironmentCVar() != 0) && bAllowStaticLighting;
+	return (InFeatureLevel >= ERHIFeatureLevel::SM4) && (GetReflectionEnvironmentCVar() != 0) && bAllowStaticLighting;
 }
 
 void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
@@ -263,7 +263,7 @@ public:
 		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), SamplePositionsBuffer);
 		SetShaderValue(ShaderRHI, NumCaptures, SortData.Num());
 
-		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
 		SkyLightParameters.SetParameters(ShaderRHI, Scene, View.Family->EngineShowFlags.SkyLighting);
 	}
@@ -384,7 +384,7 @@ public:
 		
 		SetTextureParameter( ShaderRHI, ReflectionEnvTexture, ReflectionEnvSampler, TStaticSamplerState<SF_Point>::GetRHI(), ReflectionEnv );
 		SetTextureParameter( ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), ScreenSpaceReflections );
-		SetTextureParameter( ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	}
 
 	// FShader interface.
@@ -552,7 +552,9 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 		bAnyViewIsReflectionCapture = bAnyViewIsReflectionCapture || View.bIsReflectionCapture;
 	}
 
-	const uint32 bReflectionEnv = IsReflectionEnvironmentAvailable()
+	const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
+
+	const uint32 bReflectionEnv = IsReflectionEnvironmentAvailable(FeatureLevel)
 		&& Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num()
 		&& ViewFamily.EngineShowFlags.ReflectionEnvironment;
 
@@ -562,7 +564,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 
 	const uint32 bUseLightmaps = GDiffuseFromCaptures == 0;
 
-	const bool bReflectionsWithCompute = GRHIFeatureLevel == ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.CubemapArray.IsValid();
+	const bool bReflectionsWithCompute = FeatureLevel == ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.CubemapArray.IsValid();
 
 	TRefCountPtr<IPooledRenderTarget>	NewSceneColor;
 	if( bReflectionEnv && bReflectionsWithCompute && !bAnyViewIsReflectionCapture )
@@ -623,7 +625,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 			if( bReflectionEnv )
 			{
 				// If we are in SM5, use the compute shader gather method
-				if (GRHIFeatureLevel == ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.CubemapArray.IsValid())
+				if (FeatureLevel == ERHIFeatureLevel::SM5 && Scene->ReflectionSceneData.CubemapArray.IsValid())
 				{
 					// Render the reflection environment with tiled deferred culling
 					SCOPED_DRAW_EVENT(ReflectionEnvironmentGather, DEC_SCENE_ITEMS);
@@ -657,7 +659,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 					bRequiresApply = false;
 				}
 				// In SM4 use standard deferred shading to composite reflection capture contribution
-				else if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+				else if (FeatureLevel == ERHIFeatureLevel::SM4)
 				{
 					// TODO sort once per view
 					static TArray<FReflectionCaptureSortData> SortData;

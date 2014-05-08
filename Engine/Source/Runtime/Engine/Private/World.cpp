@@ -559,10 +559,10 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		
 		// Save off the value used to create the scene, so this UWorld can recreate its scene later
 		bRequiresHitProxies = IVS.bRequiresHitProxies;
-		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies );
+		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies, GRHIFeatureLevel );
 		if ( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
 		{
-			FXSystem = FFXSystemInterface::Create();
+			FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 			Scene->SetFXSystem( FXSystem );
 		}
 		else

@@ -23,7 +23,8 @@ public class Cascade : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"DistCurveEditor",
-				"UnrealEd"
+				"UnrealEd",
+				"RHI"
 			}
 		);
 

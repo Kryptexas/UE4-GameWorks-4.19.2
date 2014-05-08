@@ -25,9 +25,9 @@ public:
 	}
 	FForwardCopySceneAlphaPS() {}
 
-	void SetParameters()
+	void SetParameters(const FSceneView& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -45,7 +45,7 @@ IMPLEMENT_SHADER_TYPE(,FForwardCopySceneAlphaPS,TEXT("TranslucentLightingShaders
 
 FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 
-void FForwardShadingSceneRenderer::CopySceneAlpha(void)
+void FForwardShadingSceneRenderer::CopySceneAlpha(const FSceneView& View)
 {
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
@@ -65,7 +65,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(void)
 	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters();
+	PixelShader->SetParameters(View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -139,7 +139,7 @@ public:
 
 		DrawingPolicy.DrawShared(
 			&View,
-			DrawingPolicy.CreateBoundShaderState()
+			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
@@ -174,7 +174,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	bool bDirty = false;
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only render translucent materials.
@@ -215,7 +215,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
 	)
 {
 	bool bDirty = false;
-	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 
 	bDirty |= DrawDynamicMesh(
 		View,

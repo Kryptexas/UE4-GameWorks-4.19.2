@@ -334,7 +334,7 @@ public:
 
 		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, MaterialResource, *View, TextureMode);
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			if (IsTranslucentBlendMode(BlendMode))
 			{
@@ -377,7 +377,7 @@ public:
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode)
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
 			&& IsTranslucentBlendMode(BlendMode))
 		{
 			TranslucentLightingParameters.SetMesh(this, Proxy);
@@ -578,7 +578,7 @@ public:
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions);
+			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions, NumPixelShaderInstructions, View->GetFeatureLevel());
 		}
 		else
 #endif
@@ -617,7 +617,7 @@ public:
 	* @param DynamicStride - optional stride for dynamic vertex data
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState()
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
@@ -684,7 +684,7 @@ public:
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions);
+			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions, View.GetFeatureLevel());
 		}
 		else
 #endif
@@ -762,11 +762,11 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		// Ignore non-opaque materials in the opaque base pass.
 		// Note: blend mode does not depend on the feature level.
-		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 };
 
@@ -834,7 +834,8 @@ public:
 template<typename ProcessActionType>
 void ProcessBasePassMesh(
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action
+	const ProcessActionType& Action,
+	ERHIFeatureLevel::Type InFeatureLevel
 	)
 {
 	// Check for a cached light-map.
@@ -849,9 +850,9 @@ void ProcessBasePassMesh(
 	if (!(Parameters.TextureMode == ESceneRenderTargetsMode::DontSet && bNeedsSceneTextures))
 	{
 		// Render self-shadowing only for >= SM4 and fallback to non-shadowed for lesser shader models
-		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && InFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			if (IsIndirectLightingCacheAllowed()
+			if (IsIndirectLightingCacheAllowed(InFeatureLevel)
 				&& Action.AllowIndirectLightingCache()
 				&& Parameters.PrimitiveSceneProxy)
 			{
@@ -907,7 +908,7 @@ void ProcessBasePassMesh(
 							{
 								Action.template Process<FSimpleDynamicLightingPolicy>(Parameters, FSimpleDynamicLightingPolicy(), FSimpleDynamicLightingPolicy::ElementDataType());
 							}
-							else if (IsIndirectLightingCacheAllowed()
+							else if (IsIndirectLightingCacheAllowed(InFeatureLevel)
 								&& Action.AllowIndirectLightingCache()
 								&& Parameters.PrimitiveSceneProxy
 								// Use the indirect lighting cache shaders if the object has a cache allocation
@@ -917,7 +918,7 @@ void ProcessBasePassMesh(
 									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
 									|| Parameters.PrimitiveSceneProxy->IsMovable()))
 							{
-								if (CanIndirectLightingCacheUseVolumeTexture() && Action.AllowIndirectLightingCacheVolumeTexture())
+								if (CanIndirectLightingCacheUseVolumeTexture(InFeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
 								{
 									// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
 									Action.template Process<FCachedVolumeIndirectLightingPolicy>(Parameters,FCachedVolumeIndirectLightingPolicy(),FCachedVolumeIndirectLightingPolicy::ElementDataType());

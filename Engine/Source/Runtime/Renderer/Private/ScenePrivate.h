@@ -1282,7 +1282,7 @@ public:
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
 
 	/** Initialization constructor. */
-	FScene(UWorld* InWorld,bool bInRequiresHitProxies,bool bInIsEditorScene);
+	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel);
 
 	virtual ~FScene();
 
@@ -1429,6 +1429,8 @@ public:
 
 	virtual bool IsEditorScene() const OVERRIDE { return bIsEditorScene; }
 
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const OVERRIDE { return FeatureLevel; }
+
 private:
 
 	/**
@@ -1539,6 +1541,11 @@ private:
 	 * Note: This is tracked on the game thread!
 	 */
 	bool bHasSkyLight;
+
+	/** 
+	 * Feature level that this scene should render using
+	 */
+	ERHIFeatureLevel::Type FeatureLevel;
 };
 
 #endif // __SCENEPRIVATE_H__

@@ -43,7 +43,8 @@ public class LevelEditor : ModuleRules
 				"DeviceProfileServices",
 				"ContentBrowser",
                 "SceneOutliner",
-                "ActorPickerMode"
+                "ActorPickerMode",
+                "RHI"
 			}
 		);
 

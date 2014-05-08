@@ -1006,7 +1006,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							// Second pass: assign shader maps with a specified quality level to only the appropriate material resource
 							|| (PassIndex == 1 && QualityLevelIndex == LoadedQualityLevel))
 						{
-							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GRHIFeatureLevel,(EMaterialQualityLevel::Type)QualityLevelIndex);
+							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GRHIFeatureLevel, (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
 

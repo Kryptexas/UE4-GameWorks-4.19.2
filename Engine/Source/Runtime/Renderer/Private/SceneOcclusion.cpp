@@ -816,7 +816,7 @@ public:
 		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
 		SetShaderValue( ShaderRHI, InvSizeParameter, InvSize );
 		
-		SceneTextureParameters.Set( ShaderRHI );
+		SceneTextureParameters.Set( ShaderRHI, View );
 	}
 
 	void SetParameters( const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )

@@ -196,7 +196,7 @@ void FDepthDrawingPolicy::DrawShared(const FSceneView* View,FBoundShaderStateRHI
 * as well as the shaders needed to draw the mesh
 * @return new bound shader state object
 */
-FBoundShaderStateRHIRef FDepthDrawingPolicy::CreateBoundShaderState()
+FBoundShaderStateRHIRef FDepthDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	return RHICreateBoundShaderState(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -273,12 +273,12 @@ void FPositionOnlyDepthDrawingPolicy::DrawShared(const FSceneView* View,FBoundSh
 * as well as the shaders needed to draw the mesh
 * @return new bound shader state object
 */
-FBoundShaderStateRHIRef FPositionOnlyDepthDrawingPolicy::CreateBoundShaderState()
+FBoundShaderStateRHIRef FPositionOnlyDepthDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FVertexDeclarationRHIParamRef VertexDeclaration;
 	VertexDeclaration = VertexFactory->GetPositionDeclaration();
 
-	checkSlow(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Opaque);
+	checkSlow(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode() == BLEND_Opaque);
 	return RHICreateBoundShaderState(VertexDeclaration, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), FPixelShaderRHIRef(), FGeometryShaderRHIRef());
 }
 
@@ -307,7 +307,7 @@ int32 CompareDrawingPolicy(const FPositionOnlyDepthDrawingPolicy& A,const FPosit
 void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
 {
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-	const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	if (Material->IsMasked())
@@ -321,7 +321,8 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 				MaterialRenderProxy,
 				*Material,
 				Material->IsTwoSided()
-				)
+				),
+			Scene->GetFeatureLevel()
 			);
 	}
 	else
@@ -337,10 +338,11 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 				FPositionOnlyDepthDrawingPolicy(
 					StaticMesh->VertexFactory,
 					DefaultProxy,
-					*DefaultProxy->GetMaterial(GRHIFeatureLevel),
+					*DefaultProxy->GetMaterial(Scene->GetFeatureLevel()),
 					Material->IsTwoSided(),
 					Material->IsWireframe()
-					)
+					),
+				Scene->GetFeatureLevel()
 				);
 		}
 		else
@@ -358,9 +360,10 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 				FDepthDrawingPolicy(
 					StaticMesh->VertexFactory,
 					MaterialRenderProxy,
-					*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),
+					*MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel()),
 					Material->IsTwoSided()
-					)
+					),
+				Scene->GetFeatureLevel()
 				);
 		}
 	}
@@ -384,7 +387,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 	if (Mesh.bUseAsOccluder)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 		const EBlendMode BlendMode = Material->GetBlendMode();
 
 		// Check to see if the primitive is currently fading in or out using the screen door effect.  If it is,
@@ -397,8 +400,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 		{
 			//render opaque primitives that support a separate position-only vertex buffer
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
-			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory,DefaultProxy,*DefaultProxy->GetMaterial(GRHIFeatureLevel),Material->IsTwoSided(),Material->IsWireframe());
-			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, DefaultProxy, *DefaultProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided(), Material->IsWireframe());
+			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 			int32 BatchElementIndex = 0;
 			uint64 Mask = BatchElementMask;
 			do
@@ -439,8 +442,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 					MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 				}
 
-				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory,MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),Material->IsTwoSided());
-				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
+				FDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), Material->IsTwoSided());
+				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
 
 				int32 BatchElementIndex = 0;
 				uint64 Mask = BatchElementMask;
@@ -497,7 +500,7 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 {
 	bool bDirty = false;
 
-	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EMaterialLightingModel LightingModel = Material->GetLightingModel();
 	bDirty |= DrawMesh(
 		View,
@@ -513,7 +516,7 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 	return bDirty;
 }
 
-bool FDepthDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+bool FDepthDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+	return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 }

@@ -48,7 +48,7 @@ class FFXSystem : public FFXSystemInterface
 public:
 
 	/** Default constructoer. */
-	FFXSystem();
+	FFXSystem(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** Destructor. */
 	virtual ~FFXSystem();
@@ -176,6 +176,8 @@ private:
 	TSparseArray<FParticleSimulationGPU*> GPUSimulations;
 	/** Particle render resources. */
 	FParticleSimulationResources* ParticleSimulationResources;
+	/** Feature level of this effects system */
+	ERHIFeatureLevel::Type FeatureLevel;
 
 #if WITH_EDITOR
 	/** true if the system has been suspended. */

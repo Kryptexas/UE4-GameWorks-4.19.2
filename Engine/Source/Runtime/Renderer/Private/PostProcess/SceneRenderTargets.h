@@ -530,7 +530,7 @@ public:
 
 	/** Sets the scene texture parameters for the given view. */
 	template<typename TParamRef>
-	void Set(const TParamRef& ShaderRHI, ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures, ESamplerFilter ColorFilter = SF_Point) const
+	void Set(const TParamRef& ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures, ESamplerFilter ColorFilter = SF_Point) const
 	{
 		if (TextureMode == ESceneRenderTargetsMode::SetTextures)
 		{
@@ -596,7 +596,7 @@ public:
 			{
 				SetTextureParameter(ShaderRHI, SceneColorSurfaceParameter, GSceneRenderTargets.GetSceneColorSurface());
 			}
-			if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				if(GSupportsDepthFetchDuringDepthTest)
 				{
@@ -684,7 +684,7 @@ public:
 	void Set(const ShaderRHIParamRef ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode = ESceneRenderTargetsMode::SetTextures) const
 	{
 		// This is needed on PC ES2 for SceneAlphaCopy, probably should be refactored for performance.
-		SceneTextureParameters.Set(ShaderRHI, TextureMode, SF_Point);
+		SceneTextureParameters.Set(ShaderRHI, View, TextureMode, SF_Point);
 
 		// if() is purely an optimization and could be removed
 		if(IsDBufferEnabled())

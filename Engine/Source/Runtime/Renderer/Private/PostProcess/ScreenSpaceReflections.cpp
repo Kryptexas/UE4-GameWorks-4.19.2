@@ -285,7 +285,7 @@ void ScreenSpaceReflections( const FViewInfo& View, TRefCountPtr<IPooledRenderTa
 			else
 			{
 				// No history, use black
-				HistoryInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( GSystemTextures.BlackDummy ) );
+				HistoryInput = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSystemTextures.BlackDummy));
 			}
 
 			FRenderingCompositePass* TemporalAAPass = Context.Graph.RegisterPass( new FRCPassPostProcessSSRTemporalAA );

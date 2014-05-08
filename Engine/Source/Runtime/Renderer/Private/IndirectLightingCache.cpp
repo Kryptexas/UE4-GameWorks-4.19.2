@@ -130,7 +130,7 @@ static FAutoConsoleVariableRef CVarLightingCacheUnbuiltPreviewAllocationSize(
 	ECVF_ReadOnly
 	);
 
-bool IsIndirectLightingCacheAllowed() 
+bool IsIndirectLightingCacheAllowed(ERHIFeatureLevel::Type InFeatureLevel) 
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
@@ -138,7 +138,7 @@ bool IsIndirectLightingCacheAllowed()
 	return GIndirectLightingCache != 0 && bAllowStaticLighting;
 }
 
-bool CanIndirectLightingCacheUseVolumeTexture()
+bool CanIndirectLightingCacheUseVolumeTexture(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// @todo Mac OS X/OpenGL: For OpenGL devices which don't support volume-texture rendering we need to use the simpler point indirect lighting shaders.
 	return GRHIFeatureLevel >= ERHIFeatureLevel::SM3 && GSupportsVolumeTextureRendering;
@@ -153,7 +153,7 @@ FIndirectLightingCache::FIndirectLightingCache()
 
 void FIndirectLightingCache::InitDynamicRHI()
 {
-	if (CanIndirectLightingCacheUseVolumeTexture())
+	if (CanIndirectLightingCacheUseVolumeTexture(GRHIFeatureLevel))
 	{
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_NoTiling;
 
@@ -344,7 +344,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 
 void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
 {
-	if (IsIndirectLightingCacheAllowed())
+	if (IsIndirectLightingCacheAllowed(Scene->GetFeatureLevel()))
 	{
 		bool bAnyViewAllowsIndirectLightingCache = false;
 
@@ -608,7 +608,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	float DirectionalShadowing = 1;
 	FVector SkyBentNormal(0, 0, 1);
 
-	if (CanIndirectLightingCacheUseVolumeTexture() && BlockInfo.Allocation->bOpaqueRelevance)
+	if (CanIndirectLightingCacheUseVolumeTexture(Scene->GetFeatureLevel()) && BlockInfo.Allocation->bOpaqueRelevance)
 	{
 		static TArray<float> AccumulatedWeight;
 		AccumulatedWeight.Reset(NumSamplesPerBlock);

@@ -49,7 +49,7 @@ public:
 		const FSceneView& View
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -160,7 +160,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),*View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, ESceneRenderTargetsMode::SetTextures);
 
 		if (GridTexture.IsBound())
 		{
@@ -257,12 +257,13 @@ public:
 
 	/** Initialization constructor. */
 	TLightMapDensityDrawingPolicy(
+		const FViewInfo& View,
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		LightMapPolicyType InLightMapPolicy,
 		EBlendMode InBlendMode
 		):
-		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(GRHIFeatureLevel)),
+		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(View.GetFeatureLevel())),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode)
 	{
@@ -395,7 +396,7 @@ public:
 	 * as well as the shaders needed to draw the mesh
 	 * @return new bound shader state object
 	 */
-	FBoundShaderStateRHIRef CreateBoundShaderState()
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FBoundShaderStateRHIRef BoundShaderState;
 
@@ -449,10 +450,10 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		// Note: MaterialModifiesMeshPosition may depend on feature level!
-		const FMaterial* Material = MaterialRenderProxy ? MaterialRenderProxy->GetMaterial(GRHIFeatureLevel) : NULL;
+		const FMaterial* Material = MaterialRenderProxy ? MaterialRenderProxy->GetMaterial(InFeatureLevel) : NULL;
 		return (Material && 
 				!(	Material->IsSpecialEngineMaterial() || 
 					Material->IsMasked() ||

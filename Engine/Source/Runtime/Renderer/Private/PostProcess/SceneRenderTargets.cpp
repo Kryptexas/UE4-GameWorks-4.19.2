@@ -656,7 +656,7 @@ int32 FSceneRenderTargets::GetEditorMSAACompositingSampleCount() const
 	int32 Value = 1;
 
 	// only supported on SM5 yet (SM4 doesn't have MSAA sample load functionality which makes it harder to implement)
-	if(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MSAA.CompositingSampleCount"));
 

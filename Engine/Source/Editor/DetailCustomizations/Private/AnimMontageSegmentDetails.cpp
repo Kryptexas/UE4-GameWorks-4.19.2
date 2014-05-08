@@ -148,7 +148,7 @@ void SAnimationSegmentViewport::Construct(const FArguments& InArgs)
 {
 	TargetSkeleton = InArgs._Skeleton;
 	AnimRef = InArgs._AnimRef;
-	FXSystem = FFXSystemInterface::Create();
+	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 	
 	AnimRefPropertyHandle = InArgs._AnimRefPropertyHandle;
 	StartTimePropertyHandle = InArgs._StartTimePropertyHandle;

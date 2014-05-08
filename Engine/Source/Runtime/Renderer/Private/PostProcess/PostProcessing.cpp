@@ -709,6 +709,8 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 	bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
+	const auto FeatureLevel = View.GetFeatureLevel();
+
 	GRenderTargetPool.AddPhaseEvent(TEXT("PostProcessing"));
 
 	// This page: https://udn.epicgames.com/Three/RenderingOverview#Rendering%20state%20defaults 
@@ -755,7 +757,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 
-		if( View.Family->EngineShowFlags.PostProcessing && GRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+		if (View.Family->EngineShowFlags.PostProcessing && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			// Screen Space Subsurface Scattering
 			{
@@ -943,7 +945,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 					bHistogramNeeded = false;
 				}
 
-				if(!GIsHighResScreenshot && bHistogramNeeded && GRHIFeatureLevel == ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
+				if (!GIsHighResScreenshot && bHistogramNeeded && FeatureLevel >= ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
 				{
 					Histogram = AddPostProcessHistogram(Context, SceneColorHalfRes);
 				}
@@ -968,7 +970,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 			HDRColor = Context.FinalOutput;
 
-			if(bAllowTonemapper && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			if(bAllowTonemapper && FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				FRenderingCompositeOutputRef CombinedLUT;
 
@@ -1087,7 +1089,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			}
 		}
 
-		if(View.Family->EngineShowFlags.VisualizeHDR && GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		if(View.Family->EngineShowFlags.VisualizeHDR && FeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeHDR());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1098,7 +1100,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 		AddUIBlur(Context);
 
-		if(View.Family->EngineShowFlags.TestImage && GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		if(View.Family->EngineShowFlags.TestImage && FeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTestImage());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));

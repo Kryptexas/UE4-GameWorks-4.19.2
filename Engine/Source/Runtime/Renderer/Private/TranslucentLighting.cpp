@@ -187,7 +187,7 @@ public:
 		const FProjectedShadowInfo* ShadowInfo
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(GRHIFeatureLevel), View, ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 		ShadowParameters.SetVertexShader(this, View, ShadowInfo, MaterialRenderProxy);
 	}
 
@@ -259,16 +259,17 @@ public:
 		)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+		const auto FeatureLevel = View.GetFeatureLevel();
 
 		//@todo - scene depth can be bound by the material for use in depth fades
 		// This is incorrect when rendering a shadowmap as it's not from the camera's POV
 		// Set the scene depth texture to something safe when rendering shadow depths
-		FMeshMaterialShader::SetParameters(ShaderRHI,MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::NonSceneAlignedPass);
+		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), View, ESceneRenderTargetsMode::NonSceneAlignedPass);
 
 		SetShaderValue(ShaderRHI, TranslInvMaxSubjectDepth, ShadowInfo->InvMaxSubjectDepth);
 
 		const float LocalToWorldScale = ShadowInfo->ParentSceneInfo->Proxy->GetLocalToWorld().GetScaleVector().GetMax();
-		const float TranslucentShadowStartOffsetValue = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetTranslucentShadowStartOffset() * LocalToWorldScale;
+		const float TranslucentShadowStartOffsetValue = MaterialRenderProxy->GetMaterial(FeatureLevel)->GetTranslucentShadowStartOffset() * LocalToWorldScale;
 		SetShaderValue(ShaderRHI,TranslucentShadowStartOffset, TranslucentShadowStartOffsetValue / (ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
 		TranslucencyProjectionParameters.Set(this);
 	}
@@ -362,7 +363,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState()
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return RHICreateBoundShaderState(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -423,17 +424,18 @@ public:
 		)
 	{
 		bool bDirty = false;
+		const auto FeatureLevel = View.GetFeatureLevel();
 
 		if (Mesh.CastShadow)
 		{
 			const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-			const EBlendMode BlendMode = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode();
+			const EBlendMode BlendMode = MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode();
 
 			// Only render translucent meshes into the Fourier opacity maps
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(GRHIFeatureLevel), DrawingContext.bDirectionalLight);
-				DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState());
+				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), DrawingContext.bDirectionalLight);
+				DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState(FeatureLevel));
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
@@ -471,9 +473,9 @@ public:
 		return bDirty;
 	}
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy) 
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{ 
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 };
 
@@ -831,7 +833,7 @@ public:
 		
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(GRHIFeatureLevel), View, false, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, false, ESceneRenderTargetsMode::SetTextures);
 		
 		FSphere ShadowBounds = ShadowMap ? ShadowMap->ShadowBounds : FSphere(FVector(0,0,0), HALF_WORLD_MAX);
 		SetShaderValue(ShaderRHI, CascadeBounds, ShadowBounds);
@@ -1456,7 +1458,7 @@ void SetInjectionShader(
 {
 	check(ShadowMap || !bShadowed);
 
-	const FMaterialShaderMap* MaterialShaderMap = MaterialProxy->GetMaterial(GRHIFeatureLevel)->GetRenderingThreadShaderMap();
+	const FMaterialShaderMap* MaterialShaderMap = MaterialProxy->GetMaterial(View.GetFeatureLevel())->GetRenderingThreadShaderMap();
 	FMaterialShader* PixelShader = NULL;
 
 	const bool Directional = InjectionType == LightType_Directional;
@@ -1572,16 +1574,18 @@ static void AddLightForInjection(
 	{
 		const FVisibleLightInfo& VisibleLightInfo = SceneRenderer.VisibleLightInfos[LightSceneInfo.Id];
 
+		const ERHIFeatureLevel::Type FeatureLevel = SceneRenderer.Scene->GetFeatureLevel();
+
 		const bool bApplyLightFunction = (SceneRenderer.ViewFamily.EngineShowFlags.LightFunctions &&
 			LightSceneInfo.Proxy->GetLightFunctionMaterial() && 
-			LightSceneInfo.Proxy->GetLightFunctionMaterial()->GetMaterial(GRHIFeatureLevel)->IsLightFunction());
+			LightSceneInfo.Proxy->GetLightFunctionMaterial()->GetMaterial(FeatureLevel)->IsLightFunction());
 
 		const FMaterialRenderProxy* MaterialProxy = bApplyLightFunction ? 
 			LightSceneInfo.Proxy->GetLightFunctionMaterial() : 
 			UMaterial::GetDefaultMaterial(MD_LightFunction)->GetRenderProxy(false);
 
 		// Skip rendering if the DefaultLightFunctionMaterial isn't compiled yet
-		if (MaterialProxy->GetMaterial(GRHIFeatureLevel)->IsLightFunction())
+		if (MaterialProxy->GetMaterial(FeatureLevel)->IsLightFunction())
 		{
 			FTranslucentLightInjectionData InjectionData;
 			InjectionData.LightSceneInfo = &LightSceneInfo;

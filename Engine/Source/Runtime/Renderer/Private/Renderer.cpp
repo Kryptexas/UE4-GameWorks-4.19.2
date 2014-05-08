@@ -39,7 +39,9 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 	FViewInfo View(&SceneView);
 	View.InitRHIResources();
 
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);	
+	const auto FeatureLevel = View.GetFeatureLevel();
+
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
 	//get the blend mode of the material
 	const EBlendMode MaterialBlendMode = Material->GetBlendMode();
@@ -49,7 +51,7 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+			if (FeatureLevel >= ERHIFeatureLevel::SM3)
 			{
 				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
@@ -71,7 +73,7 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 			}
 			else
 			{
-				if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+				if (FeatureLevel >= ERHIFeatureLevel::SM3)
 				{
 					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}

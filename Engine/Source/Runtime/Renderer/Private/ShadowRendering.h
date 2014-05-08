@@ -313,7 +313,7 @@ public:
 	 * as well as the shaders needed to draw the mesh
 	 * @return new bound shader state object
 	 */
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
 		const FSceneView& View,
@@ -394,7 +394,7 @@ public:
 		FHitProxyId HitProxyId
 		);
 
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy)
+	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return false;
 	}
@@ -408,7 +408,8 @@ public:
 void OverrideWithDefaultMaterialForShadowDepth(
 	const FMaterialRenderProxy*& InOutMaterialRenderProxy, 
 	const FMaterial*& InOutMaterialResource,
-	bool bReflectiveShadowmap
+	bool bReflectiveShadowmap,
+	ERHIFeatureLevel::Type InFeatureLevel
 	);
 
 /** A single static mesh element for shadow depth rendering. */

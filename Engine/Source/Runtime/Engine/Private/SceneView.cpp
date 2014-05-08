@@ -1104,6 +1104,11 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 	}
 }
 
+ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
+{ 
+	return Family->Scene->GetFeatureLevel();
+}
+
 FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	:
 	FamilySizeX(0),

@@ -28,8 +28,9 @@ public:
 	FShaderComplexityAccumulatePS() {}
 
 	void SetParameters(
-		uint32 NumVertexInstructions, 
-		uint32 NumPixelInstructions);
+		uint32 NumVertexInstructions,
+		uint32 NumPixelInstructions,
+		ERHIFeatureLevel::Type InFeatureLevel);
 
 	virtual bool Serialize(FArchive& Ar)
 	{

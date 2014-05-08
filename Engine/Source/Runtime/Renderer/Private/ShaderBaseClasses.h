@@ -137,7 +137,7 @@ public:
 		bool bDeferredPass, 
 		ESceneRenderTargetsMode::Type TextureMode)
 	{
-		ERHIFeatureLevel::Type FeatureLevel = GRHIFeatureLevel;
+		ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
 		FUniformExpressionCache TempUniformExpressionCache;
 		const FUniformExpressionCache* UniformExpressionCache = &MaterialRenderProxy->UniformExpressionCache[FeatureLevel];
 
@@ -276,7 +276,7 @@ public:
 
 		AtmosphericFogTextureParameters.Set(ShaderRHI, View);
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (FeatureLevel >= ERHIFeatureLevel::SM3)
 		{
 			if(LightAttenuation.IsBound())
 			{
@@ -468,7 +468,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetHullShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetHullShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -514,7 +514,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetDomainShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetDomainShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)

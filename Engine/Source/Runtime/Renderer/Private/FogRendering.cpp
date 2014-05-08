@@ -127,7 +127,7 @@ public:
 	void SetParameters(const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
 	{
 		FGlobalShader::SetParameters(GetPixelShader(), View);
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 		ExponentialParameters.Set(GetPixelShader(), &View);
 
 		if (LightShaftsOutput.bRendered)

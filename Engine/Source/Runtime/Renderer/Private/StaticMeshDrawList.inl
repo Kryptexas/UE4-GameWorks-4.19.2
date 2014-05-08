@@ -109,7 +109,8 @@ template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 	FStaticMesh* Mesh,
 	const ElementPolicyDataType& PolicyData,
-	const DrawingPolicyType& InDrawingPolicy
+	const DrawingPolicyType& InDrawingPolicy,
+	ERHIFeatureLevel::Type InFeatureLevel
 	)
 {
 	// Check for an existing drawing policy matching the mesh's drawing policy.
@@ -117,7 +118,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 	if(!DrawingPolicyLink)
 	{
 		// If no existing drawing policy matches the mesh, create a new one.
-		const FSetElementId DrawingPolicyLinkId = DrawingPolicySet.Add(FDrawingPolicyLink(this,InDrawingPolicy));
+		const FSetElementId DrawingPolicyLinkId = DrawingPolicySet.Add(FDrawingPolicyLink(this,InDrawingPolicy, InFeatureLevel));
 
 		DrawingPolicyLink = &DrawingPolicySet[DrawingPolicyLinkId];
 		DrawingPolicyLink->SetId = DrawingPolicyLinkId;

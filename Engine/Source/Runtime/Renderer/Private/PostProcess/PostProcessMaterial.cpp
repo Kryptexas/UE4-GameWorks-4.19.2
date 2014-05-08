@@ -74,7 +74,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, Material, *Material->GetMaterial(GRHIFeatureLevel), Context.View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(ShaderRHI, Material, *Material->GetMaterial(Context.View.GetFeatureLevel()), Context.View, true, ESceneRenderTargetsMode::SetTextures);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
 
@@ -102,7 +102,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 
 	check(Proxy);
 
-	const FMaterial* Material = Proxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
 	
 	check(Material);
 

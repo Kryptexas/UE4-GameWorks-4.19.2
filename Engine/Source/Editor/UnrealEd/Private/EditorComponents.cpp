@@ -54,7 +54,7 @@ static bool IsEditorCompositingMSAAEnabled()
 {
 	bool Ret = false;
 
-	if(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		// only supported on SM5 yet
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MSAA.CompositingSampleCount"));

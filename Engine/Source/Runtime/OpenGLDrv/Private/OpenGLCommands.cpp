@@ -2773,7 +2773,7 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 {
 	VERIFY_GL_SCOPE();
 
-	check((GRHIFeatureLevel >= ERHIFeatureLevel::SM5 ) || !PendingState.bFramebufferSetupInvalid);
+	check((GRHIFeatureLevel >= ERHIFeatureLevel::SM5) || !PendingState.bFramebufferSetupInvalid);
 
 	if (bClearColor)
 	{

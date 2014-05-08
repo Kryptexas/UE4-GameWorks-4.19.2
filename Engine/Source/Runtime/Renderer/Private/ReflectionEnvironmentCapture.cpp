@@ -943,7 +943,7 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 {
 	if (NewCaptures.Num() > 0)
 	{
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+		if (FeatureLevel == ERHIFeatureLevel::SM5)
 		{
 			for (int32 CaptureIndex = 0; CaptureIndex < NewCaptures.Num(); CaptureIndex++)
 			{
@@ -1013,7 +1013,7 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 				}
 			}
 		}
-		else if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+		else if (FeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			for (int32 ComponentIndex = 0; ComponentIndex < NewCaptures.Num(); ComponentIndex++)
 			{
@@ -1042,7 +1042,7 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 /** Updates the contents of all reflection captures in the scene.  Must be called from the game thread. */
 void FScene::UpdateAllReflectionCaptures()
 {
-	if (IsReflectionEnvironmentAvailable())
+	if (IsReflectionEnvironmentAvailable(FeatureLevel))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( 
 			CaptureCommand,
@@ -1139,7 +1139,7 @@ void GetReflectionCaptureData_RenderingThread(FScene* Scene, const UReflectionCa
 
 void FScene::GetReflectionCaptureData(UReflectionCaptureComponent* Component, FReflectionCaptureFullHDRDerivedData& OutDerivedData) 
 {
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		GetReflectionDataCommand,
@@ -1444,7 +1444,7 @@ void CopyToComponentTexture(FScene* Scene, FReflectionCaptureProxy* ReflectionPr
  */
 void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* CaptureComponent)
 {
-	if (IsReflectionEnvironmentAvailable())
+	if (IsReflectionEnvironmentAvailable(FeatureLevel))
 	{
 		const FReflectionCaptureFullHDRDerivedData* DerivedData = CaptureComponent->GetCachedFullHDRDerivedData();
 
@@ -1452,7 +1452,7 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 		if (DerivedData && DerivedData->CompressedCapturedData.Num() > 0)
 		{
 			// For other feature levels the reflection textures are stored on the component instead of in a scene-wide texture array
-			if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+			if (FeatureLevel == ERHIFeatureLevel::SM5)
 			{
 				ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER( 
 					UploadCaptureCommand,
@@ -1485,16 +1485,17 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 			// We can't use the component's SceneProxy here because the component may not be registered with the scene
 			FReflectionCaptureProxy* ReflectionProxy = new FReflectionCaptureProxy(CaptureComponent);
 
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER( 
 				CopyCommand,
 				FScene*, Scene, this,
 				FReflectionCaptureProxy*, ReflectionProxy, ReflectionProxy,
+				ERHIFeatureLevel::Type, FeatureLevel, FeatureLevel,
 			{
-				if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+				if (FeatureLevel == ERHIFeatureLevel::SM5)
 				{
 					CopyToSceneArray(Scene, ReflectionProxy);
 				}
-				else if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+				else if (FeatureLevel == ERHIFeatureLevel::SM4)
 				{
 					CopyToComponentTexture(Scene, ReflectionProxy);
 				}
@@ -1526,7 +1527,7 @@ void CopyToSkyTexture(FScene* Scene, FTexture* ProcessedTexture)
 
 void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap)
 {
-	if (IsReflectionEnvironmentAvailable())
+	if (IsReflectionEnvironmentAvailable(FeatureLevel))
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND( 
 			ClearCommand,

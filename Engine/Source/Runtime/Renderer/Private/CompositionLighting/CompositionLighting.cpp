@@ -70,7 +70,7 @@ static bool IsReflectionEnvironmentActive(FPostprocessContext& Context)
 	bool HasReflectionCaptures = (Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > 0);
 	bool HasSSR = Context.View.Family->EngineShowFlags.ScreenSpaceReflections;
 
-	return (GRHIFeatureLevel == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleDynamicLightingEnabled() );
+	return (Scene->GetFeatureLevel() == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleDynamicLightingEnabled());
 }
 
 static bool IsBasePassAmbientOcclusionRequired(FPostprocessContext& Context)

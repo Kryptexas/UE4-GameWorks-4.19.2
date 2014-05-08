@@ -1282,7 +1282,7 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 			}
 		}
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+		if (WorldToUpdate->Scene->GetFeatureLevel() == ERHIFeatureLevel::SM4)
 		{
 			for (int32 CaptureIndex = 0; CaptureIndex < WorldCombinedCaptures.Num(); CaptureIndex++)
 			{
