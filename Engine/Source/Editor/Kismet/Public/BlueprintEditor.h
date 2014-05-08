@@ -826,6 +826,9 @@ private:
 	 */
 	bool IsEditingAnimGraph() const;
 
+	/** Returns whether the currently focused graph is editable or not */
+	bool IsFocusedGraphEditable() const;
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 

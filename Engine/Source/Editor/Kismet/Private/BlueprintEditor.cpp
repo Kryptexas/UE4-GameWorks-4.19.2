@@ -1493,7 +1493,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 
 		this->Palette = 
 			SNew(SBlueprintPalette, SharedThis(this))
-				.IsEnabled(this, &FBlueprintEditor::InEditingMode);
+				.IsEnabled(this, &FBlueprintEditor::IsFocusedGraphEditable);
 	}
 
 	FIsPropertyEditingEnabled IsPropertyEditingEnabledDelegate = FIsPropertyEditingEnabled::CreateSP(this, &FBlueprintEditor::IsPropertyEditingEnabled);
@@ -1523,7 +1523,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		. ViewIdentifier(FName("BlueprintInspector"))
 		. Kismet2(SharedThis(this))
 		. IsPropertyEditingEnabledDelegate( IsPropertyEditingEnabledDelegate )
-		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FBlueprintEditor::OnFinishedChangingProperties) );
+		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP(this, &FBlueprintEditor::OnFinishedChangingProperties) )
+		. IsEnabled(this, &FBlueprintEditor::IsFocusedGraphEditable);
 
 	if (InBlueprints.Num() > 0)
 	{
@@ -1533,11 +1534,13 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		const bool bShowPublicView = true;
 		const bool bHideNameArea = false;
 
+		TAttribute<bool> IsEnabled = (bIsInterface) ? false : TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBlueprintEditor::IsFocusedGraphEditable));
+
 		this->DefaultEditor = 
 			SNew(SKismetInspector)
 			. Kismet2(SharedThis(this))
 			. ViewIdentifier(FName("BlueprintDefaults"))
-			. IsEnabled(!bIsInterface)
+			. IsEnabled(IsEnabled)
 			. ShowPublicViewControl(bShowPublicView)
 			. ShowTitleArea(bShowTitle)
 			. HideNameArea(bHideNameArea)
@@ -6207,6 +6210,11 @@ bool FBlueprintEditor::IsGraphInCurrentBlueprint(UEdGraph* InGraph) const
 	}
 
 	return bEditable;
+}
+
+bool FBlueprintEditor::IsFocusedGraphEditable() const
+{
+	return IsEditable(GetFocusedGraph());
 }
 
 /////////////////////////////////////////////////////
