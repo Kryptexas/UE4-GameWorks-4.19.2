@@ -178,7 +178,7 @@ static FDockingDragOperation::FDockTarget GetDropTarget( const TSharedPtr<SDocki
 	//       |  /  \  |
 	//       | /    \ |
 	//       y-------\ (1,1)
-	//       |        \
+	//       |        \.
 	//       v         \ slope = 1			
 
 	const FVector2D DeadZoneCenter = FVector2D(0.5f, 0.5f);

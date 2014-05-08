@@ -4658,7 +4658,7 @@ bool UInterpTrackMove::GetLocationAtTime(UInterpTrackInst* TrInst, float Time, F
 {
 	UInterpTrackInstMove* MoveTrackInst = CastChecked<UInterpTrackInstMove>(TrInst);
 
-	check( SubTracks.Num() > 0 || (EulerTrack.Points.Num() == PosTrack.Points.Num()) && (EulerTrack.Points.Num() == LookupTrack.Points.Num()));
+	check( (SubTracks.Num() > 0) || ((EulerTrack.Points.Num() == PosTrack.Points.Num()) && (EulerTrack.Points.Num() == LookupTrack.Points.Num())));
 
 	// Do nothing if no data on this track.
 	if( SubTracks.Num() == 0 && EulerTrack.Points.Num() == 0)

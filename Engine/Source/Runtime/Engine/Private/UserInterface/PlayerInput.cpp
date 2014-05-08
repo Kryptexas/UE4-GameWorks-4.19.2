@@ -323,7 +323,7 @@ void UPlayerInput::InvertAxis(const FName AxisName)
 		FAxisKeyDetails* KeyDetails = AxisKeyMap.Find(AxisName);
 		if (KeyDetails)
 		{
-			bInverted = KeyDetails->bInverted = !KeyDetails->bInverted;
+			bInverted = (KeyDetails->bInverted = !KeyDetails->bInverted);
 		}
 		if (bInverted)
 		{

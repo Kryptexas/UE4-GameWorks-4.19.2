@@ -41,7 +41,7 @@ public:
 	{
 		if (Singleton == NULL)
 		{
-			Singleton = new TLinuxTargetPlatform<false, false>();
+			Singleton = new TLinuxTargetPlatform<true, false, false>();
 		}
 		
 		return Singleton;

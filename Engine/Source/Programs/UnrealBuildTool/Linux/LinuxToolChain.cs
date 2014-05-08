@@ -16,14 +16,38 @@ namespace UnrealBuildTool.Linux
             return ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Linux;
         }
 
+        private string Which(string name)
+        {
+            Process proc = new Process();
+            proc.StartInfo.FileName = "/bin/sh";
+            proc.StartInfo.Arguments = String.Format("-c 'which {0}'", name);
+            proc.StartInfo.UseShellExecute = false;
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.RedirectStandardOutput = true;
+            proc.StartInfo.RedirectStandardError = true;
+
+            proc.Start();
+            proc.WaitForExit();
+
+            string path = proc.StandardOutput.ReadLine();
+            Console.WriteLine(String.Format("which {0} result: ({1}) {2}", name, proc.ExitCode, path));
+
+            if (proc.ExitCode == 0 && String.IsNullOrEmpty(proc.StandardError.ReadToEnd()))
+            {
+                return path;
+            }
+            return null;
+        }
+
         public override void RegisterToolChain()
         {
             if (!CrossCompiling())
             {
                 // use native linux toolchain
-                ClangPath = "clang++";
-                ArPath = "ar";
-                RanlibPath = "ranlib";
+                ClangPath = Which("clang++");
+                GCCPath = Which("g++");
+                ArPath = Which("ar");
+                RanlibPath = Which("ranlib");
             }
             else
             {
@@ -71,21 +95,39 @@ namespace UnrealBuildTool.Linux
             //Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
             Result += " -mmmx -msse -msse2";            // allows use of SIMD intrinsics
             Result += " -fno-math-errno";               // do not assume that math ops have side effects
-            Result += " -fdiagnostics-format=msvc";     // make diagnostics compatible with MSVC
+
+            if (String.IsNullOrEmpty(ClangPath))
+            {
+                // GCC only option
+                Result += " -fno-strict-aliasing";
+                Result += " -Wno-sign-compare"; // needed to suppress: comparison between signed and unsigned integer expressions
+                Result += " -Wno-enum-compare"; // Stats2.h triggers this (ALIGNOF(int64) <= DATA_ALIGN)
+                Result += " -Wno-return-type"; // Variant.h triggers this
+                Result += " -Wno-unused-local-typedefs";
+                Result += " -Wno-multichar";
+                Result += " -Wno-unused-but-set-variable";
+                Result += " -Wno-sequence-point"; // TaskGraph.cpp:755 FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
+                Result += " -Wno-strict-overflow"; // Array.h:518
+            }
+            else
+            {
+                // Clang only options
+                Result += " -fdiagnostics-format=msvc";     // make diagnostics compatible with MSVC
+                Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
+                // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
+                Result += " -Wno-tautological-compare";
+                if (!CrossCompiling())
+                {
+                    Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
+                }
+            }
 
             Result += " -Wno-unused-variable";
-            if (!CrossCompiling())
-            {
-                Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
-            }
             // this will hide the warnings about static functions in headers that aren't used in every single .cpp file
             Result += " -Wno-unused-function";
             // this hides the "enumeration value 'XXXXX' not handled in switch [-Wswitch]" warnings - we should maybe remove this at some point and add UE_LOG(, Fatal, ) to default cases
             Result += " -Wno-switch";
-            // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
-            Result += " -Wno-tautological-compare";
             Result += " -Wno-unknown-pragmas";			// Slate triggers this (with its optimize on/off pragmas)
-            Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
@@ -206,7 +248,7 @@ namespace UnrealBuildTool.Linux
             {
                 Result += " -shared";
             }
-            Result += " -v";
+            //Result += " -v";
 
             if (CrossCompiling())
             {
@@ -219,7 +261,7 @@ namespace UnrealBuildTool.Linux
             }
 
             // RPATH for third party libs
-            Result += " -Wl,-rpath=${ORIGIN}/../../../engine/binaries/linux";
+            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/Linux";
 
             if (CrossCompiling())
             {
@@ -280,6 +322,7 @@ namespace UnrealBuildTool.Linux
         // cache the location of NDK tools
         static string BaseLinuxPath;
         static string ClangPath;
+        static string GCCPath;
         static string ArPath;
         static string RanlibPath;
 
@@ -400,7 +443,14 @@ namespace UnrealBuildTool.Linux
                 FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
                 CompileAction.WorkingDirectory = Path.GetFullPath(".");
-                CompileAction.CommandPath = ClangPath;
+                if (String.IsNullOrEmpty(ClangPath))
+                {
+                    CompileAction.CommandPath = GCCPath;
+                }
+                else
+                {
+                    CompileAction.CommandPath = ClangPath;
+                }
                 CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
                 CompileAction.CommandDescription = "Compile";
                 CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
@@ -484,7 +534,14 @@ namespace UnrealBuildTool.Linux
             // Create an action that invokes the linker.
             Action LinkAction = new Action(ActionType.Link);
             LinkAction.WorkingDirectory = Path.GetFullPath(".");
-            LinkAction.CommandPath = ClangPath;
+            if (String.IsNullOrEmpty(ClangPath))
+            {
+                LinkAction.CommandPath = GCCPath;
+            }
+            else
+            {
+                LinkAction.CommandPath = ClangPath;
+            }
 
             // Get link arguments.
             LinkAction.CommandArguments = GetLinkArguments(LinkEnvironment);
@@ -516,7 +573,7 @@ namespace UnrealBuildTool.Linux
 			// Add the library paths to the argument list.
 			foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
 			{
-				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
+				LinkAction.CommandArguments += string.Format(" -Wl,-L\"{0}\"", LibraryPath);
 			}
 
 			// add libraries in a library group
@@ -551,6 +608,19 @@ namespace UnrealBuildTool.Linux
         public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
         {
             throw new BuildException("Linux cannot compile C# files");
+        }
+
+        /** Converts the passed in path from UBT host to compiler native format. */
+        public override String ConvertPath(String OriginalPath)
+        {
+            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            {
+                return OriginalPath.Replace("\\", "/");
+            }
+            else
+            {
+                return OriginalPath;
+            }
         }
     }
 }

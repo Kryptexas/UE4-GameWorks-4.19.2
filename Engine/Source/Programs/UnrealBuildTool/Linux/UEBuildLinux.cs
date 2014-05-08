@@ -190,6 +190,7 @@ namespace UnrealBuildTool.Linux
         {
             // increase Unity size to avoid too long command lines
             BuildConfiguration.NumIncludedBytesPerUnityCPP = 1024 * 1024;
+            UEBuildConfiguration.bCompileICU = true;
         }
 
         /**
@@ -285,6 +286,7 @@ namespace UnrealBuildTool.Linux
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                         }
                     }
@@ -294,6 +296,7 @@ namespace UnrealBuildTool.Linux
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                 }
             }

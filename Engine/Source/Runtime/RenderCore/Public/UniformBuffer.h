@@ -475,7 +475,7 @@ private:
 		typedef MemberType zzA##MemberName ArrayDecl; \
 		typedef TUniformBufferTypeInfo<zzA##MemberName>::TAlignedType zzT##MemberName; \
 		zzT##MemberName MemberName; \
-		checkAtCompileTime(TUniformBufferTypeInfo<zzT##MemberName>::BaseType != UBMT_INVALID,InvalidMemberType##MemberName); \
+		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_INVALID,InvalidMemberType##MemberName); \
 	private: \
 		struct zzNextMemberId##MemberName {}; \
 		static TArray<FUniformBufferStruct::FMember> zzGetMembersBefore(zzNextMemberId##MemberName) \
@@ -486,15 +486,15 @@ private:
 			OutMembers.Add(FUniformBufferStruct::FMember( \
 				TEXT(#MemberName), \
 				STRUCT_OFFSET(zzTThisStruct,MemberName), \
-				(EUniformBufferBaseType)TUniformBufferTypeInfo<zzT##MemberName>::BaseType, \
+				(EUniformBufferBaseType)TUniformBufferTypeInfo<zzA##MemberName>::BaseType, \
 				Precision, \
-				TUniformBufferTypeInfo<zzT##MemberName>::NumRows, \
-				TUniformBufferTypeInfo<zzT##MemberName>::NumColumns, \
-				TUniformBufferTypeInfo<zzT##MemberName>::NumElements, \
-				TUniformBufferTypeInfo<zzT##MemberName>::GetStruct() \
+				TUniformBufferTypeInfo<zzA##MemberName>::NumRows, \
+				TUniformBufferTypeInfo<zzA##MemberName>::NumColumns, \
+				TUniformBufferTypeInfo<zzA##MemberName>::NumElements, \
+				TUniformBufferTypeInfo<zzA##MemberName>::GetStruct() \
 				)); \
 			checkAtCompileTime( \
-				(STRUCT_OFFSET(zzTThisStruct,MemberName) & (TUniformBufferTypeInfo<zzT##MemberName>::Alignment - 1)) == 0, \
+				(STRUCT_OFFSET(zzTThisStruct,MemberName) & (TUniformBufferTypeInfo<zzA##MemberName>::Alignment - 1)) == 0, \
 				MisalignedUniformBufferStructMember##MemberName \
 				); \
 			return OutMembers; \

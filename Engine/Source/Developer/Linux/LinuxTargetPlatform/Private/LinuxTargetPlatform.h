@@ -10,13 +10,13 @@
 /**
  * Template for Linux target platforms
  */
-template<bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
+template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 class TLinuxTargetPlatform
-	: public TTargetPlatformBase<FLinuxPlatformProperties<IS_DEDICATED_SERVER, IS_CLIENT_ONLY> >
+	: public TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> >
 {
 public:
 
-	typedef public TTargetPlatformBase<FLinuxPlatformProperties<IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
+	typedef public TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
 
 	/**
 	 * Default constructor.
@@ -110,7 +110,7 @@ public:
 			return true;
 		}
 
-		return TTargetPlatformBase<FLinuxPlatformProperties<IS_DEDICATED_SERVER, IS_CLIENT_ONLY>>::SupportsFeature(Feature);
+		return TTargetPlatformBase<FLinuxPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY>>::SupportsFeature(Feature);
 	}
 
 #if WITH_ENGINE

@@ -832,7 +832,7 @@ namespace UnrealBuildTool
 		/// Finds all module files (filtering by platform)
 		/// </summary>
 		/// <returns>Filtered list of module files</returns>
-		private List<string> DiscoverModules()
+		protected List<string> DiscoverModules()
 		{
 			var AllModuleFiles = new List<string>();
 

@@ -1319,7 +1319,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			}
 		}
 
-		check(ShaderMap && Materials || ProcessIt.Key() == GlobalShaderMapId);
+		check((ShaderMap && Materials) || ProcessIt.Key() == GlobalShaderMapId);
 
 		if (ShaderMap && Materials)
 		{

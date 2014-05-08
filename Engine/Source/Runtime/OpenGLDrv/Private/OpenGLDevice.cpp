@@ -437,7 +437,7 @@ static void InitRHICapabilitiesForGL()
 #endif
 
 	// GL vendor and version information.
-#ifndef __clang__
+#ifndef __GNUC__
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#StringEnum) ## TEXT(": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
 #else
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  " #StringEnum ": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
@@ -522,7 +522,7 @@ static void InitRHICapabilitiesForGL()
 	FOpenGL::InitDebugContext();
 
 	// Log and get various limits.
-#ifndef __clang__
+#ifndef __GNUC__
 	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
 	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)

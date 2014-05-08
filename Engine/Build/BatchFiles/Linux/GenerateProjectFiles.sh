@@ -18,9 +18,10 @@ located inside the Engine/Build/BatchFiles/Linux directory."
 fi
 
 
-if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" ]; then
+if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" = "Distributor ID:	Debian" ]; then
   # Install all necessary dependencies
   DEPS="mono-xbuild \
+    mono-dmcs \
     libmono-microsoft-build-tasks-v4.0-4.0-cil \
     libmono-system-data-datasetextensions4.0-cil
     libmono-system-web-extensions4.0-cil"

@@ -15,18 +15,33 @@
 /**
  * Implements Linux platform properties.
  */
-template<bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
+template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 struct FLinuxPlatformProperties
 	: public FGenericPlatformProperties
 {
 	static FORCEINLINE const char* DisplayName()
 	{
+		if (IS_DEDICATED_SERVER)
+		{
+			return "Linux (Dedicated Server)";
+		}
+
+		if (HAS_EDITOR_DATA)
+		{
+			return "Linux (Editor)";
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return "Linux (Client-only)";
+		}
+
 		return "Linux";
 	}
 
 	static FORCEINLINE bool HasEditorOnlyData( )
 	{
-		return false;
+		return HAS_EDITOR_DATA;
 	}
 
 	static FORCEINLINE const char* IniPlatformName( )
@@ -55,15 +70,23 @@ struct FLinuxPlatformProperties
 		{
 			return "LinuxServer";
 		}
-		else
+
+		if (HAS_EDITOR_DATA)
 		{
 			return "Linux";
 		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return "LinuxClient";
+		}
+
+		return "LinuxNoEditor";
 	}
 
 	static FORCEINLINE bool RequiresCookedData( )
 	{
-		return true;
+		return !HAS_EDITOR_DATA;
 	}
 
 	static FORCEINLINE bool RequiresUserCredentials()
@@ -84,6 +107,7 @@ struct FLinuxPlatformProperties
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
 		return !IS_DEDICATED_SERVER;
+		return true;
 	}
 
 	static FORCEINLINE bool SupportsQuit()

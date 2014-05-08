@@ -151,7 +151,7 @@ struct FStandardPlatformString : public FGenericPlatformString
 	}
 
 #if PLATFORM_USE_SYSTEM_VSWPRINTF
-	static FORCEINLINE int32 GetVarArgs( WIDECHAR* Dest, SIZE_T DestSize, int32 Count, const WIDECHAR*& Fmt, va_list ArgPtr )
+	static int32 GetVarArgs( WIDECHAR* Dest, SIZE_T DestSize, int32 Count, const WIDECHAR*& Fmt, va_list ArgPtr )
 	{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
 		// fix up the Fmt string, as fast as possible, without using an FString
@@ -304,7 +304,7 @@ struct FStandardPlatformString : public FGenericPlatformString
 		return strtok(StrToken, Delim);
 	}
 
-	static FORCEINLINE int32 GetVarArgs( ANSICHAR* Dest, SIZE_T DestSize, int32 Count, const ANSICHAR*& Fmt, va_list ArgPtr )
+	static int32 GetVarArgs( ANSICHAR* Dest, SIZE_T DestSize, int32 Count, const ANSICHAR*& Fmt, va_list ArgPtr )
 	{
 		int32 Result = vsnprintf(Dest,Count,Fmt,ArgPtr);
 		va_end( ArgPtr );

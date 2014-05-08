@@ -106,7 +106,7 @@ static bool IncreasePerProcessLimits()
 #endif // !UE_BUILD_SHIPPING
 		if (!IncreaseLimit(RLIMIT_NOFILE, FileHandlesToReserve))
 		{
-			fprintf(stderr, "Could not adjust number of file handles, consider changing \"nofile\" in /etc/security/limits.conf and relogin.\n", errno, strerror(errno));
+			fprintf(stderr, "Could not adjust number of file handles, consider changing \"nofile\" in /etc/security/limits.conf and relogin.\nerror(%d): %s\n", errno, strerror(errno));
 			return false;
 		}
 	}
@@ -117,7 +117,7 @@ static bool IncreasePerProcessLimits()
 		printf("Increasing per-process limit of core file size to infinity.\n");
 		if (!IncreaseLimit(RLIMIT_CORE, RLIM_INFINITY))
 		{
-			fprintf(stderr, "Could not adjust core file size, consider changing \"core\" in /etc/security/limits.conf and relogin.\n", errno, strerror(errno));
+			fprintf(stderr, "Could not adjust core file size, consider changing \"core\" in /etc/security/limits.conf and relogin.\nerror(%d): %s\n", errno, strerror(errno));
 			fprintf(stderr, "Alternatively, pass -nocore if you are unable or unwilling to do that.\n");
 			return false;
 		}

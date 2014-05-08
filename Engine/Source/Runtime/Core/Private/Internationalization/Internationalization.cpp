@@ -361,7 +361,7 @@ FString& FInternationalization::Leetify(FString& SourceString)
 		if( !Succeeded )
 		{
 			// Failed to LEETify, add something to beginning and end just to help mark the string.
-			SourceString = FString::FString(TEXT("\x2021")) + SourceString + FString::FString(TEXT("\x2021"));
+			SourceString = FString(TEXT("\x2021")) + SourceString + FString(TEXT("\x2021"));
 		}
 	}
 

@@ -88,10 +88,23 @@ public abstract class BaseLinuxPlatform : Platform
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-        const string ClientCookPlatform = "Linux";
+        const string NoEditorCookPlatform = "LinuxNoEditor";
         const string ServerCookPlatform = "LinuxServer";
-        return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
-	}
+        const string ClientCookPlatform = "LinuxClient";
+
+        if (bDedicatedServer)
+        {
+            return ServerCookPlatform;
+        }
+        else if (bIsClientOnly)
+        {
+            return ClientCookPlatform;
+        }
+        else
+        {
+            return NoEditorCookPlatform;
+        }
+    }
 
     /// <summary>
     /// return true if we need to change the case of filenames outside of pak files
@@ -99,7 +112,7 @@ public abstract class BaseLinuxPlatform : Platform
     /// <returns></returns>
     public override bool DeployLowerCaseFilenames(bool bUFSFile)
     {
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -117,8 +130,8 @@ public abstract class BaseLinuxPlatform : Platform
 
             List<string> Exes = GetExecutableNames(SC);
 
-            string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), "binaries", SC.PlatformDir.ToLower(), Path.GetFileName(Exes[0]).ToLower()).Replace("\\", "/");
-            string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), SC.ShortProjectName.ToLower() + ".png").Replace("\\", "/");
+            string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
+            string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
 
             string DesiredGLVersion = "4.3";
 
@@ -147,7 +160,7 @@ EOF
 
 # Set permissions
 chmod 755 $HOME/{3}
-chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName.ToLower(), SC.ShortProjectName, binPath, (Params.Pak ? " -pak" : ""), iconPath);
+chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.ShortProjectName, binPath, (Params.Pak ? " -pak" : ""), iconPath);
             // End Bash Shell Script
 
             string scriptFile = Path.GetTempFileName();

@@ -741,13 +741,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		{
 			// could be optimized
 			RHISetRenderTarget(GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			RHIClear(true, FLinearColor::FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
 			RHISetRenderTarget(GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// todo: some hardware would like to have 0 or 1 for faster clear, we chose 128/255 to represent 0 (8 bit cannot represent 0.5f)
-			RHIClear(true, FLinearColor::FLinearColor(128.0f/255.0f, 128.0f/255.0f, 128.0f/255.0f, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(128.0f/255.0f, 128.0f/255.0f, 128.0f/255.0f, 1), false, 0, false, 0, FIntRect());
 			RHISetRenderTarget(GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// R:roughness, G:roughness opacity
-			RHIClear(true, FLinearColor::FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
 		}
 	}
 

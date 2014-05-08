@@ -26,7 +26,7 @@ bool FCircularQueueTest::RunTest( const FString& Parameters )
 	// partially filled
 	{
 		TCircularQueue<int32> Queue(QueueSize);
-		int32 Value;
+		int32 Value = 0;
 	
 		TestTrue(TEXT("Adding to an empty queue must succeed"), Queue.Enqueue(666));
 		TestFalse(TEXT("Partially filled queues must not be empty"), Queue.IsEmpty());
@@ -47,7 +47,7 @@ bool FCircularQueueTest::RunTest( const FString& Parameters )
 		TestTrue(TEXT("Full queues must be full"), Queue.IsFull());
 		TestFalse(TEXT("Adding to full queue must fail"), Queue.Enqueue(666));
 
-		int32 Value;
+		int32 Value = 0;
 
 		for (int32 Index = 0; Index < QueueSize - 1; ++Index)
 		{
