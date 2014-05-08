@@ -15,11 +15,14 @@
 	NSWindow* Parent;
 	EWindowMode::Type WindowMode;
 	NSMutableArray* ChildWindows;
+	NSRect DeferFrame;
+	CGFloat DeferOpacity;
 	bool bAcceptsInput;
 	bool bRoundedCorners;
 	bool bDisplayReconfiguring;
 	bool bDeferOrderFront;
-	CGFloat bDeferOpacity;
+	bool bDeferSetFrame;
+	bool bDeferSetOrigin;
 	bool bRenderInitialised;
 @public
 	bool bZoomed;
@@ -34,7 +37,11 @@
 /** Get the view used for OpenGL rendering. @return The OpenGL view for rendering. */
 - (NSView*)openGLView;
 
+/** Perform render thread deferred order front operation. */
 - (void)performDeferredOrderFront;
+
+/** Perform deferred set frame operation */
+- (void)performDeferredSetFrame;
 
 /** Set whether the window should display with rounded corners. */
 - (void)setRoundedCorners:(bool)bUseRoundedCorners;

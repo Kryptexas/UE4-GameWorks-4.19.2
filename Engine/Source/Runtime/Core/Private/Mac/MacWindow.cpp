@@ -27,11 +27,14 @@
 		bRoundedCorners = false;
 		bDisplayReconfiguring = false;
 		bDeferOrderFront = false;
-		bDeferOpacity = 0.0f;
+		DeferOpacity = 0.0f;
 		bRenderInitialised = false;
 		bZoomed = [super isZoomed];
 		self.bForwardEvents = true;
-		[super setAlphaValue:bDeferOpacity];
+		[super setAlphaValue:DeferOpacity];
+		DeferFrame = [super frame];
+		bDeferSetFrame = false;
+		bDeferSetOrigin = false;
 	}
 	return NewSelf;
 }
@@ -67,14 +70,56 @@
 	if(!bRenderInitialised)
 	{
 		bRenderInitialised = true;
-		
-		if(bDeferOrderFront)
+	}
+	
+	if(bDeferOrderFront)
+	{
+		if(!(bDeferSetFrame || bDeferSetOrigin))
 		{
 			bDeferOrderFront = false;
-			
-			[self setAlphaValue:bDeferOpacity];
+			[super setAlphaValue:DeferOpacity];
+		}
+		else
+		{
+			[self performDeferredSetFrame];
 		}
 	}
+}
+
+- (void)performDeferredSetFrame
+{
+	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
+	{
+		dispatch_block_t Block = ^{
+			if(bDeferSetOrigin)
+			{
+				DeferFrame.size = [self frame].size;
+			}
+			
+			[super setFrame:DeferFrame display:NO];
+		};
+		
+		if([NSThread isMainThread])
+		{
+			Block();
+		}
+		else
+		{
+			dispatch_async(dispatch_get_main_queue(), Block);
+		}
+		
+		bDeferSetFrame = false;
+		bDeferSetOrigin = false;
+	}
+}
+
+- (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
+{
+	if([self alphaValue] > 0.0f)
+	{
+		[self performDeferredSetFrame];
+	}
+	[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 }
 
 - (bool)roundedCorners
@@ -234,11 +279,15 @@
 {
 	if(!bRenderInitialised)
 	{
-		bDeferOpacity = WindowAlpha;
+		DeferOpacity = WindowAlpha;
 		bDeferOrderFront = true;
 	}
 	else
 	{
+		if([self isVisible] && WindowAlpha > 0.0f)
+		{
+			[self performDeferredSetFrame];
+		}
 		[super setAlphaValue:WindowAlpha];
 	}
 }
@@ -266,6 +315,32 @@
 {
 	bZoomed = !bZoomed;
 	[self zoom: self];
+}
+
+- (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
+{
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	{
+		[super setFrame:FrameRect display:Flag];
+	}
+	else
+	{
+		bDeferSetFrame = true;
+		DeferFrame = FrameRect;
+	}
+}
+
+- (void)setFrameOrigin:(NSPoint)Point
+{
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	{
+		[super setFrameOrigin:Point];
+	}
+	else
+	{
+		bDeferSetOrigin = true;
+		DeferFrame.origin = Point;
+	}
 }
 
 // keyDown and keyUp are empty, but having them lets Cocoa know we handle the keys ourselves
