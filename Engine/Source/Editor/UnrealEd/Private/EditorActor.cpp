@@ -328,7 +328,7 @@ public:
 		for ( int32 ActorIndex = 0 ; ActorIndex < Actors.Num() ; ++ActorIndex )
 		{
 			AActor* Actor = Actors[ ActorIndex ];
-			GEditor->SelectActor( Actor, true, false );
+			GEditor->SelectActor( Actor, true, false, true );
 		}
 
 		FString ScratchData;
