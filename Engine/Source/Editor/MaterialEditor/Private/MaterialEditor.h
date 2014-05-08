@@ -516,6 +516,8 @@ private:
 	void OnForceRefreshPreviews();
 	/** Create comment node on graph */
 	void OnCreateComment();
+	/** Create ComponentMask node on graph */
+	void OnCreateComponentMaskNode();
 	/** Bring up the search tab */
 	void OnFindInMaterial();
 

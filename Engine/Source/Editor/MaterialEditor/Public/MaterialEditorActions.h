@@ -152,6 +152,9 @@ public:
 	/** Finds expressions in current material */
 	TSharedPtr< FUICommandInfo > FindInMaterial;
 
+	/** Create component mask node */
+	TSharedPtr< FUICommandInfo > CreateComponentMaskNode;
+
 	/**
 	 * Initialize commands
 	 */

@@ -2287,6 +2287,11 @@ void FMaterialEditor::OnCreateComment()
 	CreateNewMaterialExpressionComment(GraphEditor->GetPasteLocation());
 }
 
+void FMaterialEditor::OnCreateComponentMaskNode()
+{
+	CreateNewMaterialExpression(UMaterialExpressionComponentMask::StaticClass(), GraphEditor->GetPasteLocation(), true, false);
+}
+
 void FMaterialEditor::OnFindInMaterial()
 {
 	TabManager->InvokeTab(FindTabId);
@@ -3465,6 +3470,10 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().ForceRefreshPreviews,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnForceRefreshPreviews)
+			);
+
+		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().CreateComponentMaskNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnCreateComponentMaskNode)
 			);
 	}
 
