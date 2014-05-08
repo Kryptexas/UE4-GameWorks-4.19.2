@@ -89,7 +89,8 @@ private:
 	{
 		bool bVerifyName = true;
 
-		if(InNewText.IsEmpty())
+		FText NewText = FText::TrimPrecedingAndTrailing(InNewText);
+		if(NewText.IsEmpty())
 		{
 			OutErrorMessage = LOCTEXT( "EmptySocketName_Error", "Sockets must have a name!");
 			bVerifyName = false;
@@ -99,8 +100,8 @@ private:
 			TSharedPtr<SocketListItem> SocketItemPinned = SocketItem.Pin();
 			TSharedPtr<SSocketManager> SocketManagerPinned = SocketManagerPtr.Pin();
 
-			if (SocketItemPinned.IsValid() && SocketItemPinned->Socket != nullptr && SocketItemPinned->Socket->SocketName.ToString() != InNewText.ToString() &&
-				SocketManagerPinned.IsValid() && SocketManagerPinned->CheckForDuplicateSocket(InNewText.ToString()))
+			if (SocketItemPinned.IsValid() && SocketItemPinned->Socket != nullptr && SocketItemPinned->Socket->SocketName.ToString() != NewText.ToString() &&
+				SocketManagerPinned.IsValid() && SocketManagerPinned->CheckForDuplicateSocket(NewText.ToString()))
 			{
 				OutErrorMessage = LOCTEXT("DuplicateSocket_Error", "Socket name in use!");
 				bVerifyName = false;
@@ -112,6 +113,8 @@ private:
 
 	void OnCommitSocketName( const FText& InText, ETextCommit::Type CommitInfo )
 	{
+		FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
 		TSharedPtr<SocketListItem> PinnedSocketItem = SocketItem.Pin();
 		if (PinnedSocketItem.IsValid())
 		{
@@ -126,7 +129,7 @@ private:
 				SelectedSocket->PreEditChange(ChangedProperty);
 
 				// Edit the property itself
-				SelectedSocket->SocketName = FName(*InText.ToString());
+				SelectedSocket->SocketName = FName(*NewText.ToString());
 
 				// Post edit
 				FPropertyChangedEvent PropertyChangedEvent( ChangedProperty );

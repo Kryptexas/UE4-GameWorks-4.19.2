@@ -565,7 +565,9 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 	// but you can have a socket with the same name on the mesh *and* the skeleton.
 	bool bVerifyName = true;
 
-	if( InText.IsEmpty() )
+	FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
+	if (NewText.IsEmpty())
 	{
 		OutErrorMessage = LOCTEXT( "EmptySocketName_Error", "Sockets must have a name!");
 		bVerifyName = false;
@@ -579,13 +581,13 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 
 			if ( Mesh )
 			{
-				bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, InText, Mesh->GetMeshOnlySocketList() );
+				bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, NewText, Mesh->GetMeshOnlySocketList() );
 			}
 		}
 		else
 		{
 			// ...and if we're on the skeleton, check the skeleton for dupes
-			bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, InText, TargetSkeleton->Sockets );
+			bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, NewText, TargetSkeleton->Sockets );
 		}
 
 		// Needs to be checked on verify.
@@ -602,12 +604,14 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 
 void FDisplayedSocketInfo::OnCommitSocketName( const FText& InText, ETextCommit::Type CommitInfo )
 {
-	const FScopedTransaction Transaction( LOCTEXT( "RenameSocket", "Rename Socket" ) );
+	FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
+	const FScopedTransaction Transaction(LOCTEXT("RenameSocket", "Rename Socket"));
 	SocketData->SetFlags( RF_Transactional );	// Undo doesn't work without this!
 	SocketData->Modify();
 
 	FName OldSocketName = SocketData->SocketName;
-	SocketData->SocketName = FName( *InText.ToString() );
+	SocketData->SocketName = FName( *NewText.ToString() );
 
 	if ( SkeletonTree.IsValid() )
 	{
