@@ -8,7 +8,7 @@
 
 void FProfilerUIStream::GenerateUIStream( const FProfilerStream& ProfilerStream, const double StartTimeMS, const double EndTimeMS, const double ZoomFactorX, const double NumMillisecondsPerWindow, const double NumPixelsPerMillisecond, const double NumMillisecondsPerSample )
 {
-	SCOPE_LOG_TIME_FUNC();
+	//SCOPE_LOG_TIME_FUNC();
 
 	ProfilerStream;
 	ZoomFactorX;

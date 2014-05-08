@@ -3361,16 +3361,16 @@ bool SEventGraph::SelectAllFrames_CanExecute() const
 
 void SEventGraph::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
 {
-	if( NewViewMode == EProfilerViewMode::LineIndexBased )
-	{
-		FunctionDetailsBox->SetVisibility( EVisibility::Visible );
-		FunctionDetailsBox->SetEnabled( true );
-	}
-	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
-	{
-		FunctionDetailsBox->SetVisibility( EVisibility::Collapsed );
-		FunctionDetailsBox->SetEnabled( false );
-	}
+// 	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+// 	{
+// 		FunctionDetailsBox->SetVisibility( EVisibility::Visible );
+// 		FunctionDetailsBox->SetEnabled( true );
+// 	}
+// 	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+// 	{
+// 		FunctionDetailsBox->SetVisibility( EVisibility::Collapsed );
+// 		FunctionDetailsBox->SetEnabled( false );
+// 	}
 }
 
 #undef LOCTEXT_NAMESPACE

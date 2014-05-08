@@ -511,7 +511,7 @@ protected:
 	/** Converts a tree representation into a flat-array-based. */
 	void LinearizeStream()
 	{
-		SCOPE_LOG_TIME_FUNC();
+		//SCOPE_LOG_TIME_FUNC();
 
 		LinearRowsOfNodes.SetNum( ThreadNodes.Num()*DEFAULT_VISIBLE_THREAD_DEPTH );
 		for( auto& RowOfNodes : LinearRowsOfNodes )
