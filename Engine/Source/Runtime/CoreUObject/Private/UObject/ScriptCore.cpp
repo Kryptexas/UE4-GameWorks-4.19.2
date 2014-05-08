@@ -1461,7 +1461,6 @@ public:
 		Stack.MostRecentProperty = NULL;
 		Stack.Step( Stack.Object, NULL );
 		const FMulticastScriptDelegate* DelegateAddr = (FMulticastScriptDelegate*)Stack.MostRecentPropertyAddress;
-		check(NULL != DelegateAddr);
 
 		//Fill parameters
 		uint8* Parameters = (uint8*)FMemory_Alloca(SignatureFunction->ParmsSize);
@@ -1489,7 +1488,10 @@ public:
 		Stack.Code++;
 
 		//Process delegate
-		DelegateAddr->ProcessMulticastDelegate<UObject>(Parameters);
+		if (DelegateAddr)
+		{
+			DelegateAddr->ProcessMulticastDelegate<UObject>(Parameters);
+		}
 		
 		//Clean parameters
 		for (UProperty* Destruct = SignatureFunction->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
