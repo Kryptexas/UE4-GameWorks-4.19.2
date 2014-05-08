@@ -694,12 +694,12 @@ int32 UTexture2D::CalcTextureMemorySize( int32 MipCount ) const
 		EPixelFormat Format = GetPixelFormat();
 
 		// Figure out what the first mip to use is.
-		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );
-		// Iterate over all relevant miplevels and sum up their size.
-		for( int32 MipIndex=FirstMip; MipIndex<NumMips; MipIndex++ )
-		{
-			Size += CalcTextureMipMapSize(SizeX, SizeY, Format, MipIndex);
-		}
+		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );		
+		FIntPoint MipExtents = CalcMipMapExtent(SizeX, SizeY, Format, FirstMip);
+
+		uint32 TextureAlign = 0;
+		uint64 TextureSize = RHICalcTexture2DPlatformSize(MipExtents.X, MipExtents.Y, Format, MipCount, 1, 0, TextureAlign);
+		Size = (int32)TextureSize;
 	}
 	return Size;
 }

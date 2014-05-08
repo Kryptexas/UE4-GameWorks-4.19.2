@@ -115,16 +115,17 @@ uint32 UTextureCube::CalcTextureMemorySize( int32 MipCount ) const
 		int32 NumMips = GetNumMips();
 		EPixelFormat Format = GetPixelFormat();
 
+		ensureMsgf(SizeX == SizeY, TEXT("Cubemap faces expected to be square.  Actual sizes are: %i, %i"), SizeX, SizeY);
+
 		// Figure out what the first mip to use is.
-		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );
-		// Iterate over all relevant miplevels and sum up their size.
-		for( int32 MipIndex=FirstMip; MipIndex<NumMips; MipIndex++ )
-		{
-			Size += CalcTextureMipMapSize(SizeX, SizeY, Format, MipIndex);
-		}
+		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );		
+		FIntPoint MipExtents = CalcMipMapExtent(SizeX, SizeY, Format, FirstMip);
+		
+		uint32 TextureAlign = 0;
+		uint64 TextureSize = RHICalcTextureCubePlatformSize(MipExtents.X, Format, NumMips, 0, TextureAlign);
+		Size = (uint32)TextureSize;
 	}
-	// a cubemap has 6 sides
-	return Size * 6;
+	return Size;
 }
 
 
