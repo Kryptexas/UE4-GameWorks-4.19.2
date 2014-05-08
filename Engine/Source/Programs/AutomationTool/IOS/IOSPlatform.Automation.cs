@@ -247,8 +247,20 @@ public class IOSPlatform : Platform
 		// Now do the .mobileprovision
 		//@TODO: Remove this mobileprovision copy, and move to a library approach like Xcode/codesign does
 		string SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game.mobileprovision");
-		string GameSourceProvision = ProjectRoot + "/Build/IOS/" + ShortProjectName + ".mobileprovision";
-		if (File.Exists(GameSourceProvision))
+		string GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + ".mobileprovision");
+		if (!File.Exists(GameSourceProvision))
+		{
+			GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", "NotForLicensees", ShortProjectName + ".mobileprovision");
+			if (File.Exists(GameSourceProvision))
+			{
+				SourceProvision = GameSourceProvision;
+			}
+			else if (!File.Exists(SourceProvision))
+			{
+				SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game.mobileprovision");
+			}
+		}
+		else
 		{
 			SourceProvision = GameSourceProvision;
 		}
@@ -262,12 +274,24 @@ public class IOSPlatform : Platform
 
 		// install the distribution provision
 		SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game_Distro.mobileprovision");
-		GameSourceProvision = ProjectRoot + "/Build/IOS/" + ShortProjectName + "_Distro.mobileprovision";
-		if (File.Exists(GameSourceProvision))
+		GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + "_Distro.mobileprovision");
+		if (!File.Exists(GameSourceProvision))
+		{
+			GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", "NotForLicensees", ShortProjectName + "_Distro.mobileprovision");
+			if (File.Exists(GameSourceProvision))
+			{
+				SourceProvision = GameSourceProvision;
+			}
+			else if (!File.Exists(SourceProvision))
+			{
+				SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game_Distro.mobileprovision");
+			}
+		}
+		else
 		{
 			SourceProvision = GameSourceProvision;
 		}
-		if (File.Exists (SourceProvision))
+		if (File.Exists(SourceProvision))
 		{
 			File.Copy (SourceProvision, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision", true);
 			FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision");
@@ -516,8 +540,20 @@ public class IOSPlatform : Platform
 			if (GetCodeSignDesirability(Params))
 			{
 				string SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "UE4Game.mobileprovision");
-				string GameSourceProvision = SC.ProjectRoot + "/Build/IOS/" + SC.ShortProjectName + ".mobileprovision";
-				if (File.Exists(GameSourceProvision))
+				string GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", SC.ShortProjectName + ".mobileprovision");
+				if (!File.Exists(GameSourceProvision))
+				{
+					GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", "NotForLicensees", SC.ShortProjectName + ".mobileprovision");
+					if (File.Exists(GameSourceProvision))
+					{
+						SourceProvision = GameSourceProvision;
+					}
+					else if (!File.Exists(SourceProvision))
+					{
+						SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game.mobileprovision");
+					}
+				}
+				else
 				{
 					SourceProvision = GameSourceProvision;
 				}

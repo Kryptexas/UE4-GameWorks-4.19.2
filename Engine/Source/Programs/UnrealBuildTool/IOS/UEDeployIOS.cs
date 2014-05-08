@@ -116,6 +116,17 @@ namespace UnrealBuildTool.IOS
 			{
 				ProvisionWithPrefix = BuildDirectory + "/" + InProjectName + ".mobileprovision";
 			}
+			else
+			{
+				if (File.Exists(BuildDirectory + "/NotForLicensees/" + InProjectName + ".mobileprovision"))
+				{
+					ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + InProjectName + ".mobileprovision";
+				}
+				else if (!File.Exists(ProvisionWithPrefix))
+				{
+					ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game.mobileprovision";
+				}
+			}
 			if (File.Exists (ProvisionWithPrefix))
 			{
 				Directory.CreateDirectory (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
@@ -130,7 +141,18 @@ namespace UnrealBuildTool.IOS
 			{
 				ProvisionWithPrefix = BuildDirectory + "/" + InProjectName + "_Distro.mobileprovision";
 			}
-			if (File.Exists (ProvisionWithPrefix))
+			else
+			{
+				if (File.Exists(BuildDirectory + "/NotForLicensees/" + InProjectName + "_Distro.mobileprovision"))
+				{
+					ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + InProjectName + "_Distro.mobileprovision";
+				}
+				else if (!File.Exists(ProvisionWithPrefix))
+				{
+					ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game_Distro.mobileprovision";
+				}
+			}
+			if (File.Exists(ProvisionWithPrefix))
 			{
 				File.Copy (ProvisionWithPrefix, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision", true);
 				FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision");
