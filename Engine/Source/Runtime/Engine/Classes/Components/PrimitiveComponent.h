@@ -1166,7 +1166,8 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
+	virtual void SetRelativeScale3D(FVector NewScale3D) OVERRIDE FINAL;
+	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) OVERRIDE;
 	virtual bool IsWorldGeometry() const OVERRIDE;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const OVERRIDE;
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const OVERRIDE;

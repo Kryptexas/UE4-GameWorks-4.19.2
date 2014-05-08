@@ -223,7 +223,7 @@ public:
 
 	/** Set the non-uniform of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
-	void SetRelativeScale3D(FVector NewScale3D);
+	virtual void SetRelativeScale3D(FVector NewScale3D);
 
 	/** Adds a delta to the translation of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")

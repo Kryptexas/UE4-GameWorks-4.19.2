@@ -1181,6 +1181,20 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
+void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
+{
+	const FVector OldScale3D = RelativeScale3D;
+	Super::SetRelativeScale3D(NewScale3D);
+
+	AActor* Actor = GetOwner();
+	if (Actor && OldScale3D != RelativeScale3D && IsRegistered() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	{
+		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+		{
+			NavSys->UpdateNavOctree(Actor);
+		}
+	}
+}
 
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
@@ -1477,6 +1491,14 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		{
 			// still need to do this even if bGenerateOverlapEvents is false for this component, since we could have child components where it is true
 			UpdateOverlaps(&PendingOverlaps, true, OverlapsAtEndLocationPtr);
+		}
+
+		if (Actor && IsRegistered() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+		{
+			if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+			{
+				NavSys->UpdateNavOctree(Actor);
+			}
 		}
 	}
 
