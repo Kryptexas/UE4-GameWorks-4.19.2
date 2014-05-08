@@ -36,7 +36,6 @@ static TAutoConsoleVariable<int32> CVarSceneTargetsResizingMethod(
 	ECVF_RenderThreadSafe
 	);
 
-
 static TAutoConsoleVariable<int32> CVarOptimizeForUAVPerformance(
 	TEXT("r.OptimizeForUAVPerformance"),
 	0,
@@ -47,6 +46,14 @@ static TAutoConsoleVariable<int32> CVarOptimizeForUAVPerformance(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarCustomDepth(
+	TEXT("r.CustomDepth"),
+	1,
+	TEXT("0: feature is disabled\n")
+	TEXT("1: feature is enabled, texture is created on demand\n")
+	TEXT("2: feature is enabled, texture is not released until required (should be the project setting if the feature should not stall)"),
+	ECVF_RenderThreadSafe
+	);
 
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
@@ -323,6 +330,81 @@ void FSceneRenderTargets::AllocLightAttenuation()
 
 	// otherwise we have a severe problem
 	check(LightAttenuation);
+}
+
+void FSceneRenderTargets::FreeGBufferTargets()
+{
+	GBufferA.SafeRelease();
+	GBufferB.SafeRelease();
+	GBufferC.SafeRelease();
+	GBufferD.SafeRelease();
+	GBufferE.SafeRelease();
+}
+
+void FSceneRenderTargets::AllocGBufferTargets()
+{
+	if(GBufferA)
+	{
+		// no work needed
+		return;
+	}
+
+	// create GBuffer on demand so it can be shared with other pooled RT
+
+	// good to see the quality loss due to precision in the gbuffer
+	const bool bHighPrecisionGBuffers = (CurrentGBufferFormat >= 5);
+	// good to profile the impact of non 8 bit formats
+	const bool bEnforce8BitPerChannel = (CurrentGBufferFormat == 0);
+
+	// Create the world-space normal g-buffer.
+	{
+		EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
+
+		if(bEnforce8BitPerChannel)
+		{
+			NormalGBufferFormat = PF_B8G8R8A8;
+		}
+
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, GBufferA, TEXT("GBufferA"));
+	}
+
+	// Create the specular color and power g-buffer.
+	{
+		const EPixelFormat SpecularGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
+
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, GBufferB, TEXT("GBufferB"));
+	}
+
+	// Create the diffuse color g-buffer.
+	{
+		const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
+		uint32 DiffuseGBufferFlags = TexCreate_SRGB;
+
+#if PLATFORM_MAC // @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mac.UseFrameBufferSRGB"));
+		DiffuseGBufferFlags = CVar && CVar->GetValueOnRenderThread() ? TexCreate_SRGB : TexCreate_None;
+#endif
+
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, DiffuseGBufferFlags, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, GBufferC, TEXT("GBufferC"));
+	}
+
+	// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, GBufferD, TEXT("GBufferD"));
+	}
+
+	if (bAllowStaticLighting)
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, GBufferE, TEXT("GBufferE"));
+	}
+
+	// otherwise we have a severe problem
+	check(GBufferA);
 }
 
 const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() const
@@ -929,58 +1011,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 	// Create the required render targets if running Highend.
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		// good to see the quality loss due to precision in the gbuffer
-		bool bHighPrecisionGBuffers = (CurrentGBufferFormat >= 5);
-		// good to profile the impact of non 8 bit formats
-		bool bEnforce8BitPerChannel = (CurrentGBufferFormat == 0);
-
-		// Create the world-space normal g-buffer.
-		{
-			EPixelFormat NormalGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_A2B10G10R10;
-
-			if(bEnforce8BitPerChannel)
-			{
-				NormalGBufferFormat = PF_B8G8R8A8;
-			}
-
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, NormalGBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, GBufferA, TEXT("GBufferA"));
-		}
-
-		// Create the specular color and power g-buffer.
-		{
-			const EPixelFormat SpecularGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
-
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SpecularGBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, GBufferB, TEXT("GBufferB"));
-		}
-
-		// Create the diffuse color g-buffer.
-		{
-			const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
-			uint32 DiffuseGBufferFlags = TexCreate_SRGB;
-
-#if PLATFORM_MAC // @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mac.UseFrameBufferSRGB"));
-			DiffuseGBufferFlags = CVar && CVar->GetValueOnRenderThread() ? TexCreate_SRGB : TexCreate_None;
-#endif
-
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, DiffuseGBufferFlags, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, GBufferC, TEXT("GBufferC"));
-		}
-
-		// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
-		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, GBufferD, TEXT("GBufferD"));
-		}
-
-		if (bAllowStaticLighting)
-		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, GBufferE, TEXT("GBufferE"));
-		}
-
 		// Create the screen space ambient occlusion buffer
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G8, TexCreate_None, TexCreate_RenderTargetable, false));
@@ -1139,17 +1169,14 @@ void FSceneRenderTargets::InitDynamicRHI()
 }
 
 void FSceneRenderTargets::ReleaseDynamicRHI()
-{ 
+{
+	FreeGBufferTargets();
+
 	SceneColor.SafeRelease();
 	SceneAlphaCopy.SafeRelease();
 	SceneDepthZ.SafeRelease();
 	AuxiliarySceneDepthZ.SafeRelease();
 	SmallDepthZ.SafeRelease();
-	GBufferA.SafeRelease();
-	GBufferB.SafeRelease();
-	GBufferC.SafeRelease();
-	GBufferD.SafeRelease();
-	GBufferE.SafeRelease();
 	DBufferA.SafeRelease();
 	DBufferB.SafeRelease();
 	DBufferC.SafeRelease();
@@ -1233,19 +1260,6 @@ FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() cons
 	return ShadowDepthResolution;
 }
 
-bool FSceneRenderTargets::ShouldDoMSAAInDeferredPasses() const
-{
-	return false;
-}
-
-static int32 GetCustomDepthCVar()
-{
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CustomDepth"));
-	
-	check(CVar);
-	return CVar->GetValueOnRenderThread();
-}
-
 const FTextureRHIRef& FSceneRenderTargets::GetSceneColorSurface() const							
 {
 	if(!SceneColor)
@@ -1268,7 +1282,7 @@ const FTextureRHIRef& FSceneRenderTargets::GetSceneColorTexture() const
 
 IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(bool bPrimitives)
 {
-	int Value = GetCustomDepthCVar();
+	int Value = CVarCustomDepth.GetValueOnRenderThread();
 
 	if((Value == 1  && bPrimitives) || Value == 2)
 	{
@@ -1277,7 +1291,6 @@ IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(bool bPrimitives)
 		return CustomDepth;
 	}
 
-	//
 	return 0;
 }
 

@@ -519,6 +519,8 @@ void FDeferredShadingSceneRenderer::Render()
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	RenderPrePass();
+
+	GSceneRenderTargets.AllocGBufferTargets();
 	
 	// Clear scene color buffer if necessary.
 	if ( bRequiresRHIClear )

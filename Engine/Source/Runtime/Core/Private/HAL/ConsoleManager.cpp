@@ -1923,13 +1923,6 @@ void CreateConsoleVariables()
 		TEXT("Prevents the engine from taking any CPU or GPU time while not the foreground app."),
 		ECVF_Cheat);
 	
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.CustomDepth"),
-		1,
-		TEXT("0: feature is disabled\n")
-		TEXT("1: feature is enabled, texture is created on demand\n")
-		TEXT("2: feature is enabled, texture is not released until required (should be the project setting if the feature should not stall)"),
-		ECVF_RenderThreadSafe);
-
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.TemporalAASamples"),
 		8,
 		TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),

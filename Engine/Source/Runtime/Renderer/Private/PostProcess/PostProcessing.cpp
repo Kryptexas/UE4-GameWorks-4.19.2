@@ -1146,6 +1146,15 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			CompositeContext.Process(TEXT("PostProcessing"));
 		}
 	}
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
+
+	// todo: We should move this to after lighting, but we also have to fix lookups in post process materials reading from it.
+	// We only release the GBuffers after the last view was processed (SplitScreen)
+	if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
+	{
+		GSceneRenderTargets.FreeGBufferTargets();
+	}
 }
 
 
