@@ -1057,20 +1057,6 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		GRenderTargetPool.FindFreeElement(Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
 	}
 
-	{
-		EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
-
-		uint32 LightAccumulationUAVFlag = GRHIFeatureLevel == ERHIFeatureLevel::SM5 ? TexCreate_UAV : 0;
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, TexCreate_None, TexCreate_RenderTargetable | LightAccumulationUAVFlag, false));
-
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
-		{
-			Desc.TargetableFlags |= TexCreate_UAV;
-		}
-
-		GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
-	}
-
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		// Create the reflective shadow map textures for LightPropagationVolume feature
@@ -1156,7 +1142,6 @@ void FSceneRenderTargets::ReleaseDynamicRHI()
 	ScreenSpaceAO.SafeRelease();
 	LightAttenuation.SafeRelease();
 	CustomDepth.SafeRelease();
-	LightAccumulation.SafeRelease();
 	ReflectiveShadowMapNormal.SafeRelease();
 	ReflectiveShadowMapDiffuse.SafeRelease();
 	ReflectiveShadowMapDepth.SafeRelease();

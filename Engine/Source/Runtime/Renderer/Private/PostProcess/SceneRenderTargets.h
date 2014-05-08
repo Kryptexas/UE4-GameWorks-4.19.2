@@ -393,8 +393,6 @@ public:
 	TRefCountPtr<IPooledRenderTarget> ScreenSpaceAO;
 	// used by the CustomDepth material feature, is allocated on demand or if r.CustomDepth is 2
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
-	// Used for accumulating tiled deferred VPL indirect lighting
-	TRefCountPtr<IPooledRenderTarget> LightAccumulation;
 	// Render target for per-object shadow depths.
 	TRefCountPtr<IPooledRenderTarget> ShadowDepthZ;
 	// Cache of preshadow depths
