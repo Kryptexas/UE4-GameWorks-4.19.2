@@ -119,7 +119,7 @@ public:
 		  ResourceType( EMeshPaintResource::VertexColors ),
 		  PaintMode( EMeshPaintMode::PaintColors ),
 		  PaintColor( 1.0f, 1.0f, 1.0f, 1.0f ),
-		  EraseColor( 1.0f, 1.0f, 1.0f, 1.0f ),
+		  EraseColor( 0.0f, 0.0f, 0.0f, 1.0f ),
 		  bWriteRed( true ),
 		  bWriteGreen( true ),
 		  bWriteBlue( true ),
