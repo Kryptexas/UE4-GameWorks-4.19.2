@@ -516,6 +516,15 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bAlwaysCheckFloor:1;
 
+	/**
+	 * Performs floor checks as if the character is using a box collider.
+	 * This avoids the situation where characters slowly slide down a ledge (as their capsule 'balances' on the edge).
+	 * Note that sweep checks perfomed using the box collision are axis-aligned and use a bounding box that tightly 
+	 * encloses the capsule.
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	uint32 bUseFlatBaseForFloorChecks:1;
+
 	/** Used to prevent reentry of JumpOff() */
 	UPROPERTY()
 	uint32 bPerformingJumpOff:1;
