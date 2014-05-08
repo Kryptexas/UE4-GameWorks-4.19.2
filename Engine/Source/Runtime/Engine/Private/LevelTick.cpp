@@ -1110,6 +1110,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 		RunTickGroup(TG_PrePhysics);
+        bInTick = false;
+        EnsureCollisionTreeIsBuilt();
+        bInTick = true;
 #if EXPERIMENTAL_PARALLEL_CODE
 		{			
 			RunTickGroup(TG_ParallelAnimWork);			

@@ -48,7 +48,7 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 
 void FIOSPlatformProcess::SetRealTimeMode()
 {
-	if ([IOSAppDelegate GetDelegate].OSVersion < 7)
+	if ([IOSAppDelegate GetDelegate].OSVersion < 7 && FPlatformMisc::NumberOfCores() > 1)
 	{
 		mach_timebase_info_data_t TimeBaseInfo;
 		mach_timebase_info( &TimeBaseInfo );

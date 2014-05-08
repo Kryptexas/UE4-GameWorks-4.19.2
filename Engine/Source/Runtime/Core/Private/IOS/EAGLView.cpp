@@ -86,12 +86,13 @@ void GetInputStack(/*TArray<FPointerEvent>& TouchEvents*/)
 		self.contentScaleFactor = bIsForOnDevice ? RequestedContentScaleFactor : 1.0f;
 		UE_LOG(LogIOS, Log, TEXT("Setting contentScaleFactor to %0.4f (optimal = %0.4f)"), self.contentScaleFactor, NativeScale);
 
-		if (self.contentScaleFactor == 1.0f || self.contentScaleFactor == 2.0f)
-		{
-			UE_LOG(LogIOS,Log,TEXT("Setting layer filter to NEAREST"));
-			CAEAGLLayer *EaglLayer = (CAEAGLLayer *)self.layer;
-			EaglLayer.magnificationFilter = kCAFilterNearest;
-		}
+        // This is causing a pretty large slow down on iPad 3 and 4 using iOS 6, for now going to comment it out
+//		if (self.contentScaleFactor == 1.0f || self.contentScaleFactor == 2.0f)
+//		{
+//			UE_LOG(LogIOS,Log,TEXT("Setting layer filter to NEAREST"));
+//			CAEAGLLayer *EaglLayer = (CAEAGLLayer *)self.layer;
+//			EaglLayer.magnificationFilter = kCAFilterNearest;
+//		}
 
 		// Create our standard displayable surface
 		glGenRenderbuffers(1, &OnScreenColorRenderBuffer);

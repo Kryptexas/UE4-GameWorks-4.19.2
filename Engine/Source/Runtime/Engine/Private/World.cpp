@@ -50,6 +50,7 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 :	UObject(PCIP)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
 {
 	TimerManager = new FTimerManager();
@@ -63,6 +64,7 @@ UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL&
 :	UObject(PCIP)
 ,	URL(InURL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
 {
 	SetFlags( RF_Transactional );
@@ -1115,7 +1117,7 @@ void UWorld::ModifyLevel(ULevel* Level)
 
 void UWorld::EnsureCollisionTreeIsBuilt()
 {
-	if (bInTick)
+	if (bInTick || bIsBuilt)
 	{
 		// Current implementation of collision tree rebuild ticks physics scene and can not be called during world tick
 		return;
@@ -1137,7 +1139,7 @@ void UWorld::EnsureCollisionTreeIsBuilt()
 	{
 		SetupPhysicsTickFunctions(0.1f);
 		PhysicsScene->StartFrame();
-		PhysicsScene->WaitPhysScenes();
+        PhysicsScene->WaitPhysScenes();
 		PhysicsScene->EndFrame(NULL);
 	}
 
@@ -1145,6 +1147,7 @@ void UWorld::EnsureCollisionTreeIsBuilt()
 	{
 		PhysicsScene->SetIsStaticLoading(false);
 	}
+    bIsBuilt = true;
 }
 
 void UWorld::InvalidateModelGeometry(ULevel* InLevel)

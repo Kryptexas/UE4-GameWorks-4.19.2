@@ -744,6 +744,9 @@ public:
 	/** Whether we are in the middle of ticking actors/components or not														*/
 	bool										bInTick;
 
+    /** Whether we have already built the collision tree or not                                                                 */
+    bool                                        bIsBuilt;
+    
 	/** We are in the middle of actor ticking, so add tasks for newly spawned actors											*/
 	bool										bTickNewlySpawned;
 
