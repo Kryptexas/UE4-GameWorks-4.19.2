@@ -485,7 +485,7 @@ public:
 	uint32 bIgnoresOriginShifting:1;
 	
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Actor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
 	TArray<FName> Tags;
 
 	/** Bitflag to represent which views this actor is hidden in, via per-view layer visibility */
