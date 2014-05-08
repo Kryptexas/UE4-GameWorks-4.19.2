@@ -2038,10 +2038,6 @@ void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim)
 
 	//@todo UE4 optimize
 	FMemory::Memzero(Dest, ArrayDim * Stride);
-	if (StructFlags & STRUCT_ZeroConstructor)
-	{
-		return;
-	}
 
 	int32 InitializedSize = 0;
 	UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
