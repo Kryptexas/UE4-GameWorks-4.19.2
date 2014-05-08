@@ -1608,7 +1608,7 @@ void FPersona::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 	}
 }
 
-void FPersona::OnPropertyChanged(UObject* ObjectBeingModified)
+void FPersona::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Re-initialize the preview when a skeletal control is being edited
 	//@TODO: Should we still do this?

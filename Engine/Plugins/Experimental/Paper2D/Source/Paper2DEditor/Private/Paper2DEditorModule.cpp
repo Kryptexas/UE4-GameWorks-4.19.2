@@ -167,7 +167,7 @@ private:
 	}
 
 	// Called when a property on the specified object is modified
-	void OnPropertyChanged(UObject* ObjectBeingModified)
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 	{
 		if (UPaperSpriteAtlas* Atlas = Cast<UPaperSpriteAtlas>(ObjectBeingModified))
 		{

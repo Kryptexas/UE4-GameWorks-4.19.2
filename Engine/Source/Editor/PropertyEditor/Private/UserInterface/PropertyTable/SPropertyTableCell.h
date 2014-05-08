@@ -61,7 +61,7 @@ private:
 
 	void ExitedEditMode();
 
-	void OnCellValueChanged( UObject* Object );
+	void OnCellValueChanged( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent );
 
 
 private:

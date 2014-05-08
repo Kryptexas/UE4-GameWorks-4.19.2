@@ -80,7 +80,7 @@ void SetColor( const TSharedRef< FLinearColor >& Source, const FLinearColor& Val
 	Source->A = Value.A;
 }
 
-void FSlateEditorStyle::FStyle::SettingsChanged( UObject* ChangedObject )
+void FSlateEditorStyle::FStyle::SettingsChanged( UObject* ChangedObject, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if ( ChangedObject == Settings.Get() )
 	{

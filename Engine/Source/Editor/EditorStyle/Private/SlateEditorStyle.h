@@ -80,7 +80,7 @@ public:
 		void SetupSourceControlStyles();
 		void SetupAutomationStyles();
 
-		void SettingsChanged( UObject* ChangedObject );
+		void SettingsChanged( UObject* ChangedObject, FPropertyChangedEvent& PropertyChangedEvent );
 		void SyncSettings();
 
 		const FVector2D Icon7x16;

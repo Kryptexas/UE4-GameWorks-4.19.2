@@ -207,7 +207,7 @@ void UObject::PostEditChange(void)
 
 void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FCoreDelegates::OnObjectPropertyChanged.Broadcast(this);
+	FCoreDelegates::OnObjectPropertyChanged.Broadcast(this, PropertyChangedEvent);
 }
 
 

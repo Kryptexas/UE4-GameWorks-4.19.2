@@ -94,7 +94,7 @@ void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{

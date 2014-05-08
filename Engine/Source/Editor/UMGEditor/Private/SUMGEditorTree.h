@@ -19,7 +19,7 @@ private:
 	UWidgetBlueprint* GetBlueprint() const;
 
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
-	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
+	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
 

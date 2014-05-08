@@ -309,7 +309,7 @@ public:
 	 */
 
 	void OnObjectModified( UObject *ObjectMoving );
-	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
+	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 	void OnObjectUpdated( UObject *Object );
 
 	/**

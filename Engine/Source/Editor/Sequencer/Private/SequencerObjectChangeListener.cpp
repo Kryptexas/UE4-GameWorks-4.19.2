@@ -76,7 +76,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 	}
 }
 
-void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object )
+void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if( Object )
 	{
@@ -121,7 +121,8 @@ void FSequencerObjectChangeListener::OnActorPostEditMove( AActor* Actor )
 {
 	// @todo sequencer actors: Currently this only fires on a "final" move.  For our purposes we probably
 	// want to get an update every single movement, even while dragging an object.
-	OnObjectPostEditChange( Actor );
+	FPropertyChangedEvent PropertyChangedEvent(nullptr);
+	OnObjectPostEditChange( Actor, PropertyChangedEvent );
 }
 
 void FSequencerObjectChangeListener::TriggerAllPropertiesChanged(UObject* Object)

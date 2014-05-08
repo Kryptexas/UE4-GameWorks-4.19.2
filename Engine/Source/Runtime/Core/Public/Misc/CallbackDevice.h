@@ -45,7 +45,7 @@ public:
 	DECLARE_DELEGATE_TwoParams(FHotFixDelegate, void *, int32);
 
 	// Callback for object property modifications
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectPropertyChanged, UObject*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
 
 	// Callback for object property modifications
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);

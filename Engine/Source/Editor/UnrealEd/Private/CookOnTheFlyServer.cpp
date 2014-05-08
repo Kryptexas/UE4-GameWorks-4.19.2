@@ -345,7 +345,7 @@ void UCookOnTheFlyServer::OnObjectModified( UObject *ObjectMoving )
 	OnObjectUpdated( ObjectMoving );
 }
 
-void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	OnObjectUpdated( ObjectBeingModified );
 }

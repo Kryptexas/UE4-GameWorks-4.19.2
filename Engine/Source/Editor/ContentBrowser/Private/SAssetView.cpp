@@ -1919,7 +1919,7 @@ void SAssetView::OnAssetLoaded(UObject* Asset)
 	}
 }
 
-void SAssetView::OnObjectPropertyChanged(UObject* Asset)
+void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( Asset != NULL )
 	{

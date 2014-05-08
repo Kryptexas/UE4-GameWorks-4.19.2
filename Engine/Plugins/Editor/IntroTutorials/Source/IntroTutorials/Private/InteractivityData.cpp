@@ -1685,7 +1685,7 @@ void PopulateInteractivityData(TSharedPtr<FInteractiveTutorials> InteractiveTuto
 			return bSphereIsSelected && SelectedObjectCount == 1;
 		}
 
-		static bool CompleteEditingDetails(UObject* Object)
+		static bool CompleteEditingDetails(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent)
 		{
 			auto Actor = Cast<AActor>(Object);
 			if (Actor && Actor->GetFName() == FName("StaticMesh_Sphere"))

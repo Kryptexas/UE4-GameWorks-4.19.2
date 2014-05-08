@@ -68,7 +68,7 @@ void SStaticMeshEditorViewport::RefreshViewport()
 	SceneViewport->Invalidate();
 }
 
-void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{

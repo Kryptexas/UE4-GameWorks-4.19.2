@@ -315,7 +315,7 @@ private:
 	void OnAssetLoaded(UObject* Asset);
 
 	/** Handler for when an asset's property has changed */
-	void OnObjectPropertyChanged(UObject* Asset);
+	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Handler for when any dynamic filters have been changed */
 	void OnDynamicFiltersChanged();

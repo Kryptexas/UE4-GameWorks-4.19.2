@@ -604,7 +604,7 @@ void SBlendSpaceEditor1D::OnBlendSpaceParamtersChanged()
 	UpdateBlendParameters();
 }
 
-void SBlendSpaceEditor1D::OnPropertyChanged(UObject* ObjectBeingModified)
+void SBlendSpaceEditor1D::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(UBlendSpace1D* BlendSpace1D = Cast<UBlendSpace1D>(ObjectBeingModified))
 	{

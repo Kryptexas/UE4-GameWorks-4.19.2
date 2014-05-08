@@ -1208,7 +1208,7 @@ void FAssetThumbnailPool::OnAssetLoaded( UObject* Asset )
 	}
 }
 
-void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified )
+void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) && ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
 	{

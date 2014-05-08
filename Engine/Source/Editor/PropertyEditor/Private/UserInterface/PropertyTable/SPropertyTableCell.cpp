@@ -39,7 +39,7 @@ void SPropertyTableCell::SetContent( const TSharedRef< SWidget >& NewContents )
 	];
 }
 
-void SPropertyTableCell::OnCellValueChanged( UObject* Object )
+void SPropertyTableCell::OnCellValueChanged( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if ( Cell->GetObject().Get() == Object )
 	{

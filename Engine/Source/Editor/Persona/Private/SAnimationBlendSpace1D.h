@@ -187,7 +187,7 @@ private:
 
 	// Property changed delegate
 	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
-	void OnPropertyChanged(UObject* ObjectBeingModified);
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	// Updates the UI to reflect the current blend space parameter values */
 	void UpdateBlendParameters();

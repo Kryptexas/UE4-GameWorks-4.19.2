@@ -342,7 +342,7 @@ void FContentBrowserSingleton::SummonNewBrowser(bool bAllowLockedBrowsers)
 	}
 }
 
-void FContentBrowserSingleton::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void FContentBrowserSingleton::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{

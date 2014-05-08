@@ -167,7 +167,7 @@ void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{
