@@ -310,7 +310,7 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 // FVisualLog
 //----------------------------------------------------------------------//
 FVisualLog::FVisualLog()
-	: bIsRecording(GEngine->bEnableVisualLogRecordingOnStart)
+: bIsRecording(GEngine->bEnableVisualLogRecordingOnStart), bIsRecordingOnServer(false)
 {
 	//GLog->AddOutputDevice(this);
 }
@@ -320,13 +320,59 @@ FVisualLog::~FVisualLog()
 
 }
 
-void FVisualLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
-{}
-
-void FVisualLog::Cleanup()
+void FVisualLog::DumpRecordedLogs()
 {
-	LogsMap.Reset();
-	RedirectsMap.Reset();
+	TArray< TSharedPtr<FJsonValue> > EntriesArray;
+	TArray<TSharedPtr<FActorsVisLog>> Logs;
+	LogsMap.GenerateValueArray(Logs);
+
+	for (int32 ItemIndex = 0; ItemIndex < Logs.Num(); ++ItemIndex)
+	{
+		if (Logs.IsValidIndex(ItemIndex))
+		{
+			TSharedPtr<FActorsVisLog> Log = Logs[ItemIndex];
+			EntriesArray.Add(Log->ToJson());
+		}
+	}
+
+	if (EntriesArray.Num() > 0)
+	{
+		TSharedPtr<FJsonObject> Object = MakeShareable(new FJsonObject);
+		Object->SetArrayField(LogVisualizerJson::TAG_LOGS, EntriesArray);
+
+		const FString Name = FString::Printf(TEXT("VisualLog_%s"), *FDateTime::Now().ToString());
+		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/logs/%s.vlog"), *FPaths::GameSavedDir(), *Name));
+		if (FileAr != NULL)
+		{
+			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
+			if (!FJsonSerializer::Serialize(Object.ToSharedRef(), Writer))
+			{
+				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, FColor::Red, TEXT("Failed to dump VisLog logs"));
+			}
+			FileAr->Close();
+		}
+	}
+
+	Cleanup(true);
+}
+
+void FVisualLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
+{
+
+}
+
+void FVisualLog::Cleanup(bool bReleaseMemory)
+{
+	if (bReleaseMemory)
+	{
+		LogsMap.Empty();
+		RedirectsMap.Empty();
+	}
+	else
+	{
+		LogsMap.Reset();
+		RedirectsMap.Reset();
+	}
 }
 
 void FVisualLog::Redirect(AActor* Actor, const AActor* NewRedirection)

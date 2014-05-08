@@ -296,7 +296,15 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 			//always update component for best target
 			if (UGameplayDebuggingComponent *DebuggingComponent = BestTarget->GetDebugComponent(true))
 			{
+				if (TargetActor != NULL)
+				{
+					if (UGameplayDebuggingComponent *OldDebuggingComponent = TargetActor->GetDebugComponent())
+					{
+						OldDebuggingComponent->SelectForDebugging(false);
+					}
+				}
 				TargetActor = BestTarget;
+				DebuggingComponent->SelectForDebugging(true);
 				DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 			}
 		}

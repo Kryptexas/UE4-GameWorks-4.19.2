@@ -6259,9 +6259,25 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 			if (GShaderCompilingManager && GShaderCompilingManager->IsCompiling())
 			{
-				SmallTextItem.Text =  FText::FromString( FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()) );				
-				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
+				SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Shaders Compiling (%u)"), GShaderCompilingManager->GetNumRemainingJobs()));
+				Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
 				MessageY += 20;
+			}
+
+			FVisualLog* VisLog = FVisualLog::Get();
+			if (VisLog && (VisLog->IsRecording() || VisLog->IsRecordingOnServer()))
+			{
+				int32 XSize;
+				int32 YSize;
+				FString String = FString::Printf(TEXT("VisLog recording active"));
+				StringSize(GEngine->GetSmallFont(), XSize, YSize, *String);
+
+				SmallTextItem.Position = FVector2D((int32)Viewport->GetSizeXY().X - XSize - 16, 36);
+				SmallTextItem.Text = FText::FromString(String);
+				SmallTextItem.SetColor(FLinearColor::Red);
+				SmallTextItem.EnableShadow(FLinearColor::Black);
+				Canvas->DrawItem(SmallTextItem);
+				SmallTextItem.SetColor(FLinearColor::White);
 			}
 
 

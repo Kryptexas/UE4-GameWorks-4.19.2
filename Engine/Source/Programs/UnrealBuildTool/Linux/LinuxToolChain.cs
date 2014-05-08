@@ -511,7 +511,7 @@ namespace UnrealBuildTool.Linux
             }
 
             string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-            LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+            LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
 			// Add the library paths to the argument list.
 			foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)

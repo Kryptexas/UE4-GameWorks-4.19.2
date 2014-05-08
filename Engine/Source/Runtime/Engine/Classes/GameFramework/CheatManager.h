@@ -200,6 +200,9 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void ToggleAILogging();
 
+	UFUNCTION(reliable, server, WithValidation)
+	virtual void ServerToggleAILogging();
+
 	/** makes various AI logging categories verbose */
 	UFUNCTION(exec)
 	virtual void AILoggingVerbose();

@@ -583,6 +583,10 @@ public:
 	UPROPERTY()
 	FVector PendingLaunchVelocity;
 
+	/** Change avoidance state and registers in RVO manager if needed */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	void SetAvoidanceEnabled(bool bEnable);
+
 	/** Get the Character that owns UpdatedComponent. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	class ACharacter* GetCharacterOwner() const;

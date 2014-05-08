@@ -744,7 +744,7 @@ void FPhysxSharedData::Add( PxBase* Obj )
 {
 	if(Obj) 
 	{ 
-		SharedObjects->add(*Obj); 
+		SharedObjects->add(*Obj, (PxSerialObjectId)Obj);
 	}
 }
 

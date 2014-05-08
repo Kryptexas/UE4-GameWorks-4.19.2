@@ -222,6 +222,11 @@ struct ENGINE_API FVisLogEntry
 	} \
 }
 
+namespace LogVisualizerJson
+{
+	static const FString TAG_LOGS = TEXT("Logs");
+}
+
 struct ENGINE_API FActorsVisLog
 {
 	static const int VisLogInitialSize = 8;
@@ -254,7 +259,7 @@ public:
 		return &StaticLog;
 	}
 
-	void Cleanup();
+	void Cleanup(bool bReleaseMemory = false);
 
 	void Redirect(class AActor* Actor, const class AActor* NewRedirection);
 	
@@ -267,6 +272,9 @@ public:
 
 	void SetIsRecording(bool NewRecording) { bIsRecording = NewRecording; }
 	FORCEINLINE bool IsRecording() const { return !!bIsRecording; }
+	void SetIsRecordingOnServer(bool NewRecording) { bIsRecordingOnServer = NewRecording; }
+	FORCEINLINE bool IsRecordingOnServer() const { return !!bIsRecordingOnServer; }
+	void DumpRecordedLogs();
 
 	FORCEINLINE_DEBUGGABLE FVisLogEntry* GetEntryToWrite(const class AActor* Actor)
 	{
@@ -313,6 +321,7 @@ private:
 	FOnNewLogCreatedDelegate OnNewLogCreated;
 
 	int32 bIsRecording : 1;
+	int32 bIsRecordingOnServer : 1;
 };
 
 #else

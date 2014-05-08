@@ -5440,6 +5440,20 @@ void UCharacterMovementComponent::SetGroupsToIgnore(int32 GroupFlags)
 	GroupsToIgnore.SetFlagsDirectly(GroupFlags);
 }
 
+void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
+{
+	if (bUseRVOAvoidance != bEnable)
+	{
+		bUseRVOAvoidance = bEnable;
+
+		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+		if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+		{
+			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+		}
+	}
+}
+
 void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 {
 	FCollisionQueryParams QueryParams;

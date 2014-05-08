@@ -587,6 +587,11 @@ void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
 		const FVector SegmentStart = PathPt0.Location;
 		const FVector SegmentEnd = PathPt1.Location;
 		MoveSegmentDirection = (SegmentEnd - SegmentStart).SafeNormal();
+		// make sure we have a non-zero direction if still following a valid path
+		if (MoveSegmentDirection.IsZero() && int32(MoveSegmentEndIndex + 1) < Path->PathPoints.Num())
+		{
+			MoveSegmentDirection = (Path->PathPoints[MoveSegmentEndIndex + 1].Location - SegmentStart).SafeNormal();
+		}
 
 		CurrentDestination.Set(Path->Base.Get(), SegmentEnd);
 		CurrentAcceptanceRadius = (Path->PathPoints.Num() == (EndSegmentIndex + 1)) ? AcceptanceRadius : 0.0f;

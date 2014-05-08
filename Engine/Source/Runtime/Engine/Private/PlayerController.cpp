@@ -1182,6 +1182,19 @@ void APlayerController::ClientTeamMessage_Implementation( APlayerState* SenderPl
 	}
 }
 
+bool APlayerController::ServerToggleAILogging_Validate()
+{
+	return true;
+}
+
+void APlayerController::ServerToggleAILogging_Implementation()
+{
+	if (CheatManager)
+	{
+		CheatManager->ServerToggleAILogging();
+	}
+}
+
 bool APlayerController::ServerReplicateMessageToAIDebugView_Validate(class APawn* InPawn, uint32 InMessage, uint32 DataView)
 {
 	return true;

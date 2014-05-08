@@ -812,21 +812,25 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 	}
 
 	// Anim Scale Retargeting
-	const TArray<FTransform> & TargetRefPoseArray = RequiredBones.GetRefPoseArray();
-	const TArray<FTransform> & SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
-	const int32 NumBonesToRetarget = AnimScaleRetargetingPairs.Num();
-	for(int32 Index=0; Index<NumBonesToRetarget; Index++)
+	int32 const NumBonesToRetarget = AnimScaleRetargetingPairs.Num();
+	if (NumBonesToRetarget > 0)
 	{
-		const BoneTrackPair & BonePair = AnimScaleRetargetingPairs[Index];
-		const int32 & PoseBoneIndex = BonePair.AtomIndex;
-		const int32 & SkeletonBoneIndex = BonePair.TrackIndex;
+		TArray<FTransform> const & AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
+		TArray<FTransform> const & PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
 
-		// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
-		const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
-		if( FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER )
+		for (int32 Index = 0; Index<NumBonesToRetarget; Index++)
 		{
-			const float TargetTranslationLength = TargetRefPoseArray[PoseBoneIndex].GetTranslation().Size();
-			OutAtoms[PoseBoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
+			BoneTrackPair const & BonePair = AnimScaleRetargetingPairs[Index];
+			int32 const & PoseBoneIndex = BonePair.AtomIndex;
+			int32 const & SkeletonBoneIndex = BonePair.TrackIndex; 
+
+			// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
+			float const SourceTranslationLength = AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation().Size();
+			if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
+			{
+				float const TargetTranslationLength = PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation().Size();
+				OutAtoms[PoseBoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
+			}
 		}
 	}
 }
@@ -1171,7 +1175,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 	
 	float MaxScaleDiff = 0.0001f;
 
-	// Check variation of Scaleition keys
+	// Check variation of Scale keys
 	if( (RawTrack.ScaleKeys.Num() > 1) && (MaxScaleDiff >= 0.0f) )
 	{
 		FVector FirstScale = RawTrack.ScaleKeys[0];
@@ -1203,55 +1207,39 @@ bool UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
 #if WITH_EDITORONLY_DATA
 
 	// This removes trivial keys, and this has to happen before the removing tracks
-	for(int32 i=0; i<RawAnimationData.Num(); i++)
+	for(int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++)
 	{
-		bRemovedKeys = CompressRawAnimSequenceTrack( RawAnimationData[i], MaxPosDiff, MaxAngleDiff ) || bRemovedKeys;
+		bRemovedKeys |= CompressRawAnimSequenceTrack(RawAnimationData[TrackIndex], MaxPosDiff, MaxAngleDiff);
 	}
 
 	const USkeleton * MySkeleton = GetSkeleton();
 
 	if (MySkeleton)
 	{
-		const TArray<FTransform> & LocalRefPoses = MySkeleton->GetRefLocalPoses();
-		bool bComopressScaleKeys = false;
+		bool bCompressScaleKeys = false;
 		// go through remove keys if not needed
-		for ( int32 I=0; I<RawAnimationData.Num(); ++I )
+		for ( int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++ )
 		{
-			FRawAnimSequenceTrack & RawData = RawAnimationData[I];
-			if ( RawData.PosKeys.Num() == 1 && RawData.RotKeys.Num() == 1 && RawData.ScaleKeys.Num() == 1 )
-			{
-				// if I only have 1 key, and if that is same as ref pose
-				// we don't have to save those keys
-				int32 BoneIndex = GetSkeletonIndexFromTrackIndex(I);
-				FTransform OneKeyTransform(RawData.RotKeys[0], RawData.PosKeys[0], RawData.ScaleKeys[0]);
-				if (OneKeyTransform.Equals(LocalRefPoses[BoneIndex]))
-				{
-					// remove this key
-					RemoveTrack(I);
-					--I;
-					bRemovedKeys = true;
-				}
-				else
-				{
-					// if scale key exists, see if we can just empty it
-					bComopressScaleKeys |= (RawData.ScaleKeys.Num() > 1 || RawData.ScaleKeys[0].Equals(FVector(1.f)) == false);
-				}
-			}
-			else if ( RawData.ScaleKeys.Num() > 0 )
+			FRawAnimSequenceTrack const & RawData = RawAnimationData[TrackIndex];
+			if ( RawData.ScaleKeys.Num() > 0 )
 			{
 				// if scale key exists, see if we can just empty it
-				bComopressScaleKeys |= (RawData.ScaleKeys.Num() > 1 || RawData.ScaleKeys[0].Equals(FVector(1.f)) == false);
+				if((RawData.ScaleKeys.Num() > 1) || (RawData.ScaleKeys[0].Equals(FVector(1.f)) == false))
+				{
+					bCompressScaleKeys = true;
+					break;
+				}
 			}
 		}
 
 		// if we don't have scale, we should delete all scale keys
 		// if you have one track that has scale, we still should support scale, so compress scale
-		if (!bComopressScaleKeys)
+		if (!bCompressScaleKeys)
 		{
 			// then remove all scale keys
-			for ( int32 I=0; I<RawAnimationData.Num(); ++I )
+			for ( int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); TrackIndex++ )
 			{
-				FRawAnimSequenceTrack & RawData = RawAnimationData[I];
+				FRawAnimSequenceTrack & RawData = RawAnimationData[TrackIndex];
 				RawData.ScaleKeys.Empty();
 			}
 		}

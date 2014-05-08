@@ -284,7 +284,7 @@ public:
 	 *	IDs is FAIRequestID::AnyRequest*/
 	FORCEINLINE bool IsEquivalent(uint32 OtherID) const 
 	{
-		return RequestID == OtherID || (RequestID == AnyRequestID && OtherID != InvalidRequestID) || (OtherID == AnyRequestID && this->IsValid());
+		return OtherID != InvalidRequestID && this->IsValid() && (RequestID == OtherID || RequestID == AnyRequestID || OtherID == AnyRequestID);
 	}
 
 	FORCEINLINE bool IsEquivalent(FAIRequestID Other) const

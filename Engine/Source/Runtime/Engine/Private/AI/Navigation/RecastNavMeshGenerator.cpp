@@ -1073,6 +1073,7 @@ void FRecastGeometryExport::AddNavModifiers(const FCompositeNavModifier& Modifie
 	Data->Modifiers.Add(Modifiers);
 }
 
+//@TODO: When there's a very sharp angle between two edges it can generate vertex very far from original one - fix it later if necessary
 FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Verts, TArray<FVector>& OutResult)
 {
 	if (Verts.Num() < 3)
@@ -1080,13 +1081,116 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 		return;
 	}
 
-	const int32 VertsCount = Verts.Num();
-	OutResult = Verts;
-
-	for (int32 i = 0; i < VertsCount; ++i)
+	struct FSimpleLine
 	{
-		OutResult[i] += (((Verts[i] - Verts[(i+1)%VertsCount]).UnsafeNormal() 
-			+ (Verts[i] - Verts[(i-1+VertsCount)%VertsCount]).UnsafeNormal() ) * 0.5f).UnsafeNormal() * ExpandBy;
+		FVector P1, P2;
+
+		FSimpleLine() {}
+
+		FSimpleLine(FVector Point1, FVector Point2) 
+			: P1(Point1), P2(Point2) 
+		{
+
+		}
+		static FVector Intersection(const FSimpleLine& Line1, const FSimpleLine& Line2)
+		{
+			const float A1 = Line1.P2.X - Line1.P1.X;
+			const float B1 = Line2.P1.X - Line2.P2.X;
+			const float C1 = Line2.P1.X - Line1.P1.X;
+
+			const float A2 = Line1.P2.Y - Line1.P1.Y;
+			const float B2 = Line2.P1.Y - Line2.P2.Y;
+			const float C2 = Line2.P1.Y - Line1.P1.Y;
+
+			const float Denominator = A2*B1 - A1*B2;
+			if (Denominator > 0)
+			{
+				const float t = (B1*C2 - B2*C1) / Denominator;
+				return Line1.P1 + t * (Line1.P2 - Line1.P1);
+			}
+
+			return FVector::ZeroVector;
+		}
+	};
+
+	TArray<FVector> AllVerts(Verts);
+	AllVerts.Add(Verts[0]);
+	AllVerts.Add(Verts[1]);
+
+	const int32 VertsCount = AllVerts.Num();
+	const FQuat Rotation90(FVector(0, 0, 1), FMath::DegreesToRadians(90));
+
+	float RotationAngle = MAX_FLT;
+	for (int32 Index = 0; Index < VertsCount - 2; ++Index)
+	{
+		const FVector& V1 = AllVerts[Index + 0];
+		const FVector& V2 = AllVerts[Index + 1];
+		const FVector& V3 = AllVerts[Index + 2];
+
+		const FVector V01 = (V1 - V2).SafeNormal();
+		const FVector V12 = (V2 - V3).SafeNormal();
+		const FVector NV1 = Rotation90.RotateVector(V01);
+		const float d = FVector::DotProduct(NV1, V12);
+
+		if (d < 0)
+		{
+			// CW
+			RotationAngle = -90;
+			break;
+		}
+		else if (d > 0)
+		{
+			//CCW
+			RotationAngle = 90;
+			break;
+		}
+	}
+
+	// check if we detected CW or CCW direction
+	if (RotationAngle >= BIG_NUMBER)
+	{
+		return;
+	}
+
+	const FQuat Rotation(FVector(0, 0, 1), FMath::DegreesToRadians(RotationAngle));
+	FSimpleLine PreviousLine;
+	OutResult.Reserve(Verts.Num());
+	for (int32 Index = 0; Index < VertsCount-2; ++Index)
+	{
+		const FVector& V1 = AllVerts[Index + 0];
+		const FVector& V2 = AllVerts[Index + 1];
+		const FVector& V3 = AllVerts[Index + 2];
+
+		FSimpleLine Line1;
+		if (Index > 0)
+		{
+			Line1 = PreviousLine;
+		}
+		else
+		{
+			const FVector V01 = (V1 - V2).SafeNormal();
+			const FVector N1 = Rotation.RotateVector(V01).SafeNormal();
+			const FVector MoveDir1 = N1 * ExpandBy;
+			Line1 = FSimpleLine(V1 + MoveDir1, V2 + MoveDir1);
+		}
+
+		const FVector V12 = (V2 - V3).SafeNormal();
+		const FVector N2 = Rotation.RotateVector(V12).SafeNormal();
+		const FVector MoveDir2 = N2 * ExpandBy;
+		const FSimpleLine Line2(V2 + MoveDir2, V3 + MoveDir2);
+
+		const FVector NewPoint = FSimpleLine::Intersection(Line1, Line2);
+		if (NewPoint != FVector::ZeroVector)
+		{
+			OutResult.Add(NewPoint);
+		}
+		else
+		{
+			OutResult.Reset();
+			return;
+		}
+
+		PreviousLine = Line2;
 	}
 }
 
@@ -2376,7 +2480,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 	}
 
 	RECAST_STAT(STAT_Navigation_Async_MarkAreas);
-	const float ExpandBy = TileConfig.AgentRadius;
+	const float ExpandBy = TileConfig.AgentRadius * 1.5;
 
 	const FAreaNavModifier* Modifier = PtrStaticAreas->GetTypedData();
 	for (int32 ModifierIndex = 0; ModifierIndex < NumAreas; ++ModifierIndex, ++Modifier)
@@ -2411,7 +2515,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 
 				BoxData.Extent += FVector(ExpandBy, ExpandBy, TileConfig.ch);
 
-				FBox UnrealBox(BoxData.Origin - BoxData.Extent, BoxData.Origin + BoxData.Extent);
+				FBox UnrealBox = FBox::BuildAABB(BoxData.Origin, BoxData.Extent);
 				FBox RecastBox = Unreal2RecastBox(UnrealBox);
 
 				rcMarkBoxArea(BuildContext, &(RecastBox.Min.X), &(RecastBox.Max.X), *AreaID, CompactHF);

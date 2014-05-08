@@ -31,8 +31,9 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	if (DefaultContext.Canvas != NULL)
 	{
 		float XL, YL;
-		CalulateStringSize(DefaultContext, DefaultContext.Font, TEXT("Gameplay Debug Tool "), XL, YL);
-		PrintString(DefaultContext, FColorList::White, TEXT("Gameplay Debug Tool "), DefaultContext.Canvas->ClipX/2.0f - XL/2.0f, 0);
+		const FString ToolName = FString::Printf(TEXT("Gameplay Debug Tool [Timestamp: %05.03f]"), GetWorld()->TimeSeconds);
+		CalulateStringSize(DefaultContext, DefaultContext.Font, ToolName, XL, YL);
+		PrintString(DefaultContext, FColorList::White, ToolName, DefaultContext.Canvas->ClipX / 2.0f - XL / 2.0f, 0);
 	}
 
 	const float MenuX = DefaultContext.CursorX;

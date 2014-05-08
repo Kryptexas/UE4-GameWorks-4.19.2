@@ -331,7 +331,7 @@ void UNavigationSystem::DoInitialSetup()
 
 	// gather navigation creators
 	NavDataClasses.Empty(RequiredNavigationDataClassNames.Num());
-	for (int Index = 0; Index < RequiredNavigationDataClassNames.Num(); ++Index)
+	for (int32 Index = 0; Index < RequiredNavigationDataClassNames.Num(); ++Index)
 	{
 		TSubclassOf<class ANavigationData> NavDataClass = LoadClass<ANavigationData>(NULL, *RequiredNavigationDataClassNames[Index].ClassName, NULL, LOAD_None, NULL);
 		if (NavDataClass)
@@ -459,9 +459,9 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 			// in case anything spawned has registered
 			ProcessRegistrationCandidates();
 
-			for (int32 i = 0; i < NavDataSet.Num(); ++i)
+			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
-				ANavigationData* NavData = NavDataSet[i];
+				ANavigationData* NavData = NavDataSet[NavDataIndex];
 				if (NavData != NULL)
 				{
 					FNavDataGenerator* Generator = NavData->GetGenerator(NavigationSystem::Create);
@@ -538,9 +538,9 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
 	if (DirtyAreas.Num() > 0 && DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime)
 	{
-		for (int32 i = 0; i < NavDataSet.Num(); ++i)
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
-			ANavigationData* NavData = NavDataSet[i];
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL)
 			{
 				FNavDataGenerator* Generator = NavData->GetGenerator(NavigationSystem::DontCreate);
@@ -569,15 +569,15 @@ void UNavigationSystem::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	// to allow deleting assets
 	if (!GIsEditor || GIsPlayInEditorWorld)
 	{
-		for (int32 i = 0; i < NavAreaClasses.Num(); i++)
+		for (int32 NavAreaIndex = 0; NavAreaIndex < NavAreaClasses.Num(); NavAreaIndex++)
 		{
-			Collector.AddReferencedObject(NavAreaClasses[i], InThis);
+			Collector.AddReferencedObject(NavAreaClasses[NavAreaIndex], InThis);
 		}
 	}
 
-	for (int32 i = 0; i < PendingNavAreaRegistration.Num(); i++)
+	for (int32 PendingAreaIndex = 0; PendingAreaIndex < PendingNavAreaRegistration.Num(); PendingAreaIndex++)
 	{
-		Collector.AddReferencedObject(PendingNavAreaRegistration[i], InThis);
+		Collector.AddReferencedObject(PendingNavAreaRegistration[PendingAreaIndex], InThis);
 	}
 }
 
@@ -744,7 +744,7 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 	const int32 QueriesCount = PathFindingQueries.Num();
 	FAsyncPathFindingQuery* Query = PathFindingQueries.GetTypedData();
 
-	for (int32 i = 0; i < QueriesCount; ++i, ++Query)
+	for (int32 QueryIndex = 0; QueryIndex < QueriesCount; ++QueryIndex, ++Query)
 	{
 		// @todo this is not necessarily the safest way to use UObjects outside of main thread. 
 		//	think about something else.
@@ -1036,9 +1036,9 @@ ANavigationData* UNavigationSystem::GetMainNavData(NavigationSystem::ECreateIfEm
 		MainNavData = NULL;
 
 		// @TODO this should be done a differently. There should be specified a "default agent"
-		for (int32 i = 0; i < NavDataSet.Num(); ++i)
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
-			ANavigationData* NavData = NavDataSet[i];
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL && NavData->IsPendingKill() == false)
 			{
 				MainNavData = NavData;
@@ -1071,9 +1071,9 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 	bool bIsBuilt = true;
 	// look for all ANavigationDatas that belong to specified world, and check if they're dirty
 	// trigger navmesh update
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetWorldSettings() == Settings)
 		{
 #if WITH_NAVIGATION_GENERATOR
@@ -1158,9 +1158,9 @@ FBox UNavigationSystem::GetLevelBounds(ULevel* InLevel) const
 
 void UNavigationSystem::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		NavDataSet[i]->ApplyWorldOffset(InOffset, bWorldShift);
+		NavDataSet[NavDataIndex]->ApplyWorldOffset(InOffset, bWorldShift);
 	}
 }
 
@@ -1204,7 +1204,7 @@ void UNavigationSystem::ProcessRegistrationCandidates()
 	ANavigationData** NavDataPtr = NavDataRegistrationQueue.GetTypedData();
 	const int CandidatesCount = NavDataRegistrationQueue.Num();
 
-	for (int i = 0; i < CandidatesCount; ++i, ++NavDataPtr)
+	for (int32 CandidateIndex = 0; CandidateIndex < CandidatesCount; ++CandidateIndex, ++NavDataPtr)
 	{
 		if (*NavDataPtr != NULL)
 		{
@@ -1238,9 +1238,9 @@ void UNavigationSystem::ProcessNavAreaPendingRegistration()
 	// Clear out old array, will fill in if still pending
 	PendingNavAreaRegistration.Empty();
 
-	for (int32 i = 0; i < TempPending.Num(); i++)
+	for (int32 PendingAreaIndex = 0; PendingAreaIndex < TempPending.Num(); PendingAreaIndex++)
 	{
-		RegisterNavAreaClass(TempPending[i]);
+		RegisterNavAreaClass(TempPending[PendingAreaIndex]);
 	}
 }
 
@@ -1286,7 +1286,7 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 			// ok, so this navigation agent doesn't have its navmesh registered yet, but do we want to support it?
 			bool bAgentSupported = false;
 			FNavDataConfig* Agent = SupportedAgents.GetTypedData();
-			for (int i = 0; i < SupportedAgents.Num(); ++i, ++Agent)
+			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex, ++Agent)
 			{
 				if (Agent->IsEquivalent(NavConfig) == true)
 				{
@@ -1297,8 +1297,8 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 					NavData->SetConfig(*Agent);
 					AgentToNavDataMap.Add(*Agent, NavData);
 
-					NavData->SetSupportsDefaultAgent(i == 0);
-					NavData->ProcessNavAreas(NavAreaClasses, i);
+					NavData->SetSupportsDefaultAgent(AgentIndex == 0);
+					NavData->ProcessNavAreas(NavAreaClasses, AgentIndex);
 
 					OnNavDataRegisteredEvent.Broadcast(NavData);
 					break;
@@ -1471,11 +1471,11 @@ int32 UNavigationSystem::GetSupportedAgentIndex(const ANavigationData* NavData) 
 	}
 
 	const FNavDataConfig& TestConfig = NavData->GetConfig();
-	for (int32 i = 0; i < SupportedAgents.Num(); i++)
+	for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); AgentIndex++)
 	{
-		if (SupportedAgents[i].IsEquivalent(TestConfig))
+		if (SupportedAgents[AgentIndex].IsEquivalent(TestConfig))
 		{
-			return i;
+			return AgentIndex;
 		}
 	}
 	
@@ -1489,11 +1489,11 @@ int32 UNavigationSystem::GetSupportedAgentIndex(const FNavAgentProperties& NavAg
 		return 0;
 	}
 
-	for (int32 i = 0; i < SupportedAgents.Num(); i++)
+	for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); AgentIndex++)
 	{
-		if (SupportedAgents[i].IsEquivalent(NavAgent))
+		if (SupportedAgents[AgentIndex].IsEquivalent(NavAgent))
 		{
-			return i;
+			return AgentIndex;
 		}
 	}
 
@@ -1508,9 +1508,9 @@ void UNavigationSystem::DescribeFilterFlags(class UEnum* FlagsEnum) const
 	FlagDesc.Init(EmptyStr, 16);
 
 	const int32 NumEnums = FMath::Min(16, FlagsEnum->NumEnums() - 1);	// skip _MAX
-	for (int32 i = 0; i < NumEnums; i++)
+	for (int32 FlagIndex = 0; FlagIndex < NumEnums; FlagIndex++)
 	{
-		FlagDesc[i] = FlagsEnum->GetEnumText(i).ToString();
+		FlagDesc[FlagIndex] = FlagsEnum->GetEnumText(FlagIndex).ToString();
 	}
 
 	DescribeFilterFlags(FlagDesc);
@@ -1532,11 +1532,11 @@ void UNavigationSystem::DescribeFilterFlags(const TArray<FString>& FlagsDesc) co
 	// get special value from recast's navmesh
 #if WITH_RECAST
 	uint16 NavLinkFlag = ARecastNavMesh::GetNavLinkFlag();
-	for (int32 i = 0; i < MaxFlags; i++)
+	for (int32 FlagIndex = 0; FlagIndex < MaxFlags; FlagIndex++)
 	{
-		if ((NavLinkFlag >> i) & 1)
+		if ((NavLinkFlag >> FlagIndex) & 1)
 		{
-			UseDesc[i] = TEXT("Navigation link");
+			UseDesc[FlagIndex] = TEXT("Navigation link");
 			break;
 		}
 	}
@@ -1551,18 +1551,18 @@ void UNavigationSystem::DescribeFilterFlags(const TArray<FString>& FlagsDesc) co
 	UStruct* Structs[] = { StructProp1->Struct, StructProp2->Struct };
 	const FString CustomNameMeta = TEXT("DisplayName");
 
-	for (int32 iStruct = 0; iStruct < ARRAY_COUNT(Structs); iStruct++)
+	for (int32 StructIndex = 0; StructIndex < ARRAY_COUNT(Structs); StructIndex++)
 	{
-		for (int32 i = 0; i < MaxFlags; i++)
+		for (int32 FlagIndex = 0; FlagIndex < MaxFlags; FlagIndex++)
 		{
-			FString PropName = FString::Printf(TEXT("bNavFlag%d"), i);
-			UProperty* Prop = FindField<UProperty>(Structs[iStruct], *PropName);
+			FString PropName = FString::Printf(TEXT("bNavFlag%d"), FlagIndex);
+			UProperty* Prop = FindField<UProperty>(Structs[StructIndex], *PropName);
 			check(Prop);
 
-			if (UseDesc[i].Len())
+			if (UseDesc[FlagIndex].Len())
 			{
 				Prop->SetPropertyFlags(CPF_Edit);
-				Prop->SetMetaData(*CustomNameMeta, *UseDesc[i]);
+				Prop->SetMetaData(*CustomNameMeta, *UseDesc[FlagIndex]);
 			}
 			else
 			{
@@ -1576,11 +1576,11 @@ void UNavigationSystem::DescribeFilterFlags(const TArray<FString>& FlagsDesc) co
 
 void UNavigationSystem::ResetCachedFilter(TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
-	for (int32 i = 0; i < NavDataSet.Num(); i++)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); NavDataIndex++)
 	{
-		if (NavDataSet[i])
+		if (NavDataSet[NavDataIndex])
 		{
-			NavDataSet[i]->RemoveQueryFilter(FilterClass);
+			NavDataSet[NavDataIndex]->RemoveQueryFilter(FilterClass);
 		}
 	}
 }
@@ -1609,11 +1609,11 @@ void UNavigationSystem::GetGenerationSeeds(TArray<FVector>& SeedLocations) const
 		}
 	}
 
-	for (int32 i = 0; i < GenerationSeeds.Num(); i++)
+	for (int32 SeedIndex = 0; SeedIndex < GenerationSeeds.Num(); SeedIndex++)
 	{
-		if (GenerationSeeds[i].IsValid())
+		if (GenerationSeeds[SeedIndex].IsValid())
 		{
-			SeedLocations.Add(GenerationSeeds[i]->GetActorLocation());
+			SeedLocations.Add(GenerationSeeds[SeedIndex]->GetActorLocation());
 		}
 	}
 }
@@ -1674,9 +1674,9 @@ UNavigationSystem* UNavigationSystem::GetCurrent(class UObject* WorldContextObje
 
 ANavigationData* UNavigationSystem::GetNavDataWithID(const uint16 NavDataID) const
 {
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		const ANavigationData* NavData = NavDataSet[i];
+		const ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetNavDataUniqueID() == NavDataID)
 		{
 			return const_cast<ANavigationData*>(NavData);
@@ -1697,9 +1697,9 @@ void UNavigationSystem::AddDirtyArea(const FBox& NewArea, int32 Flags)
 
 void UNavigationSystem::AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags)
 { 
-	for (int32 i = 0; i < NewAreas.Num(); i++)
+	for (int32 NewAreaIndex = 0; NewAreaIndex < NewAreas.Num(); NewAreaIndex++)
 	{
-		AddDirtyArea(NewAreas[i], Flags);
+		AddDirtyArea(NewAreas[NewAreaIndex], Flags);
 	}
 }
 #endif // WITH_NAVIGATION_GENERATOR
@@ -1837,16 +1837,16 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		{
 			TArray<UActorComponent*> Components;
 			ActorOwner->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
+			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 			{
-				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[i]);
+				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[ComponentIndex]);
 				if (PrimComp && PrimComp->CanEverAffectNavigation())
 				{
 					AddComponentElementToNavOctree(PrimComp, DirtyElement, PrimComp->Bounds.GetBox());
 				}
 				else
 				{
-					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[i]);
+					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
 					if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
 					{
 						NavRelevantComponent->OnOwnerRegistered();
@@ -1873,9 +1873,9 @@ void UNavigationSystem::AddActorElementToNavOctree(class AActor* Actor, const FN
 	// notify relevant components about adding owner to octree
 	TArray<UNavRelevantComponent*> Components;
 	Actor->GetComponents(Components);
-	for (int32 i = 0; i < Components.Num(); i++)
+	for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 	{
-		UNavRelevantComponent* NavRelevantComponent = Components[i];
+		UNavRelevantComponent* NavRelevantComponent = Components[ComponentIndex];
 		if (NavRelevantComponent->IsNavigationRelevant())
 		{
 			NavRelevantComponent->OnOwnerRegistered();
@@ -1960,16 +1960,16 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 	{
 		TArray<UPrimitiveComponent*> Components;
 		Actor->GetComponents(Components);
-		for (int32 i = 0; i < Components.Num(); i++)
+		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
-			UPrimitiveComponent* PrimComp = Components[i];
+			UPrimitiveComponent* PrimComp = Components[ComponentIndex];
 			if (PrimComp && PrimComp->CanEverAffectNavigation())
 			{
 				UnregisterNavOctreeElement(PrimComp, UpdateFlags, PrimComp->Bounds.GetBox());
 			}
 			else
 			{
-				UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[i]);
+				UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
 				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
 				{
 					NavRelevantComponent->OnOwnerUnregistered();
@@ -1984,9 +1984,9 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 		TArray<UNavRelevantComponent*> Components;
 		Actor->GetComponents(Components);
 		// notify relevant components about removing owner from octree
-		for (int32 i = 0; i < Components.Num(); i++)
+		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
-			UNavRelevantComponent* NavRelevantComponent = Components[i];
+			UNavRelevantComponent* NavRelevantComponent = Components[ComponentIndex];
 			if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
 			{
 				NavRelevantComponent->OnOwnerUnregistered();
@@ -2056,16 +2056,16 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor, int32 UpdateFlags)
 			TArray<UActorComponent*> Components;
 			Actor->GetComponents(Components);
 			// make sure it's unregistered correctly
-			for (int32 i = 0; i < Components.Num(); i++)
+			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 			{
-				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[i]);
+				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Components[ComponentIndex]);
 				if (PrimComp && PrimComp->CanEverAffectNavigation())
 				{
 					UnregisterNavOctreeElement(PrimComp, UpdateFlags | OctreeUpdate_Refresh, PrimComp->Bounds.GetBox());
 				}
 				else
 				{
-					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[i]);
+					UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
 					if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
 					{
 						UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags | OctreeUpdate_Refresh, NavRelevantComponent->Bounds);
@@ -2137,9 +2137,9 @@ void UNavigationSystem::PopulateNavOctree()
 	{
 		ULevel* Level = World->GetLevel(LevelIndex);
 
-		for (int32 iActor=0; iActor<Level->Actors.Num(); iActor++)
+		for (int32 ActorIndex=0; ActorIndex<Level->Actors.Num(); ActorIndex++)
 		{
-			AActor* Actor = Level->Actors[iActor];
+			AActor* Actor = Level->Actors[ActorIndex];
 
 			const bool bLegalActor = Actor && Actor->IsNavigationRelevant() && !Actor->IsPendingKill();
 			if (bLegalActor)
@@ -2262,9 +2262,9 @@ void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
 				SpawnMissingNavigationData();
 				ProcessRegistrationCandidates();
 
-				for (int32 i = 0; i < NavDataSet.Num(); ++i)
+				for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 				{
-					ANavigationData* NavData = NavDataSet[i];
+					ANavigationData* NavData = NavDataSet[NavDataIndex];
 					if (NavData != NULL && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
 					{
 						NavData->GetGenerator(NavigationSystem::Create);
@@ -2278,9 +2278,9 @@ void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
 		{
 			// rebuild all navmeshes
 			// NOTE: this will most probably be done in editor, if required to be performed at runtime may require some optimizations
-			for (int32 i = 0; i < NavDataSet.Num(); ++i)
+			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 			{
-				ANavigationData* NavData = NavDataSet[i];
+				ANavigationData* NavData = NavDataSet[NavDataIndex];
 				if (NavData != NULL && NavData->GetGenerator() != NULL)
 				{
 					if ( Cast<ARecastNavMesh>(NavData) != NULL && (bIsInGame == false || ((ARecastNavMesh*)NavData)->bRebuildAtRuntime) )
@@ -2338,9 +2338,9 @@ void UNavigationSystem::SpawnMissingNavigationData()
 		{
 			// find out which one it is
 			const FNavDataConfig* AgentProps = SupportedAgents.GetTypedData();
-			for (int i = 0; i < SupportedAgentsCount; ++i, ++AgentProps)
+			for (int32 AgentIndex = 0; AgentIndex < SupportedAgentsCount; ++AgentIndex, ++AgentProps)
 			{
-				if (AlreadyInstantiated[i] == true)
+				if (AlreadyInstantiated[AgentIndex] == true)
 				{
 					// already present, skip
 					continue;
@@ -2348,7 +2348,7 @@ void UNavigationSystem::SpawnMissingNavigationData()
 
 				if (Nav->DoesSupportAgent(*AgentProps) == true)
 				{
-					AlreadyInstantiated[i] = true;
+					AlreadyInstantiated[AgentIndex] = true;
 					++NumberFound;
 					break;
 				}
@@ -2484,9 +2484,9 @@ void UNavigationSystem::NavigationBuildingLock()
 	bNavigationBuildingLocked = true;
 
 	// lock all generators
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetGenerator() != NULL)
 		{
 			NavData->GetGenerator(NavigationSystem::DontCreate)->OnNavigationBuildingLocked();
@@ -2502,9 +2502,9 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 		bInitialBuildingLockActive = false;
 
 		// unlock all generators
-		for (int32 i = 0; i < NavDataSet.Num(); ++i)
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
-			ANavigationData* NavData = NavDataSet[i];
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL && NavData->GetGenerator() != NULL)
 			{
 				NavData->GetGenerator(NavigationSystem::DontCreate)->OnNavigationBuildingUnlocked(bForce);
@@ -2522,9 +2522,9 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 
 void UNavigationSystem::RebuildAll()
 {
-	for (int i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetGenerator(NavigationSystem::Create) != NULL)
 		{
 			NavData->GetGenerator(NavigationSystem::DontCreate)->RebuildAll();
@@ -2542,9 +2542,9 @@ bool UNavigationSystem::IsNavigationBuildInProgress(bool bCheckDirtyToo)
 		GetMainNavData(NavigationSystem::DontCreate);
 	}
 	
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetGenerator() != NULL 
 			&& NavData->GetGenerator()->IsBuildInProgress(bCheckDirtyToo) == true)
 		{
@@ -2782,9 +2782,9 @@ bool UNavigationSystem::ShouldGeneratorRun(const class FNavDataGenerator* Genera
 #if WITH_NAVIGATION_GENERATOR
 	if (Generator != NULL)
 	{
-		for (int32 i = 0; i < NavDataSet.Num(); ++i)
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
-			ANavigationData* NavData = NavDataSet[i];
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL && NavData->GetGenerator(NavigationSystem::DontCreate) == Generator)
 			{
 				return true;
@@ -2804,9 +2804,9 @@ bool UNavigationSystem::HandleCycleNavDrawnCommand( const TCHAR* Cmd, FOutputDev
 
 bool UNavigationSystem::HandleCountNavMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL)
 		{
 			NavData->LogMemUsed();
@@ -2853,12 +2853,12 @@ void UNavigationSystem::CycleNavigationDataDrawn()
 		CurrentlyDrawnNavDataIndex = INDEX_NONE;
 	}
 
-	for (int32 i = 0; i < NavDataSet.Num(); ++i)
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		ANavigationData* NavData = NavDataSet[i];
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL)
 		{
-			const bool bNewEnabledDrawing = (CurrentlyDrawnNavDataIndex == INDEX_NONE) || (i == CurrentlyDrawnNavDataIndex);
+			const bool bNewEnabledDrawing = (CurrentlyDrawnNavDataIndex == INDEX_NONE) || (NavDataIndex == CurrentlyDrawnNavDataIndex);
 			if (bNewEnabledDrawing != NavData->bEnableDrawing)
 			{
 				NavData->bEnableDrawing = bNewEnabledDrawing;
@@ -2870,9 +2870,9 @@ void UNavigationSystem::CycleNavigationDataDrawn()
 
 bool UNavigationSystem::IsNavigationDirty()
 {
-	for (int32 Index=0; Index< NavDataSet.Num(); ++Index)
+	for (int32 NavDataIndex=0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
-		if (NavDataSet[Index]->NeedsRebuild())
+		if (NavDataSet[NavDataIndex]->NeedsRebuild())
 		{
 			return true;
 		}
@@ -2894,9 +2894,9 @@ bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const 
 	if (PathPoints.Num() > 1)
 	{
 		FVector Start = PathPoints[0].Location;
-		for (int32 Index = 1; Index < PathPoints.Num(); ++Index)
+		for (int32 PathPointIndex = 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
 		{
-			const FVector End = PathPoints[Index].Location;
+			const FVector End = PathPoints[PathPointIndex].Location;
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);

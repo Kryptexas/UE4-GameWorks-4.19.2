@@ -816,6 +816,10 @@ public:
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessageToAIDebugView(class APawn* InPawn, uint32 InMessage, uint32 DataView = 0);
 
+	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerToggleAILogging();
+
 	/** Add Pitch (look up) input */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(Keywords="up down"))
 	virtual void AddPitchInput(float Val);

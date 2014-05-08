@@ -626,13 +626,55 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() {}
 
+bool UCheatManager::ServerToggleAILogging_Validate()
+{
+	return true;
+}
+
+void UCheatManager::ServerToggleAILogging_Implementation()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (!VisLog)
+	{
+		return;
+	}
+
+	const bool bWasRecording = VisLog->IsRecording();
+	VisLog->SetIsRecording(!bWasRecording);
+	if (bWasRecording)
+	{
+		VisLog->DumpRecordedLogs();
+	}
+
+	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+#endif
+}
+
 void UCheatManager::ToggleAILogging()
 {
-	GEngine->bDisableAILogging = !GEngine->bDisableAILogging;
-	if(GetOuterAPlayerController()->GetPawn() != NULL)
+#if ENABLE_VISUAL_LOG
+	APlayerController* PC = GetOuterAPlayerController();
+	if (!PC)
 	{
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! AI logging is now "), GEngine->bDisableAILogging));
+		return;
 	}
+
+	if (GetWorld()->GetNetMode() == NM_Client)
+	{
+		FVisualLog* VisLog = FVisualLog::Get();
+		if (VisLog)
+		{
+			VisLog->SetIsRecordingOnServer(!VisLog->IsRecordingOnServer());
+			GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
+		}
+		PC->ServerToggleAILogging();
+	}
+	else
+	{
+		ServerToggleAILogging();
+	}
+#endif
 }
 
 void UCheatManager::AILoggingVerbose()
