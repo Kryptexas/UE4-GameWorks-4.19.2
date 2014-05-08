@@ -934,6 +934,11 @@ float UWheeledVehicleMovementComponent::GetEngineRotationSpeed() const
 	return 0.0f;
 }
 
+float UWheeledVehicleMovementComponent::GetEngineMaxRotationSpeed() const
+{
+	return MaxEngineRPM;
+}
+
 #if WITH_PHYSX
 
 int32 UWheeledVehicleMovementComponent::GearToPhysXGear(const int32 Gear) const

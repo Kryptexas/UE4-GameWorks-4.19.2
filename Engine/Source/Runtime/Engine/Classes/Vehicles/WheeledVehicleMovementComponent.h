@@ -323,6 +323,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	float GetEngineRotationSpeed() const;
 
+	/** Get current engine's max rotation speed */
+	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
+	float GetEngineMaxRotationSpeed() const;
+
 	/** Get current gear */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	int32 GetCurrentGear() const;
