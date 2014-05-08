@@ -728,56 +728,56 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 		MenuBuilder->BeginSection("EdGraphSchemaPinActions", LOCTEXT("PinActionsMenuHeader", "Pin Actions"));
 		{
 			if (!bIsDebugging)
-		    {
-			    // Break pin links
-			    if (InGraphPin->LinkedTo.Num() > 1)
-			    {
-				    MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().BreakPinLinks );
-			    }
-    
-			    // Add the change pin type action, if this is a select node
-			    if (InGraphNode->IsA(UK2Node_Select::StaticClass()))
-			    {
-				    MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ChangePinType);
-			    }
-    
-			    // add sub menu for break link to
-			    if (InGraphPin->LinkedTo.Num() > 0)
-			    {
-				    if(InGraphPin->LinkedTo.Num() > 1)
-				    {
-					    MenuBuilder->AddSubMenu(
-						    LOCTEXT("BreakLinkTo", "Break Link To..."),
-						    LOCTEXT("BreakSpecificLinks", "Break a specific link..."),
-						    FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetBreakLinkToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
+			{
+				// Break pin links
+				if (InGraphPin->LinkedTo.Num() > 1)
+				{
+					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().BreakPinLinks );
+				}
+	
+				// Add the change pin type action, if this is a select node
+				if (InGraphNode->IsA(UK2Node_Select::StaticClass()))
+				{
+					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ChangePinType);
+				}
+	
+				// add sub menu for break link to
+				if (InGraphPin->LinkedTo.Num() > 0)
+				{
+					if(InGraphPin->LinkedTo.Num() > 1)
+					{
+						MenuBuilder->AddSubMenu(
+							LOCTEXT("BreakLinkTo", "Break Link To..."),
+							LOCTEXT("BreakSpecificLinks", "Break a specific link..."),
+							FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetBreakLinkToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
 
 						MenuBuilder->AddSubMenu(
 							LOCTEXT("JumpToConnection", "Jump to Connection..."),
 							LOCTEXT("JumpToSpecificConnection", "Jump to specific connection..."),
 							FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
-				    }
-				    else
-				    {
-					    ((UEdGraphSchema_K2*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
+					}
+					else
+					{
+						((UEdGraphSchema_K2*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
 						((UEdGraphSchema_K2*const)this)->GetJumpToConnectionSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
 					}
-			    }
-    
-			    // Conditionally add the var promotion pin if this is an output pin and it's not an exec pin
-			    if (InGraphPin->PinType.PinCategory != PC_Exec)
-			    {
-				    MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteToVariable );
-			    }
-    
-			    // Conditionally add the execution path pin removal if this is an execution branching node
-			    if( InGraphPin->Direction == EGPD_Output && InGraphPin->GetOwningNode())
-			    {
-				    if ( InGraphPin->GetOwningNode()->IsA(UK2Node_ExecutionSequence::StaticClass()) ||  InGraphPin->GetOwningNode()->IsA(UK2Node_Switch::StaticClass()) )
-				    {
-					    MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().RemoveExecutionPin );
-				    }
-			    }
-		    }
+				}
+	
+				// Conditionally add the var promotion pin if this is an output pin and it's not an exec pin
+				if (InGraphPin->PinType.PinCategory != PC_Exec)
+				{
+					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteToVariable );
+				}
+	
+				// Conditionally add the execution path pin removal if this is an execution branching node
+				if( InGraphPin->Direction == EGPD_Output && InGraphPin->GetOwningNode())
+				{
+					if ( InGraphPin->GetOwningNode()->IsA(UK2Node_ExecutionSequence::StaticClass()) ||  InGraphPin->GetOwningNode()->IsA(UK2Node_Switch::StaticClass()) )
+					{
+						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().RemoveExecutionPin );
+					}
+				}
+			}
 		}
 		MenuBuilder->EndSection();
 
@@ -2172,8 +2172,53 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* 
 			UEdGraphPin* EntryNodeExec = FindExecutionPin(*EntryNode, EGPD_Output);
 			UEdGraphPin* ResultNodeExec = FindExecutionPin(*ReturnNode, EGPD_Input);
 			EntryNodeExec->MakeLinkTo(ResultNodeExec);
-
 		}
+	}
+}
+
+void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunction* FunctionSignature) const
+{
+	const FName GraphName = Graph.GetFName();
+
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(&Graph);
+	check(Blueprint->BlueprintType != BPTYPE_MacroLibrary);
+
+	// Create a function entry node
+	FGraphNodeCreator<UK2Node_FunctionEntry> FunctionEntryCreator(Graph);
+	UK2Node_FunctionEntry* EntryNode = FunctionEntryCreator.CreateNode();
+	EntryNode->SignatureClass = NULL;
+	EntryNode->SignatureName = GraphName;
+	FunctionEntryCreator.Finalize();
+
+	EntryNode->CreatePinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ true);
+
+	// See if any function params are marked as out
+	bool bHasOutParam =  false;
+	for ( TFieldIterator<UProperty> It(FunctionSignature); It && ( It->PropertyFlags & CPF_Parm ); ++It )
+	{
+		if ( It->PropertyFlags & CPF_OutParm )
+		{
+			bHasOutParam = true;
+			break;
+		}
+	}
+
+	if ( bHasOutParam )
+	{
+		FGraphNodeCreator<UK2Node_FunctionResult> NodeCreator(Graph);
+		UK2Node_FunctionResult* ReturnNode = NodeCreator.CreateNode();
+		ReturnNode->SignatureClass = NULL;
+		ReturnNode->SignatureName = GraphName;
+		ReturnNode->NodePosX = EntryNode->NodePosX + EntryNode->NodeWidth + 256;
+		ReturnNode->NodePosY = EntryNode->NodePosY;
+		NodeCreator.Finalize();
+
+		ReturnNode->CreatePinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ false);
+
+		// Auto-connect the pins for entry and exit, so that by default the signature is properly generated
+		UEdGraphPin* EntryNodeExec = FindExecutionPin(*EntryNode, EGPD_Output);
+		UEdGraphPin* ResultNodeExec = FindExecutionPin(*ReturnNode, EGPD_Input);
+		EntryNodeExec->MakeLinkTo(ResultNodeExec);
 	}
 }
 
@@ -2417,9 +2462,9 @@ void UEdGraphSchema_K2::GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo
 	UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
 	UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
 	UScriptStruct* TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
- 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, VectorStruct, LOCTEXT("VectorType", "A 3D vector").ToString()) ) );
- 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, RotatorStruct, LOCTEXT("RotatorType", "A 3D rotation").ToString()) ) );
- 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, TransformStruct, LOCTEXT("TransformType", "A 3D transformation, including translation, rotation and 3D scale.").ToString()) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, VectorStruct, LOCTEXT("VectorType", "A 3D vector").ToString()) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, RotatorStruct, LOCTEXT("RotatorType", "A 3D rotation").ToString()) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, TransformStruct, LOCTEXT("TransformType", "A 3D transformation, including translation, rotation and 3D scale.").ToString()) ) );
 	
 	// Add wildcard type
 	if (bAllowWildCard)
@@ -2737,7 +2782,7 @@ bool UEdGraphSchema_K2::CanEncapuslateNode(UEdGraphNode const& TestNode) const
 {
 	// Can't encapsulate entry points (may relax this restriction in the future, but it makes sense for now)
 	return !TestNode.IsA(UK2Node_FunctionTerminator::StaticClass()) && 
-		    TestNode.GetClass() != UK2Node_Tunnel::StaticClass(); //Tunnel nodes getting sucked into collapsed graphs fails badly, want to allow derived types though(composite node/Macroinstances)
+			TestNode.GetClass() != UK2Node_Tunnel::StaticClass(); //Tunnel nodes getting sucked into collapsed graphs fails badly, want to allow derived types though(composite node/Macroinstances)
 }
 
 void UEdGraphSchema_K2::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const

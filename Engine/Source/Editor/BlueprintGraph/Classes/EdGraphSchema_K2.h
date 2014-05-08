@@ -662,7 +662,7 @@ public:
 	/** Can this function be overridden by kismet (either placed as event or new function graph created) */
 	static bool CanKismetOverrideFunction(const UFunction* Function);
 
-	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signiture name of the function */
+	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signature name of the function */
 	static FString GetFriendlySignitureName(const UFunction* Function);
 
 	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
@@ -722,6 +722,14 @@ public:
 	 * @param	ContextClass	If specified, the graph terminators will use this class to search for context for signatures (i.e. interface functions)
 	 */
 	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* Class) const;
+
+	/** 
+	 * Populate new function graph with entry and possibly return node
+	 * 
+	 * @param	Graph			Graph to add the function terminators to
+	 * @param	FunctionSignature	The function signature to mimic when creating the inputs and outputs for the function.
+	 */
+	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UFunction* FunctionSignature) const;
 
 	/**
 	 * Converts a pin type into a fully qualified string (e.g., object'ObjectName').

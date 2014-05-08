@@ -139,7 +139,7 @@ class COREUOBJECT_API UField : public UObject
 	
 	/**
 	 * Find the metadata value associated with the key
- 	 * and return bool  
+	 * and return bool  
 	 * @param Key The key to lookup in the metadata
 	 * @return return true if the value was true (case insensitive)
 	 */
@@ -1140,6 +1140,7 @@ public:
 	{
 		return (FunctionFlags&FlagsToCheck) != 0 || FlagsToCheck == FUNC_AllFlags;
 	}
+
 	/**
 	 * Used to safely check whether all of the passed in flags are set.
 	 *
@@ -1152,6 +1153,16 @@ public:
 	}
 
 	/**
+	 * Returns the flags that are ignored by default when comparing function signatures.
+	 */
+	FORCEINLINE static uint64 GetDefaultIgnoredSignatureCompatibilityFlags()
+	{
+		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
+		const uint64 IgnoreFlags = CPF_EditInline | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;
+		return IgnoreFlags;
+	}
+
+	/**
 	 * Determines if two functions have an identical signature (note: currently doesn't allow
 	 * matches with class parameters that differ only in how derived they are; there is no
 	 * directionality to the call)
@@ -1161,6 +1172,18 @@ public:
 	 * @return	true if function signatures are compatible.
 	 */
 	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
+
+	/**
+	 * Determines if two functions have an identical signature (note: currently doesn't allow
+	 * matches with class parameters that differ only in how derived they are; there is no
+	 * directionality to the call)
+	 *
+	 * @param	OtherFunction	Function to compare this function against.
+	 * @param   IgnoreFlags     Custom flags to ignore when comparing parameters between the functions.
+	 *
+	 * @return	true if function signatures are compatible.
+	 */
+	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1766,7 +1789,7 @@ public:
 	 * default if it doesn't exist yet.
 	 *
 	 * @return	name of the class specific ini file
- 	 */
+	 */
 	const FString GetConfigName() const;
 
 	UClass* GetSuperClass() const
