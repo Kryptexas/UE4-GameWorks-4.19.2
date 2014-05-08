@@ -60,8 +60,6 @@ protected:
 	/** Sets state of the scroll bar. */
 	void SetScrollBarState();
 
-	/** Called when the data graph view mode has changed from the data graph widget. */
-	void DataGraph_OnViewModeChanged( EDataGraphViewModes::Type ViewMode );
 
 	void UpdateInternals();
 
