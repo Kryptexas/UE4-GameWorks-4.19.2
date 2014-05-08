@@ -82,8 +82,8 @@ public:
 	SHADERCORE_API void Serialize(FArchive& Ar);
 
 	// Reference counting.
-	void AddRef();
-	void Release();
+	SHADERCORE_API void AddRef();
+	SHADERCORE_API void Release();
 
 	SHADERCORE_API void Register();
 
