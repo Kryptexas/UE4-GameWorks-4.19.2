@@ -407,6 +407,7 @@ public:
 	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) OVERRIDE;
 	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
 	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  OVERRIDE;
+	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
 	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;

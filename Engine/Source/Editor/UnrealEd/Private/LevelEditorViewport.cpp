@@ -3715,6 +3715,8 @@ void FLevelEditorViewportClient::MouseEnter( FViewport* Viewport,int32 x, int32 
 void FLevelEditorViewportClient::MouseLeave( FViewport* Viewport ) 
 {
 	GEditorModeTools().MouseLeave(this, Viewport);
+
+	FEditorViewportClient::MouseLeave(Viewport);
 }
 
 void FLevelEditorViewportClient::MouseMove(FViewport* Viewport,int32 x, int32 y)

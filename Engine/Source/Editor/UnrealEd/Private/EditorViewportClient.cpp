@@ -3673,6 +3673,12 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 	}
 }
 
+
+void FEditorViewportClient::MouseEnter(FViewport* Viewport,int32 x, int32 y)
+{
+	MouseMove(Viewport, x, y);
+}
+
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 {
 	check(IsInGameThread());
