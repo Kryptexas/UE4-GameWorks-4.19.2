@@ -27,6 +27,7 @@ public:
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) OVERRIDE;
 
 private:
+	bool ReadLauncherInstallationList(TMap<FString, FString> &OutInstallations);
 	void CheckForLauncherEngineInstallation(const FString &AppId, const FString &Identifier, TMap<FString, FString> &OutInstallations);
 	int32 ParseReleaseVersion(const FString &Version);
 
