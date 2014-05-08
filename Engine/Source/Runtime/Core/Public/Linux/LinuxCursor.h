@@ -33,8 +33,6 @@ public:
 
 	bool IsHidden();
 
-	void SetRelative( SDL_HWindow Window );
-
 	uint32 GetCursorEvent();
 	
 private:
@@ -45,8 +43,6 @@ private:
 	SDL_HCursor CursorHandles[ EMouseCursor::TotalCursorCount ];
 
 	FIntRect CursorClipRect;
-
-	int XOffset, YOffset;
 
 	uint32 CursorEvent;
 };

@@ -8,16 +8,10 @@
 	#include "SteamControllerInterface.h"
 #endif // STEAM_CONTROLLER_SUPPORT
 
-//	todo:
-//	need to change to a linux one
-//	#include "HIDInputInterface.h"
+#include "ds_extensions.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
-
-//	whats dis???
-//	#include "Developer/Windows/VSAccessor/Public/VSAccessorModule.h"
-
 #endif
 
 //
@@ -218,7 +212,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 		{
 			SDL_MouseMotionEvent motionEvent = Event.motion;
 			FLinuxCursor *LinuxCursor = (FLinuxCursor*)Cursor.Get();
-			LinuxCursor->SetRelative( NativeWindow );
 
 			if(LinuxCursor->IsHidden())
 			{
@@ -241,6 +234,16 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				if( LinuxCursor->UpdateCursorClipping( CurrentPosition ) )
 				{
 					LinuxCursor->SetPosition( CurrentPosition.X, CurrentPosition.Y );
+				}
+				if( !CurrentEventWindow->GetDefinition().HasOSWindowBorder )
+				{
+					if ( CurrentEventWindow->IsRegularWindow() )
+					{
+						int xOffset, yOffset;
+						SDL_GetWindowPosition( NativeWindow, &xOffset, &yOffset );
+						MessageHandler->GetWindowZoneForPoint( CurrentEventWindow.ToSharedRef(), CurrentPosition.X - xOffset, CurrentPosition.Y - yOffset );
+						MessageHandler->OnCursorSet();
+					}
 				}
 			}
 
@@ -277,6 +280,9 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				break;
 			case SDL_BUTTON_X2:
 				button = EMouseButtons::Thumb02;
+				break;
+			default:
+				button = EMouseButtons::Invalid;
 				break;
 			}
 			if(buttonEvent.type == SDL_MOUSEBUTTONUP)
@@ -627,7 +633,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_ENTER:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_ENTER has been send.\n" );
 						if ( CurrentEventWindow.IsValid() )
 						{
 							MessageHandler->OnCursorSet();
@@ -638,13 +643,15 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_LEAVE:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_LEAVE has been send.\n" );
+						if( CurrentEventWindow.IsValid() && GetCapture() != NULL)
+						{
+							UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
+						}
 					}
 					break;
 
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_FOCUS_GAINED has been send.\n" );
 						if ( CurrentEventWindow.IsValid() )
 						{
 							MessageHandler->OnWindowActivationChanged( CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate );
@@ -800,14 +807,16 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 		}
 		if( MouseCaptureWindow )
 		{
-			// TODO: SDL doesn't allow seem to provide a way to keep mouse focus
+			//SDL_SetWindowGrab(TargetWindow, SDL_TRUE);
+			DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE);
 		}
 	}
 	else
 	{
 		if( MouseCaptureWindow )
 		{
-			// TODO: SDL doesn't allow seem to provide a way to keep mouse focus
+			//SDL_SetWindowGrab(TargetWindow, SDL_FALSE);
+			DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE);
 			MouseCaptureWindow = NULL;
 		}
 	}

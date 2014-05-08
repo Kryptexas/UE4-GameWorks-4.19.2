@@ -30,7 +30,6 @@ FLinuxWindow::FLinuxWindow()
 	, bWasFullscreen( false )
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
-//	bWindowGrab = false;
 }
 
 SDL_HWindow FLinuxWindow::GetHWnd() const
@@ -86,7 +85,12 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		WindowStyle |= SDL_WINDOW_BORDERLESS;
 	}
 
-	//	by testing, the SDL window doesn't need to be reshaped.
+	if ( Definition->HasSizingFrame )
+	{
+		WindowStyle |= SDL_WINDOW_RESIZABLE;
+	}
+
+	//	The SDL window doesn't need to be reshaped.
 	//	the size of the window you input is the sizeof the client.
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
 
@@ -224,39 +228,15 @@ static void _SetBestFullscreenDisplayMode( SDL_HWindow hWnd, int32 *pWidth, int3
 	*pHeight = dsp_mode.h;
 }
 
-
-#define USE_REAL_FULLSCREEN		1
-#define USE_BOARDER_FUNCTION	0
-
-
-static int gResizeIdx = 0;
-
 void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 NewHeight )
 {
-//	printf( "--------------------------------------------------------\n" );
-//	printf( "ArielLW - SetWindowShape - Start - %03d\n", gResizeIdx );
-//	printf( "          Req  X = %d, Y = %d, W = %d, H = %d\n", NewX, NewY, NewWidth, NewHeight );
-
 	int32 closest_w = NewWidth;
 	int32 closest_h = NewHeight;
 
 	switch( WindowMode )
 	{
-#if USE_REAL_FULLSCREEN
 		case EWindowMode::Fullscreen:
-#else
-		case EWindowMode::WindowedFullscreen:
-#endif
 		{
-			if ( bWasFullscreen == false )
-			{
-#if USE_BOARDER_FUNCTION
-				int i = 100;
-				i = i * i;
-				SDL_SetWindowBordered( HWnd, SDL_FALSE );
-#endif
-			}
-
 			SDL_SetWindowFullscreen( HWnd, 0 );
 			_GetBestFullscreenResolution( HWnd, &closest_w, &closest_h );
 			SDL_SetWindowSize( HWnd, closest_w, closest_h );
@@ -264,39 +244,18 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 			_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
 			SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN );
 
-		//	printf( "          Real X = %d, Y = %d, W = %d, H = %d\n", 0, 0, closest_w, closest_h );
-		//	printf( "        - Fullscreen\n" );
-
 			bWasFullscreen = true;
-			//bIsFullscreenSwitchingRes = true;
 
 		}	break;
 
-#if USE_REAL_FULLSCREEN
 		case EWindowMode::WindowedFullscreen:
-#else
-		case EWindowMode::Fullscreen:
-#endif
 		{
-			if ( bWasFullscreen == false )
-			{
-#if USE_BOARDER_FUNCTION
-				SDL_SetWindowBordered( HWnd, SDL_FALSE );
-#endif
-			}
-
 			SDL_SetWindowFullscreen( HWnd, 0 );
 			SDL_SetWindowPosition( HWnd, 0, 0 );
-		//	_GetBestFullscreenResolution( HWnd, &closest_w, &closest_h );
-		//	SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
 			_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
 			SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
 
-		//	printf( "          Real X = %d, Y = %d, W = %d, H = %d\n", 0, 0, closest_w, closest_h );
-		//	printf( "        - WindowedFullscreen\n" );
-
 			bWasFullscreen = true;
-			//bIsFullscreenSwitchingRes = true;
 
 		}	break;
 
@@ -305,10 +264,7 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 			SDL_SetWindowPosition( HWnd, NewX, NewY );
 			SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
 
-		//	printf( "        - Windowed\n" );
-
 			bWasFullscreen = false;
-			//bIsFullscreenSwitchingRes = false;
 
 		}	break;
 	}
@@ -317,53 +273,29 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 	RegionHeight  = NewHeight;
 	VirtualWidth  = NewWidth;
 	VirtualHeight = NewHeight;
-
-//	printf( "ArielLW - SetWindowShape - End   - %03d\n", gResizeIdx );
-	gResizeIdx++;
 }
-
-
-
-
-static int gSetWindowModeidx = 0;
 
 /** Toggle native window between fullscreen and normal mode */
 void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 {
-//	printf( "--------------------------------------------------------\n" );
-//	printf( "ArielLW - SetWindowMode - Start - %03d\n", gSetWindowModeidx );
-
-//	bWindowGrab = SDL_GetWindowGrab( HWnd );
-
 	if( NewWindowMode != WindowMode )
 	{
 		SDL_DisplayMode dsp_mode;
 		int32 closest_w;
 		int32 closest_h;
 
-		//	SDL_GetWindowSize( HWnd, &closest_w, &closest_h );
 		closest_w = VirtualWidth;
 		closest_h = VirtualHeight;
 
-	//	printf( "          r_w = %03d, r_h = %03d\n", closest_w, closest_h );
-
 		switch( NewWindowMode )
 		{
-#if USE_REAL_FULLSCREEN
 			case EWindowMode::Fullscreen:
-#else
-			case EWindowMode::WindowedFullscreen:
-#endif
 			{
 				if ( bWasFullscreen != true )
 				{
 					SDL_SetWindowPosition( HWnd, 0, 0 );
 					_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
-					printf( "          c_w = %03d, c_h = %03d\n", closest_w, closest_h );
 
-#if USE_BOARDER_FUNCTION
-					SDL_SetWindowBordered( HWnd, SDL_FALSE );
-#endif
 					SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN );
 					SDL_SetWindowGrab( HWnd, SDL_TRUE );
 
@@ -372,23 +304,14 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 			}	break;
 
-#if USE_REAL_FULLSCREEN
 			case EWindowMode::WindowedFullscreen:
-#else
-			case EWindowMode::Fullscreen:
-#endif
 			{
 				if ( bWasFullscreen != true )
 				{
-#if USE_BOARDER_FUNCTION
-					SDL_SetWindowBordered( HWnd, SDL_FALSE );
-#endif
 					SDL_SetWindowPosition( HWnd, 0, 0 );
 
 					_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
 					SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
-
-				//	printf( "          c_w = %03d, c_h = %03d\n", closest_w, closest_h );
 
 					bWasFullscreen = true;
 				}
@@ -404,32 +327,22 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 				SDL_SetWindowGrab( HWnd, SDL_FALSE );
 
 				bWasFullscreen = false;
-				//bIsFullscreenSwitchingRes = false;
 			}	break;
 		}
 
 
 		WindowMode = NewWindowMode;
 	}
-
-//	printf( "ArielLW - SetWindowMode - End   - %03d\n", gSetWindowModeidx );
-	gSetWindowModeidx++;
 }
 
-
-static int gAdjustCachedSizeIdx = 0;
 
 /** @return	Gives the native window a chance to adjust our stored window size before we cache it off */
 
 void FLinuxWindow::AdjustCachedSize( FVector2D& Size ) const
 {
-//	printf( "--------------------------------------------------------\n" );
-//	printf( "ArielLW - AdjustCachedSize - Start - %03d\n", gAdjustCachedSizeIdx );
-
 	if	( Definition.IsValid() && Definition->SizeWillChangeOften )
 	{
 		Size = FVector2D( VirtualWidth, VirtualHeight );
-	//	printf( "        - W = %d, H = %d\n", VirtualWidth, VirtualHeight );
 	}
 	else
 	if	( HWnd )
@@ -438,28 +351,18 @@ void FLinuxWindow::AdjustCachedSize( FVector2D& Size ) const
 
 		if ( WindowMode == EWindowMode::Windowed )
 		{
-		//	printf( "        - Windowed\n" );
-
 			SDL_GetWindowSize( HWnd, &SizeW, &SizeH );
-		//	printf( "        - Req  Size - RW = %d, RH = %d\n", SizeW, SizeH );
 		}
 		else // windowed fullscreen or fullscreen
 		{
-		//	printf( "        - Fullscreen\n" );
-
 			SizeW = VirtualWidth ;
 			SizeH = VirtualHeight;
-		//	printf( "        - Req  Size - RW = %d, RH = %d\n", SizeW, SizeH );
 
 			_GetBestFullscreenResolution( HWnd, &SizeW, &SizeH );
-		//	printf( "        - Real Size - RW = %d, RH = %d\n", SizeW, SizeH );
 		}
 
 		Size = FVector2D( SizeW, SizeH );
 	}
-
-//	printf( "ArielLW - AdjustCachedSize - End   - %03d\n", gAdjustCachedSizeIdx );
-	gAdjustCachedSizeIdx++;
 }
 
 
@@ -468,8 +371,6 @@ bool FLinuxWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& H
 	//	todo
 	return true;
 }
-
-
 
 /** @return true if the native window is maximized, false otherwise */
 bool FLinuxWindow::IsMaximized() const
@@ -513,7 +414,8 @@ void FLinuxWindow::SetWindowFocus()
  */
 void FLinuxWindow::SetOpacity( const float InOpacity )
 {
-	//	by searching from internet, ppl said that the SDL2 didn't offer such functionality...
+	//	SDL2 doesn't offer such functionality...
+	//  Could be added to ds_extenstion
 }
 
 /**
@@ -523,43 +425,30 @@ void FLinuxWindow::SetOpacity( const float InOpacity )
  */
 void FLinuxWindow::Enable( bool bEnable )
 {
-	//	by searching from internet, ppl said that the SDL2 didn't offer such functionality...
+	//	SDL2 doesn't offer such functionality...
+	//  Could be added to ds_extenstion
 }
 
 /** @return true if native window exists underneath the coordinates */
 bool FLinuxWindow::IsPointInWindow( int32 X, int32 Y ) const
 {
-	int32 x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+	int32 width = 0, height = 0;
 
-	SDL_GetWindowPosition( HWnd, &x0, &y0 );	//	get top left
-	SDL_GetWindowSize( HWnd, &x1, &y1 );		//	get size : the size of the window is the client size, not the window boder size
+	SDL_GetWindowSize( HWnd, &width, &height );
 	
-	//	todo:
-	//	SDL_GetWindowPosition returns the top left of the client region of the window when the top of the window is not stick the top edge of the screen.
-	//	so ......
-	//	when the top of the whole window is connect to the screen, the real client's top should > 0, but still may return 0...
-	x1 += x0;	//	get the bottom right
-	y1 += y0;
-
-	if ( (X >= x0) && (X < x1) )
-	{
-		if ( (Y >= y0) && (Y < y1) )
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return X > 0 && Y > 0 && X < width && Y < height;
 }
 
 int32 FLinuxWindow::GetWindowBorderSize() const
 {
-	return 0;
+	// todo
+	return 5;
 }
 
 
 bool FLinuxWindow::IsForegroundWindow() const
 {
+	// todo
 	return 1;
 }
 

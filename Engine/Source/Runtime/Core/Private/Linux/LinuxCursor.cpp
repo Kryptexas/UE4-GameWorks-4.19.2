@@ -3,8 +3,25 @@
 #include "LinuxCursor.h"
 #include "LinuxWindow.h"
 
-FLinuxCursor::FLinuxCursor() : bHidden(false), XOffset(0), YOffset(0)
+#include "ds_extensions.h"
+
+FLinuxCursor::FLinuxCursor() : bHidden(false)
 {
+	//	init the sdl here
+	if	( SDL_WasInit( 0 ) == 0 )
+	{
+		SDL_Init( SDL_INIT_VIDEO );
+	}
+	else
+	{
+		Uint32 subsystem_init = SDL_WasInit( SDL_INIT_EVERYTHING );
+
+		if	( !(subsystem_init & SDL_INIT_VIDEO) )
+		{
+			SDL_InitSubSystem( SDL_INIT_VIDEO );
+		}
+	}
+
 	// Load up cursors that we'll be using
 	for( int32 CurCursorIndex = 0; CurCursorIndex < EMouseCursor::TotalCursorCount; ++CurCursorIndex )
 	{
@@ -131,15 +148,21 @@ FLinuxCursor::~FLinuxCursor()
 
 FVector2D FLinuxCursor::GetPosition() const
 {
-	int CursorPosX, CursorPosY;
-	SDL_GetMouseState(&CursorPosX, &CursorPosY);
+	int CursorX, CursorY;
 
-	return FVector2D( CursorPosX + XOffset, CursorPosY + YOffset );
+	DSEXT_GetMousePosition( &CursorX, &CursorY );
+
+	return FVector2D( CursorX, CursorY );
 }
 
 void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 {
-	SDL_WarpMouseInWindow( NULL, X - XOffset, Y - YOffset );
+	int WndX, WndY;
+
+	SDL_HWindow WndFocus = SDL_GetMouseFocus();
+
+	SDL_GetWindowPosition( WndFocus, &WndX, &WndY );	//	get top left
+	SDL_WarpMouseInWindow( NULL, X - WndX, Y - WndY );
 }
 
 void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
@@ -239,9 +262,4 @@ bool FLinuxCursor::UpdateCursorClipping( FVector2D& CursorPosition )
 bool FLinuxCursor::IsHidden()
 {
 	return bHidden;
-}
-
-void FLinuxCursor::SetRelative( SDL_HWindow Window )
-{
-	SDL_GetWindowPosition( Window, &XOffset, &YOffset );	//	get top left
 }

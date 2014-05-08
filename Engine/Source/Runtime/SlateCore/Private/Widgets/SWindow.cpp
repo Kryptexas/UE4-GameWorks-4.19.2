@@ -609,7 +609,7 @@ FSlateRect SWindow::GetClippingRectangleInWindow() const
 FMargin SWindow::GetWindowBorderSize() const
 {
 // Mac didn't want a window border, and consoles don't either, so only do this in Windows
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
 		int32 OSWindowBorderSize = NativeWindow->GetWindowBorderSize();
@@ -1241,6 +1241,23 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 
 FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+#if PLATFORM_LINUX
+	if (bHasSizingFrame && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		if ((WindowZone == EWindowZone::TopLeftBorder || WindowZone == EWindowZone::BottomRightBorder ||
+			WindowZone == EWindowZone::BottomLeftBorder || WindowZone == EWindowZone::TopRightBorder ||
+			WindowZone == EWindowZone::TopBorder || WindowZone == EWindowZone::BottomBorder ||
+			WindowZone == EWindowZone::LeftBorder || WindowZone == EWindowZone::RightBorder ||
+			WindowZone == EWindowZone::TitleBar)
+			&& MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			MoveResizeZone = WindowZone;
+			MoveResizeStart = MouseEvent.GetScreenSpacePosition();
+			MoveResizeRect = GetRectInScreen();
+			return FReply::Handled().CaptureMouse(SharedThis(this));
+		}
+	}
+#endif
 	if (bDragAnywhere && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return FReply::Handled().CaptureMouse(SharedThis(this));
@@ -1253,6 +1270,13 @@ FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 
 FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+#if PLATFORM_LINUX
+	if (MoveResizeZone != EWindowZone::Unspecified && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		MoveResizeZone =  EWindowZone::Unspecified;
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+#endif
 	if (bDragAnywhere &&  this->HasMouseCapture() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return FReply::Handled().ReleaseMouseCapture();
@@ -1265,6 +1289,110 @@ FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SWindow::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+#if PLATFORM_LINUX
+	if (MoveResizeZone == EWindowZone::TopLeftBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Top + MoveResizeOffset.Y),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::BottomRightBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Top),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::BottomLeftBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Top),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::TopRightBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Top + MoveResizeOffset.Y),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::TopBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Top + MoveResizeOffset.Y),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::BottomBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Top),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::LeftBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Top),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::RightBorder)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		if (NativeWindow.IsValid())
+		{
+			NativeWindow->ReshapeWindow(
+				FMath::Trunc(MoveResizeRect.Left), FMath::Trunc(MoveResizeRect.Top),
+				FMath::Trunc(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::Trunc(MoveResizeRect.Bottom - MoveResizeRect.Top)
+				);
+		}
+		return FReply::Handled();
+	}
+	if (MoveResizeZone == EWindowZone::TitleBar)
+	{
+		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
+		this->MoveWindowTo( FVector2D(MoveResizeRect.Left, MoveResizeRect.Top) + MoveResizeOffset );
+		return FReply::Handled();
+	}
+#endif
 	if ( bDragAnywhere && this->HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) )
 	{
 		this->MoveWindowTo( ScreenPosition + MouseEvent.GetCursorDelta() );

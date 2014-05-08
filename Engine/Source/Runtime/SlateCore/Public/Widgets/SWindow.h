@@ -544,6 +544,11 @@ public:
 	/** Gets the current Window Zone that mouse position is over. */
 	EWindowZone::Type GetCurrentWindowZone(FVector2D LocalMousePosition);
 
+	/** Used to store the zone where the mouse down event occurred during move / drag */
+	EWindowZone::Type MoveResizeZone;
+	FVector2D MoveResizeStart;
+	FSlateRect MoveResizeRect;
+
 	/** @return Gets the radius of the corner rounding of the window. */
 	int32 GetCornerRadius();
 
