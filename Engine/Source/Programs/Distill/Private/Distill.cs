@@ -53,8 +53,8 @@ namespace Tools.Distill
 		public List<string> NotLanguages = null;
 		/// <summary>The name of the set of tags to manipulate files</summary>
 		public string TagSet = "Default";
-		/// <summary>The default xml file to load</summary>
-		public string DistillSettings = "../../Build/DistillEngine.xml";
+		/// <summary>The xml file to load</summary>
+		public string DistillSettings;
 
 		/// <summary></summary>
 		public bool bAuthenticate = false;
