@@ -386,6 +386,8 @@ void FSceneViewport::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEv
 void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	ViewportClient->MouseLeave( this );
+	
+	CachedMousePos = FIntPoint(-1, -1);
 }
 
 FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
