@@ -1104,7 +1104,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 		BatchElement->MaxVertexIndex = SharedBuffers->IndexRanges[LOD].MaxIndexFull;
 	}
 
-	PDI->DrawMesh(MeshBatch, 0.0f);
+	PDI->DrawMesh(MeshBatch, FLT_MAX);
 }
 
 uint64 FLandscapeVertexFactory::GetStaticBatchElementVisibility( const class FSceneView& View, const struct FMeshBatch* Batch ) const

@@ -372,7 +372,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 				FMeshBatch MeshElement;
 				if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 				{
-					PDI->DrawMesh(MeshElement, 0.0f);
+					PDI->DrawMesh(MeshElement, FLT_MAX);
 				}
 			}
 		} 

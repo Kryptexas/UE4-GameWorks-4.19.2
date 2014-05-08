@@ -453,7 +453,7 @@ public:
 					BatchElement.MaxVertexIndex = ModelElement.MaxVertexIndex;
 					MeshElement.Type = PT_TriangleList;
 					MeshElement.DepthPriorityGroup = PrimitiveDPG;
-					PDI->DrawMesh(MeshElement, 0.0f);
+					PDI->DrawMesh(MeshElement, FLT_MAX);
 				}
 			}
 		}

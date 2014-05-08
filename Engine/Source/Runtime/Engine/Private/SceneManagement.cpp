@@ -135,7 +135,7 @@ int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes,
 
 		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View);
 
-		for(int32 MeshIndex = NumMeshes-1 ; MeshIndex > 0 ; --MeshIndex)
+		for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
 		{
 			const FStaticMesh& Mesh = StaticMeshes[MeshIndex];
 
@@ -143,7 +143,7 @@ int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes,
 			{
 				float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
 
-				if(MeshScreenSize > ScreenSize)
+				if(MeshScreenSize >= ScreenSize)
 				{
 					LODToRender = Mesh.LODIndex;
 					break;
