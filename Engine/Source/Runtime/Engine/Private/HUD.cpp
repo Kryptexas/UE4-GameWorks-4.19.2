@@ -69,6 +69,39 @@ void AHUD::NotifyBindPostProcessEffects()
 	// overload with custom code e.g. getting material pointers to control effects for gameplay.
 }
 
+FVector2D AHUD::GetCoordinateOffset() const
+{
+	FVector2D Offset;
+
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
+
+	if (LocalPlayer)
+	{
+		// Create a view family for the game viewport
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+			LocalPlayer->ViewportClient->Viewport,
+			GetWorld()->Scene,
+			LocalPlayer->ViewportClient->EngineShowFlags)
+			.SetRealtimeUpdate(true));
+
+		// Calculate a view where the player is to update the streaming from the players start location
+		FVector ViewLocation;
+		FRotator ViewRotation;
+		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
+
+		if (SceneView)
+		{
+			Offset.X = (SceneView->ViewRect.Min.X - SceneView->UnconstrainedViewRect.Min.X) // This accounts for the borders when the aspect ratio is locked
+							- SceneView->UnconstrainedViewRect.Min.X;						// And this will deal with the viewport offset if its a split screen
+
+			Offset.Y = (SceneView->ViewRect.Min.Y - SceneView->UnconstrainedViewRect.Min.Y)
+							- SceneView->UnconstrainedViewRect.Min.Y;
+		}
+	}
+
+	return Offset;
+}
+
 void AHUD::PostRender()
 {
 	// Set up delta time
@@ -103,30 +136,32 @@ void AHUD::PostRender()
 
 		if (LocalPlayer)
 		{
-			FVector2D MousePosition = LocalPlayer->ViewportClient->GetMousePosition();
+			TArray<FVector2D> ContactPoints;
+			ContactPoints.Add(LocalPlayer->ViewportClient->GetMousePosition());
 
-			// Create a view family for the game viewport
-			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-				LocalPlayer->ViewportClient->Viewport,
-				GetWorld()->Scene,
-				LocalPlayer->ViewportClient->EngineShowFlags )
-				.SetRealtimeUpdate(true) );
-
-			// Calculate a view where the player is to update the streaming from the players start location
-			FVector ViewLocation;
-			FRotator ViewRotation;
-			FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
-
-			if (SceneView)
+			for (int32 FingerIndex = 0; FingerIndex < EKeys::NUM_TOUCH_KEYS; ++FingerIndex)
 			{
-				// This accounts for the borders when the aspect ratio is locked
-				MousePosition.X -= (SceneView->ViewRect.Min.X - SceneView->UnconstrainedViewRect.Min.X);
-				MousePosition.Y -= (SceneView->ViewRect.Min.Y - SceneView->UnconstrainedViewRect.Min.Y);
-				// And this will deal with the viewport offset if its a split screen
-				MousePosition.X -= SceneView->UnconstrainedViewRect.Min.X;
-				MousePosition.Y -= SceneView->UnconstrainedViewRect.Min.Y;
+				FVector2D TouchLocation;
+				bool bPressed = false;
+
+				GetOwningPlayerController()->GetInputTouchState((ETouchIndex::Type)FingerIndex, TouchLocation.X, TouchLocation.Y, bPressed);
+
+				if (bPressed)
+				{
+					ContactPoints.Add(TouchLocation);
+				}
 			}
-			UpdateHitBoxCandidates( MousePosition );
+
+			FVector2D ContactPointOffset = GetCoordinateOffset();
+
+			if (!ContactPointOffset.IsZero())
+			{
+				for (FVector2D& ContactPoint : ContactPoints)
+				{
+					ContactPoint -= ContactPointOffset;
+				}
+			}
+			UpdateHitBoxCandidates( ContactPoints );
 		}
 	}
 	
@@ -628,42 +663,54 @@ APawn* AHUD::GetOwningPawn() const
 
 void AHUD::RenderHitBoxes( FCanvas* InCanvas )
 {
-	for (int32 iBox = 0; iBox < HitBoxMap.Num() ; iBox++)
+	for (const FHUDHitBox& HitBox : HitBoxMap)
 	{
 		FLinearColor BoxColor = FLinearColor::White;
-		if( HitBoxHits.Contains(&HitBoxMap[iBox]) )
+		if( HitBoxHits.Contains(const_cast<FHUDHitBox*>(&HitBox)))
 		{
 			BoxColor = FLinearColor::Red;
 		}
-		HitBoxMap[iBox].Draw( InCanvas, BoxColor );
+		HitBox.Draw( InCanvas, BoxColor );
 	}
 }
 
-void AHUD::UpdateHitBoxCandidates( const FVector2D& InHitLocation )
+void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 {
 	HitBoxHits.Empty();
-	for (int32 iBox = 0; iBox < HitBoxMap.Num() ; iBox++)
+	for (FHUDHitBox& HitBox : HitBoxMap)
 	{
-		if( HitBoxMap[iBox].Contains( InHitLocation ) )
+		bool bAdded = false;
+		for (int32 ContactPointIndex = InContactPoints.Num() - 1; ContactPointIndex >= 0; --ContactPointIndex)
 		{
-			HitBoxHits.Add(&HitBoxMap[iBox]);
+			if (HitBox.Contains(InContactPoints[ContactPointIndex]))
+			{
+				if (!bAdded)
+				{
+					HitBoxHits.Add(&HitBox);
+					bAdded = true;
+				}
+				if (HitBox.ConsumesInput())
+				{
+					InContactPoints.RemoveAtSwap(ContactPointIndex);
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		if (InContactPoints.Num() == 0)
+		{
+			break;
 		}
 	}
-	struct FHitBoxSort
-	{
-		FORCEINLINE bool operator()( const FHUDHitBox& A, const FHUDHitBox& B ) const { return B.GetPriority() < A.GetPriority(); }
-	};
-
-	// Now sort the hits
-	HitBoxHits.Sort( FHitBoxSort() );
 
 	TSet<FName> NotOverHitBoxes = HitBoxesOver;
 	TArray<FName> NewlyOverHitBoxes;
 
 	// Now figure out which boxes we are over and deal with begin/end cursor over messages 
-	for (int32 HitIndex = 0; HitIndex < HitBoxHits.Num(); ++HitIndex )
+	for (FHUDHitBox* HitBox : HitBoxHits)
 	{
-		FHUDHitBox* HitBox = HitBoxHits[HitIndex];
 		const FName HitBoxName = HitBox->GetName();
 		if (HitBoxesOver.Contains(HitBoxName))
 		{
@@ -672,10 +719,6 @@ void AHUD::UpdateHitBoxCandidates( const FVector2D& InHitLocation )
 		else
 		{
 			NewlyOverHitBoxes.AddUnique(HitBoxName);
-		}
-		if (HitBox->ConsumesInput())
-		{
-			break; //Early out if this box blocks further consideration
 		}
 	}
 
@@ -696,19 +739,35 @@ void AHUD::UpdateHitBoxCandidates( const FVector2D& InHitLocation )
 	}
 }
 
-const FHUDHitBox* AHUD::GetHitBoxAtCoordinates( const FVector2D& InHitLocation ) const
+const FHUDHitBox* AHUD::GetHitBoxAtCoordinates( FVector2D InHitLocation, const bool bIsConsumingInput ) const
 {
-	for (int32 iBox = 0; iBox < HitBoxMap.Num() ; iBox++)
+	InHitLocation -= GetCoordinateOffset();
+
+	for (const FHUDHitBox& HitBox : HitBoxMap)
 	{
-		if( HitBoxMap[iBox].Contains( InHitLocation ) )
+		if( (!bIsConsumingInput || HitBox.ConsumesInput()) && HitBox.Contains( InHitLocation ) )
 		{
-			return &HitBoxMap[iBox];
+			return &HitBox;
 		}
 	}
 	return NULL;
 }
 
-const FHUDHitBox* AHUD::GetHitBoxWithName( const FName& InName ) const
+void AHUD::GetHitBoxesAtCoordinates(FVector2D InHitLocation, TArray<const FHUDHitBox*>& OutHitBoxes) const
+{
+	InHitLocation -= GetCoordinateOffset();
+	OutHitBoxes.Empty();
+
+	for (const FHUDHitBox& HitBox : HitBoxMap)
+	{
+		if (HitBox.Contains(InHitLocation))
+		{
+			OutHitBoxes.Add(&HitBox);
+		}
+	}
+}
+
+const FHUDHitBox* AHUD::GetHitBoxWithName( const FName InName ) const
 {
 	for (int32 iBox = 0; iBox < HitBoxMap.Num() ; iBox++)
 	{
@@ -740,32 +799,61 @@ const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
 	return UIBlurOverrideRectangles;
 }
 
-bool AHUD::UpdateAndDispatchHitBoxClickEvents(EInputEvent InEventType)
+bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bDispatchOverOutEvent)
 {
+	ClickLocation -= GetCoordinateOffset();
+
+	bool bHit = false;
 	for (FHUDHitBox* HitBoxHit : HitBoxHits)
 	{
-		if(InEventType == IE_Pressed || InEventType == IE_DoubleClick)
+		if (HitBoxHit->Contains(ClickLocation))
 		{
-			ReceiveHitBoxClick( HitBoxHit->GetName() );
-		}
-		else if(InEventType == IE_Released)
-		{
-			ReceiveHitBoxRelease( HitBoxHit->GetName() );
-		}
+			bHit = true;
 
-		if( HitBoxHit->ConsumesInput() == true )
-		{
-			break;	//Early out if this box consumed the click
+			if (InEventType == IE_Pressed || InEventType == IE_DoubleClick)
+			{
+				ReceiveHitBoxClick(HitBoxHit->GetName());
+				if (bDispatchOverOutEvent)
+				{
+					ReceiveHitBoxBeginCursorOver(HitBoxHit->GetName());
+				}
+			}
+			else if (InEventType == IE_Released)
+			{
+				ReceiveHitBoxRelease(HitBoxHit->GetName());
+				if (bDispatchOverOutEvent)
+				{
+					ReceiveHitBoxEndCursorOver(HitBoxHit->GetName());
+				}
+			}
+
+			if (HitBoxHit->ConsumesInput() == true)
+			{
+				break;	//Early out if this box consumed the click
+			}
 		}
 	}
-	return AnyCurrentHitBoxHits();
+	return bHit;
 }
 
 void AHUD::AddHitBox(FVector2D Position, FVector2D Size, FName Name, bool bConsumesInput, int32 Priority)
 {	
 	if( GetHitBoxWithName(Name) == NULL )
 	{
-		HitBoxMap.Add( FHUDHitBox( Position, Size, Name, bConsumesInput, Priority ) );
+		bool bAdded = false;
+		for (int32 Index = 0; Index < HitBoxMap.Num(); ++Index)
+		{
+			if (HitBoxMap[Index].GetPriority() < Priority)
+			{
+				HitBoxMap.Insert(FHUDHitBox(Position, Size, Name, bConsumesInput, Priority), Index);
+				bAdded = true;
+				break;
+			}
+		}
+		if (!bAdded)
+		{
+			HitBoxMap.Add(FHUDHitBox(Position, Size, Name, bConsumesInput, Priority));
+		}
 	}
 	else
 	{
@@ -789,12 +877,12 @@ bool AHUD::IsCanvasValid_WarnIfNot() const
 /////////////////
 
 FHUDHitBox::FHUDHitBox( FVector2D InCoords, FVector2D InSize, const FName& InName, bool bInConsumesInput, int32 InPriority )
+	: Coords(InCoords)
+	, Size(InSize)
+	, Name(InName)
+	, bConsumesInput(bInConsumesInput)
+	, Priority(InPriority)
 {
-	Coords = InCoords;
-	Size = InSize;
-	Name = InName;
-	bConsumesInput = bInConsumesInput;
-	Priority = InPriority;
 }
 
 bool FHUDHitBox::Contains( FVector2D InCoords ) const
@@ -810,7 +898,7 @@ bool FHUDHitBox::Contains( FVector2D InCoords ) const
 	return bResult;
 }
 
-void FHUDHitBox::Draw( FCanvas* InCanvas, const FLinearColor& InColor )
+void FHUDHitBox::Draw( FCanvas* InCanvas, const FLinearColor& InColor ) const
 {
 	FCanvasBoxItem	BoxItem( Coords, Size );
 	BoxItem.SetColor( InColor );

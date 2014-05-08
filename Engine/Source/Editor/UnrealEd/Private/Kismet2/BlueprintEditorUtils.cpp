@@ -1541,40 +1541,6 @@ UEdGraph* FBlueprintEditorUtils::CreateNewGraph(UObject* ParentScope, const FNam
 	return NewGraph;
 }
 
-
-void FBlueprintEditorUtils::AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, UClass* SignatureFromClass)
-{
-	// Give the schema a chance to fill out any required nodes (like the entry node or results node)
-	const UEdGraphSchema* Schema = Graph->GetSchema();
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Graph->GetSchema());
-
-	Schema->CreateDefaultNodesForGraph(*Graph);
-
-	if (K2Schema != NULL)
-	{
-		K2Schema->CreateFunctionGraphTerminators(*Graph, SignatureFromClass);
-
-		if (bIsUserCreated)
-		{
-			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
-			int32 ExtraFunctionFlags = (FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public);
-			if (BPTYPE_FunctionLibrary == Blueprint->BlueprintType)
-			{
-				ExtraFunctionFlags |= FUNC_Static;
-			}
-			K2Schema->AddExtraFunctionFlags(Graph, ExtraFunctionFlags);
-			K2Schema->MarkFunctionEntryAsEditable(Graph, true);
-		}
-	}
-
-	Blueprint->FunctionGraphs.Add(Graph);
-
-	// Potentially adjust variable names for any child blueprints
-	ValidateBlueprintChildVariables(Blueprint, Graph->GetFName());
-
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-}
-
 UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool * bOutInvalidInterface )
 {
 	if(Blueprint)
@@ -2047,9 +2013,9 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 
 	//@TODO PRETEST MERGE:  Swap this when main is merged to pretest!
 #if 0
- 	TArray<UObject*> AllBlueprints;
- 	bool const bIncludeDerivedClasses = true;
- 	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
+	TArray<UObject*> AllBlueprints;
+	bool const bIncludeDerivedClasses = true;
+	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
 
 	for ( auto ObjIt = AllBlueprints.CreateConstIterator(); ObjIt; ++ObjIt )
 #else

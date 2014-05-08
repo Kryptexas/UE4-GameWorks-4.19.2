@@ -11,6 +11,7 @@
 #include "EngineBuildSettings.h"
 
 #include "DesktopPlatformModule.h"
+#include "TargetPlatform.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -81,6 +82,12 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalNameCharacters"), FText::FromString( IllegalNameCharacters ) );
 		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		return false;
+	}
+
+	if (NameContainsUnderscoreAndXB1Installed(BaseProjectFile))
+	{
+		OutFailReason = LOCTEXT( "ProjectNameContainsIllegalCharactersOnXB1", "Project names may not contain an underscore when the Xbox One XDK is installed." );
 		return false;
 	}
 
@@ -161,6 +168,12 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalNameCharacters"), FText::FromString( IllegalNameCharacters ) );
 		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		return false;
+	}
+
+	if (NameContainsUnderscoreAndXB1Installed(BaseProjectFile))
+	{
+		OutFailReason = LOCTEXT( "ProjectNameContainsIllegalCharactersOnXB1", "Project names may not contain an underscore when the Xbox One XDK is installed." );
 		return false;
 	}
 
@@ -1087,6 +1100,31 @@ bool GameProjectUtils::NameContainsOnlyLegalCharacters(const FString& TestName, 
 	}
 
 	return !bContainsIllegalCharacters;
+}
+
+bool GameProjectUtils::NameContainsUnderscoreAndXB1Installed(const FString& TestName)
+{
+	bool bContainsIllegalCharacters = false;
+
+	// Only allow alphanumeric characters in the project name
+	for ( int32 CharIdx = 0 ; CharIdx < TestName.Len() ; ++CharIdx )
+	{
+		const FString& Char = TestName.Mid( CharIdx, 1 );
+		if ( Char == TEXT("_") )
+		{
+			const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(TEXT("XboxOne"));
+			if (Platform)
+			{
+				FString NotInstalledDocLink;
+				if (Platform->IsSdkInstalled(true, NotInstalledDocLink))
+				{
+					bContainsIllegalCharacters = true;
+				}
+			}
+		}
+	}
+
+	return bContainsIllegalCharacters;
 }
 
 bool GameProjectUtils::ProjectFileExists(const FString& ProjectFile)

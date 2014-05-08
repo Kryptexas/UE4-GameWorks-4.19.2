@@ -3667,14 +3667,19 @@ void UFunction::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction) const
 {
+	// The script compiler pointlessly sets CPF_EditInline on components passed as arguments
+	const uint64 IgnoreFlags = UFunction::GetDefaultIgnoredSignatureCompatibilityFlags();
+
+	return IsSignatureCompatibleWith(OtherFunction, IgnoreFlags);
+}
+
+bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const
+{
 	// Early out if they're exactly the same function
 	if (this == OtherFunction)
 	{
 		return true;
 	}
-
-	// The script compiler pointlessly sets CPF_EditInline on components passed as arguments
-	const uint64 IgnoreFlags = CPF_EditInline | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 
 	// Run thru the parameter property chains to compare each property
 	TFieldIterator<UProperty> IteratorA(this);

@@ -29,13 +29,15 @@ private:
 		UEdGraph* EdGraph;
 	};
 
-	void RefreshBlueprintFunctionCache();
+	void RefreshBlueprintFunctionCache(const UFunction* DelegateSignature);
 
-	TSharedRef<SWidget> OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle);
+	TSharedRef<SWidget> OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
 
 	FText GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const;
+
 	void HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle);
 	void HandleAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction);
+	void HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature);
 
 private:
 

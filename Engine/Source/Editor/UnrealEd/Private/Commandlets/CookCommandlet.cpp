@@ -442,7 +442,8 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 					}
 				}
 
-				if( PlatFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
+				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
+				if( FullFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
 				{
 					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
 					bSavedCorrectly = false;

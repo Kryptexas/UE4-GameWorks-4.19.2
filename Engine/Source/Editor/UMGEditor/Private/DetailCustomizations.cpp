@@ -63,7 +63,7 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
 
 				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
-				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle)
+				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle, Property->SignatureFunction)
 				.ContentPadding(0)
 				.ButtonContent()
 				[
@@ -104,14 +104,15 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 	}
 }
 
-void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache()
+void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache(const UFunction* DelegateSignature)
 {
 	const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	BlueprintFunctionCache.Reset();
 
-	//TODO UMG Filter the list of functions to only be functions matching the signature.
+	// Get the current skeleton class, think header for the blueprint.
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
 
 	// Grab functions implemented by the blueprint
 	for ( int32 i = 0; i < Blueprint->FunctionGraphs.Num(); i++ )
@@ -125,36 +126,61 @@ void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache()
 			continue;
 		}
 
-		FGraphDisplayInfo DisplayInfo;
-		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+		FName FunctionFName = Graph->GetFName();
 
-		TSharedPtr<FunctionInfo> NewFuncAction = MakeShareable(new FunctionInfo());
-		NewFuncAction->DisplayName = DisplayInfo.PlainName;
-		NewFuncAction->Tooltip = DisplayInfo.Tooltip;
-		NewFuncAction->FuncName = Graph->GetFName();
-		NewFuncAction->EdGraph = Graph;
+		UFunction* Function = SkeletonClass->FindFunctionByName(FunctionFName, EIncludeSuperFlag::IncludeSuper);
+		if ( Function == NULL )
+		{
+			continue;
+		}
 
-		BlueprintFunctionCache.Add(NewFuncAction);
+		// We ignore CPF_ReturnParm because all that matters for binding to script functions is that the number of out parameters match.
+		if ( Function->IsSignatureCompatibleWith(DelegateSignature, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+		{
+			FGraphDisplayInfo DisplayInfo;
+			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+
+			TSharedPtr<FunctionInfo> NewFuncAction = MakeShareable(new FunctionInfo());
+			NewFuncAction->DisplayName = DisplayInfo.PlainName;
+			NewFuncAction->Tooltip = DisplayInfo.Tooltip;
+			NewFuncAction->FuncName = FunctionFName;
+			NewFuncAction->EdGraph = Graph;
+
+			BlueprintFunctionCache.Add(NewFuncAction);
+		}
 	}
 }
 
-TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle)
+TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature)
 {
-	RefreshBlueprintFunctionCache();
+	RefreshBlueprintFunctionCache(DelegateSignature);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
 
+	//TODO UMG Enable or disable Remove Binding if needed.
+
 	MenuBuilder.BeginSection("ClearBinding");
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("FilterListResetFilters", "Remove Binding"),
-			LOCTEXT("FilterListResetToolTip", "Removes the current binding"),
+			LOCTEXT("RemoveBinding", "Remove Binding"),
+			LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleRemoveBinding, PropertyHandle))
 			);
 	}
 	MenuBuilder.EndSection(); //ClearBinding
+
+	MenuBuilder.BeginSection("CreateBinding");
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreateBinding", "Create Binding"),
+			LOCTEXT("CreateBindingToolTip", "Creates a new function for this property to be bound to"),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleCreateAndAddBinding, PropertyHandle, DelegateSignature))
+			);
+	}
+	MenuBuilder.EndSection(); //CreateBinding
 
 	MenuBuilder.BeginSection("Functions");
 	{
@@ -255,6 +281,33 @@ void FBlueprintWidgetCustomization::HandleAddBinding(TSharedRef<IPropertyHandle>
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+}
+
+void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature)
+{
+	const FScopedTransaction Transaction(LOCTEXT("CreateDelegate", "Create Binding"));
+
+	Blueprint->Modify();
+
+	// Create the function graph.
+	FString FunctionName = FString(TEXT("Get")) + PropertyHandle->GetProperty()->GetName();
+	UEdGraph* FunctionGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, FunctionName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+
+	bool bUserCreated = true;
+	FBlueprintEditorUtils::AddFunctionGraph(Blueprint, FunctionGraph, bUserCreated, DelegateSignature);
+
+	//TODO UMG Once we start binding event functions, pure needs to be variable, so maybe pass it in.
+	
+	// All bound delegates should be pure.
+	const UEdGraphSchema_K2* Schema_K2 = Cast<UEdGraphSchema_K2>(FunctionGraph->GetSchema());
+	Schema_K2->AddExtraFunctionFlags(FunctionGraph, FUNC_BlueprintPure);
+
+	// Add the binding to the blueprint
+	TSharedPtr<FunctionInfo> SelectedFunction = MakeShareable(new FunctionInfo());
+	SelectedFunction->FuncName = FunctionGraph->GetFName();
+	SelectedFunction->EdGraph = FunctionGraph;
+
+	HandleAddBinding(PropertyHandle, SelectedFunction);
 }
 
 #undef LOCTEXT_NAMESPACE
