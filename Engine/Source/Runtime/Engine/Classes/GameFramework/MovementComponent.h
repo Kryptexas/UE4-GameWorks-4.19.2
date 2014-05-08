@@ -215,6 +215,25 @@ public:
 	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const;
 
 	/**
+	 * Adds force from radial force components.
+	 * @param	Origin		The origin of the force
+	 * @param	Radius		The radius in which the force will be applied
+	 * @param	Strength	The strength of the force
+	 * @param	Falloff		The falloff from the force's origin
+	 */
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff);
+
+	/**
+	 * Adds impulse from radial force components.
+	 * @param	Origin		The origin of the force
+	 * @param	Radius		The radius in which the force will be applied
+	 * @param	Strength	The strength of the force
+	 * @param	Falloff		The falloff from the force's origin
+	 * @param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 */
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange);
+
+	/**
 	 * Sets the normal of the plane that constrains movement, if plane constraint is enabled.
 	 * @param PlaneNormal	- The normal of the plane. If non-zero, it will be normalized.
 	 */

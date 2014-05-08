@@ -453,5 +453,14 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 	OutDelta = Delta;
 }
 
+void UMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
+{
+	// Default implementation does nothing
+}
+
+void UMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
+{
+	// Default implementation does nothing
+}
 
 #undef LOCTEXT_NAMESPACE

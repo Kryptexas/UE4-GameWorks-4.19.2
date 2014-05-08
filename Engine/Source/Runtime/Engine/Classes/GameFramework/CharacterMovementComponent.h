@@ -381,6 +381,10 @@ protected:
 	UPROPERTY()
 	FVector Acceleration;
 
+	/** Accumulated momentum added this tick */
+	UPROPERTY()
+	FVector PendingMomentumToApply;
+
 	/**
 	 * Modifier to applied to values such as acceleration and max speed due to analog input.
 	 */
@@ -627,6 +631,8 @@ public:
 	virtual bool IsSwimming() const OVERRIDE;
 	virtual bool IsFlying() const OVERRIDE;
 	virtual float GetGravityZ() const OVERRIDE;
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) OVERRIDE;
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) OVERRIDE;
 	//END UMovementComponent Interface
 
 	//BEGIN UNavMovementComponent Interface
@@ -796,6 +802,9 @@ public:
 	/** Applies repulsion force to all touched components */
 	void ApplyRepulsionForce(float DeltaTime);
 	
+	/** Applies momentum accumulated through Addmomentum() */
+	void ApplyAccumulatedMomentum(float DeltaSeconds);	
+
 	/** 
 	 * Handle start swimming functionality
 	 * @param OldLocation - Location on last tick
@@ -882,8 +891,16 @@ public:
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
 
-	/** Add velocity based on imparted momentum */
-	virtual void AddMomentum( FVector const& Momentum, FVector const& LocationToApplyMomentum, bool bMassIndependent );
+	/** 
+	 * Add velocity based on imparted momentum. Momentum is accumulated each tick and applied together
+	 * so multiple calls to this function will accumulate.
+	 * Note that changing the momentum of characters like this can change the movement mode
+	 * 
+	 * @param	Momentum			Momentum to apply.
+	 * @param	bMassIndependent	Whether or not the momentum should be divided by mass before application.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void AddMomentum( FVector InMomentum, bool bMassIndependent = false );
 
 	/**
 	 * Draw important variables on canvas.  Character will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used

@@ -1163,6 +1163,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 	UpdateBasedMovement(DeltaSeconds);
 
+	ApplyAccumulatedMomentum(DeltaSeconds);
+
 	FVector OldVelocity = Velocity;
 	FVector OldLocation = CharacterOwner->GetActorLocation();
 
@@ -1852,7 +1854,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 			ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 	
 			// Don't allow braking to lower us below max speed if we started above it.
-			if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
+			if (FVector::DotProduct(Acceleration, OldVelocity) > 0.0f && bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
 			{
 				Velocity = SafeNormalPrecise(OldVelocity) * MaxSpeed;
 			}
@@ -3433,12 +3435,12 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	return false;
 }
 
-void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector const& LocationToApplyMomentum, bool bMassIndependent )
+void UCharacterMovementComponent::AddMomentum( FVector InMomentum, bool bMassIndependent )
 {
-	if (HasValidData() && !Momentum.IsZero())
+	if (HasValidData() && !InMomentum.IsZero())
 	{
 		// handle scaling by mass
-		FVector FinalMomentum = Momentum;
+		FVector FinalMomentum = InMomentum;
 		if ( !bMassIndependent)
 		{
 			if (Mass > SMALL_NUMBER)
@@ -3451,18 +3453,7 @@ void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector 
 			}
 		}
 
-		if ( IsMovingOnGround() && FinalMomentum.Z > 0.f )
-		{
-			SetMovementMode(MOVE_Falling);
-		}
-
-		if ( (Velocity.Z > GetDefault<UCharacterMovementComponent>(GetClass())->JumpZVelocity) && (FinalMomentum.Z > 0.f) )
-		{
-			// limit Z momentum added if already going up faster than jump (to avoid blowing character way up into the sky)
-			FinalMomentum.Z *= 0.5f;
-		}
-
-		Velocity += FinalMomentum;
+		PendingMomentumToApply += FinalMomentum;
 	}
 }
 
@@ -5542,6 +5533,46 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 			}
 		}
 	}
+}
+
+void UCharacterMovementComponent::ApplyAccumulatedMomentum(float DeltaSeconds)
+{
+	// check to see if applied momentum is enough to overcome gravity
+	if ( IsMovingOnGround() && (PendingMomentumToApply.Z + (GetGravityZ() * DeltaSeconds) > SMALL_NUMBER) )
+	{
+		SetMovementMode(MOVE_Falling);
+	}
+
+	Velocity += PendingMomentumToApply;
+
+	PendingMomentumToApply = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
+{
+	AddRadialImpulse(Origin, Radius, Strength, Falloff, true);
+}
+ 
+void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
+{
+	FVector Delta = UpdatedComponent->GetComponentLocation() - Origin;
+	const float DeltaMagnitude = Delta.Size();
+
+	// Do nothing if outside radius
+	if(DeltaMagnitude > Radius)
+	{
+		return;
+	}
+
+	Delta = Delta.SafeNormal();
+
+	float ImpulseMagnitude = Strength;
+	if (Falloff == RIF_Linear && Radius > 0.0f)
+	{
+		ImpulseMagnitude *= (1.0f - (DeltaMagnitude / Radius));
+	}
+
+	AddMomentum(Delta * ImpulseMagnitude, bVelChange);
 }
 
 FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character()

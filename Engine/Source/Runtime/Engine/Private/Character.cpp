@@ -327,7 +327,22 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 
 		FVector Impulse = ImpulseDir * ImpulseScale;
 		bool const bMassIndependentImpulse = !DmgTypeCDO->bScaleMomentumByMass;
-		CharacterMovement->AddMomentum(Impulse, HitInfo.ImpactPoint, bMassIndependentImpulse);
+
+		// limit Z momentum added if already going up faster than jump (to avoid blowing character way up into the sky)
+		{
+			FVector MassScaledImpulse = Impulse;
+			if(!bMassIndependentImpulse && CharacterMovement->Mass > SMALL_NUMBER)
+			{
+				MassScaledImpulse = MassScaledImpulse / CharacterMovement->Mass;
+			}
+
+			if ( (CharacterMovement->Velocity.Z > GetDefault<UCharacterMovementComponent>(CharacterMovement->GetClass())->JumpZVelocity) && (MassScaledImpulse.Z > 0.f) )
+			{
+				Impulse.Z *= 0.5f;
+			}
+		}
+
+		CharacterMovement->AddMomentum(Impulse, bMassIndependentImpulse);
 	}
 }
 

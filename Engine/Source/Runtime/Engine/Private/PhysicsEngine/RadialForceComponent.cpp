@@ -39,7 +39,19 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			UPrimitiveComponent* PokeComp = Overlaps[OverlapIdx].Component.Get();
 			if(PokeComp)
 			{
-				PokeComp->AddRadialForce( Origin, Radius, ForceStrength, Falloff );				
+				PokeComp->AddRadialForce( Origin, Radius, ForceStrength, Falloff );
+
+				// see if this is a target for a movement component
+				TArray<UMovementComponent*> MovementComponents;
+				PokeComp->GetOwner()->GetComponents<UMovementComponent>(MovementComponents);
+				for(const auto& MovementComponent : MovementComponents)
+				{
+					if(MovementComponent->UpdatedComponent == PokeComp)
+					{
+						MovementComponent->AddRadialForce( Origin, Radius, ForceStrength, Falloff );
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -85,6 +97,18 @@ void URadialForceComponent::FireImpulse()
 
 			// Do impulse after
 			PokeComp->AddRadialImpulse( Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange );
+
+			// see if this is a target for a movement component
+			TArray<UMovementComponent*> MovementComponents;
+			PokeComp->GetOwner()->GetComponents<UMovementComponent>(MovementComponents);
+			for(const auto& MovementComponent : MovementComponents)
+			{
+				if(MovementComponent->UpdatedComponent == PokeComp)
+				{
+					MovementComponent->AddRadialImpulse( Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange );
+					break;
+				}
+			}
 		}
 	}
 }
