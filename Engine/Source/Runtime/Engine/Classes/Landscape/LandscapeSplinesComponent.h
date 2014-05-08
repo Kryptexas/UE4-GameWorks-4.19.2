@@ -46,6 +46,7 @@ public:
 #endif
 
 	// Begin UObject Interface
+	virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
