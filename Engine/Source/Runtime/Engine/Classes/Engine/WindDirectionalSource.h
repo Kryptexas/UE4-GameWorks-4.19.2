@@ -3,7 +3,7 @@
 
 #include "WindDirectionalSource.generated.h"
 
-UCLASS(ClassGroup=Wind, showcategories=(Rendering, "Utilities|Orientation"))
+UCLASS(ClassGroup=Wind, showcategories=(Rendering, "Utilities|Transformation"))
 class ENGINE_API AWindDirectionalSource : public AInfo
 {
 	GENERATED_UCLASS_BODY()

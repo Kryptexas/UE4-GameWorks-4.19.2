@@ -8,7 +8,7 @@
 #pragma once
 #include "Info.generated.h"
 
-UCLASS(abstract, hidecategories=(Input, Movement, Collision, Rendering, "Utilities|Orientation"), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, NotBlueprintable)
+UCLASS(abstract, hidecategories=(Input, Movement, Collision, Rendering, "Utilities|Transformation"), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, NotBlueprintable)
 class AInfo : public AActor
 {
 	GENERATED_UCLASS_BODY()

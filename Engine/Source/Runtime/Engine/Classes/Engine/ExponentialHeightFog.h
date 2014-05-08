@@ -4,7 +4,7 @@
 #pragma once
 #include "ExponentialHeightFog.generated.h"
 
-UCLASS(showcategories=(Movement, Rendering, "Utilities|Orientation"), ClassGroup=Fog, MinimalAPI)
+UCLASS(showcategories=(Movement, Rendering, "Utilities|Transformation"), ClassGroup=Fog, MinimalAPI)
 class AExponentialHeightFog : public AInfo
 {
 	GENERATED_UCLASS_BODY()

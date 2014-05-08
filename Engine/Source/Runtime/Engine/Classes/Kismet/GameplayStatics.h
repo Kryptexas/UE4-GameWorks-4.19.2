@@ -44,7 +44,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	// --- Actor functions ------------------------------
 
 	/** Find the average location (centroid) of an array of Actors */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	static FVector GetActorArrayAverageLocation(const TArray<AActor*>& Actors);
 
 	/** Bind the bounds of an array of Actors */

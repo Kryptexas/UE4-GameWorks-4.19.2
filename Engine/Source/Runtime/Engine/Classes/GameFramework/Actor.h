@@ -602,11 +602,11 @@ public:
 	class UClass* GetActorClass() const;
 
 	/** Get the actor to world transform */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorTransform"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorTransform"), Category="Utilities|Transformation")
 	FTransform GetTransform() const;
 
 	/** Returns location of the RootComponent of this Actor*/
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorLocation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorLocation"), Category="Utilities|Transformation")
 	FVector K2_GetActorLocation() const;
 
 	/** 
@@ -615,23 +615,23 @@ public:
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 *	@return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetActorLocation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetActorLocation"), Category="Utilities|Transformation")
 	bool K2_SetActorLocation(FVector NewLocation, bool bSweep=false);
 
 	/** Returns rotation of the RootComponent of this Actor */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorRotation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorRotation"), Category="Utilities|Transformation")
 	FRotator K2_GetActorRotation() const;
 
 	/** Get the forward (X) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorForwardVector() const;
 
 	/** Get the up (Z) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorUpVector() const;
 
 	/** Get the right (Y) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorRightVector() const;
 
 	/**
@@ -642,11 +642,11 @@ public:
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const;
 
 	/** Returns the RootComponent of this Actor */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetRootComponent"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetRootComponent"), Category="Utilities|Transformation")
 	class USceneComponent* K2_GetRootComponent() const;
 
 	/** Returns velocity (in cm/s (Unreal Units/second) of the rootcomponent if it is either using physics or has an associated MovementComponent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual FVector GetVelocity() const;
 
 	/** 
@@ -662,7 +662,7 @@ public:
 	 *	@param	NewRotation	The new rotation for the Actor.
 	 *	@return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorRotation(FRotator NewRotation);
 
 	/** 
@@ -672,50 +672,50 @@ public:
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 *	@return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false);
 
 	/** Set the Actor's world-space scale. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorScale3D(const FVector& NewScale3D);
 
 	/** Returns the distance from this Actor to OtherActor. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetDistanceTo(AActor* OtherActor);
 
 	/** Returns the distance from this Actor to OtherActor, ignoring Z. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetHorizontalDistanceTo(AActor* OtherActor);
 
 	/** Returns the distance from this Actor to OtherActor, ignoring XY. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetVerticalDistanceTo(AActor* OtherActor);
 
 	/** Returns the dot product from this Actor to OtherActor. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetDotProductTo(AActor* OtherActor);
 
 	/** Returns the dot product from this Actor to OtherActor, ignoring Z. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetHorizontalDotProductTo(AActor* OtherActor);
 
 	/** 
 	 *	Set the Actors transform to the specified one.
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false);
 
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false);
 
 	/** Adds a delta to the transform of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/**
@@ -723,7 +723,7 @@ public:
 	 * @param NewRelativeLocation	New relative location to set the actor's RootComponent to
 	 * @param bSweep				Should we sweep to the destination location. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false);
 
 	/**
@@ -731,7 +731,7 @@ public:
 	 * @param NewRelativeRotation		New relative rotation to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination rotation. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false);
 
 	/**
@@ -739,14 +739,14 @@ public:
 	 * @param NewRelativeTransform		New relative transform to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination transform. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative scale 3d
 	 * @param NewRelativeScale	New scale to set the actor's RootComponent to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeScale3D(FVector NewRelativeScale);
 
 	/**
@@ -788,7 +788,7 @@ public:
 	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToComponent", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToComponent", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
 	void AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
 
 	/**
@@ -797,21 +797,21 @@ public:
 	 * @param InSocketName				Socket name to attach to, if any
 	 * @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToActor", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToActor", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
 	void AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
 
 	/** 
 	 *  Snap the RootComponent of this Actor to the supplied Actor's root component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *  If InSocketName == NAME_None, it will attach to origin of the InParentActor. 
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", FriendlyName = "SnapActorTo"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", FriendlyName = "SnapActorTo"), Category="Utilities|Transformation")
 	void SnapRootComponentTo(AActor* InParentActor, FName InSocketName = NAME_None);
 
 	/** 
 	 *  Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "DetachActorFromActor"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "DetachActorFromActor"), Category="Utilities|Transformation")
 	void DetachRootComponentFromParent(bool bMaintainWorldPosition = true);
 
 	/** 
@@ -1582,7 +1582,7 @@ public:
 	 * @param DestRotation The target rotation at the destination
 	 * @return true if the actor has been successfully moved, or false if it couldn't fit.
 	 */
-	UFUNCTION(BlueprintCallable, meta=( FriendlyName="Teleport", Keywords = "Move Position" ), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=( FriendlyName="Teleport", Keywords = "Move Position" ), Category="Utilities|Transformation")
 	bool K2_TeleportTo( FVector DestLocation, FRotator DestRotation );
 
 	/** Called from TeleportTo() when teleport succeeds */
