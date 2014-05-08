@@ -13,13 +13,15 @@ void FSlateOpenGLTexture::Init( GLenum TexFormat, const TArray<uint8>& TextureDa
 	CHECK_GL_ERRORS;
 
 	// Ensure texturing is enabled before setting texture properties
-#if !PLATFORM_USES_ES2
+#if !PLATFORM_USES_ES2 && !PLATFORM_LINUX
 	glEnable(GL_TEXTURE_2D);
 #endif
 	glBindTexture(GL_TEXTURE_2D, ShaderResource);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#if !PLATFORM_LINUX
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+#endif
 
 	// the raw data is in bgra or bgr
 	const GLint Format = GL_BGRA;
@@ -86,7 +88,11 @@ void FSlateFontTextureOpenGL::ConditionalUpdateTexture()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_STORAGE_HINT_APPLE, GL_STORAGE_CACHED_APPLE);
 		glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 #endif
+#if PLATFORM_LINUX
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_R8, AtlasWidth, AtlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, AtlasData.GetData() );
+#else
 		glTexImage2D( GL_TEXTURE_2D, 0, Format, AtlasWidth, AtlasHeight, 0, Format, GL_UNSIGNED_BYTE, AtlasData.GetData() );
+#endif
 #if PLATFORM_MAC
 		glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_FALSE);
 #endif

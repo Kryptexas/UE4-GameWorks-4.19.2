@@ -67,7 +67,13 @@
 #define glTexEnvi(...)
 #define glAlphaFunc(...)
 
-#endif // PLATFORM_IOS
+#elif PLATFORM_LINUX
+//#define GLCOREARB_PROTOTYPES 
+#include <GL/glcorearb.h>
+//#include <GL/glext.h>
+#include "SDL.h"
+
+#endif // PLATFORM_LINUX
 
 #include "OpenGL/SlateOpenGLExtensions.h"
 #include "OpenGL/SlateOpenGLTextures.h"

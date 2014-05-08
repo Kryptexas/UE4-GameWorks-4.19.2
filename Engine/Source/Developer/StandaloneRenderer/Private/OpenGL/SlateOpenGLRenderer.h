@@ -40,6 +40,10 @@ struct FSlateOpenGLContext
 #elif PLATFORM_IOS
 	UIWindow* WindowHandle;
 	EAGLContext* Context;
+#elif PLATFORM_LINUX
+	SDL_Window* WindowHandle;
+	SDL_GLContext Context;
+	bool bReleaseWindowOnDestroy;
 #endif
 
 	FSlateOpenGLContext();

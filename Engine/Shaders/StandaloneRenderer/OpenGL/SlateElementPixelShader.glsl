@@ -30,7 +30,11 @@ varying vec4 Color;
 vec4 GetFontElementColor()
 {
 	vec4 OutColor = Color;
+#if PLATFORM_LINUX
+	OutColor.a *= texture2D(ElementTexture, TexCoords.xy).r; // OpenGL 3.2+ uses Red for single channel textures
+#else
 	OutColor.a *= texture2D(ElementTexture, TexCoords.xy).a;
+#endif
 
 	return OutColor;
 }

@@ -57,6 +57,57 @@ extern PFNGLGETATTRIBLOCATIONPROC			glGetAttribLocation;
 
 extern PFNWGLCREATECONTEXTATTRIBSARBPROC	wglCreateContextAttribsARB;
 
+#elif PLATFORM_LINUX
+
+#define ENUM_GL_ENTRYPOINTS(EnumMacro) \
+	EnumMacro(PFNGLBINDTEXTUREPROC,glBindTexture) \
+	EnumMacro(PFNGLBLENDFUNCPROC,glBlendFunc) \
+	EnumMacro(PFNGLDELETETEXTURESPROC,glDeleteTextures) \
+	EnumMacro(PFNGLDISABLEPROC,glDisable) \
+	EnumMacro(PFNGLENABLEPROC,glEnable) \
+	EnumMacro(PFNGLGENTEXTURESPROC,glGenTextures) \
+	EnumMacro(PFNGLGETERRORPROC,glGetError) \
+	EnumMacro(PFNGLPOLYGONMODEPROC,glPolygonMode) \
+	EnumMacro(PFNGLSTENCILFUNCPROC,glStencilFunc) \
+	EnumMacro(PFNGLSTENCILMASKPROC,glStencilMask) \
+	EnumMacro(PFNGLSTENCILOPPROC,glStencilOp) \
+	EnumMacro(PFNGLTEXIMAGE2DPROC,glTexImage2D) \
+	EnumMacro(PFNGLTEXPARAMETERIPROC,glTexParameteri) \
+	EnumMacro(PFNGLVIEWPORTPROC,glViewport) \
+	EnumMacro(PFNGLBLENDEQUATIONPROC,glBlendEquation) \
+	EnumMacro(PFNGLDRAWRANGEELEMENTSPROC,glDrawRangeElements) \
+	EnumMacro(PFNGLACTIVETEXTUREPROC,glActiveTexture) \
+	EnumMacro(PFNGLBINDBUFFERPROC,glBindBuffer) \
+	EnumMacro(PFNGLDELETEBUFFERSPROC,glDeleteBuffers) \
+	EnumMacro(PFNGLGENBUFFERSPROC,glGenBuffers) \
+	EnumMacro(PFNGLBUFFERDATAPROC,glBufferData) \
+	EnumMacro(PFNGLMAPBUFFERPROC,glMapBuffer) \
+	EnumMacro(PFNGLUNMAPBUFFERPROC,glUnmapBuffer) \
+	EnumMacro(PFNGLATTACHSHADERPROC,glAttachShader) \
+	EnumMacro(PFNGLBINDATTRIBLOCATIONPROC,glBindAttribLocation) \
+	EnumMacro(PFNGLCOMPILESHADERPROC,glCompileShader) \
+	EnumMacro(PFNGLCREATEPROGRAMPROC,glCreateProgram) \
+	EnumMacro(PFNGLCREATESHADERPROC,glCreateShader) \
+	EnumMacro(PFNGLDELETEPROGRAMPROC,glDeleteProgram) \
+	EnumMacro(PFNGLDELETESHADERPROC,glDeleteShader) \
+	EnumMacro(PFNGLENABLEVERTEXATTRIBARRAYPROC,glEnableVertexAttribArray) \
+	EnumMacro(PFNGLGETPROGRAMIVPROC,glGetProgramiv) \
+	EnumMacro(PFNGLGETPROGRAMINFOLOGPROC,glGetProgramInfoLog) \
+	EnumMacro(PFNGLGETSHADERIVPROC,glGetShaderiv) \
+	EnumMacro(PFNGLGETSHADERINFOLOGPROC,glGetShaderInfoLog) \
+	EnumMacro(PFNGLGETUNIFORMLOCATIONPROC,glGetUniformLocation) \
+	EnumMacro(PFNGLLINKPROGRAMPROC,glLinkProgram) \
+	EnumMacro(PFNGLSHADERSOURCEPROC,glShaderSource) \
+	EnumMacro(PFNGLUSEPROGRAMPROC,glUseProgram) \
+	EnumMacro(PFNGLUNIFORM4FPROC,glUniform4f) \
+	EnumMacro(PFNGLUNIFORM1IPROC,glUniform1i) \
+	EnumMacro(PFNGLUNIFORM4FVPROC,glUniform4fv) \
+	EnumMacro(PFNGLUNIFORMMATRIX4FVPROC,glUniformMatrix4fv) \
+	EnumMacro(PFNGLVERTEXATTRIBPOINTERPROC,glVertexAttribPointer) \
+
+#define DECLARE_GL_ENTRYPOINTS(Type,Func) extern Type Func;
+ENUM_GL_ENTRYPOINTS(DECLARE_GL_ENTRYPOINTS);
+
 #endif
 
 void LoadOpenGLExtensions();

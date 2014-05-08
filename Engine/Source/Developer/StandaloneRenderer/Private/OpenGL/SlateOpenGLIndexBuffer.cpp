@@ -5,7 +5,8 @@
 #include "OpenGL/SlateOpenGLIndexBuffer.h"
 
 FSlateOpenGLIndexBuffer::FSlateOpenGLIndexBuffer()
-	: MaxNumIndices(0)	 
+	: MaxNumIndices(0)
+	, BufferID(0)
 {
 
 }
