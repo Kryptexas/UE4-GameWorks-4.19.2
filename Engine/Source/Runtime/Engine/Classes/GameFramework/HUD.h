@@ -119,7 +119,7 @@ public:
 	 * @param	InCanvas		Canvas on which to render.
 	 * @param	InColor			Color to render the box.
 	 */
-	void Draw( class FCanvas* InCanvas, const FLinearColor& InColor );
+	void Draw( class FCanvas* InCanvas, const FLinearColor& InColor ) const;
 	
 	/** Get the name of this hitbox.  */
 	const FName& GetName() const { return Name;};
@@ -512,7 +512,7 @@ public:
 	/** Array of hitboxes that have been hit for this frame. */
 	TArray< class FHUDHitBox* >	HitBoxHits;
 
-	/** Set of hitbox (by name) that are currently moused over */
+	/** Set of hitbox (by name) that are currently moused over or have a touch contacting them */
 	TSet< FName > HitBoxesOver;
 
 	/**
@@ -525,30 +525,38 @@ public:
 	 * Update the list of hitboxes and dispatch events for any hits.
 	 * @param	InEventType	Input event that triggered the call.
 	 */
-	bool UpdateAndDispatchHitBoxClickEvents(EInputEvent InEventType);
+	bool UpdateAndDispatchHitBoxClickEvents(const FVector2D ClickLocation, const EInputEvent InEventType, const bool bDispatchOverOutEvent);
 	
 	/**
 	 * Update a the list of hitboxes that have been hit this frame.
 	 * @param	Canvas	Canvas on which to render debug boxes.
 	 */
-	void UpdateHitBoxCandidates( const FVector2D& InHitLocation );
+	void UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints );
 	
 	/** Have any hitboxes been hit this frame. */
 	bool AnyCurrentHitBoxHits() const;	
 
 	/**
 	 * Find the first hitbox containing the given coordinates.
-	 * @param	InHitLocation Coordinates to check
-	 * @return returns the hitbox at the given coordinates or NULL if none match.
+	 * @param	InHitLocation		Coordinates to check
+	 * @param	bConsumingInput		If true will return the first hitbox that would consume input at this coordinate
+	 * @return	returns the hitbox at the given coordinates or NULL if none match.
 	 */
-	const FHUDHitBox* GetHitBoxAtCoordinates( const FVector2D& InHitLocation ) const;
+	const FHUDHitBox* GetHitBoxAtCoordinates( FVector2D InHitLocation, bool bConsumingInput = false ) const;
 
+	/**
+	* Finds all the hitboxes containing the given coordinates.
+	* @param	InHitLocation		Coordinates to check
+	* @param	OutHitBoxes			Reference parameter with hit box references at the coordinates
+	*/
+	void GetHitBoxesAtCoordinates(FVector2D InHitLocation, TArray<const FHUDHitBox*>& OutHitBoxes) const;
+	
 	/**
 	 * Return the hitbox with the given name
 	 * @param	InName	Name of required hitbox
 	 * @return returns the hitbox with the given name NULL if none match.
 	 */
-	const FHUDHitBox* GetHitBoxWithName( const FName& InName ) const;
+	const FHUDHitBox* GetHitBoxWithName( const FName InName ) const;
 
 	//=============================================================================
 	// UIBlur overrides
@@ -566,6 +574,10 @@ public:
 
 protected:
 	bool IsCanvasValid_WarnIfNot() const;
+
+private:
+	// Helper function to deal with screen offset and splitscreen mapping of coordinates to HUD
+	FVector2D GetCoordinateOffset() const;
 };
 
 

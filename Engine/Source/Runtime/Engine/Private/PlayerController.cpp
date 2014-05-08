@@ -1749,7 +1749,7 @@ void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if( GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true) )
 	{
 		return false;
 	}
@@ -1787,7 +1787,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ETraceTypeQuery TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if (GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true))
 	{
 		return false;
 	}
@@ -1825,7 +1825,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if (GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true))
 	{
 		return false;
 	}
@@ -1963,6 +1963,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 		// TODO: Allow click key(s?) to be defined
 		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
 		{
+			const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
 			UPrimitiveComponent* ClickedPrimitive = NULL;
 			if (bEnableMouseOverEvents)
 			{
@@ -1970,11 +1971,8 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 			}
 			else
 			{
-				FVector2D MouseLocation;
-				GetInputMouseDelta(MouseLocation.X, MouseLocation.Y);
-
 				FHitResult HitResult;
-				const bool bHit = GetHitResultAtScreenPosition(CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition(), CurrentClickTraceChannel, true, HitResult);
+				const bool bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, HitResult);
 				if (bHit)
 				{
 					ClickedPrimitive = HitResult.Component.Get();
@@ -1982,7 +1980,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 			}
 			if( GetHUD() )
 			{
-				if( GetHUD()->UpdateAndDispatchHitBoxClickEvents(EventType) )
+				if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType, false))
 				{
 					ClickedPrimitive = NULL;
 				}
@@ -2027,6 +2025,17 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 
 			UPrimitiveComponent* PreviousComponent = CurrentTouchablePrimitives[Handle].Get();
 			UPrimitiveComponent* CurrentComponent = (bHit ? HitResult.Component.Get() : NULL);
+
+			if (GetHUD())
+			{
+				if (Type == ETouchType::Began || Type == ETouchType::Ended)
+				{
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released), true))
+					{
+						CurrentComponent = NULL;
+					}
+				}
+			}
 
 			switch(Type)
 			{
