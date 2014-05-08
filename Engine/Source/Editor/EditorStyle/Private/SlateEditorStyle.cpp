@@ -4406,7 +4406,12 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 	{
 		Set("ProjectBrowser.Tab.Text", FTextBlockStyle(NormalText)
 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 24))
-			.SetShadowOffset(FVector2D(0,1)));
+			.SetShadowOffset(FVector2D(0, 1)));
+
+		Set("ProjectBrowser.VersionOverlayText", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 14))
+			.SetShadowOffset(FVector2D(0, 1)));
+
 
 		Set("ProjectBrowser.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));
 		Set("ProjectBrowser.Tab.ActiveBackground", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));

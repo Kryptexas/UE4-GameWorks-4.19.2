@@ -322,6 +322,7 @@ bool FProjectManager::QueryStatusForProject(const FString& FilePath, const FStri
 	OutProjectStatus.Name = ProjectInfo.Name;
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
+	OutProjectStatus.EngineVersion = ProjectInfo.EngineVersion;
 	OutProjectStatus.bSignedSampleProject = NewProject->IsSignedSampleProject(FilePath);
 	OutProjectStatus.bUpToDate = NewProject->IsUpToDate(EngineIdentifier);
 

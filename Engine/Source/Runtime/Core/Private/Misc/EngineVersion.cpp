@@ -141,31 +141,34 @@ bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)
 
 EVersionComparison::Type FEngineVersion::GetNewest(const FEngineVersion &First, const FEngineVersion &Second, EVersionComponent::Type *OutComponent)
 {
+	EVersionComponent::Type LocalComponent;
+	auto& Component = OutComponent ? *OutComponent : LocalComponent;
+
 	// Compare major versions
 	if(First.Major != Second.Major)
 	{
-		*OutComponent = EVersionComponent::Major;
+		Component = EVersionComponent::Major;
 		return (First.Major > Second.Major)? EVersionComparison::First : EVersionComparison::Second;
 	}
 
 	// Compare minor versions
 	if(First.Minor != Second.Minor)
 	{
-		*OutComponent = EVersionComponent::Minor;
+		Component = EVersionComponent::Minor;
 		return (First.Minor > Second.Minor)? EVersionComparison::First : EVersionComparison::Second;
 	}
 
 	// Compare patch versions
 	if(First.Patch != Second.Patch)
 	{
-		*OutComponent = EVersionComponent::Patch;
+		Component = EVersionComponent::Patch;
 		return (First.Patch > Second.Patch)? EVersionComparison::First : EVersionComparison::Second;
 	}
 
 	// Compare changelists (only if they're both from the same vendor)
 	if(First.IsLicenseeVersion() == Second.IsLicenseeVersion() && First.GetChangelist() != Second.GetChangelist())
 	{
-		*OutComponent = EVersionComponent::Changelist;
+		Component = EVersionComponent::Changelist;
 		return (First.GetChangelist() > Second.GetChangelist()) ? EVersionComparison::First : EVersionComparison::Second;
 	}
 

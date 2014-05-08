@@ -4,6 +4,7 @@
 
 
 #include "IPluginManagerShared.h"
+#include "EngineVersion.h"
 
 /**
  * Simple data structure that is filled when querying information about projects
@@ -20,6 +21,9 @@ public:
 
 	/** The UI category of this project */
 	FString Category;
+
+	/** The version of the engine that this project is made for */
+	FEngineVersion EngineVersion;
 
 	/** True if this project is a sample provided by epic */
 	bool bSignedSampleProject;

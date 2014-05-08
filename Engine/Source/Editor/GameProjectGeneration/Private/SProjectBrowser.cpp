@@ -15,17 +15,27 @@ struct FProjectItem
 {
 	FText Name;
 	FText Description;
+	FEngineVersion EngineVersion;
+	bool bUpToDate;
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
+	FProjectItem(const FText& InName, const FText& InDescription, const FEngineVersion& InEngineVersion, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
 		: Name(InName)
 		, Description(InDescription)
+		, EngineVersion(InEngineVersion)
+		, bUpToDate(InUpToDate)
 		, ProjectFile(InProjectFile)
 		, ProjectThumbnail(InProjectThumbnail)
 		, bIsNewProjectItem(InIsNewProjectItem)
 	{ }
+
+	/** Check if this project is up to date */
+	bool IsUpToDate() const
+	{
+		return bUpToDate || EngineVersion.IsEmpty();
+	}
 };
 
 
@@ -312,10 +322,14 @@ TSharedRef<ITableRow> SProjectBrowser::MakeProjectViewWidget(TSharedPtr<FProject
 	}
 	else
 	{
+		const FLinearColor Tint = ProjectItem->IsUpToDate() ? FLinearColor::White : FLinearColor::White.CopyWithNewOpacity(0.5);
+
 		// Drop shadow border
 		Thumbnail =	SNew(SBorder)
 			.Padding(ThumbnailBorderPadding)
 			.BorderImage( FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
+			.ColorAndOpacity(Tint)
+			.BorderBackgroundColor(Tint)
 			[
 				SNew(SImage).Image(this, &SProjectBrowser::GetProjectItemImage, TWeakPtr<FProjectItem>(ProjectItem))
 			];
@@ -337,7 +351,25 @@ TSharedRef<ITableRow> SProjectBrowser::MakeProjectViewWidget(TSharedPtr<FProject
 				.WidthOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
 				.HeightOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
 				[
-					Thumbnail.ToSharedRef()
+					SNew(SOverlay)
+
+					+ SOverlay::Slot()
+					[
+						Thumbnail.ToSharedRef()
+					]
+
+					// Show the out of date engine version for this project file
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Bottom)
+					.Padding(10)
+					[
+						SNew(STextBlock)
+						.Text(ProjectItem->EngineVersion.ToString(EVersionComponent::Minor))
+						.TextStyle(FEditorStyle::Get(), "ProjectBrowser.VersionOverlayText")
+						.ColorAndOpacity(FLinearColor::White.CopyWithNewOpacity(0.5f))
+						.Visibility(ProjectItem->IsUpToDate() ? EVisibility::Collapsed : EVisibility::Visible)
+					]
 				]
 			]
 
@@ -372,6 +404,14 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 	{
 		const FString ProjectPath = FPaths::GetPath(ProjectItem->ProjectFile);
 		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipPath", "Path"), FText::FromString(ProjectPath) );
+	}
+
+	if (!ProjectItem->IsUpToDate())
+	{
+		FFormatOrderedArguments Args;
+		Args.Add(FText::FromString(ProjectItem->EngineVersion.ToString(EVersionComponent::Minor)));
+		AddToToolTipInfoBox(InfoBox, LOCTEXT("ProjectVersion", "Version"),
+			FText::Format(LOCTEXT("ProjectTileOutOfDate", "This project was created with engine version {0}. It may require an update to work with this build."), Args));
 	}
 
 	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
@@ -651,7 +691,7 @@ FReply SProjectBrowser::FindProjects()
 				}
 
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectStatus.EngineVersion, ProjectStatus.bUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}
