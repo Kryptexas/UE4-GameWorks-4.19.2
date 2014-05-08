@@ -8,6 +8,7 @@
 #include "ObjectEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "ScopedTransaction.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
