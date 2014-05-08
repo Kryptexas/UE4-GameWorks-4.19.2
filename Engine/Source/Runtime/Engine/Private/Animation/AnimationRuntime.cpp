@@ -939,7 +939,7 @@ void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight
 	// in the future, cache this outside
 	ensure (TargetBoneBlendWeights.Num() == SrcBoneBlendWeights.Num());
 
-	FMemory::Memset( TargetBoneBlendWeights.GetTypedData(), 0, TargetBoneBlendWeights.Num());
+	FMemory::Memset(TargetBoneBlendWeights.GetTypedData(), 0, TargetBoneBlendWeights.Num() * sizeof(FPerBoneBlendWeight));
 
 	// go through skeleton tree requiredboneindices
 	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
