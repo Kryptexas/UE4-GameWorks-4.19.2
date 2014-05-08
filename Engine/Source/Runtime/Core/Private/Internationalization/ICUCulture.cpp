@@ -294,7 +294,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 	icu::UnicodeString InputTimeZoneID;
 	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
 
-	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateTimeFormat );
+	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUTimeFormat );
 
 	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
 	if( !bIsDefaultTimeZone )
