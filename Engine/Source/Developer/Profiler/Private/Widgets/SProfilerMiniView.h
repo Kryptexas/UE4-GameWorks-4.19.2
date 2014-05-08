@@ -311,7 +311,8 @@ public:
 	 *	Moves the selection box to the location specified by FrameStart and FrameEnd. 
 	 *	Called by external widgets.
 	 */
-	void OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
+	void MoveWithoutZoomSelectionBox( int32 FrameStart, int32 FrameEnd );
+	void MoveAndZoomSelectionBox( int32 FrameStart, int32 FrameEnd );
 
 	void DrawText( const FString& Text, const FSlateFontInfo& FontInfo, FVector2D Position, const FColor& TextColor, const FColor& ShadowColor, FVector2D ShadowOffset ) const;
 
@@ -435,9 +436,6 @@ protected:
 	/** Current Slate OnPaint state. */
 	uint8 PaintStateMemory[sizeof(FSlateOnPaintState)];
 	mutable FSlateOnPaintState*	PaintState;
-
-	/** The current mouse position. */
-	FVector2D MousePosition;
 
 	/** Mouse position during the call on mouse button down. */
 	FVector2D MousePositionOnButtonDown;

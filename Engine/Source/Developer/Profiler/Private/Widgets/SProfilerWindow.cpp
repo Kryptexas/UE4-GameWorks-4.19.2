@@ -78,7 +78,13 @@ SProfilerWindow::SProfilerWindow()
 {}
 
 SProfilerWindow::~SProfilerWindow()
-{}
+{
+	// Remove ourselves from the profiler manager.
+	if( FProfilerManager::Get().IsValid() )
+	{
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
+	}
+}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProfilerWindow::Construct( const FArguments& InArgs )
@@ -147,11 +153,12 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 				.FillHeight( 1.0f )
 				.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 				[
-					SNew(SHorizontalBox)
+					SNew( SHorizontalBox )
 					.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
 
 					+SHorizontalBox::Slot()
 					.AutoWidth()
+					.Expose( FiltersAndPresetsSlot )
 					[
 						SNew(SBox)
 						.WidthOverride( 256.0f )
@@ -191,7 +198,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 							+SVerticalBox::Slot()
 							.FillHeight( 1.0f )
 							[
-								SNew(SFiltersAndPresets)
+								SAssignNew( FiltersAndPresets, SFiltersAndPresets )
 							]
 						]
 					]
@@ -287,9 +294,9 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 			.Expose( OverlaySettingsSlot )
 		];
 
-	GraphPanel->GetMainDataGraph()->OnSelectionChangedForIndex().AddSP( FProfilerManager::Get().ToSharedRef(), &FProfilerManager::DataGraph_OnSelectionChangedForIndex );
-
-	ProfilerMiniView->OnSelectionBoxChanged().AddSP( GraphPanel.ToSharedRef(), &SProfilerGraphPanel::OnMiniViewSelectionBoxChanged );
+	ProfilerMiniView->OnSelectionBoxChanged().AddSP( GraphPanel.ToSharedRef(), &SProfilerGraphPanel::MiniView_OnSelectionBoxChanged );
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SProfilerWindow::ProfilerManager_OnViewModeChanged );
+	GraphPanel->ProfilerMiniView = ProfilerMiniView;
 }
 
 void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName )
@@ -556,6 +563,30 @@ void SProfilerWindow::CloseProfilerSettings()
 		SNullWidget::NullWidget
 	];
 	MainContentPanel->SetEnabled( true );
+}
+
+void SProfilerWindow::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		EventGraphPanel->SetVisibility( EVisibility::Visible );
+		EventGraphPanel->SetEnabled( true );
+
+		(*FiltersAndPresetsSlot)
+		[
+			FiltersAndPresets.ToSharedRef()
+		];
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		EventGraphPanel->SetVisibility( EVisibility::Collapsed );
+		EventGraphPanel->SetEnabled( false );
+
+		(*FiltersAndPresetsSlot)
+		[
+			SNullWidget::NullWidget
+		];
+	}
 }
 
 

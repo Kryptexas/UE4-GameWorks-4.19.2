@@ -68,13 +68,13 @@ FStatsThreadState::FStatsThreadState( FString const& Filename )
 		// Verify frames offsets.
 		for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
 		{
-			const int64 FrameOffset = Stream.FramesInfo[FrameIndex].FrameOffset;
-			FileReader->Seek( FrameOffset );
+			const int64 FrameFileOffset = Stream.FramesInfo[FrameIndex].FrameFileOffset;
+			FileReader->Seek( FrameFileOffset );
 
 			int64 TargetFrame;
 			*FileReader << TargetFrame;
 		}
-		FileReader->Seek( Stream.FramesInfo[0].FrameOffset );
+		FileReader->Seek( Stream.FramesInfo[0].FrameFileOffset );
 
 		// Read the raw stats messages.
 		FStatPacketArray IncomingData;

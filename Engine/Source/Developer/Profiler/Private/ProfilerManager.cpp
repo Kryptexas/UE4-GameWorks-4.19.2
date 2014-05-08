@@ -232,6 +232,7 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 	ProfilerSession->PrepareLoading();
 	RequestFilterAndPresetsUpdateEvent.Broadcast();
 	//ProfilerSession_OnCaptureFileProcessed( ProfilerInstanceID );
+	bHasCaptureFileFullyProcessed = true;
 	//TrackDefaultStats();
 
 	SessionInstancesUpdatedEvent.Broadcast();
@@ -239,6 +240,8 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 	
 	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
 	SetViewMode( EProfilerViewMode::ThreadViewTimeBased );
+
+	GetProfilerWindow()->GraphPanel->ThreadView->AttachProfilerStream( ProfilerSession->GetStream() );
 }
 
 
@@ -406,6 +409,7 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 			ActiveSession = SelectedSession;
 			ProfilerClient->Subscribe( ActiveSession->GetSessionId() );
 			ProfilerType = EProfilerSessionTypes::Live;
+			SetViewMode( EProfilerViewMode::LineIndexBased );
 		}
 		else
 		{

@@ -35,9 +35,6 @@ protected:
 	/** Called when the status of specified tracked stat has changed. */
 	void ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked );
 
-	/** Called when the list of session instances have changed. */
-	void ProfilerManager_OnSessionInstancesUpdated();
-
 	/**
 	 * Called when the user scrolls the scrollbar
 	 *
@@ -54,7 +51,10 @@ protected:
 
 public:
 	/** Called when the selection box has been changed in the profiler mini-view widget. */
-	void OnMiniViewSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
+	void MiniView_OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
+
+	void ThreadView_OnViewPositionXChanged( double FrameStartMS, double FrameEndMS, double MaxEndTimeMS, int32 FrameStart, int32 FrameEnd );
+	void ThreadView_OnViewPositionYChanged( double PosYStart, double PosYEnd, double MaxPosY );
 
 protected:
 	/** Sets state of the scroll bar. */
@@ -65,9 +65,19 @@ protected:
 
 	void UpdateInternals();
 
-protected:
+//protected:
+public:
 	/** Holds the data graph widget. */
 	TSharedPtr<SDataGraph> DataGraph;
+
+	/** Holds the thread view widget. */
+	TSharedPtr<SProfilerThreadView> ThreadView;
+
+	/** Weak pointer to the profiler mini-view. */
+	TWeakPtr<SProfilerMiniView> ProfilerMiniView;
+	
+	/** Temporary solution to avoid feedback loop when changing the selection box. */
+	bool bLockMiniViewState;
 
 	/** Horizontal scroll bar, used for scrolling graphs. */
 	TSharedPtr<SScrollBar> HorizontalScrollBar;
@@ -83,4 +93,6 @@ protected:
 
 	/** Current offset of the graph, index of the first visible graph point. */
 	int32 GraphOffset;
+
+	EProfilerViewMode::Type ViewMode;
 };

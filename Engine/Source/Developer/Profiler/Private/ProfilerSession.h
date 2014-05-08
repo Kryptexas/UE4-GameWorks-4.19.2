@@ -497,11 +497,13 @@ private:
 					StatPtr->_Name = *UniqueThreadName;
 					ThreadIDtoStatID.Add( ThreadID, StatID );
 
+					// Game thread is always NAME_GameThread
 					if( **ThreadDesc == FName( NAME_GameThread ) )
 					{
 						GameThreadID = ThreadID;
 					}
-					else if( **ThreadDesc == FName( NAME_RenderThread ) )
+					// Rendering thread may be "Rendering thread" or NAME_RenderThread with an index
+					else if( ThreadDesc->Contains( FName( NAME_RenderThread ).GetPlainNameString() ) )
 					{
 						RenderThreadIDs.AddUnique( ThreadID );
 					}
@@ -1297,9 +1299,14 @@ public:
 	/** Starts a process of loading the raw stats file. */
 	void PrepareLoading();
 
+	const FProfilerStream& GetStream() const
+	{
+		return ProfilerStream;
+	}
+
 	/**
 	 *	Process all stats packets and convert them to data accessible by the profiler.
 	 *	Temporary version, will be optimized later.
 	 */
-	FProfilerFrame* ProcessStatPacketArray( const FStatPacketArray& PacketArray );
+	void ProcessStatPacketArray( const FStatPacketArray& PacketArray, FProfilerFrame& out_ProfilerFrame, int32 FrameIndex );
 };

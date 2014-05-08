@@ -32,7 +32,6 @@ void SProfilerMiniView::Reset()
 	FMemory::MemZero( PaintStateMemory );
 	PaintState = nullptr;
 
-	MousePosition = FVector2D::ZeroVector;
 	MousePositionOnButtonDown = FVector2D::ZeroVector;
 
 	SelectionBoxFrameStart = 0;
@@ -119,6 +118,7 @@ int32 SProfilerMiniView::OnPaint( const FGeometry& AllottedGeometry, const FSlat
 	if( IsReady() )
 	{
 		static const FSlateColorBrush SolidWhiteBrush = FSlateColorBrush( FColorList::White );
+		// @TODO yrx 2014-04-24 move to the global scope.
 		const FColor GameThreadColor = FColorList::Red;
 		const FColor RenderThreadColor = FColorList::Blue;
 		const FColor OtherThreadsColor = FColorList::Grey;
@@ -447,7 +447,7 @@ FReply SProfilerMiniView::OnMouseMove( const FGeometry& MyGeometry, const FPoint
 
 	if( IsReady() )
 	{
-		MousePosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
+		const FVector2D MousePosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 		HoveredFrameIndex = PositionToFrameIndex( MousePosition.X );
 
 		const float CursorPosXDelta = MouseEvent.GetCursorDelta().X;
@@ -467,15 +467,13 @@ FReply SProfilerMiniView::OnMouseMove( const FGeometry& MyGeometry, const FPoint
 					{				
 						SelectionBoxFrameStart = MouseFrameIndex;
 						SelectionBoxFrameStart = FMath::Clamp( SelectionBoxFrameStart, 0, FMath::Max( AllFrames.Num() - SelectionBoxSize - 1, 0 ) );
-						
-						SelectionBoxFrameEnd = SelectionBoxFrameStart + SelectionBoxSize;
+						SelectionBoxFrameEnd = FMath::Min( SelectionBoxFrameStart + SelectionBoxSize, AllFrames.Num() - 1 );
 					}
 					else if( bCanBeEndDragged )
 					{
 						SelectionBoxFrameEnd = MouseFrameIndex;
 						SelectionBoxFrameEnd = FMath::Clamp( SelectionBoxFrameEnd, SelectionBoxSize - 1, AllFrames.Num() - -1 );
-
-						SelectionBoxFrameStart = SelectionBoxFrameEnd - SelectionBoxSize;
+						SelectionBoxFrameStart = FMath::Max( SelectionBoxFrameEnd - SelectionBoxSize, 0 );
 					}
 				}
 				else
@@ -586,11 +584,21 @@ void SProfilerMiniView::AddThreadTime( int32 InFrameIndex, const TMap<uint32, fl
 	StatMetadata = InStatMetaData;
 }
 
-void SProfilerMiniView::OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd )
+void SProfilerMiniView::MoveWithoutZoomSelectionBox( int32 FrameStart, int32 FrameEnd )
 {
 	const int32 MaxFrameIndex = FMath::Max( AllFrames.Num() - 1, 0 );
 	SelectionBoxFrameStart = FMath::Clamp( FrameStart, 0, MaxFrameIndex );
 	SelectionBoxFrameEnd = FMath::Clamp( FrameEnd, 0, MaxFrameIndex );
+	bAllowSelectionBoxZooming = false;
+}
+
+
+void SProfilerMiniView::MoveAndZoomSelectionBox( int32 FrameStart, int32 FrameEnd )
+{
+	const int32 MaxFrameIndex = FMath::Max( AllFrames.Num() - 1, 0 );
+	SelectionBoxFrameStart = FMath::Clamp( FrameStart, 0, MaxFrameIndex );
+	SelectionBoxFrameEnd = FMath::Clamp( FrameEnd, 0, MaxFrameIndex );
+	//bAllowSelectionBoxZooming = true;
 }
 
 void SProfilerMiniView::MoveSelectionBox( int32 FrameIndex )

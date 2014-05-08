@@ -123,24 +123,24 @@ struct FStatsFrameInfo
 {
 	/** Empty constructor. */
 	FStatsFrameInfo()
-		: FrameOffset(0)
+		: FrameFileOffset(0)
 	{}
 
 	/** Initialization constructor. */
-	FStatsFrameInfo( int64 InFrameOffset, TMap<uint32, int64>& InThreadCycles )
-		: FrameOffset(InFrameOffset)
+	FStatsFrameInfo( int64 InFrameFileOffset, TMap<uint32, int64>& InThreadCycles )
+		: FrameFileOffset(InFrameFileOffset)
 		, ThreadCycles(InThreadCycles)
 	{}
 
 	/** Serialization operator. */
 	friend FArchive& operator << (FArchive& Ar, FStatsFrameInfo& Data)
 	{
-		Ar << Data.ThreadCycles << Data.FrameOffset;
+		Ar << Data.ThreadCycles << Data.FrameFileOffset;
 		return Ar;
 	}
 
 	/** Frame offset in the stats file. */
-	int64 FrameOffset;
+	int64 FrameFileOffset;
 
 	/** Thread cycles for this frame. */
 	TMap<uint32, int64> ThreadCycles;

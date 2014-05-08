@@ -58,6 +58,8 @@ protected:
 
 	void SendingServiceSideCapture_Load( const FString Filename );
 
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
+
 private:
 	/**
 	 * Called after a key is pressed when this widget has keyboard focus
@@ -92,8 +94,13 @@ private:
 	/** Holds all widgets for the profiler window like menu bar, toolbar and tabs. */
 	TSharedPtr<SVerticalBox> MainContentPanel;
 
+public:
 	/** Holds all event graphs. */
 	TSharedPtr<SVerticalBox> EventGraphPanel;
+
+	/** Holds the filter and presets widget/slot. */
+	SHorizontalBox::FSlot* FiltersAndPresetsSlot;
+	TSharedPtr<SFiltersAndPresets> FiltersAndPresets;
 
 	/** Widget for the panel which contains all graphs and event graphs. */
 	TSharedPtr<SProfilerGraphPanel> GraphPanel;
@@ -110,6 +117,6 @@ private:
 	/** Active event graphs, one event graph for each profiler instance, stored as FGuid -> SEventGraph. */
 	TMap< FGuid, TSharedRef<class SEventGraph> > ActiveEventGraphs;
 
-public:
+
 	TSharedPtr<SProfilerMiniView> ProfilerMiniView;
 };
