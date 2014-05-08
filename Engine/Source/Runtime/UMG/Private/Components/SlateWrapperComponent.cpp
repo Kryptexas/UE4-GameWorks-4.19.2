@@ -64,7 +64,8 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 	{
 		MyWidget = RebuildWidget();
 		MyWidget->SetEnabled(bIsEnabled);
-		
+		MyWidget->SetVisibility(ConvertSerializedVisibilityToRuntime(Visiblity));
+
 		if ( !ToolTipText.IsEmpty() )
 		{
 			MyWidget->SetToolTipText(ToolTipText);

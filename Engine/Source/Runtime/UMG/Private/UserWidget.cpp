@@ -140,16 +140,40 @@ void AUserWidget::RerunConstructionScripts()
 
 void AUserWidget::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
-	//UWorld* World = GetWorld();
+	//if ( BindingEvaluator )
+	//{
+	//	// TODO UMG pass in this as a parameter, so it has the context to set properties?
+	//	ProcessEvent(BindingEvaluator, NULL);
+	//}
+	//static AUserWidget* TestWidget;
+	//static FWidgetNode_Base* LinkedPtr = NULL;
 
+	//FText GlueText()
+	//{
+	//	LinkedPtr->EvaluateGraphExposedInputs.Execute(TestWidget);
+	//	FWidgetNode_Text* TextNode = (FWidgetNode_Text*)LinkedPtr;
+	//	return TextNode->Text;
+	//}
+
+	//TextBlock->LinkedTextAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&GlueText));
+
+	//UWorld* World = GetWorld();
 	//if ( World && World->IsGameWorld() )
 	//{
-	//	if ( bShowCursorWhenVisible && GetIsVisible() )
+	//	if ( UWidgetBlueprintGeneratedClass* WidgetBlueprintClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
 	//	{
-	//		World->GetFirstLocalPlayerFromController()->PlayerController->bShowMouseCursor = true;
+	//		for ( UStructProperty* Attribute : WidgetBlueprintClass->WidgetNodeProperties )
+	//		{
 
-	//		UGameViewportClient* Viewport = World->GetGameViewport();
+	//		}
 	//	}
+
+
+	//	//if ( bShowCursorWhenVisible && GetIsVisible() )
+	//	//{
+	//	//	World->GetFirstLocalPlayerFromController()->PlayerController->bShowMouseCursor = true;
+	//	//	UGameViewportClient* Viewport = World->GetGameViewport();
+	//	//}
 	//}
 }
 

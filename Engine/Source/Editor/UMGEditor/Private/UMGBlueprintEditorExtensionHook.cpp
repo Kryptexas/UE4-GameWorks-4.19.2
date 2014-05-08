@@ -15,6 +15,9 @@
 #include "SUMGDesigner.h"
 #include "SUMGEditorWidgetTemplates.h"
 #include "SKismetInspector.h"
+#include "IDetailsView.h"
+
+#include "DetailCustomizations.h"
 
 #define LOCTEXT_NAMESPACE "UMG_EXTENSION"
 
@@ -231,6 +234,11 @@ public:
 		FBlueprintComponentsApplicationMode::PostActivateMode();
 
 		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
+
+		TSharedRef<class SKismetInspector> Inspector = MyBlueprintEditor.Pin()->GetInspector();
+		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
+		Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(USlateWrapperComponent::StaticClass(), LayoutDelegateDetails);
+		//Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UDelegateProperty::StaticClass(), LayoutDelegateDetails);
 	}
 
 	UWidgetBlueprint* GetBlueprint() const
@@ -245,6 +253,44 @@ public:
 		}
 	}	
 	
+	TSharedPtr<FBlueprintEditor> GetBlueprintEditor() const
+	{
+		return MyBlueprintEditor.Pin();
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FGraphEditorModeOverride
+
+class FGraphEditorModeOverride : public FBlueprintEditorApplicationMode
+{
+public:
+	FGraphEditorModeOverride(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FName InModeName, const bool bRegisterViewport = true, const bool bRegisterDefaultsTab = true)
+		: FBlueprintEditorApplicationMode(InBlueprintEditor, InModeName, bRegisterViewport, bRegisterDefaultsTab)
+	{}
+
+	virtual void PreDeactivateMode() OVERRIDE
+	{
+		FBlueprintEditorApplicationMode::PreDeactivateMode();
+	}
+
+	virtual void PostActivateMode() OVERRIDE
+	{
+		FBlueprintEditorApplicationMode::PostActivateMode();
+	}
+
+	UWidgetBlueprint* GetBlueprint() const
+	{
+		if ( FBlueprintEditor* Editor = MyBlueprintEditor.Pin().Get() )
+		{
+			return Cast<UWidgetBlueprint>(Editor->GetBlueprintObj());
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+
 	TSharedPtr<FBlueprintEditor> GetBlueprintEditor() const
 	{
 		return MyBlueprintEditor.Pin();
@@ -269,6 +315,19 @@ public:
 				if (BP->ParentClass->IsChildOf(AUserWidget::StaticClass()))
 				{
 					return MakeShareable(new FComponentsEditorModeOverride(LieMode->GetBlueprintEditor()));
+				}
+			}
+		}
+		else if ( ModeName == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode )
+		{
+			//@TODO: Bit of a lie - push GetBlueprint up, or pass in editor!
+			auto LieMode = StaticCastSharedRef<FGraphEditorModeOverride>(InMode);
+
+			if ( UBlueprint* BP = LieMode->GetBlueprint() )
+			{
+				if ( BP->ParentClass->IsChildOf(AUserWidget::StaticClass()) )
+				{
+					return MakeShareable(new FGraphEditorModeOverride(LieMode->GetBlueprintEditor(), ModeName));
 				}
 			}
 		}

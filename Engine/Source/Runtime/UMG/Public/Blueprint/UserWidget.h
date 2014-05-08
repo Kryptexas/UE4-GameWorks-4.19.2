@@ -6,7 +6,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
-UCLASS(Abstract, hideCategories=(Object, Actor))
+UCLASS(Abstract, hideCategories=(Object, Actor, Replication, Rendering, Input))
 class UMG_API AUserWidget : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -102,7 +102,6 @@ class UMG_API AUserWidget : public AActor
 
 	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
 	USlateWrapperComponent* GetHandleFromName(const FString& Name) const;
-
 
 private:
 	TSharedPtr<SWidget> RootWidget;

@@ -239,6 +239,9 @@ protected:
 	 */
 	virtual void CreateFunctionList();
 
+	/** Creates a new function context and adds it to the function list to be processed. */
+	FKismetFunctionContext* CreateFunctionContext();
+
 	/**
 	 * Merges macros/subgraphs into the graph and validates it, creating a function list entry if it's reasonable.
 	 */

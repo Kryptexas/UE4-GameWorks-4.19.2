@@ -162,7 +162,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		ParentClass = UObject::StaticClass();
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
-    
+	
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
@@ -2114,21 +2114,21 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	}
 
 	// If this is a customizable event, make sure to copy over the user defined pins
- 	if (UK2Node_CustomEvent const* SrcCustomEventNode = Cast<UK2Node_CustomEvent const>(SrcEventNode))
- 	{
- 		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
+	if (UK2Node_CustomEvent const* SrcCustomEventNode = Cast<UK2Node_CustomEvent const>(SrcEventNode))
+	{
+		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
 		// CustomEvents may inherit net flags (so let's use their GetNetFlags() incase this is an override)
 		StubContext.MarkAsNetFunction(SrcCustomEventNode->GetNetFlags());
- 	}
+	}
 	EntryNode->AllocateDefaultPins();
 
 	// Confirm that the event node matches the latest function signature, which the newly created EntryNode should have
- 	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
- 	{
- 		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
- 		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
- 		return;
- 	}
+	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
+	{
+		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
+		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
+		return;
+	}
 
 	// Copy each event parameter to the assignment node, if there are any inputs
 	UK2Node_VariableSet* AssignmentNode = NULL;
@@ -2173,7 +2173,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	CallIntoUbergraph->NodePosX = 300;
 
 	// Use the ExecuteUbergraph base function to generate the pins...
- 	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
+	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
 	CallIntoUbergraph->AllocateDefaultPins();
 	
 	// ...then swap to the generated version for this level
@@ -2799,6 +2799,11 @@ void FKismetCompilerContext::CreateFunctionList()
 	}
 }
 
+FKismetFunctionContext* FKismetCompilerContext::CreateFunctionContext()
+{
+	return new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+}
+
 /** Compile a blueprint into a class and a set of functions */
 void FKismetCompilerContext::Compile()
 {
@@ -2837,25 +2842,25 @@ void FKismetCompilerContext::Compile()
 	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
 
 	// >>> Backwards Compatibility: Make sure that skeleton generated classes have the proper "SKEL_" naming convention
- 	const FString SkeletonPrefix(TEXT("SKEL_"));
- 	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
- 	{
- 		FString NewName = SkeletonPrefix + TargetClass->GetName();
+	const FString SkeletonPrefix(TEXT("SKEL_"));
+	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
+	{
+		FString NewName = SkeletonPrefix + TargetClass->GetName();
  
- 		// Ensure we have a free name for this class
- 		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
- 		if( AnyClassWithGoodName )
- 		{
- 			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
- 			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
- 			{
- 				AnyClassWithGoodName->ClassDefaultObject = NULL;
- 				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
- 				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
- 			}
+		// Ensure we have a free name for this class
+		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
+		if( AnyClassWithGoodName )
+		{
+			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
+			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
+			{
+				AnyClassWithGoodName->ClassDefaultObject = NULL;
+				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
+				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
+			}
  
 			// Get rid of the old class to make room for renaming our class to the final SKEL name
- 			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
+			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
 
 			// Update the refs to the old SKC
 			TMap<UObject*, UObject*> ClassReplacementMap;
@@ -2866,11 +2871,11 @@ void FKismetCompilerContext::Compile()
 			{
 				FArchiveReplaceObjectRef<UObject> ReplaceInBlueprintAr(AllGraphs[i], ClassReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 			}
- 		}
+		}
  
- 		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
- 		TargetClass->Rename(*NewName, NULL, RenameFlags);
- 	}
+		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
+		TargetClass->Rename(*NewName, NULL, RenameFlags);
+	}
 	// <<< End Backwards Compatibility
 
 	// >>> Backwards compatibility:  If SkeletonGeneratedClass == GeneratedClass, we need to make a new generated class the first time we need it
@@ -3252,29 +3257,29 @@ void FKismetCompilerContext::Compile()
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
-  	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
-  	{
-  		TArray<UObject*> AllBlueprints;
-  		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
+	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
+	{
+		TArray<UObject*> AllBlueprints;
+		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
   
-  		// Mark any blueprints that implement this interface as dirty
-  		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
-  		{
-  			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
+		// Mark any blueprints that implement this interface as dirty
+		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
+		{
+			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
   
-  			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
-  			{
+			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
+			{
 				CurrentBP->Status = BS_Dirty;
-  				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
+				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
 				CurrentBP->BroadcastChanged();
-  			}
-  		}
-  	}
+			}
+		}
+	}
 
 	// Clear out pseudo-local members that are only valid within a Compile call
 	UbergraphContext = NULL;
- 	CallsIntoUbergraph.Empty();
- 	TimelineToMemberVariableMap.Empty();
+	CallsIntoUbergraph.Empty();
+	TimelineToMemberVariableMap.Empty();
 
 
 	check(NewClass->PropertiesSize >= UObject::StaticClass()->PropertiesSize);

@@ -2,9 +2,38 @@
 
 #pragma once
 
+#include "WidgetBlueprintGeneratedClass.h"
+
 #include "WidgetBlueprint.generated.h"
 
-UCLASS(dependson=(UBlueprint, AUserWidget), BlueprintType)
+USTRUCT()
+struct UMG_API FDelegateEditorBinding
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString ObjectName;
+
+	UPROPERTY()
+	FName PropertyName;
+
+	UPROPERTY()
+	FName FunctionName;
+
+	UPROPERTY()
+	FGuid MemberGuid;
+
+	bool operator==( const FDelegateEditorBinding& Other ) const
+	{
+		// NOTE: We intentionally only compare object name and property name, the function is irrelevant since
+		// you're only allowed to bind a property on an object to a single function.
+		return ObjectName == Other.ObjectName && PropertyName == Other.PropertyName;
+	}
+
+	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
+};
+
+UCLASS(dependson=(UBlueprint, AUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
 class UMG_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
@@ -13,6 +42,9 @@ public:
 	/** A tree of the widget templates to be created */
 	UPROPERTY()
 	class UWidgetTree* WidgetTree;
+
+	UPROPERTY()
+	TArray< FDelegateEditorBinding > Bindings;
 
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;

@@ -4,7 +4,29 @@
 
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
-UCLASS(dependson=(UWidgetBlueprint))
+USTRUCT()
+struct FDelegateRuntimeBinding
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString ObjectName;
+
+	UPROPERTY()
+	FName PropertyName;
+
+	UPROPERTY()
+	FName FunctionName;
+	
+	/*UFunction* UK2Node_CallFunction::GetTargetFunction() const
+	{
+	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
+	return Function;
+	}*/
+};
+
+
+UCLASS()
 class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()
@@ -13,5 +35,13 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	UPROPERTY()
 	class UWidgetTree* WidgetTree;
 
+	UPROPERTY()
+	TArray< FDelegateRuntimeBinding > Bindings;
+
+	/** This is transient data calculated at link time. */
+	TArray<UStructProperty*> WidgetNodeProperties;
+
 	virtual void CreateComponentsForActor(AActor* Actor) const OVERRIDE;
+
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
 };

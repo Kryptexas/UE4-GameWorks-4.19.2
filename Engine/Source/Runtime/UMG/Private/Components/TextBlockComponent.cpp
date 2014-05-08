@@ -34,8 +34,10 @@ TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
 		StylePtr = Defaults._TextStyle;
 	}
 
+//	TAttribute<FText>::Create(TAttribute<FText>::FGetter::From::CreateUObject(this, &GlueText));
+
 	return SNew(STextBlock)
-		.Text(BIND_UOBJECT_ATTRIBUTE(FString, GetText))
+		.Text(BIND_UOBJECT_ATTRIBUTE(FText, GetText))
 		.TextStyle(StylePtr)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) )
@@ -43,9 +45,14 @@ TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
 		.ShadowColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FLinearColor, GetShadowColorAndOpacity));
 }
 
-FString UTextBlockComponent::GetText() const
+FText UTextBlockComponent::GetText() const
 {
-	return Text.ToString();
+	if ( TextDelegate.IsBound() )
+	{
+		return TextDelegate.Execute();
+	}
+
+	return Text;
 }
 
 FSlateColor UTextBlockComponent::GetColorAndOpacity() const

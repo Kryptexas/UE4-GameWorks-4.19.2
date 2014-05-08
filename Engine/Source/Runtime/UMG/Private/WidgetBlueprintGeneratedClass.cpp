@@ -13,6 +13,26 @@ UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstr
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 }
 
+void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
+{
+	Super::Link(Ar, bRelinkExistingProperties);
+
+	// @TODO: Shouldn't be necessary to clear these, but currently the class gets linked twice during compilation
+	WidgetNodeProperties.Empty();
+
+	// Initialize derived members
+	for ( TFieldIterator<UProperty> It(this); It; ++It )
+	{
+		if ( UStructProperty* StructProp = Cast<UStructProperty>(*It) )
+		{
+			if ( StructProp->Struct->IsChildOf(FWidgetNode_Base::StaticStruct()) )
+			{
+				WidgetNodeProperties.Add(StructProp);
+			}
+		}
+	}
+}
+
 void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 {
 	Super::CreateComponentsForActor(Actor);
@@ -49,6 +69,31 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 		if ( Prop )
 		{
 			Prop->SetObjectPropertyValue_InContainer(Actor, Widget);
+		}
+
+		// Perform binding
+		for ( const FDelegateRuntimeBinding& Binding : Bindings )
+		{
+			//TODO UMG Terrible performance, improve with Maps.
+			if ( Binding.ObjectName == VariableName )
+			{
+				UFunction* BoundFunction = WidgetActor->FindFunction(Binding.FunctionName);
+
+				FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
+
+				for ( TFieldIterator<UProperty> It(Widget->GetClass()); It; ++It )
+				{
+					if ( UDelegateProperty* DelegateProp = Cast<UDelegateProperty>(*It) )
+					{
+						if ( DelegateProp->GetName() == DelegateName )
+						{
+							FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
+							ScriptDelegate->BindUFunction(WidgetActor, Binding.FunctionName);
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		Widget->RegisterComponent();

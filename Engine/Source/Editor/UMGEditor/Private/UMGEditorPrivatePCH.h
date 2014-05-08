@@ -5,6 +5,7 @@
 #include "Slate.h"
 #include "SlateCore.h"
 #include "UnrealEd.h"
+#include "BlueprintGraphDefinitions.h"
 
 #include "UMG.h"
 

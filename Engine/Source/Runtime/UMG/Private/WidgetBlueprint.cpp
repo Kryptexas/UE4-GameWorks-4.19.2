@@ -4,6 +4,16 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprint* Blueprint) const
+{
+	FDelegateRuntimeBinding Binding;
+	Binding.ObjectName = ObjectName;
+	Binding.PropertyName = PropertyName;
+	Binding.FunctionName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+
+	return Binding;
+}
+
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
 
