@@ -6,7 +6,6 @@
 #include "SpriteAssetTypeActions.h"
 #include "FlipbookAssetTypeActions.h"
 #include "TileSetAssetTypeActions.h"
-#include "Atlasing/AtlasAssetTypeActions.h"
 
 #include "AssetToolsModule.h"
 #include "PropertyEditorModule.h"
@@ -21,6 +20,12 @@
 #include "AssetEditorToolkit.h"
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+
+// Atlas support
+#include "Atlasing/AtlasAssetTypeActions.h"
+#include "Atlasing/PaperAtlasGenerator.h"
+
+DEFINE_LOG_CATEGORY(LogPaper2DEditor);
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DEditor
@@ -50,6 +55,9 @@ private:
 
 	TSharedPtr<IComponentAssetBroker> PaperSpriteBroker;
 	TSharedPtr<IComponentAssetBroker> PaperFlipbookBroker;
+
+	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+
 public:
 	virtual void StartupModule() OVERRIDE
 	{
@@ -90,6 +98,10 @@ public:
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
 
+		// Register to be notified when properties are edited
+		OnPropertyChangedHandle = FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPaper2DEditor::OnPropertyChanged);
+		FCoreDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
 		// Register the thumbnail renderers
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperTileSet::StaticClass(), UPaperTileSetThumbnailRenderer::StaticClass());
@@ -125,6 +137,9 @@ public:
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperSprite::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperTileSet::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
+
+			// Unregister the property modification handler
+			FCoreDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
 		}
 
 		// Unregister the details customization
@@ -149,6 +164,15 @@ private:
 	{
 		AssetTools.RegisterAssetTypeActions(Action);
 		CreatedAssetTypeActions.Add(Action);
+	}
+
+	// Called when a property on the specified object is modified
+	void OnPropertyChanged(UObject* ObjectBeingModified)
+	{
+		if (UPaperSpriteAtlas* Atlas = Cast<UPaperSpriteAtlas>(ObjectBeingModified))
+		{
+			FPaperAtlasGenerator::HandleAssetChangedEvent(Atlas);
+		}
 	}
 };
 

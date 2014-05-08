@@ -45,15 +45,24 @@ class PAPER2D_API UPaperSprite : public UObject, public IInterface_CollisionData
 protected:
 
 #if WITH_EDITORONLY_DATA
+	// Position with SourceTexture
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	FVector2D SourceUV;
 
+	// Dimensions within SourceTexture
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	FVector2D SourceDimension;
+
+	// Position within BakedSourceTexture
+	UPROPERTY()
+	FVector2D BakedSourceUV;
 #endif
 
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	UTexture2D* SourceTexture;
+
+	UPROPERTY()
+	UTexture2D* BakedSourceTexture;
 
 	// The material to use on a sprite instance if not overridden
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
@@ -98,6 +107,10 @@ protected:
 	// Custom render geometry polygons (in texture space)
 	UPROPERTY(Category=Rendering, EditAnywhere)
 	FSpritePolygonCollection RenderGeometry;
+
+	// Spritesheet group that this sprite belongs to
+	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
+	class UPaperSpriteAtlas* AtlasGroup;
 #endif
 
 public:
@@ -115,6 +128,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End of UObject interface
 
 	FVector2D ConvertTextureSpaceToPivotSpace(FVector2D Input) const;
@@ -153,7 +167,8 @@ public:
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
 #endif
 
-	UTexture2D* GetPrimaryAtlasTexture() const { return SourceTexture; }
+	// Returns the texture this should be rendered with
+	UTexture2D* GetBakedTexture() const;
 
 	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
 
@@ -176,5 +191,6 @@ public:
 	friend class FSpriteDetailsCustomization;
 	friend class FSpriteSelectedVertex;
 	friend class FSpriteSelectedEdge;
+	friend struct FPaperAtlasGenerator;
 };
 

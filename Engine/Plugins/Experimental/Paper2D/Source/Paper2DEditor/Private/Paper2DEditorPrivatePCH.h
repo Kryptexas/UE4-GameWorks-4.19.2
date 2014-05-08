@@ -6,3 +6,6 @@
 #include "Paper2DClasses.h"
 #include "Paper2DModule.h"
 #include "Paper2DEditorClasses.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogPaper2DEditor, Verbose, All);
+

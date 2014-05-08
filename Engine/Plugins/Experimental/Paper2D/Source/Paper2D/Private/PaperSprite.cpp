@@ -6,6 +6,8 @@
 #include "PaperCustomVersion.h"
 
 #if WITH_EDITORONLY_DATA
+
+#include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -352,7 +354,7 @@ void FSpriteDrawCallRecord::BuildFromSprite(class UPaperSprite* Sprite)
 		//SourceDimension = Sprite->GetSourceSize();
 		Destination = FVector::ZeroVector;
 		//DestinationDimension = Sprite->GetSourceSize();
-		Texture = Sprite->GetPrimaryAtlasTexture();
+		Texture = Sprite->GetBakedTexture();
 		Color = FLinearColor::White;
 		BlendMode = Sprite->BlendMode;
 
@@ -611,14 +613,20 @@ void UPaperSprite::RebuildRenderData()
 	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
 
 	// Adjust for the pivot and store in the baked geometry buffer
-	const float InverseWidth = (SourceTexture != NULL) ? (1.0f / SourceTexture->GetSizeX()) : 1.0f;
-	const float InverseHeight = (SourceTexture != NULL) ? (1.0f / SourceTexture->GetSizeY()) : 1.0f;
+	UTexture2D* EffectiveTexture = GetBakedTexture();
+
+	const float InverseWidth = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeX()) : 1.0f;
+	const float InverseHeight = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeY()) : 1.0f;
+
+	const FVector2D DeltaUV((BakedSourceTexture != nullptr) ? (BakedSourceUV - SourceUV) : FVector2D::ZeroVector);
+
 
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
 	{
-		const FVector2D& UV = TriangluatedPoints[PointIndex];
-		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(UV);
+		const FVector2D& SourcePos = TriangluatedPoints[PointIndex];
+		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(SourcePos);
+		const FVector2D UV(SourcePos + DeltaUV);
 
 		new (BakedRenderData) FVector4(PivotSpacePos.X, PivotSpacePos.Y, UV.X * InverseWidth, UV.Y * InverseHeight);
 	}
@@ -1041,6 +1049,16 @@ FVector2D UPaperSprite::GetPivotPosition() const
 	};
 }
 
+void UPaperSprite::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+
+	if (AtlasGroup != nullptr)
+	{
+		OutTags.Add(FAssetRegistryTag(TEXT("AtlasGroupGUID"), AtlasGroup->AtlasGUID.ToString(EGuidFormats::Digits), FAssetRegistryTag::TT_Hidden));
+	}
+}
+
 #endif
 
 bool UPaperSprite::GetPhysicsTriMeshData(FTriMeshCollisionData* OutCollisionData, bool InUseAllTriData)
@@ -1114,4 +1132,9 @@ void UPaperSprite::PostLoad()
 		RebuildCollisionData();
 	}
 #endif
+}
+
+UTexture2D* UPaperSprite::GetBakedTexture() const
+{
+	return (BakedSourceTexture != nullptr) ? BakedSourceTexture : SourceTexture;
 }
