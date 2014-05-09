@@ -249,10 +249,10 @@ const FSlateBrush* FBlueprintEditor::GetGlyphForGraph(const UEdGraph* Graph, boo
 	return ReturnValue;
 }
 
-FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(UClass* VarClass, FName VarName, FSlateColor& IconColorOut)
+FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
 {
 	FLinearColor ColorOut;
-	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(UK2Node_Variable::GetVariableIconAndColor(VarClass, VarName, ColorOut));
+	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut));
 	IconColorOut = ColorOut;
 	return IconBrush;
 }
@@ -5323,7 +5323,10 @@ void FBlueprintEditor::OnAddNewVariable()
 
 void FBlueprintEditor::OnAddNewLocalVariable()
 {
-	UEdGraph* TargetGraph = FocusedGraphEdPtr.Pin()->GetCurrentGraph();
+	// Find the top level graph to place the local variables into
+	UEdGraph* TargetGraph = FBlueprintEditorUtils::GetTopLevelGraph(FocusedGraphEdPtr.Pin()->GetCurrentGraph());
+	check(TargetGraph->GetSchema()->GetGraphType(TargetGraph) == GT_Function);
+
 	if(TargetGraph != NULL)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddLocalVariable", "Add Local Variable") );
@@ -5332,19 +5335,26 @@ void FBlueprintEditor::OnAddNewLocalVariable()
 		// Figure out a decent place to stick the node
 		const FVector2D NewNodePos = TargetGraph->GetGoodPlaceForNewNode();
 
-		// Create a new event node
-		UK2Node_LocalVariable* LocalVariableTemplate = NewObject<UK2Node_LocalVariable>();
-		LocalVariableTemplate->VariableType = MyBlueprintWidget->GetLastPinTypeUsed();
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		TargetGraph->GetNodesOfClass(FunctionEntryNodes);
+		check(FunctionEntryNodes.Num());
 
-		UK2Node_LocalVariable* LocalVariableNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_LocalVariable>(TargetGraph, LocalVariableTemplate, NewNodePos);
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+		// Now create new variable
+		FBPVariableDescription NewVar;
+
+		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
+		NewVar.VarGuid = FGuid::NewGuid();
+		NewVar.VarType = GetMyBlueprintWidget()->GetLastPinTypeUsed();
+		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+		NewVar.Category = K2Schema->VR_DefaultCategory;
+
+		FunctionEntryNodes[0]->Modify();
+		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
-
-		// Finally, bring up kismet and jump to the new node
-		if (LocalVariableNode != NULL)
-		{
-			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(LocalVariableNode);
-			RenameNewlyAddedAction(LocalVariableNode->CustomVariableName);
-		}
+		RenameNewlyAddedAction(NewVar.VarName);
 	}
 }
 
@@ -5509,7 +5519,7 @@ bool FBlueprintEditor::NewDocument_IsVisibleForType(ECreatedDocumentType GraphTy
 	case CGT_NewEventGraph:
 		return FBlueprintEditorUtils::DoesSupportEventGraphs(GetBlueprintObj());
 	case CGT_NewLocalVariable:
-		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) && (GetFocusedGraph() && GetFocusedGraph()->GetSchema()->GetGraphType(GetFocusedGraph()) == EGraphType::GT_Function);
+		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) && (GetFocusedGraph() && GetFocusedGraph()->GetSchema()->GetGraphType(GetFocusedGraph()) == EGraphType::GT_Function) && !GetFocusedGraph()->IsA(UAnimationTransitionGraph::StaticClass());
 	}
 
 	return false;

@@ -20,11 +20,11 @@ public:
 	virtual FReply DroppedOnCategory(FString Category) OVERRIDE;
 	// End of FGraphEditorDragDropAction
 
-	static TSharedRef<FKismetVariableDragDropAction> New(FName InVariableName, UClass* InClass, FNodeCreationAnalytic AnalyticCallback)
+	static TSharedRef<FKismetVariableDragDropAction> New(FName InVariableName, UStruct* InVariableSource, FNodeCreationAnalytic AnalyticCallback)
 	{
 		TSharedRef<FKismetVariableDragDropAction> Operation = MakeShareable(new FKismetVariableDragDropAction);
 		Operation->VariableName = InVariableName;
-		Operation->VariableSourceClass = InClass;
+		Operation->VariableSource = InVariableSource;
 		Operation->AnalyticCallback = AnalyticCallback;
 		Operation->Construct();
 		return Operation;
@@ -33,22 +33,33 @@ public:
 	/** Helper method to see if we're dragging in the same blueprint */
 	bool IsFromBlueprint(class UBlueprint* InBlueprint) const
 	{ 
-		check(VariableSourceClass.IsValid());
-		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VariableSourceClass.Get());
+		check(VariableSource.IsValid());
+
+		UClass* VariableSourceClass = NULL;
+		if(VariableSource.Get()->IsA(UClass::StaticClass()))
+		{
+			VariableSourceClass = CastChecked<UClass>(VariableSource.Get());
+		}
+		else
+		{
+			check(VariableSource.Get()->GetOuter());
+			VariableSourceClass = CastChecked<UClass>(VariableSource.Get()->GetOuter());
+		}
+		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VariableSourceClass);
 		return (InBlueprint == Blueprint);
 	}
 
 	UProperty* GetVariableProperty()
 	{
-		check(VariableSourceClass.IsValid());
+		check(VariableSource.IsValid());
 		check(VariableName != NAME_None);
-		UProperty* VariableProperty = FindField<UProperty>(VariableSourceClass.Get(), VariableName);
+		UProperty* VariableProperty = FindField<UProperty>(VariableSource.Get(), VariableName);
 		check(VariableProperty != NULL);
 		return VariableProperty;
 	}
 
 	/** Configure the supplied variable node based on this action's info */
-	static void ConfigureVarNode(UK2Node_Variable* VarNode, FName VariableName, UClass* VariableSourceClass, UBlueprint* TargetBlueprint);
+	static void ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint);
 
 	/** Set if operation is modified by alt */
 	void SetAltDrag(bool InIsAltDrag) {	bAltDrag = InIsAltDrag;}
@@ -60,12 +71,21 @@ protected:
 	 /** Construct a FKismetVariableDragDropAction */
 	FKismetVariableDragDropAction();
 
+	/** Structure for required node construction parameters */
+	struct FNodeConstructionParams
+	{
+		FVector2D GraphPosition;
+		UEdGraph* Graph;
+		FName VariableName;
+		TWeakObjectPtr<UStruct> VariableSource;
+	};
+
 	/** Called when user selects to create a Getter for the variable */
-	static void MakeGetter(FVector2D GraphPosition, UEdGraph* Graph, FName VariableName, UClass* VariableSourceClass);
+	static void MakeGetter(FNodeConstructionParams InParams);
 	/** Called when user selects to create a Setter for the variable */
-	static void MakeSetter(FVector2D GraphPosition, UEdGraph* Graph, FName VariableName, UClass* VariableSourceClass);
+	static void MakeSetter(FNodeConstructionParams InParams);
 	/** Called too check if we can execute a setter on a given property */
-	static bool CanExecuteMakeSetter(UEdGraph* Graph, UProperty* VariableProperty, UClass* VariableSourceClass);
+	static bool CanExecuteMakeSetter(FNodeConstructionParams InParams, UProperty* InVariableProperty);
 
 	/**
 	 * Test new variable type against existing links for node and get any links that will break
@@ -84,11 +104,19 @@ protected:
 		return BadLinks.Num() > 0;
 	}
 
+	/**
+	 * Checks if the property can be dropped in a graph
+	 *
+	 * @param InVariableProperty		The variable property to check with
+	 * @param InGraph					The graph to check against placing the variable
+	 */
+	bool CanVariableBeDropped(const UProperty* InVariableProperty, const UEdGraph& InGraph) const;
+
 protected:
 	/** Name of variable being dragged */
 	FName VariableName;
-	/** Class this variable belongs to */
-	TWeakObjectPtr<UClass> VariableSourceClass;
+	/** Scope this variable belongs to */
+	TWeakObjectPtr<UStruct> VariableSource;
 	/** Was ctrl held down at start of drag */
 	bool bControlDrag;
 	/** Was alt held down at the start of drag */

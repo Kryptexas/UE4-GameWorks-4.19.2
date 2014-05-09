@@ -957,24 +957,14 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 			for (TArray<FEdGraphPinType>::TIterator TypeIt(TemporaryTypes); TypeIt; ++TypeIt)
 			{
-				// For function graphs, supply the menu options for named local variables, otherwise supply the un-named local variables
-				UK2Node* NodeTemplate;
-				if(GraphType == GT_Function)
+				// Add a standard version of the local
 				{
-					UK2Node_LocalVariable* LocalVariableNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_LocalVariable>();
-					LocalVariableNodeTemplate->VariableType = *TypeIt;
-					NodeTemplate = LocalVariableNodeTemplate;
+					UK2Node_TemporaryVariable* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
+					NodeTemplate->VariableType = *TypeIt;
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					Action->NodeTemplate = NodeTemplate;
+					Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 				}
-				else
-				{
-					UK2Node_TemporaryVariable* TemporaryVariableNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
-					TemporaryVariableNodeTemplate->VariableType = *TypeIt;
-					NodeTemplate = TemporaryVariableNodeTemplate;
-				}
-
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-				Action->NodeTemplate = NodeTemplate;
-				Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 			}
 
 			// Add in bool and int persistent pin types
@@ -1371,15 +1361,6 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 		{
 			GetEnumUtilitiesNodes(ContextMenuBuilder, false, false, false, true);
 		}
-
-		// Assignment statement for local variables
-		if(FromPin.GetOwningNode()->IsA(UK2Node_TemporaryVariable::StaticClass()))
-		{
-			UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_AssignmentStatement>();
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, TEXT(""), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-			Action->NodeTemplate = NodeTemplate;
-			Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
-		}
 	}
 }
 
@@ -1765,6 +1746,68 @@ void FK2ActionMenuBuilder::GetVariableGettersSettersForClass(FBlueprintGraphActi
 
 					UK2Node_VariableSet* VarSetNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableSet>();
 					VarSetNode->SetFromProperty(Property, bSelfContext);
+					WriteVar->NodeTemplate = VarSetNode;
+					WriteVar->SearchTitle = WriteVar->NodeTemplate->GetNodeSearchTitle();
+				}
+			}
+		}
+	}
+
+	// Add any local variables to the list as well
+	UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(ContextMenuBuilder.CurrentGraph);
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+	if(FunctionEntryNodes.Num() == 1)
+	{
+		// Setting them without the property, cannot guarantee that properties in the UFunction are valid as local variables
+		for(auto& LocalVariable : FunctionEntryNodes[0]->LocalVariables)
+		{
+			bool bTypesMatchForRead = !bRequireDesiredPinType;
+			bool bTypesMatchForWrite = !bRequireDesiredPinType;
+			if (bRequireDesiredPinType)
+			{
+				// reading (property out -> pin in)
+				bTypesMatchForRead = K2Schema->ArePinTypesCompatible(LocalVariable.VarType, DesiredPinType, Class);
+
+				// writing (pin out -> property in)
+				// Always allow exec pins to write
+				bTypesMatchForWrite = DesiredPinType.PinCategory == K2Schema->PC_Exec || K2Schema->ArePinTypesCompatible(DesiredPinType, LocalVariable.VarType, Class);
+			}
+
+			FString Category = LocalVariable.Category.ToString();
+			FString PropertyTooltip;
+			if(LocalVariable.HasMetaData(TEXT("tooltip")))
+			{
+				PropertyTooltip = LocalVariable.GetMetaData(TEXT("tooltip"));
+			}
+			FString FullCategoryName = K2ActionCategories::VariablesCategory;
+			if(Category.IsEmpty() == false)
+			{
+				FullCategoryName += K2ActionCategories::SubCategoryDelim;
+				FullCategoryName += Category;
+			}
+
+			const FString PropertyDescription = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames ? LocalVariable.FriendlyName : LocalVariable.VarName.ToString();
+			const bool bCanRead = bWantGetters && bTypesMatchForRead;
+			const bool bCanWrite = bWantSetters && bTypesMatchForWrite;
+			{
+				// Variable getters and setters
+				if (bCanRead)
+				{
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> ReadVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FullCategoryName, FText::FromString(GetString + PropertyDescription), PropertyTooltip);
+
+					UK2Node_VariableGet* VarGetNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableGet>();
+					VarGetNode->VariableReference.SetLocalMember(LocalVariable.VarName, FunctionGraph->GetName(), LocalVariable.VarGuid);
+					ReadVar->NodeTemplate = VarGetNode;
+					ReadVar->SearchTitle = ReadVar->NodeTemplate->GetNodeSearchTitle();
+				}
+
+				if (bCanWrite)
+				{
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> WriteVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FullCategoryName, FText::FromString(SetString + PropertyDescription), PropertyTooltip);
+
+					UK2Node_VariableSet* VarSetNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableSet>();
+					VarSetNode->VariableReference.SetLocalMember(LocalVariable.VarName, FunctionGraph->GetName(), LocalVariable.VarGuid);
 					WriteVar->NodeTemplate = VarSetNode;
 					WriteVar->SearchTitle = WriteVar->NodeTemplate->GetNodeSearchTitle();
 				}

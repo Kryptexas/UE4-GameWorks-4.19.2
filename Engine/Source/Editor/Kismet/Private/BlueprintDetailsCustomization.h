@@ -39,14 +39,15 @@ private:
 	/** Accessors passed to parent */
 	UBlueprint* GetBlueprintObj() const {return MyBlueprint.Pin()->GetBlueprintObj();}
 	FEdGraphSchemaAction_K2Var* MyBlueprintSelectionAsVar() const {return MyBlueprint.Pin()->SelectionAsVar();}
+	FEdGraphSchemaAction_K2LocalVar* MyBlueprintSelectionAsLocalVar() const {return MyBlueprint.Pin()->SelectionAsLocalVar();}
 	UK2Node_Variable* EdGraphSelectionAsVar() const;
 	UProperty* SelectionAsProperty() const;
-	UClass* SelectionAsClass() const;
 	FName GetVariableName() const;
 
 	/** Commonly queried attributes about the schema action */
 	bool IsAComponentVariable(UProperty* VariableProperty) const;
 	bool IsABlueprintVariable(UProperty* VariableProperty) const;
+	bool IsALocalVariable(UProperty* VariableProperty) const;
 
 	// Callbacks for uproperty details customization
 	bool GetVariableNameChangeEnabled() const;
@@ -140,55 +141,6 @@ private:
 
 	/** The listview widget for displaying property flags */
 	TWeakPtr< SListView< TSharedPtr< FString > > > PropertyFlagWidget;
-};
-
-/** Details customization for local variables selected in the MyBlueprint panel */
-class FBlueprintLocalVarActionDetails : public IDetailCustomization
-{
-public:
-	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<class IDetailCustomization> MakeInstance(TWeakPtr<SMyBlueprint> InMyBlueprint)
-	{
-		return MakeShareable(new FBlueprintLocalVarActionDetails(InMyBlueprint));
-	}
-
-	FBlueprintLocalVarActionDetails(TWeakPtr<SMyBlueprint> InMyBlueprint)
-		: MyBlueprint(InMyBlueprint)
-		, bIsVarNameInvalid(false)
-	{
-	}
-
-	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
-
-private:
-	/** Accessors passed to parent */
-	UBlueprint* GetBlueprintObj() const {return MyBlueprint.Pin()->GetBlueprintObj();}
-	UK2Node_LocalVariable* GetDetailsSelection() const;
-	UK2Node_LocalVariable* MyBlueprintSelectionAsLocalVar() const {return MyBlueprint.Pin()->SelectionAsLocalVar();}
-	UK2Node_LocalVariable* EdGraphSelectionAsLocalVar() const;
-	FName GetVariableName() const;
-
-	// Callbacks for uproperty details customization
-	FText OnGetVarName() const;
-	void OnLocalVarNameChanged(const FText& InNewText);
-	void OnLocalVarNameCommitted(const FText& InNewName, ETextCommit::Type InTextCommit);
-	bool GetVariableTypeChangeEnabled() const;
-	FEdGraphPinType OnGetVarType() const;
-	void OnVarTypeChanged(const FEdGraphPinType& NewPinType);
-
-	FText OnGetTooltipText() const;
-	void OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-
-private:
-	/** Pointer back to my parent tab */
-	TWeakPtr<SMyBlueprint> MyBlueprint;
-
-	/** The widget used when in variable name editing mode */ 
-	TSharedPtr<SEditableTextBox> VarNameEditableTextBox;
-
-	/** Flag to indicate whether or not the variable name is invalid */
-	bool bIsVarNameInvalid;
 };
 
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization

@@ -1087,6 +1087,7 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 {
 	MemberName = InMemberName;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 	bSelfContext = false;
 }
 
@@ -1094,6 +1095,7 @@ void FMemberReference::SetSelfMember(FName InMemberName)
 {
 	MemberName = InMemberName;
 	MemberParentClass = NULL;
+	MemberScope.Empty();
 	bSelfContext = true;
 }
 
@@ -1103,6 +1105,7 @@ void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberG
 	MemberGuid = InMemberGuid;
 	bSelfContext = bIsConsideredSelfContext;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 }
 
 void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, TSubclassOf<class UObject> SelfScope) const
@@ -1110,12 +1113,25 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 	bSelfContext = (SelfScope->IsChildOf(InMemberParentClass)) || (SelfScope->ClassGeneratedBy == InMemberParentClass->ClassGeneratedBy);
 
 	if (bSelfContext)
 	{
 		MemberParentClass = NULL;
 	}
+}
+
+void FMemberReference::SetLocalMember(FName InMemberName, UStruct* InScope, const FGuid InMemberGuid)
+{
+	SetLocalMember(InMemberName, InScope->GetName(), InMemberGuid);
+}
+
+void FMemberReference::SetLocalMember(FName InMemberName, FString InScopeName, const FGuid InMemberGuid)
+{
+	MemberName = InMemberName;
+	MemberScope = InScopeName;
+	MemberGuid = InMemberGuid;
 }
 
 void FMemberReference::InvalidateSelfScope()
@@ -1134,6 +1150,24 @@ UClass* FMemberReference::GetBlueprintClassFromNode(const UK2Node* Node)
 		BPClass =  Node->GetBlueprint()->SkeletonGeneratedClass;
 	}
 	return BPClass;
+}
+
+FName FMemberReference::RefreshLocalVariableName(UClass* InSelfScope) const
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InSelfScope, Blueprints);
+
+	FName RenamedMemberName = NAME_None;
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		RenamedMemberName = FBlueprintEditorUtils::FindLocalVariableNameByGuid(Blueprints[BPIndex], MemberGuid);
+		if (RenamedMemberName != NAME_None)
+		{
+			MemberName = RenamedMemberName;
+			break;
+		}
+	}
+	return RenamedMemberName;
 }
 
 #undef LOCTEXT_NAMESPACE

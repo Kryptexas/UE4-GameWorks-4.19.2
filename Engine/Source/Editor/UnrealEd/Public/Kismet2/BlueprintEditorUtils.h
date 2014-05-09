@@ -249,7 +249,7 @@ public:
 	 *
 	 * @return				The top level graph
 	 */
-	static UEdGraph* GetTopLevelGraph(UEdGraph* InGraph);
+	static UEdGraph* GetTopLevelGraph(const UEdGraph* InGraph);
 
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
@@ -472,6 +472,59 @@ public:
 	
 	/** Changes the type of a member variable */
 	static void ChangeMemberVariableType(UBlueprint* Blueprint, const FName& VariableName, const FEdGraphPinType& NewPinType);
+
+	/**
+	 * Removes a member variable if it was declared in this blueprint and not in a base class.
+	 *
+	 * @param	InBlueprint			The Blueprint the local variable can be found in
+	 * @param	InVarName			Name of the variable to be removed.
+	 */
+	static void RemoveLocalVariable(UBlueprint* InBlueprint, const FName& InVarName);
+
+	/**
+	 * Returns a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the variable to search for
+	 * @return					The local variable description
+	 */
+	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const FName& InVariableName);
+
+	/**
+	 * Finds a local variable name using the variable's Guid
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Guid to identify the local variable with
+	 * @return					Local variable's name
+	 */
+	static FName FindLocalVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid);
+
+	/**
+	 * Finds a local variable Guid using the variable's name
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Local variable's name to search for
+	 * @return					The Guid associated with the local variable
+	 */
+	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName);
+
+	/**
+	 * Rename a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InOldName The name of the local variable to change
+	 * @param InNewName	The new name of the local variable
+	 */
+	static void RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName);
+
+	/**
+	 * Changes the type of a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the local variable to change the type of
+	 * @param InNewPinType		The pin type to change the local variable type to
+	 */
+	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const FName& InVariableName, const FEdGraphPinType& InNewPinType);
 
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);

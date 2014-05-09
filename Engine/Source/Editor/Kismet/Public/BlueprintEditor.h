@@ -286,8 +286,15 @@ public:
 	 */
 	static const FSlateBrush* GetGlyphForGraph(const UEdGraph* Graph, bool bInLargeIcon = false);
 
-	
-	static FSlateBrush const* GetVarIconAndColor(UClass* VarClass, FName VarName, FSlateColor& IconColorOut);
+	/**
+	 * Util for finding a glyph and color for a variable.
+	 *
+	 * @param VarScope			Scope to find the variable in
+	 * @param VarName			Name of variable
+	 * @param IconColorOut		The resulting color for the glyph
+	 * @return					The resulting glyph brush
+	 */
+	static FSlateBrush const* GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
 
 	/** Overridable function for determining if the current mode can script */
 	virtual bool IsInAScriptingMode() const;

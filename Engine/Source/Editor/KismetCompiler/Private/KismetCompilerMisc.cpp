@@ -715,6 +715,12 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 			Term->bIsConst = true;
 		}
 
+		// Check if the property is a local variable and mark it so
+		if( SearchScope == Context.Function && BoundProperty->GetOuter() == Context.Function)
+		{
+			Term->bIsLocal = true;
+		}
+
 		// Resolve the context term
 		if (SelfPin != NULL)
 		{

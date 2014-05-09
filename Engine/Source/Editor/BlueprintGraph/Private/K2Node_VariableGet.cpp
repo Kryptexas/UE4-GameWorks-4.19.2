@@ -31,6 +31,15 @@ public:
 			VarNode->CheckForErrors(CompilerContext.GetSchema(), Context.MessageLog);
 		}
 
+		// Report an error that the local variable could not be found
+		if(VarNode->VariableReference.IsLocalScope() && VarNode->GetPropertyForVariable() == NULL)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VariableName"), FText::FromName(VarNode->VariableReference.GetMemberName()));
+
+			CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFound_Error", "Unable to find local variable with name '{VariableName}' for @@"), Args).ToString(), Node);
+		}
+
 		FNodeHandlingFunctor::RegisterNets(Context, Node);
 	}
 };

@@ -83,17 +83,21 @@ void UK2Node_Variable::CreatePinForSelf()
 	// Create the self pin
 	if (!K2Schema->FindSelfPin(*this, EGPD_Input))
 	{
-		if (VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo))
+		// Do not create a self pin for locally scoped variables
+		if( !VariableReference.IsLocalScope() )
 		{
-			UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
-			SelfPin->bHidden = true; // don't show in 'self' context
-		}
-		else
-		{
-			UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
-			UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
-			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
-			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+			if (VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo))
+			{
+				UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
+				SelfPin->bHidden = true; // don't show in 'self' context
+			}
+			else
+			{
+				UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
+				UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
+				UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
+				TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+			}
 		}
 	}
 	else
@@ -246,7 +250,9 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	UProperty* VariableProperty = GetPropertyForVariable();
-	if (VariableProperty == NULL)
+
+	// Local variables do not exist until much later in the compilation than this function can provide
+	if (VariableProperty == NULL && !VariableReference.IsLocalScope())
 	{
 		MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
 	}
@@ -254,7 +260,18 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 
 FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
 {
-	return GetVariableIconAndColor(GetVariableSourceClass(), GetVarName(), ColorOut);
+	FName ReturnIconName;
+
+	if(VariableReference.IsLocalScope())
+	{
+		ReturnIconName = GetVariableIconAndColor(VariableReference.GetMemberScope(this), GetVarName(), ColorOut);
+	}
+	else
+	{
+		ReturnIconName = GetVariableIconAndColor(GetVariableSourceClass(), GetVarName(), ColorOut);
+	}
+
+	return ReturnIconName;
 }
 
 FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
@@ -301,13 +318,13 @@ FText UK2Node_Variable::GetToolTipHeading() const
 	return Heading;
 }
 
-FName UK2Node_Variable::GetVariableIconAndColor(UClass* VarClass, FName VarName, FLinearColor& IconColorOut)
+FName UK2Node_Variable::GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut)
 {
 	FName IconBrush = TEXT("Kismet.AllClasses.VariableIcon");
 
-	if(VarClass != NULL)
+	if(VarScope != NULL)
 	{
-		UProperty* Property = FindField<UProperty>(VarClass, VarName);
+		UProperty* Property = FindField<UProperty>(VarScope, VarName);
 		if(Property != NULL)
 		{
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

@@ -203,6 +203,9 @@ protected:
 	/** Creates the properties on a function that store the function parameters, results, and local variables */
 	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context);
 
+	/** Creates user defined local variables for function */
+	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation);
+
 	/** Adds a default value entry into the DefaultPropertyValueMap for the property specified */
 	void SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value);
 

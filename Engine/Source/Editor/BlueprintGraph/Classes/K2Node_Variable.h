@@ -121,12 +121,12 @@ public:
 	 * Utility method intended to serve as a choke point for various slate 
 	 * widgets to grab an icon from (for a specified variable).
 	 * 
-	 * @param  VarClass		The class that owns the variable in question.
+	 * @param  VarScope		The scope that owns the variable in question.
 	 * @param  VarName		The name of the variable you're querying for.
 	 * @param  IconColorOut	A color out, further discerning the variable's type.
 	 * @return A icon representing the specified variable's type.
 	 */
-	BLUEPRINTGRAPH_API static FName GetVariableIconAndColor(UClass* VarClass, FName VarName, FLinearColor& IconColorOut);
+	BLUEPRINTGRAPH_API static FName GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut);
 
 	/**
 	 * Utility method intended to serve as a choke point for various slate 

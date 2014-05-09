@@ -167,7 +167,9 @@ struct FBPVariableDescription
 	/** Clear metadata value on the variable */
 	ENGINE_API void RemoveMetaData(const FName& Key);
 	/** Find the index in the array of a metadata entry */
-	ENGINE_API int32 FindMetaDataEntryIndexForKey(const FName& Key);
+	ENGINE_API int32 FindMetaDataEntryIndexForKey(const FName& Key) const;
+	/** Checks if there is metadata for a key */
+	ENGINE_API bool HasMetaData(const FName& Key) const;
 	
 };
 

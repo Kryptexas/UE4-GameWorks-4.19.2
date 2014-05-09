@@ -17,6 +17,8 @@ namespace GraphActionMenuHelpers
 
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Var*)InGraphAction)->GetVariableName() == ItemName);
+		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId() &&
+			((FEdGraphSchemaAction_K2LocalVar*)InGraphAction)->GetVariableName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Graph*)InGraphAction)->EdGraph &&
 			((FEdGraphSchemaAction_K2Graph*)InGraphAction)->EdGraph->GetFName() == ItemName);

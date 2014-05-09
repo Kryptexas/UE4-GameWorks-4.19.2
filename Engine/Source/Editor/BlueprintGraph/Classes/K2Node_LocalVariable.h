@@ -4,8 +4,8 @@
 
 #include "K2Node_LocalVariable.generated.h"
 
-UCLASS(MinimalAPI)
-class UK2Node_LocalVariable : public UK2Node_TemporaryVariable
+UCLASS(MinimalAPI, deprecated)
+class UDEPRECATED_K2Node_LocalVariable : public UK2Node_TemporaryVariable
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,6 +26,7 @@ class UK2Node_LocalVariable : public UK2Node_TemporaryVariable
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
+	virtual void ReconstructNode() OVERRIDE;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.

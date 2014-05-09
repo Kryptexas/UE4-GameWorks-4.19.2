@@ -16,7 +16,7 @@ DEFINE_LOG_CATEGORY(LogBlueprint);
 //////////////////////////////////////////////////////////////////////////
 // FBPVariableDescription
 
-int32 FBPVariableDescription::FindMetaDataEntryIndexForKey(const FName& Key)
+int32 FBPVariableDescription::FindMetaDataEntryIndexForKey(const FName& Key) const
 {
 	for(int32 i=0; i<MetaDataArray.Num(); i++)
 	{
@@ -26,6 +26,11 @@ int32 FBPVariableDescription::FindMetaDataEntryIndexForKey(const FName& Key)
 		}
 	}
 	return INDEX_NONE;
+}
+
+bool FBPVariableDescription::HasMetaData(const FName& Key) const
+{
+	return FindMetaDataEntryIndexForKey(Key) != INDEX_NONE;
 }
 
 /** Gets a metadata value on the variable; asserts if the value isn't present.  Check for validiy using FindMetaDataEntryIndexForKey. */

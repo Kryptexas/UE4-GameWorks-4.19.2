@@ -226,9 +226,6 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableGet::StaticClass(), LayoutVariableDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableSet::StaticClass(), LayoutVariableDetails);
 
-		FOnGetDetailCustomizationInstance LayoutLocalVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintLocalVarActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
-		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_LocalVariable::StaticClass(), LayoutLocalVariableDetails);
-
 		FOnGetDetailCustomizationInstance LayoutOptionDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGlobalOptionsDetails::MakeInstance, Kismet2Ptr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UBlueprint::StaticClass(), LayoutOptionDetails);
 

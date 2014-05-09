@@ -534,6 +534,64 @@ public:
 };
 
 /*******************************************************************************
+* FEdGraphSchemaAction_K2LocalVar
+*******************************************************************************/
+
+/** Reference to a local variable (only used in 'docked' palette) */
+USTRUCT()
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2LocalVar : public FEdGraphSchemaAction
+{
+	GENERATED_USTRUCT_BODY()
+
+private:
+	/** Name of function or class */
+	FName		VarName;
+
+	/** The struct that owns this item */
+	TWeakObjectPtr<UStruct>		VariableScope;
+
+public:
+	void SetVariableInfo(const FName& InVarName, const UStruct* InVariableScope)
+	{
+		VarName = InVarName;
+
+		check(InVariableScope);
+		VariableScope = InVariableScope;
+	}
+
+	// Simple type info
+	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2LocalVar"); return Type;}
+	virtual FString GetTypeId() const OVERRIDE { return StaticGetTypeId(); } 
+
+	FEdGraphSchemaAction_K2LocalVar() 
+		: FEdGraphSchemaAction()
+	{}
+
+	FEdGraphSchemaAction_K2LocalVar (const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	{}
+
+	FName GetVariableName() const
+	{
+		return VarName;
+	}
+
+	UStruct* GetVariableScope() const
+	{
+		return VariableScope.Get();
+	}
+
+	UProperty* GetProperty() const
+	{
+		UStruct* SearchScope = GetVariableScope();
+		return FindField<UProperty>(SearchScope, VarName);
+	}
+
+	// FEdGraphSchemaAction interface
+	// End of FEdGraphSchemaAction interface
+};
+
+/*******************************************************************************
 * FEdGraphSchemaAction_K2Graph
 *******************************************************************************/
 

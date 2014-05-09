@@ -659,19 +659,25 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 	}
 }
 
-/** Creates the properties on a function that store the function parameters, results, and local variables */
 void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context)
 {
 	// Local stack frame (or maybe class for the ubergraph)
 	{
 		const bool bArePropertiesLocal = true;
 
-		check(Context.Function->Children == NULL);
-		UField** PropertyStorageLocation = &(Context.Function->Children);
+		// Pull the local properties generated out of the function, they will be put at the end of the list
+		UField* LocalProperties = Context.Function->Children;
 
+		UField** PropertyStorageLocation = &Context.Function->Children;
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Locals, 0, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+
+		// If there were local properties, place them at the end of the property storage location
+		if(LocalProperties)
+		{
+			*PropertyStorageLocation = LocalProperties;
+		}
 
 		// Create debug data for variable reads/writes
 		if (Context.bCreateDebugData)
@@ -723,6 +729,39 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 		// Handle level actor references
 		const uint64 LevelActorReferenceVarFlags = 0/*CPF_Edit*/;
 		CreatePropertiesFromList(NewClass, PropertyStorageLocation, Context.LevelActorReferences, LevelActorReferenceVarFlags, false);
+	}
+}
+
+void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation)
+{
+	check(Context.Function->Children == NULL);
+
+	// Create local variables from the Context entry point
+	for (int32 i = 0; i < Context.EntryPoint->LocalVariables.Num(); ++i)
+	{
+		FBPVariableDescription& Variable = Context.EntryPoint->LocalVariables[Context.EntryPoint->LocalVariables.Num() - (i + 1)];
+
+		// Create the property based on the variable description, scoped to the function
+		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Context.Function, Variable.VarName, Variable.VarType, NewClass, 0, Schema, MessageLog);
+		if (NewProperty != NULL)
+		{
+			// Link this object to the tail of the list (so properties remain in the desired order)
+			*PropertyStorageLocation = NewProperty;
+			PropertyStorageLocation = &(NewProperty->Next);
+		}
+
+		if (NewProperty != NULL)
+		{
+			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
+			NewProperty->SetMetaData(TEXT("FriendlyName"), *Variable.FriendlyName);
+			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
+			NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
+
+			if(!Variable.DefaultValue.IsEmpty())
+			{
+				SetPropertyDefaultValue(NewProperty, Variable.DefaultValue);
+			}
+		}
 	}
 }
 
@@ -1090,6 +1129,10 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Find the execution path (and make sure it has no cycles)
 		CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
+
+		// Create any user defined variables, this must occur before registering nets so that the properties are in place
+		UField** PropertyStorageLocation = &(Context.Function->Children);
+		CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
 
 		bool bIsPureFunction = true;
 		for (int32 NodeIndex = 0; NodeIndex < Context.LinearExecutionList.Num(); ++NodeIndex)

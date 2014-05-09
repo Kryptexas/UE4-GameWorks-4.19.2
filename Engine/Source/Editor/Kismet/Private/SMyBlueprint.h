@@ -79,7 +79,7 @@ public:
 	FEdGraphSchemaAction_K2Event* SelectionAsEvent() const;
 
 	/** Accessor for getting the current selection as a K2 local var */
-	UK2Node_LocalVariable* SelectionAsLocalVar() const;
+	FEdGraphSchemaAction_K2LocalVar* SelectionAsLocalVar() const;
 
 	/** Accessor for determining if the current selection is a category*/
 	bool SelectionIsCategory() const;

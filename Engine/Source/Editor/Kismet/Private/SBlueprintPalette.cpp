@@ -47,18 +47,18 @@ namespace BlueprintPalette
  * associated with specific blueprint variables (gets a string representing the 
  * specified variable's type)
  * 
- * @param  VarClass	The class that owns the variable in question.
+ * @param  VarScope	The struct that owns the variable in question.
  * @param  VarName	The name of the variable you want the type of.
  * @param  Detailed	If true the returned string includes SubCategoryObject
  * @return A string representing the variable's type (empty if the variable couldn't be found).
  */
-static FString GetVarType(UClass* VarClass, FName VarName, bool bUseObjToolTip, bool bDetailed = false)
+static FString GetVarType(UStruct* VarScope, FName VarName, bool bUseObjToolTip, bool bDetailed = false)
 {
 	FString VarDesc;
 
-	if(VarClass != NULL)
+	if(VarScope != NULL)
 	{
-		UProperty* Property = FindField<UProperty>(VarClass, VarName);
+		UProperty* Property = FindField<UProperty>(VarScope, VarName);
 		if(Property != NULL)
 		{
 			// If it is an object property, see if we can get a nice class description instead of just the name
@@ -279,12 +279,6 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 		{
 			BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Event_16x"));
 		}
-		else if (UK2Node_LocalVariable* LocalVariableNode = Cast<UK2Node_LocalVariable>(TargetNodeAction->NodeTemplate))
-		{
-			FLinearColor LinearColor;
-			BrushOut = FEditorStyle::GetBrush(UK2Node_Variable::GetVarIconFromPinType(LocalVariableNode->VariableType, LinearColor));
-			ColorOut = LinearColor;
-		}
 	}
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId())
 	{
@@ -333,6 +327,17 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 
 		DocLinkOut = TEXT("Shared/Editor/Blueprint/VariableTypes");
 		DocExcerptOut = GetVarType(VarClass, VarAction->GetVariableName(), false, false);
+	}
+	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+	{
+		FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)ActionIn.Get();
+
+		UStruct* VarScope = LocalVarAction->GetVariableScope();
+		BrushOut = FBlueprintEditor::GetVarIconAndColor(VarScope, LocalVarAction->GetVariableName(), ColorOut);
+		ToolTipOut = GetVarType(VarScope, LocalVarAction->GetVariableName(), true);
+
+		DocLinkOut = TEXT("Shared/Editor/Blueprint/VariableTypes");
+		DocExcerptOut = GetVarType(VarScope, LocalVarAction->GetVariableName(), false);
 	}
 	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
 	{
@@ -674,8 +679,8 @@ public:
 			UProperty* VariableProp = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(PaletteAction)->GetProperty();
 			UObjectProperty* VariableObjProp = Cast<UObjectProperty>(VariableProp);
 
-			UClass* VarSourceClass = (VariableProp != NULL) ? CastChecked<UClass>(VariableProp->GetOuter()) : NULL;
-			const bool bIsBlueprintVariable = (VarSourceClass == BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass);
+			UStruct* VarSourceScope = (VariableProp != NULL) ? CastChecked<UStruct>(VariableProp->GetOuter()) : NULL;
+			const bool bIsBlueprintVariable = (VarSourceScope == BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass);
 			const bool bIsComponentVar = (VariableObjProp != NULL) && (VariableObjProp->PropertyClass != NULL) && (VariableObjProp->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
 			bShouldHaveAVisibilityToggle = bIsBlueprintVariable && !bIsComponentVar;
 		}
@@ -1018,6 +1023,11 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 		FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)ActionPtr.Pin().Get();
 		OriginalName = (VarAction->GetVariableName());
 	}
+	else if (ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+	{
+		FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)ActionPtr.Pin().Get();
+		OriginalName = (LocalVarAction->GetVariableName());
+	}
 	else
 	{
 		UEdGraph* Graph = NULL;
@@ -1109,6 +1119,19 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Function", "Rename Function" ) );
 				FString NewNameString = NewText.ToString();
 				FBlueprintEditorUtils::RenameGraph(Graph, *NewNameString );
+
+				// Search through all function entry nodes for local variables to update their scope name
+				TArray<UK2Node_Variable*> VariableNodes;
+				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(FBlueprintEditorUtils::FindBlueprintForGraph(Graph), VariableNodes);
+
+				for (UK2Node_Variable* const VariableNode : VariableNodes)
+				{
+					if(VariableNode->VariableReference.IsLocalScope())
+					{
+						// Update the variable's scope to be the graph's name (which mirrors the UFunction)
+						VariableNode->VariableReference.SetLocalMember(VariableNode->VariableReference.GetMemberName(), Graph->GetName(), VariableNode->VariableReference.GetMemberGuid());
+					}
+				}
 			}
 		}
 	}
@@ -1198,6 +1221,23 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 			FBlueprintEditorUtils::RenameMemberVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NewVarName);
 		}
 	}
+	else if (ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+	{
+		FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)ActionPtr.Pin().Get();
+
+		// Check if the name is unchanged
+		if(NewText.ToString() == LocalVarAction->GetVariableName().ToString())
+		{
+			return;
+		}
+
+		const FScopedTransaction Transaction( LOCTEXT( "RenameVariable", "Rename Variable" ) );
+
+		BlueprintEditorPtr.Pin()->GetBlueprintObj()->Modify();
+
+		FName NewVarName = FName(*NewText.ToString());
+		FBlueprintEditorUtils::RenameLocalVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), NewVarName);
+	}
 	BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName(*NewText.ToString()), ESelectInfo::OnMouseClick);
 }
 
@@ -1273,6 +1313,23 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 				FString Result = GetVarTooltip(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarClass, VarAction->GetVariableName());
 				// Only use the variable tooltip if it has been filled out.
 				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(VarClass, VarAction->GetVariableName(), true, true);
+			}
+		}
+		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)PaletteAction.Get();
+			UClass* VarClass = CastChecked<UClass>(LocalVarAction->GetVariableScope()->GetOuter());
+			if (bShowClassInTooltip && (VarClass != NULL))
+			{
+				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VarClass);
+				ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : VarClass->GetName();
+			}
+			else
+			{
+				FString Result;
+				FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), TEXT("tooltip"), Result);
+				// Only use the variable tooltip if it has been filled out.
+				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), true, true);
 			}
 		}
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
@@ -1358,6 +1415,12 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 			const UEdGraphNode_Comment* DefaultComment = GetDefault<UEdGraphNode_Comment>();
 			DocLink = DefaultComment->GetDocumentationLink();
 			DocExcerptName = DefaultComment->GetDocumentationExcerptName();
+		}
+		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			// Don't show big tooltip if we are showing class as well (means we are not in MyBlueprint)
+			DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphTypes");
+			DocExcerptName = TEXT("LocalVariable");
 		}
 	}
 

@@ -547,7 +547,9 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 
 void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const
 {
-	if(UEdGraph* EdGraph = BlueprintEditorPtr.Pin()->GetFocusedGraph())
+	// We want to pull local variables from the top level function graphs
+	UEdGraph* EdGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+	if( EdGraph )
 	{
 		// grab the parent graph's name
 		UEdGraphSchema const* Schema = EdGraph->GetSchema();
@@ -555,19 +557,26 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 		Schema->GetGraphDisplayInformation(*EdGraph, EdGraphDisplayInfo);
 		FText const EdGraphDisplayName = EdGraphDisplayInfo.DisplayName;
 
-		TArray<UK2Node_LocalVariable*> LocalVariableNodes;
-		EdGraph->GetNodesOfClass<UK2Node_LocalVariable>(LocalVariableNodes);
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		EdGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
 
+		// Search in all FunctionEntry nodes for their local variables
 		FString ActionCategory;
-		for (UK2Node_LocalVariable* const LocalVariable : LocalVariableNodes)
+		for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
 		{
-			FString const Tooltip = LocalVariable->GetTooltip();
-			FText const Description = LocalVariable->GetNodeTitle(ENodeTitleType::EditableTitle);
+			for( const FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+			{
+				FString Category = Variable.Category.ToString();
+				if (Variable.Category == GetDefault<UEdGraphSchema_K2>()->VR_DefaultCategory)
+				{
+					Category = FString();
+				}
 
-			TSharedPtr<FEdGraphSchemaAction_K2TargetNode> TargetNodeAction = MakeShareable(new FEdGraphSchemaAction_K2TargetNode(ActionCategory, Description, Tooltip, 0));
-			TargetNodeAction->NodeTemplate = LocalVariable;
-			TargetNodeAction->SearchTitle = TargetNodeAction->NodeTemplate->GetNodeSearchTitle();
-			OutAllActions.AddAction(TargetNodeAction);
+				TSharedPtr<FEdGraphSchemaAction_K2LocalVar> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2LocalVar(Category, FText::FromName(Variable.VarName), TEXT(""), 0));
+				UFunction* Func = FindField<UFunction>(BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass, *EdGraph->GetName());
+				NewVarAction->SetVariableInfo(Variable.VarName, Func);
+				OutAllActions.AddAction(NewVarAction);
+			}
 		}
 	}
 }
@@ -899,6 +908,22 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 				return FReply::Handled().BeginDragDrop(DragOperation);
 			}
 		}
+		else if( InAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2LocalVar* VarAction = (FEdGraphSchemaAction_K2LocalVar*)InAction.Get();
+
+			UStruct* VariableScope = VarAction->GetVariableScope();
+			if(VariableScope != NULL)
+			{
+				const bool bIsAltDown = MouseEvent.IsAltDown();
+				const bool bIsCtrlDown = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
+
+				TSharedRef<FKismetVariableDragDropAction> DragOperation = FKismetVariableDragDropAction::New(VarAction->GetVariableName(), VariableScope, AnalyticsDelegate);
+				DragOperation->SetAltDrag(bIsAltDown);
+				DragOperation->SetCtrlDrag(bIsCtrlDown);
+				return FReply::Handled().BeginDragDrop(DragOperation);
+			}
+		}
 		else if(InAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)InAction.Get();
@@ -991,6 +1016,15 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)InAction.Get();
+
+			SKismetInspector::FShowDetailsOptions Options(VarAction->GetVariableName().ToString());
+			Options.bHideFilterArea = true;
+
+			Inspector->ShowDetailsForSingleObject(VarAction->GetProperty(), Options);
+		}
+		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2LocalVar* VarAction = (FEdGraphSchemaAction_K2LocalVar*)InAction.Get();
 
 			SKismetInspector::FShowDetailsOptions Options(VarAction->GetVariableName().ToString());
 			Options.bHideFilterArea = true;
@@ -1128,19 +1162,12 @@ FEdGraphSchemaAction_K2Var* SMyBlueprint::SelectionAsVar() const
 	return SelectionAsType<FEdGraphSchemaAction_K2Var>( GraphActionMenu );
 }
 
-UK2Node_LocalVariable* SMyBlueprint::SelectionAsLocalVar() const
+FEdGraphSchemaAction_K2LocalVar* SMyBlueprint::SelectionAsLocalVar() const
 {
-	FEdGraphSchemaAction_K2TargetNode* TargetNode = NULL;
-	if (LocalGraphActionMenu.IsValid())
+	if(LocalGraphActionMenu.IsValid())
 	{
-		TargetNode = SelectionAsType<FEdGraphSchemaAction_K2TargetNode>( LocalGraphActionMenu );
+		return SelectionAsType<FEdGraphSchemaAction_K2LocalVar>( LocalGraphActionMenu );
 	}
-
-	if(TargetNode && TargetNode->NodeTemplate)
-	{
-		return Cast<UK2Node_LocalVariable>(TargetNode->NodeTemplate);
-	}
-
 	return NULL;
 }
 
@@ -1363,6 +1390,10 @@ void SMyBlueprint::OnFindEntry()
 	{
 		SearchTerm = VarAction->GetVariableName().ToString();
 	}
+	else if (FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar())
+	{
+		SearchTerm = LocalVarAction->GetVariableName().ToString();
+	}
 	else if (FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate())
 	{
 		SearchTerm = DelegateAction->GetDelegateName().ToString();
@@ -1483,20 +1514,44 @@ void SMyBlueprint::OnDeleteEntry()
 		GetBlueprintObj()->Modify();
 		FBlueprintEditorUtils::RemoveMemberVariable(GetBlueprintObj(), VarAction->GetVariableName());
 	}
+	else if ( FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar() )
+	{
+		if(FBlueprintEditorUtils::IsVariableUsed(GetBlueprintObj(), LocalVarAction->GetVariableName()))
+		{
+			FText ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteLocalVariableInUse",
+				"Local Variable {0} is in use! Do you really want to delete it?"),
+				FText::FromName( LocalVarAction->GetVariableName() ) );
+
+			// Warn the user that this may result in data loss
+			FSuppressableWarningDialog::FSetupInfo Info( ConfirmDelete, LOCTEXT("DeleteVar", "Delete Variable"), "DeleteVariableInUse_Warning" );
+			Info.ConfirmText = LOCTEXT( "DeleteVariable_Yes", "Yes");
+			Info.CancelText = LOCTEXT( "DeleteVariable_No", "No");	
+
+			FSuppressableWarningDialog DeleteVariableInUse( Info );
+			if ( DeleteVariableInUse.ShowModal() == FSuppressableWarningDialog::Cancel )
+			{
+				return;
+			}
+		}
+
+		const FScopedTransaction Transaction( LOCTEXT( "RemoveLocalVariable", "Remove Local Variable" ) );
+
+		GetBlueprintObj()->Modify();
+
+		UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+		check(FunctionEntryNodes.Num() == 1);
+		FunctionEntryNodes[0]->Modify();
+
+		FBlueprintEditorUtils::RemoveLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableName());
+	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
 		const FScopedTransaction Transaction(LOCTEXT( "RemoveEventNode", "Remove EventNode"));
 
 		GetBlueprintObj()->Modify();
 		FBlueprintEditorUtils::RemoveNode(GetBlueprintObj(), EventAction->NodeTemplate);
-	}
-	else if (UK2Node_LocalVariable* LocalVariable = SelectionAsLocalVar())
-	{
-		const FScopedTransaction Transaction( LOCTEXT( "RemoveLocalVariable", "Remove Local Variable" ) );
-
-		LocalVariable->GetGraph()->Modify();
-
-		LocalVariable->DestroyNode();
 	}
 	else if ( SelectionIsCategory() )
 	{
@@ -1564,9 +1619,9 @@ bool SMyBlueprint::CanDeleteEntry() const
 	{
 		return EventAction->NodeTemplate != NULL;
 	}
-	else if (UK2Node_LocalVariable* LocalVariable = SelectionAsLocalVar())
+	else if (FEdGraphSchemaAction_K2LocalVar* LocalVariable = SelectionAsLocalVar())
 	{
-		return LocalVariable != NULL;
+		return true;
 	}
 	else if (SelectionIsCategory())
 	{
