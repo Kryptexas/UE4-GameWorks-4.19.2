@@ -8,6 +8,7 @@
 #include "FilterCollection.h"
 #include "ScopedTransaction.h"
 
+#include "SceneOutlinerSettings.h"
 #include "SceneOutlinerActorInfoColumn.h"
 #include "SceneOutlinerGutter.h"
 

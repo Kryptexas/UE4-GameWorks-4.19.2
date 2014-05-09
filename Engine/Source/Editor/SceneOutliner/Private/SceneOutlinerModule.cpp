@@ -1,20 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SceneOutlinerModule.cpp: Implements the FSceneOutlinerModule class.
+=============================================================================*/
 
 #include "SceneOutlinerPrivatePCH.h"
 #include "SceneOutlinerTreeItems.h"
 #include "ModuleManager.h"
 
-IMPLEMENT_MODULE( FSceneOutlinerModule, SceneOutliner );
 
-void FSceneOutlinerModule::StartupModule()
-{
-}
-
-
-void FSceneOutlinerModule::ShutdownModule()
-{
-}
+/* FSceneOutlinerModule interface
+ *****************************************************************************/
 
 namespace SceneOutliner
 {
@@ -31,6 +27,7 @@ namespace SceneOutliner
 	}
 }
 
+
 TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnActorPicked& OnActorPickedDelegate ) const
 {
 	auto OnItemPicked = FOnSceneOutlinerItemPicked::CreateStatic( &SceneOutliner::OnSceneOutlinerItemClicked, OnActorPickedDelegate );
@@ -43,3 +40,14 @@ TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FS
 		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 		.OnItemPickedDelegate( OnItemPickedDelegate );
 }
+
+
+/* Class constructors
+ *****************************************************************************/
+
+USceneOutlinerSettings::USceneOutlinerSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
+
+
+IMPLEMENT_MODULE(FSceneOutlinerModule, SceneOutliner);
