@@ -87,7 +87,7 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib"
 				);
-			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia"});
+			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia", "CoreMotion"});
 
 			bool bSupportAdvertising = true;
 
