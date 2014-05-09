@@ -562,6 +562,9 @@ struct FMath : public FPlatformMath
 	 */
 	template< class U > static U CubicCRSplineInterp(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T);
 
+	/* Same as CubicCRSplineInterp but with additional saftey checks. If the checks fail P1 is returned. **/
+	template< class U > static U CubicCRSplineInterpSafe(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T);
+	
 	// Special-case interpolation
 
 	/** Interpolate a normal vector Current to Target, by interpolating the angle between those vectors with constant step. */

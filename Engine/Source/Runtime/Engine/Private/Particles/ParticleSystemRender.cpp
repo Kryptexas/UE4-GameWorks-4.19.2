@@ -6435,17 +6435,17 @@ struct FAnimTrailParticleRenderData
 			float T = CurrT + ((PrevT - CurrT) * InterpFactor);
 				
 			//Interpolate locations
-			FVector Location = FMath::CubicCRSplineInterp(PrevPrevLocation, PrevParticle->Location, Particle->Location, NextLocation, PrevPrevT, PrevT, CurrT, NextT, T);
-			FVector InterpDir = FMath::CubicCRSplineInterp(PrevPrevDirection, PrevPayload->Direction, Payload->Direction, NextDirection, PrevPrevT, PrevT, CurrT, NextT, T);
+			FVector Location = FMath::CubicCRSplineInterpSafe(PrevPrevLocation, PrevParticle->Location, Particle->Location, NextLocation, PrevPrevT, PrevT, CurrT, NextT, T);
+			FVector InterpDir = FMath::CubicCRSplineInterpSafe(PrevPrevDirection, PrevPayload->Direction, Payload->Direction, NextDirection, PrevPrevT, PrevT, CurrT, NextT, T);
 			InterpDir.Normalize();
-			float InterpLength = FMath::CubicCRSplineInterp(PrevPrevLength, PrevPayload->Length, Payload->Length, NextLength, PrevPrevT, PrevT, CurrT, NextT, T);
-			OutTileU = FMath::CubicCRSplineInterp(PrevPrevTiledU, PrevPayload->TiledU, Payload->TiledU, NextTiledU, PrevPrevT, PrevT, CurrT, NextT, T);
-			OutSize = FMath::CubicCRSplineInterp(PrevPrevSize, PrevParticle->Size.X * Source.Scale.X, Particle->Size.X * Source.Scale.X, NextSize, PrevPrevT, PrevT, CurrT, NextT, T);
-			OutColor = FMath::CubicCRSplineInterp(PrevPrevColor, PrevParticle->Color, Particle->Color, NextColor, PrevPrevT, PrevT, CurrT, NextT, T);
+			float InterpLength = FMath::CubicCRSplineInterpSafe(PrevPrevLength, PrevPayload->Length, Payload->Length, NextLength, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutTileU = FMath::CubicCRSplineInterpSafe(PrevPrevTiledU, PrevPayload->TiledU, Payload->TiledU, NextTiledU, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutSize = FMath::CubicCRSplineInterpSafe(PrevPrevSize, PrevParticle->Size.X * Source.Scale.X, Particle->Size.X * Source.Scale.X, NextSize, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutColor = FMath::CubicCRSplineInterpSafe(PrevPrevColor, PrevParticle->Color, Particle->Color, NextColor, PrevPrevT, PrevT, CurrT, NextT, T);
 
 			if( OutDynamicParameters )
 			{
-				*OutDynamicParameters = FMath::CubicCRSplineInterp(PrevPrevDynPayload->DynamicParameterValue,
+				*OutDynamicParameters = FMath::CubicCRSplineInterpSafe(PrevPrevDynPayload->DynamicParameterValue,
 					PrevDynPayload->DynamicParameterValue,
 					CurrDynPayload->DynamicParameterValue,
 					NextDynPayload->DynamicParameterValue, PrevPrevT, PrevT, CurrT, NextT, T);
