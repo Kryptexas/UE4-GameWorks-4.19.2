@@ -553,6 +553,10 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
 	}
+	else if (PlatformName == "LinuxNoEditor")
+	{
+		OptionalParams += TEXT(" -targetplatform=Linux");
+	}
 
 	// only build if the project has code that might need to be built
 	if (bProjectHasCode && FSourceCodeNavigation::IsCompilerAvailable())

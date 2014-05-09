@@ -117,7 +117,7 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
 		{
 			Platform = TEXT("Linux");
 		}
@@ -295,7 +295,7 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
 		{
 			Platform = TEXT("Linux");
 		}
