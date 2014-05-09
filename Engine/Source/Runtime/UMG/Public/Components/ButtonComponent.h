@@ -50,11 +50,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
 	FSlateSound HoveredSound;
-	
-	/** Called when the button is clicked */
-	UPROPERTY(BlueprintAssignable)
-	FOnButtonClickedEvent OnClicked;
 
+	/** Called when the button is clicked */
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnReply OnClickedEvent;
+	
 	/*  */
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	FLinearColor GetButtonColorAndOpacity();

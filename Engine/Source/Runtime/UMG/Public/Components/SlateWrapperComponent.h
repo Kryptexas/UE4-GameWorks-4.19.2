@@ -14,11 +14,15 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	// Common Bindings
 	DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FGetBool);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
+
+	// Events
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FSReply, FOnReply);
 
 	UPROPERTY(EditAnywhere, Category=Variable)
 	FString Name;

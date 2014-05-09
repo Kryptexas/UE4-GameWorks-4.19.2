@@ -85,7 +85,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 				{
 					if ( UDelegateProperty* DelegateProp = Cast<UDelegateProperty>(*It) )
 					{
-						if ( DelegateProp->GetName() == DelegateName )
+						if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
 						{
 							FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
 							ScriptDelegate->BindUFunction(WidgetActor, Binding.FunctionName);

@@ -107,8 +107,12 @@ void UButtonComponent::SetContentPadding(FMargin InContentPadding)
 
 FReply UButtonComponent::HandleOnClicked()
 {
-	OnClicked.Broadcast();
-	return FReply::Handled();
+	if ( OnClickedEvent.IsBound() )
+	{
+		return OnClickedEvent.Execute().ToReply();
+	}
+	
+	return FReply::Unhandled();
 }
 
 

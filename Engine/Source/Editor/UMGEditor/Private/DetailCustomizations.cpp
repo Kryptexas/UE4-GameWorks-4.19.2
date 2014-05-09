@@ -101,6 +101,69 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 				];
 			}
 		}
+
+		//--------------------------------------------
+
+		for ( TFieldIterator<UProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
+		{
+			if ( UDelegateProperty* Property = Cast<UDelegateProperty>(*PropertyIt) )
+			{
+				if ( !Property->GetName().EndsWith(TEXT("Event")) )
+				{
+					continue;
+				}
+
+				TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), CastChecked<UClass>(Property->GetOuter()));
+
+				const bool bHasValidHandle = DelegatePropertyHandle->IsValidHandle();
+
+				if ( !bHasValidHandle )
+				{
+					continue;
+				}
+
+				IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property));
+
+				IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
+
+				TSharedPtr<SWidget> NameWidget;
+				TSharedPtr<SWidget> ValueWidget;
+				FDetailWidgetRow Row;
+				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
+				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, DelegatePropertyHandle, Property->SignatureFunction)
+				.ContentPadding(0)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, DelegatePropertyHandle)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				];
+
+				const bool bShowChildren = true;
+				PropertyRow.CustomWidget(bShowChildren)
+				.NameContent()
+				.MinDesiredWidth(Row.NameWidget.MinWidth)
+				.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+				[
+					NameWidget.ToSharedRef()
+				]
+				.ValueContent()
+				.MinDesiredWidth(Row.ValueWidget.MinWidth)
+				.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+				[
+					SNew(SHorizontalBox)
+					
+					+ SHorizontalBox::Slot()
+					.FillWidth(1)
+					[
+						DelegateButton
+					]
+				];
+			}
+		}
+
 	}
 }
 
@@ -207,7 +270,7 @@ TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TShare
 		.MaxHeight(DisplayMetrics.PrimaryDisplayHeight * 0.5)
 		[
 			MenuBuilder.MakeWidget()
-		];;
+		];
 }
 
 FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const

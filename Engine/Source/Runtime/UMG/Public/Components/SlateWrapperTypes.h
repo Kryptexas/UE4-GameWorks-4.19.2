@@ -43,6 +43,27 @@ namespace ESlateSizeRule
 }
 
 USTRUCT()
+struct FSReply
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category=User)
+		uint32 bIsHandled : 1;
+
+	FReply ToReply() const
+	{
+		FReply Reply = FReply::Unhandled();
+
+		if ( bIsHandled )
+		{
+			Reply = FReply::Handled();
+		}
+
+		return Reply;
+	}
+};
+
+USTRUCT()
 struct FSlateChildSize
 {
 	GENERATED_USTRUCT_BODY()

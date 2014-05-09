@@ -2190,7 +2190,10 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 	EntryNode->SignatureName = GraphName;
 	FunctionEntryCreator.Finalize();
 
-	EntryNode->CreatePinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ true);
+	// We don't have a signature class to base this on permanently, because it's not an override function.
+	// so we need to define the pins as user defined so that they are serialized.
+
+	EntryNode->CreateUserDefinedPinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ true);
 
 	// See if any function params are marked as out
 	bool bHasOutParam =  false;
@@ -2213,7 +2216,7 @@ void UEdGraphSchema_K2::CreateFunctionGraphTerminators(UEdGraph& Graph, UFunctio
 		ReturnNode->NodePosY = EntryNode->NodePosY;
 		NodeCreator.Finalize();
 
-		ReturnNode->CreatePinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ false);
+		ReturnNode->CreateUserDefinedPinsForFunctionEntryExit(FunctionSignature, /*bIsFunctionEntry=*/ false);
 
 		// Auto-connect the pins for entry and exit, so that by default the signature is properly generated
 		UEdGraphPin* EntryNodeExec = FindExecutionPin(*EntryNode, EGPD_Output);
