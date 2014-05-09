@@ -36,6 +36,17 @@ namespace EDelegateInstanceType
 
 
 /**
+ * Type definition for shared pointers to instances of IDelegateInstance.
+ */
+typedef TSharedPtr<class IDelegateInstance> IDelegateInstancePtr;
+
+/**
+ * Type definition for shared references to instances of IDelegateInstance.
+ */
+typedef TSharedRef<class IDelegateInstance> IDelegateInstanceRef;
+
+
+/**
  * Interface for delegate instances.
  */
 class IDelegateInstance

@@ -1145,7 +1145,7 @@ public:
 	{
 		if (DelegateInstance != nullptr)
 		{
-			AddDelegateInstance(*DelegateInstance);
+			AddDelegateInstance(DelegateInstance);
 			CompactInvocationList();
 		}
 	}
@@ -1163,7 +1163,7 @@ public:
 
 		if (DelegateInstance != nullptr)
 		{
-			AddDelegateInstance(*DelegateInstance->CreateCopy());
+			AddDelegateInstance(DelegateInstance->CreateCopy());
 			CompactInvocationList();
 		}
 	}
@@ -1778,19 +1778,19 @@ protected:
 	 *
 	 * @param	InDelegate	Delegate to add
 	 */
-	void AddDelegateInstance( TDelegateInstanceInterface& InDelegateInstance )
+	void AddDelegateInstance( TDelegateInstanceInterface* InDelegateInstance )
 	{
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 		// verify that the same function isn't already bound
-		for (auto DelegateInstance : GetInvocationList())
+		for (IDelegateInstancePtr DelegateInstance : GetInvocationList())
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
-			check(!DelegateInstanceInterface->IsSameFunction(InDelegateInstance));
+			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance.Get();
+			check(!DelegateInstanceInterface->IsSameFunction(*InDelegateInstance));
 		}
 #endif
 
-		AddInternal(InDelegateInstance);
+		AddInternal(MakeShareable(InDelegateInstance));
 	}
 
 	/**
@@ -1800,7 +1800,7 @@ protected:
 	 */
 	void Broadcast( FUNC_PARAM_LIST ) const
 	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+		const TArray<IDelegateInstancePtr>& InvocationList = GetInvocationList();
 
 		if (InvocationList.Num() == 0)
 		{
@@ -1808,14 +1808,14 @@ protected:
 		}
 
 		// copy invocation list just in case the list is modified by one of the broadcast callbacks
-		typedef TArray<IDelegateInstance*, TInlineAllocator<4>> FInlineInvocationList;
+		typedef TArray<IDelegateInstancePtr, TInlineAllocator<4>> FInlineInvocationList;
 		FInlineInvocationList InvocationListCopy = FInlineInvocationList(InvocationList);
 
 		// Invoke each bound function
-		for (IDelegateInstance* DelegateInstance : InvocationListCopy)
+		for (IDelegateInstancePtr DelegateInstance : InvocationListCopy)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
+			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance.Get();
 
 			// execute the delegate instance...
 			if (!DelegateInstanceInterface->ExecuteIfSafe(FUNC_PARAM_PASSTHRU))
@@ -1825,7 +1825,7 @@ protected:
 				{
 					// search for the instance, because original list could have been modified during broadcast
 					// this is really shady, because it violates the constness of this method
-					const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RemoveDelegateInstance(*DelegateInstanceInterface);
+					const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RemoveInternal(DelegateInstance);
 				}
 			}
 		}
@@ -1842,12 +1842,12 @@ protected:
 	 */
 	void RemoveDelegateInstance( const TDelegateInstanceInterface& InDelegateInstance )
 	{
-		const TArray<IDelegateInstance*> InvocationList = GetInvocationList();
+		const TArray<IDelegateInstancePtr> InvocationList = GetInvocationList();
 
 		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex];
+			TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex].Get();
 
 			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
 			//       delegate pointers can refer to the exact same object and method
