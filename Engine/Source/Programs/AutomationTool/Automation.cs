@@ -271,12 +271,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			var AdditionalScriptsFolders = new List<string>();
 			ParseCommandLine(CommandLine, CommandsToExecute, AdditionalScriptsFolders);
 
-			if (CommandsToExecute.Count == 0 && GlobalCommandLine.Help)
-			{
-				DisplayHelp();
-				return;
-			}
-
 			// Are we running locally or on a build machine
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : !String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT"));
 			Log.TraceInformation("IsBuildMachine={0}", IsBuildMachine);
@@ -284,6 +278,12 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// should we kill processes on exit
 			ShouldKillProcesses = !GlobalCommandLine.NoKill;
 			Log.TraceInformation("ShouldKillProcesses={0}", ShouldKillProcesses);
+
+			if (CommandsToExecute.Count == 0 && GlobalCommandLine.Help)
+			{
+				DisplayHelp();
+				return;
+			}
 
 			// Setup environment
 			Log.TraceInformation("Setting up command environment.");
