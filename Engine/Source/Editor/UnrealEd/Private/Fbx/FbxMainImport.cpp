@@ -507,9 +507,9 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 		
 		// TODO: display multiple anim stack
 		SceneInfo.TakeName = NULL;
-		for( int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount(FbxAnimStack::ClassId); AnimStackIndex++ )
+		for (int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount<FbxAnimStack>(); AnimStackIndex++)
 		{
-			FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, 0));
+			FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
 			// TODO: skip empty anim stack
 			const char* AnimStackName = CurAnimStack->GetName();
 			SceneInfo.TakeName = new char[FCStringAnsi::Strlen(AnimStackName) + 1];

@@ -172,17 +172,17 @@ void UnFbx::FFbxImporter::ImportTexturesFromNode(FbxNode* Node)
 					FbxTexture * lTexture= NULL;
 
 					//Here we have to check if it's layered textures, or just textures:
-					int32 LayeredTextureCount = Property.GetSrcObjectCount(FbxLayeredTexture::ClassId);
+					int32 LayeredTextureCount = Property.GetSrcObjectCount<FbxLayeredTexture>();
 					FbxString PropertyName = Property.GetName();
 					if(LayeredTextureCount > 0)
 					{
 						for(int32 LayerIndex=0; LayerIndex<LayeredTextureCount; ++LayerIndex)
 						{
-							FbxLayeredTexture *lLayeredTexture = FbxCast <FbxLayeredTexture>(Property.GetSrcObject(FbxLayeredTexture::ClassId, LayerIndex));
-							int32 NbTextures = lLayeredTexture->GetSrcObjectCount(FbxTexture::ClassId);
+							FbxLayeredTexture *lLayeredTexture = Property.GetSrcObject<FbxLayeredTexture>(LayerIndex);
+							int32 NbTextures = lLayeredTexture->GetSrcObjectCount<FbxTexture>();
 							for(int32 TexIndex =0; TexIndex<NbTextures; ++TexIndex)
 							{
-								FbxFileTexture* Texture = FbxCast <FbxFileTexture> (lLayeredTexture->GetSrcObject(FbxFileTexture::ClassId,TexIndex));
+								FbxFileTexture* Texture = lLayeredTexture->GetSrcObject<FbxFileTexture>(TexIndex);
 								if(Texture)
 								{
 									ImportTexture(Texture, PropertyName == FbxSurfaceMaterial::sNormalMap || PropertyName == FbxSurfaceMaterial::sBump);
@@ -193,11 +193,11 @@ void UnFbx::FFbxImporter::ImportTexturesFromNode(FbxNode* Node)
 					else
 					{
 						//no layered texture simply get on the property
-						int32 NbTextures = Property.GetSrcObjectCount(FbxTexture::ClassId);
+						int32 NbTextures = Property.GetSrcObjectCount<FbxTexture>();
 						for(int32 TexIndex =0; TexIndex<NbTextures; ++TexIndex)
 						{
 
-							FbxFileTexture* Texture = FbxCast <FbxFileTexture> (Property.GetSrcObject(FbxFileTexture::ClassId,TexIndex));
+							FbxFileTexture* Texture = Property.GetSrcObject<FbxFileTexture>(TexIndex);
 							if(Texture)
 							{
 								ImportTexture(Texture, PropertyName == FbxSurfaceMaterial::sNormalMap || PropertyName == FbxSurfaceMaterial::sBump);
@@ -228,19 +228,19 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 	FbxProperty FbxProperty = FbxMaterial.FindProperty( MaterialProperty );
 	if( FbxProperty.IsValid() )
 	{
-		int32 LayeredTextureCount = FbxProperty.GetSrcObjectCount(FbxLayeredTexture::ClassId);
+		int32 LayeredTextureCount = FbxProperty.GetSrcObjectCount<FbxLayeredTexture>();
 		if (LayeredTextureCount>0)
 		{
 			UE_LOG(LogFbxMaterialImport, Warning,TEXT("Layered Textures are not supported (material %s)"),ANSI_TO_TCHAR(FbxMaterial.GetName()));
 		}
 		else
 		{
-			int32 TextureCount = FbxProperty.GetSrcObjectCount(FbxTexture::ClassId);
+			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxTexture>();
 			if (TextureCount>0)
 			{
 				for(int32 TextureIndex =0; TextureIndex<TextureCount; ++TextureIndex)
 				{
-					FbxFileTexture* FbxTexture = FbxProperty.GetSrcObject(FBX_TYPE(FbxFileTexture), TextureIndex);
+					FbxFileTexture* FbxTexture = FbxProperty.GetSrcObject<FbxFileTexture>(TextureIndex);
 
 					// create an unreal texture asset
 					UTexture* UnrealTexture = ImportTexture(FbxTexture, bSetupAsNormalMap);

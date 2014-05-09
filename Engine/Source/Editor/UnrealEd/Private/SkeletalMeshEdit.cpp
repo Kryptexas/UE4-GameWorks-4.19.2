@@ -170,7 +170,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton * Skeleton, UAnimSequence * 
 		else
 		{
 			// pick first one
-			FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->GetSrcObject(FbxAnimStack::ClassId, 0));
+			FbxAnimStack* CurAnimStack = FbxImporter->Scene->GetSrcObject<FbxAnimStack>(0);
 			if (CurAnimStack)
 			{
 				// set current anim stack
@@ -245,7 +245,7 @@ void UnFbx::FFbxImporter::MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 
 	// always apply unroll filter
 	FbxAnimCurveFilterUnroll UnrollFilter;
 
-	FbxAnimLayer* lLayer = static_cast<FbxAnimLayer*>(AnimStack->GetMember(FBX_TYPE(FbxAnimLayer),0));
+	FbxAnimLayer* lLayer = AnimStack->GetMember<FbxAnimLayer>(0);
 	UnrollFilter.Reset();
 	ApplyUnroll(Scene->GetRootNode(), lLayer, &UnrollFilter);
 }
@@ -260,12 +260,12 @@ bool UnFbx::FFbxImporter::IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TA
 
 	ValidTakeCount = 0;
 
-	int32 AnimStackCount = Scene->GetSrcObjectCount( FbxAnimStack::ClassId );
+	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 
 	int32 AnimStackIndex;
 	for (AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++ )
 	{
-		FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, AnimStackIndex));
+		FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
 		// set current anim stack
 		Scene->SetCurrentAnimationStack(CurAnimStack);
 
@@ -475,10 +475,10 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton * Skeleton, UObj
 
 	}
 
-	int32 AnimStackCount = Scene->GetSrcObjectCount(FbxAnimStack::ClassId);
+	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 	for( int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++ )
 	{
-		FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, AnimStackIndex));
+		FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
 
 		FbxTimeSpan AnimTimeSpan = GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
 		bool bValidAnimStack = ValidateAnimStack(SortedLinks, NodeArray, CurAnimStack, ResampleRate, ImportOptions->bImportMorph, AnimTimeSpan);
@@ -542,10 +542,10 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 {
 	int32 MaxStackResampleRate = 0;
 
-	int32 AnimStackCount = Scene->GetSrcObjectCount(FbxAnimStack::ClassId);
+	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 	for( int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
 	{
-		FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, AnimStackIndex));
+		FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
 
 		FbxTimeSpan AnimStackTimeSpan = GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
 

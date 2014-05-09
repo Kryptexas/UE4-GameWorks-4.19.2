@@ -802,7 +802,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	}
 
 	FbxArray<FbxAMatrix> GlobalsPerLink;
-	GlobalsPerLink.AddMultiple(SortedLinks.Num());
+	GlobalsPerLink.Grow(SortedLinks.Num());
 	GlobalsPerLink[0].SetIdentity();
 	
 	bool GlobalLinkFoundFlag;
@@ -1348,7 +1348,7 @@ void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh
 {
 	USkeleton * Skeleton = SkeletalMesh->Skeleton;
 
-	if ( Scene->GetSrcObjectCount(FbxAnimStack::ClassId) > 0 )
+	if (Scene->GetSrcObjectCount<FbxAnimStack>() > 0)
 	{
 		if ( ensure ( Skeleton != NULL ) )
 		{

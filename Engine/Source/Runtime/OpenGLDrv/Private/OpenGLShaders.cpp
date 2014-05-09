@@ -197,9 +197,10 @@ static void ReplaceShaderSubstring(ANSICHAR* ShaderCode, const ANSICHAR* OldStri
 		Curr = Substr;
 		if (Substr)
 		{
-			strcpy(Substr, NewString);
-			Curr += strlen(NewString);
-			for (size_t index = 0; index < strlen(OldString)-strlen(NewString); ++index)
+			size_t NewStringLength = strlen(NewString);
+			FCStringAnsi::Strcpy(Substr, strlen(Substr), NewString);
+			Curr += NewStringLength;
+			for (size_t index = 0; index < strlen(OldString) - NewStringLength; ++index)
 			{
 				*Curr = ' ';
 				++Curr;

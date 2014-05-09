@@ -142,11 +142,6 @@ void FWindowsPlatformMisc::PlatformPreInit()
 	// Use our own handler for pure virtuals being called.
 	DefaultPureCallHandler = _set_purecall_handler( PureCallHandler );
 
-	// Check Windows version.
-	OSVERSIONINFOEX OsVersionInfo = { 0 };
-	OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
-	GetVersionEx( ( LPOSVERSIONINFO )&OsVersionInfo );
-
 	const int32 MinResolution[] = {640,480};
 	if ( ::GetSystemMetrics(SM_CXSCREEN) < MinResolution[0] || ::GetSystemMetrics(SM_CYSCREEN) < MinResolution[1] )
 	{

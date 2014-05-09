@@ -113,10 +113,10 @@ bool FFbxImporter::IsNodeAnimated(FbxNode* Node, FbxAnimLayer* AnimLayer)
 {
 	if (!AnimLayer)
 	{
-		FbxAnimStack* AnimStack = Scene->GetMember(FBX_TYPE(FbxAnimStack), 0);
+		FbxAnimStack* AnimStack = Scene->GetMember<FbxAnimStack>(0);
 		if (!AnimStack) return false;
 
-		AnimLayer = AnimStack->GetMember(FBX_TYPE(FbxAnimLayer), 0);
+		AnimLayer = AnimStack->GetMember<FbxAnimLayer>(0);
 		if (AnimLayer == NULL) return false;
 	}
 	
@@ -126,9 +126,9 @@ bool FFbxImporter::IsNodeAnimated(FbxNode* Node, FbxAnimLayer* AnimLayer)
 
 	// translation animation
 	FbxProperty TransProp = Node->LclTranslation;
-	for (int32 i = 0; i < TransProp.GetSrcObjectCount(FBX_TYPE(FbxAnimCurveNode)); i++)
+	for (int32 i = 0; i < TransProp.GetSrcObjectCount<FbxAnimCurveNode>(); i++)
 	{
-		FbxAnimCurveNode* CurveNode = FbxCast<FbxAnimCurveNode>(TransProp.GetSrcObject(FbxAnimCurveNode::ClassId, i));
+		FbxAnimCurveNode* CurveNode = TransProp.GetSrcObject<FbxAnimCurveNode>(i);
 		if (CurveNode && AnimLayer->IsConnectedSrcObject(CurveNode))
 		{
 			bIsAnimated |= (bool)CurveNode->GetAnimationInterval(AnimTimeSpan);
@@ -137,9 +137,9 @@ bool FFbxImporter::IsNodeAnimated(FbxNode* Node, FbxAnimLayer* AnimLayer)
 	}
 	// rotation animation
 	FbxProperty RotProp = Node->LclRotation;
-	for (int32 i = 0; bIsAnimated == false && i < RotProp.GetSrcObjectCount(FBX_TYPE(FbxAnimCurveNode)); i++)
+	for (int32 i = 0; bIsAnimated == false && i < RotProp.GetSrcObjectCount<FbxAnimCurveNode>(); i++)
 	{
-		FbxAnimCurveNode* CurveNode = FbxCast<FbxAnimCurveNode>(RotProp.GetSrcObject(FbxAnimCurveNode::ClassId, i));
+		FbxAnimCurveNode* CurveNode = RotProp.GetSrcObject<FbxAnimCurveNode>(i);
 		if (CurveNode && AnimLayer->IsConnectedSrcObject(CurveNode))
 		{
 			bIsAnimated |= (bool)CurveNode->GetAnimationInterval(AnimTimeSpan);
@@ -174,12 +174,12 @@ void FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 	if (Scene == NULL || InMatineeActor == NULL) return;
 	
 	// merge animation layer at first
-	FbxAnimStack* AnimStack = Scene->GetMember(FBX_TYPE(FbxAnimStack), 0);
+	FbxAnimStack* AnimStack = Scene->GetMember<FbxAnimStack>(0);
 	if (!AnimStack) return;
 		
 	MergeAllLayerAnimation(AnimStack, FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
 
-	FbxAnimLayer* AnimLayer = AnimStack->GetMember(FBX_TYPE(FbxAnimLayer), 0);
+	FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>(0);
 	if (AnimLayer == NULL) return;
 
 	// If the Matinee editor is not open, we need to initialize the sequence.
@@ -552,12 +552,12 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 	// Bucket the transforms at the same time.
 	// The Matinee Movement track can take in a Translation vector
 	// and three animated Euler rotation angles.
-	FbxAnimStack* AnimStack = Scene->GetMember(FBX_TYPE(FbxAnimStack), 0);
+	FbxAnimStack* AnimStack = Scene->GetMember<FbxAnimStack>(0);
 	if (!AnimStack) return -1.0f;
 
 	MergeAllLayerAnimation(AnimStack, FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
 
-	FbxAnimLayer* AnimLayer = AnimStack->GetMember(FBX_TYPE(FbxAnimLayer), 0);
+	FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>(0);
 	if (AnimLayer == NULL) return -1.0f;
 	
 	bool bNodeAnimated = IsNodeAnimated(Node, AnimLayer);

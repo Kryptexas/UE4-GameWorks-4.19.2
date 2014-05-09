@@ -87,12 +87,6 @@
 #pragma warning(disable : 4180) // qualifier applied to function type has no meaning; ignored
 #pragma warning( disable : 4121 )
 
-#if !USE_SECURE_CRT
-	#pragma warning(disable : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
-#else
-	#pragma warning(default : 4996)	// enable deprecation warnings
-#endif
-
 #if UE_BUILD_DEBUG
 	// xstring.h causes this warning in debug builds
 	#pragma warning(disable : 4548) // expression before comma has no effect; expected expression with side-effect

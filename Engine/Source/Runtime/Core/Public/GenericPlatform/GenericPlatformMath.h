@@ -23,6 +23,12 @@ struct FGenericPlatformMath
 		return (int32)F;
 	}
 
+	DEPRECATED(4.2, "FPlatformMath::Trunc is deprecated, use FPlatformMath::TruncToInt instead")
+	static CONSTEXPR FORCEINLINE int32 Trunc(float F)
+	{
+		return TruncToInt(F);
+	}
+
 	/**
 	 * Converts a float to an integer value with truncation towards zero.
 	 * @param F		Floating point value to convert
@@ -31,6 +37,12 @@ struct FGenericPlatformMath
 	static CONSTEXPR FORCEINLINE float TruncToFloat(float F)
 	{
 		return (float)TruncToInt(F);
+	}
+
+	DEPRECATED(4.2, "FPlatformMath::TruncFloat is deprecated, use FPlatformMath::TruncToFloat instead")
+	static CONSTEXPR FORCEINLINE float TruncFloat(float F)
+	{
+		return TruncToFloat(F);
 	}
 
 	/**

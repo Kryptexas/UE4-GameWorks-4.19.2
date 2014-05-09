@@ -324,7 +324,10 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 
 		TSFActivationProxy = new FTSFActivationProxy(this);
 
+#pragma warning(disable : 4996) // 'function' was was declared deprecated
 		const DWORD WindowsVersion = ::GetVersion();
+#pragma warning(default : 4996)
+
 		const DWORD WindowsMajorVersion = LOBYTE(LOWORD(WindowsVersion));
 		const DWORD WindowsMinorVersion = HIBYTE(LOWORD(WindowsVersion));
 

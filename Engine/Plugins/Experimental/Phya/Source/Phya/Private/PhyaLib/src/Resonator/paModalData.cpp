@@ -37,6 +37,9 @@ paModalData :: ~paModalData() {
 	paFree(m_amp);
 }
 
+#if PLATFORM_WINDOWS
+#pragma warning (disable : 4996) // scanf is deprecated, but can't use the safe version as may not be supported on all platforms.
+#endif
 
 int
 paModalData :: read( const char* data ) {
@@ -81,3 +84,7 @@ paModalData :: read( const char* data ) {
 
 	return(0);
 }
+
+#if PLATFORM_WINDOWS
+#pragma warning (default : 4996) // scanf is deprecated.
+#endif

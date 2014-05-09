@@ -685,7 +685,10 @@ void FWindowsPlatformSurvey::GetOSVersionLabels(const SYSTEM_INFO& SystemInfo, F
 	OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
 	FString OSVersionLabel = TEXT("Windows (unknown version)");
 	FString OSSubVersionLabel;
+#pragma warning(disable : 4996) // 'function' was declared deprecated
 	if (GetVersionEx( ( LPOSVERSIONINFO )&OsVersionInfo ))
+#pragma warning(default : 4996)
+
 	{
 		bool bIsInvalidVersion = false;
 

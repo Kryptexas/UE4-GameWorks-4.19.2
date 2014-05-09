@@ -1143,7 +1143,7 @@ void FFbxExporter::ExportMatineeTrackMove(FbxNode* FbxActor, UInterpTrackInstMov
 
 	if (MoveTrack != NULL)
 	{
-		FbxAnimLayer* BaseLayer = (FbxAnimLayer*)AnimStack->GetMember(FBX_TYPE(FbxAnimLayer), 0);
+		FbxAnimLayer* BaseLayer = AnimStack->GetMember<FbxAnimLayer>(0);
 		FbxAnimCurve* Curve;
 
 		bool bPosCurve = true;
