@@ -2316,47 +2316,6 @@ void FEngineLoop::AppInit( )
 	// after the above has run we now have the REQUIRED set of engine .INIs  (all of the other .INIs)
 	// that are gotten from .h files' config() are not requires and are dynamically loaded when the .u files are loaded
 
-	FInternationalization& I18N = FInternationalization::Get();
-
-	// Set culture according to configuration now that configs are available.
-#if ENABLE_LOC_TESTING
-	if( FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEET")) )
-	{
-		I18N.SetCurrentCulture(TEXT("LEET"));
-	}
-	else
-#endif
-	{
-		FString CultureName;
-#if !UE_BUILD_SHIPPING
-		// Use culture override specified on commandline.
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), CultureName))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
-		}
-		else
-#endif // !UE_BUILD_SHIPPING
-#if WITH_EDITOR
-		// See if we've been provided a culture override in the editor
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEditorGameAgnosticIni ))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
-		}
-		else
-#endif // WITH_EDITOR
-		// Use culture specified in engine configuration.
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEngineIni ))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);
-		}
-		else
-		{
-			CultureName = I18N.GetDefaultCulture()->GetName();
-		}
-
-		I18N.SetCurrentCulture(CultureName);
-	}
-
 #if !UE_BUILD_SHIPPING
 	// Prompt the user for remote debugging?
 	bool bPromptForRemoteDebug = false;
@@ -2496,20 +2455,6 @@ void FEngineLoop::AppInit( )
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
 	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || GEngineVersion.IsLicenseeVersion());
-
-	// Culture.
-	TCHAR CookerCulture[8];
-	
-	if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), CookerCulture, ARRAY_COUNT(CookerCulture)))
-	{
-		FInternationalization::Get().SetCurrentCulture( CookerCulture );
-
-		// Write the culture passed in if first install...
-		if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
-		{
-			GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), CookerCulture, GEngineIni);
-		}
-	}
 
 	// Init list of common colors.
 	GColorList.CreateColorMap();

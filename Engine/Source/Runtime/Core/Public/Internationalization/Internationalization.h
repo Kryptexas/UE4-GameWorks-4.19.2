@@ -36,37 +36,40 @@ public:
 		return FText( InTextLiteral, Namespace, Key );
 	}
 
-	CORE_API void GetTimeZonesIDs(TArray<FString>& TimeZonesIDs);
+	CORE_API void GetTimeZonesIDs(TArray<FString>& TimeZonesIDs) const;
 
 	//Set the current culture by name
 	CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
-	CORE_API TSharedRef< FCulture > GetCurrentCulture();
+	CORE_API TSharedRef< FCulture > GetCurrentCulture() const;
 
 	//@return culture object by given name, or NULL if not found
-	CORE_API TSharedPtr< FCulture > GetCulture(const FString& Name);
+	CORE_API TSharedPtr< FCulture > GetCulture(const FString& Name) const;
 
 	//@return the default culture
-	CORE_API TSharedRef< FCulture > GetDefaultCulture()
+	CORE_API TSharedRef< FCulture > GetDefaultCulture() const
 	{
 		return DefaultCulture.ToSharedRef();
 	}
 
 	//@return the invariant culture
-	CORE_API TSharedRef< FCulture > GetInvariantCulture()
+	CORE_API TSharedRef< FCulture > GetInvariantCulture() const
 	{
 		return InvariantCulture.ToSharedRef();
 	}
 
 
-	CORE_API bool IsInitialized() {return bIsInitialized;}
+	CORE_API bool IsInitialized() const {return bIsInitialized;}
 
 #if ENABLE_LOC_TESTING
 	static CORE_API FString& Leetify(FString& SourceString);
 #endif
 
-	CORE_API void GetCultureNames(TArray<FString>& CultureNames);
+	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
+
+	// Given some paths to look at, populate a list of cultures that we have available localization information for
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture> >& OutAvailableCultures) const;
 
 private:
 	FInternationalization();
@@ -75,7 +78,7 @@ private:
 	CORE_API void PopulateAllCultures(void);
 
 	//@return index of a culture by given name, or -1 if not found
-	CORE_API int32 GetCultureIndex(const FString& Name);
+	CORE_API int32 GetCultureIndex(const FString& Name) const;
 
 	CORE_API void Initialize();
 	CORE_API void Terminate();

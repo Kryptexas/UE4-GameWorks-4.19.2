@@ -72,7 +72,7 @@ void FInternationalizationSettingsModelDetails::OnSettingsChanged()
 	FInternationalization& I18N = FInternationalization::Get();
 
 	FString SavedCultureName = Model->GetCultureName();
-	if ( SavedCultureName != I18N.GetCurrentCulture()->GetName() )
+	if ( !SavedCultureName.IsEmpty() && SavedCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
 		SelectedCulture = I18N.GetCulture(SavedCultureName);
 		RequiresRestart = true;
@@ -106,10 +106,10 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 
 	// If the saved culture is not the same as the actual current culture, a restart is needed to sync them fully and properly.
 	FString SavedCultureName = Model->GetCultureName();
-	if ( SavedCultureName != I18N.GetCurrentCulture()->GetName() )
+	if ( !SavedCultureName.IsEmpty() && SavedCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
-			SelectedCulture = I18N.GetCulture(SavedCultureName);
-			RequiresRestart = true;
+		SelectedCulture = I18N.GetCulture(SavedCultureName);
+		RequiresRestart = true;
 	}
 	else
 	{
@@ -242,64 +242,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
 {
 	AvailableCultures.Empty();
-
-	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
-	TArray<FString> AllCultureNames;
-	FInternationalization::Get().GetCultureNames(AllCultureNames);
-	const TArray<FString> LocalizationPaths = FPaths::GetEditorLocalizationPaths();
-	for(const auto& LocalizationPath : LocalizationPaths)
-	{
-		/* Visitor class used to enumerate directories of culture */
-		class FCultureEnumeratorVistor : public IPlatformFile::FDirectoryVisitor
-		{
-		public:
-			FCultureEnumeratorVistor( const TArray<FString>& InAllCultureNames, TArray< TSharedPtr<FCulture> >& InAvailableCultures )
-				: AllCultureNames(InAllCultureNames)
-				, AvailableCultures(InAvailableCultures)
-			{
-			}
-
-			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
-			{
-				if(bIsDirectory)
-				{
-					for( const auto& CultureName : AllCultureNames )
-					{
-						TSharedPtr<FCulture> Culture = FInternationalization::Get().GetCulture(CultureName);
-						if(Culture.IsValid() && !AvailableCultures.Contains(Culture))
-						{
-							// UE localization resource folders use "en-US" style while ICU uses "en_US" style so we replace underscores with dashes here.
-							const FString UnrealCultureName = FString(TEXT("/")) + CultureName.Replace(TEXT("_"), TEXT("-"));
-							if(FString(FilenameOrDirectory).EndsWith(UnrealCultureName))
-							{
-								AvailableCultures.Add(Culture);
-							}
-							else
-							{
-								// If the full name doesn't match, see if the base language is present
-								const FString CultureLanguageName = FString(TEXT("/")) + Culture->GetTwoLetterISOLanguageName();
-								if(FString(FilenameOrDirectory).EndsWith(CultureLanguageName))
-								{
-									AvailableCultures.Add(Culture);
-								}
-							}
-						}
-					}
-				}
-
-				return true;
-			}
-
-			/** Array of all culture names we can use */
-			const TArray<FString>& AllCultureNames;
-
-			/** Array of cultures that are available */
-			TArray< TSharedPtr<FCulture> >& AvailableCultures;
-		};
-
-		FCultureEnumeratorVistor CultureEnumeratorVistor(AllCultureNames, AvailableCultures);
-		PlatformFile.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);	
-	}
+	FInternationalization::Get().GetCulturesWithAvailableLocalization(FPaths::GetEditorLocalizationPaths(), AvailableCultures);
 
 	// Update our selected culture based on the available choices
 	if ( !AvailableCultures.Contains( SelectedCulture ) )
