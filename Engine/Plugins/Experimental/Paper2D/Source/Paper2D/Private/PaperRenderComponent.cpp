@@ -19,9 +19,6 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 	SpriteColor = FLinearColor::White;
 
 	Mobility = EComponentMobility::Static;
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
-	bTickInEditor = true;
 }
 
 FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
@@ -60,12 +57,6 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform & LocalToWor
 	{
 		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
 	}
-}
-
-void UPaperRenderComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	// Indicate we need to send new dynamic data.
-	MarkRenderDynamicDataDirty();
 }
 
 void UPaperRenderComponent::SendRenderDynamicData_Concurrent()
