@@ -4,8 +4,8 @@
 
 #include "DirectionalLight.generated.h"
 
-UCLASS(ClassGroup=(Lights, DirectionalLights), meta=(ChildCanTick))
-class ENGINE_API ADirectionalLight : public ALight
+UCLASS(ClassGroup=(Lights, DirectionalLights), MinimalAPI, meta=(ChildCanTick))
+class ADirectionalLight : public ALight
 {
 	GENERATED_UCLASS_BODY()
 

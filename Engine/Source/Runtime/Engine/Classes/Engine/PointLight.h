@@ -4,8 +4,8 @@
 
 #include "PointLight.generated.h"
 
-UCLASS(ClassGroup=(Lights, PointLights), meta=(ChildCanTick))
-class ENGINE_API APointLight : public ALight
+UCLASS(ClassGroup=(Lights, PointLights),MinimalAPI, meta=(ChildCanTick))
+class APointLight : public ALight
 {
 	GENERATED_UCLASS_BODY()
 
@@ -14,9 +14,9 @@ class ENGINE_API APointLight : public ALight
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting", meta=(DeprecatedFunction))
-	void SetRadius(float NewRadius);
+	ENGINE_API void SetRadius(float NewRadius);
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting", meta=(DeprecatedFunction))
-	void SetLightFalloffExponent(float NewLightFalloffExponent);
+	ENGINE_API void SetLightFalloffExponent(float NewLightFalloffExponent);
 	// END DEPRECATED
 
 #if WITH_EDITOR
