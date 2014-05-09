@@ -515,7 +515,7 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 	// Then deal with any constraints.
 
 	TArray<int32>	Body2Constraints;
-	BodyFindConstraints(PhysAsset, AddBodyIndex, Body2Constraints);
+	PhysAsset->BodyFindConstraints(AddBodyIndex, Body2Constraints);
 
 	while( Body2Constraints.Num() > 0 )
 	{
@@ -552,25 +552,11 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 		}
 
 		// See if we have any more constraints to body2.
-		BodyFindConstraints(PhysAsset, AddBodyIndex, Body2Constraints);
+		PhysAsset->BodyFindConstraints(AddBodyIndex, Body2Constraints);
 	}
 
 	// Finally remove the body
 	DestroyBody(PhysAsset, AddBodyIndex);
-}
-
-void BodyFindConstraints(UPhysicsAsset* PhysAsset, int32 BodyIndex, TArray<int32>& Constraints)
-{
-	Constraints.Empty();
-	FName bodyName = PhysAsset->BodySetup[BodyIndex]->BoneName;
-
-	for(int32 i=0; i<PhysAsset->ConstraintSetup.Num(); i++)
-	{
-		if( PhysAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1 == bodyName || PhysAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2 == bodyName )
-		{
-			Constraints.Add(i);
-		}
-	}
 }
 
 int32 CreateNewConstraint(UPhysicsAsset* PhysAsset, FName InConstraintName, UPhysicsConstraintTemplate* InConstraintSetup)
@@ -662,12 +648,12 @@ void DestroyBody(UPhysicsAsset* PhysAsset, int32 bodyIndex)
 	// Now remove any constraints that were attached to this body.
 	// This is a bit yuck and slow...
 	TArray<int32> Constraints;
-	BodyFindConstraints(PhysAsset, bodyIndex, Constraints);
+	PhysAsset->BodyFindConstraints(bodyIndex, Constraints);
 
 	while(Constraints.Num() > 0)
 	{
 		DestroyConstraint( PhysAsset, Constraints[0] );
-		BodyFindConstraints(PhysAsset, bodyIndex, Constraints);
+		PhysAsset->BodyFindConstraints(bodyIndex, Constraints);
 	}
 
 	// Remove pointer from array. Actual objects will be garbage collected.

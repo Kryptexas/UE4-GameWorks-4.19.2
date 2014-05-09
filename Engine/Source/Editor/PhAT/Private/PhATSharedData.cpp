@@ -708,7 +708,7 @@ bool FPhATSharedData::WeldSelectedBodies(bool bWeld /* = true */)
 
 		// .. and any constraints of the 'child' body..
 		TArray<int32>	Constraints;
-		FPhysicsAssetUtils::BodyFindConstraints(PhysicsAsset, ChildBodyIndex, Constraints);
+		PhysicsAsset->BodyFindConstraints(ChildBodyIndex, Constraints);
 
 		for (int32 i = 0; i <Constraints.Num(); ++i)
 		{
@@ -1057,7 +1057,7 @@ void FPhATSharedData::DeleteBody(int32 DelBodyIndex, bool bRefreshComponent)
 
 	// .. and any constraints to the body.
 	TArray<int32>	Constraints;
-	FPhysicsAssetUtils::BodyFindConstraints(PhysicsAsset, DelBodyIndex, Constraints);
+	PhysicsAsset->BodyFindConstraints(DelBodyIndex, Constraints);
 
 	for (int32 i = 0; i <Constraints.Num(); ++i)
 	{

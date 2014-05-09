@@ -3,7 +3,6 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
-#include "PhysicsAssetUtils.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -1230,7 +1229,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 
 							//we also need to make sure the wheel body has no constraints with the parent body
 							TArray<int32> WheelConstraints;
-							FPhysicsAssetUtils::BodyFindConstraints(PhysicsAsset, BodySetupIdx, WheelConstraints);
+							PhysicsAsset->BodyFindConstraints(BodySetupIdx, WheelConstraints);
 							for (int32 ConstraintIdx = 0; ConstraintIdx < WheelConstraints.Num(); ++ConstraintIdx)
 							{
 								UPhysicsConstraintTemplate * ConstraintTemplate = PhysicsAsset->ConstraintSetup[WheelConstraints[ConstraintIdx]];
