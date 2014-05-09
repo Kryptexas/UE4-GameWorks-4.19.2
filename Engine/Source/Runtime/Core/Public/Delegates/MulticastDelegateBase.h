@@ -20,6 +20,11 @@ public:
 	 */
 	void Clear( )
 	{
+		for (IDelegateInstance* DelegateInstance : InvocationList)
+		{
+			delete DelegateInstance;
+		}
+
 		InvocationList.Empty();
 		ExpirableObjectCount = 0;
 	}
@@ -43,7 +48,7 @@ public:
 	 */
 	inline bool IsBoundToObject( void const* InUserObject ) const
 	{
-		for (IDelegateInstancePtr DelegateInstance : InvocationList)
+		for (IDelegateInstance* DelegateInstance : InvocationList)
 		{
 			if (DelegateInstance->HasSameObject(InUserObject))
 			{
@@ -82,7 +87,7 @@ protected:
 	 *
 	 * @param DelegateInstance The delegate instance to add.
 	 */
-	void AddInternal( const IDelegateInstanceRef& DelegateInstance )
+	void AddInternal( IDelegateInstance* DelegateInstance )
 	{
 		InvocationList.Add(DelegateInstance);
 
@@ -111,11 +116,12 @@ protected:
 		// remove expired delegates
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			IDelegateInstancePtr DelegateInstance = InvocationList[InvocationListIndex];
+			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
 
 			if (DelegateInstance->IsCompactable())
 			{
 				InvocationList.RemoveAtSwap(InvocationListIndex);
+				delete DelegateInstance;
 
 				checkSlow(ExpirableObjectCount > 0);
 				--ExpirableObjectCount;
@@ -128,7 +134,7 @@ protected:
 	 *
 	 * @return The invocation list.
 	 */
-	const TArray<IDelegateInstancePtr>& GetInvocationList( ) const
+	const TArray<IDelegateInstance*>& GetInvocationList( ) const
 	{
 		return InvocationList;
 	}
@@ -144,7 +150,7 @@ protected:
 	{
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
-			IDelegateInstancePtr DelegateInstance = InvocationList[InvocationListIndex];
+			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
 
 			if (DelegateInstance->HasSameObject(InUserObject))
 			{
@@ -160,7 +166,7 @@ protected:
 	 */
 	void RemoveByIndex( int32 InvocationListIndex )
 	{
-		IDelegateInstancePtr DelegateInstance = InvocationList[InvocationListIndex];
+		IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
 
 		// keep track of whether we have objects bound that may expire out from underneath us
 		const EDelegateInstanceType::Type DelegateType = DelegateInstance->GetType();
@@ -174,21 +180,7 @@ protected:
 		}
 
 		InvocationList.RemoveAtSwap(InvocationListIndex);
-	}
-
-	/**
-	 * Removes the given delegate instance from the invocation list.
-	 *
-	 * @param DelegateInstance The delegate instance to remove.
-	 */
-	void RemoveInternal( const IDelegateInstancePtr& DelegateInstance )
-	{
-		int32 DelegateIndex;
-		
-		if (InvocationList.Find(DelegateInstance, DelegateIndex))
-		{
-			RemoveByIndex(DelegateIndex);
-		}
+		delete DelegateInstance;
 	}
 
 private:
@@ -198,5 +190,5 @@ private:
 
 	// Holds the collection of delegate instances to invoke.
 	// Mutable so that we can do housekeeping during const broadcasts.
-	mutable TArray<IDelegateInstancePtr> InvocationList;
+	mutable TArray<IDelegateInstance*> InvocationList;
 };

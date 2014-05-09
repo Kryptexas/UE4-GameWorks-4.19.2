@@ -66,16 +66,6 @@ public:
 	}
 
 	/**
-	 * Checks to see if the user object bound to this delegate will ever be valid again
-	 *
-	 * @return  True if the user object could be valid in the future or is valid now.
-	 */
-	inline bool IsCompactable( ) const
-	{
-		return (DelegateInstance != nullptr) && DelegateInstance->IsCompactable();
-	}
-
-	/**
 	 * Unbinds this delegate
 	 */
 	inline void Unbind( )

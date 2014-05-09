@@ -1601,8 +1601,7 @@ public:
 		// cannot be bound to the same single multi-cast delegate.  We could support this by changing IsSameFunction()
 		// to do comparison of payload data, but there are some trade-offs if we do that.
 
-		RemoveDelegateInstance(DelegateInstance);
-		CompactInvocationList();
+		RemoveDelegateInstance(&DelegateInstance);
 	}
 
 	/**
@@ -1624,8 +1623,7 @@ public:
 
 		if (DelegateInstance != nullptr)
 		{
-			RemoveDelegateInstance(*DelegateInstance);
-			CompactInvocationList();
+			RemoveDelegateInstance(DelegateInstance);
 		}		
 	}
 
@@ -1782,52 +1780,59 @@ protected:
 	{
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 		// verify that the same function isn't already bound
-		for (IDelegateInstancePtr DelegateInstance : GetInvocationList())
+		for (IDelegateInstance* DelegateInstance : GetInvocationList())
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance.Get();
+			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
 			check(!DelegateInstanceInterface->IsSameFunction(*InDelegateInstance));
 		}
 #endif
 
-		AddInternal(MakeShareable(InDelegateInstance));
+		AddInternal(InDelegateInstance);
 	}
 
 	/**
 	 * Broadcasts this delegate to all bound objects, except to those that may have expired.
 	 *
-	 * The constness of this method is a lie, because we are removing compactable delegate intsances.
+	 * The constness of this method is a lie, because we are removing compactable delegate instances.
 	 */
 	void Broadcast( FUNC_PARAM_LIST ) const
 	{
-		const TArray<IDelegateInstancePtr>& InvocationList = GetInvocationList();
+		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
 
 		if (InvocationList.Num() == 0)
 		{
 			return;
 		}
 
-		// copy invocation list just in case the list is modified by one of the broadcast callbacks
-		typedef TArray<IDelegateInstancePtr, TInlineAllocator<4>> FInlineInvocationList;
-		FInlineInvocationList InvocationListCopy = FInlineInvocationList(InvocationList);
-
-		// Invoke each bound function
-		for (IDelegateInstancePtr DelegateInstance : InvocationListCopy)
+		// create deep copy of invocation list in case it is modified by one of the broadcast callbacks
+		TArray<TDelegateInstanceInterface*, TInlineAllocator<4>> InvocationListCopy;
+		InvocationListCopy.Reset(InvocationList.Num());
+			
+		for (IDelegateInstance* DelegateInstance : InvocationList)
+		{
+			InvocationListCopy.Add(((TDelegateInstanceInterface*)DelegateInstance)->CreateCopy());
+		}
+			
+		// invoke each bound function
+		for (int32 ListIndex = InvocationListCopy.Num() - 1; ListIndex >= 0 ; --ListIndex)
 		{
 			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance.Get();
+			TDelegateInstanceInterface* DelegateInstanceInterface = InvocationListCopy[ListIndex];
 
-			// execute the delegate instance...
-			if (!DelegateInstanceInterface->ExecuteIfSafe(FUNC_PARAM_PASSTHRU))
+			// execute the function and remove it from the local list if it was processed
+			if (DelegateInstanceInterface->ExecuteIfSafe(FUNC_PARAM_PASSTHRU) || !DelegateInstanceInterface->IsCompactable())
 			{
-				// ... or remove it if compactable
-				if (DelegateInstance->IsCompactable())
-				{
-					// search for the instance, because original list could have been modified during broadcast
-					// this is really shady, because it violates the constness of this method
-					const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RemoveInternal(DelegateInstance);
-				}
+				InvocationListCopy.RemoveAtSwap(ListIndex);
 			}
+		}
+
+		// remove any bound functions that couldn't be processed
+		for (TDelegateInstanceInterface* DelegateInstance : InvocationListCopy)
+		{
+			// search for the instance, because original list could have been modified during broadcast
+			// this is really shady, because it violates the constness of this method
+			const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RemoveDelegateInstance(DelegateInstance);
 		}
 	}
 
@@ -1840,23 +1845,29 @@ protected:
 	 *
 	 * @param InDelegateInstance The delegate instance to remove.
 	 */
-	void RemoveDelegateInstance( const TDelegateInstanceInterface& InDelegateInstance )
+	void RemoveDelegateInstance( const TDelegateInstanceInterface* InDelegateInstance )
 	{
-		const TArray<IDelegateInstancePtr> InvocationList = GetInvocationList();
-
-		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
+		if (InDelegateInstance->IsCompactable())
 		{
-			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex].Get();
+			CompactInvocationList();
+		}
+		else
+		{
+			const TArray<IDelegateInstance*> InvocationList = GetInvocationList();
 
-			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
-			//       delegate pointers can refer to the exact same object and method
-			if (DelegateInstance->IsSameFunction(InDelegateInstance))
+			for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
 			{
-				RemoveByIndex(InvocationListIndex);
+				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+				TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex];
 
-				// no need to continue, as we never allow the same delegate to be bound twice
-				break;
+				// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
+				//       delegate pointers can refer to the exact same object and method
+				if (DelegateInstance->IsSameFunction(*InDelegateInstance))
+				{
+					RemoveByIndex(InvocationListIndex);
+				
+					break;	// no need to continue, as we never allow the same delegate to be bound twice
+				}
 			}
 		}
 	}
