@@ -881,17 +881,19 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 		{
 			BlendAtom = BaseAtom;
 			BlendAtom.BlendWith(TargetAtom, BlendWeight);
+
 			// blend rotation in mesh space
 			BlendRotations[BoneIndex] = FQuat::FastLerp(SourceRotations[BoneIndex], TargetRotations[BoneIndex], BlendWeight);
+			
+			// Fast lerp produces un-normalized quaternions, re-normalize.
+			BlendRotations[BoneIndex].Normalize();
 		}
 
 		OutPose.Bones[BoneIndex] = BlendAtom;
 		if (ParentIndex!=INDEX_NONE)
 		{
-			BlendRotations[BoneIndex].Normalize();
-			FQuat LocalBlendQuat = BlendRotations[ParentIndex].Inverse()*BlendRotations[BoneIndex];
+			FQuat const LocalBlendQuat = BlendRotations[ParentIndex].Inverse() * BlendRotations[BoneIndex];
 			OutPose.Bones[BoneIndex].SetRotation(LocalBlendQuat);
-			OutPose.Bones[BoneIndex].NormalizeRotation();
 		}
 	}
 }
