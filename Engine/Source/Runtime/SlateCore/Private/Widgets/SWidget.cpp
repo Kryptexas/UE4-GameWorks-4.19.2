@@ -435,6 +435,12 @@ void SWidget::SetToolTipText( const TAttribute<FString>& ToolTipString )
 }
 
 
+void SWidget::SetToolTipText(const TAttribute<FText>& ToolTipText)
+{
+	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipText);
+}
+
+
 void SWidget::SetToolTipText( const FText& ToolTipText )
 {
 	ToolTip = FSlateApplicationBase::Get().MakeToolTip(ToolTipText);

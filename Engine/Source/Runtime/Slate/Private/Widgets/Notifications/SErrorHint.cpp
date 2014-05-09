@@ -33,7 +33,7 @@ void SErrorHint::SetError( const FText& InErrorText )
 	}
 
 	ErrorText = InErrorText;
-	SetToolTipText( ErrorText.ToString() );
+	SetToolTipText( ErrorText );
 }
 
 void SErrorHint::SetError( const FString& InErrorText )

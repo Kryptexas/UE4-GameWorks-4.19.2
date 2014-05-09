@@ -158,7 +158,7 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 		{
 			ToolTipText = FString::Printf(TEXT("%s\n\n%s"), *ToolTipText, *ToolTipValue);
 		}
-		SetToolTipText(ToolTipText);
+		SetToolTipText(TAttribute<FString>(ToolTipText));
 	}
 	else
 	{

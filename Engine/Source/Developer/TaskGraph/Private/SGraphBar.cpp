@@ -200,7 +200,7 @@ FReply SGraphBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 	{
 		if( HoveredEventIndex != INDEX_NONE )
 		{
-			this->SetToolTipText( Events[ HoveredEventIndex ]->EventName );
+			this->SetToolTipText(TAttribute<FString>(Events[HoveredEventIndex]->EventName));
 		}
 		else
 		{

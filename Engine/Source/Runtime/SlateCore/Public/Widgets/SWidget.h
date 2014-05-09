@@ -581,6 +581,8 @@ public:
 	 */
 	void SetToolTipText( const TAttribute<FString>& InToolTipText );
 
+	void SetToolTipText(const TAttribute<FText>& ToolTipText);
+
 	void SetToolTipText( const FText& InToolTipText );
 
 	/**

@@ -1015,6 +1015,8 @@ public:
 
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) OVERRIDE;
 
+	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FText>& ToolTipText ) OVERRIDE;
+
 	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) OVERRIDE;
 
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) OVERRIDE;

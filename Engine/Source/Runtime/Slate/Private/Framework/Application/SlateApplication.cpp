@@ -3030,6 +3030,13 @@ TSharedRef<IToolTip> FSlateApplication::MakeToolTip( const TAttribute<FString>& 
 }
 
 
+TSharedRef<IToolTip> FSlateApplication::MakeToolTip(const TAttribute<FText>& ToolTipText)
+{
+	return SNew(SToolTip)
+		.Text(ToolTipText);
+}
+
+
 TSharedRef<IToolTip> FSlateApplication::MakeToolTip( const FText& ToolTipText )
 {
 	return SNew(SToolTip)

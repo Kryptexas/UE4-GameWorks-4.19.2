@@ -187,6 +187,15 @@ public:
 	/**
 	 * Creates a tool tip with the specified text.
 	 *
+	 * @param ToolTipText The text attribute to assign to the tool tip.
+	 *
+	 * @return The tool tip.
+	 */
+	virtual TSharedRef<IToolTip> MakeToolTip(const TAttribute<FText>& ToolTipText) = 0;
+
+	/**
+	 * Creates a tool tip with the specified text.
+	 *
 	 * @param ToolTipText The text to assign to the tool tip.
 	 *
 	 * @return The tool tip.

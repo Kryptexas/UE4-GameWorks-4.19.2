@@ -2336,7 +2336,7 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 
 	if ( !Item->GeneratedClassPackage.IsEmpty() )
 	{
-		ReturnRow->SetToolTipText(Item->GeneratedClassPackage);
+		ReturnRow->SetToolTipText(TAttribute<FString>(Item->GeneratedClassPackage));
 	}
 
 	// Expand the item if needed.

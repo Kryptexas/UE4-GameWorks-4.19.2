@@ -237,7 +237,7 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 	ParameterComboButton = NewComboButton;
 	ParameterListView = NewListView;
 
-	NewComboButton->SetToolTipText(GetToolTipText());
+	NewComboButton->SetToolTipText(TAttribute<FString>(GetToolTipText()));
 }
 
 void FMaterialExpressionCollectionParameterDetails::PopulateParameters()
