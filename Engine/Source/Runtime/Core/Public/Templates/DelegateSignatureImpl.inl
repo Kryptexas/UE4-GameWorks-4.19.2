@@ -34,6 +34,12 @@
 #define RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars FUNC_COMBINE( RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars, _FourVars )
 #define RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const FUNC_COMBINE( RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars, _Const )
 
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars FUNC_COMBINE( TBaseUFunctionDelegateInstance_, FUNC_SUFFIX )
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS_OneVar FUNC_COMBINE( UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars, _OneVar )
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS_TwoVars FUNC_COMBINE( UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars, _TwoVars )
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS_ThreeVars FUNC_COMBINE( UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars, _ThreeVars )
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS_FourVars FUNC_COMBINE( UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars, _FourVars )
+
 #define UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars FUNC_COMBINE( TBaseUObjectMethodDelegateInstance_, FUNC_SUFFIX )
 #define UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const FUNC_COMBINE( UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars, _Const )
 #define UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_OneVar FUNC_COMBINE( UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars, _OneVar )
@@ -85,7 +91,7 @@
 
 
 /**
- * Single-cast delegate base object.
+ * Unicast delegate base object.
  *
  * Use the various DECLARE_DELEGATE macros to create the actual delegate type, templated to
  * the function signature the delegate is compatible with. Then, you can create an instance
@@ -93,13 +99,14 @@
  */
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class DELEGATE_CLASS
+	: public FDelegateBase<>
 {
 public:
 
-	/** Declare the user's delegate interface (e.g. IMyDelegate) */
-	typedef DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS > IDelegate;
+	/** Type definition for the shared interface of delegate instance types compatible with this delegate class. */
+	typedef DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS> TDelegateInstanceInterface;
 
-	/** Declare the user's "fast" shared pointer-based delegate object (e.g. TSPMyDelegate) */
+	/** Declare the user's "fast" shared pointer-based delegate instance types. */
 	template< class UserClass                                  > class TSPMethodDelegate                 : public SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast > { public: TSPMethodDelegate                ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >::FMethodPtr InMethodPtr                                  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass                                  > class TSPMethodDelegate_Const           : public SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast > { public: TSPMethodDelegate_Const          ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >::FMethodPtr InMethodPtr                                  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::Fast >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_OneVar    > class TSPMethodDelegate_OneVar          : public SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::Fast > { public: TSPMethodDelegate_OneVar         ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::Fast >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::Fast >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
@@ -111,7 +118,7 @@ public:
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TSPMethodDelegate_FourVars        : public SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast > { public: TSPMethodDelegate_FourVars       ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TSPMethodDelegate_FourVars_Const  : public SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast > { public: TSPMethodDelegate_FourVars_Const ( const TSharedRef< UserClass, ESPMode::Fast >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::Fast >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 
-	/** Declare the user's "thread-safe" shared pointer-based delegate object (e.g. TThreadSafeSPMyDelegate) */
+	/** Declare the user's "thread-safe" shared pointer-based delegate instance types. */
 	template< class UserClass                                  > class TThreadSafeSPMethodDelegate                 : public SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe > { public: TThreadSafeSPMethodDelegate                ( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe >::FMethodPtr InMethodPtr                                  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass                                  > class TThreadSafeSPMethodDelegate_Const           : public SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe > { public: TThreadSafeSPMethodDelegate_Const          ( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe >::FMethodPtr InMethodPtr                                  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS,                                  ESPMode::ThreadSafe >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_OneVar    > class TThreadSafeSPMethodDelegate_OneVar          : public SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::ThreadSafe > { public: TThreadSafeSPMethodDelegate_OneVar         ( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::ThreadSafe >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar,    ESPMode::ThreadSafe >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
@@ -123,7 +130,7 @@ public:
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TThreadSafeSPMethodDelegate_FourVars        : public SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe > { public: TThreadSafeSPMethodDelegate_FourVars       ( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TThreadSafeSPMethodDelegate_FourVars_Const  : public SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe > { public: TThreadSafeSPMethodDelegate_FourVars_Const ( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObject, typename SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : SP_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars,  ESPMode::ThreadSafe >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 
-	/** Declare the user's C++ pointer-based delegate object (e.g. TRawMyDelegate) */
+	/** Declare the user's C++ pointer-based delegate instance types. */
 	template< class UserClass                                  > class TRawMethodDelegate                 : public RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  > { public: TRawMethodDelegate                ( UserClass* InUserObject, typename RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  >::FMethodPtr InMethodPtr                                  ) : RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass                                  > class TRawMethodDelegate_Const           : public RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  > { public: TRawMethodDelegate_Const          ( UserClass* InUserObject, typename RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  >::FMethodPtr InMethodPtr                                  ) : RAW_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_OneVar    > class TRawMethodDelegate_OneVar          : public RAW_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    > { public: TRawMethodDelegate_OneVar         ( UserClass* InUserObject, typename RAW_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : RAW_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
@@ -135,7 +142,14 @@ public:
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TRawMethodDelegate_FourVars        : public RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TRawMethodDelegate_FourVars       ( UserClass* InUserObject, typename RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TRawMethodDelegate_FourVars_Const  : public RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TRawMethodDelegate_FourVars_Const ( UserClass* InUserObject, typename RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	
-	/** Declare the user's UObject-based delegate object (e.g. TObjMyDelegate) */
+	/** Declare the user's UFunction-based delegate instance types. */
+	template< class UObjectTemplate                                  > class TUFunctionDelegateBinding                     : public UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars   < UObjectTemplate, FUNC_TEMPLATE_ARGS                                  > { public: TUFunctionDelegateBinding          ( UObjectTemplate* InUserObject, const FName& InFunctionName                                  ) : UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars   < UObjectTemplate, FUNC_TEMPLATE_ARGS                                  >( InUserObject, InFunctionName                                    ) {} };
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_OneVar    > class TUFunctionDelegateBinding_OneVar              : public UFUNCTION_DELEGATE_INSTANCE_CLASS_OneVar   < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    > { public: TUFunctionDelegateBinding_OneVar   ( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : UFUNCTION_DELEGATE_INSTANCE_CLASS_OneVar   < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_TwoVars   > class TUFunctionDelegateBinding_TwoVars             : public UFUNCTION_DELEGATE_INSTANCE_CLASS_TwoVars  < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_TwoVars   > { public: TUFunctionDelegateBinding_TwoVars  ( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_TwoVars   ) : UFUNCTION_DELEGATE_INSTANCE_CLASS_TwoVars  < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_TwoVars   >( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_TwoVars   ) {} };
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_ThreeVars > class TUFunctionDelegateBinding_ThreeVars           : public UFUNCTION_DELEGATE_INSTANCE_CLASS_ThreeVars< UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_ThreeVars > { public: TUFunctionDelegateBinding_ThreeVars( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_ThreeVars ) : UFUNCTION_DELEGATE_INSTANCE_CLASS_ThreeVars< UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_ThreeVars >( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_ThreeVars ) {} };
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_FourVars  > class TUFunctionDelegateBinding_FourVars            : public UFUNCTION_DELEGATE_INSTANCE_CLASS_FourVars < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TUFunctionDelegateBinding_FourVars ( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : UFUNCTION_DELEGATE_INSTANCE_CLASS_FourVars < UObjectTemplate, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
+
+	/** Declare the user's UObject-based delegate instance types. */
 	template< class UserClass                                  > class TUObjectMethodDelegate                 : public UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  > { public: TUObjectMethodDelegate                ( UserClass* InUserObject, typename UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  >::FMethodPtr InMethodPtr                                  ) : UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars         < UserClass, FUNC_TEMPLATE_ARGS                                  >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass                                  > class TUObjectMethodDelegate_Const           : public UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  > { public: TUObjectMethodDelegate_Const          ( UserClass* InUserObject, typename UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  >::FMethodPtr InMethodPtr                                  ) : UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars_Const   < UserClass, FUNC_TEMPLATE_ARGS                                  >( InUserObject, InMethodPtr                                    ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_OneVar    > class TUObjectMethodDelegate_OneVar          : public UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    > { public: TUObjectMethodDelegate_OneVar         ( UserClass* InUserObject, typename UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_OneVar         < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
@@ -147,7 +161,7 @@ public:
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TUObjectMethodDelegate_FourVars        : public UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TUObjectMethodDelegate_FourVars       ( UserClass* InUserObject, typename UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars       < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	template< class UserClass, PAYLOAD_TEMPLATE_DECL_FourVars  > class TUObjectMethodDelegate_FourVars_Const  : public UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  > { public: TUObjectMethodDelegate_FourVars_Const ( UserClass* InUserObject, typename UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >::FMethodPtr InMethodPtr, PAYLOAD_TEMPLATE_ARGS_FourVars  ) : UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_FourVars_Const < UserClass, FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_FourVars  >( InUserObject, InMethodPtr, PAYLOAD_TEMPLATE_PASSIN_FourVars  ) {} };
 	
-	/** Declare the user's static function pointer delegate object (e.g. FMyDelegate) */
+	/** Declare the user's static function pointer delegate instance types. */
 	typedef STATIC_DELEGATE_INSTANCE_CLASS_NoVars< FUNC_TEMPLATE_ARGS > FStaticDelegate;
 	template< PAYLOAD_TEMPLATE_DECL_OneVar    > class TStaticDelegate_OneVar    : public STATIC_DELEGATE_INSTANCE_CLASS_OneVar   < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    > { public: TStaticDelegate_OneVar   ( typename STATIC_DELEGATE_INSTANCE_CLASS_OneVar   < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >::FFuncPtr InFuncPtr, PAYLOAD_TEMPLATE_ARGS_OneVar    ) : STATIC_DELEGATE_INSTANCE_CLASS_OneVar   < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_OneVar    >( InFuncPtr, PAYLOAD_TEMPLATE_PASSIN_OneVar    ) {} };
 	template< PAYLOAD_TEMPLATE_DECL_TwoVars   > class TStaticDelegate_TwoVars   : public STATIC_DELEGATE_INSTANCE_CLASS_TwoVars  < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_TwoVars   > { public: TStaticDelegate_TwoVars  ( typename STATIC_DELEGATE_INSTANCE_CLASS_TwoVars  < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_TwoVars   >::FFuncPtr InFuncPtr, PAYLOAD_TEMPLATE_ARGS_TwoVars   ) : STATIC_DELEGATE_INSTANCE_CLASS_TwoVars  < FUNC_TEMPLATE_ARGS, PAYLOAD_TEMPLATE_LIST_TwoVars   >( InFuncPtr, PAYLOAD_TEMPLATE_PASSIN_TwoVars   ) {} };
@@ -470,6 +484,38 @@ public:
 	}
 
 	/**
+	 * Static: Creates a UFunction-based member function delegate.
+	 *
+	 * UFunction delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
+	 */
+	template< class UObjectTemplate >
+	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName )
+	{
+		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUFunctionDelegateBinding< UObjectTemplate >::Create( InUserObject, InFunctionName ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_OneVar >
+	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_OneVar )
+	{
+		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUFunctionDelegateBinding_OneVar< UObjectTemplate, PAYLOAD_TEMPLATE_LIST_OneVar >::Create( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_OneVar ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_TwoVars >
+	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_TwoVars )
+	{
+		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUFunctionDelegateBinding_TwoVars< UObjectTemplate, PAYLOAD_TEMPLATE_LIST_TwoVars >::Create( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_TwoVars ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_ThreeVars >
+	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_ThreeVars )
+	{
+		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUFunctionDelegateBinding_ThreeVars< UObjectTemplate, PAYLOAD_TEMPLATE_LIST_ThreeVars >::Create( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_ThreeVars ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_FourVars >
+	inline static DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > CreateUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_FourVars )
+	{
+		return DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >( TUFunctionDelegateBinding_FourVars< UObjectTemplate, PAYLOAD_TEMPLATE_LIST_FourVars >::Create( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
+	}
+
+	/**
 	 * Static: Creates a UObject-based member function delegate.
 	 *
 	 * UObject delegates keep a weak reference to your object.
@@ -532,11 +578,11 @@ public:
 	 * Default constructor
 	 */
 	inline DELEGATE_CLASS()
-		: Delegate( NULL )
+		: FDelegateBase(nullptr)
 	{ }
 
 	/**
-	 * Delegate instance destructor
+	 * Destructor.
 	 */
 	inline ~DELEGATE_CLASS()
 	{
@@ -544,41 +590,48 @@ public:
 	}
 
 	/**
-	 * Construct from a delegate instance pointer.  The delegate will assume ownership of the incoming delegate instance!
+	 * Creates and initializes a new instance with the given delegate instance.
+	 *
+	 * The delegate will assume ownership of the incoming delegate instance!
 	 * IMPORTANT: This is a system-internal function and you should never be using this in regular C++ code
+	 *
+	 * @param InDelegateInstance The delegate instance to assign.
 	 */
-	inline DELEGATE_CLASS( IDelegate* InitDelegate )
-		: Delegate( InitDelegate )
+	inline DELEGATE_CLASS( TDelegateInstanceInterface* InDelegateInstance )
+		: FDelegateBase(InDelegateInstance)
 	{ }
 
 	/**
-	 * Construct from existing delegate object
+	 * Creates and initializes a new instance from an existing delegate object.
 	 *
-	 * @param	OtherDelegate	Delegate object to copy from
+	 * @param Other The delegate object to copy from.
 	 */
-	inline DELEGATE_CLASS( const DELEGATE_CLASS& OtherDelegate )
-		: Delegate( NULL )
+	inline DELEGATE_CLASS( const DELEGATE_CLASS& Other )
+		: FDelegateBase(nullptr)
 	{
-		*this = OtherDelegate;
+		*this = Other;
 	}
 
 	/**
-	 * Assignment operator
+	 * Assignment operator.
 	 *
 	 * @param	OtherDelegate	Delegate object to copy from
 	 */
-	inline DELEGATE_CLASS& operator=( const DELEGATE_CLASS& OtherDelegate )
+	inline DELEGATE_CLASS& operator=( const DELEGATE_CLASS& Other )
 	{
-		if( &OtherDelegate != this )
+		if (&Other != this)
 		{
-			IDelegate* NewDelegate = NULL;
-			if( OtherDelegate.Delegate != NULL )
-			{
-				NewDelegate = OtherDelegate.Delegate->CreateCopy();
-			}
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
 
-			Unbind();
-			Delegate = NewDelegate;
+			if (OtherInstance != nullptr)
+			{
+				SetDelegateInstance(OtherInstance->CreateCopy());
+			}
+			else
+			{
+				SetDelegateInstance(nullptr);
+			}
 		}
 
 		return *this;
@@ -897,6 +950,38 @@ public:
 	}
 
 	/**
+	 * Creates a UFunction-based member function delegate.
+	 *
+	 * UFunction delegates keep a weak reference to your object.
+	 * You can use ExecuteIfBound() to call them.
+	 */
+	template< class UObjectTemplate >
+	inline void BindUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName )
+	{
+		*this = CreateUFunction( InUserObject, InFunctionName );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_OneVar >
+	inline void BindUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_OneVar )
+	{
+		*this = CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_OneVar );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_TwoVars >
+	inline void BindUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_TwoVars )
+	{
+		*this = CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_TwoVars );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_ThreeVars >
+	inline void BindUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_ThreeVars )
+	{
+		*this = CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_ThreeVars );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_FourVars >
+	inline void BindUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_FourVars )
+	{
+		*this = CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_FourVars );
+	}
+
+	/**
 	 * Creates a UObject-based member function delegate.
 	 *
 	 * UObject delegates keep a weak reference to your object.
@@ -952,72 +1037,25 @@ public:
 	{
 		*this = CreateUObject( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars );
 	}
+public:
 
 	/**
-	 * Unbinds this delegate
-	 */
-	inline void Unbind()
-	{
-		if( Delegate != NULL )
-		{
-			delete Delegate;
-			Delegate = NULL;
-		}
-	}
-
-	/**
-	 * Checks to see if the user object bound to this delegate is still valid
+	 * Execute the delegate.
 	 *
-	 * @return  True if the user object is still valid and it's safe to execute the function call
-	 */
-	inline bool IsBound() const
-	{
-		return Delegate != NULL && Delegate->IsSafeToExecute();
-	}
-
-	/** 
-	 * Checks to see if this delegate is bound to the given user object.
+	 * If the function pointer is not valid, an error will occur. Check IsBound() before
+	 * calling this method or use ExecuteIfBound() instead.
 	 *
-	 * @return	True if this delegate is bound to InUserObject, false otherwise.
-	 */
-	inline bool IsBoundToObject(void const* InUserObject) const
-	{
-		return InUserObject && Delegate != NULL && Delegate->HasSameObject(InUserObject);
-	}
-
-	/**
-	 * Checks to see if the user object bound to this delegate will ever be valid again
-	 *
-	 * @return  True if the user object could be valid in the future or is valid now.
-	 */
-	inline bool IsCompactable() const
-	{
-		return Delegate != NULL && Delegate->IsCompactable();
-	}
-
-	/**
-	 * Execute the delegate.  If the function pointer is not valid, an error will occur.
+	 * @see ExecuteIfBound
 	 */
 	inline RetValType Execute( FUNC_PARAM_LIST ) const
 	{
-		// If this assert goes off, Execute() was called before a function was bound to the delegate.  Consider using ExecuteIfSafe() instead.
-		checkSlow( Delegate != NULL );
-		return Delegate->Execute( FUNC_PARAM_PASSTHRU );
-	}
+		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
 
-	/**
-	 * If this is a UObject delegate, return the UObject
-	 *
-	 * @return  the object associated with this delegate if there is one
-	 */
-	inline class UObject* GetUObject() const
-	{
-		if (Delegate && Delegate->GetType() == EDelegateInstanceType::UObjectMethod)
-		{
-			return (class UObject*)Delegate->GetRawUserObject();
-		}
+		// If this assert goes off, Execute() was called before a function was bound to the delegate.
+		// Consider using ExecuteIfSafe() instead.
+		checkSlow(DelegateInstance != nullptr);
 
-		return NULL;
+		return DelegateInstance->Execute(FUNC_PARAM_PASSTHRU);
 	}
 
 #if FUNC_IS_VOID
@@ -1031,7 +1069,7 @@ public:
 	{
 		if( IsBound() )
 		{
-			return Delegate->ExecuteIfSafe( FUNC_PARAM_PASSTHRU );
+			return ((TDelegateInstanceInterface*)GetDelegateInstance())->ExecuteIfSafe( FUNC_PARAM_PASSTHRU );
 		}
 
 		return false;
@@ -1039,19 +1077,23 @@ public:
 #endif
 
 	/**
-	 * Equality operator
+	 * Equality operator.
+	 *
+	 * @return true if this delegate equals the other, false otherwise.
 	 */
 	bool operator==( const DELEGATE_CLASS< FUNC_TEMPLATE_ARGS >& Other ) const
 	{
+		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
+		TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
+
 		// The function these delegates point to must be the same
-		if( Delegate != NULL && Other.Delegate != NULL )
+		if ((DelegateInstance != nullptr) && (OtherInstance != nullptr))
 		{
-			return Delegate->IsSameFunction( *Other.Delegate );
+			return DelegateInstance->IsSameFunction(*OtherInstance);
 		}
-		else
-		{
+
 			// If neither delegate is initialized to anything yet, then we treat them as equal
-			if( Delegate == NULL && Other.Delegate == NULL )
+		if ((DelegateInstance == nullptr) && (OtherInstance == nullptr))
 			{
 				return true;
 			}
@@ -1059,48 +1101,71 @@ public:
 			// No match!
 			return false;
 		}
-	}
 
 private:
 
 	// Declare ourselves as a friend to our multi-cast counterpart, so that it can access our interface directly
 	template< FUNC_TEMPLATE_DECL_NO_SHADOW > friend class BASE_MULTICAST_DELEGATE_CLASS;
-
-	/** Pointer to the actual delegate object instance.  We need to use a pointer because the actual type of delegate class
-	    that's created will depend on the type of binding (raw, shared pointer, etc) as well as the user's object type */
-	IDelegate* Delegate;
 };
 
 
-
-// NOTE: Only delegates with no return value are valid for multi-cast
 #if FUNC_IS_VOID
 
 /**
- * Multi-cast delegate base object.   You'll use the various DECLARE_MULTICAST_DELEGATE macros to create
- * the actual delegate type, templated to the function signature the delegate is compatible with.  Then,
- * you can create an instance of that class when you want to bind a function to the delegate.
+ * Multicast delegate base class.
+	 *
+ * This class implements the functionality of multicast delegates. It is templated to the function signature
+ * that it is compatible with. Use the various DECLARE_MULTICAST_DELEGATE and DECLARE_EVENT macros to create
+ * actual delegate types.
+	 *
+ * Multicast delegates only support bindings with no return value.
  */
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class BASE_MULTICAST_DELEGATE_CLASS
+	: public FMulticastDelegateBase<>
 {
 public:
 
-	/** The actual single-cast delegate class for this multi-cast delegate */
+	/** DEPRECATED: Type definition for unicast delegate classes whose delegate instances are compatible with this delegate. */
 	typedef DELEGATE_CLASS< FUNC_TEMPLATE_ARGS > FDelegate;
 
-	/**
-	 * Adds a function delegate to this multi-cast delegate's invocation list
-	 *
-	 * @param	InDelegate	Delegate to add
-	 */
-	void Add( const FDelegate& InDelegate )
-	{
-		// Add the delegate
-		AddInternal( InDelegate );
+	/** Type definition for the shared interface of delegate instance types compatible with this delegate class. */
+	typedef DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS> TDelegateInstanceInterface;
 
-		// Then check and see if there are any stale delegates and remove them
-		CompactInvocationList();
+public:
+
+	/**
+	 * Adds a delegate instance to this multicast delegate's invocation list.
+	 *
+	 * This delegate will take over ownership of the given delegate instance.
+	 *
+	 * @param DelegateInstance The delegate instance to add.
+	 */
+	void Add( TDelegateInstanceInterface* DelegateInstance )
+	{
+		if (DelegateInstance != nullptr)
+		{
+			AddDelegateInstance(*DelegateInstance);
+			CompactInvocationList();
+		}
+	}
+
+	/**
+	 * DEPRECATED: Adds a unicast delegate to this multi-cast delegate's invocation list.
+	 *
+	 * This method is retained for backwards compatibility.
+	 *
+	 * @param Delegate The delegate to add.
+	 */
+	void Add( const FDelegate& Delegate )
+	{
+		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)Delegate.GetDelegateInstance();
+
+		if (DelegateInstance != nullptr)
+		{
+			AddDelegateInstance(*DelegateInstance->CreateCopy());
+			CompactInvocationList();
+		}
 	}
 
 	/**
@@ -1428,6 +1493,40 @@ public:
 	}
 
 	/**
+	 * Adds a UFunction-based member function delegate.
+	 *
+	 * UFunction delegates keep a weak reference to your object.
+	 *
+	 * @param	InUserObject	User object to bind to
+	 * @param	InFunctionName			Class method function address
+	 */
+	template< class UObjectTemplate >
+	inline void AddUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName )
+	{
+		Add( FDelegate::CreateUFunction( InUserObject, InFunctionName ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_OneVar >
+	inline void AddUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_OneVar )
+	{
+		Add( FDelegate::CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_OneVar ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_TwoVars >
+	inline void AddUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_TwoVars )
+	{
+		Add( FDelegate::CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_TwoVars ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_ThreeVars >
+	inline void AddUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_ThreeVars )
+	{
+		Add( FDelegate::CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_ThreeVars ) );
+	}
+	template< class UObjectTemplate, PAYLOAD_TEMPLATE_DECL_FourVars >
+	inline void AddUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName, PAYLOAD_TEMPLATE_ARGS_FourVars )
+	{
+		Add( FDelegate::CreateUFunction( InUserObject, InFunctionName, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
+	}
+
+	/**
 	 * Adds a UObject-based member function delegate.
 	 *
 	 * UObject delegates keep a weak reference to your object.
@@ -1486,37 +1585,48 @@ public:
 		Add( FDelegate::CreateUObject( InUserObject, InFunc, PAYLOAD_TEMPLATE_PASSIN_FourVars ) );
 	}
 
-	/**
-	 *	Removes all functions from this multi-cast delegate's invocation list that are bound to the specified UserObject.
-	 *	Note that the order of the delegates may not be preserved!
-	 */
-	void RemoveAll( const void* InUserObject )
-	{
-		// Remove the delegate
-		RemoveByObjectInternal( InUserObject );
-
-		// Check for any delegates that may have expired
-		CompactInvocationList();
-	}
+public:
 
 	/**
-	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
-	 * order of the delegates may not be preserved!
+	 * Removes a delegate instance from this multi-cast delegate's invocation list (performance is O(N)).
 	 *
-	 * @param	InDelegate	Delegate to remove
+	 * Note that the order of the delegate instances may not be preserved!
+	 *
+	 * @param DelegateInstance The delegate instance to remove.
 	 */
-	void Remove( const FDelegate& InDelegate )
+	void Remove( const TDelegateInstanceInterface& DelegateInstance )
 	{
 		// NOTE: For delegates with PAYLOAD, the payload variables are not considered when comparing delegate objects!
 		// This means that two delegate instances bound to the same object/method, but with different payload data,
 		// cannot be bound to the same single multi-cast delegate.  We could support this by changing IsSameFunction()
 		// to do comparison of payload data, but there are some trade-offs if we do that.
 
-		// Remove the delegate
-		RemoveByDelegateInternal( InDelegate );
-
-		// Check for any delegates that may have expired
+		RemoveDelegateInstance(DelegateInstance);
 		CompactInvocationList();
+	}
+
+	/**
+	 * DEPRECATED: Removes a unicast delegate from this multi-cast delegate's invocation list (performance is O(N)).
+	 *
+	 * The order of the delegates may not be preserved!
+	 * This function is retained for backwards compatibility.
+	 *
+	 * @param Delegate The delegate to remove.
+	 */
+	void Remove( const FDelegate& Delegate )
+	{
+		// NOTE: For delegates with PAYLOAD, the payload variables are not considered when comparing delegate objects!
+		// This means that two delegate instances bound to the same object/method, but with different payload data,
+		// cannot be bound to the same single multi-cast delegate.  We could support this by changing IsSameFunction()
+		// to do comparison of payload data, but there are some trade-offs if we do that.
+
+		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)Delegate.GetDelegateInstance();
+
+		if (DelegateInstance != nullptr)
+		{
+			RemoveDelegateInstance(*DelegateInstance);
+			CompactInvocationList();
+		}		
 	}
 
 	// NOTE: These direct Remove methods are only supported for multi-cast delegates with no payload attached.
@@ -1624,6 +1734,19 @@ public:
 	}
 
 	/**
+	 * Removes a UFunction-based member function delegate (performance is O(N)).  Note that the order of the
+	 * delegates may not be preserved!
+	 *
+	 * @param	InUserObject	User object to unbind from
+	 * @param	InFunc			Class method function address
+	 */
+	template< class UObjectTemplate >
+	inline void RemoveUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName )
+	{
+		Remove( FDelegate::CreateUFunction( InUserObject, InFunctionName ) );
+	}
+
+	/**
 	 * Removes a UObject-based member function delegate (performance is O(N)).  Note that the order of the
 	 * delegates may not be preserved!
 	 *
@@ -1641,208 +1764,110 @@ public:
 		Remove( FDelegate::CreateUObject( InUserObject, InFunc ) );
 	}
 
-	/** 
-	 * Checks to see if any functions are bound to the given user object.
-	 *
-	 * @return	True if any functions are bound to InUserObject, false otherwise.
-	 */
-	inline bool IsBoundToObject(void const* InUserObject) const
-	{
-		const int32 NumFunctions = InvocationList.Num();
-		for( int32 CurFunctionIndex = 0; CurFunctionIndex < NumFunctions; ++CurFunctionIndex )
-		{
-			if (InvocationList[ CurFunctionIndex ].Delegate->HasSameObject( InUserObject ) )
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 protected:
 
-	/**
-	 * Default constructor
+	/** 
+	 * Hidden default constructor.
 	 */
-	inline BASE_MULTICAST_DELEGATE_CLASS()
-		: ExpirableObjectCount( 0 )
-	{ }
+	inline BASE_MULTICAST_DELEGATE_CLASS( ) { }
 
-	/**
-	 * Checks to see if any functions are bound to this multi-cast delegate.
-	 *
-	 * This method is protected to avoid assumptions about only one delegate existing.
-	 *
-	 * @return	True if any functions are bound
-	 */
-	inline bool IsBound() const
-	{
-		return InvocationList.Num() > 0;
-	}
-
-	/**
-	 * Removes all functions from this delegate's invocation list
-	 */
-	void Clear()
-	{
-		InvocationList.Empty();
-		ExpirableObjectCount = 0;
-	}
-
-	/**
-	 * Broadcasts this delegate to all bound objects, except to those that may have expired
-	 */
-	void Broadcast( FUNC_PARAM_LIST ) const
-	{
-		if( InvocationList.Num() > 0 )
-		{
-			// Create a copy of the invocation list, just in case the list is modified by one of the callbacks
-			// during the broadcast
-			typedef TArray< FDelegate, TInlineAllocator< 4 > > FInlineInvocationList;
-			FInlineInvocationList InvocationListCopy = FInlineInvocationList(InvocationList);
-
-			// Invoke each bound function
-			for( typename FInlineInvocationList::TConstIterator FunctionIt( InvocationListCopy ); FunctionIt; ++FunctionIt )
-			{
-				if( !FunctionIt->ExecuteIfBound( FUNC_PARAM_PASSTHRU ) )
-				{
-					if( FunctionIt->IsCompactable() )
-					{
-						// Function couldn't be executed and it is compactable, so remove it.  Note that because the 
-						// original list could have been modified by one of the callbacks, we have to search for the 
-						// function to remove here.
-						RemoveByDelegateInternal( *FunctionIt );
-					}
-				}
-			}
-		}
-	}
-
-private:
+protected:
 
 	/**
 	 * Adds a function delegate to this multi-cast delegate's invocation list
 	 *
 	 * @param	InDelegate	Delegate to add
 	 */
-	void AddInternal( const FDelegate& InDelegate )
+	void AddDelegateInstance( TDelegateInstanceInterface& InDelegateInstance )
 	{
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-		// Verify same function isn't already bound.
-		const int32 NumFunctions = InvocationList.Num();
-		for( int32 CurFunctionIndex = 0; CurFunctionIndex < NumFunctions; ++CurFunctionIndex )
-		{
-			// NOTE: Multi-cast delegates currently don't support binding two delegates with the same object/function
-			// that have different payload variables.  See the comment in the Remove() method for more information.
-			check( !InvocationList[ CurFunctionIndex ].Delegate->IsSameFunction( *InDelegate.Delegate ) );
-		}
+		// verify that the same function isn't already bound
+		for (auto DelegateInstance : GetInvocationList())
+	{
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
+			check(!DelegateInstanceInterface->IsSameFunction(InDelegateInstance));
+	}
 #endif
-		InvocationList.Add( InDelegate );
 
-		// Keep track of whether we have objects bound that may expire out from underneath us.
-		const EDelegateInstanceType::Type DelegateType = InDelegate.Delegate->GetType();
-		if( DelegateType == EDelegateInstanceType::SharedPointerMethod ||
-			DelegateType == EDelegateInstanceType::ThreadSafeSharedPointerMethod ||
-			DelegateType == EDelegateInstanceType::UObjectMethod )
+		AddInternal(InDelegateInstance);
+	}
+
+	/**
+	 * Broadcasts this delegate to all bound objects, except to those that may have expired.
+	 *
+	 * The constness of this method is a lie, because we are removing compactable delegate intsances.
+	 */
+	void Broadcast( FUNC_PARAM_LIST ) const
+	{
+		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+
+		if (InvocationList.Num() == 0)
 		{
-			++ExpirableObjectCount;
+			return;
+		}
+
+		// copy invocation list just in case the list is modified by one of the broadcast callbacks
+		typedef TArray<IDelegateInstance*, TInlineAllocator<4>> FInlineInvocationList;
+			FInlineInvocationList InvocationListCopy = FInlineInvocationList(InvocationList);
+
+			// Invoke each bound function
+		for (IDelegateInstance* DelegateInstance : InvocationListCopy)
+			{
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)DelegateInstance;
+
+			// execute the delegate instance...
+			if (!DelegateInstanceInterface->ExecuteIfSafe(FUNC_PARAM_PASSTHRU))
+				{
+				// ... or remove it if compactable
+				if (DelegateInstance->IsCompactable())
+					{
+					// search for the instance, because original list could have been modified during broadcast
+					// this is really shady, because it violates the constness of this method
+					const_cast<BASE_MULTICAST_DELEGATE_CLASS*>(this)->RemoveDelegateInstance(*DelegateInstanceInterface);
+				}
+			}
 		}
 	}
 
 	/**
-	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
-	 * order of the delegates may not be preserved!
+	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).
 	 *
-	 * @param	InDelegate	Delegate to remove
+	 * Note that the order of the delegates may not be preserved! This method will not assert if
+	 * the given delegate instance was not found in the invocation list, because some instances
+	 * hold on to weak pointers to objects that may become invalid.
+	 *
+	 * @param InDelegateInstance The delegate instance to remove.
 	 */
-	void RemoveByDelegateInternal( const FDelegate& InDelegate ) const
+	void RemoveDelegateInstance( const TDelegateInstanceInterface& InDelegateInstance )
 	{
-		const int32 NumFunctions = InvocationList.Num();
-		for( int32 CurFunctionIndex = 0; CurFunctionIndex < NumFunctions; ++CurFunctionIndex )
+		const TArray<IDelegateInstance*> InvocationList = GetInvocationList();
+
+		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
+			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
+			TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex];
+
 			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
 			//       delegate pointers can refer to the exact same object and method
-			if( InvocationList[ CurFunctionIndex ].Delegate->IsSameFunction( *InDelegate.Delegate ) )
+			if (DelegateInstance->IsSameFunction(InDelegateInstance))
 			{
-				// Keep track of whether we have objects bound that may expire out from underneath us.
-				const EDelegateInstanceType::Type DelegateType = InvocationList[ CurFunctionIndex ].Delegate->GetType();
-				if( DelegateType == EDelegateInstanceType::SharedPointerMethod || 
-					DelegateType == EDelegateInstanceType::ThreadSafeSharedPointerMethod ||
-					DelegateType == EDelegateInstanceType::UObjectMethod )
-				{
-					--ExpirableObjectCount;
-				}
+				RemoveByIndex(InvocationListIndex);
 
-				InvocationList.RemoveAtSwap( CurFunctionIndex );
-
-				// No need to continue, as we never allow the same delegate to be bound twice
+				// no need to continue, as we never allow the same delegate to be bound twice
 				break;
 			}
 		}
-
-		// NOTE: We don't want to assert that the specified delegate was removed, because delegates that are
-		//       bound by weak pointer may vanish when the object goes out of scope during cleanup, which
-		//       could create unpredictable assertions.  It's best to always safely allow a delegate remove attempt.
 	}
-
-	/**
-	 *	Removes all functions from this multi-cast delegate's invocation list that are bound to the specified UserObject.
-	 *	Note that the order of the delegates may not be preserved!
-	 */
-	void RemoveByObjectInternal( const void* InUserObject )
-	{
-		const int32 NumFunctions = InvocationList.Num();
-		for( int CurFunctionIndex = NumFunctions - 1; CurFunctionIndex >= 0; --CurFunctionIndex )
-		{
-			if( InvocationList[CurFunctionIndex].Delegate->HasSameObject( InUserObject ) )
-			{
-				// Keep track of whether we have objects bound that may expire out from underneath us.
-				const EDelegateInstanceType::Type DelegateType = InvocationList[CurFunctionIndex].Delegate->GetType();
-				if( DelegateType == EDelegateInstanceType::SharedPointerMethod ||
-					DelegateType == EDelegateInstanceType::ThreadSafeSharedPointerMethod ||
-					DelegateType == EDelegateInstanceType::UObjectMethod )
-				{
-					--ExpirableObjectCount;
-				}
-
-				InvocationList.RemoveAtSwap( CurFunctionIndex );
-			}
-		}
-	}
-
-	/** Cleans up any delegates in our invocation list that have expired (performance is O(N)) */
-	void CompactInvocationList() const
-	{
-		// We only need to compact if any objects were added whose lifetime is known to us
-		if( ExpirableObjectCount > 0 )
-		{
-			for( int32 CurFunctionIndex = 0; CurFunctionIndex < InvocationList.Num(); ++CurFunctionIndex )
-			{
-				if( InvocationList[CurFunctionIndex].IsCompactable() )
-				{
-					// Remove it, and decrement loop counter so that we don't skip over an element
-					InvocationList.RemoveAtSwap( CurFunctionIndex-- );
-
-					checkSlow( ExpirableObjectCount > 0 );
-					--ExpirableObjectCount;
-				}
-			}
-		}
-	}
-
-private:
-
-	/** Ordered list functions to invoke when the Broadcast function is called */
-	typedef TArray< FDelegate > FInvocationList;
-	mutable FInvocationList InvocationList;		// Mutable so that we can housekeep list even with 'const' broadcasts
-
-	/** Tracks the number of objects in our invocation list whose lifetime is known to us.  That is,
-	    these objects could potentially expire out from underneath us. */
-	mutable int32 ExpirableObjectCount;		// Mutable so that we can housekeep list even with 'const' broadcasts
 };
 
 
+	/**
+ * Implements a multicast delegate.
+ *
+ * This class should not be instantiated directly. Use the DECLARE_MULTICAST_DELEGATE macros instead.
+	 */
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class MULTICAST_DELEGATE_CLASS : public BASE_MULTICAST_DELEGATE_CLASS< FUNC_TEMPLATE_DECL >
 {
@@ -1879,6 +1904,7 @@ private:
 	// Prevents erroneous use by other classes.
 	typedef BASE_MULTICAST_DELEGATE_CLASS< FUNC_TEMPLATE_DECL > Super;
 };
+
 #endif		// FUNC_IS_VOID
 
 
@@ -1931,7 +1957,7 @@ public:
 	template< class UserClass >
 	void __Internal_BindDynamic( UserClass* InUserObject, typename TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const FString& InMacroFunctionName )
 	{
-		check( InUserObject != NULL && InMethodPtr != NULL && !InMacroFunctionName.IsEmpty() );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && !InMacroFunctionName.IsEmpty() );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -2000,7 +2026,7 @@ public:
 	template< class UserClass >
 	bool __Internal_IsAlreadyBound( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const FString& InMacroFunctionName ) const
 	{
-		check( InUserObject != NULL && InMethodPtr != NULL && !InMacroFunctionName.IsEmpty() );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && !InMacroFunctionName.IsEmpty() );
 
 		// NOTE: We're not actually using the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -2023,7 +2049,7 @@ public:
 	template< class UserClass >
 	void __Internal_AddDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const FString& InMacroFunctionName )
 	{
-		check( InUserObject != NULL && InMethodPtr != NULL && !InMacroFunctionName.IsEmpty() );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && !InMacroFunctionName.IsEmpty() );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -2046,7 +2072,7 @@ public:
 	template< class UserClass >
 	void __Internal_AddUniqueDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const FString& InMacroFunctionName )
 	{
-		check( InUserObject != NULL && InMethodPtr != NULL && !InMacroFunctionName.IsEmpty() );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && !InMacroFunctionName.IsEmpty() );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -2069,7 +2095,7 @@ public:
 	template< class UserClass >
 	void __Internal_RemoveDynamic( UserClass* InUserObject, typename FDelegate::template TMethodPtrResolver< UserClass >::FMethodPtr InMethodPtr, const FString& InMacroFunctionName )
 	{
-		check( InUserObject != NULL && InMethodPtr != NULL && !InMacroFunctionName.IsEmpty() );
+		check( InUserObject != nullptr && InMethodPtr != nullptr && !InMacroFunctionName.IsEmpty() );
 
 		// NOTE: We're not actually storing the incoming method pointer or calling it.  We simply require it for type-safety reasons.
 
@@ -2120,6 +2146,12 @@ public:
 #undef RAW_METHOD_DELEGATE_INSTANCE_CLASS_TwoVars
 #undef RAW_METHOD_DELEGATE_INSTANCE_CLASS_ThreeVars
 #undef RAW_METHOD_DELEGATE_INSTANCE_CLASS_FourVars
+
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS_NoVars
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS_OneVar
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS_TwoVars
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS_ThreeVars
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS_FourVars
 
 #undef UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_NoVars
 #undef UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS_OneVar

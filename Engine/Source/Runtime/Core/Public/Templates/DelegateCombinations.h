@@ -16,7 +16,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType
 #define FUNC_HAS_PARAMS 0
 #define FUNC_PARAM_LIST
+#define FUNC_PARAM_MEMBERS
 #define FUNC_PARAM_PASSTHRU
+#define FUNC_PARAM_PARMS_PASSIN
+#define FUNC_PARAM_INITIALIZER_LIST
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -204,7 +207,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_NoParams
@@ -214,7 +220,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType
 #define FUNC_HAS_PARAMS 0
 #define FUNC_PARAM_LIST
+#define FUNC_PARAM_MEMBERS
 #define FUNC_PARAM_PASSTHRU
+#define FUNC_PARAM_PARMS_PASSIN
+#define FUNC_PARAM_INITIALIZER_LIST
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -399,7 +408,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX OneParam
@@ -409,7 +421,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1
+#define FUNC_PARAM_MEMBERS Param1Type Param1;
 #define FUNC_PARAM_PASSTHRU InParam1
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -597,7 +612,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_OneParam
@@ -607,7 +625,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1
+#define FUNC_PARAM_MEMBERS Param1Type Param1;
 #define FUNC_PARAM_PASSTHRU InParam1
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -792,7 +813,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX TwoParams
@@ -802,7 +826,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -990,7 +1017,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_TwoParams
@@ -1000,7 +1030,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -1185,7 +1218,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX ThreeParams
@@ -1195,7 +1231,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -1383,7 +1422,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_ThreeParams
@@ -1393,7 +1435,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -1578,7 +1623,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX FourParams
@@ -1588,7 +1636,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -1776,7 +1827,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_FourParams
@@ -1786,7 +1840,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -1971,7 +2028,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX FiveParams
@@ -1981,7 +2041,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -2169,7 +2232,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_FiveParams
@@ -2179,7 +2245,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -2364,7 +2433,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX SixParams
@@ -2374,7 +2446,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -2562,7 +2637,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_SixParams
@@ -2572,7 +2650,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -2757,7 +2838,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX SevenParams
@@ -2767,7 +2851,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -2955,7 +3042,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_SevenParams
@@ -2965,7 +3055,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -3150,7 +3243,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX EightParams
@@ -3160,7 +3256,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7; Param8Type Param8;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7, Parms.Param8
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 ), Param8( InParam8 )
 #define FUNC_IS_VOID 1
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -3348,7 +3447,10 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
 
 #define FUNC_SUFFIX RetVal_EightParams
@@ -3358,7 +3460,10 @@
 #define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type
 #define FUNC_HAS_PARAMS 1
 #define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7; Param8Type Param8;
 #define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7, Parms.Param8
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 ), Param8( InParam8 )
 #define FUNC_IS_VOID 0
 #include "DelegateInstanceInterfaceImpl.inl"
 
@@ -3543,5 +3648,8 @@
 #undef FUNC_TEMPLATE_ARGS
 #undef FUNC_HAS_PARAMS
 #undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
 #undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID

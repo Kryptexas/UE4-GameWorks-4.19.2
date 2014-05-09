@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
+// Do not remove this header guard! It ensures that DelegateCombinations.h can only be included from here.
 #ifndef __Delegate_h__
 #define __Delegate_h__
 
@@ -8,6 +8,9 @@
 
 #include "SharedPointer.h"
 #include "WeakObjectPtrTemplates.h"
+#include "IDelegateInstance.h"
+#include "DelegateBase.h"
+#include "MulticastDelegateBase.h"
 
 
 /**
@@ -158,30 +161,6 @@
  *	 Dynamic (UObject, serializable) delegates:  DECLARE_DYNAMIC_DELEGATE...()
  */
 
-
-/**
- * Types of delegate instances
- */
-namespace EDelegateInstanceType
-{
-	enum Type
-	{
-		/** Member function pointer to method in (fast, not thread-safe) shared pointer-based class */
-		SharedPointerMethod,
-
-		/** Member function pointer to method in (conditionally thread-safe) shared pointer-based class */
-		ThreadSafeSharedPointerMethod,
-
-		/** Raw C++ member function pointer (pointer to class method) */
-		RawMethod,
-
-		/** Member function pointer to method in UObject-based class */
-		UObjectMethod,
-
-		/** Raw C++ static function pointer */
-		Raw
-	};
-}
 
 // This suffix is appended to all header exported delegates
 #define HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX TEXT("__DelegateSignature")
@@ -350,5 +329,6 @@ class DynamicMulticastDelegateName : public TBaseDynamicMulticastDelegate_##Suff
 // Simple delegate used by various utilities such as timers
 DECLARE_DELEGATE( FSimpleDelegate );
 DECLARE_MULTICAST_DELEGATE( FSimpleMulticastDelegate );
+
 
 #endif		// __Delegate_h__

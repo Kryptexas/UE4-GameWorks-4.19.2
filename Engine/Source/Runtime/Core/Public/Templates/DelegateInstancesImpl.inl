@@ -20,6 +20,7 @@
 #define RAW_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseRawMethodDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
 #define UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseUObjectMethodDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
 #define STATIC_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseStaticDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
+#define UFUNCTION_DELEGATE_INSTANCE_CLASS FUNC_COMBINE( TBaseUFunctionDelegateInstance_, FUNC_COMBINE( FUNC_PAYLOAD_SUFFIX, FUNC_CONST_SUFFIX ) )
 
 #if FUNC_IS_CONST
 	#define DELEGATE_QUALIFIER const
@@ -35,9 +36,11 @@
 	#if FUNC_HAS_PARAMS
 		#define DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN FUNC_PARAM_PASSTHRU, FUNC_PAYLOAD_PASSIN
 		#define DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST       FUNC_PARAM_LIST, FUNC_PAYLOAD_LIST
+		#define DELEGATE_PARMS_COLON_INITIALIZER_LIST	     : FUNC_PARAM_INITIALIZER_LIST, FUNC_PAYLOAD_INITIALIZER_LIST
 	#else
 		#define DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN FUNC_PAYLOAD_PASSIN
 		#define DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST       FUNC_PAYLOAD_LIST
+		#define DELEGATE_PARMS_COLON_INITIALIZER_LIST	     : FUNC_PAYLOAD_INITIALIZER_LIST
 	#endif
 #else
 	#define DELEGATE_COMMA_PAYLOAD_LIST
@@ -46,6 +49,11 @@
 	#define DELEGATE_COMMA_PAYLOAD_PASSIN
 	#define DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN FUNC_PARAM_PASSTHRU
 	#define DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST       FUNC_PARAM_LIST
+	#if FUNC_HAS_PARAMS
+		#define DELEGATE_PARMS_COLON_INITIALIZER_LIST	 : FUNC_PARAM_INITIALIZER_LIST
+	#else
+		#define DELEGATE_PARMS_COLON_INITIALIZER_LIST
+	#endif
 #endif
 
 
@@ -181,6 +189,11 @@ public:
 	virtual bool HasSameObject( const void* InUserObject ) const OVERRIDE
 	{
 		return UserObject.HasSameObject( InUserObject );
+	}
+
+	virtual FName GetFunctionName() const OVERRIDE
+	{
+		return NAME_None;
 	}
 
 	virtual const void* GetRawUserObject() const OVERRIDE
@@ -380,6 +393,11 @@ public:
 		return UserObject == InUserObject;
 	}
 
+	virtual FName GetFunctionName() const OVERRIDE
+	{
+		return NAME_None;
+	}
+
 	virtual const void* GetRawUserObject() const OVERRIDE
 	{
 		return GetRawUserObjectInternal();
@@ -569,6 +587,11 @@ public:
 		return UserObject.Get() == InUserObject;
 	}
 
+	virtual FName GetFunctionName() const OVERRIDE
+	{
+		return NAME_None;
+	}
+
 	virtual const void* GetRawUserObject() const OVERRIDE
 	{
 		return GetRawUserObjectInternal();
@@ -750,6 +773,11 @@ public:
 		return false;
 	}
 
+	virtual FName GetFunctionName() const OVERRIDE
+	{
+		return NAME_None;
+	}
+
 	virtual const void* GetRawUserObject() const OVERRIDE
 	{
 		return NULL;
@@ -806,10 +834,180 @@ private:
 };
 
 
+#if !FUNC_IS_CONST
+
+/**
+ * Delegate type implementation class for UFunctions.  For internal use only.
+ *
+ * @params UserClass Must be an UObject derived class.
+ */
+template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME>
+class UFUNCTION_DELEGATE_INSTANCE_CLASS
+	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
+{
+	checkAtCompileTime((CanConvertPointerFromTo<UserClass, UObjectBase>::Result), You_Cannot_Use_UFunction_Delegates_With_Non_UObject_Classes);
+
+	// Structure for UFunction call parameter marshaling.
+	struct FParmsWithPayload
+	{
+		FUNC_PARAM_MEMBERS		// (Param1Type Param1; Param2Type Param2; ...)
+		FUNC_PAYLOAD_MEMBERS	// (Var1Type Var1; Var2Type Var2; ...)
+
+#if !FUNC_IS_VOID
+		RetValType Result;		// UFunction return value.
+#endif
+
+		// Constructor.
+		FParmsWithPayload( DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST )
+			DELEGATE_PARMS_COLON_INITIALIZER_LIST
+		{ }
+	};
+
+public:
+
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InUserObject The UObject to call the function on.
+	 * @param InFunctionName The name of the function call.
+	 */
+	UFUNCTION_DELEGATE_INSTANCE_CLASS( UserClass* InUserObject, const FName& InFunctionName DELEGATE_COMMA_PAYLOAD_LIST )
+		: FunctionName(InFunctionName)
+		, UserObjectPtr(InUserObject)
+		DELEGATE_COMMA_PAYLOAD_INITIALIZER_LIST
+	{
+		check(InFunctionName != NAME_None);
+		
+		if (InUserObject != nullptr)
+		{
+			CachedFunction = UserObjectPtr->FindFunctionChecked(InFunctionName);
+		}		
+	}
+	
+public:
+
+	// Begin IDelegateInstance interface
+
+	virtual FName GetFunctionName( ) const OVERRIDE
+	{
+		return FunctionName;
+	}
+
+	virtual const void* GetRawMethodPtr( ) const OVERRIDE
+	{
+		return nullptr;
+	}
+
+	virtual const void* GetRawUserObject( ) const OVERRIDE
+	{
+		return UserObjectPtr.Get();
+	}
+
+	virtual EDelegateInstanceType::Type GetType() const OVERRIDE
+	{
+		return EDelegateInstanceType::UFunction;
+	}
+
+	virtual bool HasSameObject( const void* InUserObject ) const OVERRIDE
+	{
+		return (UserObjectPtr.Get() == InUserObject);
+	}
+
+	virtual bool IsCompactable( ) const OVERRIDE
+	{
+		return !UserObjectPtr.Get(true);
+	}
+
+	virtual bool IsSafeToExecute( ) const OVERRIDE
+	{
+		return UserObjectPtr.IsValid();
+	}
+
+	// End IDelegateInstance interface
+
+public:
+
+	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+
+	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy() OVERRIDE
+	{
+		return Create(UserObjectPtr.Get(), GetFunctionName() DELEGATE_COMMA_PAYLOAD_PASSIN);
+	}
+
+	virtual RetValType Execute( FUNC_PARAM_LIST ) const OVERRIDE
+	{
+		checkSlow(IsSafeToExecute());
+
+		FParmsWithPayload Parms = FParmsWithPayload(DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN);
+		UserObjectPtr->ProcessEvent(CachedFunction, &Parms);
+
+#if !FUNC_IS_VOID
+		return Parms.Result;
+#endif
+	}
+
+#if FUNC_IS_VOID
+	virtual bool ExecuteIfSafe( FUNC_PARAM_LIST ) const OVERRIDE
+	{
+		if (IsSafeToExecute())
+		{
+			Execute(FUNC_PARAM_PASSTHRU);
+
+			return true;
+		}
+
+		return false;
+	}
+#endif
+
+	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>& Other ) const OVERRIDE
+	{
+		return ((Other.GetType() == EDelegateInstanceType::UFunction) &&
+				(Other.GetRawUserObject() == GetRawUserObject()) &&
+				(Other.GetFunctionName() == GetFunctionName()));
+	}
+
+	// End DELEGATE_INSTANCE_INTERFACE_CLASS interface
+
+public:
+
+	/**
+	 * Static helper function that returns a delegate object for the specified user class and class method.
+	 *
+	 * @param InObject The user object to call the function on.
+	 * @param InFunctionName The name of the function call.
+	 *
+	 * @return  Returns an interface to the new delegate
+	 */
+	FORCEINLINE static DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* Create( UserClass* InUserObject, const FName& InFunctionName DELEGATE_COMMA_PAYLOAD_LIST )
+	{
+		return new UFUNCTION_DELEGATE_INSTANCE_CLASS<UserClass, FUNC_PAYLOAD_TEMPLATE_ARGS>(InUserObject, InFunctionName DELEGATE_COMMA_PAYLOAD_PASSTHRU);
+	}
+
+public:
+
+	// Holds the cached UFunction to call.
+	UFunction* CachedFunction;
+
+	// Holds the name of the function to call.
+	FName FunctionName;
+
+	// The user object to call the function on.
+	TWeakObjectPtr<UserClass> UserObjectPtr;
+
+	// Payload member variables, if any.
+	FUNC_PAYLOAD_MEMBERS
+};
+
+#endif // FUNC_IS_CONST
+
+
 #undef SP_METHOD_DELEGATE_INSTANCE_CLASS
 #undef RAW_METHOD_DELEGATE_INSTANCE_CLASS
 #undef UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS
 #undef STATIC_DELEGATE_INSTANCE_CLASS
+#undef UFUNCTION_DELEGATE_INSTANCE_CLASS
+
 #undef DELEGATE_INSTANCE_INTERFACE_CLASS
 #undef DELEGATE_QUALIFIER
 #undef DELEGATE_COMMA_PAYLOAD_LIST
@@ -818,3 +1016,4 @@ private:
 #undef DELEGATE_COMMA_PAYLOAD_PASSIN
 #undef DELEGATE_PARAM_PASSTHRU_COMMA_PAYLOAD_PASSIN
 #undef DELEGATE_PARAM_LIST_COMMA_PAYLOAD_LIST
+#undef DELEGATE_PARMS_COLON_INITIALIZER_LIST

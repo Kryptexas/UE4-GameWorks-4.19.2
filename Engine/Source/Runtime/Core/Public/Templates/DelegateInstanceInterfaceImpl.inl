@@ -12,6 +12,12 @@
 
 #define DELEGATE_INSTANCE_INTERFACE_CLASS FUNC_COMBINE( IBaseDelegateInstance_, FUNC_SUFFIX )
 
+#if FUNC_HAS_PARAMS
+	#define DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST : FUNC_PARAM_INITIALIZER_LIST
+#else
+	#define DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
+#endif
+
 
 /**
  * Delegate instance base interface.  For internal use only.  This abstract class is used to interact with
@@ -19,24 +25,23 @@
  */
 template< FUNC_TEMPLATE_DECL_TYPENAME >
 class DELEGATE_INSTANCE_INTERFACE_CLASS
+	: public IDelegateInstance
 {
-public:
-
-	/**
-	 * Destructor
-	 */
-	virtual ~DELEGATE_INSTANCE_INTERFACE_CLASS()
+	// Structure for UFunction call parameter marshaling.
+	struct FParms
 	{
-		// Empty virtual destructor.  Ensures that user-defined payload member variables are properly
-		// destructed when the delegate instance is destroyed.
-	}
+		FUNC_PARAM_MEMBERS
 
-	/**
-	 * Returns the type of delegate instance
-	 *
-	 * @return  Delegate instance type
-	 */
-	virtual EDelegateInstanceType::Type GetType() const = 0;
+#if !FUNC_IS_VOID
+		RetValType Result;
+#endif
+
+		FParms( FUNC_PARAM_LIST )
+			DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
+		{ }
+	};
+
+public:
 
 	/**
 	 * Creates a copy of the delegate instance
@@ -56,52 +61,12 @@ public:
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >& InOtherDelegate ) const = 0;
 
 	/**
-	 * Returns true if this delegate is bound to the specified UserObject,
-	 *
-	 * @param  InUserObject
-	 *
-	 * @return  True if delegate is bound to the specified UserObject
-	 */
-	virtual bool HasSameObject( const void* InUserObject ) const = 0;
-
-	/**
-	 * Returns raw pointer to UserObject,
-	 *
-	 * @return  Raw pointer to UserObject.
-	 */
-	virtual const void* GetRawUserObject() const = 0;
-
-	/**
-	 * Returns raw pointer to the delegate method.
-	 *
-	 * @return  Raw pointer to the delegate method.
-	 */
-	virtual const void* GetRawMethodPtr() const = 0;
-
-	/**
 	 * Execute the delegate.  If the function pointer is not valid, an error will occur.
 	 */
 	virtual RetValType Execute( FUNC_PARAM_LIST ) const = 0;
 
-	/**
-	 * Checks to see if the user object bound to this delegate is still valid
-	 *
-	 * @return  True if the user object is still valid and it's safe to execute the function call
-	 */
-	virtual bool IsSafeToExecute() const = 0;
-
-	/**
-	 * Checks to see if the user object bound to this delegate can ever be valid again.
-	 * used to compact multicast delegate arrays so they don't expand without limit.
-	 *
-	 * @return  True if the user object can never be used again
-	 */
-	virtual bool IsCompactable() const
-	{
-		return !IsSafeToExecute();
-	}
-
 #if FUNC_IS_VOID
+
 	/**
 	 * Execute the delegate, but only if the function pointer is still valid
 	 *
@@ -109,8 +74,26 @@ public:
 	 */
 	// NOTE: Currently only delegates with no return value support ExecuteIfSafe() 
 	virtual bool ExecuteIfSafe( FUNC_PARAM_LIST ) const = 0;
-#endif
+
+#endif // FUNC_IS_VOID
+
+public:
+
+	/**
+	 * Execute the delegate with parameters from the virtual machine.
+	 *
+	 * This non-virtual interface (NVI) method marshals a set of call parameters
+	 * from the UObject virtual machine to the bound delegate handler function.
+	 *
+	 * @param InParms An UFunction parameter structure.
+	 */
+	RetValType ExecuteParms( void* InParms ) const
+	{
+		FParms& Parms = *((FParms*)InParms);
+		return Execute(FUNC_PARAM_PARMS_PASSIN);
+	}
 };
 
 
+#undef DELEGATE_INSTANCE_COLON_PARAM_INITIALIZER_LIST
 #undef DELEGATE_INSTANCE_INTERFACE_CLASS
