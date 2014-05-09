@@ -1637,6 +1637,138 @@ namespace AutomationTool
 			}
 			return false;
 		}
+
+		/* Pattern to parse P4 changes command output. */
+		private static readonly Regex ChangesListOutputPattern = new Regex(@"^Change\s+(?<number>\d+)\s+.+$", RegexOptions.Compiled | RegexOptions.Multiline);
+
+		/// <summary>
+		/// Gets the latest CL number submitted to the depot. It equals to the @head.
+		/// </summary>
+		/// <returns>The head CL number.</returns>
+		public int GetLatestCLNumber()
+		{
+			CheckP4Enabled();
+
+			string Output;
+			if (!LogP4Output(out Output, "changes -s submitted -m1") || string.IsNullOrWhiteSpace(Output))
+			{
+				throw new InvalidOperationException("The depot should have at least one submitted changelist. Brand new depot?");
+			}
+
+			var Match = ChangesListOutputPattern.Match(Output);
+
+			if (!Match.Success)
+			{
+				throw new InvalidOperationException("The Perforce output is not in the expected format provided by 2014.1 documentation.");
+			}
+
+			return Int32.Parse(Match.Groups["number"].Value);
+		}
+
+		/* Pattern to parse P4 labels command output. */
+		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
+
+		/// <summary>
+		/// Gets promoted label list for given branch.
+		/// </summary>
+		/// <param name="BranchPath">A branch path.</param>
+		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
+		/// <returns>List of promoted labels for given branch path.</returns>
+		public string[] GetPromotedLabels(string BranchPath, string GameName)
+		{
+			var LabelNameList = new List<string>();
+
+			string Output;
+			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			{
+				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
+				{
+					LabelNameList.Add(LabelMatch.Groups["name"].Value);
+				}
+			}
+
+			return LabelNameList.ToArray();
+		}
+
+		/// <summary>
+		/// Get latest promoted label given branch and game name.
+		/// </summary>
+		/// <param name="BranchPath">The branch path of the label.</param>
+		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
+		/// <param name="bVerifyContent">Verify if label tags at least one file.</param>
+		/// <returns>Label name if it exists, null otherwise.</returns>
+		public string GetLatestPromotedLabel(string BranchPath, string GameName, bool bVerifyContent)
+		{
+			CheckP4Enabled();
+
+			if (string.IsNullOrWhiteSpace(GameName))
+			{
+				GameName = null;
+			}
+
+			string Output;
+			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			{
+				var Labels = new Dictionary<string, DateTime>();
+
+				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
+				{
+					Labels.Add(LabelMatch.Groups["name"].Value,
+						DateTime.ParseExact(
+							LabelMatch.Groups["date"].Value, "yyyy/MM/dd HH:mm:ss",
+							System.Globalization.CultureInfo.InvariantCulture));
+				}
+
+				if (Labels.Count == 0)
+				{
+					return null;
+				}
+
+				var OrderedLabels = Labels.OrderByDescending((Label) => Label.Value);
+
+				if (bVerifyContent)
+				{
+					foreach (var Label in OrderedLabels)
+					{
+						if (ValidateLabelContent(Label.Key))
+						{
+							return Label.Key;
+						}
+					}
+
+					// Haven't found valid label.
+					return null;
+				}
+
+				return OrderedLabels.First().Key;
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Validate label for some content.
+		/// </summary>
+		/// <returns>True if label exists and has at least one file tagged. False otherwise.</returns>
+		public bool ValidateLabelContent(string LabelName)
+		{
+			string Output;
+			if (LogP4Output(out Output, "files -m 1 @" + LabelName))
+			{
+				if (Output.StartsWith("//depot"))
+				{
+					// If it starts with depot path then label has at least one file tagged in it.
+					return true;
+				}
+			}
+			else
+			{
+				throw new InvalidOperationException("For some reason P4 files failed.");
+			}
+
+			return false;
+		}
+
 		/// <summary>
         /// returns the full name of a label. //depot/UE4/TEST-GUBP-Promotable-GameName-CL-CLNUMBER
 		/// </summary>
