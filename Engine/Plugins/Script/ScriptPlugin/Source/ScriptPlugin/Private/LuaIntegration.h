@@ -14,6 +14,7 @@ class FLuaContext : public FScriptContextBase
 {
 	bool bHasTick;
 	bool bHasDestroy;
+	bool bHasBeginPlay;
 	lua_State* LuaState;
 
 public:
@@ -22,6 +23,7 @@ public:
 
 	// FScriptContextBase interface
 	virtual bool Initialize(UScriptComponent* Owner) OVERRIDE;
+	virtual void BeginPlay() OVERRIDE;
 	virtual void Tick(float DeltaTime) OVERRIDE;
 	virtual void Destroy() OVERRIDE;
 	virtual bool CanTick() OVERRIDE;

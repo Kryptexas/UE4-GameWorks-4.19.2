@@ -10,6 +10,12 @@ class FLuaScriptCodeGenerator : public FScriptCodeGeneratorBase
 {
 protected:
 
+	struct FPropertyAccessor
+	{
+		FString FunctionName;
+		FString AccessorName;
+	};
+
 	/** All generated script header filenames */
 	TArray<FString> AllScriptHeaders;
 	/** Source header filenames for all exported classes */
@@ -18,6 +24,8 @@ protected:
 	TArray<UClass*> LuaExportedClasses;
 	/** Functions exported for a class */
 	TMap<UClass*, TArray<FName> > ClassExportedFunctions;
+	/** Proprties exported for a class */
+	TMap<UClass*, TArray<FPropertyAccessor> > ClassExportedProperties;
 
 	/** Creats a 'glue' file that merges all generated script files */
 	void GlueAllGeneratedFiles();
@@ -25,23 +33,25 @@ protected:
 	/** Exports a wrapper function */
 	FString ExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function);
 	/** Exports a wrapper functions for properties */
-	FString ExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property);
+	FString ExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property, int32 PropertyIndex);
 	/** Exports additional class glue code (like ctor/dtot) */
 	FString ExportAdditionalClassGlue(const FString& ClassNameCPP, UClass* Class);
 	/** Generates wrapper function declaration */
 	FString GenerateWrapperFunctionDeclaration(const FString& ClassNameCPP, UClass* Class, UFunction* Function);
 	/** Generates wrapper function declaration */
 	FString GenerateWrapperFunctionDeclaration(const FString& ClassNameCPP, UClass* Class, const FString& FunctionName);
-	/** Generates function parameter declaration */
-	FString GenerateFunctionParamDeclaration(const FString& ClassNameCPP, UClass* Class, UFunction* Function, UProperty* Param, int32 ParamIndex);
 	/** Generates code responsible for getting the object pointer from script context */
 	FString GenerateObjectDeclarationFromContext(const FString& ClassNameCPP, UClass* Class);
 	/** Handles the wrapped function's return value */
-	FString GenerateReturnValueHandler(const FString& ClassNameCPP, UClass* Class, UFunction* Function, UProperty* ReturnValue);
+	FString GenerateReturnValueHandler(const FString& ClassNameCPP, UClass* Class, UFunction* Function, UProperty* ReturnValue, const FString& ReturnValueName);
+	/** Check if a property type is supported */
+	bool IsPropertyTypeSupported(UProperty* Property) const;
 
 	// FScriptCodeGeneratorBase interface
 	virtual bool CanExportClass(UClass* Class) OVERRIDE;
 	virtual bool CanExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function) OVERRIDE;
+	virtual bool CanExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property) OVERRIDE;
+	virtual FString InitializeFunctionDispatchParam(UFunction* Function, UProperty* Param, int32 ParamIndex) OVERRIDE;
 
 public:
 

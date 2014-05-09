@@ -34,7 +34,7 @@ FString FGenericScriptCodeGenerator::GenerateFunctionParamDeclaration(const FStr
 
 FString FGenericScriptCodeGenerator::GenerateObjectDeclarationFromContext(const FString& ClassNameCPP, UClass* Class)
 {
-	return FString::Printf(TEXT("%s* Obj = (%s*)InScriptContext;"), *ClassNameCPP, *ClassNameCPP);
+	return FString::Printf(TEXT("UObject* Obj = (%s*)InScriptContext;"), *ClassNameCPP);
 }
 
 FString FGenericScriptCodeGenerator::GenerateReturnValueHandler(const FString& ClassNameCPP, UClass* Class, UFunction* Function, UProperty* ReturnValue)
@@ -62,25 +62,19 @@ FString FGenericScriptCodeGenerator::ExportFunction(const FString& ClassNameCPP,
 	FString FunctionBody;
 	if (FuncSuper == NULL)
 	{
+		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateObjectDeclarationFromContext(ClassNameCPP, Class));
+		FunctionBody += GenerateFunctionDispatch(Function);
+
 		FString FunctionCallArguments;
 		FString ReturnValueDeclaration;
-
-		for (TFieldIterator<UProperty> ParamIt(Function); ParamIt; ++ParamIt)
+		for (TFieldIterator<UProperty> ParamIt(Function); !ReturnValue && ParamIt; ++ParamIt)
 		{
 			UProperty* Param = *ParamIt;
-			if (!(Param->GetPropertyFlags() & CPF_ReturnParm))
-			{
-				FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateFunctionParamDeclaration(ClassNameCPP, Class, Function, Param));
-				FunctionCallArguments += (FunctionCallArguments.Len() > 0) ? FString::Printf(TEXT(", %s"), *Param->GetName()) : Param->GetName();
-			}
-			else
+			if (Param->GetPropertyFlags() & CPF_ReturnParm)
 			{
 				ReturnValue = Param;
-				ReturnValueDeclaration += FString::Printf(TEXT("%s %s = "), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName());
 			}
 		}
-		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateObjectDeclarationFromContext(ClassNameCPP, Class));
-		FunctionBody += FString::Printf(TEXT("\t%sObj->%s(%s);\r\n"), *ReturnValueDeclaration, *Function->GetName(), *FunctionCallArguments);
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateReturnValueHandler(ClassNameCPP, Class, Function, ReturnValue));
 	}
 	else
@@ -117,17 +111,17 @@ FString FGenericScriptCodeGenerator::ExportProperty(const FString& ClassNameCPP,
 	if (PropertySuper == NULL)
 	{
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateObjectDeclarationFromContext(ClassNameCPP, Class));
-		FunctionBody += FString::Printf(TEXT("\tUProperty* Property = %s_GetExportedProperty(%d);\r\n"), *Class->GetName(), PropertyIndex);
+		FunctionBody += FString::Printf(TEXT("\tstatic UProperty* Property = FindScriptPropertyHelper(%s::StaticClass(), TEXT(\"%s\"));\r\n"), *ClassNameCPP, *Property->GetName());
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateFunctionParamDeclaration(ClassNameCPP, Class, NULL, Property));
 		FunctionBody += FString::Printf(TEXT("\tProperty->CopyCompleteValue(&%s, Property->ContainerPtrToValuePtr<void>(Obj));\r\n"), *Property->GetName());
 		FunctionBody += FString::Printf(TEXT("\t// @todo: handle property value here\r\n"));
+		FunctionBody += TEXT("\treturn 0;\r\n");
 	}
 	else
 	{
 		FunctionBody = FString::Printf(TEXT("\treturn %s_%s(InScriptContext);\r\n"), *PropertySuper->GetName(), *GetterName);
 	}
-	GeneratedGlue += FunctionBody;
-	GeneratedGlue += TEXT("\treturn 0;\r\n");
+	GeneratedGlue += FunctionBody;	
 	GeneratedGlue += TEXT("}\r\n\r\n");
 	FunctionBody.Empty(FunctionBody.Len());
 
@@ -138,16 +132,16 @@ FString FGenericScriptCodeGenerator::ExportProperty(const FString& ClassNameCPP,
 	if (PropertySuper == NULL)
 	{
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateObjectDeclarationFromContext(ClassNameCPP, Class));
-		FunctionBody += FString::Printf(TEXT("\tUProperty* Property = %s_GetExportedProperty(%d);\r\n"), *Class->GetName(), PropertyIndex);
+		FunctionBody += FString::Printf(TEXT("\tstatic UProperty* Property = FindScriptPropertyHelper(%s::StaticClass(), TEXT(\"%s\"));\r\n"), *ClassNameCPP, *Property->GetName());
 		FunctionBody += FString::Printf(TEXT("\t%s\r\n"), *GenerateFunctionParamDeclaration(ClassNameCPP, Class, NULL, Property));
 		FunctionBody += FString::Printf(TEXT("\tProperty->CopyCompleteValue(Property->ContainerPtrToValuePtr<void>(Obj), &%s);\r\n"), *Property->GetName());
+		FunctionBody += TEXT("\treturn 0;\r\n");
 	}
 	else
 	{
 		FunctionBody = FString::Printf(TEXT("\treturn %s_%s(InScriptContext);\r\n"), *PropertySuper->GetName(), *SetterName);
 	}
-	GeneratedGlue += FunctionBody;
-	GeneratedGlue += TEXT("\treturn 0;\r\n");
+	GeneratedGlue += FunctionBody;	
 	GeneratedGlue += TEXT("}\r\n\r\n");
 
 	return GeneratedGlue;
@@ -161,7 +155,9 @@ FString FGenericScriptCodeGenerator::ExportAdditionalClassGlue(const FString& Cl
 	{
 		GeneratedGlue += GenerateWrapperFunctionDeclaration(ClassNameCPP, Class, TEXT("New"));
 		GeneratedGlue += TEXT("\r\n{\r\n");
-		GeneratedGlue += FString::Printf(TEXT("\tUObject* Obj = NewObject<%s>();\r\n"), *ClassNameCPP);
+		GeneratedGlue += TEXT("\tUObject* Outer = NULL;\r\n");
+		GeneratedGlue += TEXT("\tFName Name = FName(\"ScriptObject\");\r\n");
+		GeneratedGlue += FString::Printf(TEXT("\tUObject* Obj = NewNamedObject<%s>(Outer, Name);\r\n"), *ClassNameCPP);
 		GeneratedGlue += TEXT("\tif (Obj)\r\n\t{\r\n");
 		GeneratedGlue += TEXT("\t\tFScriptObjectReferencer::Get().AddObjectReference(Obj);\r\n");
 		GeneratedGlue += TEXT("\t\t// @todo: Register the object with the script context here\r\n");
@@ -257,14 +253,12 @@ void FGenericScriptCodeGenerator::ExportClass(UClass* Class, const FString& Sour
 		}
 	}
 
-	FString ExportedPropertiesLookupFunction;
-	TArray<UProperty*> ExportedProperties;
-	if (GenerateExportedPropertyTable(ClassNameCPP, Class, ExportedPropertiesLookupFunction, ExportedProperties) > 0)
+	int32 PropertyIndex = 0;
+	for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt, ++PropertyIndex)
 	{
-		GeneratedGlue += ExportedPropertiesLookupFunction;
-		for (int32 PropertyIndex = 0; PropertyIndex < ExportedProperties.Num(); ++PropertyIndex)
+		UProperty* Property = *PropertyIt;
+		if (CanExportProperty(ClassNameCPP, Class, Property))
 		{
-			UProperty* Property = ExportedProperties[PropertyIndex];
 			UE_LOG(LogScriptGenerator, Log, TEXT("  %s %s"), *Property->GetClass()->GetName(), *Property->GetName());
 			GeneratedGlue += ExportProperty(ClassNameCPP, Class, Property, PropertyIndex);
 		}

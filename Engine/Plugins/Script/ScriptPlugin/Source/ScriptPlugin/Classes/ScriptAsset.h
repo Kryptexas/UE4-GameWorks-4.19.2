@@ -30,6 +30,9 @@ class UScriptAsset : public UDataAsset
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
 
+	/** Re-load script if it has changed and compile */
+	virtual void UpdateAndCompile();
+
 	/** Compile script to bytecode */
 	virtual void Compile();
 #endif

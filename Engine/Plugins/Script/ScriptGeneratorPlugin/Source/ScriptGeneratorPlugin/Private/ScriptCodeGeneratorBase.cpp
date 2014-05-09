@@ -98,6 +98,54 @@ FString FScriptCodeGeneratorBase::GetPropertyTypeCPP(UProperty* Property, uint32
 	return PropertyType;
 }
 
+FString FScriptCodeGeneratorBase::GenerateFunctionDispatch(UFunction* Function)
+{
+	FString Params;
+	
+	const bool bHasParamsOrReturnValue = (Function->Children != NULL);
+	if (bHasParamsOrReturnValue)
+	{
+		Params += TEXT("\tstruct FDispatchParams\r\n\t{\r\n");
+
+		for (TFieldIterator<UProperty> ParamIt(Function); ParamIt; ++ParamIt)
+		{
+			UProperty* Param = *ParamIt;
+			Params += FString::Printf(TEXT("\t\t%s %s;\r\n"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue), *Param->GetName());
+		}
+		Params += TEXT("\t} Params;\r\n");
+		int32 ParamIndex = 0;
+		for (TFieldIterator<UProperty> ParamIt(Function); ParamIt; ++ParamIt, ++ParamIndex)
+		{
+			UProperty* Param = *ParamIt;
+			Params += FString::Printf(TEXT("\tParams.%s = %s;\r\n"), *Param->GetName(), *InitializeFunctionDispatchParam(Function, Param, ParamIndex));
+		}
+	}
+	Params += FString::Printf(TEXT("\tstatic UFunction* Function = Obj->FindFunctionChecked(TEXT(\"%s\"));\r\n"), *Function->GetName());
+	if (bHasParamsOrReturnValue)
+	{
+		Params += TEXT("\tcheck(Function->ParmsSize == sizeof(FDispatchParams));\r\n");
+		Params += TEXT("\tObj->ProcessEvent(Function, &Params);\r\n");
+	}
+	else
+	{
+		Params += TEXT("\tObj->ProcessEvent(Function, NULL);\r\n");
+	}	
+
+	return Params;
+}
+
+FString FScriptCodeGeneratorBase::InitializeFunctionDispatchParam(UFunction* Function, UProperty* Param, int32 ParamIndex)
+{
+	if (Param->IsA(UObjectPropertyBase::StaticClass()) || Param->IsA(UClassProperty::StaticClass()))
+	{
+		return TEXT("NULL");
+	}
+	else
+	{
+		return FString::Printf(TEXT("%s()"), *GetPropertyTypeCPP(Param, CPPF_ArgumentOrReturnValue));
+	}	
+}
+
 FString FScriptCodeGeneratorBase::GetScriptHeaderForClass(UClass* Class)
 {
 	return GeneratedCodePath / (Class->GetName() + TEXT(".script.h"));
@@ -129,15 +177,7 @@ bool FScriptCodeGeneratorBase::CanExportClass(UClass* Class)
 bool FScriptCodeGeneratorBase::CanExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function)
 {
 	// We don't support delegates and non-public functions
-	if ((Function->FunctionFlags & FUNC_Delegate) ||
-		!(Function->FunctionFlags & FUNC_Public))
-	{
-		return false;
-	}
-
-	// Function must be DLL exported
-	if ((Class->ClassFlags & CLASS_RequiredAPI) == 0 &&
-		(Function->FunctionFlags & FUNC_RequiredAPI) == 0)
+	if ((Function->FunctionFlags & FUNC_Delegate))
 	{
 		return false;
 	}
@@ -190,31 +230,4 @@ bool FScriptCodeGeneratorBase::CanExportProperty(const FString& ClassNameCPP, UC
 	}
 
 	return true;
-}
-
-int32 FScriptCodeGeneratorBase::GenerateExportedPropertyTable(const FString& ClassNameCPP, UClass* Class, FString& OutFunction, TArray<UProperty*>& OutExportedProperties)
-{
-	OutExportedProperties.Empty();
-	OutFunction = FString::Printf(TEXT("UProperty* %s_GetExportedProperty(int32 PropertyIndex)\r\n{\r\n"), *Class->GetName());
-	OutFunction += FString::Printf(TEXT("\tstatic UClass* Class = %s::StaticClass();\r\n"), *ClassNameCPP);
-	OutFunction += TEXT("\tstatic UProperty* PropertyTable[] =\r\n\t{\r\n");
-	
-	for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
-	{
-		UProperty* Property = *PropertyIt;
-		if (CanExportProperty(ClassNameCPP, Class, Property))
-		{
-			if (OutExportedProperties.Num() > 0)
-			{
-				OutFunction += TEXT(",\r\n");
-			}
-			OutFunction += FString::Printf(TEXT("\t\tFindScriptPropertyHelper(Class, TEXT(\"%s\"))"), *Property->GetName());
-			OutExportedProperties.Add(Property);
-		}
-	}
-
-	OutFunction += TEXT("\r\n\t};\r\n\tcheck(PropertyIndex >= 0 && PropertyIndex < ARRAY_COUNT(PropertyTable));\r\n");
-	OutFunction += TEXT("\treturn PropertyTable[PropertyIndex];\r\n}\r\n\r\n");
-
-	return OutExportedProperties.Num();
 }

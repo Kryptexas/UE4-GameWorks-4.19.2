@@ -9,6 +9,7 @@ class FScriptContextBase
 {
 public:
 	virtual bool Initialize(class UScriptComponent* Owner) = 0;
+	virtual void BeginPlay() = 0;
 	virtual void Tick(float DeltaTime) = 0;
 	virtual void Destroy() = 0;
 	virtual bool CanTick() = 0;
@@ -29,6 +30,7 @@ public:
 
 	// Begin UActorComponent interface.
 	virtual void OnRegister() OVERRIDE;
+	virtual void InitializeComponent() OVERRIDE;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 	virtual void OnUnregister() OVERRIDE;
 	// Begin UActorComponent interface.

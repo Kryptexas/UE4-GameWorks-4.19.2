@@ -13,10 +13,7 @@ void UScriptAsset::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	if (!SourceCode.IsEmpty() && !ByteCode.Num())
-	{
-		Compile();
-	}
+	UpdateAndCompile();
 #endif
 }
 
@@ -24,14 +21,34 @@ void UScriptAsset::PostLoad()
 void UScriptAsset::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-	Compile();
+	UpdateAndCompile();
+}
+
+void UScriptAsset::UpdateAndCompile()
+{
+	FDateTime OldTimeStamp;
+	bool bCodeDirty = !FDateTime::Parse(SourceFileTimestamp, OldTimeStamp);
+	FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*SourceFilePath);
+	if (bCodeDirty || TimeStamp > OldTimeStamp)
+	{
+		FString NewScript;
+		if (FFileHelper::LoadFileToString(NewScript, *SourceFilePath))
+		{
+			SourceCode = NewScript;
+			SourceFileTimestamp = TimeStamp.ToString();
+			bCodeDirty = true;			
+		}
+	}
+
+	if (bCodeDirty)
+	{
+		Compile();
+		MarkPackageDirty();
+	}
 }
 
 void UScriptAsset::Compile()
 {
-	if (GIsEditor)
-	{
-		MarkPackageDirty();
-	}	
 }
+
 #endif

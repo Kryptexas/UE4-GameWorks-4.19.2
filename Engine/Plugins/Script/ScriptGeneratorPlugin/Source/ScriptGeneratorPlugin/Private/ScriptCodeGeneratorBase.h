@@ -34,6 +34,10 @@ protected:
 	FString GetClassNameCPP(UClass* Class);
 	/** Gets C++ friendly property type name. */
 	FString GetPropertyTypeCPP(UProperty* Property, uint32 PortFlags = 0);
+
+	virtual FString GenerateFunctionDispatch(UFunction* Function);
+	virtual FString InitializeFunctionDispatchParam(UFunction* Function, UProperty* Param, int32 ParamIndex);
+
 	/** Generates a script glue header filename for the specified class */
 	virtual FString GetScriptHeaderForClass(UClass* Class);
 	/** Returns true if the specified class can be exported */
@@ -42,8 +46,6 @@ protected:
 	virtual bool CanExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function);
 	/** Returns true if the specified property can be exported */
 	virtual bool CanExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property);
-	/** Generates a lookup table for exported proeprties. */
-	virtual int32 GenerateExportedPropertyTable(const FString& ClassNameCPP, UClass* Class, FString& OutFunction, TArray<UProperty*>& OutExportedProperties);
 
 public:
 

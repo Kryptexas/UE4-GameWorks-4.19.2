@@ -2,6 +2,7 @@
 
 #include "ScriptPluginPrivatePCH.h"
 #include "LuaIntegration.h"
+#include "ScriptObjectReferencer.h"
 
 #if WITH_LUA
 
@@ -94,13 +95,15 @@ struct FLuaUObject
 	* LoadObject
 	*
 	* @param Class
+	* @param Outer
 	* @param LongPackageName
 	*/
 	static int32 LuaStaticLoadObject(lua_State* LuaState)
 	{
 		UClass* Class = (UClass*)lua_touserdata(LuaState, 1);
-		FString LongPackageName = ANSI_TO_TCHAR(luaL_checkstring(LuaState, 2));
-		UObject* Result = StaticLoadObject(Class, NULL, *LongPackageName);
+		UObject* Outer = (UObject*)lua_touserdata(LuaState, 2);
+		FString LongPackageName = ANSI_TO_TCHAR(luaL_checkstring(LuaState, 3));
+		UObject* Result = StaticLoadObject(Class, Outer, *LongPackageName);
 		lua_pushlightuserdata(LuaState, Result);
 		return 1;
 	}
@@ -120,6 +123,108 @@ struct FLuaUObject
 		return 1;
 	}
 
+	/**
+	* GetCurrentLevel
+	*
+	* @param 'this'
+	*/
+	static int32 LuaGetCurrentLevel(lua_State* LuaState)
+	{
+		ULevel* Level = NULL;
+		UObject* This = (UObject*)lua_touserdata(LuaState, 1);
+		UActorComponent* ThisComponent = Cast<UActorComponent>(This);
+		if (ThisComponent && ThisComponent->GetOwner())
+		{
+			Level = ThisComponent->GetOwner()->GetLevel();
+		}
+		lua_pushlightuserdata(LuaState, Level);
+		return 1;
+	}
+
+	/**
+	* LuaGetName
+	*
+	* @param Object
+	*/
+	static int32 LuaGetName(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		lua_pushstring(LuaState, TCHAR_TO_ANSI(*Object->GetName()));
+		return 1;
+	}
+
+	/**
+	* LuaGetFullName
+	*
+	* @param Object
+	*/
+	static int32 LuaGetFullName(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		lua_pushstring(LuaState, TCHAR_TO_ANSI(*Object->GetFullName()));
+		return 1;
+	}
+
+	/**
+	* LuaGetPathName
+	*
+	* @param Object
+	*/
+	static int32 LuaGetPathName(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		lua_pushstring(LuaState, TCHAR_TO_ANSI(*Object->GetPathName()));
+		return 1;
+	}
+
+	/**
+	* LuaGetOuter
+	*
+	* @param Object
+	*/
+	static int32 LuaGetOuter(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		lua_pushlightuserdata(LuaState, Object->GetOuter());
+		return 1;
+	}
+
+	/**
+	* LuaIsValid
+	*
+	* @param Object
+	*/
+	static int32 LuaIsValid(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		lua_pushboolean(LuaState, IsValid(Object));
+		return 1;
+	}
+
+	/**
+	* LuaAddReferencedObject
+	*
+	* @param Object
+	*/
+	static int32 LuaAddReferencedObject(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		FScriptObjectReferencer::Get().AddObjectReference(Object);
+		return 0;
+	}
+
+	/**
+	* LuaAddReferencedObject
+	*
+	* @param Object
+	*/
+	static int32 LuaRemoveReferencedObject(lua_State* LuaState)
+	{
+		UObject* Object = (UObject*)lua_touserdata(LuaState, 1);
+		FScriptObjectReferencer::Get().RemoveObjectReference(Object);
+		return 0;
+	}
+
 	// Library
 	static luaL_Reg UObject_Lib[];
 };
@@ -130,6 +235,14 @@ luaL_Reg FLuaUObject::UObject_Lib[] =
 	{ "FindObject", FLuaUObject::LuaStaticFindObject },
 	{ "FindObjectFast", FLuaUObject::LuaStaticFindObjectFast },
 	{ "LoadObject", FLuaUObject::LuaStaticLoadObject },
+	{ "GetCurrentLevel", FLuaUObject::LuaGetCurrentLevel },
+	{ "GetName", FLuaUObject::LuaGetName },
+	{ "GetFullName", FLuaUObject::LuaGetFullName },
+	{ "GetPathName", FLuaUObject::LuaGetPathName },
+	{ "GetOuter", FLuaUObject::LuaGetOuter },
+	{ "IsValid", FLuaUObject::LuaIsValid },
+	{ "AddReferencedObject", FLuaUObject::LuaAddReferencedObject },
+	{ "RemoveReferencedObject", FLuaUObject::LuaRemoveReferencedObject },
 	{ NULL, NULL }
 };
 
@@ -388,6 +501,7 @@ static void LuaRegisterUnrealUtilities(lua_State* LuaState)
 FLuaContext::FLuaContext()
 : bHasTick(false)
 , bHasDestroy(false)
+, bHasBeginPlay(false)
 , LuaState(NULL)
 {
 };
@@ -411,6 +525,7 @@ bool FLuaContext::Initialize(UScriptComponent* Owner)
 		{
 			bHasTick = FLuaUtils::DoesFunctionExist(LuaState, "Tick");
 			bHasDestroy = FLuaUtils::DoesFunctionExist(LuaState, "Destroy");
+			bHasBeginPlay = FLuaUtils::DoesFunctionExist(LuaState, "BeginPlay");
 		}
 	}
 	else
@@ -418,6 +533,15 @@ bool FLuaContext::Initialize(UScriptComponent* Owner)
 		UE_LOG(LogScriptPlugin, Warning, TEXT("Cannot load Lua script %s for %s: %s"), *Owner->Script->GetName(), *Owner->GetPathName(), ANSI_TO_TCHAR(lua_tostring(LuaState, -1)));
 	}
 	return bResult;
+}
+
+void FLuaContext::BeginPlay()
+{
+	check(LuaState);
+	if (bHasBeginPlay)
+	{
+		FLuaUtils::CallFunction(LuaState, "BeginPlay");
+	}
 }
 
 void FLuaContext::Tick(float DeltaTime)

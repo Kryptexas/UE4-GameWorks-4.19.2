@@ -10,20 +10,25 @@ UScriptComponent::UScriptComponent(const FPostConstructInitializeProperties& PCI
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = false;
 	bAutoActivate = true;
+	bWantsInitializeComponent = true;
 
 	Context = NULL;
 }
-
 
 void UScriptComponent::OnRegister()
 {
 	Super::OnRegister();
 	if (Script && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
 	{
-		// @todo Create context here
+#if WITH_EDITOR
+		Script->UpdateAndCompile();
+#endif
 #if WITH_LUA
 		Context = new FLuaContext();
+#else
+		// @todo Create context here
 #endif
+
 		if (Context)
 		{
 			bool bDoNotTick = true;
@@ -32,11 +37,20 @@ void UScriptComponent::OnRegister()
 				bDoNotTick = !Context->CanTick();
 			}
 			if (bDoNotTick)
-			{				
+			{
 				bAutoActivate = false;
 				PrimaryComponentTick.bCanEverTick = false;
 			}
 		}
+	}
+}
+
+void UScriptComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+	if (Context)
+	{
+		Context->BeginPlay();
 	}
 }
 
