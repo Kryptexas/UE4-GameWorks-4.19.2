@@ -1223,15 +1223,9 @@ namespace UnrealBuildTool
 			var bSuccess = true;
 			if( ShouldGenerateIntelliSenseData() && TargetFiles.Count > 0 )
 			{
-				try
+				using(ProgressWriter Progress = new ProgressWriter("Binding Binding IntelliSense data..."))
 				{
-					Console.Write( "Binding IntelliSense data... " );
-
-					int ProgressChars = 0;
-					int TargetIndex = 0;
-					Utils.DisplayProgress( TargetIndex, TargetFiles.Count - 1, ref ProgressChars );
-
-					for( ; TargetIndex < TargetFiles.Count; ++TargetIndex)
+					for(int TargetIndex = 0; TargetIndex < TargetFiles.Count; ++TargetIndex)
 					{
 						var CurTarget = TargetFiles[ TargetIndex ];
 						var TargetName = Utils.GetFilenameWithoutAnyExtensions( CurTarget );	// Twice, to remove both extensions from *.Target.cs file
@@ -1249,12 +1243,8 @@ namespace UnrealBuildTool
 						}
 
 						// Display progress
-						Utils.DisplayProgress( TargetIndex, TargetFiles.Count - 1, ref ProgressChars );
+						Progress.Write(TargetIndex + 1, TargetFiles.Count);
 					}
-				}
-				finally
-				{
-					Console.WriteLine();
 				}
 			}
 
@@ -1863,17 +1853,11 @@ namespace UnrealBuildTool
 		/// <returns>True if successful</returns>
 		protected virtual bool WriteProjectFiles()
 		{
-			try
+			using(ProgressWriter Progress = new ProgressWriter("Writing project files..."))
 			{
-				Console.Write( "Writing project files... " );
-
 				var TotalProjectFileCount = GeneratedProjectFiles.Count + 1;	// +1 for the master project file, which we'll save next
 
-				int ProgressChars = 0;
-				int ProjectFileIndex = 0;
-				Utils.DisplayProgress( ProjectFileIndex, TotalProjectFileCount, ref ProgressChars );
-
-				for( ; ProjectFileIndex < GeneratedProjectFiles.Count; ++ProjectFileIndex )
+				for(int ProjectFileIndex = 0 ; ProjectFileIndex < GeneratedProjectFiles.Count; ++ProjectFileIndex )
 				{
 					var CurProject = GeneratedProjectFiles[ ProjectFileIndex ];
 					if( !CurProject.WriteProjectFile(
@@ -1883,19 +1867,12 @@ namespace UnrealBuildTool
 						return false;
 					}
 
-					Utils.DisplayProgress( ProjectFileIndex, TotalProjectFileCount, ref ProgressChars );
+					Progress.Write(ProjectFileIndex + 1, TotalProjectFileCount);
 				}
 
 				WriteMasterProjectFile( UBTProject: UBTProject );
-				++ProjectFileIndex;
-
-				Utils.DisplayProgress( ProjectFileIndex, TotalProjectFileCount, ref ProgressChars );
+				Progress.Write(TotalProjectFileCount, TotalProjectFileCount);
 			}
-			finally
-			{
-				Console.WriteLine();
-			}
-
 			return true;
 		}
 

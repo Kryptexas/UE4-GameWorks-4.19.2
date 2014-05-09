@@ -791,6 +791,10 @@ namespace UnrealBuildTool
 						{
 							// Skip -define
 						}
+						else if (LowercaseArg == "-progress")
+						{
+							ProgressWriter.bWriteMarkup = true;
+						}
 						else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
 						{
 							// It's the platform set...
