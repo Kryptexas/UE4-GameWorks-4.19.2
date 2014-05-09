@@ -113,6 +113,7 @@ public:
 		CurrentStackIndex = 0;
 		TimeDuration = WindowDuration;
 		CurrentTime = 0.f;
+		LastOutput = 0.f;
 	}
 
 	float GetFilteredData(float Input, float DeltaTime);
