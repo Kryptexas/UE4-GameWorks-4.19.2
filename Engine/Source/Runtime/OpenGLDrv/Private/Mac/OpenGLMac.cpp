@@ -148,6 +148,9 @@ private:
 
 void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
+/** Used to temporarily disable Cocoa screen updates to make window updates happen only on the render thread. */
+bool GMacEnableCocoaScreenUpdates = true;
+
 @interface NSView(NSThemeFramePrivate)
 - (float)roundedCornerRadius;
 @end
@@ -184,25 +187,29 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
 - (void) _surfaceNeedsUpdate:(NSNotification*)notification
 {
-	self.bNeedsUpdate = true;;
+	self.bNeedsUpdate = true;
 }
 
 - (void)drawRect:(NSRect)DirtyRect
 {
 	SCOPED_AUTORELEASE_POOL;
 	
-	[super drawRect:DirtyRect];
-	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow redrawContents];
-		
-		if([SlateCocoaWindow inLiveResize])
-		{
-			FlushRenderingCommands();
-		}
 	}
+}
+
+- (void)renewGState
+{
+	if(GMacEnableCocoaScreenUpdates)
+	{
+		GMacEnableCocoaScreenUpdates = false;
+		NSDisableScreenUpdates();
+	}
+	
+	[super renewGState];
 }
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)Event
@@ -848,7 +855,13 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					[Context->OpenGLContext setValues: &RealSyncInterval forParameter: NSOpenGLCPSwapInterval];
 					Context->SyncInterval = RealSyncInterval;
 				}
-
+				
+				if(!GMacEnableCocoaScreenUpdates)
+				{
+					GMacEnableCocoaScreenUpdates = true;
+					NSEnableScreenUpdates();
+				}
+				
 				[Context->OpenGLContext flushBuffer];
 
 				
