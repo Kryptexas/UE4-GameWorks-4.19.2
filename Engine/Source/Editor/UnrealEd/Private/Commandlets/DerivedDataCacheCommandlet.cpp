@@ -92,7 +92,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		for (int32 Index = 0; Index < Platforms.Num(); Index++)
 		{
 			TArray<FName> DesiredShaderFormats;
-			Platforms[Index]->GetShaderFormats(DesiredShaderFormats);
+			Platforms[Index]->GetAllTargetedShaderFormats(DesiredShaderFormats);
 
 			for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
 			{

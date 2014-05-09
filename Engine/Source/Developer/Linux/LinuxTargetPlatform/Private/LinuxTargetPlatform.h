@@ -114,7 +114,7 @@ public:
 	}
 
 #if WITH_ENGINE
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
 	{
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
@@ -125,6 +125,11 @@ public:
 			OutFormats.AddUnique(NAME_GLSL_150);
 			OutFormats.AddUnique(NAME_GLSL_430);
 		}
+	}
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	{
+		GetAllPossibleShaderFormats( OutFormats );
 	}
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const OVERRIDE

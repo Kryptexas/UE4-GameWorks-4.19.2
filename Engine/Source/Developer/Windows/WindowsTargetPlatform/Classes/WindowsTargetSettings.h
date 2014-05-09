@@ -19,4 +19,11 @@ class WINDOWSTARGETPLATFORM_API UWindowsTargetSettings
 public:
 
 	GENERATED_UCLASS_BODY()
+
+	/** 
+	 * The collection of RHI's we want to support on this platform.
+	 * This is not always the full list of RHI we can support.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Rendering)
+	TArray<FString> TargetedRHIs;
 };

@@ -217,10 +217,16 @@ bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
 
 #if WITH_ENGINE
 
-void FIOSTargetPlatform::GetShaderFormats( TArray<FName>& OutFormats ) const
+void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 	OutFormats.AddUnique(NAME_OPENGL_ES2_IOS);
+}
+
+
+void FIOSTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
+{
+	GetAllPossibleShaderFormats(OutFormats);
 }
 
 

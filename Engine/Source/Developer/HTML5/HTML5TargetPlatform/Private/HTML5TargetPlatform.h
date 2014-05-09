@@ -44,7 +44,9 @@ public:
 	virtual bool IsRunningPlatform( ) const OVERRIDE;
 
 #if WITH_ENGINE
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings() const OVERRIDE;
 

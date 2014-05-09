@@ -91,7 +91,9 @@ public:
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
 	}
 
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const OVERRIDE
 	{

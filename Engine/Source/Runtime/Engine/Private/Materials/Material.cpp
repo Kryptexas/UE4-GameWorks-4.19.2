@@ -1987,7 +1987,7 @@ void UMaterial::PostLoad()
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FName> DesiredShaderFormats;
-	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
+	TargetPlatform->GetAllTargetedShaderFormats(DesiredShaderFormats);
 
 	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 

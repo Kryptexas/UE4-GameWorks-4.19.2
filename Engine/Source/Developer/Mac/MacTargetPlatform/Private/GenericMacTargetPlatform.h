@@ -133,7 +133,7 @@ return TSuper::SupportsFeature(Feature);
 	}
 
 #if WITH_ENGINE
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
 	{
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
@@ -141,6 +141,11 @@ return TSuper::SupportsFeature(Feature);
 			static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 			OutFormats.AddUnique(NAME_GLSL_150_MAC);
 		}
+	}
+
+	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const OVERRIDE
+	{
+		GetAllPossibleShaderFormats( OutFormats );
 	}
 
 

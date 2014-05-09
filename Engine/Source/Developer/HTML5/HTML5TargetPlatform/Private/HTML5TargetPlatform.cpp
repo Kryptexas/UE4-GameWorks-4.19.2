@@ -87,9 +87,15 @@ bool FHTML5TargetPlatform::IsRunningPlatform( ) const
 
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 
-void FHTML5TargetPlatform::GetShaderFormats( TArray<FName>& OutFormats ) const
+void FHTML5TargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	OutFormats.AddUnique(NAME_OPENGL_ES2_WEBGL);
+}
+
+
+void FHTML5TargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
+{
+	GetAllPossibleShaderFormats(OutFormats);
 }
 
 

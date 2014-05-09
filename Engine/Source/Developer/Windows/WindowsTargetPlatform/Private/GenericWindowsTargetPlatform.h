@@ -29,6 +29,22 @@ public:
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
 			TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
 			StaticMeshLODSettings.Initialize(EngineSettings);
+
+			// Get the Target RHIs for this platform, we do not always want all those that are supported.
+			GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+			
+			// Gather the list of Target RHIs and filter out any that may be invalid.
+			TArray<FName> PossibleShaderFormats;
+			GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+			for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+			{
+				FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+				{
+					TargetedShaderFormats.Remove(ShaderFormat);
+				}
+			}
 		#endif
 	}
 
@@ -129,7 +145,7 @@ public:
 	}
 
 #if WITH_ENGINE
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
 	{
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
@@ -139,9 +155,21 @@ public:
 			//       may not wish to support SM4 or OpenGL.
 			static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 			static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
+			static FName NAME_GLSL_150(TEXT("GLSL_150"));
+			static FName NAME_GLSL_430(TEXT("GLSL_430"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
 			OutFormats.AddUnique(NAME_PCD3D_SM4);
+			OutFormats.AddUnique(NAME_GLSL_150);
+			OutFormats.AddUnique(NAME_GLSL_430);
+		}
+	}
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	{
+		for(const FString& ShaderFormat : TargetedShaderFormats)
+		{
+			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
 
@@ -215,6 +243,9 @@ private:
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
+
+	// List of shader formats specified as targets
+	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:
