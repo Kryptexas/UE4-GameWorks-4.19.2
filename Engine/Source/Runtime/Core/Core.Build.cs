@@ -17,6 +17,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/Async",
 				"Runtime/Core/Public/Concurrency",
 				"Runtime/Core/Public/Containers",
+				"Runtime/Core/Public/Delegates",
 				"Runtime/Core/Public/GenericPlatform",
 				"Runtime/Core/Public/HAL",
 				"Runtime/Core/Public/Math",
