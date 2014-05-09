@@ -62,11 +62,13 @@ public:
 protected:
 
 	// Callbacks for the pnglibs
-	static void user_read_compressed( png_structp png_ptr, png_bytep data, png_size_t length );
-	static void user_write_compressed( png_structp png_ptr, png_bytep data, png_size_t length );
-	static void user_flush_data( png_structp png_ptr );
-	static void user_error_fn( png_structp png_ptr, png_const_charp error_msg );
-	static void user_warning_fn( png_structp png_ptr, png_const_charp warning_msg );
+	static void  user_read_compressed( png_structp png_ptr, png_bytep data, png_size_t length );
+	static void  user_write_compressed( png_structp png_ptr, png_bytep data, png_size_t length );
+	static void  user_flush_data( png_structp png_ptr );
+	static void  user_error_fn( png_structp png_ptr, png_const_charp error_msg );
+	static void  user_warning_fn( png_structp png_ptr, png_const_charp warning_msg );
+	static void* user_malloc( png_structp png_ptr, png_size_t size);
+	static void  user_free(png_structp png_ptr, png_voidp struct_ptr );
 
 
 private:
