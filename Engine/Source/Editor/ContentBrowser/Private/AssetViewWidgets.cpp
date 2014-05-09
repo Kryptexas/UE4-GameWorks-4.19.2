@@ -1034,7 +1034,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateSP(this, &SAssetViewItem::HandleAssetLoaded));
+	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -1228,7 +1228,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 	SetForceMipLevelsToBeResident(true);
 
 	// listen for asset loads so we can force mips to stream in if required
-	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateSP(this, &SAssetViewItem::HandleAssetLoaded));
+	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetViewItem::HandleAssetLoaded);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

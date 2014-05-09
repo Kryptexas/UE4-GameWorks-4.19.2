@@ -102,7 +102,7 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 	}
 	check(Model.IsValid());
 
-	Model->OnSettingChanged().Add( UInternationalizationSettingsModel::FSettingChangedEvent::FDelegate::CreateRaw(this, &FInternationalizationSettingsModelDetails::OnSettingsChanged) );
+	Model->OnSettingChanged().AddRaw(this, &FInternationalizationSettingsModelDetails::OnSettingsChanged);
 
 	// If the saved culture is not the same as the actual current culture, a restart is needed to sync them fully and properly.
 	FString SavedCultureName = Model->GetCultureName();

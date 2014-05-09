@@ -41,7 +41,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	bIsLocked = InArgs._InitiallyLocked;
 
 	// Listen for when view settings are changed
-	UContentBrowserSettings::OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SContentBrowser::HandleSettingChanged));
+	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SContentBrowser::HandleSettingChanged);
 
 	HistoryManager.SetOnApplyHistoryData(FOnApplyHistoryData::CreateSP(this, &SContentBrowser::OnApplyHistoryData));
 	HistoryManager.SetOnUpdateHistoryData(FOnUpdateHistoryData::CreateSP(this, &SContentBrowser::OnUpdateHistoryData));

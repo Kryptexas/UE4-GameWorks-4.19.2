@@ -254,7 +254,7 @@ void InitGamePhys()
 
 	GPhysCommandHandler = new FPhysCommandHandler();
 
-	FCoreDelegates::PreGarbageCollect.Add(FSimpleMulticastDelegate::FDelegate::CreateRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush));
+	FCoreDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK);

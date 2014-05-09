@@ -133,8 +133,8 @@ void FCrashTrackerModule::StartupModule()
 	EventLogger = MakeShareable( new FCrashTrackerEventLogger(VideoCapture) );
 	FSlateApplication::Get().SetSlateUILogger(EventLogger);
 	// hook up event logger to global assert/ensure hook
-	FCoreDelegates::OnHandleSystemEnsure.Add(FCoreDelegates::FOnHandleSystemEnsure::FDelegate::CreateRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleEnsure));
-	FCoreDelegates::OnHandleSystemError.Add(FCoreDelegates::FOnHandleSystemError::FDelegate::CreateRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleError));
+	FCoreDelegates::OnHandleSystemEnsure.AddRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleEnsure);
+	FCoreDelegates::OnHandleSystemError.AddRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleError);
 	
 	if (VideoCapture.IsValid())
 	{
@@ -151,8 +151,8 @@ void FCrashTrackerModule::StartupModule()
 void FCrashTrackerModule::ShutdownModule()
 {
 	// Make sure we remove the hook to prevent calling this when it's garbage
-	FCoreDelegates::OnHandleSystemEnsure.Remove(FCoreDelegates::FOnHandleSystemEnsure::FDelegate::CreateRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleEnsure));
-	FCoreDelegates::OnHandleSystemError.Remove(FCoreDelegates::FOnHandleSystemError::FDelegate::CreateRaw(EventLogger.Get(), &FCrashTrackerEventLogger::OnHandleError));
+	FCoreDelegates::OnHandleSystemEnsure.RemoveAll(EventLogger.Get());
+	FCoreDelegates::OnHandleSystemError.RemoveAll(EventLogger.Get());
 
 	VideoCapture.Reset();
 }

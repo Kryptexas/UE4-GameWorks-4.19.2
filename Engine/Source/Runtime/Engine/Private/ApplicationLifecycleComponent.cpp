@@ -13,20 +13,20 @@ void UApplicationLifecycleComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	FCoreDelegates::ApplicationWillDeactivateDelegate.Add( FCoreDelegates::FApplicationLifetimeDelegate::FDelegate::CreateUObject(this, &UApplicationLifecycleComponent::ApplicationWillDeactivateDelegate_Handler) );
-	FCoreDelegates::ApplicationHasReactivatedDelegate.Add( FCoreDelegates::FApplicationLifetimeDelegate::FDelegate::CreateUObject(this, &UApplicationLifecycleComponent::ApplicationHasReactivatedDelegate_Handler) );
-	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Add( FCoreDelegates::FApplicationLifetimeDelegate::FDelegate::CreateUObject(this, &UApplicationLifecycleComponent::ApplicationWillEnterBackgroundDelegate_Handler) );
-	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Add( FCoreDelegates::FApplicationLifetimeDelegate::FDelegate::CreateUObject(this, &UApplicationLifecycleComponent::ApplicationHasEnteredForegroundDelegate_Handler) );
-	FCoreDelegates::ApplicationWillTerminateDelegate.Add( FCoreDelegates::FApplicationLifetimeDelegate::FDelegate::CreateUObject(this, &UApplicationLifecycleComponent::ApplicationWillTerminateDelegate_Handler) );
+	FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this, &UApplicationLifecycleComponent::ApplicationWillDeactivateDelegate_Handler);
+	FCoreDelegates::ApplicationHasReactivatedDelegate.AddUObject(this, &UApplicationLifecycleComponent::ApplicationHasReactivatedDelegate_Handler);
+	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddUObject(this, &UApplicationLifecycleComponent::ApplicationWillEnterBackgroundDelegate_Handler);
+	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddUObject(this, &UApplicationLifecycleComponent::ApplicationHasEnteredForegroundDelegate_Handler);
+	FCoreDelegates::ApplicationWillTerminateDelegate.AddUObject(this, &UApplicationLifecycleComponent::ApplicationWillTerminateDelegate_Handler);
 }
 
 void UApplicationLifecycleComponent::OnUnregister()
 {
 	Super::OnUnregister();
 	
- 	FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveUObject(this, &UApplicationLifecycleComponent::ApplicationWillDeactivateDelegate_Handler);
- 	FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveUObject(this, &UApplicationLifecycleComponent::ApplicationHasReactivatedDelegate_Handler);
- 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.RemoveUObject(this, &UApplicationLifecycleComponent::ApplicationWillEnterBackgroundDelegate_Handler);
- 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.RemoveUObject(this, &UApplicationLifecycleComponent::ApplicationHasEnteredForegroundDelegate_Handler);
- 	FCoreDelegates::ApplicationWillTerminateDelegate.RemoveUObject(this, &UApplicationLifecycleComponent::ApplicationWillTerminateDelegate_Handler);
+ 	FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
+ 	FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
+ 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.RemoveAll(this);
+ 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.RemoveAll(this);
+ 	FCoreDelegates::ApplicationWillTerminateDelegate.RemoveAll(this);
 }

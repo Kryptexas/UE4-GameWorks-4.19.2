@@ -10,9 +10,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogSequencerTools, Log, All);
 FSequencerObjectChangeListener::FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer )
 	: Sequencer( InSequencer )
 {
-	FCoreDelegates::OnPreObjectPropertyChanged.Add( FCoreDelegates::FOnPreObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnObjectPreEditChange ) );
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnObjectPostEditChange ) );
-	//GEditor->OnPreActorMoved.Add( FOnObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnActorPreEditMove ) );
+	FCoreDelegates::OnPreObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPreEditChange);
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPostEditChange);
+	//GEditor->OnPreActorMoved.AddRaw(this, &FSequencerObjectChangeListener::OnActorPreEditMove);
 	GEditor->OnActorMoved().AddRaw( this, &FSequencerObjectChangeListener::OnActorPostEditMove );
 }
 

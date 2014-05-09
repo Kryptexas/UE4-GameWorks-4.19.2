@@ -176,7 +176,7 @@ void FDetailedTickStats::EndObject( UObject* Object, float DeltaTime, bool bForS
 		{
 			GCCallBackRegistered = true;
 			// register callback so that we can avoid finding the wrong stats for new objects reusing memory that used to be associated with a different object
-			FCoreDelegates::PreGarbageCollect.Add(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDetailedTickStats::OnPreGarbageCollect));
+			FCoreDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 		}
 
 		FTickStats NewTickStats;

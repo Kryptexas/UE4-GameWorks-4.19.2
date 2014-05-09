@@ -100,8 +100,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		CookServer->Initialize( false, false, false, true, true );
 		CookServer->StartNetworkFileServer( false );
 
-		FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged) );
-		FCoreDelegates::OnObjectModified.Add( FCoreDelegates::FOnObjectModified::FDelegate::CreateUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified) );
+		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
 	}
 }
 

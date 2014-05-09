@@ -432,7 +432,7 @@ namespace SceneOutliner
 		GEditor->RegisterForUndo( this );
 
 		// Register to be notified when properties are edited
-		FCoreDelegates::OnActorLabelChanged.Add( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
+		FCoreDelegates::OnActorLabelChanged.AddRaw(this, &SSceneOutliner::OnActorLabelChanged);
 
 		auto& Folders = FActorFolders::Get();
 		Folders.OnFolderCreate.AddSP(this, &SSceneOutliner::OnBroadcastFolderCreate);
@@ -457,7 +457,7 @@ namespace SceneOutliner
 		FWorldDelegates::LevelAddedToWorld.RemoveAll( this );
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll( this );
 
-		FCoreDelegates::OnActorLabelChanged.Remove( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
+		FCoreDelegates::OnActorLabelChanged.RemoveAll(this);
 
 		auto& Folders = FActorFolders::Get();
 		Folders.OnFolderCreate.RemoveAll(this);

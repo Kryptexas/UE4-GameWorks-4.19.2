@@ -30,7 +30,7 @@ void FInteractiveTutorials::SetupEditorHooks()
 	USelection::SelectionChangedEvent.AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnSelectionChanged, FBaseTriggerDelegate::OnSelectionChanged>);
 	USelection::SelectObjectEvent.AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnSelectObject, FBaseTriggerDelegate::OnSelectObject>);
 
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP( this, &FInteractiveTutorials::OnDelegateTriggered<FObjectPropertyChangedTrigger, FBaseTriggerDelegate::ObjectPropertyChanged> ) );
+	FCoreDelegates::OnObjectPropertyChanged.AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FObjectPropertyChangedTrigger, FBaseTriggerDelegate::ObjectPropertyChanged> );
 
 	FAssetEditorManager::Get().OnAssetEditorRequestedOpen().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FAssetEditorRequestedOpenTrigger, FBaseTriggerDelegate::AssetEditorRequestedOpen>);
 

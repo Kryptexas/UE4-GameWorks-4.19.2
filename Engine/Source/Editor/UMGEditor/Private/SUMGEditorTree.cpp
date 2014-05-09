@@ -20,7 +20,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
 
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorTree::OnObjectPropertyChanged);
 
 	ChildSlot
 	[
@@ -72,7 +72,7 @@ SUMGEditorTree::~SUMGEditorTree()
 		Blueprint->OnChanged().RemoveAll(this);
 	}
 
-	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 }
 
 UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const

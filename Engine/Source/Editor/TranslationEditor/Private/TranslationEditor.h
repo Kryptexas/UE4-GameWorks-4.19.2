@@ -25,7 +25,7 @@ public:
 		for (UTranslationUnit* TranslationUnit : DataManager->GetAllTranslationsArray())
 		{
 			// Set up a property changed event to trigger a write of the translation data when TranslationUnit property changes
-			TranslationUnit->OnPropertyChanged().Add(UTranslationUnit::FTranslationUnitPropertyChangedEvent::FDelegate::CreateSP(DataManager, &FTranslationDataManager::HandlePropertyChanged));
+			TranslationUnit->OnPropertyChanged().AddSP(DataManager, &FTranslationDataManager::HandlePropertyChanged);
 		}
 
 		return TranslationEditor;

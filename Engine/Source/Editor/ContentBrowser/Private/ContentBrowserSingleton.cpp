@@ -41,13 +41,13 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 	FGlobalTabmanager::Get()->AddLegacyTabType( "MajorContentBrowserTab", "ContentBrowserTab2" );
 
 	// Register to be notified when properties are edited
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FContentBrowserSingleton::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FContentBrowserSingleton::OnObjectPropertyChanged);
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.AddRaw(this, &FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded);
 }
 
 FContentBrowserSingleton::~FContentBrowserSingleton()
 {
-	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FContentBrowserSingleton::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.RemoveAll(this);
 
 	if ( FSlateApplication::IsInitialized() )

@@ -68,7 +68,7 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 
 	BuildWidgetList();
 
-	//FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorWidgetTemplates::OnObjectPropertyChanged) );
+	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorWidgetTemplates::OnObjectPropertyChanged);
 
 	ChildSlot
 	[
@@ -87,7 +87,7 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 
 SUMGEditorWidgetTemplates::~SUMGEditorWidgetTemplates()
 {
-	//FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorWidgetTemplates::OnObjectPropertyChanged) );
+	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 }
 
 UWidgetBlueprint* SUMGEditorWidgetTemplates::GetBlueprint() const
