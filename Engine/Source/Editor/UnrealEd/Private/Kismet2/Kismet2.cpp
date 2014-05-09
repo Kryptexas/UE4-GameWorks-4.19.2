@@ -522,10 +522,8 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path
 			{
 				// Create the blueprint
 				UObject* Asset = FactoryToUse->GetAssetFromActorInstance(Actor);
-				if (Asset)
-				{
-					NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Package, BlueprintName, FName("CreateFromActor") );
-				}
+				// For Actors that don't have an asset associated with them, Asset will be null
+				NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Package, BlueprintName, FName("CreateFromActor") );
 			}
 			else 
 			{
