@@ -36,8 +36,10 @@ class UPaperSpriteAtlas : public UObject
 
 public:
 	// UObject interface
+#if WITH_EDITORONLY_DATA
 	virtual void PostInitProperties() OVERRIDE;
 	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+#endif
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End of UObject interface
 };

@@ -1112,6 +1112,7 @@ void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& Ou
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 void UPaperSprite::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -1130,6 +1131,7 @@ void UPaperSprite::PostLoad()
 	}
 #endif
 }
+#endif
 
 UTexture2D* UPaperSprite::GetBakedTexture() const
 {

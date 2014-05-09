@@ -7,8 +7,10 @@
 
 UPaperSpriteAtlas::UPaperSpriteAtlas(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+#if WITH_EDITORONLY_DATA
 	, MaxWidth(2048)
 	, MaxHeight(2048)
+#endif
 {
 }
 
@@ -21,6 +23,7 @@ void UPaperSpriteAtlas::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 #endif
 }
 
+#if WITH_EDITORONLY_DATA
 void UPaperSpriteAtlas::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
@@ -32,3 +35,4 @@ void UPaperSpriteAtlas::PostInitProperties()
 	Super::PostInitProperties();
 	FPlatformMisc::CreateGuid(AtlasGUID);
 }
+#endif
