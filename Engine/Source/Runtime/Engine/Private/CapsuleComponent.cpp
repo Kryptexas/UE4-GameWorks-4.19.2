@@ -155,7 +155,7 @@ void UCapsuleComponent::UpdateBodySetup()
 	
 	SE->SetTransform(FTransform::Identity);
 	SE->Radius = CapsuleRadius;
-	SE->Length = 2 * CapsuleHalfHeight;
+	SE->Length = 2 * FMath::Max(CapsuleHalfHeight - CapsuleRadius, 1.f);	//SphylElem uses height from center of capsule spheres, but UCapsuleComponent uses halfHeight from end of the sphere
 }
 
 bool UCapsuleComponent::IsZeroExtent() const

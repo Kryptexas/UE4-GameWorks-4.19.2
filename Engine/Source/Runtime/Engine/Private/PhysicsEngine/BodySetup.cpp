@@ -375,9 +375,6 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				float Radius = FMath::Max(SphylElem->Radius * ScaleRadius, 0.1f);
 				float HalfHeight = SphylElem->Length * ScaleLength * 0.5f;
 
-				// now find half height without the caps
-				HalfHeight = FMath::Max<float>(HalfHeight - Radius, 1.f);
-
 				PxCapsuleGeometry PCapsuleGeom;
 				PCapsuleGeom.halfHeight = HalfHeight;
 				PCapsuleGeom.radius = Radius;
