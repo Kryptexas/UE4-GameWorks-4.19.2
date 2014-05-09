@@ -182,7 +182,6 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 				if( ( ClickMethod == EButtonClickMethod::MouseUp || HasMouseCapture() ) && OnClicked.IsBound() == true )
 				{
 					Reply = OnClicked.Execute();
-					ensure(Reply.IsEventHandled() == true);
 				}
 			}
 		}
