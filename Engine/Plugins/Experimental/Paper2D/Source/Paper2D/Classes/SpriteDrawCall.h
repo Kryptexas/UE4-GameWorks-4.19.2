@@ -20,9 +20,6 @@ public:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	FLinearColor Color;
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	TEnumAsByte<EBlendMode> BlendMode;
-
 	//@TODO: The rest of this struct doesn't need to be properties either, but has to be due to serialization for now
 	// Render triangle list (stored as loose vertices)
 	TArray< FVector4, TInlineAllocator<6> > RenderVerts;
@@ -32,7 +29,6 @@ public:
 	FSpriteDrawCallRecord()
 		: Texture(NULL)
 		, Color(FLinearColor::White)
-		, BlendMode(BLEND_Translucent)
 	{
 	}
 };

@@ -351,12 +351,9 @@ void FSpriteDrawCallRecord::BuildFromSprite(class UPaperSprite* Sprite)
 {
 	if (Sprite != NULL)
 	{
-		//SourceDimension = Sprite->GetSourceSize();
 		Destination = FVector::ZeroVector;
-		//DestinationDimension = Sprite->GetSourceSize();
 		Texture = Sprite->GetBakedTexture();
 		Color = FLinearColor::White;
-		BlendMode = Sprite->BlendMode;
 
 		RenderVerts = Sprite->BakedRenderData;
 	}

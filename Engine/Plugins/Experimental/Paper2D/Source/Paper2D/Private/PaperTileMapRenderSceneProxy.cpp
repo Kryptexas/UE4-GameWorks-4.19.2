@@ -214,13 +214,9 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 					const FVector DrawPos(TileSeparationX * X, LayerIndex * LayerSeparation, -TileSeparationY * Y);
 
 					FSpriteDrawCallRecord& NewTile = *(new (BatchedSprites) FSpriteDrawCallRecord());
-					//NewTile.SourceUV = SourceUV;
-					//NewTile.SourceDimension = SourceDimensionsUV;
 					NewTile.Destination = DrawPos;
-					//NewTile.DestinationDimension = TileSizeXY;
 					NewTile.Texture = SourceTexture;
 					NewTile.Color = DrawColor;
-					NewTile.BlendMode = BlendMode;
 					
 					//@TODO: PAPER: TILE EDITOR: Build data
 				}
