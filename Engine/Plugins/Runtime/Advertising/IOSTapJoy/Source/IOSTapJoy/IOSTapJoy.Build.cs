@@ -43,9 +43,14 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
-			PublicAdditionalShadowFiles.Add( "../Plugins/Runtime/Advertising/IOSTapJoy/ThirdPartyFrameworks/Tapjoy.embeddedframework.zip" );
-
-			PublicAdditionalFrameworks.Add( "../Plugins/Runtime/Advertising/IOSTapJoy/ThirdPartyFrameworks/Tapjoy.embeddedframework/TapJoy" );
+			// Add the TapJoy framework
+			PublicAdditionalFrameworks.Add( 
+				new UEBuildFramework( 
+					"TapJoy",														// Framework name
+					"../../ThirdPartyFrameworks/Tapjoy.embeddedframework.zip",		// Zip name
+					"Resources/TapjoyResources.bundle"								// Resources we need copied and staged
+				)
+			); 
 
 			PublicFrameworks.AddRange( 
 				new string[] 

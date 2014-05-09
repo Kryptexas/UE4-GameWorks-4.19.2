@@ -501,7 +501,7 @@ public class IOSPlatform : Platform
 
 			// copy any additional framework assets that will be needed at runtime
 			{
-				string SourcePath = CombinePaths( SC.LocalRoot, "Engine", "Build", "IOS", "Resources", "FrameworkAssets" );
+				string SourcePath = CombinePaths( ( SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "\\Engine" ), "Intermediate", "IOS", "FrameworkAssets" );
 				if ( Directory.Exists( SourcePath ) )
 				{
 					SC.StageFiles( StagedFileType.NonUFS, SourcePath, "*.*", true, null, "", true, false );

@@ -211,9 +211,9 @@ namespace UnrealBuildTool
 			{
 				Result += " -framework " + Framework;
 			}
-			foreach (string Framework in LinkEnvironment.Config.AdditionalFrameworks)
+			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
-				Result += " -framework " + Framework;
+				Result += " -framework " + Framework.FrameworkName;
 			}
 			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
 			{

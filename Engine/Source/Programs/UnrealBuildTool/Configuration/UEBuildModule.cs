@@ -55,7 +55,7 @@ namespace UnrealBuildTool
 		protected readonly List<string> PublicLibraryPaths;
 		protected readonly List<string> PublicAdditionalLibraries;
 		protected readonly List<string> PublicFrameworks;
-		protected readonly List<string> PublicAdditionalFrameworks;
+		protected readonly List<UEBuildFramework> PublicAdditionalFrameworks;
 		protected readonly List<string> PublicAdditionalShadowFiles;
 
 		/** Names of modules with header files that this module's public interface needs access to. */
@@ -98,7 +98,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicLibraryPaths = null,
 			IEnumerable<string> InPublicAdditionalLibraries = null,
 			IEnumerable<string> InPublicFrameworks = null,
-			IEnumerable<string> InPublicAdditionalFrameworks = null,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
 			IEnumerable<string> InPublicIncludePathModuleNames = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
@@ -122,7 +122,7 @@ namespace UnrealBuildTool
 			PublicLibraryPaths = ListFromOptionalEnumerableStringParameter(InPublicLibraryPaths);
 			PublicAdditionalLibraries = ListFromOptionalEnumerableStringParameter(InPublicAdditionalLibraries);
 			PublicFrameworks = ListFromOptionalEnumerableStringParameter(InPublicFrameworks);
-			PublicAdditionalFrameworks = ListFromOptionalEnumerableStringParameter(InPublicAdditionalFrameworks);
+			PublicAdditionalFrameworks = InPublicAdditionalFrameworks == null ? new List<UEBuildFramework>() : new List<UEBuildFramework>( InPublicAdditionalFrameworks );
 			PublicAdditionalShadowFiles = ListFromOptionalEnumerableStringParameter(InPublicAdditionalShadowFiles);
 			PublicIncludePathModuleNames = ListFromOptionalEnumerableStringParameter( InPublicIncludePathModuleNames );
 			PublicDependencyModuleNames = ListFromOptionalEnumerableStringParameter(InPublicDependencyModuleNames);
@@ -196,16 +196,16 @@ namespace UnrealBuildTool
 		}
 
 		/** Adds a public additional framework */
-		public virtual void AddPublicAdditionalFramework(string LibraryName, bool bCheckForDuplicates = true)
+		public virtual void AddPublicAdditionalFramework(UEBuildFramework Framework, bool bCheckForDuplicates = true)
 		{
 			if (bCheckForDuplicates == true)
 			{
-				if (PublicAdditionalFrameworks.Contains(LibraryName))
+				if ( PublicAdditionalFrameworks.Contains( Framework ) )
 				{
 					return;
 				}
 			}
-			PublicAdditionalFrameworks.Add(LibraryName);
+			PublicAdditionalFrameworks.Add( Framework );
 		}
 
 		/** Adds a file that will be synced to a remote machine if a remote build is being executed */
@@ -517,7 +517,7 @@ namespace UnrealBuildTool
 			ref List<string> LibraryPaths,
 			ref List<string> AdditionalLibraries,
 			ref List<string> Frameworks,
-			ref List<string> AdditionalFrameworks,
+			ref List<UEBuildFramework> AdditionalFrameworks,
 			ref List<string> AdditionalShadowFiles,
 			ref List<string> DelayLoadDLLs,
 			ref List<UEBuildBinary> BinaryDependencies,
@@ -568,6 +568,11 @@ namespace UnrealBuildTool
 					LibraryPaths.AddRange(PublicLibraryPaths);
 					AdditionalLibraries.AddRange(PublicAdditionalLibraries);
 					Frameworks.AddRange(PublicFrameworks);
+					// Remember the module so we can refer to it when needed
+					foreach ( var Framework in PublicAdditionalFrameworks )
+					{
+						Framework.OwningModule = this;
+					}
 					AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
 					AdditionalShadowFiles.AddRange(PublicAdditionalShadowFiles);
 					DelayLoadDLLs.AddRange(PublicDelayLoadDLLs);
@@ -662,7 +667,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicLibraryPaths = null,
 			IEnumerable<string> InPublicAdditionalLibraries = null,
 			IEnumerable<string> InPublicFrameworks = null,
-			IEnumerable<string> InPublicAdditionalFrameworks = null,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
 			IEnumerable<string> InPublicDelayLoadDLLs = null		// Delay loaded DLLs that should be setup when including this module
@@ -817,7 +822,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicDelayLoadDLLs,
 			IEnumerable<string> InPublicAdditionalLibraries,
 			IEnumerable<string> InPublicFrameworks,
-			IEnumerable<string> InPublicAdditionalFrameworks,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
 			IEnumerable<string> InPrivateIncludePaths,
 			IEnumerable<string> InPrivateIncludePathModuleNames,
@@ -1839,7 +1844,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicDelayLoadDLLs,
 			IEnumerable<string> InPublicAdditionalLibraries,
 			IEnumerable<string> InPublicFrameworks,
-			IEnumerable<string> InPublicAdditionalFrameworks,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
 			IEnumerable<string> InPublicAdditionalShadowFiles,
 			IEnumerable<string> InPrivateIncludePaths,
 			IEnumerable<string> InPrivateIncludePathModuleNames,
@@ -1897,5 +1902,25 @@ namespace UnrealBuildTool
 			// Setup the link environment for linking a CLR binary.
 			LinkEnvironment.Config.CLRMode = CPPCLRMode.CLREnabled;
 		}
+	}
+
+	public class UEBuildFramework
+	{
+		public UEBuildFramework( string InFrameworkName )
+		{
+			FrameworkName = InFrameworkName;
+		}
+
+		public UEBuildFramework( string InFrameworkName, string InFrameworkZipPath, string InCopyBundledAssets )
+		{
+			FrameworkName		= InFrameworkName;
+			FrameworkZipPath	= InFrameworkZipPath;
+			CopyBundledAssets	= InCopyBundledAssets;
+		}
+
+		public UEBuildModule	OwningModule		= null;
+		public string			FrameworkName		= null;
+		public string			FrameworkZipPath	= null;
+		public string			CopyBundledAssets	= null;
 	}
 }

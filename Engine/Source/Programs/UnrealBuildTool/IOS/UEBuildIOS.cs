@@ -116,8 +116,8 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
 			}
 
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add("GameKit");
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add("StoreKit");
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "GameKit" ) );
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "StoreKit" ) );
 		}
 
 		/**

@@ -1572,7 +1572,7 @@ namespace UnrealBuildTool
 					InPublicAdditionalLibraries: new List<string>(),
 					InPublicFrameworks: new List<string>(),
 					InPublicAdditionalShadowFiles: new List<string>(),
-					InPublicAdditionalFrameworks: new List<string>(),
+					InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
 					InPrivateIncludePaths: new List<string>(),
 					InPrivateIncludePathModuleNames: new List<string>(),
 					InPrivateDependencyModuleNames: PrivateDependencyModuleNames,

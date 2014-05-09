@@ -66,8 +66,8 @@ namespace UnrealBuildTool
 
 		public List<string> BuiltBinaries = new List<string>();
 
-		/** List of third party framework files that need to be unzipped */
-		public List<string> ThirdPartyFrameworkZips = new List<string>();
+		/** Additional frameworks stored locally so we have access without LinkEnvironment */
+		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
 		/// <summary>
 		/// Function to call to reset default data.
@@ -306,7 +306,27 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
+		string GetLocalFrameworkZipPath( UEBuildFramework Framework )
+		{
+			if ( Framework.OwningModule != null )
+			{
+				// If we have a source module, assume that the path name is relative to that
+				return Path.GetFullPath( Framework.OwningModule.ModuleDirectory + "/" + Framework.FrameworkZipPath );
+			}
+			return Path.GetFullPath( Framework.FrameworkZipPath );
+		}
+
+		string GetRemoteFrameworkZipPath( UEBuildFramework Framework )
+		{
+			if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+			{
+				return ConvertPath( GetLocalFrameworkZipPath( Framework ) );
+			}
+
+			return GetLocalFrameworkZipPath( Framework );
+		}
+
+		string GetLinkArguments_Global( LinkEnvironment LinkEnvironment )
 		{
 			string Result = "";
 			if (LinkEnvironment.Config.TargetArchitecture == "-simulator")
@@ -329,25 +349,18 @@ namespace UnrealBuildTool
 			{
 				Result += " -framework " + Framework;
 			}
-			foreach (string Framework in LinkEnvironment.Config.AdditionalFrameworks)
+			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
-				// If we see ThirdPartyFrameworks in the string, assume we need to treat this as a path + name
-				if ( Framework.Contains( "ThirdPartyFrameworks/" ) )
+				if ( Framework.FrameworkZipPath != null )
 				{
-					Int32 SourceIndex = Framework.LastIndexOf( '/' );
-					if ( SourceIndex == -1 )
-					{
-						throw new BuildException( "Invalid third party framework path" );
-					}
+					// If this framework has a zip specified, we'll need to setup the path as well
+					string FrameworkZipPath = GetRemoteFrameworkZipPath( Framework );
 
-					string FrameworkName = Framework.Substring( SourceIndex + 1 );
-					string FrameworkPath = Framework.Substring( 0, SourceIndex );
-					Result += " -F " + FrameworkPath;
-					Result += " -framework " + FrameworkName;
-					continue;
+					// Assume the path is the full name without the zip extension
+					Result += " -F " + FrameworkZipPath.Replace( ".zip", "" ); ;
 				}
 
-				Result += " -framework " + Framework;
+				Result += " -framework " + Framework.FrameworkName;
 			}
 			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
 			{
@@ -588,11 +601,6 @@ namespace UnrealBuildTool
 				// Add any additional files that we'll need in order to link the app
 				foreach (string AdditionalShadowFile in LinkEnvironment.Config.AdditionalShadowFiles)
 				{
-					if ( AdditionalShadowFile.Contains( "ThirdPartyFrameworks/" ) && AdditionalShadowFile.Contains( ".zip" ) )
-					{
-						ThirdPartyFrameworkZips.Add( AdditionalShadowFile );
-					}
-
 					FileItem ShadowFile = FileItem.GetExistingItemByPath(AdditionalShadowFile);
 					if (ShadowFile != null)
 					{
@@ -602,6 +610,40 @@ namespace UnrealBuildTool
 					else
 					{
 						throw new BuildException("Couldn't find required additional file to shadow: {0}", AdditionalShadowFile);
+					}
+				}
+			}
+
+			// Handle additional framework assets that might need to be shadowed
+			foreach ( UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks )
+			{
+				if ( Framework.OwningModule == null || Framework.FrameworkZipPath == null || Framework.FrameworkZipPath  == "" )
+				{
+					continue;	// Only care about frameworks that have a zip specified
+				}
+
+				// If we've already remembered this framework, skip
+				if ( RememberedAdditionalFrameworks.Contains( Framework ) )
+				{
+					continue;
+				}
+
+				// Remember any files we need to unzip
+				RememberedAdditionalFrameworks.Add( Framework );
+
+				// Copy them to remote mac if needed
+				if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac )
+				{
+					FileItem ShadowFile = FileItem.GetExistingItemByPath( GetLocalFrameworkZipPath( Framework ) );
+
+					if ( ShadowFile != null )
+					{
+						QueueFileForBatchUpload( ShadowFile );
+						LinkAction.PrerequisiteItems.Add( ShadowFile );
+					}
+					else
+					{
+						throw new BuildException( "Couldn't find required additional file to shadow: {0}", Framework.FrameworkZipPath );
 					}
 				}
 			}
@@ -826,13 +868,15 @@ namespace UnrealBuildTool
 			base.PreBuildSync();
 
 			// Unzip any third party frameworks that are stored as zips
-			foreach ( string FrameworkZip in ThirdPartyFrameworkZips )
+			foreach ( UEBuildFramework Framework in RememberedAdditionalFrameworks )
 			{
-				FileItem FrameworkZipItem = FileItem.GetExistingItemByPath( FrameworkZip );
+				string LocalZipPath = GetLocalFrameworkZipPath( Framework );
+
+				FileItem FrameworkZipItem = FileItem.GetExistingItemByPath( LocalZipPath );
 
 				if ( FrameworkZipItem == null )
 				{
-					Log.TraceInformation( "FrameworkZipItem not found for {0}", FrameworkZip );
+					Log.TraceInformation( "FrameworkZipItem not found for {0}", LocalZipPath );
 					continue;
 				}
 
@@ -840,8 +884,8 @@ namespace UnrealBuildTool
 				{
 					// If we're on the mac, just unzip using the shell
 					string ResultsText;
-					string LocalZipPath = FrameworkZipItem.AbsolutePath.Substring( 0, FrameworkZipItem.AbsolutePath.LastIndexOf( '/' ) );
-					RunExecutableAndWait( "unzip", String.Format( "-o {0} -d {1}", FrameworkZipItem.AbsolutePath, LocalZipPath ), out ResultsText );
+					string LocalUnzipZipPath = FrameworkZipItem.AbsolutePath.Substring( 0, FrameworkZipItem.AbsolutePath.LastIndexOf( '/' ) );
+					RunExecutableAndWait( "unzip", String.Format( "-o {0} -d {1}", FrameworkZipItem.AbsolutePath, LocalUnzipZipPath ), out ResultsText );
 					continue;
 				}
 
@@ -1101,6 +1145,53 @@ namespace UnrealBuildTool
 						// if we didn't want dangerously fast, then delete the file so that setting/unsetting the flag will do the right thing without a Rebuild
 						File.Delete(DangerouslyFastValidFile);
 					}
+				}
+
+				// Copy bundled assets from additional frameworks to the intermediate assets directory (so they can get picked up during staging)
+				String LocalFrameworkAssets = Path.GetFullPath( Target.ProjectDirectory + "/Intermediate/IOS/FrameworkAssets" );
+				String RemoteFrameworkAssets = ConvertPath( LocalFrameworkAssets );
+
+				// Delete the intermediate directory on the mac
+				RPCUtilHelper.Command( "/", String.Format( "rm -rf {0}", RemoteFrameworkAssets ), "", null );
+
+				// Create a fresh intermediate after we delete it
+				RPCUtilHelper.Command( "/", String.Format( "mkdir -p {0}", RemoteFrameworkAssets ), "", null );
+
+				// Delete the local dest directory if it exists
+				if ( Directory.Exists( LocalFrameworkAssets ) )
+				{
+					Directory.Delete( LocalFrameworkAssets, true );
+				}
+
+				foreach ( UEBuildFramework Framework in RememberedAdditionalFrameworks )
+				{
+					if ( Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "" )
+					{
+						continue;		// Only care if we need to copy bundle assets
+					}
+
+					string RemoteZipPath = GetRemoteFrameworkZipPath( Framework );
+
+					RemoteZipPath = RemoteZipPath.Replace( ".zip", "" );
+
+					// For now, this is hard coded, but we need to loop over all modules, and copy bundled assets that need it
+					string RemoteSource = RemoteZipPath + "/" + Framework.CopyBundledAssets;
+					string BundleName	= Framework.CopyBundledAssets.Substring( Framework.CopyBundledAssets.LastIndexOf( '/' ) + 1 );
+
+					String RemoteDest	= RemoteFrameworkAssets + "/" + BundleName;
+					String LocalDest	= LocalFrameworkAssets + "\\" + BundleName;
+
+					Log.TraceInformation( "Copying bundled asset... RemoteSource: {0}, RemoteDest: {1}, LocalDest: {2}", RemoteSource, RemoteDest, LocalDest );
+
+					Hashtable Results = RPCUtilHelper.Command( "/", String.Format( "cp -R -L {0} {1}", RemoteSource, RemoteDest ), "", null );
+
+					foreach ( DictionaryEntry Entry in Results )
+					{
+						Log.TraceInformation( "{0}", Entry.Value );
+					}
+
+					// Copy the bundled resource from the remote mac to the local dest
+					RPCUtilHelper.CopyDirectory( RemoteDest, LocalDest, RPCUtilHelper.ECopyOptions.None );
 				}
 			}
 		}

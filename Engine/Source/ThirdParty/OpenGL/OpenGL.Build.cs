@@ -17,11 +17,11 @@ public class OpenGL : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicAdditionalFrameworks.Add("OpenGL");
+			PublicAdditionalFrameworks.Add( new UEBuildFramework( "OpenGL" ) );
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PublicAdditionalFrameworks.Add("OpenGLES");
+			PublicAdditionalFrameworks.Add( new UEBuildFramework( "OpenGLES" ) );
 		}
 	}
 }

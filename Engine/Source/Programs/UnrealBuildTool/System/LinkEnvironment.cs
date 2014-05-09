@@ -42,7 +42,7 @@ namespace UnrealBuildTool
 		public List<string> AdditionalLibraries = new List<string>();
 
 		/** A list of additional frameworks to link in. */
-		public List<string> AdditionalFrameworks = new List<string>();
+		public List<UEBuildFramework> AdditionalFrameworks = new List<UEBuildFramework>();
 
 		/** For builds that execute on a remote machine (e.g. iPhone), this list contains additional files that
 			need to be copied over in order for the app to link successfully.  Source/header files and PCHs are
