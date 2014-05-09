@@ -325,8 +325,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 				}
 				else
 				{
-					// Call this here or else the cursor gets stuck in place after returning from high precision mode
-					CGAssociateMouseAndMouseCursorPosition( true );
 					FVector2D CurrentPosition = MacCursor->GetPosition();
 					if( MacCursor->UpdateCursorClipping( CurrentPosition ) )
 					{
@@ -763,8 +761,7 @@ void FMacApplication::SetHighPrecisionMouseMode( const bool Enable, const TShare
 {
 	bUsingHighPrecisionMouseInput = Enable;
 	HighPrecisionMousePos = static_cast<FMacCursor*>( Cursor.Get() )->GetPosition();
-	
-	CGAssociateMouseAndMouseCursorPosition( !Enable );
+	static_cast<FMacCursor*>( Cursor.Get() )->AssociateMouseAndCursorPosition( !Enable );
 }
 
 FModifierKeysState FMacApplication::GetModifierKeys() const

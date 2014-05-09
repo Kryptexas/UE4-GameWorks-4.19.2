@@ -7,6 +7,7 @@
 
 FMacCursor::FMacCursor()
 :	bIsVisible(true)
+,	bAssociateMouseCursor(false)
 ,	MouseWarpDelta(FVector2D::ZeroVector)
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -267,7 +268,23 @@ void FMacCursor::UpdateVisibility()
 
 void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 {
+	// Apple suppress mouse events for 0.25 seconds after a call to Warp, unless we call CGAssociateMouseAndMouseCursorPosition.
+	// Previously there was CGSetLocalEventsSuppressionInterval to explicitly control this behaviour but that is deprecated.
+	// The replacement CGEventSourceSetLocalEventsSuppressionInterval isn't useful because it is unclear how to obtain the correct event source.
+	// Instead, when we want the warp to be visible we need to disassociate mouse & cursor...
+	if( bAssociateMouseCursor )
+	{
+		CGAssociateMouseAndMouseCursorPosition( false );
+	}
+	
+	// Perform the warp as normal
 	CGWarpMouseCursorPosition( NSMakePoint( FMath::TruncToInt( X ), FMath::TruncToInt( Y ) ) );
+	
+	// And then reassociate the mouse cursor, which forces the mouse events to come through.
+	if( bAssociateMouseCursor )
+	{
+		CGAssociateMouseAndMouseCursorPosition( true );
+	}
 }
 
 FVector2D FMacCursor::GetMouseWarpDelta( bool const bClearAccumulatedDelta )
@@ -275,4 +292,13 @@ FVector2D FMacCursor::GetMouseWarpDelta( bool const bClearAccumulatedDelta )
 	FVector2D Result = MouseWarpDelta;
 	MouseWarpDelta = bClearAccumulatedDelta ? FVector2D::ZeroVector : MouseWarpDelta;
 	return Result;
+}
+
+void FMacCursor::AssociateMouseAndCursorPosition( bool const bEnable )
+{
+	if( bEnable != bAssociateMouseCursor )
+	{
+		bAssociateMouseCursor = bEnable;
+		CGAssociateMouseAndMouseCursorPosition( bEnable );
+	}
 }

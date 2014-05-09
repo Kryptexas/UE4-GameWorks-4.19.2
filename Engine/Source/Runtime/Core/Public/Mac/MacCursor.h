@@ -37,6 +37,7 @@ public:
 	
 	FVector2D GetMouseWarpDelta( bool const bClearAccumulatedDelta );
 
+	void AssociateMouseAndCursorPosition( bool const bEnable );
 
 private:
 
@@ -48,6 +49,7 @@ private:
 	FIntRect CusorClipRect;
 
 	bool bIsVisible;
+	bool bAssociateMouseCursor;
 	NSCursor* CurrentCursor;
 	
 	FVector2D MouseWarpDelta;
