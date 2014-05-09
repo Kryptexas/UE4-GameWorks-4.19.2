@@ -63,6 +63,7 @@ public class UnrealEd : ModuleRules
                 "EditorStyle",
 				"SourceControl",
 				"UnrealEdMessages",
+				"BlueprintGraph",
 			}
 		);
 
@@ -185,6 +186,7 @@ public class UnrealEd : ModuleRules
 			new string[] {
 				"UserFeedback",
              	"CollectionManager",
+				"BlueprintGraph",
 			}
 			);
 
