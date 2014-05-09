@@ -1075,13 +1075,13 @@ namespace UnrealBuildTool
 					Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
 				}
 			}
-            {
-                string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
-                foreach (var RedistLib in SpecialRocketLibFilesThatAreBuildProducts)
-                {
-                    Manifest.AddBinaryNames(RedistLib, DebugInfoExtension);
-                }
-            }
+			{
+				string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
+				foreach (var RedistLib in SpecialRocketLibFilesThatAreBuildProducts)
+				{
+					Manifest.AddBinaryNames(RedistLib, DebugInfoExtension);
+				}
+			}
 
 
 			if (UEBuildConfiguration.bCleanProject)
@@ -1502,18 +1502,7 @@ namespace UnrealBuildTool
 				string HeaderFilename                    = LinkerFixupsName + "Name.h";
 				string LinkerFixupHeaderFilenameWithPath = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, HeaderFilename);
 
-				UnrealTargetPlatform TargetPlatform = UEBuildTarget.CPPTargetPlatformToUnrealTargetPlatform( GlobalCompileEnvironment.Config.TargetPlatform );
-
-				// Quick fix. 
-				// For some reason, when compiled over RPCUtility, the path can't be found, and we don't need the long path on Mac anyhow
-				if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac && TargetPlatform == UnrealTargetPlatform.IOS )
-				{
-					LinkerFixupsFileContents.Add("#include \"" + HeaderFilename + "\"");
-				}
-				else
-				{
-					LinkerFixupsFileContents.Add("#include \"" + LinkerFixupHeaderFilenameWithPath + "\"");
-				}
+				LinkerFixupsFileContents.Add("#include \"" + HeaderFilename + "\"");
 
 				// Add a function that is not referenced by anything that invokes all the empty functions in the different static libraries
 				LinkerFixupsFileContents.Add("void " + LinkerFixupsName + "()");
@@ -1726,7 +1715,7 @@ namespace UnrealBuildTool
 			UEBuildBinaryType BinaryType = ShouldCompileMonolithic()? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
 
 			// Make the plugin intermediate path
-			string IntermediateDirectory = Path.Combine(Plugin.Directory, BuildConfiguration.PlatformIntermediateFolder, Plugins.GetPluginSubfolderName(BinaryType, AppName), Configuration.ToString());
+			string IntermediateDirectory = ProjectIntermediateDirectory;
 
 			// Get the output path. Don't prefix the app name for Rocket
 			string OutputFilePath;
@@ -2103,7 +2092,7 @@ namespace UnrealBuildTool
             {
                 GlobalCompileEnvironment.Config.Definitions.Add("UE_ROCKET=0");
             }
-			
+
 			// Rocket intermediates go to the project's intermediate folder.  Rocket never writes to the engine intermediate folder. (Those files are immutable)
 			// Also, when compiling in monolithic, all intermediates go to the project's folder.  This is because a project can change definitions that affects all engine translation
 			// units too, so they can't be shared between different targets.  They are effectively project-specific engine intermediates.
@@ -2113,11 +2102,11 @@ namespace UnrealBuildTool
 				var IntermediateConfiguration = Configuration;
 				if( UnrealBuildTool.RunningRocket() )
 				{
-					// Only Development and Shipping are supported for engine modules
+				// Only Development and Shipping are supported for engine modules
 					if( IntermediateConfiguration != UnrealTargetConfiguration.Development && IntermediateConfiguration != UnrealTargetConfiguration.Shipping )
-					{
-						IntermediateConfiguration = UnrealTargetConfiguration.Development;
-					}
+				{
+					IntermediateConfiguration = UnrealTargetConfiguration.Development;
+				}
 				}
 
 				GlobalCompileEnvironment.Config.OutputDirectory = Path.Combine(BuildConfiguration.PlatformIntermediatePath, OutputAppName, IntermediateConfiguration.ToString());

@@ -163,6 +163,11 @@ static FString Tabify(const TCHAR *Input)
 	return Result;
 }
 
+void ConvertToBuildIncludePath(UPackage* Package, FString& LocalPath)
+{
+	FPaths::MakePathRelativeTo(LocalPath, *GPackageToManifestModuleMap.FindChecked(Package)->IncludeBase);
+}
+
 /**
  *	Helper function for finding the location of a package
  *	This is required as source now lives in several possible directories
@@ -2013,17 +2018,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 
 		check(SourceFilename.EndsWith(TEXT(".h")));
 
-		if(bUseRelativePaths)
-		{
-			// When building Rocket, we need relative paths in the generated headers so that they can be installed to any directory.
-			FPaths::MakePathRelativeTo(NewFileName, *ClassHeaderPath);
-			NewFileName.ReplaceInline(TEXT("\\"), TEXT("/"));
-		}
-		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
-		else if (FPaths::MakePathRelativeTo(NewFileName, *GManifest.RootLocalPath))
-		{
-			NewFileName = GManifest.RootBuildPath / NewFileName;
-		}
+		ConvertToBuildIncludePath(Package, NewFileName);
 
 		auto IncludeStr = FString::Printf(
 			TEXT("#ifndef %s_%s_generated_h")													LINE_TERMINATOR
@@ -3819,14 +3814,13 @@ bool IsExportOrTemporaryClass(FClass* Class)
 }
 
 // Constructor.
-FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths )
+FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders )
 	: CurrentClass                          (NULL)
 	, API                                   (FPackageName::GetShortName(InPackage).ToUpper())
 	, Package                               (InPackage)
 	, bIsExportingForOffsetDeterminationOnly(false)
 	, bAllowSaveExportedHeaders             (InAllowSaveExportedHeaders)
 	, bFailIfGeneratedCodeChanges           (false)
-	, bUseRelativePaths                     (bInUseRelativePaths)
 {
 	const FString PackageName = FPackageName::GetShortName(Package);
 
@@ -4296,18 +4290,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	if (ModuleInfo->PCH.Len())
 	{
 		FString PCH = ModuleInfo->PCH;
-		if(bUseRelativePaths)
-		{
-			// When building Rocket, we need relative paths in the generated headers so that they can be installed to any directory.
-			FPaths::MakePathRelativeTo(PCH, *ModuleInfo->GeneratedCPPFilenameBase);
-			PCH.ReplaceInline(TEXT("\\"), TEXT("/"));
-		}
-		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
-		else if (FPaths::MakePathRelativeTo(PCH, *GManifest.RootLocalPath))
-		{
-			PCH = GManifest.RootBuildPath / PCH;
-		}
-
+		ConvertToBuildIncludePath(Package, PCH);
 		ModulePCHInclude = FString::Printf(TEXT("#include \"%s\"") LINE_TERMINATOR, *PCH);
 	}
 
@@ -4656,7 +4639,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 			{
 				if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
 				{
-					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths, ScriptPlugins);
+					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, ScriptPlugins);
 					if (Result != ECompilationResult::Succeeded)
 					{
 						++NumFailures;
