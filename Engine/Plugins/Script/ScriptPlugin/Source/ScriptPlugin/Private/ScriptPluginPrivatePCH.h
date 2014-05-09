@@ -7,6 +7,7 @@
 #include "Engine.h"
 #include "ScriptComponent.h"
 #include "ScriptAsset.h"
+#include "ScriptTestActor.h"
 
 #if WITH_LUA
 #include "LuaIntegration.h"
