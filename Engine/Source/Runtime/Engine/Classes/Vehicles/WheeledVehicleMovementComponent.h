@@ -280,6 +280,9 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Draw debug lines for the wheels and suspension */
 	virtual void DrawDebugLines();
 
+	/** Skeletal mesh needs some special handling in the vehicle case */
+	virtual void FixupSkeletalMesh();
+
 #if WITH_EDITOR
 	/** Respond to a property change in editor */
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
