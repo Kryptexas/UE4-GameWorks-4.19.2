@@ -15,6 +15,8 @@ class FEngineSettingsModule
 {
 public:
 
+	// Begin IModuleInterface interface
+
 	virtual void StartupModule( ) OVERRIDE { }
 
 	virtual void ShutdownModule( ) OVERRIDE { }
@@ -23,10 +25,21 @@ public:
 	{
 		return true;
 	}
+
+	// End IModuleInterface interface
 };
+
 
 /* Class constructors
  *****************************************************************************/
+
+UGameMapsSettings::UGameMapsSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+	, bUseSplitscreen(true)
+	, TwoPlayerSplitscreenLayout(ETwoPlayerSplitScreenType::Horizontal)
+	, ThreePlayerSplitscreenLayout(EThreePlayerSplitScreenType::FavorTop)
+{ }
+
 
 UGameNetworkManagerSettings::UGameNetworkManagerSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
@@ -52,16 +65,9 @@ UHudSettings::UHudSettings( const class FPostConstructInitializeProperties& PCIP
 	: Super(PCIP)
 { }
 
+
 /* Static functions
  *****************************************************************************/
-
-UGameMapsSettings::UGameMapsSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-	, bUseSplitscreen(true)
-	, TwoPlayerSplitscreenLayout(ETwoPlayerSplitScreenType::Horizontal)
-	, ThreePlayerSplitscreenLayout(EThreePlayerSplitScreenType::FavorTop)
-{ 
-}
 
 const FString& UGameMapsSettings::GetGameDefaultMap( )
 {
