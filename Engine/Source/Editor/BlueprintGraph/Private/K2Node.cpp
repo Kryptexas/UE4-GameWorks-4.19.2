@@ -703,6 +703,12 @@ UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName, bool
 		TestRemapClass = TestRemapClass->GetSuperClass();
 	}
 
+	// In the case of a bifurcation of a variable (e.g. moved from a parent into certain children), verify that we don't also define the variable in the current scope first
+	if( bFoundReplacement && (FindField<UField>(InitialScope, InitialName) != nullptr))
+	{
+		bFoundReplacement = false;		
+	}
+
 	if( bFoundReplacement )
 	{
 		const FName NewFieldName = NewFieldInfo.FieldName;
