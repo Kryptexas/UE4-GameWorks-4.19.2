@@ -4,6 +4,10 @@
 	BRDF.usf: Bidirectional reflectance distribution functions.
 =============================================================================*/
 
+#ifndef __BRDF_COMMON__
+#define __BRDF_COMMON__
+
+
 // Physically based shading model
 // parameterized with the below options
 
@@ -28,7 +32,7 @@
 // 2: Kelemen
 // 3: Schlick
 // 4: Smith (matched to GGX)
-#define PHYSICAL_SPEC_G		4
+#define PHYSICAL_SPEC_G		3
 
 // Fresnel
 // 0: None
@@ -262,3 +266,6 @@ half EnvBRDFApproxNonmetal( half Roughness, half NoV )
 	half2 r = Roughness * c0 + c1;
 	return min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
 }
+
+
+#endif // __BRDF_COMMON__
