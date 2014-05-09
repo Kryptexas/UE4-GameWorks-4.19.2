@@ -238,13 +238,9 @@ void FKSphylElem::DrawElemSolid(FPrimitiveDrawInterface* PDI, const FTransform& 
 // FKConvexElem
 /////////////////////////////////////////////////////////////////////////////////////
 
-// NB: ElemTM is assumed to have no scaling in it!
-void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FVector& Scale3D, const FColor Color)
+void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color)
 {
 #if WITH_PHYSX
-
-	FTransform LocalToWorld = ElemTM;
-	LocalToWorld.SetScale3D(Scale3D);
 
 	PxConvexMesh* Mesh = ConvexMesh;
 
@@ -258,7 +254,7 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 		TransformedVerts.AddUninitialized(NbVerts);
 		for(PxU32 i=0; i<NbVerts; i++)
 		{
-			TransformedVerts[i] = LocalToWorld.TransformPosition( P2UVector(Vertices[i]) );
+			TransformedVerts[i] = ElemTM.TransformPosition(P2UVector(Vertices[i]));
 		}
 						
 		const PxU8* PIndexBuffer = Mesh->getIndexBuffer();
@@ -524,7 +520,7 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 				FTransform ElemTM = ConvexElems[i].GetTransform();
 				ElemTM.ScaleTranslation(Scale3D);
 				ElemTM *= ParentTM;
-				ConvexElems[i].DrawElemWire(PDI, ElemTM, Scale3D, ConvexColor);
+				ConvexElems[i].DrawElemWire(PDI, ElemTM, ConvexColor);
 
 			}
 		}

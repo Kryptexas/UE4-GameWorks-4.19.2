@@ -179,15 +179,13 @@ void UPhATEdSkeletalMeshComponent::RenderAssetTools(const FSceneView* View, clas
 				}
 
 				FTransform ElemTM = GetPrimitiveTransform(BoneTM, i, KPT_Convex, j, 1.f);
-				FVector Scale3D = ElemTM.GetScale3D();
-				ElemTM.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
 
 				//convex doesn't have solid draw so render lines if we're in hitTestAndBodyMode
 				if(!bHitTest || bHitTestAndBodyMode)
 				{
 					if (CollisionViewMode == FPhATSharedData::PRM_Solid || CollisionViewMode == FPhATSharedData::PRM_Wireframe)
 					{
-						AggGeom->ConvexElems[j].DrawElemWire(PDI, ElemTM, Scale3D, GetPrimitiveColor(i, KPT_Convex, j));
+						AggGeom->ConvexElems[j].DrawElemWire(PDI, ElemTM, GetPrimitiveColor(i, KPT_Convex, j));
 					}
 				}
 				
