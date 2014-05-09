@@ -1808,8 +1808,10 @@ protected:
  */
 class FMaterialUpdateContext
 {
-	/** Materials updated within this context. */
+	/** UMaterial parents of any UMaterialInterfaces updated within this context. */
 	TSet<UMaterial*> UpdatedMaterials;
+	/** Materials updated within this context. */
+	TSet<UMaterialInterface*> UpdatedMaterialInterfaces;
 	/** Active global component reregister context, if any. */
 	TScopedPointer<class FGlobalComponentReregisterContext> ComponentReregisterContext;
 	/** The shader platform that was being processed - can control if we need to update components */
@@ -1844,10 +1846,10 @@ public:
 	ENGINE_API ~FMaterialUpdateContext();
 
 	/** Add a material that has been updated to the context. */
-	void AddMaterial(UMaterial* Material)
-	{
-		UpdatedMaterials.Add(Material);
-	}
+	ENGINE_API void AddMaterial(UMaterial* Material);
+
+	/** Adds a material instance that has been updated to the context. */
+	ENGINE_API void AddMaterialInstance(UMaterialInstance* Instance);
 };
 
 /**

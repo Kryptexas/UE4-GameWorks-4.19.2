@@ -1937,6 +1937,18 @@ FMaterialUpdateContext::FMaterialUpdateContext(uint32 Options, EShaderPlatform I
 	ShaderPlatform = InShaderPlatform;
 }
 
+void FMaterialUpdateContext::AddMaterial(UMaterial* Material)
+{
+	UpdatedMaterials.Add(Material);
+	UpdatedMaterialInterfaces.Add(Material);
+}
+
+void FMaterialUpdateContext::AddMaterialInstance(UMaterialInstance* Instance)
+{
+	UpdatedMaterials.Add(Instance->GetMaterial());
+	UpdatedMaterialInterfaces.Add(Instance);
+}
+
 FMaterialUpdateContext::~FMaterialUpdateContext()
 {
 	double StartTime = FPlatformTime::Seconds();
@@ -1989,7 +2001,15 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 		if (UpdatedMaterials.Contains(BaseMaterial))
 		{
-			InstancesToUpdate.Add(CurrentMaterialInstance);
+			// Check to see if this instance is dependent on any of the material interfaces we directly updated.
+			for (auto InterfaceIt = UpdatedMaterialInterfaces.CreateConstIterator(); InterfaceIt; ++InterfaceIt)
+			{
+				if (CurrentMaterialInstance->IsDependent(*InterfaceIt))
+				{
+					InstancesToUpdate.Add(CurrentMaterialInstance);
+					break;
+				}
+			}
 		}
 	}
 
@@ -2047,10 +2067,11 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 	}
 
 	double EndTime = FPlatformTime::Seconds();
-	UE_LOG(LogMaterial,Log,
-		TEXT("%f seconds spent updating %d materials, %d instances, %d with static permutations."),
-		(float)(EndTime-StartTime),
+	UE_LOG(LogMaterial, Log,
+		TEXT("%f seconds spent updating %d materials, %d interfaces, %d instances, %d with static permutations."),
+		(float)(EndTime - StartTime),
 		UpdatedMaterials.Num(),
+		UpdatedMaterialInterfaces.Num(),
 		InstancesToUpdate.Num(),
 		NumInstancesWithStaticPermutations
 		);
