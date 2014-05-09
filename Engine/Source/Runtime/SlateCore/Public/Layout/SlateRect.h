@@ -42,7 +42,7 @@ public:
 
 
 	/**
-	 * @return true, if the rectangle is empty.
+	 * @return true, if the rectangle is empty. Should be used in conjunction with IntersectionWith.
 	 */
 	bool IsEmpty() const
 	{
@@ -70,11 +70,11 @@ public:
 	}
 
 	/**
-	 * Returns the left-top position of the rectangle
+	 * Returns the top-left position of the rectangle
 	 * 
-	 * @return The left-top position.
+	 * @return The top-left position.
 	 */
-	FVector2D GetPosition() const
+	FVector2D GetTopLeft() const
 	{
 		return FVector2D( Left, Top );
 	}

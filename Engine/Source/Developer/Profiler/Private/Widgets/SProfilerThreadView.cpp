@@ -192,7 +192,7 @@ void SProfilerThreadView::DrawFramesBackgroundAndTimelines() const
 			(
 				PaintState->OutDrawElements,
 				PaintState->LayerId,
-				PaintState->AllottedGeometry.ToPaintGeometry( ClippedFrameBackgroundRect.GetPosition(), ClippedFrameBackgroundRect.GetSize() ),
+				PaintState->AllottedGeometry.ToPaintGeometry( ClippedFrameBackgroundRect.GetTopLeft(), ClippedFrameBackgroundRect.GetSize() ),
 				&SolidWhiteBrush,
 				PaintState->AbsoluteClippingRect,
 				PaintState->DrawEffects,
@@ -292,7 +292,7 @@ void SProfilerThreadView::DrawUIStackNodes() const
 				(
 					PaintState->OutDrawElements,
 					PaintState->LayerId,
-					PaintState->AllottedGeometry.ToPaintGeometry( ClippedNodeRect.GetPosition(), ClippedNodeRect.GetSize() ),
+					PaintState->AllottedGeometry.ToPaintGeometry( ClippedNodeRect.GetTopLeft(), ClippedNodeRect.GetSize() ),
 					BorderBrush,
 					PaintState->AbsoluteClippingRect,
 					PaintState->DrawEffects,
@@ -354,7 +354,7 @@ void SProfilerThreadView::DrawUIStackNodes() const
 				AdjustedPositionPx = FVector2D( ClippedNodeRect.Left, PositionPx.Y + MarkerPosYOffsetPx );
 			}
 
-			const FVector2D AbsolutePositionPx = PaintState->AllottedGeometry.LocalToAbsolute( ClippedNodeRect.GetPosition() );
+			const FVector2D AbsolutePositionPx = PaintState->AllottedGeometry.LocalToAbsolute( ClippedNodeRect.GetTopLeft() );
 			const FSlateRect AbsoluteClippingRect = FSlateRect( AbsolutePositionPx, AbsolutePositionPx + ClippedNodeRect.GetSize() );
 			
 			DrawText( bUseShortVersion ? StringStatName : StringStatNameWithTime, PaintState->SummaryFont8, AdjustedPositionPx, FColorList::White, FColorList::Black, FVector2D( 1.0f, 1.0f ), &AbsoluteClippingRect );
