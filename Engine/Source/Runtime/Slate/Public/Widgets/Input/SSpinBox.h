@@ -536,7 +536,7 @@ protected:
 			if (TIsIntegralType<NumericType>::Value)
 			{
 				// Round floating point to avoid 'jumping' when spinning down integral values 
-				ValueAttribute.Set( (NumericType)FMath::FloorDouble(NewValue+0.5) );
+				ValueAttribute.Set( (NumericType)FMath::FloorToDouble(NewValue+0.5) );
 			}
 			else
 			{

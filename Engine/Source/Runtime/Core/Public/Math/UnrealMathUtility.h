@@ -241,7 +241,7 @@ struct FMath : public FPlatformMath
 		if( Grid==0.0 )	return Location;
 		else			
 		{
-			return FloorDouble((Location + 0.5*Grid)/Grid)*Grid;
+			return FloorToDouble((Location + 0.5*Grid)/Grid)*Grid;
 		}
 	}
 
