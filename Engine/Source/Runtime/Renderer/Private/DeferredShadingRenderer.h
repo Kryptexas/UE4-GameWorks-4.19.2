@@ -327,7 +327,7 @@ private:
 	void RenderReflectionCaptureSpecularBounceForAllViews();
 
 	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
-	void RenderImageBasedReflectionsSM4ForAllViews();
+	void RenderImageBasedReflectionsSM4ForAllViews(bool bReflectionEnv);
 
 	/** Render image based reflections (SSR, Env, SkyLight) with compute shaders */
 	void RenderImageBasedReflectionsSM5ForAllViews();
