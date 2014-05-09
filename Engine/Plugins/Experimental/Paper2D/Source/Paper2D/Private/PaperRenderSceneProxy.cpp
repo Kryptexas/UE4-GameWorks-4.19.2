@@ -3,6 +3,8 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperRenderSceneProxy.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Rendering/PaperBatchManager.h"
+#include "Rendering/PaperBatchSceneProxy.h"
 
 static FPackedNormal PackedNormalX(FVector(1.0f, 0.0f, 0.0f));
 static FPackedNormal PackedNormalY(FVector(0.0f, 1.0f, 0.0f));
@@ -173,6 +175,18 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	}
 }
 
+FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
+{
+	FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene());
+	Batcher->UnregisterManagedProxy(this);
+}
+
+void FPaperRenderSceneProxy::CreateRenderThreadResources()
+{
+	FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene());
+	Batcher->RegisterManagedProxy(this);
+}
+
 void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_PaperRenderSceneProxy_DrawDynamicElements);
@@ -241,9 +255,6 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 #endif
 
 	// Set the selection/hover color from the current engine setting.
-	// The color is multiplied by 10 because this value is normally expected to be blended
-	// additively, this is not how the sprites work and therefore need an extra boost
-	// to appear the same color as previously.
 	FLinearColor OverrideColor;
 	bool bUseOverrideColor = false;
 
@@ -254,21 +265,25 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 		OverrideColor = GetSelectionColor(FLinearColor::White, bShowAsSelected, IsHovered());
 	}
 
-	//@TODO: Figure out how to show selection highlight better (maybe outline?)
 	bUseOverrideColor = false;
 
 	// Sprites of locked actors draw in red.
 	//FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
 	//FLinearColor PropertyColorToUse = PropertyColor;
 
-	if (Material != NULL)
-	{
-		DrawDynamicElements_RichMesh(PDI, View, bUseOverrideColor, OverrideColor);
-	}
+#if TEST_BATCHING
+#else
+	DrawDynamicElements_RichMesh(PDI, View, bUseOverrideColor, OverrideColor);
+#endif
 }
 
 void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
 {
+	if (Material == nullptr)
+	{
+		return;
+	}
+
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	
 	static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;

@@ -3,9 +3,8 @@
 #include "Paper2DPrivatePCH.h"
 #include "Paper2DModule.h"
 
-
-
 #include "Physics/Box2DIntegration.h"
+#include "Rendering/PaperBatchManager.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DModule
@@ -29,10 +28,13 @@ public:
 		}
 
 		PaperAxisZ = FVector::CrossProduct(PaperAxisX, PaperAxisY);
+
+		FPaperBatchManager::Initialize();
 	}
 
 	virtual void ShutdownModule() OVERRIDE
 	{
+		FPaperBatchManager::Shutdown();
 		FPhysicsIntegration2D::ShutdownPhysics();
 	}
 };
