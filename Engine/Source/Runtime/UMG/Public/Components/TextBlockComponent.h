@@ -9,14 +9,12 @@ class UMG_API UTextBlockComponent : public USlateLeafWidgetComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FTextDelegate);
-
 public:
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
 
 	UPROPERTY()
-	FTextDelegate TextDelegate;
+	FGetText TextDelegate;
 	
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateFontInfo Font;
@@ -25,10 +23,16 @@ public:
 	FVector2D ShadowOffset;
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateColor ColorAndOpacity;
+	FLinearColor ColorAndOpacity;
+
+	UPROPERTY()
+	FGetSlateColor ColorAndOpacityDelegate;
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor ShadowColorAndOpacity;
+
+	UPROPERTY()
+	FGetLinearColor ShadowColorAndOpacityDelegate;
 
 	/** Text to display as the content of the button */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
@@ -39,7 +43,6 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
 
-	FText GetText() const;
 	FSlateColor GetColorAndOpacity() const;
 	FLinearColor GetShadowColorAndOpacity() const;
 };

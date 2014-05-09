@@ -63,12 +63,12 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 	if ( !MyWidget.IsValid() )
 	{
 		MyWidget = RebuildWidget();
-		MyWidget->SetEnabled(bIsEnabled);
-		MyWidget->SetVisibility(ConvertSerializedVisibilityToRuntime(Visiblity));
+		MyWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
+		MyWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
 
 		if ( !ToolTipText.IsEmpty() )
 		{
-			MyWidget->SetToolTipText(ToolTipText);
+			MyWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
 		}
 	}
 

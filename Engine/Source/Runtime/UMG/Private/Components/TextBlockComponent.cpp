@@ -34,35 +34,17 @@ TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
 		StylePtr = Defaults._TextStyle;
 	}
 
-//	TAttribute<FText>::Create(TAttribute<FText>::FGetter::From::CreateUObject(this, &GlueText));
-
+	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
+	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
+	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
+	
 	return SNew(STextBlock)
-		.Text(BIND_UOBJECT_ATTRIBUTE(FText, GetText))
-		.TextStyle(StylePtr)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
-		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) )
-		.ShadowOffset(ShadowOffset)
-		.ShadowColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FLinearColor, GetShadowColorAndOpacity));
-}
-
-FText UTextBlockComponent::GetText() const
-{
-	if ( TextDelegate.IsBound() )
-	{
-		return TextDelegate.Execute();
-	}
-
-	return Text;
-}
-
-FSlateColor UTextBlockComponent::GetColorAndOpacity() const
-{
-	return ColorAndOpacity;
-}
-
-FLinearColor UTextBlockComponent::GetShadowColorAndOpacity() const
-{
-	return ShadowColorAndOpacity;
+		.Text( TextBinding )
+		.TextStyle( StylePtr )
+		.Font( FSlateFontInfo(FontPath, Font.Size) )
+		.ColorAndOpacity( ColorAndOpacityBinding )
+		.ShadowOffset( ShadowOffset )
+		.ShadowColorAndOpacity( ShadowColorAndOpacityBinding );
 }
 
 /////////////////////////////////////////////////////

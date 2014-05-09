@@ -224,7 +224,7 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 
 		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
 		{
-			if ( Binding.PropertyName == PropertyName )
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
 			{
 				FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
 				return FText::FromName(FoundName);

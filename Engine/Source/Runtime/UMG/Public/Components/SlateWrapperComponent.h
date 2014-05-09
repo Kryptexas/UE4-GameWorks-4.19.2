@@ -5,11 +5,20 @@
 #include "SlateWrapperTypes.h"
 #include "SlateWrapperComponent.generated.h"
 
+#define OPTIONAL_BINDING(ReturnType, MemberName) MemberName ## Delegate.IsBound() ? TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) : TAttribute< ReturnType >(MemberName)
+#define OPTIONAL_BINDING_CONVERT(ReturnType, MemberName, ConvertedType, ConversionFunction) MemberName ## Delegate.IsBound() ? TAttribute< ConvertedType >::Create(TAttribute< ConvertedType >::FGetter::CreateUObject(this, &ThisClass::ConversionFunction, TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()))) : ConversionFunction(TAttribute< ReturnType >(MemberName))
+
 /** This is the base class for all Slate widget wrapper components */
 UCLASS(Abstract, hideCategories=(Activation, "Components|Activation", ComponentReplication, LOD, Rendering))
 class UMG_API USlateWrapperComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
+
+	DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FGetBool);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 
 	UPROPERTY(EditAnywhere, Category=Variable)
 	FString Name;
@@ -26,13 +35,22 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	bool bIsEnabled;
 
+	UPROPERTY()
+	FGetBool bIsEnabledDelegate;
+
 	//TODO UMG ToolTipWidget
 
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	FText ToolTipText;
 
+	UPROPERTY()
+	FGetText ToolTipTextDelegate;
+
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	TEnumAsByte<ESlateVisibility::Type> Visiblity;
+
+	UPROPERTY()
+	FGetSlateVisibility VisiblityDelegate;
 
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
@@ -82,6 +100,11 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget();
+
+	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
+	{
+		return ConvertSerializedVisibilityToRuntime(SerializedType.Get());
+	}
 
 protected:
 	TSharedPtr<SWidget> MyWidget;
