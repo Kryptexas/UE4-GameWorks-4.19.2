@@ -4,6 +4,8 @@
 
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 
+#include "EdGraphSchema_K2.h"
+
 /** 
   * Flags describing how to handle graph removal
   */
