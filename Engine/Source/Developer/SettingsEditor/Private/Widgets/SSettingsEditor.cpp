@@ -51,7 +51,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 
 	TSharedRef<SWidget> ConfigNoticeWidget = SNew(SSettingsEditorCheckoutNotice)
 		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-		.Unlocked(this, &SSettingsEditor::IsDefaultConfigEditable)
+		.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
 		.LockedContent()
 		[
 			SNew(SButton)
@@ -393,10 +393,8 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 	Sections.Sort(FSectionSortPredicate());
 
 	// list the sections
-	for (TArray<ISettingsSectionPtr>::TConstIterator It(Sections); It; ++It)
+	for (const ISettingsSectionPtr Section : Sections)
 	{
-		const ISettingsSectionPtr& Section = *It;
-
 		SectionsBox->AddSlot()
 			.HAlign(HAlign_Left)
 			.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
@@ -423,6 +421,11 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 							.ToolTipText(Section->GetDescription())
 					]
 			];
+
+		if (!Model->GetSelectedSection().IsValid())
+		{
+			Model->SelectSection(Section);
+		}
 	}
 
 	const FSlateBrush* CategoryIcon = FEditorStyle::GetBrush(Category->GetIconName());
@@ -474,13 +477,13 @@ void SSettingsEditor::ReloadCategories(  )
 	TArray<ISettingsCategoryPtr> Categories;
 	SettingsContainer->GetCategories(Categories);
 
-	for (TArray<ISettingsCategoryPtr>::TConstIterator It(Categories); It; ++It)
+	for (const ISettingsCategoryPtr Category : Categories)
 	{
 		CategoriesBox->AddSlot()
 			.AutoHeight()
 			.Padding(0.0f, 0.0f, 0.0f, 8.0f)
 			[
-				MakeCategoryWidget(It->ToSharedRef())
+				MakeCategoryWidget(Category.ToSharedRef())
 			];
 	}
 }
@@ -510,6 +513,12 @@ FReply SSettingsEditor::HandleCheckOutButtonClicked( )
 void SSettingsEditor::HandleCultureChanged( )
 {
 	ReloadCategories();
+}
+
+
+bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
+{
+	return !DefaultConfigCheckOutNeeded;
 }
 
 
@@ -660,12 +669,6 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 	}
 
 	DefaultConfigCheckOutTimer = 1.0f;
-}
-
-
-bool SSettingsEditor::IsDefaultConfigEditable( ) const
-{
-	return !DefaultConfigCheckOutNeeded;
 }
 
 

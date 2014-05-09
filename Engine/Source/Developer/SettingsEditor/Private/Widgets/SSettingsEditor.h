@@ -98,6 +98,9 @@ private:
 	// Callback for clicking the 'Check Out' button.
 	FReply HandleCheckOutButtonClicked( );
 
+	// Callback for getting the widget index for the notice switcher.
+	bool HandleConfigNoticeUnlocked( ) const;
+
 	// Callback for when the user's culture has changed.
 	void HandleCultureChanged( );
 
@@ -118,9 +121,6 @@ private:
 
 	// Callback for changing the selected settings section.
 	void HandleModelSelectionChanged( );
-
-	// Callback for getting the widget index for the notice switcher.
-	bool IsDefaultConfigEditable() const;
 
 	// Callback for clicking the 'Reset to Defaults' button.
 	FReply HandleResetDefaultsButtonClicked( );
@@ -163,11 +163,11 @@ private:
 	// Holds the vertical box for settings categories.
 	TSharedPtr<SVerticalBox> CategoriesBox;
 
-	// Holds a timer for checking whether the section's configuration file needs to be checked out.
-	float DefaultConfigCheckOutTimer;
-	
 	// Holds a flag indicating whether the section's configuration file needs to be checked out.
 	bool DefaultConfigCheckOutNeeded;
+
+	// Holds a timer for checking whether the section's configuration file needs to be checked out.
+	float DefaultConfigCheckOutTimer;
 
 	// Holds the overlay slot for custom widgets.
 	SOverlay::FOverlaySlot* CustomWidgetSlot;
