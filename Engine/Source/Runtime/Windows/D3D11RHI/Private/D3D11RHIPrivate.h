@@ -506,7 +506,11 @@ protected:
 	 */
 	void GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels );
 
-	// called when the device gets initialized
+	// shared code for different D3D11 devices (e.g. PC DirectX11 and XboxOne) called
+	// after device creation and GRHISupportsAsyncTextureCreation was set and before resource init
+	void SetupAfterDeviceCreation();
+
+	// called by SetupAfterDeviceCreation() when the device gets initialized
 	void UpdateMSAASettings();
 
 	// @return 0xffffffff if not not supported

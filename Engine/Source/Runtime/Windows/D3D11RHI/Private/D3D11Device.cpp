@@ -337,6 +337,24 @@ uint32 FD3D11DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
 	return 0xffffffff;
 }
 
+void FD3D11DynamicRHI::SetupAfterDeviceCreation()
+{
+	// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
+	RHISetScissorRect(false, 0, 0, 0, 0);
+
+	UpdateMSAASettings();
+
+	if (GRHISupportsAsyncTextureCreation)
+	{
+		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation enabled"));
+	}
+	else
+	{
+		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation disabled: %s"),
+			D3D11RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
+	}
+}
+
 void FD3D11DynamicRHI::UpdateMSAASettings()
 {	
 	check(DX_MAX_MSAA_COUNT == 8);
@@ -354,7 +372,6 @@ void FD3D11DynamicRHI::UpdateMSAASettings()
 	AvailableMSAAQualities[7] = 0xffffffff;
 	AvailableMSAAQualities[8] = 0;
 }
-
 
 void FD3D11DynamicRHI::CleanupD3DDevice()
 {

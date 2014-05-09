@@ -1565,6 +1565,9 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		// So we can see when we are taking the slow path
 		SCOPED_DRAW_EVENT(DrawCallClear, DEC_SCENE_ITEMS);
 
+		// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
+		check(GIsRHIInitialized);
+
 		if (CurrentDepthTexture)
 		{
 			// Clear all texture references to this depth buffer

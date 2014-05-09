@@ -560,11 +560,6 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		D3DPERF_SetOptions(1);
 #endif
 
-		// Determine PF_G8 usage as a render target
-		uint32 G8FormatSupport = 0;
-		VERIFYD3D11RESULT(Direct3DDevice->CheckFormatSupport(DXGI_FORMAT_R8_UNORM,&G8FormatSupport));
-		GSupportsRenderTargetFormat_PF_G8 = !!(G8FormatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET);
-
 		// Check for async texture creation support.
 		D3D11_FEATURE_DATA_THREADING ThreadingSupport = {0};
 		VERIFYD3D11RESULT(Direct3DDevice->CheckFeatureSupport(D3D11_FEATURE_THREADING,&ThreadingSupport,sizeof(ThreadingSupport)));
@@ -581,17 +576,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			GRHISupportsAsyncTextureCreation = false;
 		}
 
-		if (GRHISupportsAsyncTextureCreation)
-		{
-			UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation enabled"));
-		}
-		else
-		{
-			UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation disabled: %s"),
-				D3D11RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
-		}
-
-		UpdateMSAASettings();
+		SetupAfterDeviceCreation();
 
 		// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
 		for(TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList());ResourceIt;ResourceIt.Next())
