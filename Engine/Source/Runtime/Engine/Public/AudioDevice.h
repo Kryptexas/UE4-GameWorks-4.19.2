@@ -492,6 +492,12 @@ public:
 	/* When the set of Reverb volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;
 
+    /** Suspend any context related objects */
+    virtual void SuspendContext() {}
+    
+    /** Resume any context related objects */
+    virtual void ResumeContext() {}
+    
 protected:
 	friend class FSoundSource;
 

@@ -201,9 +201,9 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
 		}
 		ActiveError = nil;
-	}
+ 	}
+    self.bAudioActive = true;
 
-	[[AVAudioSession sharedInstance] setDelegate:self];
 	/* TODO::JTM - Jan 16, 2013 06:22PM - Music player support */
 }
 
@@ -211,6 +211,8 @@ void InstallSignalHandlers()
 {
 	if (bActive)
 	{
+        if (!self.bAudioActive)
+        {
 		bool bWasUsingBackgroundMusic = self.bUsingBackgroundMusic;
 		self.bUsingBackgroundMusic = [self IsBackgroundAudioPlaying];
 
@@ -266,8 +268,9 @@ void InstallSignalHandlers()
 			}
 			ActiveError = nil;
 		}
+        }
 	}
-	else if (!self.bUsingBackgroundMusic)
+	else if (self.bAudioActive && !self.bUsingBackgroundMusic)
 	{
 		NSError* ActiveError = nil;
 		[[AVAudioSession sharedInstance] setActive:NO error:&ActiveError];
@@ -276,7 +279,7 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as inactive!"));
 		}
 		ActiveError = nil;
-
+        
 		// Necessary to prevent audio from getting killing when setup for background iPod audio playback
 		[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&ActiveError];
 		if (ActiveError)
@@ -284,7 +287,8 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
 		}
 		ActiveError = nil;
-	}
+ 	}
+    self.bAudioActive = bActive;
 }
 
 - (bool)IsBackgroundAudioPlaying
@@ -388,12 +392,16 @@ void InstallSignalHandlers()
 
 - (void)beginInterruption
 {
+    FAppEntry::Suspend();
+
 	[self ToggleAudioSession:false];
-}
+ }
 
 - (void)endInterruption
 {
 	[self ToggleAudioSession:true];
+
+    FAppEntry::Resume();
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application

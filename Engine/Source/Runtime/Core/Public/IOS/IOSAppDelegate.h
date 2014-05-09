@@ -21,6 +21,8 @@ namespace FAppEntry
 	void Tick();
     void SuspendTick();
 	void Shutdown();
+    void Suspend();
+    void Resume();
 }
 
 @interface IOSAppDelegate : UIResponder <UIApplicationDelegate,
@@ -83,6 +85,8 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 - (void)InitializeAudioSession;
 - (void)ToggleAudioSession:(bool)bActive;
 - (bool)IsBackgroundAudioPlaying;
+
+@property (atomic) bool bAudioActive;
 
 @property (atomic) bool bIsSuspended;
 @property (atomic) bool bHasSuspended;

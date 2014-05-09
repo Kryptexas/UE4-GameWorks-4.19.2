@@ -7,9 +7,20 @@
 #include "EAGLView.h"
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
+#include "AudioDevice.h"
 
 FEngineLoop GEngineLoop;
 FGameLaunchDaemonMessageHandler GCommandSystem;
+
+void FAppEntry::Suspend()
+{
+    GEngine->AudioDevice->SuspendContext();
+}
+
+void FAppEntry::Resume()
+{
+    GEngine->AudioDevice->ResumeContext();
+}
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 {

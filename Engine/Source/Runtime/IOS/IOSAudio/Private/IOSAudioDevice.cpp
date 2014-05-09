@@ -35,12 +35,16 @@ void FIOSAudioDevice::ResumeContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
 	FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
+
+    AUGraphStart(AudioUnitGraph);
 }
 
 void FIOSAudioDevice::SuspendContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
 	FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
+
+    AUGraphStop(AudioUnitGraph);
 }
 
 int32& FIOSAudioDevice::GetSuspendCounter()
