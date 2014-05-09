@@ -20,22 +20,36 @@ const FName FCompilerResultsLog::Name(TEXT("CompilerResultsLog"));
 void FBacktrackMap::NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject)
 {
 	// Chase the source to make sure it's really a top-level ('source code') node
-	while (UObject** SourceOfSource = SourceBacktrackMap.Find(SourceObject))
+	while (UObject** SourceOfSource = SourceBacktrackMap.Find(Cast<UObject const>(SourceObject)))
 	{
 		SourceObject = *SourceOfSource;
 	}
 
 	// Record the backtrack link
-	SourceBacktrackMap.Add(NewObject, SourceObject);
+	SourceBacktrackMap.Add(Cast<UObject const>(NewObject), SourceObject);
 }
 
 /** Returns the true source object for the passed in object */
 UObject* FBacktrackMap::FindSourceObject(UObject* PossiblyDuplicatedObject)
 {
-	UObject** RemappedIfExisting = SourceBacktrackMap.Find(PossiblyDuplicatedObject);
+	UObject** RemappedIfExisting = SourceBacktrackMap.Find(Cast<UObject const>(PossiblyDuplicatedObject));
 	if (RemappedIfExisting != NULL)
 	{
 		return *RemappedIfExisting;
+	}
+	else
+	{
+		// Not in the map, must be an unduplicated object
+		return PossiblyDuplicatedObject;
+	}
+}
+
+UObject const* FBacktrackMap::FindSourceObject(UObject const* PossiblyDuplicatedObject)
+{
+	UObject** RemappedIfExisting = SourceBacktrackMap.Find(PossiblyDuplicatedObject);
+	if (RemappedIfExisting != NULL)
+	{
+		return Cast<UObject const>(*RemappedIfExisting);
 	}
 	else
 	{
@@ -85,6 +99,11 @@ void FCompilerResultsLog::NotifyIntermediateObjectCreation(UObject* NewObject, U
 
 /** Returns the true source object for the passed in object */
 UObject* FCompilerResultsLog::FindSourceObject(UObject* PossiblyDuplicatedObject)
+{
+	return SourceBacktrackMap.FindSourceObject(PossiblyDuplicatedObject);
+}
+
+UObject const* FCompilerResultsLog::FindSourceObject(UObject const* PossiblyDuplicatedObject)
 {
 	return SourceBacktrackMap.FindSourceObject(PossiblyDuplicatedObject);
 }
@@ -169,41 +188,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 	va_end(ArgPtr);
 
 	// Register node error/warning.
-	if ((OwnerNode != NULL) && bAnnotateMentionedNodes)
-	{
-		// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
-		bool bUpdateMessage = true;
-		if (OwnerNode->bHasCompilerMessage)
-		{
-			// Already has a message, see if we meet or trump the severity
-			bUpdateMessage = Severity <= OwnerNode->ErrorType;
-		}
-		else
-		{
-			OwnerNode->ErrorMsg.Empty();
-		}
-
-		// Update the message
-		if (bUpdateMessage)
-		{
-			OwnerNode->ErrorType = (int32)Severity;
-			OwnerNode->bHasCompilerMessage = true;
-
-			FText FullMessage = Line->ToText();
-
-			if (OwnerNode->ErrorMsg.IsEmpty())
-			{
-				OwnerNode->ErrorMsg = FullMessage.ToString();
-			}
-			else
-			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("PreviousMessage"), FText::FromString( OwnerNode->ErrorMsg ) );
-				Args.Add( TEXT("NewMessage"), FullMessage );
-				OwnerNode->ErrorMsg = FText::Format( LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args ).ToString();
-			}
-		}
-	}
+	AnnotateNode(OwnerNode, Line);
 
 	if( !bSilentMode && (!bLogInfoOnly || (Severity == EMessageSeverity::Info)) )
 	{
@@ -218,6 +203,45 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 		else
 		{
 			UE_LOG(LogBlueprint, Log, TEXT("[compiler] %s"), *Line->ToText().ToString());
+		}
+	}
+}
+
+void FCompilerResultsLog::AnnotateNode(class UEdGraphNode* Node, TSharedRef<FTokenizedMessage> LogLine)
+{
+	if ((Node != NULL) && bAnnotateMentionedNodes)
+	{
+		// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
+		bool bUpdateMessage = true;
+		if (Node->bHasCompilerMessage)
+		{
+			// Already has a message, see if we meet or trump the severity
+			bUpdateMessage = LogLine->GetSeverity() <= Node->ErrorType;
+		}
+		else
+		{
+			Node->ErrorMsg.Empty();
+		}
+		
+		// Update the message
+		if (bUpdateMessage)
+		{
+			Node->ErrorType = (int32)LogLine->GetSeverity();
+			Node->bHasCompilerMessage = true;
+			
+			FText FullMessage = LogLine->ToText();
+			
+			if (Node->ErrorMsg.IsEmpty())
+			{
+				Node->ErrorMsg = FullMessage.ToString();
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add( TEXT("PreviousMessage"), FText::FromString( Node->ErrorMsg ) );
+				Args.Add( TEXT("NewMessage"), FullMessage );
+				Node->ErrorMsg = FText::Format( LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args ).ToString();
+			}
 		}
 	}
 }
@@ -369,6 +393,51 @@ void FCompilerResultsLog::WarningVA(const TCHAR* Message, va_list ArgPtr)
 void FCompilerResultsLog::NoteVA(const TCHAR* Message, va_list ArgPtr)
 {
 	InternalLogMessage(EMessageSeverity::Info, Message, ArgPtr);
+}
+
+void FCompilerResultsLog::Append(FCompilerResultsLog const& Other)
+{
+	for (TSharedRef<FTokenizedMessage> const& Message : Other.Messages)
+	{
+		switch (Message->GetSeverity())
+		{
+		case EMessageSeverity::Warning:
+			{
+				++NumWarnings;
+				break;
+			}
+				
+		case EMessageSeverity::Error:
+			{
+				++NumErrors;
+				break;
+			}
+		}
+		Messages.Add(Message);
+		
+		UEdGraphNode* OwnerNode = nullptr;
+		for (TSharedRef<IMessageToken> const& Token : Message->GetMessageTokens())
+		{
+			if (Token->GetType() != EMessageToken::Object)
+			{
+				continue;
+			}
+			
+			FWeakObjectPtr ObjectPtr = ((FUObjectToken&)Token.Get()).GetObject();
+			if (!ObjectPtr.IsValid())
+			{
+				continue;
+			}
+			UObject* ObjectArgument = ObjectPtr.Get();
+			
+			OwnerNode = Cast<UEdGraphNode>(ObjectArgument);
+			if (UEdGraphPin const* Pin = Cast<UEdGraphPin>(ObjectArgument))
+			{
+				OwnerNode = Pin->GetOwningNodeUnchecked();
+			}
+		}
+		AnnotateNode(OwnerNode, Message);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

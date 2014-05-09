@@ -77,6 +77,9 @@ public:
 
 	// [FunctionMetadata] Indicates that the function should be drawn as a compact node with the specified body title
 	static const FName MD_CompactNodeTitle;
+	
+	// [FunctionMetadata] Indicates that the function should be drawn with this title over the function name
+	static const FName MD_FriendlyName;
 
 	//    property metadata
 

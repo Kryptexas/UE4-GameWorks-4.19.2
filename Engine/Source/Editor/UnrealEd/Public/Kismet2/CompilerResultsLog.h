@@ -12,7 +12,7 @@ class UNREALED_API FBacktrackMap
 {
 protected:
 	// Maps from transient object created during compiling to original 'source code' object
-	TMap<UObject*, UObject*> SourceBacktrackMap;
+	TMap<UObject const*, UObject*> SourceBacktrackMap;
 public:
 	FBacktrackMap(){}
 	virtual ~FBacktrackMap(){}
@@ -22,6 +22,7 @@ public:
 
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);
+	UObject const* FindSourceObject(UObject const* PossiblyDuplicatedObject);
 };
 
 /** This class represents a log of compiler output lines (errors, warnings, and information notes), each of which can be a rich tokenized message */
@@ -74,6 +75,7 @@ public:
 
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);
+	UObject const* FindSourceObject(UObject const* PossiblyDuplicatedObject);
 
 	/** Returns the true source object for the passed in object; does type checking on the result */
 	template <typename T>
@@ -81,12 +83,23 @@ public:
 	{
 		return CastChecked<T>(FindSourceObject(PossiblyDuplicatedObject));
 	}
+	
+	template <typename T>
+	T const* FindSourceObjectTypeChecked(UObject const* PossiblyDuplicatedObject)
+	{
+		return CastChecked<T const>(FindSourceObject(PossiblyDuplicatedObject));
+	}
+	
+	void Append(FCompilerResultsLog const& Other);
 protected:
 	/** Create a tokenized message record from a message containing @@ indicating where each UObject* in the ArgPtr list goes and place it in the MessageLog. */
 	void InternalLogMessage(const EMessageSeverity::Type& Severity, const TCHAR* Message, va_list ArgPtr);
 
 	/** Callback when a token is activated */
 	void OnTokenActivated(const TSharedRef<class IMessageToken>& InTokenRef);
+	
+	/** */
+	void AnnotateNode(class UEdGraphNode* Node, TSharedRef<FTokenizedMessage> LogLine);
 
 private:
 	/** Parses a compiler log dump to generate tokenized output */
