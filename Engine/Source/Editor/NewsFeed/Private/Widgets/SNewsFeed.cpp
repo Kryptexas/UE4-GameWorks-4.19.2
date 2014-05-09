@@ -28,6 +28,8 @@ SNewsFeed::~SNewsFeed( )
 void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& InNewsFeedCache )
 {
 	NewsFeedCache = InNewsFeedCache;
+	HiddenNewsItemCount = 0;
+	ShowingOlderNews = false;
 
 	ChildSlot
 	[
@@ -122,19 +124,41 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 					]
 
 				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f, 0.0f)
+					[
+						// mark as read button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ContentPadding(0.0f)
+							.IsEnabled(this, &SNewsFeed::HandleMarkAllAsReadIsEnabled)
+							.OnClicked(this, &SNewsFeed::HandleMarkAllAsReadClicked)
+							.ToolTipText(LOCTEXT("MarkAsReadButtonToolTip", "Mark all news as read."))	
+							[
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("NewsFeed.MarkAsRead"))
+							]
+					]
+
+				+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
 					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f, 0.0f)
 					[
-						// mark all as read
+						// show older news hyper-link
 						SNew(SHyperlink)
-							.IsEnabled(this, &SNewsFeed::HandleMarkAllAsReadIsEnabled)
-							.OnNavigate(this, &SNewsFeed::HandleMarkAllAsReadNavigate)
-							.Text(LOCTEXT("MarkAllAsReadHyperlink", "Mark all news as read"))
+							.OnNavigate(this, &SNewsFeed::HandleShowOlderNewsNavigate)
+							.Text(this, &SNewsFeed::HandleShowOlderNewsText)
+							.ToolTipText(LOCTEXT("ShowOlderNewsToolTip", "Toggle visibility of news items that are below your threshold for recent news."))
+							.Visibility(this, &SNewsFeed::HandleShowOlderNewsVisibility)
 					]
 
 				+ SHorizontalBox::Slot()
 					.AutoWidth()
-					.HAlign(HAlign_Center)
+					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
 					.Padding(4.0f, 0.0f)
 					[
@@ -147,7 +171,7 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 							[
 								SNew(SImage)
 									.Image(FEditorStyle::GetBrush("NewsFeed.SettingsButton"))
-							]	
+							]
 					]
 			]
 	];
@@ -166,18 +190,22 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 void SNewsFeed::ReloadNewsFeedItems( )
 {
 	NewsFeedItemList.Empty();
+	HiddenNewsItemCount = 0;
 
 	const UNewsFeedSettings* NewsFeedSettings = GetDefault<UNewsFeedSettings>();
+	const TArray<FNewsFeedItemPtr>& NewsFeedItems = NewsFeedCache->GetItems();
 
-	for (auto NewsFeedItem : NewsFeedCache->GetItems())
+	for (auto NewsFeedItem : NewsFeedItems)
 	{
 		if (!GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems || !NewsFeedItem->Read)
 		{
-			NewsFeedItemList.Add(NewsFeedItem);
-
-			if (NewsFeedItemList.Num() == NewsFeedSettings->MaxItemsToShow)
+			if (ShowingOlderNews || (NewsFeedItemList.Num() < NewsFeedSettings->MaxItemsToShow))
 			{
-				break;
+				NewsFeedItemList.Add(NewsFeedItem);
+			}
+			else
+			{
+				++HiddenNewsItemCount;
 			}
 		}
 	}
@@ -195,21 +223,7 @@ EVisibility SNewsFeed::HandleLoadFailedBoxVisibility( ) const
 }
 
 
-bool SNewsFeed::HandleMarkAllAsReadIsEnabled( ) const
-{
-	for (auto NewsFeedItem : NewsFeedItemList)
-	{
-		if (!NewsFeedItem->Read)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
-void SNewsFeed::HandleMarkAllAsReadNavigate( )
+FReply SNewsFeed::HandleMarkAllAsReadClicked( )
 {
 	UNewsFeedSettings* NewsFeedSettings = GetMutableDefault<UNewsFeedSettings>();
 
@@ -225,6 +239,22 @@ void SNewsFeed::HandleMarkAllAsReadNavigate( )
 	{
 		ReloadNewsFeedItems();
 	}
+
+	return FReply::Handled();
+}
+
+
+bool SNewsFeed::HandleMarkAllAsReadIsEnabled( ) const
+{
+	for (auto NewsFeedItem : NewsFeedItemList)
+	{
+		if (!NewsFeedItem->Read)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -242,6 +272,7 @@ void SNewsFeed::HandleNewsFeedLoaderLoadFailed( )
 
 void SNewsFeed::HandleNewsFeedSettingsChanged( FName PropertyName )
 {
+	ShowingOlderNews = false;
 	ReloadNewsFeedItems();
 }
 
@@ -354,6 +385,30 @@ FReply SNewsFeed::HandleSettingsButtonClicked( ) const
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Editor", "LevelEditor", "NewsFeed");
 
 	return FReply::Handled();
+}
+
+
+void SNewsFeed::HandleShowOlderNewsNavigate( )
+{
+	ShowingOlderNews = !ShowingOlderNews;
+	ReloadNewsFeedItems();
+}
+
+
+FText SNewsFeed::HandleShowOlderNewsText( ) const
+{
+	if (ShowingOlderNews)
+	{
+		return LOCTEXT("HideOlderNewsHyperlink", "Hide older news");
+	}
+
+	return FText::Format(LOCTEXT("ShowOlderNewsHyperlink", "Show older news ({0})"), FText::AsNumber(HiddenNewsItemCount));
+}
+
+
+EVisibility SNewsFeed::HandleShowOlderNewsVisibility( ) const
+{
+	return (ShowingOlderNews || (HiddenNewsItemCount > 0)) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 

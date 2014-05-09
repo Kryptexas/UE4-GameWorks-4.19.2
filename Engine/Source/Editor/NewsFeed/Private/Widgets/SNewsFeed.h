@@ -47,11 +47,11 @@ private:
 	// Callback for getting the visibility of the 'Loading failed' box.
 	EVisibility HandleLoadFailedBoxVisibility( ) const;
 
-	// Callback for getting the enabled state of the 'Mark all as read' hyper-link.
-	bool HandleMarkAllAsReadIsEnabled( ) const;
+	// Callback for clicking the 'Mark all as read' button.
+	FReply HandleMarkAllAsReadClicked( );
 
-	// Callback for clicking the 'Mark all as read' hyper-link.
-	void HandleMarkAllAsReadNavigate( );
+	// Callback for getting the enabled state of the 'Mark all as read' button.
+	bool HandleMarkAllAsReadIsEnabled( ) const;
 
 	// Callback for completed news feeds loads.
 	void HandleNewsFeedLoaderLoadCompleted( );
@@ -89,7 +89,19 @@ private:
 	// Callback for clicking the 'Settings' button.
 	FReply HandleSettingsButtonClicked( ) const;
 
+	// Callback for clicking the 'Show older news' hyper-link.
+	void HandleShowOlderNewsNavigate( );
+
+	// Callback for getting the text of the 'Show older news' hyper-link.
+	FText HandleShowOlderNewsText( ) const;
+
+	// Callback for getting the visibility of the 'Show older news' hyper-link.
+	EVisibility HandleShowOlderNewsVisibility( ) const;
+
 private:
+
+	// Holds the number of hidden news items.
+	int32 HiddenNewsItemCount;
 
 	// Holds a pointer the news feed cache.
 	FNewsFeedCachePtr NewsFeedCache;
@@ -99,4 +111,7 @@ private:
 
 	// Holds the list view for news items.
 	TSharedPtr<SListView<FNewsFeedItemPtr> > NewsFeedItemListView;
+
+	// Whether older news are currently being shown as well.
+	bool ShowingOlderNews;
 };
