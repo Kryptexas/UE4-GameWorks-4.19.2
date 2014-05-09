@@ -2700,6 +2700,13 @@ public:
 
 	void Construct(const FArguments& InArgs)
 	{
+		bUseLargeFont = true;
+		bAddDummyButtons = false;
+		bAddDummyCheckBox = false;
+		bAddDummyHyperlink = false;
+
+		DummyCheckBoxState = ESlateCheckBoxState::Unchecked;
+
 		this->ChildSlot
 		[
 			SNew(SOverlay)
@@ -2728,21 +2735,69 @@ public:
 					[
 						SNew(SButton)
 						.OnClicked(this, &SNotificationListTest::SpawnPendingNotification)
-						.Text( LOCTEXT("NotificationListTest-SpawnPendingNotificationLabel", "Spawn Pending Notificaiton") )
+						.Text( LOCTEXT("NotificationListTest-SpawnPendingNotificationLabel", "Spawn Pending Notification") )
 					]
 
 					+SHorizontalBox::Slot().AutoWidth()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SNotificationListTest::FinishPendingNotification_Success)
-						.Text( LOCTEXT("NotificationListTest-FinishPendingNotificationSuccessLabel", "Finish Pending Notificaiton - Success") )
+						.Text( LOCTEXT("NotificationListTest-FinishPendingNotificationSuccessLabel", "Finish Pending Notification - Success") )
 					]
 
 					+SHorizontalBox::Slot().AutoWidth()
 					[
 						SNew(SButton)
 						.OnClicked(this, &SNotificationListTest::FinishPendingNotification_Fail)
-						.Text( LOCTEXT("NotificationListTest-FinishPendingNotificationFailLabel", "Finish Pending Notificaiton - Fail") )
+						.Text( LOCTEXT("NotificationListTest-FinishPendingNotificationFailLabel", "Finish Pending Notification - Fail") )
+					]
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SNotificationListTest::IsUseLargeFontChecked)
+					.OnCheckStateChanged(this, &SNotificationListTest::OnUseLargeFontCheckStateChanged)
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("NotificationListTest-UseLargeFont", "Use Large Font" ) )
+					]
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SNotificationListTest::IsAddDummyButtonsChecked)
+					.OnCheckStateChanged(this, &SNotificationListTest::OnAddDummyButtonsCheckStateChanged)
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("NotificationListTest-AddDummyButtons", "Add Dummy Buttons" ) )
+					]
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SNotificationListTest::IsAddDummyCheckBoxChecked)
+					.OnCheckStateChanged(this, &SNotificationListTest::OnAddDummyCheckBoxCheckStateChanged)
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("NotificationListTest-AddDummyCheckBox", "Add Dummy Check Box" ) )
+					]
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SNotificationListTest::IsAddDummyHyperlinkChecked)
+					.OnCheckStateChanged(this, &SNotificationListTest::OnAddDummyHyperlinkCheckStateChanged)
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("NotificationListTest-AddDummyHyperlink", "Add Dummy Hyperlink" ) )
 					]
 				]
 			]
@@ -2753,21 +2808,117 @@ public:
 			.Padding(15)
 			[
 				SAssignNew(NotificationListPtr, SNotificationList)
-				.Visibility(EVisibility::HitTestInvisible)
+				.Visibility(EVisibility::SelfHitTestInvisible)
 			]
 		];
 	}
 
 protected:
+	ESlateCheckBoxState::Type IsUseLargeFontChecked() const
+	{
+		return bUseLargeFont ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnUseLargeFontCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	{
+		bUseLargeFont = (NewState == ESlateCheckBoxState::Checked);
+	}
+
+	ESlateCheckBoxState::Type IsAddDummyButtonsChecked() const
+	{
+		return bAddDummyButtons ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnAddDummyButtonsCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	{
+		bAddDummyButtons = (NewState == ESlateCheckBoxState::Checked);
+	}
+
+	ESlateCheckBoxState::Type IsAddDummyCheckBoxChecked() const
+	{
+		return bAddDummyCheckBox ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnAddDummyCheckBoxCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	{
+		bAddDummyCheckBox = (NewState == ESlateCheckBoxState::Checked);
+	}
+
+	ESlateCheckBoxState::Type IsAddDummyHyperlinkChecked() const
+	{
+		return bAddDummyHyperlink ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	void OnAddDummyHyperlinkCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	{
+		bAddDummyHyperlink = (NewState == ESlateCheckBoxState::Checked);
+	}
+
+	void SetNotificationInfoFlags(FNotificationInfo& Info)
+	{
+		// Dummy callback for buttons and hyperlinks
+		struct Local
+		{
+			static void Dummy()
+			{
+			}
+		};
+		const FSimpleDelegate DummyDelegate = FSimpleDelegate::CreateStatic(&Local::Dummy);
+
+		Info.bUseLargeFont = bUseLargeFont;
+
+		if(bAddDummyButtons)
+		{
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyButton1Text", "Dummy Button 1"), FText(), DummyDelegate, SNotificationItem::CS_None));
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyButton2Text", "Dummy Button 2"), FText(), DummyDelegate, SNotificationItem::CS_None));
+
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyPendingButton1Text", "Dummy Pending Button 1"), FText(), DummyDelegate, SNotificationItem::CS_Pending));
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyPendingButton2Text", "Dummy Pending Button 2"), FText(), DummyDelegate, SNotificationItem::CS_Pending));
+
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummySuccessButton1Text", "Dummy Success Button 1"), FText(), DummyDelegate, SNotificationItem::CS_Success));
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummySuccessButton2Text", "Dummy Success Button 2"), FText(), DummyDelegate, SNotificationItem::CS_Success));
+
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyFailButton1Text", "Dummy Fail Button 1"), FText(), DummyDelegate, SNotificationItem::CS_Fail));
+			Info.ButtonDetails.Add(FNotificationButtonInfo(LOCTEXT("NotificationListTest-DummyFailButton2Text", "Dummy Fail Button 2"), FText(), DummyDelegate, SNotificationItem::CS_Fail));
+		}
+
+		if(bAddDummyCheckBox)
+		{
+			Info.CheckBoxState = TAttribute<ESlateCheckBoxState::Type>(this, &SNotificationListTest::GetDummyCheckBoxState);
+			Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateSP(this, &SNotificationListTest::OnDummyCheckBoxStateChanged);
+			Info.CheckBoxText = LOCTEXT("NotificationListTest-DummyCheckBoxText", "Dummy Check Box");
+		}
+
+		if(bAddDummyHyperlink)
+		{
+			Info.Hyperlink = DummyDelegate;
+			Info.HyperlinkText = LOCTEXT("NotificationListTest-DummyHyperlinkText", "Dummy Hyperlink");
+		}
+	}
+
+	ESlateCheckBoxState::Type GetDummyCheckBoxState() const
+	{
+		return DummyCheckBoxState;
+	}
+
+	void OnDummyCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+	{
+		DummyCheckBoxState = NewState;
+	}
+
 	FReply SpawnNotification1()
 	{
-		NotificationListPtr->AddNotification( FNotificationInfo( LOCTEXT("TestNotification01", "A Notification" )) );
+		FNotificationInfo Info( LOCTEXT("TestNotification01", "A Notification" ));
+		SetNotificationInfoFlags(Info);
+		NotificationListPtr->AddNotification(Info);
 		return FReply::Handled();
 	}
 
 	FReply SpawnNotification2()
 	{
-		NotificationListPtr->AddNotification( FNotificationInfo( LOCTEXT("TestNotification02", "Another Notification" )) );
+		FNotificationInfo Info( LOCTEXT("TestNotification02", "Another Notification" ));
+		SetNotificationInfoFlags(Info);
+		NotificationListPtr->AddNotification(Info);
 		return FReply::Handled();
 	}
 
@@ -2778,10 +2929,11 @@ protected:
 			PendingProgressPtr.Pin()->ExpireAndFadeout();
 		}
 
-		FNotificationInfo info(LOCTEXT("TestNotificationInProgress", "Operation In Progress" ));
-		info.bFireAndForget = false;
+		FNotificationInfo Info(LOCTEXT("TestNotificationInProgress", "Operation In Progress" ));
+		SetNotificationInfoFlags(Info);
+		Info.bFireAndForget = false;
 		
-		PendingProgressPtr = NotificationListPtr->AddNotification(info);
+		PendingProgressPtr = NotificationListPtr->AddNotification(Info);
 
 		PendingProgressPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 		return FReply::Handled();
@@ -2819,10 +2971,24 @@ protected:
 		return FReply::Handled();
 	}
 
+	/** Should we use the larger bolder font to display the message? */
+	bool bUseLargeFont;
+
+	/** Should we add dummy buttons to the notifications? */
+	bool bAddDummyButtons;
+
+	/** Should we add a dummy check box to the notifications? */
+	bool bAddDummyCheckBox;
+
+	/** Should we add a dummy hyperlink to the notifications? */
+	bool bAddDummyHyperlink;
+
 	/** The list of active system messages */
 	TSharedPtr<SNotificationList> NotificationListPtr;
 	/** The pending progress message */
 	TWeakPtr<SNotificationItem> PendingProgressPtr;
+	/** If showing a dummy check box, this maintains its state in the UI */
+	ESlateCheckBoxState::Type DummyCheckBoxState;
 };
 
 class SGridPanelTest : public SCompoundWidget
@@ -3301,8 +3467,21 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 			->AddTab("GridPanelTest", ETabState::OpenedTab)
 			->AddTab("DPIScalingTest", ETabState::OpenedTab)
 		)
-	);
-
+	)
+#if PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
+	->AddArea
+	(
+		// This area will get a 400x600 window at 10,10
+		FTabManager::NewArea(400,600)
+		->SetWindow( FVector2D(10,10), false )
+		->Split
+		(
+			// The area contains a single tab with the widget reflector.
+			FTabManager::NewStack()->AddTab( "WidgetReflector", ETabState::OpenedTab )
+		)
+	)
+#endif
+	;
 
 	TSharedRef<SDockTab> TestSuite2Tab = 
 		SNew(SDockTab)

@@ -45,10 +45,10 @@ struct FNotificationButtonInfo
 		: Text( InText )
 		, ToolTip( InToolTip )
 		, Callback( InCallback )
-		, VisibilityOnNone( VisibleInState == SNotificationItem::CS_None ? EVisibility::Visible : EVisibility::Hidden )
-		, VisibilityOnPending( VisibleInState == SNotificationItem::CS_Pending ? EVisibility::Visible : EVisibility::Hidden )
-		, VisibilityOnSuccess( VisibleInState == SNotificationItem::CS_Success ? EVisibility::Visible : EVisibility::Hidden )
-		, VisibilityOnFail( VisibleInState == SNotificationItem::CS_Fail ? EVisibility::Visible : EVisibility::Hidden )
+		, VisibilityOnNone( VisibleInState == SNotificationItem::CS_None ? EVisibility::Visible : EVisibility::Collapsed )
+		, VisibilityOnPending( VisibleInState == SNotificationItem::CS_Pending ? EVisibility::Visible : EVisibility::Collapsed )
+		, VisibilityOnSuccess( VisibleInState == SNotificationItem::CS_Success ? EVisibility::Visible : EVisibility::Collapsed )
+		, VisibilityOnFail( VisibleInState == SNotificationItem::CS_Fail ? EVisibility::Visible : EVisibility::Collapsed )
 	{}
 
 	/** Message on the button */
@@ -90,6 +90,9 @@ struct FNotificationInfo
 		bUseLargeFont(true),
 		WidthOverride(),
 		bFireAndForget(true),
+		CheckBoxState(ESlateCheckBoxState::Unchecked),
+		CheckBoxStateChanged(),
+		CheckBoxText(),
 		Hyperlink(),
 		HyperlinkText( NSLOCTEXT("EditorNotification", "DefaultHyperlinkText", "Show Log") ),
 		bAllowThrottleWhenFrameRateIsLow(true)
@@ -128,6 +131,15 @@ struct FNotificationInfo
 
 	/** When true the notification will automatically time out after the expire duration. */ 
 	bool bFireAndForget;
+
+	/** When set this will display a check box on the notification; handles getting the current check box state */
+	TAttribute< ESlateCheckBoxState::Type > CheckBoxState;
+
+	/** When set this will display a check box on the notification; handles setting the new check box state */
+	FOnCheckStateChanged CheckBoxStateChanged;
+
+	/** Text to display for the check box message */
+	TAttribute< FText > CheckBoxText;
 
 	/** When set this will display as a hyperlink on the right side of the notification. */
 	FSimpleDelegate Hyperlink;

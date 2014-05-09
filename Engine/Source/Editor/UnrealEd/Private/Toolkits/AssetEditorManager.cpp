@@ -359,46 +359,136 @@ void FAssetEditorManager::RestorePreviouslyOpenAssets()
 	bool bCleanShutdown =  false;
 	GConfig->GetBool(TEXT("AssetEditorManager"), TEXT("CleanShutdown"), bCleanShutdown, GEditorUserSettingsIni);
 
+	SaveOpenAssetEditors(false);
+
 	if(OpenAssets.Num() > 0)
 	{
-		bool bRestore = false;
-		if(!bCleanShutdown)
+		if(bCleanShutdown)
 		{
-			if(FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("RestoreOpenAssetsAfterCrash", "The Editor did not shut down cleanly, would you like to attempt to restore previously open assets now?")) == EAppReturnType::Yes)
+			// Do we have permission to automatically re-open the assets, or should we ask?
+			const bool bAutoRestore = GetDefault<UEditorLoadingSavingSettings>()->bRestoreOpenAssetTabsOnRestart;
+
+			if(bAutoRestore)
 			{
-				bRestore = true;
+				// Pretend that we showed the notification and that the user clicked "Restore Now"
+				OnConfirmRestorePreviouslyOpenAssets(OpenAssets);
+			}
+			else
+			{
+				// Has this notification previously been suppressed by the user?
+				bool bSuppressNotification = false;
+				GConfig->GetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
+
+				if(!bSuppressNotification)
+				{
+					// Ask the user; this doesn't block so will reopen the assets later
+					SpawnRestorePreviouslyOpenAssetsNotification(bCleanShutdown, OpenAssets);
+				}
 			}
 		}
 		else
 		{
-			bRestore = GetDefault<UEditorLoadingSavingSettings>()->bRestoreOpenAssetTabsOnRestart;
+			// If we crashed, we always ask regardless of what the user previously said
+			SpawnRestorePreviouslyOpenAssetsNotification(bCleanShutdown, OpenAssets);
+ 		}
+	}
+}
 
-			if(!bRestore)
-			{
-				// assets to restore, but we haven't been explicitly told not to restore them, so check now
-				FSuppressableWarningDialog::FSetupInfo Info(LOCTEXT("RestoreOpenAssetsAfterClose_Message", "Assets were open when the Editor was last closed, would you like to restore them now?"), LOCTEXT("RestoreOpenAssetsAfterClose_Title", "Reopen assets"), TEXT("SuppressPreviouslyOpenAssetsDialog"));
-				Info.ConfirmText = LOCTEXT("RestoreOpenAssetsAfterClose_Confirm", "Restore Open Assets");
-				Info.CancelText = LOCTEXT("RestoreOpenAssetsAfterClose_Cancel", "Don't Open Assets");
-				FSuppressableWarningDialog RestoreAssetsDialog( Info );
-
-				if(RestoreAssetsDialog.ShowModal() == FSuppressableWarningDialog::EResult::Confirm)
-				{
-					GetMutableDefault<UEditorLoadingSavingSettings>()->bRestoreOpenAssetTabsOnRestart = true;
-					bRestore = true;
-				}
-			}
-		}
-
-		if(bRestore)
+void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const bool bCleanShutdown, const TArray<FString>& AssetsToOpen)
+{
+	/** Utility functions for the notification which don't rely on the state from FAssetEditorManager */
+	struct Local
+	{
+		static ESlateCheckBoxState::Type GetDontAskAgainCheckBoxState()
 		{
-			for( const FString& AssetName : OpenAssets )
-			{
-				OpenEditorForAsset(AssetName);
-			}
+			bool bSuppressNotification = false;
+			GConfig->GetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
+			return bSuppressNotification ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 		}
+
+		static void OnDontAskAgainCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+		{
+			const bool bSuppressNotification = (NewState == ESlateCheckBoxState::Checked);
+			GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
+		}
+	};
+
+	FNotificationInfo Info(bCleanShutdown 
+		? LOCTEXT("RestoreOpenAssetsAfterClose_Message", "Assets were open when the Editor was last closed, would you like to restore them now?")
+		: LOCTEXT("RestoreOpenAssetsAfterCrash", "The Editor did not shut down cleanly, would you like to attempt to restore previously open assets now?")
+		);
+
+	// Add the buttons
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("RestoreOpenAssetsAfterClose_Confirm", "Restore Now"), 
+		FText(), 
+		FSimpleDelegate::CreateRaw(this, &FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets, AssetsToOpen), 
+		SNotificationItem::CS_None
+		));
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		LOCTEXT("RestoreOpenAssetsAfterClose_Cancel", "Don't Restore"), 
+		FText(), 
+		FSimpleDelegate::CreateRaw(this, &FAssetEditorManager::OnCancelRestorePreviouslyOpenAssets), 
+		SNotificationItem::CS_None
+		));
+
+	// We will be keeping track of this ourselves
+	Info.bFireAndForget = false;
+
+	// We want the auto-save to be subtle
+	Info.bUseLargeFont = false;
+	Info.bUseThrobber = false;
+	Info.bUseSuccessFailIcons = false;
+
+	// Only let the user suppress the non-crash version
+	if(bCleanShutdown)
+	{
+		Info.CheckBoxState = TAttribute<ESlateCheckBoxState::Type>::Create(&Local::GetDontAskAgainCheckBoxState);
+		Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateStatic(&Local::OnDontAskAgainCheckBoxStateChanged);
+		Info.CheckBoxText = NSLOCTEXT("ModalDialogs", "DefaultCheckBoxMessage", "Don't show this again");
 	}
 
-	SaveOpenAssetEditors(false);
+	// Close any existing notification
+	if(RestorePreviouslyOpenAssetsNotification.IsValid())
+	{
+		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
+		RestorePreviouslyOpenAssetsNotification.Reset();
+	}
+
+	RestorePreviouslyOpenAssetsNotification = FSlateNotificationManager::Get().AddNotification(Info);
+}
+
+void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> AssetsToOpen)
+{
+	// Close any existing notification
+	if(RestorePreviouslyOpenAssetsNotification.IsValid())
+	{
+		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
+		RestorePreviouslyOpenAssetsNotification.Reset();
+
+		// If the user suppressed the notification for future sessions, make sure this is reflected in their settings
+		// Note: We do that inside this if statement so that we only do it if we were showing a UI they could interact with
+		bool bSuppressNotification = false;
+		GConfig->GetBool(TEXT("AssetEditorManager"), TEXT("SuppressRestorePreviouslyOpenAssetsNotification"), bSuppressNotification, GEditorUserSettingsIni);
+		UEditorLoadingSavingSettings& Settings = *GetMutableDefault<UEditorLoadingSavingSettings>();
+		Settings.bRestoreOpenAssetTabsOnRestart = bSuppressNotification;
+		Settings.PostEditChange();
+	}
+
+	for( const FString& AssetName : AssetsToOpen )
+	{
+		OpenEditorForAsset(AssetName);
+	}
+}
+
+void FAssetEditorManager::OnCancelRestorePreviouslyOpenAssets()
+{
+	// Close any existing notification
+	if(RestorePreviouslyOpenAssetsNotification.IsValid())
+	{
+		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
+		RestorePreviouslyOpenAssetsNotification.Reset();
+	}
 }
 
 void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
@@ -407,7 +497,7 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 	{
 		TArray<FString> OpenAssets;
 
-		// Dont save a list of assets to restore if we are running under a debugger
+		// Don't save a list of assets to restore if we are running under a debugger
 		if(!FPlatformMisc::IsDebuggerPresent())
 		{
 			for (auto EditorPair : OpenedEditors)

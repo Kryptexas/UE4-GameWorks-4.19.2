@@ -188,14 +188,14 @@ protected:
 		return CompletionState == CS_Pending ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
-	EVisibility GetSuccessImageVisibility() const
+	EVisibility GetSuccessFailImageVisibility() const
 	{
-		return CompletionState == CS_Success ? EVisibility::Visible : EVisibility::Collapsed;
+		return (CompletionState == CS_Success || CompletionState == CS_Fail) ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
-	EVisibility GetFailImageVisibility() const
+	const FSlateBrush* GetSuccessFailImage() const
 	{
-		return CompletionState == CS_Fail ? EVisibility::Visible : EVisibility::Collapsed;
+		return CompletionState == CS_Success ? FCoreStyle::Get().GetBrush("NotificationList.SuccessImage") : FCoreStyle::Get().GetBrush("NotificationList.FailImage");
 	}
 
 public:
@@ -275,7 +275,13 @@ public:
 		/** When true the larger bolder font will be used to display the message */
 		SLATE_ATTRIBUTE( bool, bUseLargeFont)
 		/** When set this forces the width of the box, used to stop resizeing on text change */
-		SLATE_ATTRIBUTE( FOptionalSize, WidthOverride )
+		SLATE_ARGUMENT( FOptionalSize, WidthOverride )
+		/** When set this will display a check box on the notification; handles getting the current check box state */
+		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, CheckBoxState )
+		/** When set this will display a check box on the notification; handles setting the new check box state */
+		SLATE_EVENT( FOnCheckStateChanged, CheckBoxStateChanged );
+		/** Text to display for the check box message */
+		SLATE_ATTRIBUTE( FText, CheckBoxText );
 		/** When set this will display as a hyperlink on the right side of the notification. */
 		SLATE_EVENT( FSimpleDelegate, Hyperlink)
 		/** Text to display for the hyperlink (if Hyperlink is valid) */
@@ -320,6 +326,7 @@ public:
 	 */
 	TSharedRef<SHorizontalBox> ConstructInternals( const FArguments& InArgs ) 
 	{
+		CheckBoxStateChanged = InArgs._CheckBoxStateChanged;
 		Hyperlink = InArgs._Hyperlink;
 		HyperlinkText = InArgs._HyperlinkText;
 
@@ -336,103 +343,148 @@ public:
 			.Image( InArgs._Image )
 		];
 
-		// Set font to default case.
-		FSlateFontInfo font = FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontBold"));
-
-		// only override if requested
-		if (!InArgs._bUseLargeFont.Get())
 		{
-			font = FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontLight"));
-		}
+			const FSlateFontInfo Font = InArgs._bUseLargeFont.Get() 
+				? FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontBold")) 
+				: FCoreStyle::Get().GetFontStyle(TEXT("NotificationList.FontLight"));
 
-		// Build Text box
-		HorizontalBox->AddSlot()
-		.AutoWidth()
-		.Padding(10.f, 0.f, 25.f, 0.f)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Left)
-		[
-			SNew(SBox)
-			.WidthOverride(InArgs._WidthOverride)
+			// Container for the text and optional interactive widgets (buttons, check box, and hyperlink)
+			TSharedRef<SVerticalBox> TextAndInteractiveWidgetsBox = SNew(SVerticalBox);
+
+			HorizontalBox->AddSlot()
+			.AutoWidth()
+			.Padding(10.f, 0.f, 15.f, 0.f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
 			[
-				SAssignNew(MyTextBlock, STextBlock)
-				.Text(Text)
-				.Font(font)
-			]
-		];
+				TextAndInteractiveWidgetsBox
+			];
+
+			// Build Text box
+			TextAndInteractiveWidgetsBox->AddSlot()
+			.AutoHeight()
+			[
+				SNew(SBox)
+				.WidthOverride(InArgs._WidthOverride)
+				[
+					SAssignNew(MyTextBlock, STextBlock)
+					.Text(Text)
+					.Font(Font)
+					.AutoWrapText(InArgs._WidthOverride.IsSet()) // only auto-wrap the text if we've been given a size constraint; otherwise, fill the notification area
+				]
+			];
+
+			TSharedRef<SHorizontalBox> InteractiveWidgetsBox = SNew(SHorizontalBox);
+			TextAndInteractiveWidgetsBox->AddSlot()
+			.AutoHeight()
+			[
+				InteractiveWidgetsBox
+			];
+
+			// Adds any buttons that were passed in.
+			{
+				TSharedRef<SHorizontalBox> ButtonsBox = SNew(SHorizontalBox);
+				for (int32 idx = 0; idx < InArgs._ButtonDetails.Get().Num(); idx++)
+				{
+					FNotificationButtonInfo Button = InArgs._ButtonDetails.Get()[idx];
+
+					ButtonsBox->AddSlot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+					[
+						SNew(SButton)
+						.Text(Button.Text)
+						.ToolTipText(Button.ToolTip)
+						.OnClicked(this, &SNotificationItemImpl::OnButtonClicked, Button.Callback) 
+						.Visibility( this, &SNotificationItemImpl::GetButtonVisibility, Button.VisibilityOnNone, Button.VisibilityOnPending, Button.VisibilityOnSuccess, Button.VisibilityOnFail )
+					];
+				}
+				InteractiveWidgetsBox->AddSlot()
+				.AutoWidth()
+				.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				[
+					ButtonsBox
+				];
+			}
+
+			// Adds a check box, but only visible when bound
+			InteractiveWidgetsBox->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Left)
+			[
+				SNew(SBox)
+				.Padding(FMargin(0.0f, 2.0f, 4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				.Visibility(this, &SNotificationItemImpl::GetCheckBoxVisibility)
+				[
+					SNew(SCheckBox)
+					.IsChecked(InArgs._CheckBoxState)
+					.OnCheckStateChanged(CheckBoxStateChanged)
+					[
+						SNew(STextBlock)
+						.Text(InArgs._CheckBoxText)
+					]
+				]
+			];
+
+			// Adds a hyperlink, but only visible when bound
+			InteractiveWidgetsBox->AddSlot()
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			[
+				SNew(SBox)
+				.Padding(FMargin(0.0f, 2.0f, 0.0f, 2.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				.Visibility(this, &SNotificationItemImpl::GetHyperlinkVisibility)
+				[
+					SNew(SHyperlink)
+					.Text(this, &SNotificationItemImpl::GetHyperlinkText)
+					.OnNavigate(this, &SNotificationItemImpl::OnHyperlinkClicked)
+				]
+			];
+		}
 
 		if (InArgs._bUseThrobber.Get())
 		{
 			// Build pending throbber
 			HorizontalBox->AddSlot()
 			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
 			[
-				SNew(SThrobber)
+				SNew(SBox)
+				.Padding(FMargin(5.f, 0.f, 10.f, 0.f))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
 				.Visibility( this, &SNotificationItemImpl::GetThrobberVisibility )
+				[
+					SNew(SThrobber)
+				]
 			];
 		}
 
 		if (InArgs._bUseSuccessFailIcons.Get())
 		{
-			// Build success image
+			// Build success/fail image
 			HorizontalBox->AddSlot()
 			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
 			[
-				SNew(SImage)
-				.Image( FCoreStyle::Get().GetBrush("NotificationList.SuccessImage") )
-				.Visibility( this, &SNotificationItemImpl::GetSuccessImageVisibility )
-			];
-
-			// Build fail image
-			HorizontalBox->AddSlot()
-			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f )
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SImage)
-				.Image( FCoreStyle::Get().GetBrush("NotificationList.FailImage") )
-				.Visibility( this, &SNotificationItemImpl::GetFailImageVisibility )
+				SNew(SBox)
+				.Padding(FMargin(8.f, 0.f, 10.f, 0.f))
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.Visibility( this, &SNotificationItemImpl::GetSuccessFailImageVisibility )
+				[
+					SNew(SImage)
+					.Image( this, &SNotificationItemImpl::GetSuccessFailImage )
+				]
 			];
 		}
-
-		// Adds any buttons that were passed in.
-		for (int32 idx = 0; idx < InArgs._ButtonDetails.Get().Num(); idx++)
-		{
-			FNotificationButtonInfo button = InArgs._ButtonDetails.Get()[idx];
-
-			HorizontalBox->AddSlot()
-			.AutoWidth()
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Center)
-			.Padding(2)
-			[
-				SNew(SButton)
-				.Text(button.Text)
-				.ToolTipText(button.ToolTip)
-				.OnClicked(this, &SNotificationItemImpl::OnButtonClicked, button.Callback) 
-				.Visibility( this, &SNotificationItemImpl::GetButtonVisibility, button.VisibilityOnNone, button.VisibilityOnPending, button.VisibilityOnSuccess, button.VisibilityOnFail )
-			];
-		}
-
-		// Adds a hyperlink, but only visible when bound
-		HorizontalBox->AddSlot()
-			.AutoWidth()
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Center)
-			.Padding(2)
-			[
-				SNew(SHyperlink)
-					.Text(this, &SNotificationItemImpl::GetHyperlinkText)
-					.OnNavigate(this, &SNotificationItemImpl::OnHyperlinkClicked)
-					.Visibility(this, &SNotificationItemImpl::GetHyperlinkVisibility)
-			];	
 
 		return HorizontalBox;
 	}
@@ -466,6 +518,12 @@ protected:
 		}
 	}
 
+	/* Used to determine whether the check box is visible */
+	EVisibility GetCheckBoxVisibility() const
+	{
+		return CheckBoxStateChanged.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	/* Used to determine whether the hyperlink is visible */
 	EVisibility GetHyperlinkVisibility() const
 	{
@@ -495,6 +553,9 @@ private:
 
 protected:
 
+	/** When set this will display a check box on the notification; handles setting the new check box state */
+	FOnCheckStateChanged CheckBoxStateChanged;
+
 	/** When set this will display as a hyperlink on the right side of the notification. */
 	FSimpleDelegate Hyperlink;
 
@@ -506,14 +567,7 @@ protected:
 //// SNotificationList
 TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotificationInfo& Info)
 {
-	EVisibility visibility = EVisibility::HitTestInvisible;
 	static const FSlateBrush* CachedImage = FCoreStyle::Get().GetBrush("NotificationList.DefaultMessage");
-
-	// Notifications with buttons need to be hit test enabled.
-	if (Info.ButtonDetails.Num() > 0)
-	{
-		visibility = EVisibility::Collapsed;
-	}
 
 	// Create notification.
 	TSharedRef<SNotificationExtendable> NewItem =
@@ -528,7 +582,9 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 		.bUseSuccessFailIcons(Info.bUseSuccessFailIcons)
 		.bUseLargeFont(Info.bUseLargeFont)
 		.WidthOverride(Info.WidthOverride)
-		.Visibility(visibility)
+		.CheckBoxState(Info.CheckBoxState)
+		.CheckBoxStateChanged(Info.CheckBoxStateChanged)
+		.CheckBoxText(Info.CheckBoxText)
 		.Hyperlink(Info.Hyperlink)
 		.HyperlinkText(Info.HyperlinkText);
 		

@@ -97,6 +97,15 @@ private:
 	// Handles ticks from the ticker.
 	bool HandleTicker( float DeltaTime );
 
+	// Spawn a notification asking the user if they want to restore their previously open assets
+	void SpawnRestorePreviouslyOpenAssetsNotification(const bool bCleanShutdown, const TArray<FString>& AssetsToOpen);
+
+	// Handler for when the "Restore Now" button is clicked on the RestorePreviouslyOpenAssets notification
+	void OnConfirmRestorePreviouslyOpenAssets(TArray<FString> AssetsToOpen);
+
+	// Handler for when the "Don't Restore" button is clicked on the RestorePreviouslyOpenAssets notification
+	void OnCancelRestorePreviouslyOpenAssets();
+
 	// Saves a list of open asset editors so they can be restored on editor restart
 	void SaveOpenAssetEditors(bool bOnShutdown);
 
@@ -148,6 +157,9 @@ private:
 
 	/** Flag whether we are currently shutting down */
 	bool bSavingOnShutdown;
+
+	/** A pointer to the notification used by RestorePreviouslyOpenAssets */
+	TSharedPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotification;
 };
 
 
