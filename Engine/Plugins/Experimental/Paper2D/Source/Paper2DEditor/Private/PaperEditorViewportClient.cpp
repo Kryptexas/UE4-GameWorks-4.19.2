@@ -13,7 +13,7 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 	ZoomPos = FVector2D::ZeroVector;
 	ZoomAmount = 1.0f;
 
-	ModifyCheckerboardTextureColors();
+	//ModifyCheckerboardTextureColors();
 
 
 	//@TODO: Pretty lame hardcoding
@@ -46,7 +46,7 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 
 FPaperEditorViewportClient::~FPaperEditorViewportClient()
 {
-	DestroyCheckerboardTexture();
+	//DestroyCheckerboardTexture();
 }
 
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
