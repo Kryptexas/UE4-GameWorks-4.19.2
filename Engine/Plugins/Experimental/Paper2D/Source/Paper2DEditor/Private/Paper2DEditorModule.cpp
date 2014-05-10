@@ -25,7 +25,13 @@
 #include "Atlasing/AtlasAssetTypeActions.h"
 #include "Atlasing/PaperAtlasGenerator.h"
 
+// Settings
+#include "PaperRuntimeSettings.h"
+#include "Settings.h"
+
 DEFINE_LOG_CATEGORY(LogPaper2DEditor);
+
+#define LOCTEXT_NAMESPACE "Paper2DEditor"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DEditor
@@ -113,6 +119,8 @@ public:
 
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
+
+		RegisterSettings();
 	}
 
 	virtual void ShutdownModule() OVERRIDE
@@ -125,6 +133,8 @@ public:
 
 		if (UObjectInitialized())
 		{
+			UnregisterSettings();
+
 			FPaperContentBrowserExtensions::RemoveHooks();
 
 			FComponentAssetBrokerage::UnregisterBroker(PaperFlipbookBroker);
@@ -174,8 +184,32 @@ private:
 			FPaperAtlasGenerator::HandleAssetChangedEvent(Atlas);
 		}
 	}
+
+	void RegisterSettings()
+	{
+		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		{
+			SettingsModule->RegisterSettings("Project", "Plugins", "Paper2D",
+				LOCTEXT("RuntimeSettingsName", "Paper 2D"),
+				LOCTEXT("RuntimeSettingsDescription", "Configure the Paper 2D plugin"),
+				GetMutableDefault<UPaperRuntimeSettings>()
+				);
+		}
+	}
+
+	void UnregisterSettings()
+	{
+		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		{
+			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");
+		}
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_MODULE(FPaper2DEditor, Paper2DEditor);
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

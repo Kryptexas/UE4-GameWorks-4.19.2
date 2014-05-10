@@ -34,5 +34,11 @@ public class Paper2DEditor : ModuleRules
 				"EditorStyle"
 			}
 			);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
 	}
 }
