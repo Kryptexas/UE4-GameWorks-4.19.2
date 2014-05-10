@@ -190,14 +190,22 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 
 FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
 {
-	FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene());
-	Batcher->UnregisterManagedProxy(this);
+#if TEST_BATCHING
+	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
+	{
+		Batcher->UnregisterManagedProxy(this);
+	}
+#endif
 }
 
 void FPaperRenderSceneProxy::CreateRenderThreadResources()
 {
-	FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene());
-	Batcher->RegisterManagedProxy(this);
+#if TEST_BATCHING
+	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
+	{
+		Batcher->RegisterManagedProxy(this);
+	}
+#endif
 }
 
 void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
@@ -318,7 +326,7 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 			{
 				const FVector4& SourceVert = Record.RenderVerts[SVI];
 
-				const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y));
+				const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y) + EffectiveOrigin);
 				const FVector2D UV(SourceVert.Z, SourceVert.W);
 
 				new (Vertices) FPaperSpriteVertex(Pos, UV, SpriteColor);
