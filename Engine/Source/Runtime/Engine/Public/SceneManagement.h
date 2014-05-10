@@ -1274,7 +1274,7 @@ struct FMeshBatchElement
 	uint32 NumInstances;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
-	int32 GPUSkinCacheKey;	// -1 if not using GPU skin cache
+	int32 UserIndex;
 	void* UserData;
 
 	/** 
@@ -1288,7 +1288,7 @@ struct FMeshBatchElement
 	:	PrimitiveUniformBufferResource(NULL)
 	,	IndexBuffer(NULL)
 	,	NumInstances(1)
-	,	GPUSkinCacheKey(-1)
+	,	UserIndex(-1)
 	,	UserData(NULL)
 	,	DynamicIndexData(NULL)
 	{

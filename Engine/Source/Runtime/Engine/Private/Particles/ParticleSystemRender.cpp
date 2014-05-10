@@ -1712,172 +1712,45 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 	int32 NumDraws = 0;
 	if (Source.EmitterRenderMode == ERM_Normal)
 	{
-		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
-		TArray<int32> ValidSectionIndices;
-
-		bool bNoValidElements = true;
-
-		for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
-		{
-			for (int32 ElementIndex = 0; ElementIndex < LODModel.Sections.Num(); ElementIndex++)
-			{
-				FMaterialRenderProxy* MaterialProxy = MeshMaterials[ElementIndex]->GetRenderProxy(bSelected);
-				check(MaterialProxy);
-
-				// If the material is ignored by the PDI (or not there at all...), 
-				// do not add it to the list of valid elements.
-				if ((MaterialProxy && !PDI->IsMaterialIgnored(MaterialProxy, View->GetFeatureLevel())) || View->Family->EngineShowFlags.Wireframe)
-				{
-					ValidSectionIndices.Add(ElementIndex);
-					bNoValidElements = false;
-				}
-				else
-				{
-					ValidSectionIndices.Add(-1);
-				}
-			}
-		}
-
-		if (bNoValidElements == true)
-		{
-			// No valid materials... quick out
-			return 0;
-		}
-
 		const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
 
 		// Find the vertex allocation for this view.
-		FGlobalDynamicVertexBuffer::FAllocation* Allocation = NULL;
 		const int32 ViewIndex = View->Family->Views.Find( View );
 		
 		// Only unsorted instance data will exist for unsorted emitters and must be used for all views being rendered. 
 		const int32 InstanceBufferIndex = ((Source.SortMode == PSORTMODE_None) ? 0 : ViewIndex);
+
+		FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+
 		if(bInstanced)
 		{
 			check(InstanceDataAllocations.IsValidIndex( InstanceBufferIndex ) != false);
 			check(InstanceDataAllocations[InstanceBufferIndex].IsValid());
 			check(DynamicParameterDataAllocations.IsValidIndex( InstanceBufferIndex ) != false);
 			check(!bUsesDynamicParameter || DynamicParameterDataAllocations[InstanceBufferIndex].IsValid());
+
+			// Set the particle instance data. This buffer is generated in PreRenderView.
+			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
+			MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
 		}
 
-		// Calculate the number of particles that must be drawn.
-		int32 ParticleCount = Source.ActiveParticleCount;
-		if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
+		check(InstanceBufferIndex < (FirstBatchForView.Num() - 1));
+			
+		int32 FirstBatch = FirstBatchForView[InstanceBufferIndex];
+		int32 LastBatchPlusOne = FirstBatchForView[InstanceBufferIndex + 1];
+		for (int32 BatchIndex = FirstBatch; BatchIndex < LastBatchPlusOne; ++BatchIndex)
 		{
-			ParticleCount = Source.MaxDrawCount;
-		}
-
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		Mesh.VertexFactory = VertexFactory;
-		Mesh.DynamicVertexData = NULL;
-		Mesh.LCI = NULL;
-		Mesh.UseDynamicData = false;
-		Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
-		Mesh.CastShadow = Proxy->GetCastShadow();
-		Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
-
-		//@todo. Handle LODs.
-		for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
-		{
-			for (int32 ValidIndex = 0; ValidIndex < ValidSectionIndices.Num(); ValidIndex++)
-			{
-				int32 SectionIndex = ValidSectionIndices[ValidIndex];
-				if (SectionIndex == -1)
-				{
-					continue;
-				}
-
-				FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-				const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
-				if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
-				{
-					//@todo. This should never occur, but it does occasionally.
-					continue;
-				}
-
-				// Draw the static mesh Sections.
-				FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
-				MeshVertexFactory->SetUniformBuffer( UniformBuffer );
-
-				if(bInstanced)
-				{
-					// Set the particle instance data. This buffer is generated in PreRenderView.
-					MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
-					MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
-				}
-
-				BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
-				BatchElement.FirstIndex = Section.FirstIndex;
-				BatchElement.MinVertexIndex = Section.MinVertexIndex;
-				BatchElement.MaxVertexIndex = Section.MaxVertexIndex;
-
-				BatchElement.NumInstances = bInstanced ? ParticleCount : 1;
-
-				if (bIsWireframe)
-				{
-					if( LODModel.WireframeIndexBuffer.IsInitialized()
-						&& !(RHISupportsTessellation(GRHIShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
-						)
-					{
-						Mesh.Type = PT_LineList;
-						Mesh.MaterialRenderProxy = Proxy->GetDeselectedWireframeMatInst();
-						BatchElement.FirstIndex = 0;
-						BatchElement.IndexBuffer = &LODModel.WireframeIndexBuffer;
-						BatchElement.NumPrimitives = LODModel.WireframeIndexBuffer.GetNumIndices() / 2;
-						
-					}
-					else
-					{
-						Mesh.Type = PT_TriangleList;
-						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-						Mesh.bWireframe = true;	
-						BatchElement.FirstIndex = 0;
-						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
-						BatchElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
-					}
-				}
-				else
-				{
-					Mesh.Type = PT_TriangleList;
-					Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-					BatchElement.IndexBuffer = &LODModel.IndexBuffer;
-					BatchElement.FirstIndex = Section.FirstIndex;
-					BatchElement.NumPrimitives = Section.NumTriangles;
-				}
-
-				if(bInstanced)
-				{
-					NumDraws += DrawRichMesh(
-						PDI, 
-						Mesh, 
-						FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-						FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-						FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-						Proxy,
-						GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
-						bIsWireframe
-						);
-				}
-				else
-				{
-					for(int32 Particle = 0; Particle < ParticleCount; ++Particle)
-					{
-						MeshVertexFactory->SetInstanceDataCPU(InstanceDataAllocationsCPU.GetTypedData()+Particle);
-						MeshVertexFactory->SetDynamicInstanceDataCPU(DynamicParameterDataAllocationsCPU.GetTypedData()+Particle);
-						NumDraws += DrawRichMesh(
-							PDI, 
-							Mesh, 
-							FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-							FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-							FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-							Proxy,
-							GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
-							bIsWireframe
-							);
-					}
-				}
-			}
+			FMeshBatch& Mesh = *MeshBatches[BatchIndex];
+			NumDraws += DrawRichMesh(
+				PDI, 
+				Mesh, 
+				FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
+				FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
+				FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
+				Proxy,
+				GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
+				bIsWireframe
+				);
 		}
 	}
 	else if (Source.EmitterRenderMode == ERM_Point)
@@ -1953,8 +1826,10 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		}
 		else
 		{
-			InstanceDataAllocationsCPU.Init( ParticleCount );
-			DynamicParameterDataAllocationsCPU.Init( ParticleCount );
+			InstanceDataAllocationsCPU.Reset(ParticleCount);
+			InstanceDataAllocationsCPU.AddUninitialized(ParticleCount);
+			DynamicParameterDataAllocationsCPU.Reset(ParticleCount);
+			DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 
 			// Fill instance buffer.
 			GetInstanceData((void*) InstanceDataAllocationsCPU.GetTypedData(), (void*) DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, ViewFamily->Views[ViewIndex]);
@@ -1967,11 +1842,116 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		}
 	}
 
+	// Setup the vertex factory.
+	FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+	MeshVertexFactory->SetUniformBuffer( UniformBuffer );
+
 	// Update the primitive uniform buffer
 	if (LastFramePreRendered != FrameNumber)
 	{
 		Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
 		LastFramePreRendered = FrameNumber;
+	}
+
+	// Setup the mesh elements we will render with later on.
+	MeshBatches.Reset();
+	FirstBatchForView.Reset();
+	if (Source.EmitterRenderMode == ERM_Normal)
+	{
+		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+
+		check(MeshBatches.Num() == 0);
+		FirstBatchForView.Add(0);
+		for ( int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex )
+		{
+			const FSceneView* View = ViewFamily->Views[ViewIndex];
+			const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
+
+			//@todo. Handle LODs.
+			for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
+			{
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+				{
+					FMeshBatch* MeshPtr = Proxy->GetPooledMeshBatch();
+					FMeshBatch& Mesh = *MeshPtr;
+					Mesh.Elements.Reset();
+					FMeshBatchElement& BatchElement = *new(Mesh.Elements) FMeshBatchElement();
+					Mesh.VertexFactory = VertexFactory;
+					Mesh.DynamicVertexData = NULL;
+					Mesh.LCI = NULL;
+					Mesh.UseDynamicData = false;
+					Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
+					Mesh.CastShadow = Proxy->GetCastShadow();
+					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
+
+					FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
+					if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
+					{
+						//@todo. This should never occur, but it does occasionally.
+						continue;
+					}
+
+					BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
+					BatchElement.FirstIndex = Section.FirstIndex;
+					BatchElement.MinVertexIndex = Section.MinVertexIndex;
+					BatchElement.MaxVertexIndex = Section.MaxVertexIndex;
+					BatchElement.NumInstances = bInstanced ? ParticleCount : 1;
+
+					if (bIsWireframe)
+					{
+						if( LODModel.WireframeIndexBuffer.IsInitialized()
+							&& !(RHISupportsTessellation(GRHIShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
+							)
+						{
+							Mesh.Type = PT_LineList;
+							Mesh.MaterialRenderProxy = Proxy->GetDeselectedWireframeMatInst();
+							BatchElement.FirstIndex = 0;
+							BatchElement.IndexBuffer = &LODModel.WireframeIndexBuffer;
+							BatchElement.NumPrimitives = LODModel.WireframeIndexBuffer.GetNumIndices() / 2;
+						
+						}
+						else
+						{
+							Mesh.Type = PT_TriangleList;
+							Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+							Mesh.bWireframe = true;	
+							BatchElement.FirstIndex = 0;
+							BatchElement.IndexBuffer = &LODModel.IndexBuffer;
+							BatchElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
+						}
+					}
+					else
+					{
+						Mesh.Type = PT_TriangleList;
+						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
+						BatchElement.FirstIndex = Section.FirstIndex;
+						BatchElement.NumPrimitives = Section.NumTriangles;
+					}
+
+					if(!bInstanced)
+					{
+						FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = new(MeshBatchParameters) FMeshParticleVertexFactory::FBatchParametersCPU();
+						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetTypedData();
+						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchElement.UserData = BatchParameters;
+						BatchElement.UserIndex = 0;
+
+						Mesh.Elements.Reserve(ParticleCount);
+						for(int32 ParticleIndex = 1; ParticleIndex < ParticleCount; ++ParticleIndex)
+						{
+							FMeshBatchElement* NextElement = new(Mesh.Elements) FMeshBatchElement();
+							*NextElement = Mesh.Elements[0];
+							NextElement->UserIndex = ParticleIndex;
+						}
+					}
+
+					MeshBatches.Add(MeshPtr);
+				}
+			}
+			FirstBatchForView.Add(MeshBatches.Num());
+		}
 	}
 }
 
@@ -6833,6 +6813,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 		)
 	, PendingLODDistance(0.0f)
 	, LastFramePreRendered(-1)
+	, FirstFreeMeshBatch(0)
 {
 #if STATS
 	LastStatCaptureTime = FApp::GetCurrentTime();
@@ -6846,6 +6827,21 @@ FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
 	ReleaseRenderThreadResources();
 	delete DynamicData;
 	DynamicData = NULL;
+}
+
+FMeshBatch* FParticleSystemSceneProxy::GetPooledMeshBatch()
+{
+	FMeshBatch* Batch = NULL;
+	if (FirstFreeMeshBatch < MeshBatchPool.Num())
+	{
+		Batch = &MeshBatchPool[FirstFreeMeshBatch];
+	}
+	else
+	{
+		Batch = new(MeshBatchPool) FMeshBatch();
+	}
+	FirstFreeMeshBatch++;
+	return Batch;
 }
 
 // FPrimitiveSceneProxy interface.
@@ -7246,6 +7242,7 @@ void FParticleSystemSceneProxy::ProcessPreRenderView(const FSceneView* View, int
  */
 void FParticleSystemSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
 {
+	FirstFreeMeshBatch = 0;
 	for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
 	{
 		ProcessPreRenderView(ViewFamily->Views[ViewIndex], FrameNumber);

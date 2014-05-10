@@ -4204,7 +4204,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
 	BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
 
-	BatchElement.GPUSkinCacheKey = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
+	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
 	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType() );
 	if ( bRequiresAdjacencyInformation )

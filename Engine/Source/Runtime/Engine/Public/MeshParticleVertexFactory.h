@@ -65,6 +65,12 @@ public:
 		}
 	};
 
+	struct FBatchParametersCPU
+	{
+		const struct FMeshParticleInstanceVertex* InstanceBuffer;
+		const struct FMeshParticleInstanceVertexDynamicParameter* DynamicParameterBuffer;
+	};
+
 	/** Default constructor. */
 	FMeshParticleVertexFactory( EParticleVertexFactoryType InType = PVFT_Mesh )
 		: FParticleVertexFactoryBase(InType)
@@ -125,29 +131,6 @@ public:
 	 */
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
 
-
-	FORCEINLINE void SetInstanceDataCPU(struct FMeshParticleInstanceVertex* Ptr) 
-	{
-		InstanceDataCPU = Ptr;
-	}
-
-	FORCEINLINE void SetDynamicInstanceDataCPU(struct FMeshParticleInstanceVertexDynamicParameter* Ptr) 
-	{
-		DynamicInstanceDataCPU = Ptr;
-	}
-
-	FORCEINLINE struct FMeshParticleInstanceVertex* GetInstanceDataCPU()
-	{
-		return InstanceDataCPU;
-	}
-
-	FORCEINLINE struct FMeshParticleInstanceVertexDynamicParameter* GetDynamicInstanceDataCPU()
-	{
-		return DynamicInstanceDataCPU;
-	}
-
-
-
 	/**
 	* Copy the data from another vertex factory
 	* @param Other - factory to copy from
@@ -166,9 +149,4 @@ protected:
 
 	/** Uniform buffer with mesh particle paramters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
-
-	// ES2 needs to fetch instance data from ne
-	struct FMeshParticleInstanceVertex* InstanceDataCPU; 
-	struct FMeshParticleInstanceVertexDynamicParameter* DynamicInstanceDataCPU;
-
 };

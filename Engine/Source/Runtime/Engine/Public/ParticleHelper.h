@@ -1992,7 +1992,16 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 
 	UStaticMesh*		StaticMesh;
 	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterials;
-		
+
+	/** Mesh batches used for rendering, built in PreRenderView. */
+	TArray<FMeshBatch*, TInlineAllocator<4> > MeshBatches;
+
+	/** Mesh batch parameters used when instancing is not allowed. */
+	TArray<FMeshParticleVertexFactory::FBatchParametersCPU, TInlineAllocator<4> > MeshBatchParameters;
+
+	/** The first mesh batches to render for a given view. */
+	TArray<int32, TInlineAllocator<4> > FirstBatchForView;
+
 	/** Particle instance data allocations (ES2). */
 	TArray<FMeshParticleInstanceVertex> InstanceDataAllocationsCPU;
 
@@ -2675,6 +2684,9 @@ public:
 	FColoredMaterialRenderProxy* GetSelectedWireframeMatInst()		{	return &SelectedWireframeMaterialInstance;		}
 	FColoredMaterialRenderProxy* GetDeselectedWireframeMatInst()	{	return &DeselectedWireframeMaterialInstance;	}
 
+	/** Gets a mesh batch from the pool. */
+	FMeshBatch* GetPooledMeshBatch();
+
 protected:
 
 	/**
@@ -2711,6 +2723,10 @@ protected:
 
 	/** The primitive's uniform buffer. */
 	TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
+
+	/** Pool for holding FMeshBatches to reduce allocations. */
+	TIndirectArray<FMeshBatch, TInlineAllocator<4> > MeshBatchPool;
+	int32 FirstFreeMeshBatch;
 
 	friend struct FDynamicSpriteEmitterDataBase;
 };
