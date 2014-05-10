@@ -1303,6 +1303,13 @@ EBlendMode UMaterial::GetBlendModeFromString(const TCHAR* InBlendModeStr)
 	return BLEND_Opaque;
 }
 
+static FAutoConsoleVariable GCompileMaterialsForShaderFormatCVar(
+	TEXT("r.CompileMaterialsForShaderFormat"),
+	TEXT(""),
+	TEXT("When enabled, compile materials for this shader format in addition to those for the running platform.\n")
+	TEXT("Note that these shaders are compiled and immediately tossed. This is only useful when directly inspecting output via r.DebugDumpShaderInfo.")
+	);
+
 void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 {
 	if (bRegenerateId)
@@ -1328,6 +1335,23 @@ void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 			ResourcesToCache.Reset();
 			ResourcesToCache.Add(MaterialResources[ActiveQualityLevel][FeatureLevel]);
 			CacheShadersForResources(ShaderPlatform, ResourcesToCache, true);
+		}
+
+		FString AdditionalFormatToCache = GCompileMaterialsForShaderFormatCVar->GetString();
+		if (!AdditionalFormatToCache.IsEmpty())
+		{
+			EShaderPlatform AdditionalPlatform = ShaderFormatToLegacyShaderPlatform(FName(*AdditionalFormatToCache));
+			if (AdditionalPlatform != SP_NumPlatforms)
+			{
+				ResourcesToCache.Reset();
+				CacheResourceShadersForCooking(AdditionalPlatform,ResourcesToCache);
+				for (int32 i = 0; i < ResourcesToCache.Num(); ++i)
+				{
+					FMaterialResource* Resource = ResourcesToCache[i];
+					delete Resource;
+				}
+				ResourcesToCache.Reset();
+			}
 		}
 
 		RecacheUniformExpressions();
