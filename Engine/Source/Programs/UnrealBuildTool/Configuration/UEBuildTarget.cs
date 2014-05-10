@@ -1371,8 +1371,6 @@ namespace UnrealBuildTool
 
 			if( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles) )
 			{
-				var ToolChain = UEToolChain.GetPlatformToolChain(GlobalLinkEnvironment.Config.TargetPlatform);
-
 				var UObjectModules = new List<UHTModuleInfo>();
 
 				// Figure out which modules have UObjects that we may need to generate headers for

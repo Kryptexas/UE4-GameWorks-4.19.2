@@ -1310,12 +1310,6 @@ namespace UnrealBuildTool
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( CPPFilesToCompile, Name ).ObjectFiles );
 			}
 
-			string PCHPath = null;
-			if (ProcessedDependencies.UniquePCHHeaderFile != null)
-			{
-				PCHPath = UEToolChain.GetPlatformToolChain(ModuleCompileEnvironment.Config.TargetPlatform).ConvertPath( ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath );
-			}
-
 			if (AutoGenerateCppInfo != null && !ModuleCompileEnvironment.bHackHeaderGenerator)
 			{
 				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.Filename );
