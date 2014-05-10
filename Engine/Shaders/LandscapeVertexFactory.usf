@@ -396,12 +396,14 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-float4 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
 #if ES2_PROFILE
-	return float4( Interpolants.LightMapCoordinate[0].xy, Interpolants.LightMapCoordinate[1].xy );
+	LightmapUV0 = Interpolants.LightMapCoordinate[0].xy;
+	LightmapUV1 = Interpolants.LightMapCoordinate[1].xy;
 #else
-	return Interpolants.LightMapCoordinate.xyxy * half4( 1, 0.5, 1, 0.5 ) + half4( 0, 0, 0, 0.5 );
+	LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2( 1, 0.5 );
+	LightmapUV1 = LightmapUV0 + float2( 0, 0.5 );
 #endif
 }
 

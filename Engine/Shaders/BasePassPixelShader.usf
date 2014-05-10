@@ -402,13 +402,16 @@ float3 GetPrecomputedIndirectLighting(
 
 	#elif HQ_TEXTURE_LIGHTMAP
 
-		float4 LightmapUV = GetLightMapCoordinate(Interpolants);
-		SkyOcclusionUV = LightmapUV.xy;
-		Lighting = GetLightMapColorHQ(LightmapUV, MaterialParameters.WorldNormal).rgb;
+		float2 LightmapUV0, LightmapUV1;
+		GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
+		SkyOcclusionUV = LightmapUV0;
+		Lighting = GetLightMapColorHQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal).rgb;
 
 	#elif LQ_TEXTURE_LIGHTMAP
 
-		Lighting = GetLightMapColorLQ( GetLightMapCoordinate(Interpolants), MaterialParameters.WorldNormal ).rgb;
+		float2 LightmapUV0, LightmapUV1;
+		GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
+		Lighting = GetLightMapColorLQ( LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal ).rgb;
 
 	#endif
 

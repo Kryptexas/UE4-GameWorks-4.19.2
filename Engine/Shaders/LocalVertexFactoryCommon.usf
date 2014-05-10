@@ -70,9 +70,10 @@ void SetColor(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InValu
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-float4 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
-	return Interpolants.LightMapCoordinate.xyxy * half4( 1, 0.5, 1, 0.5 ) + half4( 0, 0, 0, 0.5 );
+	LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2( 1, 0.5 );
+	LightmapUV1 = LightmapUV0 + float2( 0, 0.5 );
 }
 
 float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
@@ -176,12 +177,13 @@ void SetColor(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InValu
 	#endif
 }
 
-float4 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
 	#if USE_INTERPOLATOR_345 
-		return float4(Interpolants.PackedInterpolator3.xy, Interpolants.PackedInterpolator4.xy);
+		LightmapUV0 = Interpolants.PackedInterpolator3.xy;
+		LightmapUV1 = Interpolants.PackedInterpolator4.xy;
 	#else
-		return float4(0, 0, 0, 0);
+		LightmapUV0 = LightmapUV1 = 0;
 	#endif
 }
 

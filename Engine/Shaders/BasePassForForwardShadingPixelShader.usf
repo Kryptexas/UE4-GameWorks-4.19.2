@@ -136,7 +136,10 @@ void Main(
 	half IndirectIrradiance = 0;
 
 	#if LQ_TEXTURE_LIGHTMAP
-		half4 LightmapColor = GetLightMapColorLQ( GetLightMapCoordinate(Interpolants), MaterialParameters.WorldNormal );
+		float2 LightmapUV0, LightmapUV1;
+		GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
+
+		half4 LightmapColor = GetLightMapColorLQ( LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal );
 		Color += LightmapColor.rgb * DiffuseColor;
 		IndirectIrradiance = LightmapColor.a;
 	#elif CACHED_POINT_INDIRECT_LIGHTING

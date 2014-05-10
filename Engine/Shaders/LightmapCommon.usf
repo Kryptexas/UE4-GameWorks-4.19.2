@@ -15,10 +15,10 @@ SamplerState SkyOcclusionSampler;
 half4 LightMapScale[NUM_LIGHTMAP_COEFFICIENTS];
 half4 LightMapAdd[NUM_LIGHTMAP_COEFFICIENTS];
 
-half4 GetLightMapColorLQ( half4 LightmapUV, half3 WorldNormal )
+half4 GetLightMapColorLQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal )
 {
-	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV.xy );
-	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV.zw );
+	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV0 );
+	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV1 );
 		
 	// Range scale
 	half3 LogRGB = Lightmap0.rgb * LightMapScale[0].xyz + LightMapAdd[0].xyz;	// 1 vmad
@@ -45,10 +45,10 @@ half4 GetLightMapColorLQ( half4 LightmapUV, half3 WorldNormal )
 	return half4( Color, Luma );
 }
 
-half4 GetLightMapColorHQ( float4 LightmapUV, half3 WorldNormal )
+half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal )
 {
-	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV.xy );
-	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV.zw );
+	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV0 );
+	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV1 );
 
 	half LogL = Lightmap0.w;
 

@@ -144,9 +144,9 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-half2 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
-	return 0;
+	LightmapUV0 = LightmapUV1 = 0;
 }
 
 half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
