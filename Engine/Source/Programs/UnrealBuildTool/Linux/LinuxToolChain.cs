@@ -136,6 +136,15 @@ namespace UnrealBuildTool.Linux
             if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
             {
                 Result += " -Wno-unused-value";
+
+                // in shipping, strip as much info as possible
+                Result += " -g0";
+                Result += " -fomit-frame-pointer";
+                Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
+            }
+            else if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            {
+		Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
             }
 
             // debug info
@@ -150,13 +159,6 @@ namespace UnrealBuildTool.Linux
             else if (CompileEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -gline-tables-only"; // include debug info for meaningful callstacks
-            }
-            else
-            {
-                // in shipping, strip as much info as possible
-                Result += " -g0";
-                Result += " -fomit-frame-pointer";
-                Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
             }
 
             // optimization level
@@ -176,10 +178,12 @@ namespace UnrealBuildTool.Linux
 
             //Result += " -v";                            // for better error diagnosis
 
+            // assume we will not perform 32 bit builds on Linux, so define
+            // _LINUX64 in any case
+            Result += " -D _LINUX64";
             if (CrossCompiling())
             {
                 Result += " -target x86_64-unknown-linux-gnu";        // Set target triple
-                Result += " -D _LINUX64";
                 Result += String.Format(" --sysroot={0}", BaseLinuxPath);
             }
 

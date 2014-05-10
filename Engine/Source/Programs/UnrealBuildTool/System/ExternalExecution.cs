@@ -136,7 +136,7 @@ namespace UnrealBuildTool
                 // TODO(sbc): Find a better way to do this.  Shelling out to uname would seem
                 // to make the most sense but I'm not sure there is an elegant way to do that from
                 // C#.
-                if (File.Exists("/etc/lsb-release") || File.Exists("/etc/debian_version"))
+                if (File.Exists("/etc/lsb-release") || File.Exists("/etc/debian_version") || (Directory.Exists("/etc/portage") && Directory.Exists("/usr/portage")))
                 {
                     return UnrealTargetPlatform.Linux;
                 }
