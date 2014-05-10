@@ -20,19 +20,15 @@ public:
 	 */
 	void Clear( )
 	{
-		for (IDelegateInstance* DelegateInstance : InvocationList)
+		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
 		{
-			delete DelegateInstance;
+			delete DelegateInstanceRef;
+			DelegateInstanceRef = nullptr;
 		}
-
-		InvocationList.Empty();
-		ExpirableObjectCount = 0;
 	}
 
 	/**
 	 * Checks to see if any functions are bound to this multi-cast delegate.
-	 *
-	 * This method is protected to avoid assumptions about only one delegate existing.
 	 *
 	 * @return true if any functions are bound, false otherwise.
 	 */
@@ -50,7 +46,7 @@ public:
 	{
 		for (IDelegateInstance* DelegateInstance : InvocationList)
 		{
-			if (DelegateInstance->HasSameObject(InUserObject))
+			if ((DelegateInstance != nullptr) && DelegateInstance->HasSameObject(InUserObject))
 			{
 				return true;
 			}
@@ -67,8 +63,16 @@ public:
 	 */
 	void RemoveAll( const void* InUserObject )
 	{
-		RemoveByObject(InUserObject);
-		CompactInvocationList();
+		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+		{
+			IDelegateInstance*& DelegateInstanceRef = InvocationList[InvocationListIndex];
+
+			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->HasSameObject(InUserObject))
+			{
+				delete DelegateInstanceRef;
+				DelegateInstanceRef = nullptr;
+			}
+		}
 	}
 
 protected:
@@ -77,7 +81,8 @@ protected:
 	 * Hidden default constructor.
 	 */
 	inline FMulticastDelegateBase( )
-		: ExpirableObjectCount(0)
+		: InvocationListLockCount(0)
+		, NeedsCompaction(false)
 	{ }
 
 protected:
@@ -87,46 +92,39 @@ protected:
 	 *
 	 * @param DelegateInstance The delegate instance to add.
 	 */
-	void AddInternal( IDelegateInstance* DelegateInstance )
+	inline void AddInternal( IDelegateInstance* DelegateInstance )
 	{
 		InvocationList.Add(DelegateInstance);
-
-		// Keep track of whether we have objects bound that may expire out from underneath us.
-		const EDelegateInstanceType::Type DelegateType = DelegateInstance->GetType();
-
-		if ((DelegateType == EDelegateInstanceType::SharedPointerMethod) ||
-			(DelegateType == EDelegateInstanceType::ThreadSafeSharedPointerMethod) ||
-			(DelegateType == EDelegateInstanceType::UObjectMethod))
-		{
-			++ExpirableObjectCount;
-		}
 	}
 
 	/**
-	 * Cleans up any delegates in our invocation list that have expired (performance is O(N))
+	 * Removes any expired or deleted functions from the invocation list.
+	 *
+	 * @see RequestCompaction
 	 */
-	void CompactInvocationList( ) const
+	void CompactInvocationList( )
 	{
-		// We only need to compact if any objects were added whose lifetime is known to us
-		if (ExpirableObjectCount == 0)
+		if (!NeedsCompaction || (InvocationListLockCount != 0))
 		{
 			return;
 		}
 
-		// remove expired delegates
 		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 		{
 			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
 
-			if (DelegateInstance->IsCompactable())
+			if ((DelegateInstance == nullptr) || DelegateInstance->IsCompactable())
 			{
 				InvocationList.RemoveAtSwap(InvocationListIndex);
-				delete DelegateInstance;
 
-				checkSlow(ExpirableObjectCount > 0);
-				--ExpirableObjectCount;
+				if (DelegateInstance != nullptr)
+				{
+					delete DelegateInstance;
+				}
 			}
 		}
+
+		NeedsCompaction = false;
 	}
 
 	/**
@@ -134,61 +132,45 @@ protected:
 	 *
 	 * @return The invocation list.
 	 */
-	const TArray<IDelegateInstance*>& GetInvocationList( ) const
+	inline const TArray<IDelegateInstance*>& GetInvocationList( ) const
 	{
 		return InvocationList;
 	}
 
 	/**
-	 * Removes all functions from this multi-cast delegate's invocation list that are bound to the specified UserObject.
+	 * Requests that the invocation list be compacted.
 	 *
-	 * Note that the order of the delegates may not be preserved!
-	 *
-	 * @param InUserObject The object to remove the delegates for.
+	 * @see CompactInvocationList
 	 */
-	void RemoveByObject( const void* InUserObject )
+	inline void RequestCompaction( )
 	{
-		for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
-		{
-			IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
-
-			if (DelegateInstance->HasSameObject(InUserObject))
-			{
-				RemoveByIndex(InvocationListIndex);
-			}
-		}
+		NeedsCompaction = true;
 	}
 
 	/**
-	 * Removes a delegate instance given its index in the invocation list.
-	 *
-	 * @param InvocationListIndex The index of the delegate instance to remove.
+	 * Increments the lock counter for the invocation list.
 	 */
-	void RemoveByIndex( int32 InvocationListIndex )
+	inline void LockInvocationList( ) const
 	{
-		IDelegateInstance* DelegateInstance = InvocationList[InvocationListIndex];
+		++InvocationListLockCount;
+	}
 
-		// keep track of whether we have objects bound that may expire out from underneath us
-		const EDelegateInstanceType::Type DelegateType = DelegateInstance->GetType();
-
-		if ((DelegateType == EDelegateInstanceType::SharedPointerMethod) || 
-			(DelegateType == EDelegateInstanceType::ThreadSafeSharedPointerMethod) ||
-			(DelegateType == EDelegateInstanceType::UFunction) ||
-			(DelegateType == EDelegateInstanceType::UObjectMethod))
-		{
-			--ExpirableObjectCount;
-		}
-
-		InvocationList.RemoveAtSwap(InvocationListIndex);
-		delete DelegateInstance;
+	/**
+	 * Decrements the lock counter for the invocation list.
+	 */
+	inline void UnlockInvocationList( ) const
+	{
+		--InvocationListLockCount;
 	}
 
 private:
 
-	// Mutable so that we can housekeep list even with const broadcasts
-	mutable int32 ExpirableObjectCount;
-
 	// Holds the collection of delegate instances to invoke.
-	// Mutable so that we can do housekeeping during const broadcasts.
-	mutable TArray<IDelegateInstance*> InvocationList;
+	TArray<IDelegateInstance*> InvocationList;
+
+	// Holds a lock counter for the invocation list.
+	mutable int32 InvocationListLockCount;
+
+	// Holds a flag indicating whether the invocation list needs to be compacted.
+	bool NeedsCompaction;
 };
