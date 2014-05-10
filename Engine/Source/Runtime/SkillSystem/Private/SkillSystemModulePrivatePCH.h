@@ -15,7 +15,7 @@
 #include "Engine/DataTable.h"
 #include "SkillSystemClasses.h"
 
-#include "SKillSystem.h"
+#include "SkillSystem.h"
 #include "SkillSystemModule.h"
 #include "SkillSystemLog.h"
 
