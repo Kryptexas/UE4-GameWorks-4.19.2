@@ -1441,11 +1441,13 @@ public:
 
 	/** 
 	 * Displays a modal message dialog 
+	 * @param	InMessage	Type of the message box
 	 * @param	InText		Message to display
-	 * @param	InMessage		Type of the message box
+	 * @param	InTitle		Title for the message box
 	 * @return	Returns the result of the modal message box
 	 */
-	EAppReturnType::Type OnModalMessageDialog( const FText& InText, EAppMsgType::Type InMessage );
+	EAppReturnType::Type OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle);
+
 	/** 
 	 * Returns whether an object should replace an exisiting one or not 
 	 * @param	Filename		Filename of the package

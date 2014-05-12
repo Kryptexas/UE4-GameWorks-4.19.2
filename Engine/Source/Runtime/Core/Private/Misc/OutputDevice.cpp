@@ -10,6 +10,19 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
 
+namespace
+{
+	/**
+	 * Singleton to only create error title text if needed (and after localization system is in place)
+	 */
+	const FText& GetDefaultMessageTitle()
+	{
+		// Will be initialised on first call
+		static FText DefaultMessageTitle(NSLOCTEXT("MessageDialog", "DefaultMessageTitle", "Message"));
+		return DefaultMessageTitle;
+	}
+}
+
 const TCHAR* FOutputDevice::VerbosityToString(ELogVerbosity::Type Verbosity)
 {
 	switch (Verbosity & ELogVerbosity::VerbosityMask)
@@ -336,7 +349,7 @@ bool VARARGS FDebug::EnsureNotFalseFormatted( bool bExpressionResult, const ANSI
 }
 #endif
 
-void FMessageDialog::Debugf( const FText& Message )
+void FMessageDialog::Debugf( const FText& Message, const FText* OptTitle )
 {
 	if( FApp::IsUnattended() == true )
 	{
@@ -344,9 +357,10 @@ void FMessageDialog::Debugf( const FText& Message )
 	}
 	else
 	{
+		FText Title = OptTitle ? *OptTitle : GetDefaultMessageTitle();
 		if ( GIsEditor && FCoreDelegates::ModalErrorMessage.IsBound() )
 		{
-			FCoreDelegates::ModalErrorMessage.Execute( Message, EAppMsgType::Ok );
+			FCoreDelegates::ModalErrorMessage.Execute(EAppMsgType::Ok, Message, Title);
 		}
 		else
 		{
@@ -372,7 +386,7 @@ void FMessageDialog::ShowLastError()
 	}
 }
 
-EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const FText& Message )
+EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const FText& Message, const FText* OptTitle )
 {
 	if( FApp::IsUnattended() == true )
 	{
@@ -403,13 +417,14 @@ EAppReturnType::Type FMessageDialog::Open( EAppMsgType::Type MessageType, const 
 	}
 	else
 	{
+		FText Title = OptTitle ? *OptTitle : GetDefaultMessageTitle();
 		if ( GIsEditor && !IsRunningCommandlet() && FCoreDelegates::ModalErrorMessage.IsBound() )
 		{
-			return FCoreDelegates::ModalErrorMessage.Execute( Message, MessageType );
+			return FCoreDelegates::ModalErrorMessage.Execute( MessageType, Message, Title );
 		}
 		else
 		{
-			return FPlatformMisc::MessageBoxExt( MessageType, *Message.ToString(), *NSLOCTEXT("MessageDialog", "DefaultMessageTitle", "Message").ToString() );
+			return FPlatformMisc::MessageBoxExt( MessageType, *Message.ToString(), *Title.ToString() );
 		}
 	}
 }

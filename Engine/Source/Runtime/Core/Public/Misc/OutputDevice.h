@@ -409,13 +409,22 @@ struct CORE_API FDebug
  **/
 struct CORE_API FMessageDialog
 {
-	/** Pops up a message dialog box containing the input string. */
-	static void Debugf( const FText& Message );
+	/** Pops up a message dialog box containing the input string.
+	 * @param Message Text of message to show
+	 * @param OptTitle Optional title to use (defaults to "Message")
+	*/
+	static void Debugf( const FText& Message, const FText* OptTitle = nullptr );
 
 	/** Pops up a message dialog box containing the last system error code in string form. */
 	static void ShowLastError();
 
-	static EAppReturnType::Type Open( EAppMsgType::Type MessageType, const FText& Message );
+	/**
+	 * Open a modal message box dialog
+	 * @param MessageType Controls buttons dialog should have
+	 * @param Message Text of message to show
+	 * @param OptTitle Optional title to use (defaults to "Message")
+	*/
+	static EAppReturnType::Type Open( EAppMsgType::Type MessageType, const FText& Message, const FText* OptTitle = nullptr );
 };
 
 

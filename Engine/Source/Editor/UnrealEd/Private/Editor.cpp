@@ -4416,16 +4416,15 @@ void UEditorEngine::CloseEntryPopupWindow()
 	}
 }
 
-EAppReturnType::Type UEditorEngine::OnModalMessageDialog( const FText& InText, EAppMsgType::Type InMessage )
+EAppReturnType::Type UEditorEngine::OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle)
 {
-	const FText MessageTitle = NSLOCTEXT("UnrealEd", "GenericDialog_WindowTitle", "Message");
 	if( FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
 	{
-		return OpenMsgDlgInt(InMessage, InText, MessageTitle);
+		return OpenMsgDlgInt(InMessage, InText, InTitle);
 	}
 	else
 	{
-		return FPlatformMisc::MessageBoxExt( InMessage, *InText.ToString(), *MessageTitle.ToString() );
+		return FPlatformMisc::MessageBoxExt(InMessage, *InText.ToString(), *InTitle.ToString());
 	}
 }
 
