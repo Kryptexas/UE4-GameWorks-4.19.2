@@ -17,7 +17,7 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "ScopedTransaction.h"
-#include "SCreateBlueprintFromActorDialog.h"
+#include "CreateBlueprintFromActorDialog.h"
 #include "ActorEditorUtils.h"
 #include "BlueprintEditorUtils.h"
 #include "ComponentTransformDetails.h"
@@ -899,7 +899,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply FActorDetails::OnPickBlueprintPathClicked(bool bHarvest )
 {
-	SCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
 
 	return FReply::Handled();
 }

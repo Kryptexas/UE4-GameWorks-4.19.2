@@ -1089,7 +1089,7 @@ public:
 	 *
 	 * @return							Returns the newly created actor with the newly created static mesh.
 	 */
-	AActor* ConvertBrushesToStaticMesh(const FText& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation);
+	AActor* ConvertBrushesToStaticMesh(const FString& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation);
 
 	/**
 	 * Converts passed in light actors into new actors of another type.
@@ -1117,7 +1117,7 @@ public:
 	 * @param	bUseSpecialCases			If true, looks for classes that can be handled by hardcoded conversions
 	 * @param	InStaticMeshPackageName		The name to save the brushes to.
 	 */
-	void DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FText& InStaticMeshPackageName );
+	void DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FString& InStaticMeshPackageName );
 
 	/**
 	 * Sets up for a potentially deferred ConvertActors call, based on if any brushes are being converted to a static mesh. If one (or more)

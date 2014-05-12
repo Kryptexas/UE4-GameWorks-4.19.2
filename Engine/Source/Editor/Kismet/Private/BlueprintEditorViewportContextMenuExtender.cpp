@@ -4,7 +4,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "SCreateBlueprintFromActorDialog.h"
+#include "CreateBlueprintFromActorDialog.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogViewportBlueprintMenu, Log, All);
 
@@ -187,7 +187,7 @@ void FillBlueprintOptions(FMenuBuilder& MenuBuilder, TArray<AActor*> SelectedAct
 
 		if(bCanHarvestComponentsForBlueprint)
 		{
-			FUIAction CreateBlueprintAction( FExecuteAction::CreateStatic( &SCreateBlueprintFromActorDialog::OpenDialog, true ) );
+			FUIAction CreateBlueprintAction( FExecuteAction::CreateStatic( &FCreateBlueprintFromActorDialog::OpenDialog, true ) );
 			MenuBuilder.AddMenuEntry(LOCTEXT("CreateBlueprint", "Create Blueprint..."), LOCTEXT("CreateBlueprint_Tooltip", "Harvest Components from Selected Actors and create Blueprint"), FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.HarvestBlueprintFromActors"), CreateBlueprintAction);
 		}
 	}

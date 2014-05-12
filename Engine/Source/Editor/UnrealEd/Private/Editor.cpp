@@ -36,6 +36,7 @@
 #include "AnimationUtils.h"
 #include "AudioDecompress.h"
 #include "LevelEditor.h"
+#include "SCreateAssetFromActor.h"
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
@@ -5474,16 +5475,15 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 	}
 }
 
-AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FText& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation)
+AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FString& InStaticMeshPackageName, TArray<ABrush*>& InBrushesToConvert, const FVector& InPivotLocation)
 {
 	AActor* NewActor(NULL);
 
-	FString PackageName = InStaticMeshPackageName.ToString();
-
-	FName ObjName = *FPackageName::GetLongPackageAssetName(PackageName);
+	FName ObjName = *FPackageName::GetLongPackageAssetName(InStaticMeshPackageName);
 
 
-	UPackage* Pkg = CreatePackage(NULL, *PackageName);
+	UPackage* Pkg = CreatePackage(NULL, *InStaticMeshPackageName);
+	check(Pkg != nullptr);
 
 	FVector Location(0.0f, 0.0f, 0.0f);
 	FRotator Rotation(0.0f, 0.0f, 0.0f);
@@ -5553,14 +5553,9 @@ struct TConvertData
 
 namespace ConvertHelpers
 {
-	void OnBrushToStaticMeshNameCommitted(const FText& InSettingsPackageName, ETextCommit::Type CommitInfo, TConvertData InConvertData)
+	void OnBrushToStaticMeshNameCommitted(const FString& InSettingsPackageName, TConvertData InConvertData)
 	{
-		if (CommitInfo == ETextCommit::OnEnter)
-		{
-			GEditor->DoConvertActors(InConvertData.ActorsToConvert, InConvertData.ConvertToClass, InConvertData.ComponentsToConsider, InConvertData.bUseSpecialCases, InSettingsPackageName);
-		}
-
-		GEditor->CloseEntryPopupWindow();
+		GEditor->DoConvertActors(InConvertData.ActorsToConvert, InConvertData.ConvertToClass, InConvertData.ComponentsToConsider, InConvertData.bUseSpecialCases, InSettingsPackageName);
 	}
 
 	void GetBrushList(const TArray<AActor*>& InActorsToConvert, UClass* InConvertToClass, TArray<ABrush*>& OutBrushList, int32& OutBrushIndexForReattachment)
@@ -5597,34 +5592,34 @@ void UEditorEngine::ConvertActors( const TArray<AActor*>& ActorsToConvert, UClas
 
 	if( BrushList.Num() )
 	{
-		const FString PackageName = TEXT("/Game/Unsorted/MyMesh");
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-
 		TConvertData ConvertData(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases);
 
-		TSharedRef<STextEntryPopup> TextEntry = 
-			SNew(STextEntryPopup)
-			.Label( LOCTEXT("ConvertActorsPopUpMsg", "New Actor Path (Convert Brush to Static Mesh)") )
-			.DefaultText( FText::FromString(*PackageName) )
-			.OnTextCommitted(FOnTextCommitted::CreateStatic(ConvertHelpers::OnBrushToStaticMeshNameCommitted, ConvertData))
-			.ClearKeyboardFocusOnCommit( false );
+		TSharedPtr<SWindow> CreateAssetFromActorWindow =
+			SNew(SWindow)
+			.Title(LOCTEXT("SelectPath", "Select Path"))
+			.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the static mesh will be created"))
+			.ClientSize(FVector2D(400, 400));
 
-		PopupWindow = FSlateApplication::Get().PushMenu(
-			MainFrameModule.GetParentWindow().ToSharedRef(),
-			TextEntry,
-			FSlateApplication::Get().GetCursorPos(),
-			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
+		TSharedPtr<SCreateAssetFromActor> CreateAssetFromActorWidget;
+		CreateAssetFromActorWindow->SetContent
+			(
+			SAssignNew(CreateAssetFromActorWidget, SCreateAssetFromActor, CreateAssetFromActorWindow)
+			.AssetFilenameSuffix(TEXT("StaticMesh"))
+			.HeadingText(LOCTEXT("ConvertBrushesToStaticMesh_Heading", "Static Mesh Name:"))
+			.CreateButtonText(LOCTEXT("ConvertBrushesToStaticMesh_ButtonLabel", "Create Static Mesh"))
+			.OnCreateAssetAction(FOnPathChosen::CreateStatic(ConvertHelpers::OnBrushToStaticMeshNameCommitted, ConvertData))
 			);
 
-		TextEntry->FocusDefaultWidget();
+		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+		FSlateApplication::Get().AddWindowAsNativeChild(CreateAssetFromActorWindow.ToSharedRef(), RootWindow.ToSharedRef());
 	}
 	else
 	{
-		DoConvertActors(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases, FText::FromString(TEXT("")));
+		DoConvertActors(ActorsToConvert, ConvertToClass, ComponentsToConsider, bUseSpecialCases, TEXT(""));
 	}
 }
 
-void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FText& InStaticMeshPackageName )
+void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UClass* ConvertToClass, const TSet<FString>& ComponentsToConsider, bool bUseSpecialCases, const FString& InStaticMeshPackageName )
 {
 	// Early out if actor deletion is currently forbidden
 	if (GEditor->ShouldAbortActorDeletion())

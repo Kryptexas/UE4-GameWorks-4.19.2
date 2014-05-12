@@ -1218,7 +1218,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 		//generate static mesh package name
 		FString PackageName = FPackageName::FilenameToLongPackageName(FPaths::AutomationTransientDir() + TEXT("ConvertToBSPToStaticMesh"));
 		//Convert brush to specific package name
-		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, FText::FromString(PackageName));
+		GEditor->DoConvertActors(ToStaticMeshActors, AStaticMeshActor::StaticClass(), TSet<FString>(), true, PackageName);
 
 		//find the package
 		UPackage* NewPackage = FindPackage(NULL, *PackageName);
