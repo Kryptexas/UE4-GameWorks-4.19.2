@@ -14,7 +14,7 @@
 	[
 		{
 			"Name" : "ScriptEditorPlugin",
-			"Type" : "Editor"
+			"Type" : "Editor",
 			"BlacklistPlatforms" : [ "Linux" ]
 		}
 	]
