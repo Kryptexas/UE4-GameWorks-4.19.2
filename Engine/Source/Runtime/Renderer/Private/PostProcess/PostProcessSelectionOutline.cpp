@@ -235,8 +235,9 @@ public:
 
 			SetTextureParameter(ShaderRHI, PostprocessInput1MS, TargetableTexture);
 
-			// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
+			if(EditorPrimitivesStencil.IsBound())
 			{
+				// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
 				if(ViewState->SelectionOutlineCacheKey != TargetableTexture)
 				{
 					// release if not the right one (as the internally SRV stores a pointer to the texture we cannot get a false positive)
@@ -250,9 +251,9 @@ public:
 					ViewState->SelectionOutlineCacheKey = TargetableTexture;
 					ViewState->SelectionOutlineCacheValue = RHICreateShaderResourceView(TargetableTexture, 0, 1, PF_X24_G8);
 				}
-			}
 
-			SetSRVParameter(ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
+				SetSRVParameter(ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
+			}
 		}
 
 #if WITH_EDITOR
