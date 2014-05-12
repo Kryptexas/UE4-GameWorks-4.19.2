@@ -6,14 +6,11 @@
 
 #pragma once
 
-
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 #include "GameModeInfoCustomizer.h"
 
 #define LOCTEXT_NAMESPACE "FLevelEditorPlaySettingsCustomization"
-
-
 
 
 /**
@@ -56,7 +53,6 @@ public:
 
 	// End IDetailCustomization interface
 
-
 public:
 
 	/**
@@ -68,7 +64,6 @@ public:
 	{
 		return MakeShareable(new FGameMapsSettingsCustomization());
 	}
-
 
 protected:
 
@@ -124,7 +119,6 @@ protected:
 			];
 	}
 
-
 	/**
 	 * Checks whether the specified map name is valid.
 	 *
@@ -141,7 +135,6 @@ protected:
 
 		return (FPaths::FileExists(FPackageName::LongPackageNameToFilename(MapName, FPackageName::GetMapPackageExtension())));
 	}
-
 
 	/**
 	 * Creates a widget for the map picker.
@@ -195,7 +188,6 @@ protected:
 
 		return MenuBuilder.MakeWidget();
 	}
-
 
 private:
 
@@ -256,9 +248,9 @@ private:
 		}
 	}
 
-
 private:
-	/** Helper class to customizer GameMode property */
+
+	// Helper class to customizer GameMode property.
 	TSharedPtr<FGameModeInfoCustomizer>	GameInfoModeCustomizer;
 };
 

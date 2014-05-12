@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 
@@ -63,5 +62,6 @@ protected:
 		}
 	}
 };
+
 
 #undef LOCTEXT_NAMESPACE
