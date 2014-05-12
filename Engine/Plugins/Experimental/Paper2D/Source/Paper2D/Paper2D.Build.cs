@@ -32,7 +32,7 @@ public class Paper2D : ModuleRules
 			PrivateDependencyModuleNames.Add("UnrealEd");
 		}
 
-		// @TODO: Box2D integration is turned off for now, until we have a good way to distribute third party libraries with plugins (and Paper2D actually uses it!)
-		Definitions.Add("WITH_BOX2D=0");
+		// Link Box2D in privately; don't want to expose the headers externally
+		PrivateDependencyModuleNames.Add("Box2D");
 	}
 }
