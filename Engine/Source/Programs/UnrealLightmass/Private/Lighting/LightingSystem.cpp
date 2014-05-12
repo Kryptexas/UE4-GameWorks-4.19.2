@@ -558,7 +558,7 @@ void FStaticLightingSystem::MultithreadProcess()
 	{
 		FMappingProcessingThreadRunnable* ThreadRunnable = new(Threads) FMappingProcessingThreadRunnable(this, ThreadIndex, StaticLightingTask_ProcessMappings);
 		const FString ThreadName = FString::Printf(TEXT("MappingProcessingThread%u"), ThreadIndex);
-		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName, 0, 0, 0, TPri_Normal);
+		ThreadRunnable->Thread = FRunnableThread::Create(ThreadRunnable, *ThreadName);
 	}
 	GStatistics.NumThreads = NumStaticLightingThreads + 1;	// Includes the main-thread who is only exporting.
 

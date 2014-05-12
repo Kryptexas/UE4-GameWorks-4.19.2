@@ -31,9 +31,7 @@ public:
 	{
 		bIsDone = 0;
 
-		bool bAutoDeleteThread = true;
-		bool bAutoDeleteRunnable = false;
-		FRunnableThread::Create(this, Worker.Name(), bAutoDeleteThread, bAutoDeleteRunnable);
+		Thread = FRunnableThread::Create(this, Worker.Name());
 	}
 
 	/**
@@ -57,8 +55,17 @@ private:
 		return 0;
 	}
 
-	TWorker Worker;
+	virtual void Exit() OVERRIDE
+	{
+		if (Thread)
+		{
+			Thread->Kill();
+			delete Thread;
+		}
+	}
 
+	TWorker Worker;
+	FRunnableThread * Thread;
 	volatile int32 bIsDone;	
 };
 
