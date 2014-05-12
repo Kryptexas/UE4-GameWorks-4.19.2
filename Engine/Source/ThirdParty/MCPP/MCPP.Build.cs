@@ -28,6 +28,12 @@ public class MCPP : ModuleRules
 		{
 			PublicAdditionalLibraries.Add(LibPath + "Mac/libmcpp.a");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			LibPath += "Linux";
+			PublicLibraryPaths.Add(LibPath);
+			PublicAdditionalLibraries.Add("mcpp");
+		}
 	}
 }
 

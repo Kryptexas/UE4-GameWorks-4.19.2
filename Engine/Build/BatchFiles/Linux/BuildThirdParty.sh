@@ -103,6 +103,7 @@ BuildHLSLCC()
   echo "building hlslcc"
   set -x
   cd Source/ThirdParty/hlslcc
+  P4Open hlslcc/bin/Linux/hlslcc_64
   make $MAKE_ARGS
   set +x
 }
@@ -112,13 +113,16 @@ BuildMcpp()
   echo "building MCPP"
   set -x
   cd Source/ThirdParty/MCPP/mcpp-2.7.2
+  P4Open configure
+  chmod +x configure
   ./configure --enable-shared --enable-shared --enable-mcpplib
   make $MAKE_ARGS
-  rm -rf lib/Linux
-  mkdir lib/Linux
-  cp ./src/.libs/libmcpp.a lib/Linux
-  cp ./src/.libs/libmcpp.so lib/Linux
-  cp ./src/.libs/libmcpp.so ${TOP_DIR}/Binaries/Linux/libmcpp.so.0
+
+  P4Open lib/Linux/libmcpp.a
+  P4Open lib/Linux/libmcpp.so
+  cp --remove-destination ./src/.libs/libmcpp.a lib/Linux
+  cp --remove-destination ./src/.libs/libmcpp.so lib/Linux
+  cp --remove-destination ./src/.libs/libmcpp.so ${TOP_DIR}/Binaries/Linux/libmcpp.so.0
   set +x
 }
 
@@ -214,8 +218,8 @@ Run BuildOpus
 Run BuildOgg
 Run BuildVorbis
 Run BuildPNG
-# patches pending - Run BuildHLSLCC
-# patches pending - Run BuildMcpp
+Run BuildHLSLCC
+Run BuildMcpp
 Run BuildFreeType
 Run BuildRecast
 Run BuildICU

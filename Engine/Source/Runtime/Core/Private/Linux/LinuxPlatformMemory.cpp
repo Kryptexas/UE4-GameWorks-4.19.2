@@ -84,9 +84,11 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 			Allocator = new FMallocAnsi();
 			break;
 
+#if PLATFORM_SUPPORTS_JEMALLOC
 		case Jemalloc:
 			Allocator = new FMallocJemalloc();
 			break;
+#endif // PLATFORM_SUPPORTS_JEMALLOC
 
 		default:	// intentional fall-through
 		case Binned:

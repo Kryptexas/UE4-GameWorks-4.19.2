@@ -20,6 +20,7 @@ public class jemalloc : ModuleRules
 		//PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/include/Linux/drop-in");
 		//PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/lib/Linux/drop-in");
             PublicAdditionalLibraries.Add("jemalloc");
+		Definitions.Add("PLATFORM_SUPPORTS_JEMALLOC=1");
         }
 	}
 }

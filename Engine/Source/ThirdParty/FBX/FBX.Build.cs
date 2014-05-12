@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class FBX : ModuleRules
@@ -8,17 +9,18 @@ public class FBX : ModuleRules
 	{
 		Type = ModuleType.External;
 
+		string FBXSDKDir = UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2014.2.1/";
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
-					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2014.2.1/include",
-					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2014.2.1/include/fbxsdk",
+					FBXSDKDir + "include",
+					FBXSDKDir + "include/fbxsdk",
 				}
 			);
 
 
 		if ( Target.Platform == UnrealTargetPlatform.Win64 )
 		{
-			string FBxLibPath = UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2014.2.1/lib/vs2012/"; // VS2013 libs are not readily available for FBX, so let's just use the 2012 ones whilst we can.
+			string FBxLibPath = FBXSDKDir + "lib/vs2012/"; // VS2013 libs are not readily available for FBX, so let's just use the 2012 ones whilst we can.
 
 			FBxLibPath += "x64/release/";
 			PublicLibraryPaths.Add(FBxLibPath);
@@ -30,8 +32,23 @@ public class FBX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			string LibDir = UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2014.2.1/lib/mac/";
+			string LibDir = FBXSDKDir + "lib/mac/";
 			PublicAdditionalLibraries.Add(LibDir + "libfbxsdk.dylib");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			string LibDir = FBXSDKDir + "lib/linux/";
+			if (!Directory.Exists(LibDir))
+			{
+				string Err = string.Format("FBX SDK not found in {0}", LibDir);
+				System.Console.WriteLine(Err);
+				throw new BuildException(Err);
+			}
+
+			PublicAdditionalLibraries.Add(LibDir + "libfbxsdk.a");
+			/* There is a bug in fbxarch.h where is doesn't do the check
+			 * for clang under linux */
+			Definitions.Add("FBXSDK_COMPILER_CLANG");
 		}
 	}
 }

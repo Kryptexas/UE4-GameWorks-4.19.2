@@ -44,31 +44,9 @@ public class ICU : ModuleRules
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
-        else if (Target.Platform == UnrealTargetPlatform.Linux)
-        {
-            string LibraryNamePrefix = "libicu";
-            string[] LibraryNameStems =
-			{
-				"data", // Data
-				"uc",   // Unicode Common
-				"i18n", // Internationalization
-				"le",   // Layout Engine
-				"lx",   // Layout Extensions
-				"io"	// Input/Output
-			};
-            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
-                "d" : string.Empty;
-            string LibraryExtension = "a";
-
-            foreach (string Stem in LibraryNameStems)
-            {
-                string LibraryName = ICURootPath + "Linux/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
-                PublicAdditionalLibraries.Add(LibraryName);
-            }
-        }
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else if ((Target.Platform == UnrealTargetPlatform.Mac) ||
+			(Target.Platform == UnrealTargetPlatform.Linux))
 		{
-			string LibraryNamePrefix = "libicu";
 			string[] LibraryNameStems =
 			{
 				"data", // Data
@@ -78,13 +56,20 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
-				"d" : string.Empty;
+			string LibraryNamePostfix = string.Empty;
+			ICURootPath += "Linux/";
+			if (Target.Platform == UnrealTargetPlatform.Mac)
+			{
+				ICURootPath += "Mac/";
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					LibraryNamePostfix = "d";
+			}
 			string LibraryExtension = "a";
+			string LibraryNamePrefix = "libicu";
 
 			foreach (string Stem in LibraryNameStems)
 			{
-				string LibraryName = ICURootPath + "Mac/" + "lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				string LibraryName = ICURootPath + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
@@ -103,12 +88,17 @@ public class ICU : ModuleRules
 			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug) ?
 				"d" : string.Empty;
 			string LibraryExtension = "lib";
-
 			foreach (string Stem in LibraryNameStems)
 			{
 				string LibraryName = ICURootPath + "PS4/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
+		}
+
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PublicAdditionalLibraries.Add("dl");
 		}
 
 		// common defines

@@ -8,31 +8,32 @@ public class Perforce : ModuleRules
 	{
 		Type = ModuleType.External;
 
-
 		string LibFolder = "lib/";
 		string LibPrefix = "";
-		string LibPostfixAndExt = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d." : ".";
+		string LibPostfixAndExt = ".";
+		string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2012.1/";
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			string P4APIPath;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
-			}
-			else
-			{
-				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
-			}
-			PublicIncludePaths.Add(P4APIPath + "include");
-
 			LibFolder += "win64";
-			LibPostfixAndExt += "lib";
-			PublicLibraryPaths.Add(P4APIPath + LibFolder);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			string P4APIPath;
+			LibFolder += "win32";
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			LibFolder += "mac";
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			LibFolder += "linux";
+		}
+
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				LibPostfixAndExt = "d.";
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
@@ -41,22 +42,16 @@ public class Perforce : ModuleRules
 			{
 				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
 			}
-			PublicIncludePaths.Add(P4APIPath + "include");
-
-			LibFolder += "win32";
 			LibPostfixAndExt += "lib";
 			PublicLibraryPaths.Add(P4APIPath + LibFolder);
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else
 		{
-			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2012.1/";
-			PublicIncludePaths.Add(P4APIPath + "include");
-
-			LibFolder += "mac";
 			LibPrefix = P4APIPath + LibFolder + "/";
 			LibPostfixAndExt = ".a";
 		}
 
+		PublicIncludePaths.Add(P4APIPath + "include");
 		PublicAdditionalLibraries.Add(LibPrefix + "libclient" + LibPostfixAndExt);
 
 		if (Target.Platform != UnrealTargetPlatform.Win64)
