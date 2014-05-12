@@ -16,7 +16,7 @@ ILauncherWorkerPtr FLauncher::Launch( const ITargetDeviceProxyManagerRef& Device
 	{
 		FLauncherWorker* LauncherWorker = new FLauncherWorker(DeviceProxyManager, Profile);
 
-		if ((LauncherWorker != NULL) && (FRunnableThread::Create(LauncherWorker, TEXT("LauncherWorker"), false, false, 0, TPri_Normal) != NULL))
+		if ((LauncherWorker != NULL) && (FRunnableThread::Create(LauncherWorker, TEXT("LauncherWorker")) != NULL))
 		{
 			return MakeShareable(LauncherWorker);
 		}			

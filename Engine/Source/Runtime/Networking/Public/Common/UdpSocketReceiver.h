@@ -45,7 +45,7 @@ public:
 		check(Socket->GetSocketType() == SOCKTYPE_Datagram);
 
 		SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-		Thread = FRunnableThread::Create(this, ThreadDescription, false, false, 128 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, ThreadDescription, 128 * 1024, TPri_AboveNormal);
 	}
 
 	/**

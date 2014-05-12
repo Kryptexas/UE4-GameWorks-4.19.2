@@ -68,7 +68,7 @@ bool FMonitoredProcess::Launch( )
 		return false;
 	}
 
-	Thread = FRunnableThread::Create(this, TEXT("FMonitoredProcess"), false, false, 128 * 1024, TPri_AboveNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FMonitoredProcess"), 128 * 1024, TPri_AboveNormal);
 
 	return true;
 }

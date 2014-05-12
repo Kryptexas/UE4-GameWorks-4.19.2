@@ -38,7 +38,7 @@ public:
 		, Socket(NULL)
 		, Stopping(false)
 	{
-		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), false, false, 8 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
 	}
 
 	/**
@@ -57,7 +57,7 @@ public:
 		Socket->GetAddress(*LocalAddress);
 		Endpoint = FIPv4Endpoint(LocalAddress);
 
-		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), false, false, 8 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
 	}
 
 	/**

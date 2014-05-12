@@ -59,7 +59,7 @@ public:
 		int32 NewSize = 0;
 		Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
 		Socket->SetSendBufferSize(2*1024*1024, NewSize);
-		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnelConnection"), false, false, 128 * 1024, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnelConnection"), 128 * 1024, TPri_Normal);
 	}
 
 	/**

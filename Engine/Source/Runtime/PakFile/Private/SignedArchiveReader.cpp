@@ -25,7 +25,7 @@ FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader)
 	check(!DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero());
 
 	QueuedRequestsEvent = FPlatformProcess::CreateSynchEvent();
-	Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), false, false, 0, TPri_BelowNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), 0, TPri_BelowNormal);
 }
 
 FChunkCacheWorker::~FChunkCacheWorker()

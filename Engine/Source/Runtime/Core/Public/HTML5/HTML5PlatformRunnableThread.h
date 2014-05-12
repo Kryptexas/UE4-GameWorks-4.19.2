@@ -62,13 +62,8 @@ public:
 protected:
 
 	virtual bool CreateInternal (FRunnable* InRunnable, const TCHAR* ThreadName,
-		bool bAutoDeleteSelf = 0,bool bAutoDeleteRunnable = 0,uint32 InStackSize = 0,
+		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) 
-	{
-		return false;
-	}
-
-	virtual bool NotifyCreated() OVERRIDE
 	{
 		return false;
 	}

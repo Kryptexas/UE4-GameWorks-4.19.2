@@ -53,15 +53,7 @@ void FSlateLoadingSynchronizationMechanism::Initialize()
 	MainLoop.Lock();
 
 	SlateRunnableTask = new FSlateLoadingThreadTask( *this );
-	SlateLoadingThread = 
-		FRunnableThread::Create
-		(
-			SlateRunnableTask,
-			TEXT("SlateLoadingThread"),
-			false,
-			false
-		);
-
+	SlateLoadingThread = FRunnableThread::Create(SlateRunnableTask, TEXT("SlateLoadingThread"));
 }
 
 void FSlateLoadingSynchronizationMechanism::DestroySlateThread()

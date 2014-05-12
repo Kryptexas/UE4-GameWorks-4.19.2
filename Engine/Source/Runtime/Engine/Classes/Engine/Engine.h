@@ -7,6 +7,8 @@
 #pragma once
 #include "Engine.generated.h"
 
+class FScreenSaverInhibitor;
+
 UENUM()
 enum EFullyLoadPackageType
 {
@@ -2116,6 +2118,7 @@ private:
 
 	/** Thread preventing screen saver from kicking. Suspend most of the time. */
 	FRunnableThread*		ScreenSaverInhibitor;
+	FScreenSaverInhibitor*  ScreenSaverInhibitorRunnable;
 
 	/** If true, the engine tick function will poll FPlatformSurvey for results */
 	bool					bPendingHardwareSurveyResults;

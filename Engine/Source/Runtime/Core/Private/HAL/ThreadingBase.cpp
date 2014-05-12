@@ -35,10 +35,6 @@ class FFakeThread : public FRunnableThread
 
 	/** Thread is suspended. */
 	bool bIsSuspended;
-	/** Thread should delete itself. */
-	bool bDeleteSelf;
-	/** Thread should automatically delete the runnable associated with it. */
-	bool bDeleteRunnable;
 	/** Name of this thread. */
 	FString Name;
 	/** Runnable object associated with this thread. */
@@ -53,8 +49,6 @@ public:
 	 */
 	FFakeThread()
 		: bIsSuspended(false)
-		, bDeleteSelf(false)
-		, bDeleteRunnable(false)
 		, Runnable(NULL)
 		, ThreadId(ThreadIdCounter++)
 	{
@@ -96,15 +90,6 @@ public:
 	virtual bool Kill(bool bShouldWait)
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
-		if (bDeleteRunnable)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
-		if (bDeleteSelf)
-		{
-			delete this;
-		}
 		return true;
 	}
 
@@ -124,7 +109,7 @@ public:
 	}
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* ThreadName,
-		bool bAutoDeleteSelf,bool bAutoDeleteRunnable,uint32 InStackSize,
+		uint32 InStackSize,
 		EThreadPriority InThreadPri, uint64 InThreadAffinityMask)
 
 	{
@@ -134,11 +119,6 @@ public:
 			InRunnable->Init();
 		}		
 		return Runnable != NULL;
-	}
-
-	virtual bool NotifyCreated() OVERRIDE
-	{
-		return false;
 	}
 
 	/**	 
@@ -222,8 +202,6 @@ FRunnableThread::~FRunnableThread()
 FRunnableThread* FRunnableThread::Create(
 	class FRunnable* InRunnable, 
 	const TCHAR* ThreadName, 
-	bool bAutoDeleteSelf,
-	bool bAutoDeleteRunnable, 
 	uint32 InStackSize,
 	EThreadPriority InThreadPri,
 	uint64 InThreadAffinityMask)
@@ -242,7 +220,7 @@ FRunnableThread* FRunnableThread::Create(
 			}
 
 			// Call the thread's create method
-			if (NewThread->CreateInternal(InRunnable,ThreadName,bAutoDeleteSelf,bAutoDeleteRunnable,InStackSize,InThreadPri,InThreadAffinityMask) == false)
+			if (NewThread->CreateInternal(InRunnable,ThreadName,InStackSize,InThreadPri,InThreadAffinityMask) == false)
 			{
 				// We failed to start the thread correctly so clean up
 				delete NewThread;
@@ -254,17 +232,12 @@ FRunnableThread* FRunnableThread::Create(
 	{
 		// Create a fake thread when multithreading is disabled.
 		NewThread = new FFakeThread();
-		if (NewThread->CreateInternal(InRunnable,ThreadName,bAutoDeleteSelf,bAutoDeleteRunnable,InStackSize,InThreadPri) == false)
+		if (NewThread->CreateInternal(InRunnable,ThreadName,InStackSize,InThreadPri) == false)
 		{
 			// We failed to start the thread correctly so clean up
 			delete NewThread;
 			NewThread = NULL;
 		}
-	}
-	if (NewThread && NewThread->NotifyCreated())
-	{
-		// The thread was marked to delete itself and it already has.
-		NewThread = NULL;
 	}
 
 	if( NewThread )
@@ -368,7 +341,7 @@ public:
 
 		OwningThreadPool = InPool;
 		DoWorkEvent = FPlatformProcess::CreateSynchEvent();
-		Thread = FRunnableThread::Create( this, *PoolThreadName, false, false, InStackSize, ThreadPriority );
+		Thread = FRunnableThread::Create(this, *PoolThreadName, InStackSize, ThreadPriority);
 		check(Thread);
 		return true;
 	}

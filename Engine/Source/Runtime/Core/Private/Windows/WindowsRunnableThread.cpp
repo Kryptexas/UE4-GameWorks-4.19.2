@@ -80,23 +80,5 @@ uint32 FRunnableThreadWin::Run()
 		ThreadInitSyncEvent->Trigger();
 	}
 
-	// Should we delete the runnable?
-	if (bShouldDeleteRunnable == true)
-	{
-		delete Runnable;
-		Runnable = NULL;
-	}
-	// Clean ourselves up without waiting
-	if (bShouldDeleteSelf == true)
-	{
-		// Make sure the caller knows we want to delete this thread if we're still int CreateInternal.
-		WantsToDeleteSelf.Increment();
-		// Wait until the caller has finished setting up this thread in case Runnable execution was very short.
-		ThreadCreatedSyncEvent->Wait();
-		// Now clean up the thread handle so we don't leak
-		CloseHandle(Thread);
-		Thread = NULL;
-		delete this;
-	}
 	return ExitCode;
 }

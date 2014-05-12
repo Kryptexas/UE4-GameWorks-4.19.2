@@ -253,8 +253,6 @@ public:
 	 *
 	 * @param InRunnable The runnable object to execute
 	 * @param ThreadName Name of the thread
-	 * @param bAutoDeleteSelf Whether to delete this object on exit
-	 * @param bAutoDeleteRunnable Whether to delete the runnable object on exit
 	 * @param InStackSize The size of the stack to create. 0 means use the
 	 * current thread's stack size
 	 * @param InThreadPri Tells the thread whether it needs to adjust its
@@ -262,11 +260,9 @@ public:
 	 *
 	 * @return The newly created thread or NULL if it failed
 	 */
-	CORE_API static FRunnableThread* Create (
-		class FRunnable* InRunnable, 
-		const TCHAR* ThreadName, 
-		bool bAutoDeleteSelf = false,
-		bool bAutoDeleteRunnable = false, 
+	CORE_API static FRunnableThread* Create(
+		class FRunnable* InRunnable,
+		const TCHAR* ThreadName,
 		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal,
 		uint64 InThreadAffinityMask = 0);
@@ -412,8 +408,6 @@ protected:
 	 *
 	 * @param InRunnable The runnable object to execute
 	 * @param ThreadName Name of the thread
-	 * @param bAutoDeleteSelf Whether to delete this object on exit
-	 * @param bAutoDeleteRunnable Whether to delete the runnable object on exit
 	 * @param InStackSize The size of the stack to create. 0 means use the
 	 * current thread's stack size
 	 * @param InThreadPri Tells the thread whether it needs to adjust its
@@ -422,15 +416,8 @@ protected:
 	 * @return True if the thread and all of its initialization was successful, false otherwise
 	 */
 	virtual bool CreateInternal (FRunnable* InRunnable, const TCHAR* ThreadName,
-		bool bAutoDeleteSelf = 0,bool bAutoDeleteRunnable = 0,uint32 InStackSize = 0,
+		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) = 0;
-	/**
-	 * Lets this thread know it has been created it case it has already finished its execution
-	 * and wants to delete itself.
-	 *
-	 * @return true if the thread has already finished execution.
-	 */
-	virtual bool NotifyCreated() = 0;
 
 	/** Called when the this runnable has been destroyed, so we should clean-up memory allocated by misc classes. */
 	FSimpleMulticastDelegate ThreadDestroyedDelegate;

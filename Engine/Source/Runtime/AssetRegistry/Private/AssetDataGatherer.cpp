@@ -31,7 +31,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 	}
 	else
 	{
-		Thread = FRunnableThread::Create( this, TEXT("FAssetDataGatherer"), false, false, 0, TPri_BelowNormal );
+		Thread = FRunnableThread::Create(this, TEXT("FAssetDataGatherer"), 0, TPri_BelowNormal);
 	}
 }
 

@@ -440,7 +440,7 @@ FShaderCompileThreadRunnable::FShaderCompileThreadRunnable(FShaderCompilingManag
 
 	if (Manager->bAllowAsynchronousShaderCompiling && !FPlatformProperties::RequiresCookedData())
 	{
-		Thread = FRunnableThread::Create(this, TEXT("ShaderCompilingThread"), 0, 0, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("ShaderCompilingThread"));
 	}
 }
 

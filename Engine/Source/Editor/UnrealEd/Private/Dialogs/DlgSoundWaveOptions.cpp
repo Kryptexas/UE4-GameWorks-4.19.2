@@ -388,8 +388,7 @@ void SSoundWaveCompressionOptions::CreateCompressedWaves( void )
 
 	SoundPreviewThreadRunnable = new FSoundPreviewThread( Count, SoundWave, PreviewInfo );
 
-	EThreadPriority SoundPreviewThreadPrio = TPri_Normal;
-	SoundPreviewThread = FRunnableThread::Create( SoundPreviewThreadRunnable, TEXT( "SoundPreviewThread" ), 0, 0, 0, SoundPreviewThreadPrio );
+	SoundPreviewThread = FRunnableThread::Create(SoundPreviewThreadRunnable, TEXT("SoundPreviewThread"));
 }
 
 TOptional<float> SSoundWaveCompressionOptions::GetProgress() const

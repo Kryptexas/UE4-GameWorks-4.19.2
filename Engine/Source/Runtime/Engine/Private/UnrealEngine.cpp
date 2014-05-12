@@ -811,6 +811,14 @@ void UEngine::PreExit()
 #if WITH_EDITOR
 	UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
 #endif
+
+	if (ScreenSaverInhibitor)
+	{
+		ScreenSaverInhibitor->Kill();
+		delete ScreenSaverInhibitor;
+	}
+
+	delete ScreenSaverInhibitorRunnable;
 }
 
 void UEngine::TickDeferredCommands()
@@ -5546,8 +5554,8 @@ void UEngine::EnableScreenSaver( bool bEnable )
 				if( !ScreenSaverInhibitor )
 				{
 					// Create thread inhibiting screen saver while it is running.
-					FScreenSaverInhibitor* ScreenSaverInhibitorRunnable = new FScreenSaverInhibitor();
-					ScreenSaverInhibitor = FRunnableThread::Create( ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), true, true, 16 * 1024 );
+					ScreenSaverInhibitorRunnable = new FScreenSaverInhibitor();
+					ScreenSaverInhibitor = FRunnableThread::Create(ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), 16 * 1024);
 					// Only actually run when needed to not bypass group policies for screensaver, etc.
 					ScreenSaverInhibitor->Suspend( true );
 					ScreenSaverInhibitorSemaphore = 0;

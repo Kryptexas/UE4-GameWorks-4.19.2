@@ -56,7 +56,7 @@ public:
 
 		WorkEvent = FPlatformProcess::CreateSynchEvent();
 
-		Thread = FRunnableThread::Create(this, ThreadDescription, false, false, 128 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, ThreadDescription, 128 * 1024, TPri_AboveNormal);
 	}
 
 	/**

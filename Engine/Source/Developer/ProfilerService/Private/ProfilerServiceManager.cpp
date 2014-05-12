@@ -32,7 +32,7 @@ public:
 		, MessageEndpoint( InMessageEndpoint )
 		, StopTaskCounter( 0 )
 	{
-		Runnable = FRunnableThread::Create( this, TEXT("FFileTransferRunnable"), false, false, 128 * 1024, TPri_BelowNormal );
+		Runnable = FRunnableThread::Create(this, TEXT("FFileTransferRunnable"), 128 * 1024, TPri_BelowNormal);
 	}
 
 	/** Destructor. */

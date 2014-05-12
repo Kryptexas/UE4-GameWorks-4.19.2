@@ -23,26 +23,6 @@ class FRunnableThreadWinRT : public FRunnableThread
 	 */
 	FEvent* ThreadInitSyncEvent;
 
-	/** 
-	 * Sync event to make sure that CreateInteral() has been completed before allowing the thread to be auto-deleted
-	 */
-	FEvent* ThreadCreatedSyncEvent;
-
-	/** 
-	 * Flag used when the thread is waiting for the caller to finish setting it up before it can delete itself.
-	 */
-	FThreadSafeCounter WantsToDeleteSelf;
-
-	/**
-	 * Whether we should delete ourselves on thread exit
-	 */
-	bool bShouldDeleteSelf;
-
-	/**
-	 * Whether we should delete the runnable on thread exit
-	 */
-	bool bShouldDeleteRunnable;
-
 	/**
 	 * The priority to run the thread at
 	 */
@@ -141,24 +121,6 @@ class FRunnableThreadWinRT : public FRunnableThread
 			ThreadInitSyncEvent->Trigger();
 		}
 
-		// Should we delete the runnable?
-		if (bShouldDeleteRunnable == true)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
-		// Clean ourselves up without waiting
-		if (bShouldDeleteSelf == true)
-		{
-			// Make sure the caller knows we want to delete this thread if we're still int CreateInternal.
-			WantsToDeleteSelf.Increment();
-			// Wait until the caller has finished setting up this thread in case Runnable execution was very short.
-			ThreadCreatedSyncEvent->Wait();
-			// Now clean up the thread handle so we don't leak
-			CloseHandle(Thread);
-			Thread = NULL;
-			delete this;
-		}
 		return ExitCode;
 	}
 
@@ -167,12 +129,8 @@ public:
 		: Thread(NULL)
 		, Runnable(NULL)
 		, ThreadInitSyncEvent(NULL)
-		, ThreadCreatedSyncEvent(NULL)
-		, WantsToDeleteSelf(0)
-		, bShouldDeleteSelf(false)
-		, bShouldDeleteRunnable(false)
 		, ThreadPriority(TPri_Normal)
-		, ThreadID(NULL)				
+		, ThreadID(NULL)
 	{
 	}
 
@@ -184,7 +142,6 @@ public:
 			Kill(true);
 		}
 		FRunnableThread::GetThreadRegistry().Remove(ThreadID);
-		delete ThreadCreatedSyncEvent;
 	}
 	
 	virtual void SetThreadPriority(EThreadPriority NewPriority) OVERRIDE
@@ -244,18 +201,7 @@ public:
 		// Now clean up the thread handle so we don't leak
 		CloseHandle(Thread);
 		Thread = NULL;
-		// delete the runnable if requested and we didn't shut down gracefully already.
-		if (Runnable && bShouldDeleteRunnable == true)
-		{
-			delete Runnable;
-			Runnable = NULL;
-		}
-		// Delete ourselves if requested and we didn't shut down gracefully already.
-		// This check prevents a double-delete of self when we shut down gracefully.
-		if (!bDidExitOK && bShouldDeleteSelf == true)
-		{
-			delete this;
-		}
+
 		return bDidExitOK;
 	}
 
@@ -278,29 +224,21 @@ public:
 
 protected:
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
-		bool bAutoDeleteSelf = 0,bool bAutoDeleteRunnable = 0,uint32 InStackSize = 0,
+		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) OVERRIDE
 	{
 		check(InRunnable);
 		Runnable = InRunnable;
-		bShouldDeleteSelf = bAutoDeleteSelf;
-		bShouldDeleteRunnable = bAutoDeleteRunnable;
 		ThreadAffintyMask = InThreadAffinityMask;
 
 		// Create a sync event to guarantee the Init() function is called first
 		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
-		// Create a sync event to guarantee the thread will not delete itself until it has been fully set up.
-		ThreadCreatedSyncEvent = FPlatformProcess::CreateSynchEvent(true);
 
 		// Create the new thread
 		Thread = ThreadEmulation::CreateThread(NULL,InStackSize,_ThreadProc,this,0,(::DWORD *)&ThreadID);
 		// If it fails, clear all the vars
 		if (Thread == NULL)
 		{
-			if (bAutoDeleteRunnable == true)
-			{
-				delete InRunnable;
-			}
 			Runnable = NULL;
 		}
 		else
@@ -318,15 +256,6 @@ protected:
 		delete ThreadInitSyncEvent;
 		ThreadInitSyncEvent = NULL;
 		return Thread != NULL;
-	}
-
-	virtual bool NotifyCreated() OVERRIDE
-	{
-		const bool bHasFinished = !!WantsToDeleteSelf.GetValue();
-		// It's ok to delete this thread if it wants to delete self.
-		ThreadCreatedSyncEvent->Trigger();
-		return bHasFinished;
-		return false;
 	}
 };
 

@@ -37,7 +37,7 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket*
 #else
 	const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
 #endif
-	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, NetworkFileServerThreadSize, TPri_AboveNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), NetworkFileServerThreadSize, TPri_AboveNormal);
 }
 
 

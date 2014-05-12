@@ -59,7 +59,7 @@ public:
 
 		LocalChainState = ChainState;
 
-		Thread = FRunnableThread::Create(this, TEXT("FLauncherTask"), false, false, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FLauncherTask"));
 
 		if (Thread == NULL)
 		{

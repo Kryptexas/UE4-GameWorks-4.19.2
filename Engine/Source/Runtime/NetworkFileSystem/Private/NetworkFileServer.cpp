@@ -70,7 +70,7 @@ FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate
 				ListenAddr->SetPort(port);
 
 				// now create a thread to accept connections
-				Thread = FRunnableThread::Create(this,TEXT("FNetworkFileServer"), false, false, 8 * 1024, TPri_AboveNormal);
+				Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServer"), 8 * 1024, TPri_AboveNormal);
 
 				UE_LOG(LogFileServer, Display, TEXT("Unreal Network File Server is ready for client connections on %s!"), *ListenAddr->ToString(true));
 			}

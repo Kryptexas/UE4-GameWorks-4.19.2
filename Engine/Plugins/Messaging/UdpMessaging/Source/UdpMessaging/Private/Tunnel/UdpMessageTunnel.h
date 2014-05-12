@@ -60,7 +60,7 @@ public:
 		MulticastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
 		UnicastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
 
-		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnel"), false, false, 128 * 1024, TPri_AboveNormal);
+		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnel"), 128 * 1024, TPri_AboveNormal);
 	}
 
 	/**
