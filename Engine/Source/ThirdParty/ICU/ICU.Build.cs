@@ -57,13 +57,16 @@ public class ICU : ModuleRules
 				"io"	// Input/Output
 			};
 			string LibraryNamePostfix = string.Empty;
-			ICURootPath += "Linux/";
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				ICURootPath += "Mac/";
 				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					LibraryNamePostfix = "d";
 			}
+            else
+            {
+                ICURootPath += "Linux/";
+            }
 			string LibraryExtension = "a";
 			string LibraryNamePrefix = "libicu";
 
