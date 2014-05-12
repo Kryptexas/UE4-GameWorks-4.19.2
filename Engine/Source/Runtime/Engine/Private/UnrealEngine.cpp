@@ -9434,6 +9434,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 						if (CDOInst)
 						{
 							ReferenceReplacementMap.Add(CDOInst, NewInstance);
+#if WITH_EDITOR
 							if (Class->ClassGeneratedBy && Cast<UBlueprint>(Class->ClassGeneratedBy)->SkeletonGeneratedClass)
 							{
 								UObject *CDOInstS = Cast<UBlueprint>(Class->ClassGeneratedBy)->SkeletonGeneratedClass->GetDefaultSubobjectByName(NewInstance->GetFName());
@@ -9443,6 +9444,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 								}
 
 							}
+#endif // WITH_EDITOR
 						}
 						else
 						{

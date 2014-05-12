@@ -44,7 +44,7 @@ void UBlueprintGeneratedClass::PostLoad()
 			CurrObj->MarkPendingKill();
 		}
 	}
-
+#if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
 		// Make sure the placeable flag is correct for all blueprints
@@ -54,6 +54,7 @@ void UBlueprintGeneratedClass::PostLoad()
 			ClassFlags &= ~CLASS_NotPlaceable;
 		}
 	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 #if WITH_EDITOR

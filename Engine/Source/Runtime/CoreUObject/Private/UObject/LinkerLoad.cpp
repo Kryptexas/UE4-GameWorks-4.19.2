@@ -2810,7 +2810,7 @@ void ULinkerLoad::Preload( UObject* Object )
 #endif
 
 				// It's ok now to call PostLoad on blueprint CDOs
-				if (Object->HasAnyFlags(RF_ClassDefaultObject) && Object->GetClass()->ClassGeneratedBy != NULL)
+				if (Object->HasAnyFlags(RF_ClassDefaultObject) && Object->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 				{
 					Object->SetFlags(RF_NeedPostLoad|RF_WasLoaded);
 					GObjLoaded.Add( Object );
