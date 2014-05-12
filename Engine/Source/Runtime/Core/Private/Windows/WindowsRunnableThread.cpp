@@ -9,13 +9,8 @@ uint32 FRunnableThreadWin::GuardedRun()
 {
 	uint32 ExitCode = 1;
 
-#if PLATFORM_XBOXONE
-	if( ThreadAffintyMask )
-	{
-		SetThreadAffinityMask(ThreadAffintyMask);
-	}
+	FPlatformProcess::SetThreadAffinityMask(ThreadAffintyMask);
 	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
-#endif
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	if( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
@@ -55,14 +50,6 @@ uint32 FRunnableThreadWin::Run()
 	// Assume we'll fail init
 	uint32 ExitCode = 1;
 	check(Runnable);
-
-#if PLATFORM_XBOXONE
-	if( ThreadAffintyMask )
-	{
-		SetThreadAffinityMask(ThreadAffintyMask);
-	}
-	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
-#endif
 
 	// Initialize the runnable object
 	if (Runnable->Init() == true)

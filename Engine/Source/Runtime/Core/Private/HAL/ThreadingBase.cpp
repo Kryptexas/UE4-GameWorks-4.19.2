@@ -6,7 +6,7 @@
 #include "StatsData.h"
 
 /** The global thread pool */
-FQueuedThreadPool*		GThreadPool = NULL;
+FQueuedThreadPool*		GThreadPool						= NULL;
 
 CORE_API bool IsInGameThread()
 {
@@ -120,16 +120,6 @@ public:
 		}		
 		return Runnable != NULL;
 	}
-
-	/**	 
-	 * Change the thread processor affinity
-	 *
-	 * @param AffinityMask A bitfield indicating what processors the thread is allowed to run on
-	 */
-	virtual void SetThreadAffinityMask(uint64 AffinityMask)
-	{
-
-	}
 };
 uint32 FFakeThread::ThreadIdCounter = 0xffff;
 
@@ -201,9 +191,9 @@ FRunnableThread::~FRunnableThread()
 
 FRunnableThread* FRunnableThread::Create(
 	class FRunnable* InRunnable, 
-	const TCHAR* ThreadName, 
+	const TCHAR* ThreadName,
 	uint32 InStackSize,
-	EThreadPriority InThreadPri,
+	EThreadPriority InThreadPri, 
 	uint64 InThreadAffinityMask)
 {
 	FRunnableThread* NewThread = NULL;
@@ -214,11 +204,6 @@ FRunnableThread* FRunnableThread::Create(
 		NewThread = FPlatformProcess::CreateRunnableThread();
 		if (NewThread)
 		{
-			if( !InThreadAffinityMask )
-			{
-				InThreadAffinityMask = AffinityManagerGetAffinity( ThreadName );
-			}
-
 			// Call the thread's create method
 			if (NewThread->CreateInternal(InRunnable,ThreadName,InStackSize,InThreadPri,InThreadAffinityMask) == false)
 			{
@@ -341,7 +326,7 @@ public:
 
 		OwningThreadPool = InPool;
 		DoWorkEvent = FPlatformProcess::CreateSynchEvent();
-		Thread = FRunnableThread::Create(this, *PoolThreadName, InStackSize, ThreadPriority);
+		Thread = FRunnableThread::Create(this, *PoolThreadName, InStackSize, ThreadPriority, FPlatformAffinity::GetPoolThreadMask());
 		check(Thread);
 		return true;
 	}
@@ -598,4 +583,3 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 {
 	return new FQueuedThreadPoolBase;
 }
-

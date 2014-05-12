@@ -299,8 +299,7 @@ static void* AndroidEventThreadWorker( void* param )
 {
 	struct android_app* state = (struct android_app*)param;
 
-	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+	FPlatformProcess::SetThreadAffinityMask(FPlatformAffinity::GetMainGameMask());
 
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering event processing thread engine entry point");
 

@@ -199,8 +199,14 @@ struct CORE_API FGenericPlatformProcess
 	 * @return the ProcessId of this process
 	 */
 	static uint32 GetCurrentProcessId();
-	/** Sets the CPU affinity mask for the current thread. */
+	
+	/**	 
+	 * Change the thread processor affinity
+	 *
+	 * @param AffinityMask A bitfield indicating what processors the thread is allowed to run on
+	 */
 	static void SetThreadAffinityMask( uint64 AffinityMask );
+	
 	/** Get startup directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* BaseDir();
 	/** Get user directory.  NOTE: Only one return value is valid at a time! **/

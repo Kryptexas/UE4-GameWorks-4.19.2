@@ -648,7 +648,7 @@ public:
 
 	void Start()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 128 * 1024, TPri_BelowNormal);
+		Thread = FRunnableThread::Create(this, TEXT("StatsThread"), 128 * 1024, TPri_BelowNormal, FPlatformAffinity::GetStatsThreadMask());
 		check(Thread != NULL);
 	}
 

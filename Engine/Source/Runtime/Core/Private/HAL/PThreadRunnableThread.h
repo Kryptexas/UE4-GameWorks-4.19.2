@@ -323,10 +323,6 @@ public:
 		return ThreadName;
 	}
 
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) OVERRIDE
-	{
-	}
-
 protected:
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
@@ -354,7 +350,7 @@ protected:
 			SetThreadPriority(InThreadPri);
 
 			// set the affinity
-			SetThreadAffinityMask(InThreadAffinityMask);
+			FPlatformProcess::SetThreadAffinityMask( InThreadAffinityMask );
 		}
 		else // If it fails, clear all the vars
 		{
@@ -367,4 +363,3 @@ protected:
 		return Thread != PTHREAD_NULL;
 	}
 };
-

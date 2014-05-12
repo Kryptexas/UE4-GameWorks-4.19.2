@@ -5555,7 +5555,7 @@ void UEngine::EnableScreenSaver( bool bEnable )
 				{
 					// Create thread inhibiting screen saver while it is running.
 					ScreenSaverInhibitorRunnable = new FScreenSaverInhibitor();
-					ScreenSaverInhibitor = FRunnableThread::Create(ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), 16 * 1024);
+					ScreenSaverInhibitor = FRunnableThread::Create(ScreenSaverInhibitorRunnable, TEXT("ScreenSaverInhibitor"), 16 * 1024, TPri_Normal, FPlatformAffinity::GetPoolThreadMask());
 					// Only actually run when needed to not bypass group policies for screensaver, etc.
 					ScreenSaverInhibitor->Suspend( true );
 					ScreenSaverInhibitorSemaphore = 0;

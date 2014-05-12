@@ -56,6 +56,8 @@ using namespace vc_attributes;
 #include "Windows/WindowsPlatformSurvey.h"
 #include "Windows/WindowsPlatformHttp.h"
 
+typedef FGenericPlatformAffinity FPlatformAffinity;
+
 // include platform properties and typedef it for the runtime
 
 #include "Windows/WindowsPlatformProperties.h"

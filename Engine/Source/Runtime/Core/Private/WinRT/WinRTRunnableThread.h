@@ -158,11 +158,6 @@ public:
 		}
 	}
 
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) OVERRIDE
-	{
-		// This probably needs implementing - added to fix the broken build
-	}
-
 	virtual void Suspend(bool bShouldPause = 1) OVERRIDE
 	{
 		check(Thread);
@@ -258,4 +253,3 @@ protected:
 		return Thread != NULL;
 	}
 };
-

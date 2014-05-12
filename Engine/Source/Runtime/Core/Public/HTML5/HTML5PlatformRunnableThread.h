@@ -19,10 +19,6 @@ public:
 
 	}
 
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) OVERRIDE
-	{
-	}
-
 	virtual void Suspend (bool bShouldPause = 1)
 	{
 
@@ -68,4 +64,3 @@ protected:
 		return false;
 	}
 };
-

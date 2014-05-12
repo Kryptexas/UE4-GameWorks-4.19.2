@@ -55,7 +55,7 @@ FDDCCleanup::FDDCCleanup()
 	, StopTaskCounter(0)
 {
 	// Don't delete the runnable automatically. It's going to be manually deleted in FDDCCleanup::Shutdown.
-	Thread = FRunnableThread::Create(this, TEXT("FDDCCleanup"), 0, TPri_BelowNormal);
+	Thread = FRunnableThread::Create(this, TEXT("FDDCCleanup"), 0, TPri_BelowNormal, FPlatformAffinity::GetPoolThreadMask());
 }
 
 FDDCCleanup::~FDDCCleanup()

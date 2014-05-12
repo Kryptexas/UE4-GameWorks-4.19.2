@@ -762,7 +762,7 @@ FIOSystem& FIOSystem::Get()
 			// the platform didn't have a specific need, so we just use the base class with the normal file system.
 			AsyncIOSystem = new FAsyncIOSystemBase(FPlatformFileManager::Get().GetPlatformFile());
 		}
-		AsyncIOThread = FRunnableThread::Create(AsyncIOSystem, TEXT("AsyncIOSystem"), 16384, TPri_AboveNormal);
+		AsyncIOThread = FRunnableThread::Create(AsyncIOSystem, TEXT("AsyncIOSystem"), 16384, TPri_AboveNormal, FPlatformAffinity::GetPoolThreadMask());
 		check(AsyncIOThread);
 	}
 	check(AsyncIOSystem);

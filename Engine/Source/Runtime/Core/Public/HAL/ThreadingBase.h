@@ -265,7 +265,7 @@ public:
 		const TCHAR* ThreadName,
 		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal,
-		uint64 InThreadAffinityMask = 0);
+		uint64 InThreadAffinityMask = FPlatformAffinity::GetNoAffinityMask());
 
 	/**
 	 * Changes the thread priority of the currently running thread
@@ -273,13 +273,6 @@ public:
 	 * @param NewPriority The thread priority to change to
 	 */
 	virtual void SetThreadPriority (EThreadPriority NewPriority) = 0;
-
-	/**	 
-	 * Change the thread processor affinity
-	 *
-	 * @param AffinityMask A bitfield indicating what processors the thread is allowed to run on
-	 */
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) = 0;
 
 	/**
 	 * Tells the thread to either pause execution or resume depending on the

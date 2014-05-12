@@ -37,6 +37,7 @@
 #include "GenericPlatform/GenericPlatformFile.h"
 #include "GenericPlatform/GenericPlatformSurvey.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
+#include "GenericPlatform/GenericPlatformAffinity.h"
 
 // Platform specific include.
 //@port This is where you include your "main" platform header

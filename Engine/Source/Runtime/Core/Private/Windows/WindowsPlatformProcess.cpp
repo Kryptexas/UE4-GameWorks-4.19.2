@@ -369,7 +369,10 @@ uint32 FWindowsPlatformProcess::GetCurrentProcessId()
 
 void FWindowsPlatformProcess::SetThreadAffinityMask( uint64 AffinityMask )
 {
-	::SetThreadAffinityMask(::GetCurrentThread(), (DWORD_PTR)AffinityMask);
+	if( AffinityMask != FPlatformAffinity::GetNoAffinityMask() )
+	{
+		::SetThreadAffinityMask( ::GetCurrentThread(), (DWORD_PTR)AffinityMask );
+	}
 }
 
 bool FWindowsPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode )

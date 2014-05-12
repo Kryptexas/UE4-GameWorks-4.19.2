@@ -141,12 +141,6 @@ public:
 		}
 	}
 
-	virtual void SetThreadAffinityMask(uint64 AffinityMask) OVERRIDE
-	{
-		// Change the processor affinity on the thread
-		::SetThreadAffinityMask(Thread, (DWORD_PTR)AffinityMask);
-	}
-
 	virtual void Suspend(bool bShouldPause = 1) OVERRIDE
 	{
 		check(Thread);
@@ -237,4 +231,3 @@ protected:
 		return Thread != NULL;
 	}
 };
-

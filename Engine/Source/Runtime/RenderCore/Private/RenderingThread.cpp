@@ -24,7 +24,7 @@ RENDERCORE_API bool GUseThreadedRendering = false;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	
+
 static FRunnable* GRenderingThreadRunnable = NULL;
 
 /** If the rendering thread has been terminated by an unhandled exception, this contains the error message. */
@@ -191,7 +191,7 @@ void TickRenderingTickables()
 	{
 		return;
 	}
-	
+
 	// tick any rendering thread tickables
 	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadTickableObjects.Num(); ObjectIndex++)
 	{
@@ -302,12 +302,6 @@ public:
 	{
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
-#if PLATFORM_ANDROID
-		//@TODO: This should be using the affinitymask in FRunnableThread::Create() and tested on all platforms.
-		uint64 RenderThreadAffinityMask = AffinityManagerGetAffinity( TEXT("RenderingThread 0"));
-		FPlatformProcess::SetThreadAffinityMask( RenderThreadAffinityMask );
-#endif
-
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
 		{
@@ -340,7 +334,7 @@ public:
 #if STATS
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
-#endif		
+#endif
 		GRenderThreadId = 0;
 
 		return 0;
@@ -457,7 +451,7 @@ void StartRenderingThread()
 	// Create the rendering thread.
 	GRenderingThreadRunnable = new FRenderingThread();
 
-	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ));
+	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, TPri_Normal, FPlatformAffinity::GetRenderingThreadMask());
 
 	// Wait for render thread to have taskgraph bound before we dispatch any tasks for it.
 	((FRenderingThread*)GRenderingThreadRunnable)->TaskGraphBoundSyncEvent->Wait();
@@ -474,7 +468,7 @@ void StartRenderingThread()
 	// Create the rendering thread heartbeat
 	GRenderingThreadRunnableHeartbeat = new FRenderingThreadTickHeartbeat();
 
-	GRenderingThreadHeartbeat = FRunnableThread::Create(GRenderingThreadRunnableHeartbeat, *FString::Printf(TEXT("RTHeartBeat %d"), ThreadCount), 16 * 1024, TPri_AboveNormal);
+	GRenderingThreadHeartbeat = FRunnableThread::Create(GRenderingThreadRunnableHeartbeat, *FString::Printf(TEXT("RTHeartBeat %d"), ThreadCount), 16 * 1024, TPri_AboveNormal, FPlatformAffinity::GetRTHeartBeatMask());
 
 	ThreadCount++;
 }
@@ -522,7 +516,7 @@ void StopRenderingThread()
 
 			// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
 			// If the game thread is already executing tasks, then we have no choice but to spin
-			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread)) 
+			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
 			{
 				while ((QuitTask.GetReference() != nullptr) && !QuitTask->IsComplete())
 				{

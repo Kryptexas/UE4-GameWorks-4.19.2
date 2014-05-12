@@ -426,7 +426,6 @@ extern CORE_API double GBlueprintCompileTime;
 #include "Internationalization/Culture.h"
 #include "Guid.h"						// FGuid class
 #include "NetworkGuid.h"				// FNetworkGuid class
-#include "AffinityManager.h"			// Non-platform Affinity information for threads.
 #include "UnrealMath.h"					// Vector math functions.
 #include "SHMath.h"						// SH math functions.
 #include "RandomStream.h"				// Random stream definitions.
