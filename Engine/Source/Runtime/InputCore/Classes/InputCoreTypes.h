@@ -118,6 +118,15 @@ struct INPUTCORE_API FKeyDetails
 		, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
 		, AxisType(EInputAxisType::None)
 	{
+		if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
+		{
+			ensure((InKeyFlags & EKeyFlags::VectorAxis) == 0);
+			AxisType = EInputAxisType::Float;
+		}
+		else if ((InKeyFlags & EKeyFlags::VectorAxis) != 0)
+		{
+			AxisType = EInputAxisType::Vector;
+		}
 	}
 
 	bool IsModifierKey() const { return bIsModifierKey != 0; }
