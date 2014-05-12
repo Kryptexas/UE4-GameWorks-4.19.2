@@ -185,9 +185,6 @@ protected:
 			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
 			GetMutableDefault<UMoviePlayerSettings>()
 		);
-
-		// update the visible packaging enum values
-		UProjectPackagingSettings::UpdateBuildConfigurationVisibility();
 /*
 		// game session
 		SettingsModule.RegisterSettings("Project", "Game", "GameSession",

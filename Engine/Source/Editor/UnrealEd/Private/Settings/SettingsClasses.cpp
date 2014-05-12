@@ -303,24 +303,3 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 		StagingDirectory.Path = Path;
 	}
 }
-
-void UProjectPackagingSettings::UpdateBuildConfigurationVisibility()
-{
-	// Find if there are any .target.cs files in the project source directory.
-	TArray<FString> TargetFileNames;
-	IFileManager::Get().FindFiles(TargetFileNames, *(FPaths::GameSourceDir() / TEXT("*.target.cs")), true, false);
-
-	// Get the EProjectPackagingBuildConfigurations enum
-	extern UEnum *Z_Construct_UEnum_UProjectPackagingSettings_EProjectPackagingBuildConfigurations();
-	UEnum *ProjectPackagingConfigEnum = Z_Construct_UEnum_UProjectPackagingSettings_EProjectPackagingBuildConfigurations();
-
-	// Mark the DebugGame value as hidden if it's a content only project.
-	if (TargetFileNames.Num() == 0)
-	{
-		ProjectPackagingConfigEnum->SetMetaData(TEXT("Hidden"), TEXT("1"), PPBC_DebugGame);
-	}
-	else
-	{
-		ProjectPackagingConfigEnum->RemoveMetaData(TEXT("Hidden"), PPBC_DebugGame);
-	}
-}

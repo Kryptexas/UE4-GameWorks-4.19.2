@@ -104,9 +104,4 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
-
-	/*
-	 * Updates visibility metadata for values of the EProjectPackagingBuildConfigurations, as appropriate for the current project.
-	 */
-	static void UpdateBuildConfigurationVisibility();
 };
