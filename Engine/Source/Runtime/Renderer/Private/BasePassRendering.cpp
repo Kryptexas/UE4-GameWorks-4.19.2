@@ -182,7 +182,7 @@ public:
 				LightMapPolicy,
 				Parameters.BlendMode,
 				Parameters.TextureMode,
-				Parameters.LightingModel != MLM_Unlit && Scene && Scene->SkyLight,
+				Parameters.LightingModel != MLM_Unlit && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
 				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog()
 				),
 			Scene->GetFeatureLevel()

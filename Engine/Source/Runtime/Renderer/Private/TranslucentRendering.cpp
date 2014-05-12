@@ -264,7 +264,7 @@ public:
 			Parameters.BlendMode,
 			// Translucent meshes need scene render targets set as textures
 			ESceneRenderTargetsMode::SetTextures,
-			bIsLitMaterial && Scene && Scene->SkyLight,
+			bIsLitMaterial && Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting,
 			Scene && Scene->HasAtmosphericFog() && View.Family->EngineShowFlags.Atmosphere,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			Parameters.bAllowFog
