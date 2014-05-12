@@ -607,7 +607,7 @@ FString SIntroTutorials::GetCurrentExcerptIdentifierName() const
 {
 	if (Excerpts.IsValidIndex(CurrentExcerptIndex))
 	{
-		Excerpts[CurrentExcerptIndex].Name;
+		return Excerpts[CurrentExcerptIndex].Name;
 	}
 
 	return FString();
