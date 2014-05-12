@@ -191,9 +191,17 @@ namespace UnrealBuildTool.IOS
 			}
 			
 			// copy additional engine framework assets in
-			if ( Directory.Exists( InEngineDir + "/Build/IOS/Resources/FrameworkAssets" ) )
+			string FrameworkAssetsPath = InEngineDir + "/Intermediate/IOS/FrameworkAssets";
+
+			// Let project override assets if they exist
+			if ( Directory.Exists( InProjectDirectory + "/Intermediate/IOS/FrameworkAssets" ) )
 			{
-				CopyFiles( InEngineDir + "/Build/IOS/Resources/FrameworkAssets", AppDirectory, "*.*", true );
+				FrameworkAssetsPath = InProjectDirectory + "/Intermediate/IOS/FrameworkAssets";
+			}
+
+			if ( Directory.Exists( FrameworkAssetsPath ) )
+			{
+				CopyFolder( FrameworkAssetsPath, AppDirectory, true );
 			}
 
 			//CopyFiles(BuildDirectory, PayloadDirectory, null, "iTunesArtwork", null);
