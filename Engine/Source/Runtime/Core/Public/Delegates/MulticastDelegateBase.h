@@ -34,7 +34,14 @@ public:
 	 */
 	inline bool IsBound( ) const
 	{
-		return (InvocationList.Num() > 0);
+		for (IDelegateInstance* DelegateInstance : InvocationList)
+		{
+			if (DelegateInstance != nullptr)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** 
