@@ -37,7 +37,10 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 
 	// Preload is required here in order to load the value of Struct->PropertiesSize
 	Ar.Preload(Struct);
-	checkSlow(Struct);
+	if ( !ensure(Struct) )
+	{
+		Struct = GetFallbackStruct();
+	}
 	Struct->RecursivelyPreload();
 	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
