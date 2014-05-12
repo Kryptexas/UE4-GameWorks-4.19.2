@@ -291,11 +291,11 @@ void FPhysXVehicleManager::Update( float DeltaTime )
 #endif //PX_DEBUG_VEHICLE_ON
 }
 
-void FPhysXVehicleManager::UpdateTuning()
+void FPhysXVehicleManager::PreTick( float DeltaTime )
 {
 	for (int32 i = 0; i < Vehicles.Num(); ++i)
 	{
-		Vehicles[i]->UpdateTuning();
+		Vehicles[i]->PreTick(DeltaTime);
 	}
 }
 

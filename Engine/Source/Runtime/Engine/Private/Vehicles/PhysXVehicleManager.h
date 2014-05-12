@@ -58,8 +58,8 @@ public:
 	void Update( float DeltaTime );
 	
 	/**
-	 * Update vehicle tuning. Used when designer tweaks values while the game is running */
-	void UpdateTuning();
+	 * Update vehicle tuning and other state such as input */
+	void PreTick( float DeltaTime );
 
 private:
 
