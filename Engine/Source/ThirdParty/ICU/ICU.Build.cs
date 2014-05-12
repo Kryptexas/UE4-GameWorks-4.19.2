@@ -59,7 +59,7 @@ public class ICU : ModuleRules
 			string LibraryNamePostfix = string.Empty;
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				ICURootPath += "Mac/";
+				ICURootPath += "Mac/lib/";
 				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					LibraryNamePostfix = "d";
 			}
