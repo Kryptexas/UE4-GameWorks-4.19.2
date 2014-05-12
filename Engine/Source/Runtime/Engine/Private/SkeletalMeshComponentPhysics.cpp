@@ -1817,6 +1817,8 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.bias",0));
 	verify(NxParameterized::setParamF32(*ActorDesc,"lodWeights.benefitsBias",0));
 
+	verify(NxParameterized::setParamBool(*ActorDesc, "localSpaceSim", bLocalSpaceSimulation));
+
 	// Initialize the global pose
 
 	FMatrix UGlobalPose = ComponentToWorld.ToMatrixWithScale();
@@ -3000,7 +3002,7 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 	}
 	else
 	{
-	ValidateClothingActors();
+		ValidateClothingActors();
 		UpdateClothState(DeltaTime);
 	}
 #if 0 //if turn on this flag, you can check which primitive objects are activated for collision detection
@@ -3062,10 +3064,33 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 				const physx::PxVec3* Vertices = ClothingActor->getSimulationPositions();
 				const physx::PxVec3* Normals = ClothingActor->getSimulationNormals();
 
-				for(uint32 VertexIndex=0; VertexIndex<NumSimulVertices; VertexIndex++)
+				// In case of Local space simulation, need to transform simulated positions with the internal bone matrix
+				if (bLocalSpaceSimulation)
 				{
-					ClothData.ClothSimulPositions[VertexIndex] = P2UVector(Vertices[VertexIndex]);
-					ClothData.ClothSimulNormals[VertexIndex] = P2UVector(Normals[VertexIndex]);
+					check(ClothingActors[ActorIndex].ParentClothingAsset.IsValid());
+
+					const NxParameterized::Interface* AssetParams = ClothingActors[ActorIndex].ParentClothingAsset->GetAsset()->getAssetNxParameterized();
+					uint32 InternalRootBoneIndex;
+					NxParameterized::getParamU32(*AssetParams, "rootBoneIndex", InternalRootBoneIndex);
+					check(InternalRootBoneIndex >= 0);
+					FName BoneName = ClothingActors[ActorIndex].ParentClothingAsset->GetConvertedBoneName(InternalRootBoneIndex);					
+					int32 BoneIndex = GetBoneIndex(BoneName);
+					check(BoneIndex >= 0);
+					FMatrix ClothRootBoneMatrix = GetBoneMatrix(BoneIndex);
+
+					for (uint32 VertexIndex = 0; VertexIndex < NumSimulVertices; VertexIndex++)
+					{						
+						ClothData.ClothSimulPositions[VertexIndex] = ClothRootBoneMatrix.TransformPosition(P2UVector(Vertices[VertexIndex]));
+						ClothData.ClothSimulNormals[VertexIndex] = ClothRootBoneMatrix.TransformVector(P2UVector(Normals[VertexIndex]));
+					}
+				}
+				else
+				{
+					for (uint32 VertexIndex = 0; VertexIndex < NumSimulVertices; VertexIndex++)
+					{
+						ClothData.ClothSimulPositions[VertexIndex] = P2UVector(Vertices[VertexIndex]);
+						ClothData.ClothSimulNormals[VertexIndex] = P2UVector(Normals[VertexIndex]);
+					}
 				}
 			}
 		}

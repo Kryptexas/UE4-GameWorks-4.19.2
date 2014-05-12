@@ -303,6 +303,15 @@ public:
 	/** can't collide with part of attached children if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithAttachedChildren:1;
+	/**
+	 * It's worth trying this option when you feel that the current cloth simulation is unstable.
+	 * The scale of the actor is maintained during the simulation. 
+	 * It is possible to add the inertia effects to the simulation, through the inertiaScale parameter of the clothing material. 
+	 * So with an inertiaScale of 1.0 there should be no visible difference between local space and global space simulation. 
+	 * Known issues: - Currently there's simulation issues when this feature is used in 3.x (DE4076) So if localSpaceSim is enabled there's no inertia effect when the global pose of the clothing actor changes.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Clothing)
+	uint32 bLocalSpaceSimulation : 1;
 	/** reset the clothing after moving the clothing position (called teleport) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bResetAfterTeleport:1;
