@@ -160,10 +160,6 @@ public:
 
 	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) OVERRIDE
 	{
-		if(InClass->GetName() == TEXT("MyLightBlueprint_C"))
-		{
-			InClass = InClass;
-		}
 		EFilterReturn::Type eState = InFilterFuncs->IfInClassesSet(AllowedClasses, InClass);
 		if(eState == EFilterReturn::NoItems)
 		{

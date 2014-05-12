@@ -1868,10 +1868,6 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 				{
 					UnloadedBlueprintData->AddImplementedInterfaces(InterfaceName);
 				}
-				else
-				{
-					ImplementedInterfaces = ImplementedInterfaces;
-				}
 			}
 			CurrentString = RemainingString;
 		}

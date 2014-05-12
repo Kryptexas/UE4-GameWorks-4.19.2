@@ -3317,7 +3317,7 @@ ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsReliableReplicatedF
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
 	if(!CustomEvent)
 	{
-		ESlateCheckBoxState::Undetermined;
+		return ESlateCheckBoxState::Undetermined;
 	}
 
 	uint32 const NetReliableMask = (FUNC_Net | FUNC_NetReliable);

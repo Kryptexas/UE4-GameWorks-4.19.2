@@ -177,7 +177,7 @@ void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTes
 			, TEXT("%s> Trying to set test Result to \'Invalid\'. Falling back to \'Failed\'")
 			, *GetActorLabel());
 
-		InResult == EFunctionalTestResult::Failed;
+		InResult = EFunctionalTestResult::Failed;
 	}
 	TimesUpResult = InResult;
 }

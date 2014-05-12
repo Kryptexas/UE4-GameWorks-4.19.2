@@ -952,7 +952,7 @@ void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewp
 			{
 				if( CurrentAxis == EAxisList::ZRotation )
 				{
-					FVector Axis = Axis = FVector( 0, 0, 1 );
+					FVector Axis = FVector( 0, 0, 1 );
 					Axis = InputCoordSystem.TransformVector( Axis );
 
 					const float RotationSpeed = GetRotationSpeed();
