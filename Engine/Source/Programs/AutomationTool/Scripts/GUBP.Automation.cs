@@ -2409,6 +2409,7 @@ public class GUBP : BuildCommand
             {
                 string BaseDir = ResolveSharedBuildDirectory(GameProj.GameName);
                 string ArchiveDirectory = CombinePaths(BaseDir, GetFullName(), P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString);
+                CleanFormalBuilds(ArchiveDirectory);
                 if (DirectoryExists_NoExceptions(ArchiveDirectory))
                 {
                     if (IsBuildMachine)

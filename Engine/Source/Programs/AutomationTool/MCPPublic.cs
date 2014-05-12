@@ -176,7 +176,7 @@ namespace EpicGames.MCP.Automation
         static public string GetBuildRootPath()
         {
             return CommandUtils.IsBuildMachine
-                ? (Utils.IsRunningOnMono ? "/Volumes/Builds" : @"P:\Builds")
+                ? CommandUtils.RootSharedTempStorageDirectory()
                 : CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds");
         }
 

@@ -522,19 +522,6 @@ namespace AutomationTool
             }
         }
         
-        public static string RootSharedTempStorageDirectory()
-        {
-            string StorageDirectory = "";
-            if(UnrealBuildTool.Utils.IsRunningOnMono)
-            {
-                StorageDirectory = "/Volumes/Builds";
-            }
-            else
-            {
-                StorageDirectory = CombinePaths("P:", "Builds");
-            }
-            return StorageDirectory;
-        }
         public static string SharedTempStorageDirectory()
         {
             return "GUBP";
@@ -552,38 +539,6 @@ namespace AutomationTool
                 return false;
             }
             return true;
-        }
-
-        static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
-        public static string ResolveSharedBuildDirectory(string GameFolder)
-        {
-            if (ResolveCache.ContainsKey(GameFolder))
-            {
-                return ResolveCache[GameFolder];
-            }
-            string Root = RootSharedTempStorageDirectory();
-            string Result = CombinePaths(Root, GameFolder);
-            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
-            {
-                string GameStr = "Game";
-                bool HadGame = false;
-                if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
-                    Result = CombinePaths(Root, ShortFolder);
-                    HadGame = true;
-                }
-                if (!HadGame || !DirectoryExists_NoExceptions(Result))
-                {
-                    Result = CombinePaths(Root, "UE4");
-                    if (!DirectoryExists_NoExceptions(Result))
-                    {
-                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
-                    }
-                }
-            }
-            ResolveCache.Add(GameFolder, Result);
-            return Result;
         }
 
         public static string ResolveSharedTempStorageDirectory(string GameFolder)
