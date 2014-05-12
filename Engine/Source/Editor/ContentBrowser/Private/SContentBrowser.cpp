@@ -1235,12 +1235,19 @@ TSharedRef<SWidget> SContentBrowser::MakeCreateAssetContextMenu()
 	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
 	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL, MenuExtender);
-		
+
+	// Only add "New Folder" item if we do not have a collection selected
+	FNewAssetContextMenu::FOnNewFolderRequested OnNewFolderRequested;
+	if (CollectionViewPtr->GetSelectedCollections().Num() == 0)
+	{
+		OnNewFolderRequested = FNewAssetContextMenu::FOnNewFolderRequested::CreateSP(this, &SContentBrowser::NewFolderRequested);
+	}
+
 	FNewAssetContextMenu::MakeContextMenu(
 		MenuBuilder, 
 		CurrentPath, 
 		FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested),
-		FNewAssetContextMenu::FOnNewFolderRequested::CreateSP(this, &SContentBrowser::NewFolderRequested));
+		OnNewFolderRequested);
 
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
