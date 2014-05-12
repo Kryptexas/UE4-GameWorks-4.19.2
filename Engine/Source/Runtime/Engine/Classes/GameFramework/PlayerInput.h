@@ -369,8 +369,8 @@ public:
 	virtual void PostInitProperties() OVERRIDE;
 
 	void FlushPressedKeys();
-	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
-	bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad = false);
+	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);
+	bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
 	bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
 	bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 	bool InputGesture(const FKey Gesture, const EInputEvent Event, const float Value);

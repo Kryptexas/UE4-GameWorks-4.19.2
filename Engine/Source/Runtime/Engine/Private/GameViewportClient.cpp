@@ -242,9 +242,9 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 		if (!bResult)
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
+			if (TargetPlayer && TargetPlayer->PlayerController)
 			{
-				bResult = TargetPlayer->PlayerController->PlayerInput->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
+				bResult = TargetPlayer->PlayerController->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
 			}
 		}
 
@@ -310,9 +310,9 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 	bool bResult = false;
 
 	ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-	if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
+	if (TargetPlayer && TargetPlayer->PlayerController)
 	{
-		bResult = TargetPlayer->PlayerController->PlayerInput->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
+		bResult = TargetPlayer->PlayerController->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
 	}
 
 	return bResult;
@@ -1114,9 +1114,9 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
 		APlayerController* PlayerController = *Iterator;
-		if (PlayerController && PlayerController->PlayerInput)
+		if (PlayerController)
 		{
-			PlayerController->PlayerInput->FlushPressedKeys();
+			PlayerController->FlushPressedKeys();
 		}
 	}
 }

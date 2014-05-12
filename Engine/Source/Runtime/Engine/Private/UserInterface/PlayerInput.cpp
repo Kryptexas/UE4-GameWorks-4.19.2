@@ -62,7 +62,8 @@ void UPlayerInput::FlushPressedKeys()
 
 			for ( int32 KeyIndex = 0; KeyIndex < PressedKeys.Num(); KeyIndex++ )
 			{
-				InputKey(PressedKeys[KeyIndex], IE_Released, 0);
+				FKey& Key = PressedKeys[KeyIndex];
+				InputKey(Key, IE_Released, 0, Key.IsGamepadKey());
 			}
 		}
 	}
