@@ -2089,7 +2089,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	if ( !FApp::HasGameName() )
 	{
-		OutFailReason = LOCTEXT("AddCodeToProject_NoGameName", "You can not add code because you have not loaded a projet.");
+		OutFailReason = LOCTEXT("AddCodeToProject_NoGameName", "You can not add code because you have not loaded a project.");
 		return false;
 	}
 
