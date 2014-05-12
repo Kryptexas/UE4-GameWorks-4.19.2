@@ -114,7 +114,7 @@ int32 SProfilerThreadView::OnPaint( const FGeometry& AllottedGeometry, const FSl
 		DrawFrameMarkers();
 	}
 
-#if 1/*DEBUG_PROFILER_PERFORMANCE*/
+#if 0/*DEBUG_PROFILER_PERFORMANCE*/
 
 	LayerId++;
 	// Draw debug information.
