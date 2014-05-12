@@ -85,8 +85,6 @@ void FForwardShadingSceneRenderer::Render()
 
 	RenderForwardShadingBasePass();
 
-	RenderCustomDepthPass();
-
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{

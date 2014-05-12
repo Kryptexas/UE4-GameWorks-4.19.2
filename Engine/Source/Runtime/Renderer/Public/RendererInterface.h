@@ -267,6 +267,8 @@ public:
 		// Usually we don't want to propagate MSAA samples.
 		NumSamples = 1;
 
+		bForceSeparateTargetAndShaderResource = false;
+
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
 		TargetableFlags &= (~TexCreate_UAV);
 	}

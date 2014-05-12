@@ -55,6 +55,13 @@ static TAutoConsoleVariable<int32> CVarCustomDepth(
 	ECVF_RenderThreadSafe
 	);
 
+TAutoConsoleVariable<int32> CVarMobileMSAA(
+	TEXT("r.MobileMSAA"),
+	0,
+	TEXT("Whether to use MSAA instead of Temporal AA on mobile"),
+	ECVF_RenderThreadSafe
+	);
+
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
 
@@ -160,6 +167,9 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();
 
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	int32 MobileMSAA = CVarMobileMSAA->GetValueOnRenderThread();
+
 	bool bLightPropagationVolume = UseLightPropagationVolumeRT();
 
 	uint32 MinShadowResolution;
@@ -178,6 +188,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
  		(CurrentMaxShadowResolution != MaxShadowResolution) ||
 		(CurrentTranslucencyLightingVolumeDim != TranslucencyLightingVolumeDim) ||
 		(CurrentMobile32bpp != Mobile32bpp) ||
+		(CurrentMobileMSAA != MobileMSAA) ||
 		(bCurrentLightPropagationVolume != bLightPropagationVolume) ||
 		(CurrentMinShadowResolution != MinShadowResolution))
 	{
@@ -188,6 +199,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		CurrentMaxShadowResolution = MaxShadowResolution;
 		CurrentTranslucencyLightingVolumeDim = TranslucencyLightingVolumeDim;
 		CurrentMobile32bpp = Mobile32bpp;
+		CurrentMobileMSAA = MobileMSAA;
 		CurrentMinShadowResolution = MinShadowResolution;
 		bCurrentLightPropagationVolume = bLightPropagationVolume;
 		
@@ -260,7 +272,7 @@ void FSceneRenderTargets::BeginRenderingSceneColor( bool bGBufferPass )
 	}
 	else
 	{
-		RHISetRenderTarget(GetSceneColorTexture(), GetSceneDepthTexture());
+		RHISetRenderTarget(GetSceneColorSurface(), GetSceneDepthSurface());
 	}
 } 
 
@@ -877,10 +889,12 @@ uint8 Quantize8SignedByte(float x)
 
 void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 {
+	uint16 NumSamples = CVarMobileMSAA.GetValueOnRenderThread() ? 4 : 1;
+
 	{
 		// Create a texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		Desc.Flags |= TexCreate_FastVRAM;
+		Desc.NumSamples = NumSamples;
 		GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 	}
 
@@ -888,6 +902,12 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 	if (!IsMobileHDR() || IsMobileHDR32bpp()) 
 	{
 		Format = PF_B8G8R8A8;
+	}
+	// Create the scene color.
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, Format, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.NumSamples = NumSamples;
+		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
 	}
 
 	// For 64-bit ES2 without framebuffer fetch, create extra render target for copy of alpha channel.

@@ -501,6 +501,8 @@ private:
 	int32 CurrentTranslucencyLightingVolumeDim;
 	/** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bpp */
 	int32 CurrentMobile32bpp;
+	/** To detect a change of the CVar r.MobileMSAA */
+	int32 CurrentMobileMSAA;
 	/** To detect a change of the CVar r.Shadow.MinResolution */
 	int32 CurrentMinShadowResolution;
 	/** To detect a change of the CVar r.LightPropagationVolume */

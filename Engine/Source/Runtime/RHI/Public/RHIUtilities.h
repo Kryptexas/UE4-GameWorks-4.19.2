@@ -204,12 +204,6 @@ inline void RHICreateTargetableShaderResource2D(
 		bForceSeparateTargetAndShaderResource = true;
 	}
 
-	// ES2 doesn't support resolve operations.
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
-	{
-		bForceSeparateTargetAndShaderResource = false;
-	}
-
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
