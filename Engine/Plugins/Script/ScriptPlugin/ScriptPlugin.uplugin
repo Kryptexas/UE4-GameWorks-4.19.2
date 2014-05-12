@@ -15,7 +15,7 @@
 		{
 			"Name" : "ScriptPlugin",
 			"Type" : "Runtime",
-			"LoadingPhase" : "PreDefault"
+			"LoadingPhase" : "PreDefault",
 			"BlacklistPlatforms" : [ "Linux" ]
 		}
 	]
