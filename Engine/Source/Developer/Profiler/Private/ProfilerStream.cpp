@@ -10,9 +10,6 @@ void FProfilerUIStream::GenerateUIStream( const FProfilerStream& ProfilerStream,
 {
 	//SCOPE_LOG_TIME_FUNC();
 
-	ProfilerStream;
-	ZoomFactorX;
-
 	// Just copy the data for now.
 	const FIntPoint FramesIndices = ProfilerStream.GetFramesIndicesForTimeRange( StartTimeMS, EndTimeMS );
 	const double FrameTimeRangeMS = EndTimeMS - StartTimeMS;
@@ -32,10 +29,6 @@ void FProfilerUIStream::GenerateUIStream( const FProfilerStream& ProfilerStream,
 		for( int32 FrameIndex = FramesIndices.X; FrameIndex < MaxFrameIndex; ++FrameIndex )
 		{
 			const FProfilerFrame* ProfilerFrame = ProfilerStream.GetProfilerFrame( FrameIndex );
-
-			ProfilerFrame->FrameTimeMS;
-			ProfilerFrame->LastAccessTime;
-			ProfilerFrame->ThreadTimesMS;
 
 			// Thread nodes.
 			const int32 NumThreads = ProfilerFrame->Root->Children.Num();

@@ -396,7 +396,6 @@ struct FProfilerUIStackNode
 
 	~FProfilerUIStackNode()
 	{
-		OriginalStackNodes;
 	}
 	
 	void InitializeUIData( const double NumMillisecondsPerWindow, const double NumPixelsPerMillisecond, const double NumMillisecondsPerSample )

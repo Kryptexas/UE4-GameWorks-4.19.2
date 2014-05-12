@@ -634,12 +634,6 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 {
 	TMap<FName, int32> GroupFNameIDs;
 
-	StatsThreadStats.Groups;
-	StatsThreadStats.MemoryPoolToCapacityLongName;
-	StatsThreadStats.NotClearedEveryFrame;
-	StatsThreadStats.Threads;
-	StatsThreadStats.ShortNameToLongName;
-
 	for( auto It = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
 	{
 		ThreadDescriptions.Add( It.Key(), It.Value().ToString() );
