@@ -39,6 +39,7 @@ class ULandscapeSplinesComponent : public UPrimitiveComponent
 
 
 public:
+	void CheckSplinesValid();
 	bool ModifySplines(bool bAlwaysMarkDirty = true);
 
 #if WITH_EDITOR
