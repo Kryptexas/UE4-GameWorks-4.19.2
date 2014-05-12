@@ -43,7 +43,7 @@ public:
 	{
 		// Must be odd number
 		check(!(Candidate & One).IsZero());
-		Thread = FRunnableThread::Create(this, TEXT("FPrimeCheckRunnable"), false, false, 0, TPri_Normal);
+		Thread = FRunnableThread::Create(this, TEXT("FPrimeCheckRunnable"));
 	}
 
 	virtual ~FPrimeCheckRunnable()
