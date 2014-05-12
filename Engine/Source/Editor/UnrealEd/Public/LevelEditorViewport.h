@@ -576,7 +576,7 @@ public:
 	 */
 	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
 	{ 
-		return ESoundShowFlags::Disabled;
+		return SoundShowFlags;
 	}
 
 	/**
