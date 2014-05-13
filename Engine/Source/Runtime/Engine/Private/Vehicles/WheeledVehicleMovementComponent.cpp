@@ -654,7 +654,6 @@ void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 		APawn* MyOwner = Cast<APawn>(UpdatedComponent->GetOwner());
 		if (MyOwner)
 		{
-			UpdateState(DeltaTime);
 			UpdateSimulation(DeltaTime);
 		}
 	}
@@ -686,8 +685,18 @@ void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
 	}
 }
 
-void UWheeledVehicleMovementComponent::UpdateTuning()
+void UWheeledVehicleMovementComponent::PreTick(float DeltaTime)
 {
+	// movement updates and replication
+	if (PVehicle && UpdatedComponent)
+	{
+		APawn* MyOwner = Cast<APawn>(UpdatedComponent->GetOwner());
+		if (MyOwner)
+		{
+			UpdateState(DeltaTime);
+		}
+	}
+
 	if (VehicleSetupTag != FPhysXVehicleManager::VehicleSetupTag)
 	{
 		RecreatePhysicsState();
@@ -697,7 +706,6 @@ void UWheeledVehicleMovementComponent::UpdateTuning()
 void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 {
 }
-
 #endif // WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )

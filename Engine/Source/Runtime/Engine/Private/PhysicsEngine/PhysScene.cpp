@@ -413,7 +413,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 	if (VehicleManager && SceneType == PST_Sync)
 	{
-		VehicleManager->UpdateTuning();
+		float TickTime = AveragedFrameTime[SceneType];
+#if WITH_SUBSTEPPING
+		if (IsSubstepping())
+		{
+			TickTime = UseSyncTime(SceneType) ? SyncDeltaSeconds : DeltaSeconds;
+		}
+#endif
+		VehicleManager->PreTick(TickTime);
 #if WITH_SUBSTEPPING
 		if (IsSubstepping() == false)
 #endif
