@@ -1211,6 +1211,7 @@ bool UStaticMesh::HasValidRenderData() const
 {
 	return RenderData != NULL
 		&& RenderData->LODResources.Num() > 0
+		&& RenderData->LODResources.GetTypedData() != NULL
 		&& RenderData->LODResources[0].VertexBuffer.GetNumVertices() > 0;
 }
 
