@@ -818,7 +818,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseT0AsRefPose)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("FbxOptionWindow_UseRefPose", "Use T0 as Ref Pose"))
+			.Text(LOCTEXT("FbxOptionWindow_UseRefPose", "Use Time 0 Pose for Ref Pose"))
 		]
 	];
 
