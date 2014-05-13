@@ -575,7 +575,6 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				break;
 			}
 		}
-		(ReferencingActors.Num() > 0);
 
 		if ( bReferencedByLevelScript || bReferencedByActor )
 		{
