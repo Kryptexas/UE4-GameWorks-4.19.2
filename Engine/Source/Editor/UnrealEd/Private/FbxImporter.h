@@ -180,7 +180,7 @@ struct FbxSceneInfo
 	TArray<FbxMeshInfo> MeshInfo;
 	
 	// only one take supported currently
-	FString TakeName;
+	char* TakeName;
 	double FrameRate;
 	double TotalTime;
 
