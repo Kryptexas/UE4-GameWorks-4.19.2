@@ -2747,7 +2747,7 @@ public class GUBP : BuildCommand
         }
         public override int CISFrequencyQuantumShift(GUBP bp)
         {
-            return base.CISFrequencyQuantumShift(bp) + 4;
+            return base.CISFrequencyQuantumShift(bp) + 3;
         }
     };
 
