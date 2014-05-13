@@ -49,6 +49,14 @@ EScreenShotDataType::Type FScreenShotBaseNode::GetScreenNodeType()
 	return EScreenShotDataType::SSDT_Base; 
 };
 
+void FScreenShotBaseNode::SetDisplayEveryNthScreenshot( int32 NewDisplayEveryNth )
+{
+	for ( int32 Index = 0; Index < Children.Num(); Index++ )
+	{
+		Children[Index]->SetDisplayEveryNthScreenshot(NewDisplayEveryNth);
+	}
+}
+
 
 bool FScreenShotBaseNode::SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter )
 {

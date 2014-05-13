@@ -153,6 +153,26 @@ public:
 	virtual int32 GetNumPasses() = 0;
 
 	/**
+	 * Returns if we are using full size screen shots
+	 */
+	virtual bool IsUsingFullSizeScreenshots() const = 0;
+
+	/**
+	 * Sets if we are using full size screen shots
+	 */
+	virtual void SetUsingFullSizeScreenshots(const  bool bNewValue ) = 0;
+
+	/**
+	 * Returns if screenshots are enabled
+	 */
+	virtual bool AreScreenshotsEnabled() const = 0;
+
+	/**
+	 * Sets if screenshots are enabled
+	 */
+	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
+
+	/**
 	 * Filters the visible list of tests.
 	 */
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) = 0;

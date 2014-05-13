@@ -33,22 +33,6 @@ enum EProjectPackagingBuildConfigurations
 
 
 /**
- * Structure for directory paths that are displayed in the UI.
- */
-USTRUCT()
-struct FDirectoryPath
-{
-	GENERATED_USTRUCT_BODY()
-
-	/**
-	 * The path to the directory.
-	 */
-	UPROPERTY(EditAnywhere, Category=Path)
-	FString Path;
-};
-
-
-/**
  * Implements the Editor's user settings.
  */
 UCLASS(config=Game, defaultconfig)

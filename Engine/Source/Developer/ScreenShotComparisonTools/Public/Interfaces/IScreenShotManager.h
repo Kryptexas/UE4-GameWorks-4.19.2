@@ -64,4 +64,11 @@ public:
 	* @param InFilter - The screen shot filter
 	*/
 	virtual void SetFilter(TSharedPtr<ScreenShotFilterCollection> InFilter ) = 0;
+
+	/**
+	* Only display every Nth screen shot
+	*
+	* @param NewNth - The new N.
+	*/
+	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) = 0;
 };

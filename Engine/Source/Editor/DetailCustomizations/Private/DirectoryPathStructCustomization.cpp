@@ -15,6 +15,7 @@ TSharedRef<IStructCustomization> FDirectoryPathStructCustomization::MakeInstance
 void FDirectoryPathStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> PathProperty = StructPropertyHandle->GetChildHandle("Path");
+	bool bUseRelativePath = StructPropertyHandle->GetProperty()->HasMetaData( TEXT("RelativePath") );
 	if(PathProperty.IsValid())
 	{
 		HeaderRow.ValueContent()
@@ -36,7 +37,7 @@ void FDirectoryPathStructCustomization::CustomizeStructHeader( TSharedRef<IPrope
 				SAssignNew(BrowseButton, SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
 				.ToolTipText( LOCTEXT( "FolderButtonToolTipText", "Choose a directory from this computer").ToString() )
-				.OnClicked( FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickDirectory, PathProperty.ToSharedRef()) )
+				.OnClicked( FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickDirectory, PathProperty.ToSharedRef(), bUseRelativePath) )
 				.ContentPadding( 2.0f )
 				.ForegroundColor( FSlateColor::UseForeground() )
 				.IsFocusable( false )
@@ -58,7 +59,7 @@ void FDirectoryPathStructCustomization::CustomizeStructChildren( TSharedRef<IPro
 {
 }
 
-FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle) const
+FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bUseRelativePath) const
 {
 	FString Directory;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -69,8 +70,14 @@ FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHa
 
 		if(DesktopPlatform->OpenDirectoryDialog(ParentWindowHandle, LOCTEXT( "FolderDialogTitle", "Choose a directory").ToString(), FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT), Directory))
 		{
-			PropertyHandle->SetValue(Directory);
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, Directory);
+
+			if( bUseRelativePath )
+			{
+				Directory = IFileManager::Get().ConvertToRelativePath(*Directory);
+			}
+
+			PropertyHandle->SetValue(Directory);
 		}
 	}
 

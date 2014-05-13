@@ -80,7 +80,7 @@ public:
 	*
 	* @return true if the tests aren't running
 	*/
-	bool IsNotRunningTests() const;
+	bool IsAutomationControllerIdle() const;
 
 protected:
 
@@ -229,6 +229,19 @@ private:
 	bool IsErrorFilterOn() const;
 	/** Toggles filtering of tests based on error condition */
 	void OnToggleErrorFilter();
+
+	/** Returns if full size screen shots are enabled */
+	ESlateCheckBoxState::Type IsFullSizeScreenshotsCheckBoxChecked() const;
+	/** Toggles if we are collecting full size screenshots */
+	void HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState);
+
+	/** Returns if screen shots are enabled */
+	ESlateCheckBoxState::Type IsEnableScreenshotsCheckBoxChecked() const;
+	/** Toggles if we are taking screenshots */
+	void HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState);
+
+	/** Returns if the full size screenshots option is enabled */
+	bool IsFullSizeScreenshotsOptionEnabled() const;
 	
 	/** Sets the number of times to repeat the tests */
 	void OnChangeRepeatCount(int32 InNewValue);
@@ -348,17 +361,17 @@ private:
 	/**
 	* Should the add preset button be enabled
 	*/
-	bool IsAddButtonIsEnabled() const;
+	bool IsAddButtonEnabled() const;
 
 	/**
 	* Should the save preset button be enabled
 	*/
-	bool IsSaveButtonIsEnabled() const;
+	bool IsSaveButtonEnabled() const;
 
 	/**
 	* Should the remove preset button be enabled
 	*/
-	bool IsRemoveButtonIsEnabled() const;
+	bool IsRemoveButtonEnabled() const;
 
 	/**
 	* Handles if the preset combo box should be visible
@@ -379,6 +392,11 @@ private:
 	* Called when the user selects a new preset from the preset combo box
 	*/
 	void HandlePresetChanged( TSharedPtr<FAutomationTestPreset> Item, ESelectInfo::Type SelectInfo );
+
+	/**
+	* Expands the test tree to show all enabled tests
+	*/
+	void ExpandEnabledTests( TSharedPtr< IAutomationReport > InReport );
 
 	/**
 	* Gets the text to display for the preset combo box

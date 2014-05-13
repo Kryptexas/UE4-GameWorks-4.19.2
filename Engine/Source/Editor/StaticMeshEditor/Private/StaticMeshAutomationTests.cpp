@@ -39,6 +39,37 @@ namespace EditorViewButtonHelper
 		EStaticMeshFlag::Type CommandType;
 	};
 
+	static const TCHAR* GetStaticMeshFlagName(EStaticMeshFlag::Type InType)
+	{
+		switch(InType)
+		{
+		case EStaticMeshFlag::Wireframe:
+			return TEXT("Wireframe");
+		case EStaticMeshFlag::Vert:
+			return TEXT("Vertex");
+		case EStaticMeshFlag::Grid:
+			return TEXT("Grid");
+		case EStaticMeshFlag::Bounds:
+			return TEXT("Bounds");
+		case EStaticMeshFlag::Collision:
+			return TEXT("Collision");
+		case EStaticMeshFlag::Pivot:
+			return TEXT("Pivot");
+		case EStaticMeshFlag::Normals:
+			return TEXT("Normals");
+		case EStaticMeshFlag::Tangents:
+			return TEXT("Tangents");
+		case EStaticMeshFlag::Binormals:
+			return TEXT("Binormals");
+		case EStaticMeshFlag::UV:
+			return TEXT("UV");
+		default:
+			break;
+		}
+
+		return TEXT("Unknown");
+	}
+
 	/**
 	 * Used for toggling a certain button on/off based on the passed in viewport client and button type.
 	 */
@@ -150,29 +181,54 @@ bool FStaticMeshEditorTest::RunTest(const FString& Parameters)
 	FAssetEditorManager::Get().OpenEditorForAsset(EditorMesh);
 	WindowParameters.CurrentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 
+	//Check that we have the right window (Tutorial may have opened on top of the editor)
+	if( WindowParameters.CurrentWindow->GetTitle().ToString() != LoadedObjectType )
+	{
+		//Close the tutorial
+		WindowParameters.CurrentWindow->RequestDestroyWindow();
+
+		//Bring the asset editor to the front
+		FAssetEditorManager::Get().FindEditorForAsset(EditorMesh,false);
+		WindowParameters.CurrentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+	}
+
 	//Grab the last opened Viewport (aka the asset manager)
 	AutomationParameters.ViewportClient = static_cast<FStaticMeshEditorViewportClient*>(GEditor->AllViewportClients[GEditor->AllViewportClients.Num() - 1]);
 	AutomationParameters.CommandType = EditorViewButtonHelper::EStaticMeshFlag::Wireframe; //Start it off at Wireframe because that is the first button we are attempting to press
 
 	if (AutomationParameters.ViewportClient)
 	{
-		const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("StaticMeshEditor");
-		WindowParameters.ScreenshotName = FString::Printf(TEXT("%s00.bmp"), *BaseFileName);
+		const FString BaseFileName = TEXT("StaticMeshEditorTest");
+		FString TestName = FString::Printf(TEXT("%s/Base"), *BaseFileName);
 
 		//Wait for the window to load and then take the initial screen shot		
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+		if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+		{
+			AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, false);
+			ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
+			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+		}
 
 		for(auto CurrentCommandType = 0; CurrentCommandType < EditorViewButtonHelper::EStaticMeshFlag::Max; ++CurrentCommandType)
 		{
-			WindowParameters.ScreenshotName = FString::Printf(TEXT("%s%02i.bmp"), *BaseFileName, CurrentCommandType + 1);
-
+			TestName = FString::Printf(TEXT("%s/%s"), *BaseFileName, EditorViewButtonHelper::GetStaticMeshFlagName(AutomationParameters.CommandType));
+			
 			//Toggle the command for the button, take a screenshot, and then re-toggle the command for the button
 			ADD_LATENT_AUTOMATION_COMMAND(EditorViewButtonHelper::FPerformStaticMeshFlagToggle(AutomationParameters));
 			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
-			ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
-			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+
+			if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+			{
+				//Take the screenshot
+				AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, false);
+				ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
+
+				//Wait so the screenshots have a chance to save
+				ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
+			}
+
+			//Toggle the flag back off
 			ADD_LATENT_AUTOMATION_COMMAND(EditorViewButtonHelper::FPerformStaticMeshFlagToggle(AutomationParameters));
 			
 			//Increment to the next enum, so we can loop through all the types

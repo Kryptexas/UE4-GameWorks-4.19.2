@@ -330,41 +330,41 @@ void SAutomationWindow::CreateCommands()
 
 	ActionList.MapAction( Commands.RefreshTests,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::ListTests ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests )
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle )
 		);
 
 	ActionList.MapAction( Commands.FindWorkers,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::FindWorkers ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests )
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle )
 		);
 
 	ActionList.MapAction( Commands.ErrorFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleErrorFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsErrorFilterOn )
 		);
 
 	ActionList.MapAction( Commands.WarningFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleWarningFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsWarningFilterOn )
 		);
 
 	ActionList.MapAction( Commands.SmokeTestFilter,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleSmokeTestFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsSmokeTestFilterOn )
 		);
 
 	ActionList.MapAction( Commands.DeveloperDirectoryContent,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleDeveloperDirectoryIncluded ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsDeveloperDirectoryIncluded )
 		);
 
 	ActionList.MapAction( Commands.VisualCommandlet,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleVisualCommandletFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsNotRunningTests ),
+		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsVisualCommandletFilterOn )
 		);
 }
@@ -478,106 +478,117 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			SAssignNew( AutomationSearchBox, SSearchBox )
 			.ToolTipText( LOCTEXT( "Search Tests", "Search Tests" ) )
 			.OnTextChanged( this, &SAutomationWindow::OnFilterTextChanged )
-			.IsEnabled( this, &SAutomationWindow::IsNotRunningTests )
+			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
 			.MinDesiredWidth(SearchWidth)
 		];
 
 	TSharedRef<SWidget> TestPresets = 
-		SNew( SHorizontalBox )
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
+		SNew( SVerticalBox )
+		+SVerticalBox::Slot()
+		.FillHeight(0.75f)
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Left)
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT("AutomationPresetLabel", "Preset:") )
+				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
 		.VAlign(VAlign_Bottom)
 		[
-			SNew( STextBlock )
-			.Text( LOCTEXT("AutomationPresetLabel", "Preset:") )
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			//Preset Combo / Text
-			SNew(SOverlay)
-			+SOverlay::Slot()
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SHorizontalBox)
-				.Visibility(this,&SAutomationWindow::HandlePresetComboVisibility)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0)
+				//Preset Combo / Text
+				SNew(SOverlay)
+				+SOverlay::Slot()
 				[
-					SAssignNew( PresetComboBox, SComboBox< TSharedPtr<FAutomationTestPreset> > )
-					.OptionsSource( &TestPresetManager->GetAllPresets() )
-					.OnGenerateWidget( this, &SAutomationWindow::GeneratePresetComboItem )
-					.OnSelectionChanged( this, &SAutomationWindow::HandlePresetChanged )
+					SNew(SHorizontalBox)
+					.Visibility(this,&SAutomationWindow::HandlePresetComboVisibility)
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0)
 					[
-						SNew( STextBlock )
-						.Text( this, &SAutomationWindow::GetPresetComboText )
+						SAssignNew( PresetComboBox, SComboBox< TSharedPtr<FAutomationTestPreset> > )
+						.OptionsSource( &TestPresetManager->GetAllPresets() )
+						.OnGenerateWidget( this, &SAutomationWindow::GeneratePresetComboItem )
+						.OnSelectionChanged( this, &SAutomationWindow::HandlePresetChanged )
+						.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+						[
+							SNew( STextBlock )
+							.Text( this, &SAutomationWindow::GetPresetComboText )
+						]
+					]
+				]
+				+SOverlay::Slot()
+				[
+					SNew(SHorizontalBox)
+					.Visibility(this,&SAutomationWindow::HandlePresetTextVisibility)
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0)
+					[
+						SAssignNew(PresetTextBox, SEditableTextBox)
+						.OnTextCommitted(this, &SAutomationWindow::HandlePresetTextCommited)
+						.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
 					]
 				]
 			]
-			+SOverlay::Slot()
+
+			//New button
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SHorizontalBox)
-				.Visibility(this,&SAutomationWindow::HandlePresetTextVisibility)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0)
+				SNew( SButton )
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleNewPresetClicked )
+				.ToolTipText( LOCTEXT("AutomationPresetNewButtonTooltip", "Create a new preset") )
+				.IsEnabled(this, &SAutomationWindow::IsAddButtonEnabled)
+				.Content()
 				[
-					SAssignNew(PresetTextBox, SEditableTextBox)
-					.OnTextCommitted(this, &SAutomationWindow::HandlePresetTextCommited)
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetNew"))
 				]
 			]
-		]
 
-		//New button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			SNew( SButton )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleNewPresetClicked )
-			.ToolTipText( LOCTEXT("AutomationPresetNewButtonTooltip", "Create a new preset") )
-			.IsEnabled(this, &SAutomationWindow::IsAddButtonIsEnabled)
-			.Content()
+			//Save button
+			+SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetNew"))
+				SNew( SButton )
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleSavePresetClicked )
+				.ToolTipText( LOCTEXT("AutomationPresetSaveButtonTooltip", "Save the current test list") )
+				.IsEnabled(this, &SAutomationWindow::IsSaveButtonEnabled)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetSave"))
+				]
 			]
-		]
 
-		//Save button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			SNew( SButton )
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleSavePresetClicked )
-			.ToolTipText( LOCTEXT("AutomationPresetSaveButtonTooltip", "Save the current test list") )
-			.IsEnabled(this, &SAutomationWindow::IsSaveButtonIsEnabled)
-			.Content()
+			//Remove button
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetSave"))
-			]
-		]
-
-		//Remove button
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2.0f)
-		[
-			// remove button
-			SNew(SButton)
-			.ContentPadding(2)
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.OnClicked( this, &SAutomationWindow::HandleRemovePresetClicked )
-			.ToolTipText(LOCTEXT("AutomationPresetRemoveButtonTooltip", "Remove the selected preset"))
-			.IsEnabled(this, &SAutomationWindow::IsRemoveButtonIsEnabled)
-			.Content()
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetRemove"))
+				// remove button
+				SNew(SButton)
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.OnClicked( this, &SAutomationWindow::HandleRemovePresetClicked )
+				.ToolTipText(LOCTEXT("AutomationPresetRemoveButtonTooltip", "Remove the selected preset"))
+				.IsEnabled(this, &SAutomationWindow::IsRemoveButtonEnabled)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetRemove"))
+				]
 			]
 		];
 
@@ -612,19 +623,19 @@ EVisibility SAutomationWindow::HandlePresetTextVisibility( ) const
 	return bAddingTestPreset ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-bool SAutomationWindow::IsAddButtonIsEnabled() const
+bool SAutomationWindow::IsAddButtonEnabled() const
 {
-	return !bAddingTestPreset;
+	return !bAddingTestPreset && IsAutomationControllerIdle();
 }
 
-bool SAutomationWindow::IsSaveButtonIsEnabled() const
+bool SAutomationWindow::IsSaveButtonEnabled() const
 {
-	return (!bAddingTestPreset && SelectedPreset.IsValid());
+	return (!bAddingTestPreset && SelectedPreset.IsValid() && IsAutomationControllerIdle());
 }
 
-bool SAutomationWindow::IsRemoveButtonIsEnabled() const
+bool SAutomationWindow::IsRemoveButtonEnabled() const
 {
-	return (!bAddingTestPreset && SelectedPreset.IsValid());
+	return (!bAddingTestPreset && SelectedPreset.IsValid() && IsAutomationControllerIdle());
 }
 
 void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ETextCommit::Type CommitType )
@@ -664,6 +675,28 @@ void SAutomationWindow::HandlePresetChanged( TSharedPtr<FAutomationTestPreset> I
 		SelectedPreset = Item;
 		AutomationController->SetEnabledTests(Item->GetEnabledTests());
 		TestTable->RequestTreeRefresh();
+		
+		//Expand selected items
+		TestTable->ClearExpandedItems();
+		TArray< TSharedPtr< IAutomationReport > >& TestReports = AutomationController->GetReports();
+		for( int32 Index = 0; Index < TestReports.Num(); Index++ )
+		{
+			ExpandEnabledTests(TestReports[Index]);
+		}
+	}
+}
+
+void SAutomationWindow::ExpandEnabledTests( TSharedPtr< IAutomationReport > InReport )
+{
+	// Expand node if the report is enabled or contains an enabled test
+	TestTable->SetItemExpansion( InReport, InReport->IsEnabled() || InReport->GetEnabledTestsNum() > 0 );
+
+	// Iterate through the child nodes to see if they should be expanded
+	TArray<TSharedPtr< IAutomationReport > > Reports = InReport->GetFilteredChildren();
+
+	for ( int32 ChildItem = 0; ChildItem < Reports.Num(); ChildItem++ )
+	{
+		ExpandEnabledTests( Reports[ ChildItem ] );
 	}
 }
 
@@ -733,25 +766,99 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, AutomationWindowActions );
-	TSharedRef<SWidget> NumTests = SNew(SSpinBox<int32>)
-			.MinValue(1)
-			.MaxValue(10)
-			.MinSliderValue(1)
-			.MaxSliderValue(10)
-			.Value(this,&SAutomationWindow::GetRepeatCount)
-			.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount);
+	TSharedRef<SWidget> NumTests = 
+		SNew(SBox)
+		.WidthOverride( 200.0f )
+		[
+			SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.Padding(0.0f,0.0f,4.0f, 0.0f)
+			.AutoWidth()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT("NumTestsToolTip", "Number of runs:") )
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			[
+				SNew(SSpinBox<int32>)
+				.MinValue(1)
+				.MaxValue(10)
+				.MinSliderValue(1)
+				.MaxSliderValue(10)
+				.Value(this,&SAutomationWindow::GetRepeatCount)
+				.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount)
+				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			]
+
+		];
+
+	TSharedRef<SWidget> EnableScreenshotsWidget =
+		SNew(SCheckBox)
+		.IsChecked(this, &SAutomationWindow::IsEnableScreenshotsCheckBoxChecked)
+		.OnCheckStateChanged(this, &SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged)
+		.Padding(FMargin(4.0f, 0.0f))
+		.ToolTipText(LOCTEXT("AutomationFullSizeScreenshotTip", "If checked, tests that support it will save screenshots"))
+		.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AutomationNoScreenshotText", "Enable screenshots"))
+		];
+
+	TSharedRef<SWidget> FullSizeScreenshotsWidget =
+		SNew(SCheckBox)
+		.IsChecked(this, &SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked)
+		.OnCheckStateChanged(this, &SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged)
+		.Padding(FMargin(4.0f, 0.0f))
+		.ToolTipText(LOCTEXT("AutomationFullSizeScreenshotTip", "If checked, test that take screenshots will send back full size images instead of thumbnails."))
+		.IsEnabled( this, &SAutomationWindow::IsFullSizeScreenshotsOptionEnabled )
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("AutomationFullSizeScreenshotText", "Full size screenshots"))
+		];
+
+
 
 	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
 	{
-		MenuBuilder.AddWidget( 
-			SNew( STextBlock )
-				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.Text(LOCTEXT("NumTestsToolTip", "Number of runs:")),
-			FText::GetEmpty() );
 		MenuBuilder.AddWidget(NumTests, FText::GetEmpty());
 	}
+	MenuBuilder.EndSection();
+	MenuBuilder.BeginSection("AutomationWindowScreenshots", LOCTEXT("ScreenshotOptions", "Screenshot Settings"));
+	{
+		MenuBuilder.AddWidget(EnableScreenshotsWidget, FText::GetEmpty());
+		MenuBuilder.AddWidget(FullSizeScreenshotsWidget, FText::GetEmpty());
+	}
+	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked() const
+{
+	return AutomationController->IsUsingFullSizeScreenshots() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+{
+	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
+{
+	return AutomationController->AreScreenshotsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+{
+	AutomationController->SetScreenshotsEnabled(CheckBoxState == ESlateCheckBoxState::Checked);
+}
+
+bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
+{
+	return AutomationController->AreScreenshotsEnabled() && IsAutomationControllerIdle();
 }
 
 // Only valid in the editor
@@ -1289,7 +1396,7 @@ void SAutomationWindow::HandleSessionManagerSelectionChanged( const ISessionInfo
 }
 
 
-bool SAutomationWindow::IsNotRunningTests() const
+bool SAutomationWindow::IsAutomationControllerIdle() const
 {
 	return AutomationControllerState != EAutomationControllerModuleState::Running;
 }
@@ -1471,7 +1578,7 @@ void SAutomationWindow::HandleItemCheckBoxCheckedStateChanged( TSharedPtr< IAuto
 
 bool SAutomationWindow::HandleItemCheckBoxIsEnabled( ) const
 {
-	return IsNotRunningTests();
+	return IsAutomationControllerIdle();
 }
 
 

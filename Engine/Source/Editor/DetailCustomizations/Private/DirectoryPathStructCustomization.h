@@ -18,7 +18,7 @@ private:
 	FText GetDisplayedText(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	/** Delegate used to display a directory picker */
-	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bUseRelativePaths) const;
 
 	/** The browse button widget */
 	TSharedPtr<SButton> BrowseButton;

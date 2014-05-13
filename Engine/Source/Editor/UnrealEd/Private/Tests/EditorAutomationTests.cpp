@@ -874,7 +874,45 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 
-	FEditorAutomationTestUtilities::LoadMap(MapName);
+	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().AreScreenshotsEnabled();
+	if( bTakeScreenshots )
+	{
+		//Find the main editor window
+		TArray<TSharedRef<SWindow> > AllWindows;
+		FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
+		if( AllWindows.Num() == 0 )
+		{
+			UE_LOG(LogEditorAutomationTests, Error, TEXT("ERROR: Could not find the main editor window."));
+			return false;
+		}
+		WindowScreenshotParameters WindowParameters;
+		WindowParameters.CurrentWindow = AllWindows[0];
+
+		//Disable Eye Adaptation
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EyeAdaptationQuality"));
+		CVar->Set(0);
+
+		//Create a screen shot filename and path
+		const FString TestName = FString::Printf(TEXT("LoadAllMaps_Editor/%s"), *FPaths::GetBaseFilename(MapName));
+		AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, true);
+
+		//Load the map
+		FEditorAutomationTestUtilities::LoadMap(MapName);
+
+		//If we don't have NoTextureStreaming enabled, give the textures some time to load.
+		if( !FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
+		{
+			//Give the contents some time to load
+			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.5f));
+		}
+		//Take the screen shot
+		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
+	}
+	else
+	{
+		//Load the map
+		FEditorAutomationTestUtilities::LoadMap(MapName);
+	}
 
 	return true;
 }
@@ -1844,6 +1882,157 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 	return bPassed;
 }
 
+/** Static Mesh UV test specific data */
+namespace StaticMeshUVTest
+{
+	/** States the test can be in */
+	namespace EStaticMeshUVTestState
+	{
+		enum Type
+		{
+			Ready,
+			WaitingForPackage,
+			PackageLoaded
+		};
+	}
+
+	class FUVTestHelper
+	{
+	public:
+
+		/** Constructor */
+		FUVTestHelper(FAutomationTestBase* BaseTest) :
+			CurrentTest(BaseTest),
+			CurrentPackage(NULL),
+			LoadedPackageCount(0),
+			CurrentState(EStaticMeshUVTestState::Ready)
+		{
+			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
+			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
+		}
+
+		/**
+		 * Update the static mesh UV test
+		 * @return true if the test is complete
+		 */
+		bool Update()
+		{
+			bool bTestDone = false;
+			switch(CurrentState)
+			{
+			case EStaticMeshUVTestState::Ready:
+				LoadNextPackage();
+				break;
+			case EStaticMeshUVTestState::PackageLoaded:
+				bTestDone = ProcessCurrentPackage();
+				break;
+			case EStaticMeshUVTestState::WaitingForPackage:
+			default:
+				break;
+			}
+
+			if( bTestDone )
+			{
+				CollectGarbage(RF_Native);
+			}
+			return bTestDone;
+		}
+
+	private:
+
+		/** 
+		 * Callback when a package has finished loading
+		 */
+		void PackageLoadCallback(const FString& PackageName, UPackage* LoadedPackage)
+		{
+			CurrentPackage = LoadedPackage;
+			CurrentState = EStaticMeshUVTestState::PackageLoaded;
+			ContentPackages.RemoveAt(0);
+		}
+
+		/** 
+		 * Loads the next package into memory
+		 */
+		void LoadNextPackage()
+		{
+			CurrentTest->SetSuppressLogs(true);
+			const FString PackageName = ContentPackages[0];
+			CurrentPackage =  FindPackage(NULL, *PackageName);
+			if( CurrentPackage )
+			{
+				//Already loaded, check for static meshes
+				CurrentState = EStaticMeshUVTestState::PackageLoaded;
+				ContentPackages.RemoveAt(0);
+			}
+			else
+			{
+				LoadPackageAsync(PackageName,FLoadPackageAsyncDelegate::CreateRaw(this, &FUVTestHelper::PackageLoadCallback));
+				CurrentState = EStaticMeshUVTestState::WaitingForPackage;
+			}
+		}
+
+		/** 
+		 * Performs the UV test on any static meshes in the current package
+		 */
+		bool ProcessCurrentPackage()
+		{
+			LoadedPackageCount++;
+			CurrentTest->SetSuppressLogs(false);
+
+			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+			{
+				UObject* Object = *ObjIt;
+				if (Object != NULL)
+				{
+					//Call CheckLightMapUVs on all static meshes in this package
+					if( Object->IsA(UStaticMesh::StaticClass()) && Object->IsIn(CurrentPackage) )
+					{
+						UStaticMesh::CheckLightMapUVs((UStaticMesh*)Object,MissingUVMessages,BadUVMessages,ValidUVMessages,true);
+					}
+				}
+			}
+
+			if( ( (LoadedPackageCount % 10) == 0 ) )
+			{
+				CollectGarbage(RF_Native);
+			}
+
+			CurrentState = EStaticMeshUVTestState::Ready;
+
+			//We are done when we are out of packages to process
+			return ContentPackages.Num() == 0;
+		}
+
+		// List of packages to test
+		TArray<FString> ContentPackages;
+		// The state of the current test (Ready, WaitingForPackage, PackageLoaded) 
+		EStaticMeshUVTestState::Type CurrentState;
+		// The current package we are checking for static meshes
+		UPackage* CurrentPackage;
+		// How many packages we have loaded
+		uint32 LoadedPackageCount;
+		// Pointer to the current test
+		FAutomationTestBase* CurrentTest;
+
+		// Missing UV messages
+		TArray<FString> MissingUVMessages;
+		// Bas UV messages
+		TArray<FString> BadUVMessages;
+		// Valid UV messages
+		TArray<FString> ValidUVMessages;
+	};
+}
+
+/**
+ * Latent command wrapper for the static mesh UV test
+ */
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FPerformUVTestCommand, TSharedPtr<StaticMeshUVTest::FUVTestHelper>, TestInfo);
+
+bool FPerformUVTestCommand::Update()
+{
+	return TestInfo->Update();
+}
+
 /**
  * StaticMeshUVsTest
  */
@@ -1854,52 +2043,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Editor.Content.Static Mes
  */
 bool FStaticMeshUVsTest::RunTest(const FString& Parameters)
 {
-	TArray<FString> MissingUVMessages;
-	TArray<FString> BadUVMessages;
-	TArray<FString> ValidUVMessages;
-	
-	//Create our package list
-	TArray<FString> ContentPackages;
-	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
-	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Found %i Packages."), ContentPackages.Num() );
-
-	for( int32 PackageID = 0; PackageID < ContentPackages.Num(); ++PackageID)
-	{
-		const FString PackageName = ContentPackages[PackageID];
-
-		UPackage* Package = NULL;
-		{
-			SetSuppressLogs(true);	
-			Package = LoadPackage( NULL, *PackageName, LOAD_NoWarn | LOAD_Quiet );
-			SetSuppressLogs(false);	
-		}
-		if (Package != NULL)
-		{
-			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
-			{
-				UObject* Object = *ObjIt;
-				if (Object != NULL)
-				{
-					//Call CheckLightMapUVs on all static meshes in this package
-					if( Object->IsA(UStaticMesh::StaticClass()) && Object->IsIn(Package) )
-					{
-						UStaticMesh::CheckLightMapUVs((UStaticMesh*)Object,MissingUVMessages,BadUVMessages,ValidUVMessages,true);
-					}
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Error loading package %s."), *PackageName );
-		}
-		
-		//Collect garbage on every Nth package to keep memory usage down.
-		if( ( (++PackageID % 10) == 0 ) )
-		{
-			CollectGarbage(RF_Native);
-		}
-	}
-	CollectGarbage(RF_Native);
+	TSharedPtr<StaticMeshUVTest::FUVTestHelper> TestHelper = MakeShareable(new StaticMeshUVTest::FUVTestHelper(this));
+	ADD_LATENT_AUTOMATION_COMMAND(FPerformUVTestCommand(TestHelper));
 	return true;
 }

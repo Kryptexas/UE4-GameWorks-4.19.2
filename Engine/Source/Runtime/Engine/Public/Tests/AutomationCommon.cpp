@@ -2,30 +2,23 @@
 
 #include "EnginePrivate.h"
 #include "AutomationCommon.h"
+#include "ImageUtils.h"
 
 ///////////////////////////////////////////////////////////////////////
-// Common Latent commands which are used across test type. I.e. Engine, Network, etc...
+// Common Latent commands
 
-static void SaveWindowAsScreenshot(TSharedRef<SWindow> Window, const FString& FileName)
+namespace AutomationCommon
 {
-	TSharedRef<SWidget> WindowRef = Window;
-
-	TArray<FColor> OutImageData;
-	FIntVector OutImageSize;
-	FSlateApplication::Get().TakeScreenshot(WindowRef,OutImageData,OutImageSize);
-
-	FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetTypedData());
-}
-
-static void SaveEditorWindowsAsScreenshots(const FString& BaseFileName)
-{
-	TArray<TSharedRef<SWindow> > ChildWindows;
-	FSlateApplication::Get().GetAllVisibleWindowsOrdered(ChildWindows);
-
-	for( int32 i = 0; i < ChildWindows.Num(); ++i )
+	/** These save a PNG and get sent over the network */
+	static void SaveWindowAsScreenshot(TSharedRef<SWindow> Window, const FString& FileName)
 	{
-		const FString BMPFileName = FString::Printf(TEXT("%s%02i.bmp"), *BaseFileName, i+1);
-		SaveWindowAsScreenshot(ChildWindows[i],BMPFileName);
+		TSharedRef<SWidget> WindowRef = Window;
+
+		TArray<FColor> OutImageData;
+		FIntVector OutImageSize;
+		FSlateApplication::Get().TakeScreenshot(WindowRef,OutImageData,OutImageSize);
+
+		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
 	}
 }
 
@@ -41,12 +34,12 @@ bool FWaitLatentCommand::Update()
 
 bool FTakeActiveEditorScreenshotCommand::Update()
 {
-	SaveWindowAsScreenshot(FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(),ScreenshotName);
+	AutomationCommon::SaveWindowAsScreenshot(FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(),ScreenshotName);
 	return true;
 }
 
 bool FTakeEditorScreenshotCommand::Update()
 {
-	SaveWindowAsScreenshot(ScreenshotParameters.CurrentWindow.ToSharedRef(), ScreenshotParameters.ScreenshotName);
+	AutomationCommon::SaveWindowAsScreenshot(ScreenshotParameters.CurrentWindow.ToSharedRef(), ScreenshotParameters.ScreenshotName);
 	return true;
 }

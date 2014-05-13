@@ -118,6 +118,8 @@ void FAutomationControllerManager::Init()
 {
 	AutomationTestState = EAutomationControllerModuleState::Disabled;
 	bTestResultsAvailable = false;
+	bScreenshotsEnabled = true;
+	bRequestFullScreenScreenshots = false;
 }
 
 
@@ -212,7 +214,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FMessageAddress DeviceAddress = DeviceAddresses[AddressIndex];
 
 							// Send the test to the device for execution!
-							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand()), DeviceAddress);
+							MessageEndpoint->Send(new FAutomationWorkerRunTests(ExecutionCount, AddressIndex, NextTest->GetCommand(), bScreenshotsEnabled, bRequestFullScreenScreenshots), DeviceAddress);
 
 							// Add a test so we can check later if the device is still active
 							TestRunningArray.Add( FTestRunningInfo( DeviceAddress ) );

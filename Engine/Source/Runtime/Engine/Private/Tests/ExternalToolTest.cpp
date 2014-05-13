@@ -93,25 +93,28 @@ void FRunExternalToolTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray 
 		if( ToolIt.ExecutablePath.FilePath.Len() > 0 )
 		{
 			// Check for multiple scripts if we have a script extension to look for
-			if( ToolIt.ScriptExtension.Len() > 0 && ToolIt.ScriptDirectory.Len() > 0 )
+			if( ToolIt.ScriptExtension.Len() > 0 && ToolIt.ScriptDirectory.Path.Len() > 0 )
 			{
 				TArray<FString> ScriptFileNames;
 
-				IFileManager::Get().FindFiles(ScriptFileNames, *(ToolIt.ScriptDirectory / TEXT("*.") + ToolIt.ScriptExtension), true, false);
+				//Remove the "." before the extension if it exists
+				const FString ScriptExtension = ToolIt.ScriptExtension.StartsWith(TEXT(".")) ? ToolIt.ScriptExtension.Right(ToolIt.ScriptExtension.Len() - 1) : ToolIt.ScriptExtension;
+
+				IFileManager::Get().FindFiles(ScriptFileNames, *(ToolIt.ScriptDirectory.Path / TEXT("*.") + ScriptExtension), true, false);
 
 				for (TArray<FString>::TConstIterator ScriptIt(ScriptFileNames); ScriptIt; ++ScriptIt)
 				{
 					const FString ScriptName = FString::Printf(TEXT("%s: %s"),*ToolIt.ToolName,*FPaths::GetBaseFilename(*ScriptIt));
 					OutBeautifiedNames.Add(*ScriptName);
 
-					const FString SctiptCommand = FString::Printf(TEXT("%s;%s;%s"),*ToolIt.ExecutablePath.FilePath,**ScriptIt,ToolIt.WorkingDirectory.Len() > 0 ? *ToolIt.WorkingDirectory : *ToolIt.ScriptDirectory);
+					const FString SctiptCommand = FString::Printf(TEXT("%s;%s;%s"),*ToolIt.ExecutablePath.FilePath,**ScriptIt,ToolIt.WorkingDirectory.Path.Len() > 0 ? *ToolIt.WorkingDirectory.Path : *ToolIt.ScriptDirectory.Path);
 					OutTestCommands.Add(*SctiptCommand);
 				}
 			}
 			else
 			{
 				OutBeautifiedNames.Add(*ToolIt.ToolName);
-				const FString ToolCommand = FString::Printf(TEXT("%s;%s;%s"),*ToolIt.ExecutablePath.FilePath,*ToolIt.CommandLineOptions,*ToolIt.WorkingDirectory);
+				const FString ToolCommand = FString::Printf(TEXT("%s;%s;%s"),*ToolIt.ExecutablePath.FilePath,*ToolIt.CommandLineOptions,*ToolIt.WorkingDirectory.Path);
 				OutTestCommands.Add(*ToolCommand);
 			}
 		}

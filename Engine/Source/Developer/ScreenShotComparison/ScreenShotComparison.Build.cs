@@ -19,6 +19,7 @@ public class ScreenShotComparison : ModuleRules
 				"ScreenShotComparisonTools",
 				"Slate",
 				"SlateCore",
+				"ImageWrapper",
 			}
 		);
 

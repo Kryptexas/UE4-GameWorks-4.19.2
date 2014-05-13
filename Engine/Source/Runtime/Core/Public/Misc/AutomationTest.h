@@ -358,6 +358,15 @@ public:
 	virtual void Run() = 0;
 };
 
+/**
+ * Delegate type for when a test screenshot has been captured
+ *
+ * The first parameter is the width.
+ * The second parameter is the height.
+ * The third parameter is the array of bitmap data.
+ * The fourth parameter is the screen shot filename.
+ */
+DECLARE_DELEGATE_FourParams(FOnTestScreenshotCaptured, int32, int32, const TArray<FColor>&, const FString&);
 
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
@@ -488,6 +497,28 @@ public:
 	 * Sets whether we want to convert old A2 AnimBlueprint content to new A3 AnimBlueprint
 	 */
 	void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn);
+
+	/**
+	 * Accessor for delegate called when a png screenshot is captured 
+	 */
+	FOnTestScreenshotCaptured& OnScreenshotCaptured();
+
+	/**
+	 * Sets screenshot options
+	 * @param bInScreenshotsEnabled - If screenshots are enabled
+	 * @param bInUseFullSizeScreenshots - If true, we won't resize the screenshots
+	 */
+	void SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots );
+
+	/**
+	 * Gets if screenshots are enabled
+	 */
+	bool AreScreenshotsEnabled() const;
+
+	/**
+	 * Gets if we are using fulll size screenshots
+	 */
+	bool ShouldUseFullSizeScreenshots() const;
 
 private:
 
@@ -629,8 +660,17 @@ private:
 	/** Whether we want to convert Anim Blueprint **/
 	bool bVisualCommandletFilterOn;
 
+	/** Wheather screenshots are enabled */
+	bool bScreenshotsEnabled;
+
+	/** Wheather we should resize screenshots or not */
+	bool bUseFullSizeScreenShots;
+
 	/** Participation role as given by the automation controller */
 	uint32 NetworkRoleIndex;
+
+	/** Delegate called at the end of the frame when a screenshot is captured and a .png is requested */
+	FOnTestScreenshotCaptured TestScreenshotCapturedDelegate;
 };
 
 

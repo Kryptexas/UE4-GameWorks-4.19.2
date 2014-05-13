@@ -124,6 +124,8 @@ void FAutomationWorkerModule::Initialize()
 		{
 			GEngine->GameViewport->OnPNGScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
 		}
+		//Register the editor screen shot callback
+		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
 #endif
 
 		bExecuteNextNetworkCommand = true;		
@@ -288,23 +290,56 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 #if WITH_ENGINE
 void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName )
 {
-	const int32 ThumbnailWidth = 256;
-	const int32 ThumbnailHeight = 128;
-	TArray<FColor> ScaledBitmap;
+	if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+	{
+		int32 NewHeight = Height;
+		int32 NewWidth = Width;
 
-	// Create and save the thumbnail
-	FImageUtils::CropAndScaleImage(Width, Height, ThumbnailWidth, ThumbnailHeight, Bitmap, ScaledBitmap);
+		TArray<FColor> ScaledBitmap;
 
-	TArray<uint8> CompressedBitmap;
-	FImageUtils::CompressImageArray(ThumbnailWidth, ThumbnailHeight, ScaledBitmap, CompressedBitmap);
+		if( FAutomationTestFramework::GetInstance().ShouldUseFullSizeScreenshots() )
+		{
+			ScaledBitmap = Bitmap;
+			//Clear the alpha channel before saving
+			for ( int32 Index = 0; Index < Width*Height; Index++ )
+			{
+				ScaledBitmap[Index].A = 255;
+			}
+		}
+		else
+		{
+			//Set the thumbnail size
+			NewHeight = 128;
+			NewWidth = 256;
 
-	// Send the screen shot
-	FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
+			// Create and save the thumbnail
+			FImageUtils::CropAndScaleImage(Width, Height, NewWidth, NewHeight, Bitmap, ScaledBitmap);
+		}
 
-	FString SFilename = ScreenShotName;
-	Message->ScreenShotName = SFilename;
-	Message->ScreenImage = CompressedBitmap;
-	MessageEndpoint->Send(Message, TestRequesterGUID);
+
+		TArray<uint8> CompressedBitmap;
+		FImageUtils::CompressImageArray(NewWidth, NewHeight, ScaledBitmap, CompressedBitmap);
+
+		// Send the screen shot if we have a target
+		if( TestRequesterGUID.IsValid() )
+		{
+			FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
+
+			FString SFilename = ScreenShotName;
+			Message->ScreenShotName = SFilename;
+			Message->ScreenImage = CompressedBitmap;
+			MessageEndpoint->Send(Message, TestRequesterGUID);
+		}
+		else
+		{
+			//Save locally
+			const bool bTree = true;
+			const FString FileName = FPaths::RootDir() + ScreenShotName;
+			IFileManager::Get().MakeDirectory( *FPaths::GetPath(FileName), bTree );
+			FFileHelper::SaveArrayToFile( CompressedBitmap, *FileName );
+		}
+	}
+
 }
 #endif
 
@@ -313,6 +348,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	ExecutionCount = Message.ExecutionCount;
 	TestName = Message.TestName;
 	TestRequesterGUID = Context->GetSender();
+	FAutomationTestFramework::GetInstance().SetScreenshotOptions(Message.bScreenshotsEnabled, Message.bUseFullSizeScreenShots);
 
 	// Always allow the first network command to execute
 	bExecuteNextNetworkCommand = true;

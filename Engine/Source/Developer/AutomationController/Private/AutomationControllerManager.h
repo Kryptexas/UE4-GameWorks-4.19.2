@@ -41,6 +41,26 @@ public:
 		return NumTestPasses;
 	}
 
+	virtual bool IsUsingFullSizeScreenshots() const OVERRIDE
+	{
+		return bScreenshotsEnabled && bRequestFullScreenScreenshots;
+	}
+
+	virtual void SetUsingFullSizeScreenshots( const bool bNewValue ) OVERRIDE
+	{
+		bRequestFullScreenScreenshots = bNewValue;
+	}
+
+	virtual bool AreScreenshotsEnabled() const OVERRIDE
+	{
+		return bScreenshotsEnabled;
+	}
+
+	virtual void SetScreenshotsEnabled( const bool bNewValue ) OVERRIDE
+	{
+		bScreenshotsEnabled = bNewValue;
+	}
+
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) OVERRIDE
 	{
 		ReportManager.SetFilter( InFilter );
@@ -339,6 +359,12 @@ private:
 
 	/** The current test pass we are on */
 	int32 CurrentTestPass;
+
+	/** If screenshots are enabled */
+	bool bScreenshotsEnabled;
+
+	/** If we should request full screen screen shots */
+	bool bRequestFullScreenScreenshots;
 private:
 
 	// Holds a delegate that is invoked when the controller shuts down.

@@ -37,6 +37,7 @@ public:
 	virtual const FString& GetName() const OVERRIDE;
 	virtual EScreenShotDataType::Type GetScreenNodeType() OVERRIDE;
 	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) OVERRIDE;
+	virtual void SetDisplayEveryNthScreenshot( int32 NewNthValue ) OVERRIDE;
 
 	// End IScreenShotData interface
 

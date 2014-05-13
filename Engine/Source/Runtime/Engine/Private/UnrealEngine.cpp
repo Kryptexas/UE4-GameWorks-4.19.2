@@ -5757,6 +5757,10 @@ void UEngine::PerformanceCapture(const FString& CaptureName)
 	PathName += TEXT("/");
 
 	//mapname/CaptureName/platform/version.png
+
+	//Make path relative to the root.
+	PathName = FPaths::AutomationDir() + PathName;
+	FPaths::MakePathRelativeTo(PathName,*FPaths::RootDir());
 	
 	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, GEngineVersion.GetChangelist());
 	

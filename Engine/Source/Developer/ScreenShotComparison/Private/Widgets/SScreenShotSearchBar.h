@@ -62,7 +62,24 @@ protected:
 	 */
 	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable );
 
+	/**
+	 * Sets the new N value for displaying every Nth screenshot.
+	 */
+	void OnCommitedDisplayEveryNthScreenshot(int32 InNewValue, ETextCommit::Type CommitType);
+
+	/**
+	 * Updates the display for the display every Nth screenshot widget.
+	 */
+	void OnChangedDisplayEveryNthScreenshot(int32 InNewValue);
+
+	/**
+	 * Gets the value of DisplayEveryNthScreenshot.
+	 */
+	int32 GetDisplayEveryNthScreenshot() const;
+
 private:
+	// Will only show every Nth screenshot
+	int32 DisplayEveryNthScreenshot;
 
 	// Holds the display string for the selected platform
 	FString PlatformDisplayString;

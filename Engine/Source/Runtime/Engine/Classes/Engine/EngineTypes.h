@@ -2425,6 +2425,21 @@ struct FFilePath
 };
 
 /**
+ * Structure for directory paths that are displayed in the UI.
+ */
+USTRUCT()
+struct FDirectoryPath
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	 * The path to the directory.
+	 */
+	UPROPERTY(EditAnywhere, Category=Path)
+	FString Path;
+};
+
+/**
 * This is used for redirecting old name to new name
 * We use manually parsing array, but that makes harder to modify from property setting
 * So adding this USTRUCT to support it properly

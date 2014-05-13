@@ -87,4 +87,11 @@ public:
 	* @return True if passes the filter
 	*/
 	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) = 0;
+
+	/**
+	* Tells the node that we should only display every Nth screenshot
+	*
+	* @param NewDisplayEveryNth - The new N.
+	*/
+	virtual void SetDisplayEveryNthScreenshot( int32 NewDisplayEveryNth ) = 0;
 };

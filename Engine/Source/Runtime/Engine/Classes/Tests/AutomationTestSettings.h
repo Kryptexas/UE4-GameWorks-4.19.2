@@ -49,16 +49,16 @@ struct FExternalToolDefinition
 	FString CommandLineOptions;
 
 	/* The working directory for the new process. */
-	UPROPERTY(config, EditAnywhere, Category=ExternalTools)
-	FString WorkingDirectory;
+	UPROPERTY(config, EditAnywhere, Category=ExternalTools, meta=(RelativePath))
+	FDirectoryPath WorkingDirectory;
 
 	/* If set, look for scripts with this extension. */
 	UPROPERTY(config, EditAnywhere, Category=ExternalTools)
 	FString ScriptExtension;
 
 	/* If the ScriptExtension is set, look here for the script files. */
-	UPROPERTY(config, EditAnywhere, Category=ExternalTools)
-	FString ScriptDirectory;
+	UPROPERTY(config, EditAnywhere, Category=ExternalTools, meta=(RelativePath))
+	FDirectoryPath ScriptDirectory;
 };
 
 /**

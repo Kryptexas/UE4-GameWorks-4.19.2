@@ -436,6 +436,27 @@ void FAutomationTestFramework::SetVisualCommandletFilter(const bool bInVisualCom
 	bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
 }
 
+FOnTestScreenshotCaptured& FAutomationTestFramework::OnScreenshotCaptured()
+{
+	return TestScreenshotCapturedDelegate;
+}
+
+void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots )
+{
+	bScreenshotsEnabled = bInScreenshotsEnabled;
+	bUseFullSizeScreenShots = bInUseFullSizeScreenshots;
+}
+
+bool FAutomationTestFramework::AreScreenshotsEnabled() const
+{
+	return bScreenshotsEnabled;
+}
+
+bool FAutomationTestFramework::ShouldUseFullSizeScreenshots() const
+{
+	return bUseFullSizeScreenShots;
+}
+
 void FAutomationTestFramework::PrepForAutomationTests()
 {
 	check(!GIsAutomationTesting);
@@ -597,6 +618,7 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
 ,	bVisualCommandletFilterOn(false)
+,	bUseFullSizeScreenShots(false)
 ,	NetworkRoleIndex(0)
 {
 }

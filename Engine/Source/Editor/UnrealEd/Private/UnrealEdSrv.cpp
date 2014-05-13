@@ -1232,6 +1232,69 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 		return true;
 	}
+	else if( FParse::Command(&Str, TEXT("EditorShot")) || FParse::Command(&Str, TEXT("EditorScreenShot")) )
+	{
+		struct Local
+		{
+			static void TakeScreenShotOfWidget( TSharedRef<SWidget> InWidget )
+			{
+				TArray<FColor> OutImageData;
+				FIntVector OutImageSize;
+				FSlateApplication::Get().TakeScreenshot(InWidget,OutImageData,OutImageSize);
+
+				FString FileName;
+				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
+				FFileHelper::GenerateNextBitmapFilename(*BaseFileName, FileName);
+				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetTypedData());
+			}
+		};
+
+		if( FSlateApplication::IsInitialized() )
+		{
+			if( FParse::Command(&Str, TEXT("All") ))
+			{
+				TArray< TSharedRef<SWindow> > OpenWindows;
+				FSlateApplication::Get().GetAllVisibleWindowsOrdered(OpenWindows);
+				for( int32 WindowId = 0; WindowId < OpenWindows.Num(); ++WindowId )
+				{
+					Local::TakeScreenShotOfWidget(OpenWindows[WindowId]);
+				}
+			}
+			else
+			{
+				FString WindowNameStr;
+				if ( FParse::Value(Str, TEXT("Name="), WindowNameStr) )
+				{
+					TArray< TSharedRef<SWindow> > OpenWindows;
+					FSlateApplication::Get().GetAllVisibleWindowsOrdered(OpenWindows);
+					for( int32 WindowId = 0; WindowId < OpenWindows.Num(); ++WindowId )
+					{
+						FString CurrentWindowName = OpenWindows[WindowId]->GetTitle().ToString();
+
+						//Strip off the * from the end if it exists
+						if( CurrentWindowName.EndsWith(TEXT("*")) )
+						{
+							CurrentWindowName = CurrentWindowName.LeftChop(1);
+						}
+
+						if( CurrentWindowName == WindowNameStr )
+						{
+							Local::TakeScreenShotOfWidget(OpenWindows[WindowId]);
+						}
+					}
+				}
+				else
+				{
+					TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+					if( ActiveWindow.IsValid() )
+					{
+						Local::TakeScreenShotOfWidget(ActiveWindow.ToSharedRef());
+					}
+				}
+			}
+		}
+		return true;
+	}
 	return false;
 }
 

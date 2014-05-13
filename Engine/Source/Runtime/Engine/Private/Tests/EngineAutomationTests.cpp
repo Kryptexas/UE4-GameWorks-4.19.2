@@ -6,6 +6,7 @@
 #include "FileHelpers.h"
 #endif
 
+#include "AutomationCommon.h"
 #include "AutomationTestCommon.h"
 #include "PlatformFeatures.h"
 #include "SaveGameSystem.h"
@@ -118,6 +119,18 @@ bool FPerformanceCaptureTest::RunTest(const FString& Parameters)
 }
 
 /**
+ * Latent command to take a screenshot of the viewport
+ */
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeViewportScreenshotCommand, FString, ScreenshotFileName);
+
+bool FTakeViewportScreenshotCommand::Update()
+{
+	
+	FScreenshotRequest::RequestScreenshot( ScreenshotFileName, false );
+	return true;
+}
+
+/**
  * LoadAllMapsInGame
  * Verification automation test to make sure loading all maps succeed without crashing AND does performance captures
  */
@@ -163,7 +176,25 @@ bool FLoadAllMapsInGameTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 
+	//Open the map
 	GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
+
+	if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+	{
+		//Generate the screen shot name and path
+		FString ScreenshotFileName;
+		const FString TestName = FString::Printf(TEXT("LoadAllMaps_Game/%s"), *FPaths::GetBaseFilename(MapName));
+		AutomationCommon::GetScreenshotPath(TestName, ScreenshotFileName, true);
+
+		//Give the map some time to load
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.5f));
+		//Take the screen shot
+		ADD_LATENT_AUTOMATION_COMMAND(FTakeViewportScreenshotCommand(ScreenshotFileName));
+		//Give the screen shot a chance to capture the scene
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(0.5f));
+	}
+
+	//Kick off any Automation matinees that are in this map
 	ADD_LATENT_AUTOMATION_COMMAND(FEnqueuePerformanceCaptureCommands());
 
 	return true;
@@ -220,6 +251,20 @@ bool FSaveGameTest::RunTest(const FString& Parameters)
 	ReadAr << LoadedData;
 
 	return LoadedData == SavedData;
+}
+
+/**
+ * Latent command to load a map in game
+ */
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
+
+bool FLoadGameMapCommand::Update()
+{
+	check(GEngine->GetWorldContexts().Num() == 1);
+	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
+
+	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
+	return true;
 }
 
 

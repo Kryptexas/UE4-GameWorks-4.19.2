@@ -317,6 +317,18 @@ struct FAutomationWorkerRunTests
 	UPROPERTY()
 	FString TestName;
 
+	/**
+	 * If true, we will save out screenshots for tests that support them.
+	 */
+	UPROPERTY()
+	bool bScreenshotsEnabled;
+
+	/**
+	 * If true, we will not resize screen shots.
+	 */
+	UPROPERTY()
+	bool bUseFullSizeScreenShots;
+
 
 	/**
 	 * Default constructor.
@@ -326,10 +338,12 @@ struct FAutomationWorkerRunTests
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName )
+	FAutomationWorkerRunTests( uint32 InExecutionCount, int32 InRoleIndex, FString InTestName, bool InScreenshotsEnabled, bool InFullSizeScreenshots )
 		: ExecutionCount(InExecutionCount)
 		, RoleIndex(InRoleIndex)
 		, TestName(InTestName)
+		, bScreenshotsEnabled(InScreenshotsEnabled)
+		, bUseFullSizeScreenShots(InFullSizeScreenshots)
 	{ }
 };
 

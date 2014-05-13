@@ -43,6 +43,8 @@ public:
 
 	virtual void SetFilter( TSharedPtr< ScreenShotFilterCollection > InFilter ) OVERRIDE;
 
+	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) OVERRIDE;
+
 	// End IScreenShotManager interface
 
 private:
