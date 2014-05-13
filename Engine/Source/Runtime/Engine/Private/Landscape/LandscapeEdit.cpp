@@ -507,7 +507,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			{
 				DominantLayerData.AddUninitialized(FMath::Square(CollisionSizeVerts));
 
-				uint8* SrcDominantLayerData = (uint8*)CollisionComp->DominantLayerData.Lock(LOCK_READ_WRITE);
+				const uint8* SrcDominantLayerData = (uint8*)CollisionComp->DominantLayerData.Lock(LOCK_READ_ONLY);
 				FMemory::Memcpy( DominantLayerData.GetTypedData(), SrcDominantLayerData, sizeof(uint8)*FMath::Square(CollisionSizeVerts) );
 				CollisionComp->DominantLayerData.Unlock();
 			}
@@ -843,11 +843,11 @@ void ULandscapeComponent::UpdateCollisionLayerData(TArray<FColor*>& WeightmapTex
 							int32 TexY = CollisionSubsectionSizeVerts * SubsectionY + VertY;
 							int32 DataOffset = (TexX + TexY * MipSizeU) * sizeof(FColor);
 					
-							int32 DominantLayer = 255; // 255 as invalid value
+							uint8 DominantLayer = 255; // 255 as invalid value
 							int32 DominantWeight = 0;
 							for( int32 LayerIdx=0;LayerIdx<CandidateDataPtrs.Num();LayerIdx++ )
 							{
-								uint8 LayerWeight = CandidateDataPtrs[LayerIdx][DataOffset];
+								const uint8 LayerWeight = CandidateDataPtrs[LayerIdx][DataOffset];
 
 								if (LayerIdx == DataLayerIdx) // Override value for hole
 								{
@@ -3300,10 +3300,19 @@ void ALandscapeProxy::PostEditMove(bool bFinished)
 {
 	// This point is only reached when Copy and Pasted
 	Super::PostEditMove(bFinished);
+
 	if (bFinished)
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), true);
 		RecreateComponentsState();
+	}
+
+	if (bFinished)
+	{
+		if (SplineComponent)
+		{
+			SplineComponent->CheckSplinesValid();
+		}
 	}
 }
 
@@ -3345,32 +3354,6 @@ void ALandscape::PostEditMove(bool bFinished)
 	}
 
 	Super::PostEditMove(bFinished);
-
-	if( bFinished )
-	{
-		if (SplineComponent)
-		{
-			for (auto It = SplineComponent->ControlPoints.CreateConstIterator(); It; ++It)
-			{
-				check((*It)->GetOuterULandscapeSplinesComponent() == SplineComponent);
-
-				for (auto It2 = (*It)->ConnectedSegments.CreateConstIterator(); It2; ++It2)
-				{
-					check((*It2).Segment->GetOuterULandscapeSplinesComponent() == SplineComponent);
-				}
-			}
-
-			for (auto It = SplineComponent->Segments.CreateConstIterator(); It; ++It)
-			{
-				check((*It)->GetOuterULandscapeSplinesComponent() == SplineComponent);
-
-				for (int32 i2 = 0; i2 < 2; i2++)
-				{
-					check((*It)->Connections[i2].ControlPoint->GetOuterULandscapeSplinesComponent() == SplineComponent);
-				}
-			}
-		}
-	}
 }
 #endif	//WITH_EDITOR
 
