@@ -2097,7 +2097,9 @@ namespace SceneOutliner
 
 	void SSceneOutliner::RenameFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
 	{
-		Folder->RenameRequestEvent.ExecuteIfBound();
+		// Ensure that the item we want to rename is visible in the tree
+		Folder->Flags.RenameWhenInView = true;
+		OutlinerTreeView->RequestScrollIntoView(Folder);
 	}
 
 	void SSceneOutliner::DeleteFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
