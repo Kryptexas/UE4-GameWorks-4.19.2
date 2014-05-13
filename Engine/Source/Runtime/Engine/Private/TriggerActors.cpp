@@ -90,7 +90,6 @@ ATriggerBox::ATriggerBox(const class FPostConstructInitializeProperties& PCIP)
 	static FName CollisionProfileName(TEXT("Trigger"));
 	BoxCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		SpriteComponent->AttachParent = BoxCollisionComponent;
@@ -134,7 +133,6 @@ ATriggerSphere::ATriggerSphere(const class FPostConstructInitializeProperties& P
 	static FName CollisionProfileName(TEXT("Trigger"));
 	SphereCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		SpriteComponent->AttachParent = SphereCollisionComponent;
