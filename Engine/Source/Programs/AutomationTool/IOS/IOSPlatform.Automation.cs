@@ -313,10 +313,14 @@ public class IOSPlatform : Platform
 		Arguments += " - iOS'";
 		Arguments += " -configuration " + TargetConfig.ToString();
 		Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
-		Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
+		ProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
 		if (bWasGenerated)
 		{
 			InternalUtils.SafeDeleteDirectory( XcodeProj, true);
+		}
+		if (Result.ExitCode != 0)
+		{
+			throw new AutomationException("CodeSign Failed");
 		}
 	}
 
