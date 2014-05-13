@@ -728,7 +728,7 @@ void SDockingTabStack::SetParentNode( TSharedRef<class SDockingSplitter> InParen
 		const TSharedRef<SWindow>& ParentWindow = DockArea->GetParentWindow().ToSharedRef();
 
 		TSharedPtr<IWindowTitleBar> TitleBar;
-		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(ParentWindow, TitleBarContent, TitleBar);
+		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(ParentWindow, TitleBarContent, HAlign_Fill, TitleBar);
 
 		(*TitleBarSlot)[TitleBarWidget];
 		ParentWindow->SetTitleBar(TitleBar);

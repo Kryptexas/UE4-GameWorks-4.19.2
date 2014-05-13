@@ -73,7 +73,15 @@ public:
 	
 public:
 
-	void Construct( const FArguments& InArgs, const TSharedRef<SWindow>& InWindow, const TSharedPtr<SWidget>& InCenterContent )
+	/**
+	 * Creates and initializes a new window title bar widget.
+	 *
+	 * @param InArgs The construction arguments.
+	 * @param InWindow The window to create the title bar for.
+	 * @param InCenterContent The content for the title bar's center area.
+	 * @param CenterContentAlignment The horizontal alignment of the center content.
+	 */
+	void Construct( const FArguments& InArgs, const TSharedRef<SWindow>& InWindow, const TSharedPtr<SWidget>& InCenterContent, EHorizontalAlignment InCenterContentAlignment )
 	{
 		OwnerWindowPtr = InWindow;
 		Style = InArgs._Style;
@@ -98,7 +106,7 @@ public:
 
 					+ SOverlay::Slot()
 						[
-							MakeTitleBarContent(InCenterContent)
+							MakeTitleBarContent(InCenterContent, InCenterContentAlignment)
 						]
 				]
 		];
@@ -262,9 +270,12 @@ protected:
 	/**
 	 * Creates the title bar's content.
 	 *
+	 * @param CenterContent The content for the title bar's center area.
+	 * @param CenterContentAlignment The horizontal alignment of the center content.
+	 *
 	 * @return The content widget.
 	 */
-	TSharedRef<SWidget> MakeTitleBarContent( TSharedPtr<SWidget> CenterContent )
+	TSharedRef<SWidget> MakeTitleBarContent( TSharedPtr<SWidget> CenterContent, EHorizontalAlignment CenterContentAlignment )
 	{
 		TSharedPtr<SWidget> LeftContent;
 		TSharedPtr<SWidget> RightContent;
@@ -294,6 +305,13 @@ protected:
 
 		FVector2D LeftSize = LeftContent->GetDesiredSize();
 		FVector2D RightSize = RightContent->GetDesiredSize();
+
+		if (CenterContentAlignment == HAlign_Center)
+		{
+			LeftSize = FMath::Max(LeftSize, RightSize);
+			RightSize = LeftSize;
+		}
+
 		float SpacerHeight = FMath::Max(LeftSize.Y, RightSize.Y);
 
 		// create title bar
@@ -318,6 +336,7 @@ protected:
 							]
 
 						+ SHorizontalBox::Slot()
+							.HAlign(CenterContentAlignment)
 							.VAlign(VAlign_Top)
 							.FillWidth(1.0f)
 							[

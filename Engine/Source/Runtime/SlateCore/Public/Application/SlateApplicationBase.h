@@ -207,11 +207,12 @@ public:
 	 *
 	 * @param Window The window to create the title bar for.
 	 * @param CenterContent Optional content for the title bar's center (will override window title).
+	 * @param CenterContentAlignment The horizontal alignment of the center content.
 	 * @param OutTitleBar Will hold a pointer to the title bar's interface.
 	 *
 	 * @return The new title bar widget.
 	 */
-	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const = 0;
+	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const = 0;
 
 	/**
 	 * Destroying windows has implications on some OSs (e.g. destroying Win32 HWNDs can cause events to be lost).
