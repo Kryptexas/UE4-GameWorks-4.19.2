@@ -100,7 +100,7 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 									.Padding(4.0f, 1.0f, 0.0f, 0.0f)
 									[
 										SNew(STextBlock)
-											.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+											.TextStyle(FEditorStyle::Get(), "SessionBrowser.Terminate.Font")
 											.Text(LOCTEXT("TerminateSessionButtonLabel", "Terminate Session").ToString())
 									]
 							]
