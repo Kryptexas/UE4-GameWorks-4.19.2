@@ -1,11 +1,11 @@
 REM libPNG
 
-pushd Box2D_v2.2.1
+pushd Box2D_v2.3.1
 	REM Compiling Box2D (PC batch file)
 
 	REM vs2012
 	pushd Build\vs2012
-	p4 edit %THIRD_PARTY_CHANGELIST% lib\...
+	p4 edit %THIRD_PARTY_CHANGELIST% bin\...
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=Win32;Configuration="Release"
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=Win32;Configuration="Debug"
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=x64;Configuration="Release"
@@ -14,7 +14,7 @@ pushd Box2D_v2.2.1
 	
 	REM vs2013
 	pushd Build\vs2013
-	p4 edit %THIRD_PARTY_CHANGELIST% lib\...
+	p4 edit %THIRD_PARTY_CHANGELIST% bin\...
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=Win32;Configuration="Release"
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=Win32;Configuration="Debug"
 	msbuild Box2D.sln /target:Clean,Box2D /p:Platform=x64;Configuration="Release"

@@ -13,7 +13,7 @@ public class Box2D : ModuleRules
 		// Determine the root directory of Box2D
 		string ModuleCSFilename = UnrealBuildTool.RulesCompiler.GetModuleFilename(this.GetType().Name);
 		string ModuleBaseDirectory = Path.GetDirectoryName(ModuleCSFilename);
-		string Box2DBaseDir = Path.Combine(ModuleBaseDirectory, "Box2D_v2.2.1");
+		string Box2DBaseDir = Path.Combine(ModuleBaseDirectory, "Box2D_v2.3.1");
 
 		// Add the libraries for the current platform
 		bool bSupported = false;
@@ -22,16 +22,13 @@ public class Box2D : ModuleRules
 			bSupported = true;
 
 			string WindowsVersion = "vs" + WindowsPlatform.GetVisualStudioCompilerVersionName();
-			string Box2DLibDir = Path.Combine(Box2DBaseDir, "build", WindowsVersion, "lib");
+			string ArchitectureVersion = (Target.Platform == UnrealTargetPlatform.Win64) ? "x64" : "x32";
+			string ConfigVersion = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "Debug" : "Release";
+
+			string Box2DLibDir = Path.Combine(Box2DBaseDir, "build", WindowsVersion, "bin", ArchitectureVersion, ConfigVersion);
 			PublicLibraryPaths.Add(Box2DLibDir);
 
-			string PlatformString = (Target.Platform == UnrealTargetPlatform.Win64) ? "x64" : "x86";
-			string LibName = "Box2D_";
-			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-			{
-				LibName += "DEBUG_";
-			}
-			LibName += PlatformString + ".lib";
+			string LibName = "Box2D.lib";
 			PublicAdditionalLibraries.Add(LibName);
 		}
 
