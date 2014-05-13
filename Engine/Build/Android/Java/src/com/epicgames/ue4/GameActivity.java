@@ -14,6 +14,7 @@ import android.app.Dialog;
 import android.widget.EditText;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
 
@@ -40,7 +41,7 @@ import com.google.android.gms.ads.AdSize;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
-
+import com.epicgames.ue4.JavaBuildSettings;
 
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
@@ -58,6 +59,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	
 	GameActivity _activity;	
 	AlertDialog alert;
+
+	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
+	private AssetManager			AssetManagerReference;
 	
 	private GoogleApiClient googleClient;
 	private boolean bResolvingGoogleServicesError = false;
@@ -172,6 +176,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			_activity.setRequestedOrientation( android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE );
 		}
 		
+		// Grab a reference to the asset manager
+		AssetManagerReference = this.getAssets();
+
 		// tell the engine if this is a portrait app
 		nativeSetGlobalActivity();
 		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT);
@@ -599,6 +606,23 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			}
 		});
 	}
+
+	public AssetManager AndroidThunkJava_GetAssetManager()
+	{
+		if(AssetManagerReference == null)
+		{
+			Log.debug("No reference to asset manager found!");
+		}
+
+		return AssetManagerReference;
+	}
+
+	public static boolean isOBBInAPK()
+	{
+		return JavaBuildSettings.PackageType.AMAZON == JavaBuildSettings.PACKAGING;
+	}
+
+
 
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();

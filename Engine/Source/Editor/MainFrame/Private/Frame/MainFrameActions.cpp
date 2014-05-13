@@ -531,6 +531,11 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 	if (PackagingSettings->UsePakFile)
 	{
 		OptionalParams += TEXT(" -pak");
+
+		if (PackagingSettings->UseOBB_InAPK)
+		{
+			OptionalParams += TEXT(" -obbinapk");
+		}
 	}
 
 	if (PackagingSettings->ForDistribution)

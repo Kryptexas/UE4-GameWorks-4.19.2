@@ -101,9 +101,10 @@ public class AndroidPlatform : Platform
 		string BatchName = GetFinalBatchName(ApkName, Params);
 
 		// packaging just takes a pak file and makes it the .obb
-		UEBuildDeploy Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+        UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
+        UEBuildDeploy Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
-		
+        
 		// first, look for a .pak file in the staged directory
 		string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
 
@@ -116,10 +117,19 @@ public class AndroidPlatform : Platform
 		string LocalObbName = GetFinalObbName(ApkName);
 		string DeviceObbName = GetDeviceObbName(ApkName);
 
-		Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
-		File.Delete(LocalObbName);
-		File.Copy(PakFiles[0], LocalObbName);
+        // Always delete the target OBB file if it exists
+        if (File.Exists(LocalObbName))
+        {
+            File.Delete(LocalObbName);
+        }
 
+        if (!Params.OBBinAPK)
+        {
+            Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
+            File.Copy(PakFiles[0], LocalObbName);
+        }
+
+        Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
 		string PackageName = GetPackageInfo(ApkName, false);
 		// make a batch file that can be used to install the .apk and .obb files
 		string[] BatchLines = new string[] {
@@ -130,7 +140,7 @@ public class AndroidPlatform : Platform
 			"%ADB% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
 			SC.IsCodeBasedProject ? "" : "%ADB% shell rm /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 			"%ADB% shell rm -r /mnt/sdcard/obb/" + PackageName,
-			"%ADB% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
+			Params.OBBinAPK ? "" : "%ADB% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
 		};
 		File.WriteAllLines(BatchName, BatchLines);
 
@@ -154,13 +164,17 @@ public class AndroidPlatform : Platform
 		{
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ApkName);
 		}
-		if (!FileExists(ObbName))
+		if (!Params.OBBinAPK && !FileExists(ObbName))
 		{
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ObbName);
 		}
 
 		SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
-		SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
+        if(!Params.OBBinAPK)
+		{
+            SC.ArchiveFiles(Path.GetDirectoryName(ObbName), Path.GetFileName(ObbName));
+        }
+
 		SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
 	}
 

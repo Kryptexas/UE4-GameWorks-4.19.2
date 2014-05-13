@@ -109,6 +109,9 @@ namespace UnrealBuildTool
 		/** True if plugins should be excluded when building target. */
 		public static bool bExcludePlugins;
 
+        /** True if we need to package up Android with the OBB in the APK file */
+        public static bool bOBBinAPK;
+
 		/** Sets the configuration back to defaults. */
 		public static void Reset()
 		{
@@ -138,6 +141,7 @@ namespace UnrealBuildTool
             bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
+            bOBBinAPK = false;
 
 			XmlConfigLoader.Load(typeof(UEBuildConfiguration));
 

@@ -221,6 +221,48 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
+        public string GetUE4BuildFilePath(String EngineDirectory)
+        {
+            return Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java"));
+        }
+
+        public string GetUE4JavaFilePath(String EngineDirectory)
+        {
+            return Path.GetFullPath(Path.Combine(GetUE4BuildFilePath(EngineDirectory), "src/com/epicgames/ue4"));
+        }
+
+        public string GetUE4JavaBuildSettingsFileName(String EngineDirectory)
+        {
+            return Path.Combine(GetUE4JavaFilePath(EngineDirectory), "JavaBuildSettings.java");
+        }
+
+        public void WriteJavaBuildSettingsFile(string FileName, bool OBBinAPK)
+        {
+             // (!UEBuildConfiguration.bOBBinAPK ? "PackageType.AMAZON" : /*bPackageForGoogle ? "PackageType.GOOGLE" :*/ "PackageType.DEVELOPMENT") + ";\n");
+            string Setting = OBBinAPK ? "AMAZON" : "DEVELOPMENT";
+            if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting))
+            {
+                StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
+                BuildSettings.Append("\tpublic enum PackageType {AMAZON, GOOGLE, DEVELOPMENT};\n");
+                BuildSettings.Append("\tpublic static final PackageType PACKAGING = PackageType." + Setting + ";\n");
+                BuildSettings.Append("}\n");
+                File.WriteAllText(FileName, BuildSettings.ToString());
+            }
+            else
+            {
+                Console.WriteLine("::Didn't write config file; contains same data as before.");
+            }
+        }
+
+        public bool ShouldWriteJavaBuildSettingsFile(string FileName, string setting)
+        {
+            var fileContent = File.ReadAllLines(FileName);
+            var packageLine = fileContent[4]; // We know this to be true... because we write it below...
+            int location = packageLine.IndexOf("PACKAGING") + 12 + 12; // + (PACKAGING = ) + ("PackageType.")
+            return String.Compare(setting, packageLine.Substring(location)) != 0;
+        }
+
+
 		private void MakeAPK(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution)
 		{
 			// cache some build product paths
@@ -238,8 +280,12 @@ namespace UnrealBuildTool.Android
 			// set up some directory info
 			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
 			string UE4BuildPath = IntermediateAndroidPath + "APK";
-			string UE4BuildFilesPath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java"));
+            string UE4BuildFilesPath = GetUE4BuildFilePath(EngineDirectory);
 			string GameBuildFilesPath = Path.Combine(ProjectDirectory, "Build/Android");
+
+            // See if we need to create a 'default' Java Build settings file if one doesn't exist (if it does exist we have to assume it has been setup correctly)
+            string UE4JavaBuildSettingsFileName = GetUE4JavaBuildSettingsFileName(EngineDirectory);
+            WriteJavaBuildSettingsFile(UE4JavaBuildSettingsFileName, UEBuildConfiguration.bOBBinAPK);
 
 			// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
 			List<String> InputFiles = new List<string>();
@@ -273,6 +319,39 @@ namespace UnrealBuildTool.Android
 			
 			//Wipe the Intermediate/Build/APK directory first
 			DeleteDirectory(UE4BuildPath);
+
+            // If we are packaging for Amazon then we need to copy the PAK files to the correct location
+            // Currently we'll just support 1 of 'em
+            if (UEBuildConfiguration.bOBBinAPK)
+            {
+                string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android/" + ProjectName + "/Content/Paks";
+                Console.WriteLine("Pak location {0}", PAKFileLocation);
+                string PAKFileDestination = UE4BuildPath + "/assets";
+                Console.WriteLine("Pak destination location {0}", PAKFileDestination);
+                if (Directory.Exists(PAKFileLocation))
+                {
+                    Directory.CreateDirectory(UE4BuildPath);
+                    Directory.CreateDirectory(PAKFileDestination);
+                    Console.WriteLine("PAK file exists...");
+                    var pakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
+                    foreach (var s in pakFiles)
+                    {
+                        Console.WriteLine("Found file {0}", s);
+                    }
+
+                    if (pakFiles.Count() > 0)
+                    {
+                        var destFileName =  Path.Combine(PAKFileDestination, Path.GetFileName(pakFiles.ElementAt(0)) + ".png"); // Need a rename to turn off compression
+                        var srcFileName = pakFiles.ElementAt(0);
+                        if(!File.Exists(destFileName) || File.GetLastWriteTimeUtc(destFileName) < File.GetLastWriteTimeUtc(srcFileName))
+                        {
+                            Console.WriteLine("Copying {0} to {1}", srcFileName, destFileName);
+                            File.Copy(srcFileName,destFileName);
+                        }
+                    }
+                }
+                // Do we want to kill the OBB here or not???
+            }
 
 			Dictionary<string, string> Replacements = new Dictionary<string, string>();
 			Replacements.Add("${EXECUTABLE_NAME}", ProjectName);

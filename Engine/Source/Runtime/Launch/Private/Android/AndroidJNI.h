@@ -29,6 +29,8 @@ public:
 	static jmethodID AndroidThunkJava_ShowAdBanner;
 	static jmethodID AndroidThunkJava_HideAdBanner;
 	static jmethodID AndroidThunkJava_CloseAdBanner;
+
+	static jmethodID AndroidThunkJava_GetAssetManager;
 };
 
 // Returns the java environment

@@ -104,4 +104,10 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
+
+	/**
+	* If enabled, on Android platforms, .pak files are placed inside the APK
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Packaging)
+	bool UseOBB_InAPK;
 };

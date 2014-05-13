@@ -4,6 +4,8 @@
 #include "ExceptionHandling.h"
 
 #include "AndroidJNI.h"
+#include <Android/asset_manager.h>
+#include <Android/asset_manager_jni.h>
 
 #define JNI_CURRENT_VERSION JNI_VERSION_1_6
 
@@ -11,6 +13,7 @@ JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
 
 extern FString GFilePathBase;
+extern bool GOBBinAPK;
 
 //////////////////////////////////////////////////////////////////////////
 // FJNIHelper
@@ -102,6 +105,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_WriteAchievement;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
+jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -242,6 +246,28 @@ void AndroidThunkCpp_CloseAdBanner()
 }
 
 
+namespace
+{
+	jobject GJavaAssetManager = NULL;
+	AAssetManager* GAssetManagerRef = NULL;
+}
+
+AAssetManager * AndroidThunkCpp_GetAssetManager()
+{
+	if (!GAssetManagerRef)
+	{
+		if (JNIEnv* Env = GetJavaEnv())
+		{
+			GJavaAssetManager = Env->CallObjectMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GetAssetManager);
+			Env->NewGlobalRef(GJavaAssetManager);
+			GAssetManagerRef = AAssetManager_fromJava(Env, GJavaAssetManager);
+
+		}
+	}
+
+	return GAssetManagerRef;
+}
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -273,6 +299,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_ShowAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V");
 	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
 	JDef_GameActivity::AndroidThunkJava_CloseAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_CloseAdBanner", "()V");
+	JDef_GameActivity::AndroidThunkJava_GetAssetManager = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetAssetManager", "()Landroid/content/res/AssetManager;");
 
 	// hook signals
 #if UE_BUILD_DEBUG
@@ -298,6 +325,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	env->ReleaseStringUTFChars(pathString, nativePathString);
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Path found as '%s'\n"), *GFilePathBase);
 
+	// Next we check to see if the OBB file is in the APK
+	jmethodID isOBBInAPKMethod = env->GetStaticMethodID(JDef_GameActivity::ClassID, "isOBBInAPK", "()Z");
+	GOBBinAPK = (bool)env->CallStaticBooleanMethod(JDef_GameActivity::ClassID, isOBBInAPKMethod, nullptr);
 
 	// Wire up to core delegates, so core code can call out to Java
 	DECLARE_DELEGATE_OneParam(FAndroidLaunchURLDelegate, const FString&);

@@ -248,6 +248,7 @@ namespace AutomationTool
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
+            this.OBBinAPK = InParams.OBBinAPK;
 		}
 
 		/// <summary>
@@ -321,7 +322,8 @@ namespace AutomationTool
 			bool? Archive = null,
 			string ArchiveDirectoryParam = null,
 			ParamList<string> ProgramTargets = null,
-			bool? Distribution = null
+			bool? Distribution = null,
+            bool? OBBinAPK = null
 			)
 		{
 			//
@@ -404,6 +406,7 @@ namespace AutomationTool
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
+            this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
 			this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
@@ -984,6 +987,9 @@ namespace AutomationTool
 		[Help("distribution", "package for distribution the project")]
 		public bool Distribution { get; set; }
 
+        [Help("obbinapk", "package with OBB data in APK assets directory")]
+        public bool OBBinAPK {get; set; }
+
 		#endregion
 
 		#region Deploy
@@ -1514,6 +1520,7 @@ namespace AutomationTool
 				CommandUtils.Log("ProjectGameExeFilename={0}", ProjectGameExeFilename);
 				CommandUtils.Log("ProjectGameExePath={0}", ProjectGameExePath);
 				CommandUtils.Log("Distribution={0}", Distribution);
+                CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
 				CommandUtils.Log("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.Log("Rocket={0}", Rocket);
 				CommandUtils.Log("Run={0}", Run);

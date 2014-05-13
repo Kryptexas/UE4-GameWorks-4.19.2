@@ -276,6 +276,7 @@ UProjectPackagingSettings::UProjectPackagingSettings( const class FPostConstruct
 	BuildConfiguration = PPBC_Development;
 	FullRebuild = true;
 	UsePakFile = true;
+	UseOBB_InAPK = false;
 }
 
 
