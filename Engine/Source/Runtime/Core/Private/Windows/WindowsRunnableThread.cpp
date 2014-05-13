@@ -10,7 +10,11 @@ uint32 FRunnableThreadWin::GuardedRun()
 	uint32 ExitCode = 1;
 
 	FPlatformProcess::SetThreadAffinityMask(ThreadAffintyMask);
+
+#if WINVER >= 0x0600
 	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
+#endif
+
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	if( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
