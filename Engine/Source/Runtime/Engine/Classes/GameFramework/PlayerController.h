@@ -951,8 +951,12 @@ public:
 	/** Removes given inputcomponent from the input stack (regardless of if it's the top, actually). */
 	bool PopInputComponent(UInputComponent* Input);
 
-	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
-	bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+	virtual void FlushPressedKeys();
+
+	virtual bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
+	virtual bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+	virtual bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+	virtual bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 
 	/** Associate a new UPlayer with this PlayerController. */
 	virtual void SetPlayer(UPlayer* Player);

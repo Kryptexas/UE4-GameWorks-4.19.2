@@ -1952,6 +1952,14 @@ void APlayerController::PlayerTick( float DeltaTime )
 	}
 }
 
+void APlayerController::FlushPressedKeys()
+{
+	if (PlayerInput)
+	{
+		PlayerInput->FlushPressedKeys();
+	}
+}
+
 bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
 	bool bResult = false;
@@ -2003,6 +2011,18 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 
 			bResult = true;
 		}
+	}
+
+	return bResult;
+}
+
+bool APlayerController::InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+{
+	bool bResult = false;
+	
+	if (PlayerInput)
+	{
+		bResult = PlayerInput->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
 	}
 
 	return bResult;
@@ -2081,6 +2101,18 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 				break;
 			};
 		}
+	}
+
+	return bResult;
+}
+
+bool APlayerController::InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration)
+{
+	bool bResult = false;
+
+	if (PlayerInput)
+	{
+		bResult = PlayerInput->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
 	}
 
 	return bResult;
