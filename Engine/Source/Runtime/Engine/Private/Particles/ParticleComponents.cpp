@@ -4733,10 +4733,11 @@ void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifySt
 	int32 NumEmitters = EmitterInstances.Num();
 	for (int32 i = 0; i < NumEmitters; ++i)
 	{
-		if (EmitterInstances[i]->IsTrailEmitter())
+		FParticleEmitterInstance* Instance = EmitterInstances[i];
+		if (Instance && Instance->IsTrailEmitter())
 		{
-			FParticleAnimTrailEmitterInstance* Instance = (FParticleAnimTrailEmitterInstance*)(EmitterInstances[i]);
-			if (Instance && ((bIncludeUnassociated && Instance->AnimNotifyState == NULL) || Instance->AnimNotifyState == InAnimNotifyState))
+			FParticleAnimTrailEmitterInstance* TrailInstance = (FParticleAnimTrailEmitterInstance*)(Instance);
+			if ((bIncludeUnassociated && TrailInstance->AnimNotifyState == NULL) || TrailInstance->AnimNotifyState == InAnimNotifyState)
 			{
 				OutTrailEmitters.Add(Instance);
 			}
