@@ -72,14 +72,6 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 {
 	SCOPED_DRAW_EVENT(PostProcessEyeAdaptation, DEC_SCENE_ITEMS);
 
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if(!InputDesc)
-	{
-		// input is not hooked up correctly
-		return;
-	}
-
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
