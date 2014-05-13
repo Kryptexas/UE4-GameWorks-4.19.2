@@ -68,6 +68,59 @@ UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 	return (GeneratingBP->GeneratedClass != NULL) ? GeneratingBP->GeneratedClass : this;
 }
 
+bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B)
+{
+	if (A == B)
+	{
+		return true;
+	}
+
+	if (!A != !B) //one of properties is null
+	{
+		return false;
+	}
+
+	if (A->GetSize() != B->GetSize())
+	{
+		return false;
+	}
+
+	if (A->GetOffset_ForGC() != B->GetOffset_ForGC())
+	{
+		return false;
+	}
+
+	if (!A->SameType(B))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB)
+{
+	bool bResult = false;
+	if (StructA && StructB)
+	{
+		const UProperty* PropertyA = StructA->PropertyLink;
+		const UProperty* PropertyB = StructB->PropertyLink;
+
+		bResult = true;
+		while (bResult)
+		{
+			bResult = ArePropertiesTheSame(PropertyA, PropertyB);
+			PropertyA = PropertyA ? PropertyA->PropertyLinkNext : NULL;
+			PropertyB = PropertyB ? PropertyB->PropertyLinkNext : NULL;
+			if (PropertyA == PropertyB)
+			{
+				break;
+			}
+		}
+	}
+	return bResult;
+}
+
 struct FConditionalRecompileClassHepler
 {
 	enum ENeededAction
@@ -77,113 +130,10 @@ struct FConditionalRecompileClassHepler
 		Recompile,
 	};
 
-	static bool SameTypeProperties(const UProperty* A, const UProperty* B)
-	{
-		check(A && B);
-		const UClass* ClassA = A->GetClass();
-		const UClass* ClassB = B->GetClass();
-		if (ClassA != ClassB)
-		{
-			return false;
-		}
-
-		if (A->IsA<UObjectPropertyBase>()
-			&&  (CastChecked<UObjectPropertyBase>(A)->PropertyClass != CastChecked<UObjectPropertyBase>(B)->PropertyClass))
-		{
-			return false;
-		}
-
-		if (A->IsA<UClassProperty>() && 
-			(CastChecked<UClassProperty>(A)->MetaClass != CastChecked<UClassProperty>(B)->MetaClass))
-		{
-			return false;
-		}
-		else if (A->IsA<UAssetClassProperty>() && 
-			(CastChecked<UAssetClassProperty>(A)->MetaClass != CastChecked<UAssetClassProperty>(B)->MetaClass))
-		{
-			return false;
-		}
-		else if (A->IsA<UInterfaceProperty>() && 
-			(CastChecked<UInterfaceProperty>(A)->InterfaceClass != CastChecked<UInterfaceProperty>(B)->InterfaceClass))
-		{
-			return false;
-		}
-		else if (A->IsA<UArrayProperty>() && 
-			(!SameTypeProperties(CastChecked<UArrayProperty>(A)->Inner, CastChecked<UArrayProperty>(B)->Inner)))
-		{
-			return false;
-		}
-		else if (A->IsA<UStructProperty>() && 
-			(CastChecked<UStructProperty>(A)->Struct != CastChecked<UStructProperty>(B)->Struct))
-		{
-			return false;
-		}
-		else if (A->IsA<UDelegateProperty>() && 
-			(CastChecked<UDelegateProperty>(A)->SignatureFunction != CastChecked<UDelegateProperty>(B)->SignatureFunction))
-		{
-			return false;
-		}
-		else if (A->IsA<UMulticastDelegateProperty>() && 
-			(CastChecked<UMulticastDelegateProperty>(A)->SignatureFunction != CastChecked<UMulticastDelegateProperty>(B)->SignatureFunction))
-		{
-			return false;
-		}
-
-		return true;
-	}
-
-	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B)
-	{
-		if (A == B)
-		{
-			return true;
-		}
-
-		if (!A != !B) //one of properties is null
-		{
-			return false;
-		}
-
-		if (A->GetSize() != B->GetSize())
-		{
-			return false;
-		}
-
-		if (A->GetOffset_ForGC() != B->GetOffset_ForGC())
-		{
-			return false;
-		}
-
-		if (!A->SameType(B))
-		{
-			return false;
-		}
-
-		return true;
-	}
-
 	static bool HasTheSameLayoutAsParent(const UStruct* Struct)
 	{
-		bool bResult = false;
 		const UStruct* Parent = Struct ? Struct->GetSuperStruct() : NULL;
-		if (Parent)
-		{
-			const UProperty* Property = Struct->PropertyLink;
-			const UProperty* SuperProperty = Parent->PropertyLink;
-
-			bResult = true;
-			while (bResult)
-			{
-				bResult = ArePropertiesTheSame(Property, SuperProperty);
-				Property = Property ? Property->PropertyLinkNext : NULL;
-				SuperProperty = SuperProperty ? SuperProperty->PropertyLinkNext : NULL;
-				if (Property == SuperProperty)
-				{
-					break;
-				}
-			}
-		}
-		return bResult;
+		return FStructUtils::TheSameLayout(Struct, Parent);
 	}
 
 	static ENeededAction IsConditionalRecompilationNecessary(const UBlueprint* GeneratingBP)

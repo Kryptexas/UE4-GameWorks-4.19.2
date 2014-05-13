@@ -2630,7 +2630,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			{
 				if (Output.PinCategory == PC_Struct)
 				{
-					return (OutputObject == InputObject);
+					return OutputObject->IsChildOf(InputObject) && FStructUtils::TheSameLayout(OutputObject, InputObject);
 				}
 
 				// Special Case:  Cannot mix interface and non-interface calls, because the pointer size is different under the hood
