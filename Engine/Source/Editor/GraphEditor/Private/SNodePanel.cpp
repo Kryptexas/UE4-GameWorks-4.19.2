@@ -914,6 +914,27 @@ void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocus
 	LastKeyGestureDetected.bShift = false;
 }
 
+FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
+{
+	const EGestureEvent::Type GestureType = GestureEvent.GetGestureType();
+	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
+	if (GestureType == EGestureEvent::Magnify)
+	{
+		// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
+		const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
+		const int32 ZoomLevelDelta = FMath::FloorToInt(GestureDelta.X * 10);
+		ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+		return FReply::Handled();
+	}
+	else if (GestureType == EGestureEvent::Scroll)
+	{
+		this->bIsPanning = true;
+		ViewOffset -= GestureDelta / GetZoomAmount();
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
 void SNodePanel::FindNodesAffectedByMarquee( FGraphPanelSelectionSet& OutAffectedNodes ) const
 {
 	OutAffectedNodes.Empty();
