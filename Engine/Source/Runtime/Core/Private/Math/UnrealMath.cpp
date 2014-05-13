@@ -54,7 +54,7 @@ bool FVector2D::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuc
 
 bool FRotator::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	SerializeCompressed( Ar );
+	SerializeCompressedShort( Ar );
 	bOutSuccess = true;
 	return true;
 }
@@ -103,6 +103,53 @@ void FRotator::SerializeCompressed( FArchive& Ar )
 		Pitch = FRotator::DecompressAxisFromByte(BytePitch);
 		Yaw	= FRotator::DecompressAxisFromByte(ByteYaw);
 		Roll = FRotator::DecompressAxisFromByte(ByteRoll);
+	}
+}
+
+void FRotator::SerializeCompressedShort( FArchive& Ar )
+{
+	uint16 ShortPitch = FRotator::CompressAxisToShort(Pitch);
+	uint16 ShortYaw = FRotator::CompressAxisToShort(Yaw);
+	uint16 ShortRoll = FRotator::CompressAxisToShort(Roll);
+
+	uint8 B = (ShortPitch!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortPitch;
+	}
+	else
+	{
+		ShortPitch = 0;
+	}
+
+	B = (ShortYaw!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortYaw;
+	}
+	else
+	{
+		ShortYaw = 0;
+	}
+
+	B = (ShortRoll!=0);
+	Ar.SerializeBits( &B, 1 );
+	if( B )
+	{
+		Ar << ShortRoll;
+	}
+	else
+	{
+		ShortRoll = 0;
+	}
+
+	if( Ar.IsLoading() )
+	{
+		Pitch = FRotator::DecompressAxisFromShort(ShortPitch);
+		Yaw	= FRotator::DecompressAxisFromShort(ShortYaw);
+		Roll = FRotator::DecompressAxisFromShort(ShortRoll);
 	}
 }
 

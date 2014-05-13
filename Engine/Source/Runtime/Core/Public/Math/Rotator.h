@@ -32,6 +32,13 @@ public:
 	 */
 	CORE_API void SerializeCompressed( FArchive& Ar );
 
+	/**
+	 * Serializes the rotator compressed for e.g. network transmission (use shorts though).
+	 * 
+	 * @param	Ar	Archive to serialize to/ from
+	 */
+	CORE_API void SerializeCompressedShort( FArchive& Ar );
+
 	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 	/** Constructor.*/
