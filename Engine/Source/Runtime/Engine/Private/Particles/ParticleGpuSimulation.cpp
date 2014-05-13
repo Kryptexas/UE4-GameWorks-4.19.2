@@ -156,6 +156,8 @@ public:
 	FTexture2DRHIRef VelocityTextureTargetRHI;
 	FTexture2DRHIRef VelocityTextureRHI;
 
+	bool bTexturesCleared;
+
 	/**
 	 * Initialize RHI resources used for particle simulation.
 	 */
@@ -201,6 +203,8 @@ public:
 	
 		RHISetRenderTarget( VelocityTextureTargetRHI, FTextureRHIRef()); 
 		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		bTexturesCleared = false;
 	}
 
 	/**
@@ -3958,6 +3962,27 @@ void FFXSystem::SimulateGPUParticles(
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
 	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+
+	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
+	if ( !CurrentStateTextures.bTexturesCleared )
+	{
+		RHISetRenderTarget( CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		RHISetRenderTarget( CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		CurrentStateTextures.bTexturesCleared = true;
+	}
+
+	if ( !PrevStateTextures.bTexturesCleared )
+	{
+		RHISetRenderTarget( PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		RHISetRenderTarget( PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		PrevStateTextures.bTexturesCleared = true;
+	}
 
 	// Setup render states.
 	FTextureRHIParamRef RenderTargets[3] =
