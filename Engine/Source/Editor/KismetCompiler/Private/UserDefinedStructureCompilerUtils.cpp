@@ -146,6 +146,10 @@ struct FUserDefinedStructureCompilerInner
 			}
 
 			NewProperty->SetPropertyFlags(CPF_Edit);
+			if (VarDesc.bDontEditoOnInstance)
+			{
+				NewProperty->SetPropertyFlags(CPF_DisableEditOnInstance);
+			}
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
 			NewProperty->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc.ToolTip);

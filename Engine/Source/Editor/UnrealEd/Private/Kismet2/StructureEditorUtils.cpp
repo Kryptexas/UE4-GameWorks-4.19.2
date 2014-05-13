@@ -239,6 +239,8 @@ bool FStructureEditorUtils::AddVariable(UUserDefinedStruct* Struct, const FEdGra
 		NewVar.FriendlyName = DisplayName;
 		NewVar.SetPinType(VarType);
 		NewVar.VarGuid = FGuid::NewGuid();
+		NewVar.bDontEditoOnInstance = false;
+		NewVar.bInvalidMember = false;
 		GetVarDesc(Struct).Add(NewVar);
 
 		OnStructureChanged(Struct);
@@ -587,6 +589,26 @@ bool FStructureEditorUtils::ChangeVariableTooltip(UUserDefinedStruct* Struct, FG
 				Property->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc->ToolTip);
 			}
 
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::ChangeEditableOnBPInstance(UUserDefinedStruct* Struct, FGuid VarGuid, bool bInIsEditable)
+{
+	if (Struct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
+		ModifyStructData(Struct);
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		const bool bNewDontEditoOnInstance = !bInIsEditable;
+		if (VarDesc && (bNewDontEditoOnInstance != VarDesc->bDontEditoOnInstance))
+		{
+			VarDesc->bDontEditoOnInstance = bNewDontEditoOnInstance;
+			OnStructureChanged(Struct);
 			return true;
 		}
 	}

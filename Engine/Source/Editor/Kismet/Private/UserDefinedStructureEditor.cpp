@@ -197,6 +197,31 @@ public:
 		return FString();
 	}
 
+	FText OnGetTooltipText() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			if (auto Struct = StructureDetailsSP->GetUserDefinedStruct())
+			{
+				return FText::FromString(FStructureEditorUtils::GetTooltip(Struct));
+			}
+		}
+		return FText();
+	}
+
+	void OnTooltipCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			if (auto Struct = StructureDetailsSP->GetUserDefinedStruct())
+			{
+				FStructureEditorUtils::ChangeTooltip(Struct, NewText.ToString());
+			}
+		}
+	}
+
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE 
 	{
@@ -205,6 +230,7 @@ public:
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
 
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE {}
+
 	virtual void Tick( float DeltaTime ) OVERRIDE {}
 	virtual bool RequiresTick() const OVERRIDE { return false; }
 	virtual FName GetName() const OVERRIDE 
@@ -331,6 +357,52 @@ public:
 			}
 		}
 		return FText();
+	}
+
+	FText OnGetTooltipText() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			if (const FStructVariableDescription* FieldDesc = StructureDetailsSP->FindStructureFieldByGuid(FieldGuid))
+			{
+				return FText::FromString(FieldDesc->ToolTip);
+			}
+		}
+		return FText();
+	}
+
+	void OnTooltipCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			FStructureEditorUtils::ChangeVariableTooltip(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, NewText.ToString());
+			OnChanged();
+		}
+	}
+
+	ESlateCheckBoxState::Type OnGetEditableOnBPInstanceState() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			if (const FStructVariableDescription* FieldDesc = StructureDetailsSP->FindStructureFieldByGuid(FieldGuid))
+			{
+				return !FieldDesc->bDontEditoOnInstance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			}
+		}
+		return ESlateCheckBoxState::Undetermined;
+	}
+
+	void OnEditableOnBPInstanceCommitted(ESlateCheckBoxState::Type InNewState)
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			FStructureEditorUtils::ChangeEditableOnBPInstance(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Unchecked != InNewState);
+			OnChanged();
+		}
 	}
 
 	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
@@ -473,7 +545,7 @@ public:
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE 
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ).ToString() )
+		ChildrenBuilder.AddChildContent( *LOCTEXT( "UDSVarDefaultValue", "Default Value" ).ToString() )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -487,6 +559,38 @@ public:
 			.OnTextCommitted( this, &FUserDefinedStructureFieldLayout::OnArgDefaultValueCommitted )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		];
+
+		ChildrenBuilder.AddChildContent(*LOCTEXT("Tooltip", "Tooltip").ToString())
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Tooltip", "Tooltip"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		[
+			SNew(SEditableTextBox)
+			.Text(this, &FUserDefinedStructureFieldLayout::OnGetTooltipText)
+			.OnTextCommitted(this, &FUserDefinedStructureFieldLayout::OnTooltipCommitted)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
+
+#if 0	// ttp335214 must be fixed first
+		ChildrenBuilder.AddChildContent(*LOCTEXT("EditableOnInstance", "EditableOnInstance").ToString())
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Editable", "Editable"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.ToolTipText(LOCTEXT("EditableOnBPInstance", "Variable can be edited on an instance of a Blueprint."))
+			.OnCheckStateChanged(this, &FUserDefinedStructureFieldLayout::OnEditableOnBPInstanceCommitted)
+			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
+		];
+#endif 
 	}
 
 	virtual void Tick( float DeltaTime ) OVERRIDE {}
@@ -508,26 +612,61 @@ private:
 // FUserDefinedStructureLayout
 void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) 
 {
+	const float NameWidth = 80.0f;
+	const float ContentWidth = 130.0f;
+
 	ChildrenBuilder.AddChildContent(FString())
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(NameWidth)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SImage)
-				.Image( this, &FUserDefinedStructureLayout::OnGetStructureStatus )
-				.ToolTipText(this, &FUserDefinedStructureLayout::GetStatusTooltip )
-			]
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Right)
+			SNew(SImage)
+			.Image(this, &FUserDefinedStructureLayout::OnGetStructureStatus)
+			.ToolTipText(this, &FUserDefinedStructureLayout::GetStatusTooltip)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(SBox)
+			.WidthOverride(ContentWidth)
 			[
 				SNew(SButton)
+				.HAlign(HAlign_Center)
 				.Text(LOCTEXT("NewStructureField", "New Variable").ToString())
 				.OnClicked(this, &FUserDefinedStructureLayout::OnAddNewField)
 			]
-		];
+		]
+	];
+
+	ChildrenBuilder.AddChildContent(FString())
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(NameWidth)
+		.HAlign(HAlign_Left)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Tooltip", "Tooltip"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(SBox)
+			.WidthOverride(ContentWidth)
+			[
+				SNew(SEditableTextBox)
+				.Text(this, &FUserDefinedStructureLayout::OnGetTooltipText)
+				.OnTextCommitted(this, &FUserDefinedStructureLayout::OnTooltipCommitted)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		]
+	];
 
 	auto StructureDetailsSP = StructureDetails.Pin();
 	if(StructureDetailsSP.IsValid())

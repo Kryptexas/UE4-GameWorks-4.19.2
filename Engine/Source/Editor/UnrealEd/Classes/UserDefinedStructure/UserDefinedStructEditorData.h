@@ -44,9 +44,18 @@ struct FStructVariableDescription
 	UPROPERTY()
 	FString ToolTip;
 
+	UPROPERTY()
+	bool bDontEditoOnInstance;
+
 	UNREALED_API bool SetPinType(const struct FEdGraphPinType& VarType);
 
 	UNREALED_API FEdGraphPinType ToPinType() const;
+
+	FStructVariableDescription()
+		: bIsArray(false)
+		, bInvalidMember(false)
+		, bDontEditoOnInstance(false)
+	{ }
 };
 
 UCLASS()
