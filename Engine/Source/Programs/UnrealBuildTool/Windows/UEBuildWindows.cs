@@ -338,10 +338,8 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
 			// Win32 XP is only supported at this time.
-			// The XP compilation is currently only supported with a VS2013 build.
 			SupportWindowsXP = false;
-				//&& InBuildTarget.Platform == UnrealTargetPlatform.Win32
-				//&& Compiler == WindowsCompiler.VisualStudio2013;
+				//&& InBuildTarget.Platform == UnrealTargetPlatform.Win32;
 
 			if( SupportWindowsXP )
 			{

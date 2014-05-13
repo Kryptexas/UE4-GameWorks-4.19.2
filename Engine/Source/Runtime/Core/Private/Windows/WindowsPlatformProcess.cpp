@@ -13,6 +13,10 @@
 	#include <LM.h>
 	#include <tlhelp32.h>
 
+#if WINVER == 0x0502
+	#include <Psapi.h>
+#endif
+
 	namespace ProcessConstants
 	{
 		uint32 WIN_STD_INPUT_HANDLE = STD_INPUT_HANDLE;
@@ -23,6 +27,10 @@
 
 #include "HideWindowsPlatformTypes.h"
 #include "WindowsPlatformMisc.h"
+
+#if WINVER == 0x0502
+	#pragma comment(lib, "psapi.lib")
+#endif
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
@@ -441,7 +449,13 @@ FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
 		
 		int32 InOutSize = ProcessNameBufferSize;
 		checkAtCompileTime(sizeof(::DWORD) == sizeof(int32), "DWORD size doesn't match int32.  Is it the future or the past?");
+
+#if WINVER == 0x0502
+		GetProcessImageFileName(ProcessHandle, ProcessNameBuffer, InOutSize);
+#else
 		QueryFullProcessImageName(ProcessHandle, 0, ProcessNameBuffer, (PDWORD)(&InOutSize));
+#endif
+
 		Output = ProcessNameBuffer;
 	}
 
