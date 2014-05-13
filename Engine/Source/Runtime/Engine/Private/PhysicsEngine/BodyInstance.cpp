@@ -1410,7 +1410,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 #endif
 }
 
-void FBodyInstance::UpdateInstanceSimulatePhysics()
+void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -1440,7 +1440,7 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 }
 
 
-void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending)
+void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending, bool bIgnoreOwner)
 {
 #if WITH_PHYSX
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1480,19 +1480,19 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 		}
 	}
 
-	UpdateInstanceSimulatePhysics();
+	UpdateInstanceSimulatePhysics(bIgnoreOwner);
 }
 
-bool FBodyInstance::IsInstanceSimulatingPhysics()
+bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
 	// if I'm simulating or owner is simulating
-	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
+	return ShouldInstanceSimulatingPhysics(bIgnoreOwner) && IsValidBodyInstance();
 }
 
-bool FBodyInstance::ShouldInstanceSimulatingPhysics()
+bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
 	// if I'm simulating or owner is simulating
-	if ( BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default )
+	if (BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
 	{
 		// if derive from owner, and owner is simulating, this should simulate
 		if (OwnerComponent != NULL && OwnerComponent->BodyInstance.bSimulatePhysics)

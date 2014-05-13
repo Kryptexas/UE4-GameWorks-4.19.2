@@ -106,12 +106,10 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			}
 #endif
 			BodyInstance = Bodies[BodyIndex];
-			UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
 			// since we don't copy back to physics, we shouldn't blend fixed bones here if this set up is used
 			// if you'd like to use fixed bones to blend use SkipSimulatingBones
 			// you can simulate fixed bones by setting it to instance, but that case, please use SkipSimulating Bones. 
-			bool bSkipFixedBones =  bShouldSkipFixedBones
-				&& (BodySetup? BodySetup->PhysicsType == PhysType_Fixed : false);
+			bool bSkipFixedBones = bShouldSkipFixedBones && !BodyInstance->bSimulatePhysics;
 
 			if(!bSkipFixedBones && BodyInstance->IsValidBodyInstance())
 			{
@@ -305,11 +303,8 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 			// If we have a physics body, and its kinematic...
 			FBodyInstance* BodyInst = Bodies[i];
 			check(BodyInst);
-			// special flag to check to see if we should update fixed bones or not
-			bool bSkipFixedBones =  bShouldSkipFixedBones
-				&& (BodyInst->BodySetup.IsValid()? BodyInst->BodySetup.Get()->PhysicsType == PhysType_Fixed : false);
 
-			if(!bSkipFixedBones && BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics())
+			if (!bShouldSkipFixedBones && BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
 			{
 				// Find the graphics bone index that corresponds to this physics body.
 				FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;
