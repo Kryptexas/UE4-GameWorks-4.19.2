@@ -1230,15 +1230,16 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 					
 					if (BodySetupIdx >= 0)
 					{
+						FBodyInstance * BodyInstance = Mesh->Bodies[BodySetupIdx];
+						BodyInstance->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
+
 						if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodySetupIdx])
 						{
-							if (BodySetup[BodySetupIdx].PhysicsType != PhysType_Fixed)
-							{
-								UE_LOG(LogPhysics, Warning, TEXT("UWheeledVehicleMovementComponent::FixupSkeletalMesh Wheel [%d] has a body that is not set to Fixed."), WheelIdx);
-								FMessageLog("PIE").Warning(FText::Format(LOCTEXT("WheelHasBodyWarning", "Wheel [{0}] is using a body which is not set to Fixed. Please change this in the physics asset."), FText::FromString(WheelSetup.BoneName.ToString())));
-							}
 
-							Mesh->Bodies[BodySetupIdx]->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
+							if (BodySetup->PhysicsType == PhysType_Default) 	//if they set it to unfixed we don't fixup because they are explicitely saying Unfixed
+							{
+								BodyInstance->SetInstanceSimulatePhysics(false, false, true);
+							}
 
 							//and get rid of constraints on the wheels. TODO: right now we remove all wheel constraints, we probably only want to remove parent constraints
 							TArray<int32> WheelConstraints;
