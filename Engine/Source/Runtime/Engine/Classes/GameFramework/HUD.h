@@ -398,8 +398,8 @@ public:
 	FVector Project(FVector Location);
 	
 	/** Transforms a 2D screen location into a 3D location and direction */
+	UFUNCTION(BlueprintPure, Category=HUD)
 	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
-
 
 	/**
 	 * Add a hitbox to the hud
