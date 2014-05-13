@@ -282,6 +282,7 @@ static uint8 GetVertexElementSize( uint8 Type )
 		case VET_Short2N:
 		case VET_Short4:
 		case VET_Half2:
+		case VET_Half4:
 		default:
 			return 0;
 	}

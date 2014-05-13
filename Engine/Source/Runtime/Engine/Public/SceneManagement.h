@@ -1942,13 +1942,13 @@ public:
 	 * Adds a SpeedTree wind computation object to the scene.
 	 * @param StaticMesh - The SpeedTree static mesh whose wind to add.
 	 */
-	virtual void AddSpeedTreeWind(class UStaticMesh* StaticMesh) = 0;
+	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) = 0;
 
 	/** 
 	 * Removes a SpeedTree wind computation object to the scene.
 	 * @param StaticMesh - The SpeedTree static mesh whose wind to remove.
 	 */
-	virtual void RemoveSpeedTreeWind(class UStaticMesh* StaticMesh) = 0;
+	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) = 0;
 
 	/** Ticks the SpeedTree wind object and updates the uniform buffer. */
 	virtual void UpdateSpeedTreeWind(double CurrentTime) = 0;

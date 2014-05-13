@@ -16,9 +16,9 @@ public class SpeedTree : ModuleRules
 			UEBuildConfiguration.bCompileSpeedTree)
 		{
 			Definitions.Add("WITH_SPEEDTREE=1");
-			Definitions.Add("EPIC_INTERNAL_SPEEDTREE_KEY=B62562037E6717DA");
+			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
-			string SpeedTreePath = UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree/SpeedTree-v6.3/";
+			string SpeedTreePath = UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree/SpeedTree-v7.0/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -29,11 +29,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL64_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL64_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL64_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL64_Static.lib");
 					}
 				}
 				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
@@ -42,11 +42,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL64_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC11_MTDLL64_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL64_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC11_MTDLL64_Static.lib");
 					}
 				}
 			}
@@ -58,11 +58,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL_Static_d.lib");
+                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL_Static.lib");
+                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC12_MTDLL_Static.lib");
 					}
 				}
 				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
@@ -71,11 +71,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL_Static_d.lib");
+                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC11_MTDLL_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL_Static.lib");
+                        PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC11_MTDLL_Static.lib");
 					}
 				}
 			}

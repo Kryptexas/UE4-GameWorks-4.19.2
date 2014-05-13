@@ -9249,6 +9249,90 @@ void UMaterialExpressionSpeedTree::GetCaption(TArray<FString>& OutCaptions) cons
 	OutCaptions.Add(TEXT("SpeedTree"));
 }
 
+void UMaterialExpressionSpeedTree::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.UE4Ver() < VER_UE4_SPEEDTREE_WIND_V7)
+	{
+		// update wind presets for speedtree v7
+		switch (WindType)
+		{
+		case STW_Fastest:
+			WindType = STW_Better;
+			break;
+		case STW_Fast:
+			WindType = STW_Palm;
+			break;
+		case STW_Better:
+			WindType = STW_Best;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+#if WITH_EDITOR
+
+bool UMaterialExpressionSpeedTree::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+
+	if (GeometryType == STG_Billboard)
+	{
+		if (InProperty->GetFName() == TEXT("LODType"))
+		{
+			bIsEditable = false;
+		}
+	}
+	else
+	{
+		if (InProperty->GetFName() == TEXT("BillboardThreshold"))
+		{
+			bIsEditable = false;
+		}
+	}
+
+	return bIsEditable;
+}
+
+#endif
+
+/*------------------------------------------------------------------------------
+SpeedTree Color Variation material expression.
+------------------------------------------------------------------------------*/
+UMaterialExpressionSpeedTreeColorVariation::UMaterialExpressionSpeedTreeColorVariation(const class FPostConstructInitializeProperties& PCIP)
+: Super(PCIP)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FString NAME_SpeedTree;
+		FConstructorStatics()
+			: NAME_SpeedTree(LOCTEXT("SpeedTree", "SpeedTree").ToString())
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Amount = 0.1f;
+	bPreserveVibrance = true;
+
+	MenuCategories.Add(ConstructorStatics.NAME_SpeedTree);
+}
+
+int32 UMaterialExpressionSpeedTreeColorVariation::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	return Compiler->SpeedTreeColorVariation(Input.Compile(Compiler), Amount, bPreserveVibrance);
+}
+
+void UMaterialExpressionSpeedTreeColorVariation::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("SpeedTree Color Variation"));
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionEyeAdaptation
 ///////////////////////////////////////////////////////////////////////////////

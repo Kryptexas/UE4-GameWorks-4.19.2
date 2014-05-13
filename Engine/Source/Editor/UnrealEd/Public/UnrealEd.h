@@ -5,10 +5,6 @@
 
 #if WITH_EDITOR
 
-#ifndef WITH_SPEEDTREE
-#error WITH_SPEEDTREE must have been defined to either 0 or 1 by UnrealBuildTool to be able to include this header file
-#endif
-
 #include "Engine.h"
 
 #include "Slate.h"

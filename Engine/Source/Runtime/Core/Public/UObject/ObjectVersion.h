@@ -540,7 +540,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
 	// Requires test of material coords to ensure they're saved correctly
 	VER_UE4_FIX_MATERIAL_COORDS,
- 
+ 	// Changed SpeedTree wind presets to v7
+	VER_UE4_SPEEDTREE_WIND_V7,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

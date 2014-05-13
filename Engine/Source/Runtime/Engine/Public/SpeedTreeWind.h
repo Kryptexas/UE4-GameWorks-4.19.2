@@ -44,33 +44,32 @@ public:
 		BRANCH_DIRECTIONAL_FROND_1,
 		BRANCH_TURBULENCE_1,
 		BRANCH_WHIP_1,
-		BRANCH_ROLLING_1,
 		BRANCH_OSC_COMPLEX_1,
+
 		BRANCH_SIMPLE_2,
 		BRANCH_DIRECTIONAL_2,
 		BRANCH_DIRECTIONAL_FROND_2,
 		BRANCH_TURBULENCE_2,
 		BRANCH_WHIP_2,
-		BRANCH_ROLLING_2,
 		BRANCH_OSC_COMPLEX_2,
 
 		LEAF_RIPPLE_VERTEX_NORMAL_1,
 		LEAF_RIPPLE_COMPUTED_1,
 		LEAF_TUMBLE_1,
 		LEAF_TWITCH_1,
-		LEAF_ROLL_1,
 		LEAF_OCCLUSION_1,
 
 		LEAF_RIPPLE_VERTEX_NORMAL_2,
 		LEAF_RIPPLE_COMPUTED_2,
 		LEAF_TUMBLE_2,
 		LEAF_TWITCH_2,
-		LEAF_ROLL_2,
 		LEAF_OCCLUSION_2,
 
 		FROND_RIPPLE_ONE_SIDED,
 		FROND_RIPPLE_TWO_SIDED,
 		FROND_RIPPLE_ADJUST_LIGHTING,
+
+		ROLLING,
 
 		NUM_WIND_OPTIONS
 	};
@@ -102,9 +101,6 @@ public:
 		// g_vWindTurbulences
 		SH_BRANCH_1_TURBULENCE, SH_BRANCH_2_TURBULENCE, SH_WIND_PACK6, SH_WIND_PACK7,
 
-		// g_vWindRollingBranches
-		SH_ROLLING_BRANCHES_MAX_SCALE, SH_ROLLING_BRANCHES_MIN_SCALE, SH_ROLLING_BRANCHES_SPEED, SH_ROLLING_BRANCHES_RIPPLE,
-
 		// g_vWindLeaf1Ripple
 		SH_LEAF_1_RIPPLE_TIME, SH_LEAF_1_RIPPLE_DISTANCE, SH_LEAF_1_LEEWARD_SCALAR, SH_WIND_PACK8,
 
@@ -114,9 +110,6 @@ public:
 		// g_vWindLeaf1Twitch
 		SH_LEAF_1_TWITCH_THROW, SH_LEAF_1_TWITCH_SHARPNESS, SH_LEAF_1_TWITCH_TIME, SH_WIND_PACK9,
 
-		// g_vWindLeaf1Roll
-		SH_LEAF_1_ROLL_MAX_SCALE, SH_LEAF_1_ROLL_MIN_SCALE, SH_LEAF_1_ROLL_SPEED, SH_LEAF_1_ROLL_SEPARATION,
-
 		// g_vWindLeaf2Ripple
 		SH_LEAF_2_RIPPLE_TIME, SH_LEAF_2_RIPPLE_DISTANCE, SH_LEAF_2_LEEWARD_SCALAR, SH_WIND_PACK10,
 
@@ -125,12 +118,18 @@ public:
 
 		// g_vWindLeaf2Twitch
 		SH_LEAF_2_TWITCH_THROW, SH_LEAF_2_TWITCH_SHARPNESS, SH_LEAF_2_TWITCH_TIME, SH_WIND_PACK11,
-
-		// g_vWindLeaf2Roll
-		SH_LEAF_2_ROLL_MAX_SCALE, SH_LEAF_2_ROLL_MIN_SCALE, SH_LEAF_2_ROLL_SPEED, SH_LEAF_2_ROLL_SEPARATION,
 				
 		// g_vWindFrondRipple
 		SH_FROND_RIPPLE_TIME, SH_FROND_RIPPLE_DISTANCE, SH_FROND_RIPPLE_TILE, SH_FROND_RIPPLE_LIGHTING_SCALAR,
+
+		// g_vWindRollingBranch
+		SH_ROLLING_BRANCH_FIELD_MIN, SH_ROLLING_BRANCH_LIGHTING_ADJUST, SH_ROLLING_BRANCH_VERTICAL_OFFSET, SH_WIND_PACK12,
+
+		// g_vWindRollingLeafAndDir
+		SH_ROLLING_LEAF_RIPPLE_MIN, SH_ROLLING_LEAF_TUMBLE_MIN, SH_ROLLING_X, SH_ROLLING_Y,
+
+		// g_vWindRollingNoise
+		SH_ROLLING_NOISE_PERIOD, SH_ROLLING_NOISE_SIZE, SH_ROLLING_NOISE_TURBULENCE, SH_ROLLING_NOISE_TWIST,
 
 		// total values, including packing
 		NUM_SHADER_VALUES
@@ -204,11 +203,6 @@ public:
 		// branch motion
 		SBranchWindLevel	m_asBranch[NUM_BRANCH_LEVELS];
 
-		float				m_fRollingBranchesMaxScale;
-		float				m_fRollingBranchesMinScale;
-		float				m_fRollingBranchesSpeed;
-		float				m_fRollingBranchesRipple;
-
 		// leaf motion
 		SWindGroup			m_asLeaf[NUM_LEAF_GROUPS];
 
@@ -216,6 +210,19 @@ public:
 		float				m_afFrondRippleDistance[NUM_WIND_POINTS_IN_CURVE];
 		float				m_fFrondRippleTile;
 		float				m_fFrondRippleLightingScalar;
+
+		// rolling
+		float				m_fRollingNoiseSize;
+		float				m_fRollingNoiseTwist;
+		float				m_fRollingNoiseTurbulence;
+		float				m_fRollingNoisePeriod;
+		float				m_fRollingNoiseSpeed;
+
+		float				m_fRollingBranchFieldMin;
+		float				m_fRollingBranchLightingAdjust;
+		float				m_fRollingBranchVerticalOffset;
+		float				m_fRollingLeafRippleMin;
+		float				m_fRollingLeafTumbleMin;
 
 		// gusting
 		float				m_fGustFrequency;
@@ -254,6 +261,10 @@ public:
 
 	friend		FArchive&						operator<<(FArchive& Ar, FSpeedTreeWind& Wind);
 
+	ENGINE_API	void							SetNeedsReload(bool bReload = true) { m_bNeedsReload = bReload; }
+	ENGINE_API	bool							NeedsReload(void) { return m_bNeedsReload; }
+	
+
 protected:
 				void							Gust(double fTime);
 				float							RandomFloat(float fMin, float fMax) const;
@@ -291,6 +302,8 @@ protected:
 					double		m_fDirectionChangeEndTime;
 					float		m_afDirectionAtStart[3];
 
+					float		m_afRollingOffset[2];
+
 					float		m_fCombinedStrength;
 
 					float		m_afOscillationTimes[NUM_OSC_COMPONENTS];
@@ -299,6 +312,8 @@ protected:
 
 					float		m_afBranchWindAnchor[3];
 					float		m_fMaxBranchLevel1Length;
+
+					bool		m_bNeedsReload;
 
 	MS_ALIGN(16)	float		m_afShaderTable[NUM_SHADER_VALUES] GCC_ALIGN(16);
 };
@@ -317,18 +332,17 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FSpeedTreeUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindBranchAnchor)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindBranchAdherences)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindTurbulences)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindRollingBranches)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf1Ripple)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf1Tumble)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf1Twitch)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf1Roll)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf2Ripple)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf2Tumble)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf2Twitch)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindLeaf2Roll)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindFrondRipple)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindRollingBranch)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindRollingLeafAndDirection)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindRollingNoise)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindAnimation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, LodInfo)
 END_UNIFORM_BUFFER_STRUCT(FSpeedTreeUniformParameters)
 typedef TUniformBufferRef<FSpeedTreeUniformParameters> FSpeedTreeUniformBufferRef;
 

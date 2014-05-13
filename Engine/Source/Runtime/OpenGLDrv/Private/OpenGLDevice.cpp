@@ -656,6 +656,7 @@ static void InitRHICapabilitiesForGL()
 	}
 
 	GVertexElementTypeSupport.SetSupported(VET_Half2, FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half4, FOpenGL::SupportsVertexHalfFloat());
 
 	for (int32 PF = 0; PF < PF_MAX; ++PF)
 	{

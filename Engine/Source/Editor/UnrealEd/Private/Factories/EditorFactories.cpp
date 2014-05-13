@@ -5584,7 +5584,15 @@ bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& 
 	{
 		if ( Mesh->AssetImportData )
 		{
-			OutFilenames.Add(FReimportManager::ResolveImportFilename(Mesh->AssetImportData->SourceFilePath, Mesh));
+			if (FPaths::GetExtension(Mesh->AssetImportData->SourceFilePath).ToLower() == "srt")
+			{
+				// SpeedTrees need to use their own importer
+				return false;
+			}
+			else
+			{
+				OutFilenames.Add(FReimportManager::ResolveImportFilename(Mesh->AssetImportData->SourceFilePath, Mesh));
+			}
 		}
 		else
 		{
@@ -6006,6 +6014,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 
 	return EReimportResult::Succeeded;
 }
+
 
 /*------------------------------------------------------------------------------
 	FBlueprintParentFilter implementation.

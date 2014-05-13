@@ -15,6 +15,8 @@ class USpeedTreeImportFactory : public UFactory
 	// Begin UFactory Interface
 	virtual FText GetDisplayName() const OVERRIDE;
 #if WITH_SPEEDTREE
+	virtual bool DoesSupportClass(UClass * Class) OVERRIDE;
+	virtual UClass* ResolveSupportedClass() OVERRIDE;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn) OVERRIDE;
 #endif
 };

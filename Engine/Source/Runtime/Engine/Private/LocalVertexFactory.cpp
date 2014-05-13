@@ -7,17 +7,18 @@
 #include "EnginePrivate.h"
 #include "SpeedTreeWind.h"
 
-
 class FSpeedTreeVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
 
 	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
 	{
+		LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
 	}
 
 	virtual void Serialize(FArchive& Ar) OVERRIDE
 	{
+		Ar << LODParameter;
 	}
 
 	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
@@ -28,9 +29,18 @@ public:
 			if (SpeedTreeUniformBuffer != NULL)
 			{
 				SetUniformBufferParameter(Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+
+				if (LODParameter.IsBound())
+				{
+					//@todo - speedtree smooth LOD
+					FVector LODData(0, 0, 0);
+					SetShaderValue(Shader->GetVertexShader(), LODParameter, LODData);
+				}
 			}
 		}
 	}
+
+	FShaderParameter LODParameter;
 };
 
 /**
@@ -114,7 +124,7 @@ void FLocalVertexFactory::InitRHI()
 				));
 		}
 
-		for(int32 CoordinateIndex = Data.TextureCoordinates.Num();CoordinateIndex < MAX_STATIC_TEXCOORDS;CoordinateIndex++)
+		for (int32 CoordinateIndex = Data.TextureCoordinates.Num(); CoordinateIndex < MAX_STATIC_TEXCOORDS / 2; CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
 				Data.TextureCoordinates[Data.TextureCoordinates.Num() - 1],

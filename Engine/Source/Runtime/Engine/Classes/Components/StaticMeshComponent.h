@@ -297,10 +297,9 @@ public:
 
 	// Begin UActorComponent interface.
 protected: 
-	virtual void OnRegister() OVERRIDE; 
+	virtual void OnRegister() OVERRIDE;
+	virtual void OnUnregister() OVERRIDE;
 public:
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
 	virtual UObject const* AdditionalStatObject() const OVERRIDE;
 #if WITH_EDITOR

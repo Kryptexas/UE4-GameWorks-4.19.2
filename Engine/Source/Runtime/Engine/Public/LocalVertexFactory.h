@@ -23,7 +23,7 @@ public:
 		FVertexStreamComponent TangentBasisComponents[2];
 
 		/** The streams to read the texture coordinates from. */
-		TArray<FVertexStreamComponent,TFixedAllocator<MAX_STATIC_TEXCOORDS> > TextureCoordinates;
+		TArray<FVertexStreamComponent,TFixedAllocator<MAX_STATIC_TEXCOORDS/2> > TextureCoordinates;
 
 		/** The stream to read the shadow map texture coordinates from. */
 		FVertexStreamComponent LightMapCoordinateComponent;

@@ -241,20 +241,5 @@ public class Engine : ModuleRules
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
 		}
-
-		if ((UEBuildConfiguration.bCompileSpeedTree == true) &&
-			(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32))
-		{
-			AddThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
-
-			// Because we test WITH_SPEEDTREE in public UnrealEd header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  SpeedTree is a private dependency
-			// module, so it's definitions won't propagate to modules that import UnrealEd.
-			Definitions.Add("WITH_SPEEDTREE=1");
-		}
-		else
-		{
-			Definitions.Add("WITH_SPEEDTREE=0");
-		}
 	}
 }

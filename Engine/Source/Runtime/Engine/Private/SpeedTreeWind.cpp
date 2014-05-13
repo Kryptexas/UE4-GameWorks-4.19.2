@@ -75,10 +75,6 @@ FSpeedTreeWind::SParams::SParams( ) :
 	m_fAnchorDistanceScale(1.0f),
 	m_fGlobalHeight(50.0f),
 	m_fGlobalHeightExponent(2.0f),
-	m_fRollingBranchesMaxScale(1.0f),
-	m_fRollingBranchesMinScale(1.0f),
-	m_fRollingBranchesSpeed(0.3f),
-	m_fRollingBranchesRipple(5.0f),
 	m_fFrondRippleTile(10.0f),
 	m_fFrondRippleLightingScalar(1.0f),
 	m_fGustFrequency(0.0f),
@@ -87,7 +83,17 @@ FSpeedTreeWind::SParams::SParams( ) :
 	m_fGustDurationMin(1.0f),
 	m_fGustDurationMax(4.0f),
 	m_fGustRiseScalar(1.0f),
-	m_fGustFallScalar(1.0f)
+	m_fGustFallScalar(1.0f),
+	m_fRollingNoiseSize(0.005f),
+	m_fRollingNoiseTwist(9.0f),
+	m_fRollingNoiseTurbulence(32.0f),
+	m_fRollingNoisePeriod(0.4f),
+	m_fRollingNoiseSpeed(0.05f),
+	m_fRollingLeafRippleMin(0.5f),
+	m_fRollingLeafTumbleMin(0.5f),
+	m_fRollingBranchFieldMin(0.5f),
+	m_fRollingBranchLightingAdjust(0.5f),
+	m_fRollingBranchVerticalOffset(-0.5f)
 {
 	for (int32 i = 0; i < FSpeedTreeWind::NUM_OSC_COMPONENTS; ++i)
 		for (int32 j = 0; j < FSpeedTreeWind::NUM_WIND_POINTS_IN_CURVE; ++j)
@@ -95,6 +101,7 @@ FSpeedTreeWind::SParams::SParams( ) :
 
 	for (int32 i = 0; i < FSpeedTreeWind::NUM_WIND_POINTS_IN_CURVE; ++i)
 	{
+		m_afFrondRippleDistance[i] = 0.0f;
 		m_afGlobalDistance[i] = 0.0f;
 		m_afGlobalDirectionAdherence[i] = 0.0f;
 	}
@@ -124,7 +131,8 @@ FSpeedTreeWind::FSpeedTreeWind() :
 	m_fDirectionChangeStartTime(0.0f),
 	m_fDirectionChangeEndTime(0.0f),
 	m_fCombinedStrength(0.0f),
-	m_fMaxBranchLevel1Length(0.0f)
+	m_fMaxBranchLevel1Length(0.0f),
+	m_bNeedsReload(false)
 
 {
 	for (int32 i = 0; i < FSpeedTreeWind::NUM_OSC_COMPONENTS; ++i)
@@ -138,6 +146,8 @@ FSpeedTreeWind::FSpeedTreeWind() :
 	m_afDirectionTarget[2] = m_afDirectionAtStart[2] = m_afDirectionMidTarget[2] = m_afDirection[2] = 0.0f;
 
 	m_afBranchWindAnchor[0] = m_afBranchWindAnchor[1] = m_afBranchWindAnchor[2] = 0.0f;
+
+	m_afRollingOffset[0] = m_afRollingOffset[1] = 0.0f;
 }
 
 
@@ -193,6 +203,10 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 
 		// combine it with the gust value
 		m_fCombinedStrength = FMath::Max(0.0f, FMath::Min(1.0f, m_fStrength + m_fGust));
+
+		// update the rolling wind offset
+		m_afRollingOffset[0] += m_afDirection[0] * m_fCombinedStrength * m_sParams.m_fRollingNoiseSpeed * m_fElapsedTime;
+		m_afRollingOffset[1] += m_afDirection[1] * m_fCombinedStrength * m_sParams.m_fRollingNoiseSpeed * m_fElapsedTime;
 
 		// compute oscillation indices
 		float fIndex = m_fCombinedStrength * (FSpeedTreeWind::NUM_WIND_POINTS_IN_CURVE - 1.0f);
@@ -265,11 +279,6 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		m_afShaderTable[SH_BRANCH_1_WHIP] = Interpolate(m_sParams.m_asBranch[0].m_afWhip[nBefore], m_sParams.m_asBranch[0].m_afWhip[nAfter], fInterpolate);
 		m_afShaderTable[SH_BRANCH_2_WHIP] = Interpolate(m_sParams.m_asBranch[1].m_afWhip[nBefore], m_sParams.m_asBranch[1].m_afWhip[nAfter], fInterpolate);
 
-		m_afShaderTable[SH_ROLLING_BRANCHES_MAX_SCALE] = m_sParams.m_fRollingBranchesMaxScale;
-		m_afShaderTable[SH_ROLLING_BRANCHES_MIN_SCALE] = m_sParams.m_fRollingBranchesMinScale;
-		m_afShaderTable[SH_ROLLING_BRANCHES_SPEED] = m_sParams.m_fRollingBranchesSpeed;
-		m_afShaderTable[SH_ROLLING_BRANCHES_RIPPLE] = m_sParams.m_fRollingBranchesRipple * 0.1f;
-
 		// leaf ripple
 		m_afShaderTable[SH_LEAF_1_RIPPLE_TIME] = m_afOscillationTimes[OSC_LEAF_1_RIPPLE];
 		m_afShaderTable[SH_LEAF_1_RIPPLE_DISTANCE] = Interpolate(m_sParams.m_asLeaf[0].m_afRippleDistance[nBefore], m_sParams.m_asLeaf[0].m_afRippleDistance[nAfter], fInterpolate);
@@ -296,11 +305,6 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 			m_afShaderTable[SH_LEAF_1_TWITCH_SHARPNESS] = (1.0f / c_fTwitchSharpness1Denom) * m_sParams.m_asLeaf[0].m_fTwitchSharpness * 10.0f;
 		m_afShaderTable[SH_LEAF_1_TWITCH_TIME] = m_afOscillationTimes[OSC_LEAF_1_TWITCH];
 
-		m_afShaderTable[SH_LEAF_1_ROLL_MAX_SCALE] = m_sParams.m_asLeaf[0].m_fRollMaxScale;
-		m_afShaderTable[SH_LEAF_1_ROLL_MIN_SCALE] = m_sParams.m_asLeaf[0].m_fRollMinScale;
-		m_afShaderTable[SH_LEAF_1_ROLL_SPEED] = m_sParams.m_asLeaf[0].m_fRollSpeed;
-		m_afShaderTable[SH_LEAF_1_ROLL_SEPARATION] = m_sParams.m_asLeaf[0].m_fRollSeparation;
-
 		m_afShaderTable[SH_LEAF_2_TWITCH_THROW] = Interpolate(m_sParams.m_asLeaf[1].m_afTwitchThrow[nBefore], m_sParams.m_asLeaf[1].m_afTwitchThrow[nAfter], fInterpolate);
 		const float c_fTwitchSharpness2Denom = Interpolate(m_sParams.m_afFrequencies[OSC_LEAF_2_TWITCH][nBefore], m_sParams.m_afFrequencies[OSC_LEAF_2_TWITCH][nAfter], fInterpolate);
 		if (c_fTwitchSharpness2Denom < FLT_EPSILON)
@@ -308,11 +312,6 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		else
 			m_afShaderTable[SH_LEAF_2_TWITCH_SHARPNESS] = (1.0f / c_fTwitchSharpness2Denom) * m_sParams.m_asLeaf[1].m_fTwitchSharpness * 10.0f;
 		m_afShaderTable[SH_LEAF_2_TWITCH_TIME] = m_afOscillationTimes[OSC_LEAF_2_TWITCH];
-
-		m_afShaderTable[SH_LEAF_2_ROLL_MAX_SCALE] = m_sParams.m_asLeaf[1].m_fRollMaxScale;
-		m_afShaderTable[SH_LEAF_2_ROLL_MIN_SCALE] = m_sParams.m_asLeaf[1].m_fRollMinScale;
-		m_afShaderTable[SH_LEAF_2_ROLL_SPEED] = m_sParams.m_asLeaf[1].m_fRollSpeed;
-		m_afShaderTable[SH_LEAF_2_ROLL_SEPARATION] = m_sParams.m_asLeaf[1].m_fRollSeparation;
 
 		// occlusion
 		m_afShaderTable[SH_LEAF_1_LEEWARD_SCALAR] = m_sParams.m_asLeaf[0].m_fLeewardScalar;
@@ -323,6 +322,19 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		m_afShaderTable[SH_FROND_RIPPLE_DISTANCE] = Interpolate(m_sParams.m_afFrondRippleDistance[nBefore], m_sParams.m_afFrondRippleDistance[nAfter], fInterpolate);
 		m_afShaderTable[SH_FROND_RIPPLE_TILE] = m_sParams.m_fFrondRippleTile;
 		m_afShaderTable[SH_FROND_RIPPLE_LIGHTING_SCALAR] = m_sParams.m_fFrondRippleLightingScalar;
+
+		// rolling
+		m_afShaderTable[SH_ROLLING_NOISE_SIZE] = m_sParams.m_fRollingNoiseSize;
+		m_afShaderTable[SH_ROLLING_NOISE_TWIST] = m_sParams.m_fRollingNoiseTwist;
+		m_afShaderTable[SH_ROLLING_NOISE_TURBULENCE] = m_sParams.m_fRollingNoiseTurbulence;
+		m_afShaderTable[SH_ROLLING_NOISE_PERIOD] = m_sParams.m_fRollingNoisePeriod;
+		m_afShaderTable[SH_ROLLING_LEAF_RIPPLE_MIN] = m_sParams.m_fRollingLeafRippleMin;
+		m_afShaderTable[SH_ROLLING_LEAF_TUMBLE_MIN] = m_sParams.m_fRollingLeafTumbleMin;
+		m_afShaderTable[SH_ROLLING_BRANCH_FIELD_MIN] = m_sParams.m_fRollingBranchFieldMin;
+		m_afShaderTable[SH_ROLLING_BRANCH_LIGHTING_ADJUST] = m_sParams.m_fRollingBranchLightingAdjust;
+		m_afShaderTable[SH_ROLLING_BRANCH_VERTICAL_OFFSET] = m_sParams.m_fRollingBranchVerticalOffset;
+		m_afShaderTable[SH_ROLLING_X] = m_afRollingOffset[0];
+		m_afShaderTable[SH_ROLLING_Y] = m_afRollingOffset[1];
 	}
 	else
 	{
@@ -360,11 +372,6 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		m_afShaderTable[SH_BRANCH_1_WHIP] = 0.0f;
 		m_afShaderTable[SH_BRANCH_2_WHIP] = 0.0f;
 
-		m_afShaderTable[SH_ROLLING_BRANCHES_MAX_SCALE] = 1.0f;
-		m_afShaderTable[SH_ROLLING_BRANCHES_MIN_SCALE] = 1.0f;
-		m_afShaderTable[SH_ROLLING_BRANCHES_SPEED] = 1.0f;
-		m_afShaderTable[SH_ROLLING_BRANCHES_RIPPLE] = 1.0f;
-
 		// leaf ripple
 		m_afShaderTable[SH_LEAF_1_RIPPLE_TIME] = 0.0f;
 		m_afShaderTable[SH_LEAF_1_RIPPLE_DISTANCE] = 0.0f;
@@ -380,12 +387,6 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		m_afShaderTable[SH_LEAF_2_TUMBLE_FLIP] = 0.0f;
 		m_afShaderTable[SH_LEAF_2_TUMBLE_TWIST] = 0.0f;
 		m_afShaderTable[SH_LEAF_2_TUMBLE_DIRECTION_ADHERENCE] = 0.0f;
-
-		// leaf roll
-		m_afShaderTable[SH_LEAF_1_ROLL_MAX_SCALE] = 1.0f;
-		m_afShaderTable[SH_LEAF_1_ROLL_MIN_SCALE] = 1.0f;
-		m_afShaderTable[SH_LEAF_1_ROLL_SPEED] = 1.0f;
-		m_afShaderTable[SH_LEAF_1_ROLL_SEPARATION] = 1.0f;
 
 		// twitch
 		m_afShaderTable[SH_LEAF_1_TWITCH_THROW] = 0.0f;
@@ -405,6 +406,19 @@ void FSpeedTreeWind::Advance(bool bEnabled, double fTime)
 		m_afShaderTable[SH_FROND_RIPPLE_DISTANCE] = 0.0f;
 		m_afShaderTable[SH_FROND_RIPPLE_TILE] = 0.0f;
 		m_afShaderTable[SH_FROND_RIPPLE_LIGHTING_SCALAR] = 1.0f;
+
+		// rolling
+		m_afShaderTable[SH_ROLLING_NOISE_SIZE] = m_sParams.m_fRollingNoiseSize;
+		m_afShaderTable[SH_ROLLING_NOISE_TWIST] = m_sParams.m_fRollingNoiseTwist;
+		m_afShaderTable[SH_ROLLING_NOISE_TURBULENCE] = m_sParams.m_fRollingNoiseTurbulence;
+		m_afShaderTable[SH_ROLLING_NOISE_PERIOD] = m_sParams.m_fRollingNoisePeriod;
+		m_afShaderTable[SH_ROLLING_LEAF_RIPPLE_MIN] = m_sParams.m_fRollingLeafRippleMin;
+		m_afShaderTable[SH_ROLLING_LEAF_TUMBLE_MIN] = m_sParams.m_fRollingLeafTumbleMin;
+		m_afShaderTable[SH_ROLLING_BRANCH_FIELD_MIN] = m_sParams.m_fRollingBranchFieldMin;
+		m_afShaderTable[SH_ROLLING_BRANCH_LIGHTING_ADJUST] = m_sParams.m_fRollingBranchLightingAdjust;
+		m_afShaderTable[SH_ROLLING_BRANCH_VERTICAL_OFFSET] = m_sParams.m_fRollingBranchVerticalOffset;
+		m_afShaderTable[SH_ROLLING_X] = 0.0f;
+		m_afShaderTable[SH_ROLLING_Y] = 0.0f;
 	}
 }
 
@@ -457,8 +471,13 @@ void FSpeedTreeWind::Scale(float fScalar)
 	}
 
 	m_sParams.m_fGlobalHeight *= fScalar;
-	if (fScalar != 0.0f)
-		m_sParams.m_fRollingBranchesRipple /= fScalar;
+
+	m_fMaxBranchLevel1Length *= fScalar;
+	m_sParams.m_fAnchorDistanceScale *= fScalar;
+	m_sParams.m_fAnchorOffset *= fScalar;
+	m_afBranchWindAnchor[0] = fScalar;
+	m_afBranchWindAnchor[1] = fScalar;
+	m_afBranchWindAnchor[2] = fScalar;
 }
 
 
@@ -743,11 +762,15 @@ FArchive& operator<<(FArchive& Ar, FSpeedTreeWind& Wind)
 		Ar << Params.m_asBranch[BranchIndex].m_fTwitch;
 		Ar << Params.m_asBranch[BranchIndex].m_fTwitchFreqScale;
 	}
-	
-	Ar << Params.m_fRollingBranchesMaxScale;
-	Ar << Params.m_fRollingBranchesMinScale;
-	Ar << Params.m_fRollingBranchesSpeed;
-	Ar << Params.m_fRollingBranchesRipple;
+
+	if (Ar.UE4Ver() < VER_UE4_SPEEDTREE_WIND_V7)
+	{
+		float fDiscardOldRolling = 0.0f;
+		Ar << fDiscardOldRolling;
+		Ar << fDiscardOldRolling;
+		Ar << fDiscardOldRolling;
+		Ar << fDiscardOldRolling;
+	}
 
 	for (int32 LeafIndex = 0; LeafIndex < FSpeedTreeWind::NUM_LEAF_GROUPS; ++LeafIndex)
 	{
@@ -768,6 +791,20 @@ FArchive& operator<<(FArchive& Ar, FSpeedTreeWind& Wind)
 	Ar << Params.m_fFrondRippleTile;
 	Ar << Params.m_fFrondRippleLightingScalar;
 	
+	if (Ar.UE4Ver() >= VER_UE4_SPEEDTREE_WIND_V7)
+	{
+		Ar << Params.m_fRollingNoiseSize;
+		Ar << Params.m_fRollingNoiseTwist;
+		Ar << Params.m_fRollingNoiseTurbulence;
+		Ar << Params.m_fRollingNoisePeriod;
+		Ar << Params.m_fRollingNoiseSpeed;
+		Ar << Params.m_fRollingBranchFieldMin;
+		Ar << Params.m_fRollingBranchLightingAdjust;
+		Ar << Params.m_fRollingBranchVerticalOffset;
+		Ar << Params.m_fRollingLeafRippleMin;
+		Ar << Params.m_fRollingLeafTumbleMin;
+	}
+
 	Ar << Params.m_fGustFrequency;
 	Ar << Params.m_fGustStrengthMin;
 	Ar << Params.m_fGustStrengthMax;
@@ -777,10 +814,50 @@ FArchive& operator<<(FArchive& Ar, FSpeedTreeWind& Wind)
 	Ar << Params.m_fGustFallScalar;
 
 	bool Options[FSpeedTreeWind::NUM_WIND_OPTIONS];
-	for (int32 OptionIndex = 0; OptionIndex < FSpeedTreeWind::NUM_WIND_OPTIONS; ++OptionIndex)
+
+	#define SERIALIZE_OPTION(name) { Options[FSpeedTreeWind::name] = Wind.IsOptionEnabled(FSpeedTreeWind::name); Ar << Options[FSpeedTreeWind::name]; }
+	#define SKIP_OLD_OPTION() if (Ar.UE4Ver() < VER_UE4_SPEEDTREE_WIND_V7) { bool bDiscard = false; Ar << bDiscard; }
+	
+	SERIALIZE_OPTION(GLOBAL_WIND);
+	SERIALIZE_OPTION(GLOBAL_PRESERVE_SHAPE);
+
+	SERIALIZE_OPTION(BRANCH_SIMPLE_1);
+	SERIALIZE_OPTION(BRANCH_DIRECTIONAL_1);
+	SERIALIZE_OPTION(BRANCH_DIRECTIONAL_FROND_1);
+	SERIALIZE_OPTION(BRANCH_TURBULENCE_1);
+	SERIALIZE_OPTION(BRANCH_WHIP_1);
+	SKIP_OLD_OPTION();
+	SERIALIZE_OPTION(BRANCH_OSC_COMPLEX_1);
+
+	SERIALIZE_OPTION(BRANCH_SIMPLE_2);
+	SERIALIZE_OPTION(BRANCH_DIRECTIONAL_2);
+	SERIALIZE_OPTION(BRANCH_DIRECTIONAL_FROND_2);
+	SERIALIZE_OPTION(BRANCH_TURBULENCE_2);
+	SERIALIZE_OPTION(BRANCH_WHIP_2);
+	SKIP_OLD_OPTION();
+	SERIALIZE_OPTION(BRANCH_OSC_COMPLEX_2);
+
+	SERIALIZE_OPTION(LEAF_RIPPLE_VERTEX_NORMAL_1);
+	SERIALIZE_OPTION(LEAF_RIPPLE_COMPUTED_1);
+	SERIALIZE_OPTION(LEAF_TUMBLE_1);
+	SERIALIZE_OPTION(LEAF_TWITCH_1);
+	SKIP_OLD_OPTION();
+	SERIALIZE_OPTION(LEAF_OCCLUSION_1);
+
+	SERIALIZE_OPTION(LEAF_RIPPLE_VERTEX_NORMAL_2);
+	SERIALIZE_OPTION(LEAF_RIPPLE_COMPUTED_2);
+	SERIALIZE_OPTION(LEAF_TUMBLE_2);
+	SERIALIZE_OPTION(LEAF_TWITCH_2);
+	SKIP_OLD_OPTION();
+	SERIALIZE_OPTION(LEAF_OCCLUSION_2);
+
+	SERIALIZE_OPTION(FROND_RIPPLE_ONE_SIDED);
+	SERIALIZE_OPTION(FROND_RIPPLE_TWO_SIDED);
+	SERIALIZE_OPTION(FROND_RIPPLE_ADJUST_LIGHTING);
+
+	if (Ar.UE4Ver() >= VER_UE4_SPEEDTREE_WIND_V7)
 	{
-		Options[OptionIndex] = Wind.IsOptionEnabled((FSpeedTreeWind::EOptions)OptionIndex);
-		Ar << Options[OptionIndex];
+		SERIALIZE_OPTION(ROLLING);
 	}
 
 	FVector BranchAnchor(Wind.GetBranchAnchor()[0], Wind.GetBranchAnchor()[1], Wind.GetBranchAnchor()[2]);

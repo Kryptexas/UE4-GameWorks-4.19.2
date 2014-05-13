@@ -390,15 +390,27 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			if( !Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() )
 			{
-				for(uint32 UVIndex = 0;UVIndex < Params.LODResources->VertexBuffer.GetNumTexCoords();UVIndex++)
+				int32 UVIndex;
+				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
 				{
 					Data.TextureCoordinates.Add(FVertexStreamComponent(
 						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * UVIndex,
+						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
+						Params.LODResources->VertexBuffer.GetStride(),
+						VET_Half4
+						));
+				}
+				// possible last UV channel if we have an odd number
+				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
+				{
+					Data.TextureCoordinates.Add(FVertexStreamComponent(
+						&Params.LODResources->VertexBuffer,
+						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
 						Params.LODResources->VertexBuffer.GetStride(),
 						VET_Half2
 						));
 				}
+
 				if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
 				{
 					Data.LightMapCoordinateComponent = FVertexStreamComponent(
@@ -411,11 +423,22 @@ void FStaticMeshLODResources::InitVertexFactory(
 			}
 			else
 			{
-				for(uint32 UVIndex = 0;UVIndex < Params.LODResources->VertexBuffer.GetNumTexCoords();UVIndex++)
+				int32 UVIndex;
+				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
 				{
 					Data.TextureCoordinates.Add(FVertexStreamComponent(
 						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * UVIndex,
+						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
+						Params.LODResources->VertexBuffer.GetStride(),
+						VET_Float4
+						));
+				}
+				// possible last UV channel if we have an odd number
+				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
+				{
+					Data.TextureCoordinates.Add(FVertexStreamComponent(
+						&Params.LODResources->VertexBuffer,
+						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
 						Params.LODResources->VertexBuffer.GetStride(),
 						VET_Float2
 						));

@@ -3418,6 +3418,11 @@ protected:
 		}
 	}
 
+	/**
+	* Handles SpeedTree vertex animation (wind, smooth LOD)
+	*
+	* @return	Code index
+	*/
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) OVERRIDE 
 	{ 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
@@ -3433,9 +3438,25 @@ protected:
 		{
 			bUsesSpeedTree = true;
 
-			NumUserVertexTexCoords = FMath::Max<uint32>(NumUserVertexTexCoords, 6);
-
+			NumUserVertexTexCoords = FMath::Max<uint32>(NumUserVertexTexCoords, 8);
 			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeVertexOffset(Parameters, %d, %d, %d, %g)"), GeometryType, WindType, LODType, BillboardThreshold);
+		}
+	}
+
+	/**
+	* Handles SpeedTree color variation between instances
+	*
+	* @return	Code index
+	*/
+	virtual int32 SpeedTreeColorVariation(int32 InputColor, float Amount, bool bPreserveVibrance) OVERRIDE 
+	{ 
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Vertex)
+		{
+			return NonVertexOrPixelShaderExpressionError();
+		}
+		else
+		{
+			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeColorVariation(Parameters, %s, %g, %s)"), *GetParameterCode(InputColor), Amount, bPreserveVibrance ? TEXT("true") : TEXT("false"));
 		}
 	}
 

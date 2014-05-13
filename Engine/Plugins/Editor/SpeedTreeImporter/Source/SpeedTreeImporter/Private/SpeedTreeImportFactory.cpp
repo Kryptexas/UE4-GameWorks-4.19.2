@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#include "SpeedTreeImporterPrivatePCH.h"
+#include "SpeedTreeImportFactory.h"
+
 #include "UnrealEd.h"
 
-#include "MainFrame.h"
+#include "Mainframe.h"
 #include "ModuleManager.h"
-#include "DirectoryWatcherModule.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "AssetRegistryModule.h"
@@ -13,9 +15,9 @@
 #include "RawMesh.h"
 
 #if WITH_SPEEDTREE
-#pragma warning(disable : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
+
 #include "Core/Core.h"
-#pragma warning(default : 4996)
+
 #endif
 
 #define LOCTEXT_NAMESPACE "SpeedTreeImportFactory"
@@ -26,6 +28,19 @@ DEFINE_LOG_CATEGORY_STATIC(LogSpeedTreeImport, Log, All);
 class SSpeedTreeImportOptions : public SCompoundWidget
 {
 public:
+
+	/** Geometry import type */
+	enum EImportGeometryType
+	{
+		IGT_3D,
+		IGT_Billboards,
+		IGT_Both
+	};
+	EImportGeometryType				ImportGeometryType;
+
+	/** Tree scale **/
+	float							TreeScale;
+
 	/** options */
 	TSharedPtr<SCheckBox>			MakeMaterialsCheck;
 	TSharedPtr<SCheckBox>			IncludeNormalMapCheck;
@@ -36,15 +51,8 @@ public:
 	TSharedPtr<SCheckBox>			IncludeSmoothLODCheck;
 	TSharedPtr<SCheckBox>			IncludeCollision;
 	TSharedPtr<SCheckBox>			IncludeBranchSeamSmoothing;
-
-	/** Geometry import type */
-	enum EImportGeometryType
-	{
-		IGT_3D,
-		IGT_Billboards,
-		IGT_Both
-	};
-	EImportGeometryType				ImportGeometryType;
+	TSharedPtr<SCheckBox>			IncludeSpeedTreeAO;
+	TSharedPtr<SCheckBox>			IncludeColorAdjustment;
 
 	/** Whether we should go ahead with import */
 	bool							bImport;
@@ -62,6 +70,7 @@ public:
 
 	SSpeedTreeImportOptions() :
 		ImportGeometryType(IGT_3D),
+		TreeScale(30.48f),
 		bImport(false)
 	{}
 
@@ -149,6 +158,24 @@ public:
 				[
 					SNew(SVerticalBox)
 
+					+ SVerticalBox::Slot().AutoHeight().Padding(5).HAlign(HAlign_Left)
+					[
+						SNew(STextBlock).Text(LOCTEXT("TreeScaleLabel", "Tree Scale"))
+					]
+
+					+SVerticalBox::Slot().AutoHeight().Padding(5)
+					[
+						SNew(SEditableTextBox)
+						.SelectAllTextWhenFocused(true)
+						.OnTextCommitted(this, &SSpeedTreeImportOptions::ScaleTextCommitted)
+						.Text(FText::AsNumber(TreeScale))
+					]
+				]
+
+				+SVerticalBox::Slot().AutoHeight().Padding(5)
+				[
+					SNew(SVerticalBox)
+
 					+SVerticalBox::Slot().AutoHeight().Padding(5)
 					[
 						CreateOption(IncludeCollision, LOCTEXT("SetupCollision", "Setup Collision"), true)
@@ -181,6 +208,16 @@ public:
 						+SVerticalBox::Slot().AutoHeight().Padding(5)
 						[
 							CreateOption(IncludeBranchSeamSmoothing, LOCTEXT("IncludeBranchSeamSmoothing", "Include Branch Seam Smoothing"), false)
+						]
+
+						+SVerticalBox::Slot().AutoHeight().Padding(5)
+						[
+							CreateOption(IncludeSpeedTreeAO, LOCTEXT("IncludeSpeedTreeAO", "Include SpeedTree AO"), true)
+						]
+
+						+ SVerticalBox::Slot().AutoHeight().Padding(5)
+						[
+							CreateOption(IncludeColorAdjustment, LOCTEXT("Include Random Color Variation", "Include Random Color Variation"), true)
 						]
 
 						+SVerticalBox::Slot().AutoHeight().Padding(5, 10, 5, 5)
@@ -258,10 +295,17 @@ public:
 		IncludeSpecularMapCheck->SetEnabled(bEnable);
 		IncludeBranchSeamSmoothing->SetEnabled(bEnable);
 		IncludeVertexProcessingCheck->SetEnabled(bEnable);
+		IncludeSpeedTreeAO->SetEnabled(bEnable);
+		IncludeColorAdjustment->SetEnabled(bEnable);
 
 		bEnable &= IncludeVertexProcessingCheck->IsChecked();
 		IncludeWindCheck->SetEnabled(bEnable);
 		IncludeSmoothLODCheck->SetEnabled(bEnable);
+	}
+
+	void ScaleTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo)
+	{
+		TTypeFromString<float>::FromString(TreeScale, *(CommentText.ToString()));
 	}
 };
 
@@ -290,6 +334,16 @@ FText USpeedTreeImportFactory::GetDisplayName() const
 
 #if WITH_SPEEDTREE
 
+bool USpeedTreeImportFactory::DoesSupportClass(UClass * Class)
+{
+	return (Class == UStaticMesh::StaticClass());
+}
+
+UClass* USpeedTreeImportFactory::ResolveSupportedClass()
+{
+	return UStaticMesh::StaticClass();
+}
+
 static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filename, bool bNormalMap)
 {
 	UTexture* UnrealTexture = NULL;
@@ -316,7 +370,7 @@ static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filenam
 	}
 
 	// try opening from absolute path
-	Filename = FPaths::GetPath(UFactory::CurrentFilename) + "/" + Filename;
+	Filename = FPaths::GetPath(UFactory::GetCurrentFilename()) + "/" + Filename;
 	TArray<uint8> TextureData;
 	if (!(FFileHelper::LoadFileToArray(TextureData, *Filename) && TextureData.Num() > 0))
 	{
@@ -348,6 +402,113 @@ static UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filenam
 	return UnrealTexture;
 }
 
+static void LayoutMaterial(UMaterialInterface* MaterialInterface)
+{
+	UMaterial* Material = MaterialInterface->GetMaterial();
+	Material->EditorX = 0;
+	Material->EditorY = 0;
+
+	const int32 Height = 200;
+	const int32 Width = 250;
+
+	// layout X to make sure each input is 1 step further than output connection
+	bool bContinue = true;
+	while (bContinue)
+	{
+		bContinue = false;
+
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* Expression = Material->Expressions[ExpressionIndex];
+			Expression->MaterialExpressionEditorX = FMath::Max(Expression->MaterialExpressionEditorX, Width);
+
+			TArray<FExpressionInput*> Inputs = Expression->GetInputs();
+			for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
+			{
+				UMaterialExpression* Input = Inputs[InputIndex]->Expression;
+				if (Input != NULL)
+				{
+					if (Input->MaterialExpressionEditorX < Expression->MaterialExpressionEditorX + Width)
+					{
+						Input->MaterialExpressionEditorX = FMath::Max(Input->MaterialExpressionEditorX, Expression->MaterialExpressionEditorX + Width);
+						bContinue = true;
+					}
+				}
+			}
+		}
+	}
+
+	// run through each column of expressions, sort them by outputs, and layout Y
+	bContinue = true;
+	int32 Column = 1;
+	while (bContinue)
+	{
+		TArray<UMaterialExpression*> ColumnExpressions;
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* Expression = Material->Expressions[ExpressionIndex];
+
+			if (Expression->MaterialExpressionEditorX == Width * Column)
+			{
+				Expression->MaterialExpressionEditorY = 0;
+				int32 NumOutputs = 0;
+
+				// all the connections to the material
+				for (int32 MaterialPropertyIndex = 0; MaterialPropertyIndex < MP_MAX; ++MaterialPropertyIndex)
+				{
+					FExpressionInput* FirstLevelExpression = Material->GetExpressionInputForProperty(EMaterialProperty(MaterialPropertyIndex));
+					if (FirstLevelExpression != NULL && FirstLevelExpression->Expression == Expression)
+					{
+						++NumOutputs;
+						Expression->MaterialExpressionEditorY += MaterialPropertyIndex * 20;
+					}
+				}
+				
+				// all the outputs to other expressions
+				for (int32 OtherExpressionIndex = 0; OtherExpressionIndex < Material->Expressions.Num(); ++OtherExpressionIndex)
+				{
+					UMaterialExpression* OtherExpression = Material->Expressions[OtherExpressionIndex];
+					TArray<FExpressionInput*> Inputs = OtherExpression->GetInputs();
+					for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
+					{
+						if (Inputs[InputIndex]->Expression == Expression)
+						{
+							++NumOutputs;
+							Expression->MaterialExpressionEditorY += OtherExpression->MaterialExpressionEditorY;
+						}
+					}
+				}
+
+				if (NumOutputs > 1)
+				{
+					Expression->MaterialExpressionEditorY /= NumOutputs;
+				}
+
+				ColumnExpressions.Add(Expression);
+			}
+		}
+
+		struct FMaterialExpressionSorter
+		{
+			bool operator()(const UMaterialExpression& A, const UMaterialExpression& B) const
+			{
+				return (A.MaterialExpressionEditorY < B.MaterialExpressionEditorY);
+			}
+		};
+		ColumnExpressions.Sort(FMaterialExpressionSorter());
+
+		for (int32 ExpressionIndex = 0; ExpressionIndex < ColumnExpressions.Num(); ++ExpressionIndex)
+		{
+			UMaterialExpression* Expression = ColumnExpressions[ExpressionIndex];
+
+			Expression->MaterialExpressionEditorY = ExpressionIndex * Height;
+		}
+
+		++Column;
+		bContinue = (ColumnExpressions.Num() > 0);
+	};
+}
+
 static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFullName, const SpeedTree::SRenderState* RenderState, TSharedPtr<SSpeedTreeImportOptions> Options, ESpeedTreeWindType WindType, int NumBillboards)
 {
 	// Make sure we have a parent
@@ -373,9 +534,10 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn);
 	if (UnrealMaterial != NULL)
 	{
-		if (!RenderState->m_bDiffuseAlphaMaskIsOpaque)
+		if (!RenderState->m_bDiffuseAlphaMaskIsOpaque && !RenderState->m_bBranchesPresent && !RenderState->m_bRigidMeshesPresent)
 		{
 			UnrealMaterial->BlendMode = BLEND_Masked;
+			UnrealMaterial->SetCastShadowAsMasked(true);
 			UnrealMaterial->TwoSided = !(RenderState->m_bFacingLeavesPresent || RenderState->m_bHorzBillboard || RenderState->m_bVertBillboard);
 		}
 
@@ -390,7 +552,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 	if (Options->IncludeBranchSeamSmoothing->IsChecked() && RenderState->m_bBranchesPresent && RenderState->m_eBranchSeamSmoothing != SpeedTree::EFFECT_OFF)
 	{
 		UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
-		SeamTexcoordExpression->CoordinateIndex = 3;
+		SeamTexcoordExpression->CoordinateIndex = 4;
 		UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
 		UMaterialExpressionComponentMask* ComponentMaskExpression = ConstructObject<UMaterialExpressionComponentMask>(UMaterialExpressionComponentMask::StaticClass(), UnrealMaterial);
@@ -434,7 +596,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 		{
 			// perform branch seam smoothing
 			UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
-			SeamTexcoordExpression->CoordinateIndex = 2;
+			SeamTexcoordExpression->CoordinateIndex = 6;
 			UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
 			UMaterialExpressionTextureSample* SeamTextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
@@ -459,7 +621,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 			{
 				// add/find UVSet
 				UMaterialExpressionTextureCoordinate* DetailTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
-				DetailTexcoordExpression->CoordinateIndex = 1;
+				DetailTexcoordExpression->CoordinateIndex = 5;
 				UnrealMaterial->Expressions.Add(DetailTexcoordExpression);
 				
 				// make texture sampler
@@ -529,7 +691,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 			{
 				// perform branch seam smoothing
 				UMaterialExpressionTextureCoordinate* SeamTexcoordExpression = ConstructObject<UMaterialExpressionTextureCoordinate>(UMaterialExpressionTextureCoordinate::StaticClass(), UnrealMaterial);
-				SeamTexcoordExpression->CoordinateIndex = 2;
+				SeamTexcoordExpression->CoordinateIndex = 6;
 				UnrealMaterial->Expressions.Add(SeamTexcoordExpression);
 
 				UMaterialExpressionTextureSample* SeamTextureExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), UnrealMaterial);
@@ -552,8 +714,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 	if (Options->IncludeVertexProcessingCheck->IsChecked() && !RenderState->m_bRigidMeshesPresent)
 	{
 		UMaterialExpressionSpeedTree* SpeedTreeExpression = ConstructObject<UMaterialExpressionSpeedTree>(UMaterialExpressionSpeedTree::StaticClass(), UnrealMaterial);
-		UnrealMaterial->Expressions.Add(SpeedTreeExpression);
-
+	
 		SpeedTreeExpression->LODType = (Options->IncludeSmoothLODCheck->IsChecked() ? STLOD_Smooth : STLOD_Pop);
 		SpeedTreeExpression->WindType = WindType;
 
@@ -574,6 +735,45 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 		UnrealMaterial->Expressions.Add(SpeedTreeExpression);
 		UnrealMaterial->WorldPositionOffset.Expression = SpeedTreeExpression;
 	}
+
+	if (Options->IncludeSpeedTreeAO->IsChecked() && 
+		!(RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
+	{
+		UMaterialExpressionVertexColor* VertexColor = ConstructObject<UMaterialExpressionVertexColor>(UMaterialExpressionVertexColor::StaticClass(), UnrealMaterial);
+		UnrealMaterial->Expressions.Add(VertexColor);
+		UnrealMaterial->AmbientOcclusion.Expression = VertexColor;
+		UnrealMaterial->AmbientOcclusion.Mask = VertexColor->GetOutputs()[0].Mask;
+		UnrealMaterial->AmbientOcclusion.MaskR = 1;
+		UnrealMaterial->AmbientOcclusion.MaskG = 0;
+		UnrealMaterial->AmbientOcclusion.MaskB = 0;
+		UnrealMaterial->AmbientOcclusion.MaskA = 0;
+	}
+
+	// UE4 flips normals for two-sided materials. SpeedTrees don't need that
+	if (UnrealMaterial->TwoSided && UnrealMaterial->Normal.Expression != NULL)
+	{
+		UMaterialExpressionTwoSidedSign* TwoSidedSign = ConstructObject<UMaterialExpressionTwoSidedSign>(UMaterialExpressionTwoSidedSign::StaticClass(), UnrealMaterial);
+		UnrealMaterial->Expressions.Add(TwoSidedSign);
+
+		UMaterialExpressionMultiply* Multiply = ConstructObject<UMaterialExpressionMultiply>(UMaterialExpressionMultiply::StaticClass(), UnrealMaterial);
+		Multiply->A.Expression = UnrealMaterial->Normal.Expression;
+		Multiply->B.Expression = TwoSidedSign;
+		UnrealMaterial->Expressions.Add(Multiply);
+
+		UnrealMaterial->Normal.Expression = Multiply;
+	}
+
+	if (Options->IncludeColorAdjustment->IsChecked() && UnrealMaterial->BaseColor.Expression != NULL && 
+		(RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent || RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
+	{
+		UMaterialExpressionSpeedTreeColorVariation* ColorVariation = ConstructObject<UMaterialExpressionSpeedTreeColorVariation>(UMaterialExpressionSpeedTreeColorVariation::StaticClass(), UnrealMaterial);
+		UnrealMaterial->Expressions.Add(ColorVariation);
+
+		ColorVariation->Input.Expression = UnrealMaterial->BaseColor.Expression;
+		UnrealMaterial->BaseColor.Expression = ColorVariation;
+	}
+	
+	LayoutMaterial(UnrealMaterial);
 
 	// make sure that any static meshes, etc using this material will stop using the FMaterialResource of the original 
 	// material, and will use the new FMaterialResource created when we make a new UMaterial in place
@@ -619,11 +819,6 @@ static void CopySpeedTreeWind(const SpeedTree::CWind* Wind, TSharedPtr<FSpeedTre
 		COPY_PARAM(m_asBranch[BranchIndex].m_fTwitch);
 		COPY_PARAM(m_asBranch[BranchIndex].m_fTwitchFreqScale);
 	}
-	
-	COPY_PARAM(m_fRollingBranchesMaxScale);
-	COPY_PARAM(m_fRollingBranchesMinScale);
-	COPY_PARAM(m_fRollingBranchesSpeed);
-	COPY_PARAM(m_fRollingBranchesRipple);
 
 	for (int32 LeafIndex = 0; LeafIndex < FSpeedTreeWind::NUM_LEAF_GROUPS; ++LeafIndex)
 	{
@@ -661,6 +856,8 @@ static void CopySpeedTreeWind(const SpeedTree::CWind* Wind, TSharedPtr<FSpeedTre
 
 	const SpeedTree::st_float32* BranchAnchor = Wind->GetBranchAnchor();
 	SpeedTreeWind->SetTreeValues(FVector(BranchAnchor[0], BranchAnchor[1], BranchAnchor[2]), Wind->GetMaxBranchLength());
+
+	SpeedTreeWind->SetNeedsReload(true);
 }
 
 
@@ -731,15 +928,12 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 
 	if (Options->ShouldImport())
 	{
-#ifdef EPIC_INTERNAL_SPEEDTREE_KEY
-		SpeedTree::CCore::Authorize( PREPROCESSOR_TO_STRING(EPIC_INTERNAL_SPEEDTREE_KEY) );
-#else
-		checkAtCompileTime(false, "Enter your SpeedTree evaluation key below and disable this error.");
-		SpeedTree::CCore::Authorize("<your SpeedTree key here>");
+#ifdef SPEEDTREE_KEY
+		SpeedTree::CCore::Authorize(PREPROCESSOR_TO_STRING(SPEEDTREE_KEY));
 #endif
 
 		SpeedTree::CCore SpeedTree;
-		if (!SpeedTree.LoadTree(Buffer, BufferEnd - Buffer, false))
+		if (!SpeedTree.LoadTree(Buffer, BufferEnd - Buffer, false, false, Options->TreeScale))
 		{
 			UE_LOG(LogSpeedTreeImport, Error, TEXT("%s"), ANSI_TO_TCHAR(SpeedTree.GetError( )));
 		}
@@ -758,40 +952,59 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 				FString NewPackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
 				NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
 				UPackage* Package = CreatePackage(NULL, *NewPackageName);
+				
+				// clear out old mesh
+				UStaticMesh* ExistingMesh = FindObject<UStaticMesh>(Package, *MeshName);
+				if (ExistingMesh)
+				{
+					// Free any RHI resources for existing mesh before we re-create in place.
+					ExistingMesh->PreEditChange(NULL);
+				}
+				
+				StaticMesh = new(Package, FName(*MeshName), Flags | RF_Public) UStaticMesh(FPostConstructInitializeProperties());
 
-				StaticMesh = new(Package,FName(*MeshName),Flags|RF_Public) UStaticMesh(FPostConstructInitializeProperties());
 				// @todo AssetImportData make a data class for speed tree assets
 				StaticMesh->AssetImportData = ConstructObject<UAssetImportData>(UAssetImportData::StaticClass(), StaticMesh);
-				StaticMesh->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::CurrentFilename, StaticMesh);
-				StaticMesh->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::CurrentFilename).ToString();
+				StaticMesh->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::GetCurrentFilename(), StaticMesh);
+				StaticMesh->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::GetCurrentFilename()).ToString();
+				
+				// clear out any old data
+				StaticMesh->SourceModels.Empty();
+				StaticMesh->SectionInfoMap.Clear();
+				StaticMesh->Materials.Empty();
 
-				// Disable lightmaps
+				// Lightmap data
 				StaticMesh->LightingGuid = FGuid::NewGuid();
-				StaticMesh->LightMapResolution = 0;
+				StaticMesh->LightMapResolution = 128;
 				StaticMesh->LightMapCoordinateIndex = 1;
 
 				// set up SpeedTree wind data
-				StaticMesh->SpeedTreeWind = TSharedPtr<FSpeedTreeWind>(new FSpeedTreeWind);
+				if (!StaticMesh->SpeedTreeWind.IsValid())
+					StaticMesh->SpeedTreeWind = TSharedPtr<FSpeedTreeWind>(new FSpeedTreeWind);
 				const SpeedTree::CWind* Wind = &(SpeedTree.GetWind());
 				CopySpeedTreeWind(Wind, StaticMesh->SpeedTreeWind);
 
+				// choose wind type based on options enabled
 				ESpeedTreeWindType WindType = STW_None;
 				if (Options->IncludeWindCheck->IsChecked() && Wind->IsOptionEnabled(SpeedTree::CWind::GLOBAL_WIND))
 				{
+					WindType = STW_Fastest;
+
 					if (Wind->IsOptionEnabled(SpeedTree::CWind::BRANCH_DIRECTIONAL_FROND_1))
 					{
 						WindType = STW_Palm;
 					}
-					else 
+					else if (Wind->IsOptionEnabled(SpeedTree::CWind::LEAF_TUMBLE_1))
 					{
-						if (Wind->IsOptionEnabled(SpeedTree::CWind::LEAF_TUMBLE_1))
-						{
-							WindType = STW_Hero;
-						}
-						else
-						{
-							WindType = STW_Standard;
-						}
+						WindType = STW_Best;
+					}
+					else if (Wind->IsOptionEnabled(SpeedTree::CWind::BRANCH_SIMPLE_1))
+					{
+						WindType = STW_Better;
+					}
+					else if (Wind->IsOptionEnabled(SpeedTree::CWind::LEAF_RIPPLE_VERTEX_NORMAL_1))
+					{
+						WindType = STW_Fast;
 					}
 				}
 
@@ -811,19 +1024,14 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 						FRawMesh RawMesh;
 
 						// compute the number of texcoords we need so we can pad when necessary
-						int32 NumUVs = 0;
+						int32 NumUVs = 7; // static meshes have fewer, but they are so rare, we shouldn't complicate things for them
 						for (int32 DrawCallIndex = 0; DrawCallIndex < TreeLOD->m_nNumDrawCalls; ++DrawCallIndex)
 						{
 							const SpeedTree::SDrawCall* DrawCall = &TreeLOD->m_pDrawCalls[DrawCallIndex];
 							const SpeedTree::SRenderState* RenderState = DrawCall->m_pRenderState;
-
-							if (RenderState->m_bRigidMeshesPresent)
+							if (RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent)
 							{
-								NumUVs = FMath::Max(1, NumUVs);
-							}
-							else
-							{
-								NumUVs = FMath::Max(6, NumUVs);
+								NumUVs = FMath::Max(8, NumUVs);
 							}
 						}
 
@@ -838,7 +1046,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 							int32* OldMaterial = RenderStateIndexToStaticMeshIndex.Find(DrawCall->m_nRenderStateIndex);
 							if (OldMaterial == NULL)
 							{
-								FString MaterialName;
+								FString MaterialName = MeshName;
 
 								if (RenderState->m_bBranchesPresent)
 								{
@@ -904,12 +1112,12 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 								{
 									SpeedTree::st_float32 Data2[4];
 									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LEAF_CARD_CORNER, VertexIndex, Data2);
-									Data[0] += Data2[0];
+									Data[0] -= Data2[0];
 									Data[1] += Data2[1];
 									Data[2] += Data2[2];                                    
 								}
 
-								RawMesh.VertexPositions.Add(FVector(Data[0], Data[1], Data[2]));
+								RawMesh.VertexPositions.Add(FVector(-Data[0], Data[1], Data[2]));
 							}
 
 							const SpeedTree::st_byte* pIndexData = &*DrawCall->m_pIndexData;
@@ -924,6 +1132,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 								RawMesh.FaceMaterialIndices.Add(MaterialIndex);
 								RawMesh.FaceSmoothingMasks.Add(0);
 
+								#if 0
 								float LeafLODScalar = 1.0f;
 								if (RenderState->m_bLeavesPresent)
 								{
@@ -954,6 +1163,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 
 									LeafLODScalar = FMath::Sqrt(LODArea / OrigArea);
 								}
+								#endif
 
 								for (int32 Corner = 0; Corner < 3; ++Corner)
 								{
@@ -961,22 +1171,15 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 
 									// flip the triangle winding
 									int32 Index = TriangleIndex * 3 + Corner;
-									if (!RenderState->m_bFacingLeavesPresent)
-									{
-										if (Corner == 1)
-											++Index;
-										else if (Corner == 2)
-											--Index;
-									}
 
 									int32 VertexIndex = DrawCall->m_b32BitIndices ? Indices32[Index] : Indices16[Index];
 									RawMesh.WedgeIndices.Add(VertexIndex + IndexOffset);
 
 									// tangents
 									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_NORMAL, VertexIndex, Data);
-									FVector Normal(Data[0], Data[1], Data[2]);
+									FVector Normal(-Data[0], Data[1], Data[2]);
 									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_TANGENT, VertexIndex, Data);
-									FVector Tangent(Data[0], Data[1], Data[2]);
+									FVector Tangent(-Data[0], Data[1], Data[2]);
 									RawMesh.WedgeTangentX.Add(Tangent);
 									RawMesh.WedgeTangentY.Add(Normal ^ Tangent);
 									RawMesh.WedgeTangentZ.Add(Normal);
@@ -992,69 +1195,88 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 									{
 										RawMesh.WedgeTexCoords[PadIndex].AddUninitialized(1);
 									}
+									
+									// All texcoords are packed into 4 float4 vertex attributes
+									// Data is as follows								
 
-									// diffuse texcoords
+									//		Branches			Fronds				Leaves				Billboards
+									//
+									// 0	Diffuse				Diffuse				Diffuse				Diffuse			
+									// 1	Lightmap UV			Lightmap UV			Lightmap UV			Lightmap UV	(same as diffuse)		
+									// 2	Branch Wind XY		Branch Wind XY		Branch Wind XY			
+									// 3	LOD XY				LOD XY				LOD XY				
+									// 4	LOD Z, Seam Amount	LOD Z, 0			LOD Z, Anchor X		
+									// 5	Detail UV			Frond Wind XY		Anchor YZ	
+									// 6	Seam UV				Frond Wind Z, 0		Leaf Wind XY
+									// 7	0					0					Leaf Wind Z, Leaf Group
+
+
+									// diffuse
 									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_DIFFUSE_TEXCOORDS, VertexIndex, Data);
 									RawMesh.WedgeTexCoords[0].Top() = FVector2D(Data[0], Data[1]);
 
-									// Other wind/lod/etc data packed into texcoords
-									//
-									//		Branches			Fronds					Leaves
-									//
-									// 1	Detail UV			Frond Wind XY			Leaf Wind XY
-									// 2	Seam UV				Frond Wind Z, 0			Leaf Wind Z, Leaf Wind Group
-									// 3	LOD Z, Seam Amount	LOD Z, 0				Anchor Z, LOD Scalar
-									// 4	LOD XY				LOD XY					Anchor XY
-									// 5	Branch Wind XY		Branch Wind XY			Branch Wind XY
+									// lightmap
+									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LIGHTMAP_TEXCOORDS, VertexIndex, Data);
+									RawMesh.WedgeTexCoords[1].Top() = FVector2D(Data[0], Data[1]);
 
+									// branch wind
 									DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_BRANCH_DATA, VertexIndex, Data);
-									RawMesh.WedgeTexCoords[5].Top() = FVector2D(Data[0], Data[1]);
+									RawMesh.WedgeTexCoords[2].Top() = FVector2D(Data[0], Data[1]);
 
-									if (RenderState->m_bBranchesPresent)
-									{
-										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_DETAIL_TEXCOORDS, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[1].Top() = FVector2D(Data[0], Data[1]);
-
-										if (RenderState->m_eBranchSeamSmoothing != SpeedTree::EFFECT_OFF)
-										{
-											DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_BRANCH_SEAM_DIFFUSE, VertexIndex, Data);
-											RawMesh.WedgeTexCoords[2].Top() = FVector2D(Data[0], Data[1]);
-											RawMesh.WedgeTexCoords[3].Top().Y = Data[2];
-										}
-									}
-									else if (RenderState->m_bFrondsPresent || RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent)
-									{
-										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_EXTRA_DATA, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[1].Top() = FVector2D(Data[0], Data[1]);
-										RawMesh.WedgeTexCoords[2].Top().X = Data[2];
-
-										if (!RenderState->m_bFrondsPresent)
-										{
-											DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_FLAGS, VertexIndex, Data);
-											RawMesh.WedgeTexCoords[2].Top().Y = Data[0];
-										}
-									}
-
+									// lod
 									if (RenderState->m_bFacingLeavesPresent)
 									{
-										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_POSITION, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[4].Top() = FVector2D(Data[0], Data[1]);
-										RawMesh.WedgeTexCoords[3].Top().X = Data[2];
 										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LEAF_CARD_LOD_SCALAR, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[3].Top().Y = Data[0];
-									}
-									else if (RenderState->m_bLeavesPresent)
-									{
-										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LEAF_ANCHOR_POINT, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[4].Top() = FVector2D(Data[0], Data[1]);
-										RawMesh.WedgeTexCoords[3].Top() = FVector2D(Data[2], LeafLODScalar);
+										RawMesh.WedgeTexCoords[3].Top() = FVector2D(Data[0], 0.0f);
+										RawMesh.WedgeTexCoords[4].Top() = FVector2D(0.0f, 0.0f);
 									}
 									else
 									{
 										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LOD_POSITION, VertexIndex, Data);
-										RawMesh.WedgeTexCoords[4].Top() = FVector2D(Data[0], Data[1]);
-										RawMesh.WedgeTexCoords[3].Top().X = Data[2];
+										RawMesh.WedgeTexCoords[3].Top() = FVector2D(-Data[0], Data[1]);
+										RawMesh.WedgeTexCoords[4].Top() = FVector2D(Data[2], 0.0f);
 									}
+
+									// other
+									if (RenderState->m_bBranchesPresent)
+									{
+										// detail
+										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_DETAIL_TEXCOORDS, VertexIndex, Data);
+										RawMesh.WedgeTexCoords[5].Top() = FVector2D(Data[0], Data[1]);
+
+										// branch seam
+										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_BRANCH_SEAM_DIFFUSE, VertexIndex, Data);
+										RawMesh.WedgeTexCoords[6].Top() = FVector2D(Data[0], Data[1]);
+										RawMesh.WedgeTexCoords[4].Top().Y = Data[2];
+									}
+									else if (RenderState->m_bFrondsPresent)
+									{
+										// frond wind
+										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_EXTRA_DATA, VertexIndex, Data);
+										RawMesh.WedgeTexCoords[5].Top() = FVector2D(Data[0], Data[1]);
+										RawMesh.WedgeTexCoords[6].Top() = FVector2D(Data[2], 0.0f);
+									}
+									else if (RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent)
+									{
+										// anchor
+										if (RenderState->m_bFacingLeavesPresent)
+										{
+											DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_POSITION, VertexIndex, Data);
+										}
+										else
+										{
+											DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_LEAF_ANCHOR_POINT, VertexIndex, Data);
+										}
+										RawMesh.WedgeTexCoords[4].Top().Y = -Data[0];
+										RawMesh.WedgeTexCoords[5].Top() = FVector2D(Data[1], Data[2]);
+
+										// leaf wind
+										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_EXTRA_DATA, VertexIndex, Data);
+										RawMesh.WedgeTexCoords[6].Top() = FVector2D(Data[0], Data[1]);
+										RawMesh.WedgeTexCoords[7].Top().X = Data[2];
+										DrawCall->GetProperty(SpeedTree::VERTEX_PROPERTY_WIND_FLAGS, VertexIndex, Data);
+										RawMesh.WedgeTexCoords[7].Top().Y = Data[0];
+									}									
 								}
 							}							
 						}
@@ -1117,7 +1339,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 					// make the billboards
 					for (int32 BillboardIndex = 0; BillboardIndex < SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards; ++BillboardIndex)
 					{
-						FRotator Facing(0, -360.0f * (float)(BillboardIndex - 0.5f) / (float)SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards, 0);
+						FRotator Facing(0, 90.0f - 360.0f * (float)BillboardIndex / (float)SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards, 0);
 						FRotationMatrix BillboardRotate(Facing);
 
 						FVector TangentX = BillboardRotate.TransformVector(FVector(1.0f, 0.0f, 0.0f));
@@ -1133,7 +1355,8 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 						for (int32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
 						{
 							const SpeedTree::st_float32* Vertex = &Vertices[VertexIndex * 2];
-							RawMesh.VertexPositions.Add(BillboardRotate.TransformVector(FVector(Vertex[0] * BillboardWidth - BillboardWidth * 0.5f, 0.0f, Vertex[1] * BillboardHeight + BillboardBottom)));
+							FVector Position = BillboardRotate.TransformVector(FVector(Vertex[0] * BillboardWidth - BillboardWidth * 0.5f, 0.0f, Vertex[1] * BillboardHeight + BillboardBottom));
+							RawMesh.VertexPositions.Add(Position);
 						}
 
 						// other data
@@ -1162,6 +1385,9 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 								{
 									RawMesh.WedgeTexCoords[0].Add(FVector2D(TexCoords[0] + Vertex[0] * TexCoords[2], TexCoords[1] + Vertex[1] * TexCoords[3]));
 								}
+
+								// lightmap coord
+								RawMesh.WedgeTexCoords[1].Add(RawMesh.WedgeTexCoords[0].Top());
 							}
 						}
 					}

@@ -875,21 +875,6 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 
 	/**
-	 * Returns the minimum distance that the given LOD should be displayed at
-	 *
-	 * @param CurrentLevel - the LOD to find the min distance for
-	 */
-	float GetMinLODDist(int32 CurrentLevel) const;
-
-	/**
-	 * Returns the maximum distance that the given LOD should be displayed at
-	 * If the given LOD is the lowest detail LOD, then its maxDist will be WORLD_MAX
-	 *
-	 * @param CurrentLevel - the LOD to find the max distance for
-	 */
-	float GetMaxLODDist(int32 CurrentLevel) const;
-
-	/**
 	 * Returns the display factor for the given LOD level
 	 *
 	 * @Param LODIndex - The LOD to get the display factor for

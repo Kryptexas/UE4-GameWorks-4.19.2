@@ -1322,8 +1322,8 @@ public:
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;
 	virtual FVector4 GetWindParameters(const FVector& Position) const;
 	virtual FVector4 GetDirectionalWindParameters() const;
-	virtual void AddSpeedTreeWind(UStaticMesh* StaticMesh);
-	virtual void RemoveSpeedTreeWind(UStaticMesh* StaticMesh);
+	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
+	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
 	virtual void UpdateSpeedTreeWind(double CurrentTime);
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory);
 	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const;

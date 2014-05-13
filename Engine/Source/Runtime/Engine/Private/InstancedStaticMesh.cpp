@@ -80,6 +80,7 @@
 #include "OnlineSubsystemUtils.h"
 
 #include "StaticMeshLight.h"
+#include "SpeedTreeWind.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
@@ -89,7 +90,7 @@
 // This must match the maximum a user could specify in the material (see 
 // FHLSLMaterialTranslator::TextureCoordinate), otherwise the material will attempt 
 // to look up a texture coordinate we didn't provide an element for.
-static const int32 InstancedStaticMeshMaxTexCoord = 4;
+static const int32 InstancedStaticMeshMaxTexCoord = 8;
 
 /*-----------------------------------------------------------------------------
 	FStaticMeshInstanceData
@@ -519,7 +520,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 				));
 		}
 
-		for(int32 CoordinateIndex = Data.TextureCoordinates.Num();CoordinateIndex < InstancedStaticMeshMaxTexCoord;CoordinateIndex++)
+		for(int32 CoordinateIndex = Data.TextureCoordinates.Num(); CoordinateIndex < (InstancedStaticMeshMaxTexCoord + 1) / 2; CoordinateIndex++)
 		{
 			Elements.Add(AccessStreamComponent(
 				Data.TextureCoordinates[Data.TextureCoordinates.Num() - 1],
@@ -598,6 +599,16 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 				InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
 			}
 			SetShaderValue( VertexShader->GetVertexShader(), InstancingFadeOutParamsParameter, InstancingFadeOutParams );
+		}
+
+		// upload SpeedTree buffer, if available
+		if (View.Family != NULL && View.Family->Scene != NULL)
+		{
+			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
+			if (SpeedTreeUniformBuffer != NULL)
+			{
+				SetUniformBufferParameter(VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+			}
 		}
 	}
 
@@ -679,10 +690,28 @@ public:
 		{
 			BeginInitResource(&VertexFactories[LODIndex]);
 		}
+
+		// register SpeedTree wind with the scene
+		if (Component->StaticMesh->SpeedTreeWind.IsValid())
+		{
+			for (int32 LODIndex = 0; LODIndex < LODModels.Num(); LODIndex++)
+			{
+				Component->GetScene()->AddSpeedTreeWind(&VertexFactories[LODIndex], Component->StaticMesh);
+			}
+		}
 	}
 
 	void ReleaseResources()
 	{
+		// unregister SpeedTree wind with the scene
+		if (Component && Component->GetScene() && Component->StaticMesh && Component->StaticMesh->SpeedTreeWind.IsValid())
+		{
+			for (int32 LODIndex = 0; LODIndex < VertexFactories.Num(); LODIndex++)
+			{
+				Component->GetScene()->RemoveSpeedTreeWind(&VertexFactories[LODIndex], Component->StaticMesh);
+			}
+		}
+
 		InstanceBuffer.ReleaseResource();
 		for( int32 LODIndex=0;LODIndex<VertexFactories.Num();LODIndex++ )
 		{
@@ -753,25 +782,37 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 
 		Data.TextureCoordinates.Empty();
 		// Only bind InstancedStaticMeshMaxTexCoord, even if the mesh has more.
-		uint32 NumTexCoords = FMath::Min<uint32>(RenderData->VertexBuffer.GetNumTexCoords(), InstancedStaticMeshMaxTexCoord);
+		int32 NumTexCoords = FMath::Min<int32>((int32)RenderData->VertexBuffer.GetNumTexCoords(), InstancedStaticMeshMaxTexCoord);
 		if( !RenderData->VertexBuffer.GetUseFullPrecisionUVs() )
 		{
-			for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+			int32 UVIndex;
+			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
 			{
 				Data.TextureCoordinates.Add(FVertexStreamComponent(
 					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<InstancedStaticMeshMaxTexCoord>,UVs) + sizeof(FVector2DHalf) * UVIndex,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
+					RenderData->VertexBuffer.GetStride(),
+					VET_Half4
+					));
+			}
+			// possible last UV channel if we have an odd number
+			if( UVIndex < NumTexCoords )
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&RenderData->VertexBuffer,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * UVIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Half2
 					));
 			}
-			if(	Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < NumTexCoords)
+
+			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
 			{
 #if 0
 				//@todo UE4 foliage - static lighting/shadowing?
 				Data.ShadowMapCoordinateComponent = FVertexStreamComponent(
 					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<InstancedStaticMeshMaxTexCoord>,UVs) + sizeof(FVector2DHalf) * Parent->LightMapCoordinateIndex,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* Parent->LightMapCoordinateIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Half2
 					);
@@ -780,23 +821,34 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 		}
 		else
 		{
-			for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+			int32 UVIndex;
+			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
 			{
 				Data.TextureCoordinates.Add(FVertexStreamComponent(
 					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>,UVs) + sizeof(FVector2D) * UVIndex,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
+					RenderData->VertexBuffer.GetStride(),
+					VET_Float4
+					));
+			}
+			// possible last UV channel if we have an odd number
+			if (UVIndex < NumTexCoords)
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&RenderData->VertexBuffer,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * UVIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Float2
 					));
 			}
 
-			if(	Parent->LightMapCoordinateIndex >= 0 && (uint32)Parent->LightMapCoordinateIndex < NumTexCoords)
+			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
 			{
 #if 0
 				//@todo UE4 foliage - static lighting/shadowing?
 				Data.ShadowMapCoordinateComponent = FVertexStreamComponent(
 					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>,UVs) + sizeof(FVector2D) * Parent->LightMapCoordinateIndex,
+					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>, UVs) + sizeof(FVector2D)* Parent->LightMapCoordinateIndex,
 					RenderData->VertexBuffer.GetStride(),
 					VET_Float2
 					);

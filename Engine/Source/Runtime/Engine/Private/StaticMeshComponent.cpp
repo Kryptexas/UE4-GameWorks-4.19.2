@@ -391,7 +391,28 @@ void UStaticMeshComponent::OnRegister()
 		}
 	}
 
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	{
+		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			GetScene()->AddSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+		}
+	}
+
 	Super::OnRegister();
+}
+
+void UStaticMeshComponent::OnUnregister()
+{
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	{
+		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			GetScene()->RemoveSpeedTreeWind(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+		}
+	}
+
+	Super::OnUnregister();
 }
 
 void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
@@ -1535,26 +1556,6 @@ void UStaticMeshComponent::ApplyComponentInstanceData(const FComponentInstanceDa
 			ComponentInstanceData->ApplyVertexColorData(this);
 			MarkRenderStateDirty();	
 		}
-	}
-}
-
-void UStaticMeshComponent::CreateRenderState_Concurrent()
-{
-	Super::CreateRenderState_Concurrent();
-
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
-	{
-		GetScene()->AddSpeedTreeWind(StaticMesh);
-	}
-}
-
-void UStaticMeshComponent::DestroyRenderState_Concurrent()
-{
-	Super::DestroyRenderState_Concurrent();
-
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
-	{
-		GetScene()->RemoveSpeedTreeWind(StaticMesh);
 	}
 }
 

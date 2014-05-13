@@ -16,11 +16,6 @@
 
 #define NUM_MATERIAL_TEXCOORDS_VERTEX %s
 #define NUM_MATERIAL_TEXCOORDS %s
-
-#if (USE_INSTANCING || PARTICLE_MESH_INSTANCED) && NUM_MATERIAL_TEXCOORDS_VERTEX > 4
-	#undef NUM_MATERIAL_TEXCOORDS_VERTEX
-	#define NUM_MATERIAL_TEXCOORDS_VERTEX 4
-#endif
  
 #if MATERIAL_ATMOSPHERIC_FOG
 	#include "AtmosphereCommon.usf"
@@ -232,6 +227,8 @@ struct FMaterialVertexParameters
 #if USE_INSTANCING
 	/** Per-instance properties. */
 	float4x4 InstanceLocalToWorld;
+	float3x3 InstanceWorldToLocal;
+	float3 InstanceLocalPosition;
 	float2 PerInstanceParams;
 #elif PARTICLE_MESH_FACTORY
 	/** Per-particle properties. */
@@ -292,7 +289,7 @@ MaterialFloat3 TransformLocalVectorToTangent(FMaterialPixelParameters Parameters
 MaterialFloat3 TransformLocalVectorToWorld(FMaterialVertexParameters Parameters,MaterialFloat3 InLocalVector)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return mul((MaterialFloat3x3)Parameters.InstanceLocalToWorld, InLocalVector);
+		return mul(InLocalVector, (half3x3)Parameters.InstanceLocalToWorld);
 	#else
 		return mul(InLocalVector, GetLocalToWorld3x3());
 	#endif
@@ -332,7 +329,7 @@ float3 TransformLocalPositionToWorld(FMaterialPixelParameters Parameters,float3 
 float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3 InLocalPosition)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return mul(Parameters.InstanceLocalToWorld, float4(InLocalPosition, 1)).xyz;
+		return mul(float4(InLocalPosition, 1), Parameters.InstanceLocalToWorld).xyz;
 	#else
 		return mul(float4(InLocalPosition, 1), Primitive.LocalToWorld).xyz;
 	#endif
@@ -359,7 +356,7 @@ float3 GetObjectWorldPosition(FMaterialTessellationParameters Parameters)
 float3 GetObjectWorldPosition(FMaterialVertexParameters Parameters)
 {
 	#if USE_INSTANCING || PARTICLE_MESH_FACTORY
-		return float3(Parameters.InstanceLocalToWorld[0].w,Parameters.InstanceLocalToWorld[1].w,Parameters.InstanceLocalToWorld[2].w);
+		return Parameters.InstanceLocalToWorld[3].xyz;
 	#else
 		return Primitive.ObjectWorldPositionAndRadius.xyz;
 	#endif
@@ -647,136 +644,190 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 /** Vertex offset for SpeedTree wind and LOD */
 float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int GeometryType, int WindType, int LODType, float BillboardThreshold) 
 {
-	#if (USE_INSTANCING || PARTICLE_MESH_INSTANCED)
+	#if (NUM_MATERIAL_TEXCOORDS_VERTEX < 6) || PARTICLE_MESH_FACTORY
+		return float4(0,0,0);
+	#endif
 
-		// SpeedTree VBs run over instancing data currently, so if you use a SpeedTree mesh instanced, the SpeedTree wind code is disabled
-		return float3(0,0,0);
-
+	#if USE_INSTANCING
+		float3x3 LocalToWorld = (float3x3)Parameters.InstanceLocalToWorld;
+		float3x3 WorldToLocal = Parameters.InstanceWorldToLocal;
+		float3 LocalPosition = Parameters.InstanceLocalPosition;
 	#else
+		float3x3 LocalToWorld = (float3x3)Primitive.LocalToWorld;
+		float3x3 WorldToLocal = (float3x3)Primitive.WorldToLocal;
+		float3 LocalPosition = mul(float4(Parameters.WorldPosition.xyz, 1), Primitive.WorldToLocal).xyz;
+	#endif
 
-		float3 TreePos = Primitive.ObjectWorldPositionAndRadius.xyz;
+	float3 TreePos = GetObjectWorldPosition(Parameters);
 
-		// SpeedTrees should only be uniformly scaled, but if necessary, it takes a few more instructions
-		float TreeScale = length(mul(float3(0,0,1), (float3x3)Primitive.LocalToWorld));
-						/*float3(length((float3)Primitive.LocalToWorld[0]),
-								length((float3)Primitive.LocalToWorld[1]),
-								length((float3)Primitive.LocalToWorld[2]));*/
+	// geometry other than billboads can do smooth lod and wind effects (other than global) 
+	// extra data is required in the texcoords for this, which is only available on SpeedTrees
+	const float DistToTree = length(TreePos - View.ViewOrigin.xyz);
+	//const float LodInterp = saturate((DistToTree - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
+	//@todo - fix smooth LOD
+	const float LodInterp = 0.0f;
 
-		// @todo There is probably a more optimal way to get the rotated (but not translated or scaled) vertex position needed for correct wind
-		float3 OriginalPosition = mul(float4(Parameters.WorldPosition.xyz, 1), Primitive.WorldToLocal).xyz;
-		OriginalPosition = mul(OriginalPosition, (float3x3)Primitive.LocalToWorld) / TreeScale;
+	TreePos *= 0.001; // The only other use of the tree position is as an offset into trig functions, but big numbers don't play nice there
 
-		float3 FinalPosition = OriginalPosition;
+	// SpeedTrees should only be uniformly scaled, but if necessary, it takes a few more instructions
+	float TreeScale = length(mul(float3(0,0,1), LocalToWorld));
+					//float3(length((float3)LocalToWorld[0]),
+					//		length((float3)LocalToWorld[1]),
+					//		length((float3)LocalToWorld[2]));
+
+
+	// @todo There is probably a more optimal way to get the rotated (but not translated or scaled) vertex position needed for correct wind
+	float3 OriginalPosition = LocalPosition;
+	OriginalPosition = mul(OriginalPosition, LocalToWorld) / TreeScale;
+
+	float3 FinalPosition = OriginalPosition;
 	
-		if (GeometryType == 4)
+	if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_BILLBOARD)
+	{
+		if (BillboardThreshold < 1.0)
 		{
-			if (BillboardThreshold < 1.0)
+			// billboard meshes can have triangles drop out if they aren't facing the camera
+			// this rotates the view direction around so we ignore the local Z component
+			float3 LocalView2D = normalize(float3(View.ViewForward.xy, 0));
+			float3 LocalNormal2D = normalize(float3(Parameters.TangentToWorld[2].xy, 0));
+			if (dot(LocalView2D, LocalNormal2D) > (-1.0 + BillboardThreshold * 0.25))
 			{
-				// billboard meshes can have triangles drop out if they aren't facing the camera
-				// this rotates the view direction around so we ignore the local Z component
-				float3 LocalView2D = normalize(float3(mul(View.ViewForward, (float3x3)Primitive.WorldToLocal).xy, 0));
-				float3 LocalNormal2D = mul(Parameters.TangentToWorld[2], (float3x3)Primitive.WorldToLocal);
-				if (dot(LocalView2D, LocalNormal2D) > (-1.0 + BillboardThreshold * 0.25))
-				{
-					FinalPosition = float3(0,0,0);
-				}
+				FinalPosition = float3(0,0,0);
 			}
 		}
-		else
+	}
+	else
+	{
+		// rotated normal needed in a few places
+		float3 Normal = Parameters.TangentToWorld[2];
+
+		// branches and fronds
+		if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_BRANCH || GeometryType == SPEEDTREE_GEOMETRY_TYPE_FROND) 
 		{
-			// geometry other than billboads can do smooth lod and wind effects (other than global) 
-			// extra data is required in the texcoords for this, which is only available on SpeedTrees
-
-			// todo: smooth LOD needs some values that are currently difficule
-			const float LodInterp = 0.0;
-
-			// Compute percentage along in this lod
-			/*float LodInterp = length(TreePos - View.ViewOrigin.xyz);
-			LodInterp = saturate(LodInterp * SpeedTreeData.LodInfo.y);
-			LodInterp = frac(LodInterp * SpeedTreeData.LodInfo.x);*/
-
-			// rotated normal needed in a few places
-			float3 Normal = Parameters.TangentToWorld[2];
-
-			// branches and fronds
-			if (GeometryType < 2) 
-			{
-				// smooth LOD
-				if (LODType == 1) 
+			// smooth LOD
+			#if !USE_INSTANCING
+				if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 				{
-					float3 LODPos = float3(Parameters.TexCoords[4].x, Parameters.TexCoords[4].y, Parameters.TexCoords[3].x);
-					LODPos = (mul(LODPos, (float3x3)Primitive.LocalToWorld)) / TreeScale;
+					float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
+					LODPos = mul(LODPos, LocalToWorld) / TreeScale;
 					FinalPosition = lerp(FinalPosition, LODPos, LodInterp);
 				}
+			#endif
 
-				// frond wind, if needed
-				if (GeometryType == 1 && WindType == 2)
-				{
-					float2 TexCoords = Parameters.TexCoords[0];
-					float4 WindExtra = float4(Parameters.TexCoords[1].x, Parameters.TexCoords[1].y, Parameters.TexCoords[2].x, 0.0);
-					FinalPosition = RippleFrond(FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
-				}
-			}
-
-			// leaves and facing leaves
-			if (GeometryType == 3 || 
-				(GeometryType == 2 && (LODType == 1 || WindType != 0)))
+			// frond wind, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FROND && WindType == SPEEDTREE_WIND_TYPE_PALM)
 			{
-				// remove anchor pos from vertex position
-				float3 Anchor = float3(Parameters.TexCoords[4].x, Parameters.TexCoords[4].y, Parameters.TexCoords[3].x);
-				Anchor = (mul(Anchor, (float3x3)Primitive.LocalToWorld)) / TreeScale;
-				FinalPosition -= Anchor;
-
-				// smooth LOD
-				if (LODType == 1) 
-				{
-					float LODScalar = Parameters.TexCoords[3].y;
-					FinalPosition *= lerp(1.0, LODScalar, LodInterp);
-				}
-
-				// face camera-facing leaves to the camera, if needed
-				// @todo Needs to face the light during shadow rendering
-				if (GeometryType == 3) 
-				{
-					// have to rotate the view into local space
-					FinalPosition = FinalPosition.x * View.ViewRight + 
-									FinalPosition.y * View.ViewUp + 
-									FinalPosition.z * View.ViewForward;
-				}
-
-				// leaf wind
-				if (WindType != 0) 
-				{
-					float4 WindExtra = float4(Parameters.TexCoords[1].x, Parameters.TexCoords[1].y, Parameters.TexCoords[2].x, Parameters.TexCoords[2].y);
-					float LeafWindTrigOffset = FinalPosition.x + FinalPosition.y;
-					FinalPosition = LeafWind(WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
-				}
-				
-				// move leaf back to anchor
-				FinalPosition += Anchor;
+				float2 TexCoords = Parameters.TexCoords[0];
+				float4 WindExtra = float4(Parameters.TexCoords[5].x, Parameters.TexCoords[5].y, Parameters.TexCoords[6].x, 0.0);
+				FinalPosition = RippleFrond(FinalPosition, Normal, TexCoords.x, TexCoords.y, WindExtra.x, WindExtra.y, WindExtra.z);
 			}
-
-			if (WindType != 0)
-			{
-				// branch wind (applies to all geometry)
-				float2 VertBranchWind = Parameters.TexCoords[5];
-				FinalPosition = BranchWind(FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
-			}	
 		}
 
-		// global wind can apply to the whole tree, even billboards
-		if (WindType != 0)
+		// leaves and facing leaves
+		if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF || 
+				(GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF && 
+				(LODType == SPEEDTREE_LOD_TYPE_SMOOTH || (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM))))
 		{
-			FinalPosition = GlobalWind(FinalPosition, TreePos, true);
+			// remove anchor pos from vertex position
+			float3 Anchor = float3(Parameters.TexCoords[4].y, Parameters.TexCoords[5].x, Parameters.TexCoords[5].y);
+			Anchor = (mul(Anchor, LocalToWorld)) / TreeScale;
+			FinalPosition -= Anchor;
+
+			// smooth LOD
+			#if !USE_INSTANCING
+				if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
+				{
+					if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF)
+					{
+						float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
+						LODPos = mul(LODPos, LocalToWorld) / TreeScale - Anchor;
+						FinalPosition = lerp(FinalPosition, LODPos, LodInterp);
+					}
+					else
+					{
+						float LODScalar = Parameters.TexCoords[3].x;
+						FinalPosition *= lerp(1.0, LODScalar, LodInterp);
+					}
+				}
+			#endif
+
+			// face camera-facing leaves to the camera, if needed
+			if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF) 
+			{
+				// have to rotate the view into local space
+				FinalPosition = FinalPosition.x * View.ViewRight + 
+								FinalPosition.y * View.ViewUp + 
+								FinalPosition.z * View.ViewForward;
+			}
+
+			// leaf wind
+			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM) 
+			{
+				float4 WindExtra = float4(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x, Parameters.TexCoords[7].y);
+				float LeafWindTrigOffset = FinalPosition.x + FinalPosition.y;
+				FinalPosition = LeafWind(WindExtra.w > 0.0, FinalPosition, Normal, WindExtra.x, float3(0,0,0), WindExtra.y, WindExtra.z, LeafWindTrigOffset, WindType);
+			}
+				
+			// move leaf back to anchor
+			FinalPosition += Anchor;
 		}
 
-		// convert into a world space offset
-		return (FinalPosition - OriginalPosition) * TreeScale;
+		if (WindType > SPEEDTREE_WIND_TYPE_FAST)
+		{
+			// branch wind (applies to all geometry)
+			float2 VertBranchWind = Parameters.TexCoords[2];
+			FinalPosition = BranchWind(FinalPosition, TreePos, float4(VertBranchWind, 0, 0), WindType);
+		}	
+	}
 
-	#endif
+	// global wind can apply to the whole tree, even billboards
+	if (WindType != SPEEDTREE_WIND_TYPE_NONE)
+	{
+		FinalPosition = GlobalWind(FinalPosition, TreePos, true);
+	}
+
+	// convert into a world space offset
+	return (FinalPosition - OriginalPosition) * TreeScale;
 }
 
 #endif
+
+float3 GetSpeedTreeColorVariationBase(float3 InputColor, float Amount, bool bPreserveVibrance, float3 RandomColor, float Random) 
+{
+	Random -= 0.25;
+	float3 FinalColor = InputColor + RandomColor * Random * Amount;
+
+	if (bPreserveVibrance)
+	{
+		float OrigVibrance = max(InputColor.x, max(InputColor.y, InputColor.z));
+		float NewVibrance = max(FinalColor.x, max(FinalColor.y, FinalColor.z));
+
+		FinalColor *= OrigVibrance;
+		if (NewVibrance > 0)
+			FinalColor /= NewVibrance;
+	}
+
+	return saturate(FinalColor);
+}
+
+float3 GetSpeedTreeColorVariation(FMaterialVertexParameters Parameters, float3 InputColor, float Amount, bool bPreserveVibrance)
+{
+	#if USE_INSTANCING
+		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(float3(Parameters.PerInstanceParams.x * 100, Parameters.PerInstanceParams.x, Parameters.PerInstanceParams.x * 10)), Parameters.PerInstanceParams.x);
+	#else
+		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(Primitive.ObjectWorldPositionAndRadius.xyz * Primitive.ObjectWorldPositionAndRadius.zxy * 0.001), frac(dot(Primitive.ObjectWorldPositionAndRadius.xyz * 0.001, Primitive.LocalToWorld[0].xyz)));
+	#endif
+}
+
+float3 GetSpeedTreeColorVariation(FMaterialPixelParameters Parameters, float3 InputColor, float Amount, bool bPreserveVibrance)
+{
+	#if USE_INSTANCING
+		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(float3(Parameters.PerInstanceParams.x * 100, Parameters.PerInstanceParams.x, Parameters.PerInstanceParams.x * 10)), Parameters.PerInstanceParams.x);
+	#else
+		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(Primitive.ObjectWorldPositionAndRadius.xyz * Primitive.ObjectWorldPositionAndRadius.zxy * 0.001), frac(dot(Primitive.ObjectWorldPositionAndRadius.xyz * 0.001, Primitive.LocalToWorld[0].xyz)));
+	#endif
+}
+
 
 MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 {
