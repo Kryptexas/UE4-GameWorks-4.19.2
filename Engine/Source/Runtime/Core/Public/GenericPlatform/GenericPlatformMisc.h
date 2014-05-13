@@ -225,7 +225,7 @@ struct CORE_API FGenericPlatformMisc
 
 	/**
 	 * Installs handler for the unexpected (due to error) termination of the program,
-     * including, but not limited to, crashes.
+	 * including, but not limited to, crashes.
 	 *
 	 */
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
@@ -293,6 +293,30 @@ struct CORE_API FGenericPlatformMisc
 			*((int32*)3) = 13; // unknown platforms crash into the debugger
 		}
 	}
+
+	/**
+	* Uses cpuid instruction to get the vendor string
+	*
+	* @return	CPU vendor name
+	*/
+	static FString GetCPUVendor();
+
+	/** 
+	 * Uses cpuid instruction to get the CPU brand string
+	 *
+	 * @return	CPU brand string
+	 */
+	static FString GetCPUBrand();
+
+	/** 
+	 * @return primary GPU brand string
+	 */
+	static FString GetPrimaryGPUBrand();
+
+	/**
+	 * Gets the OS Version and OS Subversion.
+	 */
+	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
 	static bool SupportsMessaging()
 	{

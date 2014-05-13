@@ -195,6 +195,33 @@ void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 	UE_LOG(LogGenericPlatformMisc, Error, TEXT("This platform cannot submit a crash report. Report was:\n%s"), InErrorHist);
 }
 
+
+FString FGenericPlatformMisc::GetCPUVendor()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericCPUVendor" ) );
+}
+
+FString FGenericPlatformMisc::GetCPUBrand()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericCPUBrand" ) );
+}
+
+
+FString FGenericPlatformMisc::GetPrimaryGPUBrand()
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	return FString( TEXT( "GenericGPUBrand" ) );
+}
+
+void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+	out_OSVersionLabel = FString( TEXT( "GenericOSVersionLabel" ) );
+	out_OSSubVersionLabel = FString( TEXT( "GenericOSSubVersionLabel" ) );
+}
+
 void FGenericPlatformMisc::MemoryBarrier()
 {
 }

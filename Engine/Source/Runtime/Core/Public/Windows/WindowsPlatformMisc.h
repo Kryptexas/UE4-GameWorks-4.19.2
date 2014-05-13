@@ -7,6 +7,20 @@
 
 #pragma once
 
+/** Helper struct used to get the string version of the Windows version. */
+struct FWindowsOSVersionHelper
+{
+	enum ErrorCodes
+	{
+		SUCCEEDED = 0,
+		ERROR_UNKNOWNVERSION = 1,
+		ERROR_GETPRODUCTINFO_FAILED = 2,
+		ERROR_GETVERSIONEX_FAILED = 4,
+	};
+
+	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
+};
+
 /**
 * Windows implementation of the misc OS functions
 **/
@@ -136,12 +150,10 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static bool HasCPUIDInstruction();
 
-	/** 
-	 * Uses cpuid instruction to get the vendor string
-	 *
-	 * @return	CPU vendor name
-	 */
 	static FString GetCPUVendor();
+	static FString GetCPUBrand();
+	static FString GetPrimaryGPUBrand();
+	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
 	/**
 	 * Uses cpuid instruction to get the vendor string

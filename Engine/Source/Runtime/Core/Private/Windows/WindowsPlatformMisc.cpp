@@ -39,6 +39,235 @@
 #include <fcntl.h>
 #include <io.h>
 
+#include "AllowWindowsPlatformTypes.h"
+int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
+{
+	int32 ErrorCode = (int32)SUCCEEDED;
+
+	// Get system info
+	SYSTEM_INFO SystemInfo;
+	if( FPlatformMisc::Is64bitOperatingSystem() )
+	{
+		GetNativeSystemInfo( &SystemInfo );
+	}
+	else
+	{
+		GetSystemInfo( &SystemInfo );
+	}
+
+	OSVERSIONINFOEX OsVersionInfo = {0};
+	OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
+	out_OSVersionLabel = TEXT( "Windows (unknown version)" );
+	out_OSSubVersionLabel = FString();
+#pragma warning(disable : 4996) // 'function' was declared deprecated
+	if( GetVersionEx( (LPOSVERSIONINFO)&OsVersionInfo ) )
+#pragma warning(default : 4996)
+	{
+		bool bIsInvalidVersion = false;
+
+		switch( OsVersionInfo.dwMajorVersion )
+		{
+			case 5:
+				switch( OsVersionInfo.dwMinorVersion )
+				{
+					case 0:
+						out_OSVersionLabel = TEXT( "Windows 2000" );
+						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
+						{
+							out_OSSubVersionLabel = TEXT( "Professional" );
+						}
+						else
+						{
+							if( OsVersionInfo.wSuiteMask & VER_SUITE_DATACENTER )
+							{
+								out_OSSubVersionLabel = TEXT( "Datacenter Server" );
+							}
+							else if( OsVersionInfo.wSuiteMask & VER_SUITE_ENTERPRISE )
+							{
+								out_OSSubVersionLabel = TEXT( "Advanced Server" );
+							}
+							else
+							{
+								out_OSSubVersionLabel = TEXT( "Server" );
+							}
+						}
+						break;
+					case 1:
+						out_OSVersionLabel = TEXT( "Windows XP" );
+						if( OsVersionInfo.wSuiteMask & VER_SUITE_PERSONAL )
+						{
+							out_OSSubVersionLabel = TEXT( "Home Edition" );
+						}
+						else
+						{
+							out_OSSubVersionLabel = TEXT( "Professional" );
+						}
+						break;
+					case 2:
+						if( GetSystemMetrics( SM_SERVERR2 ) )
+						{
+							out_OSVersionLabel = TEXT( "Windows Server 2003 R2" );
+						}
+						else if( OsVersionInfo.wSuiteMask & VER_SUITE_STORAGE_SERVER )
+						{
+							out_OSVersionLabel = TEXT( "Windows Storage Server 2003" );
+						}
+						else if( OsVersionInfo.wSuiteMask & VER_SUITE_WH_SERVER )
+						{
+							out_OSVersionLabel = TEXT( "Windows Home Server" );
+						}
+						else if( OsVersionInfo.wProductType == VER_NT_WORKSTATION && SystemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 )
+						{
+							out_OSVersionLabel = TEXT( "Windows XP" );
+							out_OSSubVersionLabel = TEXT( "Professional x64 Edition" );
+						}
+						else
+						{
+							out_OSVersionLabel = TEXT( "Windows Server 2003" );
+						}
+						break;
+					default:
+						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+				}
+				break;
+			case 6:
+				switch( OsVersionInfo.dwMinorVersion )
+				{
+					case 0:
+						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
+						{
+							out_OSVersionLabel = TEXT( "Windows Vista" );
+						}
+						else
+						{
+							out_OSVersionLabel = TEXT( "Windows Server 2008" );
+						}
+						break;
+					case 1:
+						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
+						{
+							out_OSVersionLabel = TEXT( "Windows 7" );
+						}
+						else
+						{
+							out_OSVersionLabel = TEXT( "Windows Server 2008 R2" );
+						}
+						break;
+					case 2:
+						if( OsVersionInfo.wProductType == VER_NT_WORKSTATION )
+						{
+							out_OSVersionLabel = TEXT( "Windows 8" );
+						}
+						else
+						{
+							out_OSVersionLabel = TEXT( "Windows Server 2012" );
+						}
+						break;
+					default:
+						ErrorCode |= (int32)ERROR_UNKNOWNVERSION;
+				}
+
+			{
+#pragma warning( push )
+#pragma warning( disable: 4191 )	// unsafe conversion from 'type of expression' to 'type required'
+				typedef BOOL( WINAPI *LPFN_GETPRODUCTINFO )(DWORD, DWORD, DWORD, DWORD, PDWORD);
+				LPFN_GETPRODUCTINFO fnGetProductInfo = (LPFN_GETPRODUCTINFO)GetProcAddress( GetModuleHandle( TEXT( "kernel32.dll" ) ), "GetProductInfo" );
+#pragma warning( pop )
+				if( fnGetProductInfo != NULL )
+				{
+					DWORD Type;
+					fnGetProductInfo( OsVersionInfo.dwMajorVersion, OsVersionInfo.dwMinorVersion, 0, 0, &Type );
+
+					switch( Type )
+					{
+						case PRODUCT_ULTIMATE:
+							out_OSSubVersionLabel = TEXT( "Ultimate Edition" );
+							break;
+						case PRODUCT_PROFESSIONAL:
+							out_OSSubVersionLabel = TEXT( "Professional" );
+							break;
+						case PRODUCT_HOME_PREMIUM:
+							out_OSSubVersionLabel = TEXT( "Home Premium Edition" );
+							break;
+						case PRODUCT_HOME_BASIC:
+							out_OSSubVersionLabel = TEXT( "Home Basic Edition" );
+							break;
+						case PRODUCT_ENTERPRISE:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+							break;
+						case PRODUCT_BUSINESS:
+							out_OSSubVersionLabel = TEXT( "Business Edition" );
+							break;
+						case PRODUCT_STARTER:
+							out_OSSubVersionLabel = TEXT( "Starter Edition" );
+							break;
+						case PRODUCT_CLUSTER_SERVER:
+							out_OSSubVersionLabel = TEXT( "Cluster Server Edition" );
+							break;
+						case PRODUCT_DATACENTER_SERVER:
+							out_OSSubVersionLabel = TEXT( "Datacenter Edition" );
+							break;
+						case PRODUCT_DATACENTER_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Datacenter Edition (core installation)" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition (core installation)" );
+							break;
+						case PRODUCT_ENTERPRISE_SERVER_IA64:
+							out_OSSubVersionLabel = TEXT( "Enterprise Edition for Itanium-based Systems" );
+							break;
+						case PRODUCT_SMALLBUSINESS_SERVER:
+							out_OSSubVersionLabel = TEXT( "Small Business Server" );
+							break;
+						case PRODUCT_SMALLBUSINESS_SERVER_PREMIUM:
+							out_OSSubVersionLabel = TEXT( "Small Business Server Premium Edition" );
+							break;
+						case PRODUCT_STANDARD_SERVER:
+							out_OSSubVersionLabel = TEXT( "Standard Edition" );
+							break;
+						case PRODUCT_STANDARD_SERVER_CORE:
+							out_OSSubVersionLabel = TEXT( "Standard Edition (core installation)" );
+							break;
+						case PRODUCT_WEB_SERVER:
+							out_OSSubVersionLabel = TEXT( "Web Server Edition" );
+							break;
+					}
+				}
+				else
+				{
+					out_OSSubVersionLabel = TEXT( "(type unknown)" );
+					ErrorCode |= (int32)ERROR_GETPRODUCTINFO_FAILED;
+				}
+			}
+				break;
+			default:
+				ErrorCode |= ERROR_UNKNOWNVERSION;
+		}
+
+#if 0
+		// THIS BIT ADDS THE SERVICE PACK INFO TO THE EDITION STRING
+		// Append service pack info
+		if( OsVersionInfo.szCSDVersion[0] != 0 )
+		{
+			OSSubVersionLabel += FString::Printf( TEXT( " (%s)" ), OsVersionInfo.szCSDVersion );
+		}
+#else
+		// THIS BIT USES SERVICE PACK INFO ONLY
+		out_OSSubVersionLabel = OsVersionInfo.szCSDVersion;
+#endif
+	}
+	else
+	{
+		ErrorCode |= ERROR_GETVERSIONEX_FAILED;
+	}
+
+	return ErrorCode;
+}
+#include "HideWindowsPlatformTypes.h"
+
 /** 
  * Whether support for integrating into the firewall is there
  */
@@ -1625,6 +1854,7 @@ public:
 		if(bHasCPUIDInstruction)
 		{
 			Vendor = QueryCPUVendor();
+			Brand = QueryCPUBrand();
 			CPUInfo = QueryCPUInfo();
 			CacheLineSize = QueryCacheLineSize();
 		}
@@ -1635,28 +1865,50 @@ public:
 	 *
 	 * @returns True if this CPU supports __cpuid instruction. False otherwise.
 	 */
-	static bool HasCPUIDInstruction() { return CPUIDStaticCache.bHasCPUIDInstruction; }
+	static bool HasCPUIDInstruction()
+	{
+		return CPUIDStaticCache.bHasCPUIDInstruction;
+	}
 
 	/**
 	 * Gets pre-cached CPU vendor name.
 	 *
 	 * @returns CPU vendor name.
 	 */
-	static const FString& GetVendor() { return CPUIDStaticCache.Vendor; }
+	static const FString& GetVendor()
+	{
+		return CPUIDStaticCache.Vendor;
+	}
+
+	/**
+	* Gets pre-cached CPU brand string.
+	*
+	* @returns CPU brand string.
+	*/
+	static const FString& GetBrand()
+	{
+		return CPUIDStaticCache.Brand;
+	}
 
 	/**
 	 * Gets __cpuid CPU info.
 	 *
 	 * @returns CPU info unsigned int queried using __cpuid.
 	 */
-	static uint32 GetCPUInfo() { return CPUIDStaticCache.CPUInfo; }
+	static uint32 GetCPUInfo()
+	{
+		return CPUIDStaticCache.CPUInfo;
+	}
 
 	/** 
 	 * Gets cache line size.
 	 *
 	 * @returns Cache line size.
 	 */
-	static int32 GetCacheLineSize() { return CPUIDStaticCache.CacheLineSize; }
+	static int32 GetCacheLineSize()
+	{
+		return CPUIDStaticCache.CacheLineSize;
+	}
 
 private:
 	/**
@@ -1712,6 +1964,35 @@ private:
 	}
 
 	/**
+	 * Queries brand string using __cpuid instruction.
+	 *
+	 * @returns CPU brand string.
+	 */
+	static FString QueryCPUBrand()
+	{
+		// @see for more information http://msdn.microsoft.com/en-us/library/vstudio/hskdteyh(v=vs.100).aspx
+		ANSICHAR BrandString[0x40] = {0};
+		int32 CPUInfo[4] = {-1};
+		const SIZE_T CPUInfoSize = sizeof( CPUInfo );
+
+		__cpuid( CPUInfo, 0x80000000 );
+		const uint32 MaxExtIDs = CPUInfo[0];
+
+		if( MaxExtIDs >= 0x80000004 )
+		{
+			const uint32 FirstBrandString = 0x80000002;
+			const uint32 NumBrandStrings = 3;
+			for( uint32 Index = 0; Index < NumBrandStrings; Index++ )
+			{
+				__cpuid( CPUInfo, FirstBrandString + Index );
+				FPlatformMemory::Memcpy( BrandString + CPUInfoSize * Index, CPUInfo, CPUInfoSize );
+			}
+		}
+
+		return ANSI_TO_TCHAR( BrandString );
+	}
+
+	/**
 	 * Queries CPU info using __cpuid instruction.
 	 *
 	 * @returns CPU info unsigned int queried using __cpuid.
@@ -1755,6 +2036,9 @@ private:
 	/** Vendor of the CPU. */
 	FString Vendor;
 
+	/** CPU brand. */
+	FString Brand;
+
 	/** CPU info from __cpuid. */
 	uint32 CPUInfo;
 
@@ -1773,6 +2057,47 @@ bool FWindowsPlatformMisc::HasCPUIDInstruction()
 FString FWindowsPlatformMisc::GetCPUVendor()
 {
 	return FCPUIDQueriedData::GetVendor();
+}
+
+FString FWindowsPlatformMisc::GetCPUBrand()
+{
+	return FCPUIDQueriedData::GetBrand();
+}
+
+#include "AllowWindowsPlatformTypes.h"
+FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
+{
+	static FString PrimaryGPUBrand;
+	if( PrimaryGPUBrand.IsEmpty() )
+	{
+		// Find primary display adapter and get the device name.
+		PrimaryGPUBrand = FGenericPlatformMisc::GetPrimaryGPUBrand();
+
+		DISPLAY_DEVICE DisplayDevice;
+		DisplayDevice.cb = sizeof( DisplayDevice );
+		DWORD DeviceIndex = 0;
+
+		while( EnumDisplayDevices( 0, DeviceIndex, &DisplayDevice, 0 ) )
+		{
+			if( (DisplayDevice.StateFlags & (DISPLAY_DEVICE_ATTACHED_TO_DESKTOP | DISPLAY_DEVICE_PRIMARY_DEVICE)) > 0 )
+			{
+				PrimaryGPUBrand = DisplayDevice.DeviceString;
+				break;
+			}
+
+			FMemory::MemZero( DisplayDevice );
+			DisplayDevice.cb = sizeof( DisplayDevice );
+			DeviceIndex++;
+		}
+
+	}
+	return PrimaryGPUBrand;
+}
+#include "HideWindowsPlatformTypes.h"
+
+void FWindowsPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
+{
+	FWindowsOSVersionHelper::GetOSVersions( out_OSVersionLabel, out_OSSubVersionLabel );
 }
 
 uint32 FWindowsPlatformMisc::GetCPUInfo()
