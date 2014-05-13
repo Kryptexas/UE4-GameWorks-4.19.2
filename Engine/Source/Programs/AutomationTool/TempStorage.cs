@@ -493,9 +493,15 @@ namespace AutomationTool
         {
             return CombinePaths(Env.LocalRoot, "Engine", "Saved", "GUBP");
         }
-
+        static HashSet<string> TopDirectoryTestedForClean = new HashSet<string>();
         static void CleanSharedTempStorage(string TopDirectory)
         {
+            if (TopDirectoryTestedForClean.Contains(TopDirectory))
+            {
+                return;
+            }
+            TopDirectoryTestedForClean.Add(TopDirectory);
+
             const int MaximumDaysToKeepTempStorage = 2;
             var StartTimeDir = DateTime.UtcNow;
             DirectoryInfo DirInfo = new DirectoryInfo(TopDirectory);
