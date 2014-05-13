@@ -1185,7 +1185,9 @@ protected:
 	/** Cumulative camera drag and rotation deltas from trackpad gesture in current Tick */
 	FVector CurrentGestureDragDelta;
 	FRotator CurrentGestureRotDelta;
-	
+
+	float GestureMoveForwardBackwardImpulse;
+
 	/** If true, force this viewport to use real time audio regardless of other settings */
 	bool bForceAudioRealtime;
 

@@ -210,6 +210,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bDraggingByHandle( false )
 	, CurrentGestureDragDelta(FVector::ZeroVector)
 	, CurrentGestureRotDelta(FRotator::ZeroRotator)
+	, GestureMoveForwardBackwardImpulse(0.0f)
 	, bDisableInput( false )
 	, bDrawAxes(true)
 	, bForceAudioRealtime(false)
@@ -1077,8 +1078,8 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			( GetDefault<ULevelEditorViewportSettings>()->FlightCameraControlType == WASD_RMBOnly && (Viewport->KeyState(EKeys::RightMouseButton ) ||Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::LeftMouseButton) || bIsUsingTrackpad ) ) ) ) &&
 			!MouseDeltaTracker->UsingDragTool();
 
-		//reset impulses if we're using WASD keys
-		CameraUserImpulseData->MoveForwardBackwardImpulse = 0.0f;
+		// Apply impulse from magnify gesture and reset impulses if we're using WASD keys
+		CameraUserImpulseData->MoveForwardBackwardImpulse = GestureMoveForwardBackwardImpulse;
 		CameraUserImpulseData->MoveRightLeftImpulse = 0.0f;
 		CameraUserImpulseData->MoveUpDownImpulse = 0.0f;
 		CameraUserImpulseData->ZoomOutInImpulse = 0.0f;
@@ -1086,6 +1087,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		CameraUserImpulseData->RotatePitchImpulse = 0.0f;
 		CameraUserImpulseData->RotateRollImpulse = 0.0f;
 
+		GestureMoveForwardBackwardImpulse = 0.0f;
 
 		// Forward/back
 		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveGesture()->Key ) ) ||
@@ -2874,6 +2876,10 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 				}
 
 				FEditorViewportStats::Used(FEditorViewportStats::CAT_ORTHOGRAPHIC_GESTURE_SCROLL);
+			}
+			else if (GestureType == EGestureEvent::Magnify)
+			{
+				GestureMoveForwardBackwardImpulse = GestureDelta.X * 4.0f;
 			}
 		}
 		break;
