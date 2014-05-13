@@ -255,9 +255,12 @@ void FSkeletalMeshVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 	
 	VertexData->ResizeBuffer(InVertices.Num());
 	
-	Data = VertexData->GetDataPointer();
-	Stride = VertexData->GetStride();
-	NumVertices = VertexData->GetNumVertices();
+	if (InVertices.Num() > 0)
+	{
+		Data = VertexData->GetDataPointer();
+		Stride = VertexData->GetStride();
+		NumVertices = VertexData->GetNumVertices();
+	}
 	
 	if (bExtraBoneInfluences)
 	{

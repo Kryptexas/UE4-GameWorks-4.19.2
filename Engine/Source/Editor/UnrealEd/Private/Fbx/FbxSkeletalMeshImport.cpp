@@ -1680,28 +1680,31 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		}
 	}
 
-	if( ImportOptions->bPreserveSmoothingGroups )
+	if( LayerCount > 0 && ImportOptions->bPreserveSmoothingGroups )
 	{
 		// Check and see if the smooothing data is valid.  If not generate it from the normals
 		BaseLayer = Mesh->GetLayer(0);
-		const FbxLayerElementSmoothing* SmoothingLayer = BaseLayer->GetSmoothing();
-
-		if( SmoothingLayer )
+		if( BaseLayer )
 		{
-			bool bValidSmoothingData = false;
-			FbxLayerElementArrayTemplate<int32>& Array = SmoothingLayer->GetDirectArray();
-			for( int32 SmoothingIndex = 0; SmoothingIndex < Array.GetCount(); ++SmoothingIndex )
-			{
-				if( Array[SmoothingIndex] != 0 )
-				{
-					bValidSmoothingData = true;
-					break;
-				}
-			}
+			const FbxLayerElementSmoothing* SmoothingLayer = BaseLayer->GetSmoothing();
 
-			if( !bValidSmoothingData )
+			if( SmoothingLayer )
 			{
-				GeometryConverter->ComputeEdgeSmoothingFromNormals(Mesh);
+				bool bValidSmoothingData = false;
+				FbxLayerElementArrayTemplate<int32>& Array = SmoothingLayer->GetDirectArray();
+				for( int32 SmoothingIndex = 0; SmoothingIndex < Array.GetCount(); ++SmoothingIndex )
+				{
+					if( Array[SmoothingIndex] != 0 )
+					{
+						bValidSmoothingData = true;
+						break;
+					}
+				}
+
+				if( !bValidSmoothingData && Mesh->GetPolygonVertexCount() > 0 )
+				{
+					GeometryConverter->ComputeEdgeSmoothingFromNormals(Mesh);
+				}
 			}
 		}
 	}
