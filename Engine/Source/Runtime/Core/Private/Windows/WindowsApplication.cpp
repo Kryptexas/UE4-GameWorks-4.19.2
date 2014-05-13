@@ -432,6 +432,27 @@ void FWindowsApplication::GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayM
 	OutDisplayMetrics = InitialDisplayMetrics;
 }
 
+EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
+{
+	OSVERSIONINFOEX VersionInfo;
+	FMemory::MemZero(VersionInfo);
+	VersionInfo.dwMajorVersion = 6;
+	VersionInfo.dwMinorVersion = 2;
+	VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+
+	DWORDLONG LongConditionMask = 0;
+	int ConditionMask = VER_GREATER_EQUAL;
+	VER_SET_CONDITION(LongConditionMask, VER_MAJORVERSION, ConditionMask);
+	VER_SET_CONDITION(LongConditionMask, VER_MINORVERSION, ConditionMask);
+
+	if (::VerifyVersionInfo(&VersionInfo, VER_MAJORVERSION | VER_MINORVERSION, LongConditionMask) != 0)
+	{
+		return EWindowTitleAlignment::Center;
+	}		
+
+	return EWindowTitleAlignment::Left;
+}
+
 void FWindowsApplication::DestroyApplication()
 {
 

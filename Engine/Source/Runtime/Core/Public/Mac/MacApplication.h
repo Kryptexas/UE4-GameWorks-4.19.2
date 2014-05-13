@@ -53,6 +53,11 @@ public:
 
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
 
+	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const OVERRIDE
+	{
+		return EWindowTitleAlignment::Center;
+	}
+
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() OVERRIDE
 	{
 		return TextInputMethodSystem.Get();

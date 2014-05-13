@@ -213,6 +213,24 @@ struct FDisplayMetrics
 	FVector2D ActionSafePaddingSize;
 };
 
+
+/**
+ * Enumerates available horizontal alignments for window title bars.
+ */
+namespace EWindowTitleAlignment
+{
+	enum Type
+	{
+		/** The window title should be aligned to the left. */
+		Left,
+		/** The window title should be centered within the title bar. */
+		Center,
+		/** The window title should be aligned to the right. */
+		Right
+	};
+}
+
+
 /**
  * Generic platform application interface
  */
@@ -271,6 +289,12 @@ public:
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { }
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { GetDisplayMetrics(OutDisplayMetrics); }
+
+	/** Gets the horizontal alignment of the window title bar's title text. */
+	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const
+	{
+		return EWindowTitleAlignment::Left;
+	}
 
 	virtual void DestroyApplication() { }
 

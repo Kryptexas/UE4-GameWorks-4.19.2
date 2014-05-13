@@ -407,7 +407,6 @@ void FSlateApplication::Create()
 }
 
 TSharedPtr<FSlateApplication> FSlateApplication::CurrentApplication = NULL;
-TSharedPtr< GenericApplication > FSlateApplication::PlatformApplication = NULL;
 
 FSlateApplication::FSlateApplication()
 	: bAppIsActive(true)

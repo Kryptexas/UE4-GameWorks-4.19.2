@@ -129,11 +129,22 @@ public:
 	 */
 	virtual TSharedPtr< SWidget > GetKeyboardFocusedWidget( ) const = 0;
 
-	/** Gets the Widget that currently captures the mouse.
+	/**
+	 * Gets the Widget that currently captures the mouse.
 	 *
 	 * @return The captor widget, or nullptr if no widget captured the mouse.
 	 */
 	virtual TSharedPtr< SWidget > GetMouseCaptor( ) const = 0;
+
+	/**
+	 * Gets the platform application.
+	 *
+	 * @return Platform application.
+	 */
+	virtual const TSharedPtr<GenericApplication> GetPlatformApplication ( ) const
+	{
+		return PlatformApplication;
+	}
 
 	/**
 	 * Gets the rectangle of the current preferred work area.
@@ -266,4 +277,7 @@ protected:
 
 	// Holds a pointer to the current application.
 	static TSharedPtr<FSlateApplicationBase> CurrentBaseApplication;
+
+	// Holds a pointer to the platform application.
+	static TSharedPtr<class GenericApplication> PlatformApplication;
 };

@@ -354,10 +354,26 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 		// @todo mainframe: Should be measured from actual title bar content widgets.  Don't use a hard-coded size!
 		TitleBarSize = SWindowDefs::DefaultTitleBarSize;
 
+		EWindowTitleAlignment::Type TitleAlignment = FSlateApplicationBase::Get().GetPlatformApplication()->GetWindowTitleAlignment();
+		EHorizontalAlignment TitleContentAlignment;
+
+		if (TitleAlignment == EWindowTitleAlignment::Left)
+		{
+			TitleContentAlignment = HAlign_Left;
+		}
+		else if (TitleAlignment == EWindowTitleAlignment::Center)
+		{
+			TitleContentAlignment = HAlign_Center;
+		}
+		else
+		{
+			TitleContentAlignment = HAlign_Right;
+		}
+
 		MainWindowArea->AddSlot()
 			.AutoHeight()
 			[
-				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, HAlign_Center, TitleBar)
+				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
 			];
 	}
 	else

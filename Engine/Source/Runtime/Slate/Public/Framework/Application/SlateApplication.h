@@ -520,8 +520,6 @@ public:
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { PlatformApplication->GetInitialDisplayMetrics( OutDisplayMetrics ); }
 
-	virtual const TSharedPtr<GenericApplication> GetPlatformApplication ( ) const { return PlatformApplication; }
-
 	/** Are we drag-dropping right now? */
 	bool IsDragDropping() const;
 
@@ -1130,8 +1128,6 @@ private:
 	/** Application singleton */
 	static TSharedPtr< FSlateApplication > CurrentApplication;
 
-	static TSharedPtr< class GenericApplication > PlatformApplication;
-	
 	TSet<FKey> PressedMouseButtons;
 
 	/** true when the slate app is active; i.e. the current foreground window is from our Slate app*/

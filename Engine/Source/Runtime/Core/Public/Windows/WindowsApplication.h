@@ -191,6 +191,8 @@ public:
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
 
+	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const OVERRIDE;
+
 	virtual IForceFeedbackSystem *GetForceFeedbackSystem() OVERRIDE 
 	{
 		return this; 
