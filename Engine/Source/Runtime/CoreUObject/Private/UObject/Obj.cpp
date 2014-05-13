@@ -1537,17 +1537,6 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 		return;
 	}
 
-	if (GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
-	{
-		// no INI file specified - save to corresponding Default INI
-		if ((InFilename == NULL) && (Config == GConfig))
-		{
-			UpdateDefaultConfigFile();
-
-			return;
-		}
-	}
-
 	uint32 PropagationFlags = UE4::LCPF_None;
 
 	const FString Filename
