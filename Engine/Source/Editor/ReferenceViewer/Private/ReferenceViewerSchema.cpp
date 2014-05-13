@@ -16,6 +16,7 @@ UReferenceViewerSchema::UReferenceViewerSchema(const class FPostConstructInitial
 void UReferenceViewerSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
 {
 	MenuBuilder->AddMenuEntry(FGlobalEditorCommonCommands::Get().FindInContentBrowser);
+	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().OpenSelectedInAssetEditor);
 	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ReCenterGraph);
 	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ListReferencedObjects);
 	MenuBuilder->AddMenuEntry(FReferenceViewerActions::Get().ListObjectsThatReference);

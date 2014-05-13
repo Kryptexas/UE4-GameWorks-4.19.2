@@ -73,6 +73,7 @@ private:
 
 	void RegisterActions();
 	void ShowSelectionInContentBrowser();
+	void OpenSelectedInAssetEditor();
 	void ReCenterGraph();
 	void ListReferencedObjects();
 	void ListObjectsThatReference();
@@ -83,6 +84,7 @@ private:
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	bool HasExactlyOneNodeSelected() const;
+	bool IsSingleSelectedItemValidObject() const;
 
 	void OnInitialAssetRegistrySearchComplete();
 private:
