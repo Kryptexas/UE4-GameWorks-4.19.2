@@ -3,6 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperBatchManager.h"
 #include "PaperBatchComponent.h"
+#include "PaperBatchSceneProxy.h"
 
 namespace FPaperBatchManagerNS
 {
