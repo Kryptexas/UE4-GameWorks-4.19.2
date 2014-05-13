@@ -4739,7 +4739,7 @@ void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifySt
 			FParticleAnimTrailEmitterInstance* TrailInstance = (FParticleAnimTrailEmitterInstance*)(Instance);
 			if ((bIncludeUnassociated && TrailInstance->AnimNotifyState == NULL) || TrailInstance->AnimNotifyState == InAnimNotifyState)
 			{
-				OutTrailEmitters.Add(Instance);
+				OutTrailEmitters.Add(TrailInstance);
 			}
 		}
 	}
