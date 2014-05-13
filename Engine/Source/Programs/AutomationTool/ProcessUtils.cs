@@ -20,6 +20,13 @@ namespace AutomationTool
 		CTRL_SHUTDOWN_EVENT
 	}
 
+	public interface IProcess
+	{
+		void StopProcess(bool KillDescendants = true);
+		bool HasExited { get; }
+		string GetProcessName();
+	}
+
 	/// <summary>
 	/// Tracks all active processes.
 	/// </summary>
@@ -34,7 +41,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of active (running) processes.
 		/// </summary>
-		private static List<ProcessResult> ActiveProcesses = new List<ProcessResult>();
+		private static List<IProcess> ActiveProcesses = new List<IProcess>();
 		/// <summary>
 		/// Synchronization object
 		/// </summary>
@@ -63,14 +70,19 @@ namespace AutomationTool
 				}
 			}
 			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity);
-			lock (SyncObject)
-			{
-				ActiveProcesses.Add(Result);
-			}
+			AddProcess(Result);
 			return Result;
 		}
 
-		public static void RemoveProcess(ProcessResult Proc)
+		public static void AddProcess(IProcess Proc)
+		{
+			lock (SyncObject)
+			{
+				ActiveProcesses.Add(Proc);
+			}
+		}
+
+		public static void RemoveProcess(IProcess Proc)
 		{
 			lock (SyncObject)
 			{
@@ -88,7 +100,7 @@ namespace AutomationTool
 		/// </summary>
 		public static void KillAll()
 		{
-			List<ProcessResult> ProcessesToKill = new List<ProcessResult>();
+			List<IProcess> ProcessesToKill = new List<IProcess>();
 			lock (SyncObject)
 			{
 				foreach (var ProcResult in ActiveProcesses)
@@ -195,7 +207,7 @@ namespace AutomationTool
 	/// <summary>
 	/// Class containing the result of process execution.
 	/// </summary>
-	public class ProcessResult
+	public class ProcessResult : IProcess
 	{
 		private string Source = "";
 		private int ProcessExitCode = -1;

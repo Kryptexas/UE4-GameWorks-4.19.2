@@ -1282,18 +1282,37 @@ public class TestWatchdogTimer : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		Log("Starting the first timer (1s). This should not crash.");
+		Log("Starting 1st timer (1s). This should not crash.");
 		using (var SafeTimer = new WatchdogTimer(1))
 		{
 			// Wait 500ms
+			Log("Started {0}", SafeTimer.GetProcessName());
 			Thread.Sleep(500);
 		}
 		Log("First timer disposed successfully.");
 
-		Log("Starting the second timer (2s). This should crash after 2 seconds.");
+		Log("Starting 2nd timer (2s). This should throw an exception after 1 second.");
+		try
+		{
+			using (var CrashTimer = new WatchdogTimer(2))
+			{
+				// Wait 5s (this will trigger the watchdog timer)
+				Log("Started {0}", CrashTimer.GetProcessName());
+				Thread.Sleep(1000);
+				throw new Exception("Test exceptions under WatchdogTimer");
+			}
+		}
+		catch (Exception Ex)
+		{
+			Log("Triggered exception guarded by WatchdogTimer:");
+			Log(System.Diagnostics.TraceEventType.Information, Ex);
+		}
+
+		Log("Starting 3rd timer (2s). This should crash after 2 seconds.");
 		using (var CrashTimer = new WatchdogTimer(2))
 		{
 			// Wait 5s (this will trigger the watchdog timer)
+			Log("Started {0}", CrashTimer.GetProcessName());
 			Thread.Sleep(5000);
 		}
 	}
