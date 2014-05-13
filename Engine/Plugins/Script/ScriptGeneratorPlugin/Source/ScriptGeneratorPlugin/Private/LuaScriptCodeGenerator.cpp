@@ -471,18 +471,6 @@ void FLuaScriptCodeGenerator::ExportClass(UClass* Class, const FString& SourceHe
 	const FString ClassNameCPP = GetClassNameCPP(Class);
 	FString GeneratedGlue(TEXT("#pragma once\r\n\r\n"));		
 
-	for (UClass* Super = Class->GetSuperClass(); Super != NULL; Super = Super->GetSuperClass())
-	{
-		FString SuperScriptHeader = GetScriptHeaderForClass(Super);
-		if (FPaths::FileExists(SuperScriptHeader))
-		{
-			// Re-base to make sure we're including the right files on a remote machine
-			FString NewFilename(RebaseToBuildPath(SuperScriptHeader));
-			GeneratedGlue += FString::Printf(TEXT("#include \"%s\"\r\n\r\n"), *NewFilename);
-			break;
-		}
-	}
-
 	// Export all functions
 	for (TFieldIterator<UFunction> FuncIt(Class /*, EFieldIteratorFlags::ExcludeSuper*/); FuncIt; ++FuncIt)
 	{
