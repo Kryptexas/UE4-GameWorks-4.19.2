@@ -329,7 +329,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			const FString& LoadedProjectFilePath = FPaths::GetProjectFilePath();
 			FProjectStatus ProjectStatus;
 
-			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
+			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus))
 			{
 				if ( ProjectStatus.bSignedSampleProject )
 				{

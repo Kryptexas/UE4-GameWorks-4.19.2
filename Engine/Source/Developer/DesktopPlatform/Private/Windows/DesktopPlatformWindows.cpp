@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
+#include "FeedbackContextMarkup.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
@@ -464,6 +465,21 @@ bool FDesktopPlatformWindows::UpdateFileAssociations()
 	}
 
 	return true;
+}
+
+bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn)
+{
+	// Get the path to UBT
+	FString UnrealBuildToolPath = RootDir / TEXT("Engine/Binaries/DotNET/UnrealBuildTool.exe");
+	if(IFileManager::Get().FileSize(*UnrealBuildToolPath) < 0)
+	{
+		Warn->Logf(ELogVerbosity::Error, TEXT("Couldn't find UnrealBuildTool at '%s'"), *UnrealBuildToolPath);
+		return false;
+	}
+
+	// Spawn UBT
+	int32 ExitCode = 0;
+	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
 }
 
 void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)

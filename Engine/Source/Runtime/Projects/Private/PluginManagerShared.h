@@ -222,11 +222,11 @@ public:
 	FString SerializeToJSON( ) const;
 
 	/**
-	 * Checks whether this project file is up to date with the engine version.
+	 * Checks whether this project file needs updating to a newer project version.
 	 *
-	 * @return true if the project file is up to date, false otherwise.
+	 * @return true if the project needs updating, false otherwise.
 	 */
-	bool IsUpToDate( const FString &EngineIdentifier ) const;
+	bool RequiresUpdate( ) const;
 
 	/**
 	 * Checks whether the modules for a project or plugin need to be compiled

@@ -3,11 +3,18 @@
 #include "DesktopPlatformPrivatePCH.h"
 #include "DesktopPlatformBase.h"
 #include "UProjectInfo.h"
+#include "EngineVersion.h"
+#include "ModuleManager.h"
+
+#define LOCTEXT_NAMESPACE "DesktopPlatform"
 
 FString FDesktopPlatformBase::GetCurrentEngineIdentifier()
 {
-	FString Identifier;
-	return GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), Identifier) ? Identifier : TEXT("");
+	if(CurrentEngineIdentifier.Len() == 0 && !GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), CurrentEngineIdentifier))
+	{
+		CurrentEngineIdentifier.Empty();
+	}
+	return CurrentEngineIdentifier;
 }
 
 void FDesktopPlatformBase::EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations)
@@ -121,6 +128,11 @@ bool FDesktopPlatformBase::IsPreferredEngineIdentifier(const FString &Identifier
 	}
 }
 
+bool FDesktopPlatformBase::IsStockEngineRelease(const FString &Identifier)
+{
+	return Identifier.Len() > 0 && FChar::IsDigit(Identifier[0]);
+}
+
 bool FDesktopPlatformBase::IsSourceDistribution(const FString &EngineRootDir)
 {
 	// Check for the existence of a SourceBuild.txt file
@@ -160,7 +172,7 @@ bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectF
 		FString RootDir;
 		if(GetEngineRootDirFromIdentifier(Identifier, RootDir))
 		{
-			FUProjectDictionary Dictionary(RootDir);
+			const FUProjectDictionary &Dictionary = GetCachedProjectDictionary(RootDir);
 			if(!Dictionary.IsForeignProject(ProjectFileName))
 			{
 				Identifier.Empty();
@@ -198,14 +210,94 @@ bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString &ProjectF
 	{
 		ParentDir.RemoveAt(SeparatorIdx, ParentDir.Len() - SeparatorIdx);
 
-		FUProjectDictionary Dictionary(ParentDir);
+		const FUProjectDictionary &Dictionary = GetCachedProjectDictionary(ParentDir);
 		if(!Dictionary.IsForeignProject(ProjectFileName) && GetEngineIdentifierFromRootDir(ParentDir, OutIdentifier))
 		{
 			return true;
 		}
 	}
 
+	// Otherwise check the engine version string for 4.0, in case this project existed before the engine association stuff went in
+	FString EngineVersionString = ProjectFile->GetStringField(TEXT("EngineVersion"));
+	if(EngineVersionString.Len() > 0)
+	{
+		FEngineVersion EngineVersion;
+		if(FEngineVersion::Parse(EngineVersionString, EngineVersion) && EngineVersion.IsPromotedBuild() && EngineVersion.ToString(EVersionComponent::Minor) == TEXT("4.0"))
+		{
+			OutIdentifier = TEXT("4.0");
+			return true;
+		}
+	}
+
 	return false;
+}
+
+bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+{
+	// Get the target name
+	FString Arguments = FString::Printf(TEXT("%sEditor %s %s"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform());
+
+	// Append the project name if it's a foreign project
+	if ( !ProjectFileName.IsEmpty() )
+	{
+		FUProjectDictionary ProjectDictionary(RootDir);
+		if(ProjectDictionary.IsForeignProject(ProjectFileName))
+		{
+			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
+		}
+	}
+
+	// Append the Rocket flag
+	if(!IsSourceDistribution(RootDir))
+	{
+		Arguments += TEXT(" -rocket");
+	}
+
+	// Append any other options
+	Arguments += " -editorrecompile -progress";
+
+	// Run UBT
+	return RunUnrealBuildTool(LOCTEXT("CompilingProject", "Compiling project..."), RootDir, Arguments, Warn);
+}
+
+bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+{
+#if PLATFORM_MAC
+	FString Arguments = TEXT("-xcodeprojectfile");
+#else
+	FString Arguments = TEXT("-projectfiles");
+#endif
+
+	// Build the arguments to pass to UBT
+	if ( !ProjectFileName.IsEmpty() )
+	{
+		// Figure out whether it's a foreign project
+		FUProjectDictionary ProjectDictionary(RootDir);
+		if(ProjectDictionary.IsForeignProject(ProjectFileName))
+		{
+			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
+		}
+
+		// Always include game source
+		Arguments += " -game";
+
+		// Determine whether or not to include engine source
+		if(IsSourceDistribution(RootDir))
+		{
+			Arguments += " -engine";
+		}
+		else
+		{
+			Arguments += " -rocket";
+		}
+	}
+	Arguments += " -progress";
+
+	// Run UnrealBuildTool
+	Warn->BeginSlowTask(LOCTEXT("GeneratingProjectFiles", "Generating project files..."), true, true);
+	bool bRes = RunUnrealBuildTool(LOCTEXT("GeneratingProjectFiles", "Generating project files..."), RootDir, Arguments, Warn);
+	Warn->EndSlowTask();
+	return bRes;
 }
 
 bool FDesktopPlatformBase::ReadLauncherInstallationList(TMap<FString, FString> &OutInstallations)
@@ -322,3 +414,18 @@ bool FDesktopPlatformBase::SaveProjectFile(const FString &FileName, TSharedPtr<F
 
 	return true;
 }
+
+const FUProjectDictionary &FDesktopPlatformBase::GetCachedProjectDictionary(const FString& RootDir)
+{
+	FString NormalizedRootDir = RootDir;
+	FPaths::NormalizeDirectoryName(NormalizedRootDir);
+
+	FUProjectDictionary *Dictionary = CachedProjectDictionaries.Find(NormalizedRootDir);
+	if(Dictionary == NULL)
+	{
+		Dictionary = &CachedProjectDictionaries.Add(RootDir, FUProjectDictionary(RootDir));
+	}
+	return *Dictionary;
+}
+
+#undef LOCTEXT_NAMESPACE

@@ -377,11 +377,11 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	if ( !LoadedProjectFilePath.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
+		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus))
 		{
-			if ( !ProjectStatus.bUpToDate )
+			if ( ProjectStatus.bRequiresUpdate )
 			{
-				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Update project to open in this version of the editor by default?");
+				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Project file is saved in an older format. Would you like to update it?");
 				const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
 				const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
 
@@ -463,29 +463,17 @@ bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
 	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
 	if ( !ProjectFilename.IsEmpty() )
 	{
-		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus) )
+		FText FailReason;
+		bool bWasCheckedOut = false;
+		if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
 		{
-			if ( ProjectStatus.bUpToDate )
-			{
-				// The project was already up to date.
-				UE_LOG(LogGameProjectGeneration, Log, TEXT("%s is already up to date."), *ProjectFilename );
-			}
-			else
-			{
-				FText FailReason;
-				bool bWasCheckedOut = false;
-				if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
-				{
-					// The user chose to update, but the update failed. Notify the user.
-					UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
-					return false;
-				}
-
-				// The project was updated successfully.
-				UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
-			}
+			// The user chose to update, but the update failed. Notify the user.
+			UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
+			return false;
 		}
+
+		// The project was updated successfully.
+		UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
 	}
 
 	return true;
@@ -1588,6 +1576,102 @@ bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutM
 	}
 
 	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
+}
+
+bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile )
+{
+	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	// Get the directory part of the project name
+	FString OldDirectoryName = FPaths::GetPath(InProjectFile);
+	FPaths::NormalizeDirectoryName(OldDirectoryName);
+	FString NewDirectoryName = OldDirectoryName;
+
+	// Strip off any previous version number from the project name
+	for(int32 LastSpace; NewDirectoryName.FindLastChar(' ', LastSpace); )
+	{
+		const TCHAR *End = *NewDirectoryName + LastSpace + 1;
+		if(*End == '(')
+		{
+			End++;
+			while(FChar::IsDigit(*End) || *End == '.')
+			{
+				End++;
+			}
+			if(*End == ')' && *(End + 1) == 0)
+			{
+				NewDirectoryName = NewDirectoryName.Left(LastSpace).TrimTrailing();
+			}
+		}
+	}
+
+	// Append the new version number
+	NewDirectoryName += FString::Printf(TEXT(" (%s)"), *GEngineVersion.ToString(EVersionComponent::Minor));
+
+	// Find a directory name that doesn't exist
+	FString BaseDirectoryName = NewDirectoryName;
+	for(int32 Idx = 2; IFileManager::Get().DirectoryExists(*NewDirectoryName); Idx++)
+	{
+		NewDirectoryName = FString::Printf(TEXT("%s (%d)"), *BaseDirectoryName, Idx);
+	}
+
+	// Find all the root directory names
+	TArray<FString> RootDirectoryNames;
+	IFileManager::Get().FindFiles(RootDirectoryNames, *(OldDirectoryName / TEXT("*")), false, true);
+
+	// Find all the source directories
+	TArray<FString> SourceDirectories;
+	SourceDirectories.Add(OldDirectoryName);
+	for(int32 Idx = 0; Idx < RootDirectoryNames.Num(); Idx++)
+	{
+		if(RootDirectoryNames[Idx] != TEXT("Binaries") && RootDirectoryNames[Idx] != TEXT("Intermediate") && RootDirectoryNames[Idx] != TEXT("Saved"))
+		{
+			FString SourceDirectory = OldDirectoryName / RootDirectoryNames[Idx];
+			SourceDirectories.Add(SourceDirectory);
+			IFileManager::Get().FindFilesRecursive(SourceDirectories, *SourceDirectory, TEXT("*"), false, true, false);
+		}
+	}
+
+	// Find all the source files
+	TArray<FString> SourceFiles;
+	for(int32 Idx = 0; Idx < SourceDirectories.Num(); Idx++)
+	{
+		TArray<FString> SourceNames;
+		IFileManager::Get().FindFiles(SourceNames, *(SourceDirectories[Idx] / TEXT("*")), true, false);
+
+		for(int32 NameIdx = 0; NameIdx < SourceNames.Num(); NameIdx++)
+		{
+			SourceFiles.Add(SourceDirectories[Idx] / SourceNames[NameIdx]);
+		}
+	}
+
+	// Copy everything
+	bool bCopySucceeded = true;
+	GWarn->BeginSlowTask(LOCTEXT("CreatingCopyOfProject", "Creating copy of project..."), true);
+	for(int32 Idx = 0; Idx < SourceDirectories.Num() && bCopySucceeded; Idx++)
+	{
+		FString TargetDirectory = NewDirectoryName + SourceDirectories[Idx].Mid(OldDirectoryName.Len());
+		bCopySucceeded = PlatformFile.CreateDirectory(*TargetDirectory);
+		GWarn->UpdateProgress(Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
+	}
+	for(int32 Idx = 0; Idx < SourceFiles.Num() && bCopySucceeded; Idx++)
+	{
+		FString TargetFile = NewDirectoryName + SourceFiles[Idx].Mid(OldDirectoryName.Len());
+		bCopySucceeded = PlatformFile.CopyFile(*TargetFile, *SourceFiles[Idx]);
+		GWarn->UpdateProgress(SourceDirectories.Num() + Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
+	}
+	GWarn->EndSlowTask();
+
+	// Wipe the directory if we couldn't update
+	if(!bCopySucceeded)
+	{
+		PlatformFile.DeleteDirectoryRecursively(*NewDirectoryName);
+		return false;
+	}
+
+	// Otherwise fixup the output project filename
+	OutNewProjectFile = NewDirectoryName / FPaths::GetCleanFilename(InProjectFile);
+	return true;
 }
 
 bool GameProjectUtils::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)
