@@ -393,6 +393,16 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString Fu
 	}
 }
 
+USpline* UKismetSystemLibrary::CreateNewSplineObject(UObject* Outer)
+{
+	if (Outer == NULL)
+	{
+		ensureMsg(false, TEXT("Outer is Null"));
+		return NULL;
+	}
+	return ConstructObject<USpline>(USpline::StaticClass(), Outer);
+}
+
 void UKismetSystemLibrary::SetIntPropertyByName(UObject* Object, FName PropertyName, int32 Value)
 {
 	if(Object != NULL)

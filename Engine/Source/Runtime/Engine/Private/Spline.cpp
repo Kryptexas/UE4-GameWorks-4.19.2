@@ -6,7 +6,6 @@
 
 #include "EnginePrivate.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogSpline, Log, All);
 
 // HSplineProxy
 void HSplineProxy::AddReferencedObjects( FReferenceCollector& Collector )
