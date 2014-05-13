@@ -460,6 +460,67 @@ namespace EMatineeCaptureType
 	};
 }
 
+USTRUCT()
+struct FGameNameRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldGameName;
+
+	UPROPERTY()
+	FString NewGameName;
+};
+
+
+USTRUCT()
+struct FClassRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString ObjectName;
+
+	UPROPERTY()
+	FString OldClassName;
+
+	UPROPERTY()
+	FString NewClassName;
+
+	UPROPERTY()
+	FString OldSubobjName;
+
+	UPROPERTY()
+	FString NewSubobjName;
+
+	UPROPERTY()
+	bool InstanceOnly;
+};
+
+USTRUCT()
+struct FStructRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldStructName;
+
+	UPROPERTY()
+	FString NewStructName;
+};
+
+USTRUCT()
+struct FPluginRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldPluginName;
+
+	UPROPERTY()
+	FString NewPluginName;
+};
+
 class IAnalyticsProvider;
 
 DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
@@ -942,6 +1003,18 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference DefaultPhysMaterialName;
+
+	UPROPERTY(config)
+	TArray<FGameNameRedirect> ActiveGameNameRedirects;
+
+	UPROPERTY(config)
+	TArray<FClassRedirect> ActiveClassRedirects;
+
+	UPROPERTY(config)
+	TArray<FPluginRedirect> ActivePluginRedirects;
+
+	UPROPERTY(config)
+	TArray<FStructRedirect> ActiveStructRedirects;
 
 	/** Texture used for pre-integrated skin shading */
 	UPROPERTY()

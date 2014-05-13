@@ -228,7 +228,14 @@ public:
 
 		if (SettingsObject.IsValid())
 		{
-			SettingsObject->SaveConfig();
+			if (SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
+			{
+				SettingsObject->UpdateDefaultConfigFile();
+			}
+			else
+			{
+				SettingsObject->SaveConfig();
+			}
 
 			return true;
 		}
