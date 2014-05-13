@@ -94,9 +94,6 @@ private:
 	/** Does the user need a hint that they can scroll down? */
 	FSlateColor GetBottomShadowOpacity() const;
 
-	/** Does the user need to see the scroll bar? */
-	EVisibility GetScrollBarVisibility() const;
-
 	TSharedPtr<class SScrollPanel> ScrollPanel;
 	TSharedPtr<SScrollBar> ScrollBar;
 	
