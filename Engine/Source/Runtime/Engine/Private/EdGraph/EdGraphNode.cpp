@@ -1,0 +1,330 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#include "EnginePrivate.h"
+#include "EngineClasses.h"
+#include "BlueprintUtilities.h"
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Slate.h"
+#include "ScopedTransaction.h"
+#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#endif
+
+#define LOCTEXT_NAMESPACE "EdGraph"
+
+/////////////////////////////////////////////////////
+// FGraphNodeContextMenuBuilder
+
+FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGraph, const UEdGraphNode* InNode, const UEdGraphPin* InPin, FMenuBuilder* InMenuBuilder, bool bInDebuggingMode)
+	: Blueprint(NULL)
+	, Graph(InGraph)
+	, Node(InNode)
+	, Pin(InPin)
+	, MenuBuilder(InMenuBuilder)
+	, bIsDebugging(bInDebuggingMode)
+{
+#if WITH_EDITOR
+	Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+#endif
+
+	if (Pin != NULL)
+	{
+		Node = Pin->GetOwningNode();
+	}
+}
+
+/////////////////////////////////////////////////////
+// UEdGraphNode
+
+UEdGraphNode::UEdGraphNode(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
+{
+
+#if WITH_EDITORONLY_DATA
+	bCanResizeNode = false;
+#endif // WITH_EDITORONLY_DATA
+}
+
+#if WITH_EDITOR
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/)
+{
+#if 0
+	UEdGraphPin* NewPin = AllocatePinFromPool(this);
+#else
+	UEdGraphPin* NewPin = NewObject<UEdGraphPin>(this);
+#endif
+	NewPin->PinName = PinName;
+	NewPin->Direction = Dir;
+	NewPin->PinType.PinCategory = PinCategory;
+	NewPin->PinType.PinSubCategory = PinSubCategory;
+	NewPin->PinType.PinSubCategoryObject = PinSubCategoryObject;
+	NewPin->PinType.bIsArray = bIsArray;
+	NewPin->PinType.bIsReference = bIsReference;
+	NewPin->PinType.bIsConst = bIsConst;
+	NewPin->SetFlags(RF_Transactional);
+
+	Modify(false);
+	if ( Pins.IsValidIndex( Index ) )
+	{
+		Pins.Insert(NewPin, Index);
+	}
+	else
+	{
+		Pins.Add(NewPin);
+	}
+	return NewPin;
+}
+
+UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName) const
+{
+	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
+	{
+		if( Pins[PinIdx]->PinName == PinName )
+		{
+			return Pins[PinIdx];
+		}
+	}
+
+	return NULL;
+}
+
+UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName) const
+{
+	UEdGraphPin* Result = FindPin(PinName);
+	check(Result != NULL);
+	return Result;
+}
+
+void UEdGraphNode::DiscardPin(UEdGraphPin* Pin)
+{
+	check( Pin );
+
+	Modify();
+	Pins.Remove( Pin );
+}
+
+void UEdGraphNode::BreakAllNodeLinks()
+{
+	TSet<UEdGraphNode*> NodeList;
+
+	NodeList.Add(this);
+
+	// Iterate over each pin and break all links
+	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
+	{
+		Pins[PinIdx]->BreakAllPinLinks();
+		NodeList.Add(Pins[PinIdx]->GetOwningNode());
+	}
+
+	// Send all nodes that received a new pin connection a notification
+	for (auto It = NodeList.CreateConstIterator(); It; ++It)
+	{
+		UEdGraphNode* Node = (*It);
+		Node->NodeConnectionListChanged();
+	}
+}
+
+void UEdGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
+{
+	ensure(Pin.GetOwningNode() == this);
+	HoverTextOut = Pin.PinToolTip;
+}
+
+void UEdGraphNode::SnapToGrid(float GridSnapSize)
+{
+	NodePosX = GridSnapSize * FMath::RoundToInt(NodePosX/GridSnapSize);
+	NodePosY = GridSnapSize * FMath::RoundToInt(NodePosY/GridSnapSize);
+}
+
+void UEdGraphNode::DestroyNode()
+{
+	UEdGraph* ParentGraph = GetGraph();
+	check(ParentGraph);
+
+	// Remove the node - this will break all links. Will be GC'd after this.
+	ParentGraph->RemoveNode(this);
+}
+
+const class UEdGraphSchema* UEdGraphNode::GetSchema() const
+{
+	return GetGraph()->GetSchema();
+}
+
+FLinearColor UEdGraphNode::GetNodeTitleColor() const
+{
+	return FLinearColor(0.4f, 0.62f, 1.0f);
+}
+
+FLinearColor UEdGraphNode::GetNodeCommentColor() const
+{
+	return FLinearColor::White;
+}
+
+FString UEdGraphNode::GetTooltip() const
+{
+	return GetClass()->GetToolTipText().ToString();
+}
+
+FString UEdGraphNode::GetDocumentationExcerptName() const
+{
+	// Default the node to searching for an excerpt named for the C++ node class name, including the U prefix.
+	// This is done so that the excerpt name in the doc file can be found by find-in-files when searching for the full class name.
+	UClass* MyClass = GetClass();
+	return FString::Printf(TEXT("%s%s"), MyClass->GetPrefixCPP(), *MyClass->GetName());
+}
+
+
+FString UEdGraphNode::GetDescriptiveCompiledName() const
+{
+	return GetFName().GetPlainNameString();
+}
+
+bool UEdGraphNode::IsDeprecated() const
+{
+	return GetClass()->HasAnyClassFlags(CLASS_Deprecated);
+}
+
+FString UEdGraphNode::GetDeprecationMessage() const
+{
+	return NSLOCTEXT("EdGraphCompiler", "NodeDeprecated_Warning", "@@ is deprecated; please replace or remove it.").ToString();
+}
+
+// Array of pooled pins
+TArray<UEdGraphPin*> UEdGraphNode::PooledPins;
+
+void UEdGraphNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UEdGraphNode* This = CastChecked<UEdGraphNode>(InThis);	
+
+	// Only register the pool once per GC pass
+	if (This->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (This->GetClass() == UEdGraphNode::StaticClass())
+		{
+			for (int32 Index = 0; Index < PooledPins.Num(); ++Index)
+			{
+				Collector.AddReferencedObject(PooledPins[Index], This);
+			}
+		}
+	}
+	Super::AddReferencedObjects(This, Collector);
+}
+
+void UEdGraphNode::PostLoad()
+{
+	Super::PostLoad();
+
+	// Create Guid if not present (and not CDO)
+	if(!NodeGuid.IsValid() && !IsTemplate() && GetLinker() && GetLinker()->IsPersistent() && GetLinker()->IsLoading())
+	{
+		// _Should_ have a guid on all nodes after this version
+		if(GetLinkerUE4Version() >= VER_UE4_ADD_EDGRAPHNODE_GUID)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
+		}
+
+		// Generate new one
+		CreateNewGuid();
+	}
+}
+
+void UEdGraphNode::CreateNewGuid()
+{
+	NodeGuid = FGuid::NewGuid();
+}
+
+void UEdGraphNode::FindDiffs( class UEdGraphNode* OtherNode, struct FDiffResults& Results ) 
+{
+}
+
+UEdGraphPin* UEdGraphNode::AllocatePinFromPool(UEdGraphNode* OuterNode)
+{
+	if (PooledPins.Num() > 0)
+	{
+		UEdGraphPin* Result = PooledPins.Pop();
+		Result->Rename(NULL, OuterNode);
+		return Result;
+	}
+	else
+	{
+		UEdGraphPin* Result = NewObject<UEdGraphPin>(OuterNode);
+		return Result;
+	}
+}
+
+void UEdGraphNode::ReturnPinToPool(UEdGraphPin* OldPin)
+{
+	check(OldPin);
+
+	check(!OldPin->HasAnyFlags(RF_NeedLoad));
+	OldPin->ClearFlags(RF_NeedPostLoadSubobjects|RF_NeedPostLoad);
+
+	OldPin->ResetToDefaults();
+
+	PooledPins.Add(OldPin);
+}
+
+bool UEdGraphNode::CanDuplicateNode() const
+{
+	return true;
+}
+
+bool UEdGraphNode::CanUserDeleteNode() const
+{
+	return true;
+}
+
+FText UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	return FText::FromString(GetClass()->GetName());
+}
+
+FString UEdGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	FText NodeTitle = GetNodeTitle(TitleType);
+	if(const FString* SourceString = FTextInspector::GetSourceString(NodeTitle))
+	{
+		return *SourceString;
+	}
+	return NodeTitle.ToString();
+}
+
+FText UEdGraphNode::GetNodeSearchTitle() const
+{
+	TArray< FText > SearchMetadata;
+
+	FText LocalizedTitle = GetNodeTitle(ENodeTitleType::ListView);
+	FText NativeTitle = FText::FromString(GetNodeNativeTitle(ENodeTitleType::ListView));
+
+	if(FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("en_US"))
+	{
+		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("LocalizedTitle"), LocalizedTitle);
+	Args.Add(TEXT("NativeTitle"), NativeTitle);
+	return FText::Format(LOCTEXT("NodeSearchTitle", "{LocalizedTitle} {NativeTitle}"), Args);
+}
+
+UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
+{
+	return NULL;
+}
+
+FString UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
+{
+	return GetSchema()->GetPinDisplayName(Pin);
+}
+
+int32 UEdGraphNode::GetPinIndex(UEdGraphPin* Pin) const
+{
+	return Pins.Find(Pin);
+}
+
+#endif	//#if WITH_EDITOR
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE
