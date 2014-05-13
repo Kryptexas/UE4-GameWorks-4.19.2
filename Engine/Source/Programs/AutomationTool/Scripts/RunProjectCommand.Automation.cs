@@ -693,7 +693,7 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-unattended ";
 		}
-        if (IsBuildMachine)
+        if (IsBuildMachine || Params.Unattended)
         {
             TempCmdLine += "-buildmachine ";
         }
@@ -842,7 +842,7 @@ public partial class Project : CommandUtils
 				Args += " -pak";
 			}
 		}
-        if (IsBuildMachine)
+        if (IsBuildMachine || Params.Unattended)
         {
             Args += " -buildmachine"; 
         }
