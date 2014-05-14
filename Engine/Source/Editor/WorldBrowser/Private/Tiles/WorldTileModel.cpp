@@ -193,35 +193,6 @@ bool FWorldTileModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 	return true;
 }
 
-void FWorldTileModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const
-{
-	typedef TPair<TAttribute<FText>, TAttribute<FText>>	FTooltipField;
-
-	// Position
-	FTooltipField PositionField;
-	PositionField.Key				= LOCTEXT("Item_OriginOffset", "Position:");
-	PositionField.Value				= TAttribute<FText>(this, &FWorldTileModel::GetPositionText);
-	CustomFields.Add(PositionField);
-
-	// Bounds extent
-	FTooltipField BoundsExtentField;
-	BoundsExtentField.Key			= LOCTEXT("Item_BoundsExtent", "Extent:");
-	BoundsExtentField.Value			= TAttribute<FText>(this, &FWorldTileModel::GetBoundsExtentText);
-	CustomFields.Add(BoundsExtentField);
-
-	// Layer name
-	FTooltipField LayerNameField;
-	LayerNameField.Key				= LOCTEXT("Item_Name", "Layer Name:");
-	LayerNameField.Value			= TAttribute<FText>(this, &FWorldTileModel::GetLevelLayerNameText);
-	CustomFields.Add(LayerNameField);
-	
-	// Streaming distance
-	FTooltipField StreamingDistanceField;
-	StreamingDistanceField.Key		= LOCTEXT("Item_Distance", "Streaming Distance:");
-	StreamingDistanceField.Value	= TAttribute<FText>(this, &FWorldTileModel::GetLevelLayerDistanceText);
-	CustomFields.Add(StreamingDistanceField);
-}
-
 bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 {
 	if (IsRootTile())
@@ -806,28 +777,6 @@ void FWorldTileModel::OnLODSettingsPropertyChanged()
 void FWorldTileModel::OnZOrderPropertyChanged()
 {
 	OnLevelInfoUpdated();
-}
-
-FText FWorldTileModel::GetPositionText() const
-{
-	FIntPoint Position = GetRelativeLevelPosition();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), Position.X, Position.Y));
-}
-
-FText FWorldTileModel::GetBoundsExtentText() const
-{
-	FVector2D Size = GetLevelSize2D();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(Size.X*0.5f), FMath::RoundToInt(Size.Y*0.5f)));
-}
-
-FText FWorldTileModel::GetLevelLayerNameText() const
-{
-	return FText::FromString(TileDetails->Layer.Name);
-}
-
-FText FWorldTileModel::GetLevelLayerDistanceText() const
-{
-	return FText::AsNumber(TileDetails->Layer.StreamingDistance);
 }
 
 bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere)

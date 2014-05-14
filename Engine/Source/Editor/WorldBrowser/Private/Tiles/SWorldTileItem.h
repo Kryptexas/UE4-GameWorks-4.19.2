@@ -42,9 +42,9 @@ public:
 	SLATE_BEGIN_ARGS(SWorldTileItem)
 	{}
 		/** The world data */
-		SLATE_ARGUMENT(TSharedPtr<FLevelCollectionModel>, InWorldModel)
+		SLATE_ARGUMENT(TSharedPtr<FWorldTileCollectionModel>, InWorldModel)
 		/** Data for the asset this item represents */
-		SLATE_ARGUMENT(TSharedPtr<FLevelModel>, InItemModel)
+		SLATE_ARGUMENT(TSharedPtr<FWorldTileModel>, InItemModel)
 		//
 		SLATE_ARGUMENT(FSlateTextureRenderTarget2DResource*, ThumbnailRenderTarget)
 	SLATE_END_ARGS()
@@ -64,7 +64,7 @@ public:
 	void RequestRefresh();
 
 	/** @return LevelModel associated with this item */
-	const TSharedPtr<FLevelModel>&	GetLevelModel() const;
+	TSharedPtr<FLevelModel>	GetLevelModel() const;
 	
 	/** @return Item width in world units */
 	FOptionalSize GetItemWidth() const;
@@ -97,18 +97,22 @@ private:
 
 	TSharedRef<SToolTip> CreateToolTipWidget();
 	
-	//
+	/** Tile tooltips fields */
 	FString GetLevelNameText() const;
-
+	FText GetPositionText() const;
+	FText GetBoundsExtentText() const;
+	FText GetLevelLayerNameText() const;
+	FText GetLevelLayerDistanceText() const;
+	
 public:
 	bool							bAffectedByMarquee;
 
 private:
 	/** The world data */
-	TSharedPtr<FLevelCollectionModel> WorldModel;
+	TSharedPtr<FWorldTileCollectionModel> WorldModel;
 
 	/** The data for this item */
-	TSharedPtr<FLevelModel>			LevelModel;
+	TSharedPtr<FWorldTileModel>		TileModel;
 
 	mutable bool					bNeedRefresh;
 	bool							bIsDragging;

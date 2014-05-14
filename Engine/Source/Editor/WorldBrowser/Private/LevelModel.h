@@ -184,9 +184,6 @@ public:
 	/**	@return Whether it's possible to drop onto this level */
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const;
 
-	/**	@return Name->Value fields this level want to add to a grid item tooltip */
-	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const = 0;
-
 	/** Notification when level was added(shown) to world */
 	virtual void OnLevelAddedToWorld(ULevel* InLevel);
 

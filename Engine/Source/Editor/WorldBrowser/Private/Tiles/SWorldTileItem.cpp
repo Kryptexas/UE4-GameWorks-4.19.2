@@ -4,6 +4,7 @@
 #include "ObjectTools.h"
 #include "EdGraphUtilities.h"
 #include "SWorldTileItem.h"
+#include "WorldTileDetails.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -127,13 +128,13 @@ void FTileItemThumbnail::UpdateThumbnail()
 //----------------------------------------------------------------
 SWorldTileItem::~SWorldTileItem()
 {
-	LevelModel->ChangedEvent.RemoveAll(this);
+	TileModel->ChangedEvent.RemoveAll(this);
 }
 
 void SWorldTileItem::Construct(const FArguments& InArgs)
 {
 	WorldModel = InArgs._InWorldModel;
-	LevelModel = InArgs._InItemModel;
+	TileModel = InArgs._InItemModel;
 
 	ProgressBarImage = FEditorStyle::GetBrush(TEXT("ProgressBar.Marquee"));
 	
@@ -141,7 +142,7 @@ void SWorldTileItem::Construct(const FArguments& InArgs)
 	bIsDragging = false;
 	bAffectedByMarquee = false;
 
-	Thumbnail = MakeShareable(new FTileItemThumbnail(InArgs._ThumbnailRenderTarget, LevelModel));
+	Thumbnail = MakeShareable(new FTileItemThumbnail(InArgs._ThumbnailRenderTarget, TileModel));
 	ThumbnailViewport = SNew(SViewport)
 							.EnableGammaCorrection(false);
 							
@@ -149,7 +150,7 @@ void SWorldTileItem::Construct(const FArguments& InArgs)
 	// This will grey out tile in case level is not loaded or locked
 	ThumbnailViewport->SetEnabled(TAttribute<bool>(this, &SWorldTileItem::IsItemEnabled));
 
-	LevelModel->ChangedEvent.AddSP(this, &SWorldTileItem::RequestRefresh);
+	TileModel->ChangedEvent.AddSP(this, &SWorldTileItem::RequestRefresh);
 			
 	ChildSlot
 	[
@@ -169,14 +170,13 @@ void SWorldTileItem::RequestRefresh()
 
 UObject* SWorldTileItem::GetObjectBeingDisplayed() const
 {
-	return LevelModel->GetNodeObject();
+	return TileModel->GetNodeObject();
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SToolTip> SWorldTileItem::CreateToolTipWidget()
 {
 	TSharedPtr<SToolTip>		TooltipWidget;
-	TSharedPtr<SVerticalBox>	TooltipSectionsWidget;
 	
 	SAssignNew(TooltipWidget, SToolTip)
 	.TextMargin(1)
@@ -186,7 +186,7 @@ TSharedRef<SToolTip> SWorldTileItem::CreateToolTipWidget()
 		.Padding(6)
 		.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.NonContentBorder"))
 		[
-			SAssignNew(TooltipSectionsWidget, SVerticalBox)
+			SNew(SVerticalBox)
 
 			// Level name section
 			+SVerticalBox::Slot()
@@ -218,48 +218,81 @@ TSharedRef<SToolTip> SWorldTileItem::CreateToolTipWidget()
 					]
 				]
 			]
-		]
-	];
-
-	TArray< TPair<TAttribute<FText>, TAttribute<FText>> > CustomFields;
-	LevelModel->GetGridItemTooltipFields(CustomFields);
-
-	if (CustomFields.Num() > 0)
-	{
-		TSharedPtr<SUniformGridPanel> TooltipFieldsWidget;
-		// Add section for custom fields
-		TooltipSectionsWidget->AddSlot()
+			
+			// Tile info section
+			+SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(0,0,0,4)
-		[
+			[
 				SNew(SBorder)
 				.Padding(6)
 				.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 				[
-					SAssignNew(TooltipFieldsWidget, SUniformGridPanel)
-				]
-		];
+					SNew(SUniformGridPanel)
 
-		// Add custom fields
-		for (int32 FieldIdx = 0; FieldIdx < CustomFields.Num(); ++FieldIdx)
-		{
-			// Name:
-			TooltipFieldsWidget->AddSlot(0, FieldIdx)
-				.HAlign(HAlign_Left)
-			[
-				SNew(STextBlock)
-				.Text(CustomFields[FieldIdx].Key) 
-			];
-		
-			// Value:
-			TooltipFieldsWidget->AddSlot(1, FieldIdx)
-				.HAlign(HAlign_Right)
-			[
-				SNew(STextBlock)
-				.Text(CustomFields[FieldIdx].Value) 
-			];
-		}
-	}
+					// Tile position
+					+SUniformGridPanel::Slot(0, 0)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Item_OriginOffset", "Position:")) 
+					]
+					
+					+SUniformGridPanel::Slot(1, 0)
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(this, &SWorldTileItem::GetPositionText) 
+					]
+
+					// Tile bounds
+					+SUniformGridPanel::Slot(0, 1)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Item_BoundsExtent", "Extent:")) 
+					]
+					
+					+SUniformGridPanel::Slot(1, 1)
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(this, &SWorldTileItem::GetBoundsExtentText) 
+					]
+
+					// Layer name
+					+SUniformGridPanel::Slot(0, 2)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Item_Name", "Layer Name:")) 
+					]
+					
+					+SUniformGridPanel::Slot(1, 2)
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(this, &SWorldTileItem::GetLevelLayerNameText) 
+					]
+
+					// Streaming distance
+					+SUniformGridPanel::Slot(0, 3)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Item_Distance", "Streaming Distance:")) 
+					]
+					
+					+SUniformGridPanel::Slot(1, 3)
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(this, &SWorldTileItem::GetLevelLayerDistanceText) 
+					]
+				]
+			]
+		]
+	];
 
 	return TooltipWidget.ToSharedRef();
 }
@@ -267,12 +300,12 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FVector2D SWorldTileItem::GetPosition() const
 {
-	return LevelModel->GetLevelPosition2D();
+	return TileModel->GetLevelPosition2D();
 }
 
-const TSharedPtr<FLevelModel>& SWorldTileItem::GetLevelModel() const
+TSharedPtr<FLevelModel> SWorldTileItem::GetLevelModel() const
 {
-	return LevelModel;
+	return StaticCastSharedPtr<FLevelModel>(TileModel);
 }
 
 const FSlateBrush* SWorldTileItem::GetShadowBrush(bool bSelected) const
@@ -282,17 +315,17 @@ const FSlateBrush* SWorldTileItem::GetShadowBrush(bool bSelected) const
 
 FOptionalSize SWorldTileItem::GetItemWidth() const
 {
-	return FOptionalSize(LevelModel->GetLevelSize2D().X);
+	return FOptionalSize(TileModel->GetLevelSize2D().X);
 }
 
 FOptionalSize SWorldTileItem::GetItemHeight() const
 {
-	return FOptionalSize(LevelModel->GetLevelSize2D().Y);
+	return FOptionalSize(TileModel->GetLevelSize2D().Y);
 }
 
 FSlateRect SWorldTileItem::GetItemRect() const
 {
-	FVector2D LevelSize = LevelModel->GetLevelSize2D();
+	FVector2D LevelSize = TileModel->GetLevelSize2D();
 	FVector2D LevelPos = GetPosition();
 	return FSlateRect(LevelPos, LevelPos + LevelSize);
 }
@@ -300,7 +333,7 @@ FSlateRect SWorldTileItem::GetItemRect() const
 TSharedPtr<IToolTip> SWorldTileItem::GetToolTip()
 {
 	// Hide tooltip in case item is being dragged now
-	if (LevelModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)
+	if (TileModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)
 	{
 		return NULL;
 	}
@@ -311,7 +344,7 @@ TSharedPtr<IToolTip> SWorldTileItem::GetToolTip()
 FVector2D SWorldTileItem::GetDesiredSizeForMarquee() const
 {
 	// we don't want to select items in non visible layers
-	if (!WorldModel->PassesAllFilters(LevelModel))
+	if (!WorldModel->PassesAllFilters(TileModel))
 	{
 		return FVector2D::ZeroVector;
 	}
@@ -321,7 +354,7 @@ FVector2D SWorldTileItem::GetDesiredSizeForMarquee() const
 
 FVector2D SWorldTileItem::ComputeDesiredSize() const
 {
-	return LevelModel->GetLevelSize2D();
+	return TileModel->GetLevelSize2D();
 }
 
 int32 SWorldTileItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, 
@@ -377,7 +410,7 @@ int32 SWorldTileItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRec
 		//}
 
 		// Draw progress bar if level is currently loading
-		if (LevelModel->IsLoading())
+		if (TileModel->IsLoading())
 		{
 			const float ProgressBarAnimOffset = ProgressBarImage->ImageSize.X * CurveSequence.GetLerpLooping() / AllottedGeometry.Scale;
 			const float ProgressBarImageSize = ProgressBarImage->ImageSize.X / AllottedGeometry.Scale;
@@ -409,7 +442,7 @@ FReply SWorldTileItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, c
 {
 	if (OnHitTest(InMyGeometry, InMouseEvent.GetScreenSpacePosition()))
 	{
-		LevelModel->MakeLevelCurrent();
+		TileModel->MakeLevelCurrent();
 		return FReply::Handled();
 	}
 	
@@ -419,35 +452,57 @@ FReply SWorldTileItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, c
 bool SWorldTileItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
 {
 	FVector2D CursorOffset = (InAbsoluteCursorPosition - MyGeometry.AbsolutePosition)/MyGeometry.Scale;
-	FVector2D LevelPos = LevelModel->GetLevelPosition2D();
+	FVector2D LevelPos = TileModel->GetLevelPosition2D();
 	FVector2D CursorWorldPos = LevelPos + CursorOffset;
-	return LevelModel->HitTest2D(CursorWorldPos);
+	return TileModel->HitTest2D(CursorWorldPos);
 }
 
 FString SWorldTileItem::GetLevelNameText() const
 {
-	return LevelModel->GetDisplayName();
+	return TileModel->GetDisplayName();
+}
+
+FText SWorldTileItem::GetPositionText() const
+{
+	FIntPoint Position = TileModel->GetRelativeLevelPosition();
+	return FText::FromString(FString::Printf(TEXT("%d, %d"), Position.X, Position.Y));
+}
+
+FText SWorldTileItem::GetBoundsExtentText() const
+{
+	FVector2D Size = TileModel->GetLevelSize2D();
+	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(Size.X*0.5f), FMath::RoundToInt(Size.Y*0.5f)));
+}
+
+FText SWorldTileItem::GetLevelLayerNameText() const
+{
+	return FText::FromString(TileModel->TileDetails->Layer.Name);
+}
+
+FText SWorldTileItem::GetLevelLayerDistanceText() const
+{
+	return FText::AsNumber(TileModel->TileDetails->Layer.StreamingDistance);
 }
 
 bool SWorldTileItem::IsItemEditable() const
 {
-	return LevelModel->IsEditable();
+	return TileModel->IsEditable();
 }
 
 bool SWorldTileItem::IsItemSelected() const
 {
-	return LevelModel->GetLevelSelectionFlag();
+	return TileModel->GetLevelSelectionFlag();
 }
 
 bool SWorldTileItem::IsItemEnabled() const
 {
 	if (WorldModel->IsSimulating())
 	{
-		return LevelModel->IsVisible();
+		return TileModel->IsVisible();
 	}
 	else
 	{
-		return LevelModel->IsEditable();
+		return TileModel->IsEditable();
 	}
 }
 

@@ -75,7 +75,6 @@ public:
 	virtual FVector2D GetLevelSize2D() const OVERRIDE;
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
-	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const OVERRIDE;
 	virtual void OnLevelAddedToWorld(ULevel* InLevel) OVERRIDE;
 	virtual void OnLevelRemovedFromWorld() OVERRIDE;
 	virtual void OnParentChanged() OVERRIDE;
@@ -180,12 +179,6 @@ private:
 	
 	/** Handler for ZOrder chnages event from Tile details object  */
 	void OnZOrderPropertyChanged();
-	
-	/** Tile tooltips support */
-	FText GetPositionText() const;
-	FText GetBoundsExtentText() const;
-	FText GetLevelLayerNameText() const;
-	FText GetLevelLayerDistanceText() const;
 	
 public:
 	/** This tile index in world composition tile list */

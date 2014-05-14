@@ -35,7 +35,6 @@ public:
 	virtual void Update() OVERRIDE;
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
-	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const OVERRIDE;
 	virtual UClass* GetStreamingClass() const OVERRIDE;
 	// FLevelModel interface end
 		

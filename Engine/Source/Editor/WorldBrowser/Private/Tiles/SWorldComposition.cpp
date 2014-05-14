@@ -140,7 +140,7 @@ public:
 	}
 	
 	/**  Add specified item to the grid view */
-	void AddItem(const TSharedPtr<FLevelModel>& LevelModel)
+	void AddItem(TSharedPtr<FWorldTileModel> LevelModel)
 	{
 		auto NewNode = SNew(SWorldTileItem)
 							.InWorldModel(WorldModel)
@@ -151,7 +151,7 @@ public:
 	}
 	
 	/**  Remove specified item from the grid view */
-	void RemoveItem(const TSharedPtr<FLevelModel>& LevelModel)
+	void RemoveItem(TSharedPtr<FLevelModel> LevelModel)
 	{
 		TSharedRef<SNode>* pItem = NodeToWidgetLookup.Find(LevelModel->GetNodeObject());
 		if (pItem == NULL)
@@ -172,7 +172,7 @@ public:
 		FLevelModelList AllLevels = WorldModel->GetAllLevels();
 		for (auto It = AllLevels.CreateConstIterator(); It; ++It)
 		{
-			AddItem(*It);
+			AddItem(StaticCastSharedPtr<FWorldTileModel>(*It));
 		}
 	}
 		
