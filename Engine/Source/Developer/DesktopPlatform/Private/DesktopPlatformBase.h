@@ -9,6 +9,8 @@
 class FDesktopPlatformBase : public IDesktopPlatform
 {
 public:
+	FDesktopPlatformBase();
+
 	// IDesktopPlatform Implementation
 	virtual FString GetCurrentEngineIdentifier() OVERRIDE;
 
@@ -34,9 +36,11 @@ public:
 
 private:
 	FString CurrentEngineIdentifier;
+	FDateTime LauncherInstallationTimestamp;
+	TMap<FString, FString> LauncherInstallationList;
 	TMap<FString, FUProjectDictionary> CachedProjectDictionaries;
 
-	bool ReadLauncherInstallationList(TMap<FString, FString> &OutInstallations);
+	void ReadLauncherInstallationList();
 	void CheckForLauncherEngineInstallation(const FString &AppId, const FString &Identifier, TMap<FString, FString> &OutInstallations);
 	int32 ParseReleaseVersion(const FString &Version);
 

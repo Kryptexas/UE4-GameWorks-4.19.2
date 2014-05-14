@@ -480,7 +480,7 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 
 	// Spawn UBT
 	int32 ExitCode = 0;
-	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0 && false;
+	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
 }
 
 FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
