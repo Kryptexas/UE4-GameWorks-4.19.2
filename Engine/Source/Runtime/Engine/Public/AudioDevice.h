@@ -721,7 +721,7 @@ public:
 	uint64 CurrentTick;
 
 	/** An AudioComponent to play test sounds on */
-	class UAudioComponent* TestAudioComponent;
+	TWeakObjectPtr<class UAudioComponent> TestAudioComponent;
 
 	/** The debug state of the audio device */
 	TEnumAsByte<enum EDebugState> DebugState;

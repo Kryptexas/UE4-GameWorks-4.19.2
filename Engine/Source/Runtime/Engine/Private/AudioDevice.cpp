@@ -583,23 +583,24 @@ bool FAudioDevice::HandleListSoundDurationsCommand( const TCHAR* Cmd, FOutputDev
 bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Stop any existing sound playing
-	if( TestAudioComponent == NULL )
+	if( !TestAudioComponent.IsValid() )
 	{
 		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
 	}
 
-	if( TestAudioComponent != NULL )
+	UAudioComponent* AudioComp = TestAudioComponent.Get();
+	if( AudioComp != NULL )
 	{
-		TestAudioComponent->Stop();
+		AudioComp->Stop();
 
 		// Load up an arbitrary cue
 		USoundCue* Cue = LoadObject<USoundCue>( NULL, Cmd, NULL, LOAD_None, NULL );
 		if( Cue != NULL )
 		{
-			TestAudioComponent->Sound = Cue;
-			TestAudioComponent->bAllowSpatialization = false;
-			TestAudioComponent->bAutoDestroy = true;
-			TestAudioComponent->Play();
+			AudioComp->Sound = Cue;
+			AudioComp->bAllowSpatialization = false;
+			AudioComp->bAutoDestroy = true;
+			AudioComp->Play();
 
 			TArray<USoundNodeWavePlayer*> WavePlayers;
 			Cue->RecursiveFindNode<USoundNodeWavePlayer>( Cue->FirstNode, WavePlayers );
@@ -619,23 +620,24 @@ bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& A
 bool FAudioDevice::HandlePlaySoundWaveCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Stop any existing sound playing
-	if( TestAudioComponent == NULL )
+	if( !TestAudioComponent.IsValid() )
 	{
 		TestAudioComponent = ConstructObject<UAudioComponent>( UAudioComponent::StaticClass() );
 	}
 
-	if( TestAudioComponent != NULL )
+	UAudioComponent* AudioComp = TestAudioComponent.Get();
+	if( AudioComp != NULL )
 	{
-		TestAudioComponent->Stop();
+		AudioComp->Stop();
 
 		// Load up an arbitrary wave
 		USoundWave* Wave = LoadObject<USoundWave>( NULL, Cmd, NULL, LOAD_None, NULL );
 		if( Wave != NULL )
 		{
-			TestAudioComponent->Sound = Wave;
-			TestAudioComponent->bAllowSpatialization = false;
-			TestAudioComponent->bAutoDestroy = true;
-			TestAudioComponent->Play();
+			AudioComp->Sound = Wave;
+			AudioComp->bAllowSpatialization = false;
+			AudioComp->bAutoDestroy = true;
+			AudioComp->Play();
 
 			Wave->LogSubtitle( Ar );
 		}
