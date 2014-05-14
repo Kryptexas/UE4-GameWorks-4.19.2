@@ -136,7 +136,7 @@ public:
 	/**
 	* Enumerates all the registered engine installations.
 	*
-	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known installations. Identifiers are typically
+	* @param	OutInstallations	Map of identifier/root-directory pairs for all known installations. Identifiers are typically
 	*								version strings for canonical UE4 releases or GUID strings for GitHub releases.
 	*/
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
@@ -144,9 +144,16 @@ public:
 	/**
 	* Enumerates all the registered binary engine installations.
 	*
-	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known binary installations.
+	* @param	OutInstallations	Map of identifier/root-directory pairs for all known binary installations.
 	*/
 	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+
+	/**
+	* Enumerates all the samples installed by the launcher.
+	*
+	* @param	OutInstallations	Array of sample installation paths.
+	*/
+	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) = 0;
 
 	/**
 	* Returns the identifier for the engine with the given root directory.

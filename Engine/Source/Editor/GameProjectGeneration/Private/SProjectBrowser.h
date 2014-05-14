@@ -130,7 +130,6 @@ private:
 	FText GetItemHighlightText() const;
 
 private:
-
 	// Holds the collection of project categories.
 	TArray<TSharedRef<FProjectCategory> > ProjectCategories;
 

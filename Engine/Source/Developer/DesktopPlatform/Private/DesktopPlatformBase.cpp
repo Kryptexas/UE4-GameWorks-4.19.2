@@ -40,6 +40,23 @@ void FDesktopPlatformBase::EnumerateLauncherEngineInstallations(TMap<FString, FS
 	}
 }
 
+void FDesktopPlatformBase::EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations)
+{
+	TMap<FString, FString> AllInstallations;
+	if(ReadLauncherInstallationList(AllInstallations))
+	{
+		// We've got a list of launcher installations. Filter it by non-engine installations.
+		for(TMap<FString, FString>::TConstIterator Iter(AllInstallations); Iter; ++Iter)
+		{
+			FString AppName = Iter.Key();
+			if(!AppName.StartsWith(TEXT("UE_"), ESearchCase::CaseSensitive))
+			{
+				OutInstallations.Add(Iter.Value());
+			}
+		}
+	}
+}
+
 bool FDesktopPlatformBase::GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir)
 {
 	// Get all the installations

@@ -118,6 +118,13 @@ FString FUProjectDictionary::GetRelativeProjectPathForGame(const TCHAR* InGameNa
 	return TEXT("");
 }
 
+TArray<FString> FUProjectDictionary::GetProjectPaths() const
+{
+	TArray<FString> Paths;
+	ShortProjectNameDictionary.GenerateValueArray(Paths);
+	return Paths;
+}
+
 FUProjectDictionary& FUProjectDictionary::GetDefault()
 {
 	static FUProjectDictionary DefaultDictionary(FPaths::RootDir());

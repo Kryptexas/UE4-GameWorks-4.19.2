@@ -5,6 +5,7 @@
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "SVerbChoiceDialog.h"
+#include "UProjectInfo.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -615,79 +616,100 @@ FReply SProjectBrowser::FindProjects()
 	const FText MyProjectsCategoryName = LOCTEXT("MyProjectsCategoryName", "My Projects");
 	const FText SamplesCategoryName = LOCTEXT("SamplesCategoryName", "Samples");
 
-	// Form a list of all known project files.
-	TMap<FString, FText> DiscoveredProjectFilesToCategory;
-
-	// Start with recents
-	for (auto RecentIt = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles.CreateConstIterator(); RecentIt; ++RecentIt)
-	{
-		const FString File = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(**RecentIt);
-		DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
-	}
-
-	// Form a list of folders that may contain project files and their category names.
-	struct FFolderToCategory
-	{
-		FString Folder;
-		FText Category;
-
-		FFolderToCategory(const FString& InFolder, const FText& InCategory)
-			: Folder(InFolder), Category(InCategory)
-		{}
-	};
-
-	TArray<FFolderToCategory> ProjectFileDiscoverFoldersToCategory;
+	// Create a map of parent project folders to their category
+	TMap<FString, FText> ParentProjectFoldersToCategory;
 
 	// Add the default creation path, in case you've never created a project before or want to include this path anyway
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName));
+	ParentProjectFoldersToCategory.Add(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName);
 
 	// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders
-	for (auto CreatedPathIt = GEditor->GetGameAgnosticSettings().CreatedProjectPaths.CreateConstIterator(); CreatedPathIt; ++CreatedPathIt)
+	const TArray<FString> &CreatedProjectPaths = GEditor->GetGameAgnosticSettings().CreatedProjectPaths;
+	for(int32 Idx = 0; Idx < CreatedProjectPaths.Num(); Idx++)
 	{
-		ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(*CreatedPathIt, MyProjectsCategoryName));
+		FString CreatedProjectPath = CreatedProjectPaths[Idx];
+		FPaths::NormalizeDirectoryName(CreatedProjectPath);
+		ParentProjectFoldersToCategory.Add(CreatedProjectPath, MyProjectsCategoryName);
 	}
 
-	// @todo discover projects in the "holding tank" perhaps
-	// Hard-coding a few paths for now
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::RootDir(), MyProjectsCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples")), SamplesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("SampleGames")), SamplesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("Showcases")), SamplesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("Demolets")), SamplesCategoryName));
+	// Create a map of project folders to their category
+	TMap<FString, FText> ProjectFoldersToCategory;
 
-	// Discover all unique project files in all discover folders
-	for (auto RootFolderIt = ProjectFileDiscoverFoldersToCategory.CreateConstIterator(); RootFolderIt; ++RootFolderIt)
+	// Find all the subdirectories of all the parent folders
+	for(TMap<FString, FText>::TConstIterator Iter(ParentProjectFoldersToCategory); Iter; ++Iter)
 	{
-		const FString Root = (*RootFolderIt).Folder;
-		const FText Category = (*RootFolderIt).Category;
-		const FString RootSearchString = Root / TEXT("*");
-		TArray<FString> PotentialProjectFolders;
-		IFileManager::Get().FindFiles(PotentialProjectFolders, *RootSearchString, /*Files=*/false, /*Directories=*/true);
-		for (auto FolderIt = PotentialProjectFolders.CreateConstIterator(); FolderIt; ++FolderIt)
+		const FString &ParentProjectFolder = Iter.Key();
+
+		TArray<FString> ProjectFolders;
+		IFileManager::Get().FindFiles(ProjectFolders, *(ParentProjectFolder / TEXT("*")), false, true);
+
+		for(int32 Idx = 0; Idx < ProjectFolders.Num(); Idx++)
 		{
-			const FString FolderName = Root / (*FolderIt);
-			const FString ProjectSearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
-			TArray<FString> FoundProjectFiles;
-			IFileManager::Get().FindFiles(FoundProjectFiles, *ProjectSearchString, /*Files=*/true, /*Directories=*/false);
-			for (auto ProjectFilenameIt = FoundProjectFiles.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt)
-			{
-				const FString PotentiallyRelativeFile = FolderName / (*ProjectFilenameIt);
-				const FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PotentiallyRelativeFile);
-				DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
-			}
+			ProjectFoldersToCategory.Add(ParentProjectFolder / ProjectFolders[Idx], Iter.Value());
 		}
 	}
 
-	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
-
-	// Add all discovered projects to the list
-	for ( auto ProjectFilenameIt = DiscoveredProjectFilesToCategory.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt )
+	// Add all the launcher installed sample folders
+	TArray<FString> LauncherSampleDirectories;
+	FDesktopPlatformModule::Get()->EnumerateLauncherSampleInstallations(LauncherSampleDirectories);
+	for(int32 Idx = 0; Idx < LauncherSampleDirectories.Num(); Idx++)
 	{
-		const FString& ProjectFilename = ProjectFilenameIt.Key();
-		const FText& DetectedCategory = ProjectFilenameIt.Value();
+		ProjectFoldersToCategory.Add(LauncherSampleDirectories[Idx], SamplesCategoryName);
+	}
+
+	// Create a map of all the project files to their category
+	TMap<FString, FText> ProjectFilesToCategory;
+
+	// Add all the folders that the user has opened recently
+	const TArray<FString> &RecentlyOpenedProjectFiles = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles;
+	for (int32 Idx = 0; Idx < RecentlyOpenedProjectFiles.Num(); Idx++)
+	{
+		FString RecentlyOpenedProjectFile = RecentlyOpenedProjectFiles[Idx];
+		FPaths::NormalizeFilename(RecentlyOpenedProjectFile);
+		ProjectFilesToCategory.Add(RecentlyOpenedProjectFile, MyProjectsCategoryName);
+	}
+
+	// Scan the project folders for project files
+	FString ProjectWildcard = FString::Printf(TEXT("*.%s"), *IProjectManager::GetProjectFileExtension());
+	for(TMap<FString, FText>::TConstIterator Iter(ProjectFoldersToCategory); Iter; ++Iter)
+	{
+		const FString &ProjectFolder = Iter.Key();
+
+		TArray<FString> ProjectFiles;
+		IFileManager::Get().FindFiles(ProjectFiles, *(ProjectFolder / ProjectWildcard), true, false);
+
+		for(int32 Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+		{
+			ProjectFilesToCategory.Add(ProjectFolder / ProjectFiles[Idx], Iter.Value());
+		}
+	}
+
+	// Add all the discovered non-foreign project files
+	const TArray<FString> &NonForeignProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
+	for(int32 Idx = 0; Idx < NonForeignProjectFiles.Num(); Idx++)
+	{
+		if(!NonForeignProjectFiles[Idx].Contains(TEXT("/Templates/")))
+		{
+			const FText &CategoryName = NonForeignProjectFiles[Idx].Contains(TEXT("/Samples/"))? SamplesCategoryName : MyProjectsCategoryName;
+			ProjectFilesToCategory.Add(NonForeignProjectFiles[Idx], CategoryName);
+		}
+	}
+
+	// Normalize all the filenames and make sure there are no duplicates
+	TMap<FString, FText> AbsoluteProjectFilesToCategory;
+	for(TMap<FString, FText>::TConstIterator Iter(ProjectFilesToCategory); Iter; ++Iter)
+	{
+		FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Iter.Key());
+		AbsoluteProjectFilesToCategory.Add(AbsoluteFile, Iter.Value());
+	}
+
+	// Add all the discovered projects to the list
+	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	for(TMap<FString, FText>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
+	{
+		const FString& ProjectFilename = *Iter.Key();
+		const FText& DetectedCategory = Iter.Value();
 		if ( FPaths::FileExists(ProjectFilename) )
 		{
-			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
 			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus))
 			{
