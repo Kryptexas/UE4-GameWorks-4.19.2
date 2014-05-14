@@ -218,7 +218,8 @@ namespace AutomationTool
 			"services",
 			"lsass",
             "conhost",
-            "oobe"
+            "oobe",
+            "mmc"
 		};
 		public override string[] DontKillProcessList
 		{
