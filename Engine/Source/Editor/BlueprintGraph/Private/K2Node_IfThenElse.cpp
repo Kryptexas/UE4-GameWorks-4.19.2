@@ -108,7 +108,7 @@ FString UK2Node_IfThenElse::GetTooltip() const
 
 FString UK2Node_IfThenElse::GetKeywords() const
 {
-	return *LOCTEXT("BranchKeywords", "if").ToString();
+	return *LOCTEXT("BranchKeywords", "if bool").ToString();
 }
 
 UEdGraphPin* UK2Node_IfThenElse::GetThenPin() const
