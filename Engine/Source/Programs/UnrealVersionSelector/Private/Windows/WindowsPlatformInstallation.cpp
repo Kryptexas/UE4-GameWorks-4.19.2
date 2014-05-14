@@ -149,40 +149,64 @@ private:
 	}
 };
 
+struct FErrorDialog
+{
+	HFONT hFont;
+	FString Message, LogText;
+
+	FErrorDialog(const FString& InMessage, const FString& InLogText) : Message(InMessage), LogText(InLogText)
+	{
+		int FontHeight = -MulDiv(8, GetDeviceCaps(GetDC(NULL), LOGPIXELSY), 72);
+		hFont = CreateFont(FontHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, FIXED_PITCH | FF_MODERN, TEXT("Courier New"));
+	}
+
+	~FErrorDialog()
+	{
+		DeleteObject(hFont);
+	}
+
+	bool DoModal(HWND hWndParent)
+	{
+		return DialogBoxParam(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_ERRORDIALOG), hWndParent, &DialogProc, (LPARAM)this) != FALSE;
+	}
+
+private:
+	static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	{
+		FErrorDialog *Dialog = (FErrorDialog*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+		switch (Msg)
+		{
+		case WM_INITDIALOG:
+			Dialog = (FErrorDialog*)lParam;
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)Dialog);
+
+			SetDlgItemText(hWnd, IDC_ERRORMESSAGE, *Dialog->Message);
+			SetDlgItemText(hWnd, IDC_ERRORLOGTEXT, *Dialog->LogText);
+
+			SendDlgItemMessage(hWnd, IDC_ERRORLOGTEXT, WM_SETFONT, (WPARAM)Dialog->hFont, 0);
+			SendDlgItemMessage(hWnd, IDC_ERRORLOGTEXT, EM_LINESCROLL, 0, 32000);
+			return FALSE;
+		case WM_COMMAND:
+			switch (LOWORD(wParam))
+			{
+			case IDOK:
+				EndDialog(hWnd, 1);
+				return FALSE;
+			}
+			return FALSE;
+		case WM_CLOSE:
+			EndDialog(hWnd, 1);
+			return FALSE;
+		}
+		return FALSE;
+	}
+};
+
 bool FWindowsPlatformInstallation::LaunchEditor(const FString &RootDirName, const FString &Arguments)
 {
 	FString EditorFileName = RootDirName / TEXT("Engine/Binaries/Win64/UE4Editor.exe");
 	return FPlatformProcess::ExecProcess(*EditorFileName, *Arguments, NULL, NULL, NULL);
-}
-
-bool FWindowsPlatformInstallation::GenerateProjectFiles(const FString &RootDirName, const FString &Arguments)
-{
-	// Get the path to the batch file
-	FString BatchFileName;
-	if (FDesktopPlatformModule::Get()->IsSourceDistribution(RootDirName))
-	{
-		BatchFileName = RootDirName / TEXT("Engine/Build/BatchFiles/GenerateProjectFiles.bat");
-	}
-	else
-	{
-		BatchFileName = RootDirName / TEXT("Engine/Build/BatchFiles/RocketGenerateProjectFiles.bat");
-	}
-
-	// Check it exists
-	if (IFileManager::Get().FileSize(*BatchFileName) < 0)
-	{
-		return false;
-	}
-
-	// Build the full argument list
-	FString AllArguments = FString::Printf(TEXT("/c \"\"%s\" %s\""), *BatchFileName, *Arguments);
-
-	// Run the batch file through cmd.exe. 
-	FProcHandle Handle = FPlatformProcess::CreateProc(TEXT("cmd.exe"), *AllArguments, false, false, false, NULL, 0, NULL, NULL);
-	if (!Handle.IsValid()) return false;
-
-	FPlatformProcess::WaitForProc(Handle);
-	return true;
 }
 
 bool FWindowsPlatformInstallation::SelectEngineInstallation(FString &Identifier)
@@ -195,6 +219,12 @@ bool FWindowsPlatformInstallation::SelectEngineInstallation(FString &Identifier)
 
 	Identifier = Dialog.Identifier;
 	return true;
+}
+
+void FWindowsPlatformInstallation::ErrorDialog(const FString &Message, const FString &LogText)
+{
+	FErrorDialog Dialog(Message, LogText);
+	Dialog.DoModal(NULL);
 }
 
 #include "HideWindowsPlatformTypes.h"

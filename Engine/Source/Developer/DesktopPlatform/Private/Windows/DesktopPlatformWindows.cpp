@@ -2,6 +2,7 @@
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "FeedbackContextMarkup.h"
+#include "WindowsNativeFeedbackContext.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
@@ -479,7 +480,13 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 
 	// Spawn UBT
 	int32 ExitCode = 0;
-	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
+	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0 && false;
+}
+
+FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
+{
+	static FWindowsNativeFeedbackContext FeedbackContext;
+	return &FeedbackContext;
 }
 
 void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)

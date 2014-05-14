@@ -287,4 +287,11 @@ public:
 	* @return true if the task completed successfully.
 	*/
 	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Gets a feedback context which can display progress information using the native platform GUI.
+	*
+	* @return FFeedbackContext for the native GUI.
+	*/
+	virtual FFeedbackContext* GetNativeFeedbackContext() = 0;
 };

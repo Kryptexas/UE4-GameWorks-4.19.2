@@ -10,10 +10,10 @@ struct FWindowsPlatformInstallation : FGenericPlatformInstallation
 	// Launches the editor application
 	static bool LaunchEditor(const FString &RootDirName, const FString &Arguments);
 
-	// Generate project files by running UBT
-	static bool GenerateProjectFiles(const FString &RootDirName, const FString &Arguments);
-
 	// Select an engine installation
 	static bool SelectEngineInstallation(FString &Identifier);
+
+	// Shows an error dialog with log output
+	static void ErrorDialog(const FString &Message, const FString &LogText);
 };
 

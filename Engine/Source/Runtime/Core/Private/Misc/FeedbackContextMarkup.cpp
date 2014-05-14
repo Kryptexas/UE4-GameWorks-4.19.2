@@ -161,6 +161,7 @@ bool FFeedbackContextMarkup::ReadString(const TCHAR*& Text, FString& OutString)
 			{
 				OutString = FString(End - (Text + 1), Text + 1);
 				do { End++; } while(FChar::IsWhitespace(*End));
+				Text = End;
 				return true;
 			}
 		}
