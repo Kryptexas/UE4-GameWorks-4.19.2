@@ -229,6 +229,12 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 		return true;
 	}
 
+	// Visibility does not depend on level positions when world origin rebasing is disabled
+	if (!LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	{
+		return true;
+	}
+
 	FBox LevelBBox = GetLevelBounds();
 
 	// Visible if level has no valid bounds
@@ -303,7 +309,7 @@ bool FWorldTileModel::IsShelved() const
 
 void FWorldTileModel::Shelve()
 {
-	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile())
+	if (LevelCollectionModel.IsReadOnly() || IsShelved() || IsRootTile() || !LevelCollectionModel.GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		return;
 	}
