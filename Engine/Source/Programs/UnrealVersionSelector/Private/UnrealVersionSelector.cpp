@@ -75,6 +75,14 @@ bool SwitchVersion(const FString& ProjectFileName)
 		return false;
 	}
 
+	// Clean all the build products
+	FFeedbackContext *Warn = FDesktopPlatformModule::Get()->GetNativeFeedbackContext();
+	if (!FDesktopPlatformModule::Get()->CleanGameProject(FPaths::GetPath(ProjectFileName), Warn))
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't clean project build products."), TEXT("Error"));
+		return false;
+	}
+
 	// Generate project files
 	return GenerateProjectFiles(ProjectFileName);
 }

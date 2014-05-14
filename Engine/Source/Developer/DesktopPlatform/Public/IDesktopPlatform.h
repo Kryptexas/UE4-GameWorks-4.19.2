@@ -258,6 +258,14 @@ public:
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
 
 	/**
+	* Cleans a game project. Removes the intermediate folder and binary build products.
+	*
+	* @param ProjectDirName		Directory for the project
+	* @param OutFileNames		Output array of the project's build products
+	*/
+	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) = 0;
+
+	/**
 	* Compiles a game project.
 	*
 	* @param RootDir			Engine root directory for the project to use.

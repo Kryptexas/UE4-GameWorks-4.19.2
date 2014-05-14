@@ -246,6 +246,50 @@ bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString &ProjectF
 	return false;
 }
 
+bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedbackContext* Warn)
+{
+	// Begin a task
+	Warn->BeginSlowTask(LOCTEXT("CleaningProject", "Removing stale build products..."), true);
+
+	// Enumerate all the files
+	TArray<FString> FileNames;
+	GetProjectBuildProducts(ProjectDir, FileNames);
+
+	// Remove all the files
+	for(int32 Idx = 0; Idx < FileNames.Num(); Idx++)
+	{
+		// Remove the file
+		if(!IFileManager::Get().Delete(*FileNames[Idx]))
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete file '%s'"), *FileNames[Idx]);
+			return false;
+		}
+
+		// Try to remove an empty directory hierarchy
+		FString DirName = FPaths::GetPath(FileNames[Idx]);
+		for(;;)
+		{
+			TArray<FString> Contents;
+			IFileManager::Get().FindFiles(Contents, *(DirName / TEXT("*")), true, true);
+
+			if(Contents.Num() > 0) break;
+			if(!IFileManager::Get().DeleteDirectory(*DirName)) break;
+
+			int32 ParentIdx;
+			if(!DirName.FindLastChar(TEXT('/'), ParentIdx)) break;
+
+			DirName = DirName.Left(ParentIdx);
+		}
+
+		// Update the progress
+		Warn->UpdateProgress(Idx, FileNames.Num());
+	}
+
+	// End the task
+	Warn->EndSlowTask();
+	return true;
+}
+
 bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
 	// Get the target name
@@ -449,6 +493,68 @@ const FUProjectDictionary &FDesktopPlatformBase::GetCachedProjectDictionary(cons
 		Dictionary = &CachedProjectDictionaries.Add(RootDir, FUProjectDictionary(RootDir));
 	}
 	return *Dictionary;
+}
+
+void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TArray<FString> &OutFileNames)
+{
+	FString NormalizedProjectDir = ProjectDir;
+	FPaths::NormalizeDirectoryName(NormalizedProjectDir);
+
+	// Find all the build roots
+	TArray<FString> BuildRootDirectories;
+	BuildRootDirectories.Add(NormalizedProjectDir);
+
+	// Add all the plugin directories
+	TArray<FString> PluginFileNames;
+	IFileManager::Get().FindFilesRecursive(PluginFileNames, *(NormalizedProjectDir / TEXT("Plugins")), TEXT("*.uplugin"), true, false);
+	for(int32 Idx = 0; Idx < PluginFileNames.Num(); Idx++)
+	{
+		BuildRootDirectories.Add(FPaths::GetPath(PluginFileNames[Idx]));
+	}
+
+	// Find all the target filenames
+	TArray<FString> TargetNames;
+	IFileManager::Get().FindFilesRecursive(TargetNames, *(NormalizedProjectDir / TEXT("Source")), TEXT("*.Target.cs"), true, false, false);
+	for(int32 Idx = 0; Idx < TargetNames.Num(); Idx++)
+	{
+		TargetNames[Idx] = FPaths::GetCleanFilename(TargetNames[Idx]);
+		TargetNames[Idx].RemoveFromEnd(TEXT(".Target.cs"));
+	}
+	TargetNames.Add(TEXT("UE4Editor"));
+
+	// Add the binaries for all of the build roots
+	for(int32 RootIdx = 0; RootIdx < BuildRootDirectories.Num(); RootIdx++)
+	{
+		const FString &BuildRootDirectory = BuildRootDirectories[RootIdx];
+
+		// Find all the binaries under this build root
+		TArray<FString> Binaries;
+		IFileManager::Get().FindFilesRecursive(Binaries, *(BuildRootDirectory / TEXT("Binaries")), TEXT("*"), true, false);
+
+		// Remove all the binaries starting with a target name
+		for(int32 BinaryIdx = 0; BinaryIdx < Binaries.Num(); BinaryIdx++)
+		{
+			FString BinaryName = FPaths::GetCleanFilename(Binaries[BinaryIdx]);
+			for(int32 TargetIdx = 0; TargetIdx < TargetNames.Num(); TargetIdx++)
+			{
+				if(BinaryName.StartsWith(TargetNames[TargetIdx]))
+				{
+					const TCHAR *End = *BinaryName + TargetNames[TargetIdx].Len();
+					if(*End == 0 || *End == TEXT('.') || *End == TEXT('-'))
+					{
+						OutFileNames.Add(Binaries[BinaryIdx]);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	// Add the intermediate folders for all of the build roots
+	for(int32 RootIdx = 0; RootIdx < BuildRootDirectories.Num(); RootIdx++)
+	{
+		IFileManager::Get().FindFilesRecursive(OutFileNames, *(BuildRootDirectories[RootIdx] / TEXT("Intermediate")), TEXT("*"), true, false, false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
