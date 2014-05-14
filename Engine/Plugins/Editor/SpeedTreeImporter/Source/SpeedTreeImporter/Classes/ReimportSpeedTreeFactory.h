@@ -14,11 +14,9 @@ class UReimportSpeedTreeFactory : public USpeedTreeImportFactory, public FReimpo
 	GENERATED_UCLASS_BODY()
 
 	// Begin FReimportHandler interface
-#if WITH_SPEEDTREE
 	virtual bool CanReimport(UObject* Obj, TArray<FString>& OutFilenames) OVERRIDE;
 	virtual void SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths) OVERRIDE;
 	virtual EReimportResult::Type Reimport(UObject* Obj) OVERRIDE;
-#endif
 	// End FReimportHandler interface
 };
 

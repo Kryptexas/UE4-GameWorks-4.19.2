@@ -22,30 +22,33 @@ UReimportSpeedTreeFactory::UReimportSpeedTreeFactory(const class FPostConstructI
 	bText = false;
 }
 
-#if WITH_SPEEDTREE
-
 bool UReimportSpeedTreeFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
+#if WITH_SPEEDTREE
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && Mesh->AssetImportData)
 	{
 		OutFilenames.Add(FReimportManager::ResolveImportFilename(Mesh->AssetImportData->SourceFilePath, Mesh));
 		return true;
 	}
+#endif // #if WITH_SPEEDTREE
 	return false;
 }
 
 void UReimportSpeedTreeFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
 {
+#if WITH_SPEEDTREE
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && ensure(NewReimportPaths.Num() == 1))
 	{
 		Mesh->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0], Mesh);
 	}
+#endif // #if WITH_SPEEDTREE
 }
 
 EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 {
+#if WITH_SPEEDTREE
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (!Mesh)
 	{
@@ -83,10 +86,8 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 	{
 		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed"));
 	}
-
+#endif // #if WITH_SPEEDTREE
 	return EReimportResult::Failed;
 }
-
-#endif
 
 #undef LOCTEXT_NAMESPACE
