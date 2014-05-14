@@ -1935,6 +1935,7 @@ void FLevelEditorActionCallbacks::OnToggleOnlyLoadVisibleInPIE()
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->bOnlyLoadVisibleLevelsInPIE = !PlaySettings->bOnlyLoadVisibleLevelsInPIE;
 	PlaySettings->PostEditChange();
+	PlaySettings->SaveConfig();
 }
 
 bool FLevelEditorActionCallbacks::OnIsOnlyLoadVisibleInPIEEnabled()

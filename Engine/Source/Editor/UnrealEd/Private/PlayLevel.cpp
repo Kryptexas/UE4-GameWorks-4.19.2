@@ -709,9 +709,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 {
 	const bool bWantSimulateInEditor = bIsSimulateInEditorQueued;
 
-	//ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
-	//PlaySettings->LastExecutedPlayModeType = PlayMode;
-
 	EndPlayOnLocalPc();
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();

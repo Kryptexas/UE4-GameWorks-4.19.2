@@ -178,6 +178,7 @@ FPlayWorldCommands::FPlayWorldCommands()
 				if (PlayDevice.IsValid())
 				{
 					PlaySettings->LastExecutedLaunchDevice = PlayDevice->GetId().ToString();
+					PlaySettings->SaveConfig();
 				}
 			}
 		}
@@ -887,6 +888,7 @@ void SetLastExecutedPlayMode( EPlayModeType PlayMode )
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedPlayModeType = PlayMode;
+	PlaySettings->SaveConfig();
 }
 
 
@@ -949,6 +951,7 @@ void SetLastExecutedLaunchMode( ELaunchModeType LaunchMode )
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedLaunchModeType = LaunchMode;
+	PlaySettings->SaveConfig();
 }
 
 
@@ -1161,6 +1164,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInLocation_Clicked( EPlayModeLocati
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedPlayModeLocation = Location;
+	PlaySettings->SaveConfig();
 }
 
 
@@ -1296,6 +1300,7 @@ void FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute( FStr
 	PlaySettings->LastExecutedLaunchModeType = LaunchMode_OnDevice;
 	PlaySettings->LastExecutedLaunchDevice = DeviceId;
     PlaySettings->LastExecutedLaunchName = DeviceName;
+	PlaySettings->SaveConfig();
 
 	LaunchOnDevice(DeviceId, DeviceName);
 }
