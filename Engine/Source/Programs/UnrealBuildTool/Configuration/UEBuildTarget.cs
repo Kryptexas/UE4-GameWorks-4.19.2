@@ -1957,15 +1957,28 @@ namespace UnrealBuildTool
 				// Build the enabled plugin list
 				if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
 				{
-					List<string> FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
+					var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
+					var ConfigDirectory = String.Empty;
+					var ConfigKey = String.Empty;
+
 					if (UEBuildConfiguration.bCompileAgainstEngine)
 					{
-						EngineConfiguration.ReadArray(ProjectDirectory, Platform, "Engine", "Plugins", "EnabledPlugins", FilterPluginNames);
+						ConfigDirectory = ProjectDirectory;
+						ConfigKey = "EnabledPlugins";
 					}
 					else if (Rules.Type == TargetRules.TargetType.Program)
 					{
-						var ProgramDirectory = Path.Combine(ProjectDirectory, "Programs", GetTargetName());
-						EngineConfiguration.ReadArray(ProgramDirectory, Platform, "Engine", "Plugins", "ProgramEnabledPlugins", FilterPluginNames);
+						ConfigDirectory = Path.Combine(ProjectDirectory, "Programs", GetTargetName());
+						ConfigKey = "ProgramEnabledPlugins";
+					}
+					if (!String.IsNullOrEmpty(ConfigDirectory))
+					{
+						var Config = new ConfigCacheIni(Platform, "Engine", ConfigDirectory);
+						List<string> ConfigPlugins;
+						if (Config.GetArray("Plugins", ConfigKey, out ConfigPlugins))
+						{
+							FilterPluginNames.AddRange(ConfigPlugins);
+						}
 					}
 					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)));
 				}

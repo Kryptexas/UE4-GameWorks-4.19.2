@@ -61,6 +61,11 @@ namespace AutomationTool
 		public Dictionary<TargetRules.TargetType, SingleTargetProperties> Targets = new Dictionary<TargetRules.TargetType, SingleTargetProperties>();
 
 		/// <summary>
+		/// List of all Engine ini files for this project
+		/// </summary>
+		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineConfigs = new Dictionary<UnrealTargetPlatform,ConfigCacheIni>();
+
+		/// <summary>
 		/// List of all programs detected for this project.
 		/// </summary>
 		public List<SingleTargetProperties> Programs = new List<SingleTargetProperties>();
@@ -173,6 +178,18 @@ namespace AutomationTool
 			{
 				string uprojectStr = File.ReadAllText(RawProjectPath);
 				Properties.bIsCodeBasedProject = uprojectStr.Contains("\"Modules\"");
+			}
+
+			// Get all ini files
+			var EngineDirectory = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
+			CommandUtils.Log("Loading ini files for {0}", RawProjectPath);
+			foreach (UnrealTargetPlatform TargetPlatformType in Enum.GetValues(typeof(UnrealTargetPlatform)))
+			{
+				if (TargetPlatformType != UnrealTargetPlatform.Unknown)
+				{
+					var Config = new ConfigCacheIni(TargetPlatformType, "Engine", Path.GetDirectoryName(RawProjectPath), EngineDirectory);
+					Properties.EngineConfigs.Add(TargetPlatformType, Config);
+				}
 			}
 
 			return Properties;
