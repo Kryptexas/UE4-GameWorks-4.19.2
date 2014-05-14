@@ -6,6 +6,8 @@
 
 #include "MacWindow.h"
 
+/** Used to temporarily disable Cocoa screen updates to make window updates happen only on the render thread. */
+bool GMacEnableCocoaScreenUpdates = true;
 
 FSlateOpenGLViewport::FSlateOpenGLViewport()
 {
@@ -119,6 +121,12 @@ void FSlateOpenGLViewport::SwapBuffers()
 	}
 	
 	[RenderingContext.Context flushBuffer];
+	
+	if(!GMacEnableCocoaScreenUpdates)
+	{
+		GMacEnableCocoaScreenUpdates = true;
+		NSEnableScreenUpdates();
+	}
 	
 	NSWindow* Window = [[RenderingContext.Context view] window];
 	FSlateCocoaWindow* SlateCocoaWindow = [Window isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)Window : nil;
