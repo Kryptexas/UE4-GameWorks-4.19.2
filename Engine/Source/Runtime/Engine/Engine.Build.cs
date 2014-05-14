@@ -208,6 +208,7 @@ public class Engine : ModuleRules
 				"Vorbis",
 				"libOpus"
 				);
+			PublicFrameworks.AddRange(new string[] { "AVFoundation", "CoreVideo", "CoreMedia" });
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Android)

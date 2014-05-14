@@ -74,12 +74,13 @@ public class Core : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicIncludePaths.AddRange(new string[] {"Runtime/Core/Public/Apple", "Runtime/Core/Public/Mac",});
+			PublicIncludePaths.AddRange(new string[] { "Runtime/Core/Public/Apple", "Runtime/Core/Public/Mac" });
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"IntelTBB",
 				"zlib",
 				"OpenGL"
 				);
+			PublicFrameworks.AddRange(new string[] { "Cocoa", "Carbon", "IOKit" });
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

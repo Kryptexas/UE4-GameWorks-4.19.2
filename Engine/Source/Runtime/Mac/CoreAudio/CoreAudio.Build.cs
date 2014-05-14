@@ -21,5 +21,7 @@ public class CoreAudio : ModuleRules
 			"Vorbis",
 			"VorbisFile"
 			);
+
+		PublicFrameworks.AddRange(new string[] { "CoreAudio", "AudioToolbox", "AudioUnit" });
 	}
 }

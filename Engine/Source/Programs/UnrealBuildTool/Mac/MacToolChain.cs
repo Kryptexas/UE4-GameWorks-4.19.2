@@ -193,18 +193,6 @@ namespace UnrealBuildTool
 			// Needed to make sure install_name_tool will be able to update paths in Mach-O headers
 			Result += " -headerpad_max_install_names";
 
-			// link in the frameworks
-			Result += " -framework Cocoa";
-			Result += " -framework Carbon";
-			Result += " -framework AudioToolbox";
-			Result += " -framework AudioUnit";
-			Result += " -framework CoreAudio";
-			Result += " -framework CoreVideo";
-			Result += " -framework CoreMedia";
-			Result += " -framework AVFoundation";
-			Result += " -framework IOKit";
-			Result += " -framework CoreServices";	// for DirectoryWatcher (FSEvents)
-			
 			Result += " -lc++"; // for STL used in HLSLCC
 
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
