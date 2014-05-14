@@ -1851,6 +1851,10 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return HandleShowCommand( Cmd, Ar, InWorld );
 	}
+	else if( FParse::Command(&Cmd,TEXT("SHOWLAYER")) )
+	{
+		return HandleShowLayerCommand( Cmd, Ar, InWorld );
+	}
 	else if (FParse::Command(&Cmd,TEXT("VIEWMODE")))
 	{
 		return HandleViewModeCommand( Cmd, Ar, InWorld );
@@ -2194,6 +2198,64 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 		const FString Value = *It;
 
 		Ar.Logf(TEXT("%s"), *Value);
+	}
+
+	return true;
+}
+
+bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
+{
+	FString LayerName = FParse::Token(Cmd, 0);
+	bool bPrintValidEntries = false;
+
+	if (LayerName.IsEmpty())
+	{
+		Ar.Logf(TEXT("Missing layer name."));
+		bPrintValidEntries = true;
+	}
+	else
+	{
+		int32 NumActorsToggled = 0;
+		FName LayerFName = FName(*LayerName);
+
+		for (FActorIterator It(InWorld); It; ++It)
+		{
+			AActor* Actor = *It;
+			
+			if (Actor->Layers.Contains(LayerFName))
+			{
+				NumActorsToggled++;
+				// Note: overriding existing hidden property, ideally this would be something orthogonal
+				Actor->bHidden = !Actor->bHidden;
+
+				Actor->MarkComponentsRenderStateDirty();
+			}
+		}
+
+		Ar.Logf(TEXT("Toggled visibility of %u actors"), NumActorsToggled);
+		bPrintValidEntries = NumActorsToggled == 0;
+	}
+
+	if (bPrintValidEntries)
+	{
+		TArray<FName> LayerNames;
+
+		for (FActorIterator It(InWorld); It; ++It)
+		{
+			AActor* Actor = *It;
+
+			for (int32 LayerIndex = 0; LayerIndex < Actor->Layers.Num(); LayerIndex++)
+			{
+				LayerNames.AddUnique(Actor->Layers[LayerIndex]);
+			}
+		}
+
+		Ar.Logf(TEXT("Valid layer names:"));
+
+		for (int32 LayerIndex = 0; LayerIndex < LayerNames.Num(); LayerIndex++)
+		{
+			Ar.Logf(TEXT("   %s"), *LayerNames[LayerIndex].ToString());
+		}
 	}
 
 	return true;

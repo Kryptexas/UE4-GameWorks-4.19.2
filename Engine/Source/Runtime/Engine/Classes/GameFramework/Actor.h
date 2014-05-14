@@ -385,6 +385,10 @@ public:
 	/** Return the value of bAllowReceiveTickEventOnDedicatedServer, indicating whether the Blueprint ReceiveTick event will occur on dedicated servers */
 	FORCEINLINE bool AllowReceiveTickEventOnDedicatedServer() const { return bAllowReceiveTickEventOnDedicatedServer; }
 
+	/** Layer's the actor belongs to.  This is outside of the editoronly data to allow hiding of LD-specified layers at runtime for profiling. */
+	UPROPERTY()
+	TArray< FName > Layers;
+
 protected:
 
 #if WITH_EDITORONLY_DATA
@@ -438,10 +442,6 @@ public:
 	// Actor's layer name.
 	UPROPERTY()
 	FName Layer_DEPRECATED;
-
-	/** Layer's the actor belongs to */
-	UPROPERTY()
-	TArray< FName > Layers;
 
 	UPROPERTY()
 	FName Group_DEPRECATED;
