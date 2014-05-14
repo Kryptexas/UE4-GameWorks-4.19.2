@@ -307,7 +307,7 @@ namespace UnrealBuildTool
 						CurrentSection = FindOrAddSection(TrimmedLine, Filename, LineIndex);
 						LastAction = ParseAction.None;
 					}
-					else
+					else if(TrimmedLine.Length > 0)
 					{
 						if (LastAction != ParseAction.None)
 						{
