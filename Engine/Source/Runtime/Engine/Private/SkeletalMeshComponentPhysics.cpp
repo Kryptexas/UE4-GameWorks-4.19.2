@@ -994,7 +994,7 @@ void USkeletalMeshComponent::ResetAllBodiesSimulatePhysics()
 		// Set fixed on any bodies with bAlwaysFullAnimWeight set to true
 		if(BodySetup && BodySetup->PhysicsType != PhysType_Default)
 		{
-			if (BodySetup->PhysicsType == PhysType_Unfixed)
+			if (BodySetup->PhysicsType == PhysType_Simulated)
 			{
 				BodyInst->SetInstanceSimulatePhysics(true);
 			}

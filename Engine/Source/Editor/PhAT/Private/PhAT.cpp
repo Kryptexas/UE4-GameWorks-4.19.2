@@ -180,6 +180,7 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 	SimulationMode = EPSM_Normal;
 	HierarchyFilterMode = PHFM_All;
 	SelectedAnimation = NULL;
+	SelectedSimulation = false;
 
 	SharedData = MakeShareable(new FPhATSharedData);
 
@@ -776,6 +777,9 @@ void FPhAT::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
+			//selected simulation
+			ToolbarBuilder.AddToolBarButton(Commands.ToggleSelectedSimulation);
+
 			//phat edit mode combo
 			FUIAction PhatMode;
 			PhatMode.CanExecuteAction = FCanExecuteAction::CreateSP(Phat, &FPhAT::IsNotSimulation);
@@ -1031,7 +1035,7 @@ void FPhAT::BindCommands()
 		Commands.ToggleSelectedSimulation,
 		FExecuteAction::CreateSP(this, &FPhAT::OnToggleSelectedSimulation),
 		FCanExecuteAction::CreateSP(this, &FPhAT::CanStartSimulation),
-		FIsActionChecked::CreateSP(this, &FPhAT::IsToggleSimulation));
+		FIsActionChecked::CreateSP(this, &FPhAT::IsSelectedSimulation));
 
 	ToolkitCommands->MapAction(
 		Commands.MeshRenderingMode_Solid,
@@ -1088,7 +1092,7 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsConstraintRenderingMode, FPhATSharedData::PCV_AllLimits));
 
 	ToolkitCommands->MapAction(
-		Commands.ShowFixedBodies,
+		Commands.ShowKinematicBodies,
 		FExecuteAction::CreateSP(this, &FPhAT::OnShowFixedBodies),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FPhAT::IsShowFixedBodies));
@@ -1210,16 +1214,16 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsShowSkeleton));
 
 	ToolkitCommands->MapAction(
-		Commands.MakeBodyFixed,
-		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Fixed ),
+		Commands.MakeBodyKinematic,
+		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Kinematic ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhAT::IsBodyPhysicsType, EPhysicsType::PhysType_Fixed ) );
+		FIsActionChecked::CreateSP(this, &FPhAT::IsBodyPhysicsType, EPhysicsType::PhysType_Kinematic ) );
 
 	ToolkitCommands->MapAction(
-		Commands.MakeBodyUnfixed,
-		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Unfixed ),
+		Commands.MakeBodySimulated,
+		FExecuteAction::CreateSP(this, &FPhAT::OnSetBodyPhysicsType, EPhysicsType::PhysType_Simulated ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FPhAT::IsBodyPhysicsType, EPhysicsType::PhysType_Unfixed ) );
+		FIsActionChecked::CreateSP(this, &FPhAT::IsBodyPhysicsType, EPhysicsType::PhysType_Simulated ) );
 
 	ToolkitCommands->MapAction(
 		Commands.MakeBodyDefault,
@@ -1228,12 +1232,12 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsBodyPhysicsType, EPhysicsType::PhysType_Default ) );
 
 	ToolkitCommands->MapAction(
-		Commands.FixAllBodiesBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Fixed) );
+		Commands.KinematicAllBodiesBelow,
+		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Kinematic) );
 
 	ToolkitCommands->MapAction(
-		Commands.UnfixAllBodiesBelow,
-		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Unfixed) );
+		Commands.SimulatedAllBodiesBelow,
+		FExecuteAction::CreateSP(this, &FPhAT::SetBodiesBelowSelectedPhysicsType, EPhysicsType::PhysType_Simulated) );
 
 	ToolkitCommands->MapAction(
 		Commands.MakeAllBodiesBelowDefault,
@@ -1592,11 +1596,6 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBody(bool bHierarchy /*= false*/)
 	{
 		const FPhATCommands& Commands = FPhATCommands::Get();
 
-		MenuBuilder.BeginSection( "PreviewTypeActions", LOCTEXT("BodyPreviewTypeHeader", "Preview" ) );
-		MenuBuilder.AddMenuEntry( Commands.ToggleSelectedSimulation );
-		MenuBuilder.EndSection();
-
-
 		struct FLocal
 		{
 			static void FillPhysicsTypeMenu(FMenuBuilder& InMenuBuilder, bool bInHierarchy)
@@ -1604,8 +1603,8 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBody(bool bHierarchy /*= false*/)
 				const FPhATCommands& PhATCommands = FPhATCommands::Get();
 
 				InMenuBuilder.BeginSection("BodyPhysicsTypeActions", LOCTEXT("BodyPhysicsTypeHeader", "Body Physics Type"));
-				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyFixed);
-				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyUnfixed);
+				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyKinematic);
+				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodySimulated);
 				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyDefault);
 				InMenuBuilder.EndSection();
 				InMenuBuilder.EndSection();
@@ -1613,8 +1612,8 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBody(bool bHierarchy /*= false*/)
 				if (bInHierarchy)
 				{
 					InMenuBuilder.BeginSection("BodiesBelowPhysicsTypeActions", LOCTEXT("BodiesBelowPhysicsTypeHeader", "Bodies Below Physics Type"));
-					InMenuBuilder.AddMenuEntry(PhATCommands.FixAllBodiesBelow);
-					InMenuBuilder.AddMenuEntry(PhATCommands.UnfixAllBodiesBelow);
+					InMenuBuilder.AddMenuEntry(PhATCommands.KinematicAllBodiesBelow);
+					InMenuBuilder.AddMenuEntry(PhATCommands.SimulatedAllBodiesBelow);
 					InMenuBuilder.AddMenuEntry(PhATCommands.MakeAllBodiesBelowDefault);
 					InMenuBuilder.EndSection();
 				}
@@ -1683,10 +1682,6 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetConstraint(bool bHierarchy /*= false*/
 	const FPhATCommands& Commands = FPhATCommands::Get();
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, GetToolkitCommands());
 	{
-		MenuBuilder.BeginSection( "PreviewTypeActions", LOCTEXT("ConstraintPreviewTypeHeader", "Preview" ) );
-		MenuBuilder.AddMenuEntry( Commands.ToggleSelectedSimulation );
-		MenuBuilder.EndSection();
-
 		MenuBuilder.BeginSection( "MotorTypeActions", LOCTEXT("ConstraintMotorTypeHeader", "Motors" ) );
 		MenuBuilder.AddMenuEntry(Commands.ToggleMotor);
 		if(bHierarchy)
@@ -2331,13 +2326,26 @@ bool FPhAT::IsSimulationMode(EPhATSimulationMode Mode) const
 void FPhAT::OnToggleSimulation()
 {
 	FixPhysicsState();
+	if (IsSelectedSimulation())
+	{
+		OnSelectedSimulation();
+	}
 	SharedData->bNoGravitySimulation = IsSimulationMode(EPSM_Gravity);
 	ImpToggleSimulation();
 }
 
+bool FPhAT::IsSelectedSimulation()
+{
+	return SelectedSimulation;
+}
+
 void FPhAT::OnToggleSelectedSimulation()
 {
-	FixPhysicsState();
+	SelectedSimulation = !SelectedSimulation;
+}
+
+void FPhAT::OnSelectedSimulation()
+{
 
 	//Before starting we modify the PhysicsType so that selected are unfixed and the rest are fixed
 	if(SharedData->bRunningSimulation == false)
@@ -2350,14 +2358,14 @@ void FPhAT::OnToggleSelectedSimulation()
 		for(int32 i=0; i<SharedData->PhysicsAsset->BodySetup.Num(); ++i)
 		{
 			BodySetup[i]->Modify();
-			BodySetup[i]->PhysicsType = PhysType_Fixed;
+			BodySetup[i]->PhysicsType = PhysType_Kinematic;
 		}
 
 		//Find which bodes have been selected
 		if(SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 		{
 			//Bodies already have a function that does this
-			SetBodiesBelowSelectedPhysicsType(PhysType_Unfixed);
+			SetBodiesBelowSelectedPhysicsType(PhysType_Simulated);
 		}else
 		{
 			//constraints need some more work
@@ -2377,13 +2385,10 @@ void FPhAT::OnToggleSelectedSimulation()
 				}
 			}
 
-			SetBodiesBelowPhysicsType(PhysType_Unfixed, BodyIndices);
+			SetBodiesBelowPhysicsType(PhysType_Simulated, BodyIndices);
 		}
 	}
 
-
-	SharedData->bNoGravitySimulation = IsSimulationMode(EPSM_Gravity);
-	ImpToggleSimulation();
 }
 
 

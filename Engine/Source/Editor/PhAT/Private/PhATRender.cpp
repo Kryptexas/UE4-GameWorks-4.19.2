@@ -436,7 +436,7 @@ FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollis
 	if (SharedData->bRunningSimulation)
 	{
 		// @todo draw fixed, too?
-		if (SharedData->bShowFixedStatus && BodySetup->PhysicsType == PhysType_Unfixed)
+		if (SharedData->bShowFixedStatus && BodySetup->PhysicsType == PhysType_Simulated)
 		{
 			return FixedColor;
 		}
@@ -474,7 +474,7 @@ FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollis
 	
 	if (SharedData->bShowFixedStatus)
 	{
-		if (BodySetup->PhysicsType == PhysType_Unfixed)
+		if (BodySetup->PhysicsType == PhysType_Simulated)
 		{
 			return FixedColor;
 		}

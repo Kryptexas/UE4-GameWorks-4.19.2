@@ -1128,7 +1128,7 @@ FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_
 
 bool UDestructibleComponent::IsAnySimulatingPhysics() const 
 {
-	return BodyInstance.bSimulatePhysics;
+	return !!BodyInstance.bSimulatePhysics;
 }
 
 #if WITH_PHYSX

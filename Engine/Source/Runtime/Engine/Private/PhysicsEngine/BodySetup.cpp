@@ -668,11 +668,11 @@ void UBodySetup::PostLoad()
 	{
 		if ( bAlwaysFullAnimWeight_DEPRECATED )
 		{
-			PhysicsType = PhysType_Unfixed;
+			PhysicsType = PhysType_Simulated;
 		}
 		else if ( DefaultInstance.bSimulatePhysics == false )
 		{
-			PhysicsType = PhysType_Fixed;
+			PhysicsType = PhysType_Kinematic;
 		}
 		else
 		{
