@@ -83,7 +83,7 @@ bool FEngineVersion::IsCompatibleWith(const FEngineVersion &Other) const
 FString FEngineVersion::ToString(EVersionComponent::Type LastComponent) const
 {
 	FString Result = FString::Printf(TEXT("%u"), Major);
-	if(LastComponent >= EVersionComponent::Major)
+	if(LastComponent >= EVersionComponent::Minor)
 	{
 		Result += FString::Printf(TEXT(".%u"), Minor);
 		if(LastComponent >= EVersionComponent::Patch)
