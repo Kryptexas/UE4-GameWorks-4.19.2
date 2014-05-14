@@ -86,8 +86,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		// need to update back to physX so that physX knows where it was after blending
 		bool bUpdatePhysics = false;
 		FBodyInstance* BodyInstance = NULL;
-		// if this is true fixed bones haven't been updated, so we can't blend between. 
-		bool bShouldSkipFixedBones = KinematicBonesUpdateType == EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;
+
 		// If so - get its world space matrix and its parents world space matrix and calc relative atom.
 		if(BodyIndex != INDEX_NONE )
 		{	
@@ -106,12 +105,9 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			}
 #endif
 			BodyInstance = Bodies[BodyIndex];
-			// since we don't copy back to physics, we shouldn't blend fixed bones here if this set up is used
-			// if you'd like to use fixed bones to blend use SkipSimulatingBones
-			// you can simulate fixed bones by setting it to instance, but that case, please use SkipSimulating Bones. 
-			bool bSkipFixedBones = bShouldSkipFixedBones && !BodyInstance->bSimulatePhysics;
 
-			if(!bSkipFixedBones && BodyInstance->IsValidBodyInstance())
+			//if simulated body copy back and blend with animation
+			if(BodyInstance->IsInstanceSimulatingPhysics(true))
 			{
 				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform();
 
@@ -294,9 +290,6 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 		}
 #endif
 
-		// see if we should check fixed bones or not
-		bool bShouldSkipFixedBones = KinematicBonesUpdateType == EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;
-
 		// Iterate over each body
 		for(int32 i = 0; i < Bodies.Num(); i++)
 		{
@@ -304,7 +297,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 			FBodyInstance* BodyInst = Bodies[i];
 			check(BodyInst);
 
-			if (!bShouldSkipFixedBones && BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
+			if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
 			{
 				// Find the graphics bone index that corresponds to this physics body.
 				FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;

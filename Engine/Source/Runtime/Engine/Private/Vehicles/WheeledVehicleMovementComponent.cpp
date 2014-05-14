@@ -1255,7 +1255,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 			}
 		}
 
-		Mesh->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;	//since the wheels use physx we need to skip fixed bones from updating
+		Mesh->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 		
 	}
 
