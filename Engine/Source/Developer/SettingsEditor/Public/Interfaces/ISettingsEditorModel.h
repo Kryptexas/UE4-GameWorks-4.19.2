@@ -42,7 +42,7 @@ public:
 	/**
 	 * Selects the specified settings section to be displayed in the editor.
 	 *
-	 * @param Section - The section to select.
+	 * @param Section The section to select.
 	 *
 	 * @see SelectPreviousSection
 	 */

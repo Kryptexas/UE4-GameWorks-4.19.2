@@ -31,8 +31,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The view model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The view model.
 	 */
 	void Construct( const FArguments& InArgs, const ISettingsEditorModelRef& InModel );
 
@@ -71,7 +71,7 @@ protected:
 	/**
 	 * Creates a widget for the given settings category.
 	 *
-	 * @param Category - The category to create the widget for.
+	 * @param Category The category to create the widget for.
 	 *
 	 * @return The created widget.
 	 */

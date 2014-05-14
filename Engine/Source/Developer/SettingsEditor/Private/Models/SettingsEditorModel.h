@@ -18,7 +18,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSettingsContainer - The settings container to use.
+	 * @param InSettingsContainer The settings container to use.
 	 */
 	FSettingsEditorModel( const ISettingsContainerRef& InSettingsContainer )
 		: SettingsContainer(InSettingsContainer)
