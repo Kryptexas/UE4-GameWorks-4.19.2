@@ -24,6 +24,14 @@ case $ACTION in
                 Platform=""
                 AdditionalFlags=""
 		
+                case $CLANG_STATIC_ANALYZER_MODE in
+				"deep")
+					AdditionalFlags+="-skipActionHistory"
+					;;
+				"shallow")
+					AdditionalFlags+="-skipActionHistory"
+					;;
+				esac
 
 		case $2 in 
 	                "iphoneos") 
@@ -43,6 +51,9 @@ case $ACTION in
 				AdditionalFlags+=" -deploy " 
 			;; 
 		esac
+		
+		BuildTasks=$(defaults read com.apple.dt.Xcode IDEBuildOperationMaxNumberOfConcurrentCompileTasks)
+		export NumUBTBuildTasks=$BuildTasks
 
 		echo Running command : Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4" 
 		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4"

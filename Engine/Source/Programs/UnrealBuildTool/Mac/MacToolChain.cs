@@ -391,8 +391,69 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
-				CompileAction.CommandPath = "xcrun";
-				CompileAction.CommandArguments = MacCompiler + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				
+				string CompilerBundleIdentifier = Environment.GetEnvironmentVariable("GCC_VERSION");
+				string StaticAnalysisMode = Environment.GetEnvironmentVariable("CLANG_STATIC_ANALYZER_MODE");
+				if(CompilerBundleIdentifier == null || CompilerBundleIdentifier == "" 
+					|| CompilerBundleIdentifier == "com.apple.compilers.llvm.clang.1_0" 
+					|| (StaticAnalysisMode != null && StaticAnalysisMode != ""))
+				{
+					CompileAction.CommandPath = MacCompiler;
+					if(StaticAnalysisMode != null && StaticAnalysisMode != "")
+					{
+						FileArguments = " --analyze " + FileArguments;
+					}
+				}
+				else
+				{
+					CompileAction.CommandPath = null;
+					string UserDir = Environment.GetEnvironmentVariable("HOME");
+					string XcodePlugins = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/";
+					if(Directory.Exists(XcodePlugins))
+					{
+						IEnumerable<string> Plugins = Directory.EnumerateDirectories(XcodePlugins, "*.xcplugin");
+						foreach(string Plugin in Plugins)
+						{
+							string Resources = Plugin + "/Contents/Resources";
+							string[] CompilerSpecs = Directory.GetFiles(Resources, "*.xcspec");
+							if(CompilerSpecs.Length > 0)
+							{
+								IEnumerable<string> Lines = File.ReadLines(CompilerSpecs[0]);
+								bool bFindExecPath = false;
+								bool bFoundExecPath = false;
+								foreach(string Line in Lines)
+								{
+									if(!bFindExecPath && Line.Contains(CompilerBundleIdentifier))
+									{
+										bFindExecPath = true;
+									}
+									else if(bFindExecPath && Line.Contains("ExecPath"))
+									{
+										char[] CharsToTrim = {';', '"'};
+										string ExecPath = Line.Trim().Substring(12).TrimEnd(CharsToTrim);
+										CompileAction.CommandPath = ExecPath;
+										bFoundExecPath = true;
+										break;
+									}
+								}
+								if(bFoundExecPath)
+								{
+									break;
+								}
+							}
+						}
+					}
+					else
+					{
+						throw new BuildException("Couldn't find Xcode compiler plugins path: {0}", XcodePlugins);
+					}
+					
+					if(CompileAction.CommandPath == null)
+					{
+						throw new BuildException("Couldn't find Xcode compiler: {0}", CompilerBundleIdentifier);
+					}
+				}
+				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.StatusDetailedDescription = SourceFile.Description;
