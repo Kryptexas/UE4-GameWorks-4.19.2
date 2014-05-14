@@ -37,7 +37,6 @@ public:
 	 */
 	virtual ISettingsEditorModelRef CreateModel( const ISettingsContainerRef& SettingsContainer ) = 0;
 
-
 public:
 
 	/**
@@ -51,7 +50,6 @@ public:
 	{
 		return FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
 	}
-
 
 public:
 

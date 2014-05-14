@@ -22,6 +22,11 @@ public:
 
 	SLATE_END_ARGS()
 
+	/**
+	 * Constructs the widget.
+	 *
+	 * @param InArgs The construction arguments.
+	 */
 	void Construct( const FArguments& InArgs );
 
 private:

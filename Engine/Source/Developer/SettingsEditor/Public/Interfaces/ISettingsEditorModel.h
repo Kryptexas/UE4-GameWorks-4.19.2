@@ -48,7 +48,6 @@ public:
 	 */
 	virtual void SelectSection( const ISettingsSectionPtr& Section ) = 0;
 
-
 public:
 
 	/**
@@ -57,7 +56,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) = 0;
-
 
 public:
 
