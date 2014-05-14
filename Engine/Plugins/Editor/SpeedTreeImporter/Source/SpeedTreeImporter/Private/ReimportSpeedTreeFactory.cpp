@@ -88,3 +88,5 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 }
 
 #endif
+
+#undef LOCTEXT_NAMESPACE
