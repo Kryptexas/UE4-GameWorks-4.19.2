@@ -4,6 +4,7 @@
 #include "GameProjectGenerationPrivatePCH.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "SVerbChoiceDialog.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -15,16 +16,16 @@ struct FProjectItem
 {
 	FText Name;
 	FText Description;
-	FEngineVersion EngineVersion;
+	FString EngineIdentifier;
 	bool bUpToDate;
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const FEngineVersion& InEngineVersion, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
+	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
 		: Name(InName)
 		, Description(InDescription)
-		, EngineVersion(InEngineVersion)
+		, EngineIdentifier(InEngineIdentifier)
 		, bUpToDate(InUpToDate)
 		, ProjectFile(InProjectFile)
 		, ProjectThumbnail(InProjectThumbnail)
@@ -34,7 +35,24 @@ struct FProjectItem
 	/** Check if this project is up to date */
 	bool IsUpToDate() const
 	{
-		return bUpToDate || EngineVersion.IsEmpty();
+		return bUpToDate;
+	}
+
+	/** Gets the engine label for this project */
+	FString GetEngineLabel() const
+	{
+		if(bUpToDate)
+		{
+			return FString();
+		}
+		else if(FDesktopPlatformModule::Get()->IsStockEngineRelease(EngineIdentifier))
+		{
+			return EngineIdentifier;
+		}
+		else
+		{
+			return FString(TEXT("?"));
+		}
 	}
 };
 
@@ -365,7 +383,7 @@ TSharedRef<ITableRow> SProjectBrowser::MakeProjectViewWidget(TSharedPtr<FProject
 					.Padding(10)
 					[
 						SNew(STextBlock)
-						.Text(ProjectItem->EngineVersion.ToString(EVersionComponent::Minor))
+						.Text(ProjectItem->GetEngineLabel())
 						.TextStyle(FEditorStyle::Get(), "ProjectBrowser.VersionOverlayText")
 						.ColorAndOpacity(FLinearColor::White.CopyWithNewOpacity(0.5f))
 						.Visibility(ProjectItem->IsUpToDate() ? EVisibility::Collapsed : EVisibility::Visible)
@@ -408,10 +426,26 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 
 	if (!ProjectItem->IsUpToDate())
 	{
-		FFormatOrderedArguments Args;
-		Args.Add(FText::FromString(ProjectItem->EngineVersion.ToString(EVersionComponent::Minor)));
-		AddToToolTipInfoBox(InfoBox, LOCTEXT("ProjectVersion", "Version"),
-			FText::Format(LOCTEXT("ProjectTileOutOfDate", "This project was created with engine version {0}. It may require an update to work with this build."), Args));
+		FText Description;
+		if(FDesktopPlatformModule::Get()->IsStockEngineRelease(ProjectItem->EngineIdentifier))
+		{
+			Description = FText::FromString(ProjectItem->EngineIdentifier);
+		}
+		else
+		{
+			FString RootDir;
+			if(FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(ProjectItem->EngineIdentifier, RootDir))
+			{
+				FString PlatformRootDir = RootDir;
+				FPaths::MakePlatformFilename(PlatformRootDir);
+				Description = FText::FromString(PlatformRootDir);
+			}
+			else
+			{
+				Description = LOCTEXT("UnknownEngineVersion", "Unknown engine version");
+			}
+		}
+		AddToToolTipInfoBox(InfoBox, LOCTEXT("EngineVersion", "Engine"), Description);
 	}
 
 	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
@@ -655,7 +689,7 @@ FReply SProjectBrowser::FindProjects()
 		{
 			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
-			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus))
+			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus))
 			{
 				// @todo localized project name
 				const FText ProjectName = FText::FromString(ProjectStatus.Name);
@@ -690,8 +724,11 @@ FReply SProjectBrowser::FindProjects()
 					ProjectCategory = DetectedCategory;
 				}
 
+				FString ProjectEngineIdentifier;
+				bool bIsUpToDate = FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFilename, ProjectEngineIdentifier) && ProjectEngineIdentifier == EngineIdentifier;
+
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectStatus.EngineVersion, ProjectStatus.bUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}
@@ -814,15 +851,119 @@ FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 	return FReply::Unhandled();
 }
 
-
-bool SProjectBrowser::OpenProject( const FString& ProjectFile )
+bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 {
 	FText FailReason;
+	FString ProjectFile = InProjectFile;
 
+	// Get the identifier for the project
+	FString ProjectIdentifier;
+	FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFile, ProjectIdentifier);
+	
+	// Get the identifier for the current engine
+	FString CurrentIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	if(ProjectIdentifier != CurrentIdentifier)
+	{
+		// Get the current project status
+		FProjectStatus ProjectStatus;
+		if(!IProjectManager::Get().QueryStatusForProject(ProjectFile, ProjectStatus))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CouldNotReadProjectStatus", "Unable to read project status."));
+			return false;
+		}
+
+		// Ask whether to copy the project or upgrade in-place
+		TArray<FText> Buttons;
+		int32 OpenCopyButton = Buttons.Add(LOCTEXT("ProjectUpgradeCopy", "Create a copy"));
+		Buttons.Add(LOCTEXT("ProjectUpgradeInPlace", "Convert in-place"));
+		int32 CancelButton = Buttons.Add(LOCTEXT("ProjectUpgradeCancel", "Cancel"));
+
+		// Show the dialog
+		int32 Selection = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Upgrade Project"), LOCTEXT("ProjectUpgradePrompt", "This project was made with a different version of the editor. Converting it to this version of the editor may be irreversible.\n\nWould you like to create a copy before opening?"), Buttons);
+		if(Selection == OpenCopyButton)
+		{
+			FString NewProjectFile;
+			if(!GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile))
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("CopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
+				return false;
+			}
+			ProjectFile = NewProjectFile;
+		}
+		else if(Selection == CancelButton)
+		{
+			return false;
+		}
+
+		// If it's a code-based project, generate project files and open visual studio after an upgrade
+		if(ProjectStatus.bCodeBasedProject)
+		{
+			// Try to generate project files
+			FStringOutputDevice OutputLog;
+			OutputLog.SetAutoEmitLineTerminator(true);
+			GLog->AddOutputDevice(&OutputLog);
+			bool bHaveProjectFiles = FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), ProjectFile, GWarn);
+			GLog->RemoveOutputDevice(&OutputLog);
+
+			// Display any errors
+			if(!bHaveProjectFiles)
+			{
+				FFormatNamedArguments Args;
+				Args.Add( TEXT("LogOutput"), FText::FromString(OutputLog) );
+				FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("CouldNotGenerateProjectFiles", "Project files could not be generated. Log output:\n\n{LogOutput}"), Args));
+				return false;
+			}
+
+			// Try to compile the project
+			OutputLog.Empty();
+			GLog->AddOutputDevice(&OutputLog);
+			bool bCompileSucceeded = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), ProjectFile, GWarn);
+			GLog->RemoveOutputDevice(&OutputLog);
+
+			// Try to compile the modules
+			if(!bCompileSucceeded)
+			{
+				FText DevEnvName = FSourceCodeNavigation::GetSuggestedSourceCodeIDE( true );
+
+				TArray<FText> CompileFailedButtons;
+				int32 OpenIDEButton = CompileFailedButtons.Add(FText::Format(LOCTEXT("CompileFailedOpenIDE", "Open with {0}"), DevEnvName));
+				int32 ViewLogButton = CompileFailedButtons.Add(LOCTEXT("CompileFailedViewLog", "View build log"));
+				CompileFailedButtons.Add(LOCTEXT("CompileFailedCancel", "Cancel"));
+
+				int32 CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Would you like to open the project in {0}?"), DevEnvName), CompileFailedButtons);
+				if(CompileFailedChoice == ViewLogButton)
+				{
+					CompileFailedButtons.RemoveAt(ViewLogButton);
+					CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Build output is as follows:\n\n{0}"), FText::FromString(OutputLog)), CompileFailedButtons);
+				}
+
+				if(CompileFailedChoice == OpenIDEButton && !GameProjectUtils::OpenCodeIDE(ProjectFile, FailReason))
+				{
+					FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+				}
+
+				return false;
+			}
+		}
+
+		// Update the game project to the latest version. This will prompt to check-out as necessary. We don't need to write the engine identifier yet, because it won't use the right .uprojectdirs logic.
+		if(!GameProjectUtils::UpdateGameProject(TEXT("")))
+		{
+			return false;
+		}
+
+		// Write the engine association
+		if(!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFile, CurrentIdentifier))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ProjectUpgradeFailure", "Project file could not be updated to latest version. Check that the file is writable."));
+			return false;
+		}
+	}
+
+	// Open the project
 	if (!GameProjectUtils::OpenProject(ProjectFile, FailReason))
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-
 		return false;
 	}
 

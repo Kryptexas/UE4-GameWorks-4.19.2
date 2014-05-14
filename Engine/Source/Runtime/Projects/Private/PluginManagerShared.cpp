@@ -227,21 +227,10 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	return JSONOutput;
 }
 
-bool FProjectOrPlugin::IsUpToDate( const FString &EngineIdentifier ) const
+bool FProjectOrPlugin::RequiresUpdate( ) const
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
-
-	if (ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE)
-	{
-		return false;
-	}
-
-	if (ProjectOrPluginInfo.EngineAssociation != EngineIdentifier)
-	{
-		return false;
-	}
-
-	return true;
+	return (ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE);
 }
 
 bool FProjectOrPlugin::AreModulesUpToDate( ) const

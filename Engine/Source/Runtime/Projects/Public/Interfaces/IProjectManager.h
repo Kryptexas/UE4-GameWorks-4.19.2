@@ -22,18 +22,19 @@ public:
 	/** The UI category of this project */
 	FString Category;
 
-	/** The version of the engine that this project is made for */
-	FEngineVersion EngineVersion;
-
 	/** True if this project is a sample provided by epic */
 	bool bSignedSampleProject;
 
-	/** True if this project is up to date with the current engine version */
-	bool bUpToDate;
+	/** True if the project is code-based */
+	bool bCodeBasedProject;
+
+	/** True if this project needs to be updated */
+	bool bRequiresUpdate;
 
 	FProjectStatus()
 		: bSignedSampleProject(false)
-		, bUpToDate(false)
+		, bCodeBasedProject(false)
+		, bRequiresUpdate(false)
 	{}
 };
 
@@ -151,7 +152,7 @@ public:
 	 *
 	 * @return	 true if the file was successfully open and read
 	 */
-	virtual bool QueryStatusForProject(const FString& FilePath, const FString& EngineIdentifier, FProjectStatus& OutProjectStatus) const = 0;
+	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const = 0;
 
 	/** Helper functions to reduce the syntax complexity of commonly used functions */
 	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }

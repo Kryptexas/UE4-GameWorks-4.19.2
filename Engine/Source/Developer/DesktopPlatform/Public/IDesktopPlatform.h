@@ -190,6 +190,14 @@ public:
 	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) = 0;
 
 	/**
+	* Checks if the given engine identifier is for an stock engine release.
+	*
+	* @param	Identifier			Engine identifier to check
+	* @return	true if the identifier is for a binary engine release
+	*/
+	virtual bool IsStockEngineRelease(const FString &Identifier) = 0;
+
+	/**
 	* Tests whether an engine installation is a source distribution.
 	*
 	* @return	true if the engine contains source.
@@ -241,4 +249,35 @@ public:
 	* @return true if OutIdentifier is set to the project's engine association
 	*/
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
+
+	/**
+	* Compiles a game project.
+	*
+	* @param RootDir			Engine root directory for the project to use.
+	* @param ProjectFileName	Filename of the project to update
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if project files were generated successfully.
+	*/
+	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Generates project files for the given project.
+	*
+	* @param RootDir			Engine root directory for the project to use.
+	* @param ProjectFileName	Filename of the project to update
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if project files were generated successfully.
+	*/
+	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Runs UnrealBuildTool with the given arguments.
+	*
+	* @param Description		Task description for FFeedbackContext
+	* @param RootDir			Engine root directory for the project to use.
+	* @param Arguments			Parameters for UnrealBuildTool
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if the task completed successfully.
+	*/
+	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
 };
