@@ -289,7 +289,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	if ( !ProjectFileName.IsEmpty() )
 	{
 		// Figure out whether it's a foreign project
-		FUProjectDictionary ProjectDictionary(RootDir);
+		const FUProjectDictionary &ProjectDictionary = GetCachedProjectDictionary(RootDir);
 		if(ProjectDictionary.IsForeignProject(ProjectFileName))
 		{
 			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));

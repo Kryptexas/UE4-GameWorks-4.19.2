@@ -639,4 +639,9 @@ bool FDesktopPlatformMac::RunUnrealBuildTool(const FText& Description, const FSt
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, TEXT("/bin/sh"), CmdLineParams, Warn, &ExitCode) && ExitCode == 0;
 }
 
+FFeedbackContext* FDesktopPlatformMac::GetNativeFeedbackContext()
+{
+	return GWarn;
+}
+
 #undef LOCTEXT_NAMESPACE

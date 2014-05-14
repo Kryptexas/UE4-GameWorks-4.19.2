@@ -1223,7 +1223,7 @@ namespace UnrealBuildTool
 			var bSuccess = true;
 			if( ShouldGenerateIntelliSenseData() && TargetFiles.Count > 0 )
 			{
-				using(ProgressWriter Progress = new ProgressWriter("Binding Binding IntelliSense data..."))
+				using(ProgressWriter Progress = new ProgressWriter("Binding IntelliSense data..."))
 				{
 					for(int TargetIndex = 0; TargetIndex < TargetFiles.Count; ++TargetIndex)
 					{
