@@ -91,7 +91,7 @@
 	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
 	{
 		dispatch_block_t Block = ^{
-			if(bDeferSetOrigin)
+			if(!bDeferSetFrame && bDeferSetOrigin)
 			{
 				DeferFrame.size = [self frame].size;
 			}
