@@ -687,7 +687,11 @@ bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags 
 
 	if (NewOuter && NewOuter->IsA<ULevel>())
 	{
-		RegisterAllComponents();
+		UWorld* World = NewOuter->GetWorld();
+		if (World && World->bIsWorldInitialized)
+		{
+			RegisterAllComponents();
+		}
 		RegisterAllActorTickFunctions(true, true); // register all tick functions
 	}
 	return bSuccess;
