@@ -484,7 +484,7 @@ void GameProjectUtils::OpenAddCodeToProjectDialog()
 	TSharedRef<SWindow> AddCodeWindow =
 		SNew(SWindow)
 		.Title(LOCTEXT( "AddCodeWindowHeader", "Add Code"))
-		.ClientSize( FVector2D(1280, 720) )
+		.ClientSize( FVector2D(940, 540) )
 		.SizingRule( ESizingRule::FixedSize )
 		.SupportsMinimize(false) .SupportsMaximize(false);
 

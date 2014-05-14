@@ -169,9 +169,6 @@ private:
 	/** The selected parent class */
 	TWeakObjectPtr<UClass> ParentClass;
 
-	/** The fixed width of the dialog */
-	int32 DialogFixedWidth;
-
 	/** If true, the full class tree will be shown in the parent class selection */
 	bool bShowFullClassTree;
 
