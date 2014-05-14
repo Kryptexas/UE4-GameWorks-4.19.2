@@ -142,11 +142,6 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 	/** Find new path when it gets invalidated (e.g. runtime navmesh rebuild) */
 	void SetRepathWhenInvalid(bool bEnabled);
 
-	/** Set timeout for repathing */
-	void SuspendPathRepathingFor(float SuspentionInterval);
-
-	bool IsRepathingSuspended() const { return TimeToUnlockRepathing > KINDA_SMALL_NUMBER; }
-
 	UFUNCTION()
 	virtual void OnNavDataRegistered(class ANavigationData* NavData);
 
@@ -250,9 +245,6 @@ protected:
 		bool bSimplePath;
 	};
 	FDeferredRepath RepathData;
-
-	/**  It allows to suspend path repathing for some time */
-	float TimeToUnlockRepathing;
 
 	/** asks NavigationSystem for NavigationData appropriate for self and caches it in MyNavData */
 	class ANavigationData* PickNavData() const;

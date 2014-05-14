@@ -1055,7 +1055,8 @@ ESlateCheckBoxState::Type SLogVisualizer::GetToggleCameraState() const
 //----------------------------------------------------------------------//
 void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 {
-	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex) && GetWorld() != NULL)
+	UWorld* World = GetWorld();
+	if (World != NULL && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
 		const TArray<TSharedPtr<FVisLogEntry> >& Entries = Log->Entries;
@@ -1069,7 +1070,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			for (int32 Index = 1; Index < Entries.Num(); ++Index, ++Entry)
 			{
 				const FVector CurrentLocation = (*Entry)->Location;
-				DrawDebugLine(GetWorld(), Location, CurrentLocation, FColor(160,160,240));
+				DrawDebugLine(World, Location, CurrentLocation, FColor(160, 160, 240));
 				Location = CurrentLocation;
 			}
 		}
@@ -1080,7 +1081,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			const TSharedPtr<FVisLogEntry>& Entry = Entries[LogEntryIndex];
 
 			// mark current location
-			DrawDebugCone(GetWorld(), Entry->Location, /*Direction*/FVector(0,0,1), /*Length*/200.f
+			DrawDebugCone(World, Entry->Location, /*Direction*/FVector(0, 0, 1), /*Length*/200.f
 				, PI/64, PI/64, /*NumSides*/16, FColor::Red);
 			
 			UFont* Font = GEngine->GetSmallFont();
@@ -1109,7 +1110,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						const FVector* Location = ElementToDraw->Points.GetTypedData();
 						for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index, ++Location)
 						{
-							DrawDebugSphere(GetWorld(), *Location, Radius, 16, Color);
+							DrawDebugSphere(World, *Location, Radius, 16, Color);
 							if (bDrawLabel)
 							{
 								const FVector ScreenLoc = Canvas->Project(*Location);
@@ -1125,7 +1126,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						const FVector* Location = ElementToDraw->Points.GetTypedData();
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, Location += 2)
 						{
-							DrawDebugLine(GetWorld(), *Location, *(Location + 1), Color
+							DrawDebugLine(World, *Location, *(Location + 1), Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0, Thickness);
 
@@ -1155,12 +1156,13 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						for (int32 Index = 1; Index < ElementToDraw->Points.Num(); ++Index)
 						{
 							const FVector CurrentLocation = ElementToDraw->Points[Index];
-							DrawDebugLine(GetWorld(), Location, CurrentLocation, Color
+							DrawDebugLine(World, Location, CurrentLocation, Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0, Thickness);
 							Location = CurrentLocation;
 						}
 					}
+					break;
 				case FVisLogEntry::FElementToDraw::Box:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
@@ -1169,7 +1171,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						for (int32 Index = 0; Index + 1 < ElementToDraw->Points.Num(); Index += 2, BoxExtent += 2)
 						{
 							FBox Box(*BoxExtent, *(BoxExtent + 1));
-							DrawDebugBox(GetWorld(), Box.GetCenter(), Box.GetExtent(), Color
+							DrawDebugBox(World, Box.GetCenter(), Box.GetExtent(), Color
 								, /*bPersistentLines*/false, /*LifeTime*/-1
 								, /*DepthPriority*/0/*, Thickness*/);
 

@@ -20,7 +20,6 @@ UNavigationComponent::UNavigationComponent(const class FPostConstructInitializeP
 	bUpdateForSmartLinks = true;
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
-	TimeToUnlockRepathing = 0;
 }
 
 void UNavigationComponent::InitializeComponent()
@@ -55,45 +54,35 @@ void UNavigationComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	check( GetOuter() != NULL );
 
-	TimeToUnlockRepathing = FMath::Max(0.0f, TimeToUnlockRepathing - DeltaTime);
-	if (!IsRepathingSuspended())
+	bool bSuccess = false;
+
+	if (GoalActor != NULL)
 	{
-		bool bSuccess = false;
+		const FVector GoalActorLocation = GetCurrentMoveGoal(GoalActor, GetOwner());
+		const float DistanceSq = FVector::DistSquared(GoalActorLocation, OriginalGoalActorLocation);
 
-		if (GoalActor != NULL)
+		if (DistanceSq > RepathDistanceSq)
 		{
-			const FVector GoalActorLocation = GetCurrentMoveGoal(GoalActor, GetOwner());
-			const float DistanceSq = FVector::DistSquared(GoalActorLocation, OriginalGoalActorLocation);
-
-			if (DistanceSq > RepathDistanceSq)
+			if (RePathTo(GoalActorLocation, StoredQueryFilter))
 			{
-				if (RePathTo(GoalActorLocation, StoredQueryFilter))
-				{
-					bSuccess = true;
-					OriginalGoalActorLocation = GoalActorLocation;
-				}
-				else
-				{
-					FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
-				}
+				bSuccess = true;
+				OriginalGoalActorLocation = GoalActorLocation;
 			}
 			else
 			{
-				bSuccess = true;
+				FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
 			}
 		}
-
-		if (bSuccess == false)
+		else
 		{
-			ResetTransientData();
+			bSuccess = true;
 		}
 	}
-}
 
-void UNavigationComponent::SuspendPathRepathingFor(float SuspentionInterval)
-{ 
-	TimeToUnlockRepathing = SuspentionInterval;
-	UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("Path repathing suspended for %03.02f seconds"), SuspentionInterval);
+	if (bSuccess == false)
+	{
+		ResetTransientData();
+	}
 }
 
 void UNavigationComponent::OnPathInvalid(FNavigationPath* InvalidatedPath)
@@ -662,11 +651,6 @@ void UNavigationComponent::SetPath(const FNavPathSharedPtr& ResultPath)
 	Path = ResultPath;
 	Path->SetObserver(PathObserverDelegate);
 	bIsPathPartial = Path->IsPartial();
-	if (IsRepathingSuspended())
-	{
-		TimeToUnlockRepathing = 0;
-		UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("Path repathing not longer suspended"));
-	}
 }
 
 void UNavigationComponent::ResetTransientData()
@@ -678,7 +662,6 @@ void UNavigationComponent::ResetTransientData()
 	bUseSimplePath = false;
 	Path = NULL;
 	StoredQueryFilter = NULL;
-	TimeToUnlockRepathing = 0;
 
 	// stop ticking - this component should tick only when following an actor
 	SetComponentTickEnabledAsync(false);

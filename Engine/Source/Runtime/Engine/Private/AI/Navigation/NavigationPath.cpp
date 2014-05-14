@@ -135,8 +135,9 @@ void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 {
 	const int32 NumPathVerts = PathPoints.Num();
 	FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Path);
-	Element.SetColor(FColor::Blue);
+	Element.SetColor(FColorList::Green);
 	Element.Points.Reserve(NumPathVerts);
+	Element.Thicknes = 3.f;
 	
 	for (int32 VertIdx = 0; VertIdx < NumPathVerts; ++VertIdx)
 	{
