@@ -513,7 +513,10 @@ private:
 	FReply NewColorTheme();
 	FReply DuplicateColorTheme();
 	FReply DeleteColorTheme();
-	FReply ChangeThemeName();
+	FReply AcceptThemeName();
+	bool CanAcceptThemeName() const;
+	void ChangeThemeName(const FText& InText);
+	EVisibility OnGetErrorTextVisibility() const;
 
 	/** Sets the current color theme to the existing theme */
 	void SetCurrentColorTheme(TSharedPtr<FColorTheme> NewTheme);
@@ -552,7 +555,9 @@ private:
 	TSharedPtr<SWidget> MenuRename;
 	TSharedPtr<SWidget> MenuConfirmDelete;
 	TSharedPtr<SWidget> MenuTrashColor;
-	
+	/** If any error occurs, it needs to be displayed here as SPopupErrorText won't work with nested combo buttons */
+	TSharedPtr<SErrorText> ErrorText;
+
 	/** The text box for renaming themes */
 	TSharedPtr<SEditableTextBox> RenameTextBox;
 

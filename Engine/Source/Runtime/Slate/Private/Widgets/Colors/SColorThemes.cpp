@@ -736,11 +736,13 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		+SHorizontalBox::Slot() .FillWidth(1) .Padding(3)
 		[
 			SAssignNew(RenameTextBox, SEditableTextBox) .Font(SmallLayoutFont)
+				.OnTextChanged(this, &SColorThemesViewer::ChangeThemeName)
 		]
 		+SHorizontalBox::Slot().AutoWidth() .Padding(3)
 		[
 			SNew(SButton) .Text(LOCTEXT("AcceptRenameButton", "Accept")) .HAlign(HAlign_Right)
-				.OnClicked(this, &SColorThemesViewer::ChangeThemeName)
+				.OnClicked(this, &SColorThemesViewer::AcceptThemeName)
+				.IsEnabled(this, &SColorThemesViewer::CanAcceptThemeName)
 		]
 		+SHorizontalBox::Slot().AutoWidth() .Padding(3)
 		[
@@ -792,6 +794,11 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		[
 			SAssignNew(Menu, SBorder)
 		]
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			SAssignNew(ErrorText, SErrorText)
+				.Visibility(this, &SColorThemesViewer::OnGetErrorTextVisibility)
+		]
 	];
 
 	MenuToStandardNoReturn();
@@ -809,6 +816,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SColorThemesViewer::MenuToStandardNoReturn()
 {
+	ErrorText->SetError(FString());
 	Menu->SetContent(MenuStandard.ToSharedRef());
 }
 
@@ -871,7 +879,7 @@ TSharedPtr<FColorTheme> SColorThemesViewer::IsColorTheme(const FString& ThemeNam
 	// Find the desired theme
 	for (int32 ThemeIndex = 0; ThemeIndex < ColorThemes.Num(); ++ThemeIndex)
 	{
-		TSharedPtr<FColorTheme>& ColorTheme = ColorThemes[ThemeIndex];
+		const TSharedPtr<FColorTheme>& ColorTheme = ColorThemes[ThemeIndex];
 		if ( ColorTheme->Name == ThemeName )
 		{
 			return ColorTheme;
@@ -924,7 +932,7 @@ TSharedPtr<FColorTheme> SColorThemesViewer::GetDefaultColorTheme(bool bCreateNew
 	return GetColorTheme( Name.ToString() );
 }
 
-FReply SColorThemesViewer::ChangeThemeName()
+FReply SColorThemesViewer::AcceptThemeName()
 {
 	// Update the theme name if it differs, ensuring it is still unique
 	const FString Name = RenameTextBox->GetText().ToString();
@@ -934,6 +942,34 @@ FReply SColorThemesViewer::ChangeThemeName()
 		RefreshThemes();
 	}
 	return FReply::Handled();
+}
+
+bool SColorThemesViewer::CanAcceptThemeName() const
+{
+	return !ErrorText->HasError();
+}
+
+void SColorThemesViewer::ChangeThemeName(const FText& InText)
+{
+	ErrorText->SetError(FString());
+
+	const FString ThemeName = InText.ToString();
+	for (int32 ThemeIndex = 0; ThemeIndex < ColorThemes.Num(); ++ThemeIndex)
+	{
+		const TSharedPtr<FColorTheme>& ColorTheme = ColorThemes[ThemeIndex];
+		if (ColorTheme != GetCurrentColorTheme() && ColorTheme->Name == ThemeName)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Name"), InText);
+			ErrorText->SetError(FText::Format(NSLOCTEXT("ColorThemesViewer", "VerifyTextDup", "A theme already exists with the name '{Name}'."), Args).ToString());
+			return;
+		}
+	}
+}
+
+EVisibility SColorThemesViewer::OnGetErrorTextVisibility() const
+{
+	return !CanAcceptThemeName() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 FReply SColorThemesViewer::NewColorTheme()
