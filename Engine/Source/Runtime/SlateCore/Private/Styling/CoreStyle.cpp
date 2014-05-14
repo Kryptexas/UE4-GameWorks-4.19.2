@@ -1102,6 +1102,12 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set("CrashTracker.Record", new IMAGE_BRUSH("CrashTracker/Record", Icon20x20));
 	}
 
+	// Wizard icons
+	{
+		Style->Set("Wizard.BackIcon", new IMAGE_BRUSH("Icons/BackIcon", Icon8x8));
+		Style->Set("Wizard.NextIcon", new IMAGE_BRUSH("Icons/NextIcon", Icon8x8));
+	}
+
 	return Style;
 }
 

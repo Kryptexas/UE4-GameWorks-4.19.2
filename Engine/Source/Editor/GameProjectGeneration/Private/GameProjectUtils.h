@@ -5,6 +5,22 @@
 class GameProjectUtils
 {
 public:
+	/** Where is this class located within the Source folder? */
+	enum class EClassLocation : uint8
+	{
+		/** The class is going to a user defined location (outside of the Public, Private, or Classes) folder for this module */
+		UserDefined,
+
+		/** The class is going to the Public folder for this module */
+		Public,
+
+		/** The class is going to the Private folder for this module */
+		Private,
+
+		/** The class is going to the Classes folder for this module */
+		Classes,
+	};
+
 	/** Returns true if the project filename is properly formed and does not conflict with another project */
 	static bool IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason);
 
@@ -91,6 +107,18 @@ public:
 	 * @return	false if the paths are invalid
 	 */
 	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
+
+	/** 
+	 * Given the path provided, work out where it's located within the Source folder
+	 *
+	 * @param	InPath				The path to use a base
+	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	OutClassLocation	The location within the Source folder
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	false if the paths are invalid
+	 */
+	static bool GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
 	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );

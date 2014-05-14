@@ -1511,25 +1511,18 @@ bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutM
 	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
 	OutHeaderPath = AbsoluteInPath;
 	OutSourcePath = AbsoluteInPath;
-	OutModuleName.Empty();
 
-	if(!IsValidSourcePath(InPath, true/*bIncludeModuleName*/, OutFailReason))
+	EClassLocation ClassPathLocation = EClassLocation::UserDefined;
+	if(!GetClassLocation(InPath, OutModuleName, ClassPathLocation, OutFailReason))
 	{
 		return false;
 	}
 
-	// We've validated that this path includes a partial match for our module (eg, MyModule, MyModuleEditor, MyModuleClient)
-	// so extract the actual name of the module from the path so that we can generate the internal folder names correctly
 	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/);
-	const int32 ModuleNameStartIndex = BaseRootPath.Len();
-	const int32 ModuleNameEndIndex = AbsoluteInPath.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, ModuleNameStartIndex);
-	check(ModuleNameEndIndex != INDEX_NONE); // this should never happen since AbsoluteInPath ends in a /, and we verified it started with BaseRootPath in IsValidSourcePath
-	OutModuleName = AbsoluteInPath.Mid(ModuleNameStartIndex, ModuleNameEndIndex - ModuleNameStartIndex);
-
 	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
-	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
 	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
 	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
+	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
 
 	// The root path must exist; we will allow the creation of sub-folders, but not the module root!
 	// We ignore this check if the project doesn't already have source code in it, as the module folder won't yet have been created
@@ -1545,37 +1538,85 @@ bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutM
 		return false;
 	}
 
+	// The rules for placing header files are as follows:
+	// 1) If InPath is the source root, and GetClassLocation has said the class header should be in the Public folder, put it in the Public folder
+	// 2) Otherwise, just place the header at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutHeaderPath = (ClassPathLocation == EClassLocation::Public) ? PublicPath : AbsoluteInPath;
+	}
+
+	// The rules for placing source files are as follows:
+	// 1) If InPath is the source root, and GetClassLocation has said the class header should be in the Public folder, put the source file in the Private folder
+	// 2) If InPath is contained within the Public or Classes folder of this module, place it in the equivalent path in the Private folder
+	// 3) Otherwise, just place the source file at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutSourcePath = (ClassPathLocation == EClassLocation::Public) ? PrivatePath : AbsoluteInPath;
+	}
+	else if(ClassPathLocation == EClassLocation::Public)
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*PublicPath, *PrivatePath);
+	}
+	else if(ClassPathLocation == EClassLocation::Classes)
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*ClassesPath, *PrivatePath);
+	}
+
+	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
+}
+
+bool GameProjectUtils::GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, FText* const OutFailReason)
+{
+	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
+	OutModuleName.Empty();
+	OutClassLocation = EClassLocation::UserDefined;
+
+	if(!IsValidSourcePath(InPath, true/*bIncludeModuleName*/, OutFailReason))
+	{
+		return false;
+	}
+
+	// We've validated that this path includes a partial match for our module (eg, MyModule, MyModuleEditor, MyModuleClient)
+	// so extract the actual name of the module from the path so that we can generate the internal folder names correctly
+	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/);
+	const int32 ModuleNameStartIndex = BaseRootPath.Len();
+	const int32 ModuleNameEndIndex = AbsoluteInPath.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, ModuleNameStartIndex);
+	check(ModuleNameEndIndex != INDEX_NONE); // this should never happen since AbsoluteInPath ends in a /, and we verified it started with BaseRootPath in IsValidSourcePath
+	OutModuleName = AbsoluteInPath.Mid(ModuleNameStartIndex, ModuleNameEndIndex - ModuleNameStartIndex);
+
+	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
+	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
+	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
+	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
+
 	// If either the Public or Private path exists, and we're in the root, force the header/source file to use one of these folders
 	const bool bPublicPathExists = IFileManager::Get().DirectoryExists(*PublicPath);
 	const bool bPrivatePathExists = IFileManager::Get().DirectoryExists(*PrivatePath);
 	const bool bForceInternalPath = AbsoluteInPath == RootPath && (bPublicPathExists || bPrivatePathExists);
 
-	// The rules for placing header files are as follows:
-	// 1) If InPath is the source root, check to see if there is a Public folder within it, and if so, place the header there
-	// 2) Otherwise, just place the header at InPath (the default set above)
 	if(AbsoluteInPath == RootPath)
 	{
-		OutHeaderPath = (bPublicPathExists || bForceInternalPath) ? PublicPath : AbsoluteInPath;
-	}
-
-	// The rules for placing source files are as follows:
-	// 1) If InPath is the source root, check to see if there is a Private folder within it, and if so, place the source file there
-	// 2) If InPath is contained within the Public or Classes folder of this module, place it in the equivalent path in the Private folder
-	// 3) Otherwise, just place the source file at InPath (the default set above)
-	if(AbsoluteInPath == RootPath)
-	{
-		OutSourcePath = (bPrivatePathExists || bForceInternalPath) ? PrivatePath : AbsoluteInPath;
-	}
-	else if(AbsoluteInPath.StartsWith(ClassesPath))
-	{
-		OutSourcePath = AbsoluteInPath.Replace(*ClassesPath, *PrivatePath);
+		OutClassLocation = (bPublicPathExists || bForceInternalPath) ? EClassLocation::Public : EClassLocation::UserDefined;
 	}
 	else if(AbsoluteInPath.StartsWith(PublicPath))
 	{
-		OutSourcePath = AbsoluteInPath.Replace(*PublicPath, *PrivatePath);
+		OutClassLocation = EClassLocation::Public;
+	}
+	else if(AbsoluteInPath.StartsWith(PrivatePath))
+	{
+		OutClassLocation = EClassLocation::Private;
+	}
+	else if(AbsoluteInPath.StartsWith(ClassesPath))
+	{
+		OutClassLocation = EClassLocation::Classes;
+	}
+	else
+	{
+		OutClassLocation = EClassLocation::UserDefined;
 	}
 
-	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
+	return true;
 }
 
 bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile )
@@ -1770,9 +1811,23 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 		BaseClassIncludeDirective = FString::Printf(LINE_TERMINATOR TEXT("#include \"%s\""), *BaseClass->GetMetaData(TEXT("IncludePath")));
 	}
 
+	FString ModuleAPIMacro;
+	{
+		FString ModuleName;
+		EClassLocation ClassPathLocation = EClassLocation::UserDefined;
+		GetClassLocation(NewHeaderFileName, ModuleName, ClassPathLocation);
+
+		// If this class isn't Private, make sure and include the API macro so it can be linked within other modules
+		if ( ClassPathLocation != EClassLocation::Private )
+		{
+			ModuleAPIMacro = ModuleName.ToUpper() + "_API "; // include a trailing space for the template formatting
+		}
+	}
+
 	const FString UnprefixedClassName = PrefixedClassName.Mid(1);
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnprefixedClassName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_MODULE_API_MACRO%"), *ModuleAPIMacro, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UCLASS_SPECIFIER_LIST%"), *MakeCommaDelimitedList(ClassSpecifierList, false), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_BASE_CLASS_NAME%"), *PrefixedBaseClassName, ESearchCase::CaseSensitive);
