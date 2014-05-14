@@ -20,6 +20,7 @@ public class ScreenShotComparison : ModuleRules
 				"Slate",
 				"SlateCore",
 				"ImageWrapper",
+				"CoreUObject",
 			}
 		);
 
