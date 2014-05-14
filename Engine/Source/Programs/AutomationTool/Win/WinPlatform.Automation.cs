@@ -193,7 +193,7 @@ public abstract class BaseWinPlatform : Platform
 				foreach (var StageExecutable in SC.StageExecutables)
 				{
 					string ExeName = SC.StageTargetPlatform.GetPlatformExecutableName(StageExecutable);
-					if(!SC.IsCodeBasedProject && !bIsRun)
+					if(!SC.IsCodeBasedProject && (!bIsRun || !SC.Stage))
 					{
 						ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
 					}
