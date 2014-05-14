@@ -97,7 +97,7 @@ bool FStartFTestsOnMap::Update()
 /**
  * 
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FFunctionalTestingMaps, "Maps.Functional Testing", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FFunctionalTestingMaps, "Maps.Functional Testing", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor) )
 
 
 /** 

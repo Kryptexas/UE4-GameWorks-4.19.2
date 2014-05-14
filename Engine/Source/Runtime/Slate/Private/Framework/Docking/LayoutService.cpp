@@ -46,11 +46,11 @@ TSharedRef<FTabManager::FLayout> FLayoutSaveRestore::LoadFromConfig( const TShar
 FString FLayoutSaveRestore::PrepareLayoutStringForIni(const FString& LayoutString)
 {
 	// Have to store braces as parentheses due to braces causing ini issues
-	return LayoutString.Replace(TEXT("{"), TEXT("(")).Replace(TEXT("}"), TEXT(")")).Replace(LINE_TERMINATOR, TEXT("\\")LINE_TERMINATOR);
+	return LayoutString.Replace(TEXT("{"), TEXT("(")).Replace(TEXT("}"), TEXT(")")).Replace(LINE_TERMINATOR, TEXT("\\") LINE_TERMINATOR);
 }
 
 FString FLayoutSaveRestore::GetLayoutStringFromIni(const FString& LayoutString)
 {
 	// Revert parenthesis to braces, from ini readable to Json readable
-	return LayoutString.Replace(TEXT("("), TEXT("{")).Replace(TEXT(")"), TEXT("}")).Replace(TEXT("\\")LINE_TERMINATOR, LINE_TERMINATOR);
+	return LayoutString.Replace(TEXT("("), TEXT("{")).Replace(TEXT(")"), TEXT("}")).Replace(TEXT("\\") LINE_TERMINATOR, LINE_TERMINATOR);
 }

@@ -633,7 +633,7 @@ public:
 
 		for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
 		{
-			CustomUVAssignments += FString::Printf(TEXT("%s	OutTexCoords[%u] = %s;")LINE_TERMINATOR, *TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex], CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
+			CustomUVAssignments += FString::Printf(TEXT("%s	OutTexCoords[%u] = %s;") LINE_TERMINATOR, *TranslatedCodeChunkDefinitions[MP_CustomizedUVs0 + CustomUVIndex], CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
 		}
 
 		LazyPrintf.PushParam(*CustomUVAssignments);

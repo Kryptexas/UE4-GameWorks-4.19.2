@@ -82,41 +82,41 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 	// Unix Time Values via Date Time
 	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("1970/01/01 0:00") ) );
 	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("1970/01/01 0:00:00") ) );
-	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("1970\x5E74")TEXT("1\x6708")TEXT("1\x65E5")TEXT(" 0:00:00 GMT") ) );
-	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("1970\x5E74")TEXT("1\x6708")TEXT("1\x65E5\x6728\x66DC\x65E5")TEXT(" ")TEXT("0\x6642")TEXT("00\x5206")TEXT("00\x79D2")TEXT(" GMT") ) );
+	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("1970\x5E74") TEXT("1\x6708") TEXT("1\x65E5") TEXT(" 0:00:00 GMT") ) );
+	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("1970\x5E74") TEXT("1\x6708") TEXT("1\x65E5\x6728\x66DC\x65E5") TEXT(" ") TEXT("0\x6642") TEXT("00\x5206") TEXT("00\x79D2") TEXT(" GMT") ) );
 
 	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("2001/09/09 1:46") ) );
 	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("2001/09/09 1:46:40") ) );
-	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2001\x5E74")TEXT("9\x6708")TEXT("9\x65E5")TEXT(" 1:46:40 GMT") ) );
-	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2001\x5E74")TEXT("9\x6708")TEXT("9\x65E5\x65E5\x66DC\x65E5")TEXT(" ")TEXT("1\x6642")TEXT("46\x5206")TEXT("40\x79D2")TEXT(" GMT") ) );
+	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2001\x5E74") TEXT("9\x6708") TEXT("9\x65E5") TEXT(" 1:46:40 GMT") ) );
+	Test( this, TEXT("Testing Unix Billennium"), FText::AsDateTime(UnixBillennium, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2001\x5E74") TEXT("9\x6708") TEXT("9\x65E5\x65E5\x66DC\x65E5") TEXT(" ") TEXT("1\x6642") TEXT("46\x5206") TEXT("40\x79D2") TEXT(" GMT") ) );
 
 	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("2005/03/18 1:58") ) );
 	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("2005/03/18 1:58:31") ) );
-	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2005\x5E74")TEXT("3\x6708")TEXT("18\x65E5")TEXT(" 1:58:31 GMT") ) );
-	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2005\x5E74")TEXT("3\x6708")TEXT("18\x65E5\x91D1\x66DC\x65E5")TEXT(" ")TEXT("1\x6642")TEXT("58\x5206")TEXT("31\x79D2")TEXT(" GMT") ) );
+	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2005\x5E74") TEXT("3\x6708") TEXT("18\x65E5") TEXT(" 1:58:31 GMT") ) );
+	Test( this, TEXT("Testing Unix Ones"), FText::AsDateTime(UnixOnes, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2005\x5E74") TEXT("3\x6708") TEXT("18\x65E5\x91D1\x66DC\x65E5") TEXT(" ") TEXT("1\x6642") TEXT("58\x5206") TEXT("31\x79D2") TEXT(" GMT") ) );
 
 	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("2009/02/13 23:31") ) );
 	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("2009/02/13 23:31:30") ) );
-	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2009\x5E74")TEXT("2\x6708")TEXT("13\x65E5 23:31:30 GMT") ) );
-	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2009\x5E74")TEXT("2\x6708")TEXT("13\x65E5\x91D1\x66DC\x65E5")TEXT(" ")TEXT("23\x6642")TEXT("31\x5206")TEXT("30\x79D2")TEXT(" GMT") ) );
+	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("2009\x5E74") TEXT("2\x6708") TEXT("13\x65E5 23:31:30 GMT") ) );
+	Test( this, TEXT("Testing Unix Decimal Sequence"), FText::AsDateTime(UnixDecimalSequence, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("2009\x5E74") TEXT("2\x6708") TEXT("13\x65E5\x91D1\x66DC\x65E5") TEXT(" ") TEXT("23\x6642") TEXT("31\x5206") TEXT("30\x79D2") TEXT(" GMT") ) );
 
 	// Date
 	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Short), FText::FromString( TEXT("1990/06/13") ) );
 	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Medium), FText::FromString( TEXT("1990/06/13") ) );
-	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Long), FText::FromString( TEXT("1990\x5E74")TEXT("6\x6708")TEXT("13\x65E5") ) );
-	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Full), FText::FromString( TEXT("1990\x5E74")TEXT("6\x6708")TEXT("13\x65E5\x6C34\x66DC\x65E5") ) );
+	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Long), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5") ) );
+	Test( this, TEXT("Testing Date"), FText::AsDate(TestDate, EDateTimeStyle::Full), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5\x6C34\x66DC\x65E5") ) );
 
 	// Time
 	Test( this, TEXT("Testing Time"), FText::AsTime(TestTime, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("12:34") ) );
 	Test( this, TEXT("Testing Time"), FText::AsTime(TestTime, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("12:34:56") ) );
 	Test( this, TEXT("Testing Time"), FText::AsTime(TestTime, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("12:34:56 GMT") ) );
-	Test( this, TEXT("Testing Time"), FText::AsTime(TestTime, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("12\x6642")TEXT("34\x5206")TEXT("56\x79D2")TEXT(" GMT") ) );
+	Test( this, TEXT("Testing Time"), FText::AsTime(TestTime, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("12\x6642") TEXT("34\x5206") TEXT("56\x79D2") TEXT(" GMT") ) );
 
 	// Date Time
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Short,EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("1990/06/13 12:34") ) );
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Medium, EDateTimeStyle::Medium, "GMT"), FText::FromString( TEXT("1990/06/13 12:34:56") ) );
-	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("1990\x5E74")TEXT("6\x6708")TEXT("13\x65E5")TEXT(" 12:34:56 GMT") ) );
-	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("1990\x5E74")TEXT("6\x6708")TEXT("13\x65E5\x6C34\x66DC\x65E5")TEXT(" ")TEXT("12\x6642")TEXT("34\x5206")TEXT("56\x79D2 GMT") ) );
+	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5") TEXT(" 12:34:56 GMT") ) );
+	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("1990\x5E74") TEXT("6\x6708") TEXT("13\x65E5\x6C34\x66DC\x65E5") TEXT(" ") TEXT("12\x6642") TEXT("34\x5206") TEXT("56\x79D2 GMT") ) );
 #else
 	AddWarning("ICU is disabled thus locale-aware date/time formatting is disabled.");
 #endif

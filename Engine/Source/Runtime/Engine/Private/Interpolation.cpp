@@ -132,7 +132,7 @@ int32 TrackClass::SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdate
 		MoveKey.TimeVar = NewKeyTime; \
 		/* Find correct new position and insert. */ \
 		int32 i=0; \
-		for( i=0; i<KeyArray.Num() && KeyArray[i].TimeVar < NewKeyTime; i++); \
+		for( i=0; i<KeyArray.Num() && KeyArray[i].TimeVar < NewKeyTime; i++) {}; \
 		KeyArray.InsertZeroed(i); \
 		KeyArray[i] = MoveKey; \
 		return i; \
@@ -170,7 +170,7 @@ int32 TrackClass::DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTra
 	KeyType NewKey = KeyArray[KeyIndex]; \
 	NewKey.TimeVar = NewKeyTime; \
 	/* Find the correct index to insert this key. */ \
-	int32 i=0; for( i=0; i<DestTrack->KeyArray.Num() && DestTrack->KeyArray[i].TimeVar < NewKeyTime; i++); \
+	int32 i=0; for( i=0; i<DestTrack->KeyArray.Num() && DestTrack->KeyArray[i].TimeVar < NewKeyTime; i++) {}; \
 	DestTrack->KeyArray.InsertZeroed(i); \
 	DestTrack->KeyArray[i] = NewKey; \
 	return i; \

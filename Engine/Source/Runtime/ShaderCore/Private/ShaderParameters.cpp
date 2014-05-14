@@ -89,7 +89,7 @@ void FShaderUniformBufferParameter::ModifyCompilationEnvironment(const TCHAR* Pa
 		);
 
 	FString& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
-	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, ParameterName);
+	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, ParameterName);
 }
 
 void FShaderUniformBufferParameter::Bind(const FShaderParameterMap& ParameterMap,const TCHAR* ParameterName,EShaderParameterFlags Flags)
@@ -292,7 +292,7 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator StructIt(ReferencedUniformBufferStructsCache); StructIt; ++StructIt)
 	{
 		check(StructIt.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, StructIt.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, StructIt.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
 			*FString::Printf(TEXT("UniformBuffers/%s.usf"),StructIt.Key()),
 			StructIt.Value().Declaration[Platform]
@@ -317,7 +317,7 @@ void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvir
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator StructIt(ReferencedUniformBufferStructsCache); StructIt; ++StructIt)
 	{
 		check(StructIt.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, StructIt.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, StructIt.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
 			*FString::Printf(TEXT("UniformBuffers/%s.usf"),StructIt.Key()),
 			StructIt.Value().Declaration[Platform]
