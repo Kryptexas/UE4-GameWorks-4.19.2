@@ -381,9 +381,13 @@ protected:
 	UPROPERTY()
 	FVector Acceleration;
 
-	/** Accumulated momentum added this tick */
+	/** Accumulated impulse added this tick */
 	UPROPERTY()
-	FVector PendingMomentumToApply;
+	FVector PendingImpulseToApply;
+
+	/** Accumulated force added this tick */
+	UPROPERTY()
+	FVector PendingForceToApply;
 
 	/**
 	 * Modifier to applied to values such as acceleration and max speed due to analog input.
@@ -812,7 +816,7 @@ public:
 	void ApplyRepulsionForce(float DeltaTime);
 	
 	/** Applies momentum accumulated through Addmomentum() */
-	void ApplyAccumulatedMomentum(float DeltaSeconds);	
+	void ApplyAccumulatedForces(float DeltaSeconds);	
 
 	/** 
 	 * Handle start swimming functionality
@@ -901,15 +905,30 @@ public:
 	virtual FString GetMovementName();
 
 	/** 
-	 * Add velocity based on imparted momentum. Momentum is accumulated each tick and applied together
+	 * Add impulse to character. Impulses are accumulated each tick and applied together
 	 * so multiple calls to this function will accumulate.
-	 * Note that changing the momentum of characters like this can change the movement mode
+	 * An impulse is an instantaneous force, usually applied once. If you want to continually apply
+	 * forces each frame, use AddForce().
+	 * Note that changing the momentum of characters like this can change the movement mode.
 	 * 
-	 * @param	Momentum			Momentum to apply.
-	 * @param	bMassIndependent	Whether or not the momentum should be divided by mass before application.
+	 * @param	Impulse				Impulse to apply.
+	 * @param	bVelocityChange		Whether or not the impulse is relative to mass.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
-	virtual void AddMomentum( FVector InMomentum, bool bMassIndependent = false );
+	virtual void AddImpulse( FVector Impulse, bool bVelocityChange = false );
+
+	/** 
+	 * Add force to character. Forces are accumulated each tick and applied together
+	 * so multiple calls to this function will accumulate.
+	 * Forces are scaled depending on timestep, so they can be applied each frame. If you want an
+	 * instantaneous force, use AdddImpulse.
+	 * Adding a force always takes the actor's mass into account.
+	 * Note that changing the momentum of characters like this can change the movement mode.
+	 * 
+	 * @param	Force			Force to apply.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void AddForce( FVector Force );
 
 	/**
 	 * Draw important variables on canvas.  Character will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used

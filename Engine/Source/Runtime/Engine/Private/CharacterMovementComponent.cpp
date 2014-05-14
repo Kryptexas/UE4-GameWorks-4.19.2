@@ -1163,7 +1163,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 	UpdateBasedMovement(DeltaSeconds);
 
-	ApplyAccumulatedMomentum(DeltaSeconds);
+	ApplyAccumulatedForces(DeltaSeconds);
 
 	FVector OldVelocity = Velocity;
 	FVector OldLocation = CharacterOwner->GetActorLocation();
@@ -3447,25 +3447,40 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	return false;
 }
 
-void UCharacterMovementComponent::AddMomentum( FVector InMomentum, bool bMassIndependent )
+void UCharacterMovementComponent::AddImpulse( FVector Impulse, bool bVelocityChange )
 {
-	if (HasValidData() && !InMomentum.IsZero())
+	if (HasValidData() && !Impulse.IsZero())
 	{
 		// handle scaling by mass
-		FVector FinalMomentum = InMomentum;
-		if ( !bMassIndependent)
+		FVector FinalImpulse = Impulse;
+		if ( !bVelocityChange )
 		{
 			if (Mass > SMALL_NUMBER)
 			{
-				FinalMomentum = FinalMomentum / Mass;
+				FinalImpulse = FinalImpulse / Mass;
 			}
 			else
 			{
-				UE_LOG(LogCharacterMovement, Warning, TEXT("Attempt to apply momentum to zero or negative Mass in CharacterMovement"));
+				UE_LOG(LogCharacterMovement, Warning, TEXT("Attempt to apply impulse to zero or negative Mass in CharacterMovement"));
 			}
 		}
 
-		PendingMomentumToApply += FinalMomentum;
+		PendingImpulseToApply += FinalImpulse;
+	}
+}
+
+void UCharacterMovementComponent::AddForce( FVector Force )
+{
+	if (HasValidData() && !Force.IsZero())
+	{
+		if (Mass > SMALL_NUMBER)
+		{
+			PendingForceToApply += Force / Mass;
+		}
+		else
+		{
+			UE_LOG(LogCharacterMovement, Warning, TEXT("Attempt to apply force to zero or negative Mass in CharacterMovement"));
+		}
 	}
 }
 
@@ -5564,22 +5579,41 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 	}
 }
 
-void UCharacterMovementComponent::ApplyAccumulatedMomentum(float DeltaSeconds)
+void UCharacterMovementComponent::ApplyAccumulatedForces(float DeltaSeconds)
 {
 	// check to see if applied momentum is enough to overcome gravity
-	if ( IsMovingOnGround() && (PendingMomentumToApply.Z + (GetGravityZ() * DeltaSeconds) > SMALL_NUMBER) )
+	if ( IsMovingOnGround() && (PendingImpulseToApply.Z + (PendingForceToApply.Z * DeltaSeconds) + (GetGravityZ() * DeltaSeconds) > SMALL_NUMBER))
 	{
 		SetMovementMode(MOVE_Falling);
 	}
 
-	Velocity += PendingMomentumToApply;
+	Velocity += PendingImpulseToApply;
+	Velocity += PendingForceToApply * DeltaSeconds;
 
-	PendingMomentumToApply = FVector::ZeroVector;
+	PendingImpulseToApply = FVector::ZeroVector;
+	PendingForceToApply = FVector::ZeroVector;
 }
 
 void UCharacterMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
 {
-	AddRadialImpulse(Origin, Radius, Strength, Falloff, true);
+	FVector Delta = UpdatedComponent->GetComponentLocation() - Origin;
+	const float DeltaMagnitude = Delta.Size();
+
+	// Do nothing if outside radius
+	if(DeltaMagnitude > Radius)
+	{
+		return;
+	}
+
+	Delta = Delta.SafeNormal();
+
+	float ForceMagnitude = Strength;
+	if (Falloff == RIF_Linear && Radius > 0.0f)
+	{
+		ForceMagnitude *= (1.0f - (DeltaMagnitude / Radius));
+	}
+
+	AddForce(Delta * ForceMagnitude);
 }
  
 void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
@@ -5601,7 +5635,7 @@ void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float 
 		ImpulseMagnitude *= (1.0f - (DeltaMagnitude / Radius));
 	}
 
-	AddMomentum(Delta * ImpulseMagnitude, bVelChange);
+	AddImpulse(Delta * ImpulseMagnitude, bVelChange);
 }
 
 FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character()

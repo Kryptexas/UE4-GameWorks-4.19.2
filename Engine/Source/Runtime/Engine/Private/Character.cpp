@@ -347,7 +347,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 			}
 		}
 
-		CharacterMovement->AddMomentum(Impulse, bMassIndependentImpulse);
+		CharacterMovement->AddImpulse(Impulse, bMassIndependentImpulse);
 	}
 }
 
