@@ -1,5 +1,4 @@
 {
-	"UseRelativePaths": false,
 	"IsGameTarget": false,
 	"RootLocalPath": "..\\..\\..\\..",
 	"RootBuildPath": "..\\..\\..\\..",
@@ -7,6 +6,7 @@
 	"Modules":[{
 			"Name": "CoreUObject",
 			"BaseDirectory": "..\\..\\..\\Runtime\\CoreUObject",
+			"IncludeBase": "..\\..\\..\\Runtime\\CoreUObject",
 			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\CoreUObject\\",
 			"ClassesHeaders": [
 				"..\\..\\..\\Runtime\\CoreUObject\\Classes\\Object.h"
@@ -21,6 +21,7 @@
 		}, {
 			"Name": "UHTDebugging",
 			"BaseDirectory": ".\\UHTDebugging",
+			"IncludeBase": ".\\UHTDebugging",
 			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\UHTDebugging\\",
 			"ClassesHeaders": [
 				".\\UHTDebugging\\TestObject.h",

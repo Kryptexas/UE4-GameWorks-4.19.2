@@ -18,6 +18,9 @@ struct FManifestModule
 	/** Base directory of this module on disk */
 	FString BaseDirectory;
 
+	/** The directory to which #includes from this module should be relative */
+	FString IncludeBase;
+
 	/** Directory where generated include files should go */
 	FString GeneratedIncludeDirectory;
 
@@ -42,8 +45,7 @@ struct FManifestModule
 
 struct FManifest
 {
-	bool    UseRelativePaths;
-	bool IsGameTarget;
+	bool    IsGameTarget;
 	FString RootLocalPath;
 	FString RootBuildPath;
 	FString TargetName;
