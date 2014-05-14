@@ -1691,6 +1691,27 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Gets labels list for given branch.
+		/// </summary>
+		/// <param name="BranchPath">A branch path.</param>
+		/// <returns>List of labels for given branch path.</returns>
+		public string[] GetBranchLabels(string BranchPath)
+		{
+			var LabelNameList = new List<string>();
+
+			string Output;
+			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/*"))
+			{
+				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
+				{
+					LabelNameList.Add(LabelMatch.Groups["name"].Value);
+				}
+			}
+
+			return LabelNameList.ToArray();
+		}
+
+		/// <summary>
 		/// Get latest promoted label given branch and game name.
 		/// </summary>
 		/// <param name="BranchPath">The branch path of the label.</param>
