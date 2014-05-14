@@ -668,7 +668,7 @@ void FLevelModel::UpdateDisplayName()
 	if (HasValidPackage())
 	{
 		// Append actors count
-		if (IsLoaded())
+		if (LevelCollectionModel.GetDisplayActorsCountState() && IsLoaded())
 		{
 			DisplayName += TEXT(" (");
 			DisplayName.AppendInt(LevelActorsCount);

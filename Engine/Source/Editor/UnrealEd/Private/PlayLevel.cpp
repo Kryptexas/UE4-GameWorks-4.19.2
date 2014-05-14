@@ -946,7 +946,6 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		{
 			// Open world composition from original folder
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			MapName += TEXT("?worldcomposition");
 			SavedMapNames.Add(MapName);
 		}
 		else
@@ -1187,8 +1186,6 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			// Open world composition from original folder
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
-			MapName += TEXT("?worldcomposition");
-
 			MapNames.Add(MapName);
 		}
 		else

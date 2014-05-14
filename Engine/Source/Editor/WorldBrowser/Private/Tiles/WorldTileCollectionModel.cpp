@@ -581,7 +581,7 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 	if (WorldComposition)
 	{
 		// Force rescanning world composition tiles
-		WorldComposition->OpenWorldRoot(WorldComposition->GetWorldRoot());
+		WorldComposition->Rescan();
 		
 		// Initialize root level
 		TSharedPtr<FWorldTileModel> Item = AddLevelFromTile(INDEX_NONE);

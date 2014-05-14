@@ -43,19 +43,6 @@ public:
 	 */
 	static void ResetLevelFilenames();	
 
-	
-	////////////////////////////////////////////////////////////////////////////
-	// World
-
-	/**
-	 * Prompts the user to save the current map if necessary, the presents a load dialog and
-	 * loads a new map if selected by the user.
-	 */
-	static UNREALED_API void OpenWorld();
-
-	////////////////////////////////////////////////////////////////////////////
-
-
 	////////////////////////////////////////////////////////////////////////////
 	// Loading
 
@@ -68,10 +55,8 @@ public:
 	/**
 	 * Prompts the user to save the current map if necessary, the presents a load dialog and
 	 * loads a new map if selected by the user.
-	 * 
-	 * @param	bWorldComposition	Whether we should load new map as persistent level for world composition
 	 */
-	static UNREALED_API void LoadMap(bool bWorldComposition = false);
+	static UNREALED_API void LoadMap();
 
 	/**
 	 * Loads the specified map.  Does not prompt the user to save the current map.
@@ -81,10 +66,8 @@ public:
 	 * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
 	 *							preventing the map saving over the original file.
 	 * @param	bShowProgress	Whether to show a progress dialog as the map loads
-	 *
-	 * @param	bWorldComposition	Whether to create a world composition by reading level packages from this map folder
 	 */
-	static UNREALED_API void LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true, bool bWorldComposition = false);
+	static UNREALED_API void LoadMap(const FString& Filename, bool LoadAsTemplate = false, const bool bShowProgress=true);
 
 	////////////////////////////////////////////////////////////////////////////
 	// Saving

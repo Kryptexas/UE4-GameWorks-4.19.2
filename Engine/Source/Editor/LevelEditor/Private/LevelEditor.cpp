@@ -234,6 +234,24 @@ void FLevelEditorModule::SummonLevelBrowser()
 	LevelEditorInstance->InvokeTab("LevelEditorLevelBrowser");
 }
 
+void FLevelEditorModule::SummonWorldBrowserHierarchy()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserHierarchy");
+}
+
+void FLevelEditorModule::SummonWorldBrowserDetails()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserDetails");
+}
+
+void FLevelEditorModule::SummonWorldBrowserComposition()
+{
+	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
+	LevelEditorInstance->InvokeTab("WorldBrowserComposition");
+}
+
 // @todo remove when world-centric mode is added
 void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> Sequencer)
 {

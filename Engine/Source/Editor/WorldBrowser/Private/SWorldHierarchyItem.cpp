@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
-#include "SWorldTreeItem.h"
+#include "SWorldHierarchyItem.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
 //////////////////////////
-// SWorldTreeItem
+// SWorldHierarchyItem
 //////////////////////////
 
-void SWorldTreeItem::Construct(const FArguments& InArgs, TSharedRef<STableViewBase> OwnerTableView)
+void SWorldHierarchyItem::Construct(const FArguments& InArgs, TSharedRef<STableViewBase> OwnerTableView)
 {
 	WorldModel = InArgs._InWorldModel;
 	LevelModel = InArgs._InItemModel;
@@ -21,14 +21,14 @@ void SWorldTreeItem::Construct(const FArguments& InArgs, TSharedRef<STableViewBa
 
 	SMultiColumnTableRow<TSharedPtr<FLevelModel>>::Construct(
 		FSuperRowType::FArguments()
-			.OnDragDetected(this, &SWorldTreeItem::OnItemDragDetected), 
+			.OnDragDetected(this, &SWorldHierarchyItem::OnItemDragDetected), 
 		OwnerTableView
 	);
 
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & ColumnID )
+TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName & ColumnID )
 {
 	TSharedPtr< SWidget > TableRowContent = SNullWidget::NullWidget;
 
@@ -51,7 +51,7 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 				.WidthOverride(7) // in case brush for this item is empty
 				[
 					SNew(SImage)
-					.Image(this, &SWorldTreeItem::GetLevelIconBrush)
+					.Image(this, &SWorldHierarchyItem::GetLevelIconBrush)
 				]
 			]
 
@@ -60,9 +60,9 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Font(this, &SWorldTreeItem::GetLevelDisplayNameFont)
-				.Text(this, &SWorldTreeItem::GetLevelDisplayNameText)
-				.ColorAndOpacity(this, &SWorldTreeItem::GetLevelDisplayNameColorAndOpacity)
+				.Font(this, &SWorldHierarchyItem::GetLevelDisplayNameFont)
+				.Text(this, &SWorldHierarchyItem::GetLevelDisplayNameText)
+				.ColorAndOpacity(this, &SWorldHierarchyItem::GetLevelDisplayNameColorAndOpacity)
 				.HighlightText(HighlightText)
 				.ToolTipText(LOCTEXT("DoubleClickToolTip", "Double-Click to make this the current Level"))
 			]
@@ -74,15 +74,15 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 			SAssignNew(LockButton, SButton)
 			.ContentPadding(0 )
 			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-			.IsEnabled(this, &SWorldTreeItem::IsLockEnabled)
-			.OnClicked(this, &SWorldTreeItem::OnToggleLock)
-			.ToolTipText(this, &SWorldTreeItem::GetLevelLockToolTip)
+			.IsEnabled(this, &SWorldHierarchyItem::IsLockEnabled)
+			.OnClicked(this, &SWorldHierarchyItem::OnToggleLock)
+			.ToolTipText(this, &SWorldHierarchyItem::GetLevelLockToolTip)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Content()
 			[
 				SNew(SImage)
-				.Image(this, &SWorldTreeItem::GetLevelLockBrush)
+				.Image(this, &SWorldHierarchyItem::GetLevelLockBrush)
 			]
 		;
 	}
@@ -92,15 +92,15 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 			SAssignNew(VisibilityButton, SButton)
 			.ContentPadding(0)
 			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-			.IsEnabled(this, &SWorldTreeItem::IsVisibilityEnabled)
-			.OnClicked(this, &SWorldTreeItem::OnToggleVisibility)
+			.IsEnabled(this, &SWorldHierarchyItem::IsVisibilityEnabled)
+			.OnClicked(this, &SWorldHierarchyItem::OnToggleVisibility)
 			.ToolTipText(LOCTEXT("VisibilityButtonToolTip", "Toggle Level Visibility"))
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Content()
 			[
 				SNew( SImage )
-				.Image(this, &SWorldTreeItem::GetLevelVisibilityBrush)
+				.Image(this, &SWorldHierarchyItem::GetLevelVisibilityBrush)
 			]
 		;
 	}
@@ -110,15 +110,15 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 			SAssignNew(KismetButton, SButton)
 			.ContentPadding(0)
 			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-			.IsEnabled(this, &SWorldTreeItem::IsKismetEnabled)
-			.OnClicked(this, &SWorldTreeItem::OnOpenKismet)
+			.IsEnabled(this, &SWorldHierarchyItem::IsKismetEnabled)
+			.OnClicked(this, &SWorldHierarchyItem::OnOpenKismet)
 			.ToolTipText(LOCTEXT("KismetButtonToolTip", "Open Level Blueprint"))
 			.HAlign( HAlign_Center )
 			.VAlign( VAlign_Center )
 			.Content()
 			[
 				SNew(SImage)
-				.Image(this, &SWorldTreeItem::GetLevelKismetBrush)
+				.Image(this, &SWorldHierarchyItem::GetLevelKismetBrush)
 			]
 		;
 	}
@@ -137,8 +137,8 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 				.VAlign(VAlign_Center)
 				[
 					SNew( SImage )
-						.Image(this, &SWorldTreeItem::GetSCCStateImage)
-						.ToolTipText(this, &SWorldTreeItem::GetSCCStateTooltip)
+						.Image(this, &SWorldHierarchyItem::GetSCCStateImage)
+						.ToolTipText(this, &SWorldHierarchyItem::GetSCCStateTooltip)
 				]
 			]
 		;
@@ -149,15 +149,15 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 			SAssignNew(SaveButton, SButton)
 			.ContentPadding(0)
 			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-			.IsEnabled(this, &SWorldTreeItem::IsSaveEnabled)
-			.OnClicked(this, &SWorldTreeItem::OnSave)
+			.IsEnabled(this, &SWorldHierarchyItem::IsSaveEnabled)
+			.OnClicked(this, &SWorldHierarchyItem::OnSave)
 			.ToolTipText(LOCTEXT("SaveButtonToolTip", "Save Level"))
 			.HAlign( HAlign_Center )
 			.VAlign( VAlign_Center )
 			.Content()
 			[
 				SNew(SImage)
-				.Image(this, &SWorldTreeItem::GetLevelSaveBrush)
+				.Image(this, &SWorldHierarchyItem::GetLevelSaveBrush)
 			]
 		;
 	}
@@ -166,32 +166,32 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FString SWorldTreeItem::GetLevelDisplayNameText() const
+FString SWorldHierarchyItem::GetLevelDisplayNameText() const
 {
 	return LevelModel->GetDisplayName();
 }
 
-bool SWorldTreeItem::IsSaveEnabled() const
+bool SWorldHierarchyItem::IsSaveEnabled() const
 {
 	return LevelModel->IsLoaded();
 }
 
-bool SWorldTreeItem::IsLockEnabled() const
+bool SWorldHierarchyItem::IsLockEnabled() const
 {
 	return LevelModel->IsLoaded();
 }
 
-bool SWorldTreeItem::IsVisibilityEnabled() const
+bool SWorldHierarchyItem::IsVisibilityEnabled() const
 {
 	return LevelModel->IsLoaded();
 }
 
-bool SWorldTreeItem::IsKismetEnabled() const
+bool SWorldHierarchyItem::IsKismetEnabled() const
 {
 	return LevelModel->HasKismet();
 }
 
-FReply SWorldTreeItem::OnToggleVisibility()
+FReply SWorldHierarchyItem::OnToggleVisibility()
 {
 	FLevelModelList LevelList; 
 	LevelList.Add(LevelModel);
@@ -208,7 +208,7 @@ FReply SWorldTreeItem::OnToggleVisibility()
 	return FReply::Handled();
 }
 
-FReply SWorldTreeItem::OnToggleLock()
+FReply SWorldHierarchyItem::OnToggleLock()
 {
 	FLevelModelList LevelList; 
 	LevelList.Add(LevelModel);
@@ -225,7 +225,7 @@ FReply SWorldTreeItem::OnToggleLock()
 	return FReply::Handled();
 }
 
-FReply SWorldTreeItem::OnSave()
+FReply SWorldHierarchyItem::OnSave()
 {
 	FLevelModelList LevelList; 
 	LevelList.Add(LevelModel);
@@ -235,13 +235,13 @@ FReply SWorldTreeItem::OnSave()
 	return FReply::Handled();
 }
 
-FReply SWorldTreeItem::OnOpenKismet()
+FReply SWorldHierarchyItem::OnOpenKismet()
 {
 	LevelModel->OpenKismet();
 	return FReply::Handled();
 }
 
-FReply SWorldTreeItem::OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SWorldHierarchyItem::OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
@@ -256,7 +256,7 @@ FReply SWorldTreeItem::OnItemDragDetected(const FGeometry& MyGeometry, const FPo
 	return FReply::Unhandled();
 }
 
-FReply SWorldTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+FReply SWorldHierarchyItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	auto Op = DragDropEvent.GetOperationAs<FLevelDragDropOp>();
 	if (Op.IsValid() && LevelModel->IsGoodToDrop(Op))
@@ -268,7 +268,7 @@ FReply SWorldTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 	return FReply::Unhandled();
 }
 
-void SWorldTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+void SWorldHierarchyItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
 	
@@ -282,7 +282,7 @@ void SWorldTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 	}
 }
 
-void SWorldTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
+void SWorldHierarchyItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 	SCompoundWidget::OnDragLeave(DragDropEvent);
 
@@ -296,7 +296,7 @@ void SWorldTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	}
 }
 
-FSlateFontInfo SWorldTreeItem::GetLevelDisplayNameFont() const
+FSlateFontInfo SWorldHierarchyItem::GetLevelDisplayNameFont() const
 {
 	if (LevelModel->IsCurrent())
 	{
@@ -308,7 +308,7 @@ FSlateFontInfo SWorldTreeItem::GetLevelDisplayNameFont() const
 	}
 }
 
-FSlateColor SWorldTreeItem::GetLevelDisplayNameColorAndOpacity() const
+FSlateColor SWorldHierarchyItem::GetLevelDisplayNameColorAndOpacity() const
 {
 	// Force the text to display red if level is missing
 	if (!LevelModel->HasValidPackage())
@@ -336,7 +336,7 @@ FSlateColor SWorldTreeItem::GetLevelDisplayNameColorAndOpacity() const
 	return FSlateColor::UseForeground();
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelIconBrush() const
+const FSlateBrush* SWorldHierarchyItem::GetLevelIconBrush() const
 {
 	UClass* StreamingClass = LevelModel->GetStreamingClass();
 	if (StreamingClass == ULevelStreamingKismet::StaticClass())
@@ -352,7 +352,7 @@ const FSlateBrush* SWorldTreeItem::GetLevelIconBrush() const
 	return nullptr;
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelVisibilityBrush() const
+const FSlateBrush* SWorldHierarchyItem::GetLevelVisibilityBrush() const
 {
 	if (LevelModel->GetLevelObject())
 	{
@@ -373,7 +373,7 @@ const FSlateBrush* SWorldTreeItem::GetLevelVisibilityBrush() const
 	}
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelLockBrush() const
+const FSlateBrush* SWorldHierarchyItem::GetLevelLockBrush() const
 {
 	if (!LevelModel->IsLoaded() || LevelModel->IsPersistent())
 	{
@@ -405,7 +405,7 @@ const FSlateBrush* SWorldTreeItem::GetLevelLockBrush() const
 	}
 }
 
-FString SWorldTreeItem::GetLevelLockToolTip() const
+FString SWorldHierarchyItem::GetLevelLockToolTip() const
 {
 	//Non-Persistent
 	if (GEngine && GEngine->bLockReadOnlyLevels)
@@ -419,7 +419,7 @@ FString SWorldTreeItem::GetLevelLockToolTip() const
 	return LOCTEXT("LockButtonToolTip", "Toggle Level Lock").ToString();
 }
 
-FString SWorldTreeItem::GetSCCStateTooltip() const
+FString SWorldHierarchyItem::GetSCCStateTooltip() const
 {
 	FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(LevelModel->GetPackageFileName(), EStateCacheUsage::Use);
 	if(SourceControlState.IsValid())
@@ -430,7 +430,7 @@ FString SWorldTreeItem::GetSCCStateTooltip() const
 	return FString();
 }
 
-const FSlateBrush* SWorldTreeItem::GetSCCStateImage() const
+const FSlateBrush* SWorldHierarchyItem::GetSCCStateImage() const
 {
 	FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(LevelModel->GetPackageFileName(), EStateCacheUsage::Use);
 	if(SourceControlState.IsValid())
@@ -441,7 +441,7 @@ const FSlateBrush* SWorldTreeItem::GetSCCStateImage() const
 	return NULL;
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelSaveBrush() const
+const FSlateBrush* SWorldHierarchyItem::GetLevelSaveBrush() const
 {
 	if (LevelModel->IsLoaded())
 	{
@@ -469,7 +469,7 @@ const FSlateBrush* SWorldTreeItem::GetLevelSaveBrush() const
 	}	
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelKismetBrush() const
+const FSlateBrush* SWorldHierarchyItem::GetLevelKismetBrush() const
 {
 	if (LevelModel->IsLoaded())
 	{

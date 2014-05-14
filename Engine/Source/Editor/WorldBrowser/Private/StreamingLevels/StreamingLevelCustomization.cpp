@@ -7,7 +7,7 @@
 #include "SVectorInputBox.h"
 #include "SRotatorInputBox.h"
 
-#include "SWorldDetailsView.h"
+#include "SWorldDetails.h"
 #include "StreamingLevelCollectionModel.h"
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelEdMode.h"

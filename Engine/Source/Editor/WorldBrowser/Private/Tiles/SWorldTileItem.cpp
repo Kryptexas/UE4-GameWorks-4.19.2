@@ -3,11 +3,11 @@
 
 #include "ObjectTools.h"
 #include "EdGraphUtilities.h"
-#include "SWorldGridItem.h"
+#include "SWorldTileItem.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FGridItemThumbnail::FGridItemThumbnail(FSlateTextureRenderTarget2DResource* InThumbnailRenderTarget, 
+FTileItemThumbnail::FTileItemThumbnail(FSlateTextureRenderTarget2DResource* InThumbnailRenderTarget, 
 									   TSharedPtr<FLevelModel> InItemModel)
 	: LevelModel(InItemModel)
 	, ThumbnailTexture(NULL)
@@ -18,7 +18,7 @@ FGridItemThumbnail::FGridItemThumbnail(FSlateTextureRenderTarget2DResource* InTh
 	BeginInitResource(ThumbnailTexture);
 }
 
-FGridItemThumbnail::~FGridItemThumbnail()
+FTileItemThumbnail::~FTileItemThumbnail()
 {
 	BeginReleaseResource(ThumbnailTexture);
 	
@@ -28,22 +28,22 @@ FGridItemThumbnail::~FGridItemThumbnail()
 	ThumbnailTexture = NULL;
 }
 
-FIntPoint FGridItemThumbnail::GetSize() const
+FIntPoint FTileItemThumbnail::GetSize() const
 {
 	return ThumbnailRenderTarget->GetSizeXY();
 }
 
-FSlateShaderResource* FGridItemThumbnail::GetViewportRenderTargetTexture() const
+FSlateShaderResource* FTileItemThumbnail::GetViewportRenderTargetTexture() const
 {
 	return ThumbnailTexture;
 }
 
-bool FGridItemThumbnail::RequiresVsync() const
+bool FTileItemThumbnail::RequiresVsync() const
 {
 	return false;
 }
 
-void FGridItemThumbnail::UpdateTextureData(FObjectThumbnail* ObjectThumbnail)
+void FTileItemThumbnail::UpdateTextureData(FObjectThumbnail* ObjectThumbnail)
 {
 	check(ThumbnailTexture)
 	
@@ -72,7 +72,7 @@ void FGridItemThumbnail::UpdateTextureData(FObjectThumbnail* ObjectThumbnail)
 	}
 }
 
-void FGridItemThumbnail::UpdateThumbnail()
+void FTileItemThumbnail::UpdateThumbnail()
 {
 	// No need images for persistent and always loaded levels
 	if (LevelModel->IsPersistent())
@@ -125,12 +125,12 @@ void FGridItemThumbnail::UpdateThumbnail()
 //
 //
 //----------------------------------------------------------------
-SWorldGridItem::~SWorldGridItem()
+SWorldTileItem::~SWorldTileItem()
 {
 	LevelModel->ChangedEvent.RemoveAll(this);
 }
 
-void SWorldGridItem::Construct(const FArguments& InArgs)
+void SWorldTileItem::Construct(const FArguments& InArgs)
 {
 	WorldModel = InArgs._InWorldModel;
 	LevelModel = InArgs._InItemModel;
@@ -141,15 +141,15 @@ void SWorldGridItem::Construct(const FArguments& InArgs)
 	bIsDragging = false;
 	bAffectedByMarquee = false;
 
-	Thumbnail = MakeShareable(new FGridItemThumbnail(InArgs._ThumbnailRenderTarget, LevelModel));
+	Thumbnail = MakeShareable(new FTileItemThumbnail(InArgs._ThumbnailRenderTarget, LevelModel));
 	ThumbnailViewport = SNew(SViewport)
 							.EnableGammaCorrection(false);
 							
 	ThumbnailViewport->SetViewportInterface(Thumbnail.ToSharedRef());
 	// This will grey out tile in case level is not loaded or locked
-	ThumbnailViewport->SetEnabled(TAttribute<bool>(this, &SWorldGridItem::IsItemEnabled));
+	ThumbnailViewport->SetEnabled(TAttribute<bool>(this, &SWorldTileItem::IsItemEnabled));
 
-	LevelModel->ChangedEvent.AddSP(this, &SWorldGridItem::RequestRefresh);
+	LevelModel->ChangedEvent.AddSP(this, &SWorldTileItem::RequestRefresh);
 			
 	ChildSlot
 	[
@@ -162,18 +162,18 @@ void SWorldGridItem::Construct(const FArguments& InArgs)
 	CurveSequence.Play();
 }
 
-void SWorldGridItem::RequestRefresh()
+void SWorldTileItem::RequestRefresh()
 {
 	bNeedRefresh = true;
 }
 
-UObject* SWorldGridItem::GetObjectBeingDisplayed() const
+UObject* SWorldTileItem::GetObjectBeingDisplayed() const
 {
 	return LevelModel->GetNodeObject();
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedRef<SToolTip> SWorldGridItem::CreateToolTipWidget()
+TSharedRef<SToolTip> SWorldTileItem::CreateToolTipWidget()
 {
 	TSharedPtr<SToolTip>		TooltipWidget;
 	TSharedPtr<SVerticalBox>	TooltipSectionsWidget;
@@ -212,7 +212,7 @@ TSharedRef<SToolTip> SWorldGridItem::CreateToolTipWidget()
 						.AutoWidth()
 						[
 							SNew(STextBlock)
-							.Text(this, &SWorldGridItem::GetLevelNameText) 
+							.Text(this, &SWorldTileItem::GetLevelNameText) 
 							.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
 						]
 					]
@@ -265,39 +265,39 @@ TSharedRef<SToolTip> SWorldGridItem::CreateToolTipWidget()
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FVector2D SWorldGridItem::GetPosition() const
+FVector2D SWorldTileItem::GetPosition() const
 {
 	return LevelModel->GetLevelPosition2D();
 }
 
-const TSharedPtr<FLevelModel>& SWorldGridItem::GetLevelModel() const
+const TSharedPtr<FLevelModel>& SWorldTileItem::GetLevelModel() const
 {
 	return LevelModel;
 }
 
-const FSlateBrush* SWorldGridItem::GetShadowBrush(bool bSelected) const
+const FSlateBrush* SWorldTileItem::GetShadowBrush(bool bSelected) const
 {
 	return bSelected ? FEditorStyle::GetBrush(TEXT("Graph.CompactNode.ShadowSelected")) : FEditorStyle::GetBrush(TEXT("Graph.Node.Shadow"));
 }
 
-FOptionalSize SWorldGridItem::GetItemWidth() const
+FOptionalSize SWorldTileItem::GetItemWidth() const
 {
 	return FOptionalSize(LevelModel->GetLevelSize2D().X);
 }
 
-FOptionalSize SWorldGridItem::GetItemHeight() const
+FOptionalSize SWorldTileItem::GetItemHeight() const
 {
 	return FOptionalSize(LevelModel->GetLevelSize2D().Y);
 }
 
-FSlateRect SWorldGridItem::GetItemRect() const
+FSlateRect SWorldTileItem::GetItemRect() const
 {
 	FVector2D LevelSize = LevelModel->GetLevelSize2D();
 	FVector2D LevelPos = GetPosition();
 	return FSlateRect(LevelPos, LevelPos + LevelSize);
 }
 
-TSharedPtr<IToolTip> SWorldGridItem::GetToolTip()
+TSharedPtr<IToolTip> SWorldTileItem::GetToolTip()
 {
 	// Hide tooltip in case item is being dragged now
 	if (LevelModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)
@@ -308,7 +308,7 @@ TSharedPtr<IToolTip> SWorldGridItem::GetToolTip()
 	return SNodePanel::SNode::GetToolTip();
 }
 
-FVector2D SWorldGridItem::GetDesiredSizeForMarquee() const
+FVector2D SWorldTileItem::GetDesiredSizeForMarquee() const
 {
 	// we don't want to select items in non visible layers
 	if (!WorldModel->PassesAllFilters(LevelModel))
@@ -319,12 +319,12 @@ FVector2D SWorldGridItem::GetDesiredSizeForMarquee() const
 	return SNodePanel::SNode::GetDesiredSizeForMarquee();
 }
 
-FVector2D SWorldGridItem::ComputeDesiredSize() const
+FVector2D SWorldTileItem::ComputeDesiredSize() const
 {
 	return LevelModel->GetLevelSize2D();
 }
 
-int32 SWorldGridItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, 
+int32 SWorldTileItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, 
 								FSlateWindowElementList& OutDrawElements, int32 LayerId, 
 								const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -405,7 +405,7 @@ int32 SWorldGridItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRec
 	return LayerId;
 }
 
-FReply SWorldGridItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+FReply SWorldTileItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (OnHitTest(InMyGeometry, InMouseEvent.GetScreenSpacePosition()))
 	{
@@ -416,7 +416,7 @@ FReply SWorldGridItem::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, c
 	return FReply::Unhandled();
 }
 
-bool SWorldGridItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
+bool SWorldTileItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
 {
 	FVector2D CursorOffset = (InAbsoluteCursorPosition - MyGeometry.AbsolutePosition)/MyGeometry.Scale;
 	FVector2D LevelPos = LevelModel->GetLevelPosition2D();
@@ -424,22 +424,22 @@ bool SWorldGridItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsolute
 	return LevelModel->HitTest2D(CursorWorldPos);
 }
 
-FString SWorldGridItem::GetLevelNameText() const
+FString SWorldTileItem::GetLevelNameText() const
 {
 	return LevelModel->GetDisplayName();
 }
 
-bool SWorldGridItem::IsItemEditable() const
+bool SWorldTileItem::IsItemEditable() const
 {
 	return LevelModel->IsEditable();
 }
 
-bool SWorldGridItem::IsItemSelected() const
+bool SWorldTileItem::IsItemSelected() const
 {
 	return LevelModel->GetLevelSelectionFlag();
 }
 
-bool SWorldGridItem::IsItemEnabled() const
+bool SWorldTileItem::IsItemEnabled() const
 {
 	if (WorldModel->IsSimulating())
 	{

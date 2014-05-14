@@ -70,6 +70,10 @@ public:
 	 */
 	virtual void SummonLevelBrowser();
 
+	virtual void SummonWorldBrowserHierarchy();
+	virtual void SummonWorldBrowserDetails();
+	virtual void SummonWorldBrowserComposition();
+
 	// @todo remove when world-centric mode is added
 	/**
 	 * Spawns a new sequencer tab if one doesn't exist already

@@ -6,26 +6,64 @@
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
 
+#if WITH_EDITOR
+UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionCreated;
+UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionDestroyed;
+#endif // WITH_EDITOR
+
 UWorldComposition::UWorldComposition(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
 
+void UWorldComposition::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if (!IsTemplate() && (GetOutermost()->PackageFlags & PKG_PlayInEditor) == 0)
+	{
+		// Tiles information is not serialized to disk, and should be regenerated on world composition object construction
+		Rescan();
+	}
+}
+
 void UWorldComposition::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
-
-	Ar << WorldRoot;
-	Ar << Tiles;
-	Ar << TilesStreaming;
 	
-	if (Ar.IsLoading() && 
-		Ar.GetPortFlags() & PPF_DuplicateForPIE)
+	// We serialize this data only for PIE
+	// In normal game this data is regenerated on object construction
+	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		// Fixup tile names to PIE 
+		Ar << WorldRoot;
+		Ar << Tiles;
+		Ar << TilesStreaming;
+	}
+}
+
+void UWorldComposition::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+
 #if WITH_EDITOR
+	if (bDuplicateForPIE)
+	{
 		FixupForPIE(GetOutermost()->PIEInstanceID);	
-#endif
+	}
+#endif // WITH_EDITOR
+}
+
+void UWorldComposition::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetWorld()->IsGameWorld())
+	{
+		// Remove streaming levels created by World Browser, to avoid duplication with streaming levels from world composition
+		GetWorld()->StreamingLevels.Empty();
+		
+		// Add streaming levels managed by world composition
+		GetWorld()->StreamingLevels.Append(TilesStreaming);
 	}
 }
 
@@ -34,7 +72,6 @@ void UWorldComposition::FixupForPIE(int32 PIEInstanceID)
 	for (int32 TileIdx = 0; TileIdx < Tiles.Num(); ++TileIdx)
 	{
 		FWorldCompositionTile& Tile = Tiles[TileIdx];
-		ULevelStreaming* TileStreaming = TilesStreaming[TileIdx];
 		
 		FString PIEPackageName = UWorld::ConvertToPIEPackageName(Tile.PackageName.ToString(), PIEInstanceID);
 		Tile.PackageName = FName(*PIEPackageName);
@@ -43,25 +80,7 @@ void UWorldComposition::FixupForPIE(int32 PIEInstanceID)
 			FString PIELODPackageName = UWorld::ConvertToPIEPackageName(LODPackageName.ToString(), PIEInstanceID);
 			LODPackageName = FName(*PIELODPackageName);
 		}
-
-		TileStreaming->PackageNameToLoad = TileStreaming->PackageName;
-		TileStreaming->PackageName = Tile.PackageName;
 	}
-}
-
-bool UWorldComposition::OpenWorldRoot(const FString& PathToRoot)
-{
-	WorldRoot = PathToRoot;
-	Rescan();
-
-	// Add streaming levels to our world when we are in game only
-	// In Editor we use own level streaming mechanism not related to ULevelStreaming
-	if (GetWorld()->IsGameWorld())
-	{
-		GetWorld()->StreamingLevels.Append(TilesStreaming);
-	}
-
-	return true;
 }
 
 FString UWorldComposition::GetWorldRoot() const
@@ -151,11 +170,14 @@ void UWorldComposition::Rescan()
 	FTilesList SavedTileList = Tiles;
 		
 	Reset();	
-	
-	if (WorldRoot.IsEmpty())
+
+	FString RootPackageName = GetOutermost()->GetName();
+	if (!FPackageName::DoesPackageExist(RootPackageName))
 	{
-		return;
+		return;	
 	}
+	
+	WorldRoot = FPaths::GetPath(RootPackageName) + TEXT("/");
 
 	UWorld* OwningWorld = GetWorld();
 		
@@ -255,6 +277,7 @@ void UWorldComposition::CaclulateTilesAbsolutePositions()
 
 void UWorldComposition::Reset()
 {
+	WorldRoot.Empty();
 	Tiles.Empty();
 	TilesStreaming.Empty();
 }
@@ -369,34 +392,17 @@ void UWorldComposition::RestoreDirtyTilesInfo(const FTilesList& TilesPrevState)
 	}
 }
 
-bool UWorldComposition::CollectTilesToCook(const FString& CmdLineMapEntry, TArray<FString>& FilesInPath)
+void UWorldComposition::CollectTilesToCook(TArray<FString>& PackageNames)
 {
-	static const FString WorldCompositionOption = TEXT("?worldcomposition");
-
-	if (CmdLineMapEntry.EndsWith(WorldCompositionOption))
+	for (const FWorldCompositionTile& Tile : Tiles)
 	{
-		// Chop option string from package name
-		FString RootPackageName = CmdLineMapEntry.LeftChop(WorldCompositionOption.Len());
-		FString RootFilename;
-		if (!FPackageName::SearchForPackageOnDisk(RootPackageName, NULL, &RootFilename))
+		PackageNames.AddUnique(Tile.PackageName.ToString());
+		
+		for (const FName& TileLODName : Tile.LODPackageNames)
 		{
-			return false;
+			PackageNames.AddUnique(TileLODName.ToString());
 		}
-
-		// All maps inside root map folder and subfolders are participate in world composition
-		TArray<FString> Files;
-		FString RootFolder = FPaths::GetPath(RootFilename);
-		IFileManager::Get().FindFilesRecursive(Files, *RootFolder, *(FString(TEXT("*")) + FPackageName::GetMapPackageExtension()), true, false, false);
-
-		for (FString StdFile : Files)
-		{
-			FPaths::MakeStandardFilename(StdFile);
-			FilesInPath.AddUnique(StdFile);
-		}
-		return true;
 	}
-	
-	return false;
 }
 
 #endif //WITH_EDITOR

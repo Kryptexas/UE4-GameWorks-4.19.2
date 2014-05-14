@@ -63,6 +63,9 @@ public:
 
 	/** Removes a filter which restricted the Levels shown in UI */
 	void RemoveFilter(const TSharedRef<LevelFilter>& InFilter);
+
+	/**	@return	Whether level filtering is active now */
+	bool IsFilterActive() const;
 	
 	/**	Iterates through level hierarchy with given Visitor */
 	void IterateHierarchy(FLevelModelVisitor& Visitor);
@@ -136,8 +139,8 @@ public:
 	/**	Unregisters level details customizations */
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView);
 
-	/** @return	Whether this level collection model supports grid view */
-	virtual bool SupportsGridView() const { return true; };
+	/** @return	Whether this level collection model is a tile world */
+	virtual bool IsTileWorld() const { return false; };
 
 	/** Rebuilds levels collection */
 	void PopulateLevelsList();
@@ -208,6 +211,12 @@ public:
 	/** Sets 'display paths', whether to show long package name in level display name */
 	void SetDisplayPathsState(bool bDisplayPaths);
 
+	/** @return	whether 'display actors count' is enabled */
+	bool GetDisplayActorsCountState() const;
+
+	/** Sets 'display actors count', whether to show actors count next to level name */
+	void SetDisplayActorsCountState(bool bDisplayActorsCount);
+
 	/**	Broadcasts whenever items selection has changed */
 	FSimpleEvent SelectionChanged;
 	void BroadcastSelectionChanged();
@@ -260,6 +269,12 @@ public:
 
 	/** @return	The UICommandList supported by this collection */
 	const TSharedRef<const FUICommandList> GetCommandList() const;
+
+	/**  */
+	void LoadSettings();
+	
+	/**  */
+	void SaveSettings();
 
 protected:
 	/** Refreshes current cached data */
@@ -473,6 +488,9 @@ protected:
 
 	/** Whether we should show long package names in level display names */
 	bool								bDisplayPaths;
+
+	/** Whether we should show actors count next to level name */
+	bool								bDisplayActorsCount;
 
 	/** true if the SCC Check-Out option is available */
 	mutable bool						bCanExecuteSCCCheckOut;

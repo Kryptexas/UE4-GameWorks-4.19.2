@@ -38,6 +38,7 @@ public:
 	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const OVERRIDE;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  OVERRIDE;
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) OVERRIDE;
+	virtual bool IsTileWorld() const OVERRIDE { return true; };
 	/** FLevelCollection interface end */
 
 private:

@@ -16,13 +16,13 @@ namespace HierarchyColumns
 }
 
 /** A single item in the levels hierarchy tree. Represents a level model */
-class SWorldTreeItem 
+class SWorldHierarchyItem 
 	: public SMultiColumnTableRow<TSharedPtr<FLevelModel>>
 {
 public:
 	DECLARE_DELEGATE_TwoParams( FOnNameChanged, const TSharedPtr<FLevelModel>& /*TreeItem*/, const FVector2D& /*MessageLocation*/);
 
-	SLATE_BEGIN_ARGS( SWorldTreeItem )
+	SLATE_BEGIN_ARGS( SWorldHierarchyItem )
 		: _IsItemExpanded( false )
 	{}
 		/** Data for the world */

@@ -14,8 +14,7 @@ void FAssetTypeActions_World::OpenAssetEditor( const TArray<UObject*>& InObjects
 			const FString FileToOpen = FPackageName::LongPackageNameToFilename(World->GetOutermost()->GetName(), FPackageName::GetMapPackageExtension());
 			const bool bLoadAsTemplate = false;
 			const bool bShowProgress = false;
-			const bool bWorldComposition = false;
-			FEditorFileUtils::LoadMap( FileToOpen, bLoadAsTemplate, bShowProgress, bWorldComposition );
+			FEditorFileUtils::LoadMap( FileToOpen, bLoadAsTemplate, bShowProgress );
 
 			// We can only edit one world at a time... so just break after the first valid world to load
 			break;

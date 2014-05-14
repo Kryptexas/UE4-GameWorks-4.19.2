@@ -6,13 +6,11 @@
 #include "SNodePanel.h"
 #include "AssetThumbnail.h"
 
-class FWorldViewModel;
-
-class FGridItemThumbnail : public ISlateViewport, public TSharedFromThis<FGridItemThumbnail>
+class FTileItemThumbnail : public ISlateViewport, public TSharedFromThis<FTileItemThumbnail>
 {
 public:
-	FGridItemThumbnail(FSlateTextureRenderTarget2DResource* InThumbnailRenderTarget, TSharedPtr<FLevelModel> InItemModel);
-	~FGridItemThumbnail();
+	FTileItemThumbnail(FSlateTextureRenderTarget2DResource* InThumbnailRenderTarget, TSharedPtr<FLevelModel> InItemModel);
+	~FTileItemThumbnail();
 
 	/* ISlateViewport interface */
 	virtual FIntPoint GetSize() const OVERRIDE;
@@ -37,11 +35,11 @@ private:
 //
 //
 //----------------------------------------------------------------
-class SWorldGridItem 
+class SWorldTileItem 
 	: public SNodePanel::SNode
 {
 public:
-	SLATE_BEGIN_ARGS(SWorldGridItem)
+	SLATE_BEGIN_ARGS(SWorldTileItem)
 	{}
 		/** The world data */
 		SLATE_ARGUMENT(TSharedPtr<FLevelCollectionModel>, InWorldModel)
@@ -51,7 +49,7 @@ public:
 		SLATE_ARGUMENT(FSlateTextureRenderTarget2DResource*, ThumbnailRenderTarget)
 	SLATE_END_ARGS()
 
-	~SWorldGridItem();
+	~SWorldTileItem();
 
 	void Construct(const FArguments& InArgs);
 	
@@ -115,7 +113,7 @@ private:
 	mutable bool					bNeedRefresh;
 	bool							bIsDragging;
 
-	TSharedPtr<FGridItemThumbnail>	Thumbnail;
+	TSharedPtr<FTileItemThumbnail>	Thumbnail;
 	/** The actual widget for the thumbnail. */
 	TSharedPtr<SViewport>			ThumbnailViewport;
 	

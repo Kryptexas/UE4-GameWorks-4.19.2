@@ -26,8 +26,6 @@ public:
 		return LevelCollectionModel;
 	}
 
-	virtual bool SupportsGridView() const OVERRIDE { return false; };
-
 public:
 	/** FLevelCollection interface */
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) OVERRIDE;
@@ -36,7 +34,6 @@ public:
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const OVERRIDE;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  OVERRIDE;
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) OVERRIDE;
-	
 
 private:
 	virtual void Initialize() OVERRIDE;

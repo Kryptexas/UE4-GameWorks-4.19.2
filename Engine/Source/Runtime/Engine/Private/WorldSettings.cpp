@@ -26,6 +26,8 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 
 	bEnableWorldBoundsChecks = true;
 	bEnableNavigationSystem = true;
+	bEnableWorldComposition = false;
+	bEnableWorldOriginRebasing = true;
 
 	KillZ = -HALF_WORLD_MAX1;
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;
@@ -197,6 +199,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("bForceNoPrecomputedLightingIsEnabled", "bForceNoPrecomputedLighting is now enabled, build lighting once to propagate the change (will remove existing precomputed lighting data)."));
 		}
+
+		if (PropertyThatChanged->GetName()==TEXT("bEnableWorldComposition"))
+		{
+			EnabledWorldComposition(bEnableWorldComposition);
+		}
 	}
 
 	LightmassSettings.NumIndirectLightingBounces = FMath::Clamp(LightmassSettings.NumIndirectLightingBounces, 0, 100);
@@ -224,6 +231,38 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void AWorldSettings::EnabledWorldComposition(bool bEnable)
+{
+	bEnableWorldComposition = false;
+
+	if (!bEnable)
+	{
+		if (GetWorld()->WorldComposition != nullptr)
+		{
+			GetWorld()->WorldComposition = nullptr;
+			GetWorld()->StreamingLevels.Empty();
+			GetWorld()->FlushLevelStreaming();
+
+			UWorldComposition::OnWorldCompositionDestroyed.Broadcast(GetWorld());
+		}
+	}
+	else
+	{
+		FString RootPackageName = GetOutermost()->GetName();
+
+		if (GetWorld()->WorldComposition == nullptr && FPackageName::DoesPackageExist(RootPackageName))
+		{
+			GetWorld()->StreamingLevels.Empty();
+			GetWorld()->FlushLevelStreaming();
+			GetWorld()->WorldComposition = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), GetWorld());
+			
+			bEnableWorldComposition = true;
+
+			UWorldComposition::OnWorldCompositionCreated.Broadcast(GetWorld());
+		}
+	}
 }
 
 #endif // WITH_EDITOR

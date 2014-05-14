@@ -164,10 +164,9 @@ void FUnrealEdMisc::OnInit()
 				// be reflected in the splash screen status
 				const bool bShowProgress = false;
 				const bool bLoadAsTemplate = false;
-				const bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
 
 				// Load the map
-				FEditorFileUtils::LoadMap(InitialMapName, bLoadAsTemplate, bShowProgress, bWorldComposition);
+				FEditorFileUtils::LoadMap(InitialMapName, bLoadAsTemplate, bShowProgress);
 				bMapLoaded = true;
 			}
 		}

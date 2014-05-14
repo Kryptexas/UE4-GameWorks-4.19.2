@@ -1052,7 +1052,10 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "WorldBrowser.DirectionYNegative", new IMAGE_BRUSH( "Icons/icon_PanDown", Icon16x16 ) );
 		Set( "WorldBrowser.LevelStreamingAlwaysLoaded", new FSlateNoResource() );
 		Set( "WorldBrowser.LevelStreamingKismet", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16 ) );
-
+		Set( "WorldBrowser.HierarchyButtonBrush", new IMAGE_BRUSH( "Icons/levels_16x", Icon16x16 ) );
+		Set( "WorldBrowser.DetailsButtonBrush", new IMAGE_BRUSH( "NewsFeed/SettingsButton", Icon16x16 ) );
+		Set( "WorldBrowser.CompositionButtonBrush", new IMAGE_BRUSH( "Icons/icon_volume_LevelGrid_16x", Icon16x16 ) );
+		
 		Set( "WorldBrowser.StatusBarText", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 12 ) )
 				.SetColorAndOpacity( FLinearColor(0.9, 0.9f, 0.9f, 0.5f) )

@@ -135,7 +135,6 @@ void UWorld::Serialize( FArchive& Ar )
 	// Serialize World composition for PIE
 	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
 	{
-		Ar << WorldComposition;
 		Ar << GlobalOriginOffset;
 		Ar << RequestedGlobalOriginOffset;
 	}
@@ -195,25 +194,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	}
 #endif
 	Super::AddReferencedObjects( This, Collector );
-}
-
-void UWorld::PostDuplicate(bool bDuplicateForPIE)
-{
-	if (bDuplicateForPIE)
-	{
-		if (WorldComposition)
-		{
-			// Remove streaming levels created by World Browser, to avoid duplication with streaming levels from world composition
-			auto Predicate = [](ULevelStreaming* StreamingLevel)
-			{
-				return (!StreamingLevel || StreamingLevel->HasAnyFlags(RF_Transient));
-			};
-			StreamingLevels.RemoveAll(Predicate);
-
-			// Add streaming levels managed by world composition
-			StreamingLevels.Append(WorldComposition->TilesStreaming);
-		}
-	}
 }
 
 void UWorld::FinishDestroy()
@@ -761,11 +741,6 @@ void UWorld::InitWorld(const InitializationValues IVS)
 
 	// update it's bIsDefaultLevel
 	bIsDefaultLevel = (FPaths::GetBaseFilename(GetMapName()) == FPaths::GetBaseFilename(UGameMapsSettings::GetGameDefaultMap()));
-
-	if (IVS.bCreateWorldComposition)
-	{
-		InitializeWorldComposition();
-	}
 
 	// We're initialized now.
 	bIsWorldInitialized = true;
@@ -2173,7 +2148,7 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 
 void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 {
-	if ( IsGameWorld() )
+	if (IsGameWorld() && GetWorldSettings()->bEnableWorldOriginRebasing)
 	{
 		FVector CentroidLocation(0,0,0);
 		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ViewIndex++)
@@ -3164,11 +3139,6 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	Connection->SendPackageMap();
 	
 	FString LevelName = CurrentLevel->GetOutermost()->GetName();
-	if (WorldComposition != NULL)
-	{
-		LevelName+= TEXT("?worldcomposition");
-	}
-
 	Connection->ClientWorldPackageName = CurrentLevel->GetOutermost()->GetFName();
 
 	FString GameName;
@@ -3686,28 +3656,13 @@ void UWorld::CancelPendingMapChange()
 
 void UWorld::CommitMapChange()
 {
-		if( IsPreparingMapChange() )
-		{
-		GEngine->SetShouldCommitPendingMapChange(this, true);
-		}
-		else
-		{
-			UE_LOG(LogWorld, Log, TEXT("AWorldSettings::CommitMapChange being called without a pending map change!"));
-		}
-	}
-
-void UWorld::InitializeWorldComposition()
-{
-	WorldComposition = NULL;
-	//
-	FString RootPackageName = GetOutermost()->GetName();
-	if (FPackageName::DoesPackageExist(RootPackageName))
+	if( IsPreparingMapChange() )
 	{
-		WorldComposition = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), this);
-		// Get the root directory
-		FString RootPathName = FPaths::GetPath(RootPackageName) + TEXT("/");
-		// Open world composition from root directory
-		WorldComposition->OpenWorldRoot(RootPathName);
+		GEngine->SetShouldCommitPendingMapChange(this, true);
+	}
+	else
+	{
+		UE_LOG(LogWorld, Log, TEXT("AWorldSettings::CommitMapChange being called without a pending map change!"));
 	}
 }
 

@@ -26,6 +26,8 @@ FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>
 
 FLevelCollectionModel::~FLevelCollectionModel()
 {
+	SaveSettings();
+	
 	Filters->OnChanged().RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
@@ -36,6 +38,8 @@ FLevelCollectionModel::~FLevelCollectionModel()
 
 void FLevelCollectionModel::Initialize()
 {
+	LoadSettings();
+	
 	CurrentWorld = Editor->GetEditorWorldContext().World();
 
 	Filters->OnChanged().AddSP(this, &FLevelCollectionModel::OnFilterChanged);
@@ -303,6 +307,11 @@ void FLevelCollectionModel::RemoveFilter(const TSharedRef<LevelFilter>& InFilter
 {
 	Filters->Remove(InFilter);
 	OnFilterChanged();
+}
+
+bool FLevelCollectionModel::IsFilterActive() const
+{
+	return (AllLevelsList.Num() != FilteredLevelsList.Num());
 }
 
 void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
@@ -616,7 +625,7 @@ TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 
 bool FLevelCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
 {
-	if (Filters->PassesAllFilters(Item))
+	if (Item->IsPersistent() || Filters->PassesAllFilters(Item))
 	{
 		return true;
 	}
@@ -906,6 +915,21 @@ bool FLevelCollectionModel::GetDisplayPathsState() const
 void FLevelCollectionModel::SetDisplayPathsState(bool InDisplayPaths)
 {
 	bDisplayPaths = InDisplayPaths;
+
+	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
+	{
+		(*It)->UpdateDisplayName();
+	}
+}
+
+bool FLevelCollectionModel::GetDisplayActorsCountState() const
+{
+	return bDisplayActorsCount;
+}
+
+void FLevelCollectionModel::SetDisplayActorsCountState(bool InDisplayActorsCount)
+{
+	bDisplayActorsCount = InDisplayActorsCount;
 
 	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
 	{
@@ -1264,6 +1288,30 @@ FBox FLevelCollectionModel::GetVisibleLevelsBoundingBox(const FLevelModelList& I
 const TSharedRef<const FUICommandList> FLevelCollectionModel::GetCommandList() const
 {
 	return CommandList;
+}
+
+const FString ConfigIniSection = TEXT("WorldBrowser");
+
+void FLevelCollectionModel::LoadSettings()
+{
+	// Display paths
+	bool bDisplayPathsSetting = false;
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayPaths"), bDisplayPathsSetting, GEditorUserSettingsIni);
+	SetDisplayPathsState(bDisplayPathsSetting);
+
+	// Display actors count
+	bool bDisplayActorsCountSetting = false;
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), bDisplayActorsCountSetting, GEditorUserSettingsIni);
+	SetDisplayActorsCountState(bDisplayActorsCountSetting);
+}
+	
+void FLevelCollectionModel::SaveSettings()
+{
+	// Display paths
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayPaths"), GetDisplayPathsState(), GEditorUserSettingsIni);
+
+	// Display actors count
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), GetDisplayActorsCountState(), GEditorUserSettingsIni);
 }
 
 void FLevelCollectionModel::RefreshBrowser_Executed()

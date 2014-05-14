@@ -1918,11 +1918,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				// Should we display progress while loading?
 				int32 bShowProgress = 1;
 				FParse::Value(Str, TEXT("SHOWPROGRESS="), bShowProgress);
-
-				// Should we create world composition?
-				int32 bWorldComposition = 0;
-				FParse::Value(Str, TEXT("WORLDCOMPOSITION="), bWorldComposition);
-				
+			
 				UObject* OldOuter = NULL;
 
 				{
@@ -2041,7 +2037,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				Context.World()->InitWorld(UWorld::InitializationValues()
 											.ShouldSimulatePhysics(false)
 											.EnableTraceCollision(true)
-											.CreateWorldComposition(bWorldComposition != 0)
 											);
 				{
 					FBSPOps::bspValidateBrush( Context.World()->GetBrush()->Brush, 0, 1 );

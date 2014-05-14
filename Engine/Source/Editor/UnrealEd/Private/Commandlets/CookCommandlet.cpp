@@ -438,7 +438,7 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 					if ( !World->bIsWorldInitialized)
 					{
 						// we need to initialize the world - at least need physics scene since BP construction script runs during cooking, otherwise trace won't work
-						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).AllowAudioPlayback(false).CreatePhysicsScene(true).CreateWorldComposition(false));
+						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
 					}
 				}
 
@@ -737,12 +737,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	GEditor->ParseMapSectionIni(*Params, MapList);
 	for (int32 MapIdx = 0; MapIdx < MapList.Num(); MapIdx++)
 	{
-		if (UWorldComposition::CollectTilesToCook(MapList[MapIdx], FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
-				
 		FilesInPath.AddUnique(MapList[MapIdx]);
 	}
 
@@ -787,13 +781,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	for (int32 CmdLineMapIdx = 0; CmdLineMapIdx < CmdLineMapEntries.Num(); CmdLineMapIdx++)
 	{
 		FString CurrEntry = CmdLineMapEntries[CmdLineMapIdx];
-		
-		// Check if this cmd entry is related to world composition
-		if (UWorldComposition::CollectTilesToCook(CurrEntry, FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
 		
 		if (FPackageName::IsShortPackageName(CurrEntry))
 		{
@@ -879,35 +866,22 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		FConfigCacheIni::LoadLocalIniFile(PlatformEngineIni, TEXT("Engine"), true, *Platforms[Index]->IniPlatformName());
 
 		// get the server and game default maps and cook them
-		TArray<FString> DefaultMaps;
 		FString Obj;
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
+			FilesInPath.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
-			DefaultMaps.AddUnique(Obj);
-		}
-
-		for (FString DefaultMap : DefaultMaps)
-		{
-			// Check if this map is related to world composition
-			if (UWorldComposition::CollectTilesToCook(DefaultMap, FilesInPath))
-			{
-				// Entry has been handled by world composition, no further processing required
-				continue;
-			}
-
-			FilesInPath.AddUnique(DefaultMap);
+			FilesInPath.AddUnique(Obj);
 		}
 	}
 
@@ -1146,6 +1120,13 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 				{
 					World->LoadSecondaryLevels(true, &CookedPackages);
 				}
+
+				// Collect world composition tile packages to cook
+				if (World->WorldComposition)
+				{
+					World->WorldComposition->CollectTilesToCook(FilesInPath);
+				}
+
 				// maps don't compile level script actors correctly unless we do FULL GC's, they may also hold weak pointer refs that need to be reset
 				NumProcessedSinceLastGC = GCInterval; 
 

@@ -5,7 +5,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 
-#include "SWorldDetailsView.h"
+#include "SWorldDetails.h"
 #include "SPropertyEditorLevelPackage.h"
 #include "WorldTileDetails.h"
 #include "WorldTileCollectionModel.h"

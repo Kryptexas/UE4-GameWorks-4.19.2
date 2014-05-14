@@ -188,6 +188,14 @@ class ENGINE_API AWorldSettings : public AInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config)
 	uint32 bEnableNavigationSystem:1;
 
+	/** if set to true enables tools for composing a tiled world */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config)
+	uint32 bEnableWorldComposition:1;
+
+	/** if set to true world origin will shift to a camera position when camera goes far away from current origin */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Config, meta=(editcondition = "bEnableWorldComposition"))
+	uint32 bEnableWorldOriginRebasing:1;
+		
 	/** if set to true, when we call GetGravityZ we assume WorldGravityZ has already been initialized and skip the lookup of DefaultGravityZ and GlobalGravityZ */
 	UPROPERTY(transient)
 	uint32 bWorldGravitySet:1;
@@ -439,5 +447,8 @@ private:
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
 
 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+
+	/** Toggles world composition mode */
+	void EnabledWorldComposition(bool bEnable);
 };
 

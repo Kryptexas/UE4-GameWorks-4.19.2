@@ -1513,18 +1513,9 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 
 /**
  * Prompts the user to save the current map if necessary, the presents a load dialog and
- * loads a new map as a world composition if selected by the user.
- */
-void FEditorFileUtils::OpenWorld()
-{
-	LoadMap(true);
-}
-
-/**
- * Prompts the user to save the current map if necessary, the presents a load dialog and
  * loads a new map if selected by the user.
  */
-void FEditorFileUtils::LoadMap(bool bWorldComposition)
+void FEditorFileUtils::LoadMap()
 {
 	if (GUnrealEd->WarnIfLightingBuildIsCurrentlyRunning())
 	{
@@ -1570,7 +1561,7 @@ void FEditorFileUtils::LoadMap(bool bWorldComposition)
 			}
 
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-			LoadMap( FileToOpen, false, true, bWorldComposition );
+			LoadMap( FileToOpen, false, true );
 		}
 		else
 		{
@@ -1588,7 +1579,7 @@ void FEditorFileUtils::LoadMap(bool bWorldComposition)
  * @param	LoadAsTemplate	Forces the map to load into an untitled outermost package
  *							preventing the map saving over the original file.
  */
-void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress, bool bWorldComposition)
+void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, bool bShowProgress)
 {
 	double LoadStartTime = FPlatformTime::Seconds();
 	
@@ -1646,7 +1637,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
 	}
 
-	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d WORLDCOMPOSITION=%d"), *Filename, LoadAsTemplate, bShowProgress, bWorldComposition );
+	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
 
 	UWorld* World = GWorld;
@@ -2712,17 +2703,15 @@ bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText&
 
 void FEditorFileUtils::LoadDefaultMapAtStartup()
 {
-	FURL DefaultURL;
-	FURL URL( &DefaultURL, *GetDefault<UGameMapsSettings>()->EditorStartupMap, TRAVEL_Partial );
+	FString EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
 	
 	const bool bIncludeReadOnlyRoots = true;
-	if ( FPackageName::IsValidLongPackageName(URL.Map, bIncludeReadOnlyRoots) )
+	if ( FPackageName::IsValidLongPackageName(EditorStartupMap, bIncludeReadOnlyRoots) )
 	{
-		FString MapFilenameToLoad = FPackageName::LongPackageNameToFilename( URL.Map );
-		bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
+		FString MapFilenameToLoad = FPackageName::LongPackageNameToFilename( EditorStartupMap );
 
 		bIsLoadingDefaultStartupMap = true;
-		FEditorFileUtils::LoadMap( MapFilenameToLoad + FPackageName::GetMapPackageExtension(), GUnrealEd->IsTemplateMap(URL.Map), true, bWorldComposition );
+		FEditorFileUtils::LoadMap( MapFilenameToLoad + FPackageName::GetMapPackageExtension(), GUnrealEd->IsTemplateMap(EditorStartupMap), true );
 		bIsLoadingDefaultStartupMap = false;
 	}
 }

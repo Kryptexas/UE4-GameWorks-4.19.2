@@ -8168,9 +8168,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapMid( URL.Map ); )
 
-	// Whether we should treat URL.Map as world root for WorldComposition
-	const bool bWorldComposition = URL.HasOption(TEXT("worldcomposition"));
-
 	if( GUseSeekFreeLoading )
 	{
 		// Load GameMode specific data
@@ -8343,7 +8340,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// In the PIE case the world will already have been initialized as part of CreatePIEWorldByDuplication
 	if (!WorldContext.World()->bIsWorldInitialized)
 	{
-		WorldContext.World()->InitWorld(UWorld::InitializationValues().CreateWorldComposition(bWorldComposition));
+		WorldContext.World()->InitWorld();
 	}
 
 	// Handle pending level.
@@ -8390,7 +8387,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
 	// Set initial world origin and stream in levels
-	if (bWorldComposition)
+	if (WorldContext.World()->WorldComposition)
 	{
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
 	}

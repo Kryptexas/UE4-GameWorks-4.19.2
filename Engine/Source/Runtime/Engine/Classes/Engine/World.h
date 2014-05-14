@@ -857,7 +857,7 @@ public:
 	FIntPoint RequestedGlobalOriginOffset;
 	
 	/** All levels information from which our world is composed */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	class UWorldComposition* WorldComposition;
 	
 	/** Streaming level package name to LOD index. 
@@ -1623,8 +1623,6 @@ public:
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) OVERRIDE;
 	virtual UWorld* GetWorld() const OVERRIDE;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-
 	// End UObject Interface
 	
 	/**
@@ -1783,7 +1781,6 @@ public:
 			, bShouldSimulatePhysics(true)
 			, bEnableTraceCollision(false)
 			, bTransactional(true)
-			, bCreateWorldComposition(false)
 		{
 		}
 
@@ -1795,7 +1792,6 @@ public:
 		uint32 bShouldSimulatePhysics:1;
 		uint32 bEnableTraceCollision:1;
 		uint32 bTransactional:1;
-		uint32 bCreateWorldComposition:1;
 
 
 		InitializationValues& InitializeScenes(const bool bInitialize) { bInitializeScenes = bInitialize; return *this; }
@@ -1806,7 +1802,6 @@ public:
 		InitializationValues& ShouldSimulatePhysics(const bool bInShouldSimulatePhysics) { bShouldSimulatePhysics = bInShouldSimulatePhysics; return *this; }
 		InitializationValues& EnableTraceCollision(const bool bInEnableTraceCollision) { bEnableTraceCollision = bInEnableTraceCollision; return *this; }
 		InitializationValues& SetTransactional(const bool bInTransactional) { bTransactional = bInTransactional; return *this; }
-		InitializationValues& CreateWorldComposition(const bool bCreate) { bCreateWorldComposition = bCreate; return *this; }
 	};
 
 	/**
@@ -2390,9 +2385,6 @@ public:
 
 	/** Retrieves information whether all navigation with this world has been rebuilt */
 	bool IsNavigationRebuilt() const;
-
-	/** Setup runtime objects for world composition based on folder of currently loaded map */
-	void InitializeWorldComposition();
 
 	/** Request to translate world origin to specified position on next tick */
 	void RequestNewWorldOrigin(const FIntPoint& InNewOrigin);

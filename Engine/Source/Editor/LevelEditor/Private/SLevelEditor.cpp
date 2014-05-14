@@ -41,10 +41,12 @@
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
-static const FName LevelEditorWorldBrowserTab("LevelEditorWorldBrowser");
 static const FName MainFrameModuleName("MainFrame");
 static const FName NewsFeedModuleName("NewsFeed");
 static const FName LevelEditorModuleName("LevelEditor");
+static const FName WorldBrowserHierarchyTab("WorldBrowserHierarchy");
+static const FName WorldBrowserDetailsTab("WorldBrowserDetails");
+static const FName WorldBrowserCompositionTab("WorldBrowserComposition");
 
 
 namespace LevelEditorConstants
@@ -691,14 +693,34 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					]
 				];
 	}
-	else if( GetDefault<UEditorExperimentalSettings>()->bWorldBrowser && TabIdentifier == LevelEditorWorldBrowserTab )
+	else if( GetDefault<UEditorExperimentalSettings>()->bWorldBrowser && TabIdentifier == WorldBrowserHierarchyTab)
 	{
 		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
-			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserTabTitle", "World Browser") )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserHierarchyTabTitle", "Levels Hierarchy") )
 			[
-				WorldBrowserModule.CreateWorldBrowser()
+				WorldBrowserModule.CreateWorldBrowserHierarchy()
+			];
+	}
+	else if( GetDefault<UEditorExperimentalSettings>()->bWorldBrowser && TabIdentifier == WorldBrowserDetailsTab)
+	{
+		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
+		return SNew( SDockTab )
+			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserDetailsTabTitle", "Levels Details") )
+			[
+				WorldBrowserModule.CreateWorldBrowserDetails()
+			];
+	}
+	else if( GetDefault<UEditorExperimentalSettings>()->bWorldBrowser && TabIdentifier == WorldBrowserCompositionTab)
+	{
+		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
+		return SNew( SDockTab )
+			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserCompositionTabTitle", "Levels Composition") )
+			[
+				WorldBrowserModule.CreateWorldBrowserComposition()
 			];
 	}
 	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
@@ -1143,8 +1165,21 @@ void SLevelEditor::HandleExperimentalSettingChanged(FName PropertyName)
 void SLevelEditor::RegisterWorldBrowserTabSpawner()
 {
 	TSharedPtr<FTabManager> LevelEditorTabManager = GetTabManager();
-	LevelEditorTabManager->RegisterTabSpawner( LevelEditorWorldBrowserTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorWorldBrowserTab, FString()) )
-		.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "LevelEditorWorldBrowser", "World Browser"))
+
+	LevelEditorTabManager->RegisterTabSpawner( WorldBrowserHierarchyTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserHierarchyTab, FString()) )
+		.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserHierarchy", "World Browser"))
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
+		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
+			
+	LevelEditorTabManager->RegisterTabSpawner( WorldBrowserDetailsTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserDetailsTab, FString()) )
+		.SetMenuType( ETabSpawnerMenuType::Hide )
+		.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserDetails", "Levels Details"))
+		.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
+		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
+		
+	LevelEditorTabManager->RegisterTabSpawner( WorldBrowserCompositionTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserCompositionTab, FString()) )
+		.SetMenuType( ETabSpawnerMenuType::Hide )
+		.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserComposition", "Levels Composition"))
 		.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowser") );
 }
@@ -1152,7 +1187,9 @@ void SLevelEditor::RegisterWorldBrowserTabSpawner()
 void SLevelEditor::UnregisterWorldBrowserTabSpawner()
 {
 	TSharedPtr<FTabManager> LevelEditorTabManager = GetTabManager();
-	LevelEditorTabManager->UnregisterTabSpawner( LevelEditorWorldBrowserTab );
+	LevelEditorTabManager->UnregisterTabSpawner( WorldBrowserHierarchyTab );
+	LevelEditorTabManager->UnregisterTabSpawner( WorldBrowserDetailsTab );
+	LevelEditorTabManager->UnregisterTabSpawner( WorldBrowserCompositionTab );
 }
 
 FName SLevelEditor::GetEditorModeTabId( FEditorModeID ModeID )
