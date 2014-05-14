@@ -225,11 +225,14 @@ bool UEditorBrushBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 
 void UEditorBrushBuilder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Rebuild brush on property change
-	ABrush* Brush = Cast<ABrush>( GetOuter() );
-	if( Brush )
+	if (!GIsTransacting)
 	{
-		Build(Brush->GetWorld(), Brush);
+		// Rebuild brush on property change
+		ABrush* Brush = Cast<ABrush>(GetOuter());
+		if (Brush)
+		{
+			Build(Brush->GetWorld(), Brush);
+		}
 	}
 }
 
