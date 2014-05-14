@@ -892,7 +892,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	FConfigCacheIni::LoadLocalIniFile(InputIni, TEXT("Input"), true);
 	if (InputIni.GetString(TEXT("/Script/Engine.InputSettings"), TEXT("DefaultTouchInterface"), InterfaceFile))
 	{
-		if (InterfaceFile != TEXT("None"))
+		if (InterfaceFile != TEXT("None") && InterfaceFile != TEXT(""))
 		{
 			FilesInPath.AddUnique(InterfaceFile);
 		}
