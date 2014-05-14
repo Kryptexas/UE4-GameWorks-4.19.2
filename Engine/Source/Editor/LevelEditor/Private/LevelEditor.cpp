@@ -194,6 +194,8 @@ void FLevelEditorModule::ShutdownModule()
 
 	FLevelEditorCommands::Unregister();
 	FLevelEditorModesCommands::Unregister();
+	FEditorViewportCommands::Unregister();
+	FLevelViewportCommands::Unregister();
 }
 
 void FLevelEditorModule::PreUnloadCallback()
