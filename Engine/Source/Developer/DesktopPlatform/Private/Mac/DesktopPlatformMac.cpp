@@ -3,6 +3,7 @@
 #include "DesktopPlatformPrivatePCH.h"
 #include "MacApplication.h"
 #include "FeedbackContextMarkup.h"
+#include "MacNativeFeedbackContext.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 
@@ -641,7 +642,8 @@ bool FDesktopPlatformMac::RunUnrealBuildTool(const FText& Description, const FSt
 
 FFeedbackContext* FDesktopPlatformMac::GetNativeFeedbackContext()
 {
-	return GWarn;
+	static FMacNativeFeedbackContext Warn;
+	return &Warn;
 }
 
 #undef LOCTEXT_NAMESPACE
