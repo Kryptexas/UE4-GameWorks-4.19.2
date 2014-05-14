@@ -13,6 +13,7 @@ class ENGINE_API UEnvQueryItemType_Actor : public UEnvQueryItemType_ActorBase
 
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const AActor* SingleActor);
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors);
+	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors);
 
 	virtual FVector GetLocation(const uint8* RawData) const OVERRIDE;
 	virtual FRotator GetRotation(const uint8* RawData) const OVERRIDE;

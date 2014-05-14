@@ -52,9 +52,23 @@ void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& Cont
 	ContextData.RawData.Init(sizeof(FWeakObjectPtr) * MultipleActors.Num());
 
 	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
-	for (int32 i = 0; i < MultipleActors.Num(); i++)
+	for (int32 ActorIndex = 0; ActorIndex < MultipleActors.Num(); ActorIndex++)
 	{
-		UEnvQueryItemType_Actor::SetValue(RawData, MultipleActors[i]);
+		UEnvQueryItemType_Actor::SetValue(RawData, MultipleActors[ActorIndex]);
+		RawData += sizeof(FWeakObjectPtr);
+	}
+}
+
+void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors)
+{
+	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
+	ContextData.NumValues = MultipleActors.Num();
+	ContextData.RawData.Init(sizeof(FWeakObjectPtr)* MultipleActors.Num());
+
+	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
+	for (int32 ActorIndex = 0; ActorIndex < MultipleActors.Num(); ActorIndex++)
+	{
+		UEnvQueryItemType_Actor::SetValue(RawData, MultipleActors[ActorIndex]);
 		RawData += sizeof(FWeakObjectPtr);
 	}
 }
