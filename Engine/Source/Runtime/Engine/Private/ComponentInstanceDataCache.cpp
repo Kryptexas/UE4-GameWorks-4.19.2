@@ -2,77 +2,65 @@
 
 #include "EnginePrivate.h"
 
-#include "Components/ApplicationLifecycleComponent.h"
-#include "AI/BehaviorTree/BlackboardComponent.h"
-#include "AI/BrainComponent.h"
-#include "AI/BehaviorTree/BehaviorTreeComponent.h"
-#include "Debug/GameplayDebuggingControllerComponent.h"
-#include "Components/InputComponent.h"
-#include "GameFramework/MovementComponent.h"
-#include "Components/SceneComponent.h"
-#include "Components/LightComponentBase.h"
-#include "Components/LightComponent.h"
-#include "Components/PrimitiveComponent.h"
-#include "GameFramework/NavMovementComponent.h"
-#include "GameFramework/PawnMovementComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/FloatingPawnMovement.h"
-#include "GameFramework/SpectatorPawnMovement.h"
-#include "Vehicles/WheeledVehicleMovementComponent.h"
-#include "Vehicles/WheeledVehicleMovementComponent4W.h"
-#include "GameFramework/ProjectileMovementComponent.h"
-#include "GameFramework/RotatingMovementComponent.h"
-#include "AI/Navigation/NavigationComponent.h"
-#include "AI/Navigation/PathFollowingComponent.h"
-#include "Components/PawnNoiseEmitterComponent.h"
-#include "Components/PawnSensingComponent.h"
-#include "PhysicsEngine/PhysicsHandleComponent.h"
-#include "Atmosphere/AtmosphericFogComponent.h"
-#include "Components/AudioComponent.h"
-#include "Camera/CameraComponent.h"
-#include "Components/ChildActorComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "Components/SkyLightComponent.h"
-#include "AI/Navigation/NavigationGraphNodeComponent.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
-#include "PhysicsEngine/PhysicsThrusterComponent.h"
-#include "Components/PostProcessComponent.h"
-#include "Components/ArrowComponent.h"
-#include "Components/BillboardComponent.h"
-#include "Components/BrushComponent.h"
-#include "Components/DrawFrustumComponent.h"
-#include "AI/EnvironmentQuery/EQSRenderingComponent.h"
-#include "Debug/GameplayDebuggingComponent.h"
-#include "Components/LineBatchComponent.h"
-#include "Components/MaterialBillboardComponent.h"
-#include "Components/MeshComponent.h"
-#include "Components/SkinnedMeshComponent.h"
-#include "Components/DestructibleComponent.h"
-#include "Components/PoseableMeshComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/StaticMeshComponent.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "Components/InteractiveFoliageComponent.h"
-#include "Components/SplineMeshComponent.h"
-#include "Components/ModelComponent.h"
-#include "AI/Navigation/NavLinkRenderingComponent.h"
-#include "AI/Navigation/NavMeshRenderingComponent.h"
-#include "AI/Navigation/NavTestRenderingComponent.h"
-#include "Components/NiagaraComponent.h"
-#include "Components/ShapeComponent.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
-#include "Components/DrawSphereComponent.h"
-#include "Components/TextRenderComponent.h"
-#include "Components/VectorFieldComponent.h"
-#include "PhysicsEngine/RadialForceComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/WindDirectionalSourceComponent.h"
-#include "Components/TimelineComponent.h"
-#include "Slate.h"
-#include "AI/NavDataGenerator.h"
-#include "OnlineSubsystemUtils.h"
+FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* SourceComponent)
+{
+	check(SourceComponent);
+	SourceComponentName = SourceComponent->GetFName();
+	SourceComponentTypeSerializedIndex = -1;
+	
+	AActor* ComponentOwner = SourceComponent->GetOwner();
+	if (ComponentOwner)
+	{
+		bool bFound = false;
+		for (const UActorComponent* SerializedComponent : ComponentOwner->SerializedComponents)
+		{
+			if (SerializedComponent == SourceComponent)
+			{
+				++SourceComponentTypeSerializedIndex;
+				bFound = true;
+				break;
+			}
+			else if (SerializedComponent->GetClass() == SourceComponent->GetClass())
+			{
+				++SourceComponentTypeSerializedIndex;
+			}
+		}
+		if (!bFound)
+		{
+			SourceComponentTypeSerializedIndex = -1;
+		}
+	}
+}
+
+bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Component) const
+{
+	bool bMatches = false;
+	if (Component)
+	{
+		if (Component->GetFName() == SourceComponentName)
+		{
+			bMatches = true;
+		}
+		else if (SourceComponentTypeSerializedIndex >= 0)
+		{
+			int32 FoundSerializedComponentsOfType = -1;
+			AActor* ComponentOwner = Component->GetOwner();
+			if (ComponentOwner)
+			{
+				for (const UActorComponent* SerializedComponent : ComponentOwner->SerializedComponents)
+				{
+					if (   (SerializedComponent->GetClass() == Component->GetClass())
+						&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
+					{
+						bMatches = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return bMatches;
+}
 
 void FComponentInstanceDataCache::AddInstanceData(TSharedPtr<FComponentInstanceDataBase> NewData)
 {

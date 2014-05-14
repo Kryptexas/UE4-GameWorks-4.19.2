@@ -8,70 +8,120 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
-const FName FVertexColorInstanceData::VertexColorInstanceDataName(TEXT("VertexColorInstanceData"));
-
-void FVertexColorInstanceData::AddVertexColorData( const FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex )
+/**
+* Vertex color information stored during RerunConstructionScripts
+*/
+class FVertexColorInstanceData : public FComponentInstanceDataBase
 {
-	if(VertexColorLODs.Num() <= (int32)LODIndex)
+public:
+
+	FVertexColorInstanceData(const UStaticMeshComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+		, StaticMesh(SourceComponent->StaticMesh)
 	{
-		VertexColorLODs.SetNum(LODIndex + 1);
 	}
-	FVertexColorLODData& VertexColorData = VertexColorLODs[LODIndex];
-	VertexColorData.LODIndex = LODIndex;
-	VertexColorData.PaintedVertices = LODInfo.PaintedVertices;
-	LODInfo.OverrideVertexColors->GetVertexColors( VertexColorData.VertexBufferColors );
-}
 
-bool FVertexColorInstanceData::ApplyVertexColorData( UStaticMeshComponent* StaticMeshComponent )
-{
-	bool bAppliedAnyData = false;
+	static const FName VertexColorInstanceDataName;
 
-	if(StaticMeshComponent != NULL)
+	/** FComponentInstanceDataBase interface */
+	virtual FName GetDataTypeName() const OVERRIDE
 	{
-		StaticMeshComponent->SetLODDataCount(VertexColorLODs.Num(), VertexColorLODs.Num());
+		return VertexColorInstanceDataName;
+	}
 
-		for( int32 LODDataIndex = 0; LODDataIndex < VertexColorLODs.Num(); ++LODDataIndex )
+	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
+	void AddVertexColorData(const struct FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex)
+	{
+		if (VertexColorLODs.Num() <= (int32)LODIndex)
 		{
-			const FVertexColorLODData& VertexColorLODData = VertexColorLODs[LODDataIndex];
-			uint32 LODIndex = VertexColorLODData.LODIndex;
+			VertexColorLODs.SetNum(LODIndex + 1);
+		}
+		FVertexColorLODData& VertexColorData = VertexColorLODs[LODIndex];
+		VertexColorData.LODIndex = LODIndex;
+		VertexColorData.PaintedVertices = LODInfo.PaintedVertices;
+		LODInfo.OverrideVertexColors->GetVertexColors(VertexColorData.VertexBufferColors);
+	}
 
-			if( StaticMeshComponent->LODData.IsValidIndex( LODIndex ) )
+	/** Re-apply vertex color data after RerunConstructionScripts is called */
+	bool ApplyVertexColorData(UStaticMeshComponent* StaticMeshComponent)
+	{
+		bool bAppliedAnyData = false;
+
+		if (StaticMeshComponent != NULL)
+		{
+			StaticMeshComponent->SetLODDataCount(VertexColorLODs.Num(), VertexColorLODs.Num());
+
+			for (int32 LODDataIndex = 0; LODDataIndex < VertexColorLODs.Num(); ++LODDataIndex)
 			{
-				FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[LODIndex];
-			
-				// Should not already have overriden vertex colors
-				if( LODInfo.OverrideVertexColors == NULL )
+				const FVertexColorLODData& VertexColorLODData = VertexColorLODs[LODDataIndex];
+				uint32 LODIndex = VertexColorLODData.LODIndex;
+
+				if (StaticMeshComponent->LODData.IsValidIndex(LODIndex))
 				{
-					LODInfo.PaintedVertices = VertexColorLODData.PaintedVertices;
+					FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[LODIndex];
 
-					LODInfo.OverrideVertexColors = new FColorVertexBuffer;
-					LODInfo.OverrideVertexColors->InitFromColorArray( VertexColorLODData.VertexBufferColors );
+					// Should not already have overriden vertex colors
+					if (LODInfo.OverrideVertexColors == NULL)
+					{
+						LODInfo.PaintedVertices = VertexColorLODData.PaintedVertices;
 
-					BeginInitResource( LODInfo.OverrideVertexColors );	
-					bAppliedAnyData = true;
+						LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+						LODInfo.OverrideVertexColors->InitFromColorArray(VertexColorLODData.VertexBufferColors);
+
+						BeginInitResource(LODInfo.OverrideVertexColors);
+						bAppliedAnyData = true;
+					}
 				}
 			}
-		}	
-	}
-
-	return bAppliedAnyData;
-}
-
-bool FVertexColorInstanceData::MatchesComponent( const UStaticMeshComponent* StaticMeshComponent ) const
-{
-	if(StaticMeshComponent != NULL)
-	{
-		if(StaticMeshComponent->StaticMesh != StaticMesh)
-		{
-			return false;
 		}
 
-		return SerializedComponentsIndex == StaticMeshComponent->GetSerializedComponentIndex();
+		return bAppliedAnyData;
 	}
 
-	// this component was not found
-	return false;
-}
+	/** Check whether this vertex color data can match the specified component */
+	virtual bool MatchesComponent(const UActorComponent* Component) const OVERRIDE
+	{
+		const UStaticMeshComponent* StaticMeshComponent = CastChecked<const UStaticMeshComponent>(Component, ECastCheckedType::NullAllowed);
+		if (StaticMeshComponent != NULL)
+		{
+			if (StaticMeshComponent->StaticMesh != StaticMesh)
+			{
+				return false;
+			}
+
+			return FComponentInstanceDataBase::MatchesComponent(Component);
+		}
+
+		// this component was not found
+		return false;
+	}
+
+	/** Vertex data stored per-LOD */
+	struct FVertexColorLODData
+	{
+		/** copy of painted vertex data */
+		TArray<FPaintedVertex> PaintedVertices;
+
+		/** Copy of vertex buffer colors */
+		TArray<FColor> VertexBufferColors;
+
+		/** Index of the LOD that this data came from */
+		uint32 LODIndex;
+
+		/** Check whether this contains valid data */
+		bool IsValid() const
+		{
+			return PaintedVertices.Num() > 0 && VertexBufferColors.Num() > 0;
+		}
+	};
+
+	/** Mesh being used by component */
+	class UStaticMesh* StaticMesh;
+
+	/** Array of cached vertex colors for each LOD */
+	TArray<FVertexColorLODData> VertexColorLODs;
+};
+const FName FVertexColorInstanceData::VertexColorInstanceDataName(TEXT("VertexColorInstanceData"));
 
 UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -1460,7 +1510,31 @@ int32 UStaticMeshComponent::GetSerializedComponentIndex() const
 	return INDEX_NONE;
 }
 
-// Init type name static
+/** Used to store lightmap data during RerunConstructionScripts */
+class FLightMapInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName LightMapInstanceDataTypeName;
+
+	virtual ~FLightMapInstanceData()
+	{}
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return LightMapInstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	/** Mesh being used by component */
+	class UStaticMesh*	StaticMesh;
+	/** Transform of instance */
+	FTransform		Transform;
+	/** Lightmaps from LODData */
+	TArray<FLightMapRef>	LODDataLightMap;
+	TArray<FShadowMapRef>	LODDataShadowMap;
+	TArray<FGuid> IrrelevantLights;
+};
 const FName FLightMapInstanceData::LightMapInstanceDataTypeName(TEXT("LightMapInstanceData"));
 
 void UStaticMeshComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
@@ -1497,9 +1571,7 @@ void UStaticMeshComponent::GetComponentInstanceData(FComponentInstanceDataCache&
 		{
 			if( !VertexColorData.IsValid() )
 			{
-				VertexColorData = MakeShareable( new FVertexColorInstanceData );
-				VertexColorData->StaticMesh = StaticMesh;
-				VertexColorData->SerializedComponentsIndex = GetSerializedComponentIndex();
+				VertexColorData = MakeShareable( new FVertexColorInstanceData(this) );
 			}
 
 			VertexColorData->AddVertexColorData( LODInfo, LODIndex );

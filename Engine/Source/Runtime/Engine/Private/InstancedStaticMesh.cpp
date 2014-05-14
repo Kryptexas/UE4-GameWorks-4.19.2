@@ -1197,20 +1197,17 @@ class FInstancedStaticMeshSelectionData : public FComponentInstanceDataBase
 {
 public:
 	FInstancedStaticMeshSelectionData(const UInstancedStaticMeshComponent& InComponent)
-		: ComponentName(InComponent.GetFName())
+		: FComponentInstanceDataBase(&InComponent)
 		, SelectedInstances(InComponent.SelectedInstances)
 	{
 	}
 
 	virtual FName GetDataTypeName() const
 	{
-		return ComponentName;
+		return SourceComponentName;
 	}
 
 public:
-	/** Our components name */
-	FName ComponentName;
-
 	/** The cached selected instances */
 	TBitArray<> SelectedInstances;
 };

@@ -6,11 +6,27 @@
 class FComponentInstanceDataBase
 {
 public:
+	FComponentInstanceDataBase()
+		: SourceComponentTypeSerializedIndex(-1)
+	{}
+
+	FComponentInstanceDataBase(const UActorComponent* SourceComponent);
+
 	virtual ~FComponentInstanceDataBase()
 	{}
 
 	/** Return the type name of this data */
 	virtual FName GetDataTypeName() const = 0;
+
+	virtual bool MatchesComponent(const UActorComponent* Component) const;
+
+protected:
+	/** The name of the source component */
+	FName SourceComponentName;
+
+	/** The index of the source component in its owner's serialized array 
+		when filtered to just that component type */
+	int32 SourceComponentTypeSerializedIndex;
 };
 
 /** 
