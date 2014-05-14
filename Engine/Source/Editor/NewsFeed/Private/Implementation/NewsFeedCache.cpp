@@ -307,7 +307,11 @@ void FNewsFeedCache::SaveSettings( )
 		}
 	}
 
-	NewsFeedSettings->SaveConfig();
+	// Save config to file, but only if we are not the build machine since settings may put the builder in an unclean state
+	if (!GIsBuildMachine)
+	{
+		NewsFeedSettings->SaveConfig();
+	}
 }
 
 
