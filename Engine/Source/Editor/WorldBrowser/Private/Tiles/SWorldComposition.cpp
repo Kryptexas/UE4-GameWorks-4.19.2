@@ -4,6 +4,7 @@
 #include "GraphEditor.h"
 #include "EdGraphUtilities.h"
 
+#include "WorldTileModel.h"
 #include "SWorldComposition.h"
 #include "SWorldTileItem.h"
 #include "SWorldLayers.h"

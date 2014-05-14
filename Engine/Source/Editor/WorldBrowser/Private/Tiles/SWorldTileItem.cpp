@@ -3,6 +3,7 @@
 
 #include "ObjectTools.h"
 #include "EdGraphUtilities.h"
+#include "WorldTileCollectionModel.h"
 #include "SWorldTileItem.h"
 #include "WorldTileDetails.h"
 
