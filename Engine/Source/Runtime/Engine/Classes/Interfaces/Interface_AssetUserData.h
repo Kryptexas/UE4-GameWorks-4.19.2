@@ -3,9 +3,10 @@
 #pragma once
 #include "Interface_AssetUserData.generated.h"
 
+class UAssetUserData;
 
-/** Interface for assets that can own UserData **/
-UINTERFACE(meta=(CannotImplementInterfaceInBlueprint))
+/** Interface for assets/objects that can own UserData **/
+UINTERFACE(MinimalApi, meta=(CannotImplementInterfaceInBlueprint))
 class UInterface_AssetUserData : public UInterface
 {
 	GENERATED_UINTERFACE_BODY()

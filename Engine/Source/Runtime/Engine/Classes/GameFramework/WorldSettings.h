@@ -174,7 +174,7 @@ struct ENGINE_API FNetViewer
  * Actor containing all script accessible world properties.
  */
 UCLASS(config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
-class ENGINE_API AWorldSettings : public AInfo
+class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -402,6 +402,12 @@ class ENGINE_API AWorldSettings : public AInfo
 	/** Maximum number of bookmarks	*/
 	static const int32 MAX_BOOKMARK_NUMBER = 10;
 
+	protected:
+
+	/** Array of user data stored with the asset */
+	UPROPERTY()
+	TArray<UAssetUserData*> AssetUserData;
+
 public:
 	// Begin UObject interface.
 #if WITH_EDITOR
@@ -440,6 +446,13 @@ public:
 	 * Called by GameMode.HandleMatchHasStarted, used to notify native classes of match startup (such as level scripting)
 	 */	
 	virtual void NotifyMatchStarted();
+
+	// Begin IInterface_AssetUserData Interface
+	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	// End IInterface_AssetUserData Interface
+
 
 private:
 

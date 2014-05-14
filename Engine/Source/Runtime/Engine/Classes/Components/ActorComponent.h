@@ -4,10 +4,12 @@
 
 #include "ComponentInstanceDataCache.h"
 #include "Engine/EngineTypes.h"
+#include "Interfaces/Interface_AssetUserData.h"
+
 #include "ActorComponent.generated.h"
 
 UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
-class ENGINE_API UActorComponent : public UObject
+class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -20,6 +22,11 @@ class ENGINE_API UActorComponent : public UObject
 	TArray<FName> ComponentTags;
 
 protected:
+
+	/** Array of user data stored with the component */
+	UPROPERTY()
+	TArray<UAssetUserData*> AssetUserData;
+
 	/** 
 	 *  Indicates if this ActorComponent is currently registered with a scene. 
 	 */
@@ -428,6 +435,12 @@ public:
 	virtual void PostEditUndo() OVERRIDE;
 #endif // WITH_EDITOR
 	// End UObject interface.
+
+	// Begin IInterface_AssetUserData Interface
+	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	// End IInterface_AssetUserData Interface
 
 	/** See if this component is currently registered */
 	FORCEINLINE bool IsRegistered() const
