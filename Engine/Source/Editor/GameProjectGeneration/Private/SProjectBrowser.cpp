@@ -6,6 +6,7 @@
 #include "DesktopPlatformModule.h"
 #include "SVerbChoiceDialog.h"
 #include "UProjectInfo.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
