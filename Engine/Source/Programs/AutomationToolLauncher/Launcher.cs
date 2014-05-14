@@ -45,6 +45,7 @@ namespace AutomationToolLauncher
             {
                 Console.WriteLine("AutomationToolLauncher failed to execute the assembly");
                 Console.WriteLine(Ex.Message);
+								Console.WriteLine(Ex.StackTrace);
             }
             int Retry = 5;
             bool Unloaded = false;
