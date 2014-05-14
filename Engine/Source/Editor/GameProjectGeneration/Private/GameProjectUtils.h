@@ -258,6 +258,8 @@ private:
 	/** Handler for the user confirming they've read the name legnth warning */
 	static void OnWarningReasonOk();
 
+	static int32 CalculateSubfolderCount(const FString& Filepath, const FString& RelativeRoot);
+
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;
 	static TWeakPtr<SNotificationItem> WarningProjectNameNotification;

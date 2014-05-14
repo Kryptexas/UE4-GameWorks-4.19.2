@@ -1893,10 +1893,18 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 		PropertyOverridesStr += *PropertyOverrides[OverrideIdx];
 	}
 
+	// account for subfolders in new filename
+	FString ModuleHeaderPath = ModuleName;
+	int32 SubfolderCount = CalculateSubfolderCount(NewCPPFileName, ModuleName);
+	for (int32 i = 0; i < SubfolderCount; ++i)
+	{
+		ModuleHeaderPath = "../" + ModuleHeaderPath;
+	}
+
 	const FString UnprefixedClassName = PrefixedClassName.Mid(1);
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnprefixedClassName, ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleHeaderPath, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PROPERTY_OVERRIDES%"), *PropertyOverridesStr, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_MEMBER_DEFINITIONS%"), *AdditionalMemberDefinitions, ESearchCase::CaseSensitive);
@@ -2319,6 +2327,33 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	OutCppFilePath = NewCppFilename;
 
 	return true;
+}
+
+int32 GameProjectUtils::CalculateSubfolderCount(const FString& Filepath, const FString& RelativeRoot)
+{
+	int32 ModuleNameIndex = Filepath.Find(RelativeRoot, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	if (ModuleNameIndex == INDEX_NONE)
+	{
+		return 0;
+	}
+
+	FString WorkingString = Filepath.Mid(ModuleNameIndex + RelativeRoot.Len() + 1);
+
+	int Depth = 0;
+	int32 SlashIndex;
+	while (WorkingString.FindChar(TEXT('/'), SlashIndex))
+	{
+		// because input is not sanitized against multiple sequential slashes (e.g. '////')
+		// only consider slashes that don't appear at beginning of the working string
+		if (SlashIndex > 0)
+		{
+			Depth++;
+		}
+
+		WorkingString = WorkingString.Mid(SlashIndex + 1);
+	}
+
+	return Depth;
 }
 
 #undef LOCTEXT_NAMESPACE
