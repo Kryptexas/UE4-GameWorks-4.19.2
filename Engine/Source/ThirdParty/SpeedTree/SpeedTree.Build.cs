@@ -10,7 +10,8 @@ public class SpeedTree : ModuleRules
 
 		// @todo: SpeedTree does support OSX and Linux
 		var bPlatformAllowed = ((Target.Platform == UnrealTargetPlatform.Win32) ||
-								(Target.Platform == UnrealTargetPlatform.Win64));
+								(Target.Platform == UnrealTargetPlatform.Win64) ||
+								(Target.Platform == UnrealTargetPlatform.Mac));
 
 		if (bPlatformAllowed &&
 			UEBuildConfiguration.bCompileSpeedTree)
@@ -77,6 +78,18 @@ public class SpeedTree : ModuleRules
 					{
                         PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v7.0_VC11_MTDLL_Static.lib");
 					}
+				}
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Mac)
+			{
+				PublicLibraryPaths.Add(SpeedTreePath + "Lib/MacOSX");
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				{
+					PublicAdditionalLibraries.Add(SpeedTreePath + "Lib/MacOSX/Debug/libSpeedTreeCore.a");
+				}
+				else
+				{
+					PublicAdditionalLibraries.Add(SpeedTreePath + "Lib/MacOSX/Release/libSpeedTreeCore.a");
 				}
 			}
 		}
