@@ -212,10 +212,29 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 #endif
 
 #if WITH_APEX_CLOTHING
-	/** toggle visibility between cloth sections and non-cloth sections */
-	UNREALED_API void ShowOnlyClothSections(bool bShow, int32 LODIndex);
+
+	enum ESectionDisplayMode
+	{
+		None = -1,
+		ShowAll,
+		ShowOnlyClothSections,
+		HideOnlyClothSections,
+		NumSectionDisplayMode
+	};
+	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
+	int32 SectionsDisplayMode;
+
+	/** 
+	 * toggle visibility between cloth sections and non-cloth sections for all LODs
+	 * if bShowOnlyClothSections is true, shows only cloth sections. On the other hand, 
+	 * if bShowOnlyClothSections is false, hides only cloth sections.
+	 */
+	UNREALED_API void ToggleClothSectionsVisibility(bool bShowOnlyClothSections);
 	/** Restore all section visibilities to original states for all LODs */
 	UNREALED_API void RestoreClothSectionsVisibility();
+
+	int32 FindCurrentSectionDisplayMode();
+
 #endif //#if WITH_APEX_CLOTHING
 };
 

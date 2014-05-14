@@ -585,6 +585,7 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 
 void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 {
+#if WITH_APEX_CLOTHING
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
 	MenuBuilder.BeginSection("ClothPreview", LOCTEXT("ClothPreview_Label", "Preview"));
@@ -622,6 +623,7 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowOnlyClothSections);
 		MenuBuilder.AddMenuEntry(Actions.HideOnlyClothSections);
 	}
+#endif // #if WITH_APEX_CLOTHING
 }
 
 FText SAnimViewportToolBar::GetLODMenuLabel() const

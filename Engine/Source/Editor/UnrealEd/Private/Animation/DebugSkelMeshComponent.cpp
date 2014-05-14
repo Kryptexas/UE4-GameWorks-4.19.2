@@ -88,6 +88,10 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const class FPostConstructIniti
 
 	bMeshSocketsVisible = true;
 	bSkeletonSocketsVisible = true;
+
+#if WITH_APEX_CLOTHING
+	SectionsDisplayMode = ESectionDisplayMode::None;
+#endif //#if WITH_APEX_CLOTHING
 }
 
 FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform & LocalToWorld) const
@@ -157,6 +161,14 @@ FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 		const FColor WireframeMeshOverlayColor(102,205,170,255);
 		Result = ::new FDebugSkelMeshSceneProxy(this, SkelMeshResource, WireframeMeshOverlayColor);
 	}
+
+#if WITH_APEX_CLOTHING
+	if (SectionsDisplayMode == ESectionDisplayMode::None)
+	{
+		SectionsDisplayMode = FindCurrentSectionDisplayMode();
+	}
+
+#endif //#if WITH_APEX_CLOTHING
 
 	return Result;
 }
@@ -434,53 +446,62 @@ void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
 
 #if WITH_APEX_CLOTHING
 
-void UDebugSkelMeshComponent::ShowOnlyClothSections(bool bShow, int32 LODIndex)
+void UDebugSkelMeshComponent::ToggleClothSectionsVisibility(bool bShowOnlyClothSections)
 {
-	PreEditChange(NULL);
-
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-	check(SkelMeshResource);
-	check(LODIndex >= 0 && LODIndex < SkelMeshResource->LODModels.Num());
-	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
-
-	for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+	if (SkelMeshResource)
 	{
-		FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+		PreEditChange(NULL);
 
-		// toggle visibility between cloth sections and non-cloth sections
-		if (bShow)
+		for (int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++)
 		{
-			// enables only cloth sections
-			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
-			{
-				Section.bDisabled = false;
-			}
-			else
-			{
-				Section.bDisabled = true;
-			}
-		}
-		else
-		{   // disables cloth sections and also corresponding original sections
-			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
-			{
-				Section.bDisabled = true;
-				LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
-			}
-			else
-			{
-				Section.bDisabled = false;
-			}
-		}
-	}
+			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
 
-	PostEditChange();
+			for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+			{
+				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+				// toggle visibility between cloth sections and non-cloth sections
+				if (bShowOnlyClothSections)
+				{
+					// enables only cloth sections
+					if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+					{
+						Section.bDisabled = false;
+					}
+					else
+					{
+						Section.bDisabled = true;
+					}
+				}
+				else
+				{   // disables cloth sections and also corresponding original sections
+					if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+					{
+						Section.bDisabled = true;
+						LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
+					}
+					else
+					{
+						Section.bDisabled = false;
+					}
+				}
+			}
+		}
+		PostEditChange();
+	}
 }
 
 void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 {
+	// if this skeletal mesh doesn't have any clothing assets, just return
+	if (!SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	{
+		return;
+	}
+
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-	if (ensure (SkelMeshResource))
+	if (SkelMeshResource)
 	{
 		PreEditChange(NULL);
 
@@ -509,4 +530,84 @@ void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
 		PostEditChange();
 	}
 }
+
+int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
+{
+	ESectionDisplayMode DisplayMode = ESectionDisplayMode::None;
+
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+	// if this skeletal mesh doesn't have any clothing asset, returns "None"
+	if (!SkelMeshResource || !SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0)
+	{
+		return ESectionDisplayMode::None;
+	}
+	else
+	{
+		int32 LODIndex;
+		int32 NumLODs = SkelMeshResource->LODModels.Num();
+		for (LODIndex = 0; LODIndex < NumLODs; LODIndex)
+		{
+			// if find any LOD model which has cloth data, then break
+			if (SkelMeshResource->LODModels[LODIndex].HasApexClothData())
+			{
+				break;
+			}
+		}
+
+		// couldn't find 
+		if (LODIndex == NumLODs)
+		{
+			return ESectionDisplayMode::None;
+		}
+
+		FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+		// firstly, find cloth sections
+		for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+		{
+			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+			{
+				// Normal state if the cloth section is visible and the corresponding section is disabled
+				if (Section.bDisabled == false &&
+					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled == true)
+				{
+					DisplayMode = ESectionDisplayMode::ShowOnlyClothSections;
+					break;
+				}
+			}
+		}
+
+		// secondly, find non-cloth sections except cloth-corresponding sections
+		bool bFoundNonClothSection = false;
+
+		for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+		{
+			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+			// not related to cloth sections
+			if (!LODModel.Chunks[Section.ChunkIndex].HasApexClothData() &&
+				Section.CorrespondClothSectionIndex < 0)
+			{
+				bFoundNonClothSection = true;
+				if (!Section.bDisabled)
+				{
+					if (DisplayMode == ESectionDisplayMode::ShowOnlyClothSections)
+					{
+						DisplayMode = ESectionDisplayMode::ShowAll;
+					}
+					else
+					{
+						DisplayMode = ESectionDisplayMode::HideOnlyClothSections;
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	return DisplayMode;
+}
+
 #endif // #if WITH_APEX_CLOTHING

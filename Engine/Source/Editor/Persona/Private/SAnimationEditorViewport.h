@@ -328,14 +328,6 @@ private:
 	bool IsAudioMuted();
 
 #if WITH_APEX_CLOTHING
-
-	enum ESectionDisplayMode
-	{
-		ShowAll,
-		ShowOnlyClothSections,
-		HideOnlyClothSections,
-		NumSectionDisplayMode
-	};
 	/** 
 	 * clothing show options 
 	*/
@@ -380,9 +372,6 @@ private:
 	/** Show all sections which means the original state */
 	void OnSetSectionsDisplayMode(int32 DisplayMode);
 	bool IsSectionsDisplayMode(int32 DisplayMode) const;
-
-	/** Draw All/ Draw only clothing sections/ Hide only clothing sections */
-	uint32 SectionsDisplayMode;
 
 #endif // #if WITH_APEX_CLOTHING
 
