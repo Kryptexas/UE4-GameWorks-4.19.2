@@ -5892,7 +5892,7 @@ void UEditorEngine::RestoreRealtimeViewports()
 		FEditorViewportClient* VC = AllViewportClients[x];
 		if( VC )
 		{
-			VC->RestoreRealtime();
+			VC->RestoreRealtime(true);
 		}
 	}
 

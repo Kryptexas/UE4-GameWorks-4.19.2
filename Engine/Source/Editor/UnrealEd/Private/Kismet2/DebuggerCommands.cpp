@@ -830,12 +830,7 @@ void FInternalPlayWorldCommandCallbacks::Simulate_Clicked()
 		// Start a new simulation session!
 		if( !HasPlayWorld() )
 		{
-			// Make sure the view port is in real-time mode
-			ActiveLevelViewport->GetLevelViewportClient().SetRealtime( true );
-
-			// Start simulating!
-			const bool bSimulateInEditor = true;
-			GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false );
+			GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, true/*bSimulateInEditor*/, NULL, NULL, -1, false );
 		}
 		else
 		{
