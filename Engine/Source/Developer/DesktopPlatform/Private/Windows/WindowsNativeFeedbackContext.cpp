@@ -75,6 +75,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 		if(hThread != NULL)
 		{
 			LogOutput += FString(V) + FString("\r\n");
+			SetEvent(hUpdateEvent);
 		}
 	}
 }
