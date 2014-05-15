@@ -992,7 +992,7 @@ public:
 			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);
 
 			// Emit named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents )
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
 			{
 				FPlatformMisc::BeginNamedEvent(FColor(0), InStatName.GetPlainANSIString());
 			}
@@ -1011,7 +1011,7 @@ public:
 			// else we dumped this frame without closing scope, so we just drop the closes on the floor
 
 			// End named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents )
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
 			{
 				FPlatformMisc::EndNamedEvent();
 			}

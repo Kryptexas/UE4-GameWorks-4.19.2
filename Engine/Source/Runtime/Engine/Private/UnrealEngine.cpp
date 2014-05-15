@@ -9957,14 +9957,20 @@ bool UEngine::ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* Viewpo
 	check(ViewportClient);
 	if (ViewportClient->IsStatEnabled(TEXT("NamedEvents")))
 	{
-		StatsMasterEnableAdd();
-		GCycleStatsShouldEmitNamedEvents = true;
+		if (GCycleStatsShouldEmitNamedEvents == 0)
+		{
+			StatsMasterEnableAdd();
+		}
+		GCycleStatsShouldEmitNamedEvents++;
 	}
 	// Disable emission of named events and force-enabling cycle stats.
 	else
 	{
-		GCycleStatsShouldEmitNamedEvents = false;
-		StatsMasterEnableSubtract();		
+		if (GCycleStatsShouldEmitNamedEvents == 1)
+		{
+			StatsMasterEnableSubtract();
+		}
+		GCycleStatsShouldEmitNamedEvents = FMath::Max(0, GCycleStatsShouldEmitNamedEvents - 1);
 	}
 	return false;
 }

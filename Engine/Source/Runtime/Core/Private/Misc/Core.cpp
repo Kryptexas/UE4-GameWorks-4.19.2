@@ -216,7 +216,7 @@ ELogTimes::Type			GPrintLogTimes					= ELogTimes::None;
 /** Global screen shot index, which is a way to make it so we don't have overwriting ScreenShots			*/
 int32                     GScreenshotBitmapIndex           = -1;
 /** Whether stats should emit named events for e.g. PIX.													*/
-bool					GCycleStatsShouldEmitNamedEvents= false;
+int32					GCycleStatsShouldEmitNamedEvents = 0;
 /** Disables some warnings and minor features that would interrupt a demo presentation						*/
 bool					GIsDemoMode						= false;
 /** Whether or not a unit test is currently being run														*/

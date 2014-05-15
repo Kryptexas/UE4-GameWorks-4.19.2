@@ -340,7 +340,7 @@ extern CORE_API ELogTimes::Type GPrintLogTimes;
 extern CORE_API int32 GScreenshotBitmapIndex;
 
 /** Whether stats should emit named events for e.g. PIX. */
-extern CORE_API bool GCycleStatsShouldEmitNamedEvents;
+extern CORE_API int32 GCycleStatsShouldEmitNamedEvents;
 
 /** Disables some warnings and minor features that would interrupt a demo presentation*/
 extern CORE_API bool GIsDemoMode;
