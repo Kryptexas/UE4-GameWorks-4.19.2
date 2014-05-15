@@ -514,10 +514,14 @@ protected:
 		{
 			if( UClass* RefClass = Cast<UClass>(Object) )
 			{
-				UClass* AuthClass = RefClass->GetAuthoritativeClass();
-				if( RefClass != AuthClass )
+				const bool bIsValidBPGeneratedClass = RefClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint) && RefClass->ClassGeneratedBy;
+				if (bIsValidBPGeneratedClass)
 				{
-					Object = AuthClass;
+					UClass* AuthClass = RefClass->GetAuthoritativeClass();
+					if (RefClass != AuthClass)
+					{
+						Object = AuthClass;
+					}
 				}
 			}
 		}
