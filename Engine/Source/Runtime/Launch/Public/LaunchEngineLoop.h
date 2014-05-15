@@ -102,7 +102,7 @@ public:
 	/**
 	 * Initializes the application.
 	 */
-	static void AppInit( );
+	static bool AppInit( );
 
 	/**
 	 * Prepares the application for shutdown.
