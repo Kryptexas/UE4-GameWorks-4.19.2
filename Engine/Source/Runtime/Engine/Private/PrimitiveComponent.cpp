@@ -1464,15 +1464,15 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		// Handle hit notifications.
 		if (BlockingHit.bBlockingHit)
 		{
-			if (Actor != NULL)
+			if (IsDeferringMovementUpdates())
 			{
-				Actor->DispatchBlockingHit(this, BlockingHit.Component.Get(), true, BlockingHit);
+				FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
+				checkSlow(ScopedUpdate != NULL);
+				ScopedUpdate->AppendBlockingHit(BlockingHit);
 			}
-
-			// BlockingHit.GetActor() could be marked for deletion in DispatchBlockingHit(), which would make the weak pointer return NULL.
-			if ( BlockingHit.GetActor() != NULL )
+			else
 			{
-				BlockingHit.GetActor()->DispatchBlockingHit(BlockingHit.Component.Get(), this, false, BlockingHit);
+				DispatchBlockingHit(*Actor, BlockingHit);
 			}
 		}
 	}
@@ -1484,7 +1484,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		{
 			// Defer UpdateOverlaps until the scoped move ends.
 			FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
-			check(ScopedUpdate != NULL);
+			checkSlow(ScopedUpdate != NULL);
 			ScopedUpdate->AppendOverlaps(PendingOverlaps, OverlapsAtEndLocationPtr);
 		}
 		else
@@ -1527,6 +1527,19 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	// Return whether we moved at all.
 	return bMoved;
 }
+
+
+void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit)
+{
+	Owner.DispatchBlockingHit(this, BlockingHit.Component.Get(), true, BlockingHit);
+
+	// BlockingHit.GetActor() could be marked for deletion in DispatchBlockingHit(), which would make the weak pointer return NULL.
+	if ( BlockingHit.GetActor() != NULL )
+	{
+		BlockingHit.GetActor()->DispatchBlockingHit(BlockingHit.Component.Get(), this, false, BlockingHit);
+	}
+}
+
 
 bool UPrimitiveComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const 
 { 

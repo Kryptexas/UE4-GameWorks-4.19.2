@@ -735,6 +735,8 @@ class ENGINE_API FScopedMovementUpdate : private FNoncopyable
 {
 public:
 	
+	typedef TArray<struct FHitResult, TInlineAllocator<2>> TBlockingHitArray;
+
 	FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates );
 	~FScopedMovementUpdate();
 
@@ -759,6 +761,12 @@ public:
 	/** Returns the list of overlaps at the end location, or null if the list is invalid. */
 	const TArray<struct FOverlapInfo>* GetOverlapsAtEnd() const;
 
+	/** Add blocking hit that will get processed once the move is committed. This is intended for use only by SceneComponent and its derived classes. */
+	void AppendBlockingHit(const FHitResult& Hit);
+	
+	/** Returns the list of pending blocking hits, which will be used for notifications once the move is committed. */
+	const TBlockingHitArray& GetPendingBlockingHits() const;
+
 private:
 
 	/** Notify this scope that the given inner scope completed its update (ie is going out of scope). Only occurs for deferred updates. */
@@ -779,6 +787,7 @@ private:
 	FTransform InitialTransform;
 	TArray<struct FOverlapInfo> PendingOverlaps;
 	TArray<struct FOverlapInfo> OverlapsAtEnd;
+	TBlockingHitArray BlockingHits;
 
 	friend class USceneComponent;
 };
@@ -804,4 +813,14 @@ FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPending
 FORCEINLINE const TArray<struct FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd() const
 {
 	return bHasValidOverlapsAtEnd ? &OverlapsAtEnd : NULL;
+}
+
+FORCEINLINE const FScopedMovementUpdate::TBlockingHitArray& FScopedMovementUpdate::GetPendingBlockingHits() const
+{
+	return BlockingHits;
+}
+
+FORCEINLINE void FScopedMovementUpdate::AppendBlockingHit(const FHitResult& Hit)
+{
+	BlockingHits.Add(Hit);
 }

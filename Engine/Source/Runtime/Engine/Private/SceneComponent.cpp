@@ -190,6 +190,21 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 				PropagateTransformUpdate(true);
 			}
 
+			// Dispatch all deferred blocking hits
+			if (CompletedScope.BlockingHits.Num() > 0)
+			{
+				AActor* const Owner = GetOwner();
+				if (Owner)
+				{
+					// If we have blocking hits, we must be a primitive component.
+					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
+					for (const FHitResult& Hit : CompletedScope.BlockingHits)
+					{
+						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+					}
+				}				
+			}
+
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
 			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->GetOverlapsAtEnd())
 			{
@@ -1584,6 +1599,7 @@ void FScopedMovementUpdate::RevertMove()
 	{
 		bHasValidOverlapsAtEnd = false;
 		PendingOverlaps.Reset();
+		BlockingHits.Reset();
 		
 		if (IsTransformDirty())
 		{
@@ -1624,6 +1640,7 @@ void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& In
 
 		// Combine with the next item on the stack
 		AppendOverlaps(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+		BlockingHits.Append(InnerScope.GetPendingBlockingHits());
 	}	
 }
 

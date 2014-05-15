@@ -1177,6 +1177,14 @@ public:
 	//End USceneComponent Interface
 
 	/**
+	 * Dispatch notifications for the given HitResult.
+	 *
+	 * @param Owner: AActor that owns this component
+	 * @param BlockingHit: FHitResult that generated the blocking hit.
+	 */
+	void DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit);
+
+	/**
 	 * Set collision params on OutParams (such as CollisionResponse, bTraceAsyncScene) to match the settings on this PrimitiveComponent.
 	 */
 	virtual void InitSweepCollisionParams(FCollisionQueryParams &OutParams, FCollisionResponseParams& OutResponseParam) const;
