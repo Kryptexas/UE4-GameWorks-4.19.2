@@ -1623,6 +1623,10 @@ public:
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) OVERRIDE;
 	virtual UWorld* GetWorld() const OVERRIDE;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#if WITH_EDITOR
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
+#endif
+
 	// End UObject Interface
 	
 	/**
@@ -2400,6 +2404,9 @@ public:
 
 	/** Updates all physics constraint actor joint locations.  */
 	virtual void UpdateConstraintActors();
+
+	/** Gets all LightMaps and ShadowMaps associated with this world's persistent level */
+	void GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);

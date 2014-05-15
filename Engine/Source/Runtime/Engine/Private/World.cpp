@@ -196,6 +196,61 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	Super::AddReferencedObjects( This, Collector );
 }
 
+#if WITH_EDITOR
+bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
+{
+	// Rename LightMaps and ShadowMaps to the new location. Keep the old name, since they are not named after the world.
+	TArray<UTexture2D*> LightMapsAndShadowMaps;
+	GetLightMapsAndShadowMaps(LightMapsAndShadowMaps);
+	for (auto* Tex : LightMapsAndShadowMaps)
+	{
+		if ( Tex && !Tex->Rename(*Tex->GetName(), NewOuter, Flags) )
+		{
+			return false;
+		}
+	}
+
+	// Rename the world itself
+	UPackage* OldPackage = GetOutermost();
+	if ( !Super::Rename(InName, NewOuter, Flags) )
+	{
+		return false;
+	}
+
+	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
+	if ( !GIsRoutingPostLoad )
+	{
+		const bool bDontCreate = true;
+		UBlueprint* LevelScriptBlueprint = PersistentLevel ? PersistentLevel->GetLevelScriptBlueprint(bDontCreate) : NULL;
+		if ( LevelScriptBlueprint )
+		{
+			// Use LevelScriptBlueprint->GetOuter() instead of NULL to make sure the generated top level objects are moved appropriately
+			if ( !LevelScriptBlueprint->Rename(InName, LevelScriptBlueprint->GetOuter(), Flags) )
+			{
+				return false;
+			}
+		}
+	}
+
+	// Update the PKG_ContainsMap package flag
+	UPackage* NewPackage = GetOutermost();
+	const bool bTestRename = (Flags & REN_Test) != 0;
+	if ( !bTestRename && NewPackage != OldPackage )
+	{
+		// If this is the last world removed from a package, clear the PKG_ContainsMap flag
+		if ( UWorld::FindWorldInPackage(OldPackage) == NULL )
+		{
+			OldPackage->PackageFlags &= ~PKG_ContainsMap;
+		}
+
+		// Set the PKG_ContainsMap flag in the new package
+		NewPackage->ThisContainsMap();
+	}
+
+	return true;
+}
+#endif
+
 void UWorld::FinishDestroy()
 {
 	// Avoid cleanup if the world hasn't been initialized, e.g., the default object or a world object that got loaded
@@ -246,6 +301,29 @@ void UWorld::FinishDestroy()
 		delete TimerManager;
 	}
 
+	// Remove the PKG_ContainsMap flag from packages that no longer contain a world
+	{
+		UPackage* WorldPackage = GetOutermost();
+
+		bool bContainsAnotherWorld = false;
+		TArray<UObject*> PotentialWorlds;
+		GetObjectsWithOuter(WorldPackage, PotentialWorlds, false);
+		for (auto ObjIt = PotentialWorlds.CreateConstIterator(); ObjIt; ++ObjIt)
+		{
+			UWorld* World = Cast<UWorld>(*ObjIt);
+			if (World && World != this)
+			{
+				bContainsAnotherWorld = true;
+				break;
+			}
+		}
+
+		if ( !bContainsAnotherWorld )
+		{
+			WorldPackage->PackageFlags &= ~PKG_ContainsMap;
+		}
+	}
+
 	Super::FinishDestroy();
 }
 
@@ -255,6 +333,11 @@ void UWorld::PostLoad()
 	if (PreLoadWorldType)
 	{
 		WorldType = *PreLoadWorldType;
+	}
+	else
+	{
+		// Since we did not specify a world type, assume it was loaded from a package to persist in memory
+		WorldType = EWorldType::Inactive;
 	}
 
 	Super::PostLoad();
@@ -382,6 +465,22 @@ void UWorld::PostLoad()
 			SetFlags(RF_Public|RF_Standalone);
 		}
 	}
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		// Ensure the DefaultBrush's model has the same outer as the default brush itself. Older packages erroneously stored this object as a top-level package
+		ABrush* DefaultBrush = PersistentLevel->Actors.Num() < 2 ? NULL : Cast<ABrush>(PersistentLevel->Actors[1]);
+		UModel* Model = DefaultBrush ? DefaultBrush->Brush : NULL;
+		if (Model != NULL)
+		{
+			if (Model->GetOuter() != DefaultBrush->GetOuter())
+			{
+				Model->Rename(TEXT("Brush"), DefaultBrush->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+			}
+		}
+	}
+#endif
 }
 
 
@@ -713,12 +812,6 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		if (DefaultBrush->Brush != NULL)
 		{
 			UModel* Model = DefaultBrush->Brush;
-
-			// Ensure the DefaultBrush's model has the same outer as the default brush itself. Older packages erroneously stored this object as a top-level package
-			if (Model->GetOuter() != DefaultBrush->GetOuter())
-			{
-				Model->Rename(NULL, DefaultBrush->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
-			}
 
 			const FLightmassPrimitiveSettings DefaultSettings;
 
@@ -4814,6 +4907,26 @@ void UWorld::CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState)
 {
 	AuthorityGameMode = FromGameMode;
 	GameState = FromGameState;
+}
+
+void UWorld::GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShadowMaps)
+{
+	TArray<UObject*> WorldPackageObjects;
+	const bool bIncludeNestedObjects = false;
+	GetObjectsWithOuter(GetOutermost(), WorldPackageObjects, bIncludeNestedObjects);
+
+	for (auto ObjIt = WorldPackageObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		UObject* CurrentObject = *ObjIt;
+		if ( ULightMapTexture2D* LightMap = Cast<ULightMapTexture2D>(CurrentObject) )
+		{
+			OutLightMapsAndShadowMaps.Add(LightMap);
+		}
+		else if ( UShadowMapTexture2D* ShadowMap = Cast<UShadowMapTexture2D>(CurrentObject) )
+		{
+			OutLightMapsAndShadowMaps.Add(ShadowMap);
+		}
+	}
 }
 
 /**

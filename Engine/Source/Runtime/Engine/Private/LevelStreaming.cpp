@@ -417,6 +417,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			bHasLoadRequestPending = true;
 			
 			ULevel::StreamedLevelsOwningWorld.Add(DesiredPackageName, PersistentWorld);
+			UWorld::WorldTypePreLoadMap.FindOrAdd(DesiredPackageName) = PersistentWorld->WorldType;
+
 			// Kick off async load request.
 			LoadPackageAsync(*DesiredPackageName.ToString(), 
 				FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), 
@@ -451,42 +453,126 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	
 	if( InLoadedPackage )
 	{
-		UPackage* LevelPackage = CastChecked<UPackage>(InLoadedPackage);
+		UPackage* LevelPackage = InLoadedPackage;
 		
 		// Try to find a UWorld object in the level package.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
-		if( Level )
-		{			
-			check(PendingUnloadLevel == NULL);
-			SetLoadedLevel(Level);
 
-			// Broadcast level loaded event to blueprints
-			OnLevelLoaded.Broadcast();
+		if ( World )
+		{
+			ULevel* Level = World->PersistentLevel;
+			if( Level )
+			{
+				check(PendingUnloadLevel == NULL);
+				SetLoadedLevel(Level);
 
-			// Make sure this level will start to render only when it will be fully added to the world
-			if (LODPackageNames.Num() > 0)
-			{
-				Level->bRequireFullVisibilityToRender = true;
-			}
-			
-			// In the editor levels must be in the levels array regardless of whether they are visible or not
-			if (Level->OwningWorld->WorldType == EWorldType::Editor)
-			{
-				Level->OwningWorld->AddLevel(Level);
-#if WITH_EDITOR
-				// We should also at this point, apply the level's editor transform
-				if (!Level->bAlreadyMovedActors)
+				// Broadcast level loaded event to blueprints
+				OnLevelLoaded.Broadcast();
+
+				// Make sure this level will start to render only when it will be fully added to the world
+				if (LODPackageNames.Num() > 0)
 				{
-					FLevelUtils::ApplyEditorTransform(this, false);
-					Level->bAlreadyMovedActors = true;
+					Level->bRequireFullVisibilityToRender = true;
 				}
+			
+				// In the editor levels must be in the levels array regardless of whether they are visible or not
+				if (ensure(Level->OwningWorld) && Level->OwningWorld->WorldType == EWorldType::Editor)
+				{
+					Level->OwningWorld->AddLevel(Level);
+#if WITH_EDITOR
+					// We should also at this point, apply the level's editor transform
+					if (!Level->bAlreadyMovedActors)
+					{
+						FLevelUtils::ApplyEditorTransform(this, false);
+						Level->bAlreadyMovedActors = true;
+					}
 #endif // WITH_EDITOR
+				}
+			}
+			else
+			{
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
 			}
 		}
 		else
 		{
-			UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
+			// There could have been a redirector in the package. Attempt to follow it.
+			const FString ExpectedRedirectorName = (PackageNameToLoad != NAME_None) ? PackageNameToLoad.ToString() : PackageName.ToString();
+			UObjectRedirector* WorldRedirector = FindObject<UObjectRedirector>(LevelPackage, *FPackageName::GetLongPackageAssetName(*ExpectedRedirectorName));
+			if (WorldRedirector)
+			{
+				// A redirector was found! Make sure the destination world was loaded.
+				UWorld* DestinationWorld = Cast<UWorld>(WorldRedirector->DestinationObject);
+				if (DestinationWorld)
+				{
+					// To follow the world redirector for level streaming...
+					// 1) Update all globals that refer to the redirector package by name
+					// 2) Update the PackageNameToLoad to refer to the new package location
+					// 3) If the package name to load was the same as the destination package name...
+					//         ... update the package name to the new package and let the next RequestLevel try this process again.
+					//    If the package name to load was different...
+					//         ... it means the specified package name was explicit and we will just load from another file.
+
+					FName OldDesiredPackageName = FName(*InPackageName);
+					UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
+					UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
+					if ( OwningWorld )
+					{
+						if ( DestinationWorld->PersistentLevel )
+						{
+							DestinationWorld->PersistentLevel->OwningWorld = OwningWorld;
+						}
+
+						// In some cases, BSP render data is not created because the OwningWorld was not set correctly.
+						// Regenerate that render data here
+						DestinationWorld->PersistentLevel->InvalidateModelSurface();
+						DestinationWorld->PersistentLevel->CommitModelSurfaces();
+
+						ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
+					}
+
+					// Try again with the destination package to load.
+					// IMPORTANT: check this BEFORE changing PackageNameToLoad, otherwise you wont know if the package name was supposed to be different.
+					const bool bLoadingIntoDifferentPackage = (PackageName != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
+
+					// ... now set PackageNameToLoad
+					PackageNameToLoad = DestinationWorld->GetOutermost()->GetFName();
+
+					if ( PackageNameToLoad != OldDesiredPackageName )
+					{
+						EWorldType::Type* OldPackageWorldType = UWorld::WorldTypePreLoadMap.Find(OldDesiredPackageName);
+						if ( OldPackageWorldType )
+						{
+							UWorld::WorldTypePreLoadMap.FindOrAdd(PackageNameToLoad) = *OldPackageWorldType;
+							UWorld::WorldTypePreLoadMap.Remove(OldDesiredPackageName);
+						}
+					}
+
+					// Now determine if we are loading into the package explicitly or if it is okay to just load the other package.
+					if ( bLoadingIntoDifferentPackage )
+					{
+						// Loading into a new custom package explicitly. Load the destination world directly into the package.
+						// Detach the linker to load from a new file into the same package.
+						ULinkerLoad* PackageLinker = ULinkerLoad::FindExistingLinkerForPackage(LevelPackage);
+						if (PackageLinker)
+						{
+							PackageLinker->Detach(false);
+						}
+
+						// Make sure the redirector is not in the way of the new world.
+						if (WorldRedirector->GetFName() == DestinationWorld->GetFName())
+						{
+							// Pass NULL as the name to make a new unique name and NULL for the outer to not change the outer.
+							WorldRedirector->Rename(NULL, NULL, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+						}
+					}
+					else
+					{
+						// Loading the requested package normally. Update the requested package to the destination.
+						PackageName = PackageNameToLoad;
+					}
+				}
+			}
 		}
 	}
 	else

@@ -239,9 +239,10 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	FName SkelClassName, GenClassName;
 	GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
 
+	UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
 	if(GeneratedClass != NULL)
 	{
-		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewOuter, Flags);
+		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
 		if(!bMovedOK)
 		{
 			return false;
@@ -251,7 +252,7 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
 	if(SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
 	{
-		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewOuter, Flags);
+		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
 		if(!bMovedOK)
 		{
 			return false;

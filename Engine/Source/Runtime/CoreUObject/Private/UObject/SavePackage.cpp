@@ -2551,6 +2551,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				// structure to track what ever export needs to import
 				TMap<UObject*, TArray<UObject*> > ObjectDependencies;
+
+				// and a structure to track non-redirector references
+				TSet<UObject*> DependenciesReferencedByNonRedirectors;
 		
 				/** If true, we are going to compress the package to memory to save a little time */
 				bool bCompressFromMemory = !!(InOuter->PackageFlags & PKG_StoreCompressed);
@@ -2660,6 +2663,18 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 						// add the list of dependencies to the dependency map
 						ObjectDependencies.Add(Obj, ImportTagger.Dependencies);
+
+						if (Obj->GetClass() != UObjectRedirector::StaticClass())
+						{
+							for ( auto DepIt = ImportTagger.Dependencies.CreateConstIterator(); DepIt; ++DepIt )
+							{
+								UObject* DependencyObject = *DepIt;
+								if ( DependencyObject )
+								{
+									DependenciesReferencedByNonRedirectors.Add(DependencyObject);
+								}
+							}
+						}
 					}
 				}
 
@@ -2720,11 +2735,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 								{
 									ObjectsInOtherMaps.Add(Obj);
 
-									UE_LOG(LogSavePackage, Warning, TEXT( "Obj in another map: %s"), *Obj->GetFullName() );
-
-									if (!(SaveFlags & SAVE_NoError))
+									if ( DependenciesReferencedByNonRedirectors.Contains(Obj) )
 									{
-										Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "Core", "SavePackageObjInAnotherMap", "Object '{0}' is in another map" ), FText::FromString( *Obj->GetFullName() ) ).ToString() );
+										UE_LOG(LogSavePackage, Warning, TEXT( "Obj in another map: %s"), *Obj->GetFullName() );
+
+										if (!(SaveFlags & SAVE_NoError))
+										{
+											Error->Logf(ELogVerbosity::Warning, *FText::Format( NSLOCTEXT( "Core", "SavePackageObjInAnotherMap", "Object '{0}' is in another map" ), FText::FromString( *Obj->GetFullName() ) ).ToString() );
+										}
 									}
 								}
 								else
@@ -2747,8 +2765,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					ObjectsInOtherMaps = LevelObjects;
 				}
 
+				// It is allowed for redirectors to reference objects in other maps.
+				// Form the list of objects that erroneously reference another map.
+				TArray<UObject*> IllegalObjectsInOtherMaps;
+				for ( auto ObjIt = ObjectsInOtherMaps.CreateConstIterator(); ObjIt; ++ObjIt )
+				{
+					if ( DependenciesReferencedByNonRedirectors.Contains(*ObjIt) )
+					{
+						IllegalObjectsInOtherMaps.Add(*ObjIt);
+					}
+				}
+
 				// The graph is linked to objects in a different map package!
-				if( ObjectsInOtherMaps.Num() )
+				if( IllegalObjectsInOtherMaps.Num() )
 				{
 					UObject* MostLikelyCulprit = NULL;
 					const UProperty* PropertyRef = NULL;
@@ -2758,15 +2787,15 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					int32 MaxNamesToDisplay = 5;
 					bool DisplayIsLimited = true;
 
-					if (ObjectsInOtherMaps.Num() < MaxNamesToDisplay)
+					if (IllegalObjectsInOtherMaps.Num() < MaxNamesToDisplay)
 					{
-						MaxNamesToDisplay = ObjectsInOtherMaps.Num();
+						MaxNamesToDisplay = IllegalObjectsInOtherMaps.Num();
 						DisplayIsLimited = false;
 					}
 
 					for (int32 Idx = 0; Idx < MaxNamesToDisplay; Idx++)
 					{
-						ObjectNames += ObjectsInOtherMaps[Idx]->GetName() + TEXT("\n");
+						ObjectNames += IllegalObjectsInOtherMaps[Idx]->GetName() + TEXT("\n");
 					}
 					
 					// if there are more than 5 items we indicated this by adding "..." at the end of the list
@@ -2784,7 +2813,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					const bool bProceed = FMessageDialog::Open(EAppMsgType::YesNo, Message ) == EAppReturnType::Yes;
 					if ( bProceed )
 					{
-						FindMostLikelyCulprit( ObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
+						FindMostLikelyCulprit( IllegalObjectsInOtherMaps, MostLikelyCulprit, PropertyRef );
 						if( MostLikelyCulprit != NULL && PropertyRef != NULL )
 						{
 							CulpritString = FString::Printf(TEXT("%s (%s)"), *MostLikelyCulprit->GetFullName(), *PropertyRef->GetName());

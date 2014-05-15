@@ -605,7 +605,15 @@ void ULevel::PostLoad()
 	if (Model == NULL || Model->NumUniqueVertices == 0)
 	{
 		StaticNavigableGeometry.Empty();
-	} 
+	}
+
+	// Rename the LevelScriptBlueprint after the outer world.
+	UWorld* OuterWorld = Cast<UWorld>(GetOuter());
+	if (LevelScriptBlueprint && OuterWorld && LevelScriptBlueprint->GetFName() != OuterWorld->GetFName())
+	{
+		// Use LevelScriptBlueprint->GetOuter() instead of NULL to make sure the generated top level objects are moved appropriately
+		LevelScriptBlueprint->Rename(*OuterWorld->GetName(), LevelScriptBlueprint->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+	}
 }
 
 UWorld* ULevel::GetWorld() const

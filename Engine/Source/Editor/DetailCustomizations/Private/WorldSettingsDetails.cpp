@@ -253,14 +253,13 @@ void FLightmapCustomNodeBuilder::RefreshLightmapItems()
 	UWorld* World = Context.World();
 	if ( World )
 	{
-		TArray<UObject*> WorldPackageObjects;
-		const bool bIncludeNestedObjects = false;
-		GetObjectsWithOuter(World->GetOutermost(), WorldPackageObjects, bIncludeNestedObjects);
+		TArray<UTexture2D*> LightMapsAndShadowMaps;
+		World->GetLightMapsAndShadowMaps(LightMapsAndShadowMaps);
 
-		for ( auto ObjIt = WorldPackageObjects.CreateConstIterator(); ObjIt; ++ObjIt )
+		for ( auto ObjIt = LightMapsAndShadowMaps.CreateConstIterator(); ObjIt; ++ObjIt )
 		{
-			UObject* CurrentObject = *ObjIt;
-			if ( CurrentObject->IsA(ULightMapTexture2D::StaticClass()) || CurrentObject->IsA(UShadowMapTexture2D::StaticClass()) )
+			UTexture2D* CurrentObject = *ObjIt;
+			if (CurrentObject)
 			{
 				FAssetData AssetData = FAssetData(CurrentObject);
 				const uint32 ThumbnailResolution = 64;
