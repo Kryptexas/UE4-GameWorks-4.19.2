@@ -893,13 +893,15 @@ namespace UnrealBuildTool
 	{
 		public static bool bWriteMarkup = false;
 
+		bool bWriteToConsole;
 		string Message;
 		int NumCharsToBackspaceOver;
 
-		public ProgressWriter(string InMessage)
+		public ProgressWriter(string InMessage, bool bInWriteToConsole)
 		{
 			Message = InMessage;
-			if(!bWriteMarkup)
+			bWriteToConsole = bInWriteToConsole;
+			if (!bWriteMarkup && bWriteToConsole)
 			{
 				Console.Write(Message + " ");
 			}
@@ -908,7 +910,7 @@ namespace UnrealBuildTool
 
 		public void Dispose()
 		{
-			if(!bWriteMarkup)
+			if (!bWriteMarkup && bWriteToConsole)
 			{
 				Console.WriteLine();
 			}
@@ -923,7 +925,7 @@ namespace UnrealBuildTool
 			{
 				Log.WriteLine(TraceEventType.Information, "@progress '{0}' {1}", Message, ProgressString);
 			}
-			else
+			else if (bWriteToConsole)
 			{
 				// Backspace over previous progress value
 				while (NumCharsToBackspaceOver-- > 0)
