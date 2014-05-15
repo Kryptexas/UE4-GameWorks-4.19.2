@@ -395,6 +395,24 @@ namespace AutomationTool
 	}
 
 	/// <summary>
+	/// Class that stores labels info.
+	/// </summary>
+	public class P4Label
+	{
+		// The name of the label.
+		public string Name { get; private set; }
+
+		// The date of the label.
+		public DateTime Date { get; private set; }
+
+		public P4Label(string Name, DateTime Date)
+		{
+			this.Name = Name;
+			this.Date = Date;
+		}
+	}
+
+	/// <summary>
 	/// Perforce connection.
 	/// </summary>
 	public partial class P4Connection
@@ -1669,102 +1687,29 @@ namespace AutomationTool
 		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		/// <summary>
-		/// Gets promoted label list for given branch.
+		/// Gets all labels satisfying given filter.
 		/// </summary>
-		/// <param name="BranchPath">A branch path.</param>
-		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
-		/// <returns>List of promoted labels for given branch path.</returns>
-		public string[] GetPromotedLabels(string BranchPath, string GameName)
+		/// <param name="Filter">Filter for label names.</param>
+		/// <param name="bCaseSensitive">Treat filter as case-sensitive.</param>
+		/// <returns></returns>
+		public P4Label[] GetLabels(string Filter, bool bCaseSensitive = true)
 		{
-			var LabelNameList = new List<string>();
+			var LabelList = new List<P4Label>();
 
 			string Output;
-			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			if (P4Output(out Output, "labels -t " + (bCaseSensitive ? "-e" : "-E") + Filter, null, false))
 			{
 				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
 				{
-					LabelNameList.Add(LabelMatch.Groups["name"].Value);
-				}
-			}
-
-			return LabelNameList.ToArray();
-		}
-
-		/// <summary>
-		/// Gets labels list for given branch.
-		/// </summary>
-		/// <param name="BranchPath">A branch path.</param>
-		/// <returns>List of labels for given branch path.</returns>
-		public string[] GetBranchLabels(string BranchPath)
-		{
-			var LabelNameList = new List<string>();
-
-			string Output;
-			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/*"))
-			{
-				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
-				{
-					LabelNameList.Add(LabelMatch.Groups["name"].Value);
-				}
-			}
-
-			return LabelNameList.ToArray();
-		}
-
-		/// <summary>
-		/// Get latest promoted label given branch and game name.
-		/// </summary>
-		/// <param name="BranchPath">The branch path of the label.</param>
-		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
-		/// <param name="bVerifyContent">Verify if label tags at least one file.</param>
-		/// <returns>Label name if it exists, null otherwise.</returns>
-		public string GetLatestPromotedLabel(string BranchPath, string GameName, bool bVerifyContent)
-		{
-			CheckP4Enabled();
-
-			if (string.IsNullOrWhiteSpace(GameName))
-			{
-				GameName = null;
-			}
-
-			string Output;
-			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
-			{
-				var Labels = new Dictionary<string, DateTime>();
-
-				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
-				{
-					Labels.Add(LabelMatch.Groups["name"].Value,
+					LabelList.Add(new P4Label(LabelMatch.Groups["name"].Value,
 						DateTime.ParseExact(
 							LabelMatch.Groups["date"].Value, "yyyy/MM/dd HH:mm:ss",
-							System.Globalization.CultureInfo.InvariantCulture));
+							System.Globalization.CultureInfo.InvariantCulture)
+					));
 				}
-
-				if (Labels.Count == 0)
-				{
-					return null;
-				}
-
-				var OrderedLabels = Labels.OrderByDescending((Label) => Label.Value);
-
-				if (bVerifyContent)
-				{
-					foreach (var Label in OrderedLabels)
-					{
-						if (ValidateLabelContent(Label.Key))
-						{
-							return Label.Key;
-						}
-					}
-
-					// Haven't found valid label.
-					return null;
-				}
-
-				return OrderedLabels.First().Key;
 			}
 
-			return null;
+			return LabelList.ToArray();
 		}
 
 		/// <summary>
@@ -1774,7 +1719,7 @@ namespace AutomationTool
 		public bool ValidateLabelContent(string LabelName)
 		{
 			string Output;
-			if (LogP4Output(out Output, "files -m 1 @" + LabelName))
+			if (P4Output(out Output, "files -m 1 @" + LabelName, null, false))
 			{
 				if (Output.StartsWith("//depot"))
 				{
