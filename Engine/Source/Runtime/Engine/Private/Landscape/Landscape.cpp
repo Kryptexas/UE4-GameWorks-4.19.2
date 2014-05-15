@@ -460,6 +460,7 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	bIsMovingToLevel = false;
 #endif // WITH_EDITORONLY_DATA
 	LODDistanceFactor = 1.0f;
+	LODFalloff = ELandscapeLODFalloff::Linear;
 	bCastStaticShadow = true;
 	bUsedForNavigation = true;
 	CollisionThickness = 16;

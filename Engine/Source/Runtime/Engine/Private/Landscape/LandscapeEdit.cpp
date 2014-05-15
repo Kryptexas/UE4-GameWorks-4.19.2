@@ -3668,12 +3668,16 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	}
 	else if ( PropertyName == FName(TEXT("LODDistanceFactor")) )
 	{
-		LODDistanceFactor = FMath::Clamp<float>(LODDistanceFactor, 0.1f, 10.f); // limit because LOD transition became too popping...
+		LODDistanceFactor = FMath::Clamp<float>(LODDistanceFactor, 0.1f, MAX_LANDSCAPE_LOD_DISTANCE_FACTOR); // limit because LOD transition became too popping...
 		bPropagateToProxies = true;
 	}
 	else if ( PropertyName == FName(TEXT("CollisionMipLevel")) )
 	{
 		CollisionMipLevel = FMath::Clamp<int32>( CollisionMipLevel, 0, FMath::CeilLogTwo(SubsectionSizeQuads+1)-1 );
+		bPropagateToProxies = true;
+	}
+	else if (PropertyName == FName(TEXT("LODFalloff")))
+	{
 		bPropagateToProxies = true;
 	}
 	else if ( GIsEditor && PropertyName == FName(TEXT("StaticLightingResolution")) )
