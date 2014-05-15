@@ -366,7 +366,7 @@ void FLevelEditorModule::SetLevelEditorTabManager( const TSharedPtr<SDockTab>& O
 	if (OwnerTab.IsValid())
 	{
 		LevelEditorTabManager = FGlobalTabmanager::Get()->NewTabManager(OwnerTab.ToSharedRef());
-		LevelEditorTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( FLayoutSaveRestore::SaveTheLayout ) );
+		LevelEditorTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FLevelEditorModule::HandleTabManagerPersistLayout));
 	}
 }
 

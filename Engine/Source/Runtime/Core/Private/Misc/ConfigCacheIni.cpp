@@ -2613,6 +2613,7 @@ void FConfigCacheIni::InitializeConfigSystem()
 #if WITH_EDITOR
 	// load some editor specific .ini files
 	FConfigCacheIni::LoadGlobalIniFile(GEditorIni, TEXT("Editor"));
+	FConfigCacheIni::LoadGlobalIniFile(GEditorLayoutIni, TEXT("EditorLayout"));
 	FConfigCacheIni::LoadGlobalIniFile(GEditorUserSettingsIni, TEXT("EditorUserSettings"));
 	FConfigCacheIni::LoadGlobalIniFile(GEditorKeyBindingsIni, TEXT("EditorKeyBindings"));
 

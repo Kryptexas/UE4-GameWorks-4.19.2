@@ -92,7 +92,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		NewMajorTab->SetRightContent(UserFeedbackWidget);
 
 		const TSharedRef<FTabManager> NewTabManager = FGlobalTabmanager::Get()->NewTabManager( NewMajorTab.ToSharedRef() );		
-		NewTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( &FLayoutSaveRestore::SaveTheLayout ) );
+		NewTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FAssetEditorToolkit::HandleTabManagerPersistLayout));
 		this->TabManager = NewTabManager;
 
 		NewMajorTab->SetContent
@@ -113,7 +113,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 	
 	if (ToolkitMode == EToolkitMode::Standalone)
 	{
-		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadUserConfigVersionOf(StandaloneDefaultLayout);
+		TSharedRef<FTabManager::FLayout> LayoutToUse = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, StandaloneDefaultLayout);
 
 		// Actually create the widget content
 		NewStandaloneHost->SetupInitialContent( LayoutToUse, NewMajorTab, bCreateDefaultStandaloneMenu );
@@ -704,10 +704,10 @@ void FAssetEditorToolkit::RestoreFromLayout(const TSharedRef<FTabManager::FLayou
 	if (HostWidget.Get() != NULL)
 	{
 		// Save the old layout
-		FLayoutSaveRestore::SaveTheLayout(TabManager->PersistLayout());
+		FLayoutSaveRestore::SaveToConfig(GEditorIni, TabManager->PersistLayout());
 
 		// Load the potentially previously saved new layout
-		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadUserConfigVersionOf(NewLayout);
+		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, NewLayout);
 
 		// Apply the new layout
 		HostWidget->RestoreFromLayout(UserConfiguredNewLayout);

@@ -342,7 +342,7 @@ void RunStatsConvertCommand()
 
 void RunUI()
 {
-	FString UnrealFrontendUserSettingsIni = FPaths::GetPath(GEngineIni) + "/UnrealFrontend.ini";
+	FString UnrealFrontendLayoutIni = FPaths::GetPath(GEngineIni) + "/Layout.ini";
 
 	FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());
 
@@ -402,7 +402,7 @@ void RunUI()
 				)
 		);
 
-	TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(NewLayout, UnrealFrontendUserSettingsIni);
+	TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(UnrealFrontendLayoutIni, NewLayout);
 	FGlobalTabmanager::Get()->RestoreFrom(UserConfiguredNewLayout, TSharedPtr<SWindow>());
 
 	// enter main loop
@@ -440,8 +440,8 @@ void RunUI()
 	}
 
 	// save application layout
-	FLayoutSaveRestore::SaveToConfig(UserConfiguredNewLayout, UnrealFrontendUserSettingsIni);
-	GConfig->Flush(false, UnrealFrontendUserSettingsIni);
+	FLayoutSaveRestore::SaveToConfig(UnrealFrontendLayoutIni, UserConfiguredNewLayout);
+	GConfig->Flush(false, UnrealFrontendLayoutIni);
 
 	// shut down application
 	FSlateApplication::Shutdown();

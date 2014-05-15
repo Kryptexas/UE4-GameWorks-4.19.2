@@ -55,7 +55,7 @@ public:
 		}
 		else
 		{
-			GConfig->EmptySection(TEXT("EditorLayouts"), *GEditorUserSettingsIni);
+			GConfig->EmptySection(TEXT("EditorLayouts"), *GEditorLayoutIni);
 		}
 
 
@@ -242,7 +242,7 @@ public:
 		TSharedRef<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
 		
 		// Persistent layouts should get stored using the specified method.
-		GlobalTabManager->SetOnPersistLayout( FTabManager::FOnPersistLayout::CreateStatic( &FLayoutSaveRestore::SaveTheLayout ) );
+		GlobalTabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateRaw(this, &FMainFrameHandler::HandleTabManagerPersistLayout));
 		
 		const bool bIncludeGameName = true;
 		GlobalTabManager->SetApplicationTitle( StaticGetApplicationTitle( bIncludeGameName ) );
@@ -323,6 +323,13 @@ public:
 		}
 	}
 
+private:
+
+	// Callback for persisting the Level Editor's layout.
+	void HandleTabManagerPersistLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave )
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	}
 
 private:
 

@@ -115,7 +115,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 				DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top );
 			const FVector2D WindowSize = CenterScale * DisplaySize;
 
-			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadUserConfigVersionOf(
+			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 				// We persist the positioning of the level editor and the content browser.
 				// The asset editors currently do not get saved.
 				FTabManager::NewLayout( "UnrealEd_Layout_v1.1" )
@@ -563,6 +563,9 @@ void FMainFrameModule::StartupModule( )
 	CompileFailSound->AddToRoot();
 
 	ModuleCompileStartTime = 0.0f;
+
+	// migrate old layout settings
+	FLayoutSaveRestore::MigrateConfig(GEditorUserSettingsIni, GEditorLayoutIni);
 }
 
 

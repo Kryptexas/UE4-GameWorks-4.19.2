@@ -699,29 +699,29 @@ void FMainFrameActionCallbacks::ResetLayout()
 	// make a backup
 	GEditor->SaveEditorUserSettings();
 
-	FString BackupUserSettingsIni = FString::Printf(TEXT("%s_Backup.ini"), *FPaths::GetBaseFilename(GEditorUserSettingsIni, false));
+	FString BackupEditorLayoutIni = FString::Printf(TEXT("%s_Backup.ini"), *FPaths::GetBaseFilename(GEditorLayoutIni, false));
 
-	if( COPY_Fail == IFileManager::Get().Copy(*BackupUserSettingsIni, *GEditorUserSettingsIni) )
+	if( COPY_Fail == IFileManager::Get().Copy(*BackupEditorLayoutIni, *GEditorLayoutIni) )
 	{
 		FMessageLog EditorErrors("EditorErrors");
-		if(!FPaths::FileExists(GEditorUserSettingsIni))
+		if(!FPaths::FileExists(GEditorLayoutIni))
 		{
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("FileName"), FText::FromString(GEditorUserSettingsIni));
+			Arguments.Add(TEXT("FileName"), FText::FromString(GEditorLayoutIni));
 			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_NoExist_Notification", "Unsuccessful backup! {FileName} does not exist!"), Arguments));
 		}
-		else if(IFileManager::Get().IsReadOnly(*BackupUserSettingsIni))
+		else if(IFileManager::Get().IsReadOnly(*BackupEditorLayoutIni))
 		{
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("FileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupUserSettingsIni)));
+			Arguments.Add(TEXT("FileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupEditorLayoutIni)));
 			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_ReadOnly_Notification", "Unsuccessful backup! {FileName} is read-only!"), Arguments));
 		}
 		else
 		{
 			// We don't specifically know why it failed, this is a fallback.
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("SourceFileName"), FText::FromString(GEditorUserSettingsIni));
-			Arguments.Add(TEXT("BackupFileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupUserSettingsIni)));
+			Arguments.Add(TEXT("SourceFileName"), FText::FromString(GEditorLayoutIni));
+			Arguments.Add(TEXT("BackupFileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupEditorLayoutIni)));
 			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_Fallback_Notification", "Unsuccessful backup of {SourceFileName} to {BackupFileName}"), Arguments));
 		}
 		EditorErrors.Notify(LOCTEXT("BackupUnsuccessful_Title", "Backup Unsuccessful!"));
@@ -732,7 +732,7 @@ void FMainFrameActionCallbacks::ResetLayout()
 		ErrorNotification.bFireAndForget = true;
 		ErrorNotification.ExpireDuration = 3.0f;
 		ErrorNotification.bUseThrobber = true;
-		ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::OpenBackupDirectory, BackupUserSettingsIni);
+		ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::OpenBackupDirectory, BackupEditorLayoutIni);
 		ErrorNotification.HyperlinkText = LOCTEXT("SuccessfulBackup_Notification_Hyperlink", "Open Directory");
 		ErrorNotification.Text = LOCTEXT("SuccessfulBackup_Notification", "Backup Successful!");
 		ErrorNotification.Image = FEditorStyle::GetBrush(TEXT("NotificationList.SuccessImage"));
@@ -749,7 +749,7 @@ void FMainFrameActionCallbacks::SaveLayout()
 	FGlobalTabmanager::Get()->SaveAllVisualState();
 
 	// Write the saved state's config to disk
-	GConfig->Flush( false, GEditorUserSettingsIni );
+	GConfig->Flush( false, GEditorLayoutIni );
 }
 
 void FMainFrameActionCallbacks::ToggleFullscreen_Execute()

@@ -122,6 +122,7 @@ uint64					GMakeCacheIDIndex				= 0;						/* Cache ID */
 FString				GEngineIni;													/* Engine ini filename */
 FString				GEditorIni;													/* Editor ini filename */
 FString				GEditorKeyBindingsIni;										/* Editor Key Bindings ini file */
+FString				GEditorLayoutIni;											/* Editor UI Layout ini filename */
 FString				GEditorUserSettingsIni;										/* Editor User Settings ini filename */
 FString				GEditorGameAgnosticIni;										/* Editor Settings (shared between games) ini filename */
 FString				GCompatIni;

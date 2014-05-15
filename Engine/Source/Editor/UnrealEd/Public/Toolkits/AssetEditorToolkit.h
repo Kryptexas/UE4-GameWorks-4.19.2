@@ -191,6 +191,12 @@ private:
 	/** Spawns the toolbar tab */
 	TSharedRef<SDockTab> SpawnTab_Toolbar(const FSpawnTabArgs& Args);
 
+	// Callback for persisting the Asset Editor's layout.
+	void HandleTabManagerPersistLayout( const TSharedRef<FTabManager::FLayout>& LayoutToSave )
+	{
+		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
+	}
+
 protected:
 
 	/** For standalone asset editing tool-kits that were switched from world-centric mode on the fly, this stores

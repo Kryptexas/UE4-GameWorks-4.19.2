@@ -1067,8 +1067,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 	// or there wont be any tab spawners for the modes.
 	RefreshEditorModeCommands();
 
-	const TSharedRef<FTabManager::FLayout> Layout = FLayoutSaveRestore::LoadUserConfigVersionOf
-	(	
+	const TSharedRef<FTabManager::FLayout> Layout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 		FTabManager::NewLayout( "LevelEditor_Layout_v1.1" )
 		->AddArea
 		(

@@ -238,6 +238,7 @@ extern CORE_API uint64 GMakeCacheIDIndex;
 extern CORE_API FString GEditorKeyBindingsIni;
 extern CORE_API FString GEngineIni;
 extern CORE_API FString GEditorIni;
+extern CORE_API FString GEditorLayoutIni;
 extern CORE_API FString GEditorUserSettingsIni;
 extern CORE_API FString GEditorGameAgnosticIni;
 extern CORE_API FString GCompatIni;
