@@ -2663,10 +2663,14 @@ bool UParticleSystem::RemoveAllDuplicateModules(bool bInMarkForCooker, TMap<UObj
 								// Ignore 'Cascade' category, transient, native and EditorOnly properties...
 								if (!bIsTransient && !bIsEditorOnly && !bIsCascade)
 								{
-									bool bIsIdentical = Property->Identical_InContainer(SourceModule, CheckModule, PPF_DeepComparison);
-									if (bIsIdentical == false)
+									for( int32 iProp=0; iProp<Property->ArrayDim; iProp++ )
 									{
-										bIsDifferent = true;
+										bool bIsIdentical = Property->Identical_InContainer(SourceModule, CheckModule, iProp, PPF_DeepComparison);
+										if (bIsIdentical == false)
+										{
+											bIsDifferent = true;
+											break;
+										}
 									}
 								}
 							}
