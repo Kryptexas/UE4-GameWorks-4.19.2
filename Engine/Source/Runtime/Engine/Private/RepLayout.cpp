@@ -966,13 +966,8 @@ uint16						Handle ) const
 #if ENABLE_CLIENT_UNMAP_LOGIC == 0
 			// HACK: REMOVE ME. 
 			// Move all this unmapped logic to client.
-			// This is to fix an issue where "Owner" on actor is replicated to all connections, but since only one connection will be mapped
-			// this will trigger a bunch of "unmapped longer than normal" false positives.
-			// We can't use COND_OwnerOnly since we also want to send NULL's to old owners
-			const bool bWorryAboutUnmapped = ( RepFlags.bNetOwner || ParentCmd.Condition != COND_OwnerOrNotNull );
-
 			// If this property is unmapped, force it to resend
-			if ( ( !bMapped || WriterState.Writer.PackageMap->SerializedUnAckedObject() ) && bWorryAboutUnmapped )
+			if ( !bMapped || WriterState.Writer.PackageMap->SerializedUnAckedObject() )
 			{
 				Unmapped.Add( Handle );
 
@@ -2237,7 +2232,7 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 		// Fix Lifetime props to have the proper index to the parent
 		for ( int32 i = 0; i < LifetimeProps.Num(); i++ )
 		{
-			// Store the condition on the parent in case we need it (for now we use this for COND_OwnerOrNotNull)
+			// Store the condition on the parent in case we need it
 			Parents[LifetimeProps[i].RepIndex].Condition = LifetimeProps[i].Condition;
 
 			if ( Parents[LifetimeProps[i].RepIndex].Flags & PARENT_IsCustomDelta )
@@ -2526,7 +2521,6 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	ConditionMap[COND_InitialOnly]			= bIsInitial;
 
 	ConditionMap[COND_OwnerOnly]			= bIsOwner;
-	ConditionMap[COND_OwnerOrNotNull]		= true;			// We always put these in the list so we can do special logic at send time
 	ConditionMap[COND_SkipOwner]			= !bIsOwner;
 
 	ConditionMap[COND_SimulatedOnly]		= bIsSimulated;

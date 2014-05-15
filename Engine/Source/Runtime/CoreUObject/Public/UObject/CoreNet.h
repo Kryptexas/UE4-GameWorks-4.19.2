@@ -292,7 +292,6 @@ enum ELifetimeCondition
 	COND_None				= 0,		// This property has no condition, and will send anytime it changes
 	COND_InitialOnly		= 1,		// This property will only attempt to send on the initial bunch
 	COND_OwnerOnly			= 2,		// This property will only send to the actor's owner
-	COND_OwnerOrNotNull		= 3,		// This property will only send to the actor's owner (or anyone if it's not NULL for their copy)
 	COND_SkipOwner			= 4,		// This property send to every connection EXCEPT the owner
 	COND_SimulatedOnly		= 5,		// This property will only send to simulated actors
 	COND_AutonomousOnly		= 6,		// This property will only send to autonomous actors
