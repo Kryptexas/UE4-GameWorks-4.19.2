@@ -94,6 +94,7 @@ public class Launch : ModuleRules
 				new string[] {
 					"SourceControl",
 					"UnrealEd",
+					"DesktopPlatform"
 				}
 			);
 
