@@ -329,7 +329,7 @@ void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
 
 	FSphere bSphere, bSphere2, bestSphere;
-	FVector unitVec = FVector(1,1,1);
+	FVector unitVec = StaticMesh->BodySetup ? StaticMesh->BodySetup->BuildScale3D : FVector(1.f, 1.f, 1.f);
 	CalcBoundingSphere(RawMesh, bSphere, unitVec);
 	CalcBoundingSphere2(RawMesh, bSphere2, unitVec);
 
