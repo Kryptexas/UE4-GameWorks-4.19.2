@@ -98,7 +98,6 @@ public:
 		HistoryEnd( 0 ),
 		LastReplicationFrame( 0 ),
 		NumNaks( 0 ),
-		UnmappedFrames( 0 ),
 		OpenAckedCalled( false ),
 		AwakeFromDormancy( false ),
 		ActiveStatusChanged( 0 )
@@ -112,8 +111,6 @@ public:
 
 	TSharedPtr< FRepLayout >	RepLayout;
 	
-	TArray< uint16 >			Unmapped;
-
 	TArray< UProperty * >		RepNotifies;
 
 	TSharedPtr<FRepChangedPropertyTracker> RepChangedPropertyTracker;
@@ -126,8 +123,6 @@ public:
 
 	uint32						LastReplicationFrame;
 	int32						NumNaks;
-
-	int32						UnmappedFrames;		// Continuous frames that contain unmapped objects, used to warn when we have unmapped objects for too long
 
 	TArray< FRepChangedHistory >	PreOpenAckHistory;
 
@@ -404,7 +399,6 @@ private:
 		const int32					CmdIndex, 
 		const uint8 * RESTRICT		StoredData, 
 		const uint8 * RESTRICT		Data, 
-		TArray< uint16 > &			Unmapped,
 		uint16						Handle ) const;
 
 	uint16 SendProperties_r( 
@@ -415,7 +409,6 @@ private:
 		const int32					CmdEnd, 
 		const uint8 * RESTRICT		StoredData, 
 		const uint8 * RESTRICT		Data, 
-		TArray< uint16 > &			Unmapped,
 		uint16						Handle ) const;
 
 	bool ReadProperty( 
