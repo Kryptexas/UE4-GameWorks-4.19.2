@@ -165,6 +165,11 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 				}
 			}
 
+#if PLATFORM_MAC
+			// On Mac we need to process Cocoa events so that the console window for CookOnTheFlyServer is interactive
+			FPlatformMisc::PumpMessages(true);
+#endif
+
 			// update task graph
 			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 

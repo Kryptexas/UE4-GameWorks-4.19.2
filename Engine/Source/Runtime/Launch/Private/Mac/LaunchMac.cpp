@@ -95,11 +95,18 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	{
 		if (GIsEditor)
 		{
-			GEngine->DeferredCommands.Add( TEXT("CLOSE_SLATE_MAINFRAME") );
+			if (IsRunningCommandlet())
+			{
+				GIsRequestingExit = true;
+			}
+			else
+			{
+				GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
+			}
 		}
 		else
 		{
-			GEngine->DeferredCommands.Add( TEXT("EXIT") );
+			GEngine->DeferredCommands.Add(TEXT("EXIT"));
 		}
 	}
 }
