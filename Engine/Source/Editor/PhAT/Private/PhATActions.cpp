@@ -24,7 +24,7 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(RepeatLastSimulation, "Simulate", "Previews Physics Simulation", EUserInterfaceActionType::RadioButton, FInputGesture(EKeys::Enter));
 	UI_COMMAND(SimulationNormal, "Real Simulation", "Previews Normal Physics Simulation", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(SimulationNoGravity, "No Gravity Simulation", "Run Physics Simulation without gravity. Use this to debug issues with your ragdoll. If the setup is correct, the asset should not move!", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(ToggleSelectedSimulation, "Selected Simulation", "Run Physics Simulation on selected objects. Use this to tune  specific parts of your ragdoll.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(ToggleSelectedSimulation, "Selected Simulation", "Run Physics Simulation on selected objects. Use this to tune  specific parts of your ragdoll.", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(MeshRenderingMode_Solid, "Solid", "Solid Mesh Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(MeshRenderingMode_Wireframe, "Wireframe", "Wireframe Mesh Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(MeshRenderingMode_None, "None", "No Mesh Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
@@ -34,7 +34,7 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(ConstraintRenderingMode_None, "None", "No Constraint Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(ConstraintRenderingMode_AllPositions, "All Positions", "All Positions Constraint Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(ConstraintRenderingMode_AllLimits, "All Limits", "All Limits Constraint Rendering Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(ShowFixedBodies, "Fixed Bodies", "Displays Fixed Bodies In Red", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(ShowKinematicBodies, "Kinematic Bodies", "Displays Kinematic Bodies In Red", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(DrawGroundBox, "Ground Box", "Displays Floor Grid", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(ToggleGraphicsHierarchy, "Hierarchy", "Show Graphical Hierarchy Of Joints In Preview Viewport", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(ToggleBoneInfuences, "Bone Influences", "Displays Vertices Weighted To Currently Selected Bone or Body", EUserInterfaceActionType::ToggleButton, FInputGesture());
@@ -57,11 +57,11 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(DeleteConstraint, "Delete", "Delete Selected Constraint", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(PlayAnimation, "Play", "Play Animation", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(ShowSkeleton, "Skeleton", "Show Skeleton", EUserInterfaceActionType::ToggleButton, FInputGesture());
-	UI_COMMAND(MakeBodyFixed, "Fixed", "Fix This Body", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(MakeBodyUnfixed, "Unfixed", "Unfix This Body", EUserInterfaceActionType::RadioButton, FInputGesture());
+	UI_COMMAND(MakeBodyKinematic, "Kinematic", "Make Body Kinematic", EUserInterfaceActionType::RadioButton, FInputGesture());
+	UI_COMMAND(MakeBodySimulated, "Simulated", "Make Body Simulated", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(MakeBodyDefault, "Default", "Reset This Body To Default", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(FixAllBodiesBelow, "Fix All Bodies Below", "Fix All Bodies Below", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(UnfixAllBodiesBelow, "Unfix All Bodies Below", "Unfix All Bodies Below", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(KinematicAllBodiesBelow, "Set All Bodies Below To Kinematic", "Set All Bodies Below To Kinematic", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(SimulatedAllBodiesBelow, "Set All Bodies Below To Simulated", "Set All Bodies Below To Simulated", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(MakeAllBodiesBelowDefault, "Reset All Bodies Below To Default", "Reset All Bodies Below To Default", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteBody, "Delete", "Delete Selected Body", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteAllBodiesBelow, "Delete All Bodies Below", "Delete All Bodies Below", EUserInterfaceActionType::Button, FInputGesture());
