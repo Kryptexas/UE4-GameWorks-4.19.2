@@ -18,6 +18,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "ScopedTransaction.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
@@ -5540,12 +5541,16 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		else if( Property->IsA(UArrayProperty::StaticClass()) )
 		{
 			const UArrayProperty* ArrayProp = CastChecked<UArrayProperty>(Property);
-			ArrayProp->ImportText(*Value, ArrayProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL);
+			FStringOutputDevice ImportError;
+			ArrayProp->ImportText(*Value, ArrayProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
+			bParseSuccedded = ImportError.IsEmpty();
 		}
 		else if( Property->IsA(UMulticastDelegateProperty::StaticClass()) )
 		{
 			const UMulticastDelegateProperty* MCDelegateProp = CastChecked<UMulticastDelegateProperty>(Property);
-			MCDelegateProp->ImportText(*Value, MCDelegateProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL);
+			FStringOutputDevice ImportError;
+			MCDelegateProp->ImportText(*Value, MCDelegateProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
+			bParseSuccedded = ImportError.IsEmpty();
 		}
 		else
 		{
@@ -5588,6 +5593,19 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 			// Color form: "(R=%f,G=%f,B=%f,A=%f)"
 			bParseSuccedded = Color.InitFromString(Value);
 			Property->CopyCompleteValue( Property->ContainerPtrToValuePtr<uint8>(DefaultObject), &Color );
+		}
+		else if (StructProperty->Struct)
+		{
+			const UScriptStruct* Struct = StructProperty->Struct;
+			const int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
+			uint8* StructData = Property->ContainerPtrToValuePtr<uint8>(DefaultObject);
+			StructProperty->InitializeValue(StructData);
+			ensure(1 == StructProperty->ArrayDim);
+			bParseSuccedded = FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(Struct), StructData);
+
+			FStringOutputDevice ImportError;
+			StructProperty->ImportText(Value.IsEmpty() ? TEXT("()") : *Value, StructData, 0, NULL, &ImportError);
+			bParseSuccedded &= ImportError.IsEmpty();
 		}
 	}
 
