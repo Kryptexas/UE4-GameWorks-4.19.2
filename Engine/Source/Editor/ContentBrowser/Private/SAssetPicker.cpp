@@ -18,6 +18,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		FilterCollection->Add( InArgs._AssetPickerConfig.ExtraFilters->GetFilterAtIndex( Index ) );
 	}
 
+	BindCommands();
+
 	OnAssetsActivated = InArgs._AssetPickerConfig.OnAssetsActivated;
 	OnAssetSelected = InArgs._AssetPickerConfig.OnAssetSelected;
 	OnAssetClicked = InArgs._AssetPickerConfig.OnAssetClicked;
@@ -272,6 +274,11 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 		return FReply::Handled();
 	}
 
+	if (Commands->ProcessCommandBindings(InKeyboardEvent))
+	{
+		return FReply::Handled();
+	}
+
 	return FReply::Unhandled();
 }
 
@@ -371,6 +378,46 @@ void SAssetPicker::HandleShowOtherDevelopersCheckStateChanged( ESlateCheckBoxSta
 ESlateCheckBoxState::Type SAssetPicker::GetShowOtherDevelopersCheckState() const
 {
 	return OtherDevelopersFilter->GetShowOtherDeveloperAssets() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAssetPicker::OnRenameRequested() const
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetViewPtr->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetViewPtr->GetSelectedFolders();
+
+	if ( AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0 )
+	{
+		// Don't operate on Redirectors
+		if ( AssetViewSelectedAssets[0].AssetClass != UObjectRedirector::StaticClass()->GetFName() )
+		{
+			AssetViewPtr->RenameAsset(AssetViewSelectedAssets[0]);
+		}
+	}
+	else if ( AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1 )
+	{
+		AssetViewPtr->RenameFolder(SelectedFolders[0]);
+	}
+}
+
+bool SAssetPicker::CanExecuteRenameRequested()
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetViewPtr->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetViewPtr->GetSelectedFolders();
+
+	const bool bCanRenameFolder = ( AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1 );
+	const bool bCanRenameAsset = ( AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0 ) && ( AssetViewSelectedAssets[0].AssetClass != UObjectRedirector::StaticClass()->GetFName() ); 
+
+	return	bCanRenameFolder || bCanRenameAsset;
+}
+
+void SAssetPicker::BindCommands()
+{
+	Commands = MakeShareable(new FUICommandList);
+	// bind commands
+	Commands->MapAction( FGenericCommands::Get().Rename, FUIAction(
+		FExecuteAction::CreateSP( this, &SAssetPicker::OnRenameRequested ),
+		FCanExecuteAction::CreateSP( this, &SAssetPicker::CanExecuteRenameRequested )
+		));
 }
 
 #undef LOCTEXT_NAMESPACE

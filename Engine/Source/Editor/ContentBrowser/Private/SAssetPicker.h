@@ -63,6 +63,15 @@ private:
 	/** Gets if showing other developers assets */
 	ESlateCheckBoxState::Type GetShowOtherDevelopersCheckState() const;
 
+	/** Called upon the Rename UICommand being executed, sends rename request to the asset view */
+	void OnRenameRequested() const;
+
+	/** Returns true if the user is able to execute a rename request */
+	bool CanExecuteRenameRequested();
+
+	/** Bind our UI commands */
+	void BindCommands();
+
 private:
 	/** The asset view widget */
 	TSharedPtr<SAssetView> AssetViewPtr;
@@ -100,4 +109,7 @@ private:
 
 	/** Initial filter we were created with, needed reset asset view after we have custom filtered */
 	FARFilter InitialBackendFilter;
+
+	/** UICommand list, holds list of actions for processing */
+	TSharedPtr< FUICommandList > Commands;
 };
