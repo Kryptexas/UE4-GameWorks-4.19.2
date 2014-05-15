@@ -280,22 +280,6 @@ void ULandscapeComponent::PostEditUndo()
 
 	UpdateMaterialInstances();
 
-	if (!bNeedPostUndo)
-	{
-		ULandscapeInfo* Info = GetLandscapeInfo(false);
-		if (Info && !Info->bIsValid)
-		{
-			bNeedPostUndo = true;
-			if (EditToolRenderData)
-			{
-				EditToolRenderData->DebugChannelR = INDEX_NONE;
-				EditToolRenderData->DebugChannelG = INDEX_NONE;
-				EditToolRenderData->DebugChannelB = INDEX_NONE;
-			}
-			return;
-		}
-	}
-
 	if (EditToolRenderData)
 	{
 		EditToolRenderData->UpdateDebugColorMaterial();
@@ -3763,7 +3747,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				}
 			}
 		}
-				
+
 		if (ChangedMaterial)
 		{
 			if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())

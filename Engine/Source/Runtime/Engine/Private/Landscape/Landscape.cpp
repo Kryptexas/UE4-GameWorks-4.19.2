@@ -53,11 +53,8 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 	bAllowCullDistanceVolume = false;
 	CollisionMipLevel = 0;
 	StaticLightingResolution = 0.f; // Default value 0 means no overriding
-#if WITH_EDITORONLY_DATA
-	bNeedPostUndo = false;
-#endif // WITH_EDITORONLY_DATA
-	HeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 
+	HeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 	WeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	bBoundsChangeTriggersStreamingDataRebuild = true;
@@ -869,32 +866,34 @@ void ALandscapeProxy::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 void ALandscapeProxy::PreEditUndo()
 {
 	Super::PreEditUndo();
-	if (GIsEditor)
+
+	// PostEditUndo doesn't get called when undoing a create action
+	// and PreEditUndo doesn't get called when undoing a delete action
+	// so this code needs to be in both!
+	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
-		// Remove all layer info for this Proxy
-		ULandscapeInfo* LandscapeInfo = GetLandscapeInfo(false);
-		if (LandscapeInfo)
-		{
-			LandscapeInfo->UpdateLayerInfoMap(this, true);
-		}
+		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 	}
 }
 
 void ALandscapeProxy::PostEditUndo()
 {
 	Super::PostEditUndo();
+
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
-		// defer LandscapeInfo setup
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
-		GEngine->DeferredCommands.AddUnique(TEXT("RestoreLandscapeLayerInfos"));
 	}
 }
 
 void ULandscapeInfo::PostEditUndo()
 {
 	Super::PostEditUndo();
-	ULandscapeInfo::RecreateLandscapeInfo(CastChecked<UWorld>(GetOuter()), true);
+
+	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
+	{
+		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+	}
 }
 
 FName FLandscapeInfoLayerSettings::GetLayerName() const
@@ -1220,11 +1219,6 @@ void ALandscapeProxy::PostLoad()
 void ALandscape::Destroyed()
 {
 	Super::Destroyed();
-
-	if (SplineComponent)
-	{
-		SplineComponent->ModifySplines();
-	}
 }
 
 void ALandscapeProxy::Destroyed()
@@ -1234,6 +1228,11 @@ void ALandscapeProxy::Destroyed()
 	if (GIsEditor)
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), false);
+	}
+
+	if (SplineComponent)
+	{
+		SplineComponent->ModifySplines();
 	}
 }
 #endif

@@ -198,11 +198,6 @@ public:
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
 	float StaticLightingResolution;
 
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(transient)
-	uint32 bNeedPostUndo:1;
-#endif // WITH_EDITORONLY_DATA
-
 	/** Forced LOD level to use when rendering */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 ForcedLOD;
