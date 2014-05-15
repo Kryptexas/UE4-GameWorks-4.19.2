@@ -162,7 +162,7 @@ struct FSingleAnimationPlayData
 	uint32 bSavedPlaying:1;
 
 	// Default setting for position of SequenceToPlay to play. 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="InitialPosition"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Initial Position"))
 	float SavedPosition;
 
 	// Default setting for playrate of SequenceToPlay to play. 
