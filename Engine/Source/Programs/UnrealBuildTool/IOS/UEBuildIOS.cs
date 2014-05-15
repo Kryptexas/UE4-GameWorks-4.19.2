@@ -30,6 +30,10 @@ namespace UnrealBuildTool
 		 */
 		public override void RegisterBuildPlatform()
 		{
+            if ((UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket()) && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+            {
+                return;
+            }
 			// Register this build platform for IOS
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.IOS.ToString());
 			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.IOS, this);

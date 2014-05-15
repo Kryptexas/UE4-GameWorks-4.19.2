@@ -101,7 +101,7 @@ public class UE4EditorTarget : TargetRules
         }
         else
         {
-            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS };
+            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android };
         }
 
         NonCodeProjectNames.Add("BlackJack", MobilePlats);
