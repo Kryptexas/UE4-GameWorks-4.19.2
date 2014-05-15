@@ -120,11 +120,9 @@ namespace EKinematicBonesUpdateToPhysics
 {
 	enum Type
 	{
-		/** This only updates anything non-simulating bones - i.e. (fixed) or (default if owner is not simulating)**/
+		/** Update any bones that are not simulating*/
 		SkipSimulatingBones,
-		/** This updates everything except (fixed) or (unfixed) or (default if owner is simulating)**/
-		SkipFixedAndSimulatingBones, 
-		/** Skip any physics update from kinematic changes **/
+		/** Skip physics update from kinematic changes **/
 		SkipAllBones
 	};
 }

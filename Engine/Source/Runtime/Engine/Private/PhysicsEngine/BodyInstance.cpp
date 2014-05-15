@@ -754,19 +754,27 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
 
 		// if not dedicated and if set up is done to use physics, enable flag on
-		if (BodySetup->PhysicsType == PhysType_Unfixed)
+		if (BodySetup->PhysicsType == PhysType_Unfixed || BodySetup->PhysicsType == PhysType_Default)
 		{
 			bool bEnableSimulation = (SkelMeshComp && IsRunningDedicatedServer())? SkelMeshComp->bEnablePhysicsOnDedicatedServer: true;
+			bEnableSimulation &= ((BodySetup->PhysicsType == PhysType_Unfixed) || (SkelMeshComp->BodyInstance.bSimulatePhysics));	//if unfixed enable. If default look at parent
 			if ( bEnableSimulation )
 			{
 				// set simulate to true if using physics
 				bSimulatePhysics = true;
-				PhysicsBlendWeight = 1.f;
+				if (BodySetup->PhysicsType == PhysType_Unfixed)
+				{
+					PhysicsBlendWeight = 1.f;
+				}
+				
 			}
 	 		else
 	 		{
 	 			bSimulatePhysics = false;
-	 			PhysicsBlendWeight = 0.f;
+				if (BodySetup->PhysicsType == PhysType_Unfixed)
+				{
+					PhysicsBlendWeight = 0.f;
+				}
 	 		}
 		}
 	}

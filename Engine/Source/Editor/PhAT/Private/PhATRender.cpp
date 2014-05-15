@@ -37,7 +37,7 @@ UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const class FPostCons
 	check(BoneNoCollisionMaterial);
 
 	// this is because in phat editor, you'd like to see fixed bones to be fixed without animation force update
-	KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;
+	KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 	bUpdateJointsFromAnimation = true;
 	ForcedLodModel = 1;
 
