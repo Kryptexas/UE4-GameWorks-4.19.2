@@ -349,7 +349,7 @@ bool UCharacterMovementComponent::DoJump()
 	if ( CharacterOwner )
 	{
 		// Don't jump if we can't move up/down.
-		if (FMath::Abs(PlaneConstraintNormal.Z) != 1.f)
+		if (!bConstrainToPlane || FMath::Abs(PlaneConstraintNormal.Z) != 1.f)
 		{
 			Velocity.Z = JumpZVelocity;
 			SetMovementMode(MOVE_Falling);

@@ -25,7 +25,7 @@ enum EMovementMode
 
 // Data about the floor for walking movement.
 USTRUCT(BlueprintType)
-struct FFindFloorResult
+struct ENGINE_API FFindFloorResult
 {
 	GENERATED_USTRUCT_BODY()
 
