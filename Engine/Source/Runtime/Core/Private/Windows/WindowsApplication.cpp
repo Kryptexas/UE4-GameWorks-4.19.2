@@ -103,7 +103,10 @@ bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON 
 
 FWindowsApplication::~FWindowsApplication()
 {
-	TextInputMethodSystem->Terminate();
+	if (TextInputMethodSystem.IsValid())
+	{
+		TextInputMethodSystem->Terminate();
+	}
 
 	::CoUninitialize();
 	OleUninitialize();
