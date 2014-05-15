@@ -528,22 +528,19 @@ void SAssetView::DuplicateAsset(const FString& PackagePath, const TWeakObjectPtr
 
 void SAssetView::RenameAsset(const FAssetData& ItemToRename)
 {
-	if ( !FEditorFileUtils::IsMapPackageAsset(ItemToRename.ObjectPath.ToString()) )
+	for ( auto ItemIt = FilteredAssetItems.CreateConstIterator(); ItemIt; ++ItemIt )
 	{
-		for ( auto ItemIt = FilteredAssetItems.CreateConstIterator(); ItemIt; ++ItemIt )
+		const TSharedPtr<FAssetViewItem>& Item = *ItemIt;
+		if ( Item.IsValid() && Item->GetType() != EAssetItemType::Folder )	
 		{
-			const TSharedPtr<FAssetViewItem>& Item = *ItemIt;
-			if ( Item.IsValid() && Item->GetType() != EAssetItemType::Folder )	
+			const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(Item);
+			if ( ItemAsAsset->Data.ObjectPath == ItemToRename.ObjectPath )
 			{
-				const TSharedPtr<FAssetViewAsset>& ItemAsAsset = StaticCastSharedPtr<FAssetViewAsset>(Item);
-				if ( ItemAsAsset->Data.ObjectPath == ItemToRename.ObjectPath )
-				{
-					ItemAsAsset->bRenameWhenScrolledIntoview = true;
+				ItemAsAsset->bRenameWhenScrolledIntoview = true;
 
-					SetSelection(Item);
-					RequestScrollIntoView(Item);
-					break;
-				}
+				SetSelection(Item);
+				RequestScrollIntoView(Item);
+				break;
 			}
 		}
 	}
@@ -3045,7 +3042,7 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 					// If dragging a class, send though an FAssetData whose name is null and class is this class' name
 					InAssetData.Add(AssetData);
 				}
-				else if ( AssetData.IsAssetLoaded() || !FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()) )
+				else if ( AssetData.IsAssetLoaded() )
 				{
 					InAssetData.Add(AssetData);
 				}

@@ -531,12 +531,6 @@ void FAssetContextMenu::GetSelectedAssets(TArray<UObject*>& Assets, bool SkipRed
 {
 	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num(); ++AssetIdx)
 	{
-		if (!SelectedAssets[AssetIdx].IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(SelectedAssets[AssetIdx].ObjectPath.ToString()))
-		{
-			// Don't load assets in map packages
-			continue;
-		}
-
 		if (SkipRedirectors && (SelectedAssets[AssetIdx].AssetClass == UObjectRedirector::StaticClass()->GetFName()))
 		{
 			// Don't operate on Redirectors
@@ -809,12 +803,6 @@ void FAssetContextMenu::ExecuteDelete()
 		for( auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
 			const FAssetData& AssetData = *AssetIt;
-
-			if( !AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset( AssetData.ObjectPath.ToString() ) )
-			{
-				// Don't load assets in map packages
-				continue;
-			}
 
 			if( AssetData.AssetClass == UObjectRedirector::StaticClass()->GetFName() )
 			{

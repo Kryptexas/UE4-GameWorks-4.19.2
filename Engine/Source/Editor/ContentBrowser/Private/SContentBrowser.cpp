@@ -718,13 +718,13 @@ void SContentBrowser::LoadSelectedObjectsIfNeeded()
 	// Load every asset that isn't already in memory
 	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
-		if ( !(*AssetIt).IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset((*AssetIt).ObjectPath.ToString()) )
-		{
-			// Don't load assets in map packages
-			continue;
-		}
+		const FAssetData& AssetData = *AssetIt;
+		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
+		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
 
 		(*AssetIt).GetAsset();
+
+		GWarn->EndSlowTask();
 	}
 
 	// Sync the global selection set if we are the primary browser
@@ -1323,13 +1323,13 @@ void SContentBrowser::OnAssetsActivated(const TArray<FAssetData>& ActivatedAsset
 	// This way individual asset type actions will get a batched list of assets to operate on
 	for ( auto AssetIt = ActivatedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 	{
-		if ( !(*AssetIt).IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset((*AssetIt).ObjectPath.ToString()) )
-		{
-			// Skip unloaded assets in map packages, it is illegal to load them now
-			continue;
-		}
+		const FAssetData& AssetData = *AssetIt;
+		const bool bShowProgressDialog = (!AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()));
+		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
 
 		UObject* Asset = (*AssetIt).GetAsset();
+
+		GWarn->EndSlowTask();
 
 		if ( Asset != NULL )
 		{

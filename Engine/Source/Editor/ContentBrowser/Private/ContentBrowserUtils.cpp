@@ -278,22 +278,23 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 
 	// Build a list of unloaded assets
 	TArray<FString> UnloadedObjectPaths;
+	bool bAtLeastOneUnloadedMap = false;
 	for (int32 PathIdx = 0; PathIdx < ObjectPaths.Num(); ++PathIdx)
 	{
 		const FString& ObjectPath = ObjectPaths[PathIdx];
 
-		if ( !FEditorFileUtils::IsMapPackageAsset(ObjectPath) )
+		UObject* FoundObject = FindObject<UObject>(NULL, *ObjectPath);
+		if ( FoundObject )
 		{
-			UObject* FoundObject = FindObject<UObject>(NULL, *ObjectPath);
-
-			if ( FoundObject )
+			LoadedObjects.Add(FoundObject);
+		}
+		else
+		{
+			// Unloaded asset, we will load it later
+			UnloadedObjectPaths.Add(ObjectPath);
+			if ( FEditorFileUtils::IsMapPackageAsset(ObjectPath) )
 			{
-				LoadedObjects.Add(FoundObject);
-			}
-			else
-			{
-				// Unloaded asset, we will load it later
-				UnloadedObjectPaths.Add(ObjectPath);
+				bAtLeastOneUnloadedMap = true;
 			}
 		}
 	}
@@ -317,7 +318,7 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 	if ( UnloadedObjectPaths.Num() > 0 )
 	{
 		// Get the maximum objects to load before displaying the slow task
-		const bool bShowProgressDialog = UnloadedObjectPaths.Num() > GetDefault<UContentBrowserSettings>()->NumObjectsToLoadBeforeWarning;
+		const bool bShowProgressDialog = (UnloadedObjectPaths.Num() > GetDefault<UContentBrowserSettings>()->NumObjectsToLoadBeforeWarning) || bAtLeastOneUnloadedMap;
 		GWarn->BeginSlowTask(LOCTEXT("LoadingObjects", "Loading Objects..."), bShowProgressDialog);
 
 		GIsEditorLoadingPackage = true;
@@ -383,14 +384,11 @@ bool ContentBrowserUtils::ShouldPromptToLoadAssets(const TArray<FString>& Object
 	{
 		const FString& ObjectPath = ObjectPaths[PathIdx];
 
-		if ( !FEditorFileUtils::IsMapPackageAsset(ObjectPath) )
+		UObject* FoundObject = FindObject<UObject>(NULL, *ObjectPath);
+		if ( !FoundObject )
 		{
-			UObject* FoundObject = FindObject<UObject>(NULL, *ObjectPath);
-			if ( !FoundObject )
-			{
-				// Unloaded asset, we will load it later
-				OutUnloadedObjects.Add(ObjectPath);
-			}
+			// Unloaded asset, we will load it later
+			OutUnloadedObjects.Add(ObjectPath);
 		}
 	}
 
@@ -620,12 +618,6 @@ TArray<UPackage*> ContentBrowserUtils::LoadPackages(const TArray<FString>& Packa
 		if ( !ensure(PackageName.Len() > 0) )
 		{
 			// Empty package name. Skip it.
-			continue;
-		}
-
-		if ( FEditorFileUtils::IsMapPackageAsset(PackageName) )
-		{
-			// Map package. Skip it.
 			continue;
 		}
 
@@ -1014,12 +1006,6 @@ void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetL
 	for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
 	{
 		const FAssetData& AssetData = AssetList[AssetIdx];
-
-		if ( !AssetData.IsAssetLoaded() && FEditorFileUtils::IsMapPackageAsset(AssetData.ObjectPath.ToString()) )
-		{
-			// Don't load assets in map packages
-			continue;
-		}
 
 		UObject* Obj = AssetData.GetAsset();
 		if (Obj)

@@ -1243,11 +1243,7 @@ namespace ObjectTools
 			FString PackageFilename;
 			if( FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
 			{
-				// Cull out non-UAssets
-				if ( FPaths::GetExtension(PackageFilename, /*bIncludeDot=*/true).ToLower() != FPackageName::GetAssetPackageExtension() )
-				{
-					PackagesToDelete.RemoveAt(PackageIdx);
-				}
+				PackagesToDelete.RemoveAt(PackageIdx);
 			}
 			else
 			{
@@ -1357,13 +1353,6 @@ namespace ObjectTools
 				if( !FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
 				{
 					// Could not determine filename for package so we can not delete
-					PackagesToDelete.RemoveAt(PackageIdx);
-					continue;
-				}
-
-				if ( FPaths::GetExtension(PackageFilename, /*bIncludeDot=*/true).ToLower() != FPackageName::GetAssetPackageExtension() )
-				{
-					// Only delete UAsset packages because that is what we checked for in ShowDeleteConfirmationDialog()
 					PackagesToDelete.RemoveAt(PackageIdx);
 					continue;
 				}
