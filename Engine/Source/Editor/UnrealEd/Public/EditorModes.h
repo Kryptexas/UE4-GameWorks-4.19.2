@@ -318,7 +318,7 @@ public:
 
 	UWorld* GetWorld() const
 	{
-		return GWorld;
+		return GEditor->GetEditorWorldContext().World();
 	}
 
 	// Property Widgets
