@@ -898,22 +898,31 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 		// Ask whether to copy the project or upgrade in-place
 		TArray<FText> Buttons;
 		int32 OpenCopyButton = Buttons.Add(LOCTEXT("ProjectUpgradeCopy", "Create a copy"));
-		Buttons.Add(LOCTEXT("ProjectUpgradeInPlace", "Convert in-place"));
+		int32 InPlaceButton = Buttons.Add(LOCTEXT("ProjectUpgradeInPlace", "Convert in-place"));
 		int32 CancelButton = Buttons.Add(LOCTEXT("ProjectUpgradeCancel", "Cancel"));
 
 		// Show the dialog
-		int32 Selection = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Upgrade Project"), LOCTEXT("ProjectUpgradePrompt", "This project was made with a different version of the editor. Converting it to this version of the editor may be irreversible.\n\nWould you like to create a copy before opening?"), Buttons);
+		int32 Selection = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectConversionTitle", "Convert Project"), LOCTEXT("ConvertProjectPrompt", "This project was made with a different version of the editor. Converting to this version may be irreversible or lose data.\n\nIt is recommened that you create a copy before proceeding."), Buttons);
 		if(Selection == OpenCopyButton)
 		{
 			FString NewProjectFile;
 			if(!GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile))
 			{
-				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("CopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
 				return false;
 			}
 			ProjectFile = NewProjectFile;
 		}
-		else if(Selection == CancelButton)
+		else if(Selection == InPlaceButton)
+		{
+			FString ProjectDir = FPaths::GetPath(ProjectFile);
+			if(!FDesktopPlatformModule::Get()->CleanGameProject(ProjectDir, GWarn))
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCleanFailed", "Couldn't clean project binary and intermediate folders for upgrade. Check that the project folders are writable."));
+				return false;
+			}
+		}
+		else 
 		{
 			return false;
 		}

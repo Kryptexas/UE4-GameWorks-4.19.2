@@ -31,6 +31,7 @@ public:
 	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) OVERRIDE;
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) OVERRIDE;
 
+	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) OVERRIDE;
 	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) OVERRIDE;
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) OVERRIDE;
 
@@ -48,4 +49,6 @@ private:
 	bool SaveProjectFile(const FString &FileName, TSharedPtr<FJsonObject> Object);
 
 	const FUProjectDictionary &GetCachedProjectDictionary(const FString& RootDir);
+
+	void GetProjectBuildProducts(const FString& ProjectFileName, TArray<FString> &OutFileNames);
 };
