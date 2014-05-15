@@ -493,3 +493,8 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 		return NULL;
 	}
 }
+
+FString UFactory::GetDefaultNewAssetName() const
+{
+	return FString(TEXT("New")) + GetSupportedClass()->GetName();
+}

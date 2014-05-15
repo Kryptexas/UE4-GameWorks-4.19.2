@@ -9,8 +9,8 @@
 #pragma once
 #include "Factory.generated.h"
 
-UCLASS(abstract,MinimalAPI)
-class UFactory : public UObject
+UCLASS(abstract)
+class UNREALED_API UFactory : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -50,57 +50,58 @@ class UFactory : public UObject
 	UPROPERTY()
 	TArray<FString> ValidGameNames;
 
-	UNREALED_API static FString GetCurrentFilename() { return CurrentFilename; }
-	UNREALED_API static FString	CurrentFilename;
+	static FString GetCurrentFilename() { return CurrentFilename; }
+
+	static FString CurrentFilename;
 
 	/** For interactive object imports, this value indicates whether the user wants objects to be automatically
 		overwritten (See EAppReturnType), or -1 if the user should be prompted. */
-	UNREALED_API static int32 OverwriteYesOrNoToAllState;
+	static int32 OverwriteYesOrNoToAllState;
 
 	/** If this value is true, warning messages will be shown once for all objects being imported at the same time.  
 		This value will be reset to false each time a new import operation is started. */
 	static bool bAllowOneTimeWarningMessages;
 
 	// Begin UObject interface.
-	UNREALED_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
 	/** Returns true if this factory should be shown in the New Asset menu. */
-	UNREALED_API virtual bool ShouldShowInNewMenu() const;
+	virtual bool ShouldShowInNewMenu() const;
 
 	/** Returns an optional override brush name for the new asset menu. If this is not specified, the thumbnail for the supported class will be used. */
-	UNREALED_API virtual FName GetNewAssetThumbnailOverride() const { return NAME_None; }
+	virtual FName GetNewAssetThumbnailOverride() const { return NAME_None; }
 
 	/** Returns the name of the factory for menus */
-	UNREALED_API virtual FText GetDisplayName() const;
+	virtual FText GetDisplayName() const;
 
 	/** When shown in menus, this is the category containing this factory. Return type is a BitFlag mask using EAssetTypeCategories. */
-	UNREALED_API virtual uint32 GetMenuCategories() const;
+	virtual uint32 GetMenuCategories() const;
 
 	/** Returns the tooltip text description of this factory */
-	UNREALED_API virtual FText GetToolTip() const;
+	virtual FText GetToolTip() const;
 
 	/**
 	 * @return		The object class supported by this factory.
 	 */
-	UNREALED_API UClass* GetSupportedClass() const;
+	UClass* GetSupportedClass() const;
 
 	/**
 	 * @return true if it supports this class 
 	 */
-	UNREALED_API virtual bool DoesSupportClass(UClass * Class);
+	virtual bool DoesSupportClass(UClass * Class);
 
 	/**
 	 * Resolves SupportedClass for factories which support multiple classes.
 	 * Such factories will have a NULL SupportedClass member.
 	 */
-	UNREALED_API virtual UClass* ResolveSupportedClass();
+	virtual UClass* ResolveSupportedClass();
 
 	/**
 	 * Resets the saved state of this factory.  The states are used to suppress messages during multiple object import. 
 	 * It needs to be reset each time a new import is started
 	 */
-	UNREALED_API static void ResetState();
+	static void ResetState();
 
 	/** Opens a dialog to configure the factory properties. Return false if user opted out of configuring properties */
 	virtual bool ConfigureProperties() { return true; }
@@ -124,16 +125,16 @@ class UFactory : public UObject
 	/**
 	 * @return	true if this factory can deal with the file sent in.
 	 */
-	UNREALED_API virtual bool FactoryCanImport( const FString& Filename );
+	virtual bool FactoryCanImport( const FString& Filename );
 
 
 	// @todo document
-	UNREALED_API virtual bool ImportUntypedBulkDataFromText(const TCHAR*& Buffer, FUntypedBulkData& BulkData);
+	virtual bool ImportUntypedBulkDataFromText(const TCHAR*& Buffer, FUntypedBulkData& BulkData);
 
 
 	// @todo document
-	UNREALED_API static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
-	UNREALED_API static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, bool& bOutOperationCanceled, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
+	static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
+	static UObject* StaticImportObject( UClass* Class, UObject* InOuter, FName Name, EObjectFlags Flags, bool& bOutOperationCanceled, const TCHAR* Filename=TEXT(""), UObject* Context=NULL, UFactory* Factory=NULL, const TCHAR* Parms=NULL, FFeedbackContext* Warn=GWarn, int32 MaxImportFileSize = 0xC100000 );
 
 	/**
 	 * UFactory::ValidForCurrentGame
@@ -144,15 +145,15 @@ class UFactory : public UObject
 	 *
 	 * author: superville
 	 */
-	UNREALED_API bool	ValidForCurrentGame();
+	bool ValidForCurrentGame();
 
 	/** Creates a list of file extensions supported by this factory */
-	UNREALED_API void GetSupportedFileExtensions( TArray<FString>& OutExtensions ) const;
+	void GetSupportedFileExtensions( TArray<FString>& OutExtensions ) const;
 
 	/** 
 	 * Do clean up after importing is done. Will be called once for multi batch import
 	 */
-	virtual void CleanUp() {};
+	virtual void CleanUp() {}
 
 	/**
 	 * Creates an asset if it doesn't exist. If it does exist then it overwrites it if possible. If it can not overwrite then it will delete and replace. If it can not delete, it will return NULL.
@@ -165,5 +166,8 @@ class UFactory : public UObject
 	 *						If NULL, the class default object is used instead.
 	 * @return	A pointer to a new asset of the specified type or null if the creation failed.
 	 */
-	UNREALED_API UObject* CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, UObject* InTemplate = NULL) const;
+	UObject* CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, UObject* InTemplate = NULL) const;
+
+	/** Returns a new starting point name for newly created assets in the content browser */
+	virtual FString GetDefaultNewAssetName() const;
 };

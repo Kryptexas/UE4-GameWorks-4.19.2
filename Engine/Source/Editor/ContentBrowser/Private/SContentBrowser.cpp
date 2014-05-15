@@ -1046,7 +1046,7 @@ void SContentBrowser::NewAssetRequested(const FString& SelectedPath, TWeakObject
 
 			static FName AssetToolsModuleName = FName("AssetTools");
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(AssetToolsModuleName);
-			AssetToolsModule.Get().CreateUniqueAssetName(SelectedPath + TEXT("/New") + NewFactory->GetSupportedClass()->GetName(), TEXT(""), PackageNameToUse, DefaultAssetName);
+			AssetToolsModule.Get().CreateUniqueAssetName(SelectedPath + TEXT("/") + NewFactory->GetDefaultNewAssetName(), TEXT(""), PackageNameToUse, DefaultAssetName);
 			CreateNewAsset(DefaultAssetName, SelectedPath, NewFactory->GetSupportedClass(), NewFactory);
 		}
 	}

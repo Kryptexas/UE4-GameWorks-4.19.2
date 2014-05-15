@@ -6264,9 +6264,15 @@ UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InPare
 	}
 }
 
+FString UBlueprintMacroFactory::GetDefaultNewAssetName() const
+{
+	return FString(TEXT("NewMacroLibrary"));
+}
+
 /*------------------------------------------------------------------------------
 BlueprintFunctionLibraryFactory implementation.
 ------------------------------------------------------------------------------*/
+
 UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
@@ -6324,6 +6330,11 @@ bool UBlueprintFunctionLibraryFactory::ConfigureProperties()
 	return true;
 }
 
+FString UBlueprintFunctionLibraryFactory::GetDefaultNewAssetName() const
+{
+	return FString(TEXT("NewFunctionLibrary"));
+}
+
 /*------------------------------------------------------------------------------
 	UBlueprintInterfaceFactory implementation.
 ------------------------------------------------------------------------------*/
@@ -6376,6 +6387,11 @@ UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* In
 UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	return FactoryCreateNew(Class, InParent, Name, Flags, Context, Warn, NAME_None);
+}
+
+FString UBlueprintInterfaceFactory::GetDefaultNewAssetName() const
+{
+	return FString(TEXT("NewInterface"));
 }
 
 /*------------------------------------------------------------------------------
