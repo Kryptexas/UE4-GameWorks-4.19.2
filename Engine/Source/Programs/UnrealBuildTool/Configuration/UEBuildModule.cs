@@ -476,9 +476,6 @@ namespace UnrealBuildTool
 					var IncludePathModule = Target.GetModuleByName(IncludePathModuleName);
 					IncludePathModule.SetupPublicCompileEnvironment( SourceBinary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref VisitedModules );
 				}
-
-				// Add the module's directory to the include path, so we can root #includes to it
-				IncludePaths.Add(ModuleDirectory);
 			}
 		}
 		
@@ -1711,7 +1708,7 @@ namespace UnrealBuildTool
 
 								// If it's an engine module, output intermediates to the engine intermediates directory. 
 								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
-								if (IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+								if (PluginInfo == null && IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 								{
 									IntermediateDirectory = Target.EngineIntermediateDirectory;
 								}
@@ -1791,12 +1788,12 @@ namespace UnrealBuildTool
 					// Intermediates under Engine intermediate folder (program name will be appended later)
 					RootDirectory = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
 				}
-				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName(), "Inc");
+				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName());
 			}
 			else if (Plugins.IsPluginModule(ModuleName))
 			{
 				// Plugin module
-				BaseDirectory = Plugins.GetPluginInfoForModule(ModuleName).IntermediateIncPath;
+				BaseDirectory = Path.Combine(Plugins.GetPluginInfoForModule(ModuleName).Directory, BuildConfiguration.PlatformIntermediateFolder);
 			}
 			else
 			{
@@ -1808,11 +1805,11 @@ namespace UnrealBuildTool
 					BaseDirectory = ProjectFileGenerator.EngineRelativePath;
 				}
 
-				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder, "Inc"));
+				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder));
 			}
 
 			// Construct the intermediate path.
-			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, ModuleName);
+			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, "Inc", ModuleName);
 			return GeneratedCodeDirectory + Path.DirectorySeparatorChar;
 		}
 

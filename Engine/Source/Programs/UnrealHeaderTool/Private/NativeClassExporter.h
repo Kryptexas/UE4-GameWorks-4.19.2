@@ -98,6 +98,9 @@ private:
 	/** If true, any change in the generated headers will result in UHT failure. */
 	bool bFailIfGeneratedCodeChanges;
 
+	/** If true, writes absolute paths to the generated files. */
+	bool bUseRelativePaths;
+
 	// This exists because it makes debugging much easier on VC2010, since the visualizers can't properly understand templates with templated args
 	struct HeaderDependents : TArray<const FString*>
 	{
@@ -463,5 +466,5 @@ private:
 public:
 
 	// Constructor
-	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders );
+	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths );
 };

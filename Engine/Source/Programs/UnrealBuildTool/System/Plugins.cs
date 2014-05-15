@@ -48,12 +48,6 @@ namespace UnrealBuildTool
 		// Path to the plugin's root directory
 		public string Directory;
 
-		// Path to the plugin's intermediate build folder
-		public string IntermediateBuildPath;
-
-		// Path to the plugin's Inc folder
-		public string IntermediateIncPath;
-
 		// List of modules in this plugin
 		public readonly List<PluginModuleInfo> Modules = new List<PluginModuleInfo>();
 
@@ -429,6 +423,17 @@ namespace UnrealBuildTool
 				DiscoverAllPlugins();
 				return AllPluginsVar;
 			}
+		}
+
+		public static string GetPluginSubfolderName(UEBuildBinaryType InBinaryType, string InTargetName)
+		{
+			string SubFolderName = Path.Combine("Dynamic", InTargetName);
+			if (InBinaryType != UEBuildBinaryType.DynamicLinkLibrary)
+			{
+				SubFolderName = Path.Combine("Static", InTargetName);
+			}
+
+			return SubFolderName;
 		}
 
 		/// Access a mapping of modules to their respective owning plugin.  Dictionary is case-insensitive.
