@@ -143,6 +143,11 @@ const FDateTime& FPerforceSourceControlState::GetTimeStamp() const
 	return TimeStamp;
 }
 
+bool FPerforceSourceControlState::CanCheckIn() const
+{
+	return (State == EPerforceState::CheckedOut) || (State == EPerforceState::OpenForAdd);
+}
+
 bool FPerforceSourceControlState::CanCheckout() const
 {
 	bool bCanDoCheckout = false;

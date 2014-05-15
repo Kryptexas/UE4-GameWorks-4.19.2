@@ -74,6 +74,9 @@ public:
 	 */
 	virtual const FDateTime& GetTimeStamp() const = 0;
 
+	/** Get whether this file can be checked in. */
+	virtual bool CanCheckIn() const = 0;
+
 	/** Get whether this file can be checked out */
 	virtual bool CanCheckout() const = 0;
 

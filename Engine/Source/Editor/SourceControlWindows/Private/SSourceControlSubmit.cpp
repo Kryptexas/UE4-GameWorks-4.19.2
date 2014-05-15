@@ -461,7 +461,7 @@ static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<F
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(InPackagesNames[PackageIndex]), EStateCacheUsage::Use);
 		if(SourceControlState.IsValid())
 		{
-			if( SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+			if (SourceControlState->CanCheckIn())
 			{
 				OutOpenFiles.Add(InPackagesNames[PackageIndex]);
 			}

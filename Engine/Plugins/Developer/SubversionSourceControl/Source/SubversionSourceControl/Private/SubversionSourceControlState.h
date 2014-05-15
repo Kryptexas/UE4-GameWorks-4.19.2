@@ -60,6 +60,7 @@ public:
 	virtual FText GetDisplayTooltip() const OVERRIDE;
 	virtual const FString& GetFilename() const OVERRIDE;
 	virtual const FDateTime& GetTimeStamp() const OVERRIDE;
+	virtual bool CanCheckIn() const OVERRIDE;
 	virtual bool CanCheckout() const OVERRIDE;
 	virtual bool IsCheckedOut() const OVERRIDE;
 	virtual bool IsCheckedOutOther(FString* Who = NULL) const OVERRIDE;

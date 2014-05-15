@@ -183,6 +183,11 @@ const FDateTime& FSubversionSourceControlState::GetTimeStamp() const
 	return TimeStamp;
 }
 
+bool FSubversionSourceControlState::CanCheckIn() const
+{
+	return (LockState == ELockState::Locked) || (WorkingCopyState == EWorkingCopyState::Added);
+}
+
 bool FSubversionSourceControlState::CanCheckout() const
 {
 	return (WorkingCopyState == EWorkingCopyState::Pristine || WorkingCopyState == EWorkingCopyState::Modified) && LockState == ELockState::NotLocked;
