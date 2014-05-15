@@ -35,6 +35,9 @@ FPlacementMode::FPlacementMode()
 FPlacementMode::~FPlacementMode()
 {
 	GEditorModeTools().OnEditorModeChanged().RemoveAll( this );
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 }
 
 void FPlacementMode::Initialize()
@@ -54,6 +57,9 @@ void FPlacementMode::Initialize()
 	}
 
 	GEditorModeTools().OnEditorModeChanged().AddSP( this, &FPlacementMode::EditorModeChanged );
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRemoved().AddSP( this, &FPlacementMode::OnAssetRemoved );
 }
 
 bool FPlacementMode::UsesToolkits() const
@@ -683,6 +689,11 @@ void FPlacementMode::AddToRecentlyPlaced( const TArray< UObject* >& PlacedObject
 		GConfig->SetArray(TEXT("PlacementMode"), TEXT("RecentlyPlaced"), RecentlyPlacedAsStrings, GEditorUserSettingsIni);
 		RecentlyPlacedChanged.Broadcast( RecentlyPlaced );
 	}
+}
+
+void FPlacementMode::OnAssetRemoved( const FAssetData& /*InRemovedAssetData*/ )
+{
+	RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
 }
 
 const TArray< TWeakObjectPtr<UObject> >& FPlacementMode::GetCurrentlyPlacingObjects() const

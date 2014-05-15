@@ -680,17 +680,22 @@ void SPlacementModeTools::RefreshRecentlyPlaced()
 	const TArray< FActorPlacementInfo > RecentlyPlaced = IPlacementModeModule::Get().GetRecentlyPlaced();
 	for ( int Index = 0; Index < RecentlyPlaced.Num(); Index++ )
 	{
-		FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath( *RecentlyPlaced[Index].ObjectPath );
-
-		if ( AssetData.IsValid() )
+		UObject* Asset = FindObject<UObject>(NULL, *RecentlyPlaced[Index].ObjectPath);
+		// If asset is pending delete, it will not be marked as RF_Standalone, in which case we skip it
+		if (Asset != nullptr && Asset->HasAnyFlags(RF_Standalone))
 		{
-			TArray< FActorFactoryAssetProxy::FMenuItem > AssetMenuOptions;
-			UActorFactory* Factory = FindObject<UActorFactory>( nullptr, *RecentlyPlaced[Index].Factory );
+			FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*RecentlyPlaced[Index].ObjectPath);
 
-			RecentlyPlacedContainer->AddSlot()
-			[
-				SNew( SPlacementAssetEntry, Factory, AssetData )
-			];
+			if (AssetData.IsValid())
+			{
+				TArray< FActorFactoryAssetProxy::FMenuItem > AssetMenuOptions;
+				UActorFactory* Factory = FindObject<UActorFactory>(nullptr, *RecentlyPlaced[Index].Factory);
+
+				RecentlyPlacedContainer->AddSlot()
+					[
+						SNew(SPlacementAssetEntry, Factory, AssetData)
+					];
+			}
 		}
 	}
 }

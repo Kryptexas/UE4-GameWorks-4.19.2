@@ -71,6 +71,8 @@ private:
 
 	void EditorModeChanged( FEdMode* Mode, bool IsEntering );
 
+	void OnAssetRemoved( const FAssetData& InRemovedAssetData );
+
 private:
 
 	TWeakObjectPtr< UActorFactory > PlacementFactory;
