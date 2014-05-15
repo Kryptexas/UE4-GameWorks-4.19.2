@@ -119,6 +119,14 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 		PackageName = FName(*PackageNameStr);
 	}
 
+	// Distance dependent streaming levels should be controlled by client only
+	if (GetWorld() && GetWorld()->WorldComposition)
+	{
+		if (GetWorld()->WorldComposition->IsDistanceDependentLevel(PackageName))
+		{
+			return;
+		}
+	}
 
 	//GEngine->NetworkRemapPath(GetWorld(), RealName, false);
 

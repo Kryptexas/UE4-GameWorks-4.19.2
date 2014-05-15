@@ -77,6 +77,9 @@ class ENGINE_API UWorldComposition : public UObject
 	/** Returns currently visible and hidden levels based on distance based streaming */
 	void GetDistanceVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
 
+	/** @returns Whether specified streaming level is distance dependent */
+	bool IsDistanceDependentLevel(FName PackageName) const;
+
 	/** @returns Currently opened world composition root folder (long PackageName)*/
 	FString GetWorldRoot() const;
 	

@@ -2157,11 +2157,14 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	{
 		return;
 	}
-	
-	if (WorldComposition && ViewFamily)
+
+	if (WorldComposition)
 	{
 		// May issue the world origin shift request depending on view location
-		EvaluateWorldOriginLocation(*ViewFamily);
+		if (ViewFamily)
+		{
+			EvaluateWorldOriginLocation(*ViewFamily);
+		}
 		// May add/remove streaming objects to persistent world depending on view location
 		WorldComposition->UpdateStreamingState(ViewFamily);
 	}

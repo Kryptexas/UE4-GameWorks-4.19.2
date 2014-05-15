@@ -442,27 +442,39 @@ void UWorldComposition::GetDistanceVisibleLevels(
 			TilesStreaming[TileIdx],
 			INDEX_NONE
 		};
-				
-		FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOffset;
-		FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset, 0));
-		// We don't care about third dimension yet
-		LevelBounds.Min.Z = -WORLD_MAX;
-		LevelBounds.Max.Z = +WORLD_MAX;
-		
+
 		bool bIsVisible = false;
-		int32 NumAvailableLOD = FMath::Min(Tile.Info.LODList.Num(), Tile.LODPackageNames.Num());
-		// Find highest visible LOD entry
-		// INDEX_NONE for original non-LOD level
-		for (int32 LODIdx = INDEX_NONE; LODIdx < NumAvailableLOD; ++LODIdx)
+
+		if (OwningWorld->GetNetMode() == NM_DedicatedServer) 
 		{
-			int32 TileStreamingDistance = Tile.Info.GetStreamingDistance(LODIdx);
-			FSphere QuerySphere(InLocation, TileStreamingDistance);
-		
-			if (FMath::SphereAABBIntersection(QuerySphere, LevelBounds))
+			// Dedicated server always loads all distance dependent tiles
+			bIsVisible = true;
+		}
+		else
+		{
+			//
+			// Check if tile bounding box intersects with a sphere with origin at provided location and with radius equal to tile layer distance settings
+			//
+			FIntPoint LevelOffset = Tile.Info.AbsolutePosition - WorldOffset;
+			FBox LevelBounds = Tile.Info.Bounds.ShiftBy(FVector(LevelOffset, 0));
+			// We don't care about third dimension yet
+			LevelBounds.Min.Z = -WORLD_MAX;
+			LevelBounds.Max.Z = +WORLD_MAX;
+				
+			int32 NumAvailableLOD = FMath::Min(Tile.Info.LODList.Num(), Tile.LODPackageNames.Num());
+			// Find highest visible LOD entry
+			// INDEX_NONE for original non-LOD level
+			for (int32 LODIdx = INDEX_NONE; LODIdx < NumAvailableLOD; ++LODIdx)
 			{
-				VisibleLevel.LODIndex = LODIdx;
-				bIsVisible = true;
-				break;
+				int32 TileStreamingDistance = Tile.Info.GetStreamingDistance(LODIdx);
+				FSphere QuerySphere(InLocation, TileStreamingDistance);
+		
+				if (FMath::SphereAABBIntersection(QuerySphere, LevelBounds))
+				{
+					VisibleLevel.LODIndex = LODIdx;
+					bIsVisible = true;
+					break;
+				}
 			}
 		}
 
@@ -520,6 +532,12 @@ void UWorldComposition::UpdateStreamingState(FSceneViewFamily* ViewFamily)
 	}
 	
 	UpdateStreamingState(ViewLocation);
+}
+
+bool UWorldComposition::IsDistanceDependentLevel(FName PackageName) const
+{
+	FWorldCompositionTile* Tile = FindTileByName(PackageName);
+	return (Tile && Tile->Info.Layer.DistanceStreamingEnabled);
 }
 
 void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, int32 LODIdx)
