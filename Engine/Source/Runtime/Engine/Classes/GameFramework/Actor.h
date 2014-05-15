@@ -4,10 +4,25 @@
 
 #include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
 #include "Runtime/Engine/Classes/Camera/CameraTypes.h"
+
+UENUM(BlueprintType)
+namespace EEndPlayReason
+{
+	enum Type
+	{
+		ActorDestroyed,		// When the Actor is explicitly destroyed
+		LevelTransition,	// When the world is being unloaded for a level transition
+		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
+		RemovedFromWorld,	// When the level it is a member of is streamed out
+	};
+
+}
+
 #include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
+
 // Delegate signatures
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FTakeAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AController*, InstigatedBy, class AActor*, DamageCauser );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams( FTakePointDamageSignature, float, Damage, class AController*, InstigatedBy, FVector, HitLocation, class UPrimitiveComponent*, FHitComponent, FName, BoneName, FVector, ShotFromDirection, const class UDamageType*, DamageType, class AActor*, DamageCauser );
@@ -24,7 +39,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchEndSignature, ETo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndTouchOverSignature, ETouchIndex::Type, FingerIndex );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorEndPlaySignature );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorDestroyedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReason::Type, EndPlayReason);
 
 DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, class AActor*, float, class APawn*, const FVector&);
 
@@ -994,9 +1010,17 @@ public:
 	 */
 	bool Destroy(bool bNetForce = false, bool bShouldModifyLevel = true );
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (Keywords = "delete", FriendlyName = "Destroyed"))
+	virtual void ReceiveDestroyed();
+
+	/** Called when the actor is destroyed. */
+	UPROPERTY(BlueprintAssignable)
+	FActorDestroyedSignature OnDestroyed;
+
+
 	/** Event to notify blueprints this actor is about to be deleted. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
-	virtual void ReceiveEndPlay();
+	virtual void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
 
 	/** Called when the actor is destroyed. */
 	UPROPERTY(BlueprintAssignable)
@@ -1625,16 +1649,8 @@ public:
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();
 	
-	enum EEndPlayReason
-	{
-		ActorDestroyed,		// When the Actor is explicitly destroyed
-		LevelTransition,	// When the world is being unloaded for a level transition
-		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
-		RemovedFromWorld,	// When the level it is a member of is streamed out
-	};
-
 	/** Called whenever this actor is being removed from a level */
-	virtual void EndPlay(const EEndPlayReason EndPlayReason);
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 	/** iterates up the Base chain to see whether or not this Actor is based on the given Actor
 	 * @param Other the Actor to test for

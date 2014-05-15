@@ -8106,7 +8106,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			if (ActorIt->bActorInitialized)
 			{
-				ActorIt->EndPlay(AActor::EEndPlayReason::LevelTransition);
+				ActorIt->EndPlay(EEndPlayReason::LevelTransition);
 			}
 		}
 
