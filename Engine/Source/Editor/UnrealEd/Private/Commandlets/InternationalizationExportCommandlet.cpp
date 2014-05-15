@@ -1042,7 +1042,16 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 				// Write out the Portable Object to .po file.
 				{
 					FString OutputString = PortableObj.ToString();
-					FString OutputFileName = DestinationPath / Filename;
+					FString OutputFileName;
+					
+					if (CulturesToGenerate.Num() > 1)
+					{
+						OutputFileName = DestinationPath / CultureName / Filename;
+					}
+					else
+					{
+						OutputFileName = DestinationPath / Filename;
+					}
 
 					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
 					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
@@ -1080,7 +1089,16 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 	{
 		// Load the Portable Object file if found
 		const FString CultureName = CulturesToGenerate[Culture];
-		FString POFilePath = SourcePath / Filename;
+		FString POFilePath;
+					
+		if (CulturesToGenerate.Num() > 1)
+		{
+			POFilePath = DestinationPath / CultureName / Filename;
+		}
+		else
+		{
+			POFilePath = DestinationPath / Filename;
+		}
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
