@@ -8,7 +8,7 @@ class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 public:
 	DRAG_DROP_OPERATOR_TYPE(FGraphEditorDragDropAction, FDragDropOperation)
 
-	void SetHoveredPin(const TSharedPtr<class SGraphPin>& InPin);
+	void SetHoveredPin(class UEdGraphPin* InPin);
 	void SetHoveredNode(const TSharedPtr<class SGraphNode>& InNode);
 	void SetHoveredGraph(const TSharedPtr<class SGraphPanel>& InGraph);
 	void SetHoveredCategoryName(const FString& InHoverCategoryName);
@@ -37,7 +37,7 @@ protected:
 
 private:
 	// The pin that the drag action is currently hovering over
-	TSharedPtr<class SGraphPin> HoveredPin;
+	TWeakObjectPtr<class UEdGraphPin> HoveredPin;
 
 	// The node that the drag action is currently hovering over
 	TSharedPtr<class SGraphNode> HoveredNode;

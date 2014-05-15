@@ -16,10 +16,12 @@ public:
 		: _PinLabelStyle(NAME_DefaultPinLabelStyle)
 		, _HasToolTip(true)
 		, _UsePinColorForText(false)
+		, _SideToSideMargin(5.0f)
 		{}
 		SLATE_ARGUMENT(FName, PinLabelStyle)
 		SLATE_ARGUMENT(bool, HasToolTip)
 		SLATE_ARGUMENT(bool, UsePinColorForText)
+		SLATE_ARGUMENT(float, SideToSideMargin)
 	SLATE_END_ARGS()
 
 	/**
@@ -36,7 +38,7 @@ public:
 	void SetIsEditable(TAttribute<bool> InIsEditable);
 
 	/** Handle clicking on the pin */
-	FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
+	virtual FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
 
 	/** Handle clicking on the pin name */
 	FReply OnPinNameMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
@@ -140,6 +142,8 @@ protected:
 
 	TOptional<EMouseCursor::Type> GetPinCursor() const;
 
+	/** Spawns a FDragConnection or similar class for the pin drag event */
+	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<class SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation);
 private:
 	
 	/** True if pin can be edited */
@@ -175,6 +179,8 @@ protected:
 
 	/** Cached offset from owning node to approximate position of culled pins */
 	FVector2D CachedNodeOffset;
+
+	TSet< TWeakObjectPtr<UEdGraphPin> > HoverPinSet;
 
 	//@TODO: Want to cache these once for all SGraphPins, but still handle slate style updates
 	mutable const FSlateBrush* CachedImg_ArrayPin_ConnectedHovered;

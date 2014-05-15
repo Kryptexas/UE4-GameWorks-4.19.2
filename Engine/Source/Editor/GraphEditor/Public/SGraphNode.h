@@ -167,8 +167,16 @@ public:
 	void SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection);
 	/** returns true if a rename is pending on this node */
 	bool IsRenamePending() const { return bRenameIsPending; }
+
+	/** Requests a rename when the node was initially spawned */
+	virtual void RequestRenameOnSpawn()
+	{
+		RequestRename();
+	}
+
 	/** flags node as rename pending if supported */
 	void RequestRename();
+
 	/** Sets node into rename state if supported */
 	void ApplyRename();
 

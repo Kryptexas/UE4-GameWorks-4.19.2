@@ -7,8 +7,7 @@ class FDragConnection : public FGraphEditorDragDropAction
 public:
 	DRAG_DROP_OPERATOR_TYPE(FDragConnection, FGraphEditorDragDropAction)
 
-	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphPin>& InStartingPin);
-	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bIsMovingLinks);
+	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation);
 	
 	// FDragDropOperation interface
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE;
@@ -17,26 +16,28 @@ public:
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() OVERRIDE;
 	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) OVERRIDE;
-	virtual FReply DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
-	virtual void OnDragBegin( const TSharedRef<class SGraphPin>& InPin) OVERRIDE;
-	virtual void OnDragged (const class FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply DroppedOnPanel(const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
+	virtual void OnDragBegin(const TSharedRef<class SGraphPin>& InPin) OVERRIDE;
+	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) OVERRIDE;
 	// End of FGraphEditorDragDropAction interface
-	
-protected:
-	typedef FGraphEditorDragDropAction Super;
-
-	UEdGraphPin* GetGraphPinForSPin(TSharedRef<SGraphPin>& SPin);
 
 	/*
 	 *	Function to check validity of graph pins in the StartPins list. This check helps to prevent processing graph pins which are outdated.
 	 */
-	void ValidateGraphPinList( );
-	
-	void Init( const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins );
+	virtual void ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins);
+
+protected:
+	typedef FGraphEditorDragDropAction Super;
+
+	FDragConnection(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation);
 
 protected:
 	TSharedPtr<SGraphPanel> GraphPanel;
 	TArray< TSharedRef<SGraphPin> > StartingPins;
+
 	/** Offset information for the decorator widget */
-	FVector2D	DecoratorAdjust;
+	FVector2D DecoratorAdjust;
+
+	/** Was shift pressed when the drag started? */
+	bool bShiftOperation;
 };

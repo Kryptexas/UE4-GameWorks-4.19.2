@@ -4,32 +4,11 @@
 #include "GraphEditorCommon.h"
 #include "ScopedTransaction.h"
 
-TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphPin>& InStartingPin)
+
+TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
 {
-	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection);
-	Operation->GraphPanel = InGraphPanel;
-	Operation->StartingPins.Add(InStartingPin);
+	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection(InGraphPanel, InStartingPins, bInShiftOperation));
 
-	UEdGraphPin* PinObj = InStartingPin->GetPinObj();
-
-	// adjust the decorator away from the current mouse location a small amount based on cursor size
-	Operation->DecoratorAdjust =  (PinObj->Direction == EGPD_Input)
-		? FSlateApplication::Get().GetCursorSize() * FVector2D(-1.0f, 1.0f)
-		: FSlateApplication::Get().GetCursorSize();
-
-	Operation->Init(Operation->GraphPanel.ToSharedRef(), Operation->StartingPins);
-	Operation->Construct();
-	return Operation;
-}
-
-TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bIsMovingLinks)
-{
-	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection);
-	Operation->GraphPanel = InGraphPanel;
-	Operation->StartingPins = InStartingPins;
-	Operation->DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
-	Operation->Init(Operation->GraphPanel.ToSharedRef(), Operation->StartingPins);
-	Operation->Construct();
 	return Operation;
 }
 
@@ -38,11 +17,6 @@ void FDragConnection::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEv
 	GraphPanel->OnStopMakingConnection();
 
 	Super::OnDrop(bDropWasHandled, MouseEvent);
-}
-
-UEdGraphPin* FDragConnection::GetGraphPinForSPin(TSharedRef<SGraphPin>& SPin)
-{
-	return SPin->GetPinObj();
 }
 
 void FDragConnection::OnDragged(const class FDragDropEvent& DragDropEvent)
@@ -63,12 +37,12 @@ void FDragConnection::HoverTargetChanged()
 
 	if (TargetPinObj != NULL)
 	{
-		ValidateGraphPinList();
+		TArray<UEdGraphPin*> ValidSourcePins;
+		ValidateGraphPinList(/*out*/ ValidSourcePins);
 
 		// Check the schema for connection responses
-		for (TArray< TSharedRef<SGraphPin> >::TIterator PinIterator(StartingPins); PinIterator; ++PinIterator)
+		for (UEdGraphPin* StartingPinObj : ValidSourcePins)
 		{
-			UEdGraphPin* StartingPinObj = GetGraphPinForSPin(*PinIterator);
 			if (TargetPinObj != StartingPinObj)
 			{
 				// The Graph object in which the pins reside.
@@ -152,27 +126,44 @@ void FDragConnection::HoverTargetChanged()
 	}
 }
 
-void FDragConnection::Init( const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins )
+FDragConnection::FDragConnection(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
+	: bShiftOperation(bInShiftOperation)
 {
-	for (TArray< TSharedRef<SGraphPin> >::TConstIterator PinIterator(InStartingPins); PinIterator; ++PinIterator)
+	GraphPanel = InGraphPanel;
+	StartingPins = InStartingPins;
+
+	// adjust the decorator away from the current mouse location a small amount based on cursor size
+	DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
+	if (StartingPins.Num() > 0)
 	{
-		InGraphPanel->OnBeginMakingConnection( *PinIterator );
+		UEdGraphPin* PinObj = StartingPins[0]->GetPinObj();
+
+		DecoratorAdjust = (PinObj->Direction == EGPD_Input)
+			? FSlateApplication::Get().GetCursorSize() * FVector2D(-1.0f, 1.0f)
+			: FSlateApplication::Get().GetCursorSize();
 	}
+
+	for (const TSharedRef<SGraphPin> PinRef : StartingPins)
+	{
+		InGraphPanel->OnBeginMakingConnection(PinRef->GetPinObj());
+	}
+
+	Construct();
 }
 
 FReply FDragConnection::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
 {
-	ValidateGraphPinList();
+	TArray<UEdGraphPin*> ValidSourcePins;
+	ValidateGraphPinList(/*out*/ ValidSourcePins);
 
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_CreateConnection", "Create Pin Link") );
 
 	UEdGraphPin* PinA = GetHoveredPin();
 	bool bError = false;
 	TSet<UEdGraphNode*> NodeList;
-	for (TArray< TSharedRef<SGraphPin> >::TIterator PinIterator(StartingPins); !bError && PinIterator; ++PinIterator)
-	{
-		UEdGraphPin* PinB = GetGraphPinForSPin(*PinIterator);
 
+	for (UEdGraphPin* PinB : ValidSourcePins)
+	{
 		if ((PinA != NULL) && (PinB != NULL))
 		{
 			UEdGraph* MyGraphObj = PinA->GetOwningNode()->GetGraph();
@@ -206,18 +197,12 @@ FReply FDragConnection::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPo
 
 FReply FDragConnection::DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph)
 {
-	ValidateGraphPinList();
-
 	// Gather any source drag pins
 	TArray<UEdGraphPin*> PinObjects;
-	for (auto PinIt = StartingPins.CreateConstIterator(); PinIt; ++PinIt)
-	{
-		UEdGraphPin* GraphPin = (*PinIt)->GetPinObj();
-		PinObjects.Add(GraphPin);
-	}
+	ValidateGraphPinList(/*out*/ PinObjects);
 
 	// Create a context menu
-	TSharedPtr<SWidget> WidgetToFocus = GraphPanel->SummonContextMenu(ScreenPosition, GraphPosition, NULL, NULL, PinObjects);
+	TSharedPtr<SWidget> WidgetToFocus = GraphPanel->SummonContextMenu(ScreenPosition, GraphPosition, NULL, NULL, PinObjects, bShiftOperation);
 
 	// Give the context menu focus
 	return (WidgetToFocus.IsValid())
@@ -226,30 +211,34 @@ FReply FDragConnection::DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVec
 }
 
 
-void FDragConnection::ValidateGraphPinList( )
+void FDragConnection::ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins)
 {
+	OutValidPins.Empty(StartingPins.Num());
+
 	for (TArray< TSharedRef<SGraphPin> >::TIterator PinIterator(StartingPins); PinIterator; ++PinIterator)
 	{
-		UEdGraphPin* StartingPinObj = GetGraphPinForSPin(*PinIterator);
-
-		if( StartingPinObj )
+		if (UEdGraphPin* StartingPinObj = (*PinIterator)->GetPinObj())
 		{
 			//Check whether the list contains updated pin object references by checking its outer class type
-			if( StartingPinObj->GetOuter() == NULL || !StartingPinObj->GetOuter()->IsA( UEdGraphNode::StaticClass() ) )
+			if ((StartingPinObj->GetOuter() == NULL) || !StartingPinObj->GetOuter()->IsA(UEdGraphNode::StaticClass()))
 			{
 				//This pin object reference is old. So remove it from the list.
 				TSharedRef<SGraphPin> PinPtr = *PinIterator;
 				StartingPins.Remove( PinPtr );
 			}
+			else
+			{
+				OutValidPins.Add(StartingPinObj);
+			}
 		}
 	}
 }
 
-void FDragConnection::OnDragBegin( const TSharedRef<class SGraphPin>& InPin)
+void FDragConnection::OnDragBegin(const TSharedRef<class SGraphPin>& InPin)
 {
-	if( !StartingPins.Contains( InPin ) )
+	if (!StartingPins.Contains(InPin))
 	{
-		StartingPins.Add( InPin );
-		GraphPanel->OnBeginMakingConnection( InPin );
+		StartingPins.Add(InPin);
+		GraphPanel->OnBeginMakingConnection(InPin->GetPinObj());
 	}
 }

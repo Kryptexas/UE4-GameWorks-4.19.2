@@ -5,7 +5,7 @@
 
 UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 {
-	return HoveredPin.IsValid() ? HoveredPin->GetPinObj() : NULL;
+	return HoveredPin.Get();
 }
 
 UEdGraphNode* FGraphEditorDragDropAction::GetHoveredNode() const
@@ -33,7 +33,7 @@ UEdGraph* FGraphEditorDragDropAction::GetHoveredGraph() const
 	return NULL;
 }
 
-void FGraphEditorDragDropAction::SetHoveredPin(const TSharedPtr<SGraphPin>& InPin)
+void FGraphEditorDragDropAction::SetHoveredPin(UEdGraphPin* InPin)
 {
 	if (HoveredPin != InPin)
 	{

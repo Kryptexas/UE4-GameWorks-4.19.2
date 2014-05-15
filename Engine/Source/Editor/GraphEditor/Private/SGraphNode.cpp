@@ -53,7 +53,7 @@ FText SNodeTitle::GetNodeTitle() const
 
 FText SNodeTitle::GetHeadTitle() const
 {
-	return GraphNode->bCanRenameNode? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
+	return GraphNode->bCanRenameNode ? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
 }
 
 void SNodeTitle::RebuildWidget()
@@ -1110,11 +1110,11 @@ bool SGraphNode::IsNameReadOnly() const
 	return !GraphNode->bCanRenameNode;
 }
 
-bool SGraphNode::OnVerifyNameTextChanged ( const FText& InText, FText& OutErrorMessage ) 
+bool SGraphNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
 	bool bValid(true);
 
-	if( GetEditableNodeTitle() != InText.ToString() && OnVerifyTextCommit.IsBound() )
+	if ((GetEditableNodeTitle() != InText.ToString()) && OnVerifyTextCommit.IsBound())
 	{
 		bValid = OnVerifyTextCommit.Execute(InText, GraphNode);
 	}
@@ -1127,12 +1127,15 @@ bool SGraphNode::OnVerifyNameTextChanged ( const FText& InText, FText& OutErrorM
 	return bValid;
 }
 
-void SGraphNode::OnNameTextCommited ( const FText& InText, ETextCommit::Type CommitInfo ) 
+void SGraphNode::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
 	OnTextCommitted.ExecuteIfBound(InText, CommitInfo, GraphNode);
 	
 	UpdateErrorInfo();
-	ErrorReporting->SetError(ErrorMsg);
+	if (ErrorReporting.IsValid())
+	{
+		ErrorReporting->SetError(ErrorMsg);
+	}
 }
 
 void SGraphNode::RequestRename()

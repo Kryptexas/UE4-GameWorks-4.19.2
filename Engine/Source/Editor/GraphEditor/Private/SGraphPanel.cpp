@@ -636,7 +636,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 		const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) );
 		TArray<UEdGraphPin*> NoSourcePins;
 
-		return SummonContextMenu( MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins);
+		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins, MouseEvent.IsShiftDown());
 	}
 
 	return TSharedPtr<SWidget>();
@@ -798,11 +798,11 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	}
 }
 
-void SGraphPanel::OnBeginMakingConnection( const TSharedRef<SGraphPin>& InOriginatingPin )
+void SGraphPanel::OnBeginMakingConnection(UEdGraphPin* InOriginatingPin)
 {
-	if (auto* PinObj = InOriginatingPin->GetPinObj())
+	if (InOriginatingPin != nullptr)
 	{
-		PreviewConnectorFromPins.Add(PinObj);
+		PreviewConnectorFromPins.Add(InOriginatingPin);
 	}
 }
 
@@ -849,11 +849,18 @@ void SGraphPanel::RemoveAllNodes()
 	SNodePanel::RemoveAllNodes();
 }
 
-TSharedPtr<SWidget> SGraphPanel::SummonContextMenu( const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins )
+TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation)
 {
 	if (OnGetContextMenuFor.IsBound())
 	{
-		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute( WhereToAddNode, ForNode, ForPin, DragFromPins );
+		FGraphContextMenuArguments SpawnInfo;
+		SpawnInfo.NodeAddPosition = WhereToAddNode;
+		SpawnInfo.GraphNode = ForNode;
+		SpawnInfo.GraphPin = ForPin;
+		SpawnInfo.DragFromPins = DragFromPins;
+		SpawnInfo.bShiftOperation = bShiftOperation;
+
+		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 
 		TSharedRef<SWidget> MenuContent =
 			SNew( SBorder )
@@ -884,13 +891,13 @@ void SGraphPanel::AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode)
 	CreatedSubNode->SetTextCommittedEvent(OnTextCommitted);
 }
 
-void SGraphPanel::AddNode (UEdGraphNode* Node)
+void SGraphPanel::AddNode(UEdGraphNode* Node)
 {
 	TSharedPtr<SGraphNode> NewNode = FNodeFactory::CreateNodeWidget(Node);
 	check(NewNode.IsValid());
 
 	FEdGraphEditAction* GraphAction = UserAddedNodes.Find(Node);
-	bool bWasUserAdded = GraphAction? true : false;
+	const bool bWasUserAdded = (GraphAction != nullptr) ? true : false;
 
 	NewNode->SetIsEditable(IsEditable);
 	NewNode->SetDoubleClickEvent(OnNodeDoubleClicked);
@@ -911,13 +918,13 @@ void SGraphPanel::AddNode (UEdGraphNode* Node)
 		NewNode->PlaySpawnEffect();
 
 		// Do not Select nodes unless they are marked for selection
-		if((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
+		if ((GraphAction->Action & GRAPHACTION_SelectNode) != 0)
 		{
 			SelectAndCenterObject(Node, false);
 		}
 
 		NewNode->UpdateGraphNode();
-		NewNode->RequestRename();
+		NewNode->RequestRenameOnSpawn();
 	}
 	else
 	{

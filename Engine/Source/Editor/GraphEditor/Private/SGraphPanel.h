@@ -10,14 +10,30 @@ class UEdGraphNode;
 
 DECLARE_DELEGATE( FOnUpdateGraphPanel )
 
+// Arguments when the graph panel wants to open a context menu
+struct FGraphContextMenuArguments
+{
+	// The endpoint of the drag or the location of the right-click
+	FVector2D NodeAddPosition;
+
+	// The source node if there are any
+	UEdGraphNode* GraphNode;
+
+	// The source pin if there is one
+	UEdGraphPin* GraphPin;
+
+	// 
+	TArray<UEdGraphPin*> DragFromPins;
+
+	// Was shift held down when the operation started?
+	bool bShiftOperation;
+};
+
+
 class GRAPHEDITOR_API SGraphPanel : public SNodePanel, public FGCObject
 {
 public:
-	DECLARE_DELEGATE_RetVal_FourParams(
-		FActionMenuContent,
-		FOnGetContextMenuFor,
-		const FVector2D&, class UEdGraphNode*, class UEdGraphPin*, const TArray<class UEdGraphPin*>& )
-
+	DECLARE_DELEGATE_RetVal_OneParam(FActionMenuContent, FOnGetContextMenuFor, const FGraphContextMenuArguments& /*SpawnInfo*/)
 
 	SLATE_BEGIN_ARGS( SGraphPanel )
 		: _OnGetContextMenuFor()
@@ -97,9 +113,9 @@ public:
 	// End of FGCObject interface.
 
 	void ArrangeChildrenForContextMenuSummon(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
-	TSharedPtr<SWidget> SummonContextMenu( const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins );
+	TSharedPtr<SWidget> SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation);
 
-	void OnBeginMakingConnection( const TSharedRef<SGraphPin>& InOriginatingPin );
+	void OnBeginMakingConnection(UEdGraphPin* InOriginatingPin);
 	void OnStopMakingConnection(bool bForceStop = false);
 	void PreservePinPreviewUntilForced();
 

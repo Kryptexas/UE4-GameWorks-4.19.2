@@ -357,7 +357,7 @@ bool SGraphEditorImpl::GraphEd_OnGetGraphEnabled() const
 	return !bTitleBarOnly;
 }
 
-FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2D& NodeAddPosition, UEdGraphNode* InGraphNode, UEdGraphPin* InGraphPin, const TArray<UEdGraphPin*>& InDragFromPins )
+FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo)
 {
 	if (EdGraphObj != NULL)
 	{
@@ -365,9 +365,9 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 		check(Schema);
 			
 		// Cache the pin this menu is being brought up for
-		GraphPinForMenu = InGraphPin;
+		GraphPinForMenu = SpawnInfo.GraphPin;
 
-		if ((InGraphPin != NULL) || (InGraphNode != NULL))
+		if ((SpawnInfo.GraphPin != NULL) || (SpawnInfo.GraphNode != NULL))
 		{
 			// Get all menu extenders for this context menu from the graph editor module
 			FGraphEditorModule& GraphEditorModule = FModuleManager::GetModuleChecked<FGraphEditorModule>( TEXT("GraphEditor") );
@@ -378,7 +378,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 			{
 				if (MenuExtenderDelegates[i].IsBound())
 				{
-					Extenders.Add(MenuExtenderDelegates[i].Execute(this->Commands.ToSharedRef(), EdGraphObj, InGraphNode, InGraphPin, !IsEditable.Get()));
+					Extenders.Add(MenuExtenderDelegates[i].Execute(this->Commands.ToSharedRef(), EdGraphObj, SpawnInfo.GraphNode, SpawnInfo.GraphPin, !IsEditable.Get()));
 				}
 			}
 			TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
@@ -386,7 +386,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 			// Show the menu for the pin or node under the cursor
 			const bool bShouldCloseAfterAction = true;
 			FMenuBuilder MenuBuilder( bShouldCloseAfterAction, this->Commands, MenuExtender );
-			Schema->GetContextMenuActions(EdGraphObj, InGraphNode, InGraphPin, &MenuBuilder, !IsEditable.Get());
+			Schema->GetContextMenuActions(EdGraphObj, SpawnInfo.GraphNode, SpawnInfo.GraphPin, &MenuBuilder, !IsEditable.Get());
 
 			return FActionMenuContent(MenuBuilder.MakeWidget());
 		}
@@ -400,8 +400,8 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 				{
 					Content = OnCreateActionMenu.Execute(
 						EdGraphObj, 
-						NodeAddPosition, 
-						InDragFromPins, 
+						SpawnInfo.NodeAddPosition,
+						SpawnInfo.DragFromPins,
 						bAutoExpandActionMenu, 
 						SGraphEditor::FActionMenuClosed::CreateSP(this, &SGraphEditorImpl::OnClosedActionMenu)
 						);
@@ -411,8 +411,8 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 					TSharedRef<SGraphEditorActionMenu> Menu =	
 						SNew(SGraphEditorActionMenu)
 						.GraphObj( EdGraphObj )
-						.NewNodePosition( NodeAddPosition )
-						.DraggedFromPins( InDragFromPins )
+						.NewNodePosition(SpawnInfo.NodeAddPosition)
+						.DraggedFromPins(SpawnInfo.DragFromPins)
 						.AutoExpandActionMenu(bAutoExpandActionMenu)
 						.OnClosedCallback( SGraphEditor::FActionMenuClosed::CreateSP(this, &SGraphEditorImpl::OnClosedActionMenu)
 						);
@@ -420,7 +420,7 @@ FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor( const FVector2
 					Content = FActionMenuContent( Menu, Menu->GetFilterTextBox() );
 				}
 
-				if (InDragFromPins.Num() > 0)
+				if (SpawnInfo.DragFromPins.Num() > 0)
 				{
 					GraphPanel->PreservePinPreviewUntilForced();
 				}

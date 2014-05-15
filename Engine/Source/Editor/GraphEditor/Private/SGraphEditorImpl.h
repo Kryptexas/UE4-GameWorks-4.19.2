@@ -93,7 +93,7 @@ public:
 
 	bool GraphEd_OnGetGraphEnabled() const;
 
-	FActionMenuContent GraphEd_OnGetContextMenuFor( const FVector2D& NodeAddPosition, UEdGraphNode* InGraphNode, UEdGraphPin* InGraphPin, const TArray<UEdGraphPin*>& InDragFromPins );
+	FActionMenuContent GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo);
 
 	void GraphEd_OnPanelUpdated();
 

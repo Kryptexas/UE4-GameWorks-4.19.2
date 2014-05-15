@@ -4260,9 +4260,7 @@ void UEdGraphSchema_K2::CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, U
 {
 	check(InPinA != NULL);
 	check(InPinB != NULL);
-
 	ensure(InPinA->Direction != InPinB->Direction);
-	ensure(InPinA->GetOwningNode() != InPinB->GetOwningNode());
 
 	if ((InPinA->LinkedTo.Num() == 0) && (InPinA->Direction == EGPD_Input))
 	{
