@@ -13,6 +13,8 @@ namespace UnrealBuildTool
 {
 	public class XGE
 	{
+		private const string ProgressMarkupPrefix = "@action";
+
 		public static void SaveXGEFile(string XGETaskFilePath)
 		{
 			int FileNum = 0;
@@ -41,7 +43,7 @@ namespace UnrealBuildTool
 			{
 				// Write the actions to execute to a XGE task file.
 				string XGETaskFilePath = Path.Combine(BuildConfiguration.BaseIntermediatePath, "XGETasks.xml");
-				WriteTaskFile(Actions, XGETaskFilePath);
+				WriteTaskFile(Actions, XGETaskFilePath, ProgressWriter.bWriteMarkup);
 
 				if (BuildConfiguration.bXGEExport)
 				{
@@ -53,7 +55,7 @@ namespace UnrealBuildTool
 					if (Telemetry.IsAvailable())
 					{
 						// Add a custom output handler to determine the build duration for each task and map it back to the action that generated it.
-						XGEResult = XGE.ExecuteTaskFile(XGETaskFilePath, (sender, args) =>
+						XGEResult = XGE.ExecuteTaskFileWithProgressMarkup(XGETaskFilePath, Actions.Count, (sender, args) =>
 							{
 								// sometimes the args comes in as null
 								var match = XGEDurationRegex.Match(args.Data ?? "");
@@ -115,17 +117,7 @@ namespace UnrealBuildTool
 								// forward the output on to the normal handler or the console like normal
 								if (Actions[0].OutputEventHandler != null)
 								{
-									// NOTE: This is a pretty nasty hack with C# reflection, however it saves us from having to replace all the
-									// handlers in various Toolchains with a wrapper handler that takes a string - it is certainly doable, but 
-									// touches code outside of this class that I don't want to touch right now
-
-									// DataReceivedEventArgs is not normally constructable, so work around it with creating a scratch Args object
-									DataReceivedEventArgs EventArgs = (DataReceivedEventArgs)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(DataReceivedEventArgs));
-
-									// now we need to set the Data field using reflection, since it is read only
-									FieldInfo[] ArgFields = typeof(DataReceivedEventArgs).GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-									ArgFields[0].SetValue(EventArgs, updatedData);
+									DataReceivedEventArgs EventArgs = ConstructDataReceivedEventArgs(updatedData);
 									Actions[0].OutputEventHandler(sender, EventArgs);
 								}
 								else
@@ -136,15 +128,40 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						XGEResult = XGE.ExecuteTaskFile(XGETaskFilePath, Actions[0].OutputEventHandler);
+						XGEResult = XGE.ExecuteTaskFileWithProgressMarkup(XGETaskFilePath, Actions.Count, (Sender, Args) => 
+							{
+								if(Actions[0].OutputEventHandler != null)
+								{
+									Actions[0].OutputEventHandler(Sender, Args);
+								}
+								else
+								{
+									Console.WriteLine(Args.Data);
+								}
+							});
 					}
 				}
 			}
 			return XGEResult;
 		}
 
+		private static DataReceivedEventArgs ConstructDataReceivedEventArgs(string NewData)
+		{
+			// NOTE: This is a pretty nasty hack with C# reflection, however it saves us from having to replace all the
+			// handlers in various Toolchains with a wrapper handler that takes a string - it is certainly doable, but 
+			// touches code outside of this class that I don't want to touch right now
+
+			// DataReceivedEventArgs is not normally constructable, so work around it with creating a scratch Args object
+			DataReceivedEventArgs EventArgs = (DataReceivedEventArgs)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(DataReceivedEventArgs));
+
+			// now we need to set the Data field using reflection, since it is read only
+			FieldInfo[] ArgFields = typeof(DataReceivedEventArgs).GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+			ArgFields[0].SetValue(EventArgs, NewData);
+			return EventArgs;
+		}
+
 		/** Writes a XGE task file containing the specified actions to the specified file path. */
-		public static void WriteTaskFile(List<Action> InActions, string TaskFilePath)
+		public static void WriteTaskFile(List<Action> InActions, string TaskFilePath, bool bProgressMarkup)
 		{
             Dictionary<string, string> ExportEnv = new Dictionary<string, string>();
 
@@ -277,10 +294,21 @@ namespace UnrealBuildTool
 				ToolsElement.AppendChild(ToolElement);
 				ToolElement.SetAttribute("Name", string.Format("Tool{0}", ActionIndex));
 				ToolElement.SetAttribute("AllowRemote", Action.bCanExecuteRemotely.ToString());
+
+				string OutputPrefix = "";
+				if (bProgressMarkup)
+				{
+					OutputPrefix += ProgressMarkupPrefix;
+				}
 				if( Action.bShouldOutputStatusDescription )
 				{
-					ToolElement.SetAttribute( "OutputPrefix", Action.StatusDescription );
+					OutputPrefix += Action.StatusDescription;
 				}
+				if(OutputPrefix.Length > 0)
+				{
+					ToolElement.SetAttribute("OutputPrefix", OutputPrefix);
+				}
+
 				// batch files (.bat, .cmd) need to be run via or cmd /c or shellexecute, 
 				// the latter which we can't use because we want to redirect input/output
 
@@ -442,6 +470,34 @@ namespace UnrealBuildTool
 			{
 				// If an exception is thrown while starting the process, return Unavailable.
 				return ExecutionResult.Unavailable;
+			}
+		}
+
+		/**
+		 * Executes the tasks in the specified file, parsing progress markup as part of the output.
+		 */
+		public static ExecutionResult ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
+		{
+			using (ProgressWriter Writer = new ProgressWriter("Compiling source files...", false))
+			{
+				int NumCompletedActions = 0;
+
+				// Create a wrapper delegate that will parse the output actions
+				DataReceivedEventHandler EventHandlerWrapper = (Sender, Args) =>
+				{
+					if (Args.Data != null && Args.Data.StartsWith(ProgressMarkupPrefix))
+					{
+						Writer.Write(++NumCompletedActions, NumActions);
+						Args = ConstructDataReceivedEventArgs(Args.Data.Substring(ProgressMarkupPrefix.Length));
+					}
+					if(OutputEventHandler != null)
+					{
+						OutputEventHandler(Sender, Args);
+					}
+				};
+
+				// Run through the standard XGE executor
+				return ExecuteTaskFile(TaskFilePath, EventHandlerWrapper);
 			}
 		}
 	}

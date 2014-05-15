@@ -387,100 +387,108 @@ namespace UnrealBuildTool
 			var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
 			var Manifest       = new UHTManifest(UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket(), Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
 
-			// ensure the headers are up to date
-			if (!bIsBuildingUHT && 
-				(UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules)))
+			using (ProgressWriter Progress = new ProgressWriter("Generating headers...", false))
 			{
- 				// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
-				if (UnrealBuildTool.RunningRocket() == false && UEBuildConfiguration.bDoNotBuildUHT == false)
+				// ensure the headers are up to date
+				if (!bIsBuildingUHT && 
+					(UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules)))
 				{
-					// If it is out of date or not there it will be built.
-					// If it is there and up to date, it will add 0.8 seconds to the build time.
-					Log.TraceInformation("Building UnrealHeaderTool...");
-
-					var UBTArguments = new StringBuilder();
-
-					UBTArguments.Append( "UnrealHeaderTool" );
-
-					// Which desktop platform do we need to compile UHT for?
-                    UBTArguments.Append( " " + GetRuntimePlatform().ToString() );
-					// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug
-					UBTArguments.Append( " " + UnrealTargetConfiguration.Development.ToString() );
-				
-					// NOTE: We disable mutex when launching UBT from within UBT to compile UHT
-					UBTArguments.Append( " -NoMutex" );
-
-					if (UnrealBuildTool.CommandLineContains("-noxge"))
+					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
+					if (UnrealBuildTool.RunningRocket() == false && UEBuildConfiguration.bDoNotBuildUHT == false)
 					{
-						UBTArguments.Append(" -noxge");
+						// If it is out of date or not there it will be built.
+						// If it is there and up to date, it will add 0.8 seconds to the build time.
+						Log.TraceInformation("Building UnrealHeaderTool...");
+
+						var UBTArguments = new StringBuilder();
+
+						UBTArguments.Append( "UnrealHeaderTool" );
+
+						// Which desktop platform do we need to compile UHT for?
+						UBTArguments.Append( " " + GetRuntimePlatform().ToString() );
+						// NOTE: We force Development configuration for UHT so that it runs quickly, even when compiling debug
+						UBTArguments.Append( " " + UnrealTargetConfiguration.Development.ToString() );
+
+						// NOTE: We disable mutex when launching UBT from within UBT to compile UHT
+						UBTArguments.Append( " -NoMutex" );
+
+						if (UnrealBuildTool.CommandLineContains("-noxge"))
+						{
+							UBTArguments.Append(" -noxge");
+						}
+
+						if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
+							return false;
 					}
 
-					if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
+					Progress.Write(1, 3);
+
+					var ActualTargetName = String.IsNullOrEmpty( Target.GetTargetName() ) ? "UE4" : Target.GetTargetName();
+					Log.TraceInformation( "Parsing headers for {0}", ActualTargetName );
+
+					string HeaderToolPath = GetHeaderToolPath();
+					if (!File.Exists(HeaderToolPath))
+					{
+						throw new BuildException( "Unable to generate headers because UnrealHeaderTool binary was not found ({0}).", Path.GetFullPath( HeaderToolPath ) );
+					}
+
+					// Disable extensions when serializing to remove the $type fields
+					Directory.CreateDirectory(Path.GetDirectoryName(ModuleInfoFileName));
+					System.IO.File.WriteAllText(ModuleInfoFileName, fastJSON.JSON.Instance.ToJSON(Manifest, new fastJSON.JSONParameters{ UseExtensions = false }));
+
+					string CmdLine = (UnrealBuildTool.HasUProjectFile()) ? "\"" + UnrealBuildTool.GetUProjectFile() + "\"" : Target.GetTargetName();
+					CmdLine += " \"" + ModuleInfoFileName + "\" -LogCmds=\"loginit warning, logexit warning, logdatabase error\"";
+					if (UnrealBuildTool.RunningRocket())
+					{
+						CmdLine += " -rocket -installed";
+					}
+
+					if (UEBuildConfiguration.bFailIfGeneratedCodeChanges)
+					{
+						CmdLine += " -FailIfGeneratedCodeChanges";
+					}
+
+					Stopwatch s = new Stopwatch();
+					s.Start();
+					UHTResult = (ECompilationResult) RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
+					s.Stop();
+
+					if (UHTResult != ECompilationResult.Succeeded)
+					{
+						Log.TraceInformation("Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, (int) UHTResult);
 						return false;
+					}
+
+					Log.TraceInformation( "Code generation finished for {0} and took {1}", ActualTargetName, (double)s.ElapsedMilliseconds/1000.0 );
+
+					// Now that UHT has successfully finished generating code, we need to update all cached FileItems in case their last write time has changed.
+					// Otherwise UBT might not detect changes UHT made.
+					DateTime StartTime = DateTime.UtcNow;
+					FileItem.ResetInfos();
+					double ResetDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
+					Log.TraceVerbose("FileItem.ResetInfos() duration: {0}s", ResetDuration);
 				}
-
-				var ActualTargetName = String.IsNullOrEmpty( Target.GetTargetName() ) ? "UE4" : Target.GetTargetName();
-				Log.TraceInformation( "Parsing headers for {0}", ActualTargetName );
-
-				string HeaderToolPath = GetHeaderToolPath();
-				if (!File.Exists(HeaderToolPath))
+				else
 				{
-					throw new BuildException( "Unable to generate headers because UnrealHeaderTool binary was not found ({0}).", Path.GetFullPath( HeaderToolPath ) );
+					Log.TraceVerbose( "Generated code is up to date." );
 				}
 
-				// Disable extensions when serializing to remove the $type fields
-				Directory.CreateDirectory(Path.GetDirectoryName(ModuleInfoFileName));
-				System.IO.File.WriteAllText(ModuleInfoFileName, fastJSON.JSON.Instance.ToJSON(Manifest, new fastJSON.JSONParameters{ UseExtensions = false }));
+				Progress.Write(2, 3);
 
-				string CmdLine = (UnrealBuildTool.HasUProjectFile()) ? "\"" + UnrealBuildTool.GetUProjectFile() + "\"" : Target.GetTargetName();
-				CmdLine += " \"" + ModuleInfoFileName + "\" -LogCmds=\"loginit warning, logexit warning, logdatabase error\"";
-				if (UnrealBuildTool.RunningRocket())
+				// There will never be generated code if we're building UHT, so this should never be called.
+				if (!bIsBuildingUHT)
 				{
-					CmdLine += " -rocket -installed";
+					// Allow generated code to be sync'd to remote machines if needed. This needs to be done even if UHT did not run because
+					// generated headers include other generated headers using absolute paths which in case of building remotely are already
+					// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
+					ToolChain.PostCodeGeneration(Target, Manifest);
 				}
 
-				if (UEBuildConfiguration.bFailIfGeneratedCodeChanges)
-				{
-					CmdLine += " -FailIfGeneratedCodeChanges";
-				}
+				// touch the directories
+				UpdateDirectoryTimestamps(Target, UObjectModules);
 
-				Stopwatch s = new Stopwatch();
-				s.Start();
-				UHTResult = (ECompilationResult) RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
-				s.Stop();
-
-				if (UHTResult != ECompilationResult.Succeeded)
-				{
-					Log.TraceInformation("Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, (int) UHTResult);
-					return false;
-				}
-
-				Log.TraceInformation( "Code generation finished for {0} and took {1}", ActualTargetName, (double)s.ElapsedMilliseconds/1000.0 );
-
-				// Now that UHT has successfully finished generating code, we need to update all cached FileItems in case their last write time has changed.
-				// Otherwise UBT might not detect changes UHT made.
-				DateTime StartTime = DateTime.UtcNow;
-				FileItem.ResetInfos();
-				double ResetDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
-				Log.TraceVerbose("FileItem.ResetInfos() duration: {0}s", ResetDuration);
+				Progress.Write(3, 3);
 			}
-			else
-			{
-				Log.TraceVerbose( "Generated code is up to date." );
-			}
-
-			// There will never be generated code if we're building UHT, so this should never be called.
-			if (!bIsBuildingUHT)
-			{
-				// Allow generated code to be sync'd to remote machines if needed. This needs to be done even if UHT did not run because
-				// generated headers include other generated headers using absolute paths which in case of building remotely are already
-				// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
-				ToolChain.PostCodeGeneration(Target, Manifest);
-			}
-
-			// touch the directories
-			UpdateDirectoryTimestamps(Target, UObjectModules);
-
 			return true;
 		}
 	}
