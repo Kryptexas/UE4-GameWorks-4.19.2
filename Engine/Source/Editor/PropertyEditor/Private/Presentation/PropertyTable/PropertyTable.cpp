@@ -416,7 +416,7 @@ void FPropertyTable::PasteTextAtCell( const FString& Text, const TSharedRef< IPr
 
 	// Parse row strings into individual cell strings
 	TArray<FString> CellStrings;
-	RowStrings[CurrentRowIdx++].ParseIntoArray(&CellStrings, TEXT("\t"), true);
+	RowStrings[CurrentRowIdx++].ParseIntoArray(&CellStrings, TEXT("\t"), false);
 
 	// Get the maximum paste operations before displaying the slow task
 	int32 NumPasteOperationsBeforeWarning = GEditor->AccessEditorUserSettings().PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
