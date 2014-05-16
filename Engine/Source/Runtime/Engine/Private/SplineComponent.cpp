@@ -10,16 +10,14 @@
 USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SplineColor = FColor(255,255,255);
-
 	// Add 2 keys by default
 	int32 PointIndex = SplineInfo.AddPoint(0.f, FVector(0,0,0));
-	FInterpCurvePoint<FVector>& Point = SplineInfo.Points[PointIndex];
-	Point.LeaveTangent = FVector(1,0,0);
+	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
 	PointIndex = SplineInfo.AddPoint(1.f, FVector(100,0,0));
-	Point = SplineInfo.Points[PointIndex];
-	Point.ArriveTangent = FVector(1, 0, 0);
+	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
+
+	SplineInfo.AutoSetTangents();
 }
 
 void USplineComponent::UpdateSplineReparamTable()

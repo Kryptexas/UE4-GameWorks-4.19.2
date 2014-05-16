@@ -11,7 +11,7 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 {
 	if (const USplineComponent* SplineComp = Cast<const USplineComponent>(Component))
 	{
-		FColor DrawColor = SplineComp->SplineColor;
+		FColor DrawColor(255,255,255);
 
 		const FInterpCurveVector& SplineInfo = SplineComp->SplineInfo;
 
@@ -43,7 +43,7 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 				}
 				else
 				{
-					int32 NumSteps = FMath::CeilToInt((NewKeyTime - OldKeyTime) / 0.1f);
+					int32 NumSteps = FMath::CeilToInt((NewKeyTime - OldKeyTime) / 0.02f);
 					float DrawSubstep = (NewKeyTime - OldKeyTime) / NumSteps;
 
 					// Find position on first keyframe.
@@ -59,7 +59,7 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 						PDI->DrawLine(OldPos, NewPos, DrawColor, SDPG_World);
 
 						// Don't draw point for last one - its the keypoint drawn above.
-						if (StepIdx != NumSteps)
+						if (false)// (StepIdx != NumSteps)
 						{
 							PDI->DrawPoint(NewPos, DrawColor, 3.f, SDPG_World);
 						}
@@ -138,7 +138,8 @@ bool FSplineComponentVisualizer::HandleInputDelta(FLevelEditorViewportClient* Vi
 		{
 			// Duplicate key
 			FInterpCurvePoint<FVector> KeyToDupe = SplineComp->SplineInfo.Points[SelectedKeyIndex];
-			SplineComp->SplineInfo.Points.Insert(KeyToDupe, SelectedKeyIndex);
+			KeyToDupe.InterpMode = CIM_CurveAuto;
+			int32 NewKeyIndex = SplineComp->SplineInfo.Points.Insert(KeyToDupe, SelectedKeyIndex);
 			// move selection to 'next' key
 			SelectedKeyIndex++;
 
@@ -155,6 +156,9 @@ bool FSplineComponentVisualizer::HandleInputDelta(FLevelEditorViewportClient* Vi
 		FVector NewWorldPos = CurrentWorldPos + DeltaTranslate;
 		// Convert back to local space
 		SplineComp->SplineInfo.Points[SelectedKeyIndex].OutVal = SplineComp->ComponentToWorld.InverseTransformPosition(NewWorldPos);
+
+		// Update tangents
+		SplineComp->SplineInfo.AutoSetTangents();
 
 		return true;
 	}
@@ -181,7 +185,13 @@ bool FSplineComponentVisualizer::HandleInputKey(FLevelEditorViewportClient* View
 		{
 			SplineComp->SplineInfo.Points.RemoveAt(SelectedKeyIndex);
 
-			bHandled = true;
+			SplineComp->RefreshSplineInputs(); // update input value for each key
+
+			SplineComp->SplineInfo.AutoSetTangents(); // update tangents
+
+			SelectedKeyIndex = INDEX_NONE; // deselect any keys
+
+			bHandled = true; // consume key input
 		}
 	}
 

@@ -27,18 +27,14 @@ public:
 	FInterpCurveVector SplineInfo;
 };
 
-UCLASS()
+UCLASS(ClassGroup=Shapes, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Actual data for spline. Locations and tangents are in world space. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
+	UPROPERTY()
 	FInterpCurveVector SplineInfo;
-
-	/** Color of spline */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
-	FColor SplineColor;
 
 	/** Input, distance along curve, output, parameter that puts you there. */
 	UPROPERTY()
@@ -53,12 +49,15 @@ class ENGINE_API USplineComponent : public USceneComponent
 	void UpdateSplineReparamTable();
 
 	/** Returns total length along this spline */
+	UFUNCTION(BlueprintCallable, Category=Spline) 
 	float GetSplineLength() const;
 	
 	/** Given a distance along the length of this spline, return the point in space where this puts you */
+	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetLocationAtDistanceAlongSpline(float Distance) const;
 	
 	/** Given a distance along the length of this spline, return the direction of the spline there. Note, result is non-unit length. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetTangentAtDistanceAlongSpline(float Distance) const;
 
 	/** Walk through keys and set time for each one */
