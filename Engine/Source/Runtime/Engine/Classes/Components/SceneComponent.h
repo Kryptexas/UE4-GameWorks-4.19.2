@@ -785,6 +785,10 @@ private:
 	uint32 bDeferUpdates:1;
 	uint32 bHasValidOverlapsAtEnd:1;
 	FTransform InitialTransform;
+	FVector InitialRelativeLocation;
+	FRotator InitialRelativeRotation;
+	FVector InitialRelativeScale;
+
 	TArray<struct FOverlapInfo> PendingOverlaps;
 	TArray<struct FOverlapInfo> OverlapsAtEnd;
 	TBlockingHitArray BlockingHits;

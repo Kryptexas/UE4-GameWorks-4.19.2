@@ -1542,6 +1542,9 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 	if (IsValid(Component))
 	{
 		InitialTransform = Component->GetComponentToWorld();
+		InitialRelativeLocation = Component->RelativeLocation;
+		InitialRelativeRotation = Component->RelativeRotation;
+		InitialRelativeScale = Component->RelativeScale3D;
 
 		if (ScopeBehavior == EScopedUpdate::ImmediateUpdates)
 		{
@@ -1605,6 +1608,9 @@ void FScopedMovementUpdate::RevertMove()
 		{
 			// Teleport to start
 			Component->ComponentToWorld = InitialTransform;
+			Component->RelativeLocation = InitialRelativeLocation;
+			Component->RelativeRotation = InitialRelativeRotation;
+			Component->RelativeScale3D = InitialRelativeScale;
 
 			if (!IsDeferringUpdates())
 			{
