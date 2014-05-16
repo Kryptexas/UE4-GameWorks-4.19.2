@@ -204,7 +204,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 			if (ByteProperty && (Enum == ByteProperty->GetIntPropertyEnum()))
 			{
 				UClass* OwnerClass = ByteProperty->GetOwnerClass();
-				if (ensure(OwnerClass))
+				if (OwnerClass)
 				{
 					ClassesToCheck.Add(OwnerClass);
 				}
