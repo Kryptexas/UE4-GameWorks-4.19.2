@@ -3420,6 +3420,20 @@ void ALandscapeProxy::RecreateCollisionComponents()
 	}
 }
 
+void ULandscapeInfo::RecreateCollisionComponents()
+{
+	if (LandscapeActor.IsValid())
+	{
+		LandscapeActor->RecreateCollisionComponents();
+	}
+
+	for (auto It = Proxies.CreateConstIterator(); It; ++It)
+	{
+		ALandscapeProxy* Proxy = (*It);
+		Proxy->RecreateCollisionComponents();
+	}
+}
+
 namespace
 {
 	inline float AdjustStaticLightingResolution(float StaticLightingResolution, int32 NumSubsections, int32 SubsectionSizeQuads, int32 ComponentSizeQuads)
@@ -3747,7 +3761,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				}
 			}
 		}
-
+				
 		if (ChangedMaterial)
 		{
 			if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())

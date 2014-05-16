@@ -488,8 +488,8 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 	if (InWorld->GetWorldSettings())
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(InWorld, bShowWarnings);
-
-		// for removing
+				
+		// for removing 
 		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
 		for (FActorIterator It(InWorld); It; ++It)
 		{
@@ -591,6 +591,19 @@ bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutput
 					FComponentReregisterContext ReregisterContext(Comp);
 				}
 			}
+		}
+	}
+	return true;
+}
+
+bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld)
+{
+	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	{
+		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		{
+			ULandscapeInfo* Info = It.Value();
+			Info->RecreateCollisionComponents();
 		}
 	}
 	return true;
@@ -797,6 +810,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
 		UWorld* World = GetEditorWorldContext().World();
 		return HandleUpdateLandscapeMICCommand(Str, Ar, World);
+	}
+	else if (FParse::Command(&Str, TEXT("RecreateLandscapeCollision")))
+	{
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleRecreateLandscapeCollisionCommand(Str, Ar, World);
 	}
 #endif // WITH_EDITOR
 	else if( FParse::Command(&Str, TEXT("CONVERTMATINEES")) )

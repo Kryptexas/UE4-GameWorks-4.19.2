@@ -244,6 +244,7 @@ public:
 	 */
 	ENGINE_API void FixupProxiesWeightmaps();
 
+	ENGINE_API void RecreateCollisionComponents();
 #endif
 };
 
