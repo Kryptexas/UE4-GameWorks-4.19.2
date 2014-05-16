@@ -137,7 +137,7 @@ public:
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
 				.ContentPadding(FMargin(2.0f,0.0f))
-				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode)
+				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode, &LayoutBuilder)
 				.ToolTipText(LOCTEXT("NewGameMode_ToolTip", "Create a new Game Mode"))
 				[
 					SNew( STextBlock )
@@ -272,7 +272,7 @@ public:
 		}
 	}
 
-	FReply OnClickNewGameMode()
+	FReply OnClickNewGameMode(IDetailLayoutBuilder* DetailLayout)
 	{
 		// Create a new GameMode BP
 		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(LOCTEXT("CreateNewGameMode", "Create New GameMode"), AGameMode::StaticClass(), TEXT("NewGameMode"));
@@ -280,6 +280,11 @@ public:
 		if(Blueprint != NULL && Blueprint->GeneratedClass)
 		{
 			DefaultGameModeClassHandle->SetValueFromFormattedString(Blueprint->GeneratedClass->GetPathName());
+		}
+
+		if (DetailLayout)
+		{
+			DetailLayout->ForceRefreshDetails();
 		}
 
 		return FReply::Handled();
