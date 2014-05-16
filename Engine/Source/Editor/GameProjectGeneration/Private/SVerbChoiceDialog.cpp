@@ -16,7 +16,7 @@ int32 SVerbChoiceDialog::ShowModal( const FText& InTitle, const FText& InMessage
 		.ParentWindow(ModalWindow)
 		.Message( InMessage )
 		.Buttons( InButtons )
-		.WrapMessageAt(512.0f);
+		.WrapMessageAt(640.0f);
 
 	ModalWindow->SetContent( MessageBox );
 
@@ -72,7 +72,7 @@ void SVerbChoiceDialog::Construct( const FArguments& InArgs )
 							+ SHorizontalBox::Slot()
 								.FillWidth(1.0f)
 								.HAlign(HAlign_Left)
-								.VAlign(VAlign_Bottom)
+								.VAlign(VAlign_Center)
 								.Padding(12.0f)
 								[
 									SNew(SHyperlink)
@@ -84,7 +84,7 @@ void SVerbChoiceDialog::Construct( const FArguments& InArgs )
 							+ SHorizontalBox::Slot()
 								.AutoWidth()
 								.HAlign(HAlign_Right)
-								.VAlign(VAlign_Bottom)
+								.VAlign(VAlign_Center)
 								.Padding(2.f)
 								[
 									SAssignNew( ButtonBox, SUniformGridPanel )
