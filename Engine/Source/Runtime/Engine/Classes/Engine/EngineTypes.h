@@ -308,7 +308,9 @@ enum EObjectTypeQuery
 	ObjectTypeQuery29 UMETA(Hidden), 
 	ObjectTypeQuery30 UMETA(Hidden), 
 	ObjectTypeQuery31 UMETA(Hidden), 
-	ObjectTypeQuery32 UMETA(Hidden)
+	ObjectTypeQuery32 UMETA(Hidden),
+
+	ObjectTypeQuery_MAX	UMETA(Hidden)
 };
 
 UENUM(BlueprintType)
@@ -345,7 +347,9 @@ enum ETraceTypeQuery
 	TraceTypeQuery29 UMETA(Hidden), 
 	TraceTypeQuery30 UMETA(Hidden), 
 	TraceTypeQuery31 UMETA(Hidden), 
-	TraceTypeQuery32 UMETA(Hidden)
+	TraceTypeQuery32 UMETA(Hidden),
+
+	TraceTypeQuery_MAX	UMETA(Hidden)
 };
 
 /** Enum indicating which physics scene to use. */
@@ -2349,8 +2353,17 @@ class UEngineTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** Convert a trace type to a collision channel */
 	static ECollisionChannel ConvertToCollisionChannel(ETraceTypeQuery TraceType);
+
+	/** Convert an object type to a collision channel */
 	static ECollisionChannel ConvertToCollisionChannel(EObjectTypeQuery ObjectType);
+
+	/** Convert a collision channel to an object type. Note: performs a search of object types */
+	static EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel);
+
+	/** Convert a collision channel to a trace type. Note: performs a search of trace types */
+	static ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel);
 };
 
 

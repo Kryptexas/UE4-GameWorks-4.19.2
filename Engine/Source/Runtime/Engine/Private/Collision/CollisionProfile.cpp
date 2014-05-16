@@ -646,3 +646,41 @@ ECollisionChannel UCollisionProfile::ConvertToCollisionChannel(bool TraceType, i
 	// invalid
 	return ECC_MAX;
 }
+
+EObjectTypeQuery UCollisionProfile::ConvertToObjectType(ECollisionChannel CollisionChannel) const
+{
+	if (CollisionChannel < ECC_MAX)
+	{
+		int32 ObjectTypeIndex = 0;
+		for(const auto& MappedCollisionChannel : ObjectTypeMapping)
+		{
+			if(MappedCollisionChannel == CollisionChannel)
+			{
+				return (EObjectTypeQuery)ObjectTypeIndex;
+			}
+
+			ObjectTypeIndex++;
+		}
+	}
+
+	return ObjectTypeQuery_MAX;
+}
+
+ETraceTypeQuery UCollisionProfile::ConvertToTraceType(ECollisionChannel CollisionChannel) const
+{
+	if (CollisionChannel < ECC_MAX)
+	{
+		int32 TraceTypeIndex = 0;
+		for(const auto& MappedCollisionChannel : TraceTypeMapping)
+		{
+			if(MappedCollisionChannel == CollisionChannel)
+			{
+				return (ETraceTypeQuery)TraceTypeIndex;
+			}
+
+			TraceTypeIndex++;
+		}
+	}
+
+	return TraceTypeQuery_MAX;
+}
