@@ -23,7 +23,7 @@ static FAutoConsoleCommandWithOutputDevice GDumpRenderTargetPoolMemoryCmd(
 	FConsoleCommandWithOutputDeviceDelegate::CreateStatic(DumpRenderTargetPoolMemory)
 	);
 
-static void RenderTargetPoolEvents(const TArray<FString>& Args)
+void RenderTargetPoolEvents(const TArray<FString>& Args)
 {
 	uint32 SizeInKBThreshold = -1;
 	if(Args.Num() && Args[0].IsNumeric())
