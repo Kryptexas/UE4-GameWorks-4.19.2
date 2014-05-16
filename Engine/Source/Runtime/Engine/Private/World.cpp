@@ -1592,7 +1592,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			AActor* Actor = Level->Actors[ActorIdx];
 			if (Actor != NULL)
 			{
-				Actor->EndPlay(AActor::EEndPlayReason::RemovedFromWorld);
+				Actor->EndPlay(EEndPlayReason::RemovedFromWorld);
 				if (NetDriver)
 				{
 					NetDriver->NotifyActorLevelUnloaded(Actor);
@@ -4212,7 +4212,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 					if (TheActor->bActorInitialized)
 					{
-						TheActor->EndPlay(AActor::EEndPlayReason::LevelTransition);
+						TheActor->EndPlay(EEndPlayReason::LevelTransition);
 					}
 
 					// otherwise, set to be deleted

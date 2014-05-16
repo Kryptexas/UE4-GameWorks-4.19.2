@@ -1521,11 +1521,11 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 void AActor::OnRep_Instigator() {}
 
 
-void AActor::EndPlay(const EEndPlayReason EndPlayReason)
+void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// Dispatch the blueprint events
-	ReceiveEndPlay();
-	OnEndPlay.Broadcast();
+	ReceiveEndPlay(EndPlayReason);
+	OnEndPlay.Broadcast(EndPlayReason);
 
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
@@ -1598,7 +1598,9 @@ void AActor::Destroyed()
 	{
 		EndPlay(EEndPlayReason::ActorDestroyed);
 	}
-	GetWorld()->RemoveNetworkActor( this );
+	ReceiveDestroyed();
+	OnDestroyed.Broadcast();
+	GetWorld()->RemoveNetworkActor(this);
 }
 
 void AActor::TornOff() {}
