@@ -1276,6 +1276,7 @@ static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FS
 	if (LayerInfo == nullptr)
 	{
 		LayerInfo = ConstructObject<ULandscapeLayerInfoObject>(ULandscapeLayerInfoObject::StaticClass(), Package, FName(*LayerObjectName), RF_Public | RF_Standalone | RF_Transactional);
+		LayerInfo->LayerName = LayerName;
 		// Notify the asset registry
 		FAssetRegistryModule::AssetCreated(LayerInfo);
 		// Mark the package dirty...
@@ -1286,7 +1287,6 @@ static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FS
 		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
 	}
 		
-	LayerInfo->LayerName = LayerName;
 	return LayerInfo;
 }
 
