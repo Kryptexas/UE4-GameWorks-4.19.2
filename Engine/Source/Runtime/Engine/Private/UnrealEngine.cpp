@@ -6178,6 +6178,11 @@ void UEngine::SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float
 	}
 }
 
+bool UEngine::ShouldThrottleCPUUsage() const
+{
+	return false;
+}
+
 /**
  *	Renders stats
  *

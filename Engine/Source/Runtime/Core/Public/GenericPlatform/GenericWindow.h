@@ -89,6 +89,9 @@ public:
 	/** @return true if the native window is maximized, false otherwise */
 	virtual bool IsMaximized() const;
 
+	/** @return true if the native window is minimized, false otherwise */
+	virtual bool IsMinimized() const;
+
 	/** @return true if the native window is visible, false otherwise */
 	virtual bool IsVisible() const;
 

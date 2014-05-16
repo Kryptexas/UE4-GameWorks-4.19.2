@@ -523,6 +523,11 @@ bool FWindowsWindow::IsMaximized() const
 	return bIsMaximized;
 }
 
+bool FWindowsWindow::IsMinimized() const
+{
+	return !!::IsIconic(HWnd);
+}
+
 /** @return true if the native window is visible, false otherwise */
 bool FWindowsWindow::IsVisible() const
 {

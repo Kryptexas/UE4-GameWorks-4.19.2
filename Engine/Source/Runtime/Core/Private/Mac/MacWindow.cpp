@@ -1079,9 +1079,14 @@ bool FMacWindow::IsMaximized() const
 	return WindowHandle->bZoomed;
 }
 
+bool FMacWindow::IsMinimized() const
+{
+	return [WindowHandle isMiniaturized];
+}
+
 bool FMacWindow::IsVisible() const
 {
-	return bIsVisible;
+	return bIsVisible && [NSApp isHidden] == false;
 }
 
 bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& Height)

@@ -425,6 +425,9 @@ public:
 	/** @return true if the window is maximized, false otherwise*/
 	bool IsWindowMaximized() const;
 
+	/** @return true of the window is minimized (iconic), false otherwise */
+	bool IsWindowMinimized() const;
+
 	/** Maximize the window if bInitiallyMaximized is set */
 	void InitialMaximize();
 

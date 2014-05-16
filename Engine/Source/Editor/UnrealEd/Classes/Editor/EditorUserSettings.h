@@ -47,8 +47,12 @@ class UEditorUserSettings : public UObject
 	uint32 bDisplayActionListItemRefIds:1;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
-	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
+	UPROPERTY(EditAnywhere, config, Category=Performance)
 	uint32 bShowFrameRateAndMemory:1;
+
+	/** Lowers CPU usage when the editor is in the background and not the active application */
+	UPROPERTY(EditAnywhere, config, Category=Performance, meta=(DisplayName="Use Less CPU when in Background") )
+	uint32 bThrottleWhenNotForeground:1;
 
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)

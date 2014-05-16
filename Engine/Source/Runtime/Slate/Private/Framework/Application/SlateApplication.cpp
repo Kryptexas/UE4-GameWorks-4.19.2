@@ -637,7 +637,7 @@ struct FDrawWindowArgs
 void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& WindowToDraw, FDrawWindowArgs& DrawWindowArgs )
 {
 	// Only draw visible windows
-	if( WindowToDraw->IsVisible() )
+	if( WindowToDraw->IsVisible() && !WindowToDraw->IsWindowMinimized() )
 	{
 		// Switch to the appropriate world for drawing
 		FScopedSwitchWorldHack SwitchWorld( WindowToDraw );

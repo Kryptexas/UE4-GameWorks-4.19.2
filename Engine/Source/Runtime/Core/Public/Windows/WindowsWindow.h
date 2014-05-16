@@ -66,6 +66,8 @@ public:
 
 	virtual bool IsMaximized() const OVERRIDE;
 
+	virtual bool IsMinimized() const OVERRIDE;
+
 	virtual bool IsVisible() const OVERRIDE;
 
 	virtual bool GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& Height) OVERRIDE;

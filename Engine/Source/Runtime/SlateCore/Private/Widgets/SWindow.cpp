@@ -1039,6 +1039,12 @@ bool SWindow::IsWindowMaximized() const
 	return NativeWindow->IsMaximized();
 }
 
+bool SWindow::IsWindowMinimized() const
+{
+	return NativeWindow->IsMinimized();
+}
+
+
 /** Maximize the window if bInitiallyMaximized is set */
 void SWindow::InitialMaximize()
 {

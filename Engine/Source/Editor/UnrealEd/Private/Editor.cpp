@@ -1102,18 +1102,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 				continue;
 			}
 
-			// HACK
-			/*
-			FSlatePlayInEditorInfo * SlateInfoPtr = SlatePlayInEditorMap.Find(PieContext.ContextHandle);
-			if ( SlateInfoPtr )
-			{
-				if (SlateInfoPtr->SlatePlayInEditorWindowViewport->IsForegroundWindow())
-				{
-					FSlateApplication::Get().SetKeyboardFocus( SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EKeyboardFocusCause::SetDirectly );
-				}
-			}
-			*/
-
 			GPlayInEditorID = PieContext.PIEInstance;
 
 			PlayWorld = PieContext.World();
@@ -1299,43 +1287,48 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	/////////////////////////////
 	// Redraw viewports.
 
-	// Render view parents, then view children.
-	bool bEditorFrameNonRealtimeViewportDrawn = false;
-	if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
+	// Do not redraw if the application is hidden
+	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
+	if( !bAllWindowsHidden )
 	{
-		bool bAllowNonRealtimeViewports = true;
-		bool bWasNonRealtimeViewportDraw = UpdateSingleViewportClient(GCurrentLevelEditingViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports );
-		if (GCurrentLevelEditingViewportClient->IsLevelEditorClient())
+		// Render view parents, then view children.
+		bool bEditorFrameNonRealtimeViewportDrawn = false;
+		if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
 		{
-			bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDraw;
-		}
-	}
-	for(int32 bRenderingChildren = 0;bRenderingChildren < 2;bRenderingChildren++)
-	{
-		for(int32 ViewportIndex=0; ViewportIndex<AllViewportClients.Num(); ViewportIndex++ )
-		{
-			FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
-			if (ViewportClient == GCurrentLevelEditingViewportClient)
+			bool bAllowNonRealtimeViewports = true;
+			bool bWasNonRealtimeViewportDraw = UpdateSingleViewportClient(GCurrentLevelEditingViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports);
+			if (GCurrentLevelEditingViewportClient->IsLevelEditorClient())
 			{
-				//already given this window a chance to update
-				continue;
+				bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDraw;
 			}
-
-			if( !ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible() )
+		}
+		for (int32 bRenderingChildren = 0; bRenderingChildren < 2; bRenderingChildren++)
+		{
+			for (int32 ViewportIndex = 0; ViewportIndex < AllViewportClients.Num(); ViewportIndex++)
 			{
-				// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
-				bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
-				
-				const bool bIsViewParent = ViewportClient->ViewState.GetReference()->IsViewParent();
-				if(	(bRenderingChildren && !bIsViewParent) ||
-					(!bRenderingChildren && bIsViewParent) || bUpdateLinkedOrthoViewports )
+				FEditorViewportClient* ViewportClient = AllViewportClients[ViewportIndex];
+				if (ViewportClient == GCurrentLevelEditingViewportClient)
 				{
-					//if we haven't drawn a non-realtime viewport OR not one of the main viewports
-					bool bAllowNonRealtimeViewports = (!bEditorFrameNonRealtimeViewportDrawn) || !(ViewportClient->IsLevelEditorClient());
-					bool bWasNonRealtimeViewportDrawn = UpdateSingleViewportClient(ViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports );
-					if (ViewportClient->IsLevelEditorClient())
+					//already given this window a chance to update
+					continue;
+				}
+
+				if (!ViewportClient->IsLevelEditorClient() || ViewportClient->IsVisible())
+				{
+					// Only update ortho viewports if that mode is turned on, the viewport client we are about to update is orthographic and the current editing viewport is orthographic and tracking mouse movement.
+					bUpdateLinkedOrthoViewports = GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports && ViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsOrtho() && GCurrentLevelEditingViewportClient->IsTracking();
+
+					const bool bIsViewParent = ViewportClient->ViewState.GetReference()->IsViewParent();
+					if ((bRenderingChildren && !bIsViewParent) ||
+						(!bRenderingChildren && bIsViewParent) || bUpdateLinkedOrthoViewports)
 					{
-						bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDrawn;
+						//if we haven't drawn a non-realtime viewport OR not one of the main viewports
+						bool bAllowNonRealtimeViewports = (!bEditorFrameNonRealtimeViewportDrawn) || !(ViewportClient->IsLevelEditorClient());
+						bool bWasNonRealtimeViewportDrawn = UpdateSingleViewportClient(ViewportClient, bAllowNonRealtimeViewports, bUpdateLinkedOrthoViewports);
+						if (ViewportClient->IsLevelEditorClient())
+						{
+							bEditorFrameNonRealtimeViewportDrawn |= bWasNonRealtimeViewportDrawn;
+						}
 					}
 				}
 			}
@@ -5918,7 +5911,43 @@ bool UEditorEngine::IsAnyViewportRealtime()
 	return false;
 }
 
+bool UEditorEngine::ShouldThrottleCPUUsage() const
+{
+	bool bShouldThrottle = false;
 
+	bool bIsForeground = FPlatformProcess::IsThisApplicationForeground();
+
+	if( !bIsForeground )
+	{
+		const UEditorUserSettings* Settings = GetDefault<UEditorUserSettings>();
+		bShouldThrottle = Settings->bThrottleWhenNotForeground;
+
+		// Check if we should throttle due to all windows being minimized
+		if ( !bShouldThrottle )
+		{
+			return bShouldThrottle = AreAllWindowsHidden();
+		}
+	}
+
+	return bShouldThrottle;
+}
+
+bool UEditorEngine::AreAllWindowsHidden() const
+{
+	const TArray< TSharedRef<SWindow> > AllWindows = FSlateApplication::Get().GetInteractiveTopLevelWindows();
+
+	bool bAllHidden = true;
+	for( const TSharedRef<SWindow>& Window : AllWindows )
+	{
+		if( !Window->IsWindowMinimized() && Window->IsVisible() )
+		{
+			bAllHidden = false;
+			break;
+		}
+	}
+
+	return bAllHidden;
+}
 
 AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent, EObjectFlags ObjectFlags)
 {

@@ -89,6 +89,12 @@ bool FGenericWindow::IsMaximized() const
 	return true;
 }
 
+bool FGenericWindow::IsMinimized() const
+{
+	return false;
+}
+
+
 bool FGenericWindow::IsVisible() const
 {
 	// empty default functionality

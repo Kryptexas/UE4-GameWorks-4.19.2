@@ -1583,6 +1583,13 @@ public:
 	 */
 	bool IsAnyViewportRealtime();
 
+	virtual bool ShouldThrottleCPUUsage() const OVERRIDE;
+
+	/**
+	 * @return true if all windows are hidden (including minimized)                                                         
+	 */
+	bool AreAllWindowsHidden() const;
+
 	/**
 	 *	Returns pointer to a temporary render target.
 	 *	If it has not already been created, does so here.

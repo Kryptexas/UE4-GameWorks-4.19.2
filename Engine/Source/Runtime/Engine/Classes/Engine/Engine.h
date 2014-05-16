@@ -1734,6 +1734,10 @@ public:
 	 */
 	void SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float GameThreadTime, float GPUFrameTime);
 
+	/**
+	 * @return true to throttle CPU usage based on current state (usually editor minimized or not in foreground)
+	 */
+	virtual bool ShouldThrottleCPUUsage() const;
 protected:
 	/** 
 	 * Determines whether a hardware survey should be run now.

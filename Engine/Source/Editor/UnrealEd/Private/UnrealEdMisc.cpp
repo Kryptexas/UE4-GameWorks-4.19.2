@@ -1214,6 +1214,13 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 		return;
 	}
 
+	// Don't run the test if we are throttling (due to minimized or not in foreground) as this will 
+	// greatly affect the framerate
+	if( GEditor->ShouldThrottleCPUUsage() )
+	{
+		return;
+	}
+
 	// Sample the frame rate until we have enough samples to take the average
 	if (FrameRateSamples.Num() < PerformanceSurveyDefs::NumFrameRateSamples)
 	{

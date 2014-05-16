@@ -1971,10 +1971,10 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	static const auto CVarIdleWhenNotForeground = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("t.IdleWhenNotForeground"));
 	bool bIdleMode = false;
 
-	// Yield and prevent ticking and rendering when desired
-	if (FApp::IsGame() 
-		&& CVarIdleWhenNotForeground->GetValueOnGameThread()
+	// Yield cpu usage if desired
+	if (FApp::IsGame()
 		&& FPlatformProperties::SupportsWindowedMode()
+		&& CVarIdleWhenNotForeground->GetValueOnGameThread()
 		&& !FPlatformProcess::IsThisApplicationForeground())
 	{
 		bIdleMode = true;
@@ -2065,9 +2065,12 @@ void FEngineLoop::Tick()
 			FPlatformMisc::PumpMessages(true);
 		}
 
+		// Idle mode prevents ticking and rendering completely
 		const bool bIdleMode = ShouldUseIdleMode();
 
-		if (bIdleMode)
+		// Should we throttle CPU usage based on current state (usually in editor if we are minimized or not in foreground)
+		const bool bShouldThrottleCPU = GEngine->ShouldThrottleCPUUsage(); 
+		if (bIdleMode || bShouldThrottleCPU )
 		{
 			// Yield CPU time
 			FPlatformProcess::Sleep(.1f);
