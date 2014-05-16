@@ -898,7 +898,7 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 		// Ask whether to copy the project or upgrade in-place
 		TArray<FText> Buttons;
 		int32 OpenCopyButton = Buttons.Add(LOCTEXT("ProjectUpgradeCopy", "Create a copy"));
-		int32 InPlaceButton = Buttons.Add(LOCTEXT("ProjectUpgradeInPlace", "Convert in-place"));
+		Buttons.Add(LOCTEXT("ProjectUpgradeInPlace", "Convert in-place"));
 		int32 CancelButton = Buttons.Add(LOCTEXT("ProjectUpgradeCancel", "Cancel"));
 
 		// Show the dialog
@@ -913,16 +913,7 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 			}
 			ProjectFile = NewProjectFile;
 		}
-		else if(Selection == InPlaceButton)
-		{
-			FString ProjectDir = FPaths::GetPath(ProjectFile);
-			if(!FDesktopPlatformModule::Get()->CleanGameProject(ProjectDir, GWarn))
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCleanFailed", "Couldn't clean project binary and intermediate folders for upgrade. Check that the project folders are writable."));
-				return false;
-			}
-		}
-		else 
+		else if(Selection == CancelButton)
 		{
 			return false;
 		}
