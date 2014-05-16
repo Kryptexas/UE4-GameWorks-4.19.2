@@ -116,6 +116,8 @@ SAssetViewItem::~SAssetViewItem()
 	OnItemDestroyed.ExecuteIfBound( AssetItem );
 
 	SetForceMipLevelsToBeResident(false);
+
+	ISourceControlModule::Get().GetProvider().UnregisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SAssetViewItem::HandleSourceControlStateChanged));
 }
 
 void SAssetViewItem::Construct( const FArguments& InArgs )
@@ -147,9 +149,12 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	ImportantTagMap.Add("StaticMesh", ImportantStaticMeshTags);
 
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
+	SCCStateBrush = nullptr;
 
 	SourceControlStateDelay = 0.0f;
 	bSourceControlStateRequested = false;
+
+	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SAssetViewItem::HandleSourceControlStateChanged));
 }
 
 void SAssetViewItem::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -353,17 +358,19 @@ void SAssetViewItem::DirtyStateChanged()
 
 const FSlateBrush* SAssetViewItem::GetSCCStateImage() const
 {
+	return SCCStateBrush;
+}
 
+void SAssetViewItem::HandleSourceControlStateChanged()
+{
 	if ( ISourceControlModule::Get().IsEnabled() && AssetItem.IsValid() && (AssetItem->GetType() == EAssetItemType::Normal) && !AssetItem->IsTemporaryItem() && !CachedPackageFileName.IsEmpty() )
 	{
 		FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(CachedPackageFileName, EStateCacheUsage::Use);
 		if(SourceControlState.IsValid())
 		{
-			return FEditorStyle::GetBrush(SourceControlState->GetIconName());
+			SCCStateBrush = FEditorStyle::GetBrush(SourceControlState->GetIconName());
 		}
 	}
-
-	return NULL;
 }
 
 const FSlateBrush* SAssetViewItem::GetDirtyImage() const

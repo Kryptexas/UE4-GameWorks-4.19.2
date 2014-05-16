@@ -80,11 +80,7 @@ ECommandResult::Type FSubversionSourceControlProvider::GetState( const TArray<FS
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	if(InStateCacheUsage == EStateCacheUsage::ForceUpdate)
 	{
@@ -133,11 +129,7 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		return ECommandResult::Failed;
 	}
 
-	TArray<FString> AbsoluteFiles;
-	for( TArray<FString>::TConstIterator It(InFiles); It; It++)
-	{
-		AbsoluteFiles.Add(FPaths::ConvertRelativePathToFull(*It));
-	}
+	TArray<FString> AbsoluteFiles = SourceControlHelpers::AbsoluteFilenames(InFiles);
 
 	// Query to see if the we allow this operation
 	TSharedPtr<ISubversionSourceControlWorker, ESPMode::ThreadSafe> Worker = CreateWorker(InOperation->GetName());

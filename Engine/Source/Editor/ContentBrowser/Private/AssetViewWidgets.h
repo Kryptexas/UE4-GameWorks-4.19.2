@@ -172,6 +172,9 @@ protected:
 	/** Set mips to be resident while this (loaded) asset is visible */
 	void SetForceMipLevelsToBeResident(bool bForce) const;
 
+	/** Delegate handler for when source control state changes */
+	void HandleSourceControlStateChanged();
+
 protected:
 
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
@@ -245,6 +248,9 @@ protected:
 
 	/** Whether an item is dragged over us or not */
 	bool bDraggedOver;
+
+	/** Cached brush for the source control state */
+	const FSlateBrush* SCCStateBrush;
 };
 
 

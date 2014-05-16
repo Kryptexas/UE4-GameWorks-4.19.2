@@ -57,6 +57,13 @@ namespace SourceControlHelpers
 	 * @return an array of filenames
 	 */
 	SOURCECONTROL_API extern TArray<FString> PackageFilenames( const TArray<FString>& InPackageNames );
+	
+	/**
+	 * Helper function to convert a filename array to absolute paths.
+	 * @param	InFileNames	The filename array
+	 * @return an array of filenames, transformed into absolute paths
+	 */
+	SOURCECONTROL_API extern TArray<FString> AbsoluteFilenames( const TArray<FString>& InFileNames );
 
 	/**
 	 * Helper function to get a list of files that are unchanged & revert them. This runs synchronous commands.
