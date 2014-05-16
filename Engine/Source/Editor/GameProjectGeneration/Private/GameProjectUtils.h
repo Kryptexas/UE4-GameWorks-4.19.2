@@ -5,6 +5,16 @@
 class GameProjectUtils
 {
 public:
+	/** Context information used when validating that source code is being placed in the correct place for a given module */
+	struct FModuleContextInfo
+	{
+		/** Path to the Source folder of the module */
+		FString ModuleSourcePath;
+
+		/** Name of the module */
+		FString ModuleName;
+	};
+
 	/** Where is this class located within the Source folder? */
 	enum class EClassLocation : uint8
 	{
@@ -164,25 +174,32 @@ public:
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
 
+	/**
+	 * Get the default module context information based on the current value of FApp
+	 */
+	static FModuleContextInfo GetCurrentModuleContextInfo();
+
 	/** 
 	 * Get the absolute root path under which all project source code must exist
 	 *
 	 * @param	bIncludeModuleName	Whether to include the module name in the root path?
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * 
 	 * @return	The root path. Will always be an absolute path ending with a /
 	 */
-	static FString GetSourceRootPath(const bool bIncludeModuleName);
+	static FString GetSourceRootPath(const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo);
 
 	/** 
 	 * Check to see if the given path is a valid place to put source code for this project (exists within the source root path) 
 	 *
 	 * @param	InPath				The path to check
 	 * @param	bIncludeModuleName	Whether to require the module name in the root path? (is really used as a prefix so will allow MyModule, MyModuleEditor, etc)
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	true if the path is valid, false otherwise
 	 */
-	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason = nullptr);
+	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** 
 	 * Given the path provided, work out where generated .h and .cpp files would be placed
@@ -191,11 +208,12 @@ public:
 	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
 	 * @param	OutHeaderPath		The path where the .h file should be placed
 	 * @param	OutSourcePath		The path where the .cpp file should be placed
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	false if the paths are invalid
 	 */
-	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
+	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** 
 	 * Given the path provided, work out where it's located within the Source folder
@@ -203,11 +221,12 @@ public:
 	 * @param	InPath				The path to use a base
 	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
 	 * @param	OutClassLocation	The location within the Source folder
+	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	false if the paths are invalid
 	 */
-	static bool GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, FText* const OutFailReason = nullptr);
+	static bool GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
 	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
@@ -284,10 +303,10 @@ private:
 	static FString MakeIncludeList(const TArray<FString>& InList);
 
 	/** Generates a header file for a UObject class. OutSyncLocation is a string representing the preferred cursor sync location for this file after creation. */
-	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, FText& OutFailReason);
+	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Generates a cpp file for a UObject class */
-	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FText& OutFailReason);
+	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Generates a Build.cs file for a game module */
 	static bool GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason);

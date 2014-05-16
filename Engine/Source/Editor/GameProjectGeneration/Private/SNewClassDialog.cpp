@@ -56,7 +56,9 @@ public:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
-	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/);
+	ModuleInfo = GameProjectUtils::GetCurrentModuleContextInfo();
+
+	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/, ModuleInfo);
 	ClassLocation = GameProjectUtils::EClassLocation::UserDefined; // the first call to UpdateInputValidity will set this correctly based on NewClassPath
 
 	ParentClassInfo = GameProjectUtils::FNewClassInfo(InArgs._Class);
@@ -893,9 +895,9 @@ void SNewClassDialog::OnClassLocationChanged(ESlateCheckBoxState::Type InChecked
 
 		FString ModuleName;
 		GameProjectUtils::EClassLocation TmpClassLocation = GameProjectUtils::EClassLocation::UserDefined;
-		GameProjectUtils::GetClassLocation(AbsoluteClassPath, ModuleName, TmpClassLocation);
+		GameProjectUtils::GetClassLocation(AbsoluteClassPath, ModuleName, TmpClassLocation, ModuleInfo);
 
-		const FString BaseRootPath = GameProjectUtils::GetSourceRootPath(false/*bIncludeModuleName*/);
+		const FString BaseRootPath = GameProjectUtils::GetSourceRootPath(false/*bIncludeModuleName*/, ModuleInfo);
 		const FString RootPath = BaseRootPath / ModuleName / "";	// Ensure trailing /
 		const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
 		const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
@@ -945,14 +947,14 @@ void SNewClassDialog::UpdateInputValidity()
 
 	// Validate the path first since this has the side effect of updating the UI
 	FString ModuleName;
-	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, &LastInputValidityErrorText);
+	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, ModuleInfo, &LastInputValidityErrorText);
 	CalculatedClassHeaderName /= ParentClassInfo.GetHeaderFilename(NewClassName);
 	CalculatedClassSourceName /= ParentClassInfo.GetSourceFilename(NewClassName);
 
 	// If the source paths check as succeeded, check to see if we're using a Public/Private class
 	if(bLastInputValidityCheckSuccessful)
 	{
-		GameProjectUtils::GetClassLocation(NewClassPath, ModuleName, ClassLocation);
+		GameProjectUtils::GetClassLocation(NewClassPath, ModuleName, ClassLocation, ModuleInfo);
 
 		// We only care about the Public and Private folders
 		if(ClassLocation != GameProjectUtils::EClassLocation::Public && ClassLocation != GameProjectUtils::EClassLocation::Private)

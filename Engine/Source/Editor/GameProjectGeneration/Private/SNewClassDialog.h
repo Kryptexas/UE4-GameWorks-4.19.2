@@ -189,4 +189,7 @@ private:
 
 	/** Whether the class should be created as a Public or Private class */
 	GameProjectUtils::EClassLocation ClassLocation;
+
+	/** Information about the currently loaded module; used for class validation */
+	GameProjectUtils::FModuleContextInfo ModuleInfo;
 };
