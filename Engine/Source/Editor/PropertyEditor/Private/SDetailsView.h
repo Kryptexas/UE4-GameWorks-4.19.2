@@ -290,6 +290,12 @@ public:
 	 * @return True if a category is hidden by any of the uobject classes currently in view by this details panel
 	 */
 	bool IsCategoryHiddenByClass( FName CategoryName ) const;
+
+	/**
+	 * @return True if the property is visible
+	 */
+	bool IsPropertyVisible( const UProperty* Property ) const;
+
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class );
@@ -501,7 +507,7 @@ private:
 	/** Callback to send when the property view changes */
 	FOnObjectArrayChanged OnObjectArrayChanged;
 	/** Delegate executed to determine if a property should be visible */
-	FIsPropertyVisible IsPropertyVisible;
+	FIsPropertyVisible IsPropertyVisibleDelegate;
 	/** Delegate called to see if a property editing is enabled */
 	FIsPropertyEditingEnabled IsPropertyEditingEnabledDelegate;
 	/** Delegate called when the details panel finishes editing a property (after post edit change is called) */

@@ -129,4 +129,14 @@ public:
 	 * Gets the thumbnail pool that should be used for rendering thumbnails in the details view                   
 	 */
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const = 0;
+
+	/**
+	 * @return true if the property should be visible in the details panel or false if the specific details panel is not showing this property
+	 */
+	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const = 0;
+
+	/**
+	 * @return true if the property should be visible in the details panel or false if the specific details panel is not showing this property
+	 */
+	virtual bool IsPropertyVisible( UProperty* Property ) const = 0;
 };

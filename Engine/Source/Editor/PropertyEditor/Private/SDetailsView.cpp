@@ -473,7 +473,7 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				bVisibleByDefault &= !bIsChildOfAttribute;
 
 				// See if the user requested specific property visibility 
-				const bool bIsUserVisible = IsPropertyVisible.IsBound() ? IsPropertyVisible.Execute( Property ) : true;
+				const bool bIsUserVisible = IsPropertyVisible( Property ); 
 
 				// Inners of customized in structs should not be taken into consideration for customizing.  They are not designed to be individually customized when their parent is already customized
 				if( !bIsChildOfCustomizedStruct )
@@ -1470,7 +1470,7 @@ void SDetailsView::UnregisterInstancedCustomPropertyLayout( UClass* Class )
 
 void SDetailsView::SetIsPropertyVisibleDelegate( FIsPropertyVisible InIsPropertyVisible )
 {
-	IsPropertyVisible = InIsPropertyVisible;
+	IsPropertyVisibleDelegate = InIsPropertyVisible;
 }
 
 void SDetailsView::SetIsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled IsPropertyEditingEnabled )
@@ -1561,6 +1561,11 @@ void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> 
 bool SDetailsView::IsCategoryHiddenByClass( FName CategoryName ) const
 {
 	return RootPropertyNode->GetHiddenCategories().Contains( CategoryName );
+}
+
+bool SDetailsView::IsPropertyVisible( const UProperty* Property ) const
+{
+	return IsPropertyVisibleDelegate.IsBound() ? IsPropertyVisibleDelegate.Execute( Property ) : true;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -17,7 +17,9 @@ public:
 	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) OVERRIDE;
 	virtual void ForceRefreshDetails() OVERRIDE;
 	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
-	
+	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const OVERRIDE;
+	virtual bool IsPropertyVisible( UProperty* PropertyHandle ) const OVERRIDE;
+
 	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const OVERRIDE; 
 
 	/**
