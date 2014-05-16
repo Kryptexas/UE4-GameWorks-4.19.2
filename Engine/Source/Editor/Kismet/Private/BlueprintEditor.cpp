@@ -5959,7 +5959,14 @@ void FBlueprintEditor::GotoNativeFunctionDefinition()
 
 			if( TargetFunction )
 			{
-				FSourceCodeNavigation::NavigateToFunctionAsync( TargetFunction );
+				FString NativeParentClassHeaderPath;
+				const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(TargetFunction, NativeParentClassHeaderPath) 
+										&& (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
+				if( bFileFound )
+				{
+					const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull( NativeParentClassHeaderPath );
+					FSourceCodeNavigation::OpenSourceFile( AbsNativeParentClassHeaderPath );
+				}
 			}
 		}
 	}
@@ -6003,7 +6010,14 @@ void FBlueprintEditor::GotoNativeVariableDefinition()
 
 			if( VariableProperty )
 			{
-				FSourceCodeNavigation::NavigateToProperty( VariableProperty );
+				FString NativeParentClassHeaderPath;
+				const bool bFileFound = FSourceCodeNavigation::FindClassHeaderPath(VariableProperty, NativeParentClassHeaderPath) 
+										&& (IFileManager::Get().FileSize(*NativeParentClassHeaderPath) != INDEX_NONE);
+				if( bFileFound )
+				{
+					const FString AbsNativeParentClassHeaderPath = FPaths::ConvertRelativePathToFull( NativeParentClassHeaderPath );
+					FSourceCodeNavigation::OpenSourceFile( AbsNativeParentClassHeaderPath );
+				}
 			}
 		}
 	}
