@@ -15,6 +15,14 @@ URadialForceComponent::URadialForceComponent(const class FPostConstructInitializ
 	ImpulseStrength = 1000.0f;
 	ForceStrength = 10.0f;
 	bAutoActivate = true;
+
+	// by default we affect all 'dynamic' objects that can currently be affected by forces
+	AddCollisionChannelToAffect(ECC_Pawn);
+	AddCollisionChannelToAffect(ECC_PhysicsBody);
+	AddCollisionChannelToAffect(ECC_Vehicle);
+	AddCollisionChannelToAffect(ECC_Destructible);
+
+	UpdateCollisionObjectQueryParams();
 }
 
 void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
@@ -31,7 +39,7 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 
 		FCollisionQueryParams Params(AddForceOverlapName, false);
 		Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
-		GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects));
+		GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, CollisionObjectQueryParams);
 
 		// Iterate over each and apply force
 		for ( int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); OverlapIdx++ )
@@ -65,6 +73,8 @@ void URadialForceComponent::PostLoad()
 	{
 		bAutoActivate = bForceEnabled_DEPRECATED;
 	}
+
+	UpdateCollisionObjectQueryParams();
 }
 
 void URadialForceComponent::FireImpulse()
@@ -77,7 +87,7 @@ void URadialForceComponent::FireImpulse()
 
 	FCollisionQueryParams Params(FireImpulseOverlapName, false);
 	Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
-	GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects));
+	GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, CollisionObjectQueryParams);
 
 	// Iterate over each and apply an impulse
 	for ( int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); OverlapIdx++ )
@@ -111,6 +121,43 @@ void URadialForceComponent::FireImpulse()
 			}
 		}
 	}
+}
+
+void URadialForceComponent::AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel)
+{
+	EObjectTypeQuery ObjectType = UEngineTypes::ConvertToObjectType(CollisionChannel);
+	if(ObjectType != ObjectTypeQuery_MAX)
+	{
+		AddObjectTypeToAffect(ObjectType);
+	}
+}
+
+void URadialForceComponent::AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
+{
+	ObjectTypesToAffect.AddUnique(ObjectType);
+	UpdateCollisionObjectQueryParams();
+}
+
+void URadialForceComponent::RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType)
+{
+	ObjectTypesToAffect.Remove(ObjectType);
+	UpdateCollisionObjectQueryParams();
+}
+
+void URadialForceComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// If we have edited the object types to effect, update our bitfield.
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == TEXT("ObjectTypesToAffect"))
+	{
+		UpdateCollisionObjectQueryParams();
+	}
+}
+
+void URadialForceComponent::UpdateCollisionObjectQueryParams()
+{
+	CollisionObjectQueryParams = FCollisionObjectQueryParams(ObjectTypesToAffect);
 }
 
 

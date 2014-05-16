@@ -44,6 +44,25 @@ class URadialForceComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
 	virtual void FireImpulse();
 
+	/** Add an object type for this radial force to affect */
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
+	virtual void AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+
+	/** Remove an object type that is affected by this radial force */
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
+	virtual void RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+
+	/** Add a collision channel for this radial force to affect */
+	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
+
+protected:
+	/** The object types that are affected by this radial force */
+	UPROPERTY(EditAnywhere, Category=RadialForceComponent)
+	TArray<TEnumAsByte<enum EObjectTypeQuery> > ObjectTypesToAffect;
+
+	/** Cached object query params derived from ObjectTypesToAffect */
+	FCollisionObjectQueryParams CollisionObjectQueryParams;
+
 protected:
 	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
@@ -51,7 +70,11 @@ protected:
 
 	// Begin UObject interface.
 	virtual void PostLoad() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End UObject interface.
+
+	/** Update CollisionObjectQueryParams from ObjectTypesToAffect */
+	void UpdateCollisionObjectQueryParams();
 };
 
 

@@ -186,6 +186,18 @@ public:
 	/** Convert ObjectType or TraceType to CollisionChannel */
 	ECollisionChannel ConvertToCollisionChannel(bool TraceType, int32 Index) const;
 
+	/** 
+	 * Convert collision channel to ObjectTypeQuery. Note: performs a search of object types.
+	 * @return ObjectTypeQuery_MAX if the conversion was not possible 
+	 */
+	EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel) const;
+
+	/** 
+	 * Convert collision channel to TraceTypeQuery. Note: performs a search of object types.
+	 * @return TraceTypeQuery_MAX if the conversion was not possible 
+	 */
+	ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel) const;
+
 	/* custom collision profile name that you can modify what you'd like */
 	ENGINE_API static FName CustomCollisionProfileName;
 
