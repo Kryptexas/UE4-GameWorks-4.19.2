@@ -7213,7 +7213,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			}
 			if(FDefaultValueHelper::Is(CppForm, TEXT("FVector::UpVector")))
 			{
-				OutForm = FString::Printf(TEXT("(X=%3.3f,Y=%3.3f,Z=%3.3f)"),
+				OutForm = FString::Printf(TEXT("%f,%f,%f"),
 					FVector::UpVector.X, FVector::UpVector.Y, FVector::UpVector.Z);
 			}
 			FString Parameters;
@@ -7226,7 +7226,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 				FVector Vector;
 				if(FDefaultValueHelper::ParseVector(Parameters, Vector))
 				{
-					OutForm = FString::Printf(TEXT("(X=%3.3f,Y=%3.3f,Z=%3.3f)"),
+					OutForm = FString::Printf(TEXT("%f,%f,%f"),
 						Vector.X, Vector.Y, Vector.Z);
 				}
 			}
@@ -7247,7 +7247,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 				FRotator Rotator;
 				if(FDefaultValueHelper::ParseRotator(Parameters, Rotator))
 				{
-					OutForm = FString::Printf(TEXT("(P=%f,Y=%f,R=%f)"),
+					OutForm = FString::Printf(TEXT("%f,%f,%f"),
 						Rotator.Pitch, Rotator.Yaw, Rotator.Roll);
 				}
 			}
