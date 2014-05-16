@@ -1443,6 +1443,8 @@ void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 		{
 			PhysicsBlendWeight = 0.f;
 		}
+
+		bSimulatePhysics = bUseSimulate;
 	}
 #endif
 }
