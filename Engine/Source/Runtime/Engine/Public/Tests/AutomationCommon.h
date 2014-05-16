@@ -52,6 +52,12 @@ namespace AutomationCommon
 			HardwareDetailsString = ( HardwareDetailsString + TEXT( "_" ) ) + TEXT("STEREO");
 		}
 
+		if( HardwareDetailsString.Len() > 0 )
+		{
+			//Get rid of the leading "_"
+			HardwareDetailsString = HardwareDetailsString.RightChop(1);
+		}
+
 		return HardwareDetailsString;
 	}
 
@@ -62,7 +68,7 @@ namespace AutomationCommon
 
 		if( bIncludeHardwareDetails )
 		{
-			PathName = PathName + GetRenderDetailsString();
+			PathName = PathName + TEXT("_") + GetRenderDetailsString();
 		}
 
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());

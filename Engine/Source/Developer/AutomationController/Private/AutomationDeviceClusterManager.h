@@ -17,11 +17,12 @@ public:
 	void Reset();
 
 	/**
-	 * Add a new device, creating new clusters as needed
+	 * Add a new device from an AutomationWorkerFindWorkersResponse message, creating new clusters as needed
 	 * @param MessageAddress - The network address of an available worker
-	 * @param DeviceTypeName - The name of the device cluster this worker belongs in
+	 * @param Message - The message that contains the device info
+	 * @param GroupFlags - Used find out which group to put the new device into
 	 */
-	void Add(const FMessageAddress& MessageAddress, const FString& DeviceTypeName, const FString& InstanceName);
+	void AddDeviceFromMessage(const FMessageAddress& MessageAddress, const FAutomationWorkerFindWorkersResponse& Message, const uint32 GroupFlags);
 
 	/** Remove a device (went offline, etc) */
 	void Remove(const FMessageAddress& MessageAddress);
@@ -38,9 +39,13 @@ public:
 	/** Returns the number of active devices in of a particular device type */
 	int32 GetNumActiveDevicesInCluster(const int32 ClusterIndex) const;
 
+	/** Returns the name of the cluster group */
+	FString GetClusterGroupName(const int32 ClusterIndex) const;
+
 	/** Returns the name of the devices within this cluster */
 	FString GetClusterDeviceType (const int32 ClusterIndex) const;
 
+	/** Returns the name of a device within a cluster */
 	FString GetClusterDeviceName(const int32 ClusterIndex, const int32 DeviceIndex) const;
 
 	/** 
@@ -118,17 +123,30 @@ public:
 	 */
 	bool HasActiveDevice();
 
+	/**
+	 * Regroups the device clusters based off the current group flags
+	 */
+	void ReGroupDevices( const uint32 GroupFlags );
+
 private:
 
 	/** per actual device, the network address and current test being run */
 	class FDeviceState
 	{
 	public:
-		FDeviceState(FMessageAddress NewMessageAddress, const FString InGameInstanceName )
+		FDeviceState(FMessageAddress NewMessageAddress, const FAutomationWorkerFindWorkersResponse& Message )
 		{
 			DeviceMessageAddress = NewMessageAddress;
+			DeviceName = Message.DeviceName;
+			PlatformName = Message.Platform;
+			OSVersionName = Message.OSVersionName;
+			ModelName = Message.ModelName;
+			GPUName = Message.GPUName;
+			CPUModelName = Message.CPUModelName;
+			RAMInGB = Message.RAMInGB;
+			RenderModeName = Message.RenderModeName;
 			Report.Reset();
-			GameInstanceName = InGameInstanceName;
+			GameInstanceName = Message.InstanceName;
 			IsDeviceAvailable = true;
 		}
 
@@ -137,6 +155,30 @@ private:
 
 		/** The instance name */
 		FString GameInstanceName;
+
+		/** The name of device */
+		FString DeviceName;
+
+		/** The name of the platform */
+		FString PlatformName;
+
+		/** The name of the operating system version */
+		FString OSVersionName;
+
+		/** The name of the device model */
+		FString ModelName;
+
+		/** The name of the GPU */
+		FString GPUName;
+
+		/** The name of the CPU model */
+		FString CPUModelName;
+
+		/** The amount of RAM this device has in gigabytes */
+		uint32 RAMInGB;
+
+		/** The name of the current render mode */
+		FString RenderModeName;
 
 		/** NULL if this device is available to do work*/
 		TSharedPtr <IAutomationReport> Report;
@@ -149,12 +191,20 @@ private:
 	class FDeviceCluster
 	{
 	public:
+		/** Name of the Cluster */
+		FString ClusterName;
+
 		/** Name of the platform */
 		FString DeviceTypeName;
 
 		/** Guids/state for each device of this type */
 		TArray <FDeviceState> Devices;
 	};
+
+	/**
+	 * Generates a group name based off the device info and current group flags
+	 */
+	FString GetGroupNameForDevice(const FDeviceState& DeviceState, const uint32 DeviceGroupFlags);
 
 	/** Array of all clusters */
 	TArray <FDeviceCluster> Clusters;

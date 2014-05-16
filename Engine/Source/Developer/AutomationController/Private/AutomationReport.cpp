@@ -268,6 +268,40 @@ TArray<TSharedPtr<IAutomationReport> >& FAutomationReport::GetChildReports()
 	return ChildReports;
 }
 
+void FAutomationReport::ClustersUpdated(const int32 NumClusters)
+{
+	TestInfo.ResetNumDevicesRunningTest();
+
+	//Fixup Support flags
+	SupportFlags = 0;
+	for (int32 i = 0; i <= NumClusters; ++i)
+	{
+		SupportFlags |= (1<<i);
+	}
+
+	//Fixup Results array
+	if( NumClusters > Results.Num() )
+	{
+		for( int32 ClusterIndex = Results.Num(); ClusterIndex < NumClusters; ++ClusterIndex )
+		{
+			//Make sure we have enough results for a single pass
+			TArray<FAutomationTestResults> AutomationTestResult;
+			AutomationTestResult.Add( FAutomationTestResults() );
+			Results.Add( AutomationTestResult );
+		}
+	}
+	else if( NumClusters > Results.Num() )
+	{
+		Results.RemoveAt(NumClusters, Results.Num() - NumClusters);
+	}
+
+	//recurse to children
+	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
+	{
+		ChildReports[ChildIndex]->ClustersUpdated(NumClusters);
+	}
+}
+
 void FAutomationReport::ResetForExecution(const int32 NumTestPasses)
 {
 	TestInfo.ResetNumDevicesRunningTest();

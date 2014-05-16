@@ -51,7 +51,7 @@ public:
 		bRequestFullScreenScreenshots = bNewValue;
 	}
 
-	virtual bool AreScreenshotsEnabled() const OVERRIDE
+	virtual bool IsScreenshotAllowed() const OVERRIDE
 	{
 		return bScreenshotsEnabled;
 	}
@@ -79,6 +79,11 @@ public:
 	virtual int32 GetNumDevicesInCluster(const int32 ClusterIndex) const OVERRIDE
 	{
 		return DeviceClusterManager.GetNumDevicesInCluster(ClusterIndex);
+	}
+
+	virtual FString GetClusterGroupName(const int32 ClusterIndex) const OVERRIDE
+	{
+		return DeviceClusterManager.GetClusterGroupName(ClusterIndex);
 	}
 
 	virtual FString GetDeviceTypeName(const int32 ClusterIndex) const OVERRIDE
@@ -186,6 +191,16 @@ public:
 		return TestsRefreshedDelegate;
 	}
 
+	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const;
+
+	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup );
+
+	void UpdateDeviceGroups();
+
+	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) OVERRIDE
+	{
+		TestsCompleteDelegate = NewCallback;
+	}
 	// End IAutomationController Interface
 
 
@@ -253,7 +268,6 @@ protected:
 	 */
 	void UpdateTests();
 
-
 private:
 
 	// Handles FAutomationWorkerFindWorkersResponse messages.
@@ -279,12 +293,14 @@ private:
 
 
 private:
-
 	/** Session this controller is currently communicating with */
 	FGuid ActiveSessionId;
 
 	/** The automation test state */
 	EAutomationControllerModuleState::Type AutomationTestState;
+
+	/** Which grouping flags are enabled */
+	uint32 DeviceGroupFlags;
 
 	/** Whether to include developer content in the automation tests */
 	bool bDeveloperDirectoryIncluded;
@@ -375,4 +391,7 @@ private:
 
 	// Holds a delegate that is invoked when the controller's tests are being refreshed.
 	FOnAutomationControllerTestsRefreshed TestsRefreshedDelegate;
+
+	// Holds a delegate that is invoked when the tests have completed
+	FOnAutomationControllerTestsComplete TestsCompleteDelegate;
 };

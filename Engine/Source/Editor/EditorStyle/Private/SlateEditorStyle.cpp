@@ -4930,6 +4930,10 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "Automation.Error"  , FTextBlockStyle(NormalText)
 			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
 			.SetColorAndOpacity(FLinearColor(FColor(0xffff0000))) );
+
+		Set( "Automation.ReportHeader" , FTextBlockStyle(NormalText)
+			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 10 ) )
+			.SetColorAndOpacity(FLinearColor(FColor(0xffffffff))) );
 		
 		//state of individual tests
 		Set( "Automation.Success", new IMAGE_BRUSH( "Automation/Success", Icon16x16 ) );
@@ -4966,6 +4970,10 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "AutomationWindow.SmokeTestFilter.Small", new IMAGE_BRUSH( "Automation/SmokeTestFilter", Icon20x20) );
 		Set( "AutomationWindow.DeveloperDirectoryContent.Small", new IMAGE_BRUSH( "Automation/DeveloperDirectoryContent", Icon20x20) );
 		Set( "AutomationWindow.VisualCommandlet.Small", new IMAGE_BRUSH( "Automation/VisualCommandlet", Icon20x20) );
+
+		//device group settings
+		Set( "AutomationWindow.GroupSettings", new IMAGE_BRUSH( "Automation/Groups", Icon40x40) );
+		Set( "AutomationWindow.GroupSettings.Small", new IMAGE_BRUSH( "Automation/Groups", Icon20x20) );
 
 		//test preset icons
 		Set( "AutomationWindow.PresetNew", new IMAGE_BRUSH( "Icons/icon_add_40x", Icon16x16 ) );

@@ -19,6 +19,7 @@
 #if WITH_ENGINE
 	#include "Engine.h"
 	#include "ImageUtils.h"
+	#include "AutomationCommon.h"
 #endif
 
 /* Private includes

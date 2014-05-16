@@ -203,6 +203,9 @@ public:
 	/** Returns the array of child reports */
 	virtual TArray<TSharedPtr<IAutomationReport> >& GetChildReports() = 0;
 
+	/** Updates the report when the number of clusters changes */
+	virtual void ClustersUpdated(const int32 NumClusters) = 0;
+
 	/** 
 	 * Recursively resets the report to "needs to be run", clears cached warnings and errors
 	 * @param NumTestPasses - The number of test passes so we know how many results to create

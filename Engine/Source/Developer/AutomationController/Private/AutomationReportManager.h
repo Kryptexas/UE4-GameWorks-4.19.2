@@ -19,6 +19,9 @@ public:
 	/** Clears out all reports */
 	void Empty();
 
+	/** Updates the automation reports when the number of clusters changes */
+	void ClustersUpdated( const int32 NumClusters );
+
 	/** 
 	 * Resets for the next run of tests 
 	 * @param NumTestPasses - The number of test results to store

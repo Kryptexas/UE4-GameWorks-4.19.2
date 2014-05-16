@@ -157,6 +157,15 @@ private:
 	static TSharedRef< SWidget >GenerateTestsOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow );
 	TSharedRef< SWidget > GenerateTestsOptionsMenuContent( );
 
+	
+	/**
+	 * Static: Creates the group flag options menu widget
+	 *
+	 * @return	New widget
+	 */
+	static TSharedRef< SWidget >GenerateGroupOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow );
+	TSharedRef< SWidget > GenerateGroupOptionsMenuContent( );
+
 	/**
 	 * Creates a combo item for the preset list
 	 *
@@ -242,6 +251,11 @@ private:
 
 	/** Returns if the full size screenshots option is enabled */
 	bool IsFullSizeScreenshotsOptionEnabled() const;
+
+	/** Returns if a device group is enabled */
+	ESlateCheckBoxState::Type IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const;
+	/** Toggles a device group flag */
+	void HandleDeviceGroupCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState, const int32 DeviceGroupFlag);
 	
 	/** Sets the number of times to repeat the tests */
 	void OnChangeRepeatCount(int32 InNewValue);
@@ -418,6 +432,26 @@ private:
 	*/
 	void HandleLogListSelectionChanged( TSharedPtr<FAutomationOutputMessage> InItem, ESelectInfo::Type SelectInfo );
 
+	/**
+	* Gets the visibility of the test log window
+	*/
+	EVisibility GetTestLogVisibility( ) const;
+
+	/**
+	* Gets the visibility of the graphical test result window
+	*/
+	EVisibility GetTestGraphVisibility( ) const;
+
+	/**
+	* Handles changing the display type for the graphical results window
+	*/
+	void HandleResultDisplayTypeStateChanged( ESlateCheckBoxState::Type NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType );
+
+	/**
+	* Handles checking if a display type is active for the graphical results window
+	*/
+	ESlateCheckBoxState::Type HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const;
+
 	/** 
 	 * Gets the visibility for the throbber
 	 *
@@ -449,7 +483,7 @@ private:
 	TSharedPtr< SCheckBox > HeaderCheckbox;
 
 	// The list of all valid tests.
-	TSharedPtr< STreeView< TSharedPtr< IAutomationReport > > > TestTable;
+	TSharedPtr< SAutomationTestTreeView< TSharedPtr< IAutomationReport > > > TestTable;
 	
 	// Widget for header platform icons.
 	TSharedPtr< SHorizontalBox > PlatformsHBox;
@@ -462,6 +496,9 @@ private:
 
 	// Holds the widget to display log messages
 	TSharedPtr<SListView<TSharedPtr<FAutomationOutputMessage> > > LogListView;
+
+	// Holds the widget to display a graph of the results
+	TSharedPtr< SAutomationGraphicalResultBox > GraphicalResultBox;
 
 	// Holds the collection of log messages.
 	TArray<TSharedPtr<FAutomationOutputMessage> > LogMessages;
@@ -484,6 +521,9 @@ private:
 
 	// Flag to acknowledge if the window is awaiting tests to display
 	bool bIsRequestingTests;
+
+	// Flag to tell if we have a child test selected in the test tree */
+	bool bHasChildTestSelected;
 
 	// Which type of window style to use for the test background
 	EAutomationTestBackgroundStyle::Type TestBackgroundType;

@@ -98,6 +98,42 @@ struct FAutomationWorkerFindWorkersResponse
 	FString Platform;
 
 	/**
+	 * Holds the name of the operating system version.
+	 */
+	UPROPERTY()
+	FString OSVersionName;
+
+	/**
+	 * Holds the name of the device model.
+	 */
+	UPROPERTY()
+	FString ModelName;
+
+	/**
+	 * Holds the name of the GPU.
+	 */
+	UPROPERTY()
+	FString GPUName;
+
+	/**
+	 * Holds the name of the CPU model.
+	 */
+	UPROPERTY()
+	FString CPUModelName;
+
+	/**
+	 * Holds the amount of RAM this device has in gigabytes.
+	 */
+	UPROPERTY()
+	uint32 RAMInGB;
+
+	/**
+	 * Holds the name of the current render mode.
+	 */
+	UPROPERTY()
+	FString RenderModeName;
+
+	/**
 	 * Holds the worker's application session identifier.
 	 */
 	UPROPERTY()
@@ -108,16 +144,6 @@ struct FAutomationWorkerFindWorkersResponse
 	 * Default constructor.
 	 */
 	FAutomationWorkerFindWorkersResponse( ) { }
-
-	/**
-	 * Creates and initializes a new instance.
-	 */
-	FAutomationWorkerFindWorkersResponse( const FString& InDeviceName, const FString& InInstanceName, const FString& InPlatform, const FGuid& InSessionId )
-		: DeviceName(InDeviceName)
-		, InstanceName(InInstanceName)
-		, Platform(InPlatform)
-		, SessionId(InSessionId)
-	{ }
 };
 
 template<>

@@ -874,7 +874,7 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
 
-	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().AreScreenshotsEnabled();
+	const bool bTakeScreenshots = FAutomationTestFramework::GetInstance().IsScreenshotAllowed();
 	if( bTakeScreenshots )
 	{
 		//Find the main editor window

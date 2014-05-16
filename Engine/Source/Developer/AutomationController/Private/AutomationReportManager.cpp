@@ -21,6 +21,10 @@ void FAutomationReportManager::Empty()
 	ReportRoot->Empty();
 }
 
+void FAutomationReportManager::ClustersUpdated( const int32 NumClusters )
+{
+	ReportRoot->ClustersUpdated(NumClusters);
+}
 
 void FAutomationReportManager::ResetForExecution(const int32 NumTestPasses)
 {

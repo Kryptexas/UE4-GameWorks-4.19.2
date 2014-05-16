@@ -82,6 +82,8 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	TestPresetManager->LoadPresets();
 	bAddingTestPreset = false;
 
+	bHasChildTestSelected = false;
+
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
 
@@ -105,7 +107,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	//make the widget for platforms
 	PlatformsHBox = SNew (SHorizontalBox);
 
-	TestTable = SNew(STreeView< TSharedPtr< IAutomationReport > >)
+	TestTable = SNew(SAutomationTestTreeView< TSharedPtr< IAutomationReport > >)
 		.SelectionMode(ESelectionMode::Multi)
 		.TreeItemsSource( &TestReports )
 		// Generates the actual widget for a tree item
@@ -235,41 +237,121 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 			+SSplitter::Slot()
 			.Value(0.33f)
 			[
-				//results panel
-				SNew( SVerticalBox )
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SOverlay)
+				+SOverlay::Slot()
 				[
-					SNew( STextBlock )
-						.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
-				]
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-				[
-					//list of results for the selected test
-					SNew(SBorder)
+					SNew(SBox)
+					.Visibility(this, &SAutomationWindow::GetTestGraphVisibility)
 					[
-						SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
-						.ItemHeight(18)
-						.ListItemsSource(&LogMessages)
-						.SelectionMode(ESelectionMode::Multi)
-						.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
-						.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+						//Graphical Results Panel
+						SNew( SVerticalBox )
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							[
+								SNew(STextBlock)
+								.Text( LOCTEXT("AutomationTest_GraphicalResults", "Automation Test Graphical Results:"))
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Text( LOCTEXT("AutomationTest_GraphicalResults", "Display:"))
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(SCheckBox)
+								.Style(FCoreStyle::Get(), "RadioButton")
+								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayName)
+								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayName)
+								[
+									SNew(STextBlock)
+									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayName", "Name"))
+								]
+							]
+
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Right)
+							.AutoWidth()
+							[
+								SNew(SCheckBox)
+								.Style(FCoreStyle::Get(), "RadioButton")
+								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayTime)
+								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayTime)
+								[
+									SNew(STextBlock)
+									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayTime", "Time"))
+								]
+							]
+						]
+
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						[
+							SNew(SBorder)
+							[
+								SNew(SScrollBox)
+								+ SScrollBox::Slot()
+								[
+									SAssignNew(GraphicalResultBox, SAutomationGraphicalResultBox, InAutomationController)
+								]
+							]
+						]
 					]
 				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+
+				+SOverlay::Slot()
 				[
-					SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						.Padding(FMargin(8.0f, 6.0f))
+					SNew(SBox)
+					.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
+					[
+						//results panel
+						SNew( SVerticalBox )
+						+SVerticalBox::Slot()
+						.AutoHeight()
 						[
-							// Add the command bar
-							SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
-							.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+							SNew( STextBlock )
+							.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
 						]
+
+						+SVerticalBox::Slot()
+						.FillHeight(1.0f)
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							//list of results for the selected test
+							SNew(SBorder)
+							[
+								SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
+								.ItemHeight(18)
+								.ListItemsSource(&LogMessages)
+								.SelectionMode(ESelectionMode::Multi)
+								.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
+								.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+							]
+						]
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							.Padding(FMargin(8.0f, 6.0f))
+							[
+								// Add the command bar
+								SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
+								.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+							]
+						]
+					]
 				]
 			]
 		]
@@ -303,6 +385,22 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	FindWorkers();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+void SAutomationWindow::HandleResultDisplayTypeStateChanged( ESlateCheckBoxState::Type NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType)
+{
+	if (NewRadioState == ESlateCheckBoxState::Checked)
+	{
+		GraphicalResultBox->SetDisplayType(NewDisplayType);
+	}
+}
+
+ESlateCheckBoxState::Type SAutomationWindow::HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const
+{
+	return (GraphicalResultBox->GetDisplayType() == InDisplayType)
+		? ESlateCheckBoxState::Checked
+		: ESlateCheckBoxState::Unchecked;
+}
 
 const FSlateBrush* SAutomationWindow::GetTestBackgroundBorderImage() const
 {
@@ -403,6 +501,16 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().SmokeTestFilter );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().DeveloperDirectoryContent );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().VisualCommandlet );
+			}
+			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("GroupFlags");
+			{
+				ToolbarBuilder.AddComboButton(
+					FUIAction(),
+					FOnGetContent::CreateStatic( &SAutomationWindow::GenerateGroupOptionsMenuContent, InAutomationWindow ),
+					LOCTEXT( "GroupOptions_Label", "Device Groups" ),
+					LOCTEXT( "GroupOptionsToolTip", "Device Group Options" ),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.GroupSettings"));
 			}
 			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("Search");
@@ -747,6 +855,73 @@ TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutom
 		.Text( InItem->GetPresetName() );
 }
 
+TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
+{
+	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
+	if( AutomationWindow.IsValid() )
+	{
+		return AutomationWindow->GenerateGroupOptionsMenuContent();
+	}
+
+	//Return empty menu
+	FMenuBuilder MenuBuilder( true, NULL );
+	MenuBuilder.BeginSection("AutomationWindowGroupOptions", LOCTEXT("GroupOptions", "Device Group Options"));
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( )
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, AutomationWindowActions );
+	const uint32 NumFlags = EAutomationDeviceGroupTypes::Max;
+	TSharedPtr<SWidget> FlagWidgets[NumFlags];
+	for( int32 i=0; i<NumFlags; i++ )
+	{
+		FlagWidgets[i] = 
+			SNew(SCheckBox)
+			.IsChecked(this, &SAutomationWindow::IsDeviceGroupCheckBoxIsChecked, i)
+			.OnCheckStateChanged(this, &SAutomationWindow::HandleDeviceGroupCheckStateChanged, i)
+			.Padding(FMargin(4.0f, 0.0f))
+			.ToolTipText(EAutomationDeviceGroupTypes::ToDescription((EAutomationDeviceGroupTypes::Type)i))
+			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(EAutomationDeviceGroupTypes::ToName((EAutomationDeviceGroupTypes::Type)i))
+			];
+	}
+
+	MenuBuilder.BeginSection("AutomationWindowGroupDevices", LOCTEXT("GroupOptions", "Group Types"));
+	{
+		for( int32 i=0; i<NumFlags;i++ )
+		{
+			MenuBuilder.AddWidget(FlagWidgets[i].ToSharedRef(),FText::GetEmpty());
+		}
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+/** Returns if full size screen shots are enabled */
+ESlateCheckBoxState::Type SAutomationWindow::IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const
+{
+	return AutomationController->IsDeviceGroupFlagSet((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+/** Toggles if we are collecting full size screenshots */
+void SAutomationWindow::HandleDeviceGroupCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState, const int32 DeviceGroupFlag)
+{
+	//Update the device groups
+	AutomationController->ToggleDeviceGroupFlag((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag);
+	AutomationController->UpdateDeviceGroups();
+	
+	//Update header
+	RebuildPlatformIcons();
+
+	//Need to force the tree to do a full refresh here because the reports have changed but the tree will keep using cached data.
+	TestTable->ReCreateTreeView();
+}
+
 TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
 {
 	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
@@ -848,7 +1023,7 @@ void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateChec
 
 ESlateCheckBoxState::Type SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
 {
-	return AutomationController->AreScreenshotsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return AutomationController->IsScreenshotAllowed() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
@@ -858,7 +1033,7 @@ void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckB
 
 bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
 {
-	return AutomationController->AreScreenshotsEnabled() && IsAutomationControllerIdle();
+	return AutomationController->IsScreenshotAllowed() && IsAutomationControllerIdle();
 }
 
 // Only valid in the editor
@@ -902,8 +1077,14 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 	//empty the previous log
 	LogMessages.Empty();
 
+	bHasChildTestSelected = false;
+
 	if (Selection.IsValid())
 	{
+		if( Selection->GetTotalNumChildren() == 0 )
+		{
+			bHasChildTestSelected = true;
+		}
 		//accumulate results for each device cluster that supports the test
 		int32 NumClusters = AutomationController->GetNumDeviceClusters();
 		for (int32 ClusterIndex = 0; ClusterIndex < NumClusters; ++ClusterIndex)
@@ -911,7 +1092,7 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 			//no sense displaying device name if only one is available
 			if (NumClusters > 1)
 			{
-				FString DeviceTypeName = AutomationController->GetDeviceTypeName(ClusterIndex);
+				FString DeviceTypeName = AutomationController->GetClusterGroupName(ClusterIndex) + TEXT("  -  ") + Selection->GetGameInstanceName(ClusterIndex);
 				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(DeviceTypeName, TEXT("Automation.Header"))));
 			}
 
@@ -949,9 +1130,23 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TEXT(""), TEXT("Log.Normal"))));
 			}
 		}
-		//rebuild UI
-		LogListView->RequestListRefresh();
 	}
+
+	//rebuild UI
+	LogListView->RequestListRefresh();
+}
+
+
+EVisibility SAutomationWindow::GetTestLogVisibility( ) const
+{
+	return (GetTestGraphVisibility() == EVisibility::Visible) ? EVisibility::Hidden : EVisibility::Visible;
+}
+
+
+EVisibility SAutomationWindow::GetTestGraphVisibility( ) const
+{
+	//Show the graphical window if we don't have a child test selected and we have results to view
+	return (!bHasChildTestSelected && GraphicalResultBox->HasResults()) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 
@@ -1013,12 +1208,20 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 FText SAutomationWindow::CreateDeviceTooltip(int32 ClusterIndex)
 {
 	FTextBuilder ReportBuilder;
+
+	const int32 NumClusters = AutomationController->GetNumDeviceClusters();
+	if( NumClusters > 1 )
+	{
+		ReportBuilder.AppendLine(LOCTEXT("ToolTipClusterName", "Cluster Name:"));
+		ReportBuilder.AppendLine(AutomationController->GetClusterGroupName(ClusterIndex));
+	}
+
 	ReportBuilder.AppendLine(LOCTEXT("ToolTipGameInstances", "Game Instances:"));
 
 	int32 NumDevices = AutomationController->GetNumDevicesInCluster( ClusterIndex );
 	for ( int32 DeviceIndex = 0; DeviceIndex < NumDevices; ++DeviceIndex )
 	{
-		ReportBuilder.AppendLine(AutomationController->GetGameInstanceName(ClusterIndex, DeviceIndex));
+		ReportBuilder.AppendLine(AutomationController->GetGameInstanceName(ClusterIndex, DeviceIndex).LeftPad(2));
 	}
 
 	return ReportBuilder.ToText();
@@ -1219,6 +1422,9 @@ FReply SAutomationWindow::RunTests()
 
 	LogMessages.Empty();
 	LogListView->RequestListRefresh();
+
+	//Clear old results
+	GraphicalResultBox->ClearResults();
 
 	return FReply::Handled();
 }

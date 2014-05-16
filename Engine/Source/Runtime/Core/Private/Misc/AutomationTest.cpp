@@ -447,7 +447,7 @@ void FAutomationTestFramework::SetScreenshotOptions( const bool bInScreenshotsEn
 	bUseFullSizeScreenShots = bInUseFullSizeScreenshots;
 }
 
-bool FAutomationTestFramework::AreScreenshotsEnabled() const
+bool FAutomationTestFramework::IsScreenshotAllowed() const
 {
 	return bScreenshotsEnabled;
 }

@@ -24,6 +24,8 @@
  *****************************************************************************/
 
 #include "SAutomationWindowCommandBar.h"
+#include "SAutomationGraphicalResultBox.h"
+#include "SAutomationTestTreeView.h"
 #include "SAutomationExportMenu.h"
 #include "AutomationFilter.h"
 #include "AutomationPresetManager.h"

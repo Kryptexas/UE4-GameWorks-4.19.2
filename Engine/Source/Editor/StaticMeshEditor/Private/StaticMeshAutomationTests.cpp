@@ -203,7 +203,7 @@ bool FStaticMeshEditorTest::RunTest(const FString& Parameters)
 
 		//Wait for the window to load and then take the initial screen shot		
 		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-		if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+		if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
 		{
 			AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, false);
 			ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(WindowParameters));
@@ -218,7 +218,7 @@ bool FStaticMeshEditorTest::RunTest(const FString& Parameters)
 			ADD_LATENT_AUTOMATION_COMMAND(EditorViewButtonHelper::FPerformStaticMeshFlagToggle(AutomationParameters));
 			ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
-			if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+			if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
 			{
 				//Take the screenshot
 				AutomationCommon::GetScreenshotPath(TestName, WindowParameters.ScreenshotName, false);

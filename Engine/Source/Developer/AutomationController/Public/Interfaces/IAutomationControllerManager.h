@@ -86,6 +86,56 @@ namespace EFileExportType
 
 };
 
+namespace EAutomationDeviceGroupTypes
+{
+	enum Type
+	{
+		MachineName,	// Group by machine name
+		Platform,		// Group by platform
+		OSVersion,		// Group by operating system version
+		Model,			// Group by machine model
+		GPU,			// Group by GPU
+		CPUModel,		// Group by CPU Model
+		RamInGB,		// Group by RAM in gigabytes
+		RenderMode,		// Group by RenderMode (D3D11_SM5, OpenGL_SM4, etc)
+		Max
+	};
+
+	static FText ToName( const Type DeviceGroupType )
+	{
+		switch( DeviceGroupType )
+		{
+		case MachineName:	return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_MachineName", "Machine Name");
+		case Platform:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_Platform", "Platform");
+		case OSVersion:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_OSVersion", "OS Version");
+		case Model:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_Model", "Model");
+		case GPU:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_GPU", "GPU");
+		case CPUModel:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_CPUModel", "CPU Model");
+		case RamInGB:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_RAM", "RAM in GB");
+		case RenderMode:	return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_RenderMode", "Render Mode");
+
+		default:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_InvalidOrMax", "InvalidOrMax");
+		}
+	}
+
+	static FText ToDescription(const Type DeviceGroupType)
+	{
+		switch( DeviceGroupType )
+		{
+		case MachineName:	return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_MachineName", "Group devices based off their machine name");
+		case Platform:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_Platform", "Group devices based off their platform");
+		case OSVersion:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_OSVersion", "Group devices based off their OS version");
+		case Model:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_Model", "Group devices based off their device model");
+		case GPU:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_GPU", "Group devices based off their GPU");
+		case CPUModel:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_CPUModel", "Group devices based off their CPU model");
+		case RamInGB:		return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_RAM", "Group devices based off memory (in GB)");
+		case RenderMode:	return NSLOCTEXT("AutomationTest", "AutomationDeviceGroupTip_RenderMode", "Group devices based off the current render mode");
+
+		default:			return NSLOCTEXT("AutomationTest", "AutomationDeviceGroup_InvalidOrMax", "InvalidOrMax");
+		}
+	}
+}
+
 
 /** Console command delegate type (takes no arguments.)  This is a void callback function. */
 DECLARE_DELEGATE(FOnAutomationControllerTestsRefreshed);
@@ -95,6 +145,9 @@ DECLARE_DELEGATE_OneParam(FOnAutomationControllerManagerTestsAvailable, EAutomat
 
 /** Delegate to call when the automation controller is shutdown. */
 DECLARE_DELEGATE(FOnAutomationControllerManagerShutdown);
+
+/** Delegate to call when the tests are complete. */
+DECLARE_DELEGATE(FOnAutomationControllerTestsComplete);
 
 
 /**
@@ -163,9 +216,9 @@ public:
 	virtual void SetUsingFullSizeScreenshots(const  bool bNewValue ) = 0;
 
 	/**
-	 * Returns if screenshots are enabled
+	 * Returns if screenshots are allowed
 	 */
-	virtual bool AreScreenshotsEnabled() const = 0;
+	virtual bool IsScreenshotAllowed() const = 0;
 
 	/**
 	 * Sets if screenshots are enabled
@@ -191,6 +244,11 @@ public:
 	 * Get num devices in specified cluster.
 	 */
 	virtual int32 GetNumDevicesInCluster(const int32 ClusterIndex) const = 0;
+
+	/**
+	 * Get the group name of the specified cluster.
+	 */
+	virtual FString GetClusterGroupName(const int32 ClusterIndex) const =0;
 
 	/**
 	 * Get name of a particular device cluster.
@@ -322,7 +380,25 @@ public:
 	 */
 	virtual void Startup() = 0;
 
+	/**
+	 * Checks if a device group flag is set.
+	 */
+	virtual bool IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const = 0;
 
+	/**
+	 * Toggles a device group flag.
+	 */
+	virtual void ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup ) = 0;
+
+	/**
+	 * Updates the clusters when the device grouping changes.
+	 */
+	virtual void UpdateDeviceGroups( ) = 0;
+
+	/**
+	 * Sets the test complete callback delegate.
+	 */
+	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) = 0;
 public:
 
 	/**

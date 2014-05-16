@@ -38,6 +38,7 @@ namespace UnrealBuildTool.Rules
 			if (UEBuildConfiguration.bCompileAgainstEngine)
 			{
 				PrivateDependencyModuleNames.Add("Engine");
+				PrivateDependencyModuleNames.Add("RHI");
 			}
 		}
 	}

@@ -249,7 +249,30 @@ void FAutomationWorkerModule::HandleFindWorkersMessage( const FAutomationWorkerF
 
 	if ((Message.SessionId == FApp::GetSessionId()) && (Message.Changelist == 10000))
 	{
-		MessageEndpoint->Send(new FAutomationWorkerFindWorkersResponse(FPlatformProcess::ComputerName(), InstanceName, FPlatformProperties::PlatformName(), Message.SessionId), Context->GetSender());
+		FAutomationWorkerFindWorkersResponse* Response = new FAutomationWorkerFindWorkersResponse();
+
+		FString OSMajorVersionString, OSSubVersionString;
+		FPlatformMisc::GetOSVersions( OSMajorVersionString, OSSubVersionString );
+
+		FString OSVersionString = OSMajorVersionString + TEXT(" ") + OSSubVersionString;
+		FString CPUModelString = FPlatformMisc::GetCPUBrand().Trim();
+
+		Response->DeviceName = FPlatformProcess::ComputerName();
+		Response->InstanceName = InstanceName;
+		Response->Platform = FPlatformProperties::PlatformName();
+		Response->SessionId = Message.SessionId;
+		Response->OSVersionName = OSVersionString;
+		Response->ModelName = FPlatformMisc::GetDefaultDeviceProfileName();
+		Response->GPUName = FPlatformMisc::GetPrimaryGPUBrand();
+		Response->CPUModelName = CPUModelString;
+		Response->RAMInGB = FPlatformMemory::GetPhysicalGBRam();
+#if WITH_ENGINE
+		Response->RenderModeName = AutomationCommon::GetRenderDetailsString();
+#else
+		Response->RenderModeName = TEXT("Unknown");
+#endif
+
+		MessageEndpoint->Send(Response, Context->GetSender());
 	}
 }
 
@@ -290,7 +313,7 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 #if WITH_ENGINE
 void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName )
 {
-	if( FAutomationTestFramework::GetInstance().AreScreenshotsEnabled() )
+	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
 	{
 		int32 NewHeight = Height;
 		int32 NewWidth = Width;

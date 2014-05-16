@@ -511,9 +511,9 @@ public:
 	void SetScreenshotOptions( const bool bInScreenshotsEnabled, const bool bInUseFullSizeScreenshots );
 
 	/**
-	 * Gets if screenshots are enabled
+	 * Gets if screenshots are allowed
 	 */
-	bool AreScreenshotsEnabled() const;
+	bool IsScreenshotAllowed() const;
 
 	/**
 	 * Gets if we are using fulll size screenshots

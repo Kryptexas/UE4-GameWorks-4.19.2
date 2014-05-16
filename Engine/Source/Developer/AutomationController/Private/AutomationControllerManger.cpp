@@ -160,6 +160,9 @@ void FAutomationControllerManager::ProcessAvailableTasks()
 				if ( ClusterDistributionMask == 0 )
 				{
 					ProcessResults();
+
+					//Notify the graphical layout we are done processing results.
+					TestsCompleteDelegate.ExecuteIfBound();
 				}
 			}
 		}
@@ -288,6 +291,10 @@ void FAutomationControllerManager::Startup()
 
 	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
+
+	//Default to machine name
+	DeviceGroupFlags = 0;
+	ToggleDeviceGroupFlag(EAutomationDeviceGroupTypes::MachineName);
 }
 
 
@@ -304,6 +311,7 @@ void FAutomationControllerManager::RemoveCallbacks()
 	ShutdownDelegate.Unbind();
 	TestsAvailableDelegate.Unbind();
 	TestsRefreshedDelegate.Unbind();
+	TestsCompleteDelegate.Unbind();
 }
 
 
@@ -531,7 +539,6 @@ bool FAutomationControllerManager::IsTestRunnable( IAutomationReportPtr InReport
 	return bIsRunnable;
 }
 
-
 /* FAutomationControllerModule callbacks
  *****************************************************************************/
 
@@ -539,7 +546,7 @@ void FAutomationControllerManager::HandleFindWorkersResponseMessage( const FAuto
 {
 	if (Message.SessionId == ActiveSessionId)
 	{
-		DeviceClusterManager.Add(Context->GetSender(), Message.Platform, Message.InstanceName);
+		DeviceClusterManager.AddDeviceFromMessage(Context->GetSender(), Message, DeviceGroupFlags);
 	}
 
 	RequestTests();
@@ -653,4 +660,25 @@ void FAutomationControllerManager::HandleWorkerOfflineMessage( const FAutomation
 {
 	FMessageAddress DeviceMessageAddress = Context->GetSender();
 	DeviceClusterManager.Remove(DeviceMessageAddress);
+}
+
+bool FAutomationControllerManager::IsDeviceGroupFlagSet( EAutomationDeviceGroupTypes::Type InDeviceGroup ) const
+{
+	const uint32 FlagMask = 1 << InDeviceGroup;
+	return (DeviceGroupFlags & FlagMask) > 0;
+}
+
+void FAutomationControllerManager::ToggleDeviceGroupFlag( EAutomationDeviceGroupTypes::Type InDeviceGroup )
+{
+	const uint32 FlagMask = 1 << InDeviceGroup;
+	DeviceGroupFlags = DeviceGroupFlags ^ FlagMask;
+}
+
+void FAutomationControllerManager::UpdateDeviceGroups( )
+{
+	DeviceClusterManager.ReGroupDevices( DeviceGroupFlags );
+
+	// Update the reports in case the number of clusters changed
+	int32 NumOfClusters = DeviceClusterManager.GetNumClusters();
+	ReportManager.ClustersUpdated(NumOfClusters);
 }
