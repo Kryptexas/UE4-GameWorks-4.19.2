@@ -384,6 +384,22 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 				Search = Search->GetOuter();
 			} while (Search && !Obj->HasAllMarks(ObjectMarks));
 
+			{
+				bool bNeedsLoadForEditorGame = false;
+				for (UObject* OuterIt = Obj; OuterIt; OuterIt = OuterIt->GetOuter())
+				{
+					if (OuterIt->NeedsLoadForEditorGame())
+					{
+						bNeedsLoadForEditorGame = true;
+						break;
+					}
+				}
+				if (!bNeedsLoadForEditorGame)
+				{
+					Obj->Mark(OBJECTMARK_NotForEditorGame);
+				}
+			}
+
 			// skip these checks if the Template object is the CDO for an intrinsic class, as they will never have any load flags set.
 			if ( Template != NULL 
 			&& (!Template->GetClass()->HasAnyClassFlags(CLASS_Intrinsic) || !Template->HasAnyFlags(RF_ClassDefaultObject)) )

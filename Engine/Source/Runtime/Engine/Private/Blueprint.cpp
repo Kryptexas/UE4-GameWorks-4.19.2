@@ -784,6 +784,10 @@ bool UBlueprint::NeedsLoadForServer() const
 	return !Helper.bDontLoad;
 }
 
+bool UBlueprint::NeedsLoadForEditorGame() const
+{
+	return true;
+}
 
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {

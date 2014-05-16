@@ -494,6 +494,7 @@ public:
 	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
 	virtual bool NeedsLoadForClient() const OVERRIDE;
 	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual bool NeedsLoadForEditorGame() const OVERRIDE;
 	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */

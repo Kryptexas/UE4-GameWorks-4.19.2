@@ -43,6 +43,7 @@ FObjectExport::FObjectExport()
 ,	bNotForClient	( false														)
 ,	bNotForServer	( false														)
 ,	PackageGuid		( FGuid(0,0,0,0)											)
+,	bNotForEditorGame	(true													)
 {}
 
 FObjectExport::FObjectExport( UObject* InObject )
@@ -60,11 +61,13 @@ FObjectExport::FObjectExport( UObject* InObject )
 ,	bNotForServer	( false														)
 ,	PackageGuid		( FGuid(0,0,0,0)											)
 ,	PackageFlags	( 0															)
+,	bNotForEditorGame	(true													)
 {
 	if(Object)		
 	{
 		bNotForClient = Object->HasAnyMarks(OBJECTMARK_NotForClient);
 		bNotForServer = Object->HasAnyMarks(OBJECTMARK_NotForServer);
+		bNotForEditorGame = Object->HasAnyMarks(OBJECTMARK_NotForEditorGame);
 	}
 }
 
@@ -102,6 +105,11 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	}
 	Ar << E.PackageGuid;
 	Ar << E.PackageFlags;
+
+	if (Ar.UE4Ver() >= VER_UE4_LOAD_FOR_EDITOR_GAME)
+	{
+		Ar << E.bNotForEditorGame;
+	}
 
 	return Ar;
 }

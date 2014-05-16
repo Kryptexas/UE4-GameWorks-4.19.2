@@ -255,6 +255,16 @@ public:
 		return true; 
 	}
 
+	/**
+	 * Called during saving to determine the load flags to save with the object.
+	 *
+	 * @return	true if this object should always be loaded for editor game
+	 */
+	virtual bool NeedsLoadForEditorGame() const
+	{
+		return false;
+	}
+
 	/** 
 	 *	Determines if you can create an object from the supplied template in the current context (editor, client only, dedicated server, game/listen) 
 	 *	This calls NeedsLoadForClient & NeedsLoadForServer

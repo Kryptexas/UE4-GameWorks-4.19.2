@@ -499,6 +499,7 @@ public:
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual bool NeedsLoadForClient() const OVERRIDE;
 	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual bool NeedsLoadForEditorGame() const OVERRIDE;
 	virtual bool IsAsset() const OVERRIDE { return false; }
 	// End of UObject interface
 
