@@ -51,10 +51,17 @@ float3 MeshExtension;
 bool PerBoneMotionBlur;
 
 #if GPUSKIN_APEX_CLOTH
+#if GPUSKIN_USE_DATA_BUFFERS == 1
 /** Vertex buffer from which to read simulated positions of clothing. */
 Buffer<float4> ClothSimulVertsPositions;
 /** Vertex buffer from which to read simulated normals of clothing. */
 Buffer<float4> ClothSimulVertsNormals;
+#else
+/** Texture from which to read simulated position of clothing. */
+Texture2D ClothSimulVertsPositions;
+/** Texture from which to read simulated normal of clothing. */
+Texture2D ClothSimulVertsNormals;
+#endif // GPUSKIN_USE_DATA_BUFFERS
 #endif// #if GPUSKIN_APEX_CLOTH
 
 struct FVertexFactoryInput
@@ -159,10 +166,17 @@ half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
+#if GPUSKIN_USE_DATA_BUFFERS == 1
 // The bone matrix buffer stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
 Buffer<float4> BoneMatrices;
 // buffer with all old bone matrices stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
 Buffer<float4> PreviousBoneMatrices;
+#else
+// The bone matrix buffer stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
+Texture2D BoneMatrices;
+// buffer with all old bone matrices stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
+Texture2D PreviousBoneMatrices;
+#endif
 
 // .xyz to offset the lookup in the buffer .w unused
 uint4 BoneIndexOffset;
@@ -223,7 +237,11 @@ bool IsSimulatedVertex( FVertexFactoryInput Input )
 float3 GetClothSimulPosition(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	return ClothSimulVertsPositions[Index].xyz;
+	#if GPUSKIN_USE_DATA_BUFFERS == 1
+		return ClothSimulVertsPositions[Index].xyz;
+	#else
+		return ClothSimulVertsPositions.Load(int3(Index % GPUSKIN_CLOTH_TEXTURE_STRIDE, Index / GPUSKIN_CLOTH_TEXTURE_STRIDE, 0));
+	#endif // GPUSKIN_USE_DATA_BUFFERS
 #else
 	return APEXClothParam.Positions[Index];
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -232,7 +250,11 @@ float3 GetClothSimulPosition(int Index)
 float3 GetClothSimulNormal(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	return ClothSimulVertsNormals[Index].xyz;
+	#if GPUSKIN_USE_DATA_BUFFERS == 1
+		return ClothSimulVertsNormals[Index].xyz;
+	#else
+		return ClothSimulVertsNormals.Load(int3(Index % GPUSKIN_CLOTH_TEXTURE_STRIDE, Index / GPUSKIN_CLOTH_TEXTURE_STRIDE, 0)).xyz;
+	#endif // GPUSKIN_USE_DATA_BUFFERS
 #else
 	return APEXClothParam.Normals[Index];
 #endif //FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -280,9 +302,15 @@ float3 MorphPosition( FVertexFactoryInput Input, FVertexFactoryIntermediates Int
 FBoneMatrix GetBoneMatrix(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if GPUSKIN_USE_DATA_BUFFERS == 1
 	float4 A = BoneMatrices[Index * 3];
 	float4 B = BoneMatrices[Index * 3 + 1];
 	float4 C = BoneMatrices[Index * 3 + 2];
+#else
+	float4 A = BoneMatrices.Load(int3((Index * 3), 0, 0));
+	float4 B = BoneMatrices.Load(int3((Index * 3) + 1, 0, 0));
+	float4 C = BoneMatrices.Load(int3((Index * 3) + 2, 0, 0));
+#endif
 	return FBoneMatrix(A,B,C);
 #else
 	return Bones.BoneMatrices[Index];
@@ -309,9 +337,16 @@ FBoneMatrix CalcBoneMatrix( FVertexFactoryInput Input )
 FBoneMatrix GetPreviousBoneMatrix(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if GPUSKIN_USE_DATA_BUFFERS == 1
 	float4 A = PreviousBoneMatrices[Index * 3 + BoneIndexOffset.x];
 	float4 B = PreviousBoneMatrices[Index * 3 + BoneIndexOffset.y];
 	float4 C = PreviousBoneMatrices[Index * 3 + BoneIndexOffset.z];
+#else
+	int3 Indices = int3(Index * 3 + BoneIndexOffset.x, Index * 3 + BoneIndexOffset.y, Index * 3 + BoneIndexOffset.z);
+	float4 A = PreviousBoneMatrices.Load(int3(Indices.x % GPUSKIN_TEXTURE_STRIDE, Indices.x / GPUSKIN_TEXTURE_STRIDE, 0));
+	float4 B = PreviousBoneMatrices.Load(int3(Indices.y % GPUSKIN_TEXTURE_STRIDE, Indices.y / GPUSKIN_TEXTURE_STRIDE, 0));
+	float4 C = PreviousBoneMatrices.Load(int3(Indices.z % GPUSKIN_TEXTURE_STRIDE, Indices.z / GPUSKIN_TEXTURE_STRIDE, 0));
+#endif
 	return FBoneMatrix(A,B,C);
 #else
 	return Bones.BoneMatrices[Index];
