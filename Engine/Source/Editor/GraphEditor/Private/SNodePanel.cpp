@@ -599,7 +599,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 		// Track how much the mouse moved since the mouse down.
 		TotalMouseDelta += CursorDelta.Size();
 
-		const bool bShouldZoom = (bIsLeftMouseButtonDown && bIsRightMouseButtonDown) || (bIsRightMouseButtonDown && ModifierKeysState.IsAltDown());
+		const bool bShouldZoom = bIsRightMouseButtonDown && (bIsLeftMouseButtonDown || ModifierKeysState.IsAltDown() || FSlateApplication::Get().IsUsingTrackpad());
 		if (bShouldZoom)
 		{
 			FReply ReplyState = FReply::Handled();
