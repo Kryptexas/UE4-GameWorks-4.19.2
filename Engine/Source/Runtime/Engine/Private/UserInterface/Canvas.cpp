@@ -1241,18 +1241,18 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
-	int32		XL = 0;
-	int32		YL = 0;
+	int32		XL		= 0;
+	int32		YL		= 0; 
 	// need this call in any case to update YL and XL - one of them will be needed anyway
 	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText.ToString(), RenderInfo);
 
 	if (RenderInfo.bClipText)
 	{
 		FCanvasTextItem TextItem(FVector2D(FMath::TruncToFloat(OrgX + X), FMath::TruncToFloat(OrgY + Y)), InText, InFont, DrawColor);
-		TextItem.Scale = FVector2D(XScale, YScale),
-			TextItem.BlendMode = SE_BLEND_Translucent;
+		TextItem.Scale = FVector2D( XScale, YScale ), 
+		TextItem.BlendMode = SE_BLEND_Translucent;
 		TextItem.FontRenderInfo = RenderInfo;
-		Canvas->DrawItem(TextItem);
+		Canvas->DrawItem( TextItem );	
 	}
 
 	return (float)YL;
@@ -1615,4 +1615,134 @@ void UCanvas::SetView(FSceneView* InView)
 		ViewProjectionMatrix.SetIdentity();
 		//ViewRotation = FRotator(0,0,0);
 	}
+}
+
+void UCanvas::K2_DrawLine(FVector2D ScreenPositionA, FVector2D ScreenPositionB, float Thickness, FLinearColor RenderColor)
+{
+	if (FMath::Square(ScreenPositionB.X - ScreenPositionA.X) + FMath::Square(ScreenPositionB.Y - ScreenPositionA.Y))
+	{
+		FCanvasLineItem LineItem(ScreenPositionA, ScreenPositionB);
+		LineItem.LineThickness = Thickness;
+		LineItem.SetColor(RenderColor);
+		DrawItem(LineItem);
+	}
+}
+
+void UCanvas::K2_DrawTexture(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, EBlendMode BlendMode, float Rotation, FVector2D PivotPoint)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FTexture* RenderTextureResource = (RenderTexture) ? RenderTexture->Resource : GWhiteTexture;
+		FCanvasTileItem TileItem(ScreenPosition, RenderTextureResource, ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize, RenderColor);
+		TileItem.Rotation = FRotator(0, Rotation, 0);
+		TileItem.PivotPoint = PivotPoint;
+		TileItem.BlendMode = FCanvas::BlendToSimpleElementBlend(BlendMode);
+		DrawItem(TileItem);
+	}
+}
+
+void UCanvas::K2_DrawMaterial(UMaterialInterface* RenderMaterial, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, float Rotation, FVector2D PivotPoint)
+{
+	if (RenderMaterial && ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FCanvasTileItem TileItem(ScreenPosition, RenderMaterial->GetRenderProxy(0), ScreenSize, CoordinatePosition, CoordinatePosition + CoordinateSize);
+		TileItem.Rotation = FRotator(0, Rotation, 0);
+		TileItem.PivotPoint = PivotPoint;
+		DrawItem(TileItem);
+	}
+}
+
+void UCanvas::K2_DrawText(UFont* RenderFont, const FString& RenderText, FVector2D ScreenPosition, FLinearColor RenderColor, float Kerning, FLinearColor ShadowColor, FVector2D ShadowOffset, bool bCentreX, bool bCentreY, bool bOutlined, FLinearColor OutlineColor)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FCanvasTextItem TextItem(ScreenPosition, FText::FromString(RenderText), RenderFont, RenderColor);
+		TextItem.HorizSpacingAdjust = Kerning;
+		TextItem.ShadowColor = ShadowColor;
+		TextItem.ShadowOffset = ShadowOffset;
+		TextItem.bCentreX = bCentreX;
+		TextItem.bCentreY = bCentreY;
+		TextItem.bOutlined = bOutlined;
+		TextItem.OutlineColor = OutlineColor;
+		DrawItem(TextItem);
+	}
+}
+
+void UCanvas::K2_DrawBorder(UTexture* BorderTexture, UTexture* BackgroundTexture, UTexture* LeftBorderTexture, UTexture* RightBorderTexture, UTexture* TopBorderTexture, UTexture* BottomBorderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize, FLinearColor RenderColor, FVector2D BorderScale, FVector2D BackgroundScale, float Rotation, FVector2D PivotPoint, FVector2D CornerSize)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f && BorderTexture && BackgroundTexture && LeftBorderTexture && RightBorderTexture && TopBorderTexture && BottomBorderTexture)
+	{
+		FCanvasBorderItem BorderItem(ScreenPosition, BorderTexture->Resource, BackgroundTexture->Resource, LeftBorderTexture->Resource, RightBorderTexture->Resource, TopBorderTexture->Resource, BottomBorderTexture->Resource, ScreenSize, RenderColor);
+		BorderItem.BorderScale = BorderScale;
+		BorderItem.BackgroundScale = BackgroundScale;
+		BorderItem.BorderUV0 = CoordinatePosition;
+		BorderItem.BorderUV1 = CoordinatePosition + CoordinateSize;
+		BorderItem.Rotation = FRotator(0, Rotation, 0);
+		BorderItem.PivotPoint = PivotPoint;
+		BorderItem.CornerSize = CornerSize;
+		DrawItem(BorderItem);
+	}
+}
+
+void UCanvas::K2_DrawBox(FVector2D ScreenPosition, FVector2D ScreenSize, float Thickness)
+{
+	if (ScreenSize.X > 0.0f && ScreenSize.Y > 0.0f)
+	{
+		FCanvasBoxItem BoxItem(ScreenPosition, ScreenSize);
+		BoxItem.LineThickness = Thickness;
+		DrawItem(BoxItem);
+	}
+}
+
+void UCanvas::K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Triangles)
+{
+	if (Triangles.Num() > 0)
+	{
+		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture);
+		TriangleItem.TriangleList = Triangles;
+		DrawItem(TriangleItem);
+	}
+}
+
+void UCanvas::K2_DrawPolygon(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D Radius, int32 NumberOfSides, FLinearColor RenderColor)
+{
+	if (Radius.X > 0.0f && Radius.Y > 0.0f && NumberOfSides >= 3)
+	{
+		FCanvasNGonItem NGonItem(ScreenPosition, Radius, NumberOfSides, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture, RenderColor);
+		DrawItem(NGonItem);
+	}
+}
+
+FVector UCanvas::K2_Project(FVector WorldLocation)
+{
+	return Project(WorldLocation);
+}
+
+void UCanvas::K2_Deproject(FVector2D ScreenPosition, FVector& WorldOrigin, FVector& WorldDirection)
+{
+	Deproject(ScreenPosition, WorldOrigin, WorldDirection);
+}
+
+FVector2D UCanvas::K2_StrLen(UFont* RenderFont, const FString& RenderText)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FVector2D OutTextSize;
+		StrLen(RenderFont, RenderText, OutTextSize.X, OutTextSize.Y);
+		return OutTextSize;
+	}
+
+	return FVector2D::ZeroVector;
+}
+
+FVector2D UCanvas::K2_TextSize(UFont* RenderFont, const FString& RenderText, FVector2D Scale)
+{
+	if (!RenderText.IsEmpty())
+	{
+		FVector2D OutTextSize;
+		TextSize(RenderFont, RenderText, OutTextSize.X, OutTextSize.Y, Scale.X, Scale.Y);
+		return OutTextSize;
+	}
+	
+	return FVector2D::ZeroVector;
 }
