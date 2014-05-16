@@ -44,7 +44,7 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
-#define WITH_GPA (0 && !PLATFORM_XBOXONE)
+#define WITH_GPA (!PLATFORM_XBOXONE)
 #if WITH_GPA
 	#define GPA_WINDOWS 1
 	#include <GPUPerfAPI/Gpa.h>
