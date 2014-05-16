@@ -357,7 +357,7 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 		MainWindowArea->AddSlot()
 			.AutoHeight()
 			[
-				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleBar)
+				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, HAlign_Center, TitleBar)
 			];
 	}
 	else
