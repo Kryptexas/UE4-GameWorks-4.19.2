@@ -23,6 +23,7 @@
 #include "RangeSet.h"
 #include "Interval.h"
 #include "Box.h"
+#include "Box2D.h"
 #include "BoxSphereBounds.h"
 #include "OrientedBox.h"
 #include "Axis.h"
