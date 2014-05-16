@@ -347,7 +347,7 @@ public:
 
 	/**
 	 *	Attempts to a new subsequent task. If this event has already fired, false is returned and action must be taken to ensure that the task will still fire even though this event cannot be a prerequisite (because it is already finished).
-	 *	@return true if the task was sucessfully set up as a subsequent. false if the event has already fired.
+	 *	@return true if the task was successfully set up as a subsequent. false if the event has already fired.
 	**/
 	bool AddSubsequent(class FBaseGraphTask* Task)
 	{
