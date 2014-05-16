@@ -549,8 +549,12 @@ public:
 
 	static const FName AnimNotifyTag;
 	static const TCHAR AnimNotifyTagDeliminator;
-	ENGINE_API static const FName DefaultSlotGroupName;
 #endif
+
+public:
+	// this should be outside of editor because slot node is initialize to it
+	ENGINE_API static const FName DefaultSlotGroupName;
+
 private:
 	void RegenerateGuid();
 };

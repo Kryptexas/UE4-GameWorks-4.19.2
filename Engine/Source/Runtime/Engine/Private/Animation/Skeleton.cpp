@@ -14,8 +14,9 @@
 #if WITH_EDITOR
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
 const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
-const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 #endif 
+
+const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 {
@@ -34,8 +35,10 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+#if WITH_EDITORONLY_DATA
 	SlotGroupNames.Empty();
 	SlotGroupNames.Add(DefaultSlotGroupName);
+#endif
 }
 
 void USkeleton::PostInitProperties()
