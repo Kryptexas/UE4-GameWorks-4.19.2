@@ -1355,9 +1355,9 @@ UMaterialInterface* ALandscapeProxy::GetLandscapeMaterial() const
 
 UMaterialInterface* ALandscapeProxy::GetLandscapeHoleMaterial() const
 {
-	if (LandscapeMaterial)
+	if (LandscapeHoleMaterial)
 	{
-		return LandscapeMaterial;
+		return LandscapeHoleMaterial;
 	}
 	else if (LandscapeActor)
 	{
