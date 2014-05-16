@@ -575,7 +575,6 @@ public:
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
-#if 0	// ttp335214 must be fixed first
 		ChildrenBuilder.AddChildContent(*LOCTEXT("EditableOnInstance", "EditableOnInstance").ToString())
 		.NameContent()
 		[
@@ -590,7 +589,6 @@ public:
 			.OnCheckStateChanged(this, &FUserDefinedStructureFieldLayout::OnEditableOnBPInstanceCommitted)
 			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
 		];
-#endif 
 	}
 
 	virtual void Tick( float DeltaTime ) OVERRIDE {}
