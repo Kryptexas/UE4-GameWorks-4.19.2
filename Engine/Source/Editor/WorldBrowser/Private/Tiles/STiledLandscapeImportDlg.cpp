@@ -15,9 +15,9 @@ static int32 CalcLandscapeSquareResolution(int32 ComponetsNumX, int32 SectionNum
 }
 
 /**
- *	Returns heightmap tile coordinates extracted from a specified tile filename
+ *	Returns tile coordinates extracted from a specified tile filename
  */
-static FIntPoint ExtractHeighmapTileCoordinates(FString BaseFilename)
+static FIntPoint ExtractTileCoordinates(FString BaseFilename)
 {
 	//We expect file name in form: <tilename>_x<number>_y<number>
 	FIntPoint ResultPosition(-1,-1);
@@ -187,7 +187,7 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 			.AutoHeight()
 			.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 			[
-				SAssignNew(LayerDataListView, SListView<TSharedPtr<FLandscapeImportLayerData>>)
+				SAssignNew(LayerDataListView, SListView<TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings>>)
 				.ListItemsSource( &LayerDataList )
 				.OnGenerateRow( this, &STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListView )
 				.SelectionMode(ESelectionMode::None)
@@ -297,22 +297,39 @@ FText STiledLandcapeImportDlg::GetTileConfigurationText() const
 	return GenerateConfigurationText(ImportSettings.ComponentsNum, ImportSettings.SectionsPerComponent, ImportSettings.QuadsPerSection);
 }
 
-TSharedRef<ITableRow> STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListView(TSharedPtr<FLandscapeImportLayerData> InLayerData, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListView(
+	TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData, 
+	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return 	SNew(STableRow< TSharedRef<FLandscapeImportLayerData> >, OwnerTable)
+	return 	SNew(STableRow<TSharedRef<FTiledLandscapeImportSettings::LandscapeLayerSettings>>, OwnerTable)
 			[
 				SNew(SBorder)
 				[
 					SNew(SHorizontalBox)
-				
+
+					// Layer name
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Left)
 					.FillWidth(1)
 					[
-						SNew(STextBlock).Text(InLayerData->LayerName)
+						SNew(STextBlock).Text(InLayerData->Name.ToString())
 					]
 
+					// Blend option
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Padding(2)
+					.AutoWidth()
+					[
+						SNew(SCheckBox)
+						.IsChecked(this, &STiledLandcapeImportDlg::GetLayerBlendState, InLayerData)
+						.OnCheckStateChanged(this, &STiledLandcapeImportDlg::OnLayerBlendStateChanged, InLayerData)
+						.ToolTipText(LOCTEXT("TiledLandscapeImport_BlendOption", "Weight-Blended Layer"))
+					]
+					
+					// Number of selected weightmaps
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Right)
@@ -322,6 +339,7 @@ TSharedRef<ITableRow> STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListV
 						SNew(STextBlock).Text(this, &STiledLandcapeImportDlg::GetWeightmapCountText, InLayerData)
 					]
 					
+					// Button for selecting weightmap files
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Right)
@@ -447,7 +465,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 						break;
 					}
 
-					FIntPoint TileCoordinate = ExtractHeighmapTileCoordinates(FPaths::GetBaseFilename(Filename));
+					FIntPoint TileCoordinate = ExtractTileCoordinates(FPaths::GetBaseFilename(Filename));
 					if (TileCoordinate.GetMin() < 0)
 					{
 						bValidTiles = false;
@@ -471,9 +489,9 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 	return FReply::Handled();
 }
 
-FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FLandscapeImportLayerData> InLayerData)
+FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData)
 {
-	InLayerData->WeighmapFileList.Empty();
+	InLayerData->WeightmapFiles.Empty();
 
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform)
@@ -481,6 +499,8 @@ FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FLandsca
 		if (ParentWindow->GetNativeWindow().IsValid())
 		{
 			void* ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+
+			TArray<FString> WeightmapFilesList;
 
 			const FString ImportFileTypes = TEXT("Raw weigtmap tiles (*.raw)|*.raw");
 			bool bOpened = DesktopPlatform->OpenFileDialog(
@@ -490,10 +510,16 @@ FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FLandsca
 								TEXT(""),
 								*ImportFileTypes,
 								EFileDialogFlags::Multiple,
-								InLayerData->WeighmapFileList);
+								WeightmapFilesList);
 
-			if (bOpened	&& InLayerData->WeighmapFileList.Num())
+			if (bOpened	&& WeightmapFilesList.Num())
 			{
+				for (FString WeighmapFile : WeightmapFilesList)
+				{
+					FIntPoint TileCoordinate = ExtractTileCoordinates(FPaths::GetBaseFilename(WeighmapFile));
+					InLayerData->WeightmapFiles.Add(TileCoordinate, WeighmapFile);
+				}
+							
 				// TODO: check if it's a valid weightmaps
 			}
 		}
@@ -510,19 +536,13 @@ bool STiledLandcapeImportDlg::IsImportEnabled() const
 FReply STiledLandcapeImportDlg::OnClickedImport()
 {
 	// copy weightmaps list data to an import structure  
-	ImportSettings.WeightmapFileList.Empty();
-	ImportSettings.WeightmapFileList.SetNum(ImportSettings.LandscapeLayerNameList.Num());
-	check(ImportSettings.WeightmapFileList.Num() == LayerDataList.Num());
+	ImportSettings.LandscapeLayerSettingsList.Empty();
+
 	for (int32 LayerIdx = 0; LayerIdx < LayerDataList.Num(); ++LayerIdx)
 	{
-		ImportSettings.WeightmapFileList[LayerIdx] = LayerDataList[LayerIdx]->WeighmapFileList;
-		
-		// we assume weightmaps tiles will match heightmap tiles 
-		ImportSettings.WeightmapFileList[LayerIdx].Sort();
+		ImportSettings.LandscapeLayerSettingsList.Add(*(LayerDataList[LayerIdx].Get()));
 	}
-
-	ImportSettings.HeightmapFileList.Sort();
-			
+					
 	ParentWindow->RequestDestroyWindow();
 	return FReply::Handled();	
 }
@@ -623,10 +643,20 @@ FText STiledLandcapeImportDlg::GetImportSummaryText() const
 		);
 }
 
-FText STiledLandcapeImportDlg::GetWeightmapCountText(TSharedPtr<FLandscapeImportLayerData> InLayerData) const
+FText STiledLandcapeImportDlg::GetWeightmapCountText(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const
 {
-	int32 NumWeighmaps = InLayerData.IsValid() ? InLayerData->WeighmapFileList.Num() : 0;
+	int32 NumWeighmaps = InLayerData.IsValid() ? InLayerData->WeightmapFiles.Num() : 0;
 	return FText::AsNumber(NumWeighmaps);
+}
+
+ESlateCheckBoxState::Type STiledLandcapeImportDlg::GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const
+{
+	return (InLayerData->bNoBlendWeight ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked);
+}
+
+void STiledLandcapeImportDlg::OnLayerBlendStateChanged(ESlateCheckBoxState::Type NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData)
+{
+	InLayerData->bNoBlendWeight = !(NewState == ESlateCheckBoxState::Checked);
 }
 
 FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, int32 NumSectionsPerComponent, int32 NumQuadsPerSection) const
@@ -645,19 +675,13 @@ FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, in
 
 void STiledLandcapeImportDlg::UpdateLandscapeLayerList()
 {
-	ImportSettings.LandscapeLayerNameList = ALandscapeProxy::GetLayersFromMaterial(ImportSettings.LandscapeMaterial.Get());
-	//
-	ImportSettings.WeightmapFileList.Empty();
-	ImportSettings.WeightmapFileList.SetNum(ImportSettings.LandscapeLayerNameList.Num());
-
-	//	
+	TArray<FName> LayerNamesList = ALandscapeProxy::GetLayersFromMaterial(ImportSettings.LandscapeMaterial.Get());
 	LayerDataList.Empty();
-	for (FName LayerName  : ImportSettings.LandscapeLayerNameList)
+	for (FName LayerName : LayerNamesList)
 	{
-		TSharedPtr<FLandscapeImportLayerData> LayerData = MakeShareable(new FLandscapeImportLayerData());
-		LayerData->LayerName = LayerName.ToString();
-		LayerData->bBlend = true;
-
+		// List view data source
+		TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> LayerData = MakeShareable(new FTiledLandscapeImportSettings::LandscapeLayerSettings());
+		LayerData->Name = LayerName;
 		LayerDataList.Add(LayerData);
 	}
 

@@ -557,9 +557,18 @@ struct FTiledLandscapeImportSettings
 
 
 	TWeakObjectPtr<UMaterialInterface>	LandscapeMaterial;
-	
-	TArray<FName>						LandscapeLayerNameList;
-	// list of weightmap files per each layer
-	TArray<TArray<FString>>				WeightmapFileList;
 
+	// Landscape layers 
+	struct LandscapeLayerSettings
+	{
+		LandscapeLayerSettings() 
+			: bNoBlendWeight(false)
+		{}
+
+		FName						Name;
+		bool						bNoBlendWeight;
+		TMap<FIntPoint, FString>	WeightmapFiles;
+	};
+	
+	TArray<LandscapeLayerSettings>		LandscapeLayerSettingsList;
 };

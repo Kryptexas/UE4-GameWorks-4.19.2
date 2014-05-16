@@ -1346,19 +1346,22 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
 			// Setup weightmaps for each layer
-			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerNameList.Num(); ++LayerIdx)
+			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerSettingsList.Num(); ++LayerIdx)
 			{
-				FName LayerName = ImportSettings.LandscapeLayerNameList[LayerIdx];
+				FName LayerName = ImportSettings.LandscapeLayerSettingsList[LayerIdx].Name;
 				
 				TileImportSettings.ImportLayers.Add(FLandscapeImportLayerInfo(LayerName));
 				FLandscapeImportLayerInfo& LayerImportInfo = TileImportSettings.ImportLayers.Last();
-
-				if (ImportSettings.WeightmapFileList[LayerIdx].IsValidIndex(TileIndex))
+				
+				// Do we have a weightmap for this tile?
+				FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex];
+				const FString* WeightmapFile = ImportSettings.LandscapeLayerSettingsList[LayerIdx].WeightmapFiles.Find(TileCoordinates);
+				if (WeightmapFile)
 				{
-					LayerImportInfo.SourceFilePath = ImportSettings.WeightmapFileList[LayerIdx][TileIndex];
+					LayerImportInfo.SourceFilePath = *WeightmapFile;
 					ReadRawFile(LayerImportInfo.LayerData, *LayerImportInfo.SourceFilePath, FILEREAD_Silent);
 					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
-					LayerImportInfo.LayerInfo->bNoWeightBlend = false; //option ?
+					LayerImportInfo.LayerInfo->bNoWeightBlend = ImportSettings.LandscapeLayerSettingsList[LayerIdx].bNoBlendWeight;
 				}
 			}
 						

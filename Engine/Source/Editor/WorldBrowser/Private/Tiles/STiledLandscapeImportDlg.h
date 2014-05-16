@@ -18,13 +18,6 @@ public:
 		int32 NumQuadsPerSection;
 	};
 
-	struct FLandscapeImportLayerData
-	{
-		FString			LayerName;
-		TArray<FString> WeighmapFileList;
-		bool			bBlend;
-	};
-
 	SLATE_BEGIN_ARGS( STiledLandcapeImportDlg )
 		{}
 	SLATE_END_ARGS()
@@ -44,7 +37,7 @@ private:
 	FText				GetTileConfigurationText() const;
 	
 	/** */
-	TSharedRef<ITableRow> OnGenerateWidgetForLayerDataListView(TSharedPtr<FLandscapeImportLayerData> InLayerData, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> OnGenerateWidgetForLayerDataListView(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** */
 	TOptional<float> GetScaleX() const;
@@ -66,7 +59,7 @@ private:
 		
 	/** */
 	FReply OnClickedSelectHeightmapTiles();
-	FReply OnClickedSelectWeighmapTiles(TSharedPtr<FLandscapeImportLayerData> InLayerData);
+	FReply OnClickedSelectWeighmapTiles(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData);
 	FReply OnClickedImport();
 	FReply OnClickedCancel();
 
@@ -75,7 +68,11 @@ private:
 
 	/** */
 	FText GetImportSummaryText() const;
-	FText GetWeightmapCountText(TSharedPtr<FLandscapeImportLayerData> InLayerData) const; 
+	FText GetWeightmapCountText(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const; 
+
+	/** */
+	ESlateCheckBoxState::Type GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const;
+	void OnLayerBlendStateChanged(ESlateCheckBoxState::Type NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData);
 
 	/** */
 	void SetPossibleConfigurationsForResolution(int32 TargetResolutuion);
@@ -99,8 +96,8 @@ private:
 	/** */
 	TSharedPtr<SComboButton> LandscapeMaterialComboButton;
 
-	TSharedPtr<SListView<TSharedPtr<FLandscapeImportLayerData>>>	LayerDataListView;
-	TArray<TSharedPtr<FLandscapeImportLayerData>>					LayerDataList;		
+	TSharedPtr<SListView<TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings>>>	LayerDataListView;
+	TArray<TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings>>					LayerDataList;		
 		
 	/** */
 	FTiledLandscapeImportSettings ImportSettings;
