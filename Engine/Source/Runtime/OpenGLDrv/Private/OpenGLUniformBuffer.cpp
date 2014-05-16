@@ -439,7 +439,7 @@ void AddNewlyFreedBufferToUniformBufferPool( GLuint Buffer, uint32 BufferSize, b
 		int StreamedIndex = bStreamDraw ? 1 : 0;
 
 		// Add to this frame's array of free uniform buffers
-		const int32 SafeFrameIndex = GFrameNumberRenderThread % NUM_SAFE_FRAMES;
+		const int32 SafeFrameIndex = (GFrameNumberRenderThread - 1) % NUM_SAFE_FRAMES;
 		const uint32 BucketIndex = GetPoolBucketIndex(BufferSize);
 
 		check(BufferSize == UniformBufferSizeBuckets[BucketIndex]);
