@@ -344,14 +344,6 @@
 						FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't set association for project. Check the file is writeable."), TEXT("Error"));
 						return;
 					}
-
-					// Clean all the build products
-					FFeedbackContext *Warn = FDesktopPlatformModule::Get()->GetNativeFeedbackContext();
-					if (!FDesktopPlatformModule::Get()->CleanGameProject(FPaths::GetPath([FileURL path]), Warn))
-					{
-						FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't clean project build products."), TEXT("Error"));
-						return;
-					}
 					break;
 				}
 			}
