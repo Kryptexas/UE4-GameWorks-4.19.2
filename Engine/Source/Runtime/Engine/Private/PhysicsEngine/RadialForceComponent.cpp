@@ -144,6 +144,8 @@ void URadialForceComponent::RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTyp
 	UpdateCollisionObjectQueryParams();
 }
 
+#if WITH_EDITOR
+
 void URadialForceComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -154,6 +156,8 @@ void URadialForceComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 		UpdateCollisionObjectQueryParams();
 	}
 }
+
+#endif
 
 void URadialForceComponent::UpdateCollisionObjectQueryParams()
 {

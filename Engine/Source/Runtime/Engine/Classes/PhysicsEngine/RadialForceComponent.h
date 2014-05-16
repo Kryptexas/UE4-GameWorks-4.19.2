@@ -70,7 +70,9 @@ protected:
 
 	// Begin UObject interface.
 	virtual void PostLoad() OVERRIDE;
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
 	// End UObject interface.
 
 	/** Update CollisionObjectQueryParams from ObjectTypesToAffect */
