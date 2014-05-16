@@ -355,6 +355,9 @@ void FSceneRenderTargets::FreeGBufferTargets()
 
 void FSceneRenderTargets::AllocGBufferTargets()
 {
+	// AdjustGBufferRefCount +1 doesn't match -1 (within the same frame)
+	ensure(GBufferRefCount == 0);
+
 	if(GBufferA)
 	{
 		// no work needed
@@ -417,6 +420,9 @@ void FSceneRenderTargets::AllocGBufferTargets()
 
 	// otherwise we have a severe problem
 	check(GBufferA);
+
+	// so that 
+	GBufferRefCount = 1;
 }
 
 const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() const
@@ -509,6 +515,19 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuation()
 	return LightAttenuation;
 }
 
+void FSceneRenderTargets::AdjustGBufferRefCount(int Delta)
+{ 
+	GBufferRefCount += Delta; 
+	
+	if(Delta > 0 && GBufferRefCount == 1)
+	{
+		AllocGBufferTargets();
+	}
+	else if(GBufferRefCount == 0)
+	{
+		FreeGBufferTargets(); 
+	}
+}
 
 void FSceneRenderTargets::FinishRenderingSceneColor(bool bKeepChanges, const FResolveRect& ResolveRect)
 {

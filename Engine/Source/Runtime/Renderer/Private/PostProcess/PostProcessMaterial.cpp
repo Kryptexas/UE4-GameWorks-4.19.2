@@ -168,6 +168,11 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	if(Material->NeedsGBuffer())
+	{
+		GSceneRenderTargets.AdjustGBufferRefCount(-1);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutputId InPassOutputId) const

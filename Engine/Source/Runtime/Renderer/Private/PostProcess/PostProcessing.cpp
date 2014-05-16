@@ -71,7 +71,6 @@ FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGra
 {
 	SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GetSceneColor()));
 	SceneDepth = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.SceneDepthZ));
-	GBufferA = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GBufferA));
 
 	FinalOutput = FRenderingCompositeOutputRef(SceneColor);
 }
@@ -517,7 +516,23 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 	{
 		FPostProcessMaterialNode* Data = PPNodes[i];
 
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(Data->MID));
+		UMaterialInterface* MaterialInterface = Data->MID;
+
+		FMaterialRenderProxy* Proxy = MaterialInterface->GetRenderProxy(false);
+
+		check(Proxy);
+
+		const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
+
+		check(Material);
+
+		if(Material->NeedsGBuffer())
+		{
+			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
+			GSceneRenderTargets.AdjustGBufferRefCount(1);
+		}
+
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface));
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 		// We are binding separate translucency here because the post process SceneTexture node can reference 
@@ -1119,6 +1134,17 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
+		// After the graph is built but before the graph is processed.
+		// If a postprocess material is using a GBuffer it adds the refcount int FRCPassPostProcessMaterial::Process()
+		// and when it gets processed it removes the refcount
+		// We only release the GBuffers after the last view was processed (SplitScreen)
+		if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
+		{
+			// Generally we no longer need the GBuffers, anyone that wants to keep the GBuffers for longer should have called AdjustGBufferRefCount(1) to keep it for longer
+			// and call AdjustGBufferRefCount(-1) once it's consumed. This needs to happen each frame. PostProcessMaterial do that automatically
+			GSceneRenderTargets.AdjustGBufferRefCount(-1);
+		}
+
 		// The graph setup should be finished before this line ----------------------------------------
 
 		{
@@ -1147,13 +1173,6 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
-
-	// todo: We should move this to after lighting, but we also have to fix lookups in post process materials reading from it.
-	// We only release the GBuffers after the last view was processed (SplitScreen)
-	if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
-	{
-		GSceneRenderTargets.FreeGBufferTargets();
-	}
 }
 
 

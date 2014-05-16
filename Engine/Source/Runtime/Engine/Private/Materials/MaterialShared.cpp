@@ -318,10 +318,9 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 	}
 
 	Ar << bNeedsSceneTextures;
-
 	Ar << bUsesEyeAdaptation;
-
 	Ar << bModifiesMeshPosition;
+	Ar << bNeedsGBuffer;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -440,6 +439,19 @@ bool FMaterial::NeedsSceneTextures() const
 	
 	return false;
 }
+
+bool FMaterial::NeedsGBuffer() const
+{
+	checkSlow(IsInRenderingThread());
+
+	if (RenderingThreadShaderMap)
+	{
+		return RenderingThreadShaderMap->NeedsGBuffer();
+	}
+
+	return 0;
+}
+
 
 bool FMaterial::UsesEyeAdaptation() const 
 {

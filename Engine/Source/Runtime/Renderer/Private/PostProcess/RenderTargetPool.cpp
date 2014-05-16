@@ -35,7 +35,8 @@ static void RenderTargetPoolEvents(const TArray<FString>& Args)
 	{
 		UE_LOG(LogRenderTargetPool, Display, TEXT("r.DumpRenderTargetPoolEvents is now enabled, use r.DumpRenderTargetPoolEvents ? for help"));
 
-		GRenderTargetPool.EnableEventRecording(SizeInKBThreshold);
+		GRenderTargetPool.EventRecordingSizeThreshold = SizeInKBThreshold;
+		GRenderTargetPool.bStartEventRecordingNextTick = true;
 	}
 	else
 	{
@@ -54,7 +55,7 @@ static FAutoConsoleCommand GRenderTargetPoolEventsCmd(
 bool FRenderTargetPool::IsEventRecordingEnabled() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	return bEventRecording; 
+	return bEventRecordingStarted && bEventRecordingActive; 
 #else
 	return false;
 #endif
@@ -99,9 +100,10 @@ static uint32 ComputeSizeInKB(FPooledRenderTarget& Element)
 FRenderTargetPool::FRenderTargetPool()
 	: AllocationLevelInKB(0)
 	, bCurrentlyOverBudget(false)
-	, bEventRecordingTrigger(false)
+	, bStartEventRecordingNextTick(false)
 	, EventRecordingSizeThreshold(0)
-	, bEventRecording(false)
+	, bEventRecordingActive(false)
+	, bEventRecordingStarted(false)
 	, CurrentEventRecordingTime(0)
 {
 }
@@ -923,12 +925,10 @@ void FRenderTargetPool::TickPoolElements()
 {
 	check(IsInRenderingThread());
 
-//	bEventRecording = false;
-
-	if(bEventRecordingTrigger)
+	if(bStartEventRecordingNextTick)
 	{
-		bEventRecordingTrigger = false;
-		bEventRecording = true;
+		bStartEventRecordingNextTick = false;
+		bEventRecordingStarted = true;
 	}
 
 	uint32 MinimumPoolSizeInKB;

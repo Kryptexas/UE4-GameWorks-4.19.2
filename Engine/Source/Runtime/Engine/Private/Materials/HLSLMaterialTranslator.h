@@ -291,7 +291,7 @@ public:
 			Material->ErrorExpressions.Empty();
 
 			MaterialCompilationOutput.bUsesSceneColor = false;
-			MaterialCompilationOutput.bNeedsSceneTextures = false;
+			check(!MaterialCompilationOutput.bNeedsSceneTextures);
 			MaterialCompilationOutput.bUsesEyeAdaptation = false;
 
 			// Add a state item for the root level
@@ -2202,12 +2202,9 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 		
-		MaterialCompilationOutput.bNeedsSceneTextures = true;
-		bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs || ((InSceneTextureId >= PPI_PostProcessInput0 && InSceneTextureId <= PPI_PostProcessInput6) || InSceneTextureId == PPI_SceneColor);
-
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
 
-		MaterialCompilationOutput.bUsesSceneColor |= SceneTextureId == PPI_SceneColor;
+		UseSceneTextureId(SceneTextureId, true);
 
 		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
 		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
@@ -2228,9 +2225,9 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		MaterialCompilationOutput.bNeedsSceneTextures = true;
-
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
+
+		UseSceneTextureId(SceneTextureId, false);
 
 		if(SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
 		{
@@ -2268,9 +2265,9 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		MaterialCompilationOutput.bNeedsSceneTextures = true;
-
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
+
+		UseSceneTextureId(SceneTextureId, false);
 
 		if(SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
 		{
@@ -2292,9 +2289,9 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 
-		MaterialCompilationOutput.bNeedsSceneTextures = true;
-
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
+
+		UseSceneTextureId(SceneTextureId, false);
 
 		if(SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
 		{
@@ -2306,6 +2303,39 @@ protected:
 		{			
 			return AddCodeChunk(MCT_Float2,TEXT("View.SceneTextureMinMax.zw"));
 		}
+	}
+
+	// @param bTextureLookup true: texture, false:no texture lookup, usually to get the size
+	void UseSceneTextureId(ESceneTextureId SceneTextureId, bool bTextureLookup)
+	{
+		MaterialCompilationOutput.bNeedsSceneTextures = true;
+
+		if(bTextureLookup)
+		{
+			bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs
+				|| ((SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
+				|| SceneTextureId == PPI_SceneColor);
+		}
+
+		MaterialCompilationOutput.bUsesSceneColor = MaterialCompilationOutput.bUsesSceneColor
+			|| SceneTextureId == PPI_SceneColor;
+
+		MaterialCompilationOutput.bNeedsGBuffer = MaterialCompilationOutput.bNeedsGBuffer
+			|| SceneTextureId == PPI_DiffuseColor 
+			|| SceneTextureId == PPI_SpecularColor
+			|| SceneTextureId == PPI_SubsurfaceColor
+			|| SceneTextureId == PPI_BaseColor
+			|| SceneTextureId == PPI_Specular
+			|| SceneTextureId == PPI_Metallic
+			|| SceneTextureId == PPI_WorldNormal
+			|| SceneTextureId == PPI_Opacity
+			|| SceneTextureId == PPI_Roughness
+			|| SceneTextureId == PPI_MaterialAO
+			|| SceneTextureId == PPI_DecalMask
+			|| SceneTextureId == PPI_LightingModel;
+
+		// not yet tracked:
+		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion
 	}
 
 	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) OVERRIDE

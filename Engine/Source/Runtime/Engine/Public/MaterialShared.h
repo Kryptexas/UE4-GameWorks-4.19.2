@@ -258,7 +258,8 @@ public:
 		bUsesSceneColor(false),
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
-		bModifiesMeshPosition(false)
+		bModifiesMeshPosition(false),
+		bNeedsGBuffer(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -278,6 +279,9 @@ public:
 
 	/** true if the material modifies the the mesh position. */
 	bool bModifiesMeshPosition;
+
+	/** true if the material uses any GBuffer textures */
+	bool bNeedsGBuffer;
 };
 
 /**
@@ -799,6 +803,7 @@ public:
 	const FString& GetDebugDescription() const { return DebugDescription; }
 	bool UsesSceneColor() const { return MaterialCompilationOutput.bUsesSceneColor; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
+	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
@@ -1159,6 +1164,7 @@ public:
 	}
 	ENGINE_API bool UsesSceneColor() const;
 	ENGINE_API bool NeedsSceneTextures() const;
+	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
 
 	/** Does the material modify the mesh position. */

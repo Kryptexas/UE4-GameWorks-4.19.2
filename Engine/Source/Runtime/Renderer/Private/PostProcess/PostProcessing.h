@@ -22,7 +22,6 @@ public:
 
 	FRenderingCompositePass* SceneColor;
 	FRenderingCompositePass* SceneDepth;
-	FRenderingCompositePass* GBufferA;
 
 	FRenderingCompositeOutputRef FinalOutput;
 };

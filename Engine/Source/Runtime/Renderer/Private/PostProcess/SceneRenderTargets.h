@@ -88,6 +88,7 @@ public:
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 
+		GBufferRefCount(0),
 		bScreenSpaceAOIsValid(false),
 		bCustomDepthIsValid(false),
 		bPreshadowCacheNewlyAllocated(false),
@@ -358,8 +359,11 @@ public:
 
 	// ---
 
-	void FreeGBufferTargets();
+	// allows to release the GBuffer once post process materials no longer need it
+	// @param 1: add a reference, -1: remove a reference
+	void AdjustGBufferRefCount(int Delta);
 
+	//
 	void AllocGBufferTargets();
 
 private: // Get...() methods instead of direct access
@@ -447,6 +451,9 @@ public:
 	bool bPreshadowCacheNewlyAllocated;
 
 private:
+	/** used by AdjustGBufferRefCount */
+	int32 GBufferRefCount;
+
 	/**
 	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
 	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
@@ -476,6 +483,9 @@ private:
 	void AllocSceneColor();
 
 	void AllocLightAttenuation();
+
+	// internal method, used by AdjustGBufferRefCount()
+	void FreeGBufferTargets();
 
 	EPixelFormat GetSceneColorFormat() const;
 

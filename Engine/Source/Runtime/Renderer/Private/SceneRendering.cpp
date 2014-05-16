@@ -897,6 +897,11 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
         }
     }
 
+	if(SceneRenderer->ViewFamily.EngineShowFlags.OnScreenDebug)
+	{
+		GRenderTargetPool.SetEventRecordingActive(true);
+	}
+
     {
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
 		
@@ -928,6 +933,8 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
 		SET_MEMORY_STAT(STAT_RenderingMemStackMemory, FMemStack::Get().GetByteCount());
 		SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 #endif
+
+		GRenderTargetPool.SetEventRecordingActive(false);
 
         // Delete the scene renderer.
 		delete SceneRenderer;
