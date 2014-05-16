@@ -136,7 +136,9 @@ void UGameplayDebuggingControllerComponent::CycleActiveView()
 			break;
 	}
 	if (++Index >= EAIDebugDrawDataView::EditorDebugAIFlag)
+	{
 		Index = EAIDebugDrawDataView::Basic;
+	}
 
 	ActiveViews = (1 << EAIDebugDrawDataView::OverHead) | (1 << Index);
 }
