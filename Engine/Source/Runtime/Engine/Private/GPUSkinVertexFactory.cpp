@@ -78,6 +78,7 @@ uint32 FSharedPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 	65536, 131072, 262144 // these 3 numbers are added for large cloth simulation vertices, supports up to 16,384 verts
 };
 
+#if GPUSKIN_USE_DATA_BUFFERS
 /*-----------------------------------------------------------------------------
  FBoneBufferPoolPolicy
  -----------------------------------------------------------------------------*/
@@ -107,6 +108,36 @@ TStatId FBoneBufferPool::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FBoneBufferPool, STATGROUP_Tickables);
 }
 
+#else
+/*-----------------------------------------------------------------------------
+ FBoneTexturePoolPolicy
+ -----------------------------------------------------------------------------*/
+FTexture2DRHIRef FBoneTexturePoolPolicy::CreateResource(FSharedPoolPolicyData::CreationArguments Args)
+{
+	FSharedPoolPolicyData::CreationArguments ActualSize = GetPoolBucketSize(GetPoolBucketIndex(Args)) / sizeof(FVector4);
+	FTexture2DRHIRef Texture = RHICreateTexture2D(ActualSize, 1, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), NULL);
+	return Texture;
+}
+
+FSharedPoolPolicyData::CreationArguments FBoneTexturePoolPolicy::GetCreationArguments(FTexture2DRHIRef Resource)
+{
+	return (Resource->GetSizeX() * Resource->GetSizeY());
+}
+
+/*-----------------------------------------------------------------------------
+ FBoneTexturePool
+ -----------------------------------------------------------------------------*/
+FBoneTexturePool::~FBoneTexturePool()
+{
+}
+
+TStatId FBoneTexturePool::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FBoneTexturePool, STATGROUP_Tickables);
+}
+
+#endif
+
 TConsoleVariableData<int32>* FGPUBaseSkinVertexFactory::ShaderDataType::MaxBonesVar = NULL;
 uint32 FGPUBaseSkinVertexFactory::ShaderDataType::MaxGPUSkinBones = 0;
 
@@ -121,6 +152,7 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 		check(NumVectors <= (MaxGPUSkinBones*3));
 		uint32 VectorArraySize = NumVectors * sizeof(FVector4);
 		uint32 PooledArraySize = BoneBufferPool.PooledSizeForCreationArguments(VectorArraySize);
+#if GPUSKIN_USE_DATA_BUFFERS
 		if(!IsValidRef(BoneBuffer) || PooledArraySize != BoneBuffer.VertexBufferRHI->GetSize())
 		{
 			if(IsValidRef(BoneBuffer))
@@ -137,6 +169,26 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 			FMemory::Memcpy(Data, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
 			RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
 		}
+#else
+		check((uint32)GMaxTextureDimensions >= (MaxGPUSkinBones*3));
+		
+		if(!IsValidRef(BoneBuffer) || (PooledArraySize != (BoneBuffer->GetSizeX() * BoneBuffer->GetSizeY()) * sizeof(FVector4)))
+		{
+			if(IsValidRef(BoneBuffer))
+			{
+				BoneBufferPool.ReleasePooledResource(BoneBuffer);
+			}
+			BoneBuffer = BoneBufferPool.CreatePooledResource(VectorArraySize);
+			check(IsValidRef(BoneBuffer));
+		}
+		if(NumBones)
+		{
+			uint32 Width = BoneBuffer->GetSizeX();
+			uint32 Height = BoneBuffer->GetSizeY();
+			FUpdateTextureRegion2D UpdateRegion(0, 0, 0, 0, NumVectors, Height);
+			RHIUpdateTexture2D(BoneBuffer, 0, UpdateRegion, NumVectors * sizeof(FVector4), (uint8 const*)BoneMatrices.GetTypedData());
+		}
+#endif
 	}
 	else
 	{
@@ -162,7 +214,17 @@ float* FBoneDataVertexBuffer::LockData()
 	checkSlow(GetSizeX());
 	checkSlow(IsValidRef(BoneBuffer));
 
+#if GPUSKIN_USE_DATA_BUFFERS
 	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
+#else
+	uint32 DestStride = 0;
+	float* Data = (float*)RHILockTexture2D(
+										   BoneBuffer,
+										   0,
+										   RLM_WriteOnly,
+										   DestStride,
+										   false);
+#endif
 	checkSlow(Data);
 
 	return Data;
@@ -171,7 +233,11 @@ float* FBoneDataVertexBuffer::LockData()
 void FBoneDataVertexBuffer::UnlockData()
 {
 	checkSlow(IsValidRef(BoneBuffer));
+#if GPUSKIN_USE_DATA_BUFFERS
 	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
+#else
+	RHIUnlockTexture2D(BoneBuffer, 0, false);
+#endif
 }
 
 uint32 FBoneDataVertexBuffer::GetSizeX() const
@@ -209,6 +275,10 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnvironment(
 	FVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	const int32 MaxGPUSkinBones = GetFeatureLevelMaxNumberOfBones(GetMaxSupportedFeatureLevel(Platform));
 	OutEnvironment.SetDefine(TEXT("MAX_SHADER_BONES"), MaxGPUSkinBones);
+	const uint32 UseDataBuffers = GPUSKIN_USE_DATA_BUFFERS;
+	OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_DATA_BUFFERS"), UseDataBuffers);
+	OutEnvironment.SetDefine(TEXT("GPUSKIN_TEXTURE_STRIDE"), GPUSKIN_TEXTURE_STRIDE);
+	OutEnvironment.SetDefine(TEXT("GPUSKIN_CLOTH_TEXTURE_STRIDE"), GPUSKIN_CLOTH_TEXTURE_STRIDE);
 	const uint32 UseExtraBoneInfluences = bExtraBoneInfluencesT;
 	OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
 }
@@ -374,7 +444,11 @@ public:
 			{
 				if(BoneMatrices.IsBound())
 				{
+#if GPUSKIN_USE_DATA_BUFFERS
 					RHISetShaderResourceViewParameter(Shader->GetVertexShader(), BoneMatrices.GetBaseIndex(), ShaderData.GetBoneBuffer().VertexBufferSRV);
+#else
+					RHISetShaderTexture(Shader->GetVertexShader(), BoneMatrices.GetBaseIndex(), ShaderData.GetBoneBuffer());
+#endif
 				}
 			}
 			else
@@ -397,7 +471,11 @@ public:
 				// we tell the shader where to pickup the data (always, even if we don't have bone data, to avoid false binding)
 				if(PreviousBoneMatrices.IsBound())
 				{
+#if GPUSKIN_USE_DATA_BUFFERS
 					RHISetShaderResourceViewParameter(Shader->GetVertexShader(), PreviousBoneMatrices.GetBaseIndex(), GPrevPerBoneMotionBlur.GetReadData()->BoneBuffer.VertexBufferSRV);
+#else
+					RHISetShaderTexture(Shader->GetVertexShader(), PreviousBoneMatrices.GetBaseIndex(), GPrevPerBoneMotionBlur.GetReadData()->BoneBuffer);
+#endif
 				}
 
 				if(bLocalPerBoneMotionBlur)
@@ -640,12 +718,20 @@ public:
 			// we tell the shader where to pickup the data
 			if(ClothSimulPositionsParameter.IsBound())
 			{
+#if GPUSKIN_USE_DATA_BUFFERS
 				RHISetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulPositionsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulPositionBuffer().VertexBufferSRV);
+#else
+				RHISetShaderTexture(Shader->GetVertexShader(), ClothSimulPositionsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulPositionBuffer());
+#endif
 			}
-
+			
 			if(ClothSimulNormalsParameter.IsBound())
 			{
+#if GPUSKIN_USE_DATA_BUFFERS
 				RHISetShaderResourceViewParameter(Shader->GetVertexShader(), ClothSimulNormalsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulNormalBuffer().VertexBufferSRV);
+#else
+				RHISetShaderTexture(Shader->GetVertexShader(), ClothSimulNormalsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulNormalBuffer());
+#endif
 			}
 		}
 	}
@@ -668,7 +754,7 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(c
 
 		uint32 VectorArraySize = NumSimulVerts * sizeof(FVector4);
 		uint32 PooledArraySize = ClothSimulDataBufferPool.PooledSizeForCreationArguments(VectorArraySize);
-
+#if GPUSKIN_USE_DATA_BUFFERS
 		if(!IsValidRef(ClothSimulPositionBuffer) || PooledArraySize != ClothSimulPositionBuffer.VertexBufferRHI->GetSize())
 		{
 			if(IsValidRef(ClothSimulPositionBuffer))
@@ -701,6 +787,38 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(c
 			FMemory::Memcpy(Data, InSimulNormals.GetTypedData(), NumSimulVerts * sizeof(FVector4));
 			RHIUnlockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI);
 		}
+#else
+		
+		if(!IsValidRef(ClothSimulPositionBuffer) || (PooledArraySize != (ClothSimulPositionBuffer->GetSizeX() * ClothSimulPositionBuffer->GetSizeY()) * sizeof(FVector4)))
+		{
+			if(IsValidRef(ClothSimulPositionBuffer))
+			{
+				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionBuffer);
+			}
+			ClothSimulPositionBuffer = ClothSimulDataBufferPool.CreatePooledResource(VectorArraySize);
+			check(IsValidRef(ClothSimulPositionBuffer));
+		}
+		
+		if(!IsValidRef(ClothSimulNormalBuffer) || (PooledArraySize != (ClothSimulNormalBuffer->GetSizeX() * ClothSimulNormalBuffer->GetSizeY()) * sizeof(FVector4)))
+		{
+			if(IsValidRef(ClothSimulNormalBuffer))
+			{
+				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulNormalBuffer);
+			}
+			ClothSimulNormalBuffer = ClothSimulDataBufferPool.CreatePooledResource(VectorArraySize);
+			check(IsValidRef(ClothSimulNormalBuffer));
+		}
+		
+		if(NumSimulVerts)
+		{
+			uint32 Width = ClothSimulPositionBuffer->GetSizeX();
+			uint32 Height = ClothSimulPositionBuffer->GetSizeY();
+			FUpdateTextureRegion2D UpdateRegion(0, 0, 0, 0, NumSimulVerts, Height);
+			RHIUpdateTexture2D(ClothSimulPositionBuffer, 0, UpdateRegion, NumSimulVerts * sizeof(FVector4), (uint8 const*)InSimulPositions.GetTypedData());
+			RHIUpdateTexture2D(ClothSimulNormalBuffer, 0, UpdateRegion, NumSimulVerts * sizeof(FVector4), (uint8 const*)InSimulNormals.GetTypedData());
+		}
+		
+#endif// #if GPUSKIN_USE_DATA_BUFFERS
 	}
 	else
 	{
