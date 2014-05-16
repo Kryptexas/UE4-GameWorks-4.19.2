@@ -1,4 +1,4 @@
-rem secho off
+@echo off
 setlocal 
 
 echo Running AutomationTool...
@@ -12,18 +12,6 @@ rem ## if you copy it to a different location and run it.
 set UATExecutable=AutomationToolLauncher.exe
 set UATDirectory=Binaries\DotNET\
 set UATNoCompileArg=
-
-rem ## when running automated test, there's no need to use AutomationToolLauncher (fix for EC hangs)
-set UATCmdLineEscaped=%*
-set UATCmdLineEscaped=%UATCmdLineEscaped: =_%
-set UATCmdLineEscaped=%UATCmdLineEscaped:"=_%
-set UATCmdLine=%UATCmdLineEscaped%
-set UATCmdLine=%UATCmdLine: =_%
-set UATCmdLine=%UATCmdLine:EditorTest=%
-set UATCmdLine=%UATCmdLine:GameTest=%
-set UATCmdLine=%UATCmdLine:EditorAutomationTest=%
-set UATCmdLine=%UATCmdLine:GameAutomationTest=%
-if not "%UATCmdLineEscaped%"=="%UATCmdLine%" set UATExecutable=AutomationTool.exe
 
 rem ## Change the CWD to /Engine. 
 pushd %~dp0..\..\
