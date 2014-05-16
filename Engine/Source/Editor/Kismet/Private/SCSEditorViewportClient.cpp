@@ -234,10 +234,10 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer>* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
-					if (VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
+					TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(Comp->GetClass()->GetFName());
+					if (Visualizer.IsValid())
 					{
-						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
+						Visualizer->DrawVisualization(Comp, View, PDI);
 					}
 				}
 			}

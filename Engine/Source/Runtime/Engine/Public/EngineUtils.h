@@ -102,27 +102,6 @@ struct HStaticMeshVert : public HHitProxy
 	}
 };
 
-//
-//	HSplineProxy
-//
-
-struct HSplineProxy : public HHitProxy
-{
-	DECLARE_HIT_PROXY( ENGINE_API );
-
-	class USplineComponent* SplineComp;
-
-	HSplineProxy(class USplineComponent* InSplineComp):
-		HHitProxy(HPP_World),
-		SplineComp(InSplineComp)
-	{}
-	virtual EMouseCursor::Type GetMouseCursor()
-	{
-		return EMouseCursor::Crosshairs;
-	}	
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
-};
-
 // Hit an actor even with translucency
 struct HTranslucentActor : public HActor
 {

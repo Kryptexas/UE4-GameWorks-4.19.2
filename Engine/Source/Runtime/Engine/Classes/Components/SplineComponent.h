@@ -4,8 +4,31 @@
 #pragma once
 #include "SplineComponent.generated.h"
 
-UCLASS(MinimalAPI)
-class USplineComponent : public UPrimitiveComponent
+/** Used to store spline data during RerunConstructionScripts */
+class FSplineInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName SplineInstanceDataTypeName;
+
+	virtual ~FSplineInstanceData()
+	{}
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return SplineInstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	/** Name of component */
+	FName ComponentName;
+
+	/** Lightmaps from LODData */
+	FInterpCurveVector SplineInfo;
+};
+
+UCLASS()
+class ENGINE_API USplineComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -13,53 +36,33 @@ class USplineComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
 	FInterpCurveVector SplineInfo;
 
-	/**
-	 * This is how curvy this spline is.  1.0f is straight and anything below that is curvy!
-	 * We are doing a simplistic calculate of:  vsize(points) / Length Of Spline 
-	 **/
-	UPROPERTY(Category=SplineComponent, VisibleAnywhere, BlueprintReadWrite)
-	float SplineCurviness;
-
 	/** Color of spline */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
 	FColor SplineColor;
 
-	/** Resolution to draw spline at */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
-	float SplineDrawRes;
-
-	/** Size of arrow on end of spline. If zero, no arrow drawn */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
-	float SplineArrowSize;
-
-	/** If true, this spline is for whatever reason disabled, and will be drawn in red. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
-	uint32 bSplineDisabled:1;
-
 	/** Input, distance along curve, output, parameter that puts you there. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SplineComponent)
+	UPROPERTY()
 	FInterpCurveFloat SplineReparamTable;
 
-
-	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	// End UPrimitiveComponent interface.
-	
-	/** This will update the spline curviness value **/
-	virtual void UpdateSplineCurviness();
+	// Begin UActorComponent interface.
+	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
+	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	// End UActorComponent interface.
 
 	/** Update the SplineReparamTable */
-	virtual void UpdateSplineReparamTable();
+	void UpdateSplineReparamTable();
 
 	/** Returns total length along this spline */
-	virtual float GetSplineLength() const;
+	float GetSplineLength() const;
 	
 	/** Given a distance along the length of this spline, return the point in space where this puts you */
-	virtual FVector GetLocationAtDistanceAlongSpline(float Distance) const;
+	FVector GetLocationAtDistanceAlongSpline(float Distance) const;
 	
 	/** Given a distance along the length of this spline, return the direction of the spline there. Note, result is non-unit length. */
-	virtual FVector GetTangentAtDistanceAlongSpline(float Distance) const;
+	FVector GetTangentAtDistanceAlongSpline(float Distance) const;
+
+	/** Walk through keys and set time for each one */
+	void RefreshSplineInputs();
 };
 
 

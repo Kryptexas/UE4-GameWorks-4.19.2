@@ -19,7 +19,7 @@
 #include "Editor/FoliageEdit/Public/FoliageEditModule.h"
 #include "ActorEditorUtils.h"
 #include "EditorStyle.h"
-
+#include "ComponentVisualizer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorModes, Log, All);
 
@@ -278,6 +278,14 @@ bool FEdMode::CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, F
 
 bool FEdMode::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+	if (EditedVisualizer.IsValid())
+	{
+		if (EditedVisualizer.Pin()->HandleInputKey(ViewportClient, Viewport, Key, Event))
+		{
+			return true;
+		}
+	}
+
 	if( GetCurrentTool() && GetCurrentTool()->InputKey( ViewportClient, Viewport, Key, Event ) )
 	{
 		return true;
@@ -311,6 +319,14 @@ bool FEdMode::InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport*
 
 bool FEdMode::InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
+	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
+	{
+		if(EditedVisualizer.Pin()->HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
+		{
+			return true;
+		}
+	}
+	
 	if(UsesPropertyWidgets())
 	{
 		AActor* SelectedActor = GetFirstSelectedActorInstance();
@@ -414,6 +430,16 @@ bool FEdMode::UsesTransformWidget(FWidget::EWidgetMode CheckMode) const
 
 FVector FEdMode::GetWidgetLocation() const
 {
+	if(EditedVisualizer.IsValid())
+	{
+		FVector VisualizerWidgetPos;
+		bool bSetWidgetLocation = EditedVisualizer.Pin()->GetWidgetLocation(VisualizerWidgetPos);
+		if(bSetWidgetLocation)
+		{
+			return VisualizerWidgetPos;
+		}
+	}
+
 	if(UsesPropertyWidgets())
 	{
 		AActor* SelectedActor = GetFirstSelectedActorInstance();
@@ -519,6 +545,13 @@ void FEdMode::ActorSelectionChangeNotify()
 	EditedPropertyName = TEXT("");
 	EditedPropertyIndex = INDEX_NONE;
 	bEditedPropertyIsTransform = false;
+
+	// Clear active editing visualizer on selection change
+	if (EditedVisualizer.IsValid())
+	{
+		EditedVisualizer.Pin()->EndEditing();
+		EditedVisualizer = NULL;
+	}
 }
 
 bool FEdMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
@@ -533,12 +566,41 @@ bool FEdMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProx
 			bEditedPropertyIsTransform = PropertyProxy->bPropertyIsTransform;
 			return true;
 		}
+		else if(HitProxy->IsA(HComponentVisProxy::StaticGetType()))
+		{
+			HComponentVisProxy* VisProxy = (HComponentVisProxy*)HitProxy;
+			const UActorComponent* ClickedComponent = VisProxy->Component.Get();
+			if(ClickedComponent != NULL)
+			{
+				TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(ClickedComponent->GetClass()->GetFName());
+				if(Visualizer.IsValid())
+				{
+					bool bIsActive = Visualizer->VisProxyHandleClick(VisProxy);
+					if(bIsActive)
+					{
+						// call EndEditing on any currently edited visualizer, if we are going to change it
+						if (EditedVisualizer.IsValid() && Visualizer.Get() != EditedVisualizer.Pin().Get())
+						{
+							EditedVisualizer.Pin()->EndEditing();
+						}
+
+						EditedVisualizer = Visualizer;
+					}
+				}
+			}
+		}
 		// Left clicking on an actor, stop editing a property
 		else if( HitProxy->IsA(HActor::StaticGetType()) )
 		{
 			EditedPropertyName = TEXT("");
 			EditedPropertyIndex = INDEX_NONE;
 			bEditedPropertyIsTransform = false;
+
+			if(EditedVisualizer.IsValid())
+			{
+				EditedVisualizer.Pin()->EndEditing();
+				EditedVisualizer = NULL;
+			}
 		}
 	}
 

@@ -7,175 +7,20 @@
 #include "EnginePrivate.h"
 
 
-// HSplineProxy
-void HSplineProxy::AddReferencedObjects( FReferenceCollector& Collector )
-{
-	Collector.AddReferencedObject( SplineComp );
-}	
-
-
-//////////////////////////////////////////////////////////////////////////
-// SPLINE SCENE PROXY
-
-/** Represents a USplineComponent to the scene manager. */
-class FSplineSceneProxy : public FPrimitiveSceneProxy
-{
-private:
-	FColor					SplineColor;
-	FInterpCurveVector		SplineInfo;
-	float					SplineDrawRes;
-	float					SplineArrowSize;
-	uint32					bSplineDisabled:1;
-
-public:
-
-	FSplineSceneProxy(USplineComponent* Component):
-		FPrimitiveSceneProxy(Component),
-		SplineColor(Component->SplineColor),
-		SplineInfo(Component->SplineInfo),
-		SplineDrawRes(Component->SplineDrawRes),
-		SplineArrowSize(Component->SplineArrowSize),
-		bSplineDisabled(Component->bSplineDisabled)
-	{
-	}
-
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
-	{
-		HSplineProxy* SplineHitProxy = new HSplineProxy( CastChecked<USplineComponent>(Component) );
-		OutHitProxies.Add(SplineHitProxy);
-		return SplineHitProxy;
-	}
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_SplineSceneProxy_DrawDynamicElements );
-
-		// Override specified color with red if spline is 'disabled'
-		FColor UseColor = bSplineDisabled ? FColor(255,0,0) : SplineColor;
-		
-		//DrawDirectionalArrow(PDI, LocalToWorld, SplineColor, 1.0 * 3.0f, 1.0f, GetDepthPriorityGroup(View));		
-		FVector OldKeyPos(0);
-		float OldKeyTime = 0.f;
-		for(int32 i=0; i<SplineInfo.Points.Num(); i++)
-		{
-			float NewKeyTime = SplineInfo.Points[i].InVal;
-			FVector NewKeyPos = SplineInfo.Eval(NewKeyTime, FVector::ZeroVector);
-
-			// Draw the keypoint
-			PDI->DrawPoint(NewKeyPos, UseColor, 6.f, GetDepthPriorityGroup(View));
-
-			// If not the first keypoint, draw a line to the last keypoint.
-			if(i>0)
-			{
-				// For constant interpolation - don't draw ticks - just draw dotted line.
-				if(SplineInfo.Points[i-1].InterpMode == CIM_Constant)
-				{
-					DrawDashedLine(PDI, OldKeyPos, NewKeyPos, UseColor, 20, GetDepthPriorityGroup(View));
-				}
-				else
-				{
-					int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime)/SplineDrawRes );
-					float DrawSubstep = (NewKeyTime - OldKeyTime)/NumSteps;
-
-					// Find position on first keyframe.
-					float OldTime = OldKeyTime;
-					FVector OldPos = OldKeyPos;
-
-					// Find step that we want to draw the arrow head on.
-					int32 ArrowStep = FMath::Max<int32>(0, NumSteps-2);
-					
-					// Then draw a line for each substep.
-					for(int32 j=1; j<NumSteps+1; j++)
-					{
-						float NewTime = OldKeyTime + j*DrawSubstep;
-						FVector NewPos = SplineInfo.Eval(NewTime, FVector::ZeroVector);
-
-						// If this is where we want to draw the arrow, do that
-						// Only draw arrow if SplineArrowSize > 0.0
-						if(j == ArrowStep && SplineArrowSize > KINDA_SMALL_NUMBER)
-						{
-							FMatrix ArrowMatrix;
-							FVector ArrowDir = (NewPos - OldPos);
-							float ArrowLen = ArrowDir.Size();
-							if(ArrowLen > KINDA_SMALL_NUMBER)
-							{
-								ArrowDir /= ArrowLen;
-							}
-
-							ArrowMatrix = FRotationTranslationMatrix(ArrowDir.Rotation(), OldPos);
-
-							DrawDirectionalArrow(PDI, ArrowMatrix, UseColor, ArrowLen, SplineArrowSize, GetDepthPriorityGroup(View));								
-						}
-						// Otherwise normal line
-						else
-						{
-							PDI->DrawLine(OldPos, NewPos, UseColor, GetDepthPriorityGroup(View));														
-						}
-
-						// Don't draw point for last one - its the keypoint drawn above.
-						if(j != NumSteps)
-						{
-							PDI->DrawPoint(NewPos, UseColor, 3.f, GetDepthPriorityGroup(View));
-						}
-
-						OldTime = NewTime;
-						OldPos = NewPos;
-					}
-				}
-			}
-
-			OldKeyTime = NewKeyTime;
-			OldKeyPos = NewKeyPos;
-		}
-	}
-
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
-	{
-		FPrimitiveViewRelevance Result;
-
-		Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Splines;
-		Result.bDynamicRelevance = true;
-		Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
-
-		return Result;
-	}
-
-	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
-	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
-
-
-};
-
 USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SplineDrawRes = 0.1f;
-	SplineArrowSize = 60.0f;
-	SplineColor.R = 255;
-	SplineColor.B = 255;
-	SplineColor.A = 255;
+	SplineColor = FColor(255,255,255);
 
-	bUseEditorCompositing = true;
-	BodyInstance.bEnableCollision_DEPRECATED = false;
+	// Add 2 keys by default
+	int32 PointIndex = SplineInfo.AddPoint(0.f, FVector(0,0,0));
+	FInterpCurvePoint<FVector>& Point = SplineInfo.Points[PointIndex];
+	Point.LeaveTangent = FVector(1,0,0);
 
-	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	PointIndex = SplineInfo.AddPoint(1.f, FVector(100,0,0));
+	Point = SplineInfo.Points[PointIndex];
+	Point.ArriveTangent = FVector(1, 0, 0);
 }
-
-
-FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
-{
-	return new FSplineSceneProxy(this);
-}
-
-FBoxSphereBounds USplineComponent::CalcBounds(const FTransform & LocalToWorld) const
-{
-	FVector BoxMin, BoxMax;
-
-	SplineInfo.CalcBounds(BoxMin, BoxMax, LocalToWorld.GetLocation());
-
-	return FBoxSphereBounds( FBox(BoxMin, BoxMax) );
-}
-
 
 void USplineComponent::UpdateSplineReparamTable()
 {
@@ -217,23 +62,6 @@ void USplineComponent::UpdateSplineReparamTable()
 	}
 }
 
-
-void USplineComponent::UpdateSplineCurviness()
-{
-	const float SplineLength = GetSplineLength();
-
-	const FVector Start = GetLocationAtDistanceAlongSpline( 0.0f );;
-	const FVector End = GetLocationAtDistanceAlongSpline( SplineLength );
-
-	SplineCurviness =(Start - End).Size() / SplineLength;
-
-	//GetWorld()->PersistentLineBatcher->DrawLine( Start, Start+FVector(0,0,200), FColor(255,0,0), SDPG_World );
-	//GetWorld()->PersistentLineBatcher->DrawLine( End, End+FVector(0,0,200), FColor(255,0,0), SDPG_World );
-
-	//UE_LOG(LogSpline, Warning, TEXT( "hahah %s %f %f %f"), *GetName(), SplineCurviness, (Start - End).Size(), SplineLength );
-}
-
-
 float USplineComponent::GetSplineLength() const
 {
 	// This is given by the input of the last entry in the remap table
@@ -261,3 +89,43 @@ FVector USplineComponent::GetTangentAtDistanceAlongSpline(float Distance) const
 	return Tangent;
 }
 
+void USplineComponent::RefreshSplineInputs()
+{
+	for(int32 KeyIdx=0; KeyIdx<SplineInfo.Points.Num(); KeyIdx++)
+	{
+		SplineInfo.Points[KeyIdx].InVal = KeyIdx;
+	}
+}
+
+// Init type name static
+const FName FSplineInstanceData::SplineInstanceDataTypeName(TEXT("SplineInstanceData"));
+
+void USplineComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+{
+	TSharedRef<FSplineInstanceData> SplineData = MakeShareable(new FSplineInstanceData());
+	SplineData->ComponentName = GetFName();
+	SplineData->SplineInfo = SplineInfo;
+
+	// Add to cache
+	Cache.AddInstanceData(SplineData);
+}
+
+void USplineComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+{
+	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
+	Cache.GetInstanceDataOfType(FSplineInstanceData::SplineInstanceDataTypeName, CachedData);
+
+	for (int32 DataIdx = 0; DataIdx < CachedData.Num(); DataIdx++)
+	{
+		check(CachedData[DataIdx].IsValid());
+		check(CachedData[DataIdx]->GetDataTypeName() == FSplineInstanceData::SplineInstanceDataTypeName);
+		TSharedPtr<FSplineInstanceData> SplineData = StaticCastSharedPtr<FSplineInstanceData>(CachedData[DataIdx]);
+
+		// See if data matches current state
+		if (SplineData->ComponentName == GetFName())
+		{
+			SplineInfo = SplineData->SplineInfo;
+			UpdateSplineReparamTable();			
+		}
+	}
+}

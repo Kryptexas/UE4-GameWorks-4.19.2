@@ -218,9 +218,10 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 
 	/** Register a function to draw extra information when a particular component is selected */
 	void RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<class FComponentVisualizer> Visualizer);
-
 	/** Unregister component visualizer function */
 	void UnregisterComponentVisualizer(FName ComponentClassName);
+	/** Find a component visualizer for the given component class name */
+	TSharedPtr<class FComponentVisualizer> FindComponentVisualizer(FName ComponentClassName);
 
 	/** Draw component visualizers for components for selected actors */
 	void DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI);

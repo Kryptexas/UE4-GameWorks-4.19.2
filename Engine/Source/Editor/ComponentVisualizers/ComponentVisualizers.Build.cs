@@ -12,6 +12,7 @@ public class ComponentVisualizers : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+                "InputCore",
 				"Engine",
 				"Slate",
 				"UnrealEd",

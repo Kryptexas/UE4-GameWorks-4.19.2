@@ -14,7 +14,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngineUtils, Log, All);
 IMPLEMENT_HIT_PROXY(HActor,HHitProxy)
 IMPLEMENT_HIT_PROXY(HBSPBrushVert,HHitProxy);
 IMPLEMENT_HIT_PROXY(HStaticMeshVert,HHitProxy);
-IMPLEMENT_HIT_PROXY(HSplineProxy,HHitProxy);
 IMPLEMENT_HIT_PROXY(HTranslucentActor,HActor)
 
 
