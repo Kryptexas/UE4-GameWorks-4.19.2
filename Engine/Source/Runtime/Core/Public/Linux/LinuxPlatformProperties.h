@@ -110,6 +110,11 @@ struct FLinuxPlatformProperties
 		return true;
 	}
 
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsQuit()
 	{
 		return true;

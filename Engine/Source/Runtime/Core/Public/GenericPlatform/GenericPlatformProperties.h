@@ -202,6 +202,14 @@ struct FGenericPlatformProperties
 		return false;
 	}
 
+	/**
+	 * Whether this platform wants to allow framerate smoothing or not.
+	 */
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
 		return true;

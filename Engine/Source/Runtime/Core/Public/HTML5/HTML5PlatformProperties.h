@@ -77,4 +77,9 @@ struct FHTML5PlatformProperties
 	{
 		return false;
 	}
+
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
 };

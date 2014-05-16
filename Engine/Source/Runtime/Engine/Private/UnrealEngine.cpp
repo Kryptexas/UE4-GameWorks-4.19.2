@@ -5463,7 +5463,7 @@ float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 {
 	float MaxTickRate = 0;
 
-	if (FPlatformProperties::SupportsWindowedMode())
+	if (FPlatformProperties::AllowsFramerateSmoothing())
 	{
 		// Smooth the framerate if wanted. The code uses a simplistic running average. Other approaches, like reserving
 		// a percentage of time, ended up creating negative feedback loops in conjunction with GPU load and were abandonend.

@@ -98,6 +98,11 @@ struct FMacPlatformProperties
 		return true;
 	}
 
+	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool HasFixedResolution()
 	{
 		return false;
