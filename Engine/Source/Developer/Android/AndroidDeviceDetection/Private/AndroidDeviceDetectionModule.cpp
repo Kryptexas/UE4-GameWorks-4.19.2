@@ -151,10 +151,26 @@ private:
 			// parse the device model
 			FString Model;
 			FParse::Value(*DeviceString, TEXT("model:"), Model);
+			if (Model.IsEmpty())
+			{
+				FString ModelCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.model"), *SerialNumber);
+				FString RoProductModel;
+				ExecuteAdbCommand(*ModelCommand, &RoProductModel, nullptr);
+				const TCHAR* Ptr = *RoProductModel;
+				FParse::Line(&Ptr, Model);
+			}
 
 			// parse the device model
 			FString DeviceName;
 			FParse::Value(*DeviceString, TEXT("device:"), DeviceName);
+			if (DeviceName.IsEmpty())
+			{
+				FString DeviceCommand = FString::Printf(TEXT("-s %s shell getprop ro.product.device"), *SerialNumber);
+				FString RoProductDevice;
+				ExecuteAdbCommand(*DeviceCommand, &RoProductDevice, nullptr);
+				const TCHAR* Ptr = *RoProductDevice;
+				FParse::Line(&Ptr, DeviceName);
+			}
 
 			// add the device to the map
 			{
