@@ -498,6 +498,26 @@ public:
 			Rasterizer.DrawTriangle(FVector2D(0, Heights[0]), FVector2D(1, Heights[1]), FVector2D(0, Heights[1]), OuterVerts[0][1], InnerVerts[1][1], OuterVerts[1][1], false);
 
 			LandscapeEdit.SetHeightData(MinX, MinY, MaxX, MaxY, Data.GetTypedData(), 0, true);
+			LandscapeEdit.Flush();
+
+			TSet<ULandscapeComponent*> Components;
+			if (LandscapeEdit.GetComponentsInRegion(MinX, MinY, MaxX, MaxY, &Components))
+			{
+				for (ULandscapeComponent* Component : Components)
+				{
+					// Recreate collision for modified components and update the navmesh
+					ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
+					if (CollisionComponent)
+					{
+						CollisionComponent->RecreateCollision(false);
+						UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
+						if (NavSys)
+						{
+							NavSys->UpdateNavOctree(CollisionComponent);
+						}
+					}
+				}
+			}
 		}
 	}
 
