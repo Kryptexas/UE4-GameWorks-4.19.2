@@ -10,6 +10,7 @@
 
 #include "ScopedTransaction.h"
 #include "AnimGraphNodeSlotDetails.h"
+#include "Persona.h"
 
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"
 

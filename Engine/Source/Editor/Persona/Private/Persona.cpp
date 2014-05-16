@@ -6,6 +6,7 @@
 #include "SPersonaToolbar.h"
 #include "PersonaModule.h"
 #include "AnimGraphDefinitions.h"
+#include "IDetailsView.h"
 
 #include "Toolkits/IToolkitHost.h"
 

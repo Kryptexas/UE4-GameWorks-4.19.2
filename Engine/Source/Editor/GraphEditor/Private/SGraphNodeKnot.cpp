@@ -3,6 +3,9 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeKnot.h"
+#include "ScopedTransaction.h"
+#include "BlueprintEditorUtils.h"
+
 
 class FAmbivalentDirectionDragConnection : public FDragConnection
 {

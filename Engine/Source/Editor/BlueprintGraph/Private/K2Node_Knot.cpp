@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2ActionMenuBuilder.h"
+#include "Kismet2NameValidators.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 

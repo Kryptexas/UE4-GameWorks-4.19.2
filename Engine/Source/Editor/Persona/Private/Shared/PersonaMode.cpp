@@ -7,6 +7,7 @@
 #include "IDocumentation.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotGroupNames.h"
+#include "SSkeletonSlotNames.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
