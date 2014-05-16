@@ -88,10 +88,10 @@ public:
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 
-		GBufferRefCount(0),
 		bScreenSpaceAOIsValid(false),
 		bCustomDepthIsValid(false),
 		bPreshadowCacheNewlyAllocated(false),
+		GBufferRefCount(0),
 		BufferSize(0, 0), 
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
