@@ -13,6 +13,8 @@
 #include "DesktopPlatformModule.h"
 #include "TargetPlatform.h"
 
+#include "ClassIconFinder.h"
+
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
 #define MAX_PROJECT_PATH_BUFFER_SPACE 130 // Leave a reasonable buffer of additional characters to account for files created in the content directory during or after project generation
@@ -23,6 +25,254 @@ checkAtCompileTime(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE 
 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
 TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
+
+FString GameProjectUtils::FNewClassInfo::GetClassName() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		return BaseClass ? FName::NameToDisplayString(BaseClass->GetName(), false) : TEXT("");
+
+	case EClassType::EmptyCpp:
+		return TEXT("None");
+
+	case EClassType::SlateWidget:
+		return TEXT("Slate Widget");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("Slate Widget Style");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+FString GameProjectUtils::FNewClassInfo::GetClassDescription() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		{
+			if(BaseClass)
+			{
+				FString ClassDescription = BaseClass->GetToolTipText().ToString();
+				int32 FullStopIndex = 0;
+				if(ClassDescription.FindChar('.', FullStopIndex))
+				{
+					// Only show the first sentence so as not to clutter up the UI with a detailed description of implementation details
+					ClassDescription = ClassDescription.Left(FullStopIndex + 1);
+				}
+
+				// Strip out any new-lines in the description
+				ClassDescription = ClassDescription.Replace(TEXT("\n"), TEXT(" "));
+				return ClassDescription;
+			}
+		}
+		break;
+
+	case EClassType::EmptyCpp:
+		return TEXT("An empty C++ class with a default constructor and destructor");
+
+	case EClassType::SlateWidget:
+		return TEXT("A custom Slate widget, deriving from SCompoundWidget");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("A custom Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+const FSlateBrush* GameProjectUtils::FNewClassInfo::GetClassIcon() const
+{
+	// Safe to do even if BaseClass is null, since FindIconForClass will return the default icon
+	return FClassIconFinder::FindIconForClass(BaseClass);
+}
+
+FString GameProjectUtils::FNewClassInfo::GetClassPrefixCPP() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		return BaseClass ? BaseClass->GetPrefixCPP() : TEXT("");
+
+	case EClassType::EmptyCpp:
+		return TEXT("");
+
+	case EClassType::SlateWidget:
+		return TEXT("S");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("F");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+FString GameProjectUtils::FNewClassInfo::GetClassNameCPP() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		return BaseClass ? BaseClass->GetName() : TEXT("");
+
+	case EClassType::EmptyCpp:
+		return TEXT("");
+
+	case EClassType::SlateWidget:
+		return TEXT("CompoundWidget");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("SlateWidgetStyle");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+FString GameProjectUtils::FNewClassInfo::GetCleanClassName(const FString& ClassName) const
+{
+	FString CleanClassName = ClassName;
+
+	switch(ClassType)
+	{
+	case EClassType::SlateWidgetStyle:
+		{
+			// Slate widget style classes always take the form FMyThingWidget, and UMyThingWidgetStyle
+			// if our class ends with either Widget or WidgetStyle, we need to strip those out to avoid silly looking duplicates
+			if(CleanClassName.EndsWith(TEXT("Style")))
+			{
+				CleanClassName = CleanClassName.LeftChop(5); // 5 for "Style"
+			}
+			if(CleanClassName.EndsWith(TEXT("Widget")))
+			{
+				CleanClassName = CleanClassName.LeftChop(6); // 6 for "Widget"
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return CleanClassName;
+}
+
+FString GameProjectUtils::FNewClassInfo::GetFinalClassName(const FString& ClassName) const
+{
+	const FString CleanClassName = GetCleanClassName(ClassName);
+
+	switch(ClassType)
+	{
+	case EClassType::SlateWidgetStyle:
+		return FString::Printf(TEXT("%sWidgetStyle"), *CleanClassName);
+
+	default:
+		break;
+	}
+
+	return CleanClassName;
+}
+
+bool GameProjectUtils::FNewClassInfo::GetIncludePath(FString& OutIncludePath) const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		if(BaseClass && BaseClass->HasMetaData(TEXT("IncludePath")))
+		{
+			OutIncludePath = BaseClass->GetMetaData(TEXT("IncludePath"));
+			return true;
+		}
+		break;
+
+	default:
+		break;
+	}
+	return false;
+}
+
+FString GameProjectUtils::FNewClassInfo::GetHeaderFilename(const FString& ClassName) const
+{
+	const FString HeaderFilename = GetFinalClassName(ClassName) + TEXT(".h");
+
+	switch(ClassType)
+	{
+	case EClassType::SlateWidget:
+		return TEXT("S") + HeaderFilename;
+
+	default:
+		break;
+	}
+
+	return HeaderFilename;
+}
+
+FString GameProjectUtils::FNewClassInfo::GetSourceFilename(const FString& ClassName) const
+{
+	const FString SourceFilename = GetFinalClassName(ClassName) + TEXT(".cpp");
+
+	switch(ClassType)
+	{
+	case EClassType::SlateWidget:
+		return TEXT("S") + SourceFilename;
+
+	default:
+		break;
+	}
+
+	return SourceFilename;
+}
+
+FString GameProjectUtils::FNewClassInfo::GetHeaderTemplateFilename() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		return TEXT("UObjectClass.h.template");
+
+	case EClassType::EmptyCpp:
+		return TEXT("EmptyClass.h.template");
+
+	case EClassType::SlateWidget:
+		return TEXT("SlateWidget.h.template");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("SlateWidgetStyle.h.template");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+FString GameProjectUtils::FNewClassInfo::GetSourceTemplateFilename() const
+{
+	switch(ClassType)
+	{
+	case EClassType::UObject:
+		return TEXT("UObjectClass.cpp.template");
+
+	case EClassType::EmptyCpp:
+		return TEXT("EmptyClass.cpp.template");
+
+	case EClassType::SlateWidget:
+		return TEXT("SlateWidget.cpp.template");
+
+	case EClassType::SlateWidgetStyle:
+		return TEXT("SlateWidgetStyle.cpp.template");
+
+	default:
+		break;
+	}
+	return TEXT("");
+}
 
 bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason)
 {
@@ -566,14 +816,16 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	return true;
 }
 
-bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ParentClass, OutHeaderFilePath, OutCppFilePath, OutFailReason);
+	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ParentClassInfo, OutHeaderFilePath, OutCppFilePath, OutFailReason);
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
+		const FString ParentClassName = ParentClassInfo.GetClassNameCPP();
+
 		TArray<FAnalyticsEventAttribute> EventAttributes;
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ParentClass"), ParentClass ? ParentClass->GetName() : TEXT("None")));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ParentClass"), ParentClassName.IsEmpty() ? TEXT("None") : ParentClassName));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), bAddCodeSuccessful ? TEXT("Successful") : TEXT("Failed")));
 
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.AddCodeToProject.CodeAdded" ), EventAttributes );
@@ -1360,9 +1612,10 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	// MyGamePlayerController.h
 	{
 		const UClass* BaseClass = APlayerController::StaticClass();
-		const FString NewHeaderFilename = GameModulePath / NewProjectName + BaseClass->GetName() + TEXT(".h");
+		const FString NewClassName = NewProjectName + BaseClass->GetName();
+		const FString NewHeaderFilename = GameModulePath / NewClassName + TEXT(".h");
 		FString UnusedSyncLocation;
-		if ( GenerateClassHeaderFile(NewHeaderFilename, BaseClass, TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, OutFailReason) )
+		if ( GenerateClassHeaderFile(NewHeaderFilename, NewClassName, FNewClassInfo(BaseClass), TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewHeaderFilename);
 		}
@@ -1375,9 +1628,10 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	// MyGameGameMode.h
 	{
 		const UClass* BaseClass = AGameMode::StaticClass();
-		const FString NewHeaderFilename = GameModulePath / NewProjectName + BaseClass->GetName() + TEXT(".h");
+		const FString NewClassName = NewProjectName + BaseClass->GetName();
+		const FString NewHeaderFilename = GameModulePath / NewClassName + TEXT(".h");
 		FString UnusedSyncLocation;
-		if ( GenerateClassHeaderFile(NewHeaderFilename, BaseClass, TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, OutFailReason) )
+		if ( GenerateClassHeaderFile(NewHeaderFilename, NewClassName, FNewClassInfo(BaseClass), TArray<FString>(), TEXT(""), TEXT(""), UnusedSyncLocation, OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewHeaderFilename);
 		}
@@ -1391,9 +1645,10 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	FString PrefixedPlayerControllerClassName;
 	{
 		const UClass* BaseClass = APlayerController::StaticClass();
-		const FString NewCPPFilename = GameModulePath / NewProjectName + BaseClass->GetName() + TEXT(".cpp");
-		PrefixedPlayerControllerClassName = FString(BaseClass->GetPrefixCPP()) + NewProjectName + BaseClass->GetName();
-		if ( GenerateClassCPPFile(NewCPPFilename, NewProjectName, PrefixedPlayerControllerClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
+		const FString NewClassName = NewProjectName + BaseClass->GetName();
+		const FString NewCPPFilename = GameModulePath / NewClassName + TEXT(".cpp");
+		PrefixedPlayerControllerClassName = FString(BaseClass->GetPrefixCPP()) + NewClassName;
+		if ( GenerateClassCPPFile(NewCPPFilename, NewClassName, FNewClassInfo(BaseClass), TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewCPPFilename);
 		}
@@ -1406,8 +1661,8 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 	// MyGameGameMode.cpp
 	{
 		const UClass* BaseClass = AGameMode::StaticClass();
-		const FString NewCPPFilename = GameModulePath / NewProjectName + BaseClass->GetName() + TEXT(".cpp");
-		const FString PrefixedClassName = FString(BaseClass->GetPrefixCPP()) + NewProjectName + BaseClass->GetName();
+		const FString NewClassName = NewProjectName + BaseClass->GetName();
+		const FString NewCPPFilename = GameModulePath / NewClassName + TEXT(".cpp");
 		
 		TArray<FString> PropertyOverrides;
 		PropertyOverrides.Add( FString::Printf( TEXT("PlayerControllerClass = %s::StaticClass();"), *PrefixedPlayerControllerClassName ) );
@@ -1418,7 +1673,7 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 		TArray<FString> AdditionalIncludes;
 		AdditionalIncludes.Add(PlayerControllerClassName);
 
-		if ( GenerateClassCPPFile(NewCPPFilename, NewProjectName, PrefixedClassName, AdditionalIncludes, PropertyOverrides, TEXT(""), OutFailReason) )
+		if ( GenerateClassCPPFile(NewCPPFilename, NewClassName, FNewClassInfo(BaseClass), AdditionalIncludes, PropertyOverrides, TEXT(""), OutFailReason) )
 		{
 			OutCreatedFiles.Add(NewCPPFilename);
 		}
@@ -1792,23 +2047,23 @@ FString GameProjectUtils::MakeIncludeList(const TArray<FString>& InList)
 	return ReturnString;
 }
 
-bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName, const UClass* BaseClass, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, FText& OutFailReason)
+bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, FText& OutFailReason)
 {
 	FString Template;
-	if ( !ReadTemplateFile(TEXT("UObjectClass.h.template"), Template, OutFailReason) )
+	if ( !ReadTemplateFile(ParentClassInfo.GetHeaderTemplateFilename(), Template, OutFailReason) )
 	{
 		return false;
 	}
 
-	const FString UnPrefixedClassName = FPaths::GetBaseFilename(NewHeaderFileName);
-	const FString ClassPrefix = BaseClass->GetPrefixCPP();
+	const FString ClassPrefix = ParentClassInfo.GetClassPrefixCPP();
 	const FString PrefixedClassName = ClassPrefix + UnPrefixedClassName;
-	const FString PrefixedBaseClassName = ClassPrefix + BaseClass->GetName();
+	const FString PrefixedBaseClassName = ClassPrefix + ParentClassInfo.GetClassNameCPP();
 
 	FString BaseClassIncludeDirective;
-	if(BaseClass->HasMetaData(TEXT("IncludePath")))
+	FString BaseClassIncludePath;
+	if(ParentClassInfo.GetIncludePath(BaseClassIncludePath))
 	{
-		BaseClassIncludeDirective = FString::Printf(LINE_TERMINATOR TEXT("#include \"%s\""), *BaseClass->GetMetaData(TEXT("IncludePath")));
+		BaseClassIncludeDirective = FString::Printf(LINE_TERMINATOR TEXT("#include \"%s\""), *BaseClassIncludePath);
 	}
 
 	FString ModuleAPIMacro;
@@ -1824,9 +2079,9 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 		}
 	}
 
-	const FString UnprefixedClassName = PrefixedClassName.Mid(1);
+	// Not all of these will exist in every class template
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnprefixedClassName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%CLASS_MODULE_API_MACRO%"), *ModuleAPIMacro, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UCLASS_SPECIFIER_LIST%"), *MakeCommaDelimitedList(ClassSpecifierList, false), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
@@ -1862,13 +2117,21 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 	return WriteOutputFile(NewHeaderFileName, FinalOutput, OutFailReason);
 }
 
-bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const FString& ModuleName, const FString& PrefixedClassName, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FText& OutFailReason)
+bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FText& OutFailReason)
 {
 	FString Template;
-	if ( !ReadTemplateFile(TEXT("UObjectClass.cpp.template"), Template, OutFailReason) )
+	if ( !ReadTemplateFile(ParentClassInfo.GetSourceTemplateFilename(), Template, OutFailReason) )
 	{
 		return false;
 	}
+
+	const FString ClassPrefix = ParentClassInfo.GetClassPrefixCPP();
+	const FString PrefixedClassName = ClassPrefix + UnPrefixedClassName;
+	const FString PrefixedBaseClassName = ClassPrefix + ParentClassInfo.GetClassNameCPP();
+
+	FString ModuleName;
+	EClassLocation ClassPathLocation = EClassLocation::UserDefined;
+	GetClassLocation(NewCPPFileName, ModuleName, ClassPathLocation);
 
 	FString AdditionalIncludesStr;
 	for (int32 IncludeIdx = 0; IncludeIdx < AdditionalIncludes.Num(); ++IncludeIdx)
@@ -1901,9 +2164,9 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 		ModuleHeaderPath = "../" + ModuleHeaderPath;
 	}
 
-	const FString UnprefixedClassName = PrefixedClassName.Mid(1);
+	// Not all of these will exist in every class template
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnprefixedClassName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleHeaderPath, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PROPERTY_OVERRIDES%"), *PropertyOverridesStr, ESearchCase::CaseSensitive);
@@ -2221,15 +2484,18 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
-bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	if ( !ParentClass )
+	if ( !ParentClassInfo.IsSet() )
 	{
 		OutFailReason = LOCTEXT("NoParentClass", "You must specify a parent class");
 		return false;
 	}
 
-	if ( !IsValidClassNameForCreation(NewClassName, OutFailReason) )
+	const FString CleanClassName = ParentClassInfo.GetCleanClassName(NewClassName);
+	const FString FinalClassName = ParentClassInfo.GetFinalClassName(NewClassName);
+
+	if ( !IsValidClassNameForCreation(FinalClassName, OutFailReason) )
 	{
 		return false;
 	}
@@ -2259,10 +2525,10 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
 
 		// Assuming the game name is the same as the primary game module name
-		const FString ModuleName = FApp::GetGameName();
+		const FString GameModuleName = FApp::GetGameName();
 
 		TArray<FString> StartupModuleNames;
-		if ( GenerateBasicSourceCode(SourceDir, ModuleName, StartupModuleNames, CreatedFiles, OutFailReason) )
+		if ( GenerateBasicSourceCode(SourceDir, GameModuleName, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
 			UpdateProject(&StartupModuleNames);
 		}
@@ -2275,9 +2541,9 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	// Class Header File
 	FString SyncLocation;
-	const FString NewHeaderFilename = NewHeaderPath / NewClassName + TEXT(".h");
+	const FString NewHeaderFilename = NewHeaderPath / ParentClassInfo.GetHeaderFilename(NewClassName);
 	{
-		if ( GenerateClassHeaderFile(NewHeaderFilename, ParentClass, TArray<FString>(), TEXT(""), TEXT(""), SyncLocation, OutFailReason) )
+		if ( GenerateClassHeaderFile(NewHeaderFilename, CleanClassName, ParentClassInfo, TArray<FString>(), TEXT(""), TEXT(""), SyncLocation, OutFailReason) )
 		{
 			CreatedFiles.Add(NewHeaderFilename);
 		}
@@ -2289,10 +2555,9 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	// Class CPP file
-	const FString NewCppFilename = NewCppPath / NewClassName + TEXT(".cpp");
+	const FString NewCppFilename = NewCppPath / ParentClassInfo.GetSourceFilename(NewClassName);
 	{
-		const FString PrefixedClassName = FString(ParentClass->GetPrefixCPP()) + NewClassName;
-		if ( GenerateClassCPPFile(NewCppFilename, ModuleName, PrefixedClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
+		if ( GenerateClassCPPFile(NewCppFilename, CleanClassName, ParentClassInfo, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
 		{
 			CreatedFiles.Add(NewCppFilename);
 		}
