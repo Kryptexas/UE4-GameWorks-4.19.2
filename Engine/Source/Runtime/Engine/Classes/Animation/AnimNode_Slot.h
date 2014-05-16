@@ -17,8 +17,13 @@ struct ENGINE_API FAnimNode_Slot : public FAnimNode_Base
 	FPoseLink Source;
 
 	// The name of this slot, exposed to gameplay code, etc...
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(CustomizeProperty))
 	FName SlotName;
+
+	// The group name of this slot, exposed to gameplay code, etc...
+	// you can only play one montage per group
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(CustomizeProperty))
+	FName GroupName;
 
 protected:
 	/** Weight of Source Branch. This is the weight of the input pose coming from children.

@@ -68,6 +68,18 @@ void FPersonaModule::StartupModule()
 void FPersonaModule::ShutdownModule()
 {
 	MenuExtensibilityManager.Reset();
+
+	// unregsiter when shut down
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomPropertyLayout("SkeletalMeshSocket");
+		PropertyModule.UnregisterCustomPropertyLayout("AnimNotify");
+		PropertyModule.UnregisterCustomPropertyLayout("AnimNotifyState");
+		PropertyModule.UnregisterCustomPropertyLayout("AnimGraphNode_Base");
+
+		PropertyModule.UnregisterStructPropertyLayout("InputScaleBias");
+		PropertyModule.UnregisterStructPropertyLayout("BoneReference");
+	}
 }
 
 

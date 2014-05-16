@@ -46,6 +46,9 @@
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_SequencePlayer.h"
 #include "AnimGraphNode_SequenceEvaluator.h"
+#include "AnimGraphNode_Slot.h"
+#include "Customization/AnimGraphNodeSlotDetails.h"
+
 #include "AnimPreviewInstance.h"
 #define LOCTEXT_NAMESPACE "FPersona"
 
@@ -870,6 +873,11 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	{
 		OpenNewDocumentTab( InitAnimationAsset );
 	}
+
+	// register customization of Slot node for this Persona
+	// this is so that you can open the manage window per Persona
+	Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UAnimGraphNode_Slot::StaticClass(),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphNodeSlotDetails::MakeInstance, SharedThis(this) ));
 }
 
 

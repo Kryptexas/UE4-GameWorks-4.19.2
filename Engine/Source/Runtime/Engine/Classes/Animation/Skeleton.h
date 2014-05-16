@@ -197,6 +197,14 @@ private:
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
 
+	/** @todo collection of slotnode names available for this skeleton */
+	UPROPERTY()
+	TArray<FName> SlotNodeNames;
+
+	/** @todo collection of graoup names for slot node available for this skeleton */
+	UPROPERTY()
+	TArray<FName> SlotGroupNames;
+
 public:
 
 	/** AnimNotifiers that has been created. Right now there is no delete step for this, but in the future we'll supply delete**/
@@ -252,6 +260,17 @@ public:
 
 	// @todo document
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
+
+	// @todo document
+	ENGINE_API void AddSlotNodeName(FName SlotNodeName);
+	ENGINE_API void RemoveSlotNodeName(FName SlotNodeName);
+	ENGINE_API bool DoesHaveSlotNodeName(FName SlotNodeName) const;
+	ENGINE_API const TArray<FName> & GetSlotNodeNames() const;
+
+	ENGINE_API void AddSlotGroupName(FName GroupName);
+	ENGINE_API void RemoveSlotGroupName(FName GroupName);
+	ENGINE_API bool DoesHaveSlotGroupName(FName GroupName) const;
+	ENGINE_API const TArray<FName> & GetSlotGroupNames() const;
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
@@ -530,6 +549,7 @@ public:
 
 	static const FName AnimNotifyTag;
 	static const TCHAR AnimNotifyTagDeliminator;
+	ENGINE_API static const FName DefaultSlotGroupName;
 #endif
 private:
 	void RegenerateGuid();

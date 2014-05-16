@@ -34,6 +34,8 @@ struct FPersonaTabs
 	static const FName MeshAssetPropertiesID;
 	static const FName PreviewManagerID;
 	static const FName SkeletonAnimNotifiesID;
+	static const FName SkeletonSlotNamesID;
+	static const FName SkeletonSlotGroupNamesID;
 
 	// Blueprint Document
 

@@ -93,12 +93,29 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			continue;
 		}
 
+		// if customized, do not do anything
+		if(TargetPropertyHandle->IsCustomized())
+		{
+			continue;
+		}
+		
+		// sometimes because of order of customization
+		// this gets called first for the node you'd like to customize
+		// then the above statement won't work
+		// so you can mark certain property to have meta data "CustomizeProperty"
+		// which will trigger below statement
+		if (OptionalPin.bPropertyIsCustomized)
+		{
+			continue;
+		}
+
 		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
 
 		if(!TargetPropertyHandle->GetProperty())
 		{
 			continue;
 		}
+
 		TSharedPtr<SWidget> NameWidget; 
 		TSharedPtr<SWidget> ValueWidget;
 		FDetailWidgetRow Row;
@@ -317,6 +334,7 @@ void FInputScaleBiasCustomization::CustomizeStructHeader(TSharedRef<class IPrope
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+/////////////////////////////////////////////////////
 void FInputScaleBiasCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	// nothing here

@@ -46,9 +46,11 @@ public:
 		const bool bOptional_ShowByDefault = TestProperty->HasMetaData(Schema->NAME_PinShownByDefault);
 		const bool bOptional_HideByDefault = TestProperty->HasMetaData(Schema->NAME_PinHiddenByDefault);
 		const bool bNeverShow = TestProperty->HasMetaData(Schema->NAME_NeverAsPin);
+		const bool bPropertyIsCustomized = TestProperty->HasMetaData(Schema->NAME_CustomizeProperty);
 
 		Record.bCanToggleVisibility = bOptional_ShowByDefault || bOptional_HideByDefault;
 		Record.bShowPin = bAlwaysShow || bOptional_ShowByDefault;
+		Record.bPropertyIsCustomized = bPropertyIsCustomized;
  	}
 
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE

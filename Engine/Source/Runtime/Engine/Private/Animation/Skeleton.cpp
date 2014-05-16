@@ -14,6 +14,7 @@
 #if WITH_EDITOR
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
 const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
+const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
 #endif 
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
@@ -33,6 +34,8 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	SlotGroupNames.Empty();
+	SlotGroupNames.Add(DefaultSlotGroupName);
 }
 
 void USkeleton::PostInitProperties()
@@ -856,7 +859,50 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
 	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
 }
 
-#endif
+void USkeleton::AddSlotNodeName(FName SlotNodeName)
+{
+	SlotNodeNames.AddUnique(SlotNodeName);
+}
+
+void USkeleton::RemoveSlotNodeName(FName SlotNodeName)
+{
+	SlotNodeNames.Remove(SlotNodeName);
+}
+
+bool USkeleton::DoesHaveSlotNodeName(FName SlotNodeName) const
+{
+	return SlotNodeNames.Contains(SlotNodeName);
+}
+
+const TArray<FName> & USkeleton::GetSlotNodeNames() const
+{
+	return SlotNodeNames;
+}
+
+void USkeleton::AddSlotGroupName(FName GroupName)
+{
+	SlotGroupNames.AddUnique(GroupName);
+}
+
+void USkeleton::RemoveSlotGroupName(FName GroupName)
+{
+	// we can't delete the deafult one
+	if (GroupName != DefaultSlotGroupName)
+	{
+		SlotGroupNames.Remove(GroupName);
+	}
+}
+
+const TArray<FName> & USkeleton::GetSlotGroupNames() const
+{
+	return SlotGroupNames;
+}
+
+bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
+{
+	return SlotGroupNames.Contains(GroupName);
+}
+#endif // WITH_EDITORONLY_DATA
 
 void USkeleton::RegenerateGuid()
 {

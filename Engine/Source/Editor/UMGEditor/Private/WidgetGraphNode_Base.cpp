@@ -51,6 +51,8 @@ public:
 
 		Record.bCanToggleVisibility = bOptional_ShowByDefault || bOptional_HideByDefault;
 		Record.bShowPin = bAlwaysShow || bOptional_ShowByDefault;
+		// this was for anim node graph, not sure if widget graph node would need it
+		Record.bPropertyIsCustomized = false;
 	}
 
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE

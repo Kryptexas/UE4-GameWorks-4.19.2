@@ -27,6 +27,9 @@ class UAnimationGraphSchema : public UEdGraphSchema_K2
 	FName NAME_AlwaysAsPin;
 
 	UPROPERTY()
+	FName NAME_CustomizeProperty;
+
+	UPROPERTY()
 	FName NAME_OnEvaluate;
 	
 	UPROPERTY()

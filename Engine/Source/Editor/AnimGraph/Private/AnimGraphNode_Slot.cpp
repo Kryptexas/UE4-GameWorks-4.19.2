@@ -63,4 +63,14 @@ FString UAnimGraphNode_Slot::GetNodeCategory() const
 	return TEXT("Blends");
 }
 
+void UAnimGraphNode_Slot::BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog)
+{
+	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
+	if (AnimBlueprint->TargetSkeleton)
+	{
+		AnimBlueprint->TargetSkeleton->AddSlotNodeName(Node.SlotName);
+		AnimBlueprint->TargetSkeleton->AddSlotGroupName(Node.GroupName);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

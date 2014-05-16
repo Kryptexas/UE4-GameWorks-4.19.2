@@ -35,6 +35,7 @@ UAnimationGraphSchema::UAnimationGraphSchema(const class FPostConstructInitializ
 	NAME_PinShownByDefault = TEXT("PinShownByDefault");
 	NAME_AlwaysAsPin = TEXT("AlwaysAsPin");
 	NAME_OnEvaluate = TEXT("OnEvaluate");
+	NAME_CustomizeProperty = TEXT("CustomizeProperty");
 	DefaultEvaluationHandlerName = TEXT("EvaluateGraphExposedInputs");
 }
 

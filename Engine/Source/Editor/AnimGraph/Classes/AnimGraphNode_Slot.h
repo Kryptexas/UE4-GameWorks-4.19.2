@@ -21,5 +21,6 @@ class UAnimGraphNode_Slot : public UAnimGraphNode_Base
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const OVERRIDE;
+	virtual void BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog) OVERRIDE;
 	// End of UAnimGraphNode_Base interface
 };
