@@ -244,7 +244,7 @@ public:
 	virtual bool GetViewDependentRsmWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
 		const FBox& LightPropagationVolumeBounds,
-		class FRsmWholeSceneProjectedShadowInitializer& OutInitializer ) const
+		class FWholeSceneProjectedShadowInitializer& OutInitializer ) const
 	{
 		const FMatrix& WorldToLight = GetWorldToLight();
 
@@ -259,7 +259,6 @@ public:
 		OutInitializer.WAxis = FVector4(0,0,0,1);
 		OutInitializer.MinLightW = -HALF_WORLD_MAX;
 		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 8.0f;
-		OutInitializer.LightPropagationVolumeBounds = LightPropagationVolumeBounds;
 
 		// Compute the RSM bounds
 		{

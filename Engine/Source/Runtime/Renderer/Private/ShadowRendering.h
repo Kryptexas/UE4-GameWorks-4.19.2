@@ -516,9 +516,6 @@ public:
 
 	FSphere ShadowBounds;
 
-	/** The extruded cascade frustum's culling planes, if a whole scene directional shadow. */
-	TArray<FPlane> FrustumCullPlanes;
-
 	FShadowCascadeSettings CascadeSettings;
 
 	/** X and Y position of the shadow in the appropriate depth buffer.  These are only initialized after the shadow has been allocated. */
@@ -628,16 +625,7 @@ public:
 		const FWholeSceneProjectedShadowInitializer& Initializer,
 		uint32 InResolutionX,
 		uint32 InResolutionY,
-		const TArray<float, TInlineAllocator<2> >& InFadeAlphas
-		);
-
-	/** Initialization constructor for a whole-scene reflective shadow map */
-	FProjectedShadowInfo(
-		FLightSceneInfo* InLightSceneInfo,
-		FViewInfo* InDependentView,
-		const FRsmWholeSceneProjectedShadowInitializer& Initializer,
-		uint32 InResolutionX,
-		uint32 InResolutionY
+		bool bInReflectiveShadowMap
 		);
 
 	float GetShaderDepthBias() const { return ShaderDepthBias; }

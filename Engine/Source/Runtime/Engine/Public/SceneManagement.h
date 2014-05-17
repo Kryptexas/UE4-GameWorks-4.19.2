@@ -674,19 +674,6 @@ public:
 
 };
 
-/** Information needed to create a whole scene reflective shadow map projected shadow. */
-class ENGINE_API FRsmWholeSceneProjectedShadowInitializer : public FProjectedShadowInitializer
-{
-public:
-	FRsmWholeSceneProjectedShadowInitializer()
-	 : FProjectedShadowInitializer() 
-	 , LightPropagationVolumeBounds(ForceInitToZero)
-	{}
-
-	FBox LightPropagationVolumeBounds;
-	FShadowCascadeSettings	CascadeSettings;
-};
-
 /** Information needed to create a whole scene projected shadow. */
 class ENGINE_API FWholeSceneProjectedShadowInitializer : public FProjectedShadowInitializer
 {
@@ -697,9 +684,6 @@ public:
 
 	/** Whether the shadow is a point light shadow that renders all faces of a cubemap in one pass. */
 	uint32 bOnePassPointLightShadow : 1;
-
-	/** Culling planes used by CSM. */
-	TArray<FPlane, TInlineAllocator<8> > FrustumCullPlanes;
 
 	FWholeSceneProjectedShadowInitializer()
 	:	SplitIndex(INDEX_NONE)
@@ -840,7 +824,7 @@ public:
 	virtual bool GetViewDependentRsmWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
 		const FBox& LightPropagationVolumeBounds,
-		class FRsmWholeSceneProjectedShadowInitializer& OutInitializer ) const
+		class FWholeSceneProjectedShadowInitializer& OutInitializer ) const
 	{
 		return false;
 	}
