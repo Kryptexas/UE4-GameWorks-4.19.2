@@ -14,7 +14,7 @@ void UEnvQueryItemType_ActorBase::AddBlackboardFilters(struct FBlackboardKeySele
 
 bool UEnvQueryItemType_ActorBase::StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const
 {
-	bool bStored = StoreInBlackboard(KeySelector, Blackboard, RawData);
+	bool bStored = Super::StoreInBlackboard(KeySelector, Blackboard, RawData);
 	if (!bStored && KeySelector.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
 		UObject* MyObject = GetActor(RawData);

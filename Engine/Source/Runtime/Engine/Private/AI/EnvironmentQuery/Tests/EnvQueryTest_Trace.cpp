@@ -10,7 +10,7 @@ UEnvQueryTest_Trace::UEnvQueryTest_Trace(const class FPostConstructInitializePro
 
 	Cost = EEnvTestCost::High;
 	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
-	bWorkOnFloatValues = false;
+	SetWorkOnFloatValues(false);
 	
 	Context = UEnvQueryContext_Querier::StaticClass();
 	TraceToItem.Value = false;
@@ -89,7 +89,7 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 		{
 			const bool bHit = TraceFunc.Execute(ItemLocation, ContextLocations[iContext], ItemActor, QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
-			It.SetScore(Condition, bHit, bWantsHit);
+			It.SetScore(TestPurpose, FilterType, bHit, bWantsHit);
 		}
 	}
 }

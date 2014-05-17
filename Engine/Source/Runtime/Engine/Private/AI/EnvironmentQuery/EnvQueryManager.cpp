@@ -276,8 +276,8 @@ namespace EnvQueryTestSort
 			}
 
 			// conditions go first
-			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition) && TestA.bDiscardFailedItems;
-			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition) && TestB.bDiscardFailedItems;
+			const bool bConditionA = (TestA.TestPurpose != EEnvTestPurpose::Score); // Is Test A Filtering?
+			const bool bConditionB = (TestB.TestPurpose != EEnvTestPurpose::Score); // Is Test B Filtering?
 			if (bConditionA && !bConditionB)
 			{
 				return true;
@@ -300,8 +300,8 @@ namespace EnvQueryTestSort
 				return true;
 			}
 
-			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition) && TestA.bDiscardFailedItems;
-			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition) && TestB.bDiscardFailedItems;
+			const bool bConditionA = (TestA.TestPurpose != EEnvTestPurpose::Score); // Is Test A Filtering?
+			const bool bConditionB = (TestB.TestPurpose != EEnvTestPurpose::Score); // Is Test B Filtering?
 			if (TestA.Cost == HighestCost)
 			{
 				// highest cost: weights go first, conditions later (first match will return result)
@@ -473,10 +473,11 @@ void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplat
 		const UEnvQueryTest* TestOb = SortedTests[TestIndex];
 		OptionInstance.TestDelegates[TestIndex] = TestOb->ExecuteDelegate;
 
+		// HACK!  TODO: Is this the correct replacement here?  or should it check just if SCORING ONLY?
 		// always randomize when asking for single result
 		// otherwise, can skip randomization if test wants to score every item
-		if (TestOb->Condition == EEnvTestCondition::NoCondition &&
-			Instance.Mode != EEnvQueryRunMode::SingleResult)
+		if ((TestOb->TestPurpose != EEnvTestPurpose::Filter) && // We ARE scoring, regardless of whether or not we're filtering
+			(Instance.Mode != EEnvQueryRunMode::SingleResult))
 		{
 			OptionInstance.bShuffleItems = false;
 		}

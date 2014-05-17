@@ -24,13 +24,19 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 	bool bPathToItem = false;
 	bool bHierarchical = false;
 	bool bDiscardFailed = false;
-	float UseThreshold = 0.0f;
+// 	float UseThreshold = 0.0f;
+	float MinThresholdValue = 0.0f;
+	float MaxThresholdValue = 0.0f;
 
 	if (!QueryInstance.GetParamValue(BoolFilter, bWantsPath, TEXT("BoolFilter")) ||
 		!QueryInstance.GetParamValue(PathToItem, bPathToItem, TEXT("PathToItem")) ||
 		!QueryInstance.GetParamValue(HierarchicalPathfinding, bHierarchical, TEXT("HierarchicalPathfinding")) ||
 		!QueryInstance.GetParamValue(DiscardUnreachable, bDiscardFailed, TEXT("DiscardUnreachable")) ||
-		!QueryInstance.GetParamValue(FloatFilter, UseThreshold, TEXT("FloatFilter")) )
+// 		!QueryInstance.GetParamValue(FloatFilter, UseThreshold, TEXT("FloatFilter")) ||
+		!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")) ||
+		!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin"))
+	   )
+
 	{
 		return;
 	}
@@ -49,7 +55,7 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 	}
 
 	EPathFindingMode::Type PFMode(bHierarchical ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular);
-	if (bWorkOnFloatValues)
+	if (GetWorkOnFloatValues())
 	{
 		FFindPathSignature FindPathFunc;
 		FindPathFunc.BindUObject(this, TestMode == EEnvTestPathfinding::PathLength ?
@@ -63,7 +69,7 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 			{
 				const float PathValue = FindPathFunc.Execute(ItemLocation, ContextLocations[iContext], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
-				It.SetScore(Condition, PathValue, UseThreshold);
+				It.SetScore(TestPurpose, FilterType, PathValue, MinThresholdValue, MaxThresholdValue);
 
 				if (bDiscardFailed && PathValue >= BIG_NUMBER)
 				{
@@ -85,7 +91,7 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 			{
 				const bool bFoundPath = TestPathFunc.Execute(ItemLocation, ContextLocations[iContext], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
-				It.SetScore(Condition, bFoundPath, bWantsPath);
+				It.SetScore(TestPurpose, FilterType, bFoundPath, bWantsPath);
 			}
 		}
 		NavData->FinishBatchQuery();
@@ -149,7 +155,7 @@ FText UEnvQueryTest_Pathfinding::GetDescriptionDetails() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Description"), AdditionalDesc);
 
-	if (bWorkOnFloatValues)
+	if (GetWorkOnFloatValues())
 	{
 		Args.Add(TEXT("FloatParamsDescription"), DescribeFloatTestParams());
 		AdditionalDesc = FText::Format(LOCTEXT("DescriptionWithDescribedFloatParams", "{Description}\n{FloatParamsDescription}"), Args);
@@ -169,7 +175,7 @@ void UEnvQueryTest_Pathfinding::PostEditChangeProperty(struct FPropertyChangedEv
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UEnvQueryTest_Pathfinding,TestMode))
 	{
-		bWorkOnFloatValues = (TestMode != EEnvTestPathfinding::PathExist);
+		SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);
 		Condition = EEnvTestCondition::NoCondition;
 	}
 }

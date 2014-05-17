@@ -523,9 +523,12 @@ void FEnvQueryInstance::FinalizeGeneration()
 
 	if (Mode == EEnvQueryRunMode::SingleResult && NumTests == 1)
 	{
-		UEnvQueryTest* DefTestOb = (UEnvQueryTest*)(OptionInstance.TestDelegates[0].GetUObject());
-		if (DefTestOb->Condition != EEnvTestCondition::NoCondition &&
-			(DefTestOb->WeightModifier >= EEnvTestWeight::Constant))
+		UEnvQueryTest* DefTestOb = Cast<UEnvQueryTest>(OptionInstance.TestDelegates[0].GetUObject());
+		if ((DefTestOb->TestPurpose != EEnvTestPurpose::Score) && // We are filtering and...
+			((DefTestOb->TestPurpose == EEnvTestPurpose::Filter) ||			// Either we are NOT scoring at ALL or...
+			 (DefTestOb->ScoringEquation == EEnvTestScoreEquation::Constant)// We are giving a constant score value for passing.
+			)
+		   )
 		{
 			OnFinalCondition();
 		}
@@ -551,8 +554,11 @@ void FEnvQueryInstance::FinalizeTest()
 	if (Mode == EEnvQueryRunMode::SingleResult && CurrentTest == NumTests - 2)
 	{
 		DefTestOb = (UEnvQueryTest*)(OptionInstance.TestDelegates[NumTests - 1].GetUObject());
-		if (DefTestOb->Condition != EEnvTestCondition::NoCondition &&
-			(DefTestOb->WeightModifier >= EEnvTestWeight::Constant))
+		if ((DefTestOb->TestPurpose != EEnvTestPurpose::Score) && // We are filtering and...
+			((DefTestOb->TestPurpose == EEnvTestPurpose::Filter) ||			// Either we are NOT scoring at ALL or...
+			 (DefTestOb->ScoringEquation == EEnvTestScoreEquation::Constant)// We are giving a constant score value for passing.
+			)
+		   )
 		{
 			OnFinalCondition();
 		}

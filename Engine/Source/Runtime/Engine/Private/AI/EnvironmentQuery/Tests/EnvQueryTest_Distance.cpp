@@ -31,8 +31,20 @@ UEnvQueryTest_Distance::UEnvQueryTest_Distance(const class FPostConstructInitial
 
 void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 {
-	float ThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))
+// 	float ThresholdValue = 0.0f;
+// 	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))
+// 	{
+// 		return;
+// 	}
+
+	float MinThresholdValue = 0.0f;
+	if (!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin")))
+	{
+		return;
+	}
+
+	float MaxThresholdValue = 0.0f;
+	if (!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")))
 	{
 		return;
 	}
@@ -53,7 +65,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 			{
 				const float Distance = CalcDistance3D(ItemLocation, ContextLocations[iContext]);
-				It.SetScore(Condition, Distance, ThresholdValue);
+				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}
 		break;
@@ -64,7 +76,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 			{
 				const float Distance = CalcDistance2D(ItemLocation, ContextLocations[iContext]);
-				It.SetScore(Condition, Distance, ThresholdValue);
+				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}
 		break;
@@ -75,7 +87,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 			{
 				const float Distance = CalcDistanceZ(ItemLocation, ContextLocations[iContext]);
-				It.SetScore(Condition, Distance, ThresholdValue);
+				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}
 		break;

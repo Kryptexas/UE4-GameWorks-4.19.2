@@ -6,18 +6,29 @@
 
 UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	Cost = EEnvTestCost::Low;
-	Condition = EEnvTestCondition::NoCondition;
-	WeightModifier = EEnvTestWeight::None;
-	Weight.Value = 1.0f;
-	bWorkOnFloatValues = true;
-	bDiscardFailedItems = true;
+	TestPurpose = EEnvTestPurpose::FilterAndScore;
+	FilterType = EEnvTestFilterType::Range;
 	BoolFilter.Value = true;
+	bFormatUpdated = false;
+	Condition = EEnvTestCondition::NoCondition;	// DEPRECATED
+	Weight.Value = 1.0f;						// DEPRECATED
+	WeightModifier = EEnvTestWeight::None;		// DEPRECATED
+	Cost = EEnvTestCost::Low;
+// 	bUseAbsoluteValueBeforeClamping = false;
+	ClampMinType = EEnvQueryTestClamping::None;
+	ClampMaxType = EEnvQueryTestClamping::None;
+// 	bMirrorNormalizedScore = false;
+	ScoringEquation = EEnvTestScoreEquation::Linear;
+	
+	bNormalizeFromZero = false;					// DEPRECATED
+	bWorkOnFloatValues = true;
+	bDiscardFailedItems = true;					// DEPRECATED
 }
 
 void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 {
-	if (WeightModifier == EEnvTestWeight::Skip)
+// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
+	if (!IsScoring())
 	{
 		return;
 	}
@@ -27,23 +38,80 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 	{
 		return;
 	}
+
+// 	float ScoringFactorValue = 0.0f;
+// 	if (!QueryInstance.GetParamValue(ScoringFactor, ScoringFactorValue, TEXT("Factor")))
+// 	{
+// 		return;
+// 	}
 	
-	float MinScore = 0.f;
+	float MinScore = BIG_NUMBER;
 	float MaxScore = -BIG_NUMBER;
 
-	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetTypedData();
-	for (int32 iItem = 0; iItem < QueryInstance.Items.Num(); iItem++, DetailInfo++)
+	if (ClampMinType == EEnvQueryTestClamping::FilterThreshold)
 	{
-		if (!QueryInstance.Items[iItem].IsValid())
+		bool bSuccess = QueryInstance.GetParamValue(FloatFilterMin, MinScore, TEXT("FloatFilterMin"));
+		if (!bSuccess)
 		{
-			continue;
+			UE_LOG(LogEQS, Warning, TEXT("Unable to get FloatFilterMin parameter value from EnvQueryInstance %s"), FloatFilterMin.IsNamedParam() ? *FloatFilterMin.ParamName.ToString() : TEXT("<No name specified>"));
 		}
-
-		const float TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
-		if (TestValue != UEnvQueryTypes::SkippedItemValue)
+	}
+	else if (ClampMinType == EEnvQueryTestClamping::SpecifiedValue)
+	{
+		bool bSuccess = QueryInstance.GetParamValue(ScoreClampingMin, MinScore, TEXT("ScoreClampingMin"));
+		if (!bSuccess)
 		{
-			MinScore = FMath::Min(MinScore, TestValue);
-			MaxScore = FMath::Max(MaxScore, TestValue);
+			UE_LOG(LogEQS, Warning, TEXT("Unable to get ClampMinType parameter value from EnvQueryInstance %s"), ScoreClampingMin.IsNamedParam() ? *ScoreClampingMin.ParamName.ToString() : TEXT("<No name specified>"));
+		}
+	}
+
+	if (ClampMaxType == EEnvQueryTestClamping::FilterThreshold)
+	{
+		bool bSuccess = QueryInstance.GetParamValue(FloatFilterMax, MaxScore, TEXT("FloatFilterMax"));
+		if (!bSuccess)
+		{
+			UE_LOG(LogEQS, Warning, TEXT("Unable to get FloatFilterMax parameter value from EnvQueryInstance %s"), FloatFilterMax.IsNamedParam() ? *FloatFilterMax.ParamName.ToString() : TEXT("<No name specified>"));
+		}
+	}
+	else if (ClampMaxType == EEnvQueryTestClamping::SpecifiedValue)
+	{
+		bool bSuccess = QueryInstance.GetParamValue(ScoreClampingMax, MaxScore, TEXT("ScoreClampingMax"));
+		if (!bSuccess)
+		{
+			UE_LOG(LogEQS, Warning, TEXT("Unable to get ScoreClampingMax parameter value from EnvQueryInstance %s"), ScoreClampingMax.IsNamedParam() ? *ScoreClampingMax.ParamName.ToString() : TEXT("<No name specified>"));
+		}
+	}
+
+	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetTypedData();
+	if ((ClampMinType == EEnvQueryTestClamping::None) ||
+		(ClampMaxType == EEnvQueryTestClamping::None)
+	   )
+	{
+		for (int32 iItem = 0; iItem < QueryInstance.Items.Num(); iItem++, DetailInfo++)
+		{
+			if (!QueryInstance.Items[iItem].IsValid())
+			{
+				continue;
+			}
+
+			float TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
+// 			if (bUseAbsoluteValueBeforeClamping)
+// 			{
+// 				TestValue = FMath::Abs(TestValue);
+// 			}
+
+			if (TestValue != UEnvQueryTypes::SkippedItemValue)
+			{
+				if (ClampMinType == EEnvQueryTestClamping::None)
+				{
+					MinScore = FMath::Min(MinScore, TestValue);
+				}
+
+				if (ClampMaxType == EEnvQueryTestClamping::None)
+				{
+					MaxScore = FMath::Max(MaxScore, TestValue);
+				}
+			}
 		}
 	}
 
@@ -53,45 +121,7 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 		MinScore = 0.0f;
 	}
 
-	// modifier TestWeight_Absolute is applied before normalization
-	if (WeightModifier == EEnvTestWeight::Absolute)
-	{
-		MaxScore = FMath::Max(FMath::Abs(MinScore), FMath::Abs(MaxScore));
-		MinScore = 0;
-
-		if (MinScore != MaxScore)
-		{
-			for (int32 ItemIndex = 0; ItemIndex < QueryInstance.ItemDetails.Num(); ItemIndex++, DetailInfo++)
-			{
-				if (QueryInstance.Items[ItemIndex].IsValid() == false)
-				{
-					continue;
-				}
-
-				float WeightedScore = 0.0f;
-
-				float& TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
-				if (TestValue != UEnvQueryTypes::SkippedItemValue)
-				{
-					const float ModifiedScore = FMath::Abs(DetailInfo->TestResults[QueryInstance.CurrentTest]);
-
-					const float NormalizedScore = ModifiedScore / MaxScore;
-					WeightedScore = ((WeightValue > 0) ? NormalizedScore : 1.0f - NormalizedScore) * FMath::Abs(WeightValue);
-				}
-				else
-				{
-					TestValue = 0.0f;
-					WeightedScore = 0.0f;
-				}
-
-#if USE_EQS_DEBUGGER
-				DetailInfo->TestWeightedScores[QueryInstance.CurrentTest] = WeightedScore;
-#endif
-				QueryInstance.Items[ItemIndex].Score += WeightedScore;
-			}
-		}
-	}
-	else if (MinScore != MaxScore)
+	if (MinScore != MaxScore)
 	{
 		for (int32 ItemIndex = 0; ItemIndex < QueryInstance.ItemDetails.Num(); ItemIndex++, DetailInfo++)
 		{
@@ -105,14 +135,39 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 			float& TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
 			if (TestValue != UEnvQueryTypes::SkippedItemValue)
 			{
+// 				const float TestValueToNormalize = bUseAbsoluteValueBeforeClamping ? FMath::Abs(TestValue) : TestValue;
 				const float NormalizedScore = (TestValue - MinScore) / (MaxScore - MinScore);
-				const float ModifiedScore =
-					(WeightModifier == EEnvTestWeight::Square) ? NormalizedScore * NormalizedScore :
-					(WeightModifier == EEnvTestWeight::Inverse) ? 1.0f / FMath::Max(0.01f, NormalizedScore) :
-					(WeightModifier == EEnvTestWeight::Constant) ? 1.0f :
-					NormalizedScore;
+				// TODO: Add an option to invert the normalized score before applying an equation.
+ 				const float NormalizedScoreForEquation = /*bMirrorNormalizedScore ? (1.0f - NormalizedScore) :*/ NormalizedScore;
+				switch (ScoringEquation)
+				{
+					case EEnvTestScoreEquation::Linear:
+						WeightedScore = WeightValue * NormalizedScoreForEquation;
+						break;
 
-				WeightedScore = ((WeightValue > 0) ? ModifiedScore : 1.0f - ModifiedScore) * FMath::Abs(WeightValue);
+					case EEnvTestScoreEquation::InverseLinear:
+					{
+						// For now, we're avoiding having a separate flag for flipping the direction of the curve
+						// because we don't have usage cases yet and want to avoid too complex UI.  If we decide
+						// to add that flag later, we'll need to remove this option, since it should just be "mirror
+						// curve" plus "Linear".
+						float InverseNormalizedScore = (1.0f - NormalizedScoreForEquation);
+						WeightedScore = WeightValue * InverseNormalizedScore;
+						break;
+					}
+
+					case EEnvTestScoreEquation::Square:
+						WeightedScore = WeightValue * (NormalizedScoreForEquation * NormalizedScoreForEquation);
+						break;
+
+					case EEnvTestScoreEquation::Constant:
+						// I know, it's not "constant".  It's "Constant, or zero".  The tooltip should explain that.
+						WeightedScore = (NormalizedScoreForEquation > 0) ? WeightValue : 0.0f;
+						break;
+						
+					default:
+						break;
+				}
 			}
 			else
 			{
@@ -164,6 +219,92 @@ FText UEnvQueryTest::GetDescriptionDetails() const
 	return FText::GetEmpty();
 }
 
+void UEnvQueryTest::PostLoad()
+{
+	Super::PostLoad();
+
+	if (bFormatUpdated)
+	{
+		// Backwards compatibility already handled.
+		return;
+	}
+
+	switch (Condition)
+	{
+		case EEnvTestCondition::AtLeast:
+			FloatFilterMin = FloatFilter;
+			FilterType = EEnvTestFilterType::Minimum;
+			break;
+		
+		case EEnvTestCondition::UpTo:
+			FloatFilterMax = FloatFilter;
+			FilterType = EEnvTestFilterType::Maximum;
+			break;
+		
+		case EEnvTestCondition::NoCondition:
+			TestPurpose = EEnvTestPurpose::Score;
+			break;
+
+		case EEnvTestCondition::Match:
+			FilterType = EEnvTestFilterType::Match;
+			break;
+
+		default:
+			UE_LOG(LogEQS, Error, TEXT("Invalid Condition type in UEnvQueryTest::PostLoad!"));
+			break;
+	}
+
+	if ((WeightModifier != EEnvTestWeight::Skip) && !Weight.IsNamedParam() && (Weight.Value == 0.f))
+	{	// We ought to be skipping the test if weight is 0!  Zero makes it pointless!
+		WeightModifier = EEnvTestWeight::Skip;
+	}
+
+	if (WeightModifier != EEnvTestWeight::Skip)
+	{
+		if (!bWorkOnFloatValues)
+		{	// Working on booleans, so MUST use constant value!
+			WeightModifier = EEnvTestWeight::Constant;
+		}
+	}
+
+	switch (WeightModifier)
+	{
+		case EEnvTestWeight::None:
+			ScoringEquation = EEnvTestScoreEquation::Linear;
+			break;
+
+		case EEnvTestWeight::Constant:
+			ScoringEquation = EEnvTestScoreEquation::Constant;
+			break;
+
+		case EEnvTestWeight::Inverse:
+			ScoringEquation = EEnvTestScoreEquation::InverseLinear;
+			break;
+
+		case EEnvTestWeight::Square:
+			ScoringEquation = EEnvTestScoreEquation::Square;
+			break;
+
+		case EEnvTestWeight::Absolute:
+			UE_LOG(LogEQS, Error, TEXT("Absolute weight is no longer supported!  Sticking with default weighting."));
+			break;
+
+		case EEnvTestWeight::Skip:
+			TestPurpose = EEnvTestPurpose::Filter;
+			if (Condition == EEnvTestCondition::NoCondition)
+			{
+				UE_LOG(LogEQS, Error, TEXT("Test was set to neither filter nor score!  Now setting to filter!"));	
+			}
+			break;
+
+		default:
+			UE_LOG(LogEQS, Error, TEXT("Invalid Weight Modifier type in UEnvQueryTest::PostLoad!"));
+			break;
+	}
+
+	bFormatUpdated = true;
+}
+
 #if WITH_EDITOR
 void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
@@ -191,11 +332,12 @@ FText UEnvQueryTest::DescribeFloatTestParams() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-	if (WeightModifier == EEnvTestWeight::Skip)
+// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
+	if (!IsScoring())
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
 	}
-	else if (WeightModifier == EEnvTestWeight::Constant)
+	else if (ScoringEquation == EEnvTestScoreEquation::Constant)
 	{
 		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format( LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)) );
 		Args.Add(TEXT("WeightDesc"), WeightDesc);
@@ -249,11 +391,12 @@ FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-	if (WeightModifier == EEnvTestWeight::Skip)
+// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
+	if (!IsScoring())
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
 	}
-	else if (WeightModifier == EEnvTestWeight::Constant)
+	else if (ScoringEquation == EEnvTestScoreEquation::Constant)
 	{
 		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format(LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)));
 		Args.Add(TEXT("WeightDesc"), WeightDesc);
@@ -276,6 +419,30 @@ FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 	}
 
 	return ParamDesc;
+}
+
+void UEnvQueryTest::SetWorkOnFloatValues(bool bWorkOnFloats)
+{
+	bWorkOnFloatValues = bWorkOnFloats;
+	// Make sure FilterType is set to a valid value.
+	if (bWorkOnFloats)
+	{
+		if (FilterType == EEnvTestFilterType::Match)
+		{
+			FilterType = EEnvTestFilterType::Range;
+		}
+	}
+	else
+	{
+		if (FilterType != EEnvTestFilterType::Match)
+		{
+			FilterType = EEnvTestFilterType::Match;
+		}
+
+		// Scoring MUST be Constant for boolean tests.
+		ScoringEquation = EEnvTestScoreEquation::Constant;
+// 		bMirrorNormalizedScore = false;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

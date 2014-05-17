@@ -19,6 +19,29 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGRO
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, ENGINE_API);
 
 UENUM()
+namespace EEnvTestPurpose
+{
+	enum Type
+	{
+		Filter,
+		Score,
+		FilterAndScore UMETA(DisplayName="Filter and Score")
+	};
+}
+
+UENUM()
+namespace EEnvTestFilterType
+{
+	enum Type
+	{
+		Minimum,	// For numeric tests
+		Maximum,	// For numeric tests
+		Range,		// For numeric tests
+		Match		// For boolean tests
+	};
+}
+
+UENUM()
 namespace EEnvTestCondition
 {
 	enum Type
@@ -31,6 +54,29 @@ namespace EEnvTestCondition
 }
 
 UENUM()
+namespace EEnvTestScoreEquation
+{
+	enum Type
+	{
+		Linear,
+		Square,
+		InverseLinear,	// For now...
+		Constant
+		// What other curve shapes should be supported?  At first I was thinking we'd have parametric (F*V^P + C), but
+		// many versions of that curve would violate the [0, 1] output range which I think we should preserve.  So instead
+		// I think we should define these by "curve shape".  I'm not sure if we need to allow full tweaks to the curves,
+		// such as supporting other "Exponential" curves (positive even powers).  However, I think it's likely that we'll
+		// want to support "smooth LERP" / S-shaped curve of the form 2x^3 - 3x^2, and possibly a "sideways" version of
+		// the same S-curve.  We also might want to allow "Sine" curves, basically adjusted to match the range and then
+		// simply offset by some amount to allow a peak or valley in the middle or on the ends.  (Four Sine options are
+		// probably sufficient.)  I'm not sure if Sine is really needed though, so probably we should only add it if
+		// there's a need identified.  One other curve shape we might want is "Square Root", which might optionally
+		// support any positive fractional power (if we also supported any positive even number for an "Exponential"
+		// type.
+	};
+}
+
+UENUM()
 namespace EEnvTestWeight
 {
 	enum Type
@@ -38,7 +84,7 @@ namespace EEnvTestWeight
 		None,
 		Square,
 		Inverse,
-		Absolute,
+		Absolute,	// Removed after discussion with EGP folks
 		Constant,
 		Skip			UMETA(DisplayName = "Do not weight"),
 	};
@@ -123,12 +169,28 @@ namespace EEnvDirection
 	};
 }
 
+UENUM()
+namespace EEnvQueryTestClamping
+{
+	enum Type
+	{
+		None,			
+		SpecifiedValue,	// Clamp to value specified in test
+		FilterThreshold	// Clamp to test's filter threshold
+	};
+}
+
 USTRUCT()
 struct ENGINE_API FEnvFloatParam
 {
 	GENERATED_USTRUCT_BODY();
 
 	typedef float FValueType;
+
+	FEnvFloatParam() :
+		Value(0.f)
+	{
+	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -148,6 +210,11 @@ struct ENGINE_API FEnvIntParam
 
 	typedef int32 FValueType;
 
+	FEnvIntParam() :
+		Value(0)
+	{
+	}
+
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
 	int32 Value;
@@ -165,6 +232,11 @@ struct ENGINE_API FEnvBoolParam
 	GENERATED_USTRUCT_BODY();
 
 	typedef bool FValueType;
+
+	FEnvBoolParam() :
+		Value(false)
+	{
+	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -662,19 +734,53 @@ public:
 			Instance->CurrentTestStartingItem = CurrentItem;
 		}
 
-		void SetScore(EEnvTestCondition::Type Condition, float Score, float Threshold)
+		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, float Score, float Min, float Max)
 		{
-			if ((Condition == EEnvTestCondition::AtLeast && Score < Threshold) ||
-				(Condition == EEnvTestCondition::UpTo && Score > Threshold))
+			bool bPassedTest = true;
+			switch (FilterType)
 			{
-				if (bDiscardFailed)
-				{
-					bPassed = false;
-				}
-				else
+				case EEnvTestFilterType::Maximum:
+					if (Score > Max)
+					{
+						bPassedTest = false;
+					}
+					break;
+
+				case EEnvTestFilterType::Minimum:
+					if (Score < Min)
+					{
+						bPassedTest = false;
+					}
+					break;
+
+				case EEnvTestFilterType::Range:
+					if ((Score < Min) || (Score > Max))
+					{
+						bPassedTest = false;
+					}
+					break;
+
+				case EEnvTestFilterType::Match:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+
+				default:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+			}
+
+			if (!bPassedTest)
+			{
+				if (TestPurpose == EEnvTestPurpose::Score)
 				{
 					bSkipped = true;
 					NumPartialScores++;
+				}
+				else // We are filtering!
+				{
+					bPassed = false;
 				}
 			}
 			else
@@ -684,23 +790,54 @@ public:
 			}
 		}
 
-		void SetScore(EEnvTestCondition::Type Condition, bool bScore, bool bExpected)
+		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, bool bScore, bool bExpected)
 		{
-			if (Condition == EEnvTestCondition::Match && bScore != bExpected)
+			bool bPassedTest = true;
+			switch (FilterType)
 			{
-				if (bDiscardFailed)
-				{
-					bPassed = false;
-				}
-				else
+				case EEnvTestFilterType::Match:
+					if (bScore != bExpected)
+					{
+						bPassedTest = false;
+					}
+					break;
+
+				case EEnvTestFilterType::Maximum:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Maximum' for boolean test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+
+				case EEnvTestFilterType::Minimum:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Minimum' for boolean test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+
+				case EEnvTestFilterType::Range:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Range' for boolean test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+
+				default:
+					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for boolean test.  Will consider test as failed in all cases."));
+					bPassedTest = false;
+					break;
+			}
+
+			if (!bPassedTest)
+			{
+				if (TestPurpose == EEnvTestPurpose::Score)
 				{
 					bSkipped = true;
 					NumPartialScores++;
 				}
+				else // We are filtering!
+				{
+					bPassed = false;
+				}
 			}
 			else
 			{
-				ItemScore += bScore == bExpected ? 1.0f : 0.0f;
+				ItemScore += 1.0f;
 				NumPartialScores++;
 			}
 		}

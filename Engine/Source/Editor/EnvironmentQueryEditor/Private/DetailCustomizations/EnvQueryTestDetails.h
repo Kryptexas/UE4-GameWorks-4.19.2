@@ -16,19 +16,7 @@ public:
 
 protected:
 
-	TSharedPtr<IPropertyHandle> ConditionHandle;
-	TSharedPtr<IPropertyHandle> ModifierHandle;
-
-	void BuildConditionValues();
-	void OnConditionComboChange(int32 Index);
-	TSharedRef<SWidget> OnGetConditionContent();
-	FString GetCurrentConditionDesc() const;
-	FString GetWeightModifierInfo() const;
-	EVisibility GetFloatFilterVisibility() const;
-	EVisibility GetBoolFilterVisibility() const;
-	EVisibility GetDiscardFailedVisibility() const;
-
-	/** cached names of conditions */
+	/** cached name, value pairs of enums that may change available options based on other options. */
 	struct FStringIntPair
 	{
 		FString Str;
@@ -37,7 +25,89 @@ protected:
 		FStringIntPair() {}
 		FStringIntPair(FString InStr, int32 InInt) : Str(InStr), Int(InInt) {}
 	};
+
+	TSharedPtr<IPropertyHandle> ConditionHandle;
+	TSharedPtr<IPropertyHandle> FilterTypeHandle;
+	TSharedPtr<IPropertyHandle> ScoreEquationHandle;
+	TSharedPtr<IPropertyHandle> TestPurposeHandle;
+	TSharedPtr<IPropertyHandle> ClampMinTypeHandle;
+	TSharedPtr<IPropertyHandle> ClampMaxTypeHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampingMinHandle;
+	TSharedPtr<IPropertyHandle> FloatFilterMinHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampingMaxHandle;
+	TSharedPtr<IPropertyHandle> FloatFilterMaxHandle;
+
+	bool IsFiltering() const;
+	bool IsScoring() const;
+
+	bool UsesFilterMin() const;
+	bool UsesFilterMax() const;
+
+	void BuildConditionValues();
+	void OnConditionComboChange(int32 Index);
+	TSharedRef<SWidget> OnGetConditionContent();
+	FString GetCurrentConditionDesc() const;
+	FString GetCurrentFilterTestDesc() const;
+	FString GetScoreEquationInfo() const;
+
+ 	EVisibility GetScoreVisibility() const;
+// 	EVisibility GetScoreFactorVisibility() const;
+// 	EVisibility GetScoreConstantVisibility() const;
+	// Only needed if we add support for parametric equations
+// 	EVisibility GetScorePowerVisibility() const;
+
+	TSharedRef<SWidget> OnGetFilterTestContent();
+	void BuildFilterTestValues();
+
+	void BuildScoreEquationValues();
+	TSharedRef<SWidget> OnGetEquationValuesContent();
+	FString GetEquationValuesDesc() const;
+	void OnScoreEquationChange(int32 Index);
+
+	void OnFilterTestChange(int32 Index);
+	void OnClampMinTestChange(int32 Index);
+	void OnClampMaxTestChange(int32 Index);
+
+	TSharedRef<SWidget> OnGetClampMaxTypeContent();
+	FString GetClampMaxTypeDesc() const;
+
+	TSharedRef<SWidget> OnGetClampMinTypeContent();
+	FString GetClampMinTypeDesc() const;
+
+	bool IsMatchingBoolValue() const;
+
+	// Is this a float test at all?
+	EVisibility GetFloatTestVisibility() const;
+	
+	// Is this a float test that is filtering?
+	EVisibility GetFloatFilterVisibility() const;
+
+	// Is this a float test that is scoring?
+	EVisibility GetFloatScoreVisibility() const;
+	
+	EVisibility GetVisibilityOfFloatFilterMin() const;
+	EVisibility GetVisibilityOfFloatFilterMax() const;
+	EVisibility GetVisibilityOfFilterMinForScoreClamping() const;
+	EVisibility GetVisibilityOfFilterMaxForScoreClamping() const;
+	EVisibility GetBoolFilterVisibilityForScoring() const;
+	EVisibility GetBoolFilterVisibility() const;
+	EVisibility GetDiscardFailedVisibility() const;
+	EVisibility GetVisibilityOfScoreClampingMinimum() const;
+	EVisibility GetVisibilityOfScoreClampingMaximum() const;
+
+	void BuildScoreClampingTypeValues(bool bBuildMinValues, TArray<FStringIntPair>& ClampTypeValues) const;
+
 	TArray<FStringIntPair> ConditionValues;
 
+	TArray<FStringIntPair> FilterTestValues;
+
+	TArray<FStringIntPair> ClampMinTypeValues;
+	TArray<FStringIntPair> ClampMaxTypeValues;
+
+	TArray<FStringIntPair> ScoreEquationValues;
+
 	TWeakObjectPtr<UObject> MyTest;
+
+	FORCEINLINE bool AllowWritingToFiltersFromScore() const { return false; }
+	TAttribute<bool> AllowWriting;
 };
