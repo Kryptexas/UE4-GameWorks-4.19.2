@@ -61,6 +61,7 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
+                "AIModule",
 			}
 		);
 
@@ -88,6 +89,7 @@ public class Engine : ModuleRules
 
 			PrivateIncludePathModuleNames.Add("MeshUtilities");
 			DynamicallyLoadedModuleNames.Add("MeshUtilities");
+
 
 			if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
 			{
