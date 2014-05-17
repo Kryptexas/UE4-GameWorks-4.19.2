@@ -61,7 +61,6 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
-                "AIModule",
 			}
 		);
 
