@@ -3815,7 +3815,7 @@ bool FLightmassProcessor::ImportSignedDistanceFieldShadowMapData2D(int32 Channel
 		FQuantizedShadowSignedDistanceFieldData2D* ShadowMapData = new FQuantizedShadowSignedDistanceFieldData2D(SMData.SizeX, SMData.SizeY);
 		check(ShadowMapData);
 
-		FQuantizedSignedDistanceFieldShadowSample* DataBuffer = &((*ShadowMapData)(0, 0));
+		FQuantizedSignedDistanceFieldShadowSample* DataBuffer = ShadowMapData->GetData();
 		uint32 DataBufferSize = SMData.SizeX * SMData.SizeY * sizeof(Lightmass::FQuantizedSignedDistanceFieldShadowSampleData);
 
 		uint32 CompressedSize = SMData.CompressedDataSize;

@@ -162,6 +162,8 @@ public:
 		Data.AddZeroed(SizeX * SizeY);
 	}
 
+	FQuantizedSignedDistanceFieldShadowSample* GetData() { return Data.GetData(); }
+
 	const FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) const { return Data[SizeX * Y + X]; }
 	FQuantizedSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) { return Data[SizeX * Y + X]; }
 
