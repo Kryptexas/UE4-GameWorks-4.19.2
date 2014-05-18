@@ -86,7 +86,8 @@ namespace APIDocTool
 				APIModule Module = APIModule.Build(Parent, Pair.Key);
 				Parent.Children.Add(Module);
 
-				Pair.Value.AddModule(Module);
+				Pair.Value.Modules.Add(Module);
+//				Pair.Value.AddModule(Module);
 			}
 
 			// Expand the Core section by default
