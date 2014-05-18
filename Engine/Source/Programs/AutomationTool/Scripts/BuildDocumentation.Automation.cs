@@ -83,7 +83,7 @@ public class BuildDocumentation : BuildCommand
 		// Execute the clean
 		if(bCleanEnv)
 		{
-			RunAndLog(CmdEnv, ApiDocToolPath, "-cleantargetinfo" + ApiToolCommandLine, "ApiDocTool-CleanTargetInfo");
+			RunAndLog(CmdEnv, ApiDocToolPath, "-cleantarget" + ApiToolCommandLine, "ApiDocTool-CleanTargetInfo");
 		}
 		if (bCleanMeta)
 		{
@@ -109,7 +109,7 @@ public class BuildDocumentation : BuildCommand
 		// Execute the build
 		if (bBuildEnv)
 		{
-			RunAndLog(CmdEnv, ApiDocToolPath, "-buildtargetinfo" + ApiToolCommandLine, "ApiDocTool-BuildTargetInfo");
+			RunAndLog(CmdEnv, ApiDocToolPath, "-buildtarget" + ApiToolCommandLine, "ApiDocTool-BuildTargetInfo");
 		}
 		if (bBuildMeta)
 		{
