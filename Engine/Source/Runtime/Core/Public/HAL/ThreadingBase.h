@@ -262,7 +262,7 @@ public:
 	*
 	* @return The newly created thread or NULL if it failed
 	*/
-	DEPRECATED(4.2, "Function deprecated. Use FRunnableThread::Create without bAutoDeleteSelf and bAutoDeleteRunnable params and delete thread and runnable manually.")
+	DEPRECATED(4.3, "Function deprecated. Use FRunnableThread::Create without bAutoDeleteSelf and bAutoDeleteRunnable params and delete thread and runnable manually.")
 	CORE_API static FRunnableThread* Create(
 		class FRunnable* InRunnable,
 		const TCHAR* ThreadName,
