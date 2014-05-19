@@ -333,19 +333,19 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 		if(ProjectDictionary.IsForeignProject(ProjectFileName))
 		{
 			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
-		}
 
-		// Always include game source
-		Arguments += " -game";
+			// Always include game source
+			Arguments += " -game";
 
-		// Determine whether or not to include engine source
-		if(IsSourceDistribution(RootDir))
-		{
-			Arguments += " -engine";
-		}
-		else
-		{
-			Arguments += " -rocket";
+			// Determine whether or not to include engine source
+			if(IsSourceDistribution(RootDir))
+			{
+				Arguments += " -engine";
+			}
+			else
+			{
+				Arguments += " -rocket";
+			}
 		}
 	}
 	Arguments += " -progress";

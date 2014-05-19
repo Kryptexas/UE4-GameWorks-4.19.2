@@ -478,6 +478,9 @@ bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const
 		return false;
 	}
 
+	// Write the output
+	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *Arguments);
+
 	// Spawn UBT
 	int32 ExitCode = 0;
 	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
