@@ -97,6 +97,12 @@ struct FParticleRandomSeedInfo
 	UPROPERTY(EditAnywhere, Category=ParticleRandomSeedInfo)
 	uint32 bResetSeedOnEmitterLooping:1;
 
+	/**
+	*	If true, then randomly select a seed entry from the RandomSeeds array
+	*/
+	UPROPERTY(EditAnywhere, Category = ParticleRandomSeedInfo)
+	uint32 bRandomlySelectSeedArray:1;
+
 	/** 
 	 *	The random seed values to utilize for the module. 
 	 *	More than 1 means the instance will randomly select one.
@@ -110,6 +116,7 @@ struct FParticleRandomSeedInfo
 		: bGetSeedFromInstance(false)
 		, bInstanceSeedIsIndex(false)
 		, bResetSeedOnEmitterLooping(true)
+		, bRandomlySelectSeedArray(false)
 		{
 		}
 		FORCEINLINE int32 GetInstancePayloadSize() const

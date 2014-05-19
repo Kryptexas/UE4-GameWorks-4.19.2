@@ -660,7 +660,15 @@ uint32 UParticleModule::PrepRandomSeedInstancePayload(FParticleEmitterInstance* 
 		// Pick a seed to use and initialize it!!!!
 		if (InRandSeedInfo.RandomSeeds.Num() > 0)
 		{
-			InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[0]);
+			if (InRandSeedInfo.bRandomlySelectSeedArray)
+			{
+				int32 Index = FMath::RandRange(0, InRandSeedInfo.RandomSeeds.Num() - 1);
+				InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[Index]);
+			}
+			else
+			{
+				InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[0]);
+			}
 			return 0;
 		}
 	}
