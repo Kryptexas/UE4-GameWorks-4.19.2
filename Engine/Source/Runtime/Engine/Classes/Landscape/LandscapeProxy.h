@@ -169,6 +169,18 @@ namespace ELandscapeLayerPaintingRestriction
 	};
 }
 
+UENUM()
+namespace ELandscapeLODFalloff
+{
+	enum Type
+	{
+		// Default mode
+		Linear			UMETA(DisplayName = "Linear"),
+		// Square Root give more natural transition, and also keep the same LOD 
+		SquareRoot		UMETA(DisplayName = "Square Root"),
+	};
+}
+
 UCLASS(dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
 class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
@@ -300,6 +312,9 @@ public:
 	/** Hints navigation system whether this landscape will ever be navigated on. true by default, but make sure to set it to false for faraway, background landscapes */
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	uint32 bUsedForNavigation:1;
+
+	UPROPERTY(EditAnywhere, Category=LOD)
+	TEnumAsByte<enum ELandscapeLODFalloff::Type> LODFalloff;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)

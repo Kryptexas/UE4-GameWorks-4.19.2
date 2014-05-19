@@ -405,9 +405,9 @@ protected:
 	// Storage for static draw list batch params
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
-	// Precomputed
+	// Precomputed values
 	float					LODDistance;
-	float					LODDistanceFactor;
+	float					PrecomputedLODFactor;
 	float					DistDiff;
 
 	FVector4 WeightmapScaleBias;
@@ -451,6 +451,8 @@ protected:
 	int32					LODBias;
 	uint8					ForcedNeighborLOD[LANDSCAPE_NEIGHBOR_NUM];
 	uint8					NeighborLODBias[LANDSCAPE_NEIGHBOR_NUM];
+
+	enum ELandscapeLODFalloff::Type LODFalloff;
 
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
