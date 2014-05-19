@@ -241,17 +241,18 @@ void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScale
 		// set min scale
 		Scale3D = FVector(0.1f);
 	}
-	// Determine if applied scaling is uniform. If it isn't, only convex geometry will be copied over
-	MinScale = Scale3D.GetMin(); // Uniform scaling factor
-	MinScaleAbs = FMath::Abs(MinScale);
+
+	Scale3DAbs = Scale3D.GetAbs();
+	MinScaleAbs = Scale3DAbs.GetMin();
+
+	MinScale = FMath::Max3(Scale3D.X, Scale3D.Y, Scale3D.Z) < 0.f ? -MinScaleAbs : MinScaleAbs;	//if all three values are negative make minScale negative
+	
 	if (FMath::IsNearlyZero(MinScale))
 	{
 		// only one of them can be 0, we make sure they have mini set up correctly
 		MinScale = 0.1f;
 		MinScaleAbs = 0.1f;
 	}
-
-	Scale3DAbs = FVector(FMath::Abs(Scale3D.X), FMath::Abs(Scale3D.Y), FMath::Abs(Scale3D.Z)); // magnitude of scale (sign removed)
 }
 
 #if WITH_BODY_WELDING
@@ -373,7 +374,11 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				// this is a bit confusing since radius and height is scaled
 				// first apply the scale first 
 				float Radius = FMath::Max(SphylElem->Radius * ScaleRadius, 0.1f);
-				float HalfHeight = SphylElem->Length * ScaleLength * 0.5f;
+				float Length = SphylElem->Length + SphylElem->Radius * 2.f;
+				float HalfLength = Length * ScaleLength * 0.5f;
+				Radius = FMath::Clamp(Radius, 0.1f, HalfLength);	//radius is capped by half length
+				float HalfHeight = HalfLength - Radius;
+				HalfHeight = FMath::Max(0.1f, HalfHeight);
 
 				PxCapsuleGeometry PCapsuleGeom;
 				PCapsuleGeom.halfHeight = HalfHeight;

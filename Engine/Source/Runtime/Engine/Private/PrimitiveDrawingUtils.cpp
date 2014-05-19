@@ -782,8 +782,9 @@ void DrawWireCapsule(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVec
 	const float XScale = X.Size();
 	const float YScale = Y.Size();
 	const float ZScale = Z.Size();
-	float CapsuleRadius = Radius * FMath::Max( FMath::Max(XScale,YScale), ZScale );
+	float CapsuleRadius = Radius * FMath::Max(XScale,YScale);
 	HalfHeight *= ZScale;
+	CapsuleRadius = FMath::Clamp(CapsuleRadius, 0.f, HalfHeight);	//cap radius based on total height
 	HalfHeight -= CapsuleRadius;
 	HalfHeight = FMath::Max( 0.0f, HalfHeight );
 

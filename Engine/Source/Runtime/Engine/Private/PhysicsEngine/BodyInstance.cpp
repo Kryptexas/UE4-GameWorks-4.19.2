@@ -282,6 +282,7 @@ TArray<PxShape*> FBodyInstance::GetAllShapes(int32& OutNumSyncShapes) const
 	TArray<PxShape*> PSyncShapes;
 	if( RigidActorSync != NULL )
 	{
+		SCOPED_SCENE_READ_LOCK(RigidActorSync->getScene());
 		PSyncShapes.AddZeroed( RigidActorSync->getNbShapes() );
 		RigidActorSync->getShapes(PSyncShapes.GetData(), PSyncShapes.Num());
 	}
@@ -1131,9 +1132,87 @@ float AdjustForSmallThreshold(float NewVal, float OldVal)
 	return NewVal;
 }
 
-bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
+//Non uniform scaling depends on the primitive that has the least non uniform scaling capability. So for example, a capsule's x and y axes scale are locked.
+//So if a capsule exists in this body we must use locked x and y scaling for all shapes.
+namespace EScaleMode
 {
-	FVector InScale3DAdjusted = inScale3D;
+	enum Type
+	{
+		Free,
+		LockedXY,
+		LockedXYZ
+	};
+}
+
+//computes the relative scaling vectors based on scale mode used
+void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector & NewScale3D, const FVector & OldScale3D, FVector & RelativeScale3D, FVector & RelativeScale3DAbs, FVector & OutScale3D)
+{
+	FVector NewScale3DAbs = NewScale3D.GetAbs();
+	FVector OldScale3DAbs = OldScale3D.GetAbs();
+
+	switch (ScaleMode)
+	{
+	case EScaleMode::Free:
+	{
+		OutScale3D = NewScale3D;
+		RelativeScale3DAbs.X = NewScale3DAbs.X / OldScale3DAbs.X;
+		RelativeScale3DAbs.Y = NewScale3DAbs.Y / OldScale3DAbs.Y;
+		RelativeScale3DAbs.Z = NewScale3DAbs.Z / OldScale3DAbs.Z;
+
+		RelativeScale3D.X = NewScale3D.X / OldScale3D.X;
+		RelativeScale3D.Y = NewScale3D.Y / OldScale3D.Y;
+		RelativeScale3D.Z = NewScale3D.Z / OldScale3D.Z;
+		break;
+	}
+	case EScaleMode::LockedXY:
+	{
+		float XYScaleAbs = FMath::Max(NewScale3DAbs.X, NewScale3DAbs.Y);
+		float XYScale = FMath::Max(NewScale3D.X, NewScale3D.Y) < 0.f ? -XYScaleAbs : XYScaleAbs;	//if both xy are negative we should make the xy scale negative
+
+		float OldXYScaleAbs = FMath::Max(OldScale3DAbs.X, OldScale3DAbs.Y);
+		float OldScaleXY = FMath::Max(OldScale3D.X, OldScale3D.Y) < 0.f ? -OldXYScaleAbs : OldXYScaleAbs;
+
+		float RelativeScaleAbs = XYScaleAbs / OldXYScaleAbs;
+		float RelativeScale = XYScale / OldScaleXY;
+
+		RelativeScale3DAbs.X = RelativeScale3DAbs.Y = RelativeScaleAbs;
+		RelativeScale3DAbs.Z = NewScale3DAbs.Z / OldScale3DAbs.Z;
+
+		RelativeScale3D.X = RelativeScale3D.Y = RelativeScale;
+		RelativeScale3D.Z = NewScale3D.Z / OldScale3D.Z;
+		
+		OutScale3D = NewScale3D;
+		OutScale3D.X = OutScale3D.Y = XYScale;
+
+		break;
+	}
+	case EScaleMode::LockedXYZ:
+	{
+		float UniformScaleAbs = NewScale3DAbs.GetMin();	//uniform scale uses the smallest magnitude
+		float UniformScale = FMath::Max3(NewScale3D.X, NewScale3D.Y, NewScale3D.Z) < 0.f ? -UniformScaleAbs : UniformScaleAbs;	//if all three values are negative we should make uniform scale negative
+
+		float OldUniformScaleAbs = OldScale3D.GetAbs().GetMin();
+		float OldUniformScale = FMath::Max3(OldScale3D.X, OldScale3D.Y, OldScale3D.Z) < 0.f ? -OldUniformScaleAbs : OldUniformScaleAbs;
+
+		float RelativeScale = UniformScale / OldUniformScale;
+		float RelativeScaleAbs = UniformScaleAbs / OldUniformScaleAbs;
+
+		RelativeScale3DAbs = FVector(RelativeScaleAbs);
+		RelativeScale3D = FVector(RelativeScale);
+
+		OutScale3D = FVector(UniformScale);
+		break;
+	}
+	default:
+	{
+		check(false);	//invalid scale mode
+	}
+	}
+}
+
+bool FBodyInstance::UpdateBodyScale(const FVector & InScale3D)
+{
+	FVector InScale3DAdjusted = InScale3D;
 #if WITH_PHYSX
 	if (BodySetup == NULL || GetPxRigidActor() == NULL)
 	{
@@ -1142,7 +1221,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 	}
 
 	// if same, return
-	if (Scale3D.Equals(inScale3D))
+	if (Scale3D.Equals(InScale3D))
 	{
 		return false;
 	}
@@ -1150,260 +1229,226 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 	bool bSuccess=false;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	ensure ( !Scale3D.ContainsNaN() && !inScale3D.ContainsNaN() );
+	ensure ( !Scale3D.ContainsNaN() && !InScale3D.ContainsNaN() );
 #endif
 	FVector OldScale3D = Scale3D;
 	
-	//We don't want to go smaller than KINDA_SMALL_NUMBER
-	//But we still want to be able to cross the negative threshold to flip the scale
-	InScale3DAdjusted.X = AdjustForSmallThreshold(inScale3D.X, OldScale3D.X);
-	InScale3DAdjusted.Y = AdjustForSmallThreshold(inScale3D.Y, OldScale3D.Y);
-	InScale3DAdjusted.Z = AdjustForSmallThreshold(inScale3D.Z, OldScale3D.Z);
+	//we never want to hit a scale of 0
+	//But we still want to be able to cross from positive to negative
+	InScale3DAdjusted.X = AdjustForSmallThreshold(InScale3D.X, OldScale3D.X);
+	InScale3DAdjusted.Y = AdjustForSmallThreshold(InScale3D.Y, OldScale3D.Y);
+	InScale3DAdjusted.Z = AdjustForSmallThreshold(InScale3D.Z, OldScale3D.Z);
 	
-	if (FMath::Abs(OldScale3D.X) < 0.1f)
+	//Make sure OldScale3D is not too small or NaNs can happen
+	OldScale3D.X = OldScale3D.X < 0.1f ? 0.1f : OldScale3D.X;
+	OldScale3D.Y = OldScale3D.Y < 0.1f ? 0.1f : OldScale3D.Y;
+	OldScale3D.Z = OldScale3D.Z < 0.1f ? 0.1f : OldScale3D.Z;
+
+	//Get all shapes
+	int32 TotalShapeCount = 0;
+	TArray<PxShape *> PShapes = GetAllShapes(TotalShapeCount);
+
+	EScaleMode::Type ScaleMode = EScaleMode::Free;
+
+	for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ++ShapeIdx)
 	{
-		OldScale3D.X = 0.1f;
+		PxShape * PShape = PShapes[ShapeIdx];
+		PxGeometryType::Enum GeomType = PShape->getGeometryType();
+		
+		if (GeomType == PxGeometryType::eSPHERE)
+		{
+			ScaleMode = EScaleMode::LockedXYZ;	//sphere is most restrictive so we can stop
+			break;
+		}
+		else if (GeomType == PxGeometryType::eCAPSULE)
+		{
+			ScaleMode = EScaleMode::LockedXY;
+		}
 	}
 
-	if (FMath::Abs(OldScale3D.Y) < 0.1f)
-	{
-		OldScale3D.Y = 0.1f;
-	}
-	
-	if (FMath::Abs(OldScale3D.Z) < 0.1f)
-	{
-		OldScale3D.Z = 0.1f;
-	}
+	FVector RelativeScale3D;
+	FVector RelativeScale3DAbs;
+	FVector NewScale3D;
+	ComputeScalingVectors(ScaleMode, InScale3DAdjusted, OldScale3D, RelativeScale3D, RelativeScale3DAbs, NewScale3D);
 
-	// Determine if applied scaling is uniform. If it isn't, only convex geometry will be copied over
-	float	NewUniScale = InScale3DAdjusted.GetMin() / OldScale3D.GetMin(); // total scale includes inversing old scale and applying new scale
-	float	NewUniScaleAbs = FMath::Abs(NewUniScale);
-	FVector NewScale3D = InScale3DAdjusted;
-	NewScale3D.X /= OldScale3D.X;
-	NewScale3D.Y /= OldScale3D.Y;
-	NewScale3D.Z /= OldScale3D.Z;
-	FVector NewScale3DAbs = NewScale3D.GetAbs();
 
-	// Is the target a static actor
-	// Not used
-//	bool bDestStatic = (RigidActor->isRigidStatic() != NULL);
-
-	// Add up shapes so we don't have to allocate twice
-	uint32 TotalShapeCount = 0;
-
-	if(RigidActorSync != NULL)
-	{
-		SCOPED_SCENE_READ_LOCK(RigidActorSync->getScene());
-		TotalShapeCount += RigidActorSync->getNbShapes();
-	}
-
-	if(RigidActorAsync != NULL)
-	{
-		SCOPED_SCENE_READ_LOCK(RigidActorAsync->getScene());
-		TotalShapeCount += RigidActorAsync->getNbShapes();
-	}
-
-	TArray<PxShape*> PShapes;
-	PShapes.AddZeroed(TotalShapeCount);
-
-	// Record the sync actor shapes
-	int32 NumShapesSync = 0;
-	if( RigidActorSync != NULL )
-	{
-		SCOPED_SCENE_READ_LOCK(RigidActorSync->getScene());
-		NumShapesSync = RigidActorSync->getShapes(PShapes.GetData(), RigidActorSync->getNbShapes());
-	}
-
-	// Record the async actor shapes
-	int32 NumShapesAsync = 0;
-	if( RigidActorAsync != NULL )
-	{
-		SCOPED_SCENE_READ_LOCK(RigidActorAsync->getScene());
-		// Note array start is offset by NumShapesSync
-		NumShapesAsync = RigidActorAsync->getShapes(PShapes.GetData() + NumShapesSync, RigidActorAsync->getNbShapes());
-	}
+	//we need to allocate all of these here because PhysX insists on using the stack. This is wasteful, but reduces a lot of code duplication
+	PxSphereGeometry PSphereGeom;
+	PxBoxGeometry PBoxGeom;
+	PxCapsuleGeometry PCapsuleGeom;
+	PxConvexMeshGeometry PConvexGeom;
+	PxTriangleMeshGeometry PTriMeshGeom;
 
 	for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
 	{
+		PxGeometry * UpdatedGeometry = NULL;
 		PxShape* PShape = PShapes[ShapeIdx];
-		check(PShape);
-
 		PxScene* PScene = PShape->getActor()->getScene();
 		SCENE_LOCK_READ(PScene);
 
 		PxTransform PLocalPose = PShape->getLocalPose();
 		PLocalPose.q.normalize();
 		PxGeometryType::Enum GeomType = PShape->getGeometryType();
-		
-		if (GeomType == PxGeometryType::eSPHERE)
+
+		switch (GeomType)
 		{
-			PxSphereGeometry PSphereGeom;
-			PShape->getSphereGeometry(PSphereGeom);
-			SCENE_UNLOCK_READ(PScene);
-
-			PSphereGeom.radius	*= NewUniScaleAbs;
-			PLocalPose.p		*= NewUniScale;
-
-			if (PSphereGeom.isValid())
+			case PxGeometryType::eSPHERE:
 			{
-				SCOPED_SCENE_WRITE_LOCK(PScene);
-				PShape->setLocalPose(PLocalPose);
-				PShape->setGeometry(PSphereGeom);
-				bSuccess = true;
-			}
-			else
-			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
-			}
-		}
-		else if (GeomType == PxGeometryType::eBOX)
-		{
-			PxBoxGeometry PBoxGeom;
-			PShape->getBoxGeometry(PBoxGeom);
-			SCENE_UNLOCK_READ(PScene);
+				ensure(ScaleMode == EScaleMode::LockedXYZ);
 
-			PBoxGeom.halfExtents.x *= NewScale3DAbs.X;
-			PBoxGeom.halfExtents.y *= NewScale3DAbs.Y;
-			PBoxGeom.halfExtents.z *= NewScale3DAbs.Z;
-			PLocalPose.p.x *= NewScale3D.X;
-			PLocalPose.p.y *= NewScale3D.Y;
-			PLocalPose.p.z *= NewScale3D.Z;
+				PShape->getSphereGeometry(PSphereGeom);
+				SCENE_UNLOCK_READ(PScene);
 
-			if (PBoxGeom.isValid())
-			{
-				SCOPED_SCENE_WRITE_LOCK(PScene);
-				PShape->setGeometry(PBoxGeom);
-				PShape->setLocalPose(PLocalPose);
-				bSuccess = true;
-			}
-			else
-			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
-			}
-		}
-		else if (GeomType == PxGeometryType::eCAPSULE)
-		{
-			PxCapsuleGeometry PCapsuleGeom;
-			PShape->getCapsuleGeometry(PCapsuleGeom);
-			SCENE_UNLOCK_READ(PScene);
-
-			PCapsuleGeom.halfHeight *= NewScale3DAbs.Z;
-			PCapsuleGeom.radius *= FMath::Max(NewScale3DAbs.X, NewScale3DAbs.Y);
-
-			PLocalPose.p.x *= NewScale3D.X;
-			PLocalPose.p.y *= NewScale3D.Y;
-			PLocalPose.p.z *= NewScale3D.Z;
-
-			if(PCapsuleGeom.isValid())
-			{
-				SCOPED_SCENE_WRITE_LOCK(PScene);
-				PShape->setGeometry(PCapsuleGeom);
-				PShape->setLocalPose(PLocalPose);
-				bSuccess = true;
-			}
-			else
-			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
-			}
-		}
-		else if (GeomType == PxGeometryType::eCONVEXMESH)
-		{
-			PxConvexMeshGeometry PConvexGeom;
-			PShape->getConvexMeshGeometry(PConvexGeom);
-			SCENE_UNLOCK_READ(PScene);
-
-			// find which convex elems it is
-			// it would be nice to know if the order of PShapes array index is in the order of createShape
-			// Create convex shapes
-			for(int32 i=0; i<BodySetup->AggGeom.ConvexElems.Num(); i++)
-			{
-				FKConvexElem* ConvexElem = &(BodySetup->AggGeom.ConvexElems[i]);
-
-				// found it
-				if(ConvexElem->ConvexMesh == PConvexGeom.convexMesh)
+				PSphereGeom.radius *= RelativeScale3DAbs.X;
+				PLocalPose.p *= RelativeScale3D.X;
+				
+				if (PSphereGeom.isValid())
 				{
-					// Please note that this one we don't inverse old scale, but just set new one
-					FVector NewScale3D = InScale3DAdjusted;
+					UpdatedGeometry = &PSphereGeom;
+					bSuccess = true;
+				}
+				break;
+			}
+			case PxGeometryType::eBOX:
+			{
+				PShape->getBoxGeometry(PBoxGeom);
+				SCENE_UNLOCK_READ(PScene);
+
+				PBoxGeom.halfExtents.x *= RelativeScale3DAbs.X;
+				PBoxGeom.halfExtents.y *= RelativeScale3DAbs.Y;
+				PBoxGeom.halfExtents.z *= RelativeScale3DAbs.Z;
+				PLocalPose.p.x *= RelativeScale3D.X;
+				PLocalPose.p.y *= RelativeScale3D.Y;
+				PLocalPose.p.z *= RelativeScale3D.Z;
+
+				if (PBoxGeom.isValid())
+				{
+					UpdatedGeometry = &PBoxGeom;
+					bSuccess = true;
+				}
+				break;
+			}
+			case PxGeometryType::eCAPSULE:
+			{
+				ensure(ScaleMode == EScaleMode::LockedXY || ScaleMode == EScaleMode::LockedXYZ);
+
+				PShape->getCapsuleGeometry(PCapsuleGeom);
+				SCENE_UNLOCK_READ(PScene);
+
+				PCapsuleGeom.halfHeight *= RelativeScale3DAbs.Z;
+				PCapsuleGeom.radius *= RelativeScale3DAbs.X;
+
+				PLocalPose.p.x *= RelativeScale3D.X;
+				PLocalPose.p.y *= RelativeScale3D.Y;
+				PLocalPose.p.z *= RelativeScale3D.Z;
+
+				if (PCapsuleGeom.isValid())
+				{
+					UpdatedGeometry = &PCapsuleGeom;
+					bSuccess = true;
+				}
+
+				break;
+			}
+			case PxGeometryType::eCONVEXMESH:
+			{
+				PShape->getConvexMeshGeometry(PConvexGeom);
+				SCENE_UNLOCK_READ(PScene);
+
+				// find which convex elems it is
+				// it would be nice to know if the order of PShapes array index is in the order of createShape
+				// Create convex shapes
+				for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
+				{
+					FKConvexElem* ConvexElem = &(BodySetup->AggGeom.ConvexElems[i]);
+
+					// found it
+					if (ConvexElem->ConvexMesh == PConvexGeom.convexMesh)
+					{
+						// Please note that this one we don't inverse old scale, but just set new one (but we still follow scale mode restriction)
+						FVector NewScale3D = RelativeScale3D * OldScale3D;
+						FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
+
+						PxTransform PNewLocalPose;
+						bool bUseNegX = CalcMeshNegScaleCompensation(NewScale3D, PNewLocalPose);
+
+						PxTransform PElementTransform = U2PTransform(ConvexElem->GetTransform());
+						PNewLocalPose.q *= PElementTransform.q;
+						PNewLocalPose.p += PElementTransform.p;
+
+						PConvexGeom.convexMesh = bUseNegX ? ConvexElem->ConvexMeshNegX : ConvexElem->ConvexMesh;
+						PConvexGeom.scale.scale = U2PVector(Scale3DAbs);
+
+						if (PConvexGeom.isValid())
+						{
+							UpdatedGeometry = &PConvexGeom;
+							bSuccess = true;
+						}
+						break;
+					}
+				}
+				break;
+			}
+			case PxGeometryType::eTRIANGLEMESH:
+			{
+				PShape->getTriangleMeshGeometry(PTriMeshGeom);
+				SCENE_UNLOCK_READ(PScene);
+
+				// Create tri-mesh shape
+				if (BodySetup->TriMesh != NULL || BodySetup->TriMeshNegX != NULL)
+				{
+					// Please note that this one we don't inverse old scale, but just set new one (but still adjust for scale mode)
+					FVector NewScale3D = RelativeScale3D * OldScale3D;
 					FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
 
 					PxTransform PNewLocalPose;
 					bool bUseNegX = CalcMeshNegScaleCompensation(NewScale3D, PNewLocalPose);
 
-					PxTransform PElementTransform = U2PTransform(ConvexElem->GetTransform());
-					PNewLocalPose.q *= PElementTransform.q;
-					PNewLocalPose.p += PElementTransform.p;
-
-					PConvexGeom.convexMesh = bUseNegX ? ConvexElem->ConvexMeshNegX : ConvexElem->ConvexMesh;
-					PConvexGeom.scale.scale = U2PVector(Scale3DAbs);
-
-					if(PConvexGeom.isValid())
+					// Only case where TriMeshNegX should be null is BSP, which should not require negX version
+					if (bUseNegX && BodySetup->TriMeshNegX == NULL)
 					{
-						SCOPED_SCENE_WRITE_LOCK(PScene);
-						PShape->setGeometry(PConvexGeom);
-						PShape->setLocalPose(PNewLocalPose);
-						bSuccess = true;
+						UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdateBodyScale: Want to use NegX but it doesn't exist! %s"), *BodySetup->GetPathName());
 					}
-					else
+
+					PxTriangleMesh* UseTriMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
+					if (UseTriMesh != NULL)
 					{
-						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
+						PTriMeshGeom.triangleMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
+						PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
+
+						if (PTriMeshGeom.isValid())
+						{
+							UpdatedGeometry = &PTriMeshGeom;
+							bSuccess = true;
+
+						}
 					}
-					break;
 				}
+				break;
 			}
-		}
-		else if (GeomType == PxGeometryType::eTRIANGLEMESH)
-		{
-			PxTriangleMeshGeometry PTriMeshGeom;
-			PShape->getTriangleMeshGeometry(PTriMeshGeom);
-			SCENE_UNLOCK_READ(PScene);
-
-			// Create tri-mesh shape
-			if(BodySetup->TriMesh != NULL || BodySetup->TriMeshNegX != NULL)
+			default:
 			{
-				// Please note that this one we don't inverse old scale, but just set new one
-				FVector NewScale3D = InScale3DAdjusted;
-				FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
-
-				PxTransform PNewLocalPose;
-				bool bUseNegX = CalcMeshNegScaleCompensation(NewScale3D, PNewLocalPose);
-
-				// Only case where TriMeshNegX should be null is BSP, which should not require negX version
-				if(bUseNegX && BodySetup->TriMeshNegX == NULL)
-				{
-					UE_LOG(LogPhysics, Warning,  TEXT("FBodyInstance::UpdateBodyScale: Want to use NegX but it doesn't exist! %s"), *BodySetup->GetPathName() );
-				}
-
-				PxTriangleMesh* UseTriMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-				if(UseTriMesh != NULL)
-				{
-					PTriMeshGeom.triangleMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-					PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
-
-					if(PTriMeshGeom.isValid())
-					{
-						SCOPED_SCENE_WRITE_LOCK(PScene);
-						PShape->setGeometry(PTriMeshGeom);
-						PShape->setLocalPose(PNewLocalPose);
-						bSuccess = true;
-					}
-					else
-					{
-						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
-					}
-				}
+					   SCENE_UNLOCK_READ(PScene);
+					   UE_LOG(LogPhysics, Error, TEXT("Unknown geom type."));
 			}
-		}
-		else
-		{
-			UE_LOG(LogPhysics, Error, TEXT("Unknown grom type."));
-			SCENE_UNLOCK_READ(PScene);
+
+			if (UpdatedGeometry)
+			{
+				SCOPED_SCENE_WRITE_LOCK(PScene);
+				PShape->setLocalPose(PLocalPose);
+				PShape->setGeometry(*UpdatedGeometry);
+			}
+			else
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
+			}
 		}
 	}
 
 	// if success, overwrite old Scale3D, otherwise, just don't do it. It will have invalid scale next time
 	if ( bSuccess )
 	{
-		Scale3D = InScale3DAdjusted;
+		Scale3D = NewScale3D;
 
 		// update mass if required
 		if (bUpdateMassWhenScaleChanges)

@@ -950,6 +950,7 @@ void FPhATEdPreviewViewportClient::ModifyPrimitiveSize(int32 BodyIndex, EKCollis
 	}
 	else if (PrimType == KPT_Sphyl)
 	{
+		FKSphylElem & SphylElem = AggGeom->SphylElems[PrimIndex];
 		float DeltaRadius = DeltaSize.X;
 		if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
 		{
@@ -957,9 +958,14 @@ void FPhATEdPreviewViewportClient::ModifyPrimitiveSize(int32 BodyIndex, EKCollis
 		}
 
 		float DeltaHeight = DeltaSize.Z;
+		float Radius = FMath::Max(SphylElem.Radius + DeltaRadius, MinPrimSize);
+		float Length = SphylElem.Length + DeltaHeight;
+		
+		Length += SphylElem.Radius - Radius;
+		Length = FMath::Max(0.f, Length);
 
-		AggGeom->SphylElems[PrimIndex].Radius = FMath::Max(AggGeom->SphylElems[PrimIndex].Radius + DeltaRadius, MinPrimSize);
-		AggGeom->SphylElems[PrimIndex].Length = FMath::Max(AggGeom->SphylElems[PrimIndex].Length + 2*DeltaHeight, MinPrimSize);
+		SphylElem.Radius = Radius;
+		SphylElem.Length = Length;
 	}
 	else if (PrimType == KPT_Convex)
 	{
