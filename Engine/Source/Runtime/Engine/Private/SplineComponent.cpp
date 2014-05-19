@@ -34,11 +34,12 @@ void USplineComponent::UpdateSplineReparamTable()
 		return;
 	}
 	
-	const int32 NumSteps = 10; // TODO: Make this adaptive...
+	const int32 NumKeys = SplineInfo.Points.Num(); // Number of keys on spline
+	const int32 NumSteps = 10 * (NumKeys-1); // TODO: Make this adaptive...
 	
 	// Find range of input
 	float Param = SplineInfo.Points[0].InVal;
-	const float MaxInput = SplineInfo.Points[SplineInfo.Points.Num()-1].InVal;
+	const float MaxInput = SplineInfo.Points[NumKeys-1].InVal;
 	const float Interval = (MaxInput - Param)/((float)(NumSteps-1)); 
 	
 	// Add first entry, using first point on curve, total distance will be 0

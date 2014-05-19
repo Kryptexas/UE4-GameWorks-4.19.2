@@ -161,6 +161,12 @@ bool FSplineComponentVisualizer::HandleInputDelta(FLevelEditorViewportClient* Vi
 		SplineComp->SplineInfo.AutoSetTangents();
 		SplineComp->UpdateSplineReparamTable();
 
+		// Notify of change so any CS is re-run
+		if (SplineOwningActor.IsValid())
+		{
+			SplineOwningActor.Get()->PostEditMove(true);
+		}
+
 		return true;
 	}
 
@@ -190,6 +196,12 @@ bool FSplineComponentVisualizer::HandleInputKey(FLevelEditorViewportClient* View
 			SplineComp->SplineInfo.AutoSetTangents(); // update tangents
 			SplineComp->UpdateSplineReparamTable(); // update reparam table
 			SelectedKeyIndex = INDEX_NONE; // deselect any keys
+
+			// Notify of change so any CS is re-run
+			if(SplineOwningActor.IsValid())
+			{
+				SplineOwningActor.Get()->PostEditMove(true);
+			}
 
 			bHandled = true; // consume key input
 		}
