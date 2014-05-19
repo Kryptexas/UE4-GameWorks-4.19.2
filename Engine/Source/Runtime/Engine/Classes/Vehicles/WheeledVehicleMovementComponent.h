@@ -171,7 +171,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 	/** Mass to set the vehicle chassis to. It's much easier to tweak vehicle settings when
 	 * the mass doesn't change due to tweaks with the physics asset. [kg] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float Mass;
 
 	/** DragCoefficient of the vehicle chassis. */
@@ -179,11 +179,11 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	float DragCoefficient;
 
 	/** Chassis width used for drag force computation (cm)*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ChassisWidth;
 
 	/** Chassis height used for drag force computation (cm)*/
-	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ChassisHeight;
 
 	// Drag area in cm^2
