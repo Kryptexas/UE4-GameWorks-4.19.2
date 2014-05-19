@@ -141,7 +141,7 @@ public:
 	 */
 	void ReCreateTreeView()
 	{
-		WidgetGenerator.Clear();
-		RequestTreeRefresh();
+		this->WidgetGenerator.Clear();
+		this->RequestTreeRefresh();
 	}
 };
