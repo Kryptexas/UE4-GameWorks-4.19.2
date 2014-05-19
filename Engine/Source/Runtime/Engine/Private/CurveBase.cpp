@@ -208,6 +208,30 @@ FRichCurveKey::FRichCurveKey(const FInterpCurvePoint<FVector>& InPoint, int32 Co
 	LeaveTangentWeight = 0.f;
 }
 
+bool FRichCurveKey::Serialize(FArchive& Ar)
+{
+	if( Ar.UE4Ver() >= VER_UE4_SERIALIZE_RICH_CURVE_KEY )
+	{
+		// Serialization is handled manually to avoid the extra size overhead of UProperty tagging.
+		// Otherwise with many keys in a rich curve the size can become quite large.
+		Ar << InterpMode;
+		Ar << TangentMode;
+		Ar << TangentWeightMode;
+		Ar << Time;
+		Ar << Value;
+		Ar << ArriveTangent;
+		Ar << ArriveTangentWeight;
+		Ar << LeaveTangent;
+		Ar << LeaveTangentWeight;
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool FRichCurveKey::operator==( const FRichCurveKey& Curve ) const
 {
 	return (Time == Curve.Time) && (Value == Curve.Value) && (InterpMode == Curve.InterpMode) &&
@@ -215,6 +239,11 @@ bool FRichCurveKey::operator==( const FRichCurveKey& Curve ) const
 		   ((InterpMode != RCIM_Cubic) || //also verify if it is cubic that tangents are the same
 		   ((ArriveTangent == Curve.ArriveTangent) && (LeaveTangent == Curve.LeaveTangent) ));
 
+}
+
+bool FRichCurveKey::operator!=(const FRichCurveKey& Other) const
+{
+	return !(*this == Other);
 }
 
 //////////////////////////////////////////////////////////////////////////

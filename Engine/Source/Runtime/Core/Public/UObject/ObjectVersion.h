@@ -544,6 +544,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SPEEDTREE_WIND_V7,
 	// NeedsLoadForEditorGame added
 	VER_UE4_LOAD_FOR_EDITOR_GAME,
+	// Manual serialization of FRichCurveKey to save space
+	VER_UE4_SERIALIZE_RICH_CURVE_KEY,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

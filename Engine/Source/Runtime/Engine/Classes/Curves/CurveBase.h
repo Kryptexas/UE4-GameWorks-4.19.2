@@ -238,8 +238,30 @@ struct ENGINE_API FRichCurveKey
 	FRichCurveKey(const FInterpCurvePoint<float>& InPoint);
 	FRichCurveKey(const FInterpCurvePoint<FVector>& InPoint, int32 ComponentIndex);
 
-	/** Determine if two RichCurvesKeys are the same */
-	bool operator == (const FRichCurveKey& Curve) const;
+	/** ICPPStructOps interface */
+	bool Serialize(FArchive& Ar);
+	bool operator==(const FRichCurveKey& Other) const;
+	bool operator!=(const FRichCurveKey& Other) const;
+
+	friend FArchive& operator<<(FArchive& Ar, FRichCurveKey& P)
+	{
+		P.Serialize(Ar);
+		return Ar;
+	}
+
+};
+
+template<> struct TIsPODType<FRichCurveKey> { enum { Value = true }; };
+
+template<>
+struct TStructOpsTypeTraits< FRichCurveKey > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializer = true,
+		WithCopy = false,
+		WithIdenticalViaEquality = true,
+	};
 };
 
 /** A rich, editable float curve */
