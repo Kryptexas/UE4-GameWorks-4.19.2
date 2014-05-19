@@ -157,8 +157,9 @@ bool FSplineComponentVisualizer::HandleInputDelta(FLevelEditorViewportClient* Vi
 		// Convert back to local space
 		SplineComp->SplineInfo.Points[SelectedKeyIndex].OutVal = SplineComp->ComponentToWorld.InverseTransformPosition(NewWorldPos);
 
-		// Update tangents
+		// Update tangents and reparam table
 		SplineComp->SplineInfo.AutoSetTangents();
+		SplineComp->UpdateSplineReparamTable();
 
 		return true;
 	}
@@ -186,9 +187,8 @@ bool FSplineComponentVisualizer::HandleInputKey(FLevelEditorViewportClient* View
 			SplineComp->SplineInfo.Points.RemoveAt(SelectedKeyIndex);
 
 			SplineComp->RefreshSplineInputs(); // update input value for each key
-
 			SplineComp->SplineInfo.AutoSetTangents(); // update tangents
-
+			SplineComp->UpdateSplineReparamTable(); // update reparam table
 			SelectedKeyIndex = INDEX_NONE; // deselect any keys
 
 			bHandled = true; // consume key input

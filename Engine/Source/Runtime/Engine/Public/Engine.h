@@ -830,7 +830,6 @@ struct FURL;
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/DrawSphereComponent.h"
-#include "Components/SplineComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/VectorFieldComponent.h"
 #include "PhysicsEngine/RadialForceComponent.h"

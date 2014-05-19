@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "../../../Renderer/Private/ScenePrivate.h"
 #include "Atmosphere.h"
+#include "ComponentInstanceDataCache.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
@@ -680,6 +681,29 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 			);
 	}
 }
+
+/** Used to store lightmap data during RerunConstructionScripts */
+class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName InstanceDataTypeName;
+
+	virtual ~FAtmospherePrecomputeInstanceData()
+	{}
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return InstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	struct FAtmospherePrecomputeParameters PrecomputeParameter;
+
+	FByteBulkData TransmittanceData;
+	FByteBulkData IrradianceData;
+	FByteBulkData InscatterData;
+};
 
 const FName FAtmospherePrecomputeInstanceData::InstanceDataTypeName(TEXT("AtmospherePrecomputedInstanceData"));
 

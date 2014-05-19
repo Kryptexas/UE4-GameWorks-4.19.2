@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "ComponentInstanceDataCache.h"
 
 FComponentInstanceDataBase::FComponentInstanceDataBase(const UActorComponent* SourceComponent)
 {
@@ -94,7 +95,7 @@ void FComponentInstanceDataCache::GetFromActor(AActor* Actor, FComponentInstance
 	}
 }
 
-void FComponentInstanceDataCache::ApplyToActor(AActor* Actor)
+void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 {
 	if(Actor != NULL)
 	{

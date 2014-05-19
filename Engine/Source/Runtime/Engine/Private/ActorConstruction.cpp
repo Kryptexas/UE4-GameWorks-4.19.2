@@ -4,6 +4,7 @@
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
 #include "DeferRegisterComponents.h"
+#include "ComponentInstanceDataCache.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -209,7 +210,7 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		OnConstruction(OldTransform);
+		OnConstruction(OldTransform, &InstanceDataCache);
 
 		if(Parent)
 		{
@@ -220,9 +221,6 @@ void AActor::RerunConstructionScripts()
 				ChildRoot->AttachTo( ParentRoot, SocketName, EAttachLocation::KeepWorldPosition );
 			}
 		}
-
-		// Apply per-instance data.
-		InstanceDataCache.ApplyToActor(this);
 
 		// If we had attached children reattach them now - unless they are already attached
 		for(FAttachedActorInfo& Info : AttachedActorInfos)
@@ -244,7 +242,7 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
-void AActor::OnConstruction(const FTransform& Transform)
+void AActor::OnConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
@@ -274,6 +272,12 @@ void AActor::OnConstruction(const FTransform& Transform)
 				CurrentBPGClass->CreateComponentsForActor(this);
 			}
 
+			// If we passed in cached data, we apply it now, so that the UserConstructionScript can use the updated values
+			if(InstanceDataCache)
+			{
+				InstanceDataCache->ApplyToActor(this);
+			}
+
 #if WITH_EDITOR
 			bool bDoUserConstructionScript;
 			GConfig->GetBool(TEXT("Kismet"), TEXT("bTurnOffEditorConstructionScript"), bDoUserConstructionScript, GEngineIni);
@@ -286,6 +290,13 @@ void AActor::OnConstruction(const FTransform& Transform)
 
 			// Bind any delegates on components			
 			((UBlueprintGeneratedClass*)GetClass())->BindDynamicDelegates(this); // We have a BP stack, we must have a UBlueprintGeneratedClass...
+
+			// Apply any cached data procedural components
+			// @TODO Don't re-apply to components we already applied to above
+			if (InstanceDataCache)
+			{
+				InstanceDataCache->ApplyToActor(this);
+			}
 		}
 		else
 		{

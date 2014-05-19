@@ -5,6 +5,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorUtils.h"
 #include "Layers/ILayers.h"
+#include "ComponentInstanceDataCache.h"
 
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
@@ -337,7 +338,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewActor->RegisterAllComponents(); // Register native components
 
 				// Run the construction script, which will use the properties we just copied over
-				NewActor->OnConstruction(WorldTransform);
+				NewActor->OnConstruction(WorldTransform, &InstanceDataCache);
 
 				//Attach the new instance to original parent
 				if(AttachParentActor)
@@ -350,9 +351,6 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 					// Cannot attach to a socket on a blueprint
 					GEditor->ParentActors(NewActor, *AttachIt, FName());
 				}
-
-				// Apply cached data to new instance
-				InstanceDataCache.ApplyToActor(NewActor);
 
 				// Determine if the actor used to be selected.
 				if (OldActor->IsSelected())

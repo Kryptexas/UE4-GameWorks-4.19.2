@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ComponentVisualizer.h"
+#include "Components/SplineComponent.h"
 
 struct HSplineVisProxy : public HComponentVisProxy
 {

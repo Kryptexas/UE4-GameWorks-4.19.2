@@ -12,6 +12,7 @@
 #include "UObjectToken.h"
 #include "Net/UnrealNetwork.h"
 #include "MapErrors.h"
+#include "ComponentInstanceDataCache.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 

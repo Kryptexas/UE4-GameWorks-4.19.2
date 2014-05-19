@@ -54,7 +54,7 @@ public:
 	static void GetFromActor(AActor* Actor, FComponentInstanceDataCache& Cache);
 
 	/** Util to iterate over components and apply data to each */
-	void ApplyToActor(AActor* Actor);
+	void ApplyToActor(AActor* Actor) const;
 
 private:
 	/** Map of data type name to data of that type */

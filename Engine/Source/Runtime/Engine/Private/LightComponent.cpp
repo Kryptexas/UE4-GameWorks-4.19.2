@@ -10,6 +10,7 @@
 #endif
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "ComponentInstanceDataCache.h"
 
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
@@ -749,6 +750,29 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 	// Send to render thread
 	MarkRenderStateDirty();
 }
+
+/** Used to store lightmap data during RerunConstructionScripts */
+class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName PrecomputedLightInstanceDataTypeName;
+
+	virtual ~FPrecomputedLightInstanceData()
+	{}
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return PrecomputedLightInstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	FTransform Transform;
+	FGuid LightGuid;
+	int32 ShadowMapChannel;
+	int32 PreviewShadowMapChannel;
+	bool bPrecomputedLightingIsValid;
+};
 
 // Init type name static
 const FName FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));

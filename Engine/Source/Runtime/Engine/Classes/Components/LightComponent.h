@@ -4,28 +4,6 @@
 #pragma once
 #include "LightComponent.generated.h"
 
-/** Used to store lightmap data during RerunConstructionScripts */
-class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName PrecomputedLightInstanceDataTypeName;
-
-	virtual ~FPrecomputedLightInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return PrecomputedLightInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
-
-	FTransform Transform;
-	FGuid LightGuid;
-	int32 ShadowMapChannel;
-	int32 PreviewShadowMapChannel;
-	bool bPrecomputedLightingIsValid;
-};
 
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponent : public ULightComponentBase

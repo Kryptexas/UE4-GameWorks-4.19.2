@@ -83,28 +83,7 @@ struct FAtmospherePrecomputeParameters
 	}
 };
 
-/** Used to store lightmap data during RerunConstructionScripts */
-class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName InstanceDataTypeName;
 
-	virtual ~FAtmospherePrecomputeInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return InstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
-
-	struct FAtmospherePrecomputeParameters PrecomputeParameter;
-
-	FByteBulkData TransmittanceData;
-	FByteBulkData IrradianceData;
-	FByteBulkData InscatterData;
-};
 
 /**
  *	Used to create fogging effects such as clouds.

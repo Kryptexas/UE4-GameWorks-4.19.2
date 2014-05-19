@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "ComponentInstanceDataCache.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_AssetUserData.h"
 
@@ -417,9 +416,9 @@ public:
 	virtual void PostNetReceive() { }
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const {}
+	virtual void GetComponentInstanceData(class FComponentInstanceDataCache& Cache) const {}
 	/** Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData */
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) {}
+	virtual void ApplyComponentInstanceData(const class FComponentInstanceDataCache& Cache) {}
 
 	// Begin UObject interface.
 	virtual void BeginDestroy() OVERRIDE;

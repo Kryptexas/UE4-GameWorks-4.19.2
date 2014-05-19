@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/SplineComponent.h"
+#include "ComponentInstanceDataCache.h"
 
 
 USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
@@ -18,6 +20,7 @@ USplineComponent::USplineComponent(const class FPostConstructInitializePropertie
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
 	SplineInfo.AutoSetTangents();
+	UpdateSplineReparamTable();
 }
 
 void USplineComponent::UpdateSplineReparamTable()
@@ -72,19 +75,19 @@ float USplineComponent::GetSplineLength() const
 }
 
 
-FVector USplineComponent::GetLocationAtDistanceAlongSpline(float Distance) const
+FVector USplineComponent::GetWorldLocationAtDistanceAlongSpline(float Distance) const
 {
 	const float Param = SplineReparamTable.Eval(Distance, 0.f);
 	const FVector Location = SplineInfo.Eval(Param, FVector::ZeroVector);
-	return Location;
+	return ComponentToWorld.TransformPosition(Location);
 }
 
 
-FVector USplineComponent::GetTangentAtDistanceAlongSpline(float Distance) const
+FVector USplineComponent::GetWorldDirectionAtDistanceAlongSpline(float Distance) const
 {
 	const float Param = SplineReparamTable.Eval(Distance, 0.f);
-	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector);
-	return Tangent;
+	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).SafeNormal();
+	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
 
 void USplineComponent::RefreshSplineInputs()
@@ -94,6 +97,29 @@ void USplineComponent::RefreshSplineInputs()
 		SplineInfo.Points[KeyIdx].InVal = KeyIdx;
 	}
 }
+
+/** Used to store spline data during RerunConstructionScripts */
+class FSplineInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName SplineInstanceDataTypeName;
+
+	virtual ~FSplineInstanceData()
+	{}
+
+	// Begin FComponentInstanceDataBase interface
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return SplineInstanceDataTypeName;
+	}
+	// End FComponentInstanceDataBase interface
+
+	/** Name of component */
+	FName ComponentName;
+
+	/** Lightmaps from LODData */
+	FInterpCurveVector SplineInfo;
+};
 
 // Init type name static
 const FName FSplineInstanceData::SplineInstanceDataTypeName(TEXT("SplineInstanceData"));
@@ -123,7 +149,7 @@ void USplineComponent::ApplyComponentInstanceData(const FComponentInstanceDataCa
 		if (SplineData->ComponentName == GetFName())
 		{
 			SplineInfo = SplineData->SplineInfo;
-			UpdateSplineReparamTable();			
+			UpdateSplineReparamTable();
 		}
 	}
 }

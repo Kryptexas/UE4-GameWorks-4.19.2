@@ -4,28 +4,7 @@
 #pragma once
 #include "SplineComponent.generated.h"
 
-/** Used to store spline data during RerunConstructionScripts */
-class FSplineInstanceData : public FComponentInstanceDataBase
-{
-public:
-	static const FName SplineInstanceDataTypeName;
 
-	virtual ~FSplineInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return SplineInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
-
-	/** Name of component */
-	FName ComponentName;
-
-	/** Lightmaps from LODData */
-	FInterpCurveVector SplineInfo;
-};
 
 UCLASS(ClassGroup=Shapes, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineComponent : public USceneComponent
@@ -54,11 +33,11 @@ class ENGINE_API USplineComponent : public USceneComponent
 	
 	/** Given a distance along the length of this spline, return the point in space where this puts you */
 	UFUNCTION(BlueprintCallable, Category=Spline)
-	FVector GetLocationAtDistanceAlongSpline(float Distance) const;
+	FVector GetWorldLocationAtDistanceAlongSpline(float Distance) const;
 	
-	/** Given a distance along the length of this spline, return the direction of the spline there. Note, result is non-unit length. */
+	/** Given a distance along the length of this spline, return a unit direction vector of the spline there. */
 	UFUNCTION(BlueprintCallable, Category=Spline)
-	FVector GetTangentAtDistanceAlongSpline(float Distance) const;
+	FVector GetWorldDirectionAtDistanceAlongSpline(float Distance) const;
 
 	/** Walk through keys and set time for each one */
 	void RefreshSplineInputs();
