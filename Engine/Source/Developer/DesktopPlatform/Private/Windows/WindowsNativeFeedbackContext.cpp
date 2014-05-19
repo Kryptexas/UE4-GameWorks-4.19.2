@@ -279,6 +279,8 @@ DWORD FWindowsNativeFeedbackContext::SlowTaskThreadProc(void* ThreadParam)
 	ShowWindow(hWnd, SW_SHOW);
 	UpdateWindow(hWnd);
 
+	SetForegroundWindow(hWnd);
+
 	FString PrevStatus;
 	float PrevProgress = 0.0f;
 	int32 PrevLogOutputLength = 0;
