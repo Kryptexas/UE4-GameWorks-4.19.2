@@ -1893,6 +1893,19 @@ class TestKillAll : BuildCommand
 	}
 }
 
+[Help("Tests CleanFormalBuilds.")]
+class TestCleanFormalBuilds : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        Log("*********************** TestCleanFormalBuilds");
+        var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
+        var CLString = ParseParamValue("CL", "2077154");
+        CleanFormalBuilds(Dir, CLString);
+    }
+}
+
+
 [Help("Spawns a process to test if it can be killed.")]
 class TestStopProcess : BuildCommand
 {
