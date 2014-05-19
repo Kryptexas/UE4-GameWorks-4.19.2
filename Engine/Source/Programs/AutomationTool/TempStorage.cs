@@ -503,8 +503,13 @@ namespace AutomationTool
             TopDirectoryTestedForClean.Add(TopDirectory);
 
             const int MaximumDaysToKeepTempStorage = 2;
+            var StartTimeDir = DateTime.UtcNow;
             DirectoryInfo DirInfo = new DirectoryInfo(TopDirectory);
             var TopLevelDirs = DirInfo.GetDirectories();
+            {
+                var BuildDuration = (DateTime.UtcNow - StartTimeDir).TotalMilliseconds;
+                Log("Took {0}s to enumerate {1} directories.", BuildDuration / 1000, TopLevelDirs.Length);
+            }
             foreach (var TopLevelDir in TopLevelDirs)
             {
                 if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
@@ -522,25 +527,26 @@ namespace AutomationTool
                     if (bOld)
                     {
                         Log("Deleteing temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                        var StartTime = DateTime.UtcNow;
+                        try
+                        {
+                            if (Directory.Exists(TopLevelDir.FullName))
+                            {
+                                // try the direct approach first
+                                Directory.Delete(TopLevelDir.FullName, true);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                        }
                         DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
+                        var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
+                        Log("Took {0}s to delete {1}.", BuildDuration / 1000, TopLevelDir.FullName);
                     }
                 }
             }
         }
         
-        public static string RootSharedTempStorageDirectory()
-        {
-            string StorageDirectory = "";
-            if(UnrealBuildTool.Utils.IsRunningOnMono)
-            {
-                StorageDirectory = "/Volumes/Builds";
-            }
-            else
-            {
-                StorageDirectory = CombinePaths("P:", "Builds");
-            }
-            return StorageDirectory;
-        }
         public static string SharedTempStorageDirectory()
         {
             return "GUBP";
@@ -558,38 +564,6 @@ namespace AutomationTool
                 return false;
             }
             return true;
-        }
-
-        static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
-        public static string ResolveSharedBuildDirectory(string GameFolder)
-        {
-            if (ResolveCache.ContainsKey(GameFolder))
-            {
-                return ResolveCache[GameFolder];
-            }
-            string Root = RootSharedTempStorageDirectory();
-            string Result = CombinePaths(Root, GameFolder);
-            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
-            {
-                string GameStr = "Game";
-                bool HadGame = false;
-                if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
-                    Result = CombinePaths(Root, ShortFolder);
-                    HadGame = true;
-                }
-                if (!HadGame || !DirectoryExists_NoExceptions(Result))
-                {
-                    Result = CombinePaths(Root, "UE4");
-                    if (!DirectoryExists_NoExceptions(Result))
-                    {
-                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
-                    }
-                }
-            }
-            ResolveCache.Add(GameFolder, Result);
-            return Result;
         }
 
         public static string ResolveSharedTempStorageDirectory(string GameFolder)

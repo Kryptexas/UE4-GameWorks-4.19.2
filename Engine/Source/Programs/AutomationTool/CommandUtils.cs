@@ -1813,6 +1813,130 @@ namespace AutomationTool
 		}
 
 		#endregion
+
+
+        public static string RootSharedTempStorageDirectory()
+        {
+            string StorageDirectory = "";
+            if (UnrealBuildTool.Utils.IsRunningOnMono)
+            {
+                StorageDirectory = "/Volumes/Builds";
+            }
+            else
+            {
+                StorageDirectory = CombinePaths("P:", "Builds");
+            }
+            return StorageDirectory;
+        }
+
+        static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
+        public static string ResolveSharedBuildDirectory(string GameFolder)
+        {
+            if (ResolveCache.ContainsKey(GameFolder))
+            {
+                return ResolveCache[GameFolder];
+            }
+            string Root = RootSharedTempStorageDirectory();
+            string Result = CombinePaths(Root, GameFolder);
+            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
+            {
+                string GameStr = "Game";
+                bool HadGame = false;
+                if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
+                    Result = CombinePaths(Root, ShortFolder);
+                    HadGame = true;
+                }
+                if (!HadGame || !DirectoryExists_NoExceptions(Result))
+                {
+                    Result = CombinePaths(Root, "UE4");
+                    if (!DirectoryExists_NoExceptions(Result))
+                    {
+                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
+                    }
+                }
+            }
+            ResolveCache.Add(GameFolder, Result);
+            return Result;
+        }
+
+        public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "")
+        {
+            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))
+            {
+                return;
+            }
+            try
+            {
+                if (P4Enabled && CLString == "")
+                {
+                    CLString = P4Env.ChangelistString;
+                }
+                const int MaximumDaysToKeepTempStorage = 4;
+                string ParentDir = Path.GetDirectoryName(CombinePaths(DirectoryForThisBuild));
+                if (!DirectoryExists_NoExceptions(ParentDir))
+                {
+                    throw new AutomationException("Not cleaning formal builds, because the parent directory {0} does not exist.", ParentDir);
+                }
+                string MyDir = Path.GetFileName(CombinePaths(DirectoryForThisBuild));
+                int CLStart = MyDir.IndexOf(CLString);
+                if (CLStart < 0)
+                {
+                    throw new AutomationException("Not cleaning formal builds, because the directory {0} does not contain the CL {1}.", DirectoryForThisBuild, CLString);
+                }
+                string StartString = MyDir.Substring(0, CLStart);
+                string EndString = MyDir.Substring(CLStart + CLString.Length);
+
+
+                DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
+                var TopLevelDirs = DirInfo.GetDirectories();
+                Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
+                foreach (var TopLevelDir in TopLevelDirs)
+                {
+                    if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
+                    {
+                        var JustDir = Path.GetFileName(CombinePaths(TopLevelDir.FullName));
+                        if (JustDir.StartsWith(StartString, StringComparison.InvariantCultureIgnoreCase) && (String.IsNullOrEmpty(EndString) || JustDir.EndsWith(EndString, StringComparison.InvariantCultureIgnoreCase)))
+                        {
+                            string CLPart = JustDir.Substring(StartString.Length, JustDir.Length - StartString.Length - EndString.Length);
+                            if (!CLPart.Contains("-") && !CLPart.Contains("+"))
+                            {
+                                DirectoryInfo ThisDirInfo = new DirectoryInfo(TopLevelDir.FullName);
+                                bool bOld = false;
+
+                                if ((DateTime.UtcNow - ThisDirInfo.CreationTimeUtc).TotalDays > MaximumDaysToKeepTempStorage)
+                                {
+                                    bOld = true;
+                                }
+                                if (bOld)
+                                {
+                                    Log("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
+                                }
+                                else
+                                {
+                                    Log("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                }
+                            }
+                            else
+                            {
+                                Log("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
+                            }
+                        }
+                        else
+                        {
+                            Log("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
+                        }
+                    }
+                }
+            }
+            catch (Exception Ex)
+            {
+                Log(System.Diagnostics.TraceEventType.Warning, "Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
+                Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+            }
+        }
 	}
 
 
