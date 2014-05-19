@@ -84,7 +84,7 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 	DragCoefficient = 0.3f;
 	ChassisWidth = 180.f;
 	ChassisHeight = 140.f;
-	InertiaTensorScale = FVector( 1.0f, 0.80f, 1.0f );
+	InertiaTensorScale = FVector( 1.0f, 1.0f, 1.0f );
 	AngErrorAccumulator = 0.0f;
 	MinNormalizedTireLoad = 0.0f;
 	MaxNormalizedTireLoad = 10.0f;
