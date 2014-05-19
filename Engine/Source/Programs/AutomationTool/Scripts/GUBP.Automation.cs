@@ -1044,7 +1044,7 @@ public class GUBP : BuildCommand
             int Result = base.CISFrequencyQuantumShift(bp);
             if (GameProj.Options(HostPlatform).bTestWithShared)
             {
-                Result += 2; // only every 80m
+                Result += 3;
             }
             return Result;
         }
@@ -1121,11 +1121,11 @@ public class GUBP : BuildCommand
             int Result = base.CISFrequencyQuantumShift(bp);
             if (GameProj.GameName != bp.Branch.BaseEngineProject.GameName)
             {
-                Result += 2; // only every 80m
+                Result += 3; // only every 80m
             }
             else if (TargetPlatform != HostPlatform)
             {
-                Result += 1; // only every 40m
+                Result += 2; // only every 40m
             }
             return Result;
         }
@@ -1829,7 +1829,7 @@ public class GUBP : BuildCommand
         }
         public override int CISFrequencyQuantumShift(GUBP bp)
         {
-            return base.CISFrequencyQuantumShift(bp) + 4;
+            return base.CISFrequencyQuantumShift(bp) + 5;
         }
     }
 
