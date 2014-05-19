@@ -88,7 +88,7 @@ void UArrayProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Inner;
-	checkSlow(Inner||HasAnyFlags(RF_ClassDefaultObject));
+	checkSlow(Inner || HasAnyFlags(RF_ClassDefaultObject | RF_PendingKill));
 }
 void UArrayProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {

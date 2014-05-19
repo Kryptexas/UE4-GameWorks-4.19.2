@@ -674,11 +674,18 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		NewProperty = NewNamedObject<UIntProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 	}
 
-	if( bIsArrayProperty )
+	if (bIsArrayProperty)
 	{
-		// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
-		NewArrayProperty->Inner = NewProperty;
-		NewProperty = NewArrayProperty;
+		if (NewProperty)
+		{
+			// Fix up the array property to have the new type-specific property as its inner, and return the new UArrayProperty
+			NewArrayProperty->Inner = NewProperty;
+			NewProperty = NewArrayProperty;
+		}
+		else
+		{
+			NewArrayProperty->MarkPendingKill();
+		}
 	}
 
 	return NewProperty;
