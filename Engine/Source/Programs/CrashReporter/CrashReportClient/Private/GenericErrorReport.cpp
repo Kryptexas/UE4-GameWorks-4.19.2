@@ -4,7 +4,6 @@
 
 #include "GenericErrorReport.h"
 #include "XmlFile.h"
-#include "CrashDebugHelperModule.h"
 #include "CrashReportUtil.h"
 
 // ----------------------------------------------------------------
@@ -39,7 +38,6 @@ FGenericErrorReport::FGenericErrorReport(const FString& Directory)
 		return true;
 	});
 	FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*ReportDirectory, FilenamesVisitor);
-
 }
 
 bool FGenericErrorReport::SetUserComment(const FText& UserComment)

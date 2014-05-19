@@ -14,17 +14,15 @@ FString GCrashUserId;
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-FCrashReportClient::FCrashReportClient(const FString& Directory)
-	: ReportDirectory(Directory)
-	, AppState(EApplicationState::Ready)
+FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& ErrorReport, const FString& AppName)
+	: AppState(EApplicationState::Ready)
 	, SubmittedCountdown(-1)
 	, bDiagnosticFileSent(false)
-	, ErrorReportFiles(Directory)
+	, ErrorReportFiles(ErrorReport)
 	, Uploader(GServerIP)
+	, CrashedAppName(AppName)
 	, CancelButtonText(LOCTEXT("Cancel", "Don't Send"))
 {
-	CrashedAppName = ErrorReportFiles.FindCrashedAppName();
-
 	// Set global user name ID: will be added to the report
 	if (FRocketSupport::IsRocket())
 	{
@@ -135,10 +133,9 @@ void FCrashReportClient::StartUIWillCloseTicker()
 
 void FCrashReportClient::StoreCommentAndUpload()
 {
+	// Call upload even if the report is empty: pending reports will be sent if any
 	ErrorReportFiles.SetUserComment(UserComment.IsEmpty() ? LOCTEXT("NoComment", "No comment provided") : UserComment);
-
-	// Using GetCleanFilename to actually get directory leaf name
-	Uploader.BeginUpload(FPaths::GetCleanFilename(ReportDirectory), ErrorReportFiles);
+	Uploader.BeginUpload(ErrorReportFiles);
 
 	SubmittedCountdown = 5;
 	AppState = EApplicationState::CountingDown;
@@ -160,7 +157,7 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 
 	if (!bDiagnosticFileSent && DiagnoseReportTask.IsWorkDone())
 	{
-		auto DiagnosticsFilePath = ReportDirectory / GDiagnosticsFilename;
+		auto DiagnosticsFilePath = ErrorReportFiles.GetReportDirectory() / GDiagnosticsFilename;
 
 		Uploader.LocalDiagnosisComplete(FPaths::FileExists(DiagnosticsFilePath) ? DiagnosticsFilePath : TEXT(""));
 		bDiagnosticFileSent = true;	
@@ -180,9 +177,8 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 		}
 	}
 
-	// IsWorkDone will always return true here (since uploader can't finish until
-	// the diagnosis has been sent), but it has the side effect of joining the
-	// worker thread.
+	// IsWorkDone will always return true here (since uploader can't finish until the diagnosis has been sent), but it
+	//  has the side effect of joining the worker thread.
 	if (!Uploader.IsFinished() || !DiagnoseReportTask.IsDone())
 	{
 		// More ticks, please

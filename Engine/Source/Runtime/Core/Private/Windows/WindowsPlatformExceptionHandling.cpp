@@ -21,27 +21,49 @@
 #pragma comment( lib, "version.lib" )
 #pragma comment( lib, "Shlwapi.lib" )
 
-static bool GAlreadyCreatedMinidump = false;
+namespace
+{
+static const int LocalBufferSize = 1024;
+volatile LONG ReportCrashCallCount = 0;
+const TCHAR* AssertionMessageStart = nullptr;	// pointer into GErrorHist, if non-null
+int AssertionMessageLength;						// Number of characters to copy after AssertionMessageStart
+
+/**
+ * Write a Windows minidump to disk
+ * @param Path Full path of file to write (normally a .dmp file)
+ * @param ExceptionInfo Pointer to structure containing the exception information
+ * @return Success or failure
+ */
+bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
+{
+	// Try to create file for minidump.
+	HANDLE FileHandle = CreateFileW(Path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	
+	if (FileHandle == INVALID_HANDLE_VALUE)
+		return false;
+
+	// Initialise structure required by MiniDumpWriteDumps
+	MINIDUMP_EXCEPTION_INFORMATION DumpExceptionInfo = {};
+
+	DumpExceptionInfo.ThreadId			= GetCurrentThreadId();
+	DumpExceptionInfo.ExceptionPointers	= ExceptionInfo;
+	DumpExceptionInfo.ClientPointers	= FALSE;
+
+	BOOL result = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MiniDumpNormal, &DumpExceptionInfo, NULL, NULL);
+	CloseHandle(FileHandle);
+
+	return result == TRUE;
+}
 
 /** 
  * Get a string description of the mode the engine was running in when it crashed
  */
-static const TCHAR* GetEngineMode()
+const TCHAR* GetEngineMode()
 {
-	if( IsRunningCommandlet() )
-	{
-		return TEXT( "Commandlet" );
-	}
-	else if( GIsEditor )
-	{
-		return TEXT( "Editor" );
-	}
-	else if( IsRunningDedicatedServer() )
-	{
-		return TEXT( "Server" );
-	}
-
-	return TEXT( "Game" );
+	return	IsRunningCommandlet()?	 	TEXT("Commandlet") :
+			GIsEditor?				 	TEXT("Editor") :
+			IsRunningDedicatedServer()?	TEXT("Server") :
+										TEXT("Game");
 }
 
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
@@ -49,32 +71,22 @@ static const TCHAR* GetEngineMode()
 /** 
  * Get one line of text to describe the crash
  */
-static void GetCrashDescription( WER_REPORT_INFORMATION& ReportInformation, const TCHAR* ErrorMessage )
+void GetCrashDescription(WER_REPORT_INFORMATION& ReportInformation, const TCHAR* ErrorMessage)
 {
-	if( ErrorMessage != NULL )
+	if (ErrorMessage)
 	{
-		StringCchCat( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), ErrorMessage );
+		StringCchCat(ReportInformation.wzDescription, ARRAYSIZE(ReportInformation.wzDescription), ErrorMessage);
 	}
 	else
 	{
-		StringCchCopy( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), TEXT( "The application crashed while running " ) );
+		StringCchCopy(ReportInformation.wzDescription, ARRAYSIZE(ReportInformation.wzDescription), TEXT("The application crashed while running "));
 
-		if( IsRunningCommandlet() )
-		{
-			StringCchCat( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), TEXT( "a commandlet" ) );
-		}
-		else if( GIsEditor )
-		{
-			StringCchCat( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), TEXT( "the editor" ) );
-		}
-		else if( GIsServer && !GIsClient )
-		{
-			StringCchCat( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), TEXT( "a server" ) );
-		}
-		else
-		{
-			StringCchCat( ReportInformation.wzDescription, ARRAYSIZE( ReportInformation.wzDescription ), TEXT( "the game" ) );
-		}
+		const TCHAR* Description =	IsRunningCommandlet()?	 	TEXT("a commandlet") :
+									GIsEditor?				 	TEXT("the editor") :
+									IsRunningDedicatedServer()?	TEXT("a server") :
+																TEXT("the game");
+
+		StringCchCat(ReportInformation.wzDescription, ARRAYSIZE(ReportInformation.wzDescription), Description);
 	}
 }
 
@@ -83,7 +95,7 @@ static void GetCrashDescription( WER_REPORT_INFORMATION& ReportInformation, cons
 /**
  * Get the 4 element version number of the module
  */
-static void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
+void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 {
 	StringCchCopy( StringBuffer, MaxSize, TEXT( "0.0.0.0" ) );
 	
@@ -117,79 +129,74 @@ static void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxS
  * Parameters 0 through 7 are predefined for Windows
  * Parameters 8 and 9 are user defined
  */
-static void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo )
+void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo )
 {
 	HRESULT Result;
-	enum 
-	{
-		BUFFER_SIZE = 1024,
-	};
-	TCHAR StringBuffer[BUFFER_SIZE] = {0};
-	TCHAR LocalBuffer[BUFFER_SIZE] = {0};
+	TCHAR StringBuffer[LocalBufferSize] = {0};
+	TCHAR LocalBuffer[LocalBufferSize] = {0};
 
 	// Set the parameters for the standard problem signature
 	HMODULE ModuleHandle = GetModuleHandle( NULL );
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "UE4-%s" ), FApp::GetGameName() );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "UE4-%s" ), FApp::GetGameName() );
 	Result = WerReportSetParameter( ReportHandle, WER_P0, TEXT( "Application Name" ), StringBuffer );
 
-	GetModuleFileName( ModuleHandle, LocalBuffer, BUFFER_SIZE );
+	GetModuleFileName( ModuleHandle, LocalBuffer, LocalBufferSize );
 	PathStripPath( LocalBuffer );
-	GetModuleVersion( LocalBuffer, StringBuffer, BUFFER_SIZE );
+	GetModuleVersion( LocalBuffer, StringBuffer, LocalBufferSize );
 	Result = WerReportSetParameter( ReportHandle, WER_P1, TEXT( "Application Version" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), GetTimestampForLoadedLibrary( ModuleHandle ) );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%08x" ), GetTimestampForLoadedLibrary( ModuleHandle ) );
 	Result = WerReportSetParameter( ReportHandle, WER_P2, TEXT( "Application Timestamp" ), StringBuffer );
 
 	HMODULE FaultModuleHandle = NULL;
 	GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, ( LPCTSTR )ExceptionInfo->ExceptionRecord->ExceptionAddress, &FaultModuleHandle );
 
-	GetModuleFileName( FaultModuleHandle, LocalBuffer, BUFFER_SIZE );
+	GetModuleFileName( FaultModuleHandle, LocalBuffer, LocalBufferSize );
 	PathStripPath( LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P3, TEXT( "Fault Module Name" ), LocalBuffer );
 
-	GetModuleVersion( LocalBuffer, StringBuffer, BUFFER_SIZE );
+	GetModuleVersion( LocalBuffer, StringBuffer, LocalBufferSize );
 	Result = WerReportSetParameter( ReportHandle, WER_P4, TEXT( "Fault Module Version" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), GetTimestampForLoadedLibrary( FaultModuleHandle ) );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%08x" ), GetTimestampForLoadedLibrary( FaultModuleHandle ) );
 	Result = WerReportSetParameter( ReportHandle, WER_P5, TEXT( "Fault Module Timestamp" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), ExceptionInfo->ExceptionRecord->ExceptionCode );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%08x" ), ExceptionInfo->ExceptionRecord->ExceptionCode );
 	Result = WerReportSetParameter( ReportHandle, WER_P6, TEXT( "Exception Code" ), StringBuffer );
 
 	INT_PTR ExceptionOffset = ( char* )( ExceptionInfo->ExceptionRecord->ExceptionAddress ) - ( char* )FaultModuleHandle;
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%p" ), ExceptionOffset );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%p" ), ExceptionOffset );
 	Result = WerReportSetParameter( ReportHandle, WER_P7, TEXT( "Exception Offset" ), StringBuffer );
 
 	// Look for the assertion fail.
-	const TCHAR* AssertPos = FCString::Stristr( GErrorHist, TEXT( "Assertion failed: " ) );
-	const TCHAR* StackPos = FCString::Stristr( GErrorHist, TEXT( "\nStack:" ) );
-	if( AssertPos != nullptr && StackPos != nullptr && StackPos > AssertPos )
+	if (AssertionMessageStart)
 	{
 		// Use LocalBuffer to store the assertion fail.
-		FCString::Strncpy( LocalBuffer, AssertPos, FMath::Min<int32>( StackPos - AssertPos, BUFFER_SIZE ) );
-
-		const int32 BufferLen = FCString::Strlen( LocalBuffer );
+		FCString::Strncpy(LocalBuffer, AssertionMessageStart, AssertionMessageLength);
 
 		// Replace " with ' and replace \n with #
-		for( int32 ChIndex = 0; ChIndex < BufferLen; ++ChIndex )
+		for (TCHAR& Char: LocalBuffer)
 		{
-			if( LocalBuffer[ChIndex] == TEXT( '\"' ) )
+			if (Char == 0)
 			{
-				LocalBuffer[ChIndex] = TEXT( '\'' );
+				break;
 			}
 
-			if( LocalBuffer[ChIndex] == TEXT( '\n' ) )
+			switch (Char)
 			{
-				LocalBuffer[ChIndex] = TEXT( '#' );
+				default: break;
+				case '"':	Char = '\'';	break;
+				case '\r':	Char = '#';		break;
+				case '\n':	Char = '#';		break;
 			}
 		}
 	}
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST );
+	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -198,26 +205,18 @@ static void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* Excep
  *
  * Note this has to be a minidump (and not a microdump) for the dbgeng functions to work correctly
  */
-static void AddMiniDump( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo )
+void AddMiniDump(HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo)
 {
 #if 0
 	// This doesn't work in x64
 	WER_EXCEPTION_INFORMATION WerExceptionInfo = { ExceptionInfo, FALSE };
 	Result = WerReportAddDump( ReportHandle, GetCurrentProcess(), GetCurrentThread(), WerDumpTypeMiniDump, &WerExceptionInfo, NULL, 0 );
 #else
-	FString MinidumpFileName = FString::Printf( TEXT( "%sDump%d.dmp" ), *FPaths::GameLogDir(), FDateTime::UtcNow().GetTicks() );
-	HANDLE DumpHandle = CreateFileW( *MinidumpFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-	if( DumpHandle != INVALID_HANDLE_VALUE )
+	FString MinidumpFileName = FString::Printf(TEXT("%sDump%d.dmp"), *FPaths::GameLogDir(), FDateTime::UtcNow().GetTicks());
+	
+	if (WriteMinidump(*MinidumpFileName, ExceptionInfo))
 	{
-		MINIDUMP_EXCEPTION_INFORMATION DumpExceptionInfo = { 0 };
-		DumpExceptionInfo.ThreadId = GetCurrentThreadId();
-		DumpExceptionInfo.ExceptionPointers = ExceptionInfo;
-		DumpExceptionInfo.ClientPointers = true;
-
-		MiniDumpWriteDump( GetCurrentProcess(), GetCurrentProcessId(), DumpHandle, MiniDumpNormal, &DumpExceptionInfo, NULL, NULL );
-		CloseHandle( DumpHandle );
-
-		WerReportAddFile( ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA ); 
+		WerReportAddFile(ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA); 
 	}
 #endif
 }
@@ -225,7 +224,7 @@ static void AddMiniDump( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo
 /** 
  * Add miscellaneous files to the report. Currently the log and the video file
  */
-static void AddMiscFiles( HREPORT ReportHandle )
+void AddMiscFiles( HREPORT ReportHandle )
 {
 	FString LogFileName = FPaths::GameLogDir() / FApp::GetGameName() + TEXT( ".log" );
 	WerReportAddFile( ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA ); 
@@ -239,7 +238,7 @@ static void AddMiscFiles( HREPORT ReportHandle )
  *
  * This is required so that the crash report doesn't immediately get sent to Microsoft, and we can't intercept it
  */
-static void ForceWERQueuing( bool bEnable )
+void ForceWERQueuing( bool bEnable )
 {
 	HKEY Key = 0;
 	HRESULT KeyResult = RegOpenKeyEx( HKEY_CURRENT_USER, TEXT( "Software\\Microsoft\\Windows\\Windows Error Reporting" ), 0, KEY_WRITE, &Key );
@@ -251,8 +250,6 @@ static void ForceWERQueuing( bool bEnable )
 }
 
 
-namespace
-{
 /**
  * Enum indicating whether to run the crash reporter UI
  */
@@ -265,28 +262,46 @@ enum class EErrorReportUI
 	ReportInUnattendedMode	
 };
 
+/**
+ * Scoped setter of WER flag, to ensure it always gets put back
+ */
+class FScopedWERQueuing
+{
+public:
+	/**	Default constructor - force WER to queue, not send, reports */
+	FScopedWERQueuing()
+	{
+		ForceWERQueuing(true);
+	}
+
+	/**	Destructor - Reset the setting after we've had our way with it */
+	~FScopedWERQueuing()
+	{
+		ForceWERQueuing(false);
+	}
+
+private:
+	// disallow copying
+	FScopedWERQueuing(const FScopedWERQueuing&);
+	FScopedWERQueuing& operator=(const FScopedWERQueuing&);
+};
+
+
 /** 
  * Create a Windows Error Report, add the user log and video, and add it to the WER queue
- * Launch CrashReportUploader.exe to intercept the report and upload to our local site
+ * Launch CrashReportClient.exe to intercept the report and upload to our local site
  */
-int32 NewReportCrash( EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessage, EErrorReportUI ReportUI )
+int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessage, EErrorReportUI ReportUI)
 {
-	HRESULT Result;
-	HREPORT ReportHandle = NULL;
-	WER_REPORT_INFORMATION ReportInformation = { sizeof( WER_REPORT_INFORMATION ), 0 };
-	WER_SUBMIT_RESULT SubmitResult;
-	
 	// Flush out the log
-#if 1
 	GLog->Flush();
-#else
-	GError->HandleError();
-#endif
 
 	// Set the report to force queue
-	ForceWERQueuing( true );
+	FScopedWERQueuing ScopedQueueForcer;
 
 	// Construct the report details
+	WER_REPORT_INFORMATION ReportInformation = { sizeof(WER_REPORT_INFORMATION) };
+
 	StringCchCopy( ReportInformation.wzConsentKey, ARRAYSIZE( ReportInformation.wzConsentKey ), TEXT( "" ) );
 	StringCchCopy( ReportInformation.wzApplicationName, ARRAYSIZE( ReportInformation.wzApplicationName ), FApp::GetGameName() );
 	StringCchCopy( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), FPlatformProcess::BaseDir() );
@@ -296,69 +311,67 @@ int32 NewReportCrash( EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessa
 	GetCrashDescription( ReportInformation, ErrorMessage );
 	
 	// Create a crash event report
-	if( WerReportCreate( APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
+	HREPORT ReportHandle = NULL;
+	if (WerReportCreate(APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle) == S_OK)
 	{
 		// Set the standard set of a crash parameters
-		SetReportParameters( ReportHandle, ExceptionInfo );
+		SetReportParameters(ReportHandle, ExceptionInfo);
 
 		// Add a manually generated minidump
-		AddMiniDump( ReportHandle, ExceptionInfo );
+		AddMiniDump(ReportHandle, ExceptionInfo);
 
 		// Add the log and video
-		AddMiscFiles( ReportHandle );
+		AddMiscFiles(ReportHandle);
 
 		// Submit
-		Result = WerReportSubmit( ReportHandle, WerConsentAlwaysPrompt, WER_SUBMIT_QUEUE | WER_SUBMIT_BYPASS_DATA_THROTTLING, &SubmitResult );
+		WER_SUBMIT_RESULT SubmitResult;
+		WerReportSubmit(ReportHandle, WerConsentAlwaysPrompt, WER_SUBMIT_QUEUE | WER_SUBMIT_BYPASS_DATA_THROTTLING, &SubmitResult);
 
 		// Cleanup
-		Result = WerReportCloseHandle( ReportHandle );
+		WerReportCloseHandle(ReportHandle);
 	}
 
 	// Build machines do not upload these automatically since it is not okay to have lingering processes after the build completes.
-	if ( !GIsBuildMachine )
+	if (GIsBuildMachine)
+		return EXCEPTION_CONTINUE_EXECUTION;
+
+	FString CrashReportClientArguments;
+
+	// Suppress the user input dialog if we're running in unattended mode
+	bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode;
+	if (bNoDialog)
 	{
-		// When invoking CrashReportUploader, put the logs in our saved directory
-		FString CrashReportUploaderArguments = FString::Printf( TEXT( "-LogFolder=%s" ), *FPaths::Combine(*FPaths::GameAgnosticSavedDir(), TEXT("CrashLogs")) );
-	
-		// Suppress the user input dialog if we're running in unattended mode
-		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode;
-		if (bNoDialog)
-		{
-			CrashReportUploaderArguments += TEXT( " -Unattended" );
-		}
-
-		if (FApp::IsInstalled())
-		{
-			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
-			// following ensures that logs are saved to the user directory when UE4 is installed.
-			CrashReportUploaderArguments += TEXT( " -Installed" );
-		}
-
-		const TCHAR* CrashClientPath = GUseCrashReportClient ?
-			TEXT("CrashReportClient.exe") :
-			TEXT("..\\..\\..\\Engine\\Binaries\\DotNET\\CrashReportUploader.exe");
-
-		// Passing !GUseCrashReportClient to 'hidden' and 'really-hidden' parameters
-		bool bCrashReporterRan = FPlatformProcess::CreateProc(CrashClientPath, *CrashReportUploaderArguments, true, !GUseCrashReportClient, !GUseCrashReportClient, NULL, 0, NULL, NULL).IsValid();
-
-		if (!bCrashReporterRan && !bNoDialog)
-		{
-			UE_LOG(LogWindows, Log, TEXT("Could not start CrashReportClient"));
-			FPlatformMemory::DumpStats(*GWarn);
-			FText MessageTitle(FText::Format(
-				NSLOCTEXT("MessageDialog", "AppHasCrashed", "The {0} {1} has crashed and will close"),
-				FText::FromString(ReportInformation.wzApplicationName),
-				FText::FromString(GetEngineMode())
-			));
-			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(GErrorHist), &MessageTitle);
-		}
+		CrashReportClientArguments += TEXT(" -Unattended");
 	}
 
-	// Reset the setting after we've had our way with it
-	ForceWERQueuing( false );
+	if (FApp::IsInstalled())
+	{
+		// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
+		// following ensures that logs are saved to the user directory when UE4 is installed.
+		CrashReportClientArguments += TEXT(" -Installed");
+	}
 
-	// Let the system take back over
-	return ( ErrorMessage != NULL ) ? EXCEPTION_CONTINUE_EXECUTION : EXCEPTION_EXECUTE_HANDLER;
+	CrashReportClientArguments += FString(TEXT(" -AppName=")) + ReportInformation.wzApplicationName;
+
+	static const TCHAR CrashReportClientExeName[] = TEXT("CrashReportClient.exe");
+	FString CrashClientPath = FString(TEXT("..\\..\\..\\Engine\\Binaries")) / FPlatformProcess::GetBinariesSubdirectory() / CrashReportClientExeName;
+
+	bool bCrashReporterRan = FPlatformProcess::CreateProc(*CrashClientPath, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL).IsValid();
+
+	if (!bCrashReporterRan && !bNoDialog)
+	{
+		UE_LOG(LogWindows, Log, TEXT("Could not start %s"), CrashReportClientExeName);
+		FPlatformMemory::DumpStats(*GWarn);
+		FText MessageTitle(FText::Format(
+			NSLOCTEXT("MessageDialog", "AppHasCrashed", "The {0} {1} has crashed and will close"),
+			FText::FromString(ReportInformation.wzApplicationName),
+			FText::FromString(GetEngineMode())
+		));
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(GErrorHist), &MessageTitle);
+	}
+
+	// Let the system take back over (return value only used by NewReportEnsure)
+	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
 } // end anonymous namespace
@@ -378,7 +391,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		FPlatformMisc::RaiseException( 1 );
 	}
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
-	__except( NewReportCrash( GetExceptionInformation(), ErrorMessage, EErrorReportUI::ReportInUnattendedMode ) )
+	__except(ReportCrashUsingCrashReportClient(GetExceptionInformation(), ErrorMessage, EErrorReportUI::ReportInUnattendedMode))
 	{
 	}
 #endif
@@ -453,54 +466,52 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if (GAlreadyCreatedMinidump)
-	{
+	if (::InterlockedIncrement(&ReportCrashCallCount) != 1)
 		return EXCEPTION_EXECUTE_HANDLER;
-	}
-
-	GAlreadyCreatedMinidump = true;
 
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
-	// Note: NewReportCrash may read the callstack from GErrorHist
-	const SIZE_T StackTraceSize = 65535;
-	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
-	StackTrace[0] = 0;
-	// Walk the stack and dump it to the allocated memory.
-	FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
-	FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
-	CreateExceptionInfoString(ExceptionInfo->ExceptionRecord);
-	FMemory::SystemFree( StackTrace );
+	const TCHAR* AssertPos = FCString::Stristr(GErrorHist, TEXT("Assertion failed:"));
+	const TCHAR* StackPos = FCString::Stristr(GErrorHist, TEXT("\nStack:"));
+	if (AssertPos && StackPos && StackPos > AssertPos)
+	{
+		// The assertion code has already written a callstack to the log
+		AssertionMessageStart = AssertPos;
+		AssertionMessageLength = FMath::Min(int(StackPos - AssertPos), LocalBufferSize);
+	}
+	else
+	{
+		AssertionMessageStart = GErrorHist;
+		AssertionMessageLength = FCString::Strlen(GErrorHist);
+
+		// Note: ReportCrashUsingCrashReportClient reads the callstack from GErrorHist
+		const SIZE_T StackTraceSize = 65535;
+		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
+		StackTrace[0] = 0;
+		// Walk the stack and dump it to the allocated memory.
+		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
+		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
+		CreateExceptionInfoString(ExceptionInfo->ExceptionRecord);
+		FMemory::SystemFree( StackTrace );
+	}
+
 
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	// 
 	if (GUseCrashReportClient)
 	{
-		NewReportCrash( ExceptionInfo, NULL, EErrorReportUI::ShowDialog );
-		return EXCEPTION_EXECUTE_HANDLER;
+		ReportCrashUsingCrashReportClient(ExceptionInfo, nullptr, EErrorReportUI::ShowDialog);
 	}
+	else
 #endif		// WINVER
-
-	// Try to create file for minidump.
-	HANDLE FileHandle = CreateFileW( MiniDumpFilenameW, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-	
-	// Write a minidump.
-	if( FileHandle != INVALID_HANDLE_VALUE )
 	{
-		MINIDUMP_EXCEPTION_INFORMATION DumpExceptionInfo;
-
-		DumpExceptionInfo.ThreadId			= GetCurrentThreadId();
-		DumpExceptionInfo.ExceptionPointers	= ExceptionInfo;
-		DumpExceptionInfo.ClientPointers	= false;
-
-		MiniDumpWriteDump( GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MiniDumpNormal, &DumpExceptionInfo, NULL, NULL );
-		CloseHandle( FileHandle );
-	}
+		WriteMinidump(MiniDumpFilenameW, ExceptionInfo);
 
 #if UE_BUILD_SHIPPING && WITH_EDITOR
-	uint32 dwOpt = 0;
-	EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt);
+		uint32 dwOpt = 0;
+		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt);
 #endif
+	}
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }

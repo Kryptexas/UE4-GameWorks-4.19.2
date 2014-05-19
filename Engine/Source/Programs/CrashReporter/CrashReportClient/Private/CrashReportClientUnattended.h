@@ -12,9 +12,9 @@ class FCrashReportClientUnattended
 public:
 	/**
 	 * Set up uploader object
-	 * @param ReportDirectory Full path to report to upload
+	 * @param ErrorReport Error report to upload
 	 */
-	explicit FCrashReportClientUnattended(const FString& ReportDirectory);
+	explicit FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport);
 
 private:
 	/**
@@ -28,9 +28,6 @@ private:
 	 * Begin calling Tick once a second
 	 */
 	void StartTicker();
-
-	/** Complete path of report directory - must be first (see constructor) */
-	FString ReportDirectory;
 
 	/** Object that uploads report files to the server */
 	FCrashUpload Uploader;

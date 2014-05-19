@@ -39,10 +39,10 @@ class FCrashReportClient : public TSharedFromThis<FCrashReportClient>
 {
 public:
 	/**
-	 * Find crashed app name and set up background tasks
-	 * @param ReportDirectory Full path to report to upload
+	 * Constructor: sets up background diagnosis
+	 * @param ErrorReport Error report to upload
 	 */
-	explicit FCrashReportClient(const FString& ReportDirectory);
+	explicit FCrashReportClient(const FPlatformErrorReport& ErrorReport, const FString& AppName);
 
 	/**
 	 * Respond to the user pressing Submit

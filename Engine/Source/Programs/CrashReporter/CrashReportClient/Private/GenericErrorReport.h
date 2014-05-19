@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FCrashDebugHelperModule;
+
 /**
  * Helper that works with Windows Error Reports
  */
@@ -20,6 +22,20 @@ public:
 	 * @param Directory Full path to directory containing the report
 	 */
 	explicit FGenericErrorReport(const FString& Directory);
+
+	/**
+	 * One-time initialisation: does nothing by default
+	 */
+	static void Init()
+	{
+	}
+
+	/**
+	 * One-time clean-up: does nothing by default
+	 */
+	static void ShutDown()
+	{
+	}
 
 	/**
 	 * Write the provided comment into the error report
@@ -49,6 +65,31 @@ public:
 	 */
 	bool TryReadDiagnosticsFile(FText& OutReportDescription);
 
+	/**
+	 * Provide the full path of the error report directory
+	 */
+	FString GetReportDirectory() const
+	{
+		return ReportDirectory;
+	}
+
+	/**
+	 * Provide the name of the error report directory
+	 */
+	FString GetReportDirectoryLeafName() const
+	{
+		// Using GetCleanFilename to actually get directory name
+		return FPaths::GetCleanFilename(ReportDirectory);
+	}
+
+	/**
+	 * Is there anything to upload?
+	 */
+	bool HasFilesToUpload() const
+	{
+		return ReportFilenames.Num() != 0;
+	}
+
 protected:
 	/**
 	 * Look throught the list of report files to find one with the given extension
@@ -59,6 +100,7 @@ protected:
 	/** Full path to the directory the report files are in */
 	FString ReportDirectory;
 
+private:
 	/** List of leaf filenames of all the files in the report folder */
 	TArray<FString> ReportFilenames;
 };

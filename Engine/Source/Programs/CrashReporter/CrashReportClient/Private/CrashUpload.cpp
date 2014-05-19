@@ -48,15 +48,14 @@ bool FCrashUpload::PingTimeout(float DeltaTime)
 	return false;
 }
 
-void FCrashUpload::BeginUpload(const FString& ReportDirectoryNameParam, const FPlatformErrorReport& PlatformErrorReport)
+void FCrashUpload::BeginUpload(const FPlatformErrorReport& PlatformErrorReport)
 {
-	ReportDirectoryName = ReportDirectoryNameParam;
 	ErrorReport = PlatformErrorReport;
 	PendingFiles = ErrorReport.GetFilesToUpload();
-	UE_LOG(CrashReportClientLog, Log, TEXT("Got %d pending files to upload from '%s'"), PendingFiles.Num(), *ReportDirectoryName);
+	UE_LOG(CrashReportClientLog, Log, TEXT("Got %d pending files to upload from '%s'"), PendingFiles.Num(), *ErrorReport.GetReportDirectoryLeafName());
 
 	// Pause before posting completed message, to allow for additional files to be uploaded
-	PauseState = FApp::IsUnattended() ? EUploadState::Finished : EUploadState::PostingReportComplete;
+	PauseState = EUploadState::PostingReportComplete;
 	if (State == EUploadState::Ready)
 	{
 		BeginUploadImpl();
@@ -178,7 +177,7 @@ void FCrashUpload::UploadNextFile()
 		Request->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
 		Request->SetURL(UrlPrefix / TEXT("UploadReportFile"));
 		Request->SetContent(PostData);
-		Request->SetHeader(TEXT("DirectoryName"), ReportDirectoryName);
+		Request->SetHeader(TEXT("DirectoryName"), *ErrorReport.GetReportDirectoryLeafName());
 		Request->SetHeader(TEXT("FileName"), Filename);
 		Request->SetHeader(TEXT("FileLength"), FString::FromInt(PostData.Num()));
 
@@ -194,6 +193,7 @@ void FCrashUpload::UploadNextFile()
 
 void FCrashUpload::AssignReportIdToPostDataBuffer()
 {
+	FString ReportDirectoryName = *ErrorReport.GetReportDirectoryLeafName();
 	const int32 DirectoryNameLength = ReportDirectoryName.Len();
 	PostData.SetNum(DirectoryNameLength);
 	for (int32 Index = 0; Index != DirectoryNameLength; ++Index)
@@ -246,7 +246,7 @@ void FCrashUpload::OnProcessRequestComplete(FHttpRequestPtr HttpRequest, FHttpRe
 		}
 		else
 		{
-			SetCurrentState(EUploadState::ServerNotAvailable);
+			PingTimeout(0);
 		}
 		break;
 
@@ -339,10 +339,7 @@ void FCrashUpload::CheckPendingReportsForFilesToUpload()
 			return;
 		}
 
-		auto ReportDirectory = PendingReportDirectories.Pop();
-		ReportDirectoryName = FPaths::GetCleanFilename(ReportDirectory);
-
-		ErrorReport = FPlatformErrorReport(ReportDirectory);
+		ErrorReport = FPlatformErrorReport(PendingReportDirectories.Pop());
 		PendingFiles = ErrorReport.GetFilesToUpload();
 	}
 	while (PendingFiles.Num() == 0 || !SendCheckReportRequest());
@@ -352,10 +349,10 @@ void FCrashUpload::BeginUploadImpl()
 {
 	FPendingReports PendingReports;
 	// Make sure we don't try to upload the current report twice
-	PendingReports.Forget(ReportDirectoryName);
+	PendingReports.Forget(*ErrorReport.GetReportDirectoryLeafName());
 	PendingReportDirectories = PendingReports.GetReportDirectories();
 
-	UE_LOG(CrashReportClientLog, Log, TEXT("Proceeding to upload %d pending files from '%s'"), PendingFiles.Num(), *ReportDirectoryName);
+	UE_LOG(CrashReportClientLog, Log, TEXT("Proceeding to upload %d pending files from '%s'"), PendingFiles.Num(), *ErrorReport.GetReportDirectoryLeafName());
 
 	// Not sure about this: probably want to removes files one by one as they're successfully uploaded
 	PendingReports.Clear();

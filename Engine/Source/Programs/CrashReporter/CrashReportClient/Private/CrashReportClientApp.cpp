@@ -26,12 +26,20 @@ IMPLEMENT_APPLICATION(CrashReportClient, "CrashReportClient");
 
 DEFINE_LOG_CATEGORY(CrashReportClientLog);
 
+namespace
+{
+	/** Directory containing the report */
+	FString ReportDirectoryAbsolutePath;
+
+	/** Name of crashed app to display */
+	FString CrashedAppName;
+}
 /**
  * Upload the crash report with no user interaction
  */
-void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FString& ReportDirectory)
+void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FPlatformErrorReport& ErrorReport)
 {
-	FCrashReportClientUnattended CrashReportClient(ReportDirectory);
+	FCrashReportClientUnattended CrashReportClient(ErrorReport);
 
 	// loop until the app is ready to quit
 	while (!GIsRequestingExit)
@@ -43,19 +51,54 @@ void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FString& Re
 /**
  * Look for the report to upload, either in the command line or in the platform's report queue
  */
-FString FindCrashReport(const TCHAR* CommandLine)
+void ParseCommandLine(const TCHAR* CommandLine)
 {
 	const TCHAR* CommandLineAfterExe = FCommandLine::RemoveExeName(CommandLine);
 
 	// Use the first argument if present and it's not a flag
-	if (*CommandLineAfterExe && *CommandLineAfterExe != '-')
+	if (*CommandLineAfterExe)
 	{
-		return FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
+		if (*CommandLineAfterExe != '-')
+		{
+			ReportDirectoryAbsolutePath = FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
+		}
+		FParse::Value(CommandLineAfterExe, TEXT("AppName="), CrashedAppName);
 	}
-	else
+
+	if (ReportDirectoryAbsolutePath.IsEmpty())
 	{
-		return FPlatformErrorReport::FindMostRecentErrorReport();
+		ReportDirectoryAbsolutePath = FPlatformErrorReport::FindMostRecentErrorReport();
 	}
+}
+
+/**
+ * Find the error report folder and check it matches the app name if provided
+ */
+FPlatformErrorReport LoadErrorReport()
+{
+	if (ReportDirectoryAbsolutePath.IsEmpty())
+	{
+		UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
+		return FPlatformErrorReport();
+	}
+
+	FPlatformErrorReport ErrorReport(ReportDirectoryAbsolutePath);
+#if CRASH_REPORT_UNATTENDED_ONLY
+	return ErrorReport;
+#else
+	auto AppNameInReport = ErrorReport.FindCrashedAppName();
+	if (CrashedAppName.IsEmpty())
+	{
+		// If no app name was provided on the command line, assume the report is the correct one
+		CrashedAppName = AppNameInReport;
+	}
+	else if (CrashedAppName != AppNameInReport)
+	{
+		// Don't display or upload anything if it's not the report we expected
+		ErrorReport = FPlatformErrorReport();
+	}
+	return ErrorReport;
+#endif
 }
 
 void RunCrashReportClient(const TCHAR* CommandLine)
@@ -74,19 +117,14 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FMainLoopTiming MainLoop(IdealTickRate, bUnattended ? EMainLoopOptions::CoreTickerOnly : EMainLoopOptions::UsingSlate);
 
 	// Find the report to upload in the command line arguments
-	auto CommandLineAfterExe = FCommandLine::RemoveExeName(CommandLine);
-	FString ReportDirectory = FindCrashReport(CommandLine);
+	ParseCommandLine(CommandLine);
 
-	if (ReportDirectory.IsEmpty())
-	{
-		UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
-	}
-
-	FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
-
+	FPlatformErrorReport::Init();
+	auto ErrorReport = LoadErrorReport();
+	
 	if (bUnattended)
 	{
-		RunCrashReportClientUnattended(MainLoop, ReportDirectory);
+		RunCrashReportClientUnattended(MainLoop, ErrorReport);
 	}
 	else
 	{
@@ -98,7 +136,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		FCrashReportClientStyle::Initialize();
 
 		// Create the main implementation object
-		TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ReportDirectory));
+		TSharedRef<FCrashReportClient> CrashReportClient = MakeShareable(new FCrashReportClient(ErrorReport, CrashedAppName));
 
 		// open up the app window	
 		TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
@@ -147,10 +185,15 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	}
 
 	GEngineLoop.AppExit();
+
+	FPlatformErrorReport::ShutDown();
 }
 
 void CrashReportClientCheck(bool bCondition, const TCHAR* Location)
 {
-	UE_LOG(CrashReportClientLog, Warning, TEXT("CHECK FAILED at %s"), Location);
+	if (!bCondition)
+	{
+		UE_LOG(CrashReportClientLog, Warning, TEXT("CHECK FAILED at %s"), Location);
+	}
 }
 

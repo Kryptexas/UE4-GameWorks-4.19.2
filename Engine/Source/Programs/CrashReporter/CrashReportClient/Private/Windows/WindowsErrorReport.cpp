@@ -61,10 +61,14 @@ struct FWindowsReportParser
 FWindowsErrorReport::FWindowsErrorReport(const FString& Directory)
 	: FGenericErrorReport(Directory)
 {
+}
+
+void FWindowsErrorReport::Init()
+{
 	CrashHelperModule = &FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 }
 
-FWindowsErrorReport::~FWindowsErrorReport()
+void FWindowsErrorReport::ShutDown()
 {
 	CrashHelperModule->ShutdownModule();
 }
@@ -72,7 +76,7 @@ FWindowsErrorReport::~FWindowsErrorReport()
 FText FWindowsErrorReport::DiagnoseReport() const
 {
 	// Should check if there are local PDBs before doing anything
-	auto CrashDebugHelper = CrashHelperModule->Get();
+	auto CrashDebugHelper = CrashHelperModule ? CrashHelperModule->Get() : nullptr;
 	if (!CrashDebugHelper)
 	{
 		// Not localized: should never be seen
@@ -115,7 +119,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 
 FString FWindowsErrorReport::FindCrashedAppName() const
 {
-	const FString CrashedAppName = FWindowsReportParser::Find( ReportDirectory, TEXT( "AppPath=" ) );
+	const FString CrashedAppName = FWindowsReportParser::Find( ReportDirectory, TEXT( "AppName=" ) );
 	return CrashedAppName;
 }
 
