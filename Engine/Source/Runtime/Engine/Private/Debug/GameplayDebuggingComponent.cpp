@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineClasses.h"
 #include "Net/UnrealNetwork.h"
 #include "AI/BehaviorTreeDelegates.h"
 #include "../AI/Navigation/RecastNavMeshGenerator.h"
