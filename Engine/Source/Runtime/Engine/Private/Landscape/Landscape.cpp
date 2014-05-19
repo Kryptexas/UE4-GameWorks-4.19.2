@@ -1257,6 +1257,7 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;
 		MaxLODLevel = Landscape->MaxLODLevel;
 		LODDistanceFactor = Landscape->LODDistanceFactor;
+		LODFalloff = Landscape->LODFalloff;
 		CollisionMipLevel = Landscape->CollisionMipLevel;
 		if (!LandscapeMaterial)
 		{
