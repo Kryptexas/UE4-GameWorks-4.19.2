@@ -338,7 +338,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewActor->RegisterAllComponents(); // Register native components
 
 				// Run the construction script, which will use the properties we just copied over
-				NewActor->OnConstruction(WorldTransform, &InstanceDataCache);
+				NewActor->ExecuteConstruction(WorldTransform, &InstanceDataCache);
 
 				//Attach the new instance to original parent
 				if(AttachParentActor)

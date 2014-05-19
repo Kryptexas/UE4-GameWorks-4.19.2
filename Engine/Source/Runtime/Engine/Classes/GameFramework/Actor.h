@@ -1694,11 +1694,17 @@ public:
 	void DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& NestLevel, bool bShowPosition );
 
 	/**
-	 * Called when an instance of this class is placed (in editor) or spawned.
+	 * Run any construction script for this Actor. Will call OnConstruction.
 	 * @param	Transform			The transform to construct the actor at.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 */
-	virtual void OnConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache = NULL);
+	void ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache);
+
+	/**
+	 * Called when an instance of this class is placed (in editor) or spawned.
+	 * @param	Transform			The transform the actor was constructed at.
+	 */
+	virtual void OnConstruction(const FTransform& Transform) {}
 
 	/**
 	 * Helper function to regoster tje specified component, and add it to the serialized components array

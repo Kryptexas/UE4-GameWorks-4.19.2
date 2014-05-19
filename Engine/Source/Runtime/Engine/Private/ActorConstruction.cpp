@@ -210,7 +210,7 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		OnConstruction(OldTransform, &InstanceDataCache);
+		ExecuteConstruction(OldTransform, &InstanceDataCache);
 
 		if(Parent)
 		{
@@ -242,7 +242,7 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
-void AActor::OnConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache)
+void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
@@ -317,6 +317,9 @@ void AActor::OnConstruction(const FTransform& Transform, const FComponentInstanc
 			}
 		}
 	}
+
+	// Now run virtual notification
+	OnConstruction(Transform);
 }
 
 
