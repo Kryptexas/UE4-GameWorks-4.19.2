@@ -4550,6 +4550,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 
 					UClass* ResultClass = GenerateCodeForHeader(Package, *ClassName, RF_Public|RF_Standalone, *HeaderFile, ClassDeclLine);
 					GClassSourceFileMap.Add(ResultClass, Filename);
+					GClassDeclarationLineNumber.Add(ResultClass, ClassDeclLine);
 					GClassGeneratedFileMap.Add(ResultClass, FClassHeaderInfo(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename)));
 
 					if( CurrentlyProcessing == PublicClassesHeaders )
@@ -4637,7 +4638,31 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 
 			if (ScriptSuperClass && !ScriptSuperClass->HasAnyClassFlags(CLASS_Intrinsic) && GClassStrippedHeaderTextMap.Contains(ScriptClass) && !GClassStrippedHeaderTextMap.Contains(ScriptSuperClass))
 			{
-				UE_LOG(LogCompile, Error, TEXT("Superclass %s of class %s not found"), *ScriptSuperClass->GetName(), *ScriptClass->GetName());
+				class FSuperClassContextSupplier : public FContextSupplier
+				{
+				public:
+					FSuperClassContextSupplier(const UClass * Class) :
+						ScriptClass(Class)
+					{ }
+
+					virtual FString GetContext() OVERRIDE
+					{
+						FString Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GClassSourceFileMap[ScriptClass]);
+						int32 LineNumber = GClassDeclarationLineNumber[ScriptClass];
+						return FString::Printf(TEXT("%s(%i)"), *Filename, LineNumber);
+					}
+				private:
+					const UClass * ScriptClass;
+				} ContextSupplier(ScriptClass);
+
+				auto OldContext = GWarn->GetContext();
+
+				TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
+
+				GWarn->SetContext(&ContextSupplier);
+				GWarn->Log(ELogVerbosity::Error, FString::Printf(TEXT("Error: Superclass %s of class %s not found"), *ScriptSuperClass->GetName(), *ScriptClass->GetName()));
+				GWarn->SetContext(OldContext);
+
 				Result = ECompilationResult::OtherCompilationError;
 				++NumFailures;
 			}

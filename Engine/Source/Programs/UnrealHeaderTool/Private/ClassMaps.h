@@ -52,6 +52,7 @@ struct FManifestModule;
 
 extern TMap<UClass*, FString>                   GClassStrippedHeaderTextMap;
 extern TMap<UClass*, FString>                   GClassSourceFileMap;
+extern TMap<UClass*, int32>                     GClassDeclarationLineNumber;
 extern TMap<UClass*, FClassHeaderInfo>          GClassGeneratedFileMap;
 extern TMap<UClass*, TUniqueObj<TArray<FName>>> GClassDependentOnMap;
 extern TMap<UClass*, FString>                   GClassHeaderNameWithNoPathMap;
