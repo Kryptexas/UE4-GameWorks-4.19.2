@@ -41,7 +41,7 @@ class ENGINE_API ANavigationData : public AActor
 	// game-time config
 	//----------------------------------------------------------------------//
 
-	/** Size of the tallest agent that will path with this navmesh. */
+	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
 	UPROPERTY(EditAnywhere, Category=Runtime, config)
 	uint32 bRebuildAtRuntime:1;
 
