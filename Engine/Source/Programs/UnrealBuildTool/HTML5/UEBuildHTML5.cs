@@ -256,49 +256,25 @@ namespace UnrealBuildTool
 				if (InModule.ToString() == "Core")
 				{
 					InModule.AddPublicIncludePath("Runtime/Core/Public/HTML5");
-                    InModule.AddPublicDependencyModule("zlib");
+					InModule.AddPublicDependencyModule("zlib");
 				}
 				else if (InModule.ToString() == "Engine")
 				{
 					InModule.AddPrivateDependencyModule("zlib");
 					InModule.AddPrivateDependencyModule("UElibPNG");
-                    InModule.AddPublicDependencyModule("UEOgg");
-                    InModule.AddPublicDependencyModule("Vorbis");
+					InModule.AddPublicDependencyModule("UEOgg");
+					InModule.AddPublicDependencyModule("Vorbis");
 				}
 			}
-			else if (Target.Platform == UnrealTargetPlatform.Win64)
+			else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
 			{
-                bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				if ( (!UEBuildConfiguration.bBuildRequiresCookedData
+					&& InModule.ToString() == "Engine"
+					&& UEBuildConfiguration.bBuildDeveloperTools)
+					|| UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
-					if (InModule.ToString() == "Engine")
-					{
-						if (UEBuildConfiguration.bBuildDeveloperTools)
-						{
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
-						}
-					}
-					else if (InModule.ToString() == "TargetPlatform")
-					{
-                        bBuildShaderFormats = true;
-// 							if (UEBuildConfiguration.bBuildDeveloperTools)
-// 							{
-                        // 								InModule.AddPlatformSpecificDynamicallyLoadedModule("AT9AudioFormat");
-                        // 								InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TextureFormat");
-// 							}
-					}
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
 				}
-
-				// allow standalone tools to use target platform modules, without needing Engine
-				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-				{
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
-				}
-
-                if (bBuildShaderFormats)
-                {
-                    // InModule.AddDynamicallyLoadedModule("HTML5ShaderFormat");
-                }
 			}
 		}
 

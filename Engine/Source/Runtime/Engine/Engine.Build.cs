@@ -116,8 +116,7 @@ public class Engine : ModuleRules
 					    "MacTargetPlatform",
 					    "MacNoEditorTargetPlatform",
 						"MacServerTargetPlatform",
-						"MacClientTargetPlatform",
-					    "HTML5TargetPlatform"
+						"MacClientTargetPlatform"
 					}
 				);
 			}
