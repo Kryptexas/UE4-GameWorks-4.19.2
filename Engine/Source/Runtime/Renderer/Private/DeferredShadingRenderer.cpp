@@ -760,6 +760,11 @@ void FDeferredShadingSceneRenderer::Render()
 			FinishRenderViewTarget(&Views[ViewIndex], ViewIndex == (Views.Num() - 1));
 		}
 	}
+	else
+	{
+		// Release the original reference on the scene render targets
+		GSceneRenderTargets.AdjustGBufferRefCount(-1);
+	}
 
 	RenderFinish();
 }
