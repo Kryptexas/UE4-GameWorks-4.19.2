@@ -882,6 +882,7 @@ void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 	// VisualizeTexture observed render target is set each frame
 	VisualizeTextureContent.SafeRelease();
 	VisualizeTextureDesc = FPooledRenderTargetDesc();
+	VisualizeTextureDesc.DebugName = TEXT("VisualizeTexture");
 
 	ObservedDebugNameReusedCurrent = 0;
 

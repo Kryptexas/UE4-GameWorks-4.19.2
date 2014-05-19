@@ -155,6 +155,7 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 		}
 	}
 
+	Ret.Reset();
 	Ret.DebugName = TEXT("PassThrough");
 
 	return Ret;
