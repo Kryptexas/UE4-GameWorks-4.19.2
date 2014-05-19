@@ -294,16 +294,6 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "GetTimerRemainingTime", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static float K2_GetTimerRemainingTime(UObject* Object, FString FunctionName);
 
-	// --- Spline functions ------------------------------
-
-	/**
-	 * Creates a new Spline object.
-	 * @param Outer			Object to be used as the spline's outer
-	 * 
-	 * @return A USpline object.
-	 */
-	UFUNCTION(BlueprintCallable, Category="Splines", meta=(ToolTip="Creates a new Spline object", DefaultToSelf="Outer"))
-	static class USpline* CreateNewSplineObject(UObject* Outer);
 
 	// --- 'Set property by name' functions ------------------------------
 
