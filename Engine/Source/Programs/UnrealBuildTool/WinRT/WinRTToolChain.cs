@@ -249,9 +249,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Treat warnings as errors.
-			Result += " /WX";
-
 			if (WinRTPlatform.ShouldCompileWinRT() == true)
 			{
 				// WinRT headers generate too many warnings for /W4

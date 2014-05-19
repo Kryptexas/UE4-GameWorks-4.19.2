@@ -346,9 +346,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Treat warnings as errors.
-			Result += " /WX";
-
 			// Level 4 warnings.
 			Result += " /W4";
 
