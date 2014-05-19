@@ -172,7 +172,9 @@ public:
 	}
 	virtual void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType ) OVERRIDE
 	{
+#if	WITH_EDITOR
 		::DisplayProfileVisualizer( InProfileData, InProfilerType );
+#endif // WITH_EDITOR
 	}
 };
 IMPLEMENT_MODULE(FProfileVisualizerModule, TaskGraph);
