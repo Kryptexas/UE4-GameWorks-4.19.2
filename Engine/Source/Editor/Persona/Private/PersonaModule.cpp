@@ -70,6 +70,7 @@ void FPersonaModule::ShutdownModule()
 	MenuExtensibilityManager.Reset();
 
 	// unregsiter when shut down
+	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomPropertyLayout("SkeletalMeshSocket");
