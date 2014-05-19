@@ -58,6 +58,7 @@ namespace UnrealBuildTool
 		{
 			public string       Name;
 			public string       BaseDirectory;
+			public string       IncludeBase;     // The include path which all UHT-generated includes should be relative to
 			public string       OutputDirectory;
 			public List<string> ClassesHeaders;
 			public List<string> PublicHeaders;
@@ -72,17 +73,17 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public UHTManifest(bool InUseRelativePaths, UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
+		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
 		{
-			UseRelativePaths = InUseRelativePaths;
-			IsGameTarget     = TargetRules.IsGameType(Target.Rules.Type);
-			RootLocalPath    = InRootLocalPath;
-			RootBuildPath    = InRootBuildPath;
-			TargetName       = Target.GetTargetName();
+			IsGameTarget  = TargetRules.IsGameType(Target.Rules.Type);
+			RootLocalPath = InRootLocalPath;
+			RootBuildPath = InRootBuildPath;
+			TargetName    = Target.GetTargetName();
 
 			Modules = ModuleInfo.Select(Info => new Module{
 				Name                     = Info.ModuleName,
 				BaseDirectory            = Info.ModuleDirectory,
+				IncludeBase              = Info.ModuleDirectory,
 				OutputDirectory          = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Info.ModuleDirectory, Info.ModuleName),
 				ClassesHeaders           = Info.PublicUObjectClassesHeaders.Select((Header) => Header.AbsolutePath).ToList(),
 				PublicHeaders            = Info.PublicUObjectHeaders       .Select((Header) => Header.AbsolutePath).ToList(),
@@ -95,11 +96,10 @@ namespace UnrealBuildTool
 			}).ToList();
 		}
 
-		public bool         UseRelativePaths; // Generate relative paths or absolute paths
 		public bool         IsGameTarget;     // True if the current target is a game target
 		public string       RootLocalPath;    // The engine path on the local machine
 		public string       RootBuildPath;    // The engine path on the build machine, if different (e.g. Mac/iOS builds)
-		public string		TargetName;       // Name of the target currently being compiled		
+		public string       TargetName;       // Name of the target currently being compiled
 		public List<Module> Modules;
 	}
 
@@ -460,7 +460,7 @@ namespace UnrealBuildTool
 			var CppPlatform    = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
 			var ToolChain      = UEToolChain.GetPlatformToolChain(CppPlatform);
 			var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
-			var Manifest       = new UHTManifest(UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket(), Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
+			var Manifest       = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
 
 			using (ProgressWriter Progress = new ProgressWriter("Generating headers...", false))
 			{

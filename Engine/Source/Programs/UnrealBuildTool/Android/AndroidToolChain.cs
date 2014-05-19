@@ -410,9 +410,7 @@ namespace UnrealBuildTool
 			}
 			foreach (string IncludePath in CompileEnvironment.Config.IncludePaths)
 			{
-				// we make this absolute because there are some edge cases when a code-based rocket project on the same dtive
-				// as the engine will make relative paths that make clang fail to compile. Absolute will succeeed.
-				Arguments += string.Format(" -I\"{0}\"", Path.GetFullPath(IncludePath));
+				Arguments += string.Format(" -I\"{0}\"", IncludePath);
 			}
 
 			// Directly added NDK files for NDK extensions
