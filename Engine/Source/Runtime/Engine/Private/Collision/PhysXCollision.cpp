@@ -462,7 +462,10 @@ bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, cons
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE;
 		FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
 
-		PxRaycastHit PHits[HIT_BUFFER_SIZE];
+		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
+		TTypeCompatibleBytes<PxRaycastHit> RawPHits[HIT_BUFFER_SIZE];
+		PxRaycastHit* PHits = (PxRaycastHit*)RawPHits;
+
 		bool bBlockingHit = false;
 		const PxVec3 PDir = U2PVector(Delta/DeltaMag);
 
@@ -492,7 +495,7 @@ bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, cons
 
 			// Write into the same PHits buffer
 			PxRaycastHit* PHitsAsync = PHits+NumHits;
-			const PxI32 AsyncBufferSize = (ARRAY_COUNT(PHits) - NumHits);
+			const PxI32 AsyncBufferSize = (ARRAY_COUNT(RawPHits) - NumHits);
 			check(AsyncBufferSize > 0);
 			bool bBlockingHitAsync = false;
 
@@ -778,7 +781,10 @@ bool GeomSweepMulti(const UWorld * World, const PxGeometry& PGeom, const PxQuat&
 		// Keep track of closest blocking hit distance.
 		float MinBlockDistance = DeltaMag;
 
-		PxSweepHit PHits[HIT_BUFFER_SIZE];
+		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
+		TTypeCompatibleBytes<PxSweepHit> RawPHits[HIT_BUFFER_SIZE];
+		PxSweepHit* PHits = (PxSweepHit*)RawPHits;
+
 		bool bBlockingHitSync;
 		PxI32 NumHits = SyncScene->sweepMultiple(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHits, HIT_BUFFER_MAX_SYNC_QUERIES, bBlockingHitSync, PQueryFilterData, &PQueryCallbackSweep);
 		if(NumHits == -1)
@@ -844,7 +850,7 @@ bool GeomSweepMulti(const UWorld * World, const PxGeometry& PGeom, const PxQuat&
 
 			// Write into the same PHits buffer
 			PxSweepHit* PHitsAsync = PHits + NumHits;
-			const PxI32 AsyncBufferSize = (ARRAY_COUNT(PHits) - NumHits);
+			const PxI32 AsyncBufferSize = (ARRAY_COUNT(RawPHits) - NumHits);
 			check(AsyncBufferSize > 0);
 			bool bBlockingHitAsync = false;
 			PxI32 NumAsyncHits = AsyncScene->sweepMultiple(PGeom, PStartTM, PDir, MinBlockDistance, POutputFlags, PHitsAsync, AsyncBufferSize, bBlockingHitAsync, PQueryFilterData, &PQueryCallbackSweep);
@@ -1044,7 +1050,10 @@ bool GeomOverlapMulti(const UWorld * World, const PxGeometry& PGeom, const PxTra
 
 		SCOPED_SCENE_READ_LOCK(SyncScene);
 
-		PxOverlapHit POverlapArray[OVERLAP_BUFFER_SIZE]; 
+		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
+		TTypeCompatibleBytes<PxOverlapHit> RawPOverlapArray[OVERLAP_BUFFER_SIZE];
+		PxOverlapHit* POverlapArray = (PxOverlapHit*)RawPOverlapArray;
+
 		PxI32 NumHits = SyncScene->overlapMultiple(PGeom, PGeomPose, POverlapArray,  OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES, PQueryFilterData, &PQueryCallback);
 		
 		if(NumHits == -1)
@@ -1065,7 +1074,7 @@ bool GeomOverlapMulti(const UWorld * World, const PxGeometry& PGeom, const PxTra
 
 			// Write into the same PHits buffer
 			PxOverlapHit* PAsyncOverlapArray = POverlapArray + NumHits;
-			const PxI32 AsyncBufferSize = (ARRAY_COUNT(POverlapArray) - NumHits);
+			const PxI32 AsyncBufferSize = (ARRAY_COUNT(RawPOverlapArray) - NumHits);
 			check(AsyncBufferSize > 0);
 			PxI32 NumAsyncHits = AsyncScene->overlapMultiple(PGeom, PGeomPose, PAsyncOverlapArray, AsyncBufferSize, PQueryFilterData, &PQueryCallback);
 

@@ -330,6 +330,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 
 void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
+	check(PHit.flags & PxHitFlag::eDISTANCE);
 	if (Geom != NULL && PHit.hadInitialOverlap())
 	{
 		ConvertOverlappedShapeToImpactHit(PHit, StartLoc, EndLoc, OutResult, *Geom, QueryTM, QueryFilter, bReturnPhysMat);
@@ -343,13 +344,12 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 
 	// figure out where the the "safe" location for this shape is by moving from the startLoc toward the ImpactPoint
 	const FVector TraceDir = EndLoc - StartLoc;
-
 	const FVector SafeLocationToFitShape = StartLoc + (HitTime * TraceDir);
 
 	// Other info
 	OutResult.Location = SafeLocationToFitShape;
-	OutResult.ImpactPoint = P2UVector(PHit.position);
-	OutResult.Normal = P2UVector(PHit.normal);
+	OutResult.ImpactPoint = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : StartLoc;
+	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceDir;
 	OutResult.ImpactNormal = OutResult.Normal;
 
 	OutResult.TraceStart = StartLoc;
@@ -360,7 +360,6 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 	PxFilterData PShapeFilter = PHit.shape->getQueryFilterData();
 	PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
 	OutResult.bBlockingHit = (HitType == PxSceneQueryHitType::eBLOCK); 
-
 	OutResult.bStartPenetrating = (PxU32)(PHit.hadInitialOverlap());
 
 
@@ -484,6 +483,7 @@ bool AddSweepResults(int32 NumHits, PxSweepHit* Hits, float CheckLength, const P
 	for(int32 i=0; i<NumHits; i++)
 	{
 		const PxSweepHit& PHit = Hits[i];
+		check(PHit.flags & PxHitFlag::eDISTANCE);
 		if(PHit.distance <= MaxDistance)
 		{
 			FHitResult NewResult(ForceInit);
