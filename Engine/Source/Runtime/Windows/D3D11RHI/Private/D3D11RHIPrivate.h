@@ -1002,6 +1002,7 @@ private:
 		}
 	}
 
+public:
 	static void Test()
 	{
 		// testing code
@@ -1093,6 +1094,8 @@ private:
 		}
 #endif // !UE_BUILD_SHIPPING
 	}
+
+private:
 
 	// ordered from small to large (for efficient compactening)
 	TArray<FRange> Entries;
