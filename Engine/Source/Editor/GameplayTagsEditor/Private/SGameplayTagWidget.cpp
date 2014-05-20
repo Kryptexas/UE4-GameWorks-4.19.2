@@ -5,6 +5,7 @@
 #include "GameplayTagsModule.h"
 #include "GameplayTags.h"
 #include "ScopedTransaction.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagWidget"
 
