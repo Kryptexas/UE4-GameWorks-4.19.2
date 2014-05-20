@@ -12,6 +12,8 @@
 static const int GUID_PACKET_NOT_ACKED	= -2;		
 static const int GUID_PACKET_ACKED		= -1;		
 
+#define USE_NEW_DYNAMIC_AND_SUPPORT_CHECKS 1
+
 /**
  * Don't allow infinite recursion of InternalLoadObject - an attacker could
  * send malicious packets that cause a stack overflow on the server.
@@ -289,56 +291,42 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 		// Serialize Initially replicating components here
 		if (Ar.IsSaving())
 		{
-			int32 NumReplicatedComponents = 0;
-			
-			// Count how many net addressable components we have, then serialize
-			// that number then each component netguid/string pair.
-			for (auto It = Actor->ReplicatedComponents.CreateIterator(); It; ++It)
-			{
-				UActorComponent * Comp = It->Get();
-				if (Comp && Comp->GetNetAddressable())
-				{
-					NumReplicatedComponents++;
-				}
-			}
-			
-			Actor->ReplicatedComponents.Num();
+			TArray<UObject*> Subobjs;
+			Actor->GetSubobjectsWithStableNamesForNetworking(Subobjs);
+
+			int32 NumReplicatedComponents = Subobjs.Num();
+
 			Ar << NumReplicatedComponents;
 
-			for (auto It = Actor->ReplicatedComponents.CreateIterator(); It; ++It)
+			for (UObject *Obj : Subobjs)
 			{
-				UActorComponent * Comp = It->Get();
-				if (Comp && Comp->GetNetAddressable())
-				{
+				FNetworkGUID SubobjNetGUID;
+				InternalGetOrAssignNetGUID(Obj, SubobjNetGUID);
+				Ar << SubobjNetGUID;
 
-					FNetworkGUID ComponentNetGUID;
-					InternalGetOrAssignNetGUID(Comp, ComponentNetGUID);
-					Ar << ComponentNetGUID;
-				
-					FString CompName = Comp->GetName();
-					Ar << CompName;
-					
-					NetGUIDAckStatus.Add( ComponentNetGUID, GUID_PACKET_ACKED );		// We know this GUID is acked since the export is in this bunch, and this bunch is reliable
-					UE_LOG(LogNetPackageMap, Log, TEXT("   Saving: Assigned NetGUID <%s> to component %s"), *ComponentNetGUID.ToString(), *Comp->GetPathName());
-				}
+				FString ObjName = Obj->GetName();
+				Ar << ObjName;
+
+				NetGUIDAckStatus.Add(SubobjNetGUID, GUID_PACKET_ACKED);		// We know this GUID is acked since the export is in this bunch, and this bunch is reliable
+				UE_LOG(LogNetPackageMap, Log, TEXT("   Saving: Assigned NetGUID <%s> to subobject %s"), *SubobjNetGUID.ToString(), *Obj->GetPathName());
 			}
 		}
 		else
 		{
 			int32 NumReplicatedComponents = 0;
 			Ar << NumReplicatedComponents;
-			
+
 			for (int32 idx=0; idx < NumReplicatedComponents && !Ar.IsError(); ++idx)
 			{
-				FNetworkGUID ComponentNetGUID;
-				Ar << ComponentNetGUID;
+				FNetworkGUID SubobjNetGUID;
+				Ar << SubobjNetGUID;
 
-				FString CompName;
-				Ar << CompName;
+				FString ObjName;
+				Ar << ObjName;
 
-				UObject * CompObject = NetGUIDAssign(ComponentNetGUID, CompName, Actor);
+				UObject * Subobj = NetGUIDAssign(SubobjNetGUID, ObjName, Actor);
 
-				UE_LOG(LogNetPackageMap, Log, TEXT("   Loading: Assigned NetGUID <%s> to component %s"), *ComponentNetGUID.ToString(), *CompObject->GetPathName());
+				UE_LOG(LogNetPackageMap, Log, TEXT("   Loading: Assigned NetGUID <%s> to subobject %s"), *SubobjNetGUID.ToString(), *Subobj->GetPathName());
 			}
 		}
 	}
@@ -1194,7 +1182,7 @@ bool UPackageMapClient::ShouldSendFullPath(const UObject* Object, const FNetwork
 
 	// If it is a dynamic actor component that hasn't been Ack'd, then send its path
 	const UActorComponent *Component = Cast<const UActorComponent>(Object);
-	if (IsDynamic && (Component && Component->GetNetAddressable()) && !NetGUIDHasBeenAckd(NetGUID) )
+	if (IsDynamic && (Component && Component->IsNameStableForNetworking()) && !NetGUIDHasBeenAckd(NetGUID) )
 	{
 		return true;
 	}
@@ -1208,6 +1196,13 @@ bool UPackageMapClient::ShouldSendFullPath(const UObject* Object, const FNetwork
  */
 bool UPackageMapClient::IsDynamicObject(const UObject* Object)
 {
+#if USE_NEW_DYNAMIC_AND_SUPPORT_CHECKS == 1
+	check( Object != NULL );
+	check( Object->IsSupportedForNetworking() );
+
+	// Any non net addressable object is dynamic
+	return !Object->IsFullNameStableForNetworking();
+#else
 	const AActor * Actor = Cast<const AActor>(Object);
 	bool NonAddressableSubobject = false;
 	if (!Actor)
@@ -1218,8 +1213,8 @@ bool UPackageMapClient::IsDynamicObject(const UObject* Object)
 			const UActorComponent* ActorComponent = Cast<const UActorComponent>(Object);
 			if (ActorComponent)
 			{
-				// Actor compnents define if they are NetAddressable via UActorComponent::GetNetAddressable()
-				if (!ActorComponent->GetNetAddressable())
+				// Actor compnents define if they are NetAddressable via UActorComponent::IsNameStableForNetworking()
+				if (!ActorComponent->IsNameStableForNetworking())
 				{
 					NonAddressableSubobject  = true;
 				}
@@ -1238,6 +1233,7 @@ bool UPackageMapClient::IsDynamicObject(const UObject* Object)
 	}
 
 	return true;
+#endif
 }
 
 /**
@@ -1313,6 +1309,38 @@ bool UPackageMapClient::IsNetGUIDAuthority()
 
 bool UPackageMapClient::SupportsObject( const UObject* Object )
 {
+#if USE_NEW_DYNAMIC_AND_SUPPORT_CHECKS == 1
+	// NULL is always supported
+	if ( !Object )
+	{
+		return true;
+	}
+
+	// If we already gave it a NetGUID, its supported.
+	// This should happen for dynamic subobjects.
+	FNetworkGUID NetGUID = Cache->NetGUIDLookup.FindRef(Object);
+	if (NetGUID.IsValid())
+	{
+		return true;
+	}
+
+	if ( Object->IsFullNameStableForNetworking() )
+	{
+		// If object is fully net addressable, it's definitely supported
+		return true;
+	}
+
+	if ( Object->IsSupportedForNetworking() )
+	{
+		// This means the server will explicitly tell the client to spawn and assign the id for this object
+		return true;
+	}
+
+	UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::SupportsObject: %s NOT Supported." ), *Object->GetFullName() );
+	UE_LOG( LogNetPackageMap, Warning, TEXT( "   %s"), *DebugContextString );
+
+	return false;
+#else
 	// NULL is always supported
 	if (!Object)
 	{
@@ -1336,7 +1364,7 @@ bool UPackageMapClient::SupportsObject( const UObject* Object )
 		{
 			// NetAddressable actor components are supported even before they have a NetGUID
 			// So things like an actor's static mesh component can be referenced even if the SMC doesn't have replicated properties itself
-			if (ActorComponent->GetNetAddressable())
+			if (ActorComponent->IsNameStableForNetworking())
 			{
 				return true;
 			}
@@ -1373,6 +1401,7 @@ bool UPackageMapClient::SupportsObject( const UObject* Object )
 
 	// Everything else is now supported
 	return true;
+#endif
 }
 
 /** Resets packagemap state for server travel */

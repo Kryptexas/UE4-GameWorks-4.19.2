@@ -64,6 +64,8 @@ private:
 	FName ForcedExportBasePackageName;
 public:
 
+	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all packages have stable net names
+
 	/** Package flags, serialized.*/
 	uint32	PackageFlags;
 

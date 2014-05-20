@@ -248,11 +248,36 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 		UActorComponent * ActorComp = ReplicatedComponents[CompIdx].Get();
 		if (ActorComp && ActorComp->GetIsReplicated())
 		{
-			WroteSomething |= Channel->ReplicateSubobject(ActorComp, *Bunch, *RepFlags);
-			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);
+			WroteSomething |= ActorComp->ReplicateSubobjects(Channel, Bunch, RepFlags);		// Lets the component add subobjects before replicating its own properties.
+			WroteSomething |= Channel->ReplicateSubobject(ActorComp, *Bunch, *RepFlags);	// (this makes those subobjects 'supported', and from here on those objects may have reference replicated)		
 		}
 	}
 	return WroteSomething;
+}
+
+void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList)
+{	
+#if 0
+	// For experimenting with replicating ALL stably named components initially
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && Component->IsNameStableForNetworking())
+		{
+			ObjList.Add(Component);
+			Component->GetSubobjectsWithStableNamesForNetworking(ObjList);
+		}
+	}
+#else
+	for (TWeakObjectPtr<class UActorComponent> WeakPtr : ReplicatedComponents)
+	{
+		UActorComponent * Component = WeakPtr.Get();
+		if (Component && Component->IsNameStableForNetworking())
+		{
+			ObjList.Add(Component);
+			Component->GetSubobjectsWithStableNamesForNetworking(ObjList);
+		}
+	}
+#endif
 }
 
 void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)
@@ -273,4 +298,14 @@ void AActor::OnSubobjectDestroyFromReplication(UObject *NewSubobject)
 	{
 		Component->DestroyComponent();
 	}
+}
+
+bool AActor::IsNameStableForNetworking() const
+{
+	return IsNetStartupActor() || HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject );
+}
+
+bool AActor::IsSupportedForNetworking() const
+{
+	return true;		// All actors are supported for networking
 }

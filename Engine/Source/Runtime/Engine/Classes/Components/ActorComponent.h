@@ -132,8 +132,11 @@ public:
 	/** This signifies the component can be ID'd by name over the network. This only needs to be called by engine code when constructing blueprint components. */
 	void SetNetAddressable();
 
-	/** Returns whether the component is addressable over a networked game by its path name*/
-	bool GetNetAddressable() const;
+	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	virtual bool IsNameStableForNetworking() const OVERRIDE;
+
+	/** IsSupportedForNetworking means an object can be referenced over the network */
+	virtual bool IsSupportedForNetworking() const OVERRIDE;
 
 	/** Enable or disable replication. This is the equivelent of RemoteRole for actors (only a bool is required for components) */
 	UFUNCTION(BlueprintCallable, Category="Components")

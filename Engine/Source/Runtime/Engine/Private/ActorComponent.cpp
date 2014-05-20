@@ -1077,10 +1077,10 @@ void UActorComponent::SetNetAddressable()
 	bNetAddressable = true;
 }
 
-bool UActorComponent::GetNetAddressable() const
+bool UActorComponent::IsNameStableForNetworking() const
 {
 	/** 
-	 * NetAddressable means a component can be referred to its path name (relative to owning AActor*) over the network
+	 * IsNameStableForNetworking means a component can be referred to its path name (relative to owning AActor*) over the network
 	 *
 	 * Components are net addressable if:
 	 *	-They are Default Subobjects (created in C++ constructor)
@@ -1088,7 +1088,12 @@ bool UActorComponent::GetNetAddressable() const
 	 *	-They were explicitly set to bNetAddressable (blueprint components created by SCS)
 	 */
 
-	return  bNetAddressable || IsDefaultSubobject() || HasAnyFlags(RF_WasLoaded);
+	return bNetAddressable || IsDefaultSubobject() || HasAnyFlags( RF_WasLoaded | RF_DefaultSubObject );
+}
+
+bool UActorComponent::IsSupportedForNetworking() const
+{
+	return IsNameStableForNetworking() || GetIsReplicated();
 }
 
 void UActorComponent::SetIsReplicated(bool ShouldReplicate)

@@ -1396,6 +1396,15 @@ public:
 	// Always called immediately after properties are received from the remote.
 	virtual void PostNetReceive() OVERRIDE;
 
+	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	virtual bool IsNameStableForNetworking() const OVERRIDE;
+
+	/** IsSupportedForNetworking means an object can be referenced over the network */
+	virtual bool IsSupportedForNetworking() const OVERRIDE;
+
+	/** Returns a list of sub-objects that have stable names for networking */
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) OVERRIDE;
+
 	// Always called immediately after spawning and reading in replicated properties
 	virtual void PostNetInit();
 

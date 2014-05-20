@@ -549,6 +549,8 @@ public:
 	 */
 	ENGINE_API void SortActorList();
 
+	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all levels have stable net names
+
 	/** Handles network initialization for actors in this level */
 	void InitializeNetworkActors();
 

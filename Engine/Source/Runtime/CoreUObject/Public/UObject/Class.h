@@ -1648,6 +1648,8 @@ public:
 	// List of network relevant fields (properties and functions)
 	TArray<UField*> NetFields;
 
+	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all classes have stable net names
+
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;

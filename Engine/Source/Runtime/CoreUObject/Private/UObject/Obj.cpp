@@ -3775,3 +3775,26 @@ void UObject::PostNetReceive()
 {
 
 }
+
+/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
+bool UObject::IsNameStableForNetworking() const
+{
+	return IsDefaultSubobject() || HasAnyFlags( RF_WasLoaded | RF_DefaultSubObject );
+}
+
+/** IsFullNameStableForNetworking means an object can be referred to its full path name over the network */
+bool UObject::IsFullNameStableForNetworking() const
+{
+	if ( GetOuter() != NULL && !GetOuter()->IsNameStableForNetworking() )
+	{
+		return false;	// If any outer isn't stable, we can't consider the full name stable
+	}
+
+	return IsNameStableForNetworking();
+}
+
+/** IsSupportedForNetworking means an object can be referenced over the network */
+bool UObject::IsSupportedForNetworking() const
+{
+	return IsFullNameStableForNetworking();
+}

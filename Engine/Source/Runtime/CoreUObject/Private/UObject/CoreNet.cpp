@@ -127,7 +127,7 @@ bool UPackageMap::WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUI
 FClassNetCache* UPackageMap::GetClassNetCache( UClass* Class )
 {
 	FClassNetCache* Result = ClassFieldIndices.FindRef(Class);
-	if( !Result && SupportsObject(Class) )
+	if( !Result )// && SupportsObject(Class) )
 	{
 		Result                       = ClassFieldIndices.Add( Class, new FClassNetCache(Class) );
 		Result->Super                = NULL;
@@ -143,7 +143,7 @@ FClassNetCache* UPackageMap::GetClassNetCache( UClass* Class )
 		{
 			// Add sandboxed items to net cache.  
 			UField* Field = Class->NetFields[i];
-			if( SupportsObject(Field ) )
+			//if( SupportsObject(Field ) )
 			{
 				int32 ThisIndex      = Result->GetMaxIndex();
 				new(Result->Fields)FFieldNetCache( Field, ThisIndex );

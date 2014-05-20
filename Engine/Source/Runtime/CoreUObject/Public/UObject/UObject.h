@@ -451,6 +451,18 @@ public:
 	/** Returns properties that are replicated for the lifetime of the actor channel */
 	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const;
 
+	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	virtual bool IsNameStableForNetworking() const;
+
+	/** IsFullNameStableForNetworking means an object can be referred by to its full path name over the network */
+	virtual bool IsFullNameStableForNetworking() const;
+
+	/** IsSupportedForNetworking means an object can be referenced over the network */
+	virtual bool IsSupportedForNetworking() const;
+
+	/** Returns a list of sub-objects that have stable names for networking */
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) {}
+
 	/** Called right before receiving a bunch */
 	virtual void PreNetReceive();
 
