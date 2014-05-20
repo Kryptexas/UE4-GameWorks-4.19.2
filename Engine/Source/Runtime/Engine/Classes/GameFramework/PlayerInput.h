@@ -273,10 +273,8 @@ public:
 	UFUNCTION(exec)
 	void SetMouseSensitivityToDefault();
 
-#if !UE_BUILD_SHIPPING
 	UFUNCTION(exec)
 	void SetBind(FName BindName, const FString& Command);
-#endif
 
 	/** Returns the mouse sensitivity along the X-axis, or the Y-axis, or 1.0 if none are known. */
 	float GetMouseSensitivity();

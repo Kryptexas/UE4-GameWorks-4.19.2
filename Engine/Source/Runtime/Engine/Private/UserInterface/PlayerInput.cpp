@@ -1574,9 +1574,11 @@ FKeyBind UPlayerInput::GetExecBind(FString const& ExecCommand)
 	}
 	return Binding;
 }
+#endif
 
 void UPlayerInput::SetBind(FName BindName, const FString& Command)
 {
+#if !UE_BUILD_SHIPPING
 	FKey const BindKey(BindName);
 	if (BindKey.IsValid())
 	{
@@ -1604,8 +1606,8 @@ void UPlayerInput::SetBind(FName BindName, const FString& Command)
 		DebugExecBindings.Add(NewBind);
 		SaveConfig();
 	}
-}
 #endif
+}
 
 class UWorld* UPlayerInput::GetWorld() const
 {
