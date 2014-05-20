@@ -374,9 +374,9 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
-} // end anonymous namespace
-
 #endif		// WINVER
+
+} // end anonymous namespace
 
 /** 
  * Report an ensure to the crash reporting system
