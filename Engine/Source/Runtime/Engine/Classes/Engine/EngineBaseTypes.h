@@ -379,6 +379,130 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage();
 };
 
+enum ELevelTick
+{
+	LEVELTICK_TimeOnly = 0,	// Update the level time only.
+	LEVELTICK_ViewportsOnly = 1,	// Update time and viewports.
+	LEVELTICK_All = 2,	// Update all.
+	LEVELTICK_PauseTick = 3,	// Delta time is zero, we are paused. Components don't tick.
+};
+
+
+
+/** Types of network failures broadcast from the engine */
+namespace ENetworkFailure
+{
+	enum Type
+	{
+		/** A relevant net driver has already been created for this service */
+		NetDriverAlreadyExists,
+		/** The net driver creation failed */
+		NetDriverCreateFailure,
+		/** The net driver failed its Listen() call */
+		NetDriverListenFailure,
+		/** A connection to the net driver has been lost */
+		ConnectionLost,
+		/** A connection to the net driver has timed out */
+		ConnectionTimeout,
+		/** The net driver received an NMT_Failure message */
+		FailureReceived,
+		/** The client needs to upgrade their game */
+		OutdatedClient,
+		/** The server needs to upgrade their game */
+		OutdatedServer,
+		/** There was an error during connection to the game */
+		PendingConnectionFailure
+	};
+
+	inline const TCHAR* ToString(ENetworkFailure::Type FailureType)
+	{
+		switch (FailureType)
+		{
+		case NetDriverAlreadyExists:
+			return TEXT("NetDriverAlreadyExists");
+		case NetDriverCreateFailure:
+			return TEXT("NetDriverCreateFailure");
+		case NetDriverListenFailure:
+			return TEXT("NetDriverListenFailure");
+		case ConnectionLost:
+			return TEXT("ConnectionLost");
+		case ConnectionTimeout:
+			return TEXT("ConnectionTimeout");
+		case FailureReceived:
+			return TEXT("FailureReceived");
+		case OutdatedClient:
+			return TEXT("OutdatedClient");
+		case OutdatedServer:
+			return TEXT("OutdatedServer");
+		case PendingConnectionFailure:
+			return TEXT("PendingConnectionFailure");
+		}
+		return TEXT("Unknown ENetworkFailure error occurred.");
+	}
+}
+
+/** Types of server travel failures broadcast by the engine */
+namespace ETravelFailure
+{
+	enum Type
+	{
+		/** No level found in the loaded package */
+		NoLevel,
+		/** LoadMap failed on travel (about to Browse to default map) */
+		LoadMapFailure,
+		/** Invalid URL specified */
+		InvalidURL,
+		/** A package is missing on the client */
+		PackageMissing,
+		/** A package version mismatch has occurred between client and server */
+		PackageVersion,
+		/** A package is missing and the client is unable to download the file */
+		NoDownload,
+		/** General travel failure */
+		TravelFailure,
+		/** Cheat commands have been used disabling travel */
+		CheatCommands,
+		/** Failed to create the pending net game for travel */
+		PendingNetGameCreateFailure,
+		/** Failed to save before travel */
+		CloudSaveFailure,
+		/** There was an error during a server travel to a new map */
+		ServerTravelFailure,
+		/** There was an error during a client travel to a new map */
+		ClientTravelFailure,
+	};
+
+	inline const TCHAR* ToString(ETravelFailure::Type FailureType)
+	{
+		switch (FailureType)
+		{
+		case NoLevel:
+			return TEXT("NoLevel");
+		case LoadMapFailure:
+			return TEXT("LoadMapFailure");
+		case InvalidURL:
+			return TEXT("InvalidURL");
+		case PackageMissing:
+			return TEXT("PackageMissing");
+		case PackageVersion:
+			return TEXT("PackageVersion");
+		case NoDownload:
+			return TEXT("NoDownload");
+		case TravelFailure:
+			return TEXT("TravelFailure");
+		case CheatCommands:
+			return TEXT("CheatCommands");
+		case PendingNetGameCreateFailure:
+			return TEXT("PendingNetGameCreateFailure");
+		case ServerTravelFailure:
+			return TEXT("ServerTravelFailure");
+		case ClientTravelFailure:
+			return TEXT("ClientTravelFailure");
+		}
+		return TEXT("Unknown ETravelFailure error occurred.");
+	}
+}
+
 // Traveling from server to server.
 UENUM()
 enum ETravelType

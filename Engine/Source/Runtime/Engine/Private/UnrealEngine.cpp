@@ -70,11 +70,6 @@ void FEngineModule::StartupModule()
 ENGINE_API UEngine*	GEngine = NULL;
 
 /**
- * Cache for property window queries
- */
-FPropertyWindowDataCache* GPropertyWindowDataCache = NULL;
-
-/**
  * Whether to visualize the light map selected by the Debug Camera.
  */
 ENGINE_API bool GShowDebugSelectedLightmap = false;

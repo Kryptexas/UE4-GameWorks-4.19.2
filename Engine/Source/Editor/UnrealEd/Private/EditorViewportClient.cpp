@@ -48,6 +48,9 @@ namespace {
 	static const float LightRotSpeed = 0.22f;
 }
 
+#define MIN_ORTHOZOOM				250.0					/* Limit of 2D viewport zoom in */
+#define MAX_ORTHOZOOM				MAX_FLT					/* Limit of 2D viewport zoom out */
+
 namespace OrbitConstants
 {
 	const float OrbitPanSpeed = 1.0f;
