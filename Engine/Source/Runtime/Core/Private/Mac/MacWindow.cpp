@@ -43,11 +43,11 @@
 {
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
-		return [self frame];
+		return (!bDeferSetFrame ? [self frame] : DeferFrame);
 	}
 	else
 	{
-		return [[self contentView] frame];
+		return (!bDeferSetFrame ? [[self contentView] frame] : [self contentRectForFrameRect:DeferFrame]);
 	}
 }
 
@@ -96,7 +96,7 @@
 				DeferFrame.size = [self frame].size;
 			}
 			
-			[super setFrame:DeferFrame display:NO];
+			[super setFrame:DeferFrame display:YES];
 		};
 		
 		if([NSThread isMainThread])
@@ -330,6 +330,10 @@
 	{
 		bDeferSetFrame = true;
 		DeferFrame = FrameRect;
+		if(self.bForwardEvents)
+		{
+			MacApplication->OnWindowDidResize( self );
+		}
 	}
 }
 
