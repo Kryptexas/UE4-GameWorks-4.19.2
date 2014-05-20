@@ -333,6 +333,8 @@ public:
 	static const FName MD_MakeEditWidget;
 	/** Specifies a function used for validation of the current value of a property.  The function returns a string that is empty if the value is valid, or contains an error description if the value is invalid */
 	static const FName MD_ValidateWidgetUsing;
+	/** Returns true if this structure can support creating a widget in the editor */
+	static bool CanCreateWidgetForStructure(const UStruct* InPropStruct);
 	/** Returns true if this property can support creating a widget in the editor */
 	static bool CanCreateWidgetForProperty(UProperty* InProp);
 	/** See if we should create a widget for the supplied property when selecting an actor instance */
@@ -374,6 +376,7 @@ protected:
 		FString PropertyName;
 		int32 PropertyIndex;
 		FName PropertyValidationName;
+		FString DisplayName;
 		bool bIsTransform;
 
 		FPropertyWidgetInfo()

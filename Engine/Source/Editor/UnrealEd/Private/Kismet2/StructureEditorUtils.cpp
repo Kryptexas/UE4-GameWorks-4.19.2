@@ -8,12 +8,13 @@
 #include "EdGraphSchema_K2.h"
 #include "ObjectTools.h"
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
+#include "Editor/UnrealEd/Public/EditorModes.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 
 //////////////////////////////////////////////////////////////////////////
-// FEnumEditorManager
+// FStructEditorManager
 FStructureEditorUtils::FStructEditorManager::FStructEditorManager() : FListenerManager<UUserDefinedStruct>()
 {}
 
@@ -253,13 +254,13 @@ bool FStructureEditorUtils::RemoveVariable(UUserDefinedStruct* Struct, FGuid Var
 {
 	if(Struct)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("RemoveVariable", "Remove Variable") );
-		ModifyStructData(Struct);
-
 		const auto OldNum = GetVarDesc(Struct).Num();
 		const bool bAllowToMakeEmpty = false;
 		if (bAllowToMakeEmpty || (OldNum > 1))
 		{
+			const FScopedTransaction Transaction(LOCTEXT("RemoveVariable", "Remove Variable"));
+			ModifyStructData(Struct);
+
 			GetVarDesc(Struct).RemoveAll(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
 			if (OldNum != GetVarDesc(Struct).Num())
 			{
@@ -279,9 +280,6 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 {
 	if (Struct)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Variable") );
-		ModifyStructData(Struct);
-
 		const FName NewNameBase(*NewDisplayNameStr);
 		if (NewNameBase.IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
 			IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
@@ -289,9 +287,12 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 			const FName NewName = FMemberVariableNameHelper::Generate(Struct, NewDisplayNameStr);
 			if (NULL == GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(NewName)))
 			{
-				FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+				auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 				if (VarDesc)
 				{
+					const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));
+					ModifyStructData(Struct);
+
 					VarDesc->FriendlyName = NewDisplayNameStr;
 					VarDesc->VarName = NewName;
 					OnStructureChanged(Struct);
@@ -307,9 +308,6 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 {
 	if (Struct)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("ChangeVariableType", "Change Variable Type") );
-		ModifyStructData(Struct);
-
 		FString ErrorMessage;
 		if(!CanHaveAMemberVariableOfType(Struct, NewType, &ErrorMessage))
 		{
@@ -317,12 +315,15 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 			return false;
 		}
 
-		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 		if(VarDesc)
 		{
 			const bool bChangedType = (VarDesc->ToPinType() != NewType);
 			if (bChangedType)
 			{
+				const FScopedTransaction Transaction(LOCTEXT("ChangeVariableType", "Change Variable Type"));
+				ModifyStructData(Struct);
+
 				VarDesc->VarName = FMemberVariableNameHelper::Generate(Struct, VarDesc->FriendlyName);
 				VarDesc->DefaultValue = FString();
 				VarDesc->SetPinType(NewType);
@@ -337,21 +338,18 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 
 bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& NewDefaultValue)
 {
-	if(Struct)
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (VarDesc 
+		&& (NewDefaultValue != VarDesc->DefaultValue) 
+		&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
 	{
-		const FScopedTransaction Transaction( LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value") );
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
 		ModifyStructData(Struct);
 
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
-		if (VarDesc 
-			&& (NewDefaultValue != VarDesc->DefaultValue) 
-			&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
-		{
-			VarDesc->DefaultValue = NewDefaultValue;
-			OnStructureChanged(Struct);
-			return true;
-		}
+		VarDesc->DefaultValue = NewDefaultValue;
+		OnStructureChanged(Struct);
+		return true;
 	}
 	return false;
 }
@@ -374,16 +372,8 @@ bool FStructureEditorUtils::IsUniqueVariableDisplayName(const UUserDefinedStruct
 
 FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* Struct, FGuid VarGuid)
 {
-	if (Struct)
-	{
-		const FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
-		if (VarDesc)
-		{
-			return VarDesc->FriendlyName;
-		}
-	}
-
-	return FString();
+	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	return VarDesc ? VarDesc->FriendlyName : FString();
 }
 
 bool FStructureEditorUtils::UserDefinedStructEnabled()
@@ -560,57 +550,43 @@ bool FStructureEditorUtils::ChangeTooltip(UUserDefinedStruct* Struct, const FStr
 
 FString FStructureEditorUtils::GetVariableTooltip(const UUserDefinedStruct* Struct, FGuid VarGuid)
 {
-	if (Struct)
-	{
-		const FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
-		if (VarDesc)
-		{
-			return VarDesc->ToolTip;
-		}
-	}
-
-	return FString();
+	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	return VarDesc ? VarDesc->ToolTip : FString();
 }
 
 bool FStructureEditorUtils::ChangeVariableTooltip(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& InTooltip)
 {
-	if (Struct)
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (VarDesc && (InTooltip != VarDesc->ToolTip))
 	{
-		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
-		if (VarDesc && (InTooltip != VarDesc->ToolTip))
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableTooltip", "Change UDS Variable Tooltip"));
+		ModifyStructData(Struct);
+		VarDesc->ToolTip = InTooltip;
+
+		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		if (Property)
 		{
-			const FScopedTransaction Transaction(LOCTEXT("ChangeVariableTooltip", "Change UDS Variable Tooltip"));
-			ModifyStructData(Struct);
-			VarDesc->ToolTip = InTooltip;
-
-			auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
-			if (Property)
-			{
-				Property->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc->ToolTip);
-			}
-
-			return true;
+			Property->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc->ToolTip);
 		}
+
+		return true;
 	}
 	return false;
 }
 
 bool FStructureEditorUtils::ChangeEditableOnBPInstance(UUserDefinedStruct* Struct, FGuid VarGuid, bool bInIsEditable)
 {
-	if (Struct)
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	const bool bNewDontEditoOnInstance = !bInIsEditable;
+	if (VarDesc && (bNewDontEditoOnInstance != VarDesc->bDontEditoOnInstance))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
 		ModifyStructData(Struct);
 
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
-		const bool bNewDontEditoOnInstance = !bInIsEditable;
-		if (VarDesc && (bNewDontEditoOnInstance != VarDesc->bDontEditoOnInstance))
-		{
-			VarDesc->bDontEditoOnInstance = bNewDontEditoOnInstance;
-			OnStructureChanged(Struct);
-			return true;
-		}
+		VarDesc->bDontEditoOnInstance = bNewDontEditoOnInstance;
+		OnStructureChanged(Struct);
+		return true;
 	}
 	return false;
 }
@@ -623,6 +599,47 @@ void FStructureEditorUtils::ModifyStructData(UUserDefinedStruct* Struct)
 	{
 		EditorData->Modify();
 	}
+}
+
+bool FStructureEditorUtils::CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
+	return FEdMode::CanCreateWidgetForStructure(PropertyStruct);
+}
+
+bool FStructureEditorUtils::Change3dWidgetEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled)
+{
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
+	if (FEdMode::CanCreateWidgetForStructure(PropertyStruct) && (VarDesc->bEnable3dWidget != bIsEnabled))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
+		ModifyStructData(Struct);
+
+		VarDesc->bEnable3dWidget = bIsEnabled;
+		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		if (Property)
+		{
+			if (VarDesc->bEnable3dWidget)
+			{
+				Property->SetMetaData(FEdMode::MD_MakeEditWidget, TEXT("true"));
+			}
+			else
+			{
+				Property->RemoveMetaData(FEdMode::MD_MakeEditWidget);
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::Is3dWidgetEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
+	return VarDesc && VarDesc->bEnable3dWidget && FEdMode::CanCreateWidgetForStructure(PropertyStruct);
 }
 
 #undef LOCTEXT_NAMESPACE

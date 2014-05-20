@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/EditorModes.h"
 
 #define LOCTEXT_NAMESPACE "StructureCompiler"
 
@@ -149,6 +150,10 @@ struct FUserDefinedStructureCompilerInner
 			if (VarDesc.bDontEditoOnInstance)
 			{
 				NewProperty->SetPropertyFlags(CPF_DisableEditOnInstance);
+			}
+			if (VarDesc.bEnable3dWidget)
+			{
+				NewProperty->SetMetaData(FEdMode::MD_MakeEditWidget, TEXT("true"));
 			}
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);

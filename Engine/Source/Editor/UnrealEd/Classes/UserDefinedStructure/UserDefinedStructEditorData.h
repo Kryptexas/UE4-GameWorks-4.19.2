@@ -47,6 +47,9 @@ struct FStructVariableDescription
 	UPROPERTY()
 	bool bDontEditoOnInstance;
 
+	UPROPERTY()
+	bool bEnable3dWidget;
+
 	UNREALED_API bool SetPinType(const struct FEdGraphPinType& VarType);
 
 	UNREALED_API FEdGraphPinType ToPinType() const;
@@ -55,6 +58,7 @@ struct FStructVariableDescription
 		: bIsArray(false)
 		, bInvalidMember(false)
 		, bDontEditoOnInstance(false)
+		, bEnable3dWidget(false)
 	{ }
 };
 

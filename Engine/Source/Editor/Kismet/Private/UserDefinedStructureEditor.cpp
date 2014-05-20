@@ -405,6 +405,37 @@ public:
 		}
 	}
 
+	// 3d widget
+	EVisibility Is3dWidgetOptionVisible() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			return FStructureEditorUtils::CanEnable3dWidget(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+		return EVisibility::Collapsed;
+	}
+
+	ESlateCheckBoxState::Type OnGet3dWidgetEnabled() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			return FStructureEditorUtils::Is3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		}
+		return ESlateCheckBoxState::Undetermined;
+	}
+
+	void On3dWidgetEnabledCommitted(ESlateCheckBoxState::Type InNewState)
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid() && (ESlateCheckBoxState::Undetermined != InNewState))
+		{
+			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Checked == InNewState);
+			OnChanged();
+		}
+	}
+
 	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
@@ -589,6 +620,24 @@ public:
 			.OnCheckStateChanged(this, &FUserDefinedStructureFieldLayout::OnEditableOnBPInstanceCommitted)
 			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
 		];
+
+		ChildrenBuilder.AddChildContent(*LOCTEXT("3dWidget", "3d Widget").ToString())
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("3dWidget", "3d Widget"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.OnCheckStateChanged(this, &FUserDefinedStructureFieldLayout::On3dWidgetEnabledCommitted)
+			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGet3dWidgetEnabled)
+		]
+		.Visibility(
+			TAttribute<EVisibility>::Create(
+				TAttribute<EVisibility>::FGetter::CreateSP(
+					this, &FUserDefinedStructureFieldLayout::Is3dWidgetOptionVisible)));
 	}
 
 	virtual void Tick( float DeltaTime ) OVERRIDE {}

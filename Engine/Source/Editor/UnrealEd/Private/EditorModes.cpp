@@ -970,7 +970,7 @@ void FEdMode::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* View
 
 				//do some string fixing
 				const uint32 VectorIndex = WidgetInfos[i].PropertyIndex;
-				FString WidgetDisplayName = WidgetName + ((VectorIndex != INDEX_NONE) ? FString::Printf(TEXT("[%d]"), VectorIndex) : TEXT(""));
+				const FString WidgetDisplayName = WidgetInfos[i].DisplayName + ((VectorIndex != INDEX_NONE) ? FString::Printf(TEXT("[%d]"), VectorIndex) : TEXT(""));
 				FinalString = FinalString.IsEmpty() ? WidgetDisplayName : FinalString;
 
 				if(Proj.W > 0.f)
@@ -1066,6 +1066,11 @@ AActor* FEdMode::GetFirstSelectedActorInstance() const
 	return NULL;
 }
 
+bool FEdMode::CanCreateWidgetForStructure(const UStruct* InPropStruct)
+{
+	return InPropStruct && (InPropStruct->GetFName() == NAME_Vector || InPropStruct->GetFName() == NAME_Transform);
+}
+
 bool FEdMode::CanCreateWidgetForProperty(UProperty* InProp)
 {
 	UStructProperty* TestProperty = Cast<UStructProperty>(InProp);
@@ -1077,7 +1082,7 @@ bool FEdMode::CanCreateWidgetForProperty(UProperty* InProp)
 			TestProperty = Cast<UStructProperty>(ArrayProperty->Inner);
 		}
 	}
-	return (TestProperty != NULL) && (TestProperty->Struct->GetFName() == NAME_Vector || TestProperty->Struct->GetFName() == NAME_Transform);
+	return (TestProperty != NULL) && CanCreateWidgetForStructure(TestProperty->Struct);
 }
 
 bool FEdMode::ShouldCreateWidgetForProperty(UProperty* InProp)
@@ -1104,6 +1109,7 @@ void FEdMode::GetPropertyWidgetInfos(const UStruct* InStruct, const void* InCont
 		UProperty* CurrentProp = *PropertyIt;
 		if(	ShouldCreateWidgetForProperty(CurrentProp) )
 		{
+			const FString DisplayName = CurrentProp->GetMetaData(TEXT("DisplayName"));
 			if( UArrayProperty* ArrayProp = Cast<UArrayProperty>(CurrentProp) )
 			{
 				check(InContainer != NULL);
@@ -1119,6 +1125,7 @@ void FEdMode::GetPropertyWidgetInfos(const UStruct* InStruct, const void* InCont
 
 					//fill it in with the struct name
 					WidgetInfo.PropertyName = PropertyNamePrefix + CurrentProp->GetFName().ToString();
+					WidgetInfo.DisplayName = DisplayName.IsEmpty() ? WidgetInfo.PropertyName : (PropertyNamePrefix + DisplayName);
 
 					//And see if we have any meta data that matches the MD_ValidateWidgetUsing name
 					WidgetInfo.PropertyValidationName = FName(*CurrentProp->GetMetaData(MD_ValidateWidgetUsing));
@@ -1140,6 +1147,7 @@ void FEdMode::GetPropertyWidgetInfos(const UStruct* InStruct, const void* InCont
 
 				//fill it in with the struct name
 				WidgetInfo.PropertyName = PropertyNamePrefix + CurrentProp->GetFName().ToString();
+				WidgetInfo.DisplayName = DisplayName.IsEmpty() ? WidgetInfo.PropertyName : (PropertyNamePrefix + DisplayName);
 
 				//And see if we have any meta data that matches the MD_ValidateWidgetUsing name
 				WidgetInfo.PropertyValidationName = FName(*CurrentProp->GetMetaData(MD_ValidateWidgetUsing));
