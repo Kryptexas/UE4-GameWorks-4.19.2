@@ -47,7 +47,7 @@ FNodeHandlingFunctor* UK2Node_Event::CreateNodeHandler(FKismetCompilerContext& C
 
 FLinearColor UK2Node_Event::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const

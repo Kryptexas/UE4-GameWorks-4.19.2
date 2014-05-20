@@ -3,6 +3,7 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 #include "BehaviorTreeConnectionDrawingPolicy.h"
 #include "ScopedTransaction.h"
 
@@ -269,10 +270,7 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTreeDecorator::CanCreateConn
 
 FLinearColor UEdGraphSchema_BehaviorTreeDecorator::GetPinTypeColor(const FEdGraphPinType& PinType) const
 {
-	const FString& TypeString = PinType.PinCategory;
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
-
-	return Options.BooleanPinTypeColor;
+	return GetDefault<UGraphEditorSettings>()->BooleanPinTypeColor;
 }
 
 bool UEdGraphSchema_BehaviorTreeDecorator::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const

@@ -2,6 +2,8 @@
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_CustomTransitionResult.h"
+#include "GraphEditorSettings.h"
+
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_CustomTransitionResult
@@ -15,7 +17,7 @@ UAnimGraphNode_CustomTransitionResult::UAnimGraphNode_CustomTransitionResult(con
 
 FLinearColor UAnimGraphNode_CustomTransitionResult::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ResultNodeTitleColor;
 }
 
 FString UAnimGraphNode_CustomTransitionResult::GetTooltip() const

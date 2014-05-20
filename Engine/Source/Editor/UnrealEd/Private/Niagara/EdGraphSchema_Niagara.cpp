@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 
 #include "BlueprintGraphDefinitions.h"
+#include "GraphEditorSettings.h"
 
 #include "VectorVM.h"
 
@@ -189,14 +190,14 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinType) const
 {
 	const FString& TypeString = PinType.PinCategory;
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	if (TypeString == PC_Float)
 	{
-		return Options.FloatPinTypeColor;
+		return Settings->FloatPinTypeColor;
 	}
 
-	return Options.DefaultPinTypeColor;
+	return Settings->DefaultPinTypeColor;
 }
 
 bool UEdGraphSchema_Niagara::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const

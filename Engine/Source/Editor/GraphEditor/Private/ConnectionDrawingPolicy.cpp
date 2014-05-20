@@ -528,7 +528,7 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements)
 	, GraphObj(InGraphObj)
 {
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;
@@ -542,22 +542,22 @@ FKismetConnectionDrawingPolicy::FKismetConnectionDrawingPolicy(int32 InBackLayer
 	}
 
 	// Cache off the editor options
-	AttackColor = Options.TraceAttackColor;
-	SustainColor = Options.TraceSustainColor;
-	ReleaseColor = Options.TraceReleaseColor;
+	AttackColor = Settings->TraceAttackColor;
+	SustainColor = Settings->TraceSustainColor;
+	ReleaseColor = Settings->TraceReleaseColor;
 
-	AttackWireThickness = Options.TraceAttackWireThickness;
-	SustainWireThickness = Options.TraceSustainWireThickness;
-	ReleaseWireThickness = Options.TraceReleaseWireThickness;
+	AttackWireThickness = Settings->TraceAttackWireThickness;
+	SustainWireThickness = Settings->TraceSustainWireThickness;
+	ReleaseWireThickness = Settings->TraceReleaseWireThickness;
 
-	TracePositionBonusPeriod = Options.TracePositionBonusPeriod;
-	TracePositionExponent = Options.TracePositionExponent;
-	AttackHoldPeriod = Options.TraceAttackHoldPeriod;
-	DecayPeriod = Options.TraceDecayPeriod;
-	DecayExponent = Options.TraceDecayExponent;
-	SustainHoldPeriod = Options.TraceSustainHoldPeriod;
-	ReleasePeriod = Options.TraceReleasePeriod;
-	ReleaseExponent = Options.TraceReleaseExponent;
+	TracePositionBonusPeriod = Settings->TracePositionBonusPeriod;
+	TracePositionExponent = Settings->TracePositionExponent;
+	AttackHoldPeriod = Settings->TraceAttackHoldPeriod;
+	DecayPeriod = Settings->TraceDecayPeriod;
+	DecayExponent = Settings->TraceDecayExponent;
+	SustainHoldPeriod = Settings->TraceSustainHoldPeriod;
+	ReleasePeriod = Settings->TraceReleasePeriod;
+	ReleaseExponent = Settings->TraceReleaseExponent;
 
 	CurrentTime = 0.0;
 	LatestTimeDiscovered = 0.0;
@@ -1202,12 +1202,13 @@ FSoundCueGraphConnectionDrawingPolicy::FSoundCueGraphConnectionDrawingPolicy(int
 	, GraphObj(InGraphObj)
 {
 	// Cache off the editor options
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
-	ActiveColor = Options.TraceAttackColor;
-	InactiveColor = Options.TraceReleaseColor;
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
-	ActiveWireThickness = Options.TraceAttackWireThickness;
-	InactiveWireThickness = Options.TraceReleaseWireThickness;
+	ActiveColor = Settings->TraceAttackColor;
+	InactiveColor = Settings->TraceReleaseColor;
+
+	ActiveWireThickness = Settings->TraceAttackWireThickness;
+	InactiveWireThickness = Settings->TraceReleaseWireThickness;
 
 	// Don't want to draw ending arrowheads
 	ArrowImage = nullptr;

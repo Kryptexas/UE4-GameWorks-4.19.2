@@ -112,7 +112,8 @@ SGraphPin::SGraphPin()
 	static const FName NAME_Pin_Background("Graph.Pin.Background");
 	static const FName NAME_Pin_BackgroundHovered("Graph.Pin.BackgroundHovered");
 
-	const EBlueprintPinStyleType StyleType = GEditor->GetEditorUserSettings().DataPinStyle;
+	const EBlueprintPinStyleType StyleType = GetDefault<UGraphEditorSettings>()->DataPinStyle;
+
 	switch(StyleType)
 	{
 	case BPST_VariantA:

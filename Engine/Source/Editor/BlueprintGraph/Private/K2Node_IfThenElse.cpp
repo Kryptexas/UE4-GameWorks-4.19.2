@@ -98,7 +98,7 @@ FText UK2Node_IfThenElse::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FLinearColor UK2Node_IfThenElse::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ExecBranchNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ExecBranchNodeTitleColor;
 }
 
 FString UK2Node_IfThenElse::GetTooltip() const

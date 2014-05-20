@@ -41,7 +41,7 @@ FString UK2Node_CallParentFunction::GetNodeNativeTitle(ENodeTitleType::Type Titl
 
 FLinearColor UK2Node_CallParentFunction::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ParentFunctionCallNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->ParentFunctionCallNodeTitleColor;
 }
 
 void UK2Node_CallParentFunction::AllocateDefaultPins()

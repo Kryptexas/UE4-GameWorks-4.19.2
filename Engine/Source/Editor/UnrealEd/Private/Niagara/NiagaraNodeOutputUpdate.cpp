@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
+#include "GraphEditorSettings.h"
 
 UNiagaraNodeOutputUpdate::UNiagaraNodeOutputUpdate(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -32,5 +33,5 @@ FText UNiagaraNodeOutputUpdate::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 FLinearColor UNiagaraNodeOutputUpdate::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().FunctionTerminatorNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->FunctionTerminatorNodeTitleColor;
 }

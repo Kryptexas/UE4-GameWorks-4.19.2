@@ -52,7 +52,7 @@ void UK2Node_InputTouch::AllocateDefaultPins()
 
 FLinearColor UK2Node_InputTouch::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FText UK2Node_InputTouch::GetNodeTitle(ENodeTitleType::Type TitleType) const

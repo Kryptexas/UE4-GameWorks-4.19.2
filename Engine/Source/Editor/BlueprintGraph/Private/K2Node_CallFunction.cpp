@@ -762,12 +762,10 @@ FLinearColor UK2Node_CallFunction::GetNodeTitleColor() const
 {
 	if (IsNodePure())
 	{
-		return GEditor->AccessEditorUserSettings().PureFunctionCallNodeTitleColor;
+		return GetDefault<UGraphEditorSettings>()->PureFunctionCallNodeTitleColor;
 	}
-	else
-	{
-		return Super::GetNodeTitleColor();
-	}
+
+	return Super::GetNodeTitleColor();
 }
 
 FString UK2Node_CallFunction::GetTooltip() const

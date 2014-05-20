@@ -8,6 +8,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"
 #include "ComponentAssetBroker.h"
 
@@ -1921,35 +1922,35 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) const
 {
 	const FString& TypeString = PinType.PinCategory;
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	if (TypeString == PC_Exec)
 	{
-		return Options.ExecutionPinTypeColor;
+		return Settings->ExecutionPinTypeColor;
 	}
 	else if (TypeString == PC_Object)
 	{
-		return Options.ObjectPinTypeColor;
+		return Settings->ObjectPinTypeColor;
 	}
 	else if (TypeString == PC_Interface)
 	{
-		return Options.InterfacePinTypeColor;
+		return Settings->InterfacePinTypeColor;
 	}
 	else if (TypeString == PC_Float)
 	{
-		return Options.FloatPinTypeColor;
+		return Settings->FloatPinTypeColor;
 	}
 	else if (TypeString == PC_Boolean)
 	{
-		return Options.BooleanPinTypeColor;
+		return Settings->BooleanPinTypeColor;
 	}
 	else if (TypeString == PC_Byte)
 	{
-		return Options.BytePinTypeColor;
+		return Settings->BytePinTypeColor;
 	}
 	else if (TypeString == PC_Int)
 	{
-		return Options.IntPinTypeColor;
+		return Settings->IntPinTypeColor;
 	}
 	else if (TypeString == PC_Struct)
 	{
@@ -1960,57 +1961,57 @@ FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) 
 		if (PinType.PinSubCategoryObject == VectorStruct)
 		{
 			// vector
-			return Options.VectorPinTypeColor;
+			return Settings->VectorPinTypeColor;
 		}
 		else if (PinType.PinSubCategoryObject == RotatorStruct)
 		{
 			// rotator
-			return Options.RotatorPinTypeColor;
+			return Settings->RotatorPinTypeColor;
 		}
 		else if (PinType.PinSubCategoryObject == TransformStruct)
 		{
 			// transform
-			return Options.TransformPinTypeColor;
+			return Settings->TransformPinTypeColor;
 		}
 		else
 		{
-			return Options.StructPinTypeColor;
+			return Settings->StructPinTypeColor;
 		}
 	}
 	else if (TypeString == PC_String)
 	{
-		return Options.StringPinTypeColor;
+		return Settings->StringPinTypeColor;
 	}
 	else if (TypeString == PC_Text)
 	{
-		return Options.TextPinTypeColor;
+		return Settings->TextPinTypeColor;
 	}
 	else if (TypeString == PC_Wildcard)
 	{
 		if (PinType.PinSubCategory == PSC_Index)
 		{
-			return Options.IndexPinTypeColor;
+			return Settings->IndexPinTypeColor;
 		}
 		else
 		{
-			return Options.WildcardPinTypeColor;
+			return Settings->WildcardPinTypeColor;
 		}
 	}
 	else if (TypeString == PC_Name)
 	{
-		return Options.NamePinTypeColor;
+		return Settings->NamePinTypeColor;
 	}
 	else if (TypeString == PC_Delegate)
 	{
-		return Options.DelegatePinTypeColor;
+		return Settings->DelegatePinTypeColor;
 	}
 	else if (TypeString == PC_Class)
 	{
-		return Options.ClassPinTypeColor;
+		return Settings->ClassPinTypeColor;
 	}
 
 	// Type does not have a defined color!
-	return Options.DefaultPinTypeColor;
+	return Settings->DefaultPinTypeColor;
 }
 
 FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const 

@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
+#include "GraphEditorSettings.h"
 #include "VectorVM.h"
 
 UNiagaraNodeOp::UNiagaraNodeOp(const class FPostConstructInitializeProperties& PCIP)
@@ -44,5 +45,5 @@ FText UNiagaraNodeOp::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FLinearColor UNiagaraNodeOp::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().FunctionCallNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
 }

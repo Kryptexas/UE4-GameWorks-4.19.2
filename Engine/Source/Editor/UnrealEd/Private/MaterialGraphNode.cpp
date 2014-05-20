@@ -8,6 +8,7 @@
 #include "MaterialEditorUtilities.h"
 #include "MaterialEditorActions.h"
 #include "GraphEditorActions.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -214,37 +215,37 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		return FColor( 70, 100, 200 );
 	}
 
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+	const UGraphEditorSettings* Settings = GetDefault<UGraphEditorSettings>();
 
 	if (UsesBoolColour(MaterialExpression))
 	{
-		return Options.BooleanPinTypeColor;
+		return Settings->BooleanPinTypeColor;
 	}
 	else if (UsesFloatColour(MaterialExpression))
 	{
-		return Options.FloatPinTypeColor;
+		return Settings->FloatPinTypeColor;
 	}
 	else if (UsesVectorColour(MaterialExpression))
 	{
-		return Options.VectorPinTypeColor;
+		return Settings->VectorPinTypeColor;
 	}
 	else if (UsesObjectColour(MaterialExpression))
 	{
-		return Options.ObjectPinTypeColor;
+		return Settings->ObjectPinTypeColor;
 	}
 	else if (UsesEventColour(MaterialExpression))
 	{
-		return Options.EventNodeTitleColor;
+		return Settings->EventNodeTitleColor;
 	}
 	else if (MaterialExpression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass()))
 	{
 		// Previously FColor(0, 116, 255);
-		return Options.FunctionCallNodeTitleColor;
+		return Settings->FunctionCallNodeTitleColor;
 	}
 	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
 	{
 		// Previously FColor(255, 155, 0);
-		return Options.ResultNodeTitleColor;
+		return Settings->ResultNodeTitleColor;
 	}
 	else if (UMaterial::IsParameter(MaterialExpression))
 	{
@@ -270,7 +271,7 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 	}
 
 	// Assume that most material expressions act like pure functions and don't affect anything else
-	return Options.PureFunctionCallNodeTitleColor;
+	return Settings->PureFunctionCallNodeTitleColor;
 }
 
 FString UMaterialGraphNode::GetTooltip() const

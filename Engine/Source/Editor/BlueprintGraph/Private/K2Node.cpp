@@ -519,12 +519,10 @@ FLinearColor UK2Node::GetNodeTitleColor() const
 	// Different color for pure operations
 	if (IsNodePure())
 	{
-		return GEditor->AccessEditorUserSettings().PureFunctionCallNodeTitleColor;
+		return GetDefault<UGraphEditorSettings>()->PureFunctionCallNodeTitleColor;
 	}
-	else
-	{
-		return GEditor->AccessEditorUserSettings().FunctionCallNodeTitleColor;
-	}
+
+	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
 }
 
 

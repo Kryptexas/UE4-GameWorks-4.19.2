@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EditorSettingsViewerPrivatePCH.h"
-#include "InternationalizationSettingsModel.h"
+
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -188,6 +188,13 @@ protected:
 			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsDescription", "Change the behavior of the Destructable Mesh Editor."),
 			GetMutableDefault<UDestructableMeshEditorSettings>()
 		);*/
+
+		// graph editors
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "GraphEditor",
+			LOCTEXT("ContentEditorsGraphEditorSettingsName", "Graph Editors"),
+			LOCTEXT("ContentEditorsGraphEditorSettingsDescription", "Customize Anim, Blueprint and Material Editor."),
+			GetMutableDefault<UGraphEditorSettings>()
+		);
 	}
 
 	/**
@@ -216,6 +223,7 @@ protected:
 			// other tools
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "ContentBrowser");
 //			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "DestructableMeshEditor");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "GraphEditor");
 		}
 	}
 

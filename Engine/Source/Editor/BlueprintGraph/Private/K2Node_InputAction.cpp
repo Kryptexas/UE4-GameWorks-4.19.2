@@ -35,7 +35,7 @@ void UK2Node_InputAction::AllocateDefaultPins()
 
 FLinearColor UK2Node_InputAction::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
+	return GetDefault<UGraphEditorSettings>()->EventNodeTitleColor;
 }
 
 FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
