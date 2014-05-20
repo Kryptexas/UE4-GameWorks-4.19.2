@@ -401,9 +401,6 @@ protected:
 	 */
 	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos, FString PropertyNamePrefix = TEXT("")) const;
 
-	/** Currently 'active' visualizer that we should pass input to etc */
-	TWeakPtr<FComponentVisualizer> EditedVisualizer;
-
 	/** Name of the property currently being edited */
 	FString EditedPropertyName;
 

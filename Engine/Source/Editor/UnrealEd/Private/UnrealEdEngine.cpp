@@ -1030,6 +1030,8 @@ TSharedPtr<FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(FName 
 }
 
 
+
+
 void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	// Iterate over all selected actors

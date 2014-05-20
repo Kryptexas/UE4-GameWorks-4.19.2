@@ -332,6 +332,9 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 
 			Invalidate();
 		}
+
+		// Pass to component vis manager
+		//GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
 	}
 }
 
@@ -431,21 +434,21 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 							if(PreviewBlueprint != NULL)
 							{
-							// Like PostEditMove(), but we only need to re-run construction scripts
-							if(PreviewBlueprint && PreviewBlueprint->bRunConstructionScriptOnDrag)
-							{
-								PreviewActor->RerunConstructionScripts();
-							}
+								// Like PostEditMove(), but we only need to re-run construction scripts
+								if(PreviewBlueprint && PreviewBlueprint->bRunConstructionScriptOnDrag)
+								{
+									PreviewActor->RerunConstructionScripts();
+								}
 
-							SceneComp->PostEditComponentMove(true); // @TODO HACK passing 'finished' every frame...
+								SceneComp->PostEditComponentMove(true); // @TODO HACK passing 'finished' every frame...
 
-							// If a constraint, copy back updated constraint frames to template
-							UPhysicsConstraintComponent* ConstraintComp = Cast<UPhysicsConstraintComponent>(SceneComp);
-							UPhysicsConstraintComponent* TemplateComp = Cast<UPhysicsConstraintComponent>(SelectedTemplate);
-							if(ConstraintComp && TemplateComp)
-							{
-								TemplateComp->ConstraintInstance.CopyConstraintGeometryFrom(&ConstraintComp->ConstraintInstance);
-							}
+								// If a constraint, copy back updated constraint frames to template
+								UPhysicsConstraintComponent* ConstraintComp = Cast<UPhysicsConstraintComponent>(SceneComp);
+								UPhysicsConstraintComponent* TemplateComp = Cast<UPhysicsConstraintComponent>(SelectedTemplate);
+								if(ConstraintComp && TemplateComp)
+								{
+									TemplateComp->ConstraintInstance.CopyConstraintGeometryFrom(&ConstraintComp->ConstraintInstance);
+								}
 
 								// Get the Blueprint class default object
 								AActor* CDO = NULL;

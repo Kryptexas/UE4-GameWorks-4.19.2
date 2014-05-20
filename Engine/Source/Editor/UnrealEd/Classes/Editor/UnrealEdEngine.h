@@ -3,6 +3,7 @@
 #pragma once
 #include "UniquePtr.h"
 #include "IPackageAutoSaver.h"
+#include "ComponentVisualizerManager.h"
 #include "UnrealEdEngine.generated.h"
 
 UENUM()
@@ -156,6 +157,9 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 
 	/** Map from component class to visualizer object to use */
 	TMap< FName, TSharedPtr<class FComponentVisualizer> > ComponentVisualizerMap;
+
+	/** Manages currently active visualizer and routes interactions to it */
+	FComponentVisualizerManager	ComponentVisManager;
 
 	// Begin UObject interface.
 	~UUnrealEdEngine();

@@ -278,12 +278,9 @@ bool FEdMode::CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, F
 
 bool FEdMode::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	if (EditedVisualizer.IsValid())
+	if (GUnrealEd->ComponentVisManager.HandleInputKey(ViewportClient, Viewport, Key, Event))
 	{
-		if (EditedVisualizer.Pin()->HandleInputKey(ViewportClient, Viewport, Key, Event))
-		{
-			return true;
-		}
+		return true;
 	}
 
 	if( GetCurrentTool() && GetCurrentTool()->InputKey( ViewportClient, Viewport, Key, Event ) )
@@ -319,12 +316,9 @@ bool FEdMode::InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport*
 
 bool FEdMode::InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
-	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
+	if(GUnrealEd->ComponentVisManager.HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
 	{
-		if(EditedVisualizer.Pin()->HandleInputDelta(InViewportClient, InViewport, InDrag, InRot, InScale))
-		{
-			return true;
-		}
+		return true;
 	}
 	
 	if(UsesPropertyWidgets())
@@ -430,14 +424,11 @@ bool FEdMode::UsesTransformWidget(FWidget::EWidgetMode CheckMode) const
 
 FVector FEdMode::GetWidgetLocation() const
 {
-	if(EditedVisualizer.IsValid())
+	FVector ComponentVisWidgetLocation;
+	bool bUseComponentVisWidgetLocation = GUnrealEd->ComponentVisManager.GetWidgetLocation(ComponentVisWidgetLocation);
+	if(bUseComponentVisWidgetLocation)
 	{
-		FVector VisualizerWidgetPos;
-		bool bSetWidgetLocation = EditedVisualizer.Pin()->GetWidgetLocation(VisualizerWidgetPos);
-		if(bSetWidgetLocation)
-		{
-			return VisualizerWidgetPos;
-		}
+		return ComponentVisWidgetLocation;
 	}
 
 	if(UsesPropertyWidgets())
@@ -547,11 +538,7 @@ void FEdMode::ActorSelectionChangeNotify()
 	bEditedPropertyIsTransform = false;
 
 	// Clear active editing visualizer on selection change
-	if (EditedVisualizer.IsValid())
-	{
-		EditedVisualizer.Pin()->EndEditing();
-		EditedVisualizer = NULL;
-	}
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
 }
 
 bool FEdMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
@@ -566,42 +553,18 @@ bool FEdMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProx
 			bEditedPropertyIsTransform = PropertyProxy->bPropertyIsTransform;
 			return true;
 		}
-		else if(HitProxy->IsA(HComponentVisProxy::StaticGetType()))
-		{
-			HComponentVisProxy* VisProxy = (HComponentVisProxy*)HitProxy;
-			const UActorComponent* ClickedComponent = VisProxy->Component.Get();
-			if(ClickedComponent != NULL)
-			{
-				TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(ClickedComponent->GetClass()->GetFName());
-				if(Visualizer.IsValid())
-				{
-					bool bIsActive = Visualizer->VisProxyHandleClick(VisProxy);
-					if(bIsActive)
-					{
-						// call EndEditing on any currently edited visualizer, if we are going to change it
-						if (EditedVisualizer.IsValid() && Visualizer.Get() != EditedVisualizer.Pin().Get())
-						{
-							EditedVisualizer.Pin()->EndEditing();
-						}
-
-						EditedVisualizer = Visualizer;
-					}
-				}
-			}
-		}
 		// Left clicking on an actor, stop editing a property
 		else if( HitProxy->IsA(HActor::StaticGetType()) )
 		{
 			EditedPropertyName = TEXT("");
 			EditedPropertyIndex = INDEX_NONE;
 			bEditedPropertyIsTransform = false;
-
-			if(EditedVisualizer.IsValid())
-			{
-				EditedVisualizer.Pin()->EndEditing();
-				EditedVisualizer = NULL;
-			}
 		}
+	}
+
+	if(HitProxy)
+	{	
+		GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
 	}
 
 	return 0;
