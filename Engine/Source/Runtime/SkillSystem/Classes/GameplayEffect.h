@@ -364,8 +364,8 @@ public:
 	/** Can this GameplayEffect modify the input parameter, based on tags  */
 	bool AreGameplayEffectTagRequirementsSatisfied(const UGameplayEffect *GameplayEffectToBeModified) const
 	{
-		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.MatchesAll(GameplayEffectRequiredTags);
-		bool HasIgnored = GameplayEffectIgnoreTags.Num() > 0 && GameplayEffectToBeModified->GameplayEffectTags.MatchesAny(GameplayEffectIgnoreTags);
+		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.MatchesAll(GameplayEffectRequiredTags, true);
+		bool HasIgnored = GameplayEffectToBeModified->GameplayEffectTags.MatchesAny(GameplayEffectIgnoreTags, false);
 
 		return HasRequired && !HasIgnored;
 	}
@@ -376,9 +376,6 @@ public:
 
 	/** Overridden to return requirements tags */
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const OVERRIDE;
-
-	/** Overridden to check against requirements tags */
-	virtual bool HasOwnedGameplayTag(FGameplayTag TagToCheck) const OVERRIDE;
 
 	/** Get the "clear tags" for the effect */
 	virtual void GetClearGameplayTags(FGameplayTagContainer& TagContainer) const;

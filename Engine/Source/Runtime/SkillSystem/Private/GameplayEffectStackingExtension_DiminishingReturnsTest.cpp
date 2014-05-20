@@ -13,13 +13,6 @@ UCurveTable* GetCurveTable()
 	return CurveTable;
 }
 
-FGameplayTag RequestGameplayTag_DiminishingReturnsTest(FName Name)
-{
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(Name);
-}
-
-
 UGameplayEffectStackingExtension_DiminishingReturnsTest::UGameplayEffectStackingExtension_DiminishingReturnsTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
@@ -72,13 +65,13 @@ void UGameplayEffectStackingExtension_DiminishingReturnsTest::CalculateStack(TAr
 
 	for (FModifierSpec Mod : CurrentEffect.Spec.Modifiers)
 	{
-		if (Mod.Info.OwnedTags.HasTag(RequestGameplayTag_DiminishingReturnsTest("Stackable"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (Mod.Info.OwnedTags.HasTag(IGameplayTagsModule::RequestGameplayTag("Stackable"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 		{
 			// remove any stacking information that was already applied to the current modifier
 			for (int32 Idx = 0; Idx < Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].Num(); ++Idx)
 			{
 				FAggregatorRef& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
-				if (Agg.Get()->BaseData.Tags.HasTag(RequestGameplayTag_DiminishingReturnsTest("Stack.DiminishingReturns"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+				if (Agg.Get()->BaseData.Tags.HasTag(IGameplayTagsModule::RequestGameplayTag("Stack.DiminishingReturns"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].RemoveAtSwap(Idx);
 					--Idx;
@@ -87,7 +80,7 @@ void UGameplayEffectStackingExtension_DiminishingReturnsTest::CalculateStack(TAr
 			FGameplayModifierInfo ModInfo;
 			ModInfo.Magnitude.SetValue(Multiplier);
 			ModInfo.ModifierOp = EGameplayModOp::Multiplicitive;
-			ModInfo.OwnedTags.AddTag(RequestGameplayTag_DiminishingReturnsTest("Stack.DiminishingReturns"));
+			ModInfo.OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stack.DiminishingReturns"));
 			ModInfo.Attribute = Mod.Info.Attribute;
 
 			TSharedPtr<FGameplayEffectLevelSpec> ModifierLevel(TSharedPtr< FGameplayEffectLevelSpec >(new FGameplayEffectLevelSpec()));

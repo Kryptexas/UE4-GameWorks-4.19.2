@@ -31,7 +31,6 @@ struct GAMEPLAYTAGS_API FGameplayTag
 
 	/** Constructors */
 	FGameplayTag();
-	explicit FGameplayTag(FName Name);
 
 	/** Operators */
 	bool operator==(FGameplayTag const& Other) const
@@ -55,7 +54,8 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	 * @param Other			The second tag to compare against
 	 * @param MatchTypeOne	How we compare this tag, Explicitly or a match with any parents as well
 	 * @param MatchTypeTwo	How we compare Other tag, Explicitly or a match with any parents as well
-	 * @return true if there is a match
+	 * 
+	 * @return True if there is a match according to the specified match types; false if not
 	 */
 	bool Matches(const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 	
@@ -68,14 +68,13 @@ struct GAMEPLAYTAGS_API FGameplayTag
 		return ::GetTypeHash(Tag.TagName);
 	}
 
-	/** 
-	* Displays container as a string for blueprint graph usage
-	*/
+	/** Displays container as a string for blueprint graph usage */
 	FString ToString() const
 	{
 		return TagName.ToString();
 	}
 
+	/** Get the tag represented as a name */
 	FName GetTagName() const
 	{
 		return TagName;
@@ -89,10 +88,14 @@ struct GAMEPLAYTAGS_API FGameplayTag
 
 private:
 
+	/** Intentionally private so only the tag manager can use */
+	explicit FGameplayTag(FName InTagName);
+
 	/** This Tags Name */
 	UPROPERTY()
 	FName TagName;
 
+	friend class UGameplayTagsManager;
 };
 
 /** Simple struct for a gameplay tag container */
@@ -110,44 +113,49 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	bool operator==(FGameplayTagContainer const& Other) const;
 	bool operator!=(FGameplayTagContainer const& Other) const;
 
+	/**  Returns a new container containing all of the tags of this container, as well as all of their parent tags */
 	FGameplayTagContainer GetGameplayTagParents() const;
 
 	/**
-	* Returns a filtered version of this container, as if the container were filtered by matches from the parameter container
-	*
-	* @param OtherContainer The Container to filter against
-	* @param TagMatchType Type of match to use for the tags in this container
-	* @param OtherTagMatchType Type of match to use for the tags in the OtherContainer param
-	* @param ContainerMatchType Type of match to use for filtering
-	*
-	* @return A FGameplayTagContainer containing the filtered tags
-	*/
+	 * Returns a filtered version of this container, as if the container were filtered by matches from the parameter container
+	 *
+	 * @param OtherContainer		The Container to filter against
+	 * @param TagMatchType			Type of match to use for the tags in this container
+	 * @param OtherTagMatchType		Type of match to use for the tags in the OtherContainer param
+	 * @param ContainerMatchType	Type of match to use for filtering
+	 *
+	 * @return A FGameplayTagContainer containing the filtered tags
+	 */
 	FGameplayTagContainer Filter(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const;
 
 	/**
-	* Checks if this container has ANY Tags.
-	*
-	* @param Other Container we are checking against
-	*
-	* @return True if this container has ANY the tags of the passed in container
-	*/
-	bool MatchesAny(const FGameplayTagContainer& Other) const;
+	 * Checks if this container matches ANY of the tags in the specified container. Performs matching by expanding this container out
+	 * to include its parent tags.
+	 *
+	 * @param Other					Container we are checking against
+	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching even if it's empty
+	 *
+	 * @return True if this container has ANY the tags of the passed in container
+	 */
+	bool MatchesAny(const FGameplayTagContainer& Other, bool bCountEmptyAsMatch) const;
 
 	/**
-	* Checks if this container has ALL Tags.
+	* Checks if this container matches ALL of the tags in the specified container. Performs matching by expanding this container out to
+	* include its parent tags.
 	*
-	* @param Other Container we are checking against
-	*
+	* @param Other				Container we are checking against
+	* @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching even if it's empty
+	* 
 	* @return True if this container has ALL the tags of the passed in container
 	*/
-	bool MatchesAll(const FGameplayTagContainer& Other) const;
+	bool MatchesAll(const FGameplayTagContainer& Other, bool bCountEmptyAsMatch) const;
 
 	/**
 	 * Determine if the container has the specified tag
 	 * 
-	 * @param TagToCheck Tag to check if it is present in the container
-	 * @param TagMatchType Type of match to use for the tags in this container
-	 * @param TagToCheckMatchType Type of match to use for the TagToCheck Param
+	 * @param TagToCheck			Tag to check if it is present in the container
+	 * @param TagMatchType			Type of match to use for the tags in this container
+	 * @param TagToCheckMatchType	Type of match to use for the TagToCheck Param
 	 * 
 	 * @return True if the tag is in the container, false if it is not
 	 */
@@ -187,9 +195,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 */
 	bool Serialize(FArchive& Ar);
 
-	/** 
-	 * Renames any tags that may have changed by the ini file
-	 */
+	/** Renames any tags that may have changed by the ini file */
 	void RedirectTags();
 
 	/**
@@ -199,9 +205,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 */
 	int32 Num() const;
 
-	/** 
-	 * Returns human readable Tag list
-	 */
+	/** Returns human readable Tag list */
 	FString ToString() const;
 
 	/** Creates a const iterator for the contents of this array */
@@ -212,6 +216,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 
 private:
 
+	// @todo: Remove this via engine version bump/native serialization soon
 	/** Array of gameplay tags */
 	UPROPERTY()
 	TArray<FName> Tags;

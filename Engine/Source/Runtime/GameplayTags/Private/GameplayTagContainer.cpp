@@ -83,7 +83,7 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 			if (TagManager.GameplayTagsMatch(*It, *OtherIt, TagMatchType, OtherTagMatchType) == true)
 			{
 				bTagFound = true;
-				if(ContainerMatchType == EGameplayContainerMatchType::Any)
+				if (ContainerMatchType == EGameplayContainerMatchType::Any)
 				{
 					ResultContainer.AddTag(*It);
 				}
@@ -103,13 +103,23 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 }
 
 
-bool FGameplayTagContainer::MatchesAll(FGameplayTagContainer const& Other) const
+bool FGameplayTagContainer::MatchesAll(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
 {
-	return Filter(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All).Num() == this->Num();
+	if (Other.Num() == 0)
+	{
+		return bCountEmptyAsMatch;
+	}
+
+	return Filter(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All).Num() > 0;
 }
 
-bool FGameplayTagContainer::MatchesAny(FGameplayTagContainer const& Other) const
+bool FGameplayTagContainer::MatchesAny(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
 {
+	if (Other.Num() == 0)
+	{
+		return bCountEmptyAsMatch;
+	}
+
 	return Filter(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::Any).Num() > 0;
 }
 
@@ -231,12 +241,6 @@ FGameplayTag::FGameplayTag()
 {
 }
 
-FGameplayTag::FGameplayTag(FName Name)
-	: TagName(Name)
-{
-	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
-}
-
 bool FGameplayTag::Matches(const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
 	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatch(*this, Other, MatchTypeOne, MatchTypeTwo);
@@ -245,4 +249,10 @@ bool FGameplayTag::Matches(const FGameplayTag& Other, TEnumAsByte<EGameplayTagMa
 bool FGameplayTag::IsValid() const
 {
 	return (TagName != NAME_None);
+}
+
+FGameplayTag::FGameplayTag(FName Name)
+	: TagName(Name)
+{
+	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
 }

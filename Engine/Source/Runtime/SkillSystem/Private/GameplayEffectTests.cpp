@@ -8,12 +8,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayEffectsTest, "SkillSystem.GameplayEffe
 
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 
-FGameplayTag RequestGameplayTag(FName Name)
-{
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(Name);
-}
-
 void GameplayTest_TickWorld(UWorld *World, float Time)
 {
 	const float step = 0.1f;
@@ -122,7 +116,7 @@ bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -164,7 +158,7 @@ bool GameplayEffectsTest_InstantDamageRemap(UWorld *World, FAutomationTestBase *
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -216,7 +210,7 @@ bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		// Apply to self
@@ -233,7 +227,7 @@ bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -282,7 +276,7 @@ bool GameplayEffectsTest_TemporaryDamage(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -341,7 +335,7 @@ bool GameplayEffectsTest_TemporaryDamageBuffed(UWorld *World, FAutomationTestBas
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -365,7 +359,7 @@ bool GameplayEffectsTest_TemporaryDamageBuffed(UWorld *World, FAutomationTestBas
 		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
 		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BuffDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -433,7 +427,7 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -457,7 +451,7 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
 		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BuffDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffDmgEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;		// Force this to link, so that when we remove it it will go away to any modifier it was applied to
 
@@ -560,7 +554,7 @@ bool GameplayEffectsTest_LinkedBuffDestroy(UWorld *World, FAutomationTestBase * 
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -647,7 +641,7 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -718,7 +712,7 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.SetValue(BaseDuration);
 
 		// Apply to target
@@ -743,7 +737,7 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 		DurationEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		DurationEffect->Modifiers[0].EffectType = EGameplayModEffect::Duration;
 		DurationEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		DurationEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		DurationEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		DurationEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		// Apply to target
@@ -853,7 +847,7 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -994,7 +988,7 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -1132,7 +1126,7 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -1270,7 +1264,7 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
 		// Apply to target
@@ -1388,7 +1382,7 @@ bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * 
 		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BuffEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BuffEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
 		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
@@ -1397,7 +1391,7 @@ bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * 
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		BaseDmgEffect->TargetEffects.Add(BuffEffect);
 
@@ -1419,7 +1413,7 @@ bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * 
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1465,14 +1459,14 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BuffEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BuffEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
 		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		UGameplayEffect * DummyBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Dummy"))));
 		DummyBuffEffect->Modifiers.SetNum(1);
 		DummyBuffEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		DummyBuffEffect->Modifiers[0].EffectType = EGameplayModEffect::LinkedGameplayEffect;
-		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
+		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		DummyBuffEffect->Modifiers[0].TargetEffect = BuffEffect;
 		DummyBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
@@ -1488,7 +1482,7 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1509,7 +1503,7 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1530,7 +1524,7 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1551,7 +1545,7 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1596,7 +1590,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BuffEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BuffEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
 		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		UGameplayEffect * DummyBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Dummy"))));
@@ -1604,7 +1598,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		DummyBuffEffect->Modifiers[0].EffectType = EGameplayModEffect::LinkedGameplayEffect;
 		DummyBuffEffect->Modifiers[0].TargetEffect = BuffEffect;
-		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
+		DummyBuffEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		DummyBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		UGameplayEffect * DummyBuffEffect2 = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Dummy2"))));
@@ -1626,7 +1620,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1647,7 +1641,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1668,7 +1662,7 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -1716,7 +1710,7 @@ bool GameplayEffectsTest_DurationDamage(UWorld *World, FAutomationTestBase * Tes
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = Duration;
 		BaseDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -1793,10 +1787,10 @@ bool GameplayEffectsTest_PeriodicDamage(UWorld *World, FAutomationTestBase * Tes
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = Duration;
 		BaseDmgEffect->Period.Value = 1.f; // Apply every 1 second
-		BaseDmgEffect->GameplayCues.Add( FGameplayEffectCue( RequestGameplayTag(FName(TEXT("GameplayCue.Burning"))), 1.f, 10.f) );
+		BaseDmgEffect->GameplayCues.Add( FGameplayEffectCue( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("GameplayCue.Burning"))), 1.f, 10.f) );
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 5.f);
 
@@ -1866,7 +1860,7 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 		LifestealEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		LifestealEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		LifestealEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		LifestealEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Lifesteal"))));
+		LifestealEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Lifesteal"))));
 		LifestealEffect->Modifiers[0].Callbacks.ExtensionClasses.Add( UGameplayEffectExtension_LifestealTest::StaticClass() );
 		LifestealEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		LifestealEffect->Period.Value = UGameplayEffect::NO_PERIOD;
@@ -1883,7 +1877,7 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		BaseDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -1944,7 +1938,7 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 		ShieldEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		ShieldEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		ShieldEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		ShieldEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Shield"))));
+		ShieldEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Shield"))));
 		ShieldEffect->Modifiers[0].Callbacks.ExtensionClasses.Add(UGameplayEffectExtension_ShieldTest::StaticClass());
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
@@ -1961,7 +1955,7 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		BaseDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -2062,7 +2056,7 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		ShieldEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		ShieldEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		ShieldEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		ShieldEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Shield"))));
+		ShieldEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Shield"))));
 		ShieldEffect->Modifiers[0].Callbacks.ExtensionClasses.Add(UGameplayEffectExtension_ShieldTest::StaticClass());
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
@@ -2080,7 +2074,7 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		SmallDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		SmallDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		SmallDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		SmallDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		SmallDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		SmallDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		SmallDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -2090,7 +2084,7 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		LargeDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		LargeDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		LargeDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		LargeDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		LargeDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		LargeDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		LargeDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -2281,7 +2275,7 @@ bool GameplayEffectsTest_InstantDamage_ScalingExplicit(UWorld *World, FAutomatio
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, LevelOfDamage);
@@ -2327,7 +2321,7 @@ bool GameplayEffectsTest_InstantDamage_ScalingGlobal(UWorld *World, FAutomationT
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, LevelOfDamage);
@@ -2379,7 +2373,7 @@ bool GameplayEffectsTest_InstantDamage_OverrideScaling(UWorld *World, FAutomatio
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, LevelOfDamage);
@@ -2423,10 +2417,10 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 		BaseProtectEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BaseProtectEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BaseProtectEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Protect.Damage"))));
+		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Protect.Damage"))));
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
-		BaseProtectEffect->GameplayEffectRequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type2"))));
+		BaseProtectEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type2"))));
 
 		// Apply to self
 		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
@@ -2442,9 +2436,9 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 
 		// Apply to target
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -2468,9 +2462,9 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type2"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type2"))));
 
 		// Apply to target
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -2513,10 +2507,10 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 		BaseProtectEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BaseProtectEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BaseProtectEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Protect.Damage"))));
+		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Protect.Damage"))));
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
-		BaseProtectEffect->GameplayEffectIgnoreTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseProtectEffect->GameplayEffectIgnoreTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 
 		// Apply to self
 		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
@@ -2532,9 +2526,9 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 
 		// Apply to target
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -2558,9 +2552,9 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type2"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type2"))));
 
 		// Apply to target
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -2604,7 +2598,7 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));		// When I am applied, the damage modifier gets this tag.
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));		// When I am applied, the damage modifier gets this tag.
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		// Apply to self
@@ -2621,8 +2615,8 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		BaseProtectEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BaseProtectEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BaseProtectEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Protect.Damage"))));
-		BaseProtectEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Protect.Damage"))));
+		BaseProtectEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
@@ -2640,7 +2634,7 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -2686,7 +2680,7 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
 		// Apply to self
@@ -2703,8 +2697,8 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		BaseProtectEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
 		BaseProtectEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
 		BaseProtectEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Protect.Damage"))));
-		BaseProtectEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Type1"))));
+		BaseProtectEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Protect.Damage"))));
+		BaseProtectEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
@@ -2722,7 +2716,7 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		// Apply to target
@@ -2776,7 +2770,7 @@ bool GameplayEffectsTest_InstantDamage_ScalingProperty(UWorld *World, FAutomatio
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;		
 		BaseDmgEffect->LevelInfo.Attribute.SetUProperty(PhysicalDamageProperty);
 		BaseDmgEffect->LevelInfo.InheritLevelFromOwner = false;
@@ -2832,7 +2826,7 @@ bool GameplayEffectsTest_InstantDamage_ScalingPropertyNested(UWorld *World, FAut
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Modifiers[0].LevelInfo.Attribute.SetUProperty(PhysicalDamageProperty);
 		BaseDmgEffect->Modifiers[0].LevelInfo.InheritLevelFromOwner = false;
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
@@ -2888,7 +2882,7 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);				// Modifies target's "Damage" attribute (-health)
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseDmgEffect->Period.Value = 1.f;
 
@@ -2908,7 +2902,7 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 		SpellDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		SpellDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Override;
 		SpellDmgEffect->Modifiers[0].Attribute.SetUProperty(SpellDamageProperty);				// Modifies target's "Damage" attribute (-health)
-		SpellDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
+		SpellDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
 		SpellDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(SpellDmgEffect, SourceComponent);
@@ -2967,7 +2961,7 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);				// Modifies target's "Damage" attribute (-health)
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseDmgEffect->Period.Value = 1.f;
 
@@ -2998,7 +2992,7 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 		SpellDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		SpellDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Override;
 		SpellDmgEffect->Modifiers[0].Attribute.SetUProperty(SpellDamageProperty);				// Modifies target's "Damage" attribute (-health)
-		SpellDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
+		SpellDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
 		SpellDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(SpellDmgEffect, SourceComponent);
@@ -3057,7 +3051,7 @@ bool GameplayEffectsTest_MetaAttributes(UWorld *World, FAutomationTestBase * Tes
 		StrengthMaxHealhEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		StrengthMaxHealhEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		StrengthMaxHealhEffect->Modifiers[0].Attribute.SetUProperty(MaxHealthProperty);				// Modifies target's "Damage" attribute (-health)
-		StrengthMaxHealhEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		StrengthMaxHealhEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		StrengthMaxHealhEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		StrengthMaxHealhEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -3081,7 +3075,7 @@ bool GameplayEffectsTest_MetaAttributes(UWorld *World, FAutomationTestBase * Tes
 		StrEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		StrEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		StrEffect->Modifiers[0].Attribute.SetUProperty(StrengthProperty);				// Modifies target's "Damage" attribute (-health)
-		StrEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
+		StrEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("SpellDmg.Buff"))));
 		StrEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(StrEffect, SourceComponent);
@@ -3133,12 +3127,12 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Buffed.FireBuff"))));
-		BaseDmgEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Fire"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffed.FireBuff"))));
+		BaseDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Fire"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Buff"))));
-		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Buff"))));
+		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage"))));
 
 		// Apply to self
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
@@ -3153,12 +3147,12 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Fire"))));
-		BaseDmgEffect->Modifiers[0].RequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Physical"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Fire"))));
+		BaseDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Physical"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Buff"))));
-		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Damage"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Buff"))));
+		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage"))));
 
 		// Apply to self
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
@@ -3174,10 +3168,10 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
-		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag(FName(TEXT("Damage.Physical"))));
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Physical"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		
-		BaseDmgEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Damage"))));
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage"))));
 
 		// Apply to target
 		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
@@ -3574,7 +3568,7 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = 2.f;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3593,7 +3587,7 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = 2.f;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3611,7 +3605,7 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = 2.f;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3638,7 +3632,7 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = 2.f;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3708,7 +3702,7 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3735,7 +3729,7 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3762,7 +3756,7 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3789,7 +3783,7 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3977,7 +3971,7 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -3995,7 +3989,7 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -4013,7 +4007,7 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -4066,7 +4060,7 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty1);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -4084,7 +4078,7 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty1);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -4102,7 +4096,7 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty2);
-		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(RequestGameplayTag("Stackable"));
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag("Stackable"));
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
@@ -4161,7 +4155,7 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseModEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
 		BaseModEffect->Duration.SetValue(1.f);
 		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
-		BaseModEffect->GameplayEffectRequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseModEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
 		// Apply to self
 		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f);
@@ -4179,7 +4173,7 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
-		BaseStackedEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseStackedEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4254,7 +4248,7 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
-		BaseStackedEffect->GameplayEffectTags.AddTag(RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseStackedEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4296,7 +4290,7 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseModEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
 		BaseModEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
-		BaseModEffect->GameplayEffectRequiredTags.AddTag(RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseModEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
 		// Apply to self
 		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f);

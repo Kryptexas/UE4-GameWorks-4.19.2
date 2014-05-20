@@ -132,9 +132,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	int32 GetBestTagCategoryDescription(FString Tag, FText& OutDescription);
 
-	/** Gets all nodes that make up a tag, if any (eg weapons.ranged.pistol will return the nodes weapons, weapons.ranged and weapons.ranged.pistol)
-	 * @param Tag The . delimited tag we wish to get nodes for
-	 * @param OutTagArray The array of tag nodes that were found
+	/** 
+	 * Gets all nodes that make up a tag, if any (e.g. weapons.ranged.pistol will return the nodes weapons, weapons.ranged, and weapons.ranged.pistol)
+	 * 
+	 * @param Tag			The . delimited tag we wish to get nodes for
+	 * @param OutTagArray	The array of tag nodes that were found
 	 */
 	void GetAllNodesForTag( const FString& Tag, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray );
 
@@ -173,6 +175,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * Gets the FGameplayTag that corresponds to the TagName
 	 *
 	 * @param TagName The Name of the tag to search for
+	 * 
 	 * @return Will return the corresponding FGameplayTag or an empty one if not found.
 	 */
 	UFUNCTION(BlueprintCallable, Category="GameplayTags")
@@ -181,8 +184,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/**
 	 * Adds a tag to the container and removes any direct parents, wont add if child already exists
 	 *
-	 * @param TagContainer The tag container we want to add tag too
-	 * @param Tag The tag to try and add to container
+	 * @param TagContainer	The tag container we want to add tag too
+	 * @param Tag			The tag to try and add to container
+	 * 
 	 * @return True if tag was added
 	 */
 	bool AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag);
@@ -191,6 +195,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * Gets a Tag Container for the supplied tag and all its parents
 	 *
 	 * @param GameplayTag The Tag to use at the child most tag for this container
+	 * 
 	 * @return A Tag Container with the supplied tag and all its parents
 	 */
 	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
@@ -205,19 +210,21 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/**
 	 * Checks FGameplayTagNode and all FGameplayTagNode children to see if a FGameplayTagNode with the name exists
 	 *
-	 * @param Node the Node in the the to start searching from
-	 * @param TagName the name of the tag node to search for
+	 * @param Node		The Node in the the to start searching from
+	 * @param TagName	The name of the tag node to search for
+	 * 
 	 * @return A shared pointer to the FGameplayTagNode found, or NULL if not found.
 	 */
 	TSharedPtr<FGameplayTagNode> FindTagNode(TSharedPtr<FGameplayTagNode> Node, FName TagName) const;
 
 	/**
-	 * Check to see if too FGameplayTag's match
+	 * Check to see if two FGameplayTags match
 	 *
-	 * @param GameplayTagOne The first tag to compare
-	 * @param GameplayTagTwo The second tag to compare
-	 * @param MatchTypeOne How we compare Tag one, Explicitly or a match with any parents as well
-	 * @param MatchTypeTwo How we compare Tag two, Explicitly or a match with any parents as well
+	 * @param GameplayTagOne	The first tag to compare
+	 * @param GameplayTagTwo	The second tag to compare
+	 * @param MatchTypeOne		How we compare Tag one, Explicitly or a match with any parents as well
+	 * @param MatchTypeTwo		How we compare Tag two, Explicitly or a match with any parents as well
+	 * 
 	 * @return true if there is a match
 	 */
 	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
@@ -240,8 +247,8 @@ private:
 	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,
 	 * NOTE: Must never be made public as it uses the FNames which should never be exposed
 	 * 
-	 * @param NameList The list we are adding all parent complete names too
-	 * @param GameplayTag the current Tag we are adding to the list
+	 * @param NameList		The list we are adding all parent complete names too
+	 * @param GameplayTag	The current Tag we are adding to the list
 	 */
 	void GetAllParentNodeNames(TSet<FName>& NamesList, const TSharedPtr<FGameplayTagNode> GameplayTag) const;
 

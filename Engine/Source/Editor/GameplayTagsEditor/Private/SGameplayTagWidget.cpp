@@ -218,6 +218,8 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 
 	bool bRemoveParents = false;
 	
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
 	for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 	{
 		if (TagContainers[ContainerIdx].TagContainerOwner)
@@ -229,7 +231,7 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 
 			while (CurNode.IsValid())
 			{
-				FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(CurNode.Pin()->GetCompleteTag());
+				FGameplayTag Tag = TagsManager.RequestGameplayTag(CurNode.Pin()->GetCompleteTag());
 				if (OwnerObj && Container)
 				{
 					if (bRemoveParents == false)
@@ -258,12 +260,14 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_RemoveTags", "Remove Gameplay Tags"), bTransact);
 	if (NodeUnchecked.IsValid())
 	{
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
 			UObject* OwnerObj = TagContainers[ContainerIdx].TagContainerOwner;
 			FGameplayTagContainer* Container = TagContainers[ContainerIdx].TagContainer;
 			FGameplayTagContainer EditableContainer = *Container;
-			FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(NodeUnchecked->GetCompleteTag());
+			FGameplayTag Tag = TagsManager.RequestGameplayTag(NodeUnchecked->GetCompleteTag());
 
 			if (OwnerObj && Container)
 			{
@@ -279,7 +283,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 						bool bOtherSiblings = false;
 						for (auto It = ParentNode.Pin()->GetChildTagNodes().CreateConstIterator(); It; ++It)
 						{
-							Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(It->Get()->GetCompleteTag());
+							Tag = TagsManager.RequestGameplayTag(It->Get()->GetCompleteTag());
 							if (EditableContainer.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 							{
 								bOtherSiblings = true;
@@ -289,7 +293,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 						// Add Parent
 						if (!bOtherSiblings)
 						{
-							Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(ParentNode.Pin()->GetCompleteTag());
+							Tag = TagsManager.RequestGameplayTag(ParentNode.Pin()->GetCompleteTag());
 							EditableContainer.AddTag(Tag);
 						}
 					}
@@ -313,13 +317,15 @@ ESlateCheckBoxState::Type SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayT
 
 	if (Node.IsValid())
 	{
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
 			FGameplayTagContainer* Container = TagContainers[ContainerIdx].TagContainer;
 			if (Container)
 			{
 				NumValidAssets++;
-				FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(Node->GetCompleteTag());
+				FGameplayTag Tag = TagsManager.RequestGameplayTag(Node->GetCompleteTag());
 				if (Container->HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 				{
 					++NumAssetsTagIsAppliedTo;
@@ -412,14 +418,17 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 
 	// Create a set that is the library of all valid tags
 	TArray< TSharedPtr<FGameplayTagNode> > NodeStack;
-	IGameplayTagsModule::Get().GetGameplayTagsManager().GetFilteredGameplayRootTags(TEXT(""), NodeStack);
+
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	
+	TagsManager.GetFilteredGameplayRootTags(TEXT(""), NodeStack);
 
 	while (NodeStack.Num() > 0)
 	{
 		TSharedPtr<FGameplayTagNode> CurNode = NodeStack.Pop();
 		if (CurNode.IsValid())
 		{
-			LibraryTags.AddTag(IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(CurNode->GetCompleteTag()));
+			LibraryTags.AddTag(TagsManager.RequestGameplayTag(CurNode->GetCompleteTag()));
 			NodeStack.Append(CurNode->GetChildTagNodes());
 		}
 	}

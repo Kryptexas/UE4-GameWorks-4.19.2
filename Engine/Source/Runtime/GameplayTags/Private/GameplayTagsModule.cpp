@@ -2,8 +2,6 @@
 
 #include "GameplayTagsModulePrivatePCH.h"
 
-
-
 class FGameplayTagsModule : public IGameplayTagsModule
 {
 	// Begin IModuleInterface

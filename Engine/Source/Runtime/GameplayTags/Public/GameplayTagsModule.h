@@ -39,5 +39,17 @@ public:
 
 	virtual UGameplayTagsManager& GetGameplayTagsManager() = 0;
 
+	/**
+	 * Helper function to request a gameplay tag by name
+	 * 
+	 * @param InTagName	Tag name to request
+	 * 
+	 * @return Gameplay tag associated with the specified name. Will be marked invalid if tag not found
+	 */
+	static FGameplayTag RequestGameplayTag(FName InTagName)
+	{
+		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+		return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(InTagName);
+	}
 };
 

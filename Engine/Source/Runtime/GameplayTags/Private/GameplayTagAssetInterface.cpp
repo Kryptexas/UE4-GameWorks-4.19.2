@@ -15,18 +15,18 @@ bool IGameplayTagAssetInterface::HasMatchingGameplayTag(FGameplayTag TagToCheck)
 	return OwnedTags.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
 }
 
-bool IGameplayTagAssetInterface::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+bool IGameplayTagAssetInterface::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
 	FGameplayTagContainer OwnedTags;
 	GetOwnedGameplayTags(OwnedTags);
 
-	return OwnedTags.MatchesAll(TagContainer);
+	return OwnedTags.MatchesAll(TagContainer, bCountEmptyAsMatch);
 }
 
-bool IGameplayTagAssetInterface::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+bool IGameplayTagAssetInterface::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
 	FGameplayTagContainer OwnedTags;
 	GetOwnedGameplayTags(OwnedTags);
 
-	return OwnedTags.MatchesAny(TagContainer);
+	return OwnedTags.MatchesAny(TagContainer, bCountEmptyAsMatch);
 }
