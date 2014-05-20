@@ -16,13 +16,13 @@ UGameplayCueView::UGameplayCueView(const class FPostConstructInitializePropertie
 void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
 {
 	check(Owner);
-	for (FName Tag : GameplayCueTags.Tags)
+	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		for (UGameplayCueView * Def : Definitions)
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == EGameplayCueEvent::Applied && View.Tags.HasTag(Tag))
+				if (View.CueType == EGameplayCueEvent::Applied && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					View.SpawnViewEffects(Owner, NULL);
 				}
@@ -34,13 +34,13 @@ void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & Gam
 void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
 {
 	check(Owner);
-	for (FName Tag : GameplayCueTags.Tags)
+	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		for (UGameplayCueView * Def : Definitions)
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == EGameplayCueEvent::Executed && View.Tags.HasTag(Tag))
+				if (View.CueType == EGameplayCueEvent::Executed && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					View.SpawnViewEffects(Owner, NULL);
 				}
@@ -53,9 +53,9 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 {
 	check(Owner);
 
-	for (FName Tag : GameplayCueTags.Tags)
+	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		TArray<TSharedPtr<FGameplayCueViewEffects> > &Effects = SpawnedViewEffects.FindOrAdd(Tag);
+		TArray<TSharedPtr<FGameplayCueViewEffects> > &Effects = SpawnedViewEffects.FindOrAdd(*TagIt);
 
 		// Clear old effects if they existed? This will vary case to case. Removing old effects is the easiest approach
 		ClearEffects(Effects);
@@ -66,7 +66,7 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == EGameplayCueEvent::Added && View.Tags.HasTag(Tag))
+				if (View.CueType == EGameplayCueEvent::Added && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View.SpawnViewEffects(Owner, &SpawnedObjects);
 					Effects.Add(SpawnedEffects);
@@ -80,13 +80,13 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 {
 	check(Owner);
 
-	for (FName Tag : GameplayCueTags.Tags)
+	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		TArray<TSharedPtr<FGameplayCueViewEffects> > *Effects = SpawnedViewEffects.Find(Tag);
+		TArray<TSharedPtr<FGameplayCueViewEffects> > *Effects = SpawnedViewEffects.Find(*TagIt);
 		if (Effects)
 		{
 			ClearEffects(*Effects);
-			SpawnedViewEffects.Remove(Tag);
+			SpawnedViewEffects.Remove(*TagIt);
 		}	
 		
 		// Add new effects
@@ -94,7 +94,7 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == EGameplayCueEvent::Removed && View.Tags.HasTag(Tag))
+				if (View.CueType == EGameplayCueEvent::Removed && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					View.SpawnViewEffects(Owner, NULL);
 				}

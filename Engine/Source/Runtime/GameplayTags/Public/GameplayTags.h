@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "GameplayTagAssetInterface.h"
 #include "GameplayTagsManager.h"
 #include "GameplayTagContainer.h"
+#include "GameplayTagAssetInterface.h"

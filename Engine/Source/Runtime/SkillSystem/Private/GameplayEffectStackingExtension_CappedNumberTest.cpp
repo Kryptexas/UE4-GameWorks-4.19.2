@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "GameplayTagsModule.h"
 #include "Crc.h"
 
 const int32 MaxNumInStack = 2;
@@ -9,6 +10,12 @@ UGameplayEffectStackingExtension_CappedNumberTest::UGameplayEffectStackingExtens
 : Super(PCIP)
 {
 	Handle = FCrc::StrCrc32("UGameplayEffectStackingExtension_CappedNumberTest");
+}
+
+FGameplayTag RequestGameplayTag_CappedNumberTest(FName Name)
+{
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(Name);
 }
 
 void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FActiveGameplayEffect*>& CustomGameplayEffects, FActiveGameplayEffectsContainer& Container, FActiveGameplayEffect& CurrentEffect)
@@ -44,13 +51,13 @@ void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FA
 
 	for (FModifierSpec Mod : CurrentEffect.Spec.Modifiers)
 	{
-		if (Mod.Info.OwnedTags.HasTag("Stackable"))
+		if (Mod.Info.OwnedTags.HasTag(RequestGameplayTag_CappedNumberTest("Stackable"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 		{
 			// remove any stacking information that was already applied to the current modifier
 			for (int32 Idx = 0; Idx < Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].Num(); ++Idx)
 			{
 				FAggregatorRef& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
-				if (Agg.Get()->BaseData.Tags.HasTag("Stack.CappedNumber"))
+				if (Agg.Get()->BaseData.Tags.HasTag(RequestGameplayTag_CappedNumberTest("Stack.CappedNumber"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].RemoveAtSwap(Idx);
 					--Idx;
@@ -59,7 +66,7 @@ void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FA
 			FGameplayModifierInfo ModInfo;
 			ModInfo.Magnitude.SetValue(EffectiveCount);
 			ModInfo.ModifierOp = EGameplayModOp::Multiplicitive;
-			ModInfo.OwnedTags.AddTag("Stack.CappedNumber");
+			ModInfo.OwnedTags.AddTag(RequestGameplayTag_CappedNumberTest("Stack.CappedNumber"));
 			ModInfo.Attribute = Mod.Info.Attribute;
 
 			TSharedPtr<FGameplayEffectLevelSpec> ModifierLevel(TSharedPtr< FGameplayEffectLevelSpec >(new FGameplayEffectLevelSpec()));

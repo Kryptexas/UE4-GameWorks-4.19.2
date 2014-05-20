@@ -25,6 +25,7 @@ private:
 };
 
 IMPLEMENT_MODULE( FGameplayTagsModule, GameplayTags )
+DEFINE_LOG_CATEGORY(LogGameplayTags);
 
 void FGameplayTagsModule::StartupModule()
 {

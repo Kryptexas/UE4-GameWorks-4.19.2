@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "GameplayTagsModule.h"
 
 UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -11,6 +12,7 @@ UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const c
 
 void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const
 {
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	UAttributeComponent *Source = Data.EffectSpec.InstigatorStack.GetOriginInstigatorAttributeComponent();
 
 	// FIXME: some annoyances here: Damage about to be applied = Data.EvaluatedData.Magnitude = negative. Do some sign flipping here that would make more sense if we were dealing with
@@ -54,7 +56,7 @@ void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGamepl
 			LocalShieldRemoval->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
 			LocalShieldRemoval->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 			LocalShieldRemoval->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-			LocalShieldRemoval->Modifiers[0].OwnedTags.AddTag(FName(TEXT("ShieldAbsorb")));
+			LocalShieldRemoval->Modifiers[0].OwnedTags.AddTag(GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("ShieldAbsorb"))));
 			LocalShieldRemoval->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 			LocalShieldRemoval->Period.Value = UGameplayEffect::NO_PERIOD;
 		}

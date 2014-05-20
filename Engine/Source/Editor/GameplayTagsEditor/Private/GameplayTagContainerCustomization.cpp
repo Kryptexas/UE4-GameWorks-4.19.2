@@ -86,13 +86,9 @@ void FGameplayTagContainerCustomization::RefreshTagList()
 		FGameplayTagContainer* Container = EditableContainers[ContainerIdx].TagContainer;
 		if (Container)
 		{
-			TSet<FName> AssetTags;
-			Container->GetTags(AssetTags);
-
-			for (TSet<FName>::TConstIterator TagIter(AssetTags); TagIter; ++TagIter)
+			for (auto It = Container->CreateConstIterator(); It; ++It)
 			{
-				FString TagName = *TagIter->ToString();
-				TagNames.Add( MakeShareable(new FString(TagName) ) );
+				TagNames.Add(MakeShareable(new FString(It->ToString())));
 			}
 		}
 	}
@@ -146,9 +142,10 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 	[
 		SNew(SGameplayTagWidget, EditableContainers)
 		.Filter( Categories )
-		.OnTagChanged( this, &FGameplayTagContainerCustomization::RefreshTagList )
+		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
 		.ReadOnly(bReadOnly)
 		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName() )
+		.PropertyHandle( StructPropertyHandle )
 	];
 
 	GameplayTagWidgetWindow->SetOnWindowDeactivated( FOnWindowDeactivated::CreateRaw( this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate ) );
@@ -177,14 +174,13 @@ FReply FGameplayTagContainerCustomization::OnClearAllButtonClicked()
 
 		if (OwnerObj && Container)
 		{
-			OwnerObj->PreEditChange(NULL);
-			Container->RemoveAllTags();
+			OwnerObj->PreEditChange(StructPropertyHandle->GetProperty());
+			FGameplayTagContainer EmptyContainer;
+			StructPropertyHandle->SetValueFromFormattedString(EmptyContainer.ToString());
 			OwnerObj->PostEditChange();
+			RefreshTagList();
 		}
 	}
-
-	RefreshTagList();
-
 	return FReply::Handled();
 }
 

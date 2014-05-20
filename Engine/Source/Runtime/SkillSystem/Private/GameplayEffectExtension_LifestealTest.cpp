@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "GameplayTagsModule.h"
 
 UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -16,6 +17,7 @@ void UGameplayEffectExtension_LifestealTest::PreGameplayEffectExecute(const FGam
 
 void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const
 {
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 
 	float DamageDone = Data.EvaluatedData.Magnitude;
 	float LifestealPCT = SelfData.Magnitude;
@@ -37,7 +39,7 @@ void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGa
 			LocalHealthRestore->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 			LocalHealthRestore->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 			LocalHealthRestore->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-			LocalHealthRestore->Modifiers[0].OwnedTags.AddTag(FName(TEXT("Lifesteal")));
+			LocalHealthRestore->Modifiers[0].OwnedTags.AddTag(GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("Lifesteal"))));
 			LocalHealthRestore->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 			LocalHealthRestore->Period.Value = UGameplayEffect::NO_PERIOD;
 		}

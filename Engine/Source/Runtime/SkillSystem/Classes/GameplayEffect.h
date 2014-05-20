@@ -247,11 +247,11 @@ struct FGameplayEffectCue
 	{
 	}
 
-	FGameplayEffectCue(FName InTagName, float InMinLevel, float InMaxLevel)
+	FGameplayEffectCue(const FGameplayTag& InTag, float InMinLevel, float InMaxLevel)
 		: MinLevel(InMinLevel)
 		, MaxLevel(InMaxLevel)
 	{
-		GameplayCueTags.AddTag(InTagName);
+		GameplayCueTags.AddTag(InTag);
 	}
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
@@ -343,7 +343,7 @@ public:
 	 * @param InstigatorTags	Owned gameplay tags of the instigator applying the effect
 	 * @param TargetTags		Owned gameplay tags of the target about to be affected by the effect
 	 */
-	bool AreApplicationTagRequirementsSatisfied(const TSet<FName>& InstigatorTags, const TSet<FName>& TargetTags) const;
+	bool AreApplicationTagRequirementsSatisfied(const FGameplayTagContainer& InstigatorTags, const FGameplayTagContainer& TargetTags) const;
 
 	// ------------------------------------------------
 	// New Tagging functionality
@@ -364,8 +364,8 @@ public:
 	/** Can this GameplayEffect modify the input parameter, based on tags  */
 	bool AreGameplayEffectTagRequirementsSatisfied(const UGameplayEffect *GameplayEffectToBeModified) const
 	{
-		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.HasAllTags(GameplayEffectRequiredTags);
-		bool HasIgnored = GameplayEffectIgnoreTags.Num() > 0 && GameplayEffectToBeModified->GameplayEffectTags.HasAnyTag(GameplayEffectIgnoreTags);
+		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.MatchesAll(GameplayEffectRequiredTags);
+		bool HasIgnored = GameplayEffectIgnoreTags.Num() > 0 && GameplayEffectToBeModified->GameplayEffectTags.MatchesAny(GameplayEffectIgnoreTags);
 
 		return HasRequired && !HasIgnored;
 	}
@@ -375,13 +375,13 @@ public:
 	// ------------------------------------------------
 
 	/** Overridden to return requirements tags */
-	virtual void GetOwnedGameplayTags(TSet<FName>& OutTags) const OVERRIDE;
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const OVERRIDE;
 
 	/** Overridden to check against requirements tags */
-	virtual bool HasOwnedGameplayTag(FName TagToCheck) const OVERRIDE;
+	virtual bool HasOwnedGameplayTag(FGameplayTag TagToCheck) const OVERRIDE;
 
 	/** Get the "clear tags" for the effect */
-	virtual void GetClearGameplayTags(TSet<FName>& OutTags) const;
+	virtual void GetClearGameplayTags(FGameplayTagContainer& TagContainer) const;
 
 	void ValidateGameplayEffect()
 	{
@@ -575,12 +575,12 @@ struct FGameplayEffectInstigatorContext
 	{
 	}
 
-	void GetOwnedGameplayTags(OUT TSet<FName> &OwnedTags)
+	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer)
 	{
 		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
 		if (TagInterface)
 		{
-			TagInterface->GetOwnedGameplayTags(OwnedTags);
+			TagInterface->GetOwnedGameplayTags(TagContainer);
 		}
 	}
 
@@ -1316,7 +1316,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 		return GameplayEffects.Num();
 	}
 
-	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle Handle, FName InTagName) const;
+	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle Handle, const FGameplayTag& InTag) const;
 
 	void OnPropertyAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
 

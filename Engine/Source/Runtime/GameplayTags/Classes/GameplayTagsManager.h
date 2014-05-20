@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "GameplayTagsManager.generated.h"
 
 /** Simple struct for a table row in the gameplay tag table */
@@ -29,8 +30,12 @@ struct FGameplayTagTableRow : public FTableRowBase
 };
 
 /** Simple tree node for gameplay tags */
+USTRUCT()
 struct FGameplayTagNode
 {
+	GENERATED_USTRUCT_BODY()
+	FGameplayTagNode(){};
+
 	/** Simple constructor */
 	FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription = FText());
 
@@ -164,11 +169,93 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Helper function to destroy the gameplay tag tree */
 	void DestroyGameplayTagTree();
 
+	/**
+	 * Gets the FGameplayTag that corresponds to the TagName
+	 *
+	 * @param TagName The Name of the tag to search for
+	 * @return Will return the corresponding FGameplayTag or an empty one if not found.
+	 */
+	UFUNCTION(BlueprintCallable, Category="GameplayTags")
+	FGameplayTag RequestGameplayTag(FName TagName) const;
+
+	/**
+	 * Adds a tag to the container and removes any direct parents, wont add if child already exists
+	 *
+	 * @param TagContainer The tag container we want to add tag too
+	 * @param Tag The tag to try and add to container
+	 * @return True if tag was added
+	 */
+	bool AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag);
+
+	/**
+	 * Gets a Tag Container for the supplied tag and all its parents
+	 *
+	 * @param GameplayTag The Tag to use at the child most tag for this container
+	 * @return A Tag Container with the supplied tag and all its parents
+	 */
+	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
+
+	/**
+	 * Checks if the tag is allowed to be created
+	 *
+	 * @return True if valid
+	 */
+	bool ValidateTagCreation(FName TagName) const;
+
+	/**
+	 * Checks FGameplayTagNode and all FGameplayTagNode children to see if a FGameplayTagNode with the name exists
+	 *
+	 * @param Node the Node in the the to start searching from
+	 * @param TagName the name of the tag node to search for
+	 * @return A shared pointer to the FGameplayTagNode found, or NULL if not found.
+	 */
+	TSharedPtr<FGameplayTagNode> FindTagNode(TSharedPtr<FGameplayTagNode> Node, FName TagName) const;
+
+	/**
+	 * Check to see if too FGameplayTag's match
+	 *
+	 * @param GameplayTagOne The first tag to compare
+	 * @param GameplayTagTwo The second tag to compare
+	 * @param MatchTypeOne How we compare Tag one, Explicitly or a match with any parents as well
+	 * @param MatchTypeTwo How we compare Tag two, Explicitly or a match with any parents as well
+	 * @return true if there is a match
+	 */
+	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+
 	/** Holds all of the valid gameplay-related tags that can be applied to assets */
 	UPROPERTY()
 	class UDataTable* GameplayTagTable;
 
-	/** Roots of gameplay tag nodes */
-	TArray< TSharedPtr<FGameplayTagNode> > GameplayRootTags;
+private:
 
+	/**
+	 * Helper function for RequestGameplayTagParents to add all parents to the container
+	 *
+	 * @param TagContainer The container we need to add the parents too
+	 * @param GameplayTag The parent we need to check and add to the container
+	 */
+	void AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const;
+
+	/**
+	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,
+	 * NOTE: Must never be made public as it uses the FNames which should never be exposed
+	 * 
+	 * @param NameList The list we are adding all parent complete names too
+	 * @param GameplayTag the current Tag we are adding to the list
+	 */
+	void GetAllParentNodeNames(TSet<FName>& NamesList, const TSharedPtr<FGameplayTagNode> GameplayTag) const;
+
+	/** Roots of gameplay tag nodes */
+	TSharedPtr<FGameplayTagNode> GameplayRootTag;
+
+	/** Map of Tags to Nodes - Internal use only*/
+	TMap<FGameplayTag, TSharedPtr<FGameplayTagNode>> GameplayTagNodeMap;
+
+	/** Map of Names to tags - Internal use only*/
+	TMap<FName, FGameplayTag> GameplayTagMap;
+
+#if WITH_EDITOR
+	/** Flag to say if we have registered the ObjectReimport, this is needed as use of Tags manager can happen before Editor is ready*/
+	bool RegisteredObjectReimport;
+#endif
 };

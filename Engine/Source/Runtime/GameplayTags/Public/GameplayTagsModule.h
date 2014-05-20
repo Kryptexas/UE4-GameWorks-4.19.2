@@ -22,7 +22,8 @@ public:
 	 */
 	static inline IGameplayTagsModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IGameplayTagsModule >( "GameplayTags" );
+		static const FName GameplayTagModuleName(TEXT("GameplayTags"));
+		return FModuleManager::LoadModuleChecked< IGameplayTagsModule >(GameplayTagModuleName);
 	}
 
 	/**
@@ -32,7 +33,8 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "GameplayTags" );
+		static const FName GameplayTagModuleName(TEXT("GameplayTags"));
+		return FModuleManager::Get().IsModuleLoaded(GameplayTagModuleName);
 	}
 
 	virtual UGameplayTagsManager& GetGameplayTagsManager() = 0;

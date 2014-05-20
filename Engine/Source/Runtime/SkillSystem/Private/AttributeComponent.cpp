@@ -133,10 +133,10 @@ bool UAttributeComponent::AreGameplayEffectApplicationRequirementsSatisfied(cons
 	if (EffectToAdd)
 	{
 		// Collect gameplay tags from instigator and target to see if requirements are satisfied
-		TSet<FName> InstigatorTags;
+		FGameplayTagContainer InstigatorTags;
 		Instigator.GetOwnedGameplayTags(InstigatorTags);
 
-		TSet<FName> TargetTags;
+		FGameplayTagContainer TargetTags;
 		IGameplayTagAssetInterface* OwnerGTA = InterfaceCast<IGameplayTagAssetInterface>(GetOwner());
 		if (OwnerGTA)
 		{
@@ -196,9 +196,9 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const
 	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
 }
 
-float UAttributeComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, FName InTagName) const
+float UAttributeComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const
 {
-	return ActiveGameplayEffects.GetGameplayEffectMagnitudeByTag(InHandle, InTagName);
+	return ActiveGameplayEffects.GetGameplayEffectMagnitudeByTag(InHandle, InTag);
 }
 
 int32 UAttributeComponent::GetNumActiveGameplayEffect() const

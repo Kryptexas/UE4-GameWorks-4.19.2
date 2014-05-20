@@ -24,30 +24,24 @@ UGameplayEffect::UGameplayEffect(const class FPostConstructInitializeProperties&
 
 }
 
-void UGameplayEffect::GetOwnedGameplayTags(TSet<FName>& OutTags) const
+void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
-	return OwnedTagsContainer.GetTags(OutTags);
+	TagContainer.AppendTags(OwnedTagsContainer);
 }
 
-bool UGameplayEffect::HasOwnedGameplayTag(FName TagToCheck) const
+bool UGameplayEffect::HasOwnedGameplayTag(FGameplayTag TagToCheck) const
 {
-	return OwnedTagsContainer.HasTag(TagToCheck);
+	return OwnedTagsContainer.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
 }
 
-void UGameplayEffect::GetClearGameplayTags(TSet<FName>& OutTags) const
+void UGameplayEffect::GetClearGameplayTags(FGameplayTagContainer& TagContainer) const
 {
-	return ClearTagsContainer.GetTags(OutTags);
+	TagContainer.AppendTags(ClearTagsContainer);
 }
 
-bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const TSet<FName>& InstigatorTags, const TSet<FName>& TargetTags) const
+bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const FGameplayTagContainer& InstigatorTags, const FGameplayTagContainer& TargetTags) const
 {
-	TSet<FName> InstigatorReqs;
-	ApplicationRequiredInstigatorTags.GetTags(InstigatorReqs);
-
-	TSet<FName> TargetReqs;
-	ApplicationRequiredTargetTags.GetTags(TargetReqs);
-
-	return (InstigatorTags.Includes(InstigatorReqs) && TargetTags.Includes(TargetReqs));
+	return (InstigatorTags.MatchesAll(ApplicationRequiredInstigatorTags) && TargetTags.MatchesAll(ApplicationRequiredTargetTags));
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -387,8 +381,8 @@ bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToB
 {
 	const FGameplayModifierEvaluatedData & ToBeModifiedData = ModifierToBeModified.Aggregator.Get()->Evaluate();
 
-	bool HasRequired = ToBeModifiedData.Tags.HasAllTags(this->Info.RequiredTags);
-	bool HasIgnored = ToBeModifiedData.Tags.Num() > 0 && ToBeModifiedData.Tags.HasAnyTag(this->Info.IgnoreTags);
+	bool HasRequired = ToBeModifiedData.Tags.MatchesAll(this->Info.RequiredTags);
+	bool HasIgnored = ToBeModifiedData.Tags.Num() > 0 && ToBeModifiedData.Tags.MatchesAny(this->Info.IgnoreTags);
 
 	return HasRequired && !HasIgnored;
 }
@@ -829,7 +823,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				const FGameplayTagContainer &ModRequireTags = ModBaseData.RequireTags;
 
 				// This mod requires we have certain tags
-				if (ModRequireTags.Num() > 0 && !CachedData.Tags.HasAllTags(ModRequireTags) && !NewGiveTags.HasAllTags(ModRequireTags))
+				if (ModRequireTags.Num() > 0 && !CachedData.Tags.MatchesAll(ModRequireTags) && !NewGiveTags.MatchesAll(ModRequireTags))
 				{
 					// But something else could give us this tag! So keep track of it and don't remove this Mod from the ModList.
 					MissingTags.AppendTags(ModRequireTags);
@@ -840,13 +834,13 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				ModList[ModIdx] = NULL;
 				
 				// This mod requires we don't have certain tags
-				if (ModIgnoreTags.Num() > 0 && CachedData.Tags.HasAnyTag(ModIgnoreTags))
+				if (ModIgnoreTags.Num() > 0 && CachedData.Tags.MatchesAny(ModIgnoreTags))
 				{
 					continue;
 				}
 
 				// Check for conflicts within this pass
-				if (ModIgnoreTags.Num() > 0 && NewGiveTags.Num() > 0 && ModIgnoreTags.HasAnyTag(NewGiveTags))
+				if (ModIgnoreTags.Num() > 0 && NewGiveTags.Num() > 0 && ModIgnoreTags.MatchesAny(NewGiveTags))
 				{
 					// Pass problem!
 					SKILL_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
@@ -861,12 +855,12 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				const FGameplayModifierEvaluatedData& ModEvaluatedData = Agg->Evaluate();
 
 				// We have already commited during this aggregation to not have certain tags
-				if (CommittedIgnoreTags.Num() > 0 && CommittedIgnoreTags.HasAnyTag(ModEvaluatedData.Tags))
+				if (CommittedIgnoreTags.Num() > 0 && CommittedIgnoreTags.MatchesAny(ModEvaluatedData.Tags))
 				{
 					continue;
 				}
 
-				if (NewIgnoreTags.Num() > 0 && ModEvaluatedData.Tags.Num() > 0 && NewIgnoreTags.HasAnyTag(ModEvaluatedData.Tags))
+				if (NewIgnoreTags.Num() > 0 && ModEvaluatedData.Tags.Num() > 0 && NewIgnoreTags.MatchesAny(ModEvaluatedData.Tags))
 				{
 					// Pass problem!
 					SKILL_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
@@ -886,7 +880,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 			CachedData.Tags.AppendTags(NewGiveTags);
 
 			// Keep doing passes until we don't add any new tags or don't have any missing tags
-			if (MissingTags.Num() <= 0 || !MissingTags.HasAnyTag( NewGiveTags ))
+			if (MissingTags.Num() <= 0 || !MissingTags.MatchesAny( NewGiveTags ))
 			{
 				break;
 			}
@@ -1314,7 +1308,7 @@ bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffe
 	return false;
 }
 
-float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle Handle, FName InTagName) const
+float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle Handle, const FGameplayTag& InTag) const
 {
 	// Could make this a map for quicker lookup
 	for (FActiveGameplayEffect Effect : GameplayEffects)
@@ -1323,7 +1317,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitudeByTag(FActiveGa
 		{
 			for (const FModifierSpec &Mod : Effect.Spec.Modifiers)
 			{
-				if (Mod.Info.OwnedTags.HasTag(InTagName))
+				if (Mod.Info.OwnedTags.HasTag(InTag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					return Mod.Aggregator.Get()->Evaluate().Magnitude;
 				}
@@ -1585,7 +1579,7 @@ bool FActiveGameplayEffectsContainer::HasAnyTags(FGameplayTagContainer &Tags)
 	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
 	{
 		// Fixme: check stacking rules!
-		if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasAnyTag(Tags))
+		if (ActiveEffect.Spec.Def->OwnedTagsContainer.MatchesAny(Tags))
 		{
 			return true;
 		}
@@ -1634,7 +1628,7 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 	{
 		if (Query.TagContainer)
 		{
-			if (!Effect.Spec.Def->OwnedTagsContainer.HasAnyTag(*Query.TagContainer))
+			if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*Query.TagContainer))
 			{
 				continue;
 			}

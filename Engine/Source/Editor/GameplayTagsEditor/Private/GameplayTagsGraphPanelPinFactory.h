@@ -11,9 +11,9 @@ class FGameplayTagsGraphPanelPinFactory: public FGraphPanelPinFactory
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const OVERRIDE
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if( InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == FGameplayTagContainer::StaticStruct() )
+		if (InPin->PinType.PinCategory == K2Schema->PC_Struct && InPin->PinType.PinSubCategoryObject == FGameplayTag::StaticStruct())
 		{
- 			return SNew( SGameplayTagGraphPin, InPin );
+			return SNew(SGameplayTagGraphPin, InPin);
 		}
 		return NULL;
 	}

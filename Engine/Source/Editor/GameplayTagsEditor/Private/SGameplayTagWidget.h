@@ -16,11 +16,15 @@ public:
 	SLATE_BEGIN_ARGS( SGameplayTagWidget )
 	: _Filter(),
 	  _ReadOnly(false),
-	  _TagContainerName( TEXT("") )
+	  _TagContainerName( TEXT("") ),
+	  _MultiSelect(true),
+	  _PropertyHandle(NULL)
 	{}
 		SLATE_ARGUMENT( FString, Filter ) // Comma delimited string of tag root names to filter by
 		SLATE_ARGUMENT( bool, ReadOnly ) // Flag to set if the list is read only
 		SLATE_ARGUMENT( FString, TagContainerName ) // The name that will be used for the settings file
+		SLATE_ARGUMENT( bool, MultiSelect ) // If we can select multiple entries
+		SLATE_ARGUMENT( TSharedPtr<IPropertyHandle>, PropertyHandle )
 		SLATE_EVENT( FOnTagChanged, OnTagChanged ) // Called when a tag status changes
 	SLATE_END_ARGS()
 
@@ -69,6 +73,9 @@ private:
 	/* Flag to set if the list is read only*/
 	bool bReadOnly;
 
+	/* Flag to set if we can select multiple items form the list*/
+	bool bMultiSelect;
+
 	/* Array of tags to be displayed in the TreeView*/
 	TArray< TSharedPtr<FGameplayTagNode> > TagItems;
 
@@ -83,6 +90,8 @@ private:
 
 	/** Called when the Tag list changes*/
 	FOnTagChanged OnTagChanged;
+
+	TSharedPtr<IPropertyHandle> PropertyHandle;
 
 	/**
 	 * Generate a row widget for the specified item node and table
@@ -170,6 +179,11 @@ private:
 	/** Recursive load function to go through all tags in the tree and set the expansion*/
 	void LoadTagNodeItemExpansion( TSharedPtr<FGameplayTagNode> Node );
 
+	/** Recursive function to go through all tags in the tree and set the expansion to default*/
+	void SetDefaultTagNodeItemExpansion( TSharedPtr<FGameplayTagNode> Node );
+
 	/** Expansion changed callback */
 	void OnExpansionChanged( TSharedPtr<FGameplayTagNode> InItem, bool bIsExpanded );
+
+	void SetContainer(FGameplayTagContainer* OriginalContainer, FGameplayTagContainer* EditedContainer, UObject* OwnerObj);
 };

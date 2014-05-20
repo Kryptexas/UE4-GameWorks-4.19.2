@@ -104,7 +104,7 @@ struct SKILLSYSTEM_API FGameplayCueHandler
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	TArray<UGameplayCueView*>	Definitions;
 	
-	TMap<FName, TArray< TSharedPtr<FGameplayCueViewEffects> > >	SpawnedViewEffects;
+	TMap<FGameplayTag, TArray< TSharedPtr<FGameplayCueViewEffects> > >	SpawnedViewEffects;
 
 	UPROPERTY()
 	TArray<UObject*> SpawnedObjects;

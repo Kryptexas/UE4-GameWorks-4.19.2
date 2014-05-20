@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "GameplayTagsModule.h"
 
 USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -18,6 +19,11 @@ USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostCons
 	NoStackAttribute = 0.f;
 }
 
+FGameplayTag RequestGameplayTag_TestAttributeSet(FName Name)
+{
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(Name);
+}
 
 void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModCallbackData &Data)
 {
@@ -40,7 +46,7 @@ void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModC
 			{
 				// Dodge!
 				Data.EvaluatedData.Magnitude = 0.f;
-				Data.EvaluatedData.Tags.AddTag( FName(TEXT("Dodged")));
+				Data.EvaluatedData.Tags.AddTag( RequestGameplayTag_TestAttributeSet(FName(TEXT("Dodged"))) );
 
 				// How dodge is handled will be game dependant. There are a few options I think of:
 				// -We still apply 0 damage, but tag it as Dodged. The GameplayCue system could pick up on this and play a visual effect. The combat log could pick up in and print it out too.
@@ -59,17 +65,17 @@ void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModC
 				{
 					// Crit!
 					Data.EvaluatedData.Magnitude *= SourceAttributes->CritMultiplier;
-					Data.EvaluatedData.Tags.AddTag( FName(TEXT("Damage.Crit") ) );
+					Data.EvaluatedData.Tags.AddTag( RequestGameplayTag_TestAttributeSet(FName(TEXT("Damage.Crit"))) );
 				}
 			}
 
 			// Now apply armor reduction
-			if (Data.EvaluatedData.Tags.HasTag( FName(TEXT("Damage.Physical"))))
+			if (Data.EvaluatedData.Tags.HasTag( RequestGameplayTag_TestAttributeSet(FName(TEXT("Damage.Physical"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit ))
 			{
 				// This is a trivial/naive implementation of armor. It assumes the rmorDamageReduction is an actual % to reduce physics damage by.
 				// Real games would probably use armor rating as an attribute and calculate a % here based on the damage source's level, etc.
 				Data.EvaluatedData.Magnitude *= (1.f - ArmorDamageReduction);
-				Data.EvaluatedData.Tags.AddTag(FName(TEXT("Damage.Mitigatd.Armor")));
+				Data.EvaluatedData.Tags.AddTag( RequestGameplayTag_TestAttributeSet(FName(TEXT("Damage.Mitigatd.Armor"))) );
 			}
 		}
 
@@ -88,7 +94,7 @@ void USkillSystemTestAttributeSet::PostAttributeModify(const struct FGameplayEff
 	if (DamageProperty == ModifiedProperty)
 	{
 		// Anytime Damage is applied with 'Damage.Fire' tag, there is a chance to apply a burning DOT
-		if (Data.EvaluatedData.Tags.HasTag(FName(TEXT("FireDamage"))))
+		if (Data.EvaluatedData.Tags.HasTag( RequestGameplayTag_TestAttributeSet(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit ))
 		{
 			// Logic to rand() a burning DOT, if successful, apply DOT GameplayEffect to the target
 		}

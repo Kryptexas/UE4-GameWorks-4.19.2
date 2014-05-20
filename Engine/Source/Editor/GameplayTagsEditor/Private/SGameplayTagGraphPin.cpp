@@ -2,6 +2,7 @@
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagGraphPin.h"
+#include "GameplayTagsModule.h"
 #include "GameplayTags.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagGraphPin"
@@ -43,27 +44,24 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 {
 	FString TagString = GraphPinObj->GetDefaultAsString();
 
-	if( TagString.StartsWith( TEXT("(") ) && TagString.EndsWith( TEXT(")") ) )
+	if (TagString.StartsWith(TEXT("(")) && TagString.EndsWith(TEXT(")")))
 	{
 		TagString = TagString.LeftChop(1);
 		TagString = TagString.RightChop(1);
-		
-		FString ReadTag;
-		FString Remainder;
-		while( TagString.Split( TEXT(","), &ReadTag, &Remainder ) )
+		TagString.Split("=", NULL, &TagString);
+		if (TagString.StartsWith(TEXT("\"")) && TagString.EndsWith(TEXT("\"")))
 		{
-			ReadTag.Split( "=", NULL, &ReadTag );
-			TagString = Remainder;
-			TagContainer->AddTag( FName( *ReadTag ) );
+			TagString = TagString.LeftChop(1);
+			TagString = TagString.RightChop(1);
 		}
-		if( Remainder.IsEmpty() )
+	}
+
+	if (!TagString.IsEmpty())
+	{
+		FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*TagString));
+		if (Tag.ToString() != FName(NAME_None).ToString())
 		{
-			Remainder = TagString;
-		}
-		if( !Remainder.IsEmpty() )
-		{
-			Remainder.Split( "=", NULL, &Remainder );
-			TagContainer->AddTag( FName( *Remainder ) );
+			TagContainer->AddTag(Tag);
 		}
 	}
 }
@@ -82,6 +80,7 @@ TSharedRef<SWidget> SGameplayTagGraphPin::GetListContent()
 			.OnTagChanged( this, &SGameplayTagGraphPin::RefreshTagList )
 			.TagContainerName( TEXT("SGameplayTagGraphPin") )
 			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
+			.MultiSelect(false)
 		];
 }
 
@@ -111,14 +110,12 @@ void SGameplayTagGraphPin::RefreshTagList()
 	TagNames.Empty();
 
 	// Add tags to list
+	FString TagName;
 	if (TagContainer.IsValid())
 	{
-		TSet<FName> AssetTags;
-		TagContainer->GetTags(AssetTags);
-
-		for (TSet<FName>::TConstIterator TagIter(AssetTags); TagIter; ++TagIter)
+		for (auto It = TagContainer->CreateConstIterator(); It; ++It)
 		{
-			FString TagName = *TagIter->ToString();
+			TagName = It->ToString();
 			TagNames.Add( MakeShareable( new FString( TagName ) ) );
 		}
 	}
@@ -130,29 +127,22 @@ void SGameplayTagGraphPin::RefreshTagList()
 	}
 
 	// Set Pin Data
-	FString TagContainerString = TEXT("(");;
-
- 	for( int32 iName = 0; iName < TagNames.Num(); ++iName )
- 	{
-		TagContainerString += FString::Printf( TEXT("Tags(%d)="), iName );
- 		TagContainerString += *TagNames[iName];
- 
- 		if( iName < TagNames.Num()-1 )
- 		{
- 			TagContainerString += TEXT(",");
- 		}
- 	}
-
-	TagContainerString += TEXT(")");
-
+	FString TagString = TEXT("(");
+	if (!TagName.IsEmpty())
+	{
+		TagString += TEXT("TagName=\"");
+		TagString += TagName;
+		TagString += TEXT("\"");
+	}
+	TagString += TEXT(")");
 	FString CurrentDefaultValue = GraphPinObj->GetDefaultAsString();
 	if (CurrentDefaultValue.IsEmpty())
 	{
 		CurrentDefaultValue = FString(TEXT("()"));
 	}
-	if (!CurrentDefaultValue.Equals(TagContainerString))
+	if (!CurrentDefaultValue.Equals(TagString))
 	{
-		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, TagContainerString);
+		GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, TagString);
 	}
 }
 
