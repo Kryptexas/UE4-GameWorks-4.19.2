@@ -39,6 +39,10 @@ class UFbxAnimSequenceImportData : public UFbxAssetImportData
 	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "End Frame"))
 	int32	EndFrame;
 
+	/** Name of source animation that was imported, used to reimport correct animation from the FBX file*/
+	UPROPERTY(EditAnywhere, Category = ImportSettings, meta = (DisplayName = "Source Animation Name"))
+	FString SourceAnimationName;
+
 	/** Gets or creates fbx import data for the specified anim sequence */
 	static UFbxAnimSequenceImportData* GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation);
 };
