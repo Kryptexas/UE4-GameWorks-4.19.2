@@ -17,10 +17,74 @@ FBodyInstance2D::FBodyInstance2D()
 //@TODO: Everything about this block of code...
 void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const UPaperSprite* SpriteSetupHack, const FTransform& Transform, class UPrimitiveComponent* PrimComp)
 {
-#if WITH_BOX2D && 0 //@TODO: DISABLED BOX2D FOR NOW!!!
+#if WITH_BOX2D
 	if (b2World* World = FPhysicsIntegration2D::FindAssociatedWorld(PrimComp->GetWorld()))
 	{
-		if ((SpriteSetupHack->CollisionData.Num() > 0) && ((SpriteSetupHack->CollisionData.Num() % 3) == 0))
+		const FVector Scale3D = Transform.GetScale3D();
+
+		if (Setup != nullptr)
+		{
+			OwnerComponentPtr = PrimComp;
+
+			b2BodyDef BodyDefinition;
+			BodyDefinition.type = bSimulatePhysics ? b2_dynamicBody : b2_kinematicBody;
+
+			BodyInstancePtr = World->CreateBody(&BodyDefinition);
+			BodyInstancePtr->SetUserData(this);
+
+// 			const FVector2D PivotPos = FVector2D::ZeroVector;
+// 			const FVector2D OffsetPos = FVector2D(SpriteSetupHack->GetSourceSize().X*-0.5f, SpriteSetupHack->GetSourceSize().Y*-0.5f) + PivotPos;
+
+			// Boxes
+			for (const FKBoxElem& Box : Setup->AggGeom2D.BoxElems)
+			{
+				const b2Vec2 HalfBoxSize = FPhysicsIntegration2D::ConvertUnrealVectorToBox(FVector(Box.X, Box.Y, Box.Z) * 0.5f  * Scale3D);
+				const b2Vec2 BoxCenter = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Box.Center * Scale3D);
+
+				b2PolygonShape DynamicBox;
+				DynamicBox.SetAsBox(HalfBoxSize.x, HalfBoxSize.y, BoxCenter, 0.0f);
+
+				b2FixtureDef FixtureDef;
+				FixtureDef.shape = &DynamicBox;
+				FixtureDef.density = 1.0f; //@TODO:
+				FixtureDef.friction = 0.3f;//@TODO:
+
+				BodyInstancePtr->CreateFixture(&FixtureDef);
+			}
+
+			// Convex hulls
+			for (const FKConvexElem& Convex : Setup->AggGeom2D.ConvexElems)
+			{
+				const int32 NumVerts = Convex.VertexData.Num();
+
+				if (NumVerts <= b2_maxPolygonVertices)
+				{
+					TArray<b2Vec2, TInlineAllocator<b2_maxPolygonVertices>> Verts;
+
+					for (int32 VertexIndex = 0; VertexIndex < Convex.VertexData.Num(); ++VertexIndex)
+					{
+						const FVector SourceVert = Convex.VertexData[VertexIndex];
+						new (Verts) b2Vec2(FPhysicsIntegration2D::ConvertUnrealVectorToBox(SourceVert * Scale3D));
+					}
+
+					b2PolygonShape ConvexPoly;
+					ConvexPoly.Set(Verts.GetTypedData(), Verts.Num());
+
+					b2FixtureDef FixtureDef;
+					FixtureDef.shape = &ConvexPoly;
+					FixtureDef.density = 1.0f; //@TODO:
+					FixtureDef.friction = 0.3f;//@TODO:
+
+					BodyInstancePtr->CreateFixture(&FixtureDef);
+				}
+				else
+				{
+					UE_LOG(LogPaper2D, Warning, TEXT("Too many vertices in a 2D convex body")); //@TODO: Create a better error message that indicates the asset
+				}
+			}
+
+#if 0
+		if ((SpriteSetupHack->CollisionGeometry.Num() > 0) && ((SpriteSetupHack->CollisionGeometry.Num() % 3) == 0))
 		{
 			OwnerComponentPtr = PrimComp;
 
@@ -31,14 +95,14 @@ void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const UPaperSprite* Sp
 			BodyInstancePtr->SetUserData(this);
 
 			const FVector2D PivotPos = FVector2D::ZeroVector;
-			const FVector2D OffsetPos = FVector2D(SpriteSetupHack->SourceDimension.X*-0.5f, SpriteSetupHack->SourceDimension.Y*-0.5f) + PivotPos;
+			const FVector2D OffsetPos = FVector2D(SpriteSetupHack->GetSourceSize().X*-0.5f, SpriteSetupHack->GetSourceSize().Y*-0.5f) + PivotPos;
 
-			for (int32 TriangleIndex = 0; TriangleIndex < SpriteSetupHack->CollisionData.Num() / 3; ++TriangleIndex)
+			for (int32 TriangleIndex = 0; TriangleIndex < SpriteSetupHack->CollisionGeometry.Num() / 3; ++TriangleIndex)
 			{
 				b2Vec2 Verts[3];
 				for (int32 VertexIndex = 0; VertexIndex < 3; ++VertexIndex)
 				{
-					const FVector2D SourceVert = SpriteSetupHack->CollisionData[(TriangleIndex * 3) + VertexIndex] + OffsetPos;
+					const FVector2D SourceVert = SpriteSetupHack->CollisionGeometry[(TriangleIndex * 3) + VertexIndex] + OffsetPos;
 					Verts[VertexIndex] = FPhysicsIntegration2D::ConvertUnrealVectorToBox(FVector(SourceVert.X, 0.0f, SourceVert.Y));
 				}
 				
@@ -52,6 +116,10 @@ void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const UPaperSprite* Sp
 
 				BodyInstancePtr->CreateFixture(&FixtureDef);
 			}
+#endif
+
+
+
 
 #if 0
 			const b2Vec2 HalfBoxSize = FPhysicsIntegration2D::ConvertUnrealVectorToBox(FVector(SpriteSetupHack->BoundingBoxSize.X * 0.5f, 0.0f, SpriteSetupHack->BoundingBoxSize.Y * 0.5f));

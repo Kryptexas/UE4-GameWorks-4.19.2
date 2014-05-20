@@ -14,12 +14,6 @@ struct PAPER2D_API FBodyInstance2D
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
 	uint32 bSimulatePhysics:1;
 
-	UPROPERTY(EditAnywhere, Category=Physics)
-	float HackWidth;
-
-	UPROPERTY(EditAnywhere, Category=Physics)
-	float HackHeight;
-
 
 	FBodyInstance2D();
 

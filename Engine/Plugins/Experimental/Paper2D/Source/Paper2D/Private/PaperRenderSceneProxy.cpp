@@ -216,13 +216,6 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 
 	if (SourceSprite != NULL)//const UPaperRenderComponent* TypedFoo = Cast<const UPaperRenderComponent>(OwnerComponent))
 	{
-		// Show 2D physics
-		//@TODO: SO MUCH EVIL: Hack to debug draw the physics scene
-// 		if (TypedFoo->BodyInstance2D.bDrawPhysicsSceneMaster)
-// 		{
-// 			FPhysicsIntegration2D::DrawDebugPhysics(TypedFoo->GetWorld(), PDI, View);
-// 		}
-
 		// Show 3D physics
 		if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 		{

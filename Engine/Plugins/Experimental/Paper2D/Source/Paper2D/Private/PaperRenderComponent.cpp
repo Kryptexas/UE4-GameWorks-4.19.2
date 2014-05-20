@@ -102,17 +102,17 @@ void UPaperRenderComponent::CreatePhysicsState2D()
 {
 	if (!BodyInstance2D.IsValidBodyInstance() && (SourceSprite != NULL) && (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics))
 	{
-		UBodySetup2D* BodySetup = GetRBBodySetup2D();
-		//@TODO: if (UBodySetup2D* BodySetup = GetRBBodySetup2D())
+		UBodySetup2D* BodySetup = GetBodySetup2D();
+		//@TODO: if (UBodySetup2D* BodySetup = GetBodySetup2D())
 		{
 			BodyInstance2D.InitBody(BodySetup, SourceSprite, ComponentToWorld, this);
 		}
 	}
 }
 
-UBodySetup2D* UPaperRenderComponent::GetRBBodySetup2D()
+UBodySetup2D* UPaperRenderComponent::GetBodySetup2D()
 {
-	return NULL;
+	return (SourceSprite != nullptr) ? SourceSprite->BodySetup2D : nullptr;
 }
 
 void UPaperRenderComponent::OnUpdateTransform(bool bSkipPhysicsMove)

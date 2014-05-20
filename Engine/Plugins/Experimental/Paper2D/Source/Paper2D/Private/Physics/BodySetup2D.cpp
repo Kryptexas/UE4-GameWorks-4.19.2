@@ -9,3 +9,20 @@ UBodySetup2D::UBodySetup2D(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
+
+
+#if WITH_EDITOR
+
+void UBodySetup2D::InvalidatePhysicsData()
+{
+	//ClearPhysicsMeshes();
+	//BodySetupGuid = FGuid::NewGuid(); // change the guid
+	//CookedFormatData.FlushData();
+}
+
+#endif
+
+
+void UBodySetup2D::CreatePhysicsMeshes()
+{
+}

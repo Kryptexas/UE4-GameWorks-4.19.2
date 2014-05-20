@@ -85,6 +85,10 @@ public:
 	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
 	class UBodySetup* BodySetup3D;
 
+	// Baked physics data (2D domain).
+	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
+	class UBodySetup2D* BodySetup2D;
+
 #if WITH_EDITORONLY_DATA
 
 protected:

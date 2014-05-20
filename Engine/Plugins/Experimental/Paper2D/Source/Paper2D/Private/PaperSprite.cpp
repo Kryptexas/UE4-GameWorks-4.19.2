@@ -402,6 +402,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SpriteCollisionDomain)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup3D)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup2D)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionGeometry)) )
 	{
 		bCollisionDataModified = true;
@@ -448,16 +449,22 @@ void UPaperSprite::RebuildCollisionData()
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
-		if (BodySetup3D == NULL)
+		BodySetup2D = nullptr;
+		if (BodySetup3D == nullptr)
 		{
-			BodySetup3D = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+			BodySetup3D = NewObject<UBodySetup>(this);
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup3D = NULL;
+		BodySetup3D = nullptr;
+		if (BodySetup2D == nullptr)
+		{
+			BodySetup2D = NewObject<UBodySetup2D>(this);
+		}
 		break;
 	case ESpriteCollisionMode::None:
-		BodySetup3D = NULL;
+		BodySetup2D = nullptr;
+		BodySetup3D = nullptr;
 		CollisionGeometry.Reset();
 		break;
 	}
@@ -506,7 +513,7 @@ void UPaperSprite::BuildCustomCollisionData()
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
-			check(BodySetup3D);
+			checkSlow(BodySetup3D);
 			BodySetup3D->AggGeom.EmptyElements();
 
 			//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
@@ -536,6 +543,33 @@ void UPaperSprite::BuildCustomCollisionData()
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
+		{
+			checkSlow(BodySetup2D);
+			BodySetup2D->AggGeom2D.EmptyElements();
+
+			//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
+
+			//@TODO: Use this guy instead: DecomposeMeshToHulls
+			//@TODO: Merge triangles that are convex together!
+			int32 RunningIndex = 0;
+			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
+			{
+				FKConvexElem& ConvexTri = *new (BodySetup2D->AggGeom2D.ConvexElems) FKConvexElem();
+				ConvexTri.VertexData.Empty(3);
+				for (int32 Index = 0; Index < 3; ++Index)
+				{
+					const FVector2D& Pos2D = CollisionData[RunningIndex++];
+
+					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.X);
+
+					new (ConvexTri.VertexData) FVector(Pos3D);
+				}
+				ConvexTri.UpdateElemBox();
+			}
+
+			BodySetup2D->InvalidatePhysicsData();
+			BodySetup2D->CreatePhysicsMeshes();
+	}
 		break;
 	default:
 		check(false);
@@ -554,7 +588,7 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
 			// Store the bounding box as an actual box for 3D physics
-			check(BodySetup3D);
+			checkSlow(BodySetup3D);
 			BodySetup3D->AggGeom.EmptyElements();
 
 			// Determine the box center in pivot space
@@ -574,7 +608,26 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		//@TODO:!!!
+		{
+			//@TODO:!!!
+			checkSlow(BodySetup2D);
+			BodySetup2D->AggGeom2D.EmptyElements();
+
+			// Determine the box center in pivot space
+			const FVector2D& BoxSize2D = CollisionGeometry.Polygons[0].BoxSize;
+			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
+			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2D * 0.5f);
+			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
+
+			// Create a new box primitive
+			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
+
+			FKBoxElem& Box = *new (BodySetup2D->AggGeom2D.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
+			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
+
+			BodySetup2D->InvalidatePhysicsData();
+			BodySetup2D->CreatePhysicsMeshes();
+		}
 		break;
 	default:
 		check(false);
