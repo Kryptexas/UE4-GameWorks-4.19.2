@@ -1678,8 +1678,23 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			RedrawLevelEditingViewports();
 		}
 
+		// Attempt to unload any loaded redirectors. Redirectors should not be referenced in memory and are only used to forward references at load time
+		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
+		{
+			RedirIt->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		}
+
 		// Collect garbage.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+		// Remaining redirectors are probably referenced by editor tools. Keep them in memory for now.
+		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
+		{
+			if ( RedirIt->IsAsset() )
+			{
+				RedirIt->SetFlags(RF_Standalone);
+			}
+		}
 	}
 }
 

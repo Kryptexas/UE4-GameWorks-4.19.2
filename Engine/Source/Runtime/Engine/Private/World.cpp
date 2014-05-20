@@ -890,13 +890,13 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 }
 
 
-void UWorld::DestroyWorld( bool bInformEngineOfWorld )
+void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 {
 	// Clean up existing world and remove it from root set so it can be garbage collected.
 	bIsLevelStreamingFrozen = false;
 	bShouldForceUnloadStreamingLevels = true;
 	FlushLevelStreaming( NULL, true );
-	CleanupWorld();
+	CleanupWorld(true, true, NewWorld);
 
 	check( NetworkActors.Num() == 0 );
 
@@ -911,7 +911,7 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld )
 	for (int32 LevelIndex=0; LevelIndex < GetNumLevels(); ++LevelIndex)
 	{
 		UWorld* World = CastChecked<UWorld>(GetLevel(LevelIndex)->GetOuter());
-		if (World != this)
+		if (World != this && World != NewWorld)
 		{
 			World->ClearFlags(RF_Standalone);
 		}
@@ -2730,7 +2730,7 @@ bool UWorld::IsNavigationRebuilt() const
 	return GetNavigationSystem() == NULL || GetNavigationSystem()->IsNavigationBuilt(GetWorldSettings());
 }
 
-void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources)
+void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* NewWorld)
 {
 	check(IsVisibilityRequestPending() == false);
 
@@ -2777,7 +2777,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources)
 
 	// Clear standalone flag when switching maps in the Editor. This causes resources placed in the map
 	// package to be garbage collected together with the world.
-	if( GIsEditor && !IsTemplate() )
+	if( GIsEditor && !IsTemplate() && this != NewWorld )
 	{
 		TArray<UObject*> WorldObjects;
 
@@ -2798,7 +2798,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources)
 		UWorld* World = CastChecked<UWorld>(GetLevel(LevelIndex)->GetOuter());
 		if (World != this)
 		{
-			World->CleanupWorld(bSessionEnded, bCleanupResources);
+			World->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
 		}
 	}
 }

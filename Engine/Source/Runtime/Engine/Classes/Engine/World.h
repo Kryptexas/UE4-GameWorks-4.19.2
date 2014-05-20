@@ -1650,8 +1650,9 @@ public:
 	/**
 	 * Cleans up components, streaming data and assorted other intermediate data.
 	 * @param bSessionEnded whether to notify the viewport that the game session has ended
+	 * @param NewWorld Optional new world that will be loaded after this world is cleaned up. Specify a new world to prevent it and it's sublevels from being GCed during map transitions.
 	 */
-	void CleanupWorld(bool bSessionEnded = true, bool bCleanupResources = true);
+	void CleanupWorld(bool bSessionEnded = true, bool bCleanupResources = true, UWorld* NewWorld = nullptr);
 	
 	/**
 	 * Invalidates the cached data used to render the levels' UModel.
@@ -1824,9 +1825,9 @@ public:
 	static UWorld* CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName = NAME_None, UPackage* InWorldPackage = NULL, bool bAddToRoot = true );
 
 	/** 
-	 * Destroy this World instance 
+	 * Destroy this World instance. If destroying the world to load a different world, supply it here to prevent GC of the new world or it's sublevels.
 	 */
-	void DestroyWorld( bool bInformEngineOfWorld );
+	void DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld = nullptr );
 
 	/**
 	 *  Interface to allow WorldSettings to request immediate garbage collection

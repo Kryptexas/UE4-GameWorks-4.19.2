@@ -1581,7 +1581,7 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 	bspBrushCSG( InWorld->GetBrush(), InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true );
 }
 
-void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText )
+void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld )
 {
 	if (Context.World() == NULL )
 	{
@@ -1601,7 +1601,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		Context.World()->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
 		Context.World()->SetFlags(RF_Transient);
 	}
-	
+
 	GUnrealEd->CurrentLODParentActor = NULL;
 	SelectNone( true, true );
 	EditorClearComponents();
@@ -1613,22 +1613,45 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	CloseEditedWorldAssets(Context.World());
 
 	// Stop all audio and remove references 
-	if (GetAudioDevice() )
+	if ( GetAudioDevice() )
 	{
-		GetAudioDevice()->Flush( NULL );
+		GetAudioDevice()->Flush(NULL);
 	}
 
-	Context.World()->DestroyWorld( true );
+	UWorld* ContextWorld = Context.World();
+	Context.World()->DestroyWorld( true, NewWorld );
 	Context.SetCurrentWorld(NULL);
-	
+
+	// Add the new world to root if it wasn't already and keep track of it so we can remove it from root later if appropriate
+	bool bNewWorldAddedToRoot = false;
+	if ( NewWorld )
+	{
+		if ( !NewWorld->IsRooted() )
+		{
+			NewWorld->AddToRoot();
+			bNewWorldAddedToRoot = true;
+		}
+
+		// Reset the owning level to allow the old world to GC if it was a sublevel
+		NewWorld->PersistentLevel->OwningWorld = NewWorld;
+	}
+
 	// Cleanse which should remove the old world which we are going to verify.
 	GEditor->Cleanse( true, 0, CleanseText );
 
+	// If we added the world to the root set above, remove it now that the GC is complete.
+	if ( bNewWorldAddedToRoot )
+	{
+		NewWorld->RemoveFromRoot();
+	}
+
+	// Make sure the old world is completely gone, except if the new world was one of it's sublevels
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* RemainingWorld = *It;
+		const bool bIsNewWorld = (RemainingWorld == NewWorld);
 		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
-		if (!bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
+		if (!bIsNewWorld && !bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
 
@@ -1644,7 +1667,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		for( TObjectIterator<UPackage> It; It; ++It )
 		{
 			UPackage* RemainingPackage = *It;
-			if (RemainingPackage == WorldPackage)
+			const bool bIsNewWorldPackage = (RemainingPackage == NewWorld->GetOutermost());
+			if (!bIsNewWorldPackage && RemainingPackage == WorldPackage)
 			{
 				StaticExec(NULL, *FString::Printf(TEXT("OBJ REFS CLASS=PACKAGE NAME=%s"), *RemainingPackage->GetPathName()));
 
@@ -1897,6 +1921,12 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 		FString LongTempFname;
 		if ( FPackageName::TryConvertFilenameToLongPackageName(TempFname, LongTempFname) )
 		{
+ 			if ( Context.World() && Context.World()->GetOutermost() && Context.World()->GetOutermost() == FindPackage(NULL, *LongTempFname) )
+ 			{
+ 				// This map is already loaded.
+ 				return true;
+ 			}
+
 			FString AlteredPath;
 			if ( FPackageName::DoesPackageExist(LongTempFname, NULL, &AlteredPath) )
 			{
@@ -1918,6 +1948,14 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				// Should we display progress while loading?
 				int32 bShowProgress = 1;
 				FParse::Value(Str, TEXT("SHOWPROGRESS="), bShowProgress);
+
+				// Is the new world already loaded?
+				UPackage* ExistingPackage = FindPackage(NULL, *LongTempFname);
+				UWorld* ExistingWorld = NULL;
+				if ( ExistingPackage )
+				{
+					ExistingWorld = UWorld::FindWorldInPackage(ExistingPackage);
+				}
 			
 				UObject* OldOuter = NULL;
 
@@ -1962,7 +2000,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Arguments.Add(TEXT("MapFileName"), FText::FromString( MapFileName ));
 						FMessageLog("LoadErrors").NewPage( FText::Format( LOCTEXT("LoadMapLogPage", "Loading map: {MapFileName}"), Arguments ) );
 					}
-					EditorDestroyWorld( Context, LocalizedLoadingMap );
+					EditorDestroyWorld( Context, LocalizedLoadingMap, ExistingWorld );
 
 					GWarn->StatusUpdate( -1, -1, LocalizedLoadingMap );
 				}
@@ -2002,8 +2040,15 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				}
 				else
 				{
-					//Load the map normally into a new package
-					WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+					if ( ExistingPackage )
+					{
+						WorldPackage = ExistingPackage;
+					}
+					else
+					{
+						//Load the map normally into a new package
+						WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+					}
 				}
 
 				if (WorldPackage == NULL)
@@ -2034,10 +2079,14 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 				Context.World()->WorldType = EWorldType::Editor;
 
-				Context.World()->InitWorld(UWorld::InitializationValues()
-											.ShouldSimulatePhysics(false)
-											.EnableTraceCollision(true)
-											);
+				if ( !Context.World()->bIsWorldInitialized )
+				{
+					Context.World()->InitWorld(UWorld::InitializationValues()
+												.ShouldSimulatePhysics(false)
+												.EnableTraceCollision(true)
+												);
+				}
+
 				{
 					FBSPOps::bspValidateBrush( Context.World()->GetBrush()->Brush, 0, 1 );
 

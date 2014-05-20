@@ -2405,8 +2405,10 @@ private:
 	 *
 	 * @param	Context		The world to destroy
 	 * @param	CleanseText	Reason for the destruction
+	 * @param	NewWorld	An optional new world to keep in memory after destroying the world referenced in the Context.
+	 *						This world and it's sublevels will remain in memory.
 	 */
-	void EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText );
+	void EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld = nullptr );
 
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const OVERRIDE;
