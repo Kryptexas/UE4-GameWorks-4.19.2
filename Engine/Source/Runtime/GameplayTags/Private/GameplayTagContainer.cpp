@@ -38,7 +38,7 @@ bool FGameplayTagContainer::operator!=(FGameplayTagContainer const& Other) const
 	{
 		return true;
 	}
-	return !Filter(Other, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All).Num() == this->Num();
+	return !(Filter(Other, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All).Num() == this->Num());
 }
 
 bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
