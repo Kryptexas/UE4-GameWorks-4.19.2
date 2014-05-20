@@ -40,6 +40,17 @@ bool UPhysicsSettings::CanEditChange(const UProperty* Property) const
 	return bIsEditable;
 }
 
+void UPhysicsSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	if (PropertyName == FName(TEXT("FrictionCombineMode")))
+	{
+		UPhysicalMaterial::RebuildPhysicalMaterials();
+	}
+}
+
 void UPhysicsSettings::LoadSurfaceType()
 {
 	// read "SurfaceType" defines and set meta data for the enum

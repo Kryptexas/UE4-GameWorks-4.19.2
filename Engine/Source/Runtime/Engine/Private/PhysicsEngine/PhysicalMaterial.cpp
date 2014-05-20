@@ -26,6 +26,7 @@ UPhysicalMaterial::UPhysicalMaterial(const class FPostConstructInitializePropert
 	Density = 1.0f;
 	DestructibleDamageThresholdScale = 1.0f;
 	TireFrictionScale = 1.0f;
+	bOverrideFrictionCombineMode = false;
 #if WITH_PHYSX
 	PhysxUserData = FPhysxUserData(this);
 #endif
@@ -39,6 +40,19 @@ void UPhysicalMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+
+void UPhysicalMaterial::RebuildPhysicalMaterials()
+{
+	for (FObjectIterator Iter(UPhysicalMaterial::StaticClass()); Iter; ++Iter)
+	{
+		if (UPhysicalMaterial * PhysicalMaterial = Cast<UPhysicalMaterial>(*Iter))
+		{
+			PhysicalMaterial->UpdatePhysXMaterial();
+		}
+	}
+}
+
 #endif // WITH_EDITOR
 
 void UPhysicalMaterial::PostLoad()
@@ -69,6 +83,7 @@ void UPhysicalMaterial::FinishDestroy()
 	Super::FinishDestroy();
 }
 
+
 void UPhysicalMaterial::UpdatePhysXMaterial()
 {
 #if WITH_PHYSX
@@ -77,6 +92,8 @@ void UPhysicalMaterial::UpdatePhysXMaterial()
 		PMaterial->setStaticFriction(Friction);
 		PMaterial->setDynamicFriction(Friction);
 		PMaterial->setRestitution(Restitution);
+		uint32 CombineMode = (bOverrideFrictionCombineMode ? FrictionCombineMode.GetValue() : UPhysicsSettings::Get()->FrictionCombineMode.GetValue());
+		PMaterial->setFrictionCombineMode(static_cast<physx::PxCombineMode::Enum>(CombineMode));
 		FPhysXVehicleManager::UpdateTireFrictionTable();
 	}
 #endif	// WITH_PHYSX
@@ -89,6 +106,8 @@ PxMaterial* UPhysicalMaterial::GetPhysXMaterial()
 	if((PMaterial == NULL) && GPhysXSDK)
 	{
 		PMaterial = GPhysXSDK->createMaterial(Friction, Friction, Restitution);
+		uint32 CombineMode = (bOverrideFrictionCombineMode ? FrictionCombineMode.GetValue() : UPhysicsSettings::Get()->FrictionCombineMode.GetValue());
+		PMaterial->setFrictionCombineMode(static_cast<physx::PxCombineMode::Enum>(CombineMode));
 		PMaterial->userData = &PhysxUserData;
 
 		UpdatePhysXMaterial();

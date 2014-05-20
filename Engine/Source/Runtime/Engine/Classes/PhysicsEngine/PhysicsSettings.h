@@ -32,6 +32,21 @@ struct FPhysicalSurfaceName
 	{}
 };
 
+UENUM()
+namespace EFrictionCombineMode
+{
+	enum Type
+	{
+		//Uses the average friction of materials touching: (a+b) /2
+		Average = 0,	
+		//Uses the minimum friction of materials touching: min(a,b)
+		Min = 1,		
+		//Uses the product of the friction of materials touching: a*b
+		Multiply = 2,	
+		//Uses the maximum friction of materials touching: max(a,b)
+		Max = 3
+	};
+}
 
 /**
  * Implements project settings for the physics sub-system.
@@ -49,6 +64,10 @@ class ENGINE_API UPhysicsSettings
 	/**Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;
+
+	/** Friction combine mode, controls how friction is computed for multiple materials. */
+	UPROPERTY(config, EditAnywhere, Category=Simulation)
+	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
 
 	/**Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
@@ -91,6 +110,7 @@ public:
 #if WITH_EDITOR
 
 	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 
 	/** Load Material Type data from INI file **/
 	/** this changes displayname meta data. That means we won't need it outside of editor*/
