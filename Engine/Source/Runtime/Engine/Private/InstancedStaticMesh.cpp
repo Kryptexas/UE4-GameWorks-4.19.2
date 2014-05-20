@@ -1119,6 +1119,8 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostCo
 	// Static lighting is not currently supported by instanced static meshes, so disable it
 	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 	bCastStaticShadow = false;
+
+	bHasPerInstanceHitProxies = true;
 }
 
 #if WITH_EDITOR
@@ -1402,6 +1404,12 @@ void UInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 		Ar << SelectedInstances;
 	}
 #endif
+
+	if( Ar.IsLoading() )
+	{
+		// Ignore the serialized value of this and always default to 'true' for this component type
+		bHasPerInstanceHitProxies = true;
+	}
 }
 
 void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransform)
@@ -1530,9 +1538,6 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 			int32 AddedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
 			check(AddedAtIndex != INDEX_NONE);
 			SetupNewInstanceData(PerInstanceSMData[AddedAtIndex], AddedAtIndex, FTransform::Identity);
-
-			// added via the property editor, so we will want to interactively work with instances
-			bHasPerInstanceHitProxies = true;
 		}
 
 		MarkRenderStateDirty();

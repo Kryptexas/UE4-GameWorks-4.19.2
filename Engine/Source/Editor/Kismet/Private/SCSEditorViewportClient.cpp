@@ -313,11 +313,7 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 				{
 					USceneComponent* CompInstance = *CompIt;
 					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
-					if(Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
-					{
-						Invalidate();
-					}
-					else if(CompInstance == ActorProxy->PrimComponent)
+					if(CompInstance == ActorProxy->PrimComponent)
 					{
 						const bool bIsCtrlKeyDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 						if(BlueprintEditorPtr.IsValid())
