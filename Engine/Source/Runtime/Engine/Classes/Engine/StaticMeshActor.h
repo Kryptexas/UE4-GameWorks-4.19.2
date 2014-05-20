@@ -14,6 +14,8 @@ class ENGINE_API AStaticMeshActor : public AActor, public INavRelevantActorInter
 
 	UPROPERTY(Category=StaticMeshActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Mesh,Rendering,Physics,Components|StaticMesh"))
 	TSubobjectPtr<class UStaticMeshComponent> StaticMeshComponent;
+	
+	virtual void BeginPlay() OVERRIDE;
 
 	/** This static mesh should replicate movement. Automatically sets the RemoteRole and bReplicateMovement flags. Meant to be edited on placed actors (those other two proeprties are not) */
 	UPROPERTY(Category=Actor, EditAnywhere, AdvancedDisplay)

@@ -25,6 +25,24 @@ AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializePropertie
 	RootComponent = StaticMeshComponent;
 }
 
+void AStaticMeshActor::BeginPlay()
+{
+	// Since we allow AStaticMeshActor to specify whether it replicates via bStaticMeshReplicateMovement - per placed instance
+	// and we do the normal SetReplicates call in PostInitProperties, before instanced properties are serialized in, 
+	// we need to do this here. 
+	//
+	// This is a short term fix until we find a better play for SetReplicates to be called in AActor.
+
+	if (Role == ROLE_Authority && bStaticMeshReplicateMovement)
+	{
+		bReplicates = false;
+		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+		SetReplicates(true);
+	}	
+
+	Super::BeginPlay();
+}
+
 FString AStaticMeshActor::GetDetailedInfoInternal() const
 {
 	return StaticMeshComponent ? StaticMeshComponent->GetDetailedInfoInternal() : TEXT("No_StaticMeshComponent");
