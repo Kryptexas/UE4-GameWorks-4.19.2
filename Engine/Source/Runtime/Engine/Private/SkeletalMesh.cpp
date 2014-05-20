@@ -189,7 +189,8 @@ void FSkeletalMeshVertexBuffer::InitRHI()
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
 		// Create the vertex buffer.
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static|BUF_ShaderResource);
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static|BUF_ShaderResource, CreateInfo);
 	}
 }
 
@@ -468,7 +469,8 @@ void FSkeletalMeshVertexColorBuffer::InitRHI()
 	FResourceArrayInterface* ResourceArray = VertexData->GetResourceArray();
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static );
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 }
 
@@ -621,7 +623,8 @@ void FSkeletalMeshVertexAPEXClothBuffer::InitRHI()
 	FResourceArrayInterface* ResourceArray = VertexData->GetResourceArray();
 	if( ResourceArray->GetResourceDataSize() > 0 )
 	{
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), ResourceArray, BUF_Static );
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 }
 

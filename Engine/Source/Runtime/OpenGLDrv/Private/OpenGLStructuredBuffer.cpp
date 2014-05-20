@@ -6,17 +6,17 @@
 
 #include "OpenGLDrvPrivate.h"
 
-FStructuredBufferRHIRef FOpenGLDynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,FResourceArrayInterface* ResourceArray,uint32 InUsage)
+FStructuredBufferRHIRef FOpenGLDynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	VERIFY_GL_SCOPE();
 
 	const void *Data = NULL;
 
 	// If a resource array was provided for the resource, create the resource pre-populated
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
-		Data = ResourceArray->GetResourceData();
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		Data = CreateInfo.ResourceArray->GetResourceData();
 	}
 
 	TRefCountPtr<FOpenGLStructuredBuffer> StructuredBuffer = new FOpenGLStructuredBuffer(Stride, Size, InUsage & BUF_AnyDynamic, Data);

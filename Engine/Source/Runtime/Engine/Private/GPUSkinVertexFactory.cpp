@@ -86,7 +86,8 @@ FBoneBufferTypeRef FBoneBufferPoolPolicy::CreateResource(CreationArguments Args)
 {
 	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));
     FBoneBuffer Buffer;
-    Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, NULL, (BUF_Dynamic | BUF_ShaderResource) );
+	FRHIResourceCreateInfo CreateInfo;
+    Buffer.VertexBufferRHI = RHICreateVertexBuffer( BufferSize, (BUF_Dynamic | BUF_ShaderResource), CreateInfo );
     Buffer.VertexBufferSRV = RHICreateShaderResourceView( Buffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 	return Buffer;
 }

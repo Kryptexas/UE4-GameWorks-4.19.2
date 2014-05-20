@@ -35,7 +35,8 @@ class FPaperSpriteVertexBuffer : public FVertexBuffer
 public:
 	virtual void InitRHI() OVERRIDE
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FPaperSpriteVertex), NULL, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FPaperSpriteVertex), BUF_Static, CreateInfo);
 	}
 };
 static TGlobalResource<FPaperSpriteVertexBuffer> GDummyMaterialSpriteVertexBuffer;

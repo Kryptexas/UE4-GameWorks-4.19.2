@@ -31,7 +31,8 @@ public:
 	{
 		const uint32 Size = sizeof(uint16) * 6 * 8;
 		const uint32 Stride = sizeof(uint16);
-		IndexBufferRHI = RHICreateIndexBuffer( Stride, Size, NULL, BUF_Static );
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer( Stride, Size, BUF_Static, CreateInfo);
 		uint16* Indices = (uint16*)RHILockIndexBuffer( IndexBufferRHI, 0, Size, RLM_WriteOnly );
 		if(DOFIndexStyle == BIS_Fast)
 		{

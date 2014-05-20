@@ -976,7 +976,8 @@ public:
 	{
 		// Used as a non-indexed triangle strip, so 4 vertices per quad
 		const uint32 Size = 4 * sizeof(FScreenVertex);
-		VertexBufferRHI = RHICreateVertexBuffer(Size, NULL, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 		void* Buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Size, RLM_WriteOnly);
 		FScreenVertex* DestVertex = (FScreenVertex*)Buffer;
 

@@ -309,7 +309,8 @@ public:
 		const uint32 Stride = sizeof(uint16);
 		const uint32 SizeInBytes = MaxBatchedPrimitives * NUM_CUBE_VERTICES * Stride;
 
-		IndexBufferRHI = RHICreateIndexBuffer(Stride,SizeInBytes,NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(Stride,SizeInBytes,BUF_Static,CreateInfo);
 		uint16* RESTRICT Indices = (uint16*)RHILockIndexBuffer(IndexBufferRHI,0,SizeInBytes,RLM_WriteOnly);
 		for(uint32 PrimitiveIndex = 0;PrimitiveIndex < MaxBatchedPrimitives;PrimitiveIndex++)
 		{

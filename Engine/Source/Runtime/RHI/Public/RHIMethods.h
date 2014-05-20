@@ -238,9 +238,9 @@ DEFINE_RHIMETHOD_4(
 	FIndexBufferRHIRef,RHICreateIndexBuffer,
 	uint32,Stride,
 	uint32,Size,
-	FResourceArrayInterface*,ResourceArray,
 	uint32,InUsage,
-	return,if (ResourceArray) { ResourceArray->Discard(); } return new FRHIIndexBuffer(Stride,Size,InUsage);
+	FRHIResourceCreateInfo&,CreateInfo,
+	return,if (CreateInfo.ResourceArray) { CreateInfo.ResourceArray->Discard(); } return new FRHIIndexBuffer(Stride,Size,InUsage);
 	);
 
 DEFINE_RHIMETHOD_4(
@@ -263,9 +263,9 @@ DEFINE_RHIMETHOD_1(
 DEFINE_RHIMETHOD_3(
 	FVertexBufferRHIRef,RHICreateVertexBuffer,
 	uint32,Size,
-	FResourceArrayInterface*,ResourceArray,
 	uint32,InUsage,
-	return,if (ResourceArray) { ResourceArray->Discard(); } return new FRHIVertexBuffer(Size,InUsage);
+	FRHIResourceCreateInfo&,CreateInfo,
+	return,if (CreateInfo.ResourceArray) { CreateInfo.ResourceArray->Discard(); } return new FRHIVertexBuffer(Size,InUsage);
 	);
 
 DEFINE_RHIMETHOD_4(
@@ -297,9 +297,9 @@ DEFINE_RHIMETHOD_4(
 	FStructuredBufferRHIRef,RHICreateStructuredBuffer,
 	uint32,Stride,
 	uint32,Size,
-	FResourceArrayInterface*,ResourceArray,
 	uint32,InUsage,
-	return,if (ResourceArray) { ResourceArray->Discard(); } return new FRHIStructuredBuffer(Stride,Size,InUsage);
+	FRHIResourceCreateInfo&,CreateInfo,
+	return,if (CreateInfo.ResourceArray) { CreateInfo.ResourceArray->Discard(); } return new FRHIStructuredBuffer(Stride,Size,InUsage);
 	);
 
 DEFINE_RHIMETHOD_4(
@@ -472,7 +472,7 @@ DEFINE_RHIMETHOD_7(
 	uint32,NumMips,
 	uint32,NumSamples,
 	uint32,Flags,
-	FRHIResourceCreateInfo&,Info,
+	FRHIResourceCreateInfo&,CreateInfo,
 	return,return new FRHITexture2D(SizeX,SizeY,NumMips,NumSamples,(EPixelFormat)Format,Flags);
 	);
 
@@ -532,7 +532,7 @@ DEFINE_RHIMETHOD_7(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FRHIResourceCreateInfo&,Info,
+	FRHIResourceCreateInfo&,CreateInfo,
 	return,return new FRHITexture2DArray(SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
 	);
 
@@ -553,7 +553,7 @@ DEFINE_RHIMETHOD_7(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FRHIResourceCreateInfo&,Info,
+	FRHIResourceCreateInfo&,CreateInfo,
 	return,return new FRHITexture3D(SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
 	);
 
@@ -789,7 +789,7 @@ DEFINE_RHIMETHOD_5(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FRHIResourceCreateInfo&,Info,
+	FRHIResourceCreateInfo&,CreateInfo,
 	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
 	);
 
@@ -809,7 +809,7 @@ DEFINE_RHIMETHOD_6(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FRHIResourceCreateInfo&,Info,
+	FRHIResourceCreateInfo&,CreateInfo,
 	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
 );
 

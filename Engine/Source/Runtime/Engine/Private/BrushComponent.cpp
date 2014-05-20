@@ -41,7 +41,8 @@ public:
 	{
 		if(NumVertices)
 		{
-			VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FModelWireVertex),NULL,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FModelWireVertex),BUF_Static, CreateInfo);
 
 			FModelWireVertex* DestVertex = (FModelWireVertex*)RHILockVertexBuffer(VertexBufferRHI,0,NumVertices * sizeof(FModelWireVertex),RLM_WriteOnly);
 			for(int32 PolyIndex = 0;PolyIndex < Polys.Num();PolyIndex++)
@@ -91,7 +92,8 @@ public:
 	{
 		if(NumEdges)
 		{
-			IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),NumEdges * 2 * sizeof(uint16),NULL,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo;
+			IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),NumEdges * 2 * sizeof(uint16),BUF_Static, CreateInfo);
 
 			uint16* DestIndex = (uint16*)RHILockIndexBuffer(IndexBufferRHI,0,NumEdges * 2 * sizeof(uint16),RLM_WriteOnly);
 			uint16 BaseIndex = 0;

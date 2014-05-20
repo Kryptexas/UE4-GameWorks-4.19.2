@@ -157,7 +157,8 @@ IMPLEMENT_VERTEX_FACTORY_TYPE(FLandscapeVertexFactoryMobile, "LandscapeVertexFac
 void FLandscapeVertexBufferMobile::InitRHI()
 {
 	// create a static vertex buffer
-	VertexBufferRHI = RHICreateVertexBuffer(DataSize, NULL, BUF_Static);
+	FRHIResourceCreateInfo CreateInfo;
+	VertexBufferRHI = RHICreateVertexBuffer(DataSize, BUF_Static, CreateInfo);
 	void* VertexData = RHILockVertexBuffer(VertexBufferRHI, 0, DataSize, RLM_WriteOnly);
 	// Copy stored platform data
 	FMemory::Memcpy(VertexData, (uint8*)Data, DataSize);

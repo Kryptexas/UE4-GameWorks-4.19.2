@@ -19,7 +19,8 @@ struct FRWBuffer
 	{
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		NumBytes = BytesPerElement * NumElements;
-		Buffer = RHICreateVertexBuffer(NumBytes,NULL,BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage);
+		FRHIResourceCreateInfo CreateInfo;
+		Buffer = RHICreateVertexBuffer(NumBytes,BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
 		UAV = RHICreateUnorderedAccessView(Buffer,Format);
 		SRV = RHICreateShaderResourceView(Buffer,BytesPerElement,Format);
 	}
@@ -46,7 +47,8 @@ struct FReadBuffer
 	{
 		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM4);
 		NumBytes = BytesPerElement * NumElements;
-		Buffer = RHICreateVertexBuffer(NumBytes,NULL,BUF_ShaderResource | AdditionalUsage);
+		FRHIResourceCreateInfo CreateInfo;
+		Buffer = RHICreateVertexBuffer(NumBytes,BUF_ShaderResource | AdditionalUsage,CreateInfo);
 		SRV = RHICreateShaderResourceView(Buffer,BytesPerElement,Format);
 	}
 
@@ -72,7 +74,8 @@ struct FRWBufferStructured
 	{
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		NumBytes = BytesPerElement * NumElements;
-		Buffer = RHICreateStructuredBuffer(BytesPerElement, NumBytes, NULL, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage );
+		FRHIResourceCreateInfo CreateInfo;
+		Buffer = RHICreateStructuredBuffer(BytesPerElement, NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
 		UAV = RHICreateUnorderedAccessView(Buffer,bUseUavCounter, bAppendBuffer);
 		SRV = RHICreateShaderResourceView(Buffer);
 	}
@@ -101,7 +104,8 @@ struct FRWBufferByteAddress
 		NumBytes = InNumBytes;
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		check( NumBytes % 4 == 0 );
-		Buffer = RHICreateStructuredBuffer(4, NumBytes, NULL, BUF_UnorderedAccess | BUF_ShaderResource | BUF_ByteAddressBuffer | AdditionalUsage );
+		FRHIResourceCreateInfo CreateInfo;
+		Buffer = RHICreateStructuredBuffer(4, NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | BUF_ByteAddressBuffer | AdditionalUsage, CreateInfo);
 		UAV = RHICreateUnorderedAccessView(Buffer, false, false );
 		SRV = RHICreateShaderResourceView(Buffer);
 	}

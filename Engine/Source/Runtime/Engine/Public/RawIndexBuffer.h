@@ -227,7 +227,8 @@ public:
 		if(Indices.Num())
 		{
 			// Create the index buffer.
-			IndexBufferRHI = RHICreateIndexBuffer(sizeof(INDEX_TYPE),Size,&Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(sizeof(INDEX_TYPE),Size,BUF_Static,CreateInfo);
 		}    
 	}
 

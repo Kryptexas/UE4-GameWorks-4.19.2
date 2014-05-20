@@ -6,17 +6,17 @@
 
 #include "OpenGLDrvPrivate.h"
 
-FVertexBufferRHIRef FOpenGLDynamicRHI::RHICreateVertexBuffer(uint32 Size,FResourceArrayInterface* ResourceArray,uint32 InUsage)
+FVertexBufferRHIRef FOpenGLDynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	VERIFY_GL_SCOPE();
 
 	const void *Data = NULL;
 
 	// If a resource array was provided for the resource, create the resource pre-populated
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
-		Data = ResourceArray->GetResourceData();
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		Data = CreateInfo.ResourceArray->GetResourceData();
 	}
 
 	TRefCountPtr<FOpenGLVertexBuffer> VertexBuffer = new FOpenGLVertexBuffer(0, Size, InUsage, Data);

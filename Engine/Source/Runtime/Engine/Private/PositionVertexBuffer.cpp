@@ -153,7 +153,8 @@ void FPositionVertexBuffer::InitRHI()
 	if(ResourceArray->GetResourceDataSize())
 	{
 		// Create the vertex buffer.
-		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),ResourceArray,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(ResourceArray);
+		VertexBufferRHI = RHICreateVertexBuffer(ResourceArray->GetResourceDataSize(),BUF_Static,CreateInfo);
 	}
 }
 

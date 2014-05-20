@@ -1242,11 +1242,25 @@ struct FRHIResourceInfo
 
 struct FRHIResourceCreateInfo
 {
-	FRHIResourceCreateInfo(FResourceBulkDataInterface* InBulkData = 0)
+	FRHIResourceCreateInfo()
+		: BulkData(0)
+		, ResourceArray(0)
+	{}
+
+	// for CreateTexture calls
+	FRHIResourceCreateInfo(FResourceBulkDataInterface* InBulkData)
 		: BulkData(InBulkData)
 	{}
 
+	// for CreateVertexBuffer/CreateStructuredBuffer calls
+	FRHIResourceCreateInfo(FResourceArrayInterface* InResourceArray)
+		: ResourceArray(InResourceArray)
+	{}
+
+	// for CreateTexture calls
 	FResourceBulkDataInterface* BulkData;
+	// for CreateVertexBuffer/CreateStructuredBuffer calls
+	FResourceArrayInterface* ResourceArray;
 };
 
 // Forward-declaration.

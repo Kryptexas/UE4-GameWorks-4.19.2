@@ -3,7 +3,7 @@
 
 #include "D3D11RHIPrivate.h"
 
-FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,FResourceArrayInterface* ResourceArray,uint32 InUsage)
+FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {
 	// Explicitly check that the size is nonzero before allowing CreateStructuredBuffer to opaquely fail.
 	check(Size > 0);
@@ -65,10 +65,10 @@ FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 	// If a resource array was provided for the resource, create the resource pre-populated
 	D3D11_SUBRESOURCE_DATA InitData;
 	D3D11_SUBRESOURCE_DATA* pInitData = NULL;
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
-		check(Size == ResourceArray->GetResourceDataSize());
-		InitData.pSysMem = ResourceArray->GetResourceData();
+		check(Size == CreateInfo.ResourceArray->GetResourceDataSize());
+		InitData.pSysMem = CreateInfo.ResourceArray->GetResourceData();
 		InitData.SysMemPitch = Size;
 		InitData.SysMemSlicePitch = 0;
 		pInitData = &InitData;
@@ -79,10 +79,10 @@ FStructuredBufferRHIRef FD3D11DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 
 	UpdateBufferStats(StructuredBufferResource, true);
 
-	if(ResourceArray)
+	if(CreateInfo.ResourceArray)
 	{
 		// Discard the resource array's contents.
-		ResourceArray->Discard();
+		CreateInfo.ResourceArray->Discard();
 	}
 
 	return new FD3D11StructuredBuffer(StructuredBufferResource,Stride,Size,InUsage);

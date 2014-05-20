@@ -21,7 +21,8 @@ public:
 
 	virtual void InitRHI()
 	{
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FMaterialSpriteVertex),NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FMaterialSpriteVertex),BUF_Static,CreateInfo);
 	}
 };
 static TGlobalResource<FMaterialSpriteVertexBuffer> GDummyMaterialSpriteVertexBuffer;

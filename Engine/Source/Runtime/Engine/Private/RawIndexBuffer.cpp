@@ -38,7 +38,8 @@ void FRawIndexBuffer::InitRHI()
 	if( Size > 0 )
 	{
 		// Create the index buffer.
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),Size,NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),Size,BUF_Static,CreateInfo);
 
 		// Initialize the buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Size,RLM_WriteOnly);
@@ -76,7 +77,8 @@ void FRawIndexBuffer16or32::InitRHI()
 	if( Size > 0 )
 	{
 		// Create the index buffer.
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint32),Size,NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint32),Size,BUF_Static,CreateInfo);
 
 		// Initialize the buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Size,RLM_WriteOnly);
@@ -197,7 +199,8 @@ void FRawStaticIndexBuffer::InitRHI()
 	if (SizeInBytes > 0)
 	{
 		// Create the index buffer.
-		IndexBufferRHI = RHICreateIndexBuffer(IndexStride,SizeInBytes,&IndexStorage,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&IndexStorage);
+		IndexBufferRHI = RHICreateIndexBuffer(IndexStride,SizeInBytes,BUF_Static,CreateInfo);
 	}    
 }
 

@@ -41,7 +41,8 @@ void FModelVertexBuffer::InitRHI()
 	if( Size > 0 )
 	{
 		// Create the buffer.
-		VertexBufferRHI = RHICreateVertexBuffer(Size,&Vertices,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&Vertices);
+		VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 	}
 }
 

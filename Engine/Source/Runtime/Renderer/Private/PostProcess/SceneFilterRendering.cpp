@@ -41,7 +41,8 @@ public:
 		Vertices[5].UV = FVector2D(1, -1);
 
 		// Create vertex buffer. Fill buffer with initial data upon creation
-		VertexBufferRHI = RHICreateVertexBuffer(Vertices.GetResourceDataSize(), &Vertices, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&Vertices);
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 };
 
@@ -60,7 +61,8 @@ public:
 		FMemory::Memcpy(IndexBuffer.GetData(), Indices, NumIndices * sizeof(uint16));
 
 		// Create index buffer. Fill buffer with initial data upon creation
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), &IndexBuffer, BUF_Static);
+		FRHIResourceCreateInfo CreateInfo(&IndexBuffer);
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfo);
 	}
 };
 

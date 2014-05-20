@@ -87,10 +87,11 @@ public:
 		{
 			for (int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex)
 			{
+				FRHIResourceCreateInfo CreateInfo;
 				Buffers[BufferIndex] = RHICreateVertexBuffer(
 					OffsetsBufferSize,
-					/*ResourceArray=*/ NULL,
-					BUF_Static | BUF_ShaderResource | BUF_UnorderedAccess );
+					BUF_Static | BUF_ShaderResource | BUF_UnorderedAccess,
+					CreateInfo);
 				BufferSRVs[BufferIndex] = RHICreateShaderResourceView(
 					Buffers[BufferIndex],
 					/*Stride=*/ sizeof(uint32),
@@ -182,11 +183,11 @@ public:
 	{
 		if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
 		{
+			FRHIResourceCreateInfo CreateInfo;
 			SortParametersBufferRHI = RHICreateVertexBuffer(
 				/*Size=*/ sizeof(FRadixSortParameters),
-				/*ResourceArray=*/ NULL,
-				/*Usage=*/ BUF_Volatile | BUF_ShaderResource
-				);
+				/*Usage=*/ BUF_Volatile | BUF_ShaderResource,
+				CreateInfo);
 			SortParametersBufferSRV = RHICreateShaderResourceView(
 				SortParametersBufferRHI, /*Stride=*/ sizeof(uint32), PF_R32_UINT 
 				);
@@ -863,10 +864,11 @@ static bool RunGPUSortTest(int32 TestSize)
 	// Allocate GPU resources.
 	for (int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex)
 	{
-		KeysBufferRHI[BufferIndex] = RHICreateVertexBuffer(BufferSize, /*ResourceArray=*/ NULL, BUF_Static|BUF_ShaderResource|BUF_UnorderedAccess);
+		FRHIResourceCreateInfo CreateInfo;
+		KeysBufferRHI[BufferIndex] = RHICreateVertexBuffer(BufferSize, BUF_Static|BUF_ShaderResource|BUF_UnorderedAccess, CreateInfo);
 		KeysBufferSRV[BufferIndex] = RHICreateShaderResourceView(KeysBufferRHI[BufferIndex], /*Stride=*/ sizeof(uint32), PF_R32_UINT);
 		KeysBufferUAV[BufferIndex] = RHICreateUnorderedAccessView(KeysBufferRHI[BufferIndex], PF_R32_UINT);
-		ValuesBufferRHI[BufferIndex] = RHICreateVertexBuffer(BufferSize, /*ResourceArray=*/ NULL, BUF_Static|BUF_ShaderResource|BUF_UnorderedAccess);
+		ValuesBufferRHI[BufferIndex] = RHICreateVertexBuffer(BufferSize, BUF_Static|BUF_ShaderResource|BUF_UnorderedAccess, CreateInfo);
 		ValuesBufferSRV[BufferIndex] = RHICreateShaderResourceView(ValuesBufferRHI[BufferIndex], /*Stride=*/ sizeof(uint32), PF_R32_UINT);
 		ValuesBufferUAV[BufferIndex] = RHICreateUnorderedAccessView(ValuesBufferRHI[BufferIndex], PF_R32_UINT);
 	}

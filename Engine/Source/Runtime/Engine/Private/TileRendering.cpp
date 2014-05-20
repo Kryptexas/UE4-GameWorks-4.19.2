@@ -46,7 +46,8 @@ public:
 		// used with a tristrip, so only 4 vertices are needed
 		uint32 Size = 4 * sizeof(FMaterialTileVertex);
 		// create vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(Size,NULL,BUF_Static);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		// lock it
 		void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
         	// first vertex element

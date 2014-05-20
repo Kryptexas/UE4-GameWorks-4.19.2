@@ -171,7 +171,8 @@ public:
 	virtual void InitRHI() OVERRIDE
 	{
 		check(!IsValidRef(VertexBufferRHI));
-		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, /*ResourceArray=*/ NULL, BUF_Volatile);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, BUF_Volatile, CreateInfo);
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
@@ -352,7 +353,8 @@ public:
 	virtual void InitRHI() OVERRIDE
 	{
 		check(!IsValidRef(IndexBufferRHI));
-		IndexBufferRHI = RHICreateIndexBuffer(Stride, BufferSize, /*ResourceArray=*/ NULL, BUF_Volatile);
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(Stride, BufferSize, BUF_Volatile, CreateInfo);
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}

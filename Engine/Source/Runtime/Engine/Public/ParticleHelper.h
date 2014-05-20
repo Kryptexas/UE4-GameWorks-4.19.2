@@ -2857,7 +2857,8 @@ public:
 	virtual void InitRHI()
 	{
 		// create a static vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FParticleVertexDynamicParameter), NULL, BUF_Static|BUF_ZeroStride);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FParticleVertexDynamicParameter), BUF_Static|BUF_ZeroStride, CreateInfo);
 		FParticleVertexDynamicParameter* Vertices = (FParticleVertexDynamicParameter*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(FParticleVertexDynamicParameter), RLM_WriteOnly);
 		Vertices[0].DynamicValue[0] = Vertices[0].DynamicValue[1] = Vertices[0].DynamicValue[2] = Vertices[0].DynamicValue[3] = 1.0f;
 		RHIUnlockVertexBuffer(VertexBufferRHI);

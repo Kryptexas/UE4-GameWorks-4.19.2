@@ -41,7 +41,8 @@ void FSlateElementVertexBuffer::InitDynamicRHI()
 			BufferSize = 200 * sizeof(FSlateVertex);
 		}
 
-		VertexBufferRHI = RHICreateVertexBuffer( BufferSize, NULL, BUF_Dynamic );
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer( BufferSize, BUF_Dynamic, CreateInfo);
 
 		// Ensure the vertex buffer could be created
 		check(IsValidRef(VertexBufferRHI));
@@ -95,7 +96,8 @@ void FSlateElementVertexBuffer::ResizeBuffer( uint32 NewSizeBytes )
 	if( NewSizeBytes != 0 && NewSizeBytes != BufferSize)
 	{
 		VertexBufferRHI.SafeRelease();
-		VertexBufferRHI = RHICreateVertexBuffer( NewSizeBytes, NULL, BUF_Dynamic );
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer( NewSizeBytes, BUF_Dynamic, CreateInfo);
 		check(IsValidRef(VertexBufferRHI));
 
 		BufferSize = NewSizeBytes;
@@ -125,7 +127,8 @@ void FSlateElementIndexBuffer::InitDynamicRHI()
 		BufferSize = 200 * sizeof(SlateIndex);
 	}
 
-	IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), BufferSize, NULL, BUF_Dynamic );
+	FRHIResourceCreateInfo CreateInfo;
+	IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), BufferSize, BUF_Dynamic, CreateInfo );
 	check( IsValidRef(IndexBufferRHI) );
 }
 
@@ -137,7 +140,8 @@ void FSlateElementIndexBuffer::ResizeBuffer( uint32 NewSizeBytes )
 	if( NewSizeBytes != 0 && NewSizeBytes != BufferSize)
 	{
 		IndexBufferRHI.SafeRelease();
-		IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), NewSizeBytes, NULL, BUF_Dynamic );
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), NewSizeBytes, BUF_Dynamic, CreateInfo );
 		check(IsValidRef(IndexBufferRHI));
 
 		BufferSize = NewSizeBytes;

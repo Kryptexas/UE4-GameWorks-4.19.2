@@ -1993,10 +1993,11 @@ static FBox ComputeParticleBounds(
 
 		// Create a buffer for storing bounds.
 		const int32 BufferSize = GroupCount * 2 * sizeof(FVector4);
+		FRHIResourceCreateInfo CreateInfo;
 		FVertexBufferRHIRef BoundsVertexBufferRHI = RHICreateVertexBuffer(
 			BufferSize,
-			/*ResourceArray=*/ NULL,
-			BUF_Static | BUF_UnorderedAccess );
+			BUF_Static | BUF_UnorderedAccess,
+			CreateInfo);
 		FUnorderedAccessViewRHIRef BoundsVertexBufferUAV = RHICreateUnorderedAccessView(
 			BoundsVertexBufferRHI,
 			PF_A32B32G32R32F );
@@ -2126,7 +2127,8 @@ public:
 		{
 			const int32 TileBufferSize = AlignedTileCount * sizeof(FVector2D);
 			check(TileBufferSize > 0);
-			VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, /*ResourceArray=*/ NULL, BUF_Static | BUF_KeepCPUAccessible | BUF_ShaderResource );
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Static | BUF_KeepCPUAccessible | BUF_ShaderResource, CreateInfo );
 			VertexBufferSRV = RHICreateShaderResourceView( VertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F );
 		}
 	}
@@ -2181,7 +2183,8 @@ public:
 			const int32 BufferStride = sizeof(FParticleIndex);
 			const int32 BufferSize = ParticleCount * BufferStride;
 			uint32 Flags = BUF_Static | /*BUF_KeepCPUAccessible | */BUF_ShaderResource;
-			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, /*ResourceArray=*/ NULL, Flags);
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, Flags, CreateInfo);
 			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, BufferStride, PF_G16R16F);
 		}
 	}

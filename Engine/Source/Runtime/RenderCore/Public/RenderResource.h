@@ -363,7 +363,8 @@ public:
 	virtual void InitRHI()
 	{
 		// create a static vertex buffer
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), NULL, BUF_Static|BUF_ZeroStride);
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), BUF_Static|BUF_ZeroStride,CreateInfo);
 		uint32* Vertices = (uint32*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(uint32), RLM_WriteOnly);
 		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
 		RHIUnlockVertexBuffer(VertexBufferRHI);

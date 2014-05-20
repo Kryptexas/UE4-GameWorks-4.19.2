@@ -298,7 +298,8 @@ public:
 #if GPUSKIN_USE_DATA_BUFFERS
 			{
 				const int32 TileBufferSize = ComputeMemorySize();
-				BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, NULL, BUF_Volatile | BUF_ShaderResource );
+				FRHIResourceCreateInfo CreateInfo;
+				BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Volatile | BUF_ShaderResource, CreateInfo );
 				BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 			}
 #else

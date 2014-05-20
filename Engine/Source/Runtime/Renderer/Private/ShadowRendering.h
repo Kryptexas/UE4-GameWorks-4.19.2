@@ -81,7 +81,8 @@ namespace StencilingGeometry
 			uint32 Size = Verts.GetResourceDataSize();
 
 			// Create vertex buffer. Fill buffer with initial data upon creation
-			VertexBufferRHI = RHICreateVertexBuffer(Size,&Verts,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Verts);
+			VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		}
 
 		int32 GetVertexCount() const { return NumSphereVerts; }
@@ -127,7 +128,8 @@ namespace StencilingGeometry
 			const uint32 Stride = sizeof(uint16);
 
 			// Create index buffer. Fill buffer with initial data upon creation
-			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, &Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static, CreateInfo);
 		}
 
 		int32 GetIndexCount() const { return NumIndices; }; 
@@ -197,7 +199,8 @@ namespace StencilingGeometry
 			NumIndices = Indices.Num();
 
 			// Create index buffer. Fill buffer with initial data upon creation
-			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, &Indices,BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Indices);
+			IndexBufferRHI = RHICreateIndexBuffer(Stride, Size, BUF_Static,CreateInfo);
 		}
 
 		int32 GetIndexCount() const { return NumIndices; } 
@@ -229,7 +232,8 @@ namespace StencilingGeometry
 			uint32 Size = Verts.GetResourceDataSize();
 
 			// Create vertex buffer. Fill buffer with initial data upon creation
-			VertexBufferRHI = RHICreateVertexBuffer(Size, &Verts, BUF_Static);
+			FRHIResourceCreateInfo CreateInfo(&Verts);
+			VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Static, CreateInfo);
 		}
 
 		int32 GetVertexCount() const { return NumVerts; }
