@@ -22,7 +22,7 @@ struct TouchInput
 /**
  * Interface class for IOS input devices
  */
-class FIOSInputInterface : public FExec
+class FIOSInputInterface : private FSelfRegisteringExec
 {
 public:
 

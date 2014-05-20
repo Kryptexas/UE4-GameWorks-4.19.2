@@ -907,6 +907,7 @@ struct FURL;
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "Kismet/KismetAIHelperLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "Kismet/KismetInputLibrary.h"
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
