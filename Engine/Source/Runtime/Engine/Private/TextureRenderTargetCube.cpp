@@ -209,28 +209,35 @@ void FTextureRenderTargetCubeResource::InitDynamicRHI()
 
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
 		uint32 TexCreateFlags = bSRGB ? TexCreate_SRGB : 0;
-		RHICreateTargetableShaderResourceCube(
-			Owner->SizeX,
-			Owner->GetFormat(), 
-			Owner->GetNumMips(),
-			TexCreateFlags, 
-			TexCreate_RenderTargetable,
-			false,
-			RenderTargetCubeRHI,
-			TextureCubeRHI );
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			RHICreateTargetableShaderResourceCube(
+				Owner->SizeX,
+				Owner->GetFormat(), 
+				Owner->GetNumMips(),
+				TexCreateFlags, 
+				TexCreate_RenderTargetable,
+				false,
+				CreateInfo,
+				RenderTargetCubeRHI,
+				TextureCubeRHI );
+		}
 
 		TextureRHI = TextureCubeRHI;
 
 		// Create the RHI target surface used for rendering to
-		CubeFaceSurfaceRHI = RHICreateTexture2D(
-			Owner->SizeX, 
-			Owner->SizeX, 
-			Owner->GetFormat(),
-			Owner->GetNumMips(), 
-			/* NumSamples =*/ 1,
-			TexCreate_RenderTargetable|TexCreateFlags,
-			NULL
-			);
+		{
+			FRHIResourceCreateInfo CreateInfo;
+			CubeFaceSurfaceRHI = RHICreateTexture2D(
+				Owner->SizeX, 
+				Owner->SizeX, 
+				Owner->GetFormat(),
+				Owner->GetNumMips(), 
+				/* NumSamples =*/ 1,
+				TexCreate_RenderTargetable|TexCreateFlags,
+				CreateInfo
+				);
+		}
 
 		// Set render target to 2D surface.
 		RenderTargetTextureRHI = CubeFaceSurfaceRHI;

@@ -176,6 +176,8 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 		// TexCreate_UAV should be used on Desc.TargetableFlags
 		check(!(Desc.Flags & TexCreate_UAV));
 
+		FRHIResourceCreateInfo CreateInfo;
+
 		if(Desc.TargetableFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV))
 		{
 			if(Desc.Is2DTexture())
@@ -188,6 +190,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Flags,
 					Desc.TargetableFlags,
 					Desc.bForceSeparateTargetAndShaderResource,
+					CreateInfo,
 					(FTexture2DRHIRef&)Found->RenderTargetItem.TargetableTexture,
 					(FTexture2DRHIRef&)Found->RenderTargetItem.ShaderResourceTexture,
 					Desc.NumSamples
@@ -202,7 +205,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Format,
 					Desc.NumMips,
 					Desc.TargetableFlags,
-					NULL);
+					CreateInfo);
 
 				// similar to RHICreateTargetableShaderResource2D
 				Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture;
@@ -220,6 +223,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 						Desc.Flags,
 						Desc.TargetableFlags,
 						false,
+						CreateInfo,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
@@ -233,6 +237,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 						Desc.Flags,
 						Desc.TargetableFlags,
 						false,
+						CreateInfo,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.TargetableTexture,
 						(FTextureCubeRHIRef&)Found->RenderTargetItem.ShaderResourceTexture
 						);
@@ -254,7 +259,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.NumMips,
 					Desc.NumSamples,
 					Desc.Flags,
-					NULL);
+					CreateInfo);
 			}
 			else if(Desc.Is3DTexture())
 			{
@@ -265,19 +270,19 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					Desc.Format,
 					Desc.NumMips,
 					Desc.Flags,
-					NULL);
+					CreateInfo);
 			}
 			else 
 			{
 				check(Desc.IsCubemap());
 				if(Desc.IsArray())
 				{
-					FTextureCubeRHIRef CubeTexture = RHICreateTextureCubeArray(Desc.Extent.X,Desc.ArraySize,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,NULL);
+					FTextureCubeRHIRef CubeTexture = RHICreateTextureCubeArray(Desc.Extent.X,Desc.ArraySize,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,CreateInfo);
 					Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture = CubeTexture;
 				}
 				else
 				{
-					FTextureCubeRHIRef CubeTexture = RHICreateTextureCube(Desc.Extent.X,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,NULL);
+					FTextureCubeRHIRef CubeTexture = RHICreateTextureCube(Desc.Extent.X,Desc.Format,Desc.NumMips,Desc.Flags | Desc.TargetableFlags | TexCreate_ShaderResource,CreateInfo);
 					Found->RenderTargetItem.TargetableTexture = Found->RenderTargetItem.ShaderResourceTexture = CubeTexture;
 				}
 			}

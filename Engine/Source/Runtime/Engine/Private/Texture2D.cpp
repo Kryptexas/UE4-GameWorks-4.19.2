@@ -1271,7 +1271,8 @@ void FTexture2DResource::InitRHI()
 			{
 				TexCreateFlags |= TexCreate_Virtual;
 
-				Texture2DRHI	= RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, EffectiveFormat, OwnerMips.Num(), 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				Texture2DRHI	= RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, EffectiveFormat, OwnerMips.Num(), 1, TexCreateFlags, CreateInfo);
 				RHIVirtualTextureSetFirstMipInMemory(Texture2DRHI, CurrentFirstMip);
 				RHIVirtualTextureSetFirstMipVisible(Texture2DRHI, CurrentFirstMip);
 
@@ -1303,7 +1304,8 @@ void FTexture2DResource::InitRHI()
 			}
 
 			// create texture with ResourceMem data when available
-			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, ResourceMem );
+			FRHIResourceCreateInfo CreateInfo(ResourceMem);
+			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo);
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 
@@ -1351,7 +1353,8 @@ void FTexture2DResource::InitRHI()
 		bool bSkipRHITextureCreation = false; //Owner->bIsCompositingSource;
 		if (GIsEditor || (!bSkipRHITextureCreation))
 		{
-			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, NULL );
+			FRHIResourceCreateInfo CreateInfo;
+			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 			for( int32 MipIndex=CurrentFirstMip; MipIndex<OwnerMips.Num(); MipIndex++ )
@@ -1634,7 +1637,8 @@ void FTexture2DResource::UpdateMipCount()
 				check(PendingFirstMip>=0);
 
 				const uint32 TexCreateFlags = Texture2DRHI->GetFlags() & ~TexCreate_Virtual;
-				IntermediateTextureRHI = RHICreateTexture2D( OwnerMips[PendingFirstMip].SizeX, OwnerMips[PendingFirstMip].SizeY, OldTexture->GetFormat(), OwnerMips.Num() - PendingFirstMip, 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				IntermediateTextureRHI = RHICreateTexture2D( OwnerMips[PendingFirstMip].SizeX, OwnerMips[PendingFirstMip].SizeY, OldTexture->GetFormat(), OwnerMips.Num() - PendingFirstMip, 1, TexCreateFlags, CreateInfo );
 
 				check(Owner->bIsStreamable);
 				check(Owner->PendingMipChangeRequestStatus.GetValue() == TexState_InProgress_Allocation);
@@ -1654,7 +1658,8 @@ void FTexture2DResource::UpdateMipCount()
 			else
 			{
 				const uint32 TexCreateFlags = Texture2DRHI->GetFlags() | TexCreate_Virtual;
-				Texture2DRHI = RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, OldTexture->GetFormat(), OwnerMips.Num(), 1, TexCreateFlags, ResourceMem );
+				FRHIResourceCreateInfo CreateInfo(ResourceMem);
+				Texture2DRHI = RHICreateTexture2D( OwnerMips[0].SizeX, OwnerMips[0].SizeY, OldTexture->GetFormat(), OwnerMips.Num(), 1, TexCreateFlags, CreateInfo );
 				RHIVirtualTextureSetFirstMipInMemory(Texture2DRHI, CurrentFirstMip);
 				RHIVirtualTextureSetFirstMipVisible(Texture2DRHI, CurrentFirstMip);
 				RHICopySharedMips(Texture2DRHI, OldTexture);
@@ -2306,7 +2311,8 @@ void FTexture2DArrayResource::InitRHI()
 {
 	// Create the RHI texture.
 	const uint32 TexCreateFlags = (bSRGB ? TexCreate_SRGB : 0) | TexCreate_OfflineProcessed;
-	FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(SizeX, SizeY, GetNumValidTextures(), Format, NumMips, TexCreateFlags, NULL);
+	FRHIResourceCreateInfo CreateInfo;
+	FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(SizeX, SizeY, GetNumValidTextures(), Format, NumMips, TexCreateFlags, CreateInfo);
 	TextureRHI = TextureArray;
 
 	// Read the mip-levels into the RHI texture.

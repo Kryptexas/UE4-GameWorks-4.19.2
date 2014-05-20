@@ -472,7 +472,7 @@ DEFINE_RHIMETHOD_7(
 	uint32,NumMips,
 	uint32,NumSamples,
 	uint32,Flags,
-	FResourceBulkDataInterface*,BulkData,
+	FRHIResourceCreateInfo&,Info,
 	return,return new FRHITexture2D(SizeX,SizeY,NumMips,NumSamples,(EPixelFormat)Format,Flags);
 	);
 
@@ -532,7 +532,7 @@ DEFINE_RHIMETHOD_7(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FResourceBulkDataInterface*,BulkData,
+	FRHIResourceCreateInfo&,Info,
 	return,return new FRHITexture2DArray(SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
 	);
 
@@ -544,7 +544,6 @@ DEFINE_RHIMETHOD_7(
 * @param Format - EPixelFormat texture format
 * @param NumMips - number of mips to generate or 0 for full mip pyramid
 * @param Flags - ETextureCreateFlags creation flags
-* @param Data - Data to initialize the texture with
 */
 DEFINE_RHIMETHOD_7(
 	FTexture3DRHIRef,RHICreateTexture3D,
@@ -554,7 +553,7 @@ DEFINE_RHIMETHOD_7(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FResourceBulkDataInterface*,BulkData,
+	FRHIResourceCreateInfo&,Info,
 	return,return new FRHITexture3D(SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
 	);
 
@@ -790,29 +789,29 @@ DEFINE_RHIMETHOD_5(
 	uint8,Format,
 	uint32,NumMips,
 	uint32,Flags,
-	FResourceBulkDataInterface*,BulkData,
+	FRHIResourceCreateInfo&,Info,
 	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
 	);
 
 
-	/**
-	* Creates a Cube Array RHI texture resource
-	* @param Size - width/height of the texture to create
-	* @param ArraySize - number of array elements of the texture to create
-	* @param Format - EPixelFormat texture format
-	* @param NumMips - number of mips to generate or 0 for full mip pyramid
-	* @param Flags - ETextureCreateFlags creation flags
-	*/
-	DEFINE_RHIMETHOD_6(
-		FTextureCubeRHIRef,RHICreateTextureCubeArray,
-		uint32,Size,
-		uint32,ArraySize,
-		uint8,Format,
-		uint32,NumMips,
-		uint32,Flags,
-		FResourceBulkDataInterface*,BulkData,
-		return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
-	);
+/**
+* Creates a Cube Array RHI texture resource
+* @param Size - width/height of the texture to create
+* @param ArraySize - number of array elements of the texture to create
+* @param Format - EPixelFormat texture format
+* @param NumMips - number of mips to generate or 0 for full mip pyramid
+* @param Flags - ETextureCreateFlags creation flags
+*/
+DEFINE_RHIMETHOD_6(
+	FTextureCubeRHIRef,RHICreateTextureCubeArray,
+	uint32,Size,
+	uint32,ArraySize,
+	uint8,Format,
+	uint32,NumMips,
+	uint32,Flags,
+	FRHIResourceCreateInfo&,Info,
+	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
+);
 
 
 /**

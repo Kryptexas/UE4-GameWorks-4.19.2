@@ -1150,9 +1150,9 @@ TOpenGLTexture<RHIResourceType>::~TOpenGLTexture()
 * @param NumMips - number of mips to generate or 0 for full mip pyramid
 * @param Flags - ETextureCreateFlags creation flags
 */
-FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture2DRHIRef FOpenGLDynamicRHI::RHICreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& Info)
 {
-	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,Format,NumMips,NumSamples,1, Flags,BulkData);
+	return (FRHITexture2D*)CreateOpenGLTexture(SizeX,SizeY,false,false,Format,NumMips,NumSamples,1,Flags,Info.BulkData);
 }
 
 FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 Flags,void** InitialMipData,uint32 NumInitialMips)
@@ -1166,7 +1166,7 @@ void FOpenGLDynamicRHI::RHICopySharedMips(FTexture2DRHIParamRef DestTexture2D,FT
 	check(0);
 }
 
-FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags, FRHIResourceCreateInfo& Info)
 {
 	VERIFY_GL_SCOPE();
 
@@ -1217,7 +1217,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 	// Make sure PBO is disabled
 	CachedBindPixelUnpackBuffer(ContextState, 0);
 
-	uint8* Data = BulkData ? (uint8*)BulkData->GetResourceBulkData() : NULL;
+	uint8* Data = Info.BulkData ? (uint8*)Info.BulkData->GetResourceBulkData() : NULL;
 	uint32 MipOffset = 0;
 
 	FOpenGL::TexStorage3D( Target, NumMips, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, SizeZ, GLFormat.Format, GLFormat.Type );
@@ -1275,7 +1275,7 @@ FTexture2DArrayRHIRef FOpenGLDynamicRHI::RHICreateTexture2DArray(uint32 SizeX,ui
 	return Texture;
 }
 
-FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData)
+FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo)
 {
 	VERIFY_GL_SCOPE();
 
@@ -1325,7 +1325,7 @@ FTexture3DRHIRef FOpenGLDynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY
 	// Make sure PBO is disabled
 	CachedBindPixelUnpackBuffer(ContextState,0);
 
-	uint8* Data = BulkData ? (uint8*)BulkData->GetResourceBulkData() : NULL;
+	uint8* Data = CreateInfo.BulkData ? (uint8*)CreateInfo.BulkData->GetResourceBulkData() : NULL;
 	uint32 MipOffset = 0;
 
 	FOpenGL::TexStorage3D( Target, NumMips, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, SizeZ, GLFormat.Format, GLFormat.Type );
@@ -1749,13 +1749,19 @@ void FOpenGLDynamicRHI::InvalidateUAVResourceInCache(GLuint Resource)
 /*-----------------------------------------------------------------------------
 	Cubemap texture support.
 -----------------------------------------------------------------------------*/
-FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCube( uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData )
+FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCube( uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo )
 {
+	// not yet supported
+	check(!CreateInfo.BulkData);
+
 	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, false, Format, NumMips, 1, 1, Flags);
 }
 
-FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData )
+FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo )
 {
+	// not yet supported
+	check(!CreateInfo.BulkData);
+
 	return (FRHITextureCube*)CreateOpenGLTexture(Size,Size,true, true, Format, NumMips, 1, 6 * ArraySize, Flags);
 }
 

@@ -112,9 +112,9 @@ uint32 FEmptyDynamicRHI::RHIComputeMemorySize(FTextureRHIParamRef TextureRHI)
 	2D texture support.
 -----------------------------------------------------------------------------*/
 
-FTexture2DRHIRef FEmptyDynamicRHI::RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTexture2DRHIRef FEmptyDynamicRHI::RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return new FEmptyTexture2D((EPixelFormat)Format, SizeX, SizeY, NumMips, NumSamples, Flags, BulkData);
+	return new FEmptyTexture2D((EPixelFormat)Format, SizeX, SizeY, NumMips, NumSamples, Flags, CreateInfo.BulkData);
 }
 
 FTexture2DRHIRef FEmptyDynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 SizeY,uint8 Format,uint32 NumMips,uint32 Flags,void** InitialMipData,uint32 NumInitialMips)
@@ -128,14 +128,14 @@ void FEmptyDynamicRHI::RHICopySharedMips(FTexture2DRHIParamRef DestTexture2D,FTe
 
 }
 
-FTexture2DArrayRHIRef FEmptyDynamicRHI::RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTexture2DArrayRHIRef FEmptyDynamicRHI::RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return new FEmptyTexture2DArray((EPixelFormat)Format, SizeX, SizeY, SizeZ, NumMips, Flags, BulkData);
+	return new FEmptyTexture2DArray((EPixelFormat)Format, SizeX, SizeY, SizeZ, NumMips, Flags, CreateInfo.BulkData);
 }
 
-FTexture3DRHIRef FEmptyDynamicRHI::RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTexture3DRHIRef FEmptyDynamicRHI::RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return new FEmptyTexture3D((EPixelFormat)Format, SizeX, SizeY, SizeZ, NumMips, Flags, BulkData);
+	return new FEmptyTexture3D((EPixelFormat)Format, SizeX, SizeY, SizeZ, NumMips, Flags, CreateInfo.BulkData);
 }
 
 void FEmptyDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
@@ -205,14 +205,14 @@ void FEmptyDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 /*-----------------------------------------------------------------------------
 	Cubemap texture support.
 -----------------------------------------------------------------------------*/
-FTextureCubeRHIRef FEmptyDynamicRHI::RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTextureCubeRHIRef FEmptyDynamicRHI::RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return new FEmptyTextureCube((EPixelFormat)Format, Size, false, 1, NumMips, Flags, BulkData);
+	return new FEmptyTextureCube((EPixelFormat)Format, Size, false, 1, NumMips, Flags, CreateInfo.BulkData);
 }
 
-FTextureCubeRHIRef FEmptyDynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
+FTextureCubeRHIRef FEmptyDynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 {
-	return new FEmptyTextureCube((EPixelFormat)Format, Size, true, ArraySize, NumMips, Flags, BulkData);
+	return new FEmptyTextureCube((EPixelFormat)Format, Size, true, ArraySize, NumMips, Flags, CreateInfo.BulkData);
 }
 
 void* FEmptyDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)

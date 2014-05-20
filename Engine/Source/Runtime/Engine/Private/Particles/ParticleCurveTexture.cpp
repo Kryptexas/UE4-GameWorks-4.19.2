@@ -494,6 +494,7 @@ FParticleCurveTexture::FParticleCurveTexture()
 void FParticleCurveTexture::InitRHI()
 {
 	// 8-bit per channel RGBA texture for curves.
+	FRHIResourceCreateInfo CreateInfo;
 	RHICreateTargetableShaderResource2D(
 		GParticleCurveTextureSizeX,
 		GParticleCurveTextureSizeY,
@@ -502,6 +503,7 @@ void FParticleCurveTexture::InitRHI()
 		TexCreate_None,
 		TexCreate_RenderTargetable,
 		/*bForceSeparateTargetAndShaderResource=*/ false,
+		CreateInfo,
 		CurveTextureTargetRHI,
 		CurveTextureRHI
 		);

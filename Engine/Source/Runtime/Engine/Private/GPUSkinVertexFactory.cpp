@@ -115,7 +115,8 @@ TStatId FBoneBufferPool::GetStatId() const
 FTexture2DRHIRef FBoneTexturePoolPolicy::CreateResource(FSharedPoolPolicyData::CreationArguments Args)
 {
 	FSharedPoolPolicyData::CreationArguments ActualSize = GetPoolBucketSize(GetPoolBucketIndex(Args)) / sizeof(FVector4);
-	FTexture2DRHIRef Texture = RHICreateTexture2D(ActualSize, 1, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), NULL);
+	FRHIResourceCreateInfo CreateInfo;
+	FTexture2DRHIRef Texture = RHICreateTexture2D(ActualSize, 1, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), CreateInfo);
 	return Texture;
 }
 

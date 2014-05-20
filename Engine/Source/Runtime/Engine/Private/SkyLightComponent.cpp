@@ -20,7 +20,8 @@ void FSkyTextureCubeResource::InitRHI()
 {
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
-		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);
 		TextureRHI = TextureCubeRHI;
 
 		// Create the sampler state RHI resource.

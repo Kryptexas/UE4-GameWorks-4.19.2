@@ -723,7 +723,8 @@ public:
 	{
 		FTexture2DRHIRef ShaderResourceTextureRHI;
 
-		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
 	}
 
 	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
@@ -1481,8 +1482,14 @@ void FViewport::FHitProxyMap::Init(uint32 NewSizeX,uint32 NewSizeY)
 	SizeY = NewSizeY;
 
 	// Create a render target to store the hit proxy map.
-	RHICreateTargetableShaderResource2D(SizeX,SizeY,PF_B8G8R8A8,1,TexCreate_None,TexCreate_RenderTargetable,false,RenderTargetTextureRHI,HitProxyTexture);
-	HitProxyCPUTexture = RHICreateTexture2D(SizeX, SizeY, PF_B8G8R8A8,1,1,TexCreate_CPUReadback,NULL);
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D(SizeX,SizeY,PF_B8G8R8A8,1,TexCreate_None,TexCreate_RenderTargetable,false,CreateInfo,RenderTargetTextureRHI,HitProxyTexture);
+	}
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		HitProxyCPUTexture = RHICreateTexture2D(SizeX, SizeY, PF_B8G8R8A8,1,1,TexCreate_CPUReadback,CreateInfo);
+	}
 }
 
 void FViewport::FHitProxyMap::Release()

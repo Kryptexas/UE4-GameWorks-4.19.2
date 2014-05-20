@@ -183,6 +183,7 @@ inline void RHICreateTargetableShaderResource2D(
 	uint32 Flags,
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
+	FRHIResourceCreateInfo& CreateInfo,
 	FTexture2DRHIRef& OutTargetableTexture,
 	FTexture2DRHIRef& OutShaderResourceTexture,
 	uint32 NumSamples=1
@@ -207,13 +208,13 @@ inline void RHICreateTargetableShaderResource2D(
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags,NULL);
-		OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,1,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags,CreateInfo);
+		OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,1,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
 	}
 }
 
@@ -232,6 +233,7 @@ inline void RHICreateTargetableShaderResourceCube(
 	uint32 Flags,
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
+	FRHIResourceCreateInfo& CreateInfo,
 	FTextureCubeRHIRef& OutTargetableTexture,
 	FTextureCubeRHIRef& OutShaderResourceTexture
 	)
@@ -256,13 +258,13 @@ inline void RHICreateTargetableShaderResourceCube(
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags,NULL);
-		OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags,CreateInfo);
+		OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
 	}
 }
 
@@ -282,6 +284,7 @@ inline void RHICreateTargetableShaderResourceCubeArray(
 	uint32 Flags,
 	uint32 TargetableTextureFlags,
 	bool bForceSeparateTargetAndShaderResource,
+	FRHIResourceCreateInfo& CreateInfo,
 	FTextureCubeRHIRef& OutTargetableTexture,
 	FTextureCubeRHIRef& OutShaderResourceTexture
 	)
@@ -300,13 +303,13 @@ inline void RHICreateTargetableShaderResourceCubeArray(
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags,NULL);
-		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,NULL);
+		OutTargetableTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags,CreateInfo);
+		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
 	}
 }
 /**

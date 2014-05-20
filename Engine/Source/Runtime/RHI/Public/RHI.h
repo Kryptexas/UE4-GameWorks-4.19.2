@@ -1240,6 +1240,15 @@ struct FRHIResourceInfo
 	FVRamAllocation VRamAllocation;
 };
 
+struct FRHIResourceCreateInfo
+{
+	FRHIResourceCreateInfo(FResourceBulkDataInterface* InBulkData = 0)
+		: BulkData(InBulkData)
+	{}
+
+	FResourceBulkDataInterface* BulkData;
+};
+
 // Forward-declaration.
 struct FResolveParams;
 

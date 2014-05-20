@@ -142,35 +142,38 @@ public:
 				{
 					const uint32 DataSize = SizeX * SizeY * sizeof(FColor);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture2D(
 						SizeX, SizeY, PF_B8G8R8A8,
 						/*NumMips=*/ 1,
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			case E_Irradiance:
 				{
 					const uint32 DataSize = SizeX * SizeY * sizeof(FColor);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture2D(
 						SizeX, SizeY, PF_B8G8R8A8,
 						/*NumMips=*/ 1,
 						/*NumSamples=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			case E_Inscatter:
 				{
 					const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 					FAtmosphereResourceBulkDataInterface BulkDataInterface(TextureData, DataSize);
+					FRHIResourceCreateInfo CreateInfo(&BulkDataInterface);
 					TextureRHI = RHICreateTexture3D(
 						SizeX, SizeY, SizeZ, PF_FloatRGBA,
 						/*NumMips=*/ 1,
 						/*Flags=*/ TexCreate_ShaderResource,
-						/*BulkData=*/ &BulkDataInterface );
+						/*BulkData=*/ CreateInfo );
 				}
 				break;
 			}

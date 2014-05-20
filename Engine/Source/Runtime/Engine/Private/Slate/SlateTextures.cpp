@@ -42,7 +42,8 @@ void FSlateTexture2DRHIRef::InitDynamicRHI()
 		if( TextureData.IsValid() || bCreateEmptyTexture )
 		{
 			check( !IsValidRef( ShaderResource) );
-			ShaderResource = RHICreateTexture2D( Width, Height, PixelFormat, 1, 1, TexCreateFlags, NULL );
+			FRHIResourceCreateInfo CreateInfo;
+			ShaderResource = RHICreateTexture2D( Width, Height, PixelFormat, 1, 1, TexCreateFlags, CreateInfo );
 			check( IsValidRef( ShaderResource ) );
 		}
 
@@ -170,6 +171,7 @@ void FSlateTextureRenderTarget2DResource::InitDynamicRHI()
 	if( TargetSizeX > 0 && TargetSizeY > 0 )
 	{
 		// Create the RHI texture. Only one mip is used and the texture is targetable for resolve.
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			TargetSizeX, 
 			TargetSizeY, 
@@ -178,6 +180,7 @@ void FSlateTextureRenderTarget2DResource::InitDynamicRHI()
 			/*TexCreateFlags=*/0,
 			TexCreate_RenderTargetable,
 			/*bNeedsTwoCopies=*/false,
+			CreateInfo,
 			RenderTargetTextureRHI,
 			Texture2DRHI
 			);

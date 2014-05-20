@@ -224,7 +224,8 @@ public:
 
 		// Create the RHI texture.
 		uint32 TexCreateFlags = (Owner->SRGB ? TexCreate_SRGB : 0)  | TexCreate_OfflineProcessed;
-		TextureCubeRHI = RHICreateTextureCube( Owner->GetSizeX(), Owner->GetPixelFormat(), Owner->GetNumMips(), TexCreateFlags, NULL );
+		FRHIResourceCreateInfo CreateInfo;
+		TextureCubeRHI = RHICreateTextureCube( Owner->GetSizeX(), Owner->GetPixelFormat(), Owner->GetNumMips(), TexCreateFlags, CreateInfo );
 		TextureRHI = TextureCubeRHI;
 		RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
 

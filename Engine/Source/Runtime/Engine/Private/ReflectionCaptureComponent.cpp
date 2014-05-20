@@ -622,7 +622,8 @@ public:
 
 	virtual void InitRHI()
 	{
-		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		TextureCubeRHI = RHICreateTextureCube(Size, Format, NumMips, 0, CreateInfo);
 		TextureRHI = TextureCubeRHI;
 
 		if (SourceData)

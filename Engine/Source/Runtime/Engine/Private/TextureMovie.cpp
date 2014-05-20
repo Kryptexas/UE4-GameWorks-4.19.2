@@ -352,6 +352,7 @@ void FTextureMovieResource::InitDynamicRHI()
 	{
 		// Create the RHI texture. Only one mip is used and the texture is targetable or resolve.
 		uint32 TexCreateFlags = Owner->SRGB ? TexCreate_SRGB : 0;
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			Owner->SizeX, 
 			Owner->SizeY, 
@@ -360,6 +361,7 @@ void FTextureMovieResource::InitDynamicRHI()
 			TexCreateFlags,
 			TexCreate_RenderTargetable,
 			false,
+			CreateInfo,
 			RenderTargetTextureRHI,
 			Texture2DRHI
 			);

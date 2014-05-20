@@ -1103,7 +1103,8 @@ void FSceneViewport::InitDynamicRHI()
 	{
 		FTexture2DRHIRef ShaderResourceTextureRHI;
 
-		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D( SizeX, SizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
 
 		if( !SlateRenderTargetHandle )
 		{

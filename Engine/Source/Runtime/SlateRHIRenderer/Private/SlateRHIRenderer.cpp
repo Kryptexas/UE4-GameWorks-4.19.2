@@ -49,6 +49,7 @@ static FMatrix CreateProjectionMatrix( uint32 Width, uint32 Height )
 
 void FSlateCrashReportResource::InitDynamicRHI()
 {
+	FRHIResourceCreateInfo CreateInfo;
 	CrashReportBuffer = RHICreateTexture2D(
 		VirtualScreen.Width() * CrashTrackerConstants::ScreenScaling,
 		VirtualScreen.Height() * CrashTrackerConstants::ScreenScaling,
@@ -56,7 +57,7 @@ void FSlateCrashReportResource::InitDynamicRHI()
 		1,
 		1,
 		TexCreate_RenderTargetable,
-		NULL
+		CreateInfo
 		);
 
 	for (int32 i = 0; i < 2; ++i)
@@ -68,7 +69,7 @@ void FSlateCrashReportResource::InitDynamicRHI()
 			1,
 			1,
 			TexCreate_CPUReadback,
-			NULL
+			CreateInfo
 			);
 	}
 	
@@ -124,7 +125,8 @@ void FSlateRHIRenderer::FViewportInfo::RecreateDepthBuffer_RenderThread()
 	if (bRequiresStencilTest)
 	{		
 		FTexture2DRHIRef ShaderResourceUnused;
-		RHICreateTargetableShaderResource2D( Width, Height, PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, DepthStencil, ShaderResourceUnused );
+		FRHIResourceCreateInfo CreateInfo;
+		RHICreateTargetableShaderResource2D( Width, Height, PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused );
 		check( IsValidRef(DepthStencil) );
 	}
 }

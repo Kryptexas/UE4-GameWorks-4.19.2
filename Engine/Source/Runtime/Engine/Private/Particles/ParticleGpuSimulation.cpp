@@ -170,6 +170,7 @@ public:
 		check( !IsValidRef( PositionTextureTargetRHI ) );
 		check( !IsValidRef( PositionTextureRHI ) );
 
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			SizeX,
 			SizeY,
@@ -178,6 +179,7 @@ public:
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
+			CreateInfo,
 			PositionTextureTargetRHI,
 			PositionTextureRHI
 			);
@@ -194,6 +196,7 @@ public:
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
+			CreateInfo,
 			VelocityTextureTargetRHI,
 			VelocityTextureRHI
 			);
@@ -235,6 +238,7 @@ public:
 		const int32 SizeX = GParticleSimulationTextureSizeX;
 		const int32 SizeY = GParticleSimulationTextureSizeY;
 
+		FRHIResourceCreateInfo CreateInfo;
 		RHICreateTargetableShaderResource2D(
 			SizeX,
 			SizeY,
@@ -243,6 +247,7 @@ public:
 			TexCreate_None,
 			TexCreate_RenderTargetable,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
+			CreateInfo,
 			TextureTargetRHI,
 			TextureRHI
 			);

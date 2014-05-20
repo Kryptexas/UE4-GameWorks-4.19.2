@@ -307,7 +307,8 @@ public:
 				uint32 Y = (SizeX / GPUSKIN_TEXTURE_STRIDE)+1;
 				check((uint32)GMaxTextureDimensions >= X);
 				check((uint32)GMaxTextureDimensions >= Y);
-				BoneBuffer = RHICreateTexture2D(X, Y, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), NULL);
+				FRHIResourceCreateInfo CreateInfo;
+				BoneBuffer = RHICreateTexture2D(X, Y, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), CreateInfo);
 			}
 #endif
 		}

@@ -483,9 +483,9 @@ protected:
 
 	template<typename BaseResourceType>
 	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,
-		uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
+		uint32 NumMips,uint32 NumSamples,uint32 Flags,FRHIResourceCreateInfo& CreateInfo);
 
-	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData);
+	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FRHIResourceCreateInfo& CreateInfo);
 
 	/** Initializes the constant buffers.  Called once at RHI initialization time. */
 	void InitConstantBuffers();
@@ -749,5 +749,354 @@ public:
 
 	static FFastVRAMAllocator* GetFastVRAMAllocator();
 };
+
+
+
+
+
+// 1d, 31 bit (uses the sign bit for internal use), O(n) where n is the amount of elements stored
+// does not enforce any alignment
+// unoccupied regions get compacted but occupied don't get compacted
+class FRangeAllocator
+{
+public:
+
+	struct FRange
+	{
+		// not valid
+		FRange()
+			: Start(0)
+			, Size(0)
+		{
+			check(!IsValid());
+		}
+
+		void SetOccupied(int32 InStart, int32 InSize)
+		{
+			check(InStart >= 0);
+			check(InSize > 0);
+
+			Start = InStart;
+			Size = InSize;
+			check(IsOccupied());
+		}
+
+		void SetUnOccupied(int32 InStart, int32 InSize)
+		{
+			check(InStart >= 0);
+			check(InSize > 0);
+
+			Start = InStart;
+			Size = -InSize;
+			check(!IsOccupied());
+		}
+
+		bool IsValid() { return Size != 0; }
+
+		bool IsOccupied() const { return Size > 0; }
+		uint32 ComputeSize() const { return (Size > 0) ? Size : -Size; }
+
+		// @apram InSize can be <0 to remove from the size
+		void ExtendUnoccupied(int32 InSize) { check(!IsOccupied()); Size -= InSize; }
+
+		void MakeOccupied(int32 InSize) { check(InSize > 0); check(!IsOccupied()); Size = InSize; }
+		void MakeUnOccupied() { check(IsOccupied()); Size = -Size; }
+
+		bool operator==(const FRange& rhs) const { return Start == rhs.Start && Size == rhs.Size; }
+
+		int32 GetStart() { return Start; }
+		int32 GetEnd() { return Start + ComputeSize(); }
+
+	private:
+		// in bytes
+		int32 Start;
+		// in bytes, 0:not valid, <0:unoccupied, >0:occupied
+		int32 Size;
+	};
+public:
+
+	// constructor
+	FRangeAllocator(uint32 TotalSize)
+	{
+		FRange NewRange;
+
+		NewRange.SetUnOccupied(0, TotalSize);
+
+		Entries.Add(NewRange);
+	}
+
+	// specified range must be non occupied
+	void OccupyRange(FRange InRange)
+	{
+		check(InRange.IsValid());
+		check(InRange.IsOccupied());
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				int32 OverlapSize = ref.GetEnd() - InRange.GetStart();
+
+				if(OverlapSize > 0)
+				{
+					int32 FrontCutSize = InRange.GetStart() - ref.GetStart();
+
+					// there is some front part we cut off
+					if(FrontCutSize > 0)
+					{
+						FRange NewFrontRange;
+
+						NewFrontRange.SetUnOccupied(InRange.GetStart(), ref.ComputeSize() - FrontCutSize);
+
+						ref.SetUnOccupied(ref.GetStart(), FrontCutSize);
+
+						++i;
+
+						// remaining is added behind the found element
+						Entries.Insert(NewFrontRange, i);
+
+						// don't access ref or Num any more - Entries[] might be reallocated
+					}
+
+					check(Entries[i].GetStart() == InRange.GetStart());
+
+					int32 BackCutSize = Entries[i].ComputeSize() - InRange.ComputeSize();
+
+					// otherwise the range was already occupied or not enough space was left (internal error)
+					check(BackCutSize >= 0);
+
+					// there is some back part we cut off
+					if(BackCutSize > 0)
+					{
+						FRange NewBackRange;
+
+						NewBackRange.SetUnOccupied(Entries[i].GetStart() + InRange.ComputeSize(), BackCutSize);
+
+						Entries.Insert(NewBackRange, i + 1);
+					}
+
+					Entries[i] = InRange;
+					return;
+				}
+			}
+		}
+	}
+
+
+	// All resources in ESRAM must be 64KiB aligned
+//	uint32 AlignedByteOffset = FFastVRAMAllocator::RoundUpToNextMultiple(ESRAMByteOffset, ESRAMMinumumAlignment );
+
+
+	// @param InSize >0
+	FRange AllocRange(uint32 InSize)//, uint32 Alignment)
+	{
+		check(InSize > 0);
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				uint32 RefSize = ref.ComputeSize();
+
+				// take the first fitting one - later we could optimize for minimal fragmentation
+				if(RefSize >= InSize)
+				{
+					ref.MakeOccupied(InSize);
+
+					FRange Ret = ref;
+
+					if(RefSize > InSize)
+					{
+						FRange NewRange;
+
+						NewRange.SetUnOccupied(ref.GetEnd(), RefSize - InSize);
+
+						// remaining is added behind the found element
+						Entries.Insert(NewRange, i + 1);
+					}
+					return Ret;
+				}
+			}
+		}
+
+		// nothing found
+		return FRange();
+	}
+
+	// @param In needs to be what was returned by AllocRange()
+	void ReleaseRange(FRange In)
+	{
+		int32 Index = Entries.Find(In);
+
+		check(Index != INDEX_NONE);
+
+		FRange& refIndex = Entries[Index];
+
+		refIndex.MakeUnOccupied();
+
+		Compacten(Index);
+	}
+
+	// for debugging
+	uint32 GetNumEntries() const { return Entries.Num(); }
+
+	// for debugging
+	uint32 ComputeUnoccupiedSize() const
+	{
+		uint32 Ret = 0;
+
+		for(uint32 i = 0, Num = Entries.Num(); i < Num; ++i)
+		{
+			const FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				uint32 RefSize = ref.ComputeSize();
+
+				Ret += RefSize;
+			}
+		}
+
+		return Ret;
+	}
+
+private:
+	// compact unoccupied ranges
+	void Compacten(uint32 StartIndex)
+	{
+		check(!Entries[StartIndex].IsOccupied());
+
+		if(StartIndex && !Entries[StartIndex-1].IsOccupied())
+		{
+			// Seems we can combine with the element before,
+			// searching further is not needed as we assume the buffer was compact before the last change.
+			--StartIndex;
+		}
+
+		uint32 ElementsToRemove = 0;
+		uint32 SizeGained = 0;
+
+		for(uint32 i = StartIndex + 1, Num = Entries.Num(); i < Num; ++i)
+		{
+			FRange& ref = Entries[i];
+
+			if(!ref.IsOccupied())
+			{
+				++ElementsToRemove;
+				SizeGained += ref.ComputeSize();
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if(ElementsToRemove)
+		{
+			Entries.RemoveAt(StartIndex + 1, ElementsToRemove, false);
+			Entries[StartIndex].ExtendUnoccupied(SizeGained);
+		}
+	}
+
+	static void Test()
+	{
+		// testing code
+#if !UE_BUILD_SHIPPING
+		{
+			// create
+			FRangeAllocator A(10);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// successfully alloc
+			FRangeAllocator::FRange a = A.AllocRange(3);
+			check(a.GetStart() == 0);
+			check(a.GetEnd() == 3);
+			check(a.IsOccupied());
+			check(A.GetNumEntries() == 2);
+			check(A.ComputeUnoccupiedSize() == 7);
+
+			// successfully alloc
+			FRangeAllocator::FRange b = A.AllocRange(4);
+			check(b.GetStart() == 3);
+			check(b.GetEnd() == 7);
+			check(b.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 3);
+
+			// failed alloc
+			FRangeAllocator::FRange c = A.AllocRange(4);
+			check(!c.IsValid());
+			check(!c.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 3);
+
+			// successfully alloc
+			FRangeAllocator::FRange d = A.AllocRange(3);
+			check(d.GetStart() == 7);
+			check(d.GetEnd() == 10);
+			check(d.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 0);
+
+			A.ReleaseRange(b);
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 4);
+
+			A.ReleaseRange(a);
+			check(A.GetNumEntries() == 2);
+			check(A.ComputeUnoccupiedSize() == 7);
+
+			A.ReleaseRange(d);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// we are back to a clean start
+
+			FRangeAllocator::FRange e = A.AllocRange(10);
+			check(e.GetStart() == 0);
+			check(e.GetEnd() == 10);
+			check(e.IsOccupied());
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 0);
+
+			A.ReleaseRange(e);
+			check(A.GetNumEntries() == 1);
+			check(A.ComputeUnoccupiedSize() == 10);
+
+			// we are back to a clean start
+
+			// create define range we want to block out
+			FRangeAllocator::FRange f;
+			f.SetOccupied(2, 4);
+			A.OccupyRange(f);
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 6);
+
+			FRangeAllocator::FRange g = A.AllocRange(2);
+			check(g.GetStart() == 0);
+			check(g.GetEnd() == 2);
+			check(g.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 4);
+
+			FRangeAllocator::FRange h = A.AllocRange(4);
+			check(h.GetStart() == 6);
+			check(h.GetEnd() == 10);
+			check(h.IsOccupied());
+			check(A.GetNumEntries() == 3);
+			check(A.ComputeUnoccupiedSize() == 0);
+		}
+#endif // !UE_BUILD_SHIPPING
+	}
+
+	// ordered from small to large (for efficient compactening)
+	TArray<FRange> Entries;
+};
+
 
 #endif

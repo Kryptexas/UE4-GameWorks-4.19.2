@@ -151,7 +151,8 @@ public:
 	virtual void InitRHI()
 	{
 		// Create the texture RHI.  		
-		FTexture2DRHIRef Texture2D = RHICreateTexture2D(1,1,PF_B8G8R8A8,1,1,TexCreate_ShaderResource,NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		FTexture2DRHIRef Texture2D = RHICreateTexture2D(1,1,PF_B8G8R8A8,1,1,TexCreate_ShaderResource,CreateInfo);
 		TextureRHI = Texture2D;
 
 		// Write the contents of the texture.
@@ -240,7 +241,8 @@ public:
 		{
 			// Create the texture.
 			FBlackVolumeTextureResourceBulkDataInterface BlackTextureBulkData;
-			FTexture3DRHIRef Texture3D = RHICreateTexture3D(1,1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,&BlackTextureBulkData);
+			FRHIResourceCreateInfo CreateInfo(&BlackTextureBulkData);
+			FTexture3DRHIRef Texture3D = RHICreateTexture3D(1,1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,CreateInfo);
 			TextureRHI = Texture3D;	
 
 			// Create the sampler state.
@@ -278,7 +280,8 @@ public:
 		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
 		{
 			// Create the texture RHI.  		
-			FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(1,1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,NULL);
+			FRHIResourceCreateInfo CreateInfo;
+			FTexture2DArrayRHIRef TextureArray = RHICreateTexture2DArray(1,1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,CreateInfo);
 			TextureRHI = TextureArray;
 
 			uint32 DestStride;
@@ -328,7 +331,8 @@ public:
 	{
 		// Create the texture RHI.
 		int32 TextureSize = 1 << (NumMips - 1);
-		FTexture2DRHIRef Texture2D = RHICreateTexture2D(TextureSize,TextureSize,PF_B8G8R8A8,NumMips,1,TexCreate_ShaderResource,NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		FTexture2DRHIRef Texture2D = RHICreateTexture2D(TextureSize,TextureSize,PF_B8G8R8A8,NumMips,1,TexCreate_ShaderResource,CreateInfo);
 		TextureRHI = Texture2D;
 
 		// Write the contents of the texture.
@@ -408,7 +412,8 @@ public:
 	virtual void InitRHI()
 	{
 		// Create the texture RHI.
-		FTextureCubeRHIRef TextureCube = RHICreateTextureCube(1,PF_B8G8R8A8,1,0,NULL);
+		FRHIResourceCreateInfo CreateInfo;
+		FTextureCubeRHIRef TextureCube = RHICreateTextureCube(1,PF_B8G8R8A8,1,0,CreateInfo);
 		TextureRHI = TextureCube;
 
 		// Write the contents of the texture.
@@ -467,7 +472,8 @@ public:
 		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
 		{
 			// Create the texture RHI.
-			FTextureCubeRHIRef TextureCubeArray = RHICreateTextureCubeArray(1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,NULL);
+			FRHIResourceCreateInfo CreateInfo;
+			FTextureCubeRHIRef TextureCubeArray = RHICreateTextureCubeArray(1,1,PF_B8G8R8A8,1,TexCreate_ShaderResource,CreateInfo);
 			TextureRHI = TextureCubeArray;
 
 			for(uint32 FaceIndex = 0;FaceIndex < 6;FaceIndex++)
