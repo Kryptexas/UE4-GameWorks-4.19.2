@@ -307,6 +307,26 @@ bool FWorldTileModel::IsLandscapeBased() const
 	return Landscape.IsValid();
 }
 
+bool FWorldTileModel::IsTiledLandscapeBased() const
+{
+	if (IsLandscapeBased() && !GetLandscape()->ReimportHeightmapFilePath.IsEmpty())
+	{
+		// Check if single landscape actor resolution matches heightmap file size
+		IFileManager& FileManager = IFileManager::Get();
+		const int64 ImportFileSize = FileManager.FileSize(*GetLandscape()->ReimportHeightmapFilePath);
+		
+		FIntRect ComponentsRect = GetLandscape()->GetBoundingRect();
+		int64 LandscapeSamples	= (int64)(ComponentsRect.Width()+1)*(ComponentsRect.Height()+1);
+		// Height samples are 2 bytes wide
+		if (LandscapeSamples*2 == ImportFileSize)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FWorldTileModel::IsLandscapeProxy() const
 {
 	return (Landscape.IsValid() && !Landscape.Get()->IsA(ALandscape::StaticClass()));
@@ -322,7 +342,7 @@ bool FWorldTileModel::IsInLayersList(const TArray<FWorldTileLayer>& InLayerList)
 	return true;
 }
 
-ALandscapeProxy* FWorldTileModel::GetLandcape() const
+ALandscapeProxy* FWorldTileModel::GetLandscape() const
 {
 	return Landscape.Get();
 }

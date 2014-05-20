@@ -187,6 +187,12 @@ private:
 	/** Builds adjacent landscape menu */
 	void BuildAdjacentLandscapeMenu(FMenuBuilder& InMenuBuilder) const;
 
+	/** Builds reimport tiled landscape menu */
+	void BuildReimportTiledLandscapeMenu(FMenuBuilder& InMenuBuilder) const;
+	
+	/** Builds reimport weightmaps menu */
+	void BuildWeightmapsMenu(FMenuBuilder& InMenuBuilder) const;
+	
 private:
 	/** Creates a new empty Level; prompts for level save location */
 	void CreateEmptyLevel_Executed();
@@ -212,8 +218,14 @@ private:
 	/** @return whether it is possible to add a level with landscape proxy at specified location */	
 	bool CanAddLandscapeProxy(FWorldTileModel::EWorldDirections InWhere) const;
 
+	/** @return Whether selection contains tiles with tiled landscape */	
+	bool CanReimportTiledlandscape() const;
+
 	/**  */	
 	void ImportTiledLandscape_Executed();
+
+	/**  */	
+	void ReimportTiledLandscape_Executed(FName TargetLayer);
 
 public:
 	/** Whether Editor has support for generating LOD levels */	

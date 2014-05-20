@@ -2626,4 +2626,32 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	return Landscape;
 }
 
+bool LandscapeEditorUtils::SetHeightmapData(ALandscapeProxy* Landscape, const TArray<uint16>& Data)
+{
+	FIntRect ComponentsRect = Landscape->GetBoundingRect() + Landscape->LandscapeSectionOffset;
+		
+	if (Data.Num() == (1+ComponentsRect.Width())*(1+ComponentsRect.Height()))
+	{
+		FHeightmapAccessor<false> HeightmapAccessor(Landscape->GetLandscapeInfo());
+		HeightmapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData());
+		return true;
+	}
+
+	return false;
+}
+
+bool LandscapeEditorUtils::SetWeightmapData(ALandscapeProxy* Landscape, ULandscapeLayerInfoObject* LayerObject, const TArray<uint8>& Data)
+{
+	FIntRect ComponentsRect = Landscape->GetBoundingRect() + Landscape->LandscapeSectionOffset;	
+	
+	if (Data.Num() == (1+ComponentsRect.Width())*(1+ComponentsRect.Height()))
+	{
+		FAlphamapAccessor<false, true> AlphamapAccessor(Landscape->GetLandscapeInfo(), LayerObject);
+		AlphamapAccessor.SetData(ComponentsRect.Min.X, ComponentsRect.Min.Y, ComponentsRect.Max.X, ComponentsRect.Max.Y, Data.GetTypedData(), ELandscapeLayerPaintingRestriction::None);
+		return true;
+	}
+
+	return false;
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -28,7 +28,8 @@ public:
 		XNegative,
 		YNegative,
 		XPositive,
-		YPositive
+		YPositive,
+		Any
 	};
 
 	/**
@@ -79,9 +80,6 @@ public:
 	virtual void OnLevelRemovedFromWorld() OVERRIDE;
 	virtual void OnParentChanged() OVERRIDE;
 	// FLevelModel interface end
-		
-	/** @return The landscape actor in case this level is landscape based */
-	ALandscapeProxy* GetLandcape() const;
 	
 	/** Adds new streaming level*/
 	void AddStreamingLevel(UClass* InStreamingClass, const FName& InPackageName);
@@ -106,9 +104,15 @@ public:
 
 	/** Whether this level landscape based or not */
 	bool IsLandscapeBased() const;
-	
+
+	/** Whether this level based on tiled landscape or not */
+	bool IsTiledLandscapeBased() const;
+		
 	/** Whether this level has ALandscapeProxy or not */
 	bool IsLandscapeProxy() const;
+
+	/** @return The landscape actor in case this level is landscape based */
+	ALandscapeProxy* GetLandscape() const;
 	
 	/** Whether this level in provided layers list */
 	bool IsInLayersList(const TArray<FWorldTileLayer>& InLayerList) const;

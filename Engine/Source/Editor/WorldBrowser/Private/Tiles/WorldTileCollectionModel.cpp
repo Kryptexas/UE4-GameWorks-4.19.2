@@ -9,6 +9,7 @@
 #include "MaterialExportUtils.h"
 #include "MeshUtilities.h"
 #include "RawMesh.h"
+#include "LandscapeEdMode.h"
 
 #include "WorldTileDetails.h"
 #include "WorldTileDetailsCustomization.h"
@@ -16,6 +17,10 @@
 #include "STiledLandscapeImportDlg.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
+
+
+static const FName HeightmapLayerName = FName("__Heightmap__");
+
 
 FWorldTileCollectionModel::FWorldTileCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor)
 	: FLevelCollectionModel(InEditor)
@@ -308,19 +313,6 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 			}
 			MenuBuilder.EndSection();
 		}
-
-		// Landscape specific commands
-		if (StaticCastSharedPtr<FWorldTileModel>(SelectedLevelsList[0])->IsLandscapeBased())
-		{
-			MenuBuilder.BeginSection("Menu_AddLandscape");
-			{
-				MenuBuilder.AddSubMenu( 
-					LOCTEXT("AddLandscapeLevel", "Add Adjacent Landscape Level"),
-					FText::GetEmpty(),
-					FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildAdjacentLandscapeMenu));
-			}
-			MenuBuilder.EndSection();
-		}
 	}
 	else
 	{
@@ -328,6 +320,34 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 		{
 			MenuBuilder.AddMenuEntry(Commands.World_MergeSelectedLevels);
 		}
+		MenuBuilder.EndSection();
+	}
+
+	// Landscape specific stuff
+	const bool bCanReimportTiledLandscape = CanReimportTiledlandscape();
+	const bool bCanAddAdjacentLandscape = CanAddLandscapeProxy(FWorldTileModel::EWorldDirections::Any);
+	if (bCanReimportTiledLandscape || bCanAddAdjacentLandscape)
+	{
+		MenuBuilder.BeginSection("Menu_LandscapeSection", LOCTEXT("Menu_LandscapeSectionTitle", "Landscape"));
+		
+		// Adjacent landscape
+		if (bCanAddAdjacentLandscape)
+		{
+			MenuBuilder.AddSubMenu( 
+				LOCTEXT("AddLandscapeLevel", "Add Adjacent Landscape Level"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildAdjacentLandscapeMenu));
+		}
+
+		// Tiled landscape
+		if (bCanReimportTiledLandscape)
+		{
+			MenuBuilder.AddSubMenu( 
+				LOCTEXT("ReimportTiledLandscape", "Reimport Tiled Landscape"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu));
+		}
+		
 		MenuBuilder.EndSection();
 	}
 
@@ -420,6 +440,68 @@ void FWorldTileCollectionModel::BuildAdjacentLandscapeMenu(FMenuBuilder& MenuBui
 	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYPositive"));
 }
 
+void FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu(FMenuBuilder& InMenuBuilder) const
+{
+	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
+
+	// Add "Heightmap" menu entry
+	InMenuBuilder.AddMenuEntry(
+			LOCTEXT("Menu_HeightmapTitle", "Heightmap"), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, HeightmapLayerName
+				)
+			)
+		);
+
+	// Weightmaps	
+	InMenuBuilder.AddSubMenu( 
+				LOCTEXT("Menu_WeightmapsTitle", "Weightmaps"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildWeightmapsMenu)
+			);
+}
+
+void FWorldTileCollectionModel::BuildWeightmapsMenu(FMenuBuilder& InMenuBuilder) const
+{
+	// Add "All Weighmaps" menu entry
+	InMenuBuilder.AddMenuEntry(
+			LOCTEXT("Menu_AllWeightmapsTitle", "All Weightmaps"), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, FName(NAME_None)
+				)
+			)
+		);
+	
+	TArray<FName> LayerNames;
+	// Get list of the landscape layers
+	for (const auto& LevelModel : SelectedLevelsList)
+	{
+		auto TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		if (TileModel->IsTiledLandscapeBased())
+		{
+			TArray<FName> Layers = ALandscapeProxy::GetLayersFromMaterial(TileModel->GetLandscape()->LandscapeMaterial);
+			for (FName LayerName : Layers)
+			{
+				LayerNames.AddUnique(LayerName);
+			}
+		}
+	}
+
+	for (FName LayerName : LayerNames)
+	{
+		InMenuBuilder.AddMenuEntry(
+			FText::FromName(LayerName), 
+			FText(), FSlateIcon(),
+			FUIAction(FExecuteAction::CreateSP(
+				this, &FWorldTileCollectionModel::ReimportTiledLandscape_Executed, LayerName
+				)
+			)
+		);
+	}
+}
+
 void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const
 {
 	FLevelCollectionModel::CustomizeFileMainMenu(InMenuBuilder);
@@ -428,8 +510,8 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 		
 	InMenuBuilder.BeginSection("LevelsAddLevel");
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
-		InMenuBuilder.AddMenuEntry( Commands.ImportTiledLandscape );
+		InMenuBuilder.AddMenuEntry(Commands.World_CreateEmptyLevel);
+		InMenuBuilder.AddMenuEntry(Commands.ImportTiledLandscape);
 	}
 	InMenuBuilder.EndSection();
 }
@@ -557,7 +639,7 @@ void FWorldTileCollectionModel::BindCommands()
 	// Landscape operations
 	ActionList.MapAction(Commands.ImportTiledLandscape,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::ImportTiledLandscape_Executed));
-
+		
 	ActionList.MapAction(Commands.AddLandscapeLevelXNegative,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::XNegative),
 		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::XNegative));
@@ -1084,7 +1166,7 @@ FVector2D FWorldTileCollectionModel::SnapTranslationDeltaLandscape(const TShared
 																	FVector2D InAbsoluteDelta, 
 																	float SnappingDistance)
 {
-	ALandscapeProxy* Landscape = LandscapeTile->GetLandcape();
+	ALandscapeProxy* Landscape = LandscapeTile->GetLandscape();
 	FVector ComponentScale = Landscape->GetRootComponent()->RelativeScale3D*Landscape->ComponentSizeQuads;
 	
 	return FVector2D(	FMath::GridSnap(InAbsoluteDelta.X, ComponentScale.X),
@@ -1203,6 +1285,19 @@ bool FWorldTileCollectionModel::CanAddLandscapeProxy(FWorldTileModel::EWorldDire
 	return false;
 }
 
+bool FWorldTileCollectionModel::CanReimportTiledlandscape() const
+{
+	for (const auto& LevelModel : SelectedLevelsList)
+	{
+		if (LevelModel->IsEditable() && StaticCastSharedPtr<FWorldTileModel>(LevelModel)->IsTiledLandscapeBased())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWorldDirections InWhere)
 {
 	if (IsReadOnly() || !IsOneLevelSelected())
@@ -1228,7 +1323,7 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 		FLevelModelList Levels; 
 		Levels.Add(NewLevelModel);
 
-		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandcape();
+		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandscape();
 		FIntPoint SourceTileOffset = LandscapeTileModel->GetAbsoluteLevelPosition();
 
 		NewLevelModel->SetVisible(false);
@@ -1439,6 +1534,88 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 		}
 
 		GWarn->EndSlowTask();
+	}
+}
+
+void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLayer)
+{
+	// Collect selected landscape tiles
+	TArray<TSharedPtr<FWorldTileModel>> TargetLandscapeTiles;
+	for (auto LevelModel : SelectedLevelsList)
+	{
+		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		if (TileModel->IsEditable() && TileModel->IsTiledLandscapeBased())
+		{
+			TargetLandscapeTiles.Add(TileModel);
+		}
+	}
+
+	if (TargetLandscapeTiles.Num() == 0)
+	{
+		return;
+	}
+			
+	TArray<bool> AllLevelsVisibilityState;
+	// Hide all visible levels
+	for (auto LevelModel : AllLevelsList)
+	{
+		AllLevelsVisibilityState.Add(LevelModel->IsVisible());
+		if (!LevelModel->IsPersistent())
+		{
+			LevelModel->SetVisible(false);
+		}
+	}
+	
+	// Reimport data for each selected landscape tile
+	for (auto TileModel : TargetLandscapeTiles)
+	{
+		TileModel->SetVisible(true);
+
+		ALandscapeProxy* Landscape = TileModel->GetLandscape();
+
+		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::DataLayer;
+	
+		if (TargetLayer == HeightmapLayerName) // Heightmap
+		{
+			if (!Landscape->ReimportHeightmapFilePath.IsEmpty())
+			{
+				TArray<uint16> RawData;
+				ReadRawFile(RawData, *Landscape->ReimportHeightmapFilePath, FILEREAD_Silent);
+				LandscapeEditorUtils::SetHeightmapData(Landscape, RawData);
+			}
+		}
+		else // Weightmap
+		{
+			for (FLandscapeEditorLayerSettings& LayerSettings : Landscape->EditorLayerSettings)
+			{
+				if (LayerSettings.LayerInfoObj && (LayerSettings.LayerInfoObj->LayerName == TargetLayer || TargetLayer == NAME_None))
+				{
+					if (!LayerSettings.ReimportLayerFilePath.IsEmpty())
+					{
+						TArray<uint8> RawData;
+						ReadRawFile(RawData, *LayerSettings.ReimportLayerFilePath, FILEREAD_Silent);
+						LandscapeEditorUtils::SetWeightmapData(Landscape, LayerSettings.LayerInfoObj, RawData);
+
+						if (TargetLayer != NAME_None)
+						{
+							// Importing one specific layer
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		TileModel->SetVisible(false);
+	}
+		
+	// Restore levels visibility
+	for (int32 LevelIdx = 0; LevelIdx < AllLevelsList.Num(); ++LevelIdx)
+	{
+		if (AllLevelsVisibilityState[LevelIdx])
+		{
+			AllLevelsList[LevelIdx]->SetVisible(true);
+		}
 	}
 }
 

@@ -2383,7 +2383,7 @@ FIntRect ALandscapeProxy::GetBoundingRect() const
 		Rect.Include(LandscapeComponents[CompIdx]->GetSectionBase());
 	}
 	
-	if (Rect.Area() > 0)
+	if (Rect.Width() > 0 && Rect.Height() > 0)
 	{
 		Rect.Max+= FIntPoint(ComponentSizeQuads, ComponentSizeQuads);
 		Rect-= LandscapeSectionOffset;
