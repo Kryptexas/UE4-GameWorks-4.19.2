@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "LevelUtils.h"
 
 class FBrushBuilderDragDropOp : public FDragDropOperation
 {
@@ -31,19 +32,23 @@ public:
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE
 	{
 		UWorld* World = GEditor->GetEditorWorldContext().World();
-		if(World != nullptr)
+		if (World != nullptr)
 		{
-			// Cut the BSP
-			if(bDropWasHandled)
+			ULevel* CurrentLevel = World->GetCurrentLevel();
+			if (CurrentLevel != nullptr && !FLevelUtils::IsLevelLocked(CurrentLevel))
 			{
-				World->GetBrush()->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder.Get(), World->GetBrush()->GetOuter());
-				const TCHAR* Command = bIsAdditive ? TEXT("BRUSH ADD SELECTNEWBRUSH") : TEXT("BRUSH SUBTRACT SELECTNEWBRUSH");
-				GEditor->Exec(World, Command);
-			}
+				// Cut the BSP
+				if (bDropWasHandled)
+				{
+					World->GetBrush()->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder.Get(), World->GetBrush()->GetOuter());
+					const TCHAR* Command = bIsAdditive ? TEXT("BRUSH ADD SELECTNEWBRUSH") : TEXT("BRUSH SUBTRACT SELECTNEWBRUSH");
+					GEditor->Exec(World, Command);
+				}
 
-			// Deselect & hide the builder brush
-			World->GetBrush()->SetIsTemporarilyHiddenInEditor(true);
-			GEditor->SelectActor(World->GetBrush(), false, false);
+				// Deselect & hide the builder brush
+				World->GetBrush()->SetIsTemporarilyHiddenInEditor(true);
+				GEditor->SelectActor(World->GetBrush(), false, false);
+			}
 		}
 
 		FDragDropOperation::OnDrop( bDropWasHandled, MouseEvent );
