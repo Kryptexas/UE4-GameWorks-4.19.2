@@ -955,6 +955,13 @@ public:
 	bool IsCubemap() const { return bCubemap != 0; }
 	bool IsStaging() const { return (this->GetFlags() & TexCreate_CPUReadback) != 0; }
 
+
+	/** FRHITexture override.  See FRHITexture::GetNativeResource() */
+	virtual void* GetNativeResource() const OVERRIDE
+	{ 
+		return (void*)Resource;
+	}
+
 	/**
 	 * Accessors to mark whether or not we have allocated storage for each mip/face.
 	 * For non-cubemaps FaceIndex should always be zero.

@@ -154,6 +154,18 @@ public:
 	virtual class FRHITexture3D* GetTexture3D() { return NULL; }
 	virtual class FRHITextureCube* GetTextureCube() { return NULL; }
 	
+	/**
+	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
+	 * to the underlying resource and should be used very carefully or not at all.
+	 *
+	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
+	 */
+	virtual void* GetNativeResource() const
+	{
+		// Override this in derived classes to expose access to the native texture resource
+		return nullptr;
+	}
+
 	/** @return The number of mip-maps in the texture. */
 	uint32 GetNumMips() const { return NumMips; }
 
