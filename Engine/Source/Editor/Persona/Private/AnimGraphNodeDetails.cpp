@@ -93,6 +93,11 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 			continue;
 		}
 
+		if(!TargetPropertyHandle->GetProperty())
+		{
+			continue;
+		}
+
 		// if customized, do not do anything
 		if(TargetPropertyHandle->IsCustomized())
 		{
@@ -110,11 +115,6 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 		}
 
 		IDetailPropertyRow& PropertyRow = CurrentCategory.AddProperty( TargetPropertyHandle );
-
-		if(!TargetPropertyHandle->GetProperty())
-		{
-			continue;
-		}
 
 		TSharedPtr<SWidget> NameWidget; 
 		TSharedPtr<SWidget> ValueWidget;
