@@ -1134,6 +1134,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;
+			Desc.DebugName = TEXT("FinalPostProcessColor");
 
 			GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
 
