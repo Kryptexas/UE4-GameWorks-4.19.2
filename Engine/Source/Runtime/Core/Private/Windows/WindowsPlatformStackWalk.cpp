@@ -127,7 +127,7 @@ static int32 CaptureStackTraceHelper( uint64 *BackTrace, uint32 MaxDepth, CONTEX
 	// NULL out remaining entries.
 	for ( ; CurrentDepth<MaxDepth; CurrentDepth++ )
 	{
-		BackTrace[CurrentDepth] = NULL;
+		BackTrace[CurrentDepth] = 0;
 	}
 
 	return EXCEPTION_EXECUTE_HANDLER;
@@ -223,7 +223,7 @@ void FWindowsPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32
 			}
 			while ( NumFrames < MaxDepth )
 			{
-				BackTrace[ NumFrames++ ] = NULL;
+				BackTrace[ NumFrames++ ] = 0;
 			}
 		}
 #elif PLATFORM_64BITS

@@ -277,7 +277,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	{
 		CreateFlags |= DETACHED_PROCESS;
 	}
-	uint32 dwFlags = NULL;
+	uint32 dwFlags = 0;
 	uint16 ShowWindowFlags = SW_HIDE;
 	if (bLaunchReallyHidden)
 	{
@@ -295,7 +295,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 
 	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		NULL, NULL, NULL, dwFlags, ShowWindowFlags, NULL, NULL,
+		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), HANDLE(PipeWrite), HANDLE(PipeWrite) };
 	if( !CreateProcess( NULL, CommandLine.GetCharArray().GetTypedData(), &Attr, &Attr, true, CreateFlags,
 		NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo ) )
@@ -523,7 +523,7 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	bool bSuccess = false;
 	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		NULL, NULL, NULL, dwFlags, ShowWindowFlags, NULL, NULL,
+		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
 	if (CreateProcess(NULL, CommandLine.GetCharArray().GetTypedData(), &Attr, &Attr, true, CreateFlags,
 		NULL, NULL, &StartupInfo, &ProcInfo))
