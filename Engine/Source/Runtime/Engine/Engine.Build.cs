@@ -17,6 +17,7 @@ public class Engine : ModuleRules
 				"Runtime/Online/OnlineSubsystem/Public",
 				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Developer/SynthBenchmark/Public",
+                "Runtime/Engine/Private",
 			}
 		);
 

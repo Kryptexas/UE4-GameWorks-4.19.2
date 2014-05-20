@@ -12,7 +12,7 @@
 /* Dependencies
  *****************************************************************************/
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ModuleManager.h"
 #include "TargetDeviceServices.h"
 

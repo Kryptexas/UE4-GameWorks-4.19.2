@@ -7,7 +7,7 @@
 #ifndef __RendererPrivate_h__
 #define __RendererPrivate_h__
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ShaderCore.h"
 #include "RHI.h"
 #include "ScenePrivate.h"

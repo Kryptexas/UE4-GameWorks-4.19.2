@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands which are used across test type. I.e. Engine, Network, etc...

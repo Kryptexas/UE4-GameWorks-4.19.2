@@ -262,7 +262,7 @@ namespace UnrealBuildTool
 			{
 				return null;
 			}
-			else if (InitFilePath.EndsWith("Classes/Engine/Engine.h") || InitFilePath.EndsWith("Classes/VectorField/VectorField.h") || InitFilePath.EndsWith("Classes/Materials/MaterialInstance.h")
+			else if (InitFilePath.EndsWith("Classes/Engine/Engine.h") || InitFilePath.EndsWith("Classes/VectorField/VectorField.h") 
 				|| InitFilePath.EndsWith("Classes/Engine/Canvas.h") || InitFilePath.EndsWith("Classes/Intrinsic/Model.h") || InitFilePath.EndsWith("Classes/Engine/Texture.h")
 				|| InitFilePath.EndsWith("Windows/OnlineFriendsFacebook.h") || InitFilePath.EndsWith("Windows/OnlineIdentityFacebook.h") || InitFilePath.EndsWith("HTML5/Simulator/SocketSubsystem.h")
 				|| InitFilePath.EndsWith("HTML5/Device/SocketSubsystem.h") || InitFilePath.EndsWith("ContentBrowser/Private/HistoryManager.h") || InitFilePath.EndsWith("Private/Menus/TranslationEditorMenu.h"))

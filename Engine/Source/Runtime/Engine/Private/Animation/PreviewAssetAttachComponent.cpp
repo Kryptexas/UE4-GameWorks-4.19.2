@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "PreviewAssetAttachComponent.h"
+#include "Animation/PreviewAssetAttachComponent.h"
 
 void FPreviewAssetAttachContainer::AddAttachedObject( UObject* AttachObject, FName AttachPointName )
 {

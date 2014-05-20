@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "RendererPrivate.h"
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"

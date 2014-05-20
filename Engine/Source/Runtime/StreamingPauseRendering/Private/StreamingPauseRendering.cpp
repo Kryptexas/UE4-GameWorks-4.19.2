@@ -4,7 +4,7 @@
 StreamingPauseRendering.cpp: Streaming pause implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine.h"
 #include "StreamingPauseRendering.h"
 #include "SceneViewport.h"
 #include "MoviePlayer.h"

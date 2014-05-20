@@ -8,7 +8,7 @@
 #include "CanvasItem.h"
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
-#include "Engine.h"
+#include "EnginePrivate.h"
 #include "Internationalization.h"
 
 

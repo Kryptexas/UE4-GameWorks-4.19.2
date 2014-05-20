@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "MaterialShader.h"
-#include "MaterialInstance.h"
+#include "MaterialInstanceSupport.h"
 #include "UObjectAnnotation.h"
 #include "MaterialCompiler.h"
 #include "TargetPlatform.h"
