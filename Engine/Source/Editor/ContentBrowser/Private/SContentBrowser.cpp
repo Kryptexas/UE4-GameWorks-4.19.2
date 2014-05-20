@@ -678,7 +678,6 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
-	SearchBoxPtr->SetText(FText::GetEmpty());
 	AssetViewPtr->SyncToAssets(AssetDataList);
 }
 
