@@ -12,7 +12,7 @@ class UCameraComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The vertical field of view (in degrees) in perspective mode (ignored in Orthographic mode) */
+	/** The horizontal field of view (in degrees) in perspective mode (ignored in Orthographic mode) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
 	float FieldOfView;
 
