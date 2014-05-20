@@ -912,6 +912,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if ( !IProjectManager::Get().LoadProjectFile(FPaths::GetProjectFilePath()) )
 		{
 			// The project file was invalid or saved with a newer version of the engine. Exit.
+			UE_LOG(LogInit, Warning, TEXT("Could not find a valid project file, the engine will exit now."));
 			return 1;
 		}
 	}

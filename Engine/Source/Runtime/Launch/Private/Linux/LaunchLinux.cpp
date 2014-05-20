@@ -180,5 +180,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if (ErrorLevel)
+	{
+		printf("Exiting abnormally (error code: %d)\n", ErrorLevel);
+	}
 	return ErrorLevel;
 }
