@@ -880,7 +880,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.GameName = NewCrashInfo.GameName;
 			NewCrash.LanguageExt = NewCrashInfo.Language;		// Convert
 			NewCrash.PlatformName = NewCrashInfo.Platform;
-			if( NewCrashInfo.CallStack != null )
+
+			if (NewCrashInfo.AssertionMessage != null)
+			{
+				NewCrash.Summary = string.Join( "\n", NewCrashInfo.AssertionMessage );
+			}
+			
+			if (NewCrashInfo.CallStack != null)
 			{
 				NewCrash.RawCallStack = string.Join( "\n", NewCrashInfo.CallStack );
 			}
