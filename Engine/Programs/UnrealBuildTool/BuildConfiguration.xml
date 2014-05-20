@@ -84,7 +84,6 @@
 		<ProcessorCountMultiplier>1.0</ProcessorCountMultiplier>
 		<bTestIncludeDependencyResolveCache>False</bTestIncludeDependencyResolveCache>
 		<bUseIncludeDependencyResolveCache>True</bUseIncludeDependencyResolveCache>
-		<bUseMonolithicGraphicsDrivers>True</bUseMonolithicGraphicsDrivers>
 		<bUseFastMonoCalls>True</bUseFastMonoCalls>
 		<bDebugBuildsActuallyUseDebugCRT>False</bDebugBuildsActuallyUseDebugCRT>
 		<BaseIntermediateFolder>Intermediate/Build/</BaseIntermediateFolder>

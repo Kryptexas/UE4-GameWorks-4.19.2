@@ -179,7 +179,7 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 		check(BackBuffer->GetRefCount() == 1);
 
 		// IUnknown is GONE from Mono Drivers, and is replaced with IGraphicsUnknown, making this incompatible (no COM)
-#ifndef USE_MONOLITHIC_GRAPHICS_DRIVERS
+#ifndef PLATFORM_XBOXONE
 		checkComRefCount(BackBuffer->GetResource(),1);
 		checkComRefCount(BackBuffer->GetRenderTargetView(0, -1),1);
 		checkComRefCount(BackBuffer->GetShaderResourceView(),1);

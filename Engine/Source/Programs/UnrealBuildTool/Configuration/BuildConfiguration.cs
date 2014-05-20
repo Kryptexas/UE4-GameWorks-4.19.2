@@ -26,12 +26,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static int MinGameModuleSourceFilesForUnityBuild;
 
-        /// <summary>
-        /// Whether to build with Monolithic D3D Graphics drivers
-        ///	Eventually this will become mandatory
-        /// </summary>
-        public static bool bUseMonolithicGraphicsDrivers;
-
 		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 		/// </summary>
@@ -386,12 +380,6 @@ namespace UnrealBuildTool
 			// if we are testing the resolve cache, we require UBT to use it.
 			bUseIncludeDependencyResolveCache = true;
             
-            //IMPORTANT THIS IS THE MAIN SWITCH FOR MONO.
-            // New Monolithic Graphics drivers replace D3D and are *mostly* API compatible
-            // Eventually this will become mandatory
-            //  if this is set to true, then mono will be on by default on Dingo, and if false it will be off by default on Dingo.
-            //  This can be overridden by -monolithicdrivers or -nomonolithicdrivers in the NMAKE params.
-			bUseMonolithicGraphicsDrivers = true;
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.

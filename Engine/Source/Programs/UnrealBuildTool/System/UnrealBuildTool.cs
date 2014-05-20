@@ -1273,29 +1273,15 @@ namespace UnrealBuildTool
                 BuildConfiguration.bForceUnityBuild = true;
             }
 
-            // New Monolithic Graphics drivers replace D3D and are *mostly* API compatible
-            if (Utils.ParseCommandLineFlag(Arguments, "-monolithicdrivers", out ArgumentIndex))
-            {
-				BuildConfiguration.bUseMonolithicGraphicsDrivers = true;
-            }
-            if (Utils.ParseCommandLineFlag(Arguments, "-nomonolithicdrivers", out ArgumentIndex))
-            {
-				BuildConfiguration.bUseMonolithicGraphicsDrivers = false;
-            }
             // New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
             if (Utils.ParseCommandLineFlag(Arguments, "-fastmonocalls", out ArgumentIndex))
             {
-                BuildConfiguration.bUseMonolithicGraphicsDrivers = true;    //can't have fast calls without mono !
                 BuildConfiguration.bUseFastMonoCalls = true;
             }
             if (Utils.ParseCommandLineFlag(Arguments, "-nofastmonocalls", out ArgumentIndex))
             {
                 BuildConfiguration.bUseFastMonoCalls = false;
             }
-			if (BuildConfiguration.bUseMonolithicGraphicsDrivers == false)
-			{
-				BuildConfiguration.bUseFastMonoCalls = false;
-			}
             
             if (Utils.ParseCommandLineFlag(Arguments, "-uniqueintermediate", out ArgumentIndex))
 			{
