@@ -518,8 +518,7 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 			{
 				FColor ConvexColor = bPerHullColor ? DebugUtilColor[i%NUM_DEBUG_UTIL_COLORS] : Color;
 				FTransform ElemTM = ConvexElems[i].GetTransform();
-				ElemTM.ScaleTranslation(Scale3D);
-				ElemTM *= ParentTM;
+				ElemTM *= Transform;
 				ConvexElems[i].DrawElemWire(PDI, ElemTM, ConvexColor);
 
 			}
