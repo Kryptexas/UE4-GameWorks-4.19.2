@@ -1167,7 +1167,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 				TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, NULL );
 				if( !FoundEntry.IsValid() )
 				{
-					UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
+					UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
 					continue;
 				}
 				
