@@ -390,8 +390,16 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public void AndroidThunkJava_GooglePlayConnect()
 	{
-			googleClient.connect();
+		int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
+
+		// check if google play services is available on this device, or is available with an update
+		if ((status != ConnectionResult.SUCCESS) && (status != ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED))
+		{
+			return;
 		}
+
+		googleClient.connect();
+	}
 
 	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
 	{
