@@ -108,6 +108,7 @@ public:
 		const TSharedRef< FLinearColor > InvertedForeground_LinearRef;
 		const TSharedRef< FLinearColor > SelectorColor_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_LinearRef;
+		const TSharedRef< FLinearColor > SelectionColor_Subdued_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_Inactive_LinearRef;
 		const TSharedRef< FLinearColor > SelectionColor_Pressed_LinearRef;
 
@@ -116,6 +117,7 @@ public:
 		const FSlateColor InvertedForeground;
 		const FSlateColor SelectorColor;
 		const FSlateColor SelectionColor;
+		const FSlateColor SelectionColor_Subdued;
 		const FSlateColor SelectionColor_Inactive;
 		const FSlateColor SelectionColor_Pressed;
 
