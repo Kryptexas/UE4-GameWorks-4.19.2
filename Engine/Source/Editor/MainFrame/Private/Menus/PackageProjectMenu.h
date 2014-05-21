@@ -41,17 +41,24 @@ public:
 				continue;
 			}
 
-			FUIAction Action(
-				FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProject, Platform->PlatformName(), Platform->DisplayName()),
-				FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProjectCanExecute, Platform->PlatformName(), Platform->SupportsFeature(ETargetPlatformFeatures::Packaging))
-			);
+			if (Platform->PlatformName() == TEXT("WindowsNoEditor"))
+			{
+				TArray< FText > CollectivePlatforms;
+				CollectivePlatforms.Add(LOCTEXT("Win32","Win32"));
+				CollectivePlatforms.Add(LOCTEXT("Win64","Win64"));
 
-			MenuBuilder.AddMenuEntry(
-				Platform->DisplayName(),
-				FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {0} platform"), Platform->DisplayName()),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())),
-				Action
-			);
+				MenuBuilder.AddSubMenu(
+					Platform->DisplayName(),
+					Platform->DisplayName(),
+					FNewMenuDelegate::CreateStatic(&FPackageProjectMenu::AddPlatformSubPlatformsToMenu, Platform, CollectivePlatforms),
+					false,
+					FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName()))
+					);
+			}
+			else
+			{
+				AddPlatformToMenu(MenuBuilder, Platform);
+			}
 		}
 
 		MenuBuilder.AddMenuSeparator();
@@ -62,17 +69,66 @@ public:
 		);
 
 		MenuBuilder.AddMenuSeparator();
-		MenuBuilder.AddMenuEntry( FMainFrameCommands::Get().PackagingSettings );
+		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().PackagingSettings);
 	}
 
 protected:
 
 	/**
-	 * Creates a build configuration sub-menu.
-	 *
-	 * @param MenuBuilder - The builder for the menu that owns this menu.
-	 */
-	static void MakeBuildConfigurationsMenu( FMenuBuilder& MenuBuilder )
+	* Creates the platform menu entries.
+	*
+	* @param MenuBuilder	- The builder for the menu that owns this menu.
+	* @param Platform		- The target platform we allow packaging for
+	*/
+	static void AddPlatformToMenu(FMenuBuilder& MenuBuilder, const ITargetPlatform* Platform)
+	{
+		FUIAction Action(
+			FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProject, Platform->PlatformName(), Platform->DisplayName(), FString()),
+			FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProjectCanExecute, Platform->PlatformName(), Platform->SupportsFeature(ETargetPlatformFeatures::Packaging))
+			);
+
+		MenuBuilder.AddMenuEntry(
+			Platform->DisplayName(),
+			FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {0} platform"), Platform->DisplayName()),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())),
+			Action
+			);
+	}
+
+
+	/**
+	* Creates the platform menu entries for a given platforms sub-platforms.
+	* e.g. Windows has multiple sub-platforms - Win32 and Win64
+	*
+	* @param MenuBuilder	- The builder for the menu that owns this menu.
+	* @param Platform		- The target platform we allow packaging for
+	* @param DisplayNames	- The Sub-platform display names
+	*/
+	static void AddPlatformSubPlatformsToMenu(FMenuBuilder& MenuBuilder, const ITargetPlatform* Platform, TArray<FText> DisplayNames)
+	{
+		for (const FText& DisplayName : DisplayNames)
+		{
+			FString OptionalParams = FString::Printf(TEXT("-targetplatform=%s"), *DisplayName.ToString());
+			FUIAction Action(
+				FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProject, Platform->PlatformName(), DisplayName, OptionalParams),
+				FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProjectCanExecute, Platform->PlatformName(), Platform->SupportsFeature(ETargetPlatformFeatures::Packaging))
+				);
+
+			MenuBuilder.AddMenuEntry(
+				DisplayName,
+				FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {0} | {1} platform"), Platform->DisplayName(), DisplayName),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())),
+				Action
+				);
+		}
+	}
+
+	/**
+	* Creates a build configuration sub-menu.
+	*
+	* @param MenuBuilder - The builder for the menu that owns this menu.
+	*/
+	static void MakeBuildConfigurationsMenu(FMenuBuilder& MenuBuilder)
 	{
 		// Only show the debug game option if the game has source code. 
 		TArray<FString> TargetFileNames;

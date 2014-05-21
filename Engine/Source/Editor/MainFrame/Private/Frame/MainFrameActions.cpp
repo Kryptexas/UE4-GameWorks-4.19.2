@@ -465,7 +465,7 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 	return (GetDefault<UProjectPackagingSettings>()->BuildConfiguration == BuildConfiguration);
 }
 
-void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, const FText PlatformDisplayName )
+void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, const FText PlatformDisplayName, const FString AdditionalFlags )
 {
 	FString PlatformName = InPlatformName;
 
@@ -545,14 +545,10 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 
 	if (PlatformName == "WindowsNoEditor")
 	{
-		if (PackagingSettings->BuildConfiguration == PPBC_Shipping)
-		{
-			OptionalParams += TEXT(" -targetplatform=Win32");
-		}
-		else
-		{
-			OptionalParams += TEXT(" -targetplatform=Win64");
-		}
+		FString TargetPlatform;
+		FParse::Value(*AdditionalFlags, TEXT("-targetplatform="), TargetPlatform);
+
+		OptionalParams += FString::Printf(TEXT(" -targetplatform=%s"), *TargetPlatform);
 	}
 	else if (PlatformName == "MacNoEditor")
 	{

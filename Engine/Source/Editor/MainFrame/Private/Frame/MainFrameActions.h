@@ -161,7 +161,7 @@ public:
 	static bool PackageBuildConfigurationIsChecked( EProjectPackagingBuildConfigurations BuildConfiguration );
 
 	/** Packages the project for the specified platform. */
-	static void PackageProject( const FString PlatformName, const FText PlatformDisplayName );
+	static void PackageProject( const FString PlatformName, const FText PlatformDisplayName, const FString AdditionalFlags );
 
 	/** Checks whether a menu action for packaging the project can execute. */
 	static bool PackageProjectCanExecute( const FString PlatformName, bool IsImplemented );
