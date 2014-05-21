@@ -1146,6 +1146,15 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 			SceneColorBufferFormat = PF_A32B32G32R32F; break;
 	}
 
+	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	{
+		if ((!GSupportsRenderTargetFormat_PF_FloatRGBA && (SceneColorBufferFormat == PF_FloatRGBA || SceneColorBufferFormat == PF_FloatRGB))
+			|| SceneColorBufferFormat == PF_A16B16G16R16)
+		{
+			SceneColorBufferFormat = PF_B8G8R8A8;
+		}
+	}
+
 	return SceneColorBufferFormat;
 }
 
