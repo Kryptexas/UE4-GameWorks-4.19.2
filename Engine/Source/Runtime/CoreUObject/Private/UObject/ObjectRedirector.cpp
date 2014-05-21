@@ -37,6 +37,21 @@ void UObjectRedirector::Serialize( FArchive& Ar )
 	Ar << DestinationObject;
 }
 
+bool UObjectRedirector::NeedsLoadForClient() const
+{
+	return false;
+}
+
+bool UObjectRedirector::NeedsLoadForServer() const
+{
+	return false;
+}
+
+bool UObjectRedirector::NeedsLoadForEditorGame() const
+{
+	return true;
+}
+
 void UObjectRedirector::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	FString DestVal;

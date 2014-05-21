@@ -2633,7 +2633,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					{
 						if (!(SaveFlags & SAVE_NoError))
 						{
-							UE_LOG(LogSavePackage, Warning, TEXT("No exportable objects found in package. Package not saved."));
+							UE_LOG(LogSavePackage, Display, TEXT("No exports found (or all exports are editor-only) for %s. Package will not be saved."), *BaseFilename);
 						}
 
 						return false;
