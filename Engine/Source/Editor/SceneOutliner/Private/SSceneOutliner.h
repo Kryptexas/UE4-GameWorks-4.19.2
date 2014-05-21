@@ -179,6 +179,9 @@ namespace SceneOutliner
 		/** Called by STreeView when an item is scrolled into view */
 		void OnOutlinerTreeItemScrolledIntoView( FOutlinerTreeItemPtr TreeItem, const TSharedPtr<ITableRow>& Widget );
 
+		/** Called when an item in the tree has been collapsed or expanded */
+		void OnItemExpansionChanged(FOutlinerTreeItemPtr TreeItem, bool bIsExpanded) const;
+
 		/** Called by USelection::SelectionChangedEvent delegate when the level's selection changes */
 		void OnLevelSelectionChanged(UObject* Obj);
 
@@ -255,13 +258,13 @@ namespace SceneOutliner
 		bool AddChildToParent(FOutlinerTreeItemRef TreeItem, FName ParentPath, bool bIgnoreSearchFilter = false);
 
 		/** Called when a folder is to be created */
-		void OnBroadcastFolderCreate(const UWorld& InWorld, FName NewPath);
+		void OnBroadcastFolderCreate(UWorld& InWorld, FName NewPath);
 
 		/** Called when a folder is to be moved */
 		void OnBroadcastFolderMove(FName OldPath, FName NewPath);
 
 		/** Called when a folder is to be deleted */
-		void OnBroadcastFolderDelete(const UWorld& InWorld, FName Path);
+		void OnBroadcastFolderDelete(UWorld& InWorld, FName Path);
 
 		/** Detach the specified item from its parent if specified */
 		void DetachChildFromParent(TSharedRef<TOutlinerTreeItem> Child, FName ParentPath);
@@ -380,9 +383,6 @@ namespace SceneOutliner
 		{
 			/** The set of parent items which are not expanded */
 			TSet<const AActor*> CollapsedItems;
-
-			/** The set of folders which are not expanded */
-			TSet<FName> CollapsedFolders;
 		};
 
 

@@ -5,18 +5,34 @@
 #include "EditorActorFolders.generated.h"
 
 /** Multicast delegates for broadcasting various folder events */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderCreate, const UWorld&, FName);
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActorFolderMove, const UWorld&, FName, FName);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderDelete, const UWorld&, FName);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderCreate, UWorld&, FName);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderDelete, UWorld&, FName);
+
+USTRUCT()
+struct FActorFolderProps
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActorFolderProps() : bIsExpanded(true) {}
+
+	/** Serializer */
+	FORCEINLINE friend FArchive& operator<<(FArchive& Ar, FActorFolderProps& Folder)
+	{
+		return Ar << Folder.bIsExpanded;
+	}
+
+	bool bIsExpanded;
+};
 
 /** Actor Folder UObject. This is used to support undo/redo reliably */
 UCLASS()
 class UEditorActorFolders : public UObject
 {
 	GENERATED_UCLASS_BODY()
+public:
+	virtual void Serialize(FArchive& Ar) OVERRIDE;
 
-	UPROPERTY()
-	TArray<FName> Paths;
+	TMap<FName, FActorFolderProps> Folders;
 };
 
 /** Class responsible for managing an in-memory representation of actor folders in the editor */
@@ -45,8 +61,11 @@ struct UNREALED_API FActorFolders : public FGCObject
 	/** Check if the specified path is a child of the specified parent */
 	static bool PathIsChildOf(const FString& InPotentialChild, const FString& InParent);
 
-	/** Get an array of folders for the specified world */
-	const TArray<FName>& GetFoldersForWorld(const UWorld& InWorld);
+	/** Get a map of folder properties for the specified world (map of folder path -> properties) */
+	const TMap<FName, FActorFolderProps>& GetFolderPropertiesForWorld(UWorld& InWorld);
+
+	/** Get the folder properties for the specified path. Returns nullptr if no properties exist */
+	FActorFolderProps* GetFolderProperties(UWorld& InWorld, FName InPath);
 
 	/** Get a default folder name under the specified parent path */
 	FName GetDefaultFolderName(UWorld& InWorld, FName ParentPath = FName());
@@ -61,15 +80,18 @@ struct UNREALED_API FActorFolders : public FGCObject
 	void CreateFolderContainingSelection(UWorld& InWorld, FName Path);
 
 	/** Delete the specified folder in the world */
-	void DeleteFolder(const UWorld& InWorld, FName FolderToDelete);
+	void DeleteFolder(UWorld& InWorld, FName FolderToDelete);
 
 	/** Rename the specified path to a new name */
 	bool RenameFolderInWorld(UWorld& World, FName OldPath, FName NewPath);
 
 private:
 
-	/** Internal (non-const) implementation of GetFoldersForWorld */
-	UEditorActorFolders& GetFoldersForWorld_Internal(const UWorld& InWorld);
+	/** Get or create a folder container for the specified world */
+	UEditorActorFolders& GetOrCreateFoldersForWorld(UWorld& InWorld);
+
+	/** Create and update a folder container for the specified world */
+	UEditorActorFolders& InitializeForWorld(UWorld& InWorld);
 
 	/** Rebuild the folder list for the specified world. This can be very slow as it
 		iterates all actors in memory to rebuild the array of actors for this world */
@@ -84,15 +106,17 @@ private:
 	/** Called when the global map in the editor has changed */
 	void OnMapChange(uint32 MapChangeFlags);
 
+	/** Called after a world has been saved */
+	void OnWorldSaved(uint32 SaveFlags, UWorld* World, bool bSuccess);
+
 	/** Called when an actor is added to the world */
 	void OnLevelActorAdded(AActor* Actor);
 
 	/** Remove any references to folder arrays for dead worlds */
 	void Housekeeping();
 
-	/** Scan the specified world for folders. This can be very slow as it iterates
-		all actors in memory to rebuild the array of actors for this world */
-	TSet<FName> ScanWorldForFolders(UWorld& InWorld);
+	/** Add a folder to the folder map for the specified world. Does not trigger any events. */
+	bool AddFolderToWorld(UWorld& InWorld, FName Path);
 
 	/** Transient map of folders, keyed on world pointer */
 	TMap<TWeakObjectPtr<UWorld>, UEditorActorFolders*> TemporaryWorldFolders;
