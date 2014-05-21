@@ -233,6 +233,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (float)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Math|Float")
 	static bool EqualEqual_FloatFloat(float A, float B);
 
+	/* Returns true if (|A - B| < ErrorTolerance) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Nearly Equal (float)", Keywords = "== equal"), Category="Math|Float")
+	static bool NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance = 1.e-6f);
+
 	/* Returns true if A does not equal B (A != B)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (float)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Float")
 	static bool NotEqual_FloatFloat(float A, float B);

@@ -308,6 +308,11 @@ bool UKismetMathLibrary::EqualEqual_FloatFloat(float A, float B)
 	return A == B;
 }	
 
+bool UKismetMathLibrary::NearlyEqual_FloatFloat(float A, float B, float ErrorTolerance)
+{
+	return FMath::IsNearlyEqual(A, B, ErrorTolerance);
+}
+
 bool UKismetMathLibrary::NotEqual_FloatFloat(float A, float B)
 {
 	return A != B;
