@@ -22,6 +22,7 @@ class FMaterial;
 class FMaterialRenderProxy;
 class UMaterialInstance;
 class UMaterialExpression;
+class UMaterialInterface;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16
