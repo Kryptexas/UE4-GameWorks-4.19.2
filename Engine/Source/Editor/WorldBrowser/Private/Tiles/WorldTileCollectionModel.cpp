@@ -1565,12 +1565,15 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 			LevelModel->SetVisible(false);
 		}
 	}
-	
+
+	// Disable world origin tracking, so we can show, hide levels without offseting them
+	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
+		
 	// Reimport data for each selected landscape tile
 	for (auto TileModel : TargetLandscapeTiles)
 	{
 		TileModel->SetVisible(true);
-
+			
 		ALandscapeProxy* Landscape = TileModel->GetLandscape();
 
 		ULandscapeLayerInfoObject* DataLayer = ALandscapeProxy::DataLayer;
@@ -1608,7 +1611,10 @@ void FWorldTileCollectionModel::ReimportTiledLandscape_Executed(FName TargetLaye
 		
 		TileModel->SetVisible(false);
 	}
-		
+
+	// Restore world origin tracking
+	GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
+			
 	// Restore levels visibility
 	for (int32 LevelIdx = 0; LevelIdx < AllLevelsList.Num(); ++LevelIdx)
 	{
@@ -1727,6 +1733,14 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		return false;
 	}
 
+	// We have to make original level visible, to correctly export it
+	const bool bVisibleLevel = InLevelModel->IsVisible();
+	if (!bVisibleLevel)
+	{
+		GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
+		InLevelModel->SetVisible(true);
+	}
+
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
 	check(MeshMerging);
@@ -1752,6 +1766,10 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		
 	// This is current actors offset from their original position
 	FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
+	if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
+	{
+		ActorsOffset = FVector::ZeroVector;
+	}
 	
 	TArray<UObject*>			GeneratedAssets;
 	TArray<UStaticMesh*>		AssetsToSpawn;
@@ -1885,6 +1903,13 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		GeneratedAssets.Add(StaticMesh);
 		GeneratedAssets.Add(StaticLandscapeMaterial);
 		LandscapeActorIndex++;
+	}
+
+	// Restore level original visibility
+	if (!bVisibleLevel)
+	{
+		InLevelModel->SetVisible(false);
+		GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
 	}
 
 	// Save generated assets

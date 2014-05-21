@@ -206,6 +206,12 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 		return true;
 	}
 
+	// When this hack is activated level should be visible regardless of current world origin
+	if (LevelCollectionModel.GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
+	{
+		return true;
+	}
+	
 	FBox LevelBBox = GetLevelBounds();
 
 	// Visible if level has no valid bounds

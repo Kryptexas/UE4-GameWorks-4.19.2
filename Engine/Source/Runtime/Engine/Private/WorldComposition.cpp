@@ -582,6 +582,13 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 
 void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)
 {
+#if WITH_EDITOR
+	if (bTemporallyDisableOriginTracking)
+	{
+		return;
+	}
+#endif
+		
 	// Move level according to current global origin offset
 	FIntPoint LevelOffset = GetLevelOffset(InLevel);
 	InLevel->ApplyWorldOffset(FVector(LevelOffset, 0), false);
@@ -589,6 +596,13 @@ void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)
 
 void UWorldComposition::OnLevelRemovedFromWorld(ULevel* InLevel)
 {
+#if WITH_EDITOR
+	if (bTemporallyDisableOriginTracking)
+	{
+		return;
+	}
+#endif
+	
 	// Move level to his local origin
 	FIntPoint LevelOffset = GetLevelOffset(InLevel);
 	InLevel->ApplyWorldOffset(-FVector(LevelOffset, 0), false);

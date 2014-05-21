@@ -170,6 +170,10 @@ public:
 #if WITH_EDITOR
 	// Last location from where streaming state was updated
 	mutable FVector				LastViewLocation;
+
+	// Hack for a World Browser to be able to temporally show hidden levels 
+	// regardless of current world origin and without offsetting them temporally 
+	bool						bTemporallyDisableOriginTracking;
 #endif //WITH_EDITOR
 
 private:
