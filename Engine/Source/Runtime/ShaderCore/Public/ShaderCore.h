@@ -328,6 +328,7 @@ struct FShaderCompilerInput
 	FString SourceFilename;
 	FString EntryPointName;
 	FString DumpDebugInfoPath;
+	FString ShaderDebugInfoDirectory;
 	FShaderCompilerEnvironment Environment;
 	TRefCountPtr<FShaderCompilerEnvironment> SharedEnvironment;
 
@@ -345,6 +346,7 @@ struct FShaderCompilerInput
 		Ar << Input.SourceFilename;
 		Ar << Input.EntryPointName;
 		Ar << Input.DumpDebugInfoPath;
+		Ar << Input.ShaderDebugInfoDirectory;
 		Ar << Input.Environment;
 
 		bool bHasSharedEnvironment = IsValidRef(Input.SharedEnvironment);

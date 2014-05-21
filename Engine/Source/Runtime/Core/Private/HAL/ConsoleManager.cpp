@@ -1998,6 +1998,20 @@ void CreateConsoleVariables()
 		TEXT(" 1: on (Default)"),
 		ECVF_ReadOnly);
 
+	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PS4MixedModeShaderDebugInfo"),
+		0,
+		TEXT("Whether to compile shaders to allow mixed mode shader debugging. This will currently generate slower code.\n")
+		TEXT(" 0: Normal mode\n")
+		TEXT(" 1: Mixed mode)"),
+		ECVF_ReadOnly);
+
+	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PS4DumpShaderSDB"),
+		0,
+		TEXT("Whether to dump shader sdb files used for shader association.\n")
+		TEXT(" 0: Disabled\n")
+		TEXT(" 1: Enabled)"),
+		ECVF_ReadOnly);
+
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ViewDistanceScale"),
 		1.0f,
 		TEXT("Controls the view distance scale. A primitive's MaxDrawDistance is scaled by this value.\n")

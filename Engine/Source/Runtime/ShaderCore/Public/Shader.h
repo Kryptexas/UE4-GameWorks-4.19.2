@@ -1338,4 +1338,4 @@ extern SHADERCORE_API const TArray<FName>& GetTargetShaderFormats();
 extern SHADERCORE_API FName GetRuntimeShaderFormat();
 
 /** Appends to KeyString for all shaders. */
-extern SHADERCORE_API void ShaderMapAppendKeyString(FString& KeyString);
+extern SHADERCORE_API void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString);

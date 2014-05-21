@@ -1090,7 +1090,7 @@ FName GetRuntimeShaderFormat()
 	return RuntimeFormat;
 }
 
-void ShaderMapAppendKeyString(FString& KeyString)
+void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 {
 	// Globals that should cause all shaders to recompile when changed must be appended to the key here
 	// Key should be kept as short as possible while being somewhat human readable for debugging
@@ -1119,5 +1119,24 @@ void ShaderMapAppendKeyString(FString& KeyString)
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_DBuf") : TEXT("_NoDBuf");
+	}
+
+	if( Platform == SP_PS4 )
+	{
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4MixedModeShaderDebugInfo"));
+			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			{
+				KeyString += TEXT("_MMDBG");
+			}
+		}
+
+		{
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4DumpShaderSDB"));
+			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			{
+				KeyString += TEXT("_SDB");
+			}
+		}
 	}
 }

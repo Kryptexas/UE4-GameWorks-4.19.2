@@ -32,7 +32,7 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 // Serialize Queued Job information
 static void DoWriteTasks(TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 1;
+	int32 ShaderCompileWorkerInputVersion = 2;
 	TransferFile << ShaderCompileWorkerInputVersion;
 	int32 NumBatches = QueuedJobs.Num();
 	TransferFile << NumBatches;
@@ -1930,6 +1930,7 @@ void GlobalBeginCompileShader(
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));
 	Input.SourceFilename = SourceFilename;
 	Input.EntryPointName = FunctionName;
+	Input.ShaderDebugInfoDirectory = GShaderCompilingManager->GetAbsoluteShaderDebugInfoDirectory();
 
 	if (GDumpShaderDebugInfo != 0)
 	{
