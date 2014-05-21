@@ -1126,7 +1126,7 @@ Press enter to start processing.</value>
     <value>NoControl</value>
   </data>
   <data name="CallStackHistoryHScroll.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 573</value>
+    <value>0, 545</value>
   </data>
   <data name="CallStackHistoryHScroll.Size" type="System.Drawing.Size, System.Drawing">
     <value>1249, 14</value>
