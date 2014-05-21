@@ -122,11 +122,10 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 * @param OtherContainer		The Container to filter against
 	 * @param TagMatchType			Type of match to use for the tags in this container
 	 * @param OtherTagMatchType		Type of match to use for the tags in the OtherContainer param
-	 * @param ContainerMatchType	Type of match to use for filtering
 	 *
 	 * @return A FGameplayTagContainer containing the filtered tags
 	 */
-	FGameplayTagContainer Filter(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const;
+	FGameplayTagContainer Filter(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType) const;
 
 	/**
 	 * Checks if this container matches ANY of the tags in the specified container. Performs matching by expanding this container out
@@ -213,6 +212,20 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	{
 		return GameplayTags.CreateConstIterator();
 	}
+
+protected:
+	/**
+	* Returns true if the tags in this container match the tags in OtherContainer for the specified matching types.
+	*
+	* @param OtherContainer		The Container to filter against
+	* @param TagMatchType			Type of match to use for the tags in this container
+	* @param OtherTagMatchType		Type of match to use for the tags in the OtherContainer param
+	* @param ContainerMatchType	Type of match to use for filtering
+	*
+	* @return Returns true if ContainerMatchType is Any and any of the tags in OtherContainer match the tags in this or ContainerMatchType is All and all of the tags in OtherContainer match at least one tag in this. Returns false otherwise.
+	*/
+	bool DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const;
+
 
 private:
 
