@@ -11,6 +11,7 @@ namespace AutomationScripts.Automation
 {
 	[Help("List labels valid for this branch.")]
 	[Help("type", "Type of labels to list. Could be one of: all, promotable and promoted. Default: all.")]
+	[Help("ticks", "Print ticks along with the label name.")]
 	[Help("game=GameName", "Name of the game to filter labels. If not set then assuming shared promotable.")]
 	[RequireP4]
 	[DoesNotNeedP4CL]
@@ -28,6 +29,7 @@ namespace AutomationScripts.Automation
 			var GameName = ParseParamValue("game");
 			var QueryType = GetTypeParam();
 			var BranchPath = CommandUtils.GetDirectoryName(P4Env.BuildRootP4);
+			var Ticks = ParseParam("ticks");
 
 			var BranchAndGameName = string.IsNullOrWhiteSpace(GameName)
 				? string.Format("branch {0} shared-promotable", BranchPath)
@@ -42,19 +44,19 @@ namespace AutomationScripts.Automation
 			{
 				Log("Promoted labels for {0}.", BranchAndGameName);
 
-				Print(GetPromotedLabels(BranchPath, GameName));
+				Print(GetPromotedLabels(BranchPath, GameName), Ticks);
 			}
 			else if(QueryType == QueryType.Promotable)
 			{
 				Log("Promotable labels for {0}.", BranchAndGameName);
 
-				Print(GetPromotableLabels(BranchPath, GameName));
+				Print(GetPromotableLabels(BranchPath, GameName), Ticks);
 			}
 			else
 			{
 				Log("All labels for {0}.", BranchPath);
 
-				Print(GetBranchLabels(BranchPath));
+				Print(GetBranchLabels(BranchPath), Ticks);
 			}
 		}
 
@@ -105,11 +107,12 @@ namespace AutomationScripts.Automation
 		/// Prints the labels.
 		/// </summary>
 		/// <param name="Labels">Labels to print.</param>
-		public void Print(P4Label[] Labels)
+		/// <param name="Ticks">Print ticks along with label name?</param>
+		public void Print(P4Label[] Labels, bool Ticks)
 		{
 			foreach(var Label in Labels.OrderByDescending((Label) => Label.Date))
 			{
-				Log(Label.Name);
+				Log(Label.Name + (Ticks ? (" " + Label.Date.Ticks.ToString()) : ""));
 			}
 		}
 
@@ -148,7 +151,6 @@ namespace AutomationScripts.Automation
 					throw new AutomationException("Unsupported query type. Allowed are: all, promotable and promoted.");
 			}
 		}
-
 	}
 
 	[Help("Syncs promotable build. Use either -game or -label parameter.")]
@@ -165,19 +167,18 @@ namespace AutomationScripts.Automation
 			var Preview = ParseParam("preview");
 			var ArtistSync = ParseParam("artist");
 			var BranchPath = CommandUtils.GetDirectoryName(P4Env.BuildRootP4);
+			var LabelParam = ParseParamValue("label");
 			var GameName = ParseParamValue("game");
+
+			if(GameName == null)
+			{
+				GameName = "";
+			}
 
 			string ProgramSyncLabelName = null;
 
-			if (string.IsNullOrWhiteSpace(GameName))
+			if (!string.IsNullOrWhiteSpace(LabelParam))
 			{
-				var LabelParam = ParseParamValue("label");
-
-				if (string.IsNullOrWhiteSpace(LabelParam))
-				{
-					throw new AutomationException("Use either -game or -label parameter.");
-				}
-
 				if (!LabelParam.StartsWith(BranchPath) || !P4.ValidateLabelContent(LabelParam))
 				{
 					throw new AutomationException("Label {0} either doesn't exist or is not valid for the current branch path {1}.", LabelParam, BranchPath);
