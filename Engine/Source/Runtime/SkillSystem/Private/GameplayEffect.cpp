@@ -21,7 +21,8 @@ FAggregator::FAllocationStats FAggregator::AllocationStats;
 UGameplayEffect::UGameplayEffect(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	ChanceToApplyToTarget.SetValue(1.f);
+	ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 }
 
 void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
@@ -45,16 +46,20 @@ bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const FGameplayTagC
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *Owner, float Level, const FGlobalCurveDataOverride *CurveData)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *Owner, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
 : Def(InDef)
 , ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Owner)))
 , Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
 , Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
+, ChanceToApplyToTarget(new FAggregator(InDef->ChanceToApplyToTarget.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToApplyToTarget"), *InDef->GetName())))
+, ChanceToExecuteOnGameplayEffect(new FAggregator(InDef->ChanceToExecuteOnGameplayEffect.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToExecuteOnGameplayEffect"), *InDef->GetName())))
 , StackingPolicy(EGameplayEffectStackingPolicy::Unlimited)
 , StackedAttribName(NAME_None)
 {
 	Duration.Get()->RegisterLevelDependancies();
 	Period.Get()->RegisterLevelDependancies();
+	ChanceToApplyToTarget.Get()->RegisterLevelDependancies();
+	ChanceToExecuteOnGameplayEffect.Get()->RegisterLevelDependancies();
 
 	// check the stacking policy for this gameplay effect and warn if it's set up badly
 	if (Def->StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
@@ -140,9 +145,11 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *O
 	{
 		for (UGameplayEffect* TargetDef : InDef->TargetEffects)
 		{
-			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Owner, Level, CurveData)));
+			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Owner, Instigator, Level, CurveData)));
 		}
 	}
+
+	InstigatorStack.AddInstigator(Instigator);
 }
 
 void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
@@ -181,9 +188,28 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const
 	int32 NumApplied = 0;
 	bool ShouldSnapshot = InSpec.ShouldApplyAsSnapshot(QualifierContext);
 
-	if (InSpec.Def && !InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Def))
+	if (!InSpec.Def || !InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Def))
 	{
+		// InSpec doesn't match this gameplay effect but if InSpec provides immunity we also need to check the modifiers because they can be canceled independent of the gameplay effect
+		if (InSpec.Def->AppliesImmunityTo == QualifierContext.Type())
+		{
+			for (int ii = 0; ii < Modifiers.Num(); ++ii)
+			{
+				const FGameplayModifierEvaluatedData& Data = Modifiers[ii].Aggregator.Get()->Evaluate();
+				if (InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Data.Tags))
+				{
+					Modifiers.RemoveAtSwap(ii);
+					--ii;
+				}
+			}
+		}
+
 		return 0;
+	}
+
+	if (InSpec.Def->AppliesImmunityTo == QualifierContext.Type())
+	{
+		return -1;
 	}
 
 	// Fixme: Use acceleration structures to speed up these types of lookups
@@ -222,9 +248,24 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const
 				break;
 			}
 
+			case EGameplayModEffect::ChanceApplyTarget:
+			{
+				ChanceToApplyToTarget.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
+				NumApplied++;
+				break;
+			}
+
+			case EGameplayModEffect::ChanceExecuteEffect:
+			{
+				ChanceToExecuteOnGameplayEffect.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
+				NumApplied++;
+				break;
+			}
+
 			case EGameplayModEffect::LinkedGameplayEffect:
 			{
 				TargetEffectSpecs.Add(InMod.TargetEffectSpec.ToSharedRef());
+				NumApplied++;
 				break;
 			}
 		}
@@ -261,6 +302,16 @@ float FGameplayEffectSpec::GetDuration() const
 float FGameplayEffectSpec::GetPeriod() const
 {
 	return Period.Get()->Evaluate().Magnitude;
+}
+
+float FGameplayEffectSpec::GetChanceToApplyToTarget() const
+{
+	return ChanceToApplyToTarget.Get()->Evaluate().Magnitude;
+}
+
+float FGameplayEffectSpec::GetChanceToExecuteOnGameplayEffect() const
+{
+	return ChanceToExecuteOnGameplayEffect.Get()->Evaluate().Magnitude;
 }
 
 float FGameplayEffectSpec::GetMagnitude(const FGameplayAttribute &Attribute) const
@@ -357,7 +408,7 @@ FModifierSpec::FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGa
 	Aggregator.Get()->RegisterLevelDependancies();
 	if (InInfo.TargetEffect)
 	{
-		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Level, CurveData));
+		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Owner, Level, CurveData));
 	}
 }
 
@@ -610,7 +661,7 @@ void FAggregator::ApplyMod(EGameplayModOp::Type ModType, FAggregatorRef Ref, boo
 }
 
 // Execute is intended to directly modify the base value of an aggregator.
-// However if the aggregator's base value is not static (scales with some outside influece)
+// However if the aggregator's base value is not static (scales with some outside influence)
 // we will treat this execute as an apply, but make our own copy of the passed in aggregator.
 // (so that it will essentially be permanent).
 void FAggregator::ExecuteModAggr(EGameplayModOp::Type ModType, FAggregatorRef Ref)
@@ -849,7 +900,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				// Our requirements on the mod
 				const FGameplayModifierEvaluatedData& ModEvaluatedData = Agg->Evaluate();
 
-				// We have already commited during this aggregation to not have certain tags
+				// We have already committed during this aggregation to not have certain tags
 				if (CommittedIgnoreTags.Num() > 0 && CommittedIgnoreTags.MatchesAny(ModEvaluatedData.Tags, false))
 				{
 					continue;
@@ -962,7 +1013,7 @@ void FAggregator::MakeUniqueDeep()
 	}
 }
 
-void FAggregator::CleaerAllDependancies()
+void FAggregator::ClearAllDependancies()
 {
 	Dependants.SetNum(0);
 	OnDirty.Unbind();
@@ -1048,7 +1099,7 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
+bool FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	FActiveGameplayEffectHandle().IsValid();
 
@@ -1060,8 +1111,20 @@ void FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSp
 		{
 			continue;
 		}
-		Spec.ApplyModifiersFrom( ActiveEffect.Spec, QualifierContext );
+		// should we try to apply ActiveEffect to Spec?
+		float ChanceToExecute = ActiveEffect.Spec.GetChanceToExecuteOnGameplayEffect();
+		if ((ChanceToExecute < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToExecute))
+		{
+			continue;
+		}
+		if (Spec.ApplyModifiersFrom(ActiveEffect.Spec, QualifierContext) < 0)
+		{
+			// ActiveEffect provides immunity to Spec. No need to look at other active effects
+			return false;
+		}
 	}
+
+	return true;
 }
 
 /** This is the main function that applies/attaches a GameplayEffect on Attributes and ActiveGameplayEffects */
@@ -1084,7 +1147,7 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 
 		if (Mod.Info.ModifierType == EGameplayMod::ActiveGE)
 		{
-			SKILL_LOG_SCOPE(TEXT("Applying AttributeMod %s to ActiveEffects"),  *Mod.ToSimpleString(), *Mod.Info.Attribute.GetName());
+			SKILL_LOG_SCOPE(TEXT("Applying Mod %s to ActiveEffects"),  *Mod.ToSimpleString());
 
 			// TODO: Tag checks here
 
@@ -1117,6 +1180,41 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			return;
 		}
 	}
+
+	float ChanceToExecute = Spec.GetChanceToExecuteOnGameplayEffect();
+
+	// check if the new effect removes or modifies existing effects
+	if (Spec.Def->AppliesImmunityTo == EGameplayImmunity::ActiveGE)
+	{
+		for (int ii = 0; ii < GameplayEffects.Num(); ++ii)
+		{
+			// should we try to apply this to the current effect?
+			if ((ChanceToExecute < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToExecute))
+			{
+				continue;
+			}
+
+			if (Spec.Def->AreGameplayEffectTagRequirementsSatisfied(GameplayEffects[ii].Spec.Def))
+			{
+				GameplayEffects.RemoveAtSwap(ii);
+				--ii;
+				continue;
+			}
+
+			// we kept the effect, now check its mods to see if we should remove any of them
+			for (int jj = 0; jj < GameplayEffects[ii].Spec.Modifiers.Num(); ++jj)
+			{
+				const FGameplayModifierEvaluatedData& Data = GameplayEffects[ii].Spec.Modifiers[jj].Aggregator.Get()->Evaluate();
+				if (GameplayEffects[ii].Spec.Def->AreGameplayEffectTagRequirementsSatisfied(Data.Tags))
+				{
+					GameplayEffects[ii].Spec.Modifiers.RemoveAtSwap(jj);
+					--jj;
+				}
+			}
+		}
+	}
+
+	bool bModifiesActiveGEs = false;
 
 	for (const FModifierSpec &Mod : Spec.Modifiers)
 	{
@@ -1177,23 +1275,31 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 		}
 		else if(Mod.Info.ModifierType == EGameplayMod::ActiveGE)
 		{
-			SKILL_LOG_SCOPE(TEXT("Executing Attribute Mod %s on ActiveEffects"), *Mod.ToSimpleString());
+			bModifiesActiveGEs = true;
+		}
+	}
 
-			// Todo: Tag checks here
-
-			// This modifies GEs that are currently active, so apply this to them...
-			for (FActiveGameplayEffect & ActiveEffect : GameplayEffects)
+	// If any of the mods apply to active gameplay effects try to apply them now.
+	// We need to do this here because all of the modifiers either need to apply or not apply to each active gameplay effect based on their chance to execute on gameplay effects.
+	if (bModifiesActiveGEs)
+	{
+		for (FActiveGameplayEffect & ActiveEffect : GameplayEffects)
+		{
+			// Don't apply spec to itself
+			if (!QualifierContext.TestTarget(ActiveEffect.Handle))
 			{
-				// Don't apply spec to itself
-				if (!QualifierContext.TestTarget(ActiveEffect.Handle))
-				{
-					continue;
-				}
+				continue;
+			}
 
-				if (ActiveEffect.Spec.ExecuteModifiersFrom( Spec, FModifierQualifier().Type(EGameplayMod::ActiveGE) ) > 0)
-				{
-					InvokeGameplayCueExecute = true;
-				}
+			// should we try to apply this to the current effect?
+			if ((ChanceToExecute < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToExecute))
+			{
+				continue;
+			}
+
+			if (ActiveEffect.Spec.ExecuteModifiersFrom(Spec, FModifierQualifier().Type(EGameplayMod::ActiveGE)) > 0)
+			{
+				InvokeGameplayCueExecute = true;
 			}
 		}
 	}
@@ -1379,7 +1485,7 @@ void FActiveGameplayEffectsContainer::PreDestroy()
 	{
 		if (It.Value.IsValid())
 		{
-			It.Value.Get()->CleaerAllDependancies();
+			It.Value.Get()->ClearAllDependancies();
 		}
 	}
 }
@@ -1587,9 +1693,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, Owner->GetCurveDataOverride());
-	Spec.Def = GameplayEffect;
-	Spec.InstigatorStack.AddInstigator(Instigator);
+	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Instigator, Level, Owner->GetCurveDataOverride());
 
 	ApplyActiveEffectsTo(Spec, FModifierQualifier().Type(EGameplayMod::IncomingGE));
 	

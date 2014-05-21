@@ -173,11 +173,9 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToTarget(UGa
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
-	Spec.Def = GameplayEffect;
-	Spec.InstigatorStack.AddInstigator(GetOwner());
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), GetOwner(), Level, GetCurveDataOverride());
 	
-	return ApplyGameplayEffectSpecToTarget(Spec, Target);
+	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
@@ -189,9 +187,7 @@ FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(co
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
-	Spec.Def = GameplayEffect;
-	Spec.InstigatorStack.AddInstigator(Instigator);
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Instigator, Level, GetCurveDataOverride());
 
 	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
 }
@@ -232,13 +228,24 @@ void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAttributeComponent *Target, FModifierQualifier BaseQualifier)
 {
 	// Apply outgoing Effects to the Spec.
-	ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE));
+	// Outgoing immunity may stop the outgoing effect from being applied to the target
+	if (ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE)))
+	{
+		return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	}
 
-	return Target->ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
+	return FActiveGameplayEffectHandle();
 }
 
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
+	// check if the effect being applied actually succeeds
+	float ChanceToApply = Spec.GetChanceToApplyToTarget();
+	if ((ChanceToApply < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToApply))
+	{
+		return FActiveGameplayEffectHandle();
+	}
+
 	// Make sure we create our copy of the spec in the right place first...
 	FActiveGameplayEffectHandle	MyHandle;
 	bool bInvokeGameplayCueApplied = false;
@@ -284,7 +291,11 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	}
 
 	// Now that we have our own copy, apply our GEs that modify IncomingGEs
-	ActiveGameplayEffects.ApplyActiveEffectsTo(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::IncomingGE).IgnoreHandle(MyHandle));
+	if (!ActiveGameplayEffects.ApplyActiveEffectsTo(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::IncomingGE).IgnoreHandle(MyHandle)))
+	{
+		// We're immune to this effect
+		return FActiveGameplayEffectHandle();
+	}
 
 	// todo: apply some better logic to this so that we don't recalculate stacking effects as often
 	ActiveGameplayEffects.bNeedToRecalculateStacks = true;

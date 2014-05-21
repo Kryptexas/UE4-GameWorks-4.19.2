@@ -44,7 +44,7 @@ namespace EGameplayModOp
 }
 
 /**
- * Tells us what thing a GameplayEffect modifies.
+ * Tells us what thing a GameplayModifier modifies.
  */
 UENUM(BlueprintType)
 namespace EGameplayMod
@@ -62,6 +62,29 @@ namespace EGameplayMod
 }
 
 /**
+ * Tells us what thing a GameplayEffect provides immunity to. This must mirror the values in EGameplayMod
+ */
+UENUM(BlueprintType)
+namespace EGameplayImmunity
+{
+	enum Type
+	{
+		None = 0,			// Does not provide immunity
+		OutgoingGE,			// Provides immunity to outgoing GEs
+		IncomingGE,			// Provides immunity to incoming GEs
+		ActiveGE,			// Provides immunity from currently active GEs
+
+		// This must always be at the end
+		Max					UMETA(DisplayName="Invalid")
+	};
+}
+
+checkAtCompileTime(EGameplayMod::OutgoingGE == EGameplayImmunity::OutgoingGE, "EGameplayMod::OutgoingGE and EGameplayImmunity::OutgoingGE must match. Did you forget to modify one of them?");
+checkAtCompileTime(EGameplayMod::IncomingGE == EGameplayImmunity::IncomingGE, "EGameplayMod::IncomingGE and EGameplayImmunity::IncomingGE must match. Did you forget to modify one of them?");
+checkAtCompileTime(EGameplayMod::ActiveGE == EGameplayImmunity::ActiveGE, "EGameplayMod::ActiveGE and EGameplayImmunity::ActiveGE must match. Did you forget to modify one of them?");
+checkAtCompileTime(EGameplayMod::Max == EGameplayImmunity::Max, "EGameplayMod and EGameplayImmunity must cover the same cases. Did you forget to modify one of them?");
+
+/**
  * Tells us what a GameplayEffect modifies when being applied to another GameplayEffect
  */
 UENUM(BlueprintType)
@@ -72,7 +95,7 @@ namespace EGameplayModEffect
 		Magnitude			= 0x01,		// Modifies magnitude of a GameplayEffect (Always default for Attribute mod)
 		Duration			= 0x02,		// Modifies duration of a GameplayEffect
 		ChanceApplyTarget	= 0x04,		// Modifies chance to apply GameplayEffect to target
-		ChanceApplyEffect	= 0x08,		// Modifies chance to apply GameplayEffect to GameplayEffect
+		ChanceExecuteEffect	= 0x08,		// Modifies chance to execute GameplayEffect on GameplayEffect
 		LinkedGameplayEffect= 0x10,		// Adds a linked GameplayEffect to a GameplayEffect
 
 		// This must always be at the end
@@ -323,11 +346,15 @@ public:
 	FScalableFloat	ChanceToApplyToTarget;
 
 	UPROPERTY(EditDefaultsOnly, Category = Application, meta = (GameplayAttribute = "True"))
-	FScalableFloat	ChanceToApplyToGameplayEffect;
+	FScalableFloat	ChanceToExecuteOnGameplayEffect;
 
 	// other gameplay effects  that will be applied to the target of this effect
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
 	TArray<UGameplayEffect*> TargetEffects;
+
+	// removes or blocks gameplay effects that it applies to if the tags match
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TEnumAsByte<EGameplayImmunity::Type> AppliesImmunityTo;
 
 	// Modify duration of CEs
 
@@ -361,13 +388,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
 	FGameplayTagContainer GameplayEffectIgnoreTags;
 
+	bool AreGameplayEffectTagRequirementsSatisfied(const FGameplayTagContainer& Tags) const
+	{
+		bool bHasRequired = Tags.MatchesAll(GameplayEffectRequiredTags, true);
+		bool bHasIgnored = Tags.MatchesAny(GameplayEffectIgnoreTags, false);
+
+		return bHasRequired && !bHasIgnored;
+	}
+
 	/** Can this GameplayEffect modify the input parameter, based on tags  */
 	bool AreGameplayEffectTagRequirementsSatisfied(const UGameplayEffect *GameplayEffectToBeModified) const
 	{
-		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.MatchesAll(GameplayEffectRequiredTags, true);
-		bool HasIgnored = GameplayEffectToBeModified->GameplayEffectTags.MatchesAny(GameplayEffectIgnoreTags, false);
-
-		return HasRequired && !HasIgnored;
+		return AreGameplayEffectTagRequirementsSatisfied(GameplayEffectToBeModified->GameplayEffectTags);
 	}
 
 	// ------------------------------------------------
@@ -685,9 +717,6 @@ struct FAggregatorRef
 	FString ToString() const;
 	void PrintAll() const;
 
-	UPROPERTY()
-	int32	Foo;
-
 private:
 
 	TSharedPtr<struct FAggregator>	SharedPtr;
@@ -827,7 +856,7 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 	virtual ~FAggregator();
 
 	FAggregator & MarkDirty();
-	void CleaerAllDependancies();
+	void ClearAllDependancies();
 
 	const FGameplayModifierEvaluatedData& Evaluate() const;
 
@@ -1079,7 +1108,7 @@ struct FGameplayEffectSpec
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Owner, float Level, const FGlobalCurveDataOverride *CurveData );
+	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Owner, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData );
 	
 	UPROPERTY()
 	const UGameplayEffect * Def;
@@ -1092,6 +1121,8 @@ struct FGameplayEffectSpec
 
 	float GetDuration() const;
 	float GetPeriod() const;
+	float GetChanceToApplyToTarget() const;
+	float GetChanceToExecuteOnGameplayEffect() const;
 	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
@@ -1101,7 +1132,14 @@ struct FGameplayEffectSpec
 	UPROPERTY()
 	FAggregatorRef	Duration;
 
+	UPROPERTY()
 	FAggregatorRef	Period;
+
+	UPROPERTY()
+	FAggregatorRef	ChanceToApplyToTarget;
+
+	UPROPERTY()
+	FAggregatorRef	ChanceToExecuteOnGameplayEffect;
 
 	// How this combines with other gameplay effects
 	EGameplayEffectStackingPolicy::Type StackingPolicy;
@@ -1116,7 +1154,10 @@ struct FGameplayEffectSpec
 
 	void InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level);
 
+	// returns the number of modifiers applied to InSpec by the current GameplayEffect Spec
+	// returns -1 if the current GameplayEffectSpec prevents InSpec from being applied
 	int32 ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
+
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
@@ -1286,7 +1327,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	
 	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec);
 
-	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	// returns true if none of the active effects provide immunity to Spec
+	// returns false if one (or more) of the active effects provides immunity to Spec
+	bool ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
 	void ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 		

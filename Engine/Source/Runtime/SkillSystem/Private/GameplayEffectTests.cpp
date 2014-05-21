@@ -4315,6 +4315,1377 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 	return true;
 }
 
+
+bool GameplayEffectsTest_ImmunityIncoming(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to provide immunity from incoming GEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply ImmunityBuff"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Apply Damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ImmunityOutgoing(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to provide immunity from outgoing GEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply ImmunityBuff"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::OutgoingGE;
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, SourceComponent, 1.f);
+	}
+
+	// Apply Damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// A buff passes its tags to the base modifier. The base modifier can now be blocked by immunity
+// This would be bad to do in practice. We now have a gameplay effect that hangs around but doesn't do anything
+bool GameplayEffectsTest_ImmunityMod(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float BonusDamageMultiplier = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to provide immunity to buffed damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Immunity"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Setup a GE to modify OutgoingGEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+	}
+
+	// Apply Damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// A buff is added in the form of a new gameplay effect being attached to the base gameplay effect.
+// The base effect applies but immunity stops the buff.
+bool GameplayEffectsTest_ImmunityBlockedBuff(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to provide immunity to buffed damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Immunity"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Apply base damage and a buff that causes extra damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff and InstantDamage"))
+
+		UGameplayEffect * BuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffEffect->Modifiers.SetNum(1);
+		BuffEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+		BaseDmgEffect->TargetEffects.Add(BuffEffect);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = (StartHealth - DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied. ActualValue: %.2f. ExpectedValue: %.2f.", ActualValue, ExpectedValue), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// A buff is added in the form of a new gameplay effect being attached to the base gameplay effect.
+// The base effect is stopped by immunity, the buff should also be stopped despite not matching the immunity tags
+bool GameplayEffectsTest_ImmunityBlockedBaseAndBuff(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to provide immunity to buffed damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Immunity"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Apply base damage and a buff that causes extra damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff and InstantDamage"))
+
+		UGameplayEffect * BuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffEffect->Modifiers.SetNum(1);
+		BuffEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+		BaseDmgEffect->TargetEffects.Add(BuffEffect);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// Removes an active gameplay effect from the target
+bool GameplayEffectsTest_ImmunityActiveGE(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float DamageProtectionDivisor = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Apply a buff to reduce incoming damage on DestComponent
+	{
+		UGameplayEffect * BuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffEffect->Modifiers.SetNum(1);
+		BuffEffect->Modifiers[0].Magnitude.SetValue(DamageProtectionDivisor);
+		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
+		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
+		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f);
+	}
+
+	// Apply Damage to verify the buff is working
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue / DamageProtectionDivisor);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	// Setup a GE to remove the buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Immunity"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::ActiveGE;
+
+		// Apply
+		SourceComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Apply Damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue / DamageProtectionDivisor) - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// removes a modifier on an active gameplay effect from the target
+bool GameplayEffectsTest_ImmunityActiveMod(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float DamageProtectionDivisor = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Apply a buff to reduce incoming damage on DestComponent
+	{
+		UGameplayEffect * BuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffEffect->Modifiers.SetNum(1);
+		BuffEffect->Modifiers[0].Magnitude.SetValue(DamageProtectionDivisor);
+		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
+		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Division;
+		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f);
+	}
+
+	// Apply Damage to verify the buff is working
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue / DamageProtectionDivisor);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	// Setup a GE to remove the buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Immunity"))
+
+		UGameplayEffect * BaseImmunityEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ImmunityBuff"))));
+		BaseImmunityEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
+		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::ActiveGE;
+
+		// Apply
+		SourceComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+	}
+
+	// Apply Damage
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue / DamageProtectionDivisor) - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied"), (ActualValue == ExpectedValue));
+		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+
+bool GameplayEffectsTest_ChanceToApplyToTarget(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		BaseDmgEffect->ChanceToApplyToTarget.SetValue(1.f);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = (StartHealth - DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		BaseDmgEffect->ChanceToApplyToTarget.SetValue(0.f);
+
+		// Apply to target
+		FActiveGameplayEffectHandle Handle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = (StartHealth - DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+		Test->TestFalse(SKILL_TEST_TEXT("Effect applied to target when chance was 0.f"), Handle.IsValid());
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnActiveGEMod(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float BonusDamageMultiplier = 2.f;
+	const float ExtraDamageMultiplier = 1.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to modify OutgoingGEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+	}
+
+	// attempt to modify the buff but fail because of a 0.f chance to apply
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to modify DamageBuff"))
+			
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->Modifiers.SetNum(1);
+		ModBuffEffect->Modifiers[0].Magnitude.SetValue(ExtraDamageMultiplier);
+		ModBuffEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		ModBuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		ModBuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue * BonusDamageMultiplier);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// modify the buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Modify DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->Modifiers.SetNum(1);
+		ModBuffEffect->Modifiers[0].Magnitude.SetValue(ExtraDamageMultiplier);
+		ModBuffEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		ModBuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		ModBuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue * BonusDamageMultiplier) - (DamageValue * (BonusDamageMultiplier + ExtraDamageMultiplier));
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnActiveGEImmunity(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float BonusDamageMultiplier = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to modify OutgoingGEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+	}
+
+	// attempt to remove the buff but fail because of a 0.f chance to apply
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::ActiveGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue * BonusDamageMultiplier);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// modify the buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::ActiveGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - (DamageValue * BonusDamageMultiplier) - (DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEMod(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float BonusDamageMultiplier = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to modify OutgoingGEs
+	// this GE won't do anything because the chance to execute is zero
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply useless DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// Setup a GE to modify OutgoingGEs
+	// this GE will always execute work because the chance to execute is one
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue - (DamageValue * BonusDamageMultiplier);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEImmunity(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+
+	// attempt to prevent outgoing damage but fail because of a 0.f chance to apply
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::OutgoingGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// prevent outgoing damage buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::OutgoingGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEMod(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+	const float BonusDamageMultiplier = 2.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	// Setup a GE to modify OutgoingGEs
+	// this GE won't do anything because the chance to execute is zero
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply useless DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// Setup a GE to modify OutgoingGEs
+	// this GE will always execute work because the chance to execute is one
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply DamageBuff"))
+
+		UGameplayEffect * BuffDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffDmgEffect->Modifiers.SetNum(1);
+		BuffDmgEffect->Modifiers[0].Magnitude.SetValue(BonusDamageMultiplier);
+		BuffDmgEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
+		BuffDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue - (DamageValue * BonusDamageMultiplier);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEImmunity(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+
+	// attempt to prevent outgoing damage but fail because of a 0.f chance to apply
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// prevent outgoing damage buff
+	{
+		SKILL_LOG_SCOPE(TEXT("Fail to remove DamageBuff"))
+
+		UGameplayEffect * ModBuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ModDamageBuff"))));
+		ModBuffEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		ModBuffEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
+		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		float ExpectedValue = StartHealth - DamageValue;
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ModifyChanceToApplyToTarget(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply boost to chance to apply"))
+
+		UGameplayEffect * BaseEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ChanceToApply"))));
+		BaseEffect->Modifiers.SetNum(1);
+		BaseEffect->Modifiers[0].Magnitude.SetValue(1.f);
+		BaseEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BaseEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceApplyTarget;
+		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+		BaseDmgEffect->ChanceToApplyToTarget.SetValue(0.f);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 0.f);
+
+		float ExpectedValue = (StartHealth - DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = Cast<UAttributeComponent>(SourceActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	UAttributeComponent * DestComponent = Cast<UAttributeComponent>(DestActor->CreateComponentFromTemplate(UAttributeComponent::StaticClass()->GetDefaultObject<UAttributeComponent>(), FString(TEXT("AttributeComponent"))));
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage buff"))
+
+		UGameplayEffect * BuffEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("DamageBuff"))));
+		BuffEffect->Modifiers.SetNum(1);
+		BuffEffect->Modifiers[0].Magnitude.SetValue(2.f);
+		BuffEffect->Modifiers[0].ModifierType = EGameplayMod::OutgoingGE;
+		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BuffEffect->Modifiers[0].EffectType = EGameplayModEffect::Magnitude;
+		BuffEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BuffEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
+		BuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 0.f);
+	}
+
+	// verify that outgoing damage is unbuffed
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 0.f);
+
+		float ExpectedValue = (StartHealth - DamageValue);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply boost to chance to execute"))
+
+		UGameplayEffect * BaseEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ChanceToExecute"))));
+		BaseEffect->Modifiers.SetNum(1);
+		BaseEffect->Modifiers[0].Magnitude.SetValue(1.f);
+		BaseEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		BaseEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceExecuteEffect;
+		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		// Apply to self
+		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f);
+	}
+
+	// verify that the buff applies now
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INSTANT_APPLICATION);
+
+		// Apply to target
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 0.f);
+
+		float ExpectedValue = (StartHealth - DamageValue * 3.f);
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+
+
 bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 {
 	UCurveTable *CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
@@ -4405,6 +5776,36 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	// interactions between stacking and modifiers
 	GameplayEffectsTest_StackingRemovingModifiers(World, this);
 	GameplayEffectsTest_StackingAddingModifiers(World, this);
+
+	// Immunity
+	GameplayEffectsTest_ImmunityIncoming(World, this);
+	GameplayEffectsTest_ImmunityOutgoing(World, this);
+	GameplayEffectsTest_ImmunityActiveGE(World, this);
+	GameplayEffectsTest_ImmunityMod(World, this);
+	GameplayEffectsTest_ImmunityActiveMod(World, this);
+	GameplayEffectsTest_ImmunityBlockedBuff(World, this);
+	GameplayEffectsTest_ImmunityBlockedBaseAndBuff(World, this);
+
+	//
+	// Chance to apply or execute
+	//
+
+	// Chance to apply to target
+	GameplayEffectsTest_ChanceToApplyToTarget(World, this);
+
+	// Chance to apply to GEs
+	// We need to test active, incoming and outgoing GEs
+	// Chance to execute has a slightly different path for immunity than it does for modifying a GE so it needs to be tested separately
+	GameplayEffectsTest_ChanceToExecuteOnActiveGEMod(World, this);
+	GameplayEffectsTest_ChanceToExecuteOnActiveGEImmunity(World, this);
+	GameplayEffectsTest_ChanceToExecuteOnOutgoingGEMod(World, this);
+	GameplayEffectsTest_ChanceToExecuteOnOutgoingGEImmunity(World, this);
+	GameplayEffectsTest_ChanceToExecuteOnIncomingGEMod(World, this);
+	GameplayEffectsTest_ChanceToExecuteOnIncomingGEImmunity(World, this);
+
+	// Modifiers to Chance to apply and execute
+	GameplayEffectsTest_ModifyChanceToApplyToTarget(World, this);
+	GameplayEffectsTest_ModifyChanceToExecuteOnGE(World, this);
 
 	GEngine->DestroyWorldContext(World);
 	World->DestroyWorld(false);
