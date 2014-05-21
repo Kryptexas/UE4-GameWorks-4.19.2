@@ -178,6 +178,29 @@ struct FFunctionTargetInfo
 	{}
 };
 
+USTRUCT()
+// Structure used to automatically convert blueprintcallable functions (that have blueprint parameter) calls (in bp graph) 
+// into their never versions (with class param instead of blueprint).
+struct FBlueprintCallableFunctionRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString ClassName;
+
+	UPROPERTY()
+	FString OldFunctionName;
+
+	UPROPERTY()
+	FString NewFunctionName;
+
+	UPROPERTY()
+	FString BlueprintParamName;
+
+	UPROPERTY()
+	FString ClassParamName;
+};
+
 UCLASS(config=Editor)
 class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 {
@@ -329,6 +352,9 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	UPROPERTY(globalconfig)
 	bool bAllowBlueprintComms;
 	
+	UPROPERTY(globalconfig)
+	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
+
 public:
 	//////////////////////////////////////////////////////////////////////////
 	// FPinTypeInfo
