@@ -2199,7 +2199,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// After this, we can assume all components are created and assembled.
 	if (!bDeferConstruction)
 	{
-		OnConstruction( FTransform(SpawnRotation, SpawnLocation) );
+		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation), NULL );
 		PostActorConstruction();
 	}
 }

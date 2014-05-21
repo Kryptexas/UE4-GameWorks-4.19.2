@@ -52,7 +52,7 @@ void UChildActorComponent::CreateChildActor()
 #endif
 
 				// Parts that we deferred from SpawnActor
-				ChildActor->OnConstruction(ComponentToWorld);
+				ChildActor->ExecuteConstruction(ComponentToWorld, NULL);
 				ChildActor->PostActorConstruction();
 
 				// attach new actor to this component
