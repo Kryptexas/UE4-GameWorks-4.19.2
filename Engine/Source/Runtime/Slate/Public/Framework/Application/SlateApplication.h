@@ -654,7 +654,7 @@ protected:
 	void PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow = NULL );
 
 	/**
-	 * Prepass step before drawing windows to compute geometry size and reshape autosized windows
+	 * Pre-pass step before drawing windows to compute geometry size and reshape autosized windows
 	 */
 	void DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow );
 
@@ -672,7 +672,7 @@ protected:
 	/** Engages or disengages application throttling based on user behavior */
 	void ThrottleApplicationBasedOnMouseMovement();
 
-protected:
+public:
 
 	/**
 	 * Called by the native application in response to a mouse move. Routs the event to Slate Widgets.
@@ -681,7 +681,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseMoveMessage( FPointerEvent& MouseEvent );
+	bool ProcessMouseMoveEvent( FPointerEvent& MouseEvent );
 
 	/**
 	 * Called by the native application in response to a mouse button press. Routs the event to Slate Widgets.
@@ -690,7 +690,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseButtonDownMessage( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& MouseEvent );
+	bool ProcessMouseButtonDownEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& MouseEvent );
 
 	/**
 	 * Called by the native application in response to a mouse button release. Routs the event to Slate Widgets.
@@ -699,8 +699,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseButtonUpMessage( FPointerEvent& MouseEvent );
-
+	bool ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent );
 
 	/**
 	 * Called by the native application in response to a mouse release. Routs the event to Slate Widgets.
@@ -709,7 +708,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseButtonDoubleClickMessage( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent );
+	bool ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent );
 	
 	/**
 	 * Called by the native application in response to a mouse wheel spin or a touch gesture. Routs the event to Slate Widgets.
@@ -719,7 +718,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseWheelOrGestureMessage( FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent );
+	bool ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent );
 
 	/**
 	 * Called when a character is entered
@@ -728,7 +727,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessKeyCharMessage( FCharacterEvent& InCharacterEvent );
+	bool ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent );
 
 	/**
 	 * Called when a key is pressed
@@ -737,7 +736,7 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessKeyDownMessage( FKeyboardEvent& InKeyboardEvent );
+	bool ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent );
 
 	/**
 	 * Called when a key is released
@@ -746,15 +745,8 @@ protected:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessKeyUpMessage( FKeyboardEvent& InKeyboardEvent );
+	bool ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent );
 	
-public:
-
-	/**
-	 * Called by the native application in response to a set cursor event.
-	 */
-	void OnSetCursorMessage();
-
 	/**
 	 * Called when a drag from an external (non-slate) source enters a window
 	 *
@@ -763,78 +755,57 @@ public:
 	 *
 	 * @return true if the drag enter was handled and can be processed by some widget in this window; false otherwise
 	 */
-	bool ProcessDragEnterMessage( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent );
-
-	/**
-	 * Called when a drag from an external (non-slate) source leaves a window
-	 *
-	 * @param WindowLeft     The window that was left by the drag and drop
-	 * @param DragDropEvent  Describes the mouse state (position, pressed buttons, etc) and associated payload
-	 *
-	 * @return true if the drag enter was handled and can be processed by some widget in this window; false otherwise
-	 */
-	void OnDragLeaveMessage();
-
-	/**
-	 * Called when a drag from an external (non-slate) is dropped onto a window
-	 *
-	 * @param WindowDroppedInto  The window that was dropped into
-	 * @param DragDropEvent  Describes the mouse state (position, pressed buttons, etc) and associated payload
-	 *
-	 * @return true if the drag enter was handled and can be processed by some widget in this window; false otherwise
-	 */
-	bool OnDropMessage( TSharedRef<SWindow> WindowDroppedInto, FDragDropEvent& DragDropEvent );
+	bool ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent );
 
 	/**
 	 * Called when a controller button is found pressed when polling game device state
 	 * 
 	 * @param ControllerEvent	The controller event generated
 	 */
-	void OnControllerButtonPressedMessage( FControllerEvent& ControllerEvent );
+	void ProcessControllerButtonPressedEvent( FControllerEvent& ControllerEvent );
 
 	/**
 	 * Called when a controller button is found released when polling game device state
 	 * 
 	 * @param ControllerEvent	The controller event generated
 	 */
-	void OnControllerButtonReleasedMessage( FControllerEvent& ControllerEvent );
+	void ProcessControllerButtonReleasedEvent( FControllerEvent& ControllerEvent );
 
 	/**
 	 * Called when a controller analog value has changed while polling game device state
 	 * 
 	 * @param ControllerEvent	The controller event generated
 	 */
-	void OnControllerAnalogValueChangedMessage( FControllerEvent& ControllerEvent );
+	void ProcessControllerAnalogValueChangedEvent( FControllerEvent& ControllerEvent );
 
 	/**
 	 * Called when a touchpad touch is started (finger down) when polling game device state
 	 * 
 	 * @param ControllerEvent	The touch event generated
 	 */
-	void OnTouchStartedMessage( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InTouchEvent );
+	void ProcessTouchStartedEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InTouchEvent );
 
 	/**
 	 * Called when a touchpad touch is moved  (finger moved) when polling game device state
 	 * 
 	 * @param ControllerEvent	The touch event generated
 	 */
-	void OnTouchMovedMessage( FPointerEvent& InTouchEvent );
+	void ProcessTouchMovedEvent( FPointerEvent& InTouchEvent );
 
 	/**
 	 * Called when a touchpad touch is ended (finger lifted) when polling game device state
 	 * 
 	 * @param ControllerEvent	The touch event generated
 	 */
-	void OnTouchEndedMessage( FPointerEvent& InTouchEvent );
+	void ProcessTouchEndedEvent( FPointerEvent& InTouchEvent );
 
 	/**
 	 * Called when motion is detected (controller or device) when polling game device state
 	 * 
 	 * @param MotionEvent		The motion event generated
 	 */
-	void OnMotionDetectedMessage( FMotionEvent& InMotionEvent );
+	void ProcessMotionDetectedEvent( FMotionEvent& InMotionEvent );
 
-public:
 	/**
 	 * Called by the native application in response to an activation or deactivation. 
 	 *
@@ -842,12 +813,16 @@ public:
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessWindowActivatedMessage( const FWindowActivateEvent& ActivateEvent );
+	bool ProcessWindowActivatedEvent( const FWindowActivateEvent& ActivateEvent );
 	
-	/** Called when the application is activated (i.e. one of its windows becomes active) or deactivated. */
-	void ProcessApplicationActivationMessage( bool InAppActivated );
+	/**
+	 * Called when the application is activated (i.e. one of its windows becomes active) or deactivated.
+	 *
+	 * @param InAppActivated Whether the application was activated.
+	 */
+	void ProcessApplicationActivationEvent( bool InAppActivated );
 
-
+public:
 
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();

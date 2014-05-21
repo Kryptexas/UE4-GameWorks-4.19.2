@@ -82,7 +82,7 @@ void FSlateRemoteServer::ProcessMotionMessage( const FSlateRemoteServerMessage& 
 	FVector Accel = FVector(Message.Data[9], Message.Data[10], Message.Data[11]);
 
 	FMotionEvent Event(0, Attitude, RotationRate, Gravity, Accel);
-	FSlateApplication::Get().OnMotionDetectedMessage(Event);
+	FSlateApplication::Get().ProcessMotionDetectedEvent(Event);
 }
 
 
@@ -116,7 +116,7 @@ void FSlateRemoteServer::ProcessTiltMessage( const FSlateRemoteServerMessage& Me
 	LastRoll = Roll;
 
 	FMotionEvent Event(0, Attitude, RotationRate, Gravity, Accel);
-	FSlateApplication::Get().OnMotionDetectedMessage(Event);
+	FSlateApplication::Get().ProcessMotionDetectedEvent(Event);
 }
 
 
@@ -173,15 +173,15 @@ void FSlateRemoteServer::ProcessTouchMessage( const FSlateRemoteServerMessage& M
 			// send input to handler
 			if (Message.DataType == DT_TouchBegan)
 			{
-				SlateApplication.OnTouchStartedMessage(nullptr, Event);
+				SlateApplication.ProcessTouchStartedEvent(nullptr, Event);
 			}
 			else if (Message.DataType == DT_TouchEnded)
 			{
-				SlateApplication.OnTouchEndedMessage(Event);
+				SlateApplication.ProcessTouchEndedEvent(Event);
 			}
 			else
 			{
-				SlateApplication.OnTouchMovedMessage(Event);
+				SlateApplication.ProcessTouchMovedEvent(Event);
 			}
 		}
 	}
