@@ -66,6 +66,9 @@ template<typename T>
 class FAsyncTask;
 struct FStreamingManagerTexture;
 
+/** Helper function to flush resource streaming. */
+void FlushResourceStreaming();
+
 /*-----------------------------------------------------------------------------
 	Base streaming classes.
 -----------------------------------------------------------------------------*/

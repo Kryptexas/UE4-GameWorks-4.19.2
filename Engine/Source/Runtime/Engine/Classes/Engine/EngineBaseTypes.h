@@ -23,6 +23,15 @@ enum EInputEvent
 	IE_MAX                  =5,
 };
 
+/** Type of tick we wish to perform on the level */
+enum ELevelTick
+{
+	LEVELTICK_TimeOnly = 0,	// Update the level time only.
+	LEVELTICK_ViewportsOnly = 1,	// Update time and viewports.
+	LEVELTICK_All = 2,	// Update all.
+	LEVELTICK_PauseTick = 3,	// Delta time is zero, we are paused. Components don't tick.
+};
+
 /**
  * Determines which ticking group an Actor/Component belongs to
  */
@@ -294,7 +303,7 @@ private:
 	 * @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 	 * @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	 **/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		check(0); // you cannot make this pure virtual in script because it wants to create constructors.
 	}
@@ -328,7 +337,7 @@ struct FActorTickFunction : public FTickFunction
 		* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 		* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	ENGINE_API virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	ENGINE_API virtual FString DiagnosticMessage();
 };
@@ -351,7 +360,7 @@ struct FActorComponentTickFunction : public FTickFunction
 		* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 		* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	ENGINE_API virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	ENGINE_API virtual FString DiagnosticMessage();
 };
@@ -374,17 +383,9 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 		* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 		* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
-};
-
-enum ELevelTick
-{
-	LEVELTICK_TimeOnly = 0,	// Update the level time only.
-	LEVELTICK_ViewportsOnly = 1,	// Update time and viewports.
-	LEVELTICK_All = 2,	// Update all.
-	LEVELTICK_PauseTick = 3,	// Delta time is zero, we are paused. Components don't tick.
 };
 
 
