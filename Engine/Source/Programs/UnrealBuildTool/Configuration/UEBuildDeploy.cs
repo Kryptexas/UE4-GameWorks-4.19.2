@@ -8,12 +8,34 @@ using System.Diagnostics;
 
 namespace UnrealBuildTool
 {
+	public interface IUEBuildDeploy
+	{
+		/**
+		 * Register the platform with the UEBuildDeploy class.
+		 */
+		void RegisterBuildDeploy();
+
+		/**
+		 * Prepare the target for deployment.
+		 *	
+		 * @param InTarget The target for deployment.
+		 *	
+		 * @return bool True if successful, false if not.
+		 */
+		bool PrepTargetForDeployment(UEBuildTarget InTarget);
+
+		/**
+		 * Prepare the target for deployment.
+		 */
+		bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution);
+	}
+
 	/// <summary>
 	///  Base class to handle deploy of a target for a given platform
 	/// </summary>
-	public abstract class UEBuildDeploy
+	public abstract class UEBuildDeploy : IUEBuildDeploy
 	{
-		static Dictionary<UnrealTargetPlatform, UEBuildDeploy> BuildDeployDictionary = new Dictionary<UnrealTargetPlatform, UEBuildDeploy>();
+		static Dictionary<UnrealTargetPlatform, IUEBuildDeploy> BuildDeployDictionary = new Dictionary<UnrealTargetPlatform, IUEBuildDeploy>();
 
 		/**
 		 *	Register the given platforms UEBuildDeploy instance
@@ -21,7 +43,7 @@ namespace UnrealBuildTool
 		 *	@param	InPlatform			The UnrealTargetPlatform to register with
 		 *	@param	InBuildDeploy		The UEBuildDeploy instance to use for the InPlatform
 		 */
-		public static void RegisterBuildDeploy(UnrealTargetPlatform InPlatform, UEBuildDeploy InBuildDeploy)
+		public static void RegisterBuildDeploy(UnrealTargetPlatform InPlatform, IUEBuildDeploy InBuildDeploy)
 		{
 			if (BuildDeployDictionary.ContainsKey(InPlatform) == true)
 			{
@@ -42,7 +64,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	UEBuildDeploy		The instance of the build deploy
 		 */
-		public static UEBuildDeploy GetBuildDeploy(UnrealTargetPlatform InPlatform)
+		public static IUEBuildDeploy GetBuildDeploy(UnrealTargetPlatform InPlatform)
 		{
 			if (BuildDeployDictionary.ContainsKey(InPlatform) == true)
 			{

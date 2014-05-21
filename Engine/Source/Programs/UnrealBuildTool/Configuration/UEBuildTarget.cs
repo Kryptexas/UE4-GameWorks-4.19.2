@@ -541,7 +541,7 @@ namespace UnrealBuildTool
 		{
 			//@todo. Allow failure to get build platform here?
 			bool bPlatformRequiresMonolithic = false;
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(InPlatform, true);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(InPlatform, true);
 			if (BuildPlatform != null)
 			{
 				bPlatformRequiresMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
@@ -1027,7 +1027,7 @@ namespace UnrealBuildTool
 			}
 
 			UnrealTargetPlatform TargetPlatform = CPPTargetPlatformToUnrealTargetPlatform( Platform );
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( TargetPlatform );
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform( TargetPlatform );
 
 
 			// Iterate over all the binaries, and add the relevant info to the manifest
@@ -1812,7 +1812,7 @@ namespace UnrealBuildTool
 			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName)
 		{
 			// Determine the binary extension for the platform and binary type.
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			string BinaryExtension = BuildPlatform.GetBinaryExtension(BinaryType);
 
 			UnrealTargetConfiguration LocalConfig = Configuration;
@@ -1923,7 +1923,7 @@ namespace UnrealBuildTool
 		/** Sets up the modules for the target. */
 		protected virtual void SetupModules()
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			List<string> PlatformExtraModules = new List<string>();
 			BuildPlatform.GetExtraModules(new TargetInfo(Platform, Configuration, Rules.Type), this, ref PlatformExtraModules);
 			ExtraModuleNames.AddRange(PlatformExtraModules);			
@@ -2040,9 +2040,9 @@ namespace UnrealBuildTool
 		/** Sets up the global compile and link environment for the target. */
 		public virtual void SetupGlobalEnvironment()
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
-			UEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(Platform));
+			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(Platform));
 			ToolChain.SetUpGlobalEnvironment();
 
 			// Allow each target type (Game/Editor/Server) to set a default global environment state
@@ -2275,7 +2275,7 @@ namespace UnrealBuildTool
 
 		void SetUpPlatformEnvironment()
 		{
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
 			CPPTargetPlatform MainCompilePlatform = BuildPlatform.GetCPPTargetPlatform(Platform);
 

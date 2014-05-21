@@ -89,7 +89,7 @@ namespace UnrealBuildTool.Linux
 				return;
 			}
 
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
             {
                 bool bRegisterBuildPlatform = true;
 

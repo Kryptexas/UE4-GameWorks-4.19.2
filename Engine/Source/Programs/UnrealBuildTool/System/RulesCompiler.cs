@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 			Type = InitType;
 
 			// get the platform's architecture
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			Architecture = BuildPlatform.GetActiveArchitecture();
 		}
 

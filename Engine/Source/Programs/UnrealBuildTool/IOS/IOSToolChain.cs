@@ -992,7 +992,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists (Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						UEBuildDeploy DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
+						var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
 						if (DeployHandler != null)
 						{
 							DeployHandler.PrepTargetForDeployment(Target);
@@ -1180,7 +1180,7 @@ namespace UnrealBuildTool
 					}
 					StubGenerateProcess.StartInfo.Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
 
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					string Architecture = BuildPlatform.GetActiveArchitecture();
 					if (Architecture != "")
 					{

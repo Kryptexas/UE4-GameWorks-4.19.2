@@ -340,7 +340,7 @@ namespace UnrealBuildTool
 			++CPPEnvironment.TotalDirectIncludeCacheMisses;
 
 			// Get the adjusted filename
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform( TargetPlatform );
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform( TargetPlatform );
 			string FileToRead = CPPFile.AbsolutePath;
 
 			if (BuildPlatform.RequiresExtraUnityCPPWriter() == true &&

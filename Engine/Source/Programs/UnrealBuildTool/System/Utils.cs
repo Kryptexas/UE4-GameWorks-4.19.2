@@ -884,6 +884,17 @@ namespace UnrealBuildTool
 		{
 			return Path.GetDirectoryName(GetExecutingAssemblyLocation());
 		}
+
+		/// <summary>
+		/// Checks if given type implements given interface.
+		/// </summary>
+		/// <typeparam name="InterfaceType">Interface to check.</typeparam>
+		/// <param name="TestType">Type to check.</param>
+		/// <returns>True if TestType implements InterfaceType. False otherwise.</returns>
+		public static bool ImplementsInterface<InterfaceType>(Type TestType)
+		{
+			return Array.IndexOf(TestType.GetInterfaces(), typeof(InterfaceType)) != -1;
+		}
 	}
 
 	/// <summary>

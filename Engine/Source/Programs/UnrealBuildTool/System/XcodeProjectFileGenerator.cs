@@ -676,7 +676,7 @@ namespace UnrealBuildTool
 					IsAGame = true;
 					if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
 					{
-						UEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+						var Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
 						GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
 					}
 					break;
@@ -695,7 +695,7 @@ namespace UnrealBuildTool
 				}
 				if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
 				{
-					UEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+					var Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
 					EngineRelative = Toolchain.ConvertPath(EngineRelative);
 				}
 			}

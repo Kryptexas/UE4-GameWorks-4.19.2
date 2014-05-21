@@ -9,7 +9,35 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public abstract class UEToolChain
+	public interface IUEToolChain
+	{
+		void RegisterToolChain();
+		
+		CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
+		
+		CPPOutput CompileRCFiles(CPPEnvironment Environment, List<FileItem> RCFiles);
+		
+		FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
+		
+		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile);
+		
+		/** Converts the passed in path from UBT host to compiler native format. */
+		String ConvertPath(String OriginalPath);
+		
+		/// <summary>
+		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
+		/// </summary>
+		/// <param name="UObjectModules">List of UObject modules we generated code for.</param>
+		void PostCodeGeneration(UEBuildTarget Target, UHTManifest Manifest);
+		
+		void PreBuildSync();
+		
+		void PostBuildSync(UEBuildTarget Target);
+		
+		void SetUpGlobalEnvironment();
+	}
+
+	public abstract class UEToolChain : IUEToolChain
 	{
 		static Dictionary<CPPTargetPlatform, UEToolChain> CPPToolChainDictionary = new Dictionary<CPPTargetPlatform, UEToolChain>();
 
@@ -27,7 +55,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static UEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
+		public static IUEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
 		{
 			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
 			{

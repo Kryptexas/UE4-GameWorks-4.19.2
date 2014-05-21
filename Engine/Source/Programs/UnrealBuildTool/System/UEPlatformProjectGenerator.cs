@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		public static void RegisterPlatformProjectGenerator(UnrealTargetPlatform InPlatform, UEPlatformProjectGenerator InProjectGenerator)
 		{
 			// Make sure the build platform is legal
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(InPlatform, true);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(InPlatform, true);
 			if (BuildPlatform != null)
 			{
 				if (ProjectGeneratorDictionary.ContainsKey(InPlatform) == true)

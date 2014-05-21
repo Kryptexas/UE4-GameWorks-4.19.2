@@ -229,7 +229,7 @@ namespace UnrealBuildTool
 			{
 				if (Predicate(Platform))
 				{
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
 					if ((bCheckValidity == false) || (BuildPlatform != null))
 					{
 						OutPlatforms.Add(Platform);
@@ -395,10 +395,10 @@ namespace UnrealBuildTool
                 {
                     if (CheckType.IsClass && !CheckType.IsAbstract)
                     {
-                        if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
+						if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
                         {
                             Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-                            UEBuildPlatform TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+                            var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
                             TempInst.RegisterBuildPlatform();
                         }
                     }
@@ -408,16 +408,16 @@ namespace UnrealBuildTool
 				{
 					if (CheckType.IsClass && !CheckType.IsAbstract)
 					{
-						if (CheckType.IsSubclassOf(typeof(UEToolChain)))
+						if (Utils.ImplementsInterface<IUEToolChain>(CheckType))
 						{
 							Log.TraceVerbose("    Registering tool chain    : {0}", CheckType.ToString());
-							UEToolChain TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+							var TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterToolChain();
 						}
-						else if (CheckType.IsSubclassOf(typeof(UEBuildDeploy)))
+						else if (Utils.ImplementsInterface<IUEBuildDeploy>(CheckType))
 						{
 							Log.TraceVerbose("    Registering build deploy  : {0}", CheckType.ToString());
-							UEBuildDeploy TempInst = (UEBuildDeploy)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+							var TempInst = (UEBuildDeploy)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterBuildDeploy();
 						}
 						else if (CheckType.IsSubclassOf(typeof(UEPlatformProjectGenerator)))
@@ -909,7 +909,7 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform, true);
+								var BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform, true);
 								if (BuildPlatform != null)
 								{
 									// Setup environment wasn't called, so set the flag
@@ -923,7 +923,7 @@ namespace UnrealBuildTool
 							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
 								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
-								UEBuildDeploy DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
+								var DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
 								if (DeployHandler != null)
 								{
 									// We need to be able to identify the Target.Type we can derive it from the Arguments.
@@ -1036,7 +1036,7 @@ namespace UnrealBuildTool
 					ResetConfiguration = UnrealTargetConfiguration.Development;
 				}
 			}
-			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
 
 			// now that we have the platform, we can set the intermediate path to include the platform/architecture name
 			BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString() + BuildPlatform.GetActiveArchitecture());
@@ -1162,7 +1162,7 @@ namespace UnrealBuildTool
 							ActionsToExecute.Count
 							);
 
-					UEToolChain ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
+					var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
 					ToolChain.PreBuildSync();
 
 					// Execute the actions.
