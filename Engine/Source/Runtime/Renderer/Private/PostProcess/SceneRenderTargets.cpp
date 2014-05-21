@@ -289,12 +289,6 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 
 void FSceneRenderTargets::AllocSceneColor()
 {
-	if(GRHIFeatureLevel == ERHIFeatureLevel::ES2)
-	{
-		// ES2 is forward and not yet releasing the SceneColor during the frame (is not calling FRCPassPostProcessTonemap::Process())
-		return;
-	}
-
 	if(SceneColor)
 	{
 		// no work needed
