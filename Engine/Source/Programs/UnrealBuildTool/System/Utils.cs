@@ -1253,4 +1253,129 @@ namespace UnrealBuildTool
         }
     }
     #endregion
+
+    #region HashCodeHelper
+    /// <summary>
+    /// Helper for generating hashcodes for value types.
+    /// </summary>
+    public static class HashCodeHelper
+    {
+        private const int BasePrimeNumber = 691;
+        private const int FieldMutatorPrimeNumber = 397;
+
+        /// <summary>
+        /// Helper to compute a reasonable hash code from a group of objects, typically base types, but could be anything.
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <param name="Value1"></param>
+        /// <returns></returns>
+        public static int GetHashCodeFromValues<T1>(T1 Value1)
+        {
+            var Result = BasePrimeNumber;
+            if (Value1 != null)
+            {
+                Result *= Value1.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            return Result;
+        }
+
+        /// <summary>
+        /// Helper to compute a reasonable hash code from a group of objects, typically base types, but could be anything.
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="Value1"></param>
+        /// <param name="Value2"></param>
+        /// <returns></returns>
+        public static int GetHashCodeFromValues<T1, T2>(T1 Value1, T2 Value2)
+        {
+            var Result = BasePrimeNumber;
+            if (Value1 != null)
+            {
+                Result *= Value1.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value2 != null)
+            {
+                Result *= Value2.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            return Result;
+        }
+
+        /// <summary>
+        /// Helper to compute a reasonable hash code from a group of objects, typically base types, but could be anything.
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <param name="Value1"></param>
+        /// <param name="Value2"></param>
+        /// <param name="Value3"></param>
+        /// <returns></returns>
+        public static int GetHashCodeFromValues<T1, T2, T3>(T1 Value1, T2 Value2, T3 Value3)
+        {
+            var Result = BasePrimeNumber;
+            if (Value1 != null)
+            {
+                Result *= Value1.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value2 != null)
+            {
+                Result *= Value2.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value3 != null)
+            {
+                Result *= Value3.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            return Result;
+        }
+
+        /// <summary>
+        /// Helper to compute a reasonable hash code from a group of objects, typically base types, but could be anything.
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <typeparam name="T3"></typeparam>
+        /// <typeparam name="T4"></typeparam>
+        /// <param name="Value1"></param>
+        /// <param name="Value2"></param>
+        /// <param name="Value3"></param>
+        /// <param name="Value4"></param>
+        /// <returns></returns>
+        public static int GetHashCodeFromValues<T1, T2, T3, T4>(T1 Value1, T2 Value2, T3 Value3, T4 Value4)
+        {
+            var Result = BasePrimeNumber;
+            if (Value1 != null)
+            {
+                Result *= Value1.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value2 != null)
+            {
+                Result *= Value2.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value3 != null)
+            {
+                Result *= Value3.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            if (Value4 != null)
+            {
+                Result *= Value4.GetHashCode() + FieldMutatorPrimeNumber;
+            }
+            return Result;
+        }
+
+        /// <summary>
+        /// Helper to compute a reasonable hash code from a group of objects, typically base types, but could be anything.
+        /// </summary>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static int GetHashCodeFromValues(params object[] values)
+        {
+            // prevent arithmetic overflow exceptions
+            unchecked
+            {
+                return values.Where(elt => elt != null).Aggregate(BasePrimeNumber, (result, rhs) => result * (FieldMutatorPrimeNumber + rhs.GetHashCode()));
+            }
+        }
+    }
+    #endregion
 }
