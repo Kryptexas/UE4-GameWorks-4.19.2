@@ -150,7 +150,11 @@ FVector2D FLinuxCursor::GetPosition() const
 {
 	int CursorX, CursorY;
 
-	DSEXT_GetMousePosition( &CursorX, &CursorY );
+	if (EDSExtSuccess != DSEXT_GetMousePosition(&CursorX, &CursorY))
+	{
+		UE_LOG(LogHAL, Log, TEXT("Could not get absolute mouse position"));
+		CursorX = CursorY = 0;
+	}
 
 	return FVector2D( CursorX, CursorY );
 }

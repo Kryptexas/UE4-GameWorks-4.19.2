@@ -894,8 +894,10 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 		}
 		if (MouseCaptureWindow && !LinuxCursor->IsHidden())
 		{
-			//SDL_SetWindowGrab(TargetWindow, SDL_TRUE);
-			DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE);
+			if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE))
+			{
+				UE_LOG(LogHAL, Log, TEXT("Could not grab cursor for SDL window %p"), TargetWindow);
+			}
 		}
 	}
 	else
@@ -904,8 +906,10 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 		{
 			if (!LinuxCursor->IsHidden())
 			{
-				//SDL_SetWindowGrab(TargetWindow, SDL_FALSE);
-				DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE);
+				if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE))
+				{
+					UE_LOG(LogHAL, Log, TEXT("Could not ungrab cursor for SDL window %p"), TargetWindow);
+				}
 			}
 			MouseCaptureWindow = NULL;
 		}
