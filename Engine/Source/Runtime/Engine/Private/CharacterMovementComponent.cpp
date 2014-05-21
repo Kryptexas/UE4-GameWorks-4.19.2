@@ -87,10 +87,28 @@ void FFindFloorResult::SetFromLineTrace(const FHitResult& InHit, const float InS
 	}
 }
 
+void FCharacterMovementComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	if ( (TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	{
+		FScopeCycleCounterUObject ComponentScope(Target);
+		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
+		Target->PreClothTick(DeltaTime, *this);	
+	}
+}
+
+FString FCharacterMovementComponentPreClothTickFunction::DiagnosticMessage()
+{
+	return Target->GetFullName() + TEXT("[UCharacterMovementComponent::PreClothTick]");
+}
 
 UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	PreClothComponentTick.bCanEverTick = true;
+	PreClothComponentTick.bStartWithTickEnabled = false;
+	PreClothComponentTick.TickGroup = TG_PreCloth;
+
 	GravityScale = 1.f;
 	GroundFriction = 8.0f;
 	JumpZVelocity = 420.0f;
@@ -717,8 +735,8 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			// Server ticking for remote client.
 			// Between net updates from the client we need to update position if based on another object,
 			// otherwise the object will move on intermediate frames and we won't follow it.
-			UpdateBasedMovement(DeltaTime);
-			SaveBaseLocation();
+			MaybeUpdateBasedMovement(DeltaTime);
+			MaybeSaveBaseLocation();
 		}
 	}
 	else if (CharacterOwner->Role == ROLE_SimulatedProxy)
@@ -756,6 +774,16 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 	}
 }
 
+void UCharacterMovementComponent::PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction)
+{
+	if(bDeferUpdateBasedMovement)
+	{
+		UpdateBasedMovement(DeltaTime);
+		SaveBaseLocation();
+
+		bDeferUpdateBasedMovement = false;
+	}
+}
 
 void UCharacterMovementComponent::AdjustProxyCapsuleSize()
 {
@@ -960,7 +988,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
 
 	// simulated pawns predict location
-	UpdateBasedMovement(DeltaSeconds);
+	MaybeUpdateBasedMovement(DeltaSeconds);
 	FStepDownResult StepDownResult;
 	MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
 
@@ -1012,7 +1040,8 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 		}
 	}
 
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
+	
 	UpdateComponentVelocity();
 	bJustTeleported = false;
 }
@@ -1025,6 +1054,32 @@ void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, bool bN
 	}
 }
 
+void UCharacterMovementComponent::MaybeUpdateBasedMovement(float DeltaSeconds)
+{
+	bDeferUpdateBasedMovement = false;
+
+	UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
+	if(MovementBaseUtility::UseRelativePosition(MovementBase))
+	{
+		if(!MovementBase->IsSimulatingPhysics())
+		{
+			UpdateBasedMovement(DeltaSeconds);
+		}
+		else
+		{
+			// defer movement base update until after physics
+			bDeferUpdateBasedMovement = true;
+		}
+	}
+}
+
+void UCharacterMovementComponent::MaybeSaveBaseLocation()
+{
+	if(!bDeferUpdateBasedMovement)
+	{
+		SaveBaseLocation();
+	}
+}
 
 // @todo UE4 - handle lift moving up and down through encroachment
 void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
@@ -1050,6 +1105,7 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 	TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, MoveComponentFlags | MOVECOMP_IgnoreBases);
 
 	FQuat DeltaQuat = FQuat::Identity;
+	FVector DeltaPosition = FVector::ZeroVector;
 	const bool bRotationChanged = !OldBaseQuat.Equals(MovementBase->GetComponentQuat());
 	if( bRotationChanged )
 	{
@@ -1093,7 +1149,7 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 			FVector const BaseOffset(0.0f, 0.0f, HalfHeight);
 			FVector const LocalBasePos = OldLocalToWorld.InverseTransformPosition(CharacterOwner->GetActorLocation() - BaseOffset);
 			FVector const NewWorldPos = ConstrainLocationToPlane(NewLocalToWorld.TransformPosition(LocalBasePos) + BaseOffset);
-			FVector const Delta = ConstrainDirectionToPlane(NewWorldPos - CharacterOwner->GetActorLocation());
+			DeltaPosition = ConstrainDirectionToPlane(NewWorldPos - CharacterOwner->GetActorLocation());
 
 			// move attached actor
 			if (bFastAttachedMove)
@@ -1103,8 +1159,13 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 			}
 			else
 			{
-				MoveUpdatedComponent( Delta, FinalQuat.Rotator(), true );
+				MoveUpdatedComponent( DeltaPosition, FinalQuat.Rotator(), true );
 			}
+		}
+
+		if(MovementBase->IsSimulatingPhysics())
+		{
+			CharacterOwner->Mesh->ApplyDeltaToAllPhysicsTransforms(DeltaPosition, DeltaQuat);
 		}
 	}
 }
@@ -1162,8 +1223,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
-	UpdateBasedMovement(DeltaSeconds);
-
+	MaybeUpdateBasedMovement(DeltaSeconds);
+	
 	ApplyAccumulatedForces(DeltaSeconds);
 
 	FVector OldVelocity = Velocity;
@@ -1289,7 +1350,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	}
 
 	// update relative location/rotation
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 
 	// update component velocity
 	UpdateComponentVelocity();
@@ -5658,6 +5719,32 @@ void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float 
 	}
 
 	AddImpulse(Delta * ImpulseMagnitude, bVelChange);
+}
+
+void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
+{
+	Super::RegisterComponentTickFunctions(bRegister);
+
+	if (bRegister)
+	{
+		if (SetupActorComponentTickFunction(&PreClothComponentTick))
+		{
+			PreClothComponentTick.Target = this;
+
+			// If primary tick is registered, add a prerequisite to it
+			if(PrimaryComponentTick.bCanEverTick)
+			{
+				PreClothComponentTick.AddPrerequisite(this, PrimaryComponentTick); 
+			}
+		}
+	}
+	else
+	{
+		if(PreClothComponentTick.IsTickFunctionRegistered())
+		{
+			PreClothComponentTick.UnRegisterTickFunction();
+		}
+	}
 }
 
 FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character()

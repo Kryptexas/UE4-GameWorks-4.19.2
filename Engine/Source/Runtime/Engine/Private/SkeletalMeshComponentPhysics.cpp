@@ -551,6 +551,42 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 	}
 }
 
+void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation)
+{
+	if(RootBodyIndex < Bodies.Num())
+	{
+		// calculate the deltas to get the root body to NewRot
+		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		check(RootBI);
+		if(RootBI->IsValidBodyInstance())
+		{
+			// move the root body
+			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
+			RootBodyTM.SetRotation(RootBodyTM.GetRotation() * DeltaRotation);
+			RootBodyTM.SetTranslation(RootBodyTM.GetTranslation() + DeltaLocation);
+			RootBI->SetBodyTransform(RootBodyTM, true);
+
+			// apply the delta to all the other bodies
+			for (int32 i = 0; i < Bodies.Num(); i++)
+			{
+				if (i != RootBodyIndex)
+				{
+					FBodyInstance* BI = Bodies[i];
+					check(BI);
+
+					FTransform BodyTM = BI->GetUnrealWorldTransform();
+					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaRotation);
+					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLocation);
+					BI->SetBodyTransform( BodyTM, true );
+				}
+			}
+
+			// Move component to new physics location
+			SyncComponentToRBPhysics();
+		}
+	}
+}
+
 void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial)
 {
 	// Single-body case - just use PrimComp code.

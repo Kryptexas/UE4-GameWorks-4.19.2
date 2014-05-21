@@ -385,6 +385,13 @@ namespace MovementBaseUtility
 			if (NewBaseOwner)
 			{
 				BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
+
+				TArray<UActorComponent*> Components;
+				NewBaseOwner->GetComponents(Components);
+				for (auto& Component : Components)
+				{
+					BasedObjectTick.AddPrerequisite(Component, Component->PrimaryComponentTick);
+				}
 			}
 		}
 	}
@@ -398,6 +405,13 @@ namespace MovementBaseUtility
 			if (OldBaseOwner)
 			{
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
+
+				TArray<UActorComponent*> Components;
+				OldBaseOwner->GetComponents(Components);
+				for (auto& Component : Components)
+				{
+					BasedObjectTick.RemovePrerequisite(Component, Component->PrimaryComponentTick);
+				}
 			}
 		}
 	}
@@ -497,18 +511,27 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		if (CharacterMovement)
 		{
 			MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);
+			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);			
 
 			if (MovementBase)
 			{
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
 				CharacterMovement->OldBaseQuat = MovementBase->GetComponentQuat();
+
+				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use 
+				// post-physics transforms
+				if(MovementBase->IsSimulatingPhysics())
+				{
+					CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(true);
+				}
 			}
 			else
 			{
 				// Base is NULL, invalidate floor.
 				CharacterMovement->CurrentFloor.Clear();
+
+				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(false);
 			}
 		}
 	}

@@ -136,11 +136,38 @@ struct FRootMotionMovementParams
 	}
 };
 
+/** 
+ * Tick function that calls UCharacterMovementComponent::PreClothTick
+ **/
+USTRUCT()
+struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** CharacterMovementComponent that is the target of this tick **/
+	class UCharacterMovementComponent* Target;
+
+	/** 
+	 * Abstract function actually execute the tick. 
+	 * @param DeltaTime - frame time to advance, in seconds
+	 * @param TickType - kind of tick for this frame
+	 * @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	 * @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completion of this task until certain child tasks are complete.
+	 **/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage() OVERRIDE;
+};
 
 UCLASS(dependson=(UNetworkPredictionInterface))
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Post-physics tick function for this character */
+	UPROPERTY()
+	struct FCharacterMovementComponentPreClothTickFunction PreClothComponentTick;
 
 protected:
 
@@ -558,6 +585,9 @@ protected:
 	/** if set, PostProcessAvoidanceVelocity will be called */
 	uint32 bUseRVOPostProcess : 1;
 
+	/** Flag set in pre-physics update to indicate that based movement should be updated post-physics */
+	uint32 bDeferUpdateBasedMovement : 1;
+
 	/** forced avoidance velocity, used when AvoidanceLockTimer is > 0 */
 	FVector AvoidanceLockVelocity;
 
@@ -632,6 +662,7 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 	virtual void OnUnregister() OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 	//End UActorComponent Interface
 
 	//BEGIN UMovementComponent Interface
@@ -685,11 +716,17 @@ public:
 	/** Adjust distance from floor, trying to maintain a slight offset from the floor when walking (based on CurrentFloor). */
 	virtual void AdjustFloorHeight();
 
+	/** Update or defer updating of position based on Base movement */
+	virtual void MaybeUpdateBasedMovement(float DeltaSeconds);
+
 	/** Update position based on Base movement */
 	virtual void UpdateBasedMovement(float DeltaSeconds);
 
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
+
+	/** Update (or defer updating) OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	virtual void MaybeSaveBaseLocation();
 
 	/** Update OldBaseLocation and OldBaseRotation if there is a valid movement base. */
 	virtual void SaveBaseLocation();
@@ -984,6 +1021,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	void SetWalkableFloorZ(float InWalkableFloorZ);
 
+	/** Tick function called after physics (sync scene) has finished simulation, before cloth */
+	virtual void PreClothTick(float DeltaTime, FCharacterMovementComponentPreClothTickFunction& ThisTickFunction);
 
 protected:
 	/** @note Movement update functions should only be called through StartNewPhysics()*/

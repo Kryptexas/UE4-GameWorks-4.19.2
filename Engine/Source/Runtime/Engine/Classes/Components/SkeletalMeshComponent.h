@@ -919,6 +919,9 @@ public:
 
 	/** Calls needed cloth updates */
 	void PreClothTick(float DeltaTime);
+	
+	/** Set physics transforms for all bodies */
+	void ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation);
 
 #if WITH_APEX_CLOTHING
 	/** 
