@@ -1566,14 +1566,7 @@ FTransform AActor::ActorToWorld() const
 	FTransform Result = FTransform::Identity;
 	if( RootComponent != NULL )
 	{
-		if( !GetRootComponent()->IsRegistered() )
-		{
-			UE_LOG(LogActor, Log, TEXT("AActor::ActorToWorld (%s) called on RootComponent that is not registered"), *GetPathName());
-		}
-		else
-		{
-			Result = GetRootComponent()->ComponentToWorld;
-		}
+		Result = RootComponent->ComponentToWorld;
 	}
 	else
 	{
