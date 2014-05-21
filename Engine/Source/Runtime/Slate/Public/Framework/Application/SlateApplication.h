@@ -217,11 +217,6 @@ public:
 	void SetCursorPos( const FVector2D& MouseCoordinate );
 
 	/**
-	 * Reorders an array of windows so the specified window is "brought to the front"
-	 */
-	static void ArrangeWindowToFront( TArray< TSharedRef<SWindow> >& Windows, const TSharedRef<SWindow>& WindowToBringToFront );
-
-	/**
 	 * Polls game devices for input
 	 */
 	void PollGameDeviceState();
@@ -423,19 +418,6 @@ public:
 	 */
 	void SetExitRequestedHandler( const FSimpleDelegate& OnExitRequestedHandler );
 		
-	/**
-	 * @todo slate: Remove this method or make it private.
-	 * Searches for the specified widget and generates a full path to it.  Note that this is
-	 * a relatively slow operation!
-	 * 
-	 * @param  InWidget       Widget to generate a path to
-	 * @param  OutWidgetPath  The generated widget path
-	 * @param  VisibilityFilter	Widgets must have this type of visibility to be included the path
-	 *
-	 * @return	True if the widget path was found
-	 */
-	static bool FindPathToWidget( const TArray< TSharedRef<SWindow> > WindowsToSearch, TSharedRef< const SWidget > InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible );
-
 	/**
 	 * @todo slate: Remove this method or make it private.
 	 * Searches for the specified widget and generates a full path to it.  Note that this is
@@ -961,12 +943,12 @@ public:
 
 	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) OVERRIDE
 	{
-		FSlateApplication::ArrangeWindowToFront(Windows, WindowToBringToFront);
+		FSlateWindowHelper::ArrangeWindowToFront(Windows, WindowToBringToFront);
 	}
 
-	virtual bool FindPathToWidgetVirtual( const TArray<TSharedRef<SWindow>> WindowsToSearch, TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) OVERRIDE
+	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) OVERRIDE
 	{
-		return FSlateApplication::FindPathToWidget(WindowsToSearch, InWidget, OutWidgetPath, VisibilityFilter);
+		return FSlateWindowHelper::FindPathToWidget(GetInteractiveTopLevelWindows(), InWidget, OutWidgetPath, VisibilityFilter);
 	}
 
 	virtual const double GetCurrentTime( ) const OVERRIDE

@@ -136,6 +136,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 
 // Application
 #include "IToolTip.h"
+#include "SlateWindowHelper.h"
 #include "SlateApplicationBase.h"
 #include "ThrottleManager.h"
 

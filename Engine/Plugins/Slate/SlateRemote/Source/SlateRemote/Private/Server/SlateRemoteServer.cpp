@@ -145,7 +145,7 @@ void FSlateRemoteServer::ProcessTouchMessage( const FSlateRemoteServerMessage& M
 						
 				if (WidgetPath.Widgets.Num() == 0 || WidgetPath.Widgets.Last().Widget != GameViewport)
 				{
-					SlateApplication.FindPathToWidget(SlateApplication.GetInteractiveTopLevelWindows(), GameViewport.ToSharedRef(), WidgetPath);
+					SlateApplication.FindPathToWidget(GameViewport.ToSharedRef(), WidgetPath);
 					GameViewportWidgetPath = WidgetPath;
 				}
 

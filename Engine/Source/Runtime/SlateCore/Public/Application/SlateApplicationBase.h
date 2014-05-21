@@ -58,9 +58,9 @@ public:
 	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) = 0;
 
 	/**
-	 * @todo slate: Remove this method or make it private.
-	 * Searches for the specified widget and generates a full path to it.  Note that this is
-	 * a relatively slow operation!
+	 * Searches for the specified widget and generates a full path to it.
+	 *
+	 * Note: this is a relatively slow operation!
 	 * 
 	 * @param  InWidget       Widget to generate a path to
 	 * @param  OutWidgetPath  The generated widget path
@@ -68,7 +68,7 @@ public:
 	 *
 	 * @return	True if the widget path was found
 	 */
-	virtual bool FindPathToWidgetVirtual( const TArray<TSharedRef<SWindow>> WindowsToSearch, TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
+	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) = 0;
 
 	/**
 	 * Gets the active top-level window.
