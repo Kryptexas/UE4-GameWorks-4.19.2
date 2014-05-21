@@ -582,6 +582,14 @@ struct FRegenerationHelper
 			}
 		}
 
+		{
+			UPackage* Package = Struct->GetOutermost();
+			check(Package);
+			UMetaData* MetaData = Package->GetMetaData();
+			check(MetaData);
+			FrocedLoad(MetaData);
+		}
+
 		const int32 OldPropertiesSize = Struct->GetPropertiesSize();
 		for (UField* Field = Struct->Children; Field; Field = Field->Next)
 		{
