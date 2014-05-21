@@ -1093,11 +1093,11 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 					
 		if (CulturesToGenerate.Num() > 1)
 		{
-			POFilePath = DestinationPath / CultureName / Filename;
+			POFilePath = SourcePath / CultureName / Filename;
 		}
 		else
 		{
-			POFilePath = DestinationPath / Filename;
+			POFilePath = SourcePath / Filename;
 		}
 
 		if( !FPaths::FileExists(POFilePath) )
