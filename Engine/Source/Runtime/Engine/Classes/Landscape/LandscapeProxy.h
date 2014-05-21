@@ -418,10 +418,11 @@ public:
 	/**
 	 * Exports landscape into raw mesh
 	 * 
+	 * @param InExportLOD Landscape LOD level to use while exporting, INDEX_NONE will use ALanscapeProxy::ExportLOD settings
 	 * @param OutRawMesh - Resulting raw mesh
 	 * @return true if successful
 	 */
-	ENGINE_API bool ExportToRawMesh(struct FRawMesh& OutRawMesh) const;
+	ENGINE_API bool ExportToRawMesh(int32 InExportLOD, struct FRawMesh& OutRawMesh) const;
 
 
 	/** @return Current size of bounding rectangle in quads space */

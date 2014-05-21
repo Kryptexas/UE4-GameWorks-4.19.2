@@ -2622,7 +2622,7 @@ void FMeshUtilities::CreateProxyMesh(
 		TArray<int32> RawMeshMaterialMap;
 		int32 RawMeshId = RawMeshes.Add(FRawMesh());
 
-		if (Landscape->ExportToRawMesh(RawMeshes[RawMeshId]))
+		if (Landscape->ExportToRawMesh(INDEX_NONE, RawMeshes[RawMeshId]))
 		{
 			// Landscape has one unique material
 			int32 MatIdx = UniqueMaterials.Add(MaterialExportUtils::FFlattenMaterial());

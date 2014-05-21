@@ -2247,21 +2247,28 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 	GWarn->EndSlowTask();
 }
 
-bool ALandscapeProxy::ExportToRawMesh(FRawMesh& OutRawMesh) const
+bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) const
 {
 	TArray<ULandscapeComponent*> RegisteredLandscapeComponents;
 	GetComponents<ULandscapeComponent>(RegisteredLandscapeComponents);
 	
 	const FIntRect LandscapeSectionRect = GetBoundingRect();
 	const FVector2D LandscapeUVScale = FVector2D(1.f, 1.f)/FVector2D(LandscapeSectionRect.Size());
+
+	// User specified LOD to export
+	int32 LandscapeLODToExport = ExportLOD; 
+	if (InExportLOD != INDEX_NONE)
+	{
+		LandscapeLODToExport = FMath::Clamp<int32>(InExportLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads+1)-1);
+	}
 		
 	// Export data for each component
 	for (auto It = RegisteredLandscapeComponents.CreateConstIterator(); It; ++It)
 	{
 		ULandscapeComponent* Component = (*It);
-		FLandscapeComponentDataInterface CDI(Component, ExportLOD);
-		const int32 ComponentSizeQuadsLOD = ((Component->ComponentSizeQuads+1)>>ExportLOD)-1;
-		const int32 SubsectionSizeQuadsLOD = ((Component->SubsectionSizeQuads+1)>>ExportLOD)-1;
+		FLandscapeComponentDataInterface CDI(Component, LandscapeLODToExport);
+		const int32 ComponentSizeQuadsLOD = ((Component->ComponentSizeQuads+1)>>LandscapeLODToExport)-1;
+		const int32 SubsectionSizeQuadsLOD = ((Component->SubsectionSizeQuads+1)>>LandscapeLODToExport)-1;
 		const FIntPoint ComponentOffsetQuads = Component->GetSectionBase() - LandscapeSectionOffset - LandscapeSectionRect.Min;
 		const FVector2D ComponentUVOffsetLOD = FVector2D(ComponentOffsetQuads)*((float)ComponentSizeQuadsLOD/ComponentSizeQuads);
 		const FVector2D ComponentUVScaleLOD = LandscapeUVScale*((float)ComponentSizeQuads/ComponentSizeQuadsLOD);

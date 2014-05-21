@@ -1809,9 +1809,10 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		
 		FRawMesh LandscapeRawMesh;
 		FFlattenMaterial LandscapeFlattenMaterial;
-		
 		FVector LandscapeWorldLocation = Landscape->GetActorLocation();
-		Landscape->ExportToRawMesh(LandscapeRawMesh);
+		
+		Landscape->ExportToRawMesh(MAX_int32, LandscapeRawMesh);
+		
 		for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
 		{
 			VertexPos-= LandscapeWorldLocation;
@@ -1822,16 +1823,21 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		ExportMaterial(Landscape, LandscapeFlattenMaterial);
 		
 		// Reduce landscape mesh
-		FMeshReductionSettings Settings;
-		Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
-		float OutMaxDeviation = 0.f;
-		FRawMesh LandscapeReducedMesh = LandscapeRawMesh;
+		if (LODInfo.GenDetailsPercentage != 100.f)
+		{
+			FMeshReductionSettings Settings;
+			Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
+			float OutMaxDeviation = 0.f;
+			FRawMesh LandscapeReducedMesh;
 
-		MeshUtilities.GetMeshReductionInterface()->Reduce(
-			LandscapeReducedMesh,
-			OutMaxDeviation,
-			LandscapeRawMesh,
-			Settings);
+			MeshUtilities.GetMeshReductionInterface()->Reduce(
+				LandscapeReducedMesh,
+				OutMaxDeviation,
+				LandscapeRawMesh,
+				Settings);
+
+			LandscapeRawMesh = LandscapeReducedMesh;
+		}
 
 		FString PackageName = LODContentDir + TEXT("LandscapeStatic");
 		PackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *PackageName).ToString();
@@ -1864,7 +1870,7 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 			SrcModel->BuildSettings.bRecomputeTangents = false;
 			SrcModel->BuildSettings.bRemoveDegenerates = false;
 			SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
-			SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeReducedMesh);
+			SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
 
 			//Assign the proxy material to the static mesh
 			StaticMesh->Materials.Add(StaticLandscapeMaterial);
