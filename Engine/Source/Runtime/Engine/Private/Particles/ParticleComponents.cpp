@@ -193,6 +193,7 @@ AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 			ArrowComponent->AttachParent = ParticleSystemComponent;
+			ArrowComponent->bAbsoluteScale = true;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
