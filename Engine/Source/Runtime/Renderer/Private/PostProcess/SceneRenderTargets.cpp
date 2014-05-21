@@ -1158,13 +1158,11 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
-	check(GRHIFeatureLevel != ERHIFeatureLevel::ES2);
-
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
 	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
 	{
-		// Potentially allocate an alpha channel in the scene color texture to store the resolved scene depth.
+		// Potentially allocate an alpha channel in th -fe scene color texture to store the resolved scene depth.
 		SceneColorBufferFormat = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
 		if (!IsMobileHDR() || IsMobileHDR32bpp()) 
 		{
