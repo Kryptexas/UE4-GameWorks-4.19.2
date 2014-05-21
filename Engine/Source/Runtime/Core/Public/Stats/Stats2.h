@@ -1339,6 +1339,7 @@ struct FStat_##StatName\
 
 #define GET_STATID(Stat) (StatPtr_##Stat.GetStatId())
 #define GET_STATFNAME(Stat) (StatPtr_##Stat.GetStatFName())
+#define GET_STATDESCRIPTION(Stat) (FStat_##Stat::GetDescription())
 
 #define STAT_GROUP_TO_FStatGroup(Group) FStatGroup_##Group
 

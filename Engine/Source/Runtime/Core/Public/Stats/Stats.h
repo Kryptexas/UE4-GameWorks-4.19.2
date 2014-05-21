@@ -159,5 +159,6 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 
 #define GET_STATID(Stat) (TStatId())
 #define GET_STATFNAME(Stat) (FName())
+#define GET_STATDESCRIPTION(Stat) (nullptr)
 
 #endif
