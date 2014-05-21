@@ -884,11 +884,10 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 		GRenderTargetPool.FindFreeElement(Desc, SceneDepthZ, TEXT("SceneDepthZ"));
 	}
 
-	EPixelFormat Format = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
-	if (!IsMobileHDR() || IsMobileHDR32bpp()) 
-	{
-		Format = PF_B8G8R8A8;
-	}
+	// on ES2 we don't do on demand allocation of SceneColor yet (in non ES2 it's released in the Tonemapper Process())
+	AllocSceneColor();
+
+	EPixelFormat Format = SceneColor->GetDesc().Format;
 
 	// For 64-bit ES2 without framebuffer fetch, create extra render target for copy of alpha channel.
 	if((Format == PF_FloatRGBA) && (GSupportsShaderFramebufferFetch == false)) 
@@ -1129,8 +1128,18 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 	// Potentially allocate an alpha channel in the scene color texture to store the resolved scene depth.
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
-	switch(CurrentSceneColorFormat)
+	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
 	{
+		SceneColorBufferFormat = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
+		if (!IsMobileHDR() || IsMobileHDR32bpp()) 
+		{
+			SceneColorBufferFormat = PF_B8G8R8A8;
+		}
+	}
+	else
+	{
+		switch(CurrentSceneColorFormat)
+		{
 		case 0:
 			SceneColorBufferFormat = PF_R8G8B8A8; break;
 		case 1:
@@ -1144,14 +1153,6 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 			break;
 		case 5:
 			SceneColorBufferFormat = PF_A32B32G32R32F; break;
-	}
-
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
-	{
-		if ((!GSupportsRenderTargetFormat_PF_FloatRGBA && (SceneColorBufferFormat == PF_FloatRGBA || SceneColorBufferFormat == PF_FloatRGB))
-			|| SceneColorBufferFormat == PF_A16B16G16R16)
-		{
-			SceneColorBufferFormat = PF_B8G8R8A8;
 		}
 	}
 
