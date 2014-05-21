@@ -197,6 +197,12 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 				PropagateTransformUpdate(true);
 			}
 
+			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
+			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->GetOverlapsAtEnd())
+			{
+				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
+			}
+
 			// Dispatch all deferred blocking hits
 			if (CompletedScope.BlockingHits.Num() > 0)
 			{
@@ -209,13 +215,7 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 					{
 						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
 					}
-				}				
-			}
-
-			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
-			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->GetOverlapsAtEnd())
-			{
-				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
+				}
 			}
 		}
 		else

@@ -1460,23 +1460,9 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 
 		// Update the location.  This will teleport any child components as well (not sweep).
 		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotation, bSkipPhysicsMove);
-
-		// Handle hit notifications.
-		if (BlockingHit.bBlockingHit)
-		{
-			if (IsDeferringMovementUpdates())
-			{
-				FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
-				checkSlow(ScopedUpdate != NULL);
-				ScopedUpdate->AppendBlockingHit(BlockingHit);
-			}
-			else
-			{
-				DispatchBlockingHit(*Actor, BlockingHit);
-			}
-		}
 	}
 
+	// Handle overlap notifications.
 	if (bMoved)
 	{
 		// Check if we are deferring the movement updates.
@@ -1492,13 +1478,29 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			// still need to do this even if bGenerateOverlapEvents is false for this component, since we could have child components where it is true
 			UpdateOverlaps(&PendingOverlaps, true, OverlapsAtEndLocationPtr);
 		}
+	}
 
-		if (Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	// Handle blocking hit notifications.
+	if (BlockingHit.bBlockingHit)
+	{
+		if (IsDeferringMovementUpdates())
 		{
-			if (UNavigationSystem* NavSys = World->GetNavigationSystem())
-			{
-				NavSys->UpdateNavOctree(Actor);
-			}
+			FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
+			checkSlow(ScopedUpdate != NULL);
+			ScopedUpdate->AppendBlockingHit(BlockingHit);
+		}
+		else
+		{
+			DispatchBlockingHit(*Actor, BlockingHit);
+		}
+	}
+
+	// Update Nav system if relevant.
+	if (bMoved && Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	{
+		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+		{
+			NavSys->UpdateNavOctree(Actor);
 		}
 	}
 
