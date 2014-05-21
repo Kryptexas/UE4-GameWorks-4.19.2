@@ -37,6 +37,7 @@ public class WorldBrowser : ModuleRules
                 "RawMesh",
                 "MeshUtilities",
                 "LandscapeEditor",
+				"Levels",
             }
 		);
 

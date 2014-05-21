@@ -9,10 +9,11 @@
 #include "DelegateFilter.h"
 #include "FilterCollection.h"
 
-#include "LevelsModule.h"   
+#include "LevelsModule.h"
 
 #include "ActorsAssignedToSpecificLevelsFilter.h"      
- 
+
+#include "LevelBrowserSettings.h"
 #include "LevelViewModel.h"
 #include "LevelCollectionViewCommands.h"   
 #include "LevelCollectionViewModel.h"

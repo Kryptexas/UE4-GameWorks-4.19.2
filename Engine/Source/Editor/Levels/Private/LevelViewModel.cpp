@@ -74,7 +74,7 @@ FString FLevelViewModel::GetName(bool bForceDisplayPath /*=false*/, bool bDispla
 		{
 			DisplayName += Level->GetOutermost()->GetName();
 
-			bool bDisplayPathsInLevelBrowser = (GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser);
+			bool bDisplayPathsInLevelBrowser = (GetDefault<ULevelBrowserSettings>()->bDisplayPaths);
 
 			if ( !(bDisplayPathsInLevelBrowser || bForceDisplayPath) )
 			{
@@ -96,7 +96,7 @@ FString FLevelViewModel::GetName(bool bForceDisplayPath /*=false*/, bool bDispla
 	{
 		DisplayName += LevelStreaming->PackageName.ToString();
 
-		bool bDisplayPathsInLevelBrowser = (GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser);
+		bool bDisplayPathsInLevelBrowser = (GetDefault<ULevelBrowserSettings>()->bDisplayPaths);
 
 		if ( !(bDisplayPathsInLevelBrowser || bForceDisplayPath) )
 		{
@@ -129,7 +129,7 @@ FString FLevelViewModel::GetLightmassSizeString() const
 	FString MemorySizeString;
 	ULevel* CurLevel = Level.Get();
 
-	if ( CurLevel && GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser  )
+	if ( CurLevel && GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize  )
 	{
 		// Update metrics
 		static const float ByteConversion = 1.0f / 1024.0f;
@@ -146,7 +146,7 @@ FString FLevelViewModel::GetFileSizeString() const
 	FString MemorySizeString;
 	ULevel* CurLevel = Level.Get();
 
-	if ( CurLevel && GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser  )
+	if ( CurLevel && GetDefault<ULevelBrowserSettings>()->bDisplayFileSize  )
 	{
 		// Update metrics
 		static const float ByteConversion = 1.0f / 1024.0f;

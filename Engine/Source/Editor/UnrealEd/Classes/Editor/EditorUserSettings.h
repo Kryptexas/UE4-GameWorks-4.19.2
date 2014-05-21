@@ -75,26 +75,6 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bAllowSelectTranslucent:1;
 
-	/** True if the actor count is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayActorCountInLevelBrowser:1;
-
-	/** True if the Lightmass Size is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayLightmassSizeInLevelBrowser:1;
-
-	/** True if the File Size is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayFileSizeInLevelBrowser:1;
-
-	/** True if Level Paths are displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayPathsInLevelBrowser:1;
-
-	/** True if the Editor Offset is displayed in the slate level browser */
-	UPROPERTY(config)
-	uint32 bDisplayEditorOffsetInLevelBrowser:1;
-
 	UPROPERTY()
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
 

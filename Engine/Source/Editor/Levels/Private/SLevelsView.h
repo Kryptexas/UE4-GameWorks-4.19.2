@@ -155,22 +155,22 @@ public:
 		// This needs to be set to the column before the "Save" column.
 		InsertColumnIndex = 5;
 
-		if(GEditor->GetEditorUserSettings().bDisplayActorCountInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayActorCount)
 		{
 			ToggleActorCount(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayLightmassSizeInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)
 		{
 			ToggleLightmassSize(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayFileSizeInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)
 		{
 			ToggleFileSize(true);
 		}
 
-		if(GEditor->GetEditorUserSettings().bDisplayEditorOffsetInLevelBrowser)
+		if(GetDefault<ULevelBrowserSettings>()->bDisplayEditorOffset)
 		{
 			ShowEditorOffsetColumn(true);
 		}

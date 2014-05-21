@@ -74,21 +74,21 @@ protected:
 	/** @return the visibility for the Actor Count column */
 	EVisibility IsActorColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayActorCount)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	/** @return the visibility for the Lightmass Size column */
 	EVisibility IsLightmassSizeColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	/** @return the visibility for the File Size column */
 	EVisibility IsFileSizeColumnVisible() const
 	{
-		return (GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser)?
+		return (GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)?
 			EVisibility::Visible : EVisibility::Collapsed;
 	}
 

@@ -4,6 +4,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "LevelModel.h"
 #include "LevelCollectionModel.h"
+#include "LevelBrowserSettings.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -686,7 +687,7 @@ FString FLevelModel::GetLightmassSizeString() const
 	FString MemorySizeString;
 	ULevel* Level = GetLevelObject();
 
-	if (Level && Editor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser)
+	if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)
 	{
 		// Update metrics
 		static const float ByteConversion = 1.0f / 1024.0f;
@@ -703,7 +704,7 @@ FString FLevelModel::GetFileSizeString() const
 	FString MemorySizeString;
 	ULevel* Level = GetLevelObject();
 
-	if (Level && Editor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser)
+	if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)
 	{
 		// Update metrics
 		static const float ByteConversion = 1.0f / 1024.0f;

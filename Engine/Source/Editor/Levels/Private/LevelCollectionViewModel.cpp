@@ -289,70 +289,70 @@ void FLevelCollectionViewModel::ToggleReadOnlyLevels_Executed()
 
 void FLevelCollectionViewModel::OnToggleDisplayActorCount()
 {
-	bool bDisplayActorCount = GetDisplayActorCountState();
-	GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser = !bDisplayActorCount;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayActorCount = !Settings->bDisplayActorCount;
+	Settings->PostEditChange();
 
-	DisplayActorCountChanged.Broadcast(!bDisplayActorCount);
+	DisplayActorCountChanged.Broadcast(Settings->bDisplayActorCount);
 }
 
 bool FLevelCollectionViewModel::GetDisplayActorCountState() const
 {
-	return (GEditor->AccessEditorUserSettings().bDisplayActorCountInLevelBrowser);
+	return (GetDefault<ULevelBrowserSettings>()->bDisplayActorCount);
 }
 
 void FLevelCollectionViewModel::OnToggleLightmassSize()
 {
-	bool bDisplayLightmassSize = GetDisplayLightmassSizeState();
-	GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser = !bDisplayLightmassSize;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayLightmassSize = !GetDisplayLightmassSizeState();
+	Settings->PostEditChange();
 
-	DisplayLightmassSizeChanged.Broadcast(!bDisplayLightmassSize);
+	DisplayLightmassSizeChanged.Broadcast(Settings->bDisplayLightmassSize);
 }
 
 bool FLevelCollectionViewModel::GetDisplayLightmassSizeState() const
 {
-	return GEditor->AccessEditorUserSettings().bDisplayLightmassSizeInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize;
 }
 
 void FLevelCollectionViewModel::OnToggleFileSize()
 {
-	bool bDisplayFileSize = GetDisplayFileSizeState();
-	GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser = !bDisplayFileSize;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayFileSize = !GetDisplayFileSizeState();
+	Settings->PostEditChange();
 
-	DisplayFileSizeChanged.Broadcast(!bDisplayFileSize);
+	DisplayFileSizeChanged.Broadcast(Settings->bDisplayFileSize);
 }
 
 bool FLevelCollectionViewModel::GetDisplayFileSizeState() const
 {
-	return GEditor->AccessEditorUserSettings().bDisplayFileSizeInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayFileSize;
 }
 
 void FLevelCollectionViewModel::OnToggleEditorOffset()
 {
-	UEditorUserSettings& UserSettings = GEditor->AccessEditorUserSettings();
-	UserSettings.bDisplayEditorOffsetInLevelBrowser = !UserSettings.bDisplayEditorOffsetInLevelBrowser;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayEditorOffset = !Settings->bDisplayEditorOffset;
+	Settings->PostEditChange();
 
-	DisplayEditorOffsetChanged.Broadcast(UserSettings.bDisplayEditorOffsetInLevelBrowser);
+	DisplayEditorOffsetChanged.Broadcast(Settings->bDisplayEditorOffset);
 }
 
 bool FLevelCollectionViewModel::GetDisplayEditorOffsetState() const
 {
-	return GEditor->GetEditorUserSettings().bDisplayEditorOffsetInLevelBrowser;
+	return GetDefault<ULevelBrowserSettings>()->bDisplayEditorOffset;
 }
 
 void FLevelCollectionViewModel::OnToggleDisplayPaths()
 {
-	bool bDisplayPaths = GetDisplayPathsState();
-	GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser = !bDisplayPaths;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	ULevelBrowserSettings* Settings = GetMutableDefault<ULevelBrowserSettings>();
+	Settings->bDisplayPaths = !GetDisplayPathsState();
+	Settings->PostEditChange();
 }
 
 bool FLevelCollectionViewModel::GetDisplayPathsState() const
 {
-	return (GEditor->AccessEditorUserSettings().bDisplayPathsInLevelBrowser);
+	return (GetDefault<ULevelBrowserSettings>()->bDisplayPaths);
 }
 
 bool FLevelCollectionViewModel::CanShiftSelection()
