@@ -191,7 +191,7 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const
 	if (!InSpec.Def || !InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Def))
 	{
 		// InSpec doesn't match this gameplay effect but if InSpec provides immunity we also need to check the modifiers because they can be canceled independent of the gameplay effect
-		if (InSpec.Def->AppliesImmunityTo == QualifierContext.Type())
+		if ((int32)InSpec.Def->AppliesImmunityTo == (int32)QualifierContext.Type())
 		{
 			for (int ii = 0; ii < Modifiers.Num(); ++ii)
 			{
@@ -207,7 +207,7 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const
 		return 0;
 	}
 
-	if (InSpec.Def->AppliesImmunityTo == QualifierContext.Type())
+	if ((int32)InSpec.Def->AppliesImmunityTo == (int32)QualifierContext.Type())
 	{
 		return -1;
 	}
