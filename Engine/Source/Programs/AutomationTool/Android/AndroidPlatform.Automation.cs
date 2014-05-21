@@ -102,7 +102,7 @@ public class AndroidPlatform : Platform
 
 		// packaging just takes a pak file and makes it the .obb
         UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
-        UEBuildDeploy Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+        var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
         
 		// first, look for a .pak file in the staged directory
@@ -201,7 +201,7 @@ public class AndroidPlatform : Platform
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
 
 		// make sure APK is up to date (this is fast if so)
-		UEBuildDeploy Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
 
 		// now we can use the apk to get more info
