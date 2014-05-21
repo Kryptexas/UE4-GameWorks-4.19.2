@@ -4038,7 +4038,26 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 		return false;
 	}
 
-	if(ChildRoot->Mobility == EComponentMobility::Static && ParentRoot->Mobility != EComponentMobility::Static )
+	{
+		FText Reason;
+		if (!ChildActor->EditorCanAttachTo(ParentActor, Reason))
+		{
+			if (ReasonText)
+			{
+				if (Reason.IsEmpty())
+				{
+					*ReasonText = FText::Format(NSLOCTEXT("ActorAttachmentError", "CannotBeAttached_ActorAttachmentError", "{0} cannot be attached to {1}"), FText::FromString(ChildActor->GetActorLabel()), FText::FromString(ParentActor->GetActorLabel()));
+				}
+				else
+				{
+					*ReasonText = MoveTemp(Reason);
+				}
+			}
+			return false;
+		}
+	}
+
+	if (ChildRoot->Mobility == EComponentMobility::Static && ParentRoot->Mobility != EComponentMobility::Static)
 	{
 		if (ReasonText)
 		{

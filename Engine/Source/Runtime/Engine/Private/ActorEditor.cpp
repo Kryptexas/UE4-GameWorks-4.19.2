@@ -360,6 +360,11 @@ bool AActor::IsListedInSceneOutliner() const
 	return bListedInSceneOutliner;
 }
 
+bool AActor::EditorCanAttachTo(const AActor* InParent, FText& OutReason) const
+{
+	return true;
+}
+
 const FString& AActor::GetActorLabel() const
 {
 	// If the label string is empty then we'll use the default actor label (usually the actor's class name.)

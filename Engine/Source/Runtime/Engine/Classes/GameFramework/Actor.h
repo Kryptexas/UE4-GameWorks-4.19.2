@@ -424,36 +424,36 @@ private:
 public:
 	/** Is hidden within the editor at its startup. */
 	UPROPERTY()
-	uint32 bHiddenEd:1;    
+	uint32 bHiddenEd:1;
 
 protected:
 	/** Whether the actor can be manipulated by editor operations. */
 	UPROPERTY()
-	uint32 bEditable:1;    
+	uint32 bEditable:1;
 
 	/** True if this actor should be listed in the scene outliner */
 	UPROPERTY()
-	uint32 bListedInSceneOutliner:1;    
+	uint32 bListedInSceneOutliner:1;
 
 public:
 	/** Is hidden by the layer browser. */
 	UPROPERTY()
-	uint32 bHiddenEdLayer:1;    
+	uint32 bHiddenEdLayer:1;
 
 private:
 	/** Is temporarily hidden within the editor; used for show/hide/etc. functionality w/o dirtying the actor */
 	UPROPERTY(transient)
-	uint32 bHiddenEdTemporary:1;    
+	uint32 bHiddenEdTemporary:1;
 
 public:
 
 	/** Is hidden by the level browser. */
 	UPROPERTY(transient)
-	uint32 bHiddenEdLevel:1;    
+	uint32 bHiddenEdLevel:1;
 
 	/** Prevent the actor from being moved in the editor. */
 	UPROPERTY()
-	uint32 bLockLocation:1;    
+	uint32 bLockLocation:1;
 
 	// Actor's layer name.
 	UPROPERTY()
@@ -1246,6 +1246,9 @@ public:
 
 	/** @return	Returns true if this actor should be shown in the scene outliner */
 	bool IsListedInSceneOutliner() const;
+
+	/** @return	Returns true if this actor is allowed to be attached to the given actor */
+	virtual bool EditorCanAttachTo(const AActor* InParent, FText& OutReason) const;
 
 	// Called before editor copy, true allow export
 	virtual bool ShouldExport() { return true; }
