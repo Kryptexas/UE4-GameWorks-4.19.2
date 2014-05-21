@@ -23,6 +23,7 @@ public:
 	static jmethodID AndroidThunkJava_LaunchURL;
 	static jmethodID AndroidThunkJava_ShowLeaderboard;
 	static jmethodID AndroidThunkJava_ShowAchievements;
+	static jmethodID AndroidThunkJava_QueryAchievements;
 	static jmethodID AndroidThunkJava_WriteLeaderboardValue;
 	static jmethodID AndroidThunkJava_GooglePlayConnect;
 	static jmethodID AndroidThunkJava_WriteAchievement;
@@ -31,6 +32,11 @@ public:
 	static jmethodID AndroidThunkJava_CloseAdBanner;
 
 	static jmethodID AndroidThunkJava_GetAssetManager;
+
+	// IDs related to achievement query
+	static jclass JavaAchievementClassID;
+	static jfieldID AchievementIDField;
+	static jfieldID AchievementProgressField;
 };
 
 // Returns the java environment

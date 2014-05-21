@@ -99,6 +99,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
+jmethodID JDef_GameActivity::AndroidThunkJava_QueryAchievements;
 jmethodID JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue;
 jmethodID JDef_GameActivity::AndroidThunkJava_GooglePlayConnect;
 jmethodID JDef_GameActivity::AndroidThunkJava_WriteAchievement;
@@ -106,6 +107,10 @@ jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetAssetManager;
+
+jclass JDef_GameActivity::JavaAchievementClassID;
+jfieldID JDef_GameActivity::AchievementIDField;
+jfieldID JDef_GameActivity::AchievementProgressField;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -219,6 +224,15 @@ void AndroidThunkCpp_WriteAchievement(const FString& AchievementID, float Percen
 	}
 }
 
+void AndroidThunkCpp_QueryAchievements()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_QueryAchievements);
+	}
+}
+
+
 void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfScreen)
 {
 	if (JNIEnv* Env = GetJavaEnv())
@@ -293,6 +307,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
+	JDef_GameActivity::AndroidThunkJava_QueryAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_QueryAchievements", "()V");
 	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
 	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
 	JDef_GameActivity::AndroidThunkJava_WriteAchievement = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteAchievement", "(Ljava/lang/String;F)V");
@@ -300,6 +315,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
 	JDef_GameActivity::AndroidThunkJava_CloseAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_CloseAdBanner", "()V");
 	JDef_GameActivity::AndroidThunkJava_GetAssetManager = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GetAssetManager", "()Landroid/content/res/AssetManager;");
+
+	// Set up achievement query IDs
+	JDef_GameActivity::JavaAchievementClassID = env->FindClass("com/epicgames/ue4/GameActivity$JavaAchievement");
+	JDef_GameActivity::AchievementIDField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "ID", "Ljava/lang/String;");
+	JDef_GameActivity::AchievementProgressField = env->GetFieldID(JDef_GameActivity::JavaAchievementClassID, "Progress", "D");
 
 	// hook signals
 #if UE_BUILD_DEBUG

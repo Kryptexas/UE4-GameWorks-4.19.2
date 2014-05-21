@@ -7,6 +7,7 @@
 #include "OnlineAchievementsInterfaceGooglePlay.h"
 #include "OnlineLeaderboardInterfaceGooglePlay.h"
 #include "OnlineExternalUIInterfaceGooglePlay.h"
+#include "UniquePtr.h"
 
 /**
  * OnlineSubsystemGooglePlay - Implementation of the online subsystem for Google Play services
@@ -61,10 +62,13 @@ PACKAGE_SCOPE:
 	 */
 	bool IsEnabled();
 
+	/** Return the async task manager owned by this subsystem */
+	class FOnlineAsyncTaskManagerGooglePlay* GetAsyncTaskManager() { return OnlineAsyncTaskThreadRunnable.Get(); }
+
 private:
 
-	/** Online async task thread */
-	class FRunnableThread* OnlineAsyncTaskThread;
+	/** Online async task runnable */
+	TUniquePtr<class FOnlineAsyncTaskManagerGooglePlay> OnlineAsyncTaskThreadRunnable;
 
 	/** Interface to the online identity system */
 	FOnlineIdentityGooglePlayPtr IdentityInterface;

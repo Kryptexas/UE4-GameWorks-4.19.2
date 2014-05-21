@@ -1,15 +1,94 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
+#include "OnlineAsyncTaskManagerGooglePlay.h"
+#include "Online.h"
+#include "Android/AndroidJNI.h"
+
+FOnlineAchievementsGooglePlay::FPendingAchievementQuery FOnlineAchievementsGooglePlay::PendingAchievementQuery;
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements)
+{
+	TArray<FOnlineAchievement> GooglePlayAchievements;
+
+	auto ArrayLength = LocalJNIEnv->GetArrayLength(Achievements);
+
+	for(jsize i = 0; i < ArrayLength; ++i)
+	{
+		jobject Entry = LocalJNIEnv->GetObjectArrayElement(Achievements, i);
+
+		jobject StringID = LocalJNIEnv->GetObjectField(Entry, JDef_GameActivity::AchievementIDField);
+		jdouble Progress = LocalJNIEnv->GetDoubleField(Entry, JDef_GameActivity::AchievementProgressField);
+
+		FOnlineAchievement NewAchievement;
+
+		const char* StringIDChars = LocalJNIEnv->GetStringUTFChars((jstring)StringID, nullptr);
+		NewAchievement.Id = FString(StringIDChars);
+		LocalJNIEnv->ReleaseStringUTFChars((jstring)StringID, StringIDChars);
+
+		NewAchievement.Progress = Progress;
+
+		GooglePlayAchievements.Add(NewAchievement);
+	}
+
+	// Do the final copy of new achievements on the game thread
+	auto AchievementsInterface = FOnlineAchievementsGooglePlay::PendingAchievementQuery.AchievementsInterface;
+	
+	if(!AchievementsInterface ||
+	   !AchievementsInterface->AndroidSubsystem ||
+	   !AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager())
+	{
+		// We should call the delegate with a false parameter here, but if we don't have
+		// the async task manager we're not going to call it on the game thread.
+		return;
+	}
+
+	AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([GooglePlayAchievements]()
+	{
+		auto& PendingQuery = FOnlineAchievementsGooglePlay::PendingAchievementQuery;
+
+		PendingQuery.AchievementsInterface->Achievements = GooglePlayAchievements;
+
+		// Must convert the Google Play IDs to the names specified by the game.
+		auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+		for(auto& Achievement : PendingQuery.AchievementsInterface->Achievements)
+		{
+			for(const auto& Mapping : DefaultSettings->AchievementMap)
+			{
+				if(Mapping.AchievementID == Achievement.Id)
+				{
+					Achievement.Id = Mapping.Name;
+					break;
+				}
+			}
+		}
+
+		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, true );
+		PendingQuery.IsQueryPending = false;
+	});
+}
 
 FOnlineAchievementsGooglePlay::FOnlineAchievementsGooglePlay( FOnlineSubsystemGooglePlay* InSubsystem )
 	: AndroidSubsystem(InSubsystem)
 {
+	PendingAchievementQuery.AchievementsInterface = this;
 }
 
 void FOnlineAchievementsGooglePlay::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
-	Delegate.ExecuteIfBound( PlayerId, false );
+	if(PendingAchievementQuery.IsQueryPending)
+	{
+		UE_LOG(LogOnline, Warning, TEXT("FOnlineAchievementsGooglePlay::QueryAchievements: Cannot start a new query while one is in progress."));
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
+	}
+
+	PendingAchievementQuery.Delegate = Delegate;
+	PendingAchievementQuery.PlayerID = FUniqueNetIdString(PlayerId);
+	PendingAchievementQuery.IsQueryPending = true;
+
+	extern void AndroidThunkCpp_QueryAchievements();
+	AndroidThunkCpp_QueryAchievements();
 }
 
 

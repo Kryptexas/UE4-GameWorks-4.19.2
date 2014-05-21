@@ -270,6 +270,56 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 	}
 
+	/** Class that holds achievement data to pass back to C++ through JNI */
+	public class JavaAchievement
+	{
+		public String ID;
+		public double Progress;
+	}
+
+	/** Callback that returns queried achievement data back to C++ */
+	private class QueryAchievementsResultCallback implements ResultCallback<Achievements.LoadAchievementsResult>
+	{
+		@Override
+		public void onResult(Achievements.LoadAchievementsResult result)
+		{
+			Log.debug("Google Play Services: queried achievements with status " + result.getStatus().toString());
+
+			AchievementBuffer Achievements = result.getAchievements();
+			
+			JavaAchievement[] SimpleAchievements = new JavaAchievement[Achievements.getCount()];
+
+			for(int i = 0; i < Achievements.getCount(); ++i)
+			{
+				Achievement CurrentAchievement = Achievements.get(i);
+
+				SimpleAchievements[i] = new JavaAchievement();
+				SimpleAchievements[i].ID = CurrentAchievement.getAchievementId();
+				
+				if(CurrentAchievement.getState() == Achievement.STATE_UNLOCKED)
+				{
+					SimpleAchievements[i].Progress = 100.0;
+					continue;
+				}
+
+				if(CurrentAchievement.getType() == Achievement.TYPE_INCREMENTAL)
+				{
+					double Fraction = (double)CurrentAchievement.getCurrentSteps() / (double)CurrentAchievement.getTotalSteps();
+					SimpleAchievements[i].Progress = Fraction * 100.0;
+				}
+				else
+				{
+					SimpleAchievements[i].Progress = 0.0;
+				}
+			}
+
+			nativeUpdateAchievements(SimpleAchievements);
+
+			Achievements.close();
+			result.release();
+		}
+	}
+
 	// Callbacks to handle connections with Google Play
 	 @Override
     public void onConnected(Bundle connectionHint)
@@ -482,6 +532,12 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 	}
 
+	public void AndroidThunkJava_QueryAchievements()
+	{
+		PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
+		loadAchievementsResult.setResultCallback(new QueryAchievementsResultCallback());		
+	}
+
 	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
 	{
 		Log.debug("In AndroidThunkJava_ShowAdBanner");
@@ -628,6 +684,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetGlobalActivity();
 	public native void nativeSetWindowInfo(boolean bIsPortrait);
 	public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);
+	public native void nativeUpdateAchievements(JavaAchievement[] Achievements);
 
 	public native void nativeConsoleCommand(String commandString);
 	
