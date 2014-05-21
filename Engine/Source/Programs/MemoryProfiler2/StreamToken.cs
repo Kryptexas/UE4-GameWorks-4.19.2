@@ -365,7 +365,9 @@ namespace MemoryProfiler2
 		{
 			get
 			{
-				return _Stats[StatName];
+				Int64 Value = 0;
+				_Stats.TryGetValue(StatName, out Value);
+				return Value;
 			}
 			set
 			{
