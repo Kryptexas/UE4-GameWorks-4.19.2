@@ -289,6 +289,12 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 
 void FSceneRenderTargets::AllocSceneColor()
 {
+	if(GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	{
+		// ES2 is forward and not yet releasing the SceneColor during the frame (is not calling FRCPassPostProcessTonemap::Process())
+		return;
+	}
+
 	if(SceneColor)
 	{
 		// no work needed
@@ -1165,6 +1171,8 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
+	check(GRHIFeatureLevel != ERHIFeatureLevel::ES2);
+
 	// Potentially allocate an alpha channel in the scene color texture to store the resolved scene depth.
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 

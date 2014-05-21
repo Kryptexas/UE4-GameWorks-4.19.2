@@ -368,7 +368,7 @@ public:
 
 private: // Get...() methods instead of direct access
 
-	// 0 before BeginRenderingSceneColor and after tone mapping
+	// 0 before BeginRenderingSceneColor and after tone mapping, for ES2 it's not released during the frame
 	TRefCountPtr<IPooledRenderTarget> SceneColor;
 	// also used as LDR scene color
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
