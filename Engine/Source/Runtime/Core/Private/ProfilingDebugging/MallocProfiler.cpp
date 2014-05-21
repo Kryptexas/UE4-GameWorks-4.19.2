@@ -892,9 +892,9 @@ void FMallocProfiler::WriteMemoryAllocationStats()
 	FPlatformMemory::GetStatsForMallocProfiler( Stats ); 
 	UsedMalloc->GetAllocatorStats( Stats );
 
-	static const FName NAME_MemoryProfilingOverhead = TEXT("Memory Profiling Overhead");
+	const TCHAR* DESC_MemoryProfilingOverhead = TEXT("Memory Profiling Overhead");
 	int64 MemoryProfilingOverhead = CalculateMemoryProfilingOverhead();
-	Stats.Add( NAME_MemoryProfilingOverhead, MemoryProfilingOverhead );
+	Stats.Add( DESC_MemoryProfilingOverhead, MemoryProfilingOverhead );
 
 	check( Stats.Data.Num() < MAX_uint8 );
 	uint8 StatsCount = Stats.Data.Num();
@@ -902,7 +902,7 @@ void FMallocProfiler::WriteMemoryAllocationStats()
 
 	for( const auto& MapIt : Stats.Data )
 	{
-		FString StatName = MapIt.Key.ToString();
+		FString StatName = MapIt.Key;
 		int64 StatValue = (int64)MapIt.Value;
 		int32 StatNameIndex = GetNameTableIndex(StatName);
 		BufferedFileWriter << StatNameIndex << StatValue;

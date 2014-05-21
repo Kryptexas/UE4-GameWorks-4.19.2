@@ -55,14 +55,14 @@ void FMallocBinned::GetAllocatorStats( FGenericMemoryStats& out_Stats )
 	}
 
 	// Malloc binned stats.
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_OsCurrent ), LocalOsCurrent );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_OsPeak ), LocalOsPeak );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_WasteCurrent ), LocalWasteCurrent );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_WastePeak ), LocalWastePeak );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_UsedCurrent ), LocalUsedCurrent );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_UsedPeak ), LocalUsedPeak );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_CurrentAllocs ), LocalCurrentAllocs );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_TotalAllocs ), LocalTotalAllocs );
-	out_Stats.Add( GET_STATFNAME( STAT_Binned_SlackCurrent ), LocalSlackCurrent );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_OsCurrent ), LocalOsCurrent );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_OsPeak ), LocalOsPeak );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_WasteCurrent ), LocalWasteCurrent );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_WastePeak ), LocalWastePeak );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_UsedCurrent ), LocalUsedCurrent );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_UsedPeak ), LocalUsedPeak );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_CurrentAllocs ), LocalCurrentAllocs );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_TotalAllocs ), LocalTotalAllocs );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_Binned_SlackCurrent ), LocalSlackCurrent );
 #endif // STATS
 }
