@@ -194,7 +194,12 @@ void ACharacter::Landed(const FHitResult& Hit)
 	OnLanded(Hit);
 }
 
-bool ACharacter::CanJump_Implementation() const
+bool ACharacter::CanJump() const
+{
+	return CanJumpInternal();
+}
+
+bool ACharacter::CanJumpInternal_Implementation() const
 {
 	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumping();
 
