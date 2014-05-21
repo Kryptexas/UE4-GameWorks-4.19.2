@@ -502,9 +502,9 @@ FVector UBrushComponent::GetCustomLocation() const
 	return LocationNoPivot;
 }
 
-FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const
+FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent) const
 {
-	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform);
+	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform, Parent);
 
 	const FVector LocationNoPivot = CompToWorld.GetLocation();
 	const FVector LocationWithPivot = LocationNoPivot + CompToWorld.TransformVector(-PrePivot);

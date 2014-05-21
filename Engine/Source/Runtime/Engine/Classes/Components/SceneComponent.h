@@ -452,6 +452,7 @@ protected:
 private:
 
 	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false);
+	void UpdateComponentToWorldWithParent(USceneComponent * Parent, bool bSkipPhysicsMove);
 
 
 public:
@@ -620,8 +621,10 @@ public:
 
 protected:
 
-	/** Calculate the new ComponentToWorld transform for this component */
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const;
+	/** Calculate the new ComponentToWorld transform for this component.
+		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
+		If Parent is not passed in we use the component's AttachParent*/
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const;
 
 	
 public:
