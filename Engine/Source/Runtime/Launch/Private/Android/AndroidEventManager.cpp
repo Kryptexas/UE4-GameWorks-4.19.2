@@ -163,6 +163,8 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
+
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
 	}
 }
 
