@@ -264,11 +264,10 @@ void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 	GetPluginsConfiguredToBeEnabled(EnabledPluginNames);
 
 	TSet< FString > AllEnabledPlugins;
-	AllEnabledPlugins.Append( EnabledPluginNames );
+	AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
 
-	for( TArray< TSharedRef< FPlugin > >::TConstIterator PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	for( const TSharedRef< FPlugin > Plugin : AllPlugins )
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
 		if ( AllEnabledPlugins.Contains(Plugin->GetPluginName()) )
 		{
 			Plugin->SetEnabled(true);
@@ -278,9 +277,8 @@ void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 
 void FPluginManager::RegisterEnabledPluginMountPoints()
 {
-	for( TArray< TSharedRef< FPlugin > >::TConstIterator PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	for( const TSharedRef< FPlugin > Plugin : AllPlugins )
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
 		if ( Plugin->IsEnabled() )
 		{
 			Plugin->RegisterPluginMountPoints( RegisterMountPointDelegate );
@@ -298,10 +296,8 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 	}
 
 	// Load plugins!
-	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	for( const TSharedRef< FPlugin > Plugin : AllPlugins )
 	{
-		const TSharedRef< FPlugin > Plugin = *PluginIt;
-
 		if ( Plugin->IsEnabled() )
 		{
 			TMap<FName, ELoadModuleFailureReason::Type> ModuleLoadFailures;

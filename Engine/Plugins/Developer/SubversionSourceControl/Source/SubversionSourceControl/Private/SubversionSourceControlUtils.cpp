@@ -106,7 +106,7 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 	// parse output & errors
 	TArray<FString> Errors;
 	StdError.ParseIntoArray(&Errors, TEXT("\r\n"), true);
-	OutErrorMessages.Append(Errors);
+	OutErrorMessages.Append(MoveTemp(Errors));
 
 	return ReturnCode == 0;
 }

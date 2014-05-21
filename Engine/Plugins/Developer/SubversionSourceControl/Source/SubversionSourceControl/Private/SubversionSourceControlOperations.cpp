@@ -205,7 +205,7 @@ static void AddDirectoriesToCommit(const FSubversionSourceControlCommand& InComm
 		while(bDirectoryIsAdded);
 	}
 
-	InOutFiles.Append(Directories);
+	InOutFiles.Append(MoveTemp(Directories));
 }
 
 static FText ParseCommitResults(const TArray<FString>& InResults)
