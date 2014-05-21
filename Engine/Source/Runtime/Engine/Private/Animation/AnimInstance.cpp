@@ -1051,8 +1051,12 @@ void UAnimInstance::AddCurveValue(const FName & CurveName, float Value, int32 Cu
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
-	TArray<const FAnimNotifyEvent *> NewActiveAnimNotifyState;
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
+
+	// Array that will replace the 'ActiveAnimNotifyState' at the end of this function.
+	TArray<const FAnimNotifyEvent *> NewActiveAnimNotifyState;
+	// AnimNotifyState freshly added that need their 'NotifyBegin' event called.
+	TArray<const FAnimNotifyEvent *> NotifyStateBeginEvent;
 
 	// Remove NULL entries.
 	ActiveAnimNotifyState.RemoveSwap(NULL);
@@ -1066,7 +1070,8 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 		{
 			if( !ActiveAnimNotifyState.RemoveSingleSwap(AnimNotifyEvent) )
 			{
-				AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+				// Queue up calls to 'NotifyBegin', so they happen after 'NotifyEnd'.
+				NotifyStateBeginEvent.Add(AnimNotifyEvent);
 			}
 			NewActiveAnimNotifyState.Add(AnimNotifyEvent);
 			continue;
@@ -1117,6 +1122,13 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	{
 		const FAnimNotifyEvent * AnimNotifyEvent = ActiveAnimNotifyState[Index];
 		AnimNotifyEvent->NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+	}
+
+	// Call 'NotifyBegin' event on freshly added AnimNotifyState.
+	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
+	{
+		const FAnimNotifyEvent * AnimNotifyEvent = NotifyStateBeginEvent[Index];
+		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
 	}
 
 	// Switch our arrays.
