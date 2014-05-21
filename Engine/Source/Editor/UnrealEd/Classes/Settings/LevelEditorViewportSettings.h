@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Viewports.h"
+#include "Editor/UnrealEdTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
 
 

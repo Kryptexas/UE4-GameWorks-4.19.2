@@ -5,6 +5,7 @@
 #include "EditorUserSettings.h"
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
+#include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
 //
