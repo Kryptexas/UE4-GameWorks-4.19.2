@@ -405,9 +405,9 @@ public:
 	UPROPERTY()
 	TArray< FName > Layers;
 
+#if WITH_EDITORONLY_DATA
 protected:
 
-#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	uint32 bActorLabelEditable:1;    // Is the actor label editable by the user?
 
@@ -466,10 +466,6 @@ public:
 	UPROPERTY(transient)
 	class AActor* GroupActor;
 
-	/** The Actor that owns the ChildActorComponent that owns this Actor */
-	UPROPERTY()
-	TWeakObjectPtr<class AActor> ParentComponentActor;	
-
 	/** The scale to apply to any billboard components in editor builds (happens in any WITH_EDITOR build, including non-cooked games) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Billboard Scale"))
 	float SpriteScale;
@@ -477,6 +473,10 @@ public:
 	/** Returns how many lights are uncached for this actor */
 	int32 GetNumUncachedLights();
 #endif // WITH_EDITORONLY_DATA
+
+	/** The Actor that owns the ChildActorComponent that owns this Actor */
+	UPROPERTY()
+	TWeakObjectPtr<class AActor> ParentComponentActor;	
 
 #if ENABLE_VISUAL_LOG
 	/** indicates where given actor will be writing its visual log data. Defaults to 'this' */
