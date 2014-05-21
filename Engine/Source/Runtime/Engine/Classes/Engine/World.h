@@ -13,6 +13,7 @@
 #include "World.generated.h"
 
 class FPhysScene;
+class FSceneViewFamily;
 
 template<typename,typename> class TOctree;
 
@@ -599,7 +600,7 @@ public:
 	void SetNavigationSystem( UNavigationSystem* InNavigationSystem);
 
 	/** The interface to the scene manager for this world. */
-	FSceneInterface*							Scene;
+	class FSceneInterface*						Scene;
 
 	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
 	FLevelViewportInfo							EditorViews[4];

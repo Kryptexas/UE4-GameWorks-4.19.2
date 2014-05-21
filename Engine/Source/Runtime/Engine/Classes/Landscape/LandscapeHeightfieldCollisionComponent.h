@@ -4,6 +4,14 @@
 #pragma once
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxMaterial;
+	class PxHeightField;
+}
+#endif // WITH_PHYSX
+
 UCLASS(MinimalAPI)
 class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 {
@@ -58,7 +66,7 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 
 #if WITH_PHYSX
 		/** List of PxMaterials used on this landscape */
-		TArray<class physx::PxMaterial*>	UsedPhysicalMaterialArray;
+		TArray<physx::PxMaterial*>	UsedPhysicalMaterialArray;
 		class physx::PxHeightField*			RBHeightfield;
 #if WITH_EDITOR
 		class physx::PxHeightField*			RBHeightfieldEd; // Used only by landscape editor, does not have holes in it

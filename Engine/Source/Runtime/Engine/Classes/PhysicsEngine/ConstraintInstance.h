@@ -3,6 +3,13 @@
 
 #include "ConstraintInstance.generated.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxD6Joint;
+}
+#endif // WITH_PHYSX
+
 // LINEAR DOF
 UENUM()
 enum ELinearConstraintMotion
@@ -46,7 +53,7 @@ struct ENGINE_API FConstraintInstance
 
 #if WITH_PHYSX
 	/** Internal use. Physics-engine representation of this constraint. */
-	class physx::PxD6Joint*		ConstraintData;
+	physx::PxD6Joint*		ConstraintData;
 #endif	//WITH_PHYSX
 
 	/** Physics scene index. */

@@ -8,6 +8,8 @@
 
 #include "Engine/TextureDefines.h"
 
+class UTexture2D;
+
 /** Maximum number of slices in texture source art. */
 #define MAX_TEXTURE_SOURCE_SLICES 6
 

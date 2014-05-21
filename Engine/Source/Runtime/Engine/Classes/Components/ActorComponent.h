@@ -386,7 +386,7 @@ public:
 	}
 
 	/** @name Accessors. */
-	FSceneInterface* GetScene() const;
+	class FSceneInterface* GetScene() const;
 
 	/** Return the ULevel that this Component is part of. */
 	ULevel* GetComponentLevel() const;

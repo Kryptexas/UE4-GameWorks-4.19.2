@@ -4,6 +4,14 @@
 #pragma once
 #include "LandscapeMeshCollisionComponent.generated.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxMaterial;
+	class PxTriangleMesh;
+}
+#endif // WITH_PHYSX
+
 UCLASS()
 class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent
 {
@@ -21,10 +29,10 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 
 #if WITH_PHYSX
 		/** List of PxMaterials used on this landscape */
-		TArray<class physx::PxMaterial*>	UsedPhysicalMaterialArray;
-		class physx::PxTriangleMesh*		RBTriangleMesh;
+		TArray<physx::PxMaterial*>	UsedPhysicalMaterialArray;
+		physx::PxTriangleMesh*		RBTriangleMesh;
 #if WITH_EDITOR
-		class physx::PxTriangleMesh*		RBTriangleMeshEd; // Used only by landscape editor, does not have holes in it
+		physx::PxTriangleMesh*		RBTriangleMeshEd; // Used only by landscape editor, does not have holes in it
 #endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 

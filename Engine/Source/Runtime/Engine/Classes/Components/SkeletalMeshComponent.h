@@ -5,22 +5,16 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshComponent.generated.h"
 
-namespace physx{ 
-
-	class PxPlane;
-
-	namespace apex {
-	class NxClothingAsset;
-	class NxClothingActor;
-
-  //for clothing collision
-	class NxClothingCollision;
-	class NxClothingPlane;
-	class NxClothingSphere;
-	class NxClothingConvex;
-	class NxClothingCollision;
-	class NxClothingCapsule;
-}}
+#if WITH_APEX
+namespace physx
+{ 
+	namespace apex 
+	{
+		class NxClothingActor;
+		class NxClothingCollision;
+	}
+}
+#endif // WITH_APEX
 
 class FPhysScene;
 

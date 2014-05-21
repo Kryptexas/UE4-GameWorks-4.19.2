@@ -14,11 +14,14 @@
 #include "RenderResource.h"
 #include "ShaderCompiler.h"
 #include "UniformBuffer.h"
+
 class FMeshMaterialShaderMap;
 class FMaterialShaderMap;
 class FMaterialShaderType;
 class FMaterial;
+class FMaterialRenderProxy;
 class UMaterialInstance;
+class UMaterialExpression;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16

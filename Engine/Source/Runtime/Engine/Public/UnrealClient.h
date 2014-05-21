@@ -6,6 +6,9 @@
 
 #pragma once
 
+class FCanvas;
+class FViewportClient;
+
 /**
  * A render target.
  */

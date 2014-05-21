@@ -23,48 +23,6 @@
 
 #include "EngineGlobals.h"
 
-
-/*-----------------------------------------------------------------------------
-	Forward declarations.
------------------------------------------------------------------------------*/
-class UTexture;
-class UTexture2D;
-class FLightMap2D;
-class FShadowMap2D;
-class FSceneInterface;
-class FPrimitiveSceneInfo;
-class FPrimitiveSceneProxy;
-class UMaterialExpression;
-class FMaterialRenderProxy;
-class UMaterial;
-class FSceneView;
-class FSceneViewFamily;
-class FViewportClient;
-class FCanvas;
-class UActorChannel;
-class FAudioDevice;
-
-#if WITH_PHYSX
-namespace physx
-{
-	class PxRigidActor;
-	class PxRigidDynamic;
-	class PxAggregate;
-	class PxD6Joint;
-	class PxGeometry;
-	class PxShape;
-	class PxMaterial;
-	class PxHeightField;
-	class PxTransform;
-	class PxTriangleMesh;
-	class PxVehicleWheels;
-	class PxVehicleDrive;
-	class PxVehicleNoDrive;
-	class PxVehicleDriveSimData;
-	class PxVehicleWheelsSimData;
-}
-#endif // WITH_PHYSX
-
 /*-----------------------------------------------------------------------------
 	Engine public includes.
 -----------------------------------------------------------------------------*/

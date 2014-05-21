@@ -4,6 +4,18 @@
 
 #include "BodyInstance.generated.h"
 
+#if WITH_PHYSX
+namespace physx
+{
+	class PxRigidActor;
+	class PxAggregate;
+	class PxRigidDynamic;
+	class PxGeometry;
+	class PxShape;
+	class PxTransform;
+}
+#endif // WITH_PHYSX
+
 USTRUCT()
 struct ENGINE_API FCollisionResponse
 {
@@ -202,15 +214,15 @@ public:
 public:
 #if WITH_PHYSX
 		/** Internal use. Physics-engine representation of this body in the synchronous scene. */
-		class physx::PxRigidActor*			RigidActorSync;
+		physx::PxRigidActor*			RigidActorSync;
 
 		/** Internal use. Physics-engine representation of this body in the asynchronous scene. */
-		class physx::PxRigidActor*			RigidActorAsync;
+		physx::PxRigidActor*			RigidActorAsync;
 
 		/** Internal use. Physics-engine representation of a PxAggregate for this body, in case it has alot of shapes. */
-		class physx::PxAggregate*			BodyAggregate;
+		physx::PxAggregate*				BodyAggregate;
 
-		TSharedPtr<TArray<ANSICHAR>>		CharDebugName;
+		TSharedPtr<TArray<ANSICHAR>>	CharDebugName;
 #endif	//WITH_PHYSX
 
 		/** PrimitiveComponent containing this body.   */
@@ -237,7 +249,7 @@ public:
 		void LoadProfileData(bool bVerifyProfile);
 
 #if WITH_PHYSX
-		void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp,class FPhysScene* InRBScene, class physx::PxAggregate* InAggregate = NULL);
+		void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp,class FPhysScene* InRBScene, physx::PxAggregate* InAggregate = NULL);
 #endif	//WITH_PHYSX
 
 		void TermBody();
@@ -281,15 +293,15 @@ public:
 		 * If SceneType < 0, the PST_Sync actor is returned if it is not NULL, otherwise the PST_Async actor is returned.
 		 * Invalid scene types will cause NULL to be returned.
 		 */
-		class physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const;
+		physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const;
 		/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
-		class physx::PxRigidDynamic* GetPxRigidDynamic() const;
+		physx::PxRigidDynamic* GetPxRigidDynamic() const;
 
 		/** 
 		 *	Utility to get all the shapes from a FBodyInstance 
 		 *	Shapes belonging to sync actor are first, then async. Number of shapes belonging to sync actor is returned.
 		 */
-		TArray<class physx::PxShape*> GetAllShapes(int32& OutNumSyncShapes) const;
+		TArray<physx::PxShape*> GetAllShapes(int32& OutNumSyncShapes) const;
 #endif	//WITH_PHYSX
 
 		/** Returns the body's mass */
