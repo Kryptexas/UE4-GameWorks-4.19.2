@@ -105,7 +105,7 @@ FText SGestureEditBox::GetNotificationMessage() const
 
 void SGestureEditBox::OnGestureEditorLostFocus()
 {
-	if( FSlateApplication::Get().GetMouseCaptor() != GestureAcceptButton && !GestureEditor->IsTyping() )
+	if( (!GestureAcceptButton.IsValid() || FSlateApplication::Get().GetMouseCaptor() != GestureAcceptButton) && !GestureEditor->IsTyping() )
 	{
 		if( GestureEditor->IsEditing() && GestureEditor->IsEditedGestureValid() && !GestureEditor->HasConflict() )
 		{
@@ -143,6 +143,13 @@ void SGestureEditBox::OnGestureChanged()
 	else
 	{
 		ConflictPopup->SetIsOpen(false);
+
+		if (GestureEditor->IsEditedGestureValid())
+		{
+			GestureEditor->CommitNewGesture();
+			GestureEditor->StopEditing();
+			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+		}
 	}
 }
 

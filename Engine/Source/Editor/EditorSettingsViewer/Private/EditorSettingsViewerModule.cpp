@@ -95,6 +95,7 @@ protected:
 		InputBindingDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsExport);
 		InputBindingDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsImport);
 		InputBindingDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
+		InputBindingDelegates.SaveDelegate = FOnSettingsSectionSave::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsSave);
 
 		InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
 
@@ -261,7 +262,7 @@ private:
 	// Show a warning that the editor will require a restart and return its result
 	EAppReturnType::Type ShowRestartWarning(const FText& Title) const
 	{
-		return OpenMsgDlgInt(EAppMsgType::OkCancel, LOCTEXT("ActionRestartMsg", "This action requires the editor to restart; you will be prompted to save any changes. Continue?" ), Title);
+		return OpenMsgDlgInt(EAppMsgType::OkCancel, LOCTEXT("ActionRestartMsg", "Imported settings won't be applied until the editor is restarted. Do you wish to restart now (you will be prompted to save any changes)?" ), Title);
 	}
 
 	// Backup a file
@@ -334,6 +335,17 @@ private:
 		}
 
 		return false;
+	}
+
+	// Handles saving default input bindings.
+	// This only gets called by SSettingsEditor::HandleImportButtonClicked when importing new settings,
+	// and its implementation here is just to flush custom input bindings so that editor shutdown doesn't
+	// overwrite the imported settings just copied across.
+	bool HandleInputBindingsSave()
+	{
+		FInputBindingManager::Get().RemoveUserDefinedGestures();
+		GConfig->Flush(false, GEditorKeyBindingsIni);
+		return true;
 	}
 
 	bool HandleRegionAndLanguageExport(const FString& FileName)
