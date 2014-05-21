@@ -76,7 +76,7 @@ class UMG_API AUserWidget : public AActor
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	// AActor interface
-	virtual void PostActorCreated() OVERRIDE;
+	virtual void OnConstruction(const FTransform& Transform) OVERRIDE;
 	virtual void Destroyed() OVERRIDE;
 	virtual void RerunConstructionScripts() OVERRIDE;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;

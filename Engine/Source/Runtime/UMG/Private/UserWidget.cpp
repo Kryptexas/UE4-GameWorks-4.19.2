@@ -120,9 +120,11 @@ AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Fill;
 }
 
-void AUserWidget::PostActorCreated()
+void AUserWidget::OnConstruction(const FTransform& Transform)
 {
-	Super::PostActorCreated();
+	Super::OnConstruction(Transform);
+
+	RebuildWrapperWidget();
 }
 
 void AUserWidget::Destroyed()
