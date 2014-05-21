@@ -745,7 +745,7 @@ public:
 	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation);
 
 	/** use velocity requested by path following */
-	virtual bool ApplyRequestedMove(FVector& NewVelocity, FVector& NewAcceleration, float DeltaTime, float MaxAccel, float MaxSpeed);
+	virtual bool ApplyRequestedMove(FVector& NewAcceleration, float DeltaTime, float MaxAccel, float MaxSpeed, float& InOutRequestedSpeed);
 
 	/** Called if bNotifyApex is true and character has just passed the apex of its jump. */
 	virtual void NotifyJumpApex();
