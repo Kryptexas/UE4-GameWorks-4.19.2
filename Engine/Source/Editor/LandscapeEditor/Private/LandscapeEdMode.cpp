@@ -2,6 +2,7 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 
+#include "EditorSupportDelegates.h"
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"

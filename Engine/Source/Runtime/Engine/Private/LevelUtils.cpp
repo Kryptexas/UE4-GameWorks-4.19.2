@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "EditorSupportDelegates.h"
 
 #if WITH_EDITOR
 #include "ScopedTransaction.h"

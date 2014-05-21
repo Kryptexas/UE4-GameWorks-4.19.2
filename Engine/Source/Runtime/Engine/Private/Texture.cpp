@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "TargetPlatform.h"
 #include "ImageWrapper.h"
 

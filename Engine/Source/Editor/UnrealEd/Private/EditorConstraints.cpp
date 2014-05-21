@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-
+#include "EditorSupportDelegates.h"
 
 float UEditorEngine::GetGridSize()
 {

@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "BusyCursor.h"
 #include "ScopedTransaction.h"
 #include "LevelUtils.h"

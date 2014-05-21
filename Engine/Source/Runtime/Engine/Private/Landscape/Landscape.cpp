@@ -5,6 +5,7 @@ Landscape.cpp: Terrain rendering
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeRenderMobile.h"

@@ -6,6 +6,7 @@
 #include "LevelUtils.h"
 #include "EditorLevelUtils.h"
 #include "Toolkits/AssetEditorManager.h"
+#include "EditorSupportDelegates.h"
 
 #define LOCTEXT_NAMESPACE "Level"
 

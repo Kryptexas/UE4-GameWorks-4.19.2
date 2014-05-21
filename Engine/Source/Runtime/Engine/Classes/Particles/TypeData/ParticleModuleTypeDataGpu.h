@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Distributions.h"
 #include "ParticleModuleTypeDataGpu.generated.h"
 
 /**

@@ -4,6 +4,7 @@
 #include "MaterialEditorActions.h"
 #include "MaterialExpressionClasses.h"
 #include "MaterialCompiler.h"
+#include "EditorSupportDelegates.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/EditorWidgets/Public/EditorWidgets.h"
 #include "AssetRegistryModule.h"

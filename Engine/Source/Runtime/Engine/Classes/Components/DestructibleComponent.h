@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-
-
+#include "PhysxUserData.h"
 #include "DestructibleComponent.generated.h"
 
 #if WITH_PHYSX

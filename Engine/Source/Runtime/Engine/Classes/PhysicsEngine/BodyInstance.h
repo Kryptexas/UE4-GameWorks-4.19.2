@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
 #if WITH_PHYSX

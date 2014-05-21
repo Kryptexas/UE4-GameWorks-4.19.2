@@ -5,6 +5,7 @@
 ================================================================================*/
 
 #include "LevelEditor.h"
+#include "EditorSupportDelegates.h"
 #include "LightmapResRatioAdjust.h"
 #include "SurfaceIterators.h"
 #include "MessageLog.h"

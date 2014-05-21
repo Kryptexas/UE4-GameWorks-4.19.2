@@ -3,6 +3,7 @@
 #pragma once
 
 #include "NavigationTypes.h"
+#include "GenericOctreePublic.h"
 #include "NavigationSystem.generated.h"
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)

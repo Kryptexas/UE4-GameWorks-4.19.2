@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions.h"
 #include "DistributionVector.generated.h"
 
 UENUM()

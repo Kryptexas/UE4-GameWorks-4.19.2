@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Engine.h"
+#include "Distributions.h"
 #include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------

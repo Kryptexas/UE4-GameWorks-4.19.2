@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BusyCursor.h"
 #include "SoundDefinitions.h"

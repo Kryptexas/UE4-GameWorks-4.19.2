@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "ExceptionHandling.h"
 #include "GlobalShader.h"
 #include "TargetPlatform.h"

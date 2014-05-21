@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "RenderResource.h"
+#include "HitProxies.h"		
+
 class FCanvas;
 class FViewportClient;
 

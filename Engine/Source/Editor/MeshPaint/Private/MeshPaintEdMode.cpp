@@ -14,6 +14,7 @@
 #include "RawMesh.h"
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "EditorSupportDelegates.h"
 
 //Slate dependencies
 #include "Editor/LevelEditor/Public/LevelEditor.h"

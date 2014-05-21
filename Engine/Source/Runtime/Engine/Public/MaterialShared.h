@@ -20,6 +20,7 @@ class FMaterialShaderMap;
 class FMaterialShaderType;
 class FMaterial;
 class FMaterialRenderProxy;
+class UMaterial;
 class UMaterialInstance;
 class UMaterialExpression;
 class UMaterialInterface;

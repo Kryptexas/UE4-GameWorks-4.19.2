@@ -10,14 +10,9 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
-#include "Messaging.h"
-#include "TaskGraphInterfaces.h"
 #include "RHI.h"
-#include "RenderCore.h"
 #include "InputCore.h"
-#include "EngineMessages.h"
 #include "EngineSettings.h"
-#include "EditorSupportDelegates.h"
 #include "EngineStats.h"
 #include "EngineLogs.h"
 
@@ -27,18 +22,10 @@
 	Engine public includes.
 -----------------------------------------------------------------------------*/
 
-#include "BlueprintUtilities.h"
 #include "Tickable.h"						// FTickableGameObject interface.
 #include "RenderingThread.h"				// for FRenderCommandFence
-#include "GenericOctreePublic.h"			// for FOctreeElementId
-#include "RenderResource.h"					// for FRenderResource
-#include "HitProxies.h"						// Hit proxy definitions.
 #include "Engine/EngineBaseTypes.h"
 #include "UnrealClient.h"					// for FViewportClient
-#include "ShowFlags.h"						// Flags for enable scene rendering features
-#include "RenderUtils.h"					// Render utility classes.
-#include "Distributions.h"					// Distributions
-#include "PhysxUserData.h"
 
 // EngineClasses.h
 #include "Engine/LatentActionManager.h"

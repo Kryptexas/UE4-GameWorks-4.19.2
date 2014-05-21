@@ -2,6 +2,8 @@
 
 #pragma once
 #include "../Engine/BlendableInterface.h"
+#include "../Materials/MaterialInterface.h"
+#include "MaterialShared.h"
 #include "Material.generated.h"
 
 #if WITH_EDITOR

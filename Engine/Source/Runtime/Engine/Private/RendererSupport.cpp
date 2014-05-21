@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "FXSystem.h"
 #include "RenderCore.h"
 #include "GlobalShader.h"

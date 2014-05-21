@@ -2,6 +2,7 @@
 
 
 #include "LevelEditor.h"
+#include "EditorSupportDelegates.h"
 #include "SLevelEditor.h"
 #include "LevelEditorActions.h"
 #include "SLevelViewport.h"

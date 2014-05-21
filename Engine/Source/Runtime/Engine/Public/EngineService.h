@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Messaging.h"
+#include "EngineMessages.h"
 
 /**
  * Implements an application session service.

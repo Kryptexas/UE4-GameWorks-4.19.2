@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "PhysxUserData.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicalMaterial.generated.h"
 

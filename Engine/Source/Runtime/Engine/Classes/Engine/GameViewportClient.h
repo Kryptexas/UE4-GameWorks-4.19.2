@@ -14,6 +14,9 @@
  *
  */
 #pragma once
+
+#include "ShowFlags.h"
+
 #include "GameViewportClient.generated.h"
 
 /**

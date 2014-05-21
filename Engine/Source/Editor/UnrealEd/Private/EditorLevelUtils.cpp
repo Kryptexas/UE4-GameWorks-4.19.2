@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "EditorSupportDelegates.h"
 #include "EditorLevelUtils.h"
 
 #include "BusyCursor.h"

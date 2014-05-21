@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureAlignModePrivatePCH.h"
+#include "EditorSupportDelegates.h"
 
 IMPLEMENT_MODULE( FTextureAlignModeModule, TextureAlignMode );
 

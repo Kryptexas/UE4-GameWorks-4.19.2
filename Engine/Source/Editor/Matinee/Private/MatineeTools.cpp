@@ -13,6 +13,7 @@
 #include "MatineeDelegates.h"
 
 #include "SoundDefinitions.h"
+#include "EditorSupportDelegates.h"
 
 ///// UTILS
 

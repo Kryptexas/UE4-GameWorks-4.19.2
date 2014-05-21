@@ -3,6 +3,7 @@
 #include "WorldBrowserPrivatePCH.h"
 #include "SourceControlWindows.h"
 #include "AssetToolsModule.h"
+#include "EditorSupportDelegates.h"
 
 #include "LevelCollectionModel.h"
 

@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 

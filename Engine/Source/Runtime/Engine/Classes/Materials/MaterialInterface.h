@@ -2,7 +2,11 @@
 
 
 #pragma once
+
+#include "MaterialShared.h"
 #include "MaterialInterface.generated.h"
+
+class UMaterial;
 
 UENUM()
 enum EMaterialUsage
@@ -175,7 +179,7 @@ public:
 	*						@note: only valid in the editor!
 	* @return	The resource to use for rendering this material instance.
 	*/
-	virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const PURE_VIRTUAL(UMaterialInterface::GetRenderProxy,return NULL;);
+	virtual class FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const PURE_VIRTUAL(UMaterialInterface::GetRenderProxy,return NULL;);
 
 	/**
 	* Return a pointer to the physical material used by this material instance.

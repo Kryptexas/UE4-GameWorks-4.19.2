@@ -22,6 +22,7 @@
 #include "InterpolationHitProxy.h"
 
 #include "LevelEditorActions.h"
+#include "EditorSupportDelegates.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MessageLog.h"

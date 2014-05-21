@@ -8,6 +8,7 @@
 #pragma once
 
 #include "DynamicMeshBuilder.h"
+#include "PhysxUserData.h"
 
 /**
  * Physics stats

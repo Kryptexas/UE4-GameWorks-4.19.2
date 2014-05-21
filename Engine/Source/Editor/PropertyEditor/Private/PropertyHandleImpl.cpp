@@ -5,6 +5,7 @@
 #include "PropertyNode.h"
 #include "PropertyEditorHelpers.h"
 #include "ObjectPropertyNode.h"
+#include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "IPropertyUtilities.h"

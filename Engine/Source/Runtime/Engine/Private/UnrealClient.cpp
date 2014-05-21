@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "EditorSupportDelegates.h"
 #include "RenderCore.h"
 #include "RenderResource.h"
 #include "RHIStaticStates.h"
