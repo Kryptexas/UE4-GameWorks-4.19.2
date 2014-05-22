@@ -56,7 +56,7 @@ XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails	= { 0 };
 	FAudioDevice Interface.
 ------------------------------------------------------------------------------------*/
 
-#define DEBUG_XAUDIO2 1
+#define DEBUG_XAUDIO2 0
 
 FSpatializationHelper FXAudio2Device::SpatializationHelper;
 
@@ -114,7 +114,7 @@ bool FXAudio2Device::InitializeHardware()
 
 #if DEBUG_XAUDIO2
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
-	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS;// | XAUDIO2_LOG_DETAIL;
+	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS | XAUDIO2_LOG_DETAIL;
 	DebugConfig.BreakMask = XAUDIO2_LOG_ERRORS;
 	FXAudioDeviceProperties::XAudio2->SetDebugConfiguration(&DebugConfig);
 #endif
