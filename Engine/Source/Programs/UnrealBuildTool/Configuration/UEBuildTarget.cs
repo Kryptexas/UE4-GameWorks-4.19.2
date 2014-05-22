@@ -1434,25 +1434,33 @@ namespace UnrealBuildTool
 			if (BuildConfiguration.WriteTargetInfoPath != null)
 			{
 				Log.TraceInformation("Writing build environment to " + BuildConfiguration.WriteTargetInfoPath + "...");
-
-				XmlWriterSettings Settings = new XmlWriterSettings();
-				Settings.Indent = true;
-
-				using (XmlWriter Writer = XmlWriter.Create(BuildConfiguration.WriteTargetInfoPath, Settings))
-				{
-					Writer.WriteStartElement("target");
-					Writer.WriteAttributeString("name", AppName);
-					foreach (UEBuildBinary Binary in AppBinaries)
-					{
-						Binary.WriteBuildEnvironment(GlobalCompileEnvironment, GlobalLinkEnvironment, Writer);
-					}
-					Writer.WriteEndElement();
-				}
-
+				WriteTargetInfo();
 				OutputItems.Clear();
 			}
 
 			return ECompilationResult.Succeeded;
+		}
+
+		/// <summary>
+		/// Writes target info.
+		/// </summary>
+		protected virtual void WriteTargetInfo()
+		{
+			Log.TraceInformation("Writing build environment to " + BuildConfiguration.WriteTargetInfoPath + "...");
+
+			XmlWriterSettings Settings = new XmlWriterSettings();
+			Settings.Indent = true;
+
+			using (XmlWriter Writer = XmlWriter.Create(BuildConfiguration.WriteTargetInfoPath, Settings))
+			{
+				Writer.WriteStartElement("target");
+				Writer.WriteAttributeString("name", AppName);
+				foreach (UEBuildBinary Binary in AppBinaries)
+				{
+					Binary.WriteBuildEnvironment(GlobalCompileEnvironment, GlobalLinkEnvironment, Writer);
+				}
+				Writer.WriteEndElement();
+			}
 		}
 
 		/// <summary>
