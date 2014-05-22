@@ -240,6 +240,7 @@ namespace UnrealBuildTool
 				}
 
 				CreateUserXmlConfigTemplate(PossibleConfigLocation.FSLocation);
+				PossibleConfigLocation.bExists = true;
 			}
 		}
 
