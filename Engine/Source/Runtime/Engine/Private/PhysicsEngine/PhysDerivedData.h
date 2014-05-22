@@ -10,7 +10,7 @@
 #include "PhysXSupport.h"
 
 // Forward declarations
-class ULandscapeMeshCollisionComponent
+class ULandscapeMeshCollisionComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
