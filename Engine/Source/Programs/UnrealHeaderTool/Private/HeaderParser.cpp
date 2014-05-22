@@ -2750,7 +2750,7 @@ bool FHeaderParser::GetVarType
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 		VarProperty.ArrayType = EArrayType::Dynamic;
-		RequireSymbol( TEXT(">"), TEXT("'tarray'") );
+		RequireSymbol( TEXT(">"), TEXT("'tarray'"), ESymbolParseOption::CloseTemplateBracket );
 	}
 	else if( VarType.Matches(TEXT("TAttribute")) )
 	{
@@ -2776,7 +2776,7 @@ bool FHeaderParser::GetVarType
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference);
 		VarType.PropertyFlags = OriginalVarTypeFlags;
 	
-		RequireSymbol(TEXT(">"), TEXT("'tattribute'"));
+		RequireSymbol(TEXT(">"), TEXT("'tattribute'"), ESymbolParseOption::CloseTemplateBracket);
 
 	}
 	else if ( VarType.Matches(TEXT("FString")) )
@@ -2850,7 +2850,7 @@ bool FHeaderParser::GetVarType
 			FError::Throwf(TEXT("Expected the name of a previously defined enum"));
 		}
 
-		RequireSymbol(TEXT(">"), VarType.Identifier);
+		RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 	}
 	else if (UEnum* Enum = FindObject<UEnum>( ANY_PACKAGE, VarType.Identifier ))
 	{
@@ -3013,7 +3013,7 @@ bool FHeaderParser::GetVarType
 					FError::Throwf(TEXT("%s: Missing template type"), VarType.Identifier);
 				}
 
-				RequireSymbol(TEXT(">"), VarType.Identifier);
+				RequireSymbol(TEXT(">"), VarType.Identifier, ESymbolParseOption::CloseTemplateBracket);
 			}
 			else
 			{
@@ -3047,7 +3047,7 @@ bool FHeaderParser::GetVarType
 
 						VarProperty.MetaClass = AllClasses.FindScriptClassOrThrow(Limitor.Identifier);
 
-						RequireSymbol( TEXT(">"), TEXT("'class limitor'") );
+						RequireSymbol( TEXT(">"), TEXT("'class limitor'"), ESymbolParseOption::CloseTemplateBracket );
 					}
 					else
 					{

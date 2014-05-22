@@ -11,6 +11,13 @@
 /////////////////////////////////////////////////////
 // FBaseParser
 
+
+enum class ESymbolParseOption
+{
+	Normal,
+	CloseTemplateBracket
+};
+
 //
 // Base class of header parsers.
 //
@@ -76,14 +83,15 @@ protected:
 	/**
 	 * Gets the next token from the input stream, advancing the variables which keep track of the current input position and line.
 	 *
-	 * @param	Token			receives the value of the parsed text; if Token is pre-initialized, special logic is performed
-	 *							to attempt to evaluated Token in the context of that type.  Useful for distinguishing between ambigous symbols
-	 *							like enum tags.
-	 * @param	NoConsts		specify true to indicate that tokens representing literal const values are not allowed.
+	 * @param	Token						receives the value of the parsed text; if Token is pre-initialized, special logic is performed
+	 *										to attempt to evaluated Token in the context of that type.  Useful for distinguishing between ambigous symbols
+	 *										like enum tags.
+	 * @param	NoConsts					specify true to indicate that tokens representing literal const values are not allowed.
+	 * @param	ParseTemplateClosingBracket	specify true to treat >> as two template closing brackets instead of shift operator.
 	 *
 	 * @return	true if a token was successfully processed, false otherwise.
 	 */
-	bool GetToken( FToken& Token, bool bNoConsts = false );
+	bool GetToken( FToken& Token, bool bNoConsts = false, ESymbolParseOption bParseTemplateClosingBracket = ESymbolParseOption::Normal );
 
 	/**
 	 * Put all text from the current position up to either EOL or the StopToken
@@ -114,14 +122,14 @@ protected:
 	bool MatchIdentifier( const TCHAR* Match );
 	bool PeekIdentifier( FName Match );
 	bool PeekIdentifier( const TCHAR* Match );
-	bool MatchSymbol( const TCHAR* Match );
+	bool MatchSymbol( const TCHAR* Match, ESymbolParseOption bParseTemplateClosingBracket = ESymbolParseOption::Normal );
 	void MatchSemi();
 	bool PeekSymbol( const TCHAR* Match );
 
 	// Requiring predefined text.
 	void RequireIdentifier( FName Match, const TCHAR* Tag );
 	void RequireIdentifier( const TCHAR* Match, const TCHAR* Tag );
-	void RequireSymbol( const TCHAR* Match, const TCHAR* Tag );
+	void RequireSymbol( const TCHAR* Match, const TCHAR* Tag, ESymbolParseOption bParseTemplateClosingBracket = ESymbolParseOption::Normal );
 
 	/** Clears out the stored comment. */
 	void ClearComment();

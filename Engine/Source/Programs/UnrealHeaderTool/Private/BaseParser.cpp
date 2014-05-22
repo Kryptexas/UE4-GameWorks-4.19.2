@@ -296,7 +296,7 @@ bool FBaseParser::IsWhitespace( TCHAR c )
 -----------------------------------------------------------------------------*/
 
 // Gets the next token from the input stream, advancing the variables which keep track of the current input position and line.
-bool FBaseParser::GetToken( FToken& Token, bool bNoConsts/*=false*/ )
+bool FBaseParser::GetToken( FToken& Token, bool bNoConsts/*=false*/, ESymbolParseOption bParseTemplateClosingBracket/*=ESymbolParseOption::Normal*/ )
 {
 	Token.TokenName	= NAME_None;
 	TCHAR c = GetLeadingChar();
@@ -483,7 +483,7 @@ bool FBaseParser::GetToken( FToken& Token, bool bNoConsts/*=false*/ )
 		TCHAR d = GetChar();
 		if
 		(	PAIR('<','<')
-		||	PAIR('>','>')
+		||	(PAIR('>','>') && (bParseTemplateClosingBracket != ESymbolParseOption::CloseTemplateBracket))
 		||	PAIR('!','=')
 		||	PAIR('<','=')
 		||	PAIR('>','=')
@@ -677,11 +677,11 @@ bool FBaseParser::GetConstInt(int32& Result, const TCHAR* Tag)
 	return false;
 }
 
-bool FBaseParser::MatchSymbol( const TCHAR* Match )
+bool FBaseParser::MatchSymbol( const TCHAR* Match, ESymbolParseOption bParseTemplateClosingBracket/*=ESymbolParseOption::Normal*/ )
 {
 	FToken Token;
 
-	if (GetToken(Token, /*bNoConsts=*/ true))
+	if (GetToken(Token, /*bNoConsts=*/ true, bParseTemplateClosingBracket))
 	{
 		if (Token.TokenType==TOKEN_Symbol && !FCString::Stricmp(Token.Identifier, Match))
 		{
@@ -805,9 +805,9 @@ void FBaseParser::UngetToken( FToken& Token )
 //
 // Require a symbol.
 //
-void FBaseParser::RequireSymbol( const TCHAR* Match, const TCHAR* Tag )
+void FBaseParser::RequireSymbol( const TCHAR* Match, const TCHAR* Tag, ESymbolParseOption bParseTemplateClosingBracket/*=ESymbolParseOption::Normal*/ )
 {
-	if (!MatchSymbol(Match))
+	if (!MatchSymbol(Match, bParseTemplateClosingBracket))
 	{
 		FError::Throwf(TEXT("Missing '%s' in %s"), Match, Tag );
 	}
