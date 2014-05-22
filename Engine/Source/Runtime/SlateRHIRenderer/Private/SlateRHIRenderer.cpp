@@ -906,12 +906,15 @@ void FSlateRHIRenderer::UnmapCrashTrackerBuffer()
 
 FIntPoint FSlateRHIRenderer::GenerateDynamicImageResource(const FName InTextureName)
 {
+	ensure( IsInGameThread() );
 	TSharedPtr<FSlateRHIResourceManager::FDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource(false, true, InTextureName.ToString(), InTextureName, NULL);
 	return TextureResource.IsValid() ? TextureResource->Proxy->ActualSize : FIntPoint( 0, 0 );
 }
 
 bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes )
 {
+	ensure( IsInGameThread() );
+
 	TSharedPtr<FSlateRHIResourceManager::FDynamicTextureResource> TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
 	return TextureResource.IsValid();
 }
@@ -978,6 +981,7 @@ void FSlateRHIRenderer::DisplayTextureAtlases()
 
 void FSlateRHIRenderer::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
+	ensure( IsInGameThread() );
 	ResourceManager->ReleaseDynamicResource( InBrush );
 }
 
