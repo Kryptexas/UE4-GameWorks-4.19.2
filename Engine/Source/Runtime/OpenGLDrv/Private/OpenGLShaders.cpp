@@ -20,9 +20,9 @@ const uint32 SizeOfFloat4 = 16;
 const uint32 NumFloatsInFloat4 = 4;
 
 /**
- * Verify that an OpenGL shader has compiled successfully.
+ * Verify that an OpenGL shader has compiled successfully. 
  */
-static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode)
+static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode )
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileVerifyTime);
 
@@ -34,17 +34,39 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode)
 		ANSICHAR DefaultLog[] = "No log";
 		ANSICHAR *CompileLog = DefaultLog;
 		glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, &LogLength);
+#if PLATFORM_ANDROID
+		if ( LogLength == 0 )
+		{
+			// make it big anyway
+			// there was a bug in android 2.2 where glGetShaderiv would return 0 even though there was a error message
+			// https://code.google.com/p/android/issues/detail?id=9953
+			LogLength = 4096;
+		}
+#endif
 		if (LogLength > 1)
 		{
 			CompileLog = (ANSICHAR *)FMemory::Malloc(LogLength);
 			glGetShaderInfoLog(Shader, LogLength, NULL, CompileLog);
 		}
-
+	
 #if DEBUG_GL_SHADERS
 		if (GlslCode)
 		{
 			UE_LOG(LogRHI,Error,TEXT("Shader:\n%s"),ANSI_TO_TCHAR(GlslCode));
-		}
+
+#if 0
+			const ANSICHAR *Temp = GlslCode;
+
+			for ( int i = 0; i < 30 && (*Temp != '\0'); ++i )
+			{
+				FString Converted = ANSI_TO_TCHAR( Temp );
+				Converted.LeftChop( 256 );
+
+				UE_LOG(LogRHI,Display,TEXT("%s"), *Converted );
+				Temp += Converted.Len();
+			}
+#endif
+		}	
 #endif
 		UE_LOG(LogRHI,Fatal,TEXT("Failed to compile shader. Compile log:\n%s"), ANSI_TO_TCHAR(CompileLog));
 
@@ -349,7 +371,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 					"#define textureCubeLodEXT textureLod	\n"
 					"\n"
 					"#define gl_FragColor out_FragColor	\n"
-					"out mediump vec4 out_FragColor;";
+					"out mediump vec4 out_FragColor;\n";
 
 				// See if we need to skip any #extension string
 				ANSICHAR* Temp = SkipShaderExtensionText(const_cast<ANSICHAR*>(GlslCode));
@@ -362,18 +384,39 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "in");
 			}
 		}
-		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
+#if PLATFORM_ANDROID
+		else if ( (TypeEnum == GL_FRAGMENT_SHADER) &&
+			FOpenGL::RequiresDontEmitPrecisionForTextureSamplers() )
 		{
-			Prologue = "#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
+			// Daniel: This device has some shader compiler compatibility issues force them to be disabled
+			//			The cross compiler will put the DONTEMITEXTENSIONSHADERTEXTURELODENABLE define around incompatible sections of code
+			Prologue = "#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
+				"#define DONTEMITSAMPLERDEFAULTPRECISION\n"
+				"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
+				"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
 		}
+		else if ( ( TypeEnum == GL_FRAGMENT_SHADER) && 
+			FOpenGL::RequiresTextureCubeLodEXTToTextureCubeLodDefine() )
+		{
+			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
+		}
+#else
 		else if(!FOpenGL::SupportsTextureCubeLodEXT())
 		{
 			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
+		}
+#endif
+		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
+		{
+			Prologue = "#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
 		}
 		else 
 		{
 			Prologue = "";
 		}
+
+		//UE_LOG(LogRHI, Display,TEXT("Prologue is %s"), ANSI_TO_TCHAR( Prologue ));
+
 		//Assemble the source strings into an array to pass into the compiler.
 		const GLchar* ShaderSourceStrings[4] = { VersionString, ExtensionString, Prologue, GlslCode };
 		const GLint ShaderSourceLen[4] = { (GLint)(strlen(VersionString)), (GLint)(strlen(ExtensionString)), (GLint)(strlen(Prologue)), (GLint)(strlen(GlslCode)) };

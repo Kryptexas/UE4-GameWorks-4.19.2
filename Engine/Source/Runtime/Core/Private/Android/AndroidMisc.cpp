@@ -12,6 +12,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
 
+// run time compatibility information
+FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4.0.4"
+FString FAndroidMisc::DeviceMake; // make of the device we are running on eg. "samsung"
+FString FAndroidMisc::DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
+
 GenericApplication* FAndroidMisc::CreateApplication()
 {
 	return FAndroidApplication::CreateAndroidApplication();
@@ -218,6 +223,32 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 bool FAndroidMisc::GetUseVirtualJoysticks()
 {
 	return !FParse::Param(FCommandLine::Get(),TEXT("joystick"));
+}
+
+
+
+void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel )
+{
+	AndroidVersion = InAndroidVersion;
+	DeviceMake = InDeviceMake;
+	DeviceModel = InDeviceModel;
+
+	UE_LOG(LogEngine, Display, TEXT("Android Version Make Model: %s %s %s"), *AndroidVersion, *DeviceMake, *DeviceModel);
+}
+
+const FString FAndroidMisc::GetAndroidVersion()
+{
+	return AndroidVersion;
+}
+
+const FString FAndroidMisc::GetDeviceMake()
+{
+	return DeviceMake;
+}
+
+const FString FAndroidMisc::GetDeviceModel()
+{
+	return DeviceModel;
 }
 
 uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )

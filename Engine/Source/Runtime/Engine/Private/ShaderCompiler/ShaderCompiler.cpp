@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ShaderCompiler.cpp: Platform independent shader compilation.
+	ShaderCompiler.cpp: Platform independent shader compilations.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -15,7 +15,6 @@ DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
 // Set to 1 to debug ShaderCompilerWorker.exe. Set a breakpoint in LaunchWorker() to get the cmd-line.
 #define DEBUG_SHADERCOMPILEWORKER 0
-
 // Default value comes from bPromptToRetryFailedShaderCompiles in BaseEngine.ini
 // This is set as a global variable to allow changing in the debugger even in release
 // For example if there are a lot of content shader compile errors you want to skip over without relaunching

@@ -83,7 +83,7 @@ void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI
 	if( CurrentContext != CONTEXT_Rendering )
 	{
 		check(CurrentContext == CONTEXT_Shared);
-		check(!bIsRenderingContextAcquired);
+		check(!bIsRenderingContextAcquired || !GUseThreadedRendering);
 		bRevertToSharedContextAfterDrawingViewport = true;
 		PlatformRenderingContextSetup(PlatformDevice);
 	}

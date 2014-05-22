@@ -263,7 +263,7 @@ namespace UnrealBuildTool.Android
         }
 
 
-		private void MakeAPK(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution)
+		private void MakeAPK(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor)
 		{
 			// cache some build product paths
 			string SourceSOName = OutputPath;
@@ -324,7 +324,7 @@ namespace UnrealBuildTool.Android
             // Currently we'll just support 1 of 'em
             if (UEBuildConfiguration.bOBBinAPK)
             {
-                string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android/" + ProjectName + "/Content/Paks";
+                string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
                 Console.WriteLine("Pak location {0}", PAKFileLocation);
                 string PAKFileDestination = UE4BuildPath + "/assets";
                 Console.WriteLine("Pak destination location {0}", PAKFileDestination);
@@ -623,12 +623,12 @@ namespace UnrealBuildTool.Android
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
-			return PrepForUATPackageOrDeploy(InTarget.AppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false);
+			return PrepForUATPackageOrDeploy(InTarget.AppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false, "");
 		}
 
-		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution)
+		public override bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor)
 		{
-			MakeAPK(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution);
+			MakeAPK(ProjectName, ProjectDirectory, ExecutablePath, EngineDirectory, bForDistribution, CookFlavor);
 			return true;
 		}
 

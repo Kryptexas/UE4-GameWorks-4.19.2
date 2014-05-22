@@ -129,8 +129,8 @@ class CORE_API FFileHandlePakAndroid : public IFileHandle
 	enum { READWRITE_SIZE = 1024 * 1024 };
 	AAsset * File;
 	int32 FileHandle;
-	off64_t Start;
-	off64_t Length;
+	off_t Start;
+	off_t Length;
 
 	FORCEINLINE bool IsValid()
 	{
@@ -141,7 +141,7 @@ public:
 	FFileHandlePakAndroid(AAsset * file)
 		: File(file), FileHandle(0), Start(0), Length(0)
 	{
-		FileHandle = AAsset_openFileDescriptor64(file, &Start, &Length);
+		FileHandle = AAsset_openFileDescriptor(file, &Start, &Length);
 	}
 
 	virtual ~FFileHandlePakAndroid()
@@ -154,7 +154,7 @@ public:
 	virtual int64 Tell() OVERRIDE
 	{
 		check(IsValid());
-		int64 pos = lseek64(FileHandle, 0, SEEK_CUR);
+		int64 pos = lseek(FileHandle, 0, SEEK_CUR);
 		return pos - Start; // We are treating 'tell' as a virtual location from file Start
 	}
 
@@ -165,7 +165,7 @@ public:
 		NewPosition += Start;
 		check(NewPosition >= 0);
 		
-		return lseek64(FileHandle, NewPosition, SEEK_SET) != -1;
+		return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
 	}
 
     virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
@@ -174,7 +174,7 @@ public:
 		check(NewPositionRelativeToEnd <= 0);
 		// We need to convert this to a virtual offset inside the file we are interested in
 		int64 position = Start + (Length - NewPositionRelativeToEnd);
-		return lseek64(FileHandle, position, SEEK_SET) != -1;
+		return lseek(FileHandle, position, SEEK_SET) != -1;
 	}
 
 	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
@@ -282,7 +282,7 @@ public:
 		if (convertedPath.Contains(TEXT(".pak")) && GOBBinAPK)
 		{
 			AAsset * file = AAssetManager_open(AssetMgr, TCHAR_TO_UTF8(*convertedPath), AASSET_MODE_RANDOM); // seems reasonable?
-			FileInfo.st_size = AAsset_getLength64(file);
+			FileInfo.st_size = AAsset_getLength(file);
 			AAsset_close(file);
 		}
 		else

@@ -104,6 +104,12 @@ bool FOpenGLES2::bSupportsCopyTextureLevels = false;
 /** GL_EXT_texture_storage */
 bool FOpenGLES2::bSupportsTextureStorageEXT = false;
 
+/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */
+bool FOpenGLES2::bRequiresDontEmitPrecisionForTextureSamplers = false;
+
+/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
+bool FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
 
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {

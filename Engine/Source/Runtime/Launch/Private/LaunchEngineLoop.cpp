@@ -1008,6 +1008,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (FApp::ShouldUseThreadingForPerformance())
 	{
 		GUseThreadedRendering = true;
+
+#if PLATFORM_ANDROID 
+		// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
+		// when running multithreaded it can't handle multiple threads using opengl (bug)
+		// tested with lg optimus 2x and motorola xoom 
+		// come back and revisit this later 
+		if ( FAndroidMisc::GetGPUFamily() == FString(TEXT("NVIDIA Tegra")) && FPlatformMisc::NumberOfCores() <= 2 )
+		{
+			GUseThreadedRendering = false;
+		}
+#endif
 	}
 #endif
 
@@ -1137,8 +1148,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Delete temporary files in cache.
 	FPlatformProcess::CleanFileCache();
-
-
 
 #if !UE_BUILD_SHIPPING
 	GIsDemoMode = FParse::Param( FCommandLine::Get(), TEXT( "DEMOMODE" ) );

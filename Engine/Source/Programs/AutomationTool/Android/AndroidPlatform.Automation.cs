@@ -103,7 +103,8 @@ public class AndroidPlatform : Platform
 		// packaging just takes a pak file and makes it the .obb
         UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
         var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
-		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
+		string CookFlavor = SC.CookPlatform.IndexOf("_") > 0 ? SC.CookPlatform.Substring(SC.CookPlatform.IndexOf("_")) : "";
+		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
         
 		// first, look for a .pak file in the staged directory
 		string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
@@ -137,9 +138,9 @@ public class AndroidPlatform : Platform
 			"set ADB=%ANDROID_HOME%\\platform-tools\\adb.exe",
 			"%ADB% uninstall " + PackageName,
 			"%ADB% install " + Path.GetFileName(ApkName),
-			"%ADB% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
-			SC.IsCodeBasedProject ? "" : "%ADB% shell rm /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
-			"%ADB% shell rm -r /mnt/sdcard/obb/" + PackageName,
+			"%ADB% shell rm -rf /mnt/sdcard/" + Params.ShortProjectName,
+			"%ADB% shell rm -rf /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
+			"%ADB% shell rm -rf /mnt/sdcard/obb/" + PackageName,
 			Params.OBBinAPK ? "" : "%ADB% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
 		};
 		File.WriteAllLines(BatchName, BatchLines);
@@ -202,7 +203,8 @@ public class AndroidPlatform : Platform
 
 		// make sure APK is up to date (this is fast if so)
 		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
-		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
+		string CookFlavor = SC.CookPlatform.IndexOf("_") > 0 ? SC.CookPlatform.Substring(SC.CookPlatform.IndexOf("_")) : "";
+		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 
 		// now we can use the apk to get more info
 		string DeviceObbName = GetDeviceObbName(ApkName);
@@ -245,12 +247,12 @@ public class AndroidPlatform : Platform
 				}
 
 				string FinalRemoteDir = RemoteDir;
-				// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
+/*				// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
 				if (!Params.IsCodeBasedProject &&
 					Path.GetFileName(Filename).Equals("UE4CommandLine.txt", StringComparison.InvariantCultureIgnoreCase))
 				{
 					FinalRemoteDir = "/mnt/sdcard/UE4Game";
-				}
+				}*/
 
 				string RemoteFilename = Filename.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
  				string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, Filename, RemoteFilename);
@@ -267,11 +269,11 @@ public class AndroidPlatform : Platform
 			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
 
 			string FinalRemoteDir = RemoteDir;
-			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
+/*			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
 			if (!Params.IsCodeBasedProject)
 			{
 				FinalRemoteDir = "/mnt/sdcard/UE4Game";
-			}
+			}*/
 
 			string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
 			string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);

@@ -76,6 +76,10 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static const TCHAR* GetDefaultDeviceProfileName() { return TEXT("Android"); }
 
 	// ANDROID ONLY:
+	static void SetVersionInfo( FString AndroidVersion, FString DeviceMake, FString DeviceModel );
+	static const FString GetAndroidVersion();
+	static const FString GetDeviceMake();
+	static const FString GetDeviceModel();
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();
@@ -108,6 +112,12 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 
 
 	static void* NativeWindow ; //raw platform Main window
+	
+	// run time compatibility information
+	static FString AndroidVersion; // version of android we are running eg "4.0.4"
+	static FString DeviceMake; // make of the device we are running on eg. "samsung"
+	static FString DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
+
 };
 
 typedef FAndroidMisc FPlatformMisc;

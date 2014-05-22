@@ -807,6 +807,67 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 
 extern void DestroyShadersAndPrograms();
 
+#if PLATFORM_ANDROID
+// only used to test for shader compatibility issues
+static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool IsFatal )
+{
+	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderCompileVerifyTime);
+
+	GLint CompileStatus;
+	glGetShaderiv(Shader, GL_COMPILE_STATUS, &CompileStatus);
+	if (CompileStatus != GL_TRUE)
+	{
+		GLint LogLength;
+		ANSICHAR DefaultLog[] = "No log";
+		ANSICHAR *CompileLog = DefaultLog;
+		glGetShaderiv(Shader, GL_INFO_LOG_LENGTH, &LogLength);
+#if PLATFORM_ANDROID
+		if ( LogLength == 0 )
+		{
+			// make it big anyway
+			// there was a bug in android 2.2 where glGetShaderiv would return 0 even though there was a error message
+			// https://code.google.com/p/android/issues/detail?id=9953
+			LogLength = 4096;
+		}
+#endif
+		if (LogLength > 1)
+		{
+			CompileLog = (ANSICHAR *)FMemory::Malloc(LogLength);
+			glGetShaderInfoLog(Shader, LogLength, NULL, CompileLog);
+		}
+
+#if DEBUG_GL_SHADERS
+		if (GlslCode)
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Shader:\n%s"),ANSI_TO_TCHAR(GlslCode));
+
+
+			const ANSICHAR *Temp = GlslCode;
+
+			for ( int i = 0; i < 30 && (*Temp != '\0'); ++i )
+			{
+				FString Converted = ANSI_TO_TCHAR( Temp );
+				Converted.LeftChop( 256 );
+
+				UE_LOG(LogRHI,Display,TEXT("%s"), *Converted );
+				Temp += Converted.Len();
+			}
+
+		}	
+#endif
+		UE_LOG(LogRHI,Warning,TEXT("Failed to compile shader. Compile log:\n%s"), ANSI_TO_TCHAR(CompileLog));
+		
+		if (LogLength > 1)
+		{
+			FMemory::Free(CompileLog);
+		}
+		return false;
+	}
+	return true;
+}
+#endif
+
+
 void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
@@ -871,6 +932,94 @@ void FOpenGLDynamicRHI::Init()
 
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
+
+	
+#if PLATFORM_ANDROID
+	{
+		UE_LOG(LogRHI,Display,TEXT("Testing for shader compiler compatibility"));
+		// This code creates a sample program and finds out which hacks are required to compile it
+		const ANSICHAR* TestFragmentProgram = "\n"
+			"#version 100\n"
+			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
+			"#extension GL_EXT_shader_texture_lod : enable\n"
+			"#endif\n"
+			"precision mediump float;\n"
+			"precision mediump int;\n"
+			"#ifndef DONTEMITSAMPLERDEFAULTPRECISION\n"
+			"precision mediump sampler2D;\n"
+			"precision mediump samplerCube;\n"
+			"#endif\n"
+			"varying vec3 TexCoord;\n"
+			"uniform samplerCube Texture;\n"
+			"void main()\n"
+			"{\n"
+			"	gl_FragColor = textureCubeLodEXT(Texture,TexCoord, 4.0);\n"
+			"}\n";
+
+		/*TArray<uint8> Code;
+		Code.Add( strlen( TestFragmentProgram ) + 1 );
+		FMemory::Memcpy( Code.GetData(), TestFragmentProgram, Code.Num() );*/
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+
+		FOpenGLCodeHeader Header;
+		Header.FrequencyMarker = 0x5053;
+		Header.GlslMarker = 0x474c534c;
+		TArray<uint8> Code;
+		{
+			FMemoryWriter Writer(Code );
+			Writer << Header;
+			Writer.Serialize( (void*)(TestFragmentProgram), strlen(TestFragmentProgram)+1);
+			Writer.Close();
+		}
+		// try to compile without any hacks
+		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Display,TEXT("Shaders compile fine no need to enable hacks"));
+			// we are done
+			return;
+		}
+		
+
+
+		FOpenGLES2::bRequiresDontEmitPrecisionForTextureSamplers = true;
+		FOpenGLES2::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
+
+		// second most number of devices fall into this hack category
+		// try to compile without using precision for texture samplers 
+		// Samsung Galaxy Express	Samsung Galaxy S3	Samsung Galaxy S3 mini	Samsung Galaxy Tab GT-P1000	Samsung Galaxy Tab 2
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to remove precision modifiers for texture samplers"));
+
+			// we are done
+			return;
+		}
+
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
+
+		// third most likely Samsung Galaxy Tab GT-P1000
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if ( VerifyCompiledShader( PixelShader->Resource, TestFragmentProgram, false ) )
+		{
+			UE_LOG(LogRHI,Warning,TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod"));
+			// we are done
+			return;
+		}
+		
+		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
+
+	}
+#endif
 }
 
 void FOpenGLDynamicRHI::Shutdown()

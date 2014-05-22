@@ -65,7 +65,7 @@ namespace UnrealBuildTool.IOS
 			}
 		}
 
-		public override bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution)
+		public override bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor)
 		{
 			bool bIsUE4Game = InExecutablePath.Contains ("UE4Game");
 			string BinaryPath = Path.GetDirectoryName (InExecutablePath);
@@ -229,7 +229,7 @@ namespace UnrealBuildTool.IOS
 				string BuildPath = InTarget.ProjectDirectory + "/Binaries/IOS";
 				string ProjectDirectory = InTarget.ProjectDirectory;
 
-				return PrepForUATPackageOrDeploy(GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false);
+				return PrepForUATPackageOrDeploy(GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false, "");
 			}
 			else
 			{

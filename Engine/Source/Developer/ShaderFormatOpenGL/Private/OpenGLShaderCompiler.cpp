@@ -1,5 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved..
-
+// 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
 
@@ -13,7 +13,7 @@
 	#include "Windows/MinWindows.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
-#include "ShaderPreprocessor.h"
+#include "ShaderPreprocessor.h" 
 #include "hlslcc.h"
 #include "glsl/ir_gen_glsl.h"
 #if PLATFORM_WINDOWS
@@ -44,7 +44,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All);
 
 
 #define ENABLE_IMAGINATION_COMPILER		1
-
+ 
 #define MAX_SAMPLERS_PER_SHADER_GLSL_150 16
 #define MAX_SAMPLERS_PER_SHADER_GLSL_430 32
 
@@ -90,7 +90,7 @@ struct FPlatformOpenGLContext
 };
 
 /**
- * A dummy wndproc.
+ * A dummy wndproc. 
  */
 static LRESULT CALLBACK PlatformDummyGLWndproc(HWND hWnd, uint32 Message, WPARAM wParam, LPARAM lParam)
 {

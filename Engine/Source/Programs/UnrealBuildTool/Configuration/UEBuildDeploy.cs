@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 		/**
 		 * Prepare the target for deployment
 		 */
-		public virtual bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution)
+		public virtual bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor)
 		{
 			return true;
 		}

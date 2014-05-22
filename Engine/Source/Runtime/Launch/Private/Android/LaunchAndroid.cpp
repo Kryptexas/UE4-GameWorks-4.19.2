@@ -139,6 +139,7 @@ void UpdateGameInterruptions()
 		}
 		else
 		{
+			UE_LOG(LogAndroid, Display, TEXT("Acquiring Thread Ownership"));
 			RHIAcquireThreadOwnership();
 		}
 	}
@@ -240,6 +241,8 @@ int32 AndroidMain(struct android_app* state)
 	{
 		IgnoredGamepadKeyCodes.Add(IgnoredGamepadKeyCodesList[i]);
 	}
+
+	FPlatformProcess::Sleep(1.0f);
 
 	// read the command line file
 	InitCommandLine();
@@ -865,11 +868,26 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv*
 	jenv->ReleaseStringUTFChars(commandString, javaChars);
 }
 
-//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled(String commandString);"
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled();"
 extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnabled(JNIEnv* jenv, jobject thiz)
 {
 	bool bEnabled = true;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
 	UE_LOG(LogOnline, Log, TEXT("Checking whether Google Play is enabled. bEnableGooglePlaySupport = %d"), bEnabled);
 	return bEnabled;
+}
+
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel )
+{
+	const char *javaAndroidVersion = jenv->GetStringUTFChars(androidVersion, 0 );
+	FString UEAndroidVersion = FString(UTF8_TO_TCHAR( javaAndroidVersion ));
+
+	const char *javaPhoneMake = jenv->GetStringUTFChars(phoneMake, 0 );
+	FString UEPhoneMake = FString(UTF8_TO_TCHAR( javaPhoneMake ));
+
+	const char *javaPhoneModel = jenv->GetStringUTFChars(phoneModel, 0 );
+	FString UEPhoneModel = FString(UTF8_TO_TCHAR( javaPhoneModel ));
+
+	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel );
 }

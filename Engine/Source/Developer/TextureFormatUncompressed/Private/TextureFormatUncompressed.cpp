@@ -18,7 +18,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatUncompressed, Log, All);
 	op(G8) \
 	op(VU8) \
 	op(RGBA16F) \
-	op(XGXR8)
+	op(XGXR8) \
+	op(RGBA8)
 
 #define DECL_FORMAT_NAME(FormatName) static FName GTextureFormatName##FormatName = FName(TEXT(#FormatName));
 ENUM_SUPPORTED_FORMATS(DECL_FORMAT_NAME);
@@ -113,6 +114,33 @@ class FTextureFormatUncompressed : public ITextureFormat
 			OutCompressedImage.SizeY = Image.SizeY;
 			OutCompressedImage.PixelFormat = PF_B8G8R8A8;
 			OutCompressedImage.RawData = Image.RawData;
+
+			return true;
+		}
+		else if (BuildSettings.TextureFormatName == GTextureFormatNameRGBA8)
+		{
+			FImage Image;
+			InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.bSRGB);
+
+			OutCompressedImage.SizeX = Image.SizeX;
+			OutCompressedImage.SizeY = Image.SizeY;
+			OutCompressedImage.PixelFormat = PF_B8G8R8A8;
+
+			// swizzle each texel
+			uint32 NumTexels = Image.SizeX * Image.SizeY * Image.NumSlices;
+			OutCompressedImage.RawData.Empty(NumTexels * 4);
+			OutCompressedImage.RawData.AddUninitialized(NumTexels * 4);
+			const FColor* FirstColor = Image.AsBGRA8();
+			const FColor* LastColor = FirstColor + NumTexels;
+			int8* Dest = (int8*)OutCompressedImage.RawData.GetTypedData();
+
+			for (const FColor* Color = FirstColor; Color < LastColor; ++Color)
+			{
+				*Dest++ = (int32)Color->R;
+				*Dest++ = (int32)Color->G;
+				*Dest++ = (int32)Color->B;
+				*Dest++ = (int32)Color->A;
+			}
 
 			return true;
 		}
