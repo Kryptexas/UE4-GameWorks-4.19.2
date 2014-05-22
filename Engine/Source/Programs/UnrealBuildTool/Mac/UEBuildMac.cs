@@ -145,7 +145,6 @@ namespace UnrealBuildTool
 		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileNetworkProfiler = false;
 			UEBuildConfiguration.bCompileICU = true;
 		}
 

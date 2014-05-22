@@ -16,9 +16,6 @@ namespace UnrealBuildTool
         /** Whether to include ICU unicode/i18n support in core */
         public static bool bCompileICU;
 
-		/** Whether we should compile the network profiler or not.*/
-		public static bool bCompileNetworkProfiler;
-
 		/** Whether to build a stripped down version of the game specifically for dedicated server. */
 		public static bool bBuildDedicatedServer;
 
@@ -119,7 +116,6 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
-			bCompileNetworkProfiler = false;
 			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;
@@ -179,7 +175,6 @@ namespace UnrealBuildTool
 				bBuildEditor = false;
 				bBuildDeveloperTools = false;
 				bCompileSimplygon = false;
-				bCompileNetworkProfiler = false;
 				bCompileSpeedTree = false;
 			}
 		}

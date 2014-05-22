@@ -170,11 +170,6 @@ public class Engine : ModuleRules
 
 		SetupModulePhysXAPEXSupport(Target);
 
-		if (UEBuildConfiguration.bCompileNetworkProfiler)
-		{
-			Definitions.Add("USE_NETWORK_PROFILER=1");
-		}
-
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{

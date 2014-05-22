@@ -79,15 +79,6 @@ namespace UnrealBuildTool
             ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
             )
         {
-            if (Target.Platform == UnrealTargetPlatform.Mac)
-            {
-                UEBuildConfiguration.bCompileNetworkProfiler = false;
-            }
-            else
-            {
-                UEBuildConfiguration.bCompileNetworkProfiler = true;
-            }
-
             UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
             // Do not include the editor

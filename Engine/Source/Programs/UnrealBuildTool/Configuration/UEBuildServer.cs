@@ -74,14 +74,6 @@ namespace UnrealBuildTool
 		{
 			// Dedicated server
 			UEBuildConfiguration.bBuildDedicatedServer = true;
-			if (Target.Platform == UnrealTargetPlatform.Mac)
-			{
-				UEBuildConfiguration.bCompileNetworkProfiler = false;
-			}
-			else
-			{
-				UEBuildConfiguration.bCompileNetworkProfiler = true;
-			}
 
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 

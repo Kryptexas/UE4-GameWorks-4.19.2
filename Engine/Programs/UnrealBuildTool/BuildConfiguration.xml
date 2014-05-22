@@ -89,7 +89,6 @@
 		<BaseIntermediateFolder>Intermediate/Build/</BaseIntermediateFolder>
 	</BuildConfiguration>
 	<UEBuildConfiguration>
-		<bCompileNetworkProfiler>False</bCompileNetworkProfiler>
 		<bCompileSimplygon>True</bCompileSimplygon>
 		<bCompileRecast>True</bCompileRecast>
 		<bCompileSpeedTree>True</bCompileSpeedTree>

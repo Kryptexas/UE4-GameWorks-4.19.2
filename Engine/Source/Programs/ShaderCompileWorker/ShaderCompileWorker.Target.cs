@@ -48,7 +48,6 @@ public class ShaderCompileWorkerTarget : TargetRules
 		)
 	{
 		// Turn off various third party features we don't need
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
 
 		// Currently we force Lean and Mean mode
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;

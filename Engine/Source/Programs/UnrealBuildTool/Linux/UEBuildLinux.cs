@@ -209,7 +209,6 @@ namespace UnrealBuildTool.Linux
             UEBuildConfiguration.bBuildEditor = false;
             UEBuildConfiguration.bBuildDeveloperTools = false;
             UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileNetworkProfiler = false;
 
             // Don't stop compilation at first error...
             BuildConfiguration.bStopXGECompilationAfterErrors = true;

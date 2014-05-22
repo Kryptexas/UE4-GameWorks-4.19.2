@@ -36,7 +36,6 @@ public class UE4EditorServicesTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 		BuildConfiguration.bUseMallocProfiler = false;
 

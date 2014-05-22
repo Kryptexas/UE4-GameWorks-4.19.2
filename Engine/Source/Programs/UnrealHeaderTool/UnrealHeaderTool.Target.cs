@@ -42,8 +42,6 @@ public class UnrealHeaderToolTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
-
 		// Lean and mean
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 

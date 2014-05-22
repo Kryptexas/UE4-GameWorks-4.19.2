@@ -35,7 +35,7 @@ class ALandscape : public ALandscapeProxy
 	// End AActor Interface
 
 	// Begin ALandscapeProxy Interface
-	virtual ALandscape* GetLandscapeActor() OVERRIDE;
+	ENGINE_API virtual ALandscape* GetLandscapeActor() OVERRIDE;
 #if WITH_EDITOR
 	virtual UMaterialInterface* GetLandscapeMaterial() const OVERRIDE;
 	virtual UMaterialInterface* GetLandscapeHoleMaterial() const OVERRIDE;

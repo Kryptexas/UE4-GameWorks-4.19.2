@@ -46,7 +46,6 @@ public class UnrealLaunchDaemonTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		UEBuildConfiguration.bCompileNetworkProfiler = false;
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 		UEBuildConfiguration.bBuildEditor = false;
 		UEBuildConfiguration.bCompileAgainstEngine = false;

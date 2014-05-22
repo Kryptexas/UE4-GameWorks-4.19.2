@@ -232,3 +232,6 @@
 #ifndef LOOKING_FOR_PERF_ISSUES
 	#define LOOKING_FOR_PERF_ISSUES (0 && !(UE_BUILD_SHIPPING))
 #endif
+
+/** Enable the use of the network profiler as long as we are a build that includes stats */
+#define USE_NETWORK_PROFILER         STATS

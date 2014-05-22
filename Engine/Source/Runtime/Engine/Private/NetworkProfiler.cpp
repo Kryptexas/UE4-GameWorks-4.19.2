@@ -17,10 +17,6 @@
 #define NETWORK_PROFILER_TRACK_RAW_NETWORK_DATA		0
 
 #include "Net/UnrealNetwork.h"
-#if PLATFORM_MAC
-	#include <netinet/in.h>
-	#include <arpa/inet.h>
-#endif
 #include "IPAddress.h"
 #include "Net/NetworkProfiler.h"
 
