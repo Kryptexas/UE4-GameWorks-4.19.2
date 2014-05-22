@@ -508,6 +508,11 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public void AndroidThunkJava_GooglePlayConnect()
 	{
+		if ( !nativeIsGooglePlayEnabled() ) 
+		{
+			return;
+		}
+
 		int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
 
 		// check if google play services is available on this device, or is available with an update
@@ -516,8 +521,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			return;
 		}
 
-		googleClient.connect();
-	}
+			googleClient.connect();
+		}
 
 	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
 	{
@@ -769,6 +774,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel );
 
 	public native void nativeConsoleCommand(String commandString);
+	
+	public native boolean nativeIsGooglePlayEnabled();
 	
 	static
 	{
