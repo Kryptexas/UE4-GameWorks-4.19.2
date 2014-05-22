@@ -111,12 +111,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 	// Check to see if thread has finished decompressing on the other thread
 	if( InWave->AudioDecompressor != NULL )
 	{
-		if( !InWave->AudioDecompressor->IsDone() )
-		{
-			// Don't play this sound just yet
-			UE_LOG(LogAndroidAudio, Log, TEXT( "Waiting for sound to decompress: %s mode(%d)" ), *InWave->GetName(), int32(InWave->DecompressionType) );
-			return( NULL );
-		}
+		InWave->AudioDecompressor->EnsureCompletion();
 
 		// Remove the decompressor
 		delete InWave->AudioDecompressor;
