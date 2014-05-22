@@ -7,10 +7,10 @@
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
-
-
 #include "PhysXSupport.h"
 
+// Forward declarations
+class ULandscapeMeshCollisionComponent
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
