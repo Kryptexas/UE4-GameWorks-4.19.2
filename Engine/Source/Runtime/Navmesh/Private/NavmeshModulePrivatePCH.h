@@ -2,4 +2,4 @@
 
 #pragma once
 
-// empty, it's added only to make UnrealBuildTool happy...
+#include "Core.h"
