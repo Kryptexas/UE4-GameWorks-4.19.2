@@ -2,6 +2,8 @@
 
 
 #pragma once
+
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMeshCollisionComponent.generated.h"
 
 #if WITH_PHYSX

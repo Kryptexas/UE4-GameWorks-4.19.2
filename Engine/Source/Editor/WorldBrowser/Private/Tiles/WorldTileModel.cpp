@@ -8,6 +8,8 @@
 #include "WorldTileCollectionModel.h"
 #include "WorldTileModel.h"
 
+#include "Landscape/Landscape.h"
+
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 DEFINE_LOG_CATEGORY_STATIC(WorldBrowser, Log, All);
 

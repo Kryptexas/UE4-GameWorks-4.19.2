@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Foliage/InstancedFoliageActor.h"
+
 //
 //	FNoiseParameter - Perlin noise
 //

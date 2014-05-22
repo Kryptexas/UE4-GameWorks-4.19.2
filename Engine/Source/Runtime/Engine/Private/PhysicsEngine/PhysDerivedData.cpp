@@ -4,6 +4,7 @@
 #include "TargetPlatform.h"
 
 #if WITH_PHYSX && WITH_EDITOR
+#include "Landscape/LandscapeMeshCollisionComponent.h"
 
 FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* InBodySetup )
 	: BodySetup( InBodySetup )

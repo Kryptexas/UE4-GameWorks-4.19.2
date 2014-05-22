@@ -7,6 +7,9 @@
 #include "UObjectToken.h"
 #include "LevelUtils.h"
 #include "MapErrors.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeComponent.h"
 
 #if WITH_EDITOR
 

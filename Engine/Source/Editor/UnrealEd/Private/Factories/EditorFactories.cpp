@@ -36,6 +36,8 @@
 #include "EnumEditorUtils.h"
 #include "StructureEditorUtils.h"
 
+#include "Foliage/InstancedFoliageActor.h"
+
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
 #include "AllowWindowsPlatformTypes.h"

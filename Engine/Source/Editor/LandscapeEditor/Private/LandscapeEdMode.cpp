@@ -23,6 +23,13 @@
 #include "Editor/LevelEditor/Public/SLevelViewport.h"
 #include "SLandscapeEditor.h"
 
+// Classes
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "Foliage/InstancedFoliageActor.h"
+
 #define LOCTEXT_NAMESPACE "Landscape"
 
 DEFINE_LOG_CATEGORY(LogLandscapeEdMode);

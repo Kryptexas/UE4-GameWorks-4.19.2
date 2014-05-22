@@ -6,6 +6,10 @@
 
 #include "EnginePrivate.h"
 #include "Landscape/LandscapeSplineProxies.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape/LandscapeSplineControlPoint.h"
+#include "Landscape/LandscapeSplineSegment.h"
+#include "Landscape/ControlPointMeshComponent.h"
 
 IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy, HHitProxy);
 IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy_Segment, HLandscapeSplineProxy);

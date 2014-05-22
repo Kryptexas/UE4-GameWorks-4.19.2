@@ -1,17 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
-//#include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-//#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
-//#include "Landscape/LandscapeSplineProxies.h"
-//#include "LandscapeEditorModule.h"
-//#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-//#include "LandscapeEdModeTools.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Raster.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"

@@ -20,6 +20,12 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/SLevelViewport.h"
 
+// Classes
+#include "Foliage/InstancedFoliageActor.h"
+#include "Landscape/LandscapeComponent.h"
+#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape/LandscapeInfo.h"
+
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
 //

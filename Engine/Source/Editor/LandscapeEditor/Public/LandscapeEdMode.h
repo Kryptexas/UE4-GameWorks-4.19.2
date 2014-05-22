@@ -6,6 +6,12 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 
+// Forward declarations
+class ULandscapeLayerInfoObject;
+#include "Landscape/LandscapeInfo.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeGizmoActiveActor.h"
+
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolMousePosition
 {

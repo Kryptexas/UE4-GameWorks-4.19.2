@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Landscape/LandscapeLayerInfoObject.h"
+
 class FAssetTypeActions_LandscapeLayer : public FAssetTypeActions_Base
 {
 public:

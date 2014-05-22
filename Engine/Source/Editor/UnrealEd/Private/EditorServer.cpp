@@ -20,6 +20,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Landscape/LandscapeProxy.h"
 
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpData.h"

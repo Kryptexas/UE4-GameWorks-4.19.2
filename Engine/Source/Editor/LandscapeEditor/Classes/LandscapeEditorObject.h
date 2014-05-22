@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Landscape/LandscapeProxy.h"
 #include "LandscapeEditorObject.generated.h"
 
 UENUM()

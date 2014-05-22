@@ -13,6 +13,10 @@
 #include "LandscapeEdModeTools.h"
 #include "Components/SplineMeshComponent.h"
 #include "LandscapeSplineImportExport.h"
+#include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape/LandscapeSplineControlPoint.h"
+#include "Landscape/LandscapeSplineSegment.h"
+#include "Landscape/ControlPointMeshComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"

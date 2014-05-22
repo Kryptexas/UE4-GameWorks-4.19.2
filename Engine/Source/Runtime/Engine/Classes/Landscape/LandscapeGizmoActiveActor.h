@@ -2,6 +2,8 @@
 
 
 #pragma once
+
+#include "LandscapeGizmoActor.h"
 #include "LandscapeGizmoActiveActor.generated.h"
 
 UENUM()

@@ -11,6 +11,8 @@ LandscapeEdit.h: Classes for the editor to access to Landscape data
 
 #if WITH_EDITOR
 
+#include "Landscape/LandscapeProxy.h"
+
 struct FLandscapeTextureDataInfo
 {
 	struct FMipInfo

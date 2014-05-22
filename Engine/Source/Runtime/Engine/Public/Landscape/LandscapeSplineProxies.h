@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Landscape/LandscapeSplineSegment.h"
+
 //////////////////////////////////////////////////////////////////////////
 // LANDSCAPE SPLINES HIT PROXY
 
@@ -57,7 +59,7 @@ struct HLandscapeSplineProxy_Tangent : public HLandscapeSplineProxy
 {
 	DECLARE_HIT_PROXY( ENGINE_API );
 
-	class ULandscapeSplineSegment* SplineSegment;
+	ULandscapeSplineSegment* SplineSegment;
 	uint32 End:1;
 
 	HLandscapeSplineProxy_Tangent(class ULandscapeSplineSegment* InSplineSegment, bool InEnd) :

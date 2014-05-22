@@ -15,6 +15,8 @@
 #include "RawMesh.h"
 #include "MaterialExportUtils.h"
 #include "ImageUtils.h"
+#include "Foliage/InstancedFoliageActor.h"
+#include "Landscape/Landscape.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 

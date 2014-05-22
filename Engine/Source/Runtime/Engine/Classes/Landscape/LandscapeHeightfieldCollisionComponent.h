@@ -2,6 +2,9 @@
 
 
 #pragma once
+
+class ULandscapeLayerInfoObject;
+
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 
 #if WITH_PHYSX

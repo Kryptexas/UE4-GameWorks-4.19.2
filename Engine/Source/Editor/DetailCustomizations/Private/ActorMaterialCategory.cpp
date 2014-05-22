@@ -5,6 +5,9 @@
 #include "AssetThumbnail.h"
 #include "ActorEditorUtils.h"
 
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeComponent.h"
+
 #define LOCTEXT_NAMESPACE "SMaterialList"
 
 /**

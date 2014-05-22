@@ -27,6 +27,8 @@
 #include "AssetRegistryModule.h"
 #include "ImageWrapper.h"
 
+#include "Landscape/Landscape.h"
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 
 const int32 FLandscapeEditorDetailCustomization_NewLandscape::SectionSizes[] = {7, 15, 31, 63, 127, 255};

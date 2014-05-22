@@ -34,6 +34,8 @@
 #include "MatineeExporter.h"
 #include "FbxImporter.h"
 
+#include "Landscape/LandscapeProxy.h"
+
 namespace UnFbx
 {
 

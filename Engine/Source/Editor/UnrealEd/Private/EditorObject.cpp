@@ -8,6 +8,8 @@
 #include "Factories.h"
 #include "BSPOps.h"
 
+#include "Foliage/InstancedFoliageActor.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorObject, Log, All);
 
 /*

@@ -9,6 +9,7 @@
 #include "StaticMeshLight.h"
 #include "ModelLight.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
+#include "Runtime/Engine/Classes/Landscape/LandscapeComponent.h"
 
 #include "Lightmass/Lightmass.h"
 

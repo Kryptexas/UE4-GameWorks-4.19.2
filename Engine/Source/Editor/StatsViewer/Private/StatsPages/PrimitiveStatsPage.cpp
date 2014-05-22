@@ -3,6 +3,8 @@
 #include "StatsViewerPrivatePCH.h"
 #include "PrimitiveStatsPage.h"
 #include "PrimitiveStats.h"
+#include "Landscape/LandscapeProxy.h"
+#include "Landscape/LandscapeComponent.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 

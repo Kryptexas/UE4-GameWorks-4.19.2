@@ -14,6 +14,9 @@ Landscape.cpp: Terrain rendering
 #include "MapErrors.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
+#include "Landscape/Landscape.h"
+#include "Landscape/LandscapeMeshCollisionComponent.h"
+#include "Landscape/LandscapeSplinesComponent.h"
 
 // Set this to 0 to disable landscape cooking and thus disable it on device.
 #define ENABLE_LANDSCAPE_COOKING 1

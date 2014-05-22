@@ -14,6 +14,8 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "LandscapeRender.h"
 
+#include "Landscape/Landscape.h"
+
 #define LOCTEXT_NAMESPACE "LandscapeEditor"
 
 class FLandscapeEditorModule : public ILandscapeEditorModule

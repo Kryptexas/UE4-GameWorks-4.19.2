@@ -5,6 +5,8 @@
 #include "LandscapeRender.h"
 #include "ImageWrapper.h"
 
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
+
 ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 

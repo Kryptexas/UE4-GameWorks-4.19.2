@@ -10,6 +10,7 @@ LandscapeRender.cpp: New terrain rendering
 #include "Landscape/LandscapeEdit.h"
 #include "LevelUtils.h"
 #include "MaterialCompiler.h"
+#include "Landscape/LandscapeMaterialInstanceConstant.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,TEXT("LandscapeParameters"));
 
