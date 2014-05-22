@@ -5561,19 +5561,12 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		{
 			CastChecked<UObjectPropertyBase>(Property)->SetObjectPropertyValue_InContainer(DefaultObject, FindObject<UObject>(ANY_PACKAGE, *Value));
 		}
-		else if( Property->IsA(UArrayProperty::StaticClass()) )
+		else if (Property->IsA(UArrayProperty::StaticClass()) 
+			|| Property->IsA(UMulticastDelegateProperty::StaticClass()))
 		{
-			const UArrayProperty* ArrayProp = CastChecked<UArrayProperty>(Property);
 			FStringOutputDevice ImportError;
-			ArrayProp->ImportText(*Value, ArrayProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
-			bParseSuccedded = ImportError.IsEmpty();
-		}
-		else if( Property->IsA(UMulticastDelegateProperty::StaticClass()) )
-		{
-			const UMulticastDelegateProperty* MCDelegateProp = CastChecked<UMulticastDelegateProperty>(Property);
-			FStringOutputDevice ImportError;
-			MCDelegateProp->ImportText(*Value, MCDelegateProp->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
-			bParseSuccedded = ImportError.IsEmpty();
+			const auto EndOfParsedBuff = Property->ImportText(Value.IsEmpty() ? TEXT("()") : *Value, Property->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, NULL, &ImportError);
+			bParseSuccedded = EndOfParsedBuff && ImportError.IsEmpty();
 		}
 		else
 		{
@@ -5627,8 +5620,8 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 			bParseSuccedded = FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(Struct), StructData);
 
 			FStringOutputDevice ImportError;
-			StructProperty->ImportText(Value.IsEmpty() ? TEXT("()") : *Value, StructData, 0, NULL, &ImportError);
-			bParseSuccedded &= ImportError.IsEmpty();
+			const auto EndOfParsedBuff = StructProperty->ImportText(Value.IsEmpty() ? TEXT("()") : *Value, StructData, 0, NULL, &ImportError);
+			bParseSuccedded &= EndOfParsedBuff && ImportError.IsEmpty();
 		}
 	}
 

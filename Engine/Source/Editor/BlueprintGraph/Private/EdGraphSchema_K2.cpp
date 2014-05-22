@@ -1655,19 +1655,14 @@ FString UEdGraphSchema_K2::IsPinDefaultValid(const UEdGraphPin* Pin, const FStri
 	const bool bIsReference = Pin->PinType.bIsReference;
 	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
 
-	if (OwningBP->BlueprintType != BPTYPE_Interface)
+	if (bIsArray)
 	{
-		if( !bIsAutoCreateRefTerm )
-		{
-			if( bIsArray )
-			{
-				return TEXT("Literal values are not allowed for array parameters.  Use a Make Array node instead");
-			}
-			else if( bIsReference )
-			{
-				return TEXT("Literal values are not allowed for pass-by-reference parameters.");
-			}
-		}
+		return TEXT("Literal values are not allowed for array parameters.  Use a Make Array node instead");
+	}
+
+	if ((OwningBP->BlueprintType != BPTYPE_Interface) && !bIsAutoCreateRefTerm && bIsReference)
+	{
+		return TEXT("Literal values are not allowed for pass-by-reference parameters.");
 	}
 
 	FString ReturnMsg;
@@ -1700,16 +1695,18 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 #endif
 #define DVSV_RETURN_MSG(Str) if(NULL != OutMsg) { *OutMsg = Str; } return false;
 
-	const bool bIsArray = PinType.bIsArray;
-	const bool bIsReference = PinType.bIsReference;
 	const FString& PinCategory = PinType.PinCategory;
 	const FString& PinSubCategory = PinType.PinSubCategory;
 	const UObject* PinSubCategoryObject = PinType.PinSubCategoryObject.Get();
 
+	if (PinType.bIsArray)
+	{
+		// arrays are validated separately
+	}
 	//@TODO: FCString::Atoi, FCString::Atof, and appStringToBool will 'accept' any input, but we should probably catch and warn
 	// about invalid input (non numeric for int/byte/float, and non 0/1 or yes/no/true/false for bool)
 
-	if (PinCategory == PC_Boolean)
+	else if(PinCategory == PC_Boolean)
 	{
 		// All input is acceptable to some degree
 	}

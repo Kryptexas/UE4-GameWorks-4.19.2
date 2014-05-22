@@ -344,12 +344,24 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 		&& (NewDefaultValue != VarDesc->DefaultValue) 
 		&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
 	{
-		const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
-		ModifyStructData(Struct);
+		bool bAdvancedValidation = true;
+		if (!NewDefaultValue.IsEmpty())
+		{
+			const auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+			FStructOnScope StructDefaultMem(Struct);
+			bAdvancedValidation = StructDefaultMem.GetStructMemory() && Property &&
+				FBlueprintEditorUtils::PropertyValueFromString(Property, NewDefaultValue, StructDefaultMem.GetStructMemory());
+		}
 
-		VarDesc->DefaultValue = NewDefaultValue;
-		OnStructureChanged(Struct);
-		return true;
+		if (bAdvancedValidation)
+		{
+			const FScopedTransaction Transaction(LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value"));
+			ModifyStructData(Struct);
+
+			VarDesc->DefaultValue = NewDefaultValue;
+			OnStructureChanged(Struct);
+			return true;
+		}
 	}
 	return false;
 }
