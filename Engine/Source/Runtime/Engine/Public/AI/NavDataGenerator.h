@@ -48,7 +48,7 @@ public:
 	//----------------------------------------------------------------------//
 	virtual uint32 LogMemUsed() const { return 0; }
 
-#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const {}
 #endif
 

@@ -5,6 +5,12 @@
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCurveTable, Log, All);
 
+// forward declare JSON writer
+template <class CharType>
+struct TPrettyJsonPrintPolicy;
+template <class CharType, class PrintPolicy>
+class TJsonWriter;
+
 /** Imported spreadsheet table as curves */
 UCLASS(MinimalAPI)
 class UCurveTable : public UObject
@@ -51,6 +57,9 @@ class UCurveTable : public UObject
 
 	/** Output entire contents of table as JSON */
 	ENGINE_API FString GetTableAsJSON() const;
+
+	/** Output entire contents of table as JSON */
+	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const;
 
 	/** 
 	 *	Create table from CSV style comma-separated string. 

@@ -538,7 +538,6 @@ void AGameMode::StartMatch()
 	}
 
 	//Let the game session override the StartMatch function, in case it wants to wait for arbitration
-
 	if (GameSession->HandleStartMatchRequest())
 	{
 		return;

@@ -129,6 +129,41 @@ bool FNavigationPath::ContainsAnySmartLink() const
 	return false;
 }
 
+bool FNavigationPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+{
+	// iterate over all segments and check if any intersects with given box
+	bool bIntersects = false;
+	int32 PathPointIndex = INDEX_NONE;
+
+	if (PathPoints.Num() > 1)
+	{
+		FVector Start = PathPoints[0].Location;
+		for (PathPointIndex = 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
+		{
+			const FVector End = PathPoints[PathPointIndex].Location;
+			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
+			{
+				const FVector Direction = (End - Start);
+
+				if (FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal()))
+				{
+					bIntersects = true;
+					break;
+				}
+			}
+
+			Start = End;
+		}
+	}
+
+	if (IntersectingSegmentIndex != NULL && bIntersects == true)
+	{
+		*IntersectingSegmentIndex = PathPointIndex - 1;
+	}
+
+	return bIntersects;
+}
+
 #if ENABLE_VISUAL_LOG
 
 void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const 
@@ -145,6 +180,13 @@ void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 	}
 
 	Snapshot->ElementsToDraw.Add(Element);
+}
+
+FString FNavigationPath::GetDescription() const
+{
+	return FString::Printf(TEXT("NotifyPathUpdate points:%d valid:%s")
+		, PathPoints.Num()
+		, IsValid() ? TEXT("yes") : TEXT("no"));
 }
 
 #endif // ENABLE_VISUAL_LOG
@@ -206,10 +248,11 @@ float FNavMeshPath::GetPathCorridorLength(const int32 StartingEdge) const
 	return TotalLength;
 }
 
-const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges()
+const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() const
 {
 #if WITH_RECAST
-	// mz@todo this should be done in a bulk, should be refactored
+	// mz@todo the underlying recast function queries the navmesh a portal at a time, 
+	// which is a waste of performance. A batch-query function has to be added.
 	const int32 CorridorLenght = PathCorridor.Num();
 	if (CorridorLenght != 0 && IsInGameThread() && Owner.IsValid())
 	{
@@ -365,6 +408,19 @@ namespace
 		}
 
 		return bIsVisible;
+	}
+}
+
+void FNavMeshPath::ApplyFlags(int32 NavDataFlags)
+{
+	if (NavDataFlags & ERecastPathFlags::SkipStringPulling)
+	{
+		bWantsStringPulling = false;
+	}
+
+	if (NavDataFlags & ERecastPathFlags::GenerateCorridor)
+	{
+		bWantsPathCorridor = true;
 	}
 }
 
@@ -659,3 +715,93 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 
 	return bAreTheSame;
 }
+
+bool FNavMeshPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+{
+	if (IsStringPulled())
+	{
+		return Super::DoesIntersectBox(Box, IntersectingSegmentIndex);
+	}
+
+	// note that it's a big simplified. It work
+
+	bool bIntersects = false;
+	int32 PortalIndex = INDEX_NONE;
+	const TArray<FNavigationPortalEdge>* CorridorEdges = GetPathCorridorEdges();
+
+	if (CorridorEdges->Num() > 0)
+	{
+		FVector Start = PathPoints[0].Location;
+		for (PortalIndex = 0; PortalIndex < CorridorEdges->Num() && bIntersects == false; ++PortalIndex)
+		{
+			const FNavigationPortalEdge& Edge = (*CorridorEdges)[PortalIndex];
+			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2;
+			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
+			{
+				const FVector Direction = (End - Start);
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+			}
+
+			Start = End;
+		}
+
+		// test the last portal->path end line
+		if (bIntersects == false)
+		{
+			ensure(PathPoints.Num() == 2);
+			const FVector End = PathPoints[1].Location;
+			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
+			{
+				const FVector Direction = (End - Start);
+				bIntersects = FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal());
+			}
+		}
+	}
+
+	if (IntersectingSegmentIndex != NULL && bIntersects == true)
+	{
+		*IntersectingSegmentIndex = PortalIndex;
+	}
+
+	return bIntersects;
+}
+
+#if ENABLE_VISUAL_LOG
+
+void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
+{
+	Super::DescribeSelfToVisLog(Snapshot);
+	
+	if (IsStringPulled() == false)
+	{
+		// draw the corridor as well
+		// @todo this needs to be done fast, and I mean logging a series of points
+		const TArray<FNavigationPortalEdge>* CorridorEdges = GetPathCorridorEdges();
+
+		if (CorridorEdges)
+		{
+			FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Segment);
+			Element.SetColor(FColorList::LimeGreen);
+			Element.Points.Reserve(CorridorEdges->Num() * 2);
+			Element.Thicknes = 2;
+
+			for (const auto& PortalEdge : *CorridorEdges)
+			{
+				Element.Points.Add(PortalEdge.Left + NavigationDebugDrawing::PathOffeset);
+				Element.Points.Add(PortalEdge.Right + NavigationDebugDrawing::PathOffeset);	
+			}
+
+			Snapshot->ElementsToDraw.Add(Element);
+		}
+	}
+}
+
+FString FNavMeshPath::GetDescription() const
+{
+	return FString::Printf(TEXT("NotifyPathUpdate points:%d corridor length %d valid:%s")
+		, PathPoints.Num()
+		, PathCorridor.Num()
+		, IsValid() ? TEXT("yes") : TEXT("no"));
+}
+
+#endif // ENABLE_VISUAL_LOG

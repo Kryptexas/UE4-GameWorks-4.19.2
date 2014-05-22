@@ -45,7 +45,7 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 // 		return;
 // 	}
 	
-	float MinScore = BIG_NUMBER;
+	float MinScore = 0;
 	float MaxScore = -BIG_NUMBER;
 
 	if (ClampMinType == EEnvQueryTestClamping::FilterThreshold)

@@ -17,6 +17,8 @@
 #define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
 #define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 100.f
 
+#define NAV_USE_MAIN_NAVIGATION_DATA NULL
+
 UENUM()
 namespace ENavigationQueryResult
 {
@@ -296,7 +298,7 @@ inline uint32 GetTypeHash( const FNavAgentProperties& A )
 	return (int16(A.AgentRadius) << 16) | int16(A.AgentHeight);
 }
 
-namespace NavigationSystem
+namespace FNavigationSystem
 {
 	enum ECreateIfEmpty 
 	{
@@ -337,7 +339,7 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Querying, config)
 	FVector DefaultQueryExtent;
 
-	FNavDataConfig(float Radius = NavigationSystem::FallbackAgentRadius, float Height = NavigationSystem::FallbackAgentHeight)
+	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight)
 		: FNavAgentProperties(Radius, Height)
 		, Name(TEXT("Default"))
 		, Color(140,255,0,164)
@@ -346,7 +348,7 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 	}	
 };
 
-namespace NavigationSystem
+namespace FNavigationSystem
 {
 	/** 
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
@@ -469,11 +471,15 @@ struct ENGINE_API FPathFindingQuery
 	FVector EndLocation;
 	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
 
+	/** additional flags passed to navigation data handling request */
+	int32 NavDataFlags;
+
 	FPathFindingQuery()
 		: NavData(NULL)
 		, Owner(NULL)
 		, StartLocation(FVector::ZeroVector)
 		, EndLocation(FVector::ZeroVector)
+		, NavDataFlags(0)
 	{
 	}
 
@@ -577,6 +583,10 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
 
+protected:
+	UPROPERTY(transient)
+	class UCrowdManager* CrowdManager;
+
 private:
 	// required navigation data 
 	UPROPERTY(config)
@@ -654,6 +664,11 @@ public:
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
 
+	class UCrowdManager* GetCrowdManager() const { return CrowdManager; }
+
+	/** spawn new crowd manager */
+	virtual void CreateCrowdManager();
+
 	//----------------------------------------------------------------------//
 	// Public querying interface                                                                
 	//----------------------------------------------------------------------//
@@ -724,7 +739,7 @@ public:
 	// @todo document
 	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const FNavAgentProperties* AgentProperties = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL)
 	{
-		return ProjectPointToNavigation(Point, OutLocation, Extent, AgentProperties != NULL ? GetNavDataForProps(*AgentProperties) : GetMainNavData(NavigationSystem::DontCreate), QueryFilter);
+		return ProjectPointToNavigation(Point, OutLocation, Extent, AgentProperties != NULL ? GetNavDataForProps(*AgentProperties) : GetMainNavData(FNavigationSystem::DontCreate), QueryFilter);
 	}
 
 	// @todo document
@@ -741,9 +756,11 @@ public:
 	const class ANavigationData* GetNavDataForProps(const FNavAgentProperties& AgentProperties) const;
 
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
-	class ANavigationData* GetMainNavData(NavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
+	class ANavigationData* GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound);
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
 	const class ANavigationData* GetMainNavData() const { return MainNavData; }
+
+	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
 	 *	guarantee its existence */
@@ -899,7 +916,7 @@ public:
 	virtual void OnInitializeActors();
 
 	/** */
-	virtual void OnWorldInitDone(NavigationSystem::EMode Mode);
+	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
 
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
@@ -928,10 +945,15 @@ public:
 	static UNavigationSystem* GetCurrent(class UObject* WorldContextObject);
 
 	/** try to create and setup navigation system */
-	static void InitializeForWorld(class UWorld* World, NavigationSystem::EMode Mode);
+	static void InitializeForWorld(class UWorld* World, FNavigationSystem::EMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
+
+	static FORCEINLINE bool ShouldUpdateNavOctreeOnPrimitiveComponentChange()
+	{
+		return bUpdateNavOctreeOnPrimitiveComponentChange;
+	}
 
 	/** 
 	 * Exec command handlers
@@ -949,7 +971,7 @@ protected:
 	bool bFakeComponentChangesBeingApplied;
 #endif
 
-	NavigationSystem::EMode OperationMode;
+	FNavigationSystem::EMode OperationMode;
 
 	class FNavigationOctree* NavOctree;
 
@@ -999,6 +1021,8 @@ protected:
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
+
+	static bool bUpdateNavOctreeOnPrimitiveComponentChange;
 
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;

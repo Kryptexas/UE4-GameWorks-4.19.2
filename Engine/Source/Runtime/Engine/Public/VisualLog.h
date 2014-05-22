@@ -195,14 +195,16 @@ struct ENGINE_API FVisLogEntry
 	UE_VLOG(Actor, CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 }
 
-#define UE_VLOG_SEGMENT(Actor, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) \
+#define UE_VLOG_SEGMENT_THICK(Actor, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	if (FVisualLog::Get()->IsRecording()) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
-	} \
+	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
+} \
 }
+
+#define UE_VLOG_SEGMENT(Actor, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) UE_VLOG_SEGMENT_THICK(Actor, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
 
 #define UE_VLOG_LOCATION(Actor, Location, Radius, Color, DescriptionFormat, ...) \
 { \
@@ -241,6 +243,7 @@ struct ENGINE_API FActorsVisLog
 	TSharedPtr<FJsonValue> ToJson() const;
 };
 
+
 /** This class is to capture all log output even if the Visual Logger is closed */
 class ENGINE_API FVisualLog : public FOutputDevice
 {
@@ -270,29 +273,15 @@ public:
 	void RegisterNewLogsObserver(const FOnNewLogCreatedDelegate& NewObserver) { OnNewLogCreated = NewObserver; }
 	void ClearNewLogsObserver() { OnNewLogCreated = NULL; }
 
-	void SetIsRecording(bool NewRecording) { bIsRecording = NewRecording; }
+	void SetIsRecording(bool NewRecording, bool bRecordToFile = false);
 	FORCEINLINE bool IsRecording() const { return !!bIsRecording; }
 	void SetIsRecordingOnServer(bool NewRecording) { bIsRecordingOnServer = NewRecording; }
 	FORCEINLINE bool IsRecordingOnServer() const { return !!bIsRecordingOnServer; }
 	void DumpRecordedLogs();
 
-	FORCEINLINE_DEBUGGABLE FVisLogEntry* GetEntryToWrite(const class AActor* Actor)
-	{
-		check(Actor && Actor->GetWorld() && Actor->GetVisualLogRedirection());
-		const class AActor* LogOwner = Actor->GetVisualLogRedirection();
-		const float TimeStamp = Actor->GetWorld()->TimeSeconds;
-		TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
-		FVisLogEntry* Entry = Log->Entries.Num() > 0 ? Log->Entries[Log->Entries.Num()-1].Get() : NULL;
+	FArchive* FileAr;
 
-		if (Entry == NULL || Entry->TimeStamp < TimeStamp)
-		{
-			// create new entry
-			Entry = Log->Entries[Log->Entries.Add(MakeShareable(new FVisLogEntry(LogOwner, RedirectsMap.Find(LogOwner))))].Get();
-		}
-
-		check(Entry);
-		return Entry;
-	}
+	FVisLogEntry* GetEntryToWrite(const class AActor* Actor);
 
 protected:
 
@@ -320,8 +309,12 @@ private:
 
 	FOnNewLogCreatedDelegate OnNewLogCreated;
 
+	float StartRecordingTime;
+	FString TempFileName;
+
 	int32 bIsRecording : 1;
 	int32 bIsRecordingOnServer : 1;
+	int32 bIsRecordingToFile : 1;
 };
 
 #else

@@ -56,7 +56,7 @@ XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails	= { 0 };
 	FAudioDevice Interface.
 ------------------------------------------------------------------------------------*/
 
-#define DEBUG_XAUDIO2 0
+#define DEBUG_XAUDIO2 1
 
 FSpatializationHelper FXAudio2Device::SpatializationHelper;
 
@@ -114,7 +114,7 @@ bool FXAudio2Device::InitializeHardware()
 
 #if DEBUG_XAUDIO2
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
-	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS | XAUDIO2_LOG_DETAIL;
+	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS;// | XAUDIO2_LOG_DETAIL;
 	DebugConfig.BreakMask = XAUDIO2_LOG_ERRORS;
 	FXAudioDeviceProperties::XAudio2->SetDebugConfiguration(&DebugConfig);
 #endif
@@ -254,21 +254,24 @@ bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, int32 ErrorCode )
 		switch( ErrorCode )
 		{
 		case XAUDIO2_E_INVALID_CALL:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: Invalid Call" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Invalid Call" ), Function );
 			break;
 
 		case XAUDIO2_E_XMA_DECODER_ERROR:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: XMA Decoder Error" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: XMA Decoder Error" ), Function );
 			break;
 
 		case XAUDIO2_E_XAPO_CREATION_FAILED:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: XAPO Creation Failed" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: XAPO Creation Failed" ), Function );
 			break;
 
 		case XAUDIO2_E_DEVICE_INVALIDATED:
-			UE_LOG(LogAudio, Log, TEXT( "%s error: Device Invalidated" ), Function );
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Device Invalidated" ), Function );
 			break;
 		};
+
+		UE_LOG(LogAudio, Warning, TEXT( "%s error: Unhandled error code %d" ), Function, ErrorCode );
+
 		return( false );
 	}
 

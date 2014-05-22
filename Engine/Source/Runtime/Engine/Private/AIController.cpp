@@ -391,12 +391,27 @@ void AAIController::Possess(APawn* InPawn)
 		UpdateNavigationComponents();
 	}
 
+	if (PathFollowingComponent)
+	{
+		PathFollowingComponent->Initialize();
+	}
+
 	if (bWantsPlayerState)
 	{
 		ChangeState(NAME_Playing);
 	}
 
 	OnPossess(InPawn);
+}
+
+void AAIController::UnPossess()
+{
+	Super::UnPossess();
+
+	if (PathFollowingComponent)
+	{
+		PathFollowingComponent->Cleanup();
+	}
 }
 
 void AAIController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
@@ -418,6 +433,10 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 		if (PathFollowingComponent && PathFollowingComponent->HasReached(Goal, AcceptanceRadius, !bStopOnOverlap))
 		{
 			UE_VLOG(this, LogNavigation, Log, TEXT("MoveToActor: already at goal!"));
+
+			// make sure previous move request gets aborted
+			PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
+
 			PathFollowingComponent->SetLastMoveAtGoal(true);
 
 			OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
@@ -481,6 +500,10 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	if (bCanRequestMove && PathFollowingComponent && PathFollowingComponent->HasReached(GoalLocation, AcceptanceRadius, !bStopOnOverlap))
 	{
 		UE_VLOG(this, LogNavigation, Log, TEXT("MoveToLocation: already at goal!"));
+
+		// make sure previous move request gets aborted
+		PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
+
 		PathFollowingComponent->SetLastMoveAtGoal(true);
 
 		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);

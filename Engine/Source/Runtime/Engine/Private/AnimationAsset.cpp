@@ -199,30 +199,23 @@ void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh,
 
 	FSkeletonToMeshLinkup const & LinkupTable = TargetSkeleton.LinkupCache[SkelMeshLinkupIndex];
 
-	// Map SkeletonBoneIndex to the SkeletalMesh Bone Index, taking into account the required bone index array.
-	SkeletonToPoseBoneIndexArray.Init(INDEX_NONE, LinkupTable.SkeletonToMeshTable.Num());
-
-	for(int32 Index=0; Index<BoneIndicesArray.Num(); Index++)
-	{
-		int32 const & PoseBoneIndex = BoneIndicesArray[Index];
-		checkSlow( (PoseBoneIndex != INDEX_NONE) && (PoseBoneIndex < GetNumBones()) );
-		int32 const & SkeletonIndex = LinkupTable.MeshToSkeletonTable[PoseBoneIndex];
-		if( SkeletonIndex != INDEX_NONE )
-		{
-			SkeletonToPoseBoneIndexArray[SkeletonIndex] = PoseBoneIndex;
-		}
-	}
+	// Copy LinkupTable arrays for now.
+	// @laurent - Long term goal is to trim that down based on LOD, so we can get rid of the BoneIndicesArray and branch cost of testing if PoseBoneIndex is in that required bone index array.
+	SkeletonToPoseBoneIndexArray = LinkupTable.SkeletonToMeshTable;
+	PoseToSkeletonBoneIndexArray = LinkupTable.MeshToSkeletonTable;
 }
 
 void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 {
 	// Map SkeletonBoneIndex to the SkeletalMesh Bone Index, taking into account the required bone index array.
 	SkeletonToPoseBoneIndexArray.Init(INDEX_NONE, SourceSkeleton.GetRefLocalPoses().Num());
-
 	for(int32 Index=0; Index<BoneIndicesArray.Num(); Index++)
 	{
 		int32 const & PoseBoneIndex = BoneIndicesArray[Index];
 		SkeletonToPoseBoneIndexArray[PoseBoneIndex] = PoseBoneIndex;
 	}
+
+	// Skeleton to Skeleton mapping...
+	PoseToSkeletonBoneIndexArray = SkeletonToPoseBoneIndexArray;
 }
 

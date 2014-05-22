@@ -538,6 +538,11 @@ void AController::GetMoveGoalReachTest(class AActor* MovingActor, const FVector&
 	}
 }
 
+bool AController::ShouldPostponePathUpdates() const
+{
+	return Pawn ? Pawn->ShouldPostponePathUpdates() : false;
+}
+
 void AController::UpdateNavigationComponents()
 {
 	UNavigationComponent* PathFindingComp = FindComponentByClass<UNavigationComponent>();

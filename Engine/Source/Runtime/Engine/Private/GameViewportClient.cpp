@@ -1820,7 +1820,7 @@ void UGameViewportClient::VerifyPathRenderingComponents()
 	const bool bShowPaths = !!EngineShowFlags.Navigation;
 
 	// make sure nav mesh has a rendering component
-	ANavigationData* NavData = GetWorld()->GetNavigationSystem() != NULL ? GetWorld()->GetNavigationSystem()->GetMainNavData(NavigationSystem::DontCreate)
+	ANavigationData* NavData = GetWorld()->GetNavigationSystem() != NULL ? GetWorld()->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
 		: NULL;
 
 	if(NavData && NavData->RenderingComp == NULL)

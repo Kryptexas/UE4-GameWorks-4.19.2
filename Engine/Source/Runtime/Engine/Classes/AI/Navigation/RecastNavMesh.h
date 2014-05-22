@@ -41,6 +41,15 @@ namespace ERecastPartitioning
 	};
 }
 
+namespace ERecastPathFlags
+{
+	/** if set, path won't be post processed */
+	const int32 SkipStringPulling = (1 << 0);
+
+	/** if set, path will contain navigation corridor */
+	const int32 GenerateCorridor = (1 << 1);
+}
+
 /** helper to translate FNavPathPoint.Flags */
 struct ENGINE_API FNavMeshNodeFlags
 {
@@ -68,7 +77,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
 	
-	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
+	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
 	FORCEINLINE void SetPathCorridorEdges(const TArray<FNavigationPortalEdge>& InPathCorridorEdges) { PathCorridorEdges = InPathCorridorEdges; bCorridorEdgesGenerated = true; }
 
 	FORCEINLINE void OnPathCorridorUpdated() { bCorridorEdgesGenerated = false; }
@@ -78,6 +87,8 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	bool ContainsWithSameEnd(const FNavMeshPath* Other) const;
 	
 	void OffsetFromCorners(float Distance);
+
+	void ApplyFlags(int32 NavDataFlags);
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -112,6 +123,13 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
+	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const OVERRIDE;
+
+#if ENABLE_VISUAL_LOG
+	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const OVERRIDE;
+	virtual FString GetDescription() const OVERRIDE;
+#endif // ENABLE_VISUAL_LOG
+
 protected:
 	/** calculates total length of string pulled path. Does not generate string pulled 
 	 *	path if it's not already generated (see bWantsStringPulling and bStrigPulled)
@@ -123,7 +141,10 @@ protected:
 	 *	Internal use only */
 	float GetPathCorridorLength(const int32 StartingEdge) const;
 
-	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges();
+	/** it's only const to be callable in const environment. It's not supposed to be called directly externally anyway,
+	 *	just as part of retrieving corridor on demand or generating it in internal processes. It fills a mutable
+	 *	array. */
+	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges() const;
 
 public:
 	
@@ -137,10 +158,10 @@ private:
 	/** sequence of FVector pairs where each pair represents navmesh portal edge between two polygons navigation corridor.
 	 *	Note, that it should always be accessed via GetPathCorridorEdges() since PathCorridorEdges content is generated
 	 *	on first access */
-	TArray<FNavigationPortalEdge> PathCorridorEdges;
+	mutable TArray<FNavigationPortalEdge> PathCorridorEdges;
 
 	/** transient variable indicating whether PathCorridorEdges contains up to date information */
-	uint32 bCorridorEdgesGenerated : 1;
+	mutable uint32 bCorridorEdgesGenerated : 1;
 
 public:
 	/** is this path generated on dynamic navmesh (i.e. one attached to moving surface) */
@@ -363,6 +384,7 @@ struct FTileSetItem
 	}
 };
 
+DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
 
 UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication))
 class ENGINE_API ARecastNavMesh : public ANavigationData
@@ -570,10 +592,15 @@ public:
 	UPROPERTY(EditAnywhere, Category=Pathfinding, config, meta=(ClampMin = "0.1"))
 	float HeuristicScale;
 
+	/** broadcast for navmesh updates */
+	FOnNavMeshUpdate OnNavMeshUpdate;
+
 	FORCEINLINE static void SetDrawDistance(float NewDistance) { DrawDistanceSq = NewDistance * NewDistance; }
 	FORCEINLINE static float GetDrawDistanceSq() { return DrawDistanceSq; }
 
 	//////////////////////////////////////////////////////////////////////////
+
+	bool HasValidNavmesh() const;
 
 #if WITH_RECAST
 private:
@@ -653,7 +680,7 @@ public:
 	/** Retrieves number of tiles in this navmesh */
 	int32 GetNavMeshTilesCount() const;
 
-	void GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<struct FNavigationPortalEdge>* PathCorridorEdges) const;
+	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<struct FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	// @todo docuement
 	//void SetRecastNavMesh(class FPImplRecastNavMesh* RecastMesh);
@@ -745,6 +772,15 @@ public:
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
 
+	/** Retrieves poly and area flags for specified polygon */
+	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
+
+	/** Decode poly ID into tile index and poly index */
+	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
+
+	/** Retrieves start and end point of offmesh link */
+	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
+
 	/** Retrieves center of cluster (either middle of center poly, or calculated from all vertices). Returns false on error. */
 	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
 
@@ -826,6 +862,8 @@ protected:
 
 private:
 	friend class FRecastNavMeshGenerator;
+	friend class FPImplRecastNavMesh;
+	friend class UCrowdManager;
 	// retrieves RecastNavMeshImpl
 	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
 	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
@@ -833,6 +871,7 @@ private:
 	void DestroyRecastPImpl();
 	// @todo docuement
 	void UpdateNavVersion();
+	void UpdateNavObject();
 
 protected:
 	TArray<FTileSetItem> TileSet;

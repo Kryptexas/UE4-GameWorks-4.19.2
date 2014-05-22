@@ -1599,10 +1599,6 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		UE_LOG(LogStreaming, Log, TEXT("Sort Actor List         : %6.2f ms"), SortActorListTime * 1000 );	
 #endif // PERF_TRACK_DETAILED_ASYNC_STATS
 
-		if ( IsGameWorld() )
-		{
-			Level->bAlreadyMovedActors = false; // If in the editor, actors are not removed during RemoveFromWorld, so will not need to be moved again when unhidden\AddToWorld is called a second time
-		}
 		Level->bAlreadyShiftedActors					= false;
 		Level->bAlreadyUpdatedComponents				= false;
 		Level->bAlreadyInitializedNetworkActors			= false;
@@ -4426,7 +4422,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
 				{
-					UNavigationSystem::InitializeForWorld(LoadedWorld, NavigationSystem::GameMode);
+					UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
 
 					// inform the new GameMode so it can handle players that persisted
 					GameMode->PostSeamlessTravel();					

@@ -148,7 +148,7 @@ public:
 	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, bool bBackTracking, TArray<NavNodeRef>& FoundClusters) const;
 
 	//@todo document
-	void GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
+	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
 	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const;
@@ -165,8 +165,16 @@ public:
 	bool GetPolyCenter(NavNodeRef PolyID, FVector& OutCenter) const;
 	/** Retrieves the vertices for the specified polygon. Returns false on error. */
 	bool GetPolyVerts(NavNodeRef PolyID, TArray<FVector>& OutVerts) const;
+	/** Retrieves the flags for the specified polygon. Returns false on error. */
+	bool GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const;
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
+	/** Decode poly ID into tile index and poly index */
+	bool GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const;
+	/** Retrieves user ID for given offmesh link poly */
+	uint32 GetLinkUserId(NavNodeRef LinkPolyID) const;
+	/** Retrieves start and end point of offmesh link */
+	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
 
 	/** Retrieves center of cluster. Returns false on error. */
 	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
@@ -246,7 +254,7 @@ public:
 	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 
 	/** workhorse function finding portal edges between corridor polys */
-	void GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
+	void GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
 };
 
 #endif	// WITH_RECAST

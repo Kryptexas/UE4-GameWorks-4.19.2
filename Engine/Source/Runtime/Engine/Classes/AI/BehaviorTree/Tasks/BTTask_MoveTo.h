@@ -7,6 +7,8 @@ struct FBTMoveToTaskMemory
 {
 	/** Move request ID */
 	FAIRequestID MoveRequestID;
+
+	uint8 bWaitingForPath : 1;
 };
 
 UCLASS(config=Game)
@@ -26,10 +28,15 @@ class ENGINE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 	
 	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
 	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
 	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
 
 	virtual void OnMessage(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 RequestID, bool bSuccess) OVERRIDE;
 
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;
+
+protected:
+
+	EBTNodeResult::Type PerformMoveTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory);
 };

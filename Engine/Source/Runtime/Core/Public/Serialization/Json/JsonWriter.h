@@ -25,10 +25,10 @@ public:
 
 	void WriteObjectStart()
 	{
-		check( Stack.Num() == 0 || Stack.Top() == EJson::Array );
-		if ( PreviousTokenWritten != EJsonToken::CurlyOpen && PreviousTokenWritten != EJsonToken::SquareOpen && PreviousTokenWritten != EJsonToken::None )
+		check(CanWriteValueWithoutIdentifier());
+		if (PreviousTokenWritten != EJsonToken::None )
 		{
-			PrintPolicy::WriteChar(Stream, CharType(','));
+			WriteCommaIfNeeded();
 		}
 
 		if ( PreviousTokenWritten != EJsonToken::None )
@@ -71,7 +71,7 @@ public:
 
 	void WriteArrayStart()
 	{
-		check( Stack.Num() == 0 || Stack.Top() == EJson::Array );
+		check(CanWriteValueWithoutIdentifier());
 		if ( PreviousTokenWritten != EJsonToken::None )
 		{
 			WriteCommaIfNeeded();
@@ -200,7 +200,7 @@ public:
 
 	void WriteValue( const bool Value )
 	{
-		check( Stack.Top() == EJson::Array );
+		check(CanWriteValueWithoutIdentifier());
 		WriteCommaIfNeeded();
 
 		if ( PreviousTokenWritten != EJsonToken::True && PreviousTokenWritten != EJsonToken::False && PreviousTokenWritten != EJsonToken::SquareOpen )
@@ -219,7 +219,7 @@ public:
 
 	void WriteValue( const double Value )
 	{
-		check( Stack.Top() == EJson::Array );
+		check(CanWriteValueWithoutIdentifier());
 		WriteCommaIfNeeded();
 
 		if ( PreviousTokenWritten != EJsonToken::Number && PreviousTokenWritten != EJsonToken::SquareOpen )
@@ -238,7 +238,7 @@ public:
 
 	void WriteValue( const FString& Value )
 	{
-		check( Stack.Top() == EJson::Array );
+		check(CanWriteValueWithoutIdentifier());
 		WriteCommaIfNeeded();
 		PrintPolicy::WriteLineTerminator(Stream);
 		PrintPolicy::WriteTabs(Stream, IndentLevel);
@@ -248,7 +248,7 @@ public:
 
 	void WriteNull()
 	{
-		check( Stack.Top() == EJson::Array );
+		check(CanWriteValueWithoutIdentifier());
 		WriteCommaIfNeeded();
 
 		if ( PreviousTokenWritten != EJsonToken::Null && PreviousTokenWritten != EJsonToken::SquareOpen )
@@ -273,6 +273,16 @@ public:
 				&& Stack.Num() == 0;
 	}
 
+	/**
+	 * WriteValue("Foo", Bar) should be equivalent to WriteIdentifierPrefix("Foo"), WriteValue(Bar)
+	 */
+	void WriteIdentifierPrefix(const FString& Identifier)
+	{
+		check(Stack.Top() == EJson::Object);
+		WriteIdentifier(Identifier);
+		PrintPolicy::WriteSpace(Stream);
+		PreviousTokenWritten = EJsonToken::Identifier;
+	}
 
 protected:
 
@@ -288,9 +298,14 @@ protected:
 
 private:
 
+	FORCEINLINE bool CanWriteValueWithoutIdentifier() const 
+	{ 
+		return Stack.Num() <= 0 || Stack.Top() == EJson::Array || PreviousTokenWritten == EJsonToken::Identifier;
+	}
+
 	FORCEINLINE void WriteCommaIfNeeded()
 	{
-		if ( PreviousTokenWritten != EJsonToken::CurlyOpen && PreviousTokenWritten != EJsonToken::SquareOpen )
+		if ( PreviousTokenWritten != EJsonToken::CurlyOpen && PreviousTokenWritten != EJsonToken::SquareOpen && PreviousTokenWritten != EJsonToken::Identifier)
 		{
 			PrintPolicy::WriteChar(Stream, CharType(','));
 		}

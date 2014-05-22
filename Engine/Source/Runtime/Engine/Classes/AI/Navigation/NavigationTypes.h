@@ -10,7 +10,6 @@
 #define INVALID_NAVQUERYID uint32(0)
 #define INVALID_NAVDATA uint32(0)
 #define INVALID_NAVEXTENT (FVector::ZeroVector)
-#define INVALID_MOVEREQUESTID uint32(-1)
 
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
@@ -163,6 +162,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE bool IsPartial() const { return bIsPartial; }
 	FORCEINLINE bool DidSearchReachedLimit() const { return bReachedSearchLimit; }
 	FORCEINLINE class ANavigationData *GetOwner() const { return Owner.Get(); }
+	FORCEINLINE bool IsDirect() const { return Owner.Get() == NULL; }
 	FORCEINLINE FVector GetDestinationLocation() const { return IsValid() ? PathPoints.Last().Location : INVALID_NAVEXTENT; }
 
 	FORCEINLINE void MarkReady() { bIsReady = true; }
@@ -180,6 +180,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	virtual void DebugDraw(const class ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
+	virtual FString GetDescription() const;
 #endif // ENABLE_VISUAL_LOG
 
 	/** check if path contains specific smart nav link */
@@ -217,6 +218,8 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	FORCEINLINE const TArray<FNavPathPoint>& GetPathPoints() const { return PathPoints; }
 
+	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const;
+
 	/** type safe casts */
 	template<typename PathClass>
 	FORCEINLINE const PathClass* CastPath() const
@@ -243,6 +246,9 @@ public:
 
 	/** base actor, if exist path points locations will be relative to it */
 	TWeakObjectPtr<AActor> Base;
+
+	/** filter used to build this path */
+	TSharedPtr<const struct FNavigationQueryFilter> Filter;
 
 	/** type of path */
 	static const FNavPathType Type;

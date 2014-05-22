@@ -299,7 +299,7 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 
 	for (int32 EntryIndex = 0; EntryIndex < EntryCount; ++EntryIndex, ++Entry)
 	{
-		JsonLogEntries[EntryIndex] = (*Entry)->ToJson();
+		JsonLogEntries[EntryIndex] = (*Entry)->ToJson(); 
 	}
 
 	JsonLogObject->SetArrayField(VisualLogJson::TAG_ENTRIES, JsonLogEntries);
@@ -312,17 +312,38 @@ TSharedPtr<FJsonValue> FActorsVisLog::ToJson() const
 FVisualLog::FVisualLog()
 : bIsRecording(GEngine->bEnableVisualLogRecordingOnStart), bIsRecordingOnServer(false)
 {
-	//GLog->AddOutputDevice(this);
+	FileAr = NULL;
+	bIsRecordingToFile = false;
 }
 
 FVisualLog::~FVisualLog()
 {
-
+	if (bIsRecording)
+	{
+		SetIsRecording(false);
+	}
 }
 
 void FVisualLog::DumpRecordedLogs()
 {
-	TArray< TSharedPtr<FJsonValue> > EntriesArray;
+	bool bJustCreated = false;
+	if (!FileAr)
+	{
+		TempFileName = FString::Printf(TEXT("VisualLog_TEMP_%s.vlog"), *FDateTime::Now().ToString());
+		const FString TempFullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *TempFileName);
+		FileAr = IFileManager::Get().CreateFileWriter(*TempFullFilename);
+
+		const FString HeadetStr = TEXT("{\"Logs\":[");
+		auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
+		FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
+		bJustCreated = true;
+	}
+
+	if (!FileAr)
+	{
+		return;
+	}
+
 	TArray<TSharedPtr<FActorsVisLog>> Logs;
 	LogsMap.GenerateValueArray(Logs);
 
@@ -331,34 +352,96 @@ void FVisualLog::DumpRecordedLogs()
 		if (Logs.IsValidIndex(ItemIndex))
 		{
 			TSharedPtr<FActorsVisLog> Log = Logs[ItemIndex];
-			EntriesArray.Add(Log->ToJson());
-		}
-	}
 
-	if (EntriesArray.Num() > 0)
-	{
-		TSharedPtr<FJsonObject> Object = MakeShareable(new FJsonObject);
-		Object->SetArrayField(LogVisualizerJson::TAG_LOGS, EntriesArray);
+			TSharedPtr<FJsonObject> JsonLogObject = MakeShareable(new FJsonObject);
+			JsonLogObject->SetStringField(VisualLogJson::TAG_NAME, Log->Name.ToString());
+			JsonLogObject->SetStringField(VisualLogJson::TAG_FULLNAME, Log->FullName);
 
-		const FString Name = FString::Printf(TEXT("VisualLog_%s"), *FDateTime::Now().ToString());
-		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/logs/%s.vlog"), *FPaths::GameSavedDir(), *Name));
-		if (FileAr != NULL)
-		{
-			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
-			if (!FJsonSerializer::Serialize(Object.ToSharedRef(), Writer))
+			TArray< TSharedPtr<FJsonValue> > JsonLogEntries;
+			JsonLogEntries.AddZeroed(Log->Entries.Num());
+			for (int32 EntryIndex = 0; EntryIndex < Log->Entries.Num(); ++EntryIndex)
 			{
-				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, FColor::Red, TEXT("Failed to dump VisLog logs"));
+				FVisLogEntry* Entry = Log->Entries[EntryIndex].Get();
+				if (Entry)
+				{
+					JsonLogEntries[EntryIndex] = Entry->ToJson();
+				}
 			}
-			FileAr->Close();
+			JsonLogObject->SetArrayField(VisualLogJson::TAG_ENTRIES, JsonLogEntries);
+
+			if (!bJustCreated)
+			{
+				UCS2CHAR Char = UCS2CHAR(',');
+				FileAr->Serialize(&Char, sizeof(UCS2CHAR));
+			}
+			bJustCreated = false;
+
+			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
+			FJsonSerializer::Serialize(JsonLogObject.ToSharedRef(), Writer);
+
+			Log->Entries.Reset();
 		}
 	}
-
-	Cleanup(true);
 }
 
 void FVisualLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
 {
 
+}
+
+void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
+{
+	if (bIsRecording && bIsRecordingToFile && !NewRecording)
+	{
+		if (FileAr)
+		{
+			// dump remaining logs
+			DumpRecordedLogs();
+
+			// close JSON data correctly
+			const FString HeadetStr = TEXT("]}");
+			auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
+			FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
+			FileAr->Close();
+			delete FileAr;
+			FileAr = NULL;
+		}
+
+		Cleanup(true);
+		bIsRecordingToFile = false;
+
+		const FString TempFullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *TempFileName);
+		const FString FileName = FString::Printf(TEXT("VisualLog_%.0f-%.0f_%s.vlog"), StartRecordingTime, GWorld ? GWorld->TimeSeconds : 0, *FDateTime::Now().ToString());
+		FString FullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *FileName);
+		
+		IFileManager::Get().Move(*FullFilename, *TempFullFilename, true, true);
+	}
+
+	bIsRecording = NewRecording;
+	if (bIsRecording)
+	{
+		bIsRecordingToFile = bRecordToFile;
+		StartRecordingTime = GWorld ? GWorld->TimeSeconds : 0;
+	}
+}
+
+FVisLogEntry*  FVisualLog::GetEntryToWrite(const class AActor* Actor)
+{
+	check(Actor && Actor->GetWorld() && Actor->GetVisualLogRedirection());
+	const class AActor* LogOwner = Actor->GetVisualLogRedirection();
+	const float TimeStamp = Actor->GetWorld()->TimeSeconds;
+	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
+	const int32 LastIndex = Log->Entries.Num() - 1;
+	FVisLogEntry* Entry = Log->Entries.Num() > 0 ? Log->Entries[LastIndex].Get() : NULL;
+
+	if (Entry == NULL || Entry->TimeStamp < TimeStamp)
+	{
+		// create new entry
+		Entry = Log->Entries[Log->Entries.Add( MakeShareable(new FVisLogEntry(LogOwner, RedirectsMap.Find(LogOwner))) )].Get();
+	}
+
+	check(Entry);
+	return Entry;
 }
 
 void FVisualLog::Cleanup(bool bReleaseMemory)

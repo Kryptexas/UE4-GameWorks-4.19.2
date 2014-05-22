@@ -540,6 +540,7 @@ bool ULocalPlayer::GetPixelBoundingBox(const FBox& ActorBox, FVector2D& OutLower
 bool ULocalPlayer::GetPixelPoint(const FVector& InPoint, FVector2D& OutPoint, const FVector2D* OptionalAllotedSize)
 {
 	//@TODO: CAMERA: This has issues with aspect-ratio constrained cameras
+	bool bInFrontOfCamera = true;
 	if ((ViewportClient != NULL) && (ViewportClient->Viewport != NULL) && (PlayerController != NULL))
 	{
 		// get the projection data
@@ -562,18 +563,21 @@ bool ULocalPlayer::GetPixelPoint(const FVector& InPoint, FVector2D& OutPoint, co
 
 		//@TODO: CAMERA: Validate this code!
 		// grab the point in screen space
-		const FVector4 ScreenPoint = ViewProjectionMatrix.TransformFVector4( FVector4( InPoint, 1.0f) );
+		FVector4 ScreenPoint = ViewProjectionMatrix.TransformFVector4( FVector4( InPoint, 1.0f) );
 
-		if (ScreenPoint.W > 0.0f)
+		ScreenPoint.W = (ScreenPoint.W == 0) ? KINDA_SMALL_NUMBER : ScreenPoint.W;
+
+		float InvW = 1.0f / ScreenPoint.W;
+		OutPoint = FVector2D(ViewRect.Min.X + (0.5f + ScreenPoint.X * 0.5f * InvW) * ViewRect.Width(),
+				             ViewRect.Min.Y + (0.5f - ScreenPoint.Y * 0.5f * InvW) * ViewRect.Height());
+
+		if (ScreenPoint.W < 0.0f)
 		{
-			float InvW = 1.0f / ScreenPoint.W;
-			OutPoint = FVector2D( ViewRect.Min.X + (0.5f + ScreenPoint.X * 0.5f * InvW) * ViewRect.Width(),
-								  ViewRect.Min.Y + (0.5f - ScreenPoint.Y * 0.5f * InvW) * ViewRect.Height());
-
-			return true;
+			bInFrontOfCamera = false;
+			OutPoint = FVector2D(ViewRect.Max) - OutPoint;
 		}
 	}
-	return false;
+	return bInFrontOfCamera;
 }
 
 bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData)

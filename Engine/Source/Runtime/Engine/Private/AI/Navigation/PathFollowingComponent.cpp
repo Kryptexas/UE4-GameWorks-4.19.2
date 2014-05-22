@@ -6,13 +6,14 @@
 #endif
 #define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
 
-DEFINE_LOG_CATEGORY_STATIC(LogPathFollowing, Warning, All);
+DEFINE_LOG_CATEGORY(LogPathFollowing);
 
 // debugging colors
 #if ENABLE_VISUAL_LOG
 namespace PathDebugColor
 {
 	static const FColor Segment = FColor::Yellow;
+	static const FColor Portal = FColorList::LightGrey;
 	static const FColor CurrentPathPoint = FColor::White;
 	static const FColor Marker = FColor::Green;
 }
@@ -28,7 +29,6 @@ UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::Unb
 UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	bWantsInitializeComponent = true;
 	bAutoActivate = true;
 
 	MinAgentRadiusPct = 0.1f;
@@ -52,26 +52,63 @@ UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructIniti
 	Status = EPathFollowingStatus::Idle;
 }
 
-void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const uint32 CurrentPathPointGoal)
+void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalActor, const int32 CurrentPathPointGoal)
 {
 #if ENABLE_VISUAL_LOG
 	if (Path.IsValid() && Path->IsValid())
 	{
-		FVector SegmentEnd = Path->PathPoints[0].Location;
-		for (int32 i = 1; i < Path->PathPoints.Num(); i++)
+		FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
+		FVector SegmentEnd = Path->PathPoints[0].Location + NavigationDebugDrawing::PathOffeset;
+#if WITH_RECAST
+		if (NavMeshPath && !NavMeshPath->IsStringPulled())
 		{
-			FVector SegmentStart = SegmentEnd;
-			SegmentEnd = Path->PathPoints[i].Location;
-			UE_VLOG_SEGMENT(LogOwner, SegmentStart, SegmentEnd, PathDebugColor::Segment, TEXT_EMPTY);
-		}
+			ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(NavMeshPath->GetOwner());
+			NavMesh->BeginBatchQuery();
 
-		if (Path->PathPoints.IsValidIndex(CurrentPathPointGoal))
-		{
-			INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(LogOwner);
-			UE_VLOG_SEGMENT(LogOwner, NavAgent->GetNavAgentLocation()
-				, Path->PathPoints[CurrentPathPointGoal].Location
-				, PathDebugColor::CurrentPathPoint, TEXT_EMPTY);
+			for (int32 i = 1; i < NavMeshPath->PathCorridor.Num() - 1; i++)
+			{
+				FVector SegmentStart = SegmentEnd;
+				NavMesh->GetPolyCenter(NavMeshPath->PathCorridor[i], SegmentEnd);
+				UE_VLOG_SEGMENT_THICK(LogOwner, SegmentStart, SegmentEnd, PathDebugColor::Segment, 2, TEXT_EMPTY);
+			}
+
+			NavMesh->FinishBatchQuery();
+
+			if (Path->PathPoints.IsValidIndex(1))
+			{
+				UE_VLOG_SEGMENT_THICK(LogOwner, SegmentEnd, Path->PathPoints[1].Location, PathDebugColor::Segment, 2, TEXT_EMPTY);
+				SegmentEnd = Path->PathPoints[1].Location;
+			}
 		}
+		else
+		{
+#endif // WITH_RECAST
+			for (int32 i = 1; i < Path->PathPoints.Num(); i++)
+			{
+				FVector SegmentStart = SegmentEnd;
+				SegmentEnd = Path->PathPoints[i].Location + NavigationDebugDrawing::PathOffeset;
+				UE_VLOG_SEGMENT_THICK(LogOwner, SegmentStart, SegmentEnd, PathDebugColor::Segment, 2, TEXT_EMPTY);
+			}
+
+			if (NavMeshPath)
+			{
+				const TArray<FNavigationPortalEdge>* Edges = NavMeshPath->GetPathCorridorEdges();
+				for (auto Edge : *Edges)
+				{
+					UE_VLOG_SEGMENT_THICK(LogOwner, Edge.Left + NavigationDebugDrawing::PathOffeset, Edge.Right + NavigationDebugDrawing::PathOffeset, PathDebugColor::Portal, 2, TEXT_EMPTY);
+				}
+			}
+
+			if (Path->PathPoints.IsValidIndex(CurrentPathPointGoal))
+			{
+				INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(LogOwner);
+				UE_VLOG_SEGMENT(LogOwner, NavAgent->GetNavAgentLocation()
+					, Path->PathPoints[CurrentPathPointGoal].Location
+					, PathDebugColor::CurrentPathPoint, TEXT_EMPTY);
+			}
+#if WITH_RECAST
+		}
+#endif // WITH_RECAST
 
 		if (GoalActor)
 		{
@@ -177,6 +214,8 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 		// store new data
 		Path = InPath;
+		OnPathUpdated();
+
 		AcceptanceRadius = InAcceptanceRadius;
 		GameData = InGameData;
 		OnRequestFinished = OnComplete;	
@@ -226,12 +265,13 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 	}
 
 	Path = InPath;
+	OnPathUpdated();
 
 	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
 	{
 		Status = EPathFollowingStatus::Moving;
 
-		const uint32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
+		const int32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
 		bPendingPathStartUpdate = false;
 		SetMoveSegment(CurrentSegment);
 	}
@@ -309,7 +349,7 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 
 void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 {
-	if (RequestID.IsEquivalent(CurrentRequestId))
+	if (RequestID.IsEquivalent(CurrentRequestId) && RequestID.IsValid())
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("ResumeMove: RequestID(%u)"), RequestID);
 
@@ -320,7 +360,7 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 			Status = EPathFollowingStatus::Moving;
 			if (bMovedDuringPause || bPendingPathStartUpdate)
 			{
-				const uint32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
+				const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
 				bPendingPathStartUpdate = false;
 				SetMoveSegment(CurrentSegment);
 			}
@@ -403,11 +443,18 @@ void UPathFollowingComponent::OnSegmentFinished()
 	UE_VLOG(GetOwner(), LogPathFollowing, Verbose, TEXT("OnSegmentFinished"));
 }
 
-void UPathFollowingComponent::InitializeComponent()
+void UPathFollowingComponent::OnPathUpdated()
 {
-	Super::InitializeComponent();
-	
+}
+
+void UPathFollowingComponent::Initialize()
+{
 	UpdateCachedComponents();
+}
+
+void UPathFollowingComponent::Cleanup()
+{
+	// empty in base class
 }
 
 void UPathFollowingComponent::UpdateCachedComponents()
@@ -523,13 +570,21 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 			}
 		}
 
-		if (MovementComp && PickedPathPoint < 0)
+		if (MovementComp && PickedPathPoint == INDEX_NONE)
 		{
-			// check if is closer to first or second path point (don't assume AI's standing)
-			const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
-			const float SqDistToFirstPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[0].Location);
-			const float SqDistToSecondPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[1].Location);
-			PickedPathPoint = (SqDistToFirstPoint < SqDistToSecondPoint) ? 0 : 1;
+			if (ConsideredPath->PathPoints.Num() > 2)
+			{
+				// check if is closer to first or second path point (don't assume AI's standing)
+				const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+				const float SqDistToFirstPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[0].Location);
+				const float SqDistToSecondPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[1].Location);
+				PickedPathPoint = (SqDistToFirstPoint < SqDistToSecondPoint) ? 0 : 1;
+			}
+			else
+			{
+				// If there are only two point we probably should start from the beginning
+				PickedPathPoint = 0;
+			}
 		}
 	}
 
@@ -543,38 +598,15 @@ void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationAct
 	MoveOffset = DestinationAgent ? DestinationAgent->GetMoveGoalOffset(GetOwner()) : FVector::ZeroVector;
 }
 
-void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
+void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
 	const bool bResumedFromSmartLink = (CurrentSmartLink != NULL) && (MoveSegmentStartIndex == SegmentStartIndex);
-	if (CurrentSmartLink)
-	{
-		CurrentSmartLink->NotifyLinkFinished(this);
-		CurrentSmartLink = NULL;
-	}
+	SetCurrentSmartLink(NULL, FVector::ZeroVector);
 
-	uint32 EndSegmentIndex = SegmentStartIndex + 1;
-	if (Path.IsValid() && Path->PathPoints.IsValidIndex(SegmentStartIndex) &&
-		Path->PathPoints.IsValidIndex(EndSegmentIndex))
+	int32 EndSegmentIndex = SegmentStartIndex + 1;
+	if (Path.IsValid() && Path->PathPoints.IsValidIndex(SegmentStartIndex) && Path->PathPoints.IsValidIndex(EndSegmentIndex))
 	{
-#if WITH_RECAST
-#	define CHECK_WITH_RECAST( __code_block__ ) __code_block__ 
-#else
-#	define CHECK_WITH_RECAST(__code_block__) 1
-#endif
-
-		if (bUseVisibilityTestsSimplification && !bResumedFromSmartLink && 
-			!Path->PathPoints[SegmentStartIndex].SmartLink.IsValid() && !Path->PathPoints[EndSegmentIndex].SmartLink.IsValid() &&
-			CHECK_WITH_RECAST( FNavMeshNodeFlags(Path->PathPoints[SegmentStartIndex].Flags).Area == FNavMeshNodeFlags(Path->PathPoints[EndSegmentIndex].Flags).Area &&
-											   (!(FNavMeshNodeFlags(Path->PathPoints[SegmentStartIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) ||
-											   !(FNavMeshNodeFlags(Path->PathPoints[EndSegmentIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION)))
-			)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
-			// possibly skipping a point on a path if visibility checks of a point after 
-			// EndSegmentIndex are satisfied
-			EndSegmentIndex = PrepareBestNextMoveSegment(SegmentStartIndex);
-		}
-#undef CHECK_WITH_RECAST
+		EndSegmentIndex = DetermineCurrentTargetPathPoint(SegmentStartIndex, bResumedFromSmartLink);
 
 		MoveSegmentStartIndex = SegmentStartIndex;
 		MoveSegmentEndIndex = EndSegmentIndex;
@@ -586,23 +618,22 @@ void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
 		
 		const FVector SegmentStart = PathPt0.Location;
 		const FVector SegmentEnd = PathPt1.Location;
+
+		CurrentDestination.Set(Path->Base.Get(), SegmentEnd);
+		CurrentAcceptanceRadius = (Path->PathPoints.Num() == (EndSegmentIndex + 1)) ? AcceptanceRadius : 0.0f;
+
 		MoveSegmentDirection = (SegmentEnd - SegmentStart).SafeNormal();
+		
 		// make sure we have a non-zero direction if still following a valid path
 		if (MoveSegmentDirection.IsZero() && int32(MoveSegmentEndIndex + 1) < Path->PathPoints.Num())
 		{
 			MoveSegmentDirection = (Path->PathPoints[MoveSegmentEndIndex + 1].Location - SegmentStart).SafeNormal();
 		}
 
-		CurrentDestination.Set(Path->Base.Get(), SegmentEnd);
-		CurrentAcceptanceRadius = (Path->PathPoints.Num() == (EndSegmentIndex + 1)) ? AcceptanceRadius : 0.0f;
-
 		// handle moving through smart links
 		if (!bResumedFromSmartLink && PathPt0.SmartLink.IsValid())
 		{
-			PauseMove();
-
-			CurrentSmartLink = PathPt0.SmartLink.Get();
-			CurrentSmartLink->NotifyLinkReached(this, SegmentEnd);
+			SetCurrentSmartLink(PathPt0.SmartLink.Get(), SegmentEnd);
 		}
 
 		// update move focus in owning AI
@@ -610,8 +641,37 @@ void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
 	}
 }
 
-uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentStartIndex)
+int32 UPathFollowingComponent::DetermineCurrentTargetPathPoint(int32 StartIndex, bool bResumedFromSmartLink)
 {
+	if (!bUseVisibilityTestsSimplification ||
+		bResumedFromSmartLink ||
+		Path->PathPoints[StartIndex].SmartLink.IsValid() ||
+		Path->PathPoints[StartIndex + 1].SmartLink.IsValid())
+	{
+		return StartIndex + 1;
+	}
+
+
+#if WITH_RECAST
+	FNavMeshNodeFlags Flags0(Path->PathPoints[StartIndex].Flags);
+	FNavMeshNodeFlags Flags1(Path->PathPoints[StartIndex + 1].Flags);
+
+	const bool bOffMesh0 = (Flags0.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+	const bool bOffMesh1 = (Flags1.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+
+	if ((Flags0.Area != Flags1.Area) || (bOffMesh0 && bOffMesh1))
+	{
+		return StartIndex + 1;
+	}
+#endif
+
+	return OptimizeSegmentVisibility(StartIndex);
+}
+
+int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
+{
+	SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
+
 	const AAIController* MyAI = Cast<AAIController>(GetOwner());
 	const ANavigationData* NavData = MyAI && MyAI->NavComponent ? MyAI->NavComponent->GetNavData() : NULL;
 	if (Path.IsValid())
@@ -621,7 +681,7 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 
 	if (NavData == NULL)
 	{
-		return NextSegmentStartIndex + 1;
+		return StartIndex + 1;
 	}
 
 	const APawn* MyPawn = MyAI->GetPawn();
@@ -642,7 +702,7 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 #endif
 	TSharedPtr<FNavigationQueryFilter> QueryFilter = (NavComp && NavComp->GetStoredQueryFilter().IsValid()) ? NavComp->GetStoredQueryFilter()->GetCopy() : NavData->GetDefaultQueryFilter()->GetCopy();
 #if WITH_RECAST
-	const uint8 StartArea = FNavMeshNodeFlags(Path->PathPoints[NextSegmentStartIndex].Flags).Area;
+	const uint8 StartArea = FNavMeshNodeFlags(Path->PathPoints[StartIndex].Flags).Area;
 	TArray<float> CostArray;
 	CostArray.Init(DT_UNWALKABLE_POLY_COST, DT_MAX_AREAS);
 	CostArray[StartArea] = 0;
@@ -650,7 +710,7 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 #endif
 
 	const int32 MaxPoints = Path->PathPoints.Num();
-	int32 Index = NextSegmentStartIndex + 2;
+	int32 Index = StartIndex + 2;
 
 	for (; Index <= MaxPoints; ++Index)
 	{
@@ -692,7 +752,7 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 
 #if WITH_RECAST
 		/** don't move to next point if we are changing area, we are at off mesh connection or it's a smart link*/
-		if (FNavMeshNodeFlags(Path->PathPoints[NextSegmentStartIndex].Flags).Area != FNavMeshNodeFlags(PathPt1.Flags).Area ||
+		if (FNavMeshNodeFlags(Path->PathPoints[StartIndex].Flags).Area != FNavMeshNodeFlags(PathPt1.Flags).Area ||
 			FNavMeshNodeFlags(PathPt1.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION || 
 			PathPt1.SmartLink.IsValid())
 		{
@@ -706,9 +766,18 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 
 void UPathFollowingComponent::UpdatePathSegment()
 {
-	if (!Path.IsValid() || !Path->IsValid() || MovementComp == NULL)
+	if (!Path.IsValid() || MovementComp == NULL)
 	{
 		AbortMove(TEXT("no path"));
+		return;
+	}
+
+	if (!Path->IsValid())
+	{
+		if (NavComp == NULL || !NavComp->IsWaitingForRepath())
+		{
+			AbortMove(TEXT("no path"));
+		}
 		return;
 	}
 
@@ -717,7 +786,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
 		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
-		const uint32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
+		const int32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
 		const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
 
 		if (bCollidedWithGoal)
@@ -802,7 +871,7 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		const FVector CurrentTarget = GetCurrentTargetLocation();
 		FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
 
-		const uint32 LastSegmentStartIndex = Path->PathPoints.Num() - 2;
+		const int32 LastSegmentStartIndex = Path->PathPoints.Num() - 2;
 		const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
 
 		PostProcessMove.ExecuteIfBound(this, MoveVelocity);
@@ -936,14 +1005,14 @@ bool UPathFollowingComponent::HasReachedInternal(const FVector& Goal, float Goal
 	return true;
 }
 
-void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed)
+void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const
 {
 	if (!Path.IsValid() || MovementComp == NULL)
 	{
 		return;
 	}
 
-	const uint32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
+	const int32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
 	const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
 
 	float GoalRadius = 0.0f;
@@ -994,6 +1063,23 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	CurrentHeight = FMath::Abs(ToGoal.Z);
 	const float UseHeight = GoalHalfHeight + AgentHalfHeight + (AgentHalfHeight * MinAgentHeightPct);
 	bHeightFailed = (CurrentHeight > UseHeight) ? 1 : 0;
+}
+
+void UPathFollowingComponent::SetCurrentSmartLink(USmartNavLinkComponent* InLink, const FVector& DestPoint)
+{
+	if (CurrentSmartLink)
+	{
+		CurrentSmartLink->NotifyLinkFinished(this);
+		CurrentSmartLink = NULL;
+	}
+
+	if (InLink)
+	{
+		PauseMove();
+
+		CurrentSmartLink = InLink;
+		CurrentSmartLink->NotifyLinkReached(this, DestPoint);
+	}
 }
 
 bool UPathFollowingComponent::UpdateMovementComponent(bool bForce)
@@ -1288,34 +1374,74 @@ void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot
 }
 #endif // ENABLE_VISUAL_LOG
 
-FString UPathFollowingComponent::GetDebugString() const
+void UPathFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const
 {
-	FString StatusDesc = GetStatusDesc();
-	if (Status == EPathFollowingStatus::Moving)
-	{
-		if (Path.IsValid())
-		{
-			const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
-			const bool bIsDirect = (Path->CastPath<FNavMeshPath>() == NULL);
-			const bool bIsSmartLink = (CurrentSmartLink != NULL);
+	Tokens.Add(GetStatusDesc());
+	Flags.Add(EPathFollowingDebugTokens::Description);
 
-			if (!bIsDirect)
-			{
-				StatusDesc += FString::Printf(TEXT(" (%d..%d/%d)%s"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments,
-					bIsSmartLink ? TEXT(" (SmartLink)") : TEXT(""));
-			}
-			else
-			{
-				StatusDesc += TEXT(" (direct)");
-			}
+	if (Status != EPathFollowingStatus::Moving)
+	{
+		return;
+	}
+
+	FString& StatusDesc = Tokens[0];
+	if (Path.IsValid())
+	{
+		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
+		const bool bIsDirect = (Path->CastPath<FNavMeshPath>() == NULL);
+		const bool bIsSmartLink = (CurrentSmartLink != NULL);
+
+		if (!bIsDirect)
+		{
+			StatusDesc += FString::Printf(TEXT(" (%d..%d/%d)%s"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments,
+				bIsSmartLink ? TEXT(" (SmartLink)") : TEXT(""));
 		}
 		else
 		{
-			StatusDesc += TEXT(" (invalid path)");
+			StatusDesc += TEXT(" (direct)");
 		}
 	}
+	else
+	{
+		StatusDesc += TEXT(" (invalid path)");
+	}
 
-	return StatusDesc;
+	// add debug params
+	float CurrentDot = 0.0f, CurrentDistance = 0.0f, CurrentHeight = 0.0f;
+	uint8 bFailedDot = 0, bFailedDistance = 0, bFailedHeight = 0;
+	DebugReachTest(CurrentDot, CurrentDistance, CurrentHeight, bFailedHeight, bFailedDistance, bFailedHeight);
+
+	Tokens.Add(TEXT("dot"));
+	Flags.Add(EPathFollowingDebugTokens::ParamName);
+	Tokens.Add(FString::Printf(TEXT("%.2f"), CurrentDot));
+	Flags.Add(bFailedDot ? EPathFollowingDebugTokens::FailedValue : EPathFollowingDebugTokens::PassedValue);
+
+	Tokens.Add(TEXT("dist2D"));
+	Flags.Add(EPathFollowingDebugTokens::ParamName);
+	Tokens.Add(FString::Printf(TEXT("%.0f"), CurrentDistance));
+	Flags.Add(bFailedDistance ? EPathFollowingDebugTokens::FailedValue : EPathFollowingDebugTokens::PassedValue);
+
+	Tokens.Add(TEXT("distZ"));
+	Flags.Add(EPathFollowingDebugTokens::ParamName);
+	Tokens.Add(FString::Printf(TEXT("%.0f"), CurrentHeight));
+	Flags.Add(bFailedHeight ? EPathFollowingDebugTokens::FailedValue : EPathFollowingDebugTokens::PassedValue);
+}
+
+FString UPathFollowingComponent::GetDebugString() const
+{
+	TArray<FString> Tokens;
+	TArray<EPathFollowingDebugTokens::Type> Flags;
+
+	GetDebugStringTokens(Tokens, Flags);
+
+	FString Desc;
+	for (int32 i = 0; i < Tokens.Num(); i++)
+	{
+		Desc += Tokens[i];
+		Desc += (Flags.IsValidIndex(i) && Flags[i] == EPathFollowingDebugTokens::ParamName) ? TEXT(": ") : TEXT(", ");
+	}
+
+	return Desc;
 }
 
 void UPathFollowingComponent::LockResource(EAILockSource::Type LockSource)

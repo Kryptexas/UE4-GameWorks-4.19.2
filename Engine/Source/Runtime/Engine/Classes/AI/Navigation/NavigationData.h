@@ -94,7 +94,7 @@ protected:
 public:
 #if WITH_NAVIGATION_GENERATOR 
 	/** Retrieves navmesh's generator, creating one if not already present */
-	class FNavDataGenerator* GetGenerator(NavigationSystem::ECreateIfEmpty CreateIfNone);
+	class FNavDataGenerator* GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone);
 
 	const class FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
 #endif // WITH_NAVIGATION_GENERATOR

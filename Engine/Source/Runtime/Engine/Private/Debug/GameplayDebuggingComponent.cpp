@@ -387,10 +387,36 @@ void UGameplayDebuggingComponent::CollectPathData()
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
 				PathPoints.Reset();
-				for (int32 Index=0; Index < NewPath->PathPoints.Num(); ++Index)
-				{
-					PathPoints.Add( NewPath->PathPoints[Index].Location );
+				
+#if WITH_RECAST
+				ARecastNavMesh* NavMesh = NewPath.IsValid() ? Cast<ARecastNavMesh>(NewPath->GetOwner()) : NULL;
+				FNavMeshPath* NavMeshPath = NewPath->CastPath<FNavMeshPath>();
+				if (NavMeshPath && NavMesh && !NavMeshPath->IsStringPulled() && NavMeshPath->PathPoints.Num() == 2)
+				{				
+					PathPoints.Add(NavMeshPath->PathPoints[0].Location);
+					NavMesh->BeginBatchQuery();
+
+					for (int32 Idx = 1; Idx < NavMeshPath->PathCorridor.Num() - 1; Idx++)
+					{
+						FVector CenterPt;
+						NavMesh->GetPolyCenter(NavMeshPath->PathCorridor[Idx], CenterPt);
+						PathPoints.Add(CenterPt);
+					}
+
+					NavMesh->FinishBatchQuery();
+					PathPoints.Add(NavMeshPath->PathPoints[1].Location);
 				}
+				else
+				{
+#endif // WITH_RECAST
+					for (int32 Index=0; Index < NewPath->PathPoints.Num(); ++Index)
+					{
+						PathPoints.Add( NewPath->PathPoints[Index].Location );
+					}
+#if WITH_RECAST
+				}
+#endif // WITH_RECAST
+
 				CurrentPath = NewPath;
 			}
 		}
@@ -769,7 +795,7 @@ bool UGameplayDebuggingComponent::ServerCollectNavmeshData_Validate(FVector_NetQ
 	bool bIsValid = false;
 #if WITH_RECAST
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	bIsValid = NavSys && NavSys->GetMainNavData(NavigationSystem::DontCreate);
+	bIsValid = NavSys && NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 #endif
 
 	return bIsValid;
@@ -906,7 +932,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 {
 #if WITH_RECAST
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	ARecastNavMesh* NavData = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData(NavigationSystem::DontCreate)) : NULL;
+	ARecastNavMesh* NavData = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData(FNavigationSystem::DontCreate)) : NULL;
 	const APawn* MyPawn = Cast<APawn>(GetOwner());	
 	if (NavData == NULL || MyPawn == NULL)
 	{

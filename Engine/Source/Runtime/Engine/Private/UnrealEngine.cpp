@@ -8399,7 +8399,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
 	}
 	
-	UNavigationSystem::InitializeForWorld(WorldContext.World(), NavigationSystem::GameMode);
+	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
 
 	// Initialize gameplay for the level.
 	WorldContext.World()->InitializeActorsForPlay(URL);

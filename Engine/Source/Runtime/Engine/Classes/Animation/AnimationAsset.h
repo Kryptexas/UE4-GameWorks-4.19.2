@@ -173,6 +173,9 @@ private:
 	/** Mapping table between Skeleton Bone Indices and Pose Bone Indices. */
 	TArray<int32> SkeletonToPoseBoneIndexArray;
 
+	/** Mapping table between Pose Bone Indices and Skeleton Bone Indices. */
+	TArray<int32> PoseToSkeletonBoneIndexArray;
+
 	/** For debugging. */
 	/** Disable Retargeting. Extract animation, but do not retarget it. */
 	bool bDisableRetargeting;
@@ -192,6 +195,7 @@ public:
 		BoneIndicesArray.Empty();
 		BoneSwitchArray.Empty();
 		SkeletonToPoseBoneIndexArray.Empty();
+		PoseToSkeletonBoneIndexArray.Empty();
 	}
 
 	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
@@ -320,6 +324,7 @@ public:
 			<< B.AssetSkeletalMesh 
 			<< B.AssetSkeleton 
 			<< B.SkeletonToPoseBoneIndexArray
+			<< B.PoseToSkeletonBoneIndexArray
 			<< B.bDisableRetargeting
 			<< B.bUseRAWData
 			;	
@@ -338,6 +343,12 @@ public:
 	TArray<int32> const & GetSkeletonToPoseBoneIndexArray() const
 	{
 		return SkeletonToPoseBoneIndexArray;
+	}
+
+	/** Const accessor to GetSkeletonToPoseBoneIndexArray(). */
+	TArray<int32> const & GetPoseToSkeletonBoneIndexArray() const
+	{
+		return PoseToSkeletonBoneIndexArray;
 	}
 
 private:

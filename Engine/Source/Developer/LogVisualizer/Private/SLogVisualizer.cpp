@@ -7,6 +7,7 @@
 #include "DesktopPlatformModule.h"
 #include "Json.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#include "SFilterList.h"
 
 #define LOCTEXT_NAMESPACE "SLogVisualizer"
 
@@ -162,12 +163,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						SNew(SSeparator)
 						.Orientation(Orient_Vertical)
 					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SAssignNew(LogFilter, SLogCategoryFilter)
-					]
 				]
 				+SOverlay::Slot()
 				.HAlign(HAlign_Right)
@@ -203,6 +198,19 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 				]
 			]
 
+			// Filters
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STutorialWrapper, TEXT("CategoryFilters"))
+				[
+					SAssignNew(FilterListPtr, SFilterList)
+					.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
+					/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
+					/*.FrontendFilters(FrontendFilters)*/
+				]
+			]
+
 			+SVerticalBox::Slot()
 			.FillHeight(5)
 			[
@@ -222,7 +230,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.OnGenerateRow(this, &SLogVisualizer::LogsListGenerateRow)
 						.OnSelectionChanged(this, &SLogVisualizer::LogsListSelectionChanged)
 						.HeaderRow(
-																																																																																				SNew(SHeaderRow)
+							SNew(SHeaderRow)
 							// ID
 							+SHeaderRow::Column(NAME_LogName)
 							.SortMode(this, &SLogVisualizer::GetLogsSortMode)
@@ -354,11 +362,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 		]
 	];
 
-	if (LogFilter.IsValid())
-	{
-		LogFilter->OnFiltersChanged.AddRaw(this, &SLogVisualizer::OnLogCategoryFiltersChanged);
-	}
-
 	LogVisualizer->OnLogAdded().AddSP(this, &SLogVisualizer::OnLogAdded);
 
 	TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
@@ -390,10 +393,6 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SLogVisualizer::~SLogVisualizer()
 {
-	if (LogFilter.IsValid())
-	{
-		LogFilter->OnFiltersChanged.RemoveRaw(this, &SLogVisualizer::OnLogCategoryFiltersChanged);
-	}
 	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
@@ -423,14 +422,14 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 {
 	OutEntries.Empty();
 
-	if (LogFilter.IsValid())
+	if (FilterListPtr.IsValid())
 	{
 		for (int32 i = 0; i < Log->Entries.Num(); ++i)
 		{
 			// if any log line is visible - add this entry
 			for (int32 j = 0; j < Log->Entries[i]->LogLines.Num(); ++j)
 			{
-				if (LogFilter->CanShowLogLine(Log->Entries[i]->LogLines[j].Category.ToString(), Log->Entries[i]->LogLines[j].Verbosity))
+				if (FilterListPtr->IsFilterEnabled(Log->Entries[i]->LogLines[j].Category.ToString(), Log->Entries[i]->LogLines[j].Verbosity))
 				{
 					OutEntries.AddUnique(Log->Entries[i]);
 					break;
@@ -448,6 +447,12 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 void SLogVisualizer::OnLogCategoryFiltersChanged()
 {
 	RebuildFilteredList();
+
+	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		ShowEntry(Log->Entries[LogEntryIndex].Get());
+	}
 }
 
 UWorld* SLogVisualizer::GetWorld() const
@@ -560,11 +565,21 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 
 	int32 NewEntryIndex = FMath::Clamp(LogEntryIndex + IncrementBy, 0, Log->Entries.Num() - 1);
 
-	if (LogFilter.IsValid())
+	if (FilterListPtr.IsValid())
 	{
 		while (NewEntryIndex >= 0 && NewEntryIndex < Log->Entries.Num())
 		{
-			if (LogFilter->CanShowLogEntry(Log->Entries[NewEntryIndex]))
+			bool bShouldShow = true;
+			for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->LogLines.Num(); ++LineIndex)
+			{
+				if (FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->LogLines[LineIndex].Category.ToString(), Log->Entries[NewEntryIndex]->LogLines[LineIndex].Verbosity))
+				{
+					bShouldShow = false;
+					break;
+				}
+			}
+
+			if (!bShouldShow)
 			{
 				break;
 			}
@@ -597,6 +612,19 @@ void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
 	const float StartTimestamp = Log->Entries[0]->TimeStamp;
 	const float EndTimestamp = Log->Entries[Log->Entries.Num() - 1]->TimeStamp;
 	
+	for (int32 EntryIndex = 0; EntryIndex < Log->Entries.Num(); ++EntryIndex)
+	{
+		for (auto Iter(Log->Entries[EntryIndex]->LogLines.CreateConstIterator()); Iter; Iter++)
+		{
+			int32 Index = UsedCategories.Find(Iter->Category.ToString());
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(Iter->Category.ToString());
+				FilterListPtr->AddFilter(Iter->Category.ToString(), GetColorForUsedCategory(Index));
+			}
+		}
+	}
+
 	LogsList.Add(MakeShareable(new FLogsListItem(Log->Name.ToString()
 		, StartTimestamp, EndTimestamp, Index)));
 }
@@ -641,8 +669,22 @@ void SLogVisualizer::OnLogAdded()
 	// take last log
 	const int32 NewLogIndex = LogVisualizer->Logs.Num()-1;
 	
-	AddLog(NewLogIndex, LogVisualizer->Logs[NewLogIndex].Get());
-		
+	TSharedPtr<FLogsListItem> Item;
+	for (int32 Index = 0; Index < LogsList.Num(); ++Index)
+	{
+		Item = LogsList[Index];
+		TArray<TSharedPtr<FActorsVisLog> >& Logs = LogVisualizer->Logs;
+		if (Item->Name == Logs[NewLogIndex]->Name.ToString())
+		{
+			break;
+		}
+	}
+	
+	if (!Item.IsValid())
+	{
+		AddLog(NewLogIndex, LogVisualizer->Logs[NewLogIndex].Get());
+	}		
+
 	RequestFullUpdate();
 }
 
@@ -772,6 +814,8 @@ FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index) const
 	case 3: return FLinearColor(FColorList::Green);
 	case 4: return FLinearColor(FColorList::Orange);
 	case 5: return FLinearColor(FColorList::Magenta);
+	case 6: return FLinearColor(FColorList::BrightGold);
+	case 7: return FLinearColor(FColorList::NeonBlue);
 	default:
 		return FLinearColor::White;
 	}
@@ -881,9 +925,9 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 	{
 		bool bShowLine = true;
 
-		if (LogFilter.IsValid())
+		if (FilterListPtr.IsValid())
 		{
-			bShowLine = LogFilter->CanShowLogLine(LogLine->Category.ToString(), LogLine->Verbosity);
+			bShowLine = FilterListPtr->IsFilterEnabled(LogLine->Category.ToString(), LogLine->Verbosity);
 		}
 
 		if (bShowLine)

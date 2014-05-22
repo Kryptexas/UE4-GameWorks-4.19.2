@@ -144,56 +144,61 @@ FString UCurveTable::GetTableAsString()
 
 FString UCurveTable::GetTableAsJSON() const
 {
+	// use the pretty print policy since these values are usually getting dumpped for check-in to P4 (or for inspection)
 	FString Result;
-
-	if(RowMap.Num() > 0)
+	TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR> >::Create(&Result);
+	if (!WriteTableAsJSON(JsonWriter))
 	{
-		TArray<FName> Names;
-		TArray<FRichCurve*> Curves;
-
-		// get the row names and curves they represent
-		RowMap.GenerateKeyArray(Names);
-		RowMap.GenerateValueArray(Curves);
-
-		// Determine the curve with the longest set of data, for headers
-		int32 LongestCurveIndex = 0;
-		for(int32 CurvesIdx = 1; CurvesIdx < Curves.Num(); CurvesIdx++)
-		{
-			if(Curves[CurvesIdx]->GetNumKeys() > Curves[LongestCurveIndex]->GetNumKeys())
-			{
-				LongestCurveIndex = CurvesIdx;
-			}
-		}
-
-		// use the pretty print policy since these values are usually getting dumpped for check-in to P4 (or for inspection)
-		TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR> >::Create(&Result);
-		JsonWriter->WriteArrayStart();
-
-		// display all the curves
-		for(int32 CurvesIdx = 0; CurvesIdx < Curves.Num(); CurvesIdx++)
-		{
-			JsonWriter->WriteObjectStart();
-			// show name of curve
-			JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
-
-			// show data of curve
-			auto LongIt(Curves[LongestCurveIndex]->GetKeyIterator());
-			for (auto It(Curves[CurvesIdx]->GetKeyIterator()); It; ++It)
-			{
-				JsonWriter->WriteValue(FString::Printf(TEXT("%d"), (int32)LongIt->Time), It->Value);
-				++LongIt;
-			}
-			JsonWriter->WriteObjectEnd();
-		}
-
-		JsonWriter->WriteArrayEnd();
-		JsonWriter->Close();
+		return TEXT("No data in row curve!\n");
 	}
-	else
-	{
-		Result += FString(TEXT("No data in row curve!\n"));
-	}
+	JsonWriter->Close();
 	return Result;
+}
+
+bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
+{
+	if(RowMap.Num() <= 0)
+	{
+		return false;
+	}
+	TArray<FName> Names;
+	TArray<FRichCurve*> Curves;
+
+	// get the row names and curves they represent
+	RowMap.GenerateKeyArray(Names);
+	RowMap.GenerateValueArray(Curves);
+
+	// Determine the curve with the longest set of data, for headers
+	int32 LongestCurveIndex = 0;
+	for(int32 CurvesIdx = 1; CurvesIdx < Curves.Num(); CurvesIdx++)
+	{
+		if(Curves[CurvesIdx]->GetNumKeys() > Curves[LongestCurveIndex]->GetNumKeys())
+		{
+			LongestCurveIndex = CurvesIdx;
+		}
+	}
+
+	JsonWriter->WriteArrayStart();
+
+	// display all the curves
+	for(int32 CurvesIdx = 0; CurvesIdx < Curves.Num(); CurvesIdx++)
+	{
+		JsonWriter->WriteObjectStart();
+		// show name of curve
+		JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
+
+		// show data of curve
+		auto LongIt(Curves[LongestCurveIndex]->GetKeyIterator());
+		for (auto It(Curves[CurvesIdx]->GetKeyIterator()); It; ++It)
+		{
+			JsonWriter->WriteValue(FString::Printf(TEXT("%d"), (int32)LongIt->Time), It->Value);
+			++LongIt;
+		}
+		JsonWriter->WriteObjectEnd();
+	}
+
+	JsonWriter->WriteArrayEnd();
+	return true;
 }
 
 void UCurveTable::EmptyTable()

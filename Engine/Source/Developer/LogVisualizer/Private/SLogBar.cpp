@@ -90,27 +90,56 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	);	
 	
 	// Draw all bars
-	for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
+	int32 EntryIndex = 0;
+	while (EntryIndex < Entries.Num())
 	{
+		float CurrentStartX, CurrentEndX;
 		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
-		float StartX, EndX;
-		if (CalculateEntryGeometry( Entry.Get(), AllottedGeometry, StartX, EndX ) )
+		if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, CurrentStartX, CurrentEndX))
+		{
+			EntryIndex++;
+			continue;
+		}
+
+		// find bar width, connect all contiguous bars to draw them as one geometry (rendering optimization)
+		float BarWidth = 0;
+		int32 StartIndex = EntryIndex;
+		float LastEndX = MAX_FLT;
+		for (; StartIndex < Entries.Num(); ++StartIndex)
+		{
+			TSharedPtr<FVisLogEntry> Entry = Entries[StartIndex];
+			float StartX, EndX;
+			if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, StartX, EndX))
+			{
+				break;
+			}
+			if (StartX > LastEndX)
+			{
+				break;
+			}
+			BarWidth = EndX - CurrentStartX;
+			LastEndX = EndX;
+		}
+
+		if (BarWidth > 0)
 		{
 			// Draw Event bar
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				RetLayerId++,
 				AllottedGeometry.ToPaintGeometry(
-					FVector2D( StartX, 0.0f ),
-					FVector2D( EndX - StartX, AllottedGeometry.Size.Y )),
+					FVector2D(CurrentStartX, 0.0f),
+					FVector2D(BarWidth, AllottedGeometry.Size.Y)),
 				FillImage,
 				ForegroundClippingRect,
 				DrawEffects,
 				ColorPalette[0]
-				);
+			);
 		}
-	}
 
+		EntryIndex = StartIndex;
+	}
+	
 	// draw "current time"
 	{
 		const float RelativePos = Offset + (DisplayedTime.Execute() - StartTime) / TotalTime * Zoom;

@@ -7,6 +7,11 @@ UNavAgentInterface::UNavAgentInterface(const class FPostConstructInitializePrope
 {
 }
 
+UCrowdAgentInterface::UCrowdAgentInterface(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+}
+
 UNavigationPathGenerator::UNavigationPathGenerator(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

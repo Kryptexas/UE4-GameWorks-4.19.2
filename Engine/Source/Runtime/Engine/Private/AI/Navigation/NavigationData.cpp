@@ -81,7 +81,7 @@ void ANavigationData::PostInitializeComponents()
 #if WITH_NAVIGATION_GENERATOR
 	if (bRebuildAtRuntime == true && NavDataGenerator.IsValid() == false)
 	{
-		GetGenerator(NavigationSystem::Create);
+		GetGenerator(FNavigationSystem::Create);
 	}
 #endif
 }
@@ -163,7 +163,7 @@ void ANavigationData::PostEditUndo()
 {
 	Super::PostEditUndo();
 #if WITH_NAVIGATION_GENERATOR
-	GetGenerator(NavigationSystem::Create);
+	GetGenerator(FNavigationSystem::Create);
 #endif // WITH_NAVIGATION_GENERATOR
 
 	UWorld* WorldOuter = GetWorld();
@@ -207,10 +207,10 @@ void ANavigationData::CleanUpAndMarkPendingKill()
 
 #if WITH_NAVIGATION_GENERATOR
 
-FNavDataGenerator* ANavigationData::GetGenerator(NavigationSystem::ECreateIfEmpty CreateIfNone)
+FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone)
 {
 	if ((NavDataGenerator.IsValid() == false || NavDataGenerator.GetSharedReferenceCount() <= 0)
-		&& CreateIfNone == NavigationSystem::Create
+		&& CreateIfNone == FNavigationSystem::Create
 		&& (bRebuildAtRuntime == true || GetWorld()->IsGameWorld() == false))
 	{
 		// @todo this is not-that-clear design and is subject to change

@@ -619,6 +619,11 @@ void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh, bool bOwnData)
 
 	bOwnsNavMeshData = bOwnData;
 	DetourNavMesh = NavMesh;
+
+	if (NavMeshOwner)
+	{
+		NavMeshOwner->UpdateNavObject();
+	}
 }
 
 void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
@@ -1590,6 +1595,71 @@ uint32 FPImplRecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	return AreaID;
 }
 
+bool FPImplRecastNavMesh::GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const
+{
+	if (DetourNavMesh)
+	{
+		// get poly data from recast
+		dtPoly const* Poly;
+		dtMeshTile const* Tile;
+		dtStatus Status = DetourNavMesh->getTileAndPolyByRef((dtPolyRef)PolyID, &Tile, &Poly);
+		if (dtStatusSucceed(Status))
+		{
+			Flags = Poly->flags;
+			AreaType = Poly->getArea();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
+{
+	if (DetourNavMesh && PolyID)
+	{
+		uint32 SaltIdx = 0;
+		DetourNavMesh->decodePolyId(PolyID, SaltIdx, TileIndex, PolyIndex);
+		return true;
+	}
+
+	return false;
+}
+
+uint32 FPImplRecastNavMesh::GetLinkUserId(NavNodeRef LinkPolyID) const
+{
+	uint32 UserID = 0;
+	if (DetourNavMesh)
+	{
+		const dtOffMeshConnection* offmeshCon = DetourNavMesh->getOffMeshConnectionByRef(LinkPolyID);
+		if (offmeshCon)
+		{
+			UserID = offmeshCon->userId;
+		}
+	}
+
+	return UserID;
+}
+
+bool FPImplRecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const
+{
+	if (DetourNavMesh)
+	{
+		float RcPointA[3] = { 0 };
+		float RcPointB[3] = { 0 };
+		
+		dtStatus status = DetourNavMesh->getOffMeshConnectionPolyEndPoints(0, LinkPolyID, 0, RcPointA, RcPointB);
+		if (dtStatusSucceed(status))
+		{
+			PointA = Recast2UnrealPoint(RcPointA);
+			PointB = Recast2UnrealPoint(RcPointB);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const
 {
 	if (DetourNavMesh == NULL || !ClusterRef)
@@ -1647,7 +1717,7 @@ bool FPImplRecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBound
 	return NumPolys > 0;
 }
 
-FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const
+FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const
 {
 	const int32 CorridorLenght = PathCorridor->Num();
 
@@ -1663,7 +1733,7 @@ FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(TArray<NavNode
 	}
 }
 
-void FPImplRecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
+void FPImplRecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
 {
 	// sanity check
 	if (DetourNavMesh == NULL)

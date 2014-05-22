@@ -683,20 +683,18 @@ void FAnimationRuntime::FillWithRefPose(TArray<FTransform> & OutAtoms, const FBo
 		// Only do this if we have a mesh. otherwise we're not retargeting animations.
 		if( RequiredBones.GetSkeletalMeshAsset() )
 		{
-			const int32 MeshLinkUpIndex = RequiredBones.GetSkeletonAsset()->GetMeshLinkupIndex(RequiredBones.GetSkeletalMeshAsset());
-			const FSkeletonToMeshLinkup & LinkupTable = RequiredBones.GetSkeletonAsset()->LinkupCache[MeshLinkUpIndex];
+			TArray<int32> const & PoseToSkeletonBoneIndexArray = RequiredBones.GetPoseToSkeletonBoneIndexArray();
+			TArray<FBoneIndexType> const & RequireBonesIndexArray = RequiredBones.GetBoneIndicesArray();
+			TArray<FTransform> const & SkeletonRefPose = RequiredBones.GetSkeletonAsset()->GetRefLocalPoses();
 
-			const TArray<FBoneIndexType> & SkelMeshRequiredBonesArray = RequiredBones.GetBoneIndicesArray();
-			const TArray<FTransform>& RefPose = RequiredBones.GetSkeletonAsset()->GetRefLocalPoses();
-
-			for(int32 Index=0; Index<SkelMeshRequiredBonesArray.Num(); Index++)
+			for (int32 ArrayIndex = 0; ArrayIndex<RequireBonesIndexArray.Num(); ArrayIndex++)
 			{
-				const int32 & SkelMeshBoneIndex = SkelMeshRequiredBonesArray[Index];
-				const int32 & SkeletonBoneIndex = LinkupTable.MeshToSkeletonTable[SkelMeshBoneIndex];
-				if( SkeletonBoneIndex != INDEX_NONE )
-				{
-					OutAtoms[SkelMeshBoneIndex] = RefPose[SkeletonBoneIndex];
-				}
+				int32 const & PoseBoneIndex = RequireBonesIndexArray[ArrayIndex];
+				int32 const & SkeletonBoneIndex = PoseToSkeletonBoneIndexArray[PoseBoneIndex];
+
+				// Pose bone index should always exist in Skeleton
+				checkSlow(SkeletonBoneIndex != INDEX_NONE);
+				OutAtoms[PoseBoneIndex] = SkeletonRefPose[SkeletonBoneIndex];
 			}
 		}
 	}

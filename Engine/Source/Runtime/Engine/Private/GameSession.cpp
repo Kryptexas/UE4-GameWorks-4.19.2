@@ -205,26 +205,31 @@ void AGameSession::NotifyLogout(APlayerController* PC)
 	UnregisterPlayer(PC);
 }
 
-bool AGameSession::KickPlayer(APlayerController* C, const FText& KickReason)
+bool AGameSession::KickPlayer(APlayerController* KickedPlayer, const FText& KickReason)
 {
 	// Do not kick logged admins
-	if (C != NULL && Cast<UNetConnection>(C->Player) != NULL)
+	if (KickedPlayer != NULL && Cast<UNetConnection>(KickedPlayer->Player) != NULL)
 	{
-		if (C->GetPawn() != NULL)
+		if (KickedPlayer->GetPawn() != NULL)
 		{
-			C->GetPawn()->Destroy();
+			KickedPlayer->GetPawn()->Destroy();
 		}
 
-		C->ClientWasKicked(KickReason);
+		KickedPlayer->ClientWasKicked(KickReason);
 
-		if (C != NULL)
+		if (KickedPlayer != NULL)
 		{
-			C->Destroy();
+			KickedPlayer->Destroy();
 		}
 
 		return true;
 	}
 	return false;
+}
+
+bool AGameSession::BanPlayer(class APlayerController* BannedPlayer, const FText& BanReason)
+{
+	return KickPlayer(BannedPlayer, BanReason);
 }
 
 void AGameSession::ReturnToMainMenuHost()

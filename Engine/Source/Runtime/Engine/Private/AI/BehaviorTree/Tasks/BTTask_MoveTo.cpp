@@ -8,6 +8,7 @@ UBTTask_MoveTo::UBTTask_MoveTo(const class FPostConstructInitializeProperties& P
 	, bAllowStrafe(false)
 {
 	NodeName = "Move To";
+	bNotifyTick = true;
 
 	// accept only actors and vectors
 	BlackboardKey.AddObjectFilter(this, AActor::StaticClass());
@@ -15,6 +16,26 @@ UBTTask_MoveTo::UBTTask_MoveTo(const class FPostConstructInitializeProperties& P
 }
 
 EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+{
+	EBTNodeResult::Type NodeResult = EBTNodeResult::InProgress;
+
+	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+
+	MyMemory->bWaitingForPath = MyController->ShouldPostponePathUpdates();
+	if (!MyMemory->bWaitingForPath)
+	{
+		NodeResult = PerformMoveTask(OwnerComp, NodeMemory);
+	}
+	else
+	{
+		UE_VLOG(MyController, LogBehaviorTree, Log, TEXT("Pathfinding requests are freezed, waiting..."));
+	}
+	
+	return NodeResult;
+}
+
+EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
@@ -67,14 +88,37 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* Ow
 EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
-	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
-
-	if (MyController && MyController->PathFollowingComponent)
+	if (!MyMemory->bWaitingForPath)
 	{
-		MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+		AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+
+		if (MyController && MyController->PathFollowingComponent)
+		{
+			MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+		}
 	}
 
 	return Super::AbortTask(OwnerComp, NodeMemory);
+}
+
+void UBTTask_MoveTo::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
+	if (MyMemory->bWaitingForPath && !OwnerComp->IsPaused())
+	{
+		AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+		if (MyController && !MyController->ShouldPostponePathUpdates())
+		{
+			UE_VLOG(MyController, LogBehaviorTree, Log, TEXT("Pathfinding requests are unlocked!"));
+			MyMemory->bWaitingForPath = false;
+
+			const EBTNodeResult::Type NodeResult = PerformMoveTask(OwnerComp, NodeMemory);
+			if (NodeResult != EBTNodeResult::InProgress)
+			{
+				FinishLatentTask(OwnerComp, NodeResult);
+			}
+		}
+	}
 }
 
 void UBTTask_MoveTo::OnMessage(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 SenderID, bool bSuccess)

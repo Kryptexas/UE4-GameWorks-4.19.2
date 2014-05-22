@@ -104,6 +104,9 @@ class ENGINE_API UCheatManager : public UObject
 	/** Index of the array for current trace to overwrite.  Whenever you capture, this index will be increased **/
 	int32 CurrentTracePawnIndex;
 
+	/** time interval for dumping AI loggs (vlogs) */
+	float DumpAILogsInterval;
+
 	/** Pause the game for Delay seconds. */
 	UFUNCTION(exec)
 	virtual void FreezeFrame(float Delay);
@@ -202,6 +205,8 @@ class ENGINE_API UCheatManager : public UObject
 
 	UFUNCTION(reliable, server, WithValidation)
 	virtual void ServerToggleAILogging();
+
+	void DumpAILogs();
 
 	/** makes various AI logging categories verbose */
 	UFUNCTION(exec)

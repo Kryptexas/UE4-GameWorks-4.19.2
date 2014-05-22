@@ -4,6 +4,16 @@
 
 #include "AITypes.generated.h"
 
+namespace FAISystem
+{
+	static const FVector InvalidLocation(FLT_MAX);
+
+	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
+	{
+		return TestLocation != InvalidLocation;
+	}
+}
+
 UENUM()
 namespace EAIOptionFlag
 {

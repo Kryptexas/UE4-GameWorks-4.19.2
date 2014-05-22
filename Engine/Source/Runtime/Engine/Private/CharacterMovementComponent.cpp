@@ -3260,6 +3260,10 @@ void UCharacterMovementComponent::ProcessLanded(const FHitResult& Hit, float rem
 	{
 		SetPostLandedPhysics(Hit);
 	}
+	if (PathFollowingComp.IsValid())
+	{
+		PathFollowingComp->OnLanded();
+	}
 
 	StartNewPhysics(remainingTime, Iterations);
 }
@@ -3363,7 +3367,7 @@ void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 	FRotator DeltaRot = GetDeltaRotation(DeltaTime);
 	FRotator DesiredRotation = CurrentRotation;
 
-	if (bOrientRotationToMovement)
+	if (bOrientRotationToMovement && (Velocity.IsZero() == false))
 	{
 		DesiredRotation = ComputeOrientToMovementRotation(CurrentRotation, DeltaTime, DeltaRot);
 	}
@@ -5594,7 +5598,10 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 			const FOverlapInfo& Overlap = Overlaps[i];
 
 			UPrimitiveComponent* OverlapComp = Overlap.Component.Get();
-			if (!OverlapComp || OverlapComp->Mobility < EComponentMobility::Movable) { continue; }
+			if (!OverlapComp || OverlapComp->Mobility < EComponentMobility::Movable)
+			{ 
+				continue; 
+			}
 
 			FName BoneName = NAME_None;
 			if (Overlap.BodyIndex != INDEX_NONE && OverlapComp->IsA(USkinnedMeshComponent::StaticClass()))

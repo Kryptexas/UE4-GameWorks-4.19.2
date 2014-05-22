@@ -17,16 +17,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
-namespace FAISystem
-{
-	static const FVector InvalidLocation(FLT_MAX);
-
-	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
-	{
-		return TestLocation != InvalidLocation;
-	}
-}
-
 UENUM()
 namespace EAIRequestPriority
 {
@@ -245,6 +235,7 @@ public:
 
 	// Begin AController Interface
 	virtual void Possess(class APawn* InPawn) OVERRIDE;
+	virtual void UnPossess() OVERRIDE;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 
 #if ENABLE_VISUAL_LOG

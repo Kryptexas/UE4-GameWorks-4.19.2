@@ -3,8 +3,9 @@
 #pragma once
 
 #include "STimeline.h"
-#include "SLogCategoryFilter.h"
 #include "Debug/DebugDrawService.h"
+
+class SFilterList;
 
 struct FLogsListItem
 {
@@ -212,6 +213,9 @@ private:
 
 	// MEMBERS
 
+	/** The filter list */
+	TSharedPtr<SFilterList> FilterListPtr;
+
 	/** Index into LogVisualizer->Logs array for entries you want to show. */
 	TArray<TSharedPtr<FLogsListItem> >	LogsList;
 	/** filled with current log entry's log lines is a source of LogsLinesWidget */
@@ -263,5 +267,4 @@ private:
 	TSharedPtr<STimeline> Timeline;
 	TSharedPtr<SScrollBar> ScrollBar;
 	TSharedPtr<SSlider> ZoomSlider;
-	TSharedPtr<SLogCategoryFilter> LogFilter;
 };

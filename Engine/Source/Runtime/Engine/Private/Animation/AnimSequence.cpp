@@ -690,24 +690,55 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransform
 void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const
 {
 	// Allow 'bLoopingInterpolation' flag on the AnimSequence to disable the looping interpolation.
-	const bool bDoLoopingInterpolation = ExtractionContext.bLooping && bLoopingInterpolation;
+	bool const bDoLoopingInterpolation = ExtractionContext.bLooping && bLoopingInterpolation;
 
-	// initialize with refpose
-	FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
-
-	const int32 NumTracks = GetNumberOfTracks();
 	USkeleton * MySkeleton = GetSkeleton();
-	if ((NumTracks == 0) || !MySkeleton)
+	if (!MySkeleton)
+	{
+		FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
+		return;
+	}
+
+	// if retargeting is disabled, we initialize pose with 'Retargeting Source' ref pose.
+	bool const bDisableRetargeting = RequiredBones.GetDisableRetargeting();
+	if (bDisableRetargeting)
+	{
+		TArray<FTransform> const & AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
+		TArray<FBoneIndexType> const & RequireBonesIndexArray = RequiredBones.GetBoneIndicesArray();
+		TArray<int32> const & PoseToSkeletonBoneIndexArray = RequiredBones.GetPoseToSkeletonBoneIndexArray();
+	
+		// Allocate output and make sure it's the right size.
+		int32 const NumPoseBones = RequiredBones.GetNumBones();
+		OutAtoms.Empty(NumPoseBones);
+		OutAtoms.AddUninitialized(NumPoseBones);
+
+		int32 const NumRequiredBones = RequireBonesIndexArray.Num();
+		for (int32 ArrayIndex = 0; ArrayIndex < NumRequiredBones; ArrayIndex++)
+		{
+			int32 const & PoseBoneIndex = RequireBonesIndexArray[ArrayIndex];
+			int32 const & SkeletonBoneIndex = PoseToSkeletonBoneIndexArray[PoseBoneIndex];
+
+			// Pose bone index should always exist in Skeleton
+			checkSlow(SkeletonBoneIndex != INDEX_NONE);
+			OutAtoms[PoseBoneIndex] = AuthoredOnRefSkeleton[SkeletonBoneIndex];
+		}
+	}
+	else
+	{
+		// initialize with ref-pose
+		FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
+	}
+
+	int32 const NumTracks = GetNumberOfTracks();
+	if (NumTracks == 0)
 	{
 		return;
 	}
 
-	// Remap RequiredBones array to Source Skeleton.
-	TArray<int32> const & SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
-
 	// Slower path for disable retargeting, that's only used in editor and for debugging.
-	if( RequiredBones.ShouldUseRawData() || RequiredBones.GetDisableRetargeting() )
+	if (RequiredBones.ShouldUseRawData() || bDisableRetargeting)
 	{
+		TArray<int32> const & SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 		for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
 		{
 			const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
@@ -719,9 +750,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 				// extract animation
 				GetBoneTransform(OutAtoms[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime, bDoLoopingInterpolation, true);
 
-				// retarget
-				// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
-				if( !RequiredBones.GetDisableRetargeting() )
+				if (!bDisableRetargeting)
 				{
 					RetargetBoneTransform(OutAtoms[PoseBoneIndex], SkeletonBoneIndex, PoseBoneIndex, RequiredBones);
 				}
@@ -735,7 +764,8 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 		return;
 	}
 
-	const TArray<FBoneNode> & BoneTree = MySkeleton->GetBoneTree();
+	TArray<FBoneNode> const & BoneTree = MySkeleton->GetBoneTree();
+	TArray<int32> const & SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
 	//@TODO:@ANIMATION: These should be memstack allocated - very heavy
 	BoneTrackArray RotationScalePairs;

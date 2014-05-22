@@ -477,9 +477,11 @@ public:
 	void GetCameraViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const;
 	
 	// @todo document
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	FRotator GetCameraRotation() const;
 
 	// @todo document
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	FVector GetCameraLocation() const;
 	
 	/** Sets the new desired color scale and enables interpolation. */

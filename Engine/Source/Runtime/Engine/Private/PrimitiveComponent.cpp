@@ -1187,7 +1187,7 @@ void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
 	Super::SetRelativeScale3D(NewScale3D);
 
 	AActor* Actor = GetOwner();
-	if (Actor && OldScale3D != RelativeScale3D && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && OldScale3D != RelativeScale3D && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
 	{
 		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
 		{
@@ -1496,7 +1496,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	}
 
 	// Update Nav system if relevant.
-	if (bMoved && Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	if (bMoved && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
 	{
 		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
 		{

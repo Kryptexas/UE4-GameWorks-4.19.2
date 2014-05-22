@@ -102,7 +102,7 @@ private:
 };
 
 /** Holds global data loaded at startup, is in a singleton UObject so it works properly with hot reload */
-UCLASS(config=Game)
+UCLASS(config=Engine)
 class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -158,12 +158,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 	/** 
 	 * Loads the tag table
-	 * 
-	 * @param TagTableName	The name of the table to load
 	 *
 	 * @return The data table that has been loaded
 	 */
-	const UDataTable* LoadGameplayTagTable( FString TagTableName );
+	const UDataTable* LoadGameplayTagTable();
 
 	/** Helper function to construct the gameplay tag tree */
 	void ConstructGameplayTagTree();
@@ -233,6 +231,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	UPROPERTY()
 	class UDataTable* GameplayTagTable;
 
+	/** Name of the table to load */
+	UPROPERTY(Config)
+	FString GameplayTagTableName;
 private:
 
 	/**

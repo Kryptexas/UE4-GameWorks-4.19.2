@@ -91,8 +91,21 @@ void FLogVisualizer::OnNewLog(const AActor* Actor, TSharedPtr<FActorsVisLog> Log
 
 void FLogVisualizer::AddLoadedLog(TSharedPtr<FActorsVisLog> Log)
 {
-	Logs.Add(Log);
-	LogAddedEvent.Broadcast();
+	for (int32 Index = 0; Index < Logs.Num(); ++Index)
+	{
+		if (Logs[Index]->Name == Log->Name)
+		{
+			Logs[Index]->Entries.Append(Log->Entries);
+			LogAddedEvent.Broadcast();
+			return;
+		}
+	}
+
+	if (Log.IsValid() && Log->Entries.Num() > 0)
+	{
+		Logs.Add(Log);
+		LogAddedEvent.Broadcast();
+	}
 }
 
 bool FLogVisualizer::IsRecording()

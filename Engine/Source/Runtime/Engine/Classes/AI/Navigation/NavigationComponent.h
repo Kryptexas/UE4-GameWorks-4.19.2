@@ -106,6 +106,8 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 
 	FORCEINLINE bool IsPaused() const { return bIsPaused; }
 
+	FORCEINLINE bool IsWaitingForRepath() const { return bIsWaitingForRepath; }
+
 	/** Return true if path should be updated when nearby smart link change its state */
 	FORCEINLINE bool WantsSmartLinkUpdates() const { return bUpdateForSmartLinks; }
 
@@ -158,6 +160,19 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 	void SetReceiveSmartLinkUpdates(bool bEnabled);
 
 	TSharedPtr<const FNavigationQueryFilter> GetStoredQueryFilter() { return StoredQueryFilter; }
+
+	/** get additional flags passed with path finding queries */
+	int32 GetNavDataFlags() const { return NavDataFlags;  }
+
+	/** add new NavData flag passed with path finding queries */
+	void SetNavDataFlag(int32 Flag) { NavDataFlags |= Flag; }
+
+	/** add new NavData flag passed with path finding queries */
+	void ClearNavDataFlag(int32 Flag) { NavDataFlags &= ~Flag; }
+
+	/** override NavData flags */
+	void SetNavDataFlags(int32 Flags) { NavDataFlags = Flags; }
+
 	//----------------------------------------------------------------------//
 	// debug
 	//----------------------------------------------------------------------//
@@ -205,6 +220,9 @@ protected:
 	/** if set, invalid paths will trigger repath */
 	uint32 bRepathWhenInvalid : 1;
 
+	/** set when component if waiting for scheduled repath */
+	uint32 bIsWaitingForRepath : 1;
+
 	/** if set, path will be updated if agent receives smart link broadcast */
 	uint32 bUpdateForSmartLinks : 1;
 
@@ -232,6 +250,9 @@ protected:
 	FVector OriginalGoalActorLocation;
 
 	int32 AsynPathQueryID;
+
+	/** additional flags passed with every path finding query */
+	int32 NavDataFlags;
 	
 	/** if GoalActor moves move than this away from last point of Path Navigation Component will re-run path finding */
 	float RepathDistanceSq;

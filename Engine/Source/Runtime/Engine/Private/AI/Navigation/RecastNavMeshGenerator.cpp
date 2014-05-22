@@ -67,7 +67,7 @@ struct FRecastNavMeshCachedData
 
 		FORCEINLINE bool operator()( const FAreaNavModifier& A, const FAreaNavModifier& B ) const 
 		{ 
-			return A.FixedCost == B.FixedCost ? A.Cost > B.Cost : A.FixedCost > B.FixedCost;
+			return A.FixedCost == B.FixedCost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
 		}
 	};
 
@@ -218,29 +218,101 @@ FORCEINLINE bool DoesBoxContainBox(const FBox& BigBox, const FBox& SmallBox)
  * @param GeomVerts - list of vertices
  * @param GeomFaces - list of triangles (3 vert indices for each)
  */
-static void ExportGeomToOBJFile(const FString& FileName, const TNavStatArray<float>& GeomCoords, const TNavStatArray<int32>& GeomFaces, const FString& AdditionalData)
+static void ExportGeomToOBJFile(const FString& InFileName, const TNavStatArray<float>& GeomCoords, const TNavStatArray<int32>& GeomFaces, const FString& AdditionalData)
 {
+#define USE_COMPRESSION 0
+
 #if ALLOW_DEBUG_FILES
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_TileGeometryExportToObjAsync);
+
+	FString FileName = InFileName;
+
+#if USE_COMPRESSION
+	FileName += TEXT("z");
+	struct FDataChunk
+	{
+		TArray<uint8> UncompressedBuffer;
+		TArray<uint8> CompressedBuffer;
+		void CompressBuffer()
+		{
+			const int32 HeaderSize = sizeof(int32);
+			const int32 UncompressedSize = UncompressedBuffer.Num();
+			CompressedBuffer.Init(0, HeaderSize + FMath::Trunc(1.1f * UncompressedSize));
+
+			int32 CompressedSize = CompressedBuffer.Num() - HeaderSize;
+			uint8* DestBuffer = CompressedBuffer.GetTypedData();
+			FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
+			DestBuffer += HeaderSize;
+
+			FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory), (void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
+			CompressedBuffer.SetNum(CompressedSize + HeaderSize, false);
+		}
+	};
+	FDataChunk AllDataChunks[3];
+	const int32 NumberOfChunks = sizeof(AllDataChunks) / sizeof(FDataChunk);
+	{
+		FMemoryWriter ArWriter(AllDataChunks[0].UncompressedBuffer);
+		for (int32 i = 0; i < GeomCoords.Num(); i += 3)
+		{
+			FVector Vertex(GeomCoords[i + 0], GeomCoords[i + 1], GeomCoords[i + 2]);
+			ArWriter << Vertex;
+		}
+	}
+
+	{
+		FMemoryWriter ArWriter(AllDataChunks[1].UncompressedBuffer);
+		for (int32 i = 0; i < GeomFaces.Num(); i += 3)
+		{
+			FVector Face(GeomFaces[i + 0] + 1, GeomFaces[i + 1] + 1, GeomFaces[i + 2] + 1);
+			ArWriter << Face;
+		}
+	}
+
+	{
+		auto AnsiAdditionalData = StringCast<ANSICHAR>(*AdditionalData);
+		FMemoryWriter ArWriter(AllDataChunks[2].UncompressedBuffer);
+		ArWriter.Serialize((ANSICHAR*)AnsiAdditionalData.Get(), AnsiAdditionalData.Length());
+	}
 
 	FArchive* FileAr = IFileManager::Get().CreateDebugFileWriter(*FileName);
 	if (FileAr != NULL)
 	{
-		FStringOutputDevice Ar;
-		for (int32 i = 0; i < GeomCoords.Num(); i += 3)
+		for (int32 Index = 0; Index < NumberOfChunks; ++Index)
 		{
-			Ar.Logf(TEXT("v %f %f %f\n"), GeomCoords[i + 0], GeomCoords[i + 1], GeomCoords[i + 2]);
+			AllDataChunks[Index].CompressBuffer();
+			int32 BufferSize = AllDataChunks[Index].CompressedBuffer.Num();
+			FileAr->Serialize(&BufferSize, sizeof(int32));
+			FileAr->Serialize((void*)AllDataChunks[Index].CompressedBuffer.GetData(), AllDataChunks[Index].CompressedBuffer.Num());
 		}
-
-		for (int32 i = 0; i < GeomFaces.Num(); i += 3)
-		{
-			Ar.Logf(TEXT("f %d %d %d\n"), GeomFaces[i + 0] +1, GeomFaces[i + 1] +1, GeomFaces[i + 2] +1);
-		}
-
-		FileAr->Logf(*Ar);
-		FileAr->Logf(*AdditionalData);
+		UE_LOG(LogNavigation, Error, TEXT("UncompressedBuffer size:: %d "), AllDataChunks[0].UncompressedBuffer.Num() + AllDataChunks[1].UncompressedBuffer.Num() + AllDataChunks[2].UncompressedBuffer.Num());
 		FileAr->Close();
 	}
+
+#else
+	FArchive* FileAr = IFileManager::Get().CreateDebugFileWriter(*FileName);
+	if (FileAr != NULL)
+	{
+		for (int32 Index = 0; Index < GeomCoords.Num(); Index += 3)
+		{
+			FString LineToSave = FString::Printf(TEXT("v %f %f %f\n"), GeomCoords[Index + 0], GeomCoords[Index + 1], GeomCoords[Index + 2]);
+			auto AnsiLineToSave = StringCast<ANSICHAR>(*LineToSave);
+			FileAr->Serialize((ANSICHAR*)AnsiLineToSave.Get(), AnsiLineToSave.Length());
+		}
+
+		for (int32 Index = 0; Index < GeomFaces.Num(); Index += 3)
+		{
+			FString LineToSave = FString::Printf(TEXT("f %d %d %d\n"), GeomFaces[Index + 0] + 1, GeomFaces[Index + 1] + 1, GeomFaces[Index + 2] + 1);
+			auto AnsiLineToSave = StringCast<ANSICHAR>(*LineToSave);
+			FileAr->Serialize((ANSICHAR*)AnsiLineToSave.Get(), AnsiLineToSave.Length());
+		}
+
+		auto AnsiAdditionalData = StringCast<ANSICHAR>(*AdditionalData);
+		FileAr->Serialize((ANSICHAR*)AnsiAdditionalData.Get(), AnsiAdditionalData.Length());
+		FileAr->Close();
+	}
+#endif
+
+#undef USE_COMPRESSION
 #endif
 }
 
@@ -1073,7 +1145,6 @@ void FRecastGeometryExport::AddNavModifiers(const FCompositeNavModifier& Modifie
 	Data->Modifiers.Add(Modifiers);
 }
 
-//@TODO: When there's a very sharp angle between two edges it can generate vertex very far from original one - fix it later if necessary
 FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Verts, TArray<FVector>& OutResult)
 {
 	if (Verts.Num() < 3)
@@ -1103,7 +1174,7 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 			const float C2 = Line2.P1.Y - Line1.P1.Y;
 
 			const float Denominator = A2*B1 - A1*B2;
-			if (Denominator > 0)
+			if (Denominator != 0)
 			{
 				const float t = (B1*C2 - B2*C1) / Denominator;
 				return Line1.P1 + t * (Line1.P2 - Line1.P1);
@@ -1152,6 +1223,8 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 		return;
 	}
 
+	const float ExpansionThreshold = 2 * ExpandBy;
+	const float ExpansionThresholdSQ = ExpansionThreshold * ExpansionThreshold;
 	const FQuat Rotation(FVector(0, 0, 1), FMath::DegreesToRadians(RotationAngle));
 	FSimpleLine PreviousLine;
 	OutResult.Reserve(Verts.Num());
@@ -1180,14 +1253,25 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 		const FSimpleLine Line2(V2 + MoveDir2, V3 + MoveDir2);
 
 		const FVector NewPoint = FSimpleLine::Intersection(Line1, Line2);
-		if (NewPoint != FVector::ZeroVector)
+		if (NewPoint == FVector::ZeroVector)
 		{
-			OutResult.Add(NewPoint);
+			// both lines are parallel so just move our point by expansion distance
+			OutResult.Add(V2 + MoveDir2);
 		}
 		else
 		{
-			OutResult.Reset();
-			return;
+			const FVector VectorToNewPoint = NewPoint - V2;
+			const float DistToNewVector = VectorToNewPoint.SizeSquared2D();
+			if (DistToNewVector > ExpansionThresholdSQ)
+			{
+				//clamp our point to not move to far from original location
+				const FVector HelpPos = V2 + VectorToNewPoint.SafeNormal2D() * ExpandBy * 1.4142;
+				OutResult.Add(HelpPos);
+			}
+			else
+			{
+				OutResult.Add(NewPoint);
+			}
 		}
 
 		PreviousLine = Line2;
@@ -4544,7 +4628,7 @@ uint32 FRecastNavMeshGenerator::LogMemUsed() const
 	return GeneratorsMem + sizeof(FRecastNavMeshGenerator);
 }
 
-#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) const
 {
 	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
@@ -4554,6 +4638,8 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 		UE_LOG(LogNavigation, Error, TEXT("Failed to export navigation data due to %s being NULL"), NavSys == NULL ? TEXT("NavigationSystem") : TEXT("NavOctree"));
 		return;
 	}
+
+	const double StartExportTime = FPlatformTime::Seconds();
 
 	FString CurrentTimeStr = FDateTime::Now().ToString();
 	for (int32 Index = 0; Index < NavSys->NavDataSet.Num(); ++Index)
@@ -4615,7 +4701,7 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 					}
 				}
 			}
-
+			
 			UWorld* NavigationWorld = GetWorld();
 			for (int32 LevelIndex = 0; LevelIndex < NavigationWorld->GetNumLevels(); ++LevelIndex) 
 			{
@@ -4647,7 +4733,8 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 					}
 				}
 			}
-
+			
+			
 			FString AreaExportStr;
 			for (int32 i = 0; i < AreaExport.Num(); i++)
 			{
@@ -4661,8 +4748,9 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 					AreaExportStr += FString::Printf(TEXT("Av %f %f %f\n"), Pt.X, Pt.Y, Pt.Z);
 				}
 			}
-
+			
 			FString AdditionalData;
+			
 			if (AreaExport.Num())
 			{
 				AdditionalData += "# Area export\n";
@@ -4688,8 +4776,9 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 				Box.Min.X, Box.Min.Y, Box.Min.Z, 
 				Box.Max.X, Box.Max.Y, Box.Max.Z
 			);
-
+			
 #if WITH_NAVIGATION_GENERATOR
+			
 			const FRecastNavMeshGenerator* CurrentGen = static_cast<const FRecastNavMeshGenerator*>(NavData->GetGenerator());
 			check(CurrentGen);
 			AdditionalData += FString::Printf(TEXT("# AgentHeight\n"));
@@ -4727,11 +4816,13 @@ void FRecastNavMeshGenerator::ExportNavigationData(const FString& FileName) cons
 			AdditionalData += FString::Printf(TEXT("rd_ts %d\n"), CurrentGen->Config.tileSize);
 
 			AdditionalData += FString::Printf(TEXT("\n"));
+			
 #endif // WITH_NAVIGATION_GENERATOR
 			const FString FilePathName = FileName + FString::Printf(TEXT("_NavDataSet%d_%s.obj"), Index, *CurrentTimeStr) ;
 			ExportGeomToOBJFile(FilePathName, CoordBuffer, IndexBuffer, AdditionalData);
 		}
 	}
+	UE_LOG(LogNavigation, Error, TEXT("ExportNavigation time: %.3f sec ."), FPlatformTime::Seconds() - StartExportTime);
 }
 #endif
 
@@ -4741,7 +4832,7 @@ public:
 	/** Console commands, see embeded usage statement **/
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
 	{
-#if ALLOW_DEBUG_FILES && WITH_EDITOR
+#if ALLOW_DEBUG_FILES && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		bool bCorrectCmd = FParse::Command(&Cmd, TEXT("ExportNavigation"));
 		if (bCorrectCmd && !InWorld)
 		{

@@ -15,11 +15,23 @@ UGameplayTagsManager::UGameplayTagsManager(const class FPostConstructInitializeP
 #endif
 }
 
-const UDataTable* UGameplayTagsManager::LoadGameplayTagTable( FString TagTableName )
+const UDataTable* UGameplayTagsManager::LoadGameplayTagTable()
 {
-	if (!GameplayTagTable && !TagTableName.IsEmpty())
+	if (!GameplayTagTable && !GameplayTagTableName.IsEmpty())
 	{
-		GameplayTagTable = LoadObject<UDataTable>(NULL, *TagTableName, NULL, LOAD_None, NULL);
+		GameplayTagTable = LoadObject<UDataTable>(NULL, *GameplayTagTableName, NULL, LOAD_None, NULL);
+
+		// Handle case where the module is dynamically-loaded within a LoadPackage stack, which would otherwise
+		// result in the tag table not having its RowStruct serialized in time. Without the RowStruct, the tags manager
+		// will not be initialized correctly.
+		if (GameplayTagTable && IsLoading())
+		{
+			ULinkerLoad* TagLinker = GameplayTagTable->GetLinker();
+			if (TagLinker)
+			{
+				GameplayTagTable->GetLinker()->Preload(GameplayTagTable);
+			}
+		}
 	}
 #if WITH_EDITOR
 	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
@@ -244,8 +256,7 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName) const
 	const FGameplayTag* Tag = GameplayTagMap.Find(TagName);
 	if (!Tag)
 	{ 
-		// @BRAMER TODO: Restore this after initial submission
-		//ensureMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
+		ensureMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
 		return FGameplayTag();
 	}
 	return *Tag;

@@ -3262,7 +3262,8 @@ void FKismetCompilerContext::Compile()
 		// Always run the VM backend, it's needed for more than just debug printing
 		{
 			SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CodeGenerationTime);
-			Backend_VM.GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
+			const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
+			Backend_VM.GenerateCodeFromClass(NewClass, FunctionList, bGenerateStubsOnly);
 		}
 
 		if (bDisplayBytecode && bIsFullCompile)

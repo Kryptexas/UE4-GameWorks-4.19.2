@@ -2435,7 +2435,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 		PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 	}
 	
-	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? NavigationSystem::PIEMode : NavigationSystem::SimulationMode);
+	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
@@ -2604,11 +2604,14 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 				OnSwitchWorldsForPIE(true);
 
 				UWorld* World = GameViewport->GetWorld();
-				if (World->GetAuthGameMode())	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
+				AGameMode* AuthGameMode = World->GetAuthGameMode();
+				if (AuthGameMode)	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
 				{
 					APlayerController* PC = World->GetFirstPlayerController();
+					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
 					PC->PlayerState->bOnlySpectator = false;
-					World->GetAuthGameMode()->RestartPlayer(PC);
+					AuthGameMode->NumPlayers++;
+					AuthGameMode->RestartPlayer(PC);
 				}
 
 				OnSwitchWorldsForPIE(false);

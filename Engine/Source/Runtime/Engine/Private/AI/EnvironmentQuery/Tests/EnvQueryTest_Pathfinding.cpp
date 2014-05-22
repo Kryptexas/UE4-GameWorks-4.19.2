@@ -225,7 +225,7 @@ ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem
 		return NavSys->GetNavDataForProps(*NavAgent->GetNavAgentProperties());
 	}
 
-	return NavSys->GetMainNavData(NavigationSystem::DontCreate);
+	return NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -211,9 +211,11 @@ protected:
 	FName ResourceName;
 
 	/** Whether or not the brush path is a path to a UObject */
+	UPROPERTY()
 	bool bIsDynamicallyLoaded;
 
 	/** Whether or not the brush has a UTexture resource */
+	UPROPERTY()
 	bool bHasUObject_DEPRECATED;
 
 protected:

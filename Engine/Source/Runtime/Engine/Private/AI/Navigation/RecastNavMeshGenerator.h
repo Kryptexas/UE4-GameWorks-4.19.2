@@ -439,7 +439,7 @@ public:
 
 	void StoreAsyncResults(TArray<FNavMeshGenerationResult> AsyncResults);
 
-#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
 #endif
 private:

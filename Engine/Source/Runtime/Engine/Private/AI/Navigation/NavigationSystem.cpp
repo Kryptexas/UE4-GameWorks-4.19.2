@@ -63,7 +63,7 @@ DEFINE_STAT(STAT_Navigation_PathVisibilityOptimisation);
 //----------------------------------------------------------------------//
 // consts
 //----------------------------------------------------------	------------//
-namespace NavigationSystem
+namespace FNavigationSystem
 {
 	// these are totally arbitrary values, and it should haven happen these are ever used.
 	// in any reasonable case UNavigationSystem::SupportedAgents should be filled in ini file
@@ -211,6 +211,7 @@ FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 	, StartLocation(Source.StartLocation)
 	, EndLocation(Source.EndLocation)
 	, QueryFilter(Source.QueryFilter)
+	, NavDataFlags(Source.NavDataFlags)
 {
 	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -259,6 +260,7 @@ FNavigationSystemExec UNavigationSystem::ExecHandler;
 /** called after navigation influencing event takes place*/
 UNavigationSystem::FOnNavigationDirty UNavigationSystem::NavigationDirtyEvent;
 
+bool UNavigationSystem::bUpdateNavOctreeOnPrimitiveComponentChange = true;
 //----------------------------------------------------------------------//
 // life cycle stuff                                                                
 //----------------------------------------------------------------------//
@@ -269,7 +271,7 @@ UNavigationSystem::UNavigationSystem(const class FPostConstructInitializePropert
 	, bAddPlayersToGenerationSeeds(true)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)
 	, DirtyAreasUpdateFreq(60)
-	, OperationMode(NavigationSystem::InvalidMode)
+	, OperationMode(FNavigationSystem::InvalidMode)
 	, NavOctree(NULL)
 	, bNavigationBuildingLocked(false)
 	, bInitialBuildingLockActive(false)
@@ -352,6 +354,8 @@ void UNavigationSystem::DoInitialSetup()
 		UE_LOG(LogNavigation, Error, TEXT("No navigation data types found while setting up required navigation types!"));
 	}
 
+	CreateCrowdManager();
+
 	bInitialSetupHasBeenPerformed = true;
 }
 
@@ -364,7 +368,7 @@ void UNavigationSystem::PostInitProperties()
 		// make sure there's at leas one supported navigation agent size
 		if (SupportedAgents.Num() == 0)
 		{
-			SupportedAgents.Add(FNavDataConfig(NavigationSystem::FallbackAgentRadius, NavigationSystem::FallbackAgentHeight));
+			SupportedAgents.Add(FNavDataConfig(FNavigationSystem::FallbackAgentRadius, FNavigationSystem::FallbackAgentHeight));
 		}
 
 		const bool bShouldStoreNavigableGeometry = bBuildNavigationAtRuntime || !GetWorld()->IsGameWorld();
@@ -396,7 +400,7 @@ void UNavigationSystem::OnInitializeActors()
 	
 }
 
-void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
+void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 {
 	OperationMode = Mode;
 
@@ -404,7 +408,7 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 
 	if (IsThereAnywhereToBuildNavigation() == false
 		// Simulation mode is a special case - better not do it in this case
-		&& OperationMode != NavigationSystem::SimulationMode)
+		&& OperationMode != FNavigationSystem::SimulationMode)
 	{
 		// remove all navigation data instances
 		for (TActorIterator<ANavigationData> It(World); It; ++It)
@@ -417,7 +421,7 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 			}
 		}
 
-		if (OperationMode == NavigationSystem::EditorMode)
+		if (OperationMode == FNavigationSystem::EditorMode)
 		{
 			bInitialBuildingLockActive = false;
 		}
@@ -446,7 +450,7 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 			ProcessRegistrationCandidates();
 		}
 
-		if (OperationMode == NavigationSystem::EditorMode)
+		if (OperationMode == FNavigationSystem::EditorMode)
 		{
 			// don't lock navigation building in editor
 			bInitialBuildingLockActive = false;
@@ -464,17 +468,17 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 				ANavigationData* NavData = NavDataSet[NavDataIndex];
 				if (NavData != NULL)
 				{
-					FNavDataGenerator* Generator = NavData->GetGenerator(NavigationSystem::Create);
+					FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::Create);
 					if (Generator != NULL)
 					{
-						NavData->GetGenerator(NavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
+						NavData->GetGenerator(FNavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
 					}
 				}
 			}
 		}
 		else
 		{
-			if (GetMainNavData(NavigationSystem::DontCreate) != NULL)
+			if (GetMainNavData(FNavigationSystem::DontCreate) != NULL)
 			{
 				// trigger navmesh update
 				for (TActorIterator<ANavigationData> It(World); It; ++It)
@@ -487,10 +491,10 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 						if (Result == RegistrationSuccessful)
 						{
 #if WITH_RECAST
-							if (NavData->GetGenerator(NavigationSystem::Create) != NULL
+							if (NavData->GetGenerator(FNavigationSystem::Create) != NULL
 								&& Cast<ARecastNavMesh>(NavData) != NULL)
 							{
-								NavData->GetGenerator(NavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
+								NavData->GetGenerator(FNavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
 							}
 #endif // WITH_RECAST
 						}
@@ -506,6 +510,11 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 		}
 #endif
 	}
+}
+
+void UNavigationSystem::CreateCrowdManager()
+{
+	CrowdManager = NewObject<UCrowdManager>(this);
 }
 
 void UNavigationSystem::Tick(float DeltaSeconds)
@@ -543,7 +552,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL)
 			{
-				FNavDataGenerator* Generator = NavData->GetGenerator(NavigationSystem::DontCreate);
+				FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::DontCreate);
 				if (Generator != NULL)
 				{
 					Generator->RebuildDirtyAreas(DirtyAreas);
@@ -560,6 +569,11 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	{
 		TriggerAsyncQueries(AsyncPathFindingQueries);
 		AsyncPathFindingQueries.Reset();
+	}
+
+	if (CrowdManager)
+	{
+		CrowdManager->Tick(DeltaSeconds);
 	}
 }
 
@@ -631,7 +645,7 @@ FPathFindingResult UNavigationSystem::FindPathSync(FPathFindingQuery Query, EPat
 
 	if (Query.NavData.IsValid() == false)
 	{
-		Query.NavData = GetMainNavData(NavigationSystem::DontCreate);
+		Query.NavData = GetMainNavData(FNavigationSystem::DontCreate);
 	}
 	
 	FPathFindingResult Result(ENavigationQueryResult::Error);
@@ -748,7 +762,7 @@ void UNavigationSystem::PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathF
 	{
 		// @todo this is not necessarily the safest way to use UObjects outside of main thread. 
 		//	think about something else.
-		const ANavigationData* NavData = Query->NavData.IsValid() ? Query->NavData.Get() : GetMainNavData(NavigationSystem::DontCreate);
+		const ANavigationData* NavData = Query->NavData.IsValid() ? Query->NavData.Get() : GetMainNavData(FNavigationSystem::DontCreate);
 
 		// perform query
 		if (NavData)
@@ -860,7 +874,7 @@ bool UNavigationSystem::ProjectPointToNavigation(const FVector& Point, FNavLocat
 	}
 
 	return NavData != NULL && NavData->ProjectPoint(Point, OutLocation
-		, NavigationSystem::IsValidExtent(Extent) ? Extent : NavData->NavDataConfig.DefaultQueryExtent
+		, FNavigationSystem::IsValidExtent(Extent) ? Extent : NavData->NavDataConfig.DefaultQueryExtent
 		, QueryFilter);
 }
 
@@ -1027,7 +1041,7 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 	return NavDataForAgent != NULL && *NavDataForAgent != NULL ? *NavDataForAgent : MainNavData;
 }
 
-ANavigationData* UNavigationSystem::GetMainNavData(NavigationSystem::ECreateIfEmpty CreateNewIfNoneFound)
+ANavigationData* UNavigationSystem::GetMainNavData(FNavigationSystem::ECreateIfEmpty CreateNewIfNoneFound)
 {
 	checkSlow(IsInGameThread() == true);
 
@@ -1047,7 +1061,7 @@ ANavigationData* UNavigationSystem::GetMainNavData(NavigationSystem::ECreateIfEm
 		}
 
 #if WITH_RECAST
-		if ( /*GIsEditor && */(MainNavData == NULL) && CreateNewIfNoneFound == NavigationSystem::Create )
+		if ( /*GIsEditor && */(MainNavData == NULL) && CreateNewIfNoneFound == FNavigationSystem::Create )
 		{
 			// Spawn a new one if we're in the editor.  In-game, either we loaded one or we don't get one.
 			MainNavData = GetWorld()->SpawnActor<ANavigationData>(ARecastNavMesh::StaticClass());
@@ -1059,6 +1073,11 @@ ANavigationData* UNavigationSystem::GetMainNavData(NavigationSystem::ECreateIfEm
 	}
 
 	return MainNavData;
+}
+
+TSharedPtr<FNavigationQueryFilter> UNavigationSystem::CreateDefaultQueryFilterCopy() const 
+{ 
+	return MainNavData ? MainNavData->GetDefaultQueryFilter()->GetCopy() : NULL; 
 }
 
 bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
@@ -1077,7 +1096,7 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 		if (NavData != NULL && NavData->GetWorldSettings() == Settings)
 		{
 #if WITH_NAVIGATION_GENERATOR
-			FNavDataGenerator* Generator = NavData->GetGenerator(NavigationSystem::DontCreate);
+			FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::DontCreate);
 			if ( NavData->bRebuildAtRuntime == false && ( Generator == NULL || Generator->IsBuildInProgress(true) == true ) )
 			{
 				bIsBuilt = false;
@@ -1225,7 +1244,7 @@ void UNavigationSystem::ProcessRegistrationCandidates()
 		}
 	}
 
-	MainNavData = GetMainNavData(NavigationSystem::DontCreate);
+	MainNavData = GetMainNavData(FNavigationSystem::DontCreate);
 	
 	// we processed all candidates so clear the queue
 	NavDataRegistrationQueue.Reset();
@@ -1638,7 +1657,7 @@ UNavigationSystem* UNavigationSystem::CreateNavigationSystem(class UWorld* World
 	return NavSys;
 }
 
-void UNavigationSystem::InitializeForWorld(class UWorld* World, NavigationSystem::EMode Mode)
+void UNavigationSystem::InitializeForWorld(class UWorld* World, FNavigationSystem::EMode Mode)
 {
 	if (World)
 	{
@@ -1745,7 +1764,7 @@ FSetElementId UNavigationSystem::RegisterNavigationRelevantActor(AActor* Actor, 
 		}
 
 		UObject* ElementOwner = ProxyOb ? (UObject*)ProxyOb : Actor;
-		RequestId = RegisterNavOctreeElement(ElementOwner, UpdateFlags, NavigationSystem::InvalidBoundingBox);
+		RequestId = RegisterNavOctreeElement(ElementOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
 	}
 
 	return RequestId;
@@ -1772,7 +1791,7 @@ FSetElementId UNavigationSystem::RegisterNavOctreeElement(class UObject* Element
 	if (ElementId == NULL)
 	{
 		FNavigationDirtyElement UpdateInfo(ElementOwner, GetDirtyFlagHelper(UpdateFlags, 0));
-		if (!(Bounds == NavigationSystem::InvalidBoundingBox))
+		if (!(Bounds == FNavigationSystem::InvalidBoundingBox))
 		{
 			UpdateInfo.SetBounds(Bounds);
 		}
@@ -1994,7 +2013,7 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 		}
 
 		UObject* ElementOwner = ProxyOb ? (UObject*)ProxyOb : Actor;
-		UnregisterNavOctreeElement(ElementOwner, UpdateFlags, NavigationSystem::InvalidBoundingBox);
+		UnregisterNavOctreeElement(ElementOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
 	}
 }
 
@@ -2077,7 +2096,7 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor, int32 UpdateFlags)
 		UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
 		UObject* NodeOwner = (ProxyOb && !bPerComponentNavigation) ? (UObject*)ProxyOb : Actor;
 
-		UpdateNavOctreeElement(NodeOwner, UpdateFlags, NavigationSystem::InvalidBoundingBox);
+		UpdateNavOctreeElement(NodeOwner, UpdateFlags, FNavigationSystem::InvalidBoundingBox);
 	}
 }
 
@@ -2267,7 +2286,7 @@ void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
 					ANavigationData* NavData = NavDataSet[NavDataIndex];
 					if (NavData != NULL && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
 					{
-						NavData->GetGenerator(NavigationSystem::Create);
+						NavData->GetGenerator(FNavigationSystem::Create);
 					}
 				}
 			}
@@ -2289,7 +2308,7 @@ void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
 						// 1. new volume is totally inside original generation bounds
 						// 2. it expands current bounds.
 						// @TODO currently handling every case as 1), 2) is an optimization
-						NavData->GetGenerator(NavigationSystem::Create)->OnNavigationBoundsUpdated(NavVolume);
+						NavData->GetGenerator(FNavigationSystem::Create)->OnNavigationBoundsUpdated(NavVolume);
 					}
 				}
 			}
@@ -2391,7 +2410,7 @@ void UNavigationSystem::SpawnMissingNavigationData()
 	if (MainNavData == NULL || MainNavData->IsPendingKill())
 	{
 		// update 
-		MainNavData = GetMainNavData(NavigationSystem::DontCreate);
+		MainNavData = GetMainNavData(FNavigationSystem::DontCreate);
 	}
 }
 
@@ -2479,7 +2498,7 @@ void UNavigationSystem::NavigationBuildingLock()
 		return;
 	}
 
-	GetMainNavData(bBuildNavigationAtRuntime && IsThereAnywhereToBuildNavigation() ? NavigationSystem::Create : NavigationSystem::DontCreate);
+	GetMainNavData(bBuildNavigationAtRuntime && IsThereAnywhereToBuildNavigation() ? FNavigationSystem::Create : FNavigationSystem::DontCreate);
 
 	bNavigationBuildingLocked = true;
 
@@ -2489,7 +2508,7 @@ void UNavigationSystem::NavigationBuildingLock()
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetGenerator() != NULL)
 		{
-			NavData->GetGenerator(NavigationSystem::DontCreate)->OnNavigationBuildingLocked();
+			NavData->GetGenerator(FNavigationSystem::DontCreate)->OnNavigationBuildingLocked();
 		}
 	}
 }
@@ -2507,7 +2526,7 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 			ANavigationData* NavData = NavDataSet[NavDataIndex];
 			if (NavData != NULL && NavData->GetGenerator() != NULL)
 			{
-				NavData->GetGenerator(NavigationSystem::DontCreate)->OnNavigationBuildingUnlocked(bForce);
+				NavData->GetGenerator(FNavigationSystem::DontCreate)->OnNavigationBuildingUnlocked(bForce);
 			}
 		}
 	}
@@ -2525,9 +2544,9 @@ void UNavigationSystem::RebuildAll()
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
-		if (NavData != NULL && NavData->GetGenerator(NavigationSystem::Create) != NULL)
+		if (NavData != NULL && NavData->GetGenerator(FNavigationSystem::Create) != NULL)
 		{
-			NavData->GetGenerator(NavigationSystem::DontCreate)->RebuildAll();
+			NavData->GetGenerator(FNavigationSystem::DontCreate)->RebuildAll();
 		}
 	}
 }
@@ -2539,7 +2558,7 @@ bool UNavigationSystem::IsNavigationBuildInProgress(bool bCheckDirtyToo)
 	if (NavDataSet.Num() == 0)
 	{
 		// update nav data. If none found this is the place to create one
-		GetMainNavData(NavigationSystem::DontCreate);
+		GetMainNavData(FNavigationSystem::DontCreate);
 	}
 	
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
@@ -2621,12 +2640,12 @@ void UNavigationSystem::OnPostLoadMap()
 
 	// if map has been loaded and there are some navigation bounds volumes 
 	// then create appropriate navigation structured
-	ANavigationData* NavData = GetMainNavData(NavigationSystem::DontCreate);
+	ANavigationData* NavData = GetMainNavData(FNavigationSystem::DontCreate);
 
 	// Do this if there's currently no navigation
 	if (NavData == NULL && bAutoCreateNavigationData == true && IsThereAnywhereToBuildNavigation() == true)
 	{
-		NavData = GetMainNavData(NavigationSystem::Create);
+		NavData = GetMainNavData(FNavigationSystem::Create);
 	}
 }
 
@@ -2693,7 +2712,7 @@ FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject,
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(NavigationSystem::DontCreate);
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		NavSys->ProjectPointToNavigation(Point, ProjectedPoint, INVALID_NAVEXTENT, UseNavData, UNavigationQueryFilter::GetQueryFilter(UseNavData, FilterClass));
 	}
 
@@ -2708,7 +2727,7 @@ FVector UNavigationSystem::GetRandomPoint(UObject* WorldContextObject, ANavigati
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(NavigationSystem::DontCreate);
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		NavSys->GetRandomPoint(RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(UseNavData, FilterClass));
 	}
 
@@ -2724,7 +2743,7 @@ FVector UNavigationSystem::GetRandomPointInRadius(UObject* WorldContextObject, c
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(NavigationSystem::DontCreate);
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		NavSys->GetRandomPointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(UseNavData, FilterClass));
 	}
 
@@ -2737,7 +2756,7 @@ ENavigationQueryResult::Type UNavigationSystem::GetPathCost(UObject* WorldContex
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(NavigationSystem::DontCreate);
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		return NavSys->GetPathCost(PathStart, PathEnd, OutPathCost, UseNavData, UNavigationQueryFilter::GetQueryFilter(UseNavData, FilterClass));
 	}
 
@@ -2752,7 +2771,7 @@ ENavigationQueryResult::Type UNavigationSystem::GetPathLength(UObject* WorldCont
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 	if (NavSys)
 	{
-		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(NavigationSystem::DontCreate);
+		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		return NavSys->GetPathLength(PathStart, PathEnd, OutPathLength, UseNavData, UNavigationQueryFilter::GetQueryFilter(UseNavData, FilterClass));
 	}
 
@@ -2785,7 +2804,7 @@ bool UNavigationSystem::ShouldGeneratorRun(const class FNavDataGenerator* Genera
 		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
 			ANavigationData* NavData = NavDataSet[NavDataIndex];
-			if (NavData != NULL && NavData->GetGenerator(NavigationSystem::DontCreate) == Generator)
+			if (NavData != NULL && NavData->GetGenerator(FNavigationSystem::DontCreate) == Generator)
 			{
 				return true;
 			}
@@ -2883,34 +2902,5 @@ bool UNavigationSystem::IsNavigationDirty()
 
 bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box)
 {
-	if (Path == NULL)
-	{
-		return false;
-	}
-
-	 // iterate over all segments and check if any intersects with given box
-	const TArray<FNavPathPoint>& PathPoints = Path->GetPathPoints();
-	bool bIntersects = false;
-	if (PathPoints.Num() > 1)
-	{
-		FVector Start = PathPoints[0].Location;
-		for (int32 PathPointIndex = 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
-		{
-			const FVector End = PathPoints[PathPointIndex].Location;
-			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
-			{
-				const FVector Direction = (End - Start);
-
-				if (FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal()))
-				{
-					bIntersects = true;
-					break;
-				}
-			}
-
-			Start = End;
-		}
-	}
-
-	return bIntersects;
+	return Path != NULL && Path->DoesIntersectBox(Box);
 }

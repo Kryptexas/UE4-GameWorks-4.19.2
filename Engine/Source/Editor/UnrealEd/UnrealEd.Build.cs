@@ -231,7 +231,7 @@ public class UnrealEd : ModuleRules
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "Recast");
+            PrivateDependencyModuleNames.Add("Navmesh");
 			Definitions.Add( "WITH_RECAST=1" );
 		}
 		else

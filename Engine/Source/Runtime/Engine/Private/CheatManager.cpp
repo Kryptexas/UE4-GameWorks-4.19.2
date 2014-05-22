@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
+	DumpAILogsInterval = 3;
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();
 	DebugCapsuleHalfHeight = 23.0f;
 	DebugCapsuleRadius = 21.0f;
@@ -563,6 +563,21 @@ bool UCheatManager::ServerToggleAILogging_Validate()
 	return true;
 }
 
+void UCheatManager::DumpAILogs()
+{
+#if ENABLE_VISUAL_LOG
+	UWorld *World = GetWorld();
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (!VisLog || !World)
+	{
+		return;
+	}
+
+	VisLog->DumpRecordedLogs();
+	World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
+#endif
+}
+
 void UCheatManager::ServerToggleAILogging_Implementation()
 {
 #if ENABLE_VISUAL_LOG
@@ -572,11 +587,25 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 		return;
 	}
 
-	const bool bWasRecording = VisLog->IsRecording();
-	VisLog->SetIsRecording(!bWasRecording);
-	if (bWasRecording)
+	UWorld *World = GetWorld();
+	if (VisLog->IsRecording())
 	{
-		VisLog->DumpRecordedLogs();
+		// clear timer, we'll dump all remaining logs in a moment
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
+		}
+
+		// stop recording and dump all remaining logs in a moment
+		VisLog->SetIsRecording(false, true);
+	}
+	else
+	{
+		VisLog->SetIsRecording(true, true);
+		if (World)
+		{
+			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
+		}
 	}
 
 	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
@@ -592,7 +621,8 @@ void UCheatManager::ToggleAILogging()
 		return;
 	}
 
-	if (GetWorld()->GetNetMode() == NM_Client)
+	UWorld *World = GetWorld();
+	if (World && World->GetNetMode() == NM_Client)
 	{
 		FVisualLog* VisLog = FVisualLog::Get();
 		if (VisLog)

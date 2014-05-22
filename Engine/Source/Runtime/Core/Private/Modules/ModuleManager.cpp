@@ -425,7 +425,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 			}
 			else
 			{
-				UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file was not found." ), *ModuleFileToLoad );
+				UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file '%s' was not found." ), *InModuleName.ToString(), *ModuleFileToLoad );
 				OutFailureReason = ELoadModuleFailureReason::FileNotFound;
 			}
 		}

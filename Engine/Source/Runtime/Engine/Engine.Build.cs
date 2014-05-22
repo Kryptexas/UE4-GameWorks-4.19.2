@@ -230,8 +230,8 @@ public class Engine : ModuleRules
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "Recast");
-			Definitions.Add("WITH_RECAST=1");
+            PrivateDependencyModuleNames.Add("Navmesh");
+            Definitions.Add("WITH_RECAST=1");
 		}
 		else
 		{

@@ -39,7 +39,7 @@ public:
 		const FString BaseNetName = Context.NetNameMap->MakeValidName(Node);
 
 		// Create a term to store a bool that determines if we're in the first execution of the node or not
-		FBPTerminal* FirstRunTerm = new (Context.EventGraphLocals) FBPTerminal();
+		FBPTerminal* FirstRunTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 		FirstRunTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 		FirstRunTerm->Source = Node;
 		FirstRunTerm->Name = BaseNetName + TEXT("_FirstRun");
@@ -49,7 +49,7 @@ public:
 		// If there is already a data node from expansion phase
 		if (!GateNode || !GateNode->DataNode)
 		{
-			FBPTerminal* DataTerm = new (Context.EventGraphLocals) FBPTerminal();
+			FBPTerminal* DataTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 			DataTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 			DataTerm->Source = Node;
 			DataTerm->Name = BaseNetName + TEXT("_Data");
@@ -59,7 +59,7 @@ public:
 		// Create a local scratch bool for run-time if there isn't already one
 		if (!GenericBoolTerm)
 		{
-			GenericBoolTerm = new (Context.EventGraphLocals) FBPTerminal();
+			GenericBoolTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 			GenericBoolTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Boolean;
 			GenericBoolTerm->Source = Node;
 			GenericBoolTerm->Name = BaseNetName + TEXT("_ScratchBool");
@@ -68,7 +68,7 @@ public:
 		// Create a local scratch int for run-time index tracking if there isn't already one
 		if (!IndexTerm)
 		{
-			IndexTerm = new (Context.EventGraphLocals) FBPTerminal();
+			IndexTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 			IndexTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Int;
 			IndexTerm->Source = Node;
 			IndexTerm->Name = BaseNetName + TEXT("_ScratchIndex");

@@ -388,24 +388,6 @@ namespace UnrealBuildTool
 					}
 					InModule.AddPublicAdditionalLibrary("libpng125.lib");
 				}
-				else if (InModule.ToString() == "Recast")
-				{
-					string RecastPath = UEBuildConfiguration.UEThirdPartyDirectory + "Recast/";
-					if (Target.Platform == UnrealTargetPlatform.WinRT)
-					{
-						InModule.AddPublicLibraryPath(RecastPath + "/Epic/lib/WinRT/Win64");
-					}
-					else
-					{
-						InModule.AddPublicLibraryPath(RecastPath + "/Epic/lib/WinRT/ARM");
-					}
-					string RecastLibName = "Recast";
-					if (Target.Configuration == UnrealTargetConfiguration.Debug)
-					{
-						RecastLibName += "_D";
-					}
-					InModule.AddPublicAdditionalLibrary(RecastLibName + ".lib");
-				}
 				else if (InModule.ToString() == "DX11")
 				{
 					// Clear out all the Windows include paths and libraries...

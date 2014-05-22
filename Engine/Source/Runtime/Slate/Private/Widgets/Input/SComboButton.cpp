@@ -21,6 +21,7 @@ void SComboButton::Construct( const FArguments& InArgs )
 	ContentWidgetPtr = InArgs._MenuContent.Widget;
 	ContentScale = InArgs._ContentScale;
 	Placement = InArgs._MenuPlacement;
+	bIsFocusable = InArgs._IsFocusable;
 
 	TSharedPtr<SHorizontalBox> HBox;
 
@@ -82,7 +83,7 @@ FReply SComboButton::OnButtonClicked()
 
 	// Button was clicked; show the popup.
 	// Do nothing if clicking on the button also dismissed the menu, because we will end up doing the same thing twice.
-	this->SetIsOpen( ShouldOpenDueToClick() );	
+	this->SetIsOpen( ShouldOpenDueToClick(), bIsFocusable );
 
 	// If the menu is open, execute the related delegate.
 	if( IsOpen() && OnComboBoxOpened.IsBound() )
@@ -93,22 +94,25 @@ FReply SComboButton::OnButtonClicked()
 	// Focusing any newly-created widgets must occur after they have been added to the UI root.
 	FReply ButtonClickedReply = FReply::Handled();
 	
-	TSharedPtr<SWidget> WidgetToFocus = WidgetToFocusPtr.Pin();
-	if (!WidgetToFocus.IsValid())
+	if (bIsFocusable)
 	{
-		// no explicitly focused widget, try to focus the content
-		WidgetToFocus = Content;
-	}
+		TSharedPtr<SWidget> WidgetToFocus = WidgetToFocusPtr.Pin();
+		if (!WidgetToFocus.IsValid())
+		{
+			// no explicitly focused widget, try to focus the content
+			WidgetToFocus = Content;
+		}
 
-	if (!WidgetToFocus.IsValid())
-	{
-		// no content, so try to focus the original widget set on construction
-		WidgetToFocus = ContentWidgetPtr.Pin();
-	}
+		if (!WidgetToFocus.IsValid())
+		{
+			// no content, so try to focus the original widget set on construction
+			WidgetToFocus = ContentWidgetPtr.Pin();
+		}
 
-	if (WidgetToFocus.IsValid())
-	{
-		ButtonClickedReply.SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+		if (WidgetToFocus.IsValid())
+		{
+			ButtonClickedReply.SetKeyboardFocus(WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+		}
 	}
 
 	return ButtonClickedReply;

@@ -399,6 +399,13 @@ FNetworkGUID UPackageMap::AssignNetGUID(const UObject* Object, FNetworkGUID NewN
 		{
 			const UObject * OldObject = ExistingCacheObjectPtr->Object.Get();
 
+			// If we find static guid in the cache, this means we didn't find it in GetObjectFromNetGUID
+			// This is a problem, since we should never get this far if we do find it there
+			if ( !NewNetworkGUID.IsDynamic() )
+			{
+				UE_LOG( LogNetPackageMap, Warning, TEXT( "AssignNetGUID: NewNetworkGUID was in ObjectLookup cache but is static: <%s> %s" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ) );
+			}
+
 			// If this net guid was found but the old object is NULL, this can happen due to:
 			//	1. Actor channel was closed locally (but we don't remove the net guid entry, since we can't know for sure if it will be referenced again)
 			//		a. Then when we re-create a channel, and assign this actor, we will find the old guid entry here
@@ -427,7 +434,7 @@ FNetworkGUID UPackageMap::AssignNetGUID(const UObject* Object, FNetworkGUID NewN
 		{
 			// This can happen when the server destroys a package/object and the client doesn't.
 			// The server will simply assign a new guid, and the client will assign to the old object that never got deleted locally
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "Changing NetGUID on object %s from <%s:%s> to <%s:%s>" ), Object ? *Object->GetPathName() : TEXT( "NULL" ), *ExistingNetworkGUIDPtr->ToString(), ExistingNetworkGUIDPtr->IsDynamic() ? TEXT("TRUE") : TEXT("FALSE"), *NewNetworkGUID.ToString(), NewNetworkGUID.IsDynamic() ? TEXT("TRUE") : TEXT("FALSE") );
+			UE_LOG( LogNetPackageMap, Log, TEXT( "Changing NetGUID on object %s from <%s:%s> to <%s:%s>" ), Object ? *Object->GetPathName() : TEXT( "NULL" ), *ExistingNetworkGUIDPtr->ToString(), ExistingNetworkGUIDPtr->IsDynamic() ? TEXT("TRUE") : TEXT("FALSE"), *NewNetworkGUID.ToString(), NewNetworkGUID.IsDynamic() ? TEXT("TRUE") : TEXT("FALSE") );
 			Cache->ObjectLookup.Remove( *ExistingNetworkGUIDPtr );
 		}
 	}

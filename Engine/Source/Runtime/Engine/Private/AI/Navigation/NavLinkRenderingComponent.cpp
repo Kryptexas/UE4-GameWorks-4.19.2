@@ -133,7 +133,7 @@ void FNavLinkRenderingProxy::DrawLinks(FPrimitiveDrawInterface* PDI, TArray<FNav
 	
 	if (StepHeights.Num() == 0)
 	{
-		StepHeights.Add(NavigationSystem::FallbackAgentHeight / 2);
+		StepHeights.Add(FNavigationSystem::FallbackAgentHeight / 2);
 	}
 
 	for (int32 LinkIndex = 0; LinkIndex < OffMeshPointLinks.Num(); ++LinkIndex)

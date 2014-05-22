@@ -1812,7 +1812,7 @@ UWorld* UEditorEngine::NewMap()
 	InitBuilderBrush( Context.World() );
 
 	// Let navigation system know we're done creating new world
-	UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
+	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
 
 	// Deselect all
 	GEditor->SelectNone( false, true );
@@ -2156,7 +2156,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Actor->SetFlags( RF_Transactional );
 					}
 
-					UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
+					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
 
 					// Assign stationary light channels for previewing
 					ULightComponent::ReassignStationaryLightChannels(Context.World(), false);

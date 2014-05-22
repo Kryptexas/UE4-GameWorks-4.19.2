@@ -16,6 +16,7 @@ public:
 		, _ButtonStyle(nullptr)
 		, _ButtonContent()
 		, _MenuContent()
+		, _IsFocusable(true)
 		, _HasDownArrow(true)
 		, _ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		, _ButtonColorAndOpacity(FLinearColor::White)
@@ -114,4 +115,7 @@ protected:
 
 	/** The content widget, if any, set by the user on creation */
 	TWeakPtr<SWidget> ContentWidgetPtr;
+
+	/** Can this button be focused? */
+	bool bIsFocusable;
 };

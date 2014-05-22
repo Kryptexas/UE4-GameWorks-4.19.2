@@ -45,6 +45,9 @@ struct FOnlineJsonSerializerBase
 	virtual void StartObject() = 0;
 	virtual void StartObject(const FString& Name) = 0;
 	virtual void EndObject() = 0;
+	virtual void StartArray() = 0;
+	virtual void StartArray(const FString& Name) = 0;
+	virtual void EndArray() = 0;
 	virtual void Serialize(const TCHAR* Name, int32& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, uint32& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, bool& Value) = 0;
@@ -103,6 +106,21 @@ public:
 	virtual void EndObject() OVERRIDE
 	{
 		JsonWriter->WriteObjectEnd();
+	}
+
+	virtual void StartArray() OVERRIDE
+	{
+		JsonWriter->WriteArrayStart();
+	}
+
+	virtual void StartArray(const FString& Name) OVERRIDE
+	{
+		JsonWriter->WriteArrayStart(Name);
+	}
+
+	virtual void EndArray() OVERRIDE
+	{
+		JsonWriter->WriteArrayEnd();
 	}
 	/**
 	 * Writes the field name and the corresponding value to the JSON data
@@ -257,6 +275,21 @@ public:
 	}
 	/** Ignored */
 	virtual void EndObject() OVERRIDE
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void StartArray() OVERRIDE
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void StartArray(const FString& Name) OVERRIDE
+	{
+		// Empty on purpose
+	}
+	/** Ignored */
+	virtual void EndArray() OVERRIDE
 	{
 		// Empty on purpose
 	}

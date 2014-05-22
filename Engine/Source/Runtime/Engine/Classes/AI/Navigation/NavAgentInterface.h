@@ -33,4 +33,7 @@ class INavAgentInterface
 	 * @param GoalHalfHeight - cylinder half height
 	 */
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const {}
+
+	/** Allows agent to postpone any path updates (e.g. locked by gameplay) */
+	virtual bool ShouldPostponePathUpdates() const { return false; }
 };

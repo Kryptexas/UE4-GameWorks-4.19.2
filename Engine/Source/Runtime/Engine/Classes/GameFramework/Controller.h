@@ -265,6 +265,7 @@ public:
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE;
 	virtual FVector GetNavAgentLocation() const OVERRIDE;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
+	virtual bool ShouldPostponePathUpdates() const OVERRIDE;
 	// End INavAgentInterface Interface
 	
 	/** prepares path finding and path following components */

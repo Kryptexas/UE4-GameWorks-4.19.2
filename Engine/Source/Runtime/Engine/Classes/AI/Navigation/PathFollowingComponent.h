@@ -7,6 +7,8 @@
 #include "AI/AIResourceInterface.h"
 #include "PathFollowingComponent.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
+
 UENUM(BlueprintType)
 namespace EPathFollowingStatus
 {
@@ -58,6 +60,17 @@ namespace EPathFollowingRequestResult
 	};
 }
 
+namespace EPathFollowingDebugTokens
+{
+	enum Type
+	{
+		Description,
+		ParamName,
+		FailedValue,
+		PassedValue,
+	};
+}
+
 UCLASS(config=Engine)
 class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIResourceInterface
 {
@@ -74,9 +87,14 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	FMoveCompletedSignature OnMoveFinished;
 
 	// Begin UActorComponent Interface
-	virtual void InitializeComponent() OVERRIDE;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 	// End UActorComponent Interface
+
+	/** initialize component to use */
+	virtual void Initialize();
+
+	/** cleanup component before destroying */
+	virtual void Cleanup();
 
 	/** updates cached pointers to relevant owner's components */
 	virtual void UpdateCachedComponents();
@@ -115,6 +133,9 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	/** notify about finishing move along current path segment */
 	virtual void OnSegmentFinished();
+
+	/** notify about changing current path */
+	virtual void OnPathUpdated();
 
 	/** set associated movement component */
 	virtual void SetMovementComponent(class UNavMovementComponent* MoveComp);
@@ -191,10 +212,9 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	void SetDestinationActor(const AActor* InDestinationActor);
 
-	/** debug point reach test values */
-	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed); 
-
+	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
 	virtual FString GetDebugString() const;
+
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const;
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
@@ -206,6 +226,9 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	/** Called when movement is blocked by a collision with another actor.  */
 	virtual void OnMoveBlockedBy(const FHitResult& BlockingImpact) {}
+
+	/** Called when falling movement ends. */
+	virtual void OnLanded() {}
 
 	// IAIResourceInterface begin
 	virtual void LockResource(EAILockSource::Type LockSource) OVERRIDE;
@@ -274,6 +297,10 @@ protected:
 	/** agent location when movement was paused */
 	FVector LocationWhenPaused;
 
+	/** set when paths simplification using visibility tests are needed  (disabled by default because of performance) */
+	UPROPERTY(config)
+	uint32 bUseVisibilityTestsSimplification : 1;
+
 	/** increase acceptance radius with agent's radius */
 	uint32 bStopOnOverlap : 1;
 
@@ -285,10 +312,6 @@ protected:
 
 	/** set when last move request was finished at goal */
 	uint32 bLastMoveReachedGoal : 1;
-
-	/** set when paths simplification using visibility tests are needed  (disabled by default because of performance) */
-	UPROPERTY(config)
-	uint32 bUseVisibilityTestsSimplification : 1;
 
 	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
 	uint32 bPendingPathStartUpdate : 1;
@@ -302,6 +325,30 @@ protected:
 	/** number of samples required for block detection */
 	int32 BlockDetectionSampleCount;
 
+	/** timestamp of last location sample */
+	float LastSampleTime;
+
+	/** index of next location sample in array */
+	int32 NextSampleIdx;
+
+	/** location samples for stuck detection */
+	TArray<FBasedPosition> LocationSamples;
+
+	/** index of path point being current move beginning */
+	int32 MoveSegmentStartIndex;
+
+	/** index of path point being current move target */
+	int32 MoveSegmentEndIndex;
+
+	/** reference of node at segment start */
+	NavNodeRef MoveSegmentStartRef;
+
+	/** reference of node at segment end */
+	NavNodeRef MoveSegmentEndRef;
+
+	/** direction of current move segment */
+	FVector MoveSegmentDirection;
+
 	/** reset path following data */
 	virtual void Reset();
 
@@ -309,7 +356,7 @@ protected:
 	virtual bool ShouldCheckPathOnResume() const;
 
 	/** sets variables related to current move segment */
-	virtual void SetMoveSegment(uint32 SegmentStartIndex);
+	virtual void SetMoveSegment(int32 SegmentStartIndex);
 	
 	/** follow current path segment */
 	virtual void FollowPathSegment(float DeltaTime);
@@ -317,8 +364,11 @@ protected:
 	/** check state of path following, update move segment if needed */
 	virtual void UpdatePathSegment();
 
+	/** switch to using smart link */
+	virtual void SetCurrentSmartLink(USmartNavLinkComponent* InLink, const FVector& DestPoint);
+
 	/** update blocked movement detection, @returns true if new sample was added */
-	bool UpdateBlockDetection();
+	virtual bool UpdateBlockDetection();
 
 	/** check if move is completed */
 	bool HasReachedDestination(const FVector& CurrentLocation) const;
@@ -330,16 +380,10 @@ protected:
 	bool HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bUseAgentRadius) const;
 
 	/** check if agent is on path */
-	bool IsOnPath() const;
+	virtual bool IsOnPath() const;
 
 	/** check if movement is blocked */
 	bool IsBlocked() const;
-
-	/** Checks if this PathFollowingComponent is already on path, and
-	 *	if so determines index of next path point
-	 *	@return what PathFollowingComponent thinks should be next path point. INDEX_NONE if given path is invalid
-	 *	@note this function does not set MoveSegmentEndIndex */
-	int32 DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const;
 
 	/** switch to next segment on path */
 	FORCEINLINE void SetNextMoveSegment() { SetMoveSegment(GetNextPathIndex()); }
@@ -347,14 +391,23 @@ protected:
 	FORCEINLINE static uint32 GetNextRequestId() { return NextRequestId++; }
 	FORCEINLINE void StoreRequestId() { CurrentRequestId = UPathFollowingComponent::GetNextRequestId(); }
 
+	/** Checks if this PathFollowingComponent is already on path, and
+	*	if so determines index of next path point
+	*	@return what PathFollowingComponent thinks should be next path point. INDEX_NONE if given path is invalid
+	*	@note this function does not set MoveSegmentEndIndex */
+	virtual int32 DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const;
+
+	/** @return index of path point, that should be target of current move segment */
+	virtual int32 DetermineCurrentTargetPathPoint(int32 StartIndex, bool bResumedFromSmartLink);
+
 	/** Visibility tests to skip some path points if possible
 	@param NextSegmentStartIndex Selected next segment to follow
 	@return  better path segment to follow, to use as MoveSegmentEndIndex */
-	uint32 PrepareBestNextMoveSegment(uint32 NextSegmentStartIndex);
+	int32 OptimizeSegmentVisibility(int32 StartIndex);
 
 	/** check if movement component is valid or tries to grab one from owner 
 	 *	@param bForce results in looking for owner's movement component even if pointer to one is already cached */
-	bool UpdateMovementComponent(bool bForce = false);
+	virtual bool UpdateMovementComponent(bool bForce = false);
 
 	/** clears Block Detection stored data effectively resetting the mechanism */
 	void ResetBlockDetectionData();
@@ -365,31 +418,10 @@ protected:
 	/** set move focus in AI owner */
 	void UpdateMoveFocus();
 
+	/** debug point reach test values */
+	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
+	
 private:
-
-	/** index of path point being current move beginning */
-	uint32 MoveSegmentStartIndex;
-
-	/** index of path point being current move target */
-	uint32 MoveSegmentEndIndex;
-
-	/** reference of node at segment start */
-	NavNodeRef MoveSegmentStartRef;
-
-	/** reference of node at segment end */
-	NavNodeRef MoveSegmentEndRef;
-
-	/** direction of current move segment */
-	FVector MoveSegmentDirection;
-
-	/** timestamp of last location sample */
-	float LastSampleTime;
-
-	/** index of next location sample in array */
-	int32 NextSampleIdx;
-
-	/** location samples for stuck detection */
-	TArray<FBasedPosition> LocationSamples;
 
 	/** used for debugging purposes to be able to identify which logged information
 	 *	results from which request, if there was multiple ones during one frame */

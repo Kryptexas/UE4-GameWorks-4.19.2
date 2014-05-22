@@ -50,6 +50,7 @@ class UK2Node_Select : public UK2Node
 	virtual bool IsNodePure() const OVERRIDE { return true; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const OVERRIDE;
 	// End UK2Node interface
 
 	/** Get the return value pin */

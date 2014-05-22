@@ -14,6 +14,4 @@
 #include "SLogsTableRow.h"
 #include "SLogVisualizer.h"
 
-#include "SLogCategoryFilter.h"
-
 DECLARE_LOG_CATEGORY_EXTERN(LogLogVisualizer, Log, All);

@@ -116,6 +116,11 @@ public:
 				// Get the kismet term from the option pin
 				UEdGraphPin* OptionPinToTry = FEdGraphUtilities::GetNetFromPin(OptionPins[OptionIdx]);
 				FBPTerminal** OptionTerm = Context.NetMap.Find(OptionPinToTry);
+				if (!OptionTerm)
+				{
+					Context.MessageLog.Error(*LOCTEXT("Error_UnregisterOptionPin", "Unregister option pin @@").ToString(), OptionPins[OptionIdx]);
+					return;
+				}
 				AssignStatement.RHS.Add(*OptionTerm);
 
 				// Create an unconditional goto to exit the node
@@ -751,6 +756,18 @@ void UK2Node_Select::PostPasteNode()
 
 	// Restore the default value of the index pin
 	IndexPin->DefaultValue = OldDefaultValue;
+}
+
+bool UK2Node_Select::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if (OtherPin && (OtherPin->PinType.PinCategory == K2Schema->PC_Exec))
+	{
+		OutReason = LOCTEXT("ExecConnectionDisallowed", "Cannot connect with Exec pin.").ToString();
+		return true;
+	}
+
+	return Super::IsConnectionDisallowed(MyPin, OtherPin, OutReason);
 }
 
 FNodeHandlingFunctor* UK2Node_Select::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

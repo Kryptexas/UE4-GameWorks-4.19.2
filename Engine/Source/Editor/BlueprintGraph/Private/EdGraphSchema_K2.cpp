@@ -2664,9 +2664,9 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		}
 		else if (PC_Delegate == Output.PinCategory || PC_MCDelegate == Output.PinCategory)
 		{
-			const UFunction* OutFuction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Output.PinSubCategoryMemberReference);
-			const UFunction* InFuction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Input.PinSubCategoryMemberReference);
-			return !OutFuction || !InFuction || OutFuction->IsSignatureCompatibleWith(InFuction);
+			const UFunction* OutFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Output.PinSubCategoryMemberReference);
+			const UFunction* InFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Input.PinSubCategoryMemberReference);
+			return !OutFunction || !InFunction || OutFunction->IsSignatureCompatibleWith(InFunction);
 		}
 	}
 	else if (Output.PinCategory == PC_Wildcard || Input.PinCategory == PC_Wildcard)

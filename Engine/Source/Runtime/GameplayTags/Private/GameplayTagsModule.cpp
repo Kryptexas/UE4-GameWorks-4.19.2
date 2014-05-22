@@ -28,7 +28,9 @@ DEFINE_LOG_CATEGORY(LogGameplayTags);
 void FGameplayTagsModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
-	GameplayTagsManager = ConstructObject<UGameplayTagsManager>(UGameplayTagsManager::StaticClass(),GetTransientPackage(),NAME_None,RF_RootSet);
+	GameplayTagsManager = ConstructObject<UGameplayTagsManager>(UGameplayTagsManager::StaticClass(), GetTransientPackage(), NAME_None, RF_RootSet);
+	GameplayTagsManager->LoadGameplayTagTable();
+	GameplayTagsManager->ConstructGameplayTagTree();
 }
 
 void FGameplayTagsModule::ShutdownModule()
