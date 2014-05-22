@@ -1956,3 +1956,38 @@ class TestStopProcess : BuildCommand
 		Thread.Sleep(10000);
 	}
 }
+
+
+[Help("Copies all files from source directory to destination directory using ThreadedCopyFiles")]
+[Help("Source", "Source path")]
+[Help("Dest", "Destination path")]
+[Help("Threads", "Number of threads used to copy files (64 by default)")]
+class TestThreadedCopyFiles : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		var SourcePath = ParseParamValue("Source=");
+		var DestPath = ParseParamValue("Dest=");
+		var Threads = ParseParamInt("Threads=", 64);
+
+		if (String.IsNullOrEmpty(SourcePath))
+		{
+			throw new AutomationException("Source path not specified, please use -source=Path");
+		}
+		if (String.IsNullOrEmpty(DestPath))
+		{
+			throw new AutomationException("Destination path not specified, please use -dest=Path");
+		}
+		if (!DirectoryExists(SourcePath))
+		{
+			throw new AutomationException("Source path {0} does not exist", SourcePath);
+		}
+
+		DeleteDirectory(DestPath);
+
+		using (var ScopedCopyTimer = new ScopedTimer("ThreadedCopyFiles"))
+		{
+			ThreadedCopyFiles(SourcePath, DestPath, Threads);
+		}
+	}
+}
