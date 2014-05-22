@@ -79,7 +79,7 @@ public:
 	 * Spawns a new sequencer tab if one doesn't exist already
 	 * @todo This only works with the first level editor. Fix it.
 	 */
-	virtual void AttachSequencer(TSharedPtr<SWidget> Sequencer);
+	virtual void AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TSharedPtr<class IAssetEditorInstance> SequencerAssetEditor );
 
 	/**
 	 * Starts a play in editor session using the active viewport

@@ -16,6 +16,8 @@
 #include "GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
 #include "SlateReflector.h"
+#include "SDockTab.h"
+#include "ToolkitManager.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -255,13 +257,32 @@ void FLevelEditorModule::SummonWorldBrowserComposition()
 }
 
 // @todo remove when world-centric mode is added
-void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> Sequencer)
+void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TSharedPtr<IAssetEditorInstance> SequencerAssetEditor )
 {
 	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 	{
+		struct Local
+		{
+			static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> SequencerAssetEditor )
+			{
+				SequencerAssetEditor.Pin()->CloseWindow();
+			}
+		};
+		
 		TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
-		LevelEditorInstance->InvokeTab("Sequencer");
-		LevelEditorInstance->SequencerTab->SetContent(Sequencer.ToSharedRef());
+
+		if( SequencerWidget.IsValid() && SequencerAssetEditor.IsValid() )
+		{
+			LevelEditorInstance->InvokeTab("Sequencer");
+			LevelEditorInstance->SequencerTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateStatic( &Local::OnSequencerClosed, TWeakPtr<IAssetEditorInstance>( SequencerAssetEditor ) ) );
+			LevelEditorInstance->SequencerTab->SetContent(SequencerWidget.ToSharedRef());
+		}
+		else
+		{
+			LevelEditorInstance->SequencerTab.Reset();
+		}
+
+	
 	}
 }
 
@@ -275,7 +296,7 @@ void FLevelEditorModule::FocusPIEViewport()
 {
 	TSharedPtr<SLevelEditor> LevelEditorInstance = LevelEditorInstancePtr.Pin();
 	if( LevelEditorInstance.IsValid() && LevelEditorTabManager.IsValid() && LevelEditorInstance->HasActivePlayInEditorViewport() )
-		{
+	{
 		FGlobalTabmanager::Get()->DrawAttentionToTabManager( LevelEditorTabManager.ToSharedRef() );
 	}
 }

@@ -4,7 +4,7 @@
 
 #include "SAnimationOutlinerView.h"
 #include "ScopedTransaction.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 
 
@@ -154,7 +154,7 @@ EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 	return DisplayNode->GetNumChildren() > 0 ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<ISequencerInternals> InSequencer )
+void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<FSequencer> InSequencer )
 {
 	SAnimationOutlinerViewBase::Construct( SAnimationOutlinerViewBase::FArguments(), InRootNode );
 

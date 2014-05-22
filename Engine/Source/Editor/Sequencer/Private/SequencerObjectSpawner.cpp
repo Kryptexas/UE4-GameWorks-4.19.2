@@ -2,7 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerObjectSpawner.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -11,7 +11,7 @@
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-FSequencerActorObjectSpawner::FSequencerActorObjectSpawner( ISequencerInternals& InitSequencer )
+FSequencerActorObjectSpawner::FSequencerActorObjectSpawner( FSequencer& InitSequencer )
 	: Sequencer( &InitSequencer )
 {
 	// Register to be notified when object changes should be propagated

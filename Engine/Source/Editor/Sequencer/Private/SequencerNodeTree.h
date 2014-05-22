@@ -13,7 +13,7 @@ class UMovieSceneTrack;
 class FSequencerNodeTree : public TSharedFromThis<FSequencerNodeTree>
 {
 public:
-	FSequencerNodeTree( class ISequencerInternals& InSequencer )
+	FSequencerNodeTree( class FSequencer& InSequencer )
 		: Sequencer( InSequencer )
 	{}
 	
@@ -72,7 +72,7 @@ public:
 	void FilterNodes( const FString& InFilter );
 
 	/** Gets the parent sequencer of this tree */
-	ISequencerInternals& GetSequencer() {return Sequencer;}
+	FSequencer& GetSequencer() {return Sequencer;}
 
 	/**
 	 * Saves the expansion state of a display node
@@ -129,5 +129,5 @@ private:
 	/** Active filter string if any */
 	FString FilterString;
 	/** Sequencer interface */
-	ISequencerInternals& Sequencer;
+	FSequencer& Sequencer;
 };

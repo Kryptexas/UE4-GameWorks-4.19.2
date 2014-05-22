@@ -109,7 +109,7 @@ public:
 	 *
 	 * @param	InitSequencer	Sequencer that owns this object
 	 */
-	FSequencerActorObjectSpawner( class ISequencerInternals& InitSequencer );
+	FSequencerActorObjectSpawner( class FSequencer& InitSequencer );
 
 
 	/** Destructor */
@@ -147,7 +147,7 @@ protected:
 private:
 
 	/** The Sequencer that owns this spawner  */
-	ISequencerInternals* Sequencer;
+	FSequencer* Sequencer;
 
 	/** 
 	 * List of puppet objects that we've spawned and are actively managing. 

@@ -80,7 +80,7 @@ public:
 	SLATE_END_ARGS()
 
 	/** Construct this widget.  Called by the SNew() Slate macro. */
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, TSharedRef<ISequencerInternals> InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, TSharedRef<FSequencer> InSequencer );
 
 	/** SAnimationOutlinerView destructor */
 	virtual ~SAnimationOutlinerView();
@@ -103,5 +103,5 @@ private:
 
 private:
 	/** Internal sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };

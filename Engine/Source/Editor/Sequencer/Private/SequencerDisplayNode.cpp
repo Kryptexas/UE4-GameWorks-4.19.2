@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SectionLayoutBuilder.h"
 #include "ISequencerSection.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 #include "SSequencer.h"
 #include "SSequencerSectionAreaView.h"
@@ -213,7 +213,7 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FString& Di
 	KeyAreaNode->AddKeyArea( KeyArea );
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForOutliner( TSharedRef<class ISequencerInternals> Sequencer )
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer )
 {
 	return SNew( SAnimationOutlinerView, SharedThis( this ), Sequencer );
 }
@@ -459,7 +459,7 @@ bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 
 TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	ISequencerInternals& ParentSequencer = GetSequencer();
+	FSequencer& ParentSequencer = GetSequencer();
 
 	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieScene();
 

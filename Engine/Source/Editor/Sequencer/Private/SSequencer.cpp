@@ -4,7 +4,7 @@
 
 #include "SSequencer.h"
 #include "Editor/SequencerWidgets/Public/SequencerWidgetsModule.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
 #include "ISequencerSection.h"
@@ -38,7 +38,7 @@ public:
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TWeakPtr<ISequencerInternals> InSequencer)
+	void Construct(const FArguments& InArgs, TWeakPtr<FSequencer> InSequencer)
 	{
 		ViewRange = InArgs._ViewRange;
 		Sequencer = InSequencer;
@@ -132,14 +132,14 @@ private:
 	/** The current minimum view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** The main sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 	/** Cached set of ranges that are being filtering currently */
 	TArray< TRange<float> > CachedFilteredRanges;
 };
 
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequencerInternals > InSequencer )
+void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
 
@@ -311,6 +311,10 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+SSequencer::~SSequencer()
+{
+}
 
 void SSequencer::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -511,7 +515,7 @@ FReply SSequencer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 
 void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 
 	bool bObjectAdded = false;
 	bool bSpawnableAdded = false;
@@ -577,7 +581,7 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 
 void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 
 	bool bSpawnableAdded = false;
 	for( auto ClassIter = DragDropOp.ClassesToDrop.CreateConstIterator(); ClassIter; ++ClassIter )
@@ -605,7 +609,7 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 
 void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 	bool bSpawnableAdded = false;
 	for( auto ClassDataIter = DragDropOp.AssetsToDrop->CreateConstIterator(); ClassDataIter; ++ClassDataIter )
 	{
@@ -660,7 +664,7 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 
 void SSequencer::OnActorsDropped( FActorDragDropGraphEdOp& DragDropOp )
 {
-	ISequencerInternals& SequencerRef = *Sequencer.Pin();
+	FSequencer& SequencerRef = *Sequencer.Pin();
 	bool bPossessableAdded = false;
 	for( auto ActorIter = DragDropOp.Actors.CreateIterator(); ActorIter; ++ActorIter )
 	{
@@ -746,7 +750,7 @@ void SSequencer::DeleteSelectedNodes()
 	{
 		const FScopedTransaction Transaction( LOCTEXT("UndoDeletingObject", "Delete Object from MovieScene") );
 
-		ISequencerInternals& SequencerRef = *Sequencer.Pin();
+		FSequencer& SequencerRef = *Sequencer.Pin();
 
 		for( auto It = SelectedNodes.CreateConstIterator(); It; ++It )
 		{

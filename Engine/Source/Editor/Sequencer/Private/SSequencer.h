@@ -72,7 +72,9 @@ public:
 	SLATE_END_ARGS()
 
 
-	void Construct( const FArguments& InArgs, TSharedRef< class ISequencerInternals > InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer );
+
+	~SSequencer();
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
 	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
@@ -198,5 +200,5 @@ private:
 	/** Whether the clean sequencer view is enabled */
 	TAttribute<bool> CleanViewEnabled;
 	/** The main sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };

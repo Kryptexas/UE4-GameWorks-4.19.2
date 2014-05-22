@@ -120,7 +120,7 @@ private:
 	void HandleSectionSelection( const FPointerEvent& MouseEvent );
 
 	/** @return the sequencer interface */
-	ISequencerInternals& GetSequencer() const;
+	FSequencer& GetSequencer() const;
 
 	/**
 	 * Creates a drag operation based on the current mouse event and what is selected

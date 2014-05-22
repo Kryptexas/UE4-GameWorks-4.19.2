@@ -85,7 +85,7 @@ public:
 	 * @param Sequencer	Sequencer interface to pass to outliner widgets
 	 * @return Generated outliner widget
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForOutliner( TSharedRef<class ISequencerInternals> Sequencer );
+	virtual TSharedRef<SWidget> GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer );
 
 	/**
 	 * Generates a widget for display in the section area portion of the track area
@@ -129,7 +129,7 @@ public:
 	TSharedPtr<FSequencerDisplayNode> GetParent() const { return ParentNode.Pin(); }
 	
 	/** Gets the sequencer that owns this node */
-	ISequencerInternals& GetSequencer() const { return ParentTree.GetSequencer(); }
+	FSequencer& GetSequencer() const { return ParentTree.GetSequencer(); }
 	
 	/** Gets all the key area nodes recursively, including this node if applicable */
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;

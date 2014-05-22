@@ -63,7 +63,7 @@ private:
 	void GenerateSectionWidgets();
 
 	/** @return The sequencer interface */
-	ISequencerInternals& GetSequencer() const;
+	FSequencer& GetSequencer() const;
 private:
 
 	/** List of all sequencer drag operations going on  in this area */

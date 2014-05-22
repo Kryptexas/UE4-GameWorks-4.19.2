@@ -2,19 +2,17 @@
 
 #pragma once
 
-#include "ISequencerInternals.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"	// For EMapChangeType::Type
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
+#include "SelectedKey.h"
 
 class UMovieScene;
-
 
 /**
  * Sequencer is the editing tool for MovieScene assets
  */
-class FSequencer :
-	public ISequencerInternals, FGCObject, public FEditorUndoClient
+class FSequencer : public ISequencer, FGCObject, public FEditorUndoClient
 { 
 
 public:
@@ -38,66 +36,226 @@ public:
 	/** Destructor */
 	virtual ~FSequencer();
 
+	/** FGCObject interface */
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const OVERRIDE;
 	virtual FText GetBaseToolkitName() const OVERRIDE;
 	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
 	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
 
-	/** ISequencerInternals interface */
-	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited() OVERRIDE;
-	virtual UMovieScene* GetRootMovieScene() const OVERRIDE;
+	/** ISequencer interface */
+	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
+	virtual UMovieScene* GetRootMovieScene() const;
 	virtual UMovieScene* GetFocusedMovieScene() const OVERRIDE;
 	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const OVERRIDE;
 	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const OVERRIDE;
 	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) OVERRIDE;
 	TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const OVERRIDE;
-	virtual void PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) OVERRIDE;
-	virtual void EditDetailsForObjects( TArray< UObject* > ObjectsToEdit ) OVERRIDE;
-	virtual void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) OVERRIDE;
 	virtual void AddNewShot(FGuid CameraGuid) OVERRIDE;
-	virtual void AddAnimation( FGuid ObjectGuid, class UAnimSequence* AnimSequence ) OVERRIDE;
-	virtual void RenameShot(class UMovieSceneSection* ShotSection) OVERRIDE;
-	virtual void DeleteSection(class UMovieSceneSection* Section) OVERRIDE;
-	virtual void DeleteKeys(TArray<FSelectedKey> KeysToDelete) OVERRIDE;
-	virtual class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound ) OVERRIDE;
+	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) OVERRIDE;
 	virtual bool IsAutoKeyEnabled() const OVERRIDE;
 	virtual bool IsRecordingLive() const OVERRIDE;
-	virtual float GetCurrentLocalTime( UMovieScene& MovieScene ) OVERRIDE;
+	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) OVERRIDE;
 	virtual float GetGlobalTime() OVERRIDE;
 	virtual void SetGlobalTime(float Time) OVERRIDE;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) OVERRIDE;
-	virtual FGuid GetHandleToObject( UObject* Object ) OVERRIDE;
-	virtual const TArray< TSharedPtr<FMovieSceneTrackEditor> >& GetTrackEditors() const OVERRIDE { return TrackEditors; }
+	virtual FGuid GetHandleToObject(UObject* Object) OVERRIDE;
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() const OVERRIDE;
 	virtual void NotifyMovieSceneDataChanged() OVERRIDE;
-	virtual void Tick( const float InDeltaTime ) OVERRIDE;
-	virtual FGuid AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject ) OVERRIDE;
-	virtual void AddSubMovieScene( UMovieScene* SubMovieScene ) OVERRIDE;
-	virtual bool OnHandleAssetDropped(UObject* DroppedAsset, const FGuid& TargetObjectGuid) OVERRIDE;
-	virtual void OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& NodeToBeDeleted ) OVERRIDE;
-	virtual void CopyActorProperties( AActor* PuppetActor, AActor* TargetActor ) const OVERRIDE;
-	virtual TArray< TWeakObjectPtr<UMovieSceneSection> > GetSelectedSections() const OVERRIDE;
-	virtual void SelectSection(UMovieSceneSection* Section) OVERRIDE;
-	virtual bool IsSectionSelected( UMovieSceneSection* Section) const OVERRIDE;
-	virtual void ClearSectionSelection() OVERRIDE;
-	virtual void ZoomToSelectedSections() OVERRIDE;
-	virtual void SelectKey( const FSelectedKey& Key ) OVERRIDE;
-	virtual void ClearKeySelection() OVERRIDE;
-	virtual bool IsKeySelected( const FSelectedKey& Key ) const OVERRIDE;
-	virtual TSet<FSelectedKey>& GetSelectedKeys() OVERRIDE;
-	virtual void FilterToShotSections( const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds ) OVERRIDE;
+	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) OVERRIDE;
+	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) OVERRIDE;
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) OVERRIDE;
-	virtual TArray< TWeakObjectPtr<UMovieSceneSection> > GetFilteringShotSections() const OVERRIDE;
-	virtual bool IsObjectUnfilterable(const FGuid& ObjectGuid) const OVERRIDE;
-	virtual void AddUnfilterableObject(const FGuid& ObjectGuid) OVERRIDE;
-	virtual bool IsShotFilteringOn() const OVERRIDE;
-	virtual bool IsUsingCleanView() const OVERRIDE;
-	virtual float GetOverlayFadeCurve() const OVERRIDE;
-	virtual bool IsSectionVisible(UMovieSceneSection* Section) const OVERRIDE;
-	virtual FUICommandList& GetCommandBindings() OVERRIDE {return *SequencerCommandBindings;}
-	virtual void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass) OVERRIDE;
 
+	/**
+	 * Pops the current focused movie scene from the stack.  The parent of this movie scene will be come the focused one
+	 */
+	void PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance );
+
+	/**
+	 * Starts editing details for the specified list of UObjects.  This is used to edit CDO's for blueprints
+	 * that are stored with the MovieScene asset
+	 *
+	 * @param	ObjectsToEdit	The objects to edit in the details view
+	 */
+	void EditDetailsForObjects( TArray< UObject* > ObjectsToEdit );
+
+	/**
+	 * Spawn (or destroy) puppet objects as needed to match the spawnables array in the MovieScene we're editing
+	 *
+	 * @param MovieSceneInstance	The movie scene instance to spawn or destroy puppet objects for
+	 */
+	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
+
+	/** 
+	 * Opens a renaming dialog for the passed in shot section
+	 */
+	void RenameShot(class UMovieSceneSection* ShotSection);
+	 
+	/** 
+	 * Deletes the passed in section
+	 */
+	void DeleteSection(class UMovieSceneSection* Section);
+
+	/**
+	 * Deletes the currently selected in keys
+	 */
+	void DeleteSelectedKeys();
+
+	/**
+	 * Binds to a 'PlayMovieScene' node in level script that is associated with the MovieScene we're editing.  If
+	 * requested, can also create a new node.  Only valid to call when in world-centric mode.
+	 *
+	 * @param	bCreateIfNotFound	True to create a node if we can't find one
+	 *
+	 * @return	The LevelScript node we found or created, or NULL if nothing is still bound
+	 */
+	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound );
+
+	/**
+	 * @return Movie scene tools used by the sequencer
+	 */
+	const TArray< TSharedPtr<FMovieSceneTrackEditor> >& GetTrackEditors() const { return TrackEditors; }
+
+	/** Ticks the sequencer by InDeltaTime */
+	void Tick( const float InDeltaTime );
+
+	/**
+	 * Attempts to add a new spawnable to the MovieScene for the specified asset or class
+	 *
+	 * @param	Object	The asset or class object to add a spawnable for
+	 *
+	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
+	 */
+	virtual FGuid AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject ) ;
+
+	/**
+	 * Call when an asset is dropped into the sequencer. Will proprogate this
+	 * to all tracks, and potentially consume this asset
+	 * so it won't be added as a spawnable
+	 *
+	 * @param DroppedAsset		The asset that is dropped in
+	 * @param TargetObjectGuid	Object to be targeted on dropping
+	 * @return					If true, this asset should be consumed
+	 */
+	virtual bool OnHandleAssetDropped( UObject* DroppedAsset, const FGuid& TargetObjectGuid );
+	
+	/**
+	 * Called to delete all moviescene data from a node
+	 *
+	 * @param NodeToBeDeleted	Node with data that should be deleted
+	 */
+	virtual void OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& NodeToBeDeleted );
+
+	/**
+	 * Copies properties from one actor to another.  Only properties that are different are copied.  This is used
+	 * to propagate changed properties from a living actor in the scene to properties of a blueprint CDO actor
+	 *
+	 * @param	PuppetActor	The source actor (the puppet actor in the scene we're copying properties from)
+	 * @param	TargetActor	The destination actor (data-only blueprint actor CDO)
+	 */
+	virtual void CopyActorProperties( AActor* PuppetActor, AActor* TargetActor ) const;
+
+	/**
+	 * Gets all selected sections in the sequencer
+	 */
+	virtual TArray< TWeakObjectPtr<UMovieSceneSection> > GetSelectedSections() const;
+
+	/**
+	 * Selects a section in the sequencer
+	 */
+	void SelectSection(UMovieSceneSection* Section);
+
+	/**
+	 * Returns whether or not a section is selected
+	 *
+	 * @param Section The section to check
+	 * @return true if the section is selected
+	 */
+	bool IsSectionSelected( UMovieSceneSection* Section) const;
+
+	/**
+	 * Clears all selected sections
+	 */
+	void ClearSectionSelection();
+
+	/**
+	 * Zooms to the edges of all currently selected sections
+	 */
+	void ZoomToSelectedSections();
+
+	/**
+	 * Selects a key
+	 * 
+	 * @param Key	Representation of the key to select
+	 */
+	void SelectKey( const FSelectedKey& Key );
+
+	/**
+	 * Clears the entire set of selected keys
+	 */
+	void ClearKeySelection();
+
+	/**
+	 * Returns whether or not a key is selected
+	 * 
+	 * @param Key	Representation of the key to check for selection
+	 */
+	bool IsKeySelected( const FSelectedKey& Key ) const;
+
+	/**
+	 * @return The entire set of selected keys
+	 */
+	TSet<FSelectedKey>& GetSelectedKeys();
+
+	/**
+	 * Gets all shots that are filtering currently
+	 */
+	TArray< TWeakObjectPtr<UMovieSceneSection> > GetFilteringShotSections() const;
+
+	/**
+	 * Checks to see if an object is unfilterable
+	 */
+	bool IsObjectUnfilterable(const FGuid& ObjectGuid) const;
+
+	/**
+	 * Declares an object unfilterable
+	 */
+	void AddUnfilterableObject(const FGuid& ObjectGuid);
+
+	/**
+	 * Checks to see if shot filtering is on
+	 */
+	bool IsShotFilteringOn() const;
+
+	/**
+	 * Returns true if the sequencer is using the 'Clean View' mode
+	 * Clean View simply means no non-global tracks will appear if no shots are filtering
+	 */
+	bool IsUsingCleanView() const;
+
+	/**
+	 * Gets the overlay fading animation curve lerp
+	 */
+	float GetOverlayFadeCurve() const;
+
+	/**
+	 * Checks if a section is visible, given current shot filtering
+	 */
+	bool IsSectionVisible(UMovieSceneSection* Section) const;
+
+	/** Gets the command bindings for the sequencer */
+	FUICommandList& GetCommandBindings() { return *SequencerCommandBindings; }
+
+	/**
+	 * Builds up the context menu for object binding nodes in the outliner
+	 * 
+	 * @param MenuBuilder	The context menu builder to add things to
+	 * @param ObjectBinding	The object binding of the selected node
+	 * @param ObjectClass	The class of the selected object
+	 */
+	void BuildObjectBindingContextMenu(class FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const class UClass* ObjectClass);
 
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const;
@@ -108,8 +266,7 @@ public:
 
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 
-	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+
 
 	// @todo remove when world-centric mode is added
 	TSharedRef<class SSequencer> GetMainSequencer();

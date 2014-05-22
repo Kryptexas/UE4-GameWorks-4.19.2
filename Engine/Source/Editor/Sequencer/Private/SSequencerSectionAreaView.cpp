@@ -7,7 +7,7 @@
 #include "MovieSceneSection.h"
 #include "SequencerDisplayNode.h"
 #include "SSequencer.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 
@@ -193,7 +193,7 @@ FTimeToPixel SSequencerSectionAreaView::GetTimeToPixel( const FGeometry& Allotte
 }
 
 
-ISequencerInternals& SSequencerSectionAreaView::GetSequencer() const
+FSequencer& SSequencerSectionAreaView::GetSequencer() const
 {
 	return SectionAreaNode->GetSequencer();
 }

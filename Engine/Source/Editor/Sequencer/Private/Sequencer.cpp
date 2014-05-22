@@ -52,29 +52,25 @@ void FSequencer::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 {
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
+	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) && !IsWorldCentricAssetEditor() )
 	{
 		TabManager->RegisterTabSpawner( SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FSequencer::SpawnTab_SequencerMain) )
 			.SetDisplayName( LOCTEXT("SequencerMainTab", "Sequencer") )
 			.SetGroup( MenuStructure.GetAssetEditorCategory() );
 	}
 
-	TabManager->RegisterTabSpawner( SequencerDetailsTabId, FOnSpawnTab::CreateSP(this, &FSequencer::SpawnTab_Details) )
-		.SetDisplayName( LOCTEXT("SequencerDetailsTab", "Details") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 }
 
 void FSequencer::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
+	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) && !IsWorldCentricAssetEditor() )
 	{
 		TabManager->UnregisterTabSpawner( SequencerMainTabId );
 	}
-	TabManager->UnregisterTabSpawner( SequencerDetailsTabId );
 	
 	// @todo remove when world-centric mode is added
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.AttachSequencer(SNullWidget::NullWidget);
+	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
 }
 
 void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates )
@@ -82,14 +78,15 @@ void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr<
 	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 	{
 		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_Sequencer_Layout" )
-			->AddArea(
-			FTabManager::NewPrimaryArea()
-			->Split
+			->AddArea
 			(
-			FTabManager::NewStack()
-			->AddTab( SequencerMainTabId, ETabState::OpenedTab )
-			->AddTab( SequencerDetailsTabId, ETabState::OpenedTab )
-			)
+				FTabManager::NewPrimaryArea()
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab(SequencerMainTabId, ETabState::OpenedTab)
+					->AddTab(SequencerDetailsTabId, ETabState::OpenedTab)
+				)
 			);
 
 		const bool bCreateDefaultStandaloneMenu = true;
@@ -123,7 +120,7 @@ void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr<
 
 		// @todo remove when world-centric mode is added
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.AttachSequencer(SequencerWidget);
+		LevelEditorModule.AttachSequencer(SequencerWidget, SharedThis( this ) );
 
 		// Hook into the editor's mechanism for checking whether we need live capture of PIE/SIE actor state
 		GEditor->GetActorRecordingState().AddSP( this, &FSequencer::GetActorRecordingState );
@@ -132,29 +129,10 @@ void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr<
 		GEditor->RegisterForUndo(this);
 
 
-		// Setup our tool's layout
-		// @todo re-enable once world centric works again
-		/*if( IsWorldCentricAssetEditor() )
-		{
-		if( !SequencerMainTab.IsValid() )
-		{
-		const FString TabInitializationPayload;
-		SequencerMainTab = SpawnToolkitTab( SequencerMainTabId, TabInitializationPayload, EToolkitTabSpot::BelowLevelEditor );
-		}
-
-		// @todo sequencer: Ideally we should be possessing the level editor's details view instead of spawning our own
-		if( !DetailsTab.IsValid() )
-		{
-		const FString TabInitializationPayload;		// NOTE: Payload not currently used for details
-		DetailsTab = SpawnToolkitTab( SequencerDetailsTabId, TabInitializationPayload, EToolkitTabSpot::Details );
-		}
-		}*/
-
-
 		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
 		// when previewing a MovieScene
 		//auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().AddRaw( this, &FSequencer::OnMapChanged );
+		LevelEditorModule.OnMapChanged().AddSP( this, &FSequencer::OnMapChanged );
 
 
 		// Start listening for important changes on this MovieScene
@@ -223,7 +201,7 @@ FSequencer::~FSequencer()
 	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
 	{
 		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().RemoveRaw( this, &FSequencer::OnMapChanged );
+		LevelEditorModule.OnMapChanged().RemoveAll( this );
 	}
 
 	if( PlayMovieSceneNode.IsValid() )
@@ -483,15 +461,14 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	}
 }
 
-void FSequencer::DeleteKeys(TArray<FSelectedKey> KeysToDelete)
+void FSequencer::DeleteSelectedKeys()
 {
-	for (int32 i = 0; i < KeysToDelete.Num(); ++i)
+	TArray<FSelectedKey> SelectedKeysArray = SelectedKeys.Array();
+	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
-		const FSelectedKey& SelectedKey = KeysToDelete[i];
-
-		if (SelectedKey.IsValid())
+		if (Key.IsValid())
 		{
-			SelectedKey.KeyArea->DeleteKey(SelectedKey.KeyHandle.GetValue());
+			Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
 		}
 	}
 }
@@ -584,7 +561,7 @@ UK2Node_PlayMovieScene* FSequencer::BindToPlayMovieSceneNode( const bool bCreate
 							* @param	Sequencer			The Sequencer we're using
 							* @param	PlayMovieSceneNode	The node that we need to jump to
 							*/
-						static void NavigateToPlayMovieSceneNode( ISequencerInternals* Sequencer, UK2Node_PlayMovieScene* PlayMovieSceneNode )
+						static void NavigateToPlayMovieSceneNode( FSequencer* Sequencer, UK2Node_PlayMovieScene* PlayMovieSceneNode )
 						{
 							check( Sequencer != NULL );
 							check( PlayMovieSceneNode != NULL );
@@ -612,7 +589,7 @@ UK2Node_PlayMovieScene* FSequencer::BindToPlayMovieSceneNode( const bool bCreate
 						}
 					};
 
-					ISequencerInternals* SequencerInternals = this;
+					FSequencer* SequencerInternals = this;
 					Info.Hyperlink = FSimpleDelegate::CreateStatic( &Local::NavigateToPlayMovieSceneNode, SequencerInternals, FoundPlayMovieSceneNode );
 					Info.HyperlinkText = LOCTEXT("AddedPlayMovieSceneEventToLevelScriptGraph_Hyperlink", "Show Graph");
 
@@ -1741,7 +1718,7 @@ bool FSequencer::IsSectionVisible(UMovieSceneSection* Section) const
 
 void FSequencer::DeleteSelectedItems()
 {
-	DeleteKeys(SelectedKeys.Array());
+	DeleteSelectedKeys();
 
 	for (int32 i = 0; i < SelectedSections.Num(); ++i)
 	{

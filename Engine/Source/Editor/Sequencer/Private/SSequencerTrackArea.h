@@ -16,7 +16,7 @@ public:
 		SLATE_ATTRIBUTE( float, OutlinerFillPercent )
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<ISequencerInternals> InSequencer )
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
 	{
 		ViewRange = InArgs._ViewRange;
 		OutlinerFillPercent = InArgs._OutlinerFillPercent;
@@ -53,5 +53,5 @@ private:
 	/** The fill percentage of the animation outliner */
 	TAttribute<float> OutlinerFillPercent;
 	/** The main sequencer interface */
-	TWeakPtr<ISequencerInternals> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };

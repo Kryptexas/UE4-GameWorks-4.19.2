@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "MovieSceneSection.h"
 #include "SequencerNodeTree.h"
-#include "ISequencerInternals.h"
+#include "Sequencer.h"
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
