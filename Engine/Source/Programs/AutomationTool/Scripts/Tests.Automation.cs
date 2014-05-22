@@ -290,7 +290,7 @@ class GitPullRequest : BuildCommand
         }
         else
         {
-            bDoingUT = true;
+            bDoingUT = false;
             GitRepositoryURL = GitRepositoryURL_Engine;
         }
         var Dir = ParseParamValue("Dir");
