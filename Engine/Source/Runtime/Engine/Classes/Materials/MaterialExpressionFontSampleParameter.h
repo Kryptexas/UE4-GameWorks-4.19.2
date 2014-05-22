@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionFontSample.h"
 #include "MaterialExpressionFontSampleParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

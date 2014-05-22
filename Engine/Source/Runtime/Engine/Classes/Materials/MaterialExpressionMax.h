@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionMax.generated.h"
 
 UCLASS(MinimalAPI)

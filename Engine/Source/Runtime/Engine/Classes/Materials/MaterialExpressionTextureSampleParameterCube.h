@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "MaterialExpressionTextureSampleParameterCube.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

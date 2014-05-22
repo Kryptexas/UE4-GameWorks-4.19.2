@@ -38,7 +38,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 	 * @param	FunctionInput		The function input to set.
 	 * @param	MaterialValueType	Value type we want input to accept.
 	 */
-	void SetFunctionInputType(UMaterialExpressionFunctionInput* FunctionInput, uint32 MaterialValueType) const;
+	void SetFunctionInputType(class UMaterialExpressionFunctionInput* FunctionInput, uint32 MaterialValueType) const;
 };
 
 /** Action to add a Material Function call to the graph */

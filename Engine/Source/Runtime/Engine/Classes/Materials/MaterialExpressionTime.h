@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionTime.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

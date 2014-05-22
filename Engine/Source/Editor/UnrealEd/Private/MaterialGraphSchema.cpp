@@ -5,6 +5,14 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+
+#include "Materials/MaterialExpressionCollectionParameter.h"
+#include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionFunctionInput.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialFunction.h"
+
 #include "AssetData.h"
 #include "ScopedTransaction.h"
 #include "MaterialEditorUtilities.h"

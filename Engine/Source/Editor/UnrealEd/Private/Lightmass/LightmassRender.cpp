@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-
+#include "Materials/MaterialExpressionWorldPosition.h"
 #include "Programs/UnrealLightmass/Public/LightmassPublic.h"
 #include "Lightmass.h"
 #include "LightmassRender.h"

@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCollectionParameter.generated.h"
 
 UCLASS(hidecategories=object, MinimalAPI)

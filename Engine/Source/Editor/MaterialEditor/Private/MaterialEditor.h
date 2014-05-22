@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Materials/MaterialExpression.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "DragAndDrop.h"
 #include "Editor/GraphEditor/Public/GraphEditorDragDropAction.h"

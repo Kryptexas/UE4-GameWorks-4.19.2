@@ -5,6 +5,7 @@
 	Parameter-related particle module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Materials/MaterialExpressionDynamicParameter.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 

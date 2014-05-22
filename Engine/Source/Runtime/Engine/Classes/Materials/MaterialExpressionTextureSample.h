@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionTextureBase.h"
 #include "MaterialExpressionTextureSample.generated.h"
 
 

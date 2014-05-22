@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDivide.generated.h"
 
 UCLASS(MinimalAPI)

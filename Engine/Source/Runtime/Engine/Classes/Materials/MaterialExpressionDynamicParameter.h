@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDynamicParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

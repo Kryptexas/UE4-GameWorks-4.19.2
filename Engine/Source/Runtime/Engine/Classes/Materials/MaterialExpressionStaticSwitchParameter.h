@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "MaterialExpressionStaticSwitchParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

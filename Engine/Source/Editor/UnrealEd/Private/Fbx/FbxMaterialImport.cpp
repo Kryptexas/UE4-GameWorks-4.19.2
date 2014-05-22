@@ -29,6 +29,9 @@
 */
 
 #include "UnrealEd.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
 #include "Factories.h"
 #include "Engine.h"
 #include "TextureLayout.h"

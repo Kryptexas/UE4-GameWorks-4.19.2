@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLightmapUVs.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

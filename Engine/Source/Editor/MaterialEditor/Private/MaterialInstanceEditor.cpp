@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
+
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+
 #include "MaterialInstanceEditor.h"
 #include "MaterialEditor.h"
 #include "MaterialEditorActions.h"

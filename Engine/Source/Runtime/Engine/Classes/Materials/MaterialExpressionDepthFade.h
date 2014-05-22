@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDepthFade.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

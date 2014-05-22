@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "MaterialExpressionAntialiasedTextureMask.generated.h"
 
 UENUM()

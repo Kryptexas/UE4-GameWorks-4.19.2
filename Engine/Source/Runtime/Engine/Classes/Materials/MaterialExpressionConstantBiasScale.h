@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionConstantBiasScale.generated.h"
 
 UCLASS(MinimalAPI)

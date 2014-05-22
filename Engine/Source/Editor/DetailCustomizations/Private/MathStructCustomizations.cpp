@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
 #include "MathStructCustomizations.h"
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"

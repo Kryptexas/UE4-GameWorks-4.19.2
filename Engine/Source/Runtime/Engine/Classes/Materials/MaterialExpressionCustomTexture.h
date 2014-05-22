@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCustomTexture.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

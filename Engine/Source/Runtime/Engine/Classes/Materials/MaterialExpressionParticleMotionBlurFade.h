@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionParticleMotionBlurFade.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

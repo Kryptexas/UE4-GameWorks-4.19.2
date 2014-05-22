@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
+#include "Materials/MaterialExpressionComment.h"
 #include "SGraphNodeComment.h"
 #include "SGraphNodeMaterialComment.h"
 

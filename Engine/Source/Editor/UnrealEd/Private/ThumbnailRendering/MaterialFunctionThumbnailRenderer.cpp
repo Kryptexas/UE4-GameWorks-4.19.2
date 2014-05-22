@@ -2,6 +2,8 @@
 
 #include "UnrealEd.h"
 
+#include "Materials/MaterialFunction.h"
+
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
 

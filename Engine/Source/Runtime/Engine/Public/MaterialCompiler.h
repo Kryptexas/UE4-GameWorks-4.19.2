@@ -7,6 +7,9 @@
 #pragma once
 
 #include "Engine.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionSpeedTree.h"
 #include "MaterialShared.h"
 
 /** 

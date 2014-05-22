@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionSceneTexture.generated.h"
 
 /** like EPassInputId but can expose more e.g. GBuffer */

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Materials/MaterialFunction.h"
+
 class FAssetTypeActions_MaterialFunction : public FAssetTypeActions_Base
 {
 public:

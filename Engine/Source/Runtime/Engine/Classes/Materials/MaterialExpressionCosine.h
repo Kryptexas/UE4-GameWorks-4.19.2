@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCosine.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

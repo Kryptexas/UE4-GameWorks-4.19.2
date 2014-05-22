@@ -2,6 +2,7 @@
 
 
 #include "MaterialEditorModule.h"
+#include "Materials/MaterialFunction.h"
 #include "MaterialEditor.h"
 #include "MaterialEditorUtilities.h"
 #include "MaterialInstanceEditor.h"

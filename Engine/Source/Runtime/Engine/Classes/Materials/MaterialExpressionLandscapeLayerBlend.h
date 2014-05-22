@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLandscapeLayerBlend.generated.h"
 
 UENUM()

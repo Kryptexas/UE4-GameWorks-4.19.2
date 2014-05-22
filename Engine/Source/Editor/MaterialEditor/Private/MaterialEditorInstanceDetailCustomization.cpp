@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
+#include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "EditorSupportDelegates.h"
 #include "UnrealEd.h"
 #include "PropertyEditing.h"

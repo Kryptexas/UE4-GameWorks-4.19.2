@@ -5,6 +5,12 @@
 ================================================================================*/
 
 #include "MeshPaintPrivatePCH.h"
+
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialExpressionTextureSampleParameter.h"
+
 #include "MeshPaintEdMode.h"
 #include "Factories.h"
 #include "ScopedTransaction.h"

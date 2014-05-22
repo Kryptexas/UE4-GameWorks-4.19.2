@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+
+struct FExpressionInput;
+
 //////////////////////////////////////////////////////////////////////////
 // FMaterialEditorUtilities
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
 #include "PropertyEditorHelpers.h"
 #include "IPropertyUtilities.h"
 #include "PropertyNode.h"

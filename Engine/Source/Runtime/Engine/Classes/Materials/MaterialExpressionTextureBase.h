@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionTextureBase.generated.h"
 
 UCLASS(abstract, hidecategories=Object, MinimalAPI)

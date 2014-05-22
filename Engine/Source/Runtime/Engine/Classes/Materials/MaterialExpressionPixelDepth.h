@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionPixelDepth.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionMaterialFunctionCall.generated.h"
 
 /** Struct that stores information about a function input which is needed to maintain connections and implement the function call. */

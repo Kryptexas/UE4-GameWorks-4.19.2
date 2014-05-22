@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionParticleDirection.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

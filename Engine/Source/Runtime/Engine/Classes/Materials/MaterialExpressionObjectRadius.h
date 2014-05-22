@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionObjectRadius.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)

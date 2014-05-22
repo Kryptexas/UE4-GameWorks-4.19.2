@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "MaterialEditorModule.h"
+#include "Materials/MaterialExpressionComment.h"
 #include "FindInMaterial.h"
 #include "MaterialEditor.h"
 

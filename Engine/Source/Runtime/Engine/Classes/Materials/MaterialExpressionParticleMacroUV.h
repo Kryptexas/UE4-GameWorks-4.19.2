@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionParticleMacroUV.generated.h"
 
 UCLASS()

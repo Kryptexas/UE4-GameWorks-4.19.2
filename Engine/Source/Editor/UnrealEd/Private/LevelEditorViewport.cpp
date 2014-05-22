@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "EditorSupportDelegates.h"
 #include "SoundDefinitions.h"
 #include "CameraController.h"

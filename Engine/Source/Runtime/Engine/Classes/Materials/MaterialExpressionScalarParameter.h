@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionParameter.h"
 #include "MaterialExpressionScalarParameter.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

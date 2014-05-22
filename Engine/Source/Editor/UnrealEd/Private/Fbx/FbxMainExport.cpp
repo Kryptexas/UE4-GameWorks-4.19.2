@@ -33,12 +33,20 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionConstant2Vector.h"
+#include "Materials/MaterialExpressionConstant3Vector.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpTrackMoveAxis.h"
 #include "Matinee/InterpTrackFloatProp.h"
 #include "Matinee/InterpTrackInstFloatProp.h"
 #include "Matinee/InterpTrackInstMove.h"
+
 #include "LandscapeDataAccess.h"
 
 #include "FbxExporter.h"

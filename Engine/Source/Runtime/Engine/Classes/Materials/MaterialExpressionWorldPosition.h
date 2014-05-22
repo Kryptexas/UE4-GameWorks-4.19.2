@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionWorldPosition.generated.h"
 
 /** Specifies which shader generated offsets should included in the world position (displacement/WPO etc.) */

@@ -4,6 +4,10 @@
 // UMaterialGraph
 
 #include "UnrealEd.h"
+
+#include "Materials/MaterialExpressionComment.h"
+#include "Materials/MaterialExpressionFunctionOutput.h"
+
 #include "GraphEditor.h"
 #include "MaterialShared.h"
 #include "MaterialEditorUtilities.h"

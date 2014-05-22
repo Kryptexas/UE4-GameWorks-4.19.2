@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDepthOfFieldFunction.generated.h"
 
 UENUM()

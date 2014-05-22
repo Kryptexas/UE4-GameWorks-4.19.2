@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpression.h"
 #include "MaterialExpressionOneMinus.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

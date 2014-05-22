@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "MaterialExpressionParticleSubUV.generated.h"
 
 UCLASS(MinimalAPI)
