@@ -296,10 +296,12 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	float DeltaTime = bLastSubstep ? (DeltaSeconds - TotalSubTime) : SubTime;
 	float Interpolation = bLastSubstep ? 1.f : Alpha;
 
+#if WITH_VEHICLE
 	if (VehicleManager)
 	{
 		VehicleManager->Update(DeltaTime);
 	}
+#endif
 
 	SubstepInterpolation(Interpolation);
 
