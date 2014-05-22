@@ -22,6 +22,7 @@
 
 // Classes
 #include "Foliage/InstancedFoliageActor.h"
+#include "Foliage/InstancedFoliageSettings.h"
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 #include "Landscape/LandscapeInfo.h"

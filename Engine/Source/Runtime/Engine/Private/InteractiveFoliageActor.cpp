@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 
+#include "Engine/InteractiveFoliageActor.h"
+#include "Components/InteractiveFoliageComponent.h"
+
 AInteractiveFoliageActor::AInteractiveFoliageActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP
 		.SetDefaultSubobjectClass<UInteractiveFoliageComponent>("StaticMeshComponent0"))

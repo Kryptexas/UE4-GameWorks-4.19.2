@@ -15,6 +15,7 @@ ActorFactory.cpp:
 #include "BSPOps.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
+#include "Engine/InteractiveFoliageActor.h"
 
 #include "AssetRegistryModule.h"
 

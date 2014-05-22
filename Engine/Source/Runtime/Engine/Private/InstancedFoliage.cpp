@@ -9,6 +9,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "Foliage/InstancedFoliageSettings.h"
 #include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
