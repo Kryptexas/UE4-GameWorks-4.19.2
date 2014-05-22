@@ -928,6 +928,14 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 			}
 			ProjectFile = NewProjectFile;
 		}
+		if(Selection == OpenExistingButton)
+		{
+			if(!FDesktopPlatformModule::Get()->CleanGameProject(FPaths::GetPath(ProjectFile), GWarn))
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCleanFailed", "Couldn't clean project build files. Delete the project intermediate folder and try again.") );
+				return false;
+			}
+		}
 		if(Selection != SkipConversionButton)
 		{
 			// If it's a code-based project, generate project files and open visual studio after an upgrade

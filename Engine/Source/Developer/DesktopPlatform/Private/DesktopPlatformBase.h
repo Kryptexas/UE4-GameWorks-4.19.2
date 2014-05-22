@@ -50,5 +50,5 @@ private:
 
 	const FUProjectDictionary &GetCachedProjectDictionary(const FString& RootDir);
 
-	void GetProjectBuildProducts(const FString& ProjectFileName, TArray<FString> &OutFileNames);
+	void GetProjectBuildProducts(const FString& ProjectFileName, TArray<FString> &OutFileNames, TArray<FString> &OutDirectoryNames);
 };
