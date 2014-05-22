@@ -788,7 +788,7 @@ bool ULocalPlayer::HandleDNCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 bool ULocalPlayer::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// If there is no viewport it was already closed.
-	if( ViewportClient->Viewport )
+	if ( ViewportClient && ViewportClient->Viewport )
 	{
 		ViewportClient->CloseRequested(ViewportClient->Viewport);
 	}
