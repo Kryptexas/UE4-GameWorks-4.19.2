@@ -11,16 +11,66 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-	/** Type of module. */
+	/** Type of module. Mirrored in UHT as EBuildModuleType */
 	public enum UEBuildModuleType
 	{
-		EngineModule,
-		GameModule,
+		Unknown,
+		Runtime,
+		Developer,
+		Editor,
+		ThirdParty,
+		Plugin,
+		Program,
+		Game,
+	}
+	public static class UEBuildModuleTypeExtensions
+	{
+		public static bool IsEngineModule(this UEBuildModuleType ModuleType)
+		{
+			return ModuleType != UEBuildModuleType.Game;
+		}
 	}
 	
 	/** A unit of code compilation and linking. */
 	public abstract class UEBuildModule
 	{
+		/** Known module folders */
+		public static readonly string RuntimeFolder = String.Format("{0}Runtime{0}", Path.DirectorySeparatorChar);
+		public static readonly string DeveloperFolder = String.Format("{0}Developer{0}", Path.DirectorySeparatorChar);
+		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
+		public static readonly string PluginFolder = String.Format("Plugins{0}", Path.DirectorySeparatorChar);
+		public static readonly string ThirdPartyFolder = String.Format("{0}ThirdParty{0}", Path.DirectorySeparatorChar);
+		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
+
+		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
+		{
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.RuntimeFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Runtime;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.DeveloperFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Developer;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.EditorFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Editor;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.StartsWith(UEBuildModule.PluginFolder, StringComparison.InvariantCultureIgnoreCase))
+			{
+				ModuleType = UEBuildModuleType.Plugin;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ThirdPartyFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.ThirdParty;
+			}
+			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+			{
+				ModuleType = UEBuildModuleType.Program;
+			}
+			return ModuleType;
+		}
+
 		/** Converts an optional string list parameter to a well-defined list. */
 		protected static List<string> ListFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
 		{
@@ -1476,7 +1526,7 @@ namespace UnrealBuildTool
 			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
 
 			// Switch the optimization flag if we're building a game module
-			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && Type == UEBuildModuleType.GameModule)
+			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && Type == UEBuildModuleType.Game)
 			{
 				Result.Config.TargetConfiguration = CPPTargetConfiguration.Debug;
 			}
@@ -1608,6 +1658,7 @@ namespace UnrealBuildTool
 			CachedModuleUHTInfo = new UHTModuleInfo {
 				ModuleName                  = this.Name,
 				ModuleDirectory             = this.ModuleDirectory,
+				ModuleType					= this.Type.ToString(),
 				PublicUObjectClassesHeaders = _AllClassesHeaders    .ToList(),
 				PublicUObjectHeaders        = _PublicUObjectHeaders .ToList(),
 				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList()

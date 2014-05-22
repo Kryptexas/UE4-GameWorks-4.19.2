@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
+#include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "Json.h"
 
@@ -106,6 +107,10 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 		GetJsonFieldValue(KnownModule.PCH,                       ModuleObj, TEXT("PCH"),                      *Outer);
 		GetJsonFieldValue(KnownModule.GeneratedCPPFilenameBase,  ModuleObj, TEXT("GeneratedCPPFilenameBase"), *Outer);
 
+		FString ModuleTypeText;
+		GetJsonFieldValue(ModuleTypeText, ModuleObj, TEXT("ModuleType"), *Outer);
+		KnownModule.ModuleType = EBuildModuleType::Parse(*ModuleTypeText);
+
 		KnownModule.LongPackageName = FPackageName::ConvertToLongScriptPackageName(*KnownModule.Name);
 
 		// Convert relative paths
@@ -133,6 +138,14 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 		KnownModule.PublicUObjectClassesHeaders.Sort();
 		KnownModule.PublicUObjectHeaders       .Sort();
 		KnownModule.PrivateUObjectHeaders      .Sort();
+
+		UE_LOG(LogCompile, Log, TEXT("  %s"), *KnownModule.Name);
+		UE_LOG(LogCompile, Log, TEXT("  .BaseDirectory=%s"), *KnownModule.BaseDirectory);
+		UE_LOG(LogCompile, Log, TEXT("  .IncludeBase=%s"), *KnownModule.IncludeBase);
+		UE_LOG(LogCompile, Log, TEXT("  .GeneratedIncludeDirectory=%s"), *KnownModule.GeneratedIncludeDirectory);
+		UE_LOG(LogCompile, Log, TEXT("  .SaveExportedHeaders=%s"), KnownModule.SaveExportedHeaders ? TEXT("True") : TEXT("False"));
+		UE_LOG(LogCompile, Log, TEXT("  .GeneratedCPPFilenameBase=%s"), *KnownModule.GeneratedCPPFilenameBase);
+		UE_LOG(LogCompile, Log, TEXT("  .ModuleType=%s"), *ModuleTypeText);
 
 		++ModuleIndex;
 	}

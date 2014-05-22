@@ -8,9 +8,9 @@
 #include "NativeClassExporter.h"
 #include "HeaderParser.h"
 #include "ClassMaps.h"
+#include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "StringUtils.h"
-#include "IScriptGeneratorPluginInterface.h"
 
 /////////////////////////////////////////////////////
 // Globals
@@ -4664,7 +4664,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 			{
 				if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
 				{
-					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, ScriptPlugins);
+					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module, ScriptPlugins);
 					if (Result != ECompilationResult::Succeeded)
 					{
 						++NumFailures;

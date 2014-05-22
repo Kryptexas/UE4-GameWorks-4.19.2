@@ -157,20 +157,6 @@ bool FScriptCodeGeneratorBase::CanExportClass(UClass* Class)
 		(Class->ClassFlags & (CLASS_RequiredAPI | CLASS_MinimalAPI)) && // Don't export classes that don't export DLL symbols
 		!ExportedClasses.Contains(Class->GetFName()); // Don't export classes that have already been exported
 
-	if (bCanExport)
-	{
-		// Only export functions from selected modules
-		static struct FSupportedModules
-		{
-			TArray<FString> SupportedScriptModules;
-			FSupportedModules()
-			{
-				GConfig->GetArray(TEXT("Plugins"), TEXT("ScriptSupportedModules"), SupportedScriptModules, GEngineIni);
-			}
-		} SupportedModules;
-
-		bCanExport = SupportedModules.SupportedScriptModules.Contains(Class->GetOutermost()->GetName());
-	}
 	return bCanExport;
 }
 

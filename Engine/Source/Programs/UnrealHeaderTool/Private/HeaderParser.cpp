@@ -6581,32 +6581,30 @@ FString FHeaderParser::RequireExactlyOneSpecifierValue(const FPropertySpecifier&
 }
 
 // Exports the class to all vailable plugins
-void ExportClassToScriptPlugins(UClass* Class, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+void ExportClassToScriptPlugins(UClass* Class, const FManifestModule& Module, IScriptGeneratorPluginInterface& ScriptPlugin)
 {
-	for (auto Plugin : ScriptPlugins)
-	{
-		auto ClassHeaderInfo = GClassGeneratedFileMap.FindRef(Class);
-		Plugin->ExportClass(Class, ClassHeaderInfo.SourceFilename, ClassHeaderInfo.GeneratedFilename, ClassHeaderInfo.bHasChanged);
-	}
+	auto ClassHeaderInfo = GClassGeneratedFileMap.FindRef(Class);
+	ScriptPlugin.ExportClass(Class, ClassHeaderInfo.SourceFilename, ClassHeaderInfo.GeneratedFilename, ClassHeaderInfo.bHasChanged);
 }
+
 // Exports class tree to all available plugins
-void ExportClassTreeToScriptPlugins(const FClassTree* Node, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+void ExportClassTreeToScriptPlugins(const FClassTree* Node, const FManifestModule& Module, IScriptGeneratorPluginInterface& ScriptPlugin)
 {
 	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
 	{
 		auto ChildNode = Node->GetChild(ChildIndex);
-		ExportClassToScriptPlugins(ChildNode->GetClass(), ScriptPlugins);
+		ExportClassToScriptPlugins(ChildNode->GetClass(), Module, ScriptPlugin);
 	}
 
 	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
 	{
 		auto ChildNode = Node->GetChild(ChildIndex);
-		ExportClassTreeToScriptPlugins(ChildNode, ScriptPlugins);
+		ExportClassTreeToScriptPlugins(ChildNode, Module, ScriptPlugin);
 	}
 }
 
 // Parse all headers for classes that are inside CurrentPackage.
-ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* CurrentPackage, bool bAllowSaveExportedHeaders, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* CurrentPackage, const FManifestModule& Module, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
@@ -6643,7 +6641,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 			// from the feedback context.
 			Warn->SetContext(NULL);
 
-			ExportNativeHeaders(CurrentPackage, AllClasses, bAllowSaveExportedHeaders);
+			ExportNativeHeaders(CurrentPackage, AllClasses, Module.SaveExportedHeaders);
 
 			// Done with header generation
 			if (HeaderParser.LinesParsed > 0)
@@ -6669,8 +6667,14 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 	if (Result == ECompilationResult::Succeeded && ScriptPlugins.Num())
 	{
 		auto RootNode = &AllClasses.GetClassTree();
-		ExportClassToScriptPlugins(RootNode->GetClass(), ScriptPlugins);
-		ExportClassTreeToScriptPlugins(&AllClasses.GetClassTree(), ScriptPlugins);
+		for (auto Plugin : ScriptPlugins)
+		{
+			if (Plugin->ShouldExportClassesForModule(Module.Name, Module.ModuleType))
+			{
+				ExportClassToScriptPlugins(RootNode->GetClass(), Module, *Plugin);
+				ExportClassTreeToScriptPlugins(RootNode, Module, *Plugin);
+			}
+		}
 	}
 
 	return Result;

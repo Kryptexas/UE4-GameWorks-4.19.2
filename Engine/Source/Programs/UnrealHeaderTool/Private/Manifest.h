@@ -12,6 +12,9 @@ struct FManifestModule
 	/** The name of the module */
 	FString Name;
 
+	/** Module type */
+	EBuildModuleType::Type ModuleType;
+
 	/** Long package name for this module's UObject class */
 	FString LongPackageName;
 

@@ -1546,7 +1546,7 @@ namespace UnrealBuildTool
 				UEBuildModuleCPP NewModule = new UEBuildModuleCPP(
 					InTarget: this,
 					InName: LinkerFixupsName,
-					InType: UEBuildModuleType.GameModule,
+					InType: UEBuildModuleType.Game,
 					InModuleDirectory:FakeModuleDirectory,
 					InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
 					InIntelliSenseGatherer: null,
@@ -2344,8 +2344,9 @@ namespace UnrealBuildTool
 
 				// Making an assumption here that any project file path that contains '../../'
 				// is NOT from the engine and therefore must be an application-specific module.
-				bool IsGameModule = false;
-				string ApplicationOutputPath = "";
+				// Get the type of module we're creating
+				var ModuleType = UEBuildModuleType.Unknown;
+				var ApplicationOutputPath = "";
 				var ModuleFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(ModuleFileName, ProjectFileGenerator.EngineRelativePath);
 				if (ModuleFileRelativeToEngineDirectory.StartsWith("..") || Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
 				{
@@ -2354,7 +2355,7 @@ namespace UnrealBuildTool
 					if (SourceIndex != -1)
 					{
 						ApplicationOutputPath = ApplicationOutputPath.Substring(0, SourceIndex + 1);
-						IsGameModule = true;
+						ModuleType = UEBuildModuleType.Game;
 					}
 					else
 					{
@@ -2362,6 +2363,16 @@ namespace UnrealBuildTool
 							ModuleName, ModuleFileName);
 					}
 				}
+				else
+				{
+					ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleType, ModuleFileRelativeToEngineDirectory);
+					if (ModuleType == UEBuildModuleType.Unknown)
+					{
+						throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+					}
+				}
+
+				var IsGameModule = !ModuleType.IsEngineModule();
 
 				// Get the base directory for paths referenced by the module. If the module's under the UProject source directory use that, otherwise leave it relative to the Engine source directory.
 				string ProjectSourcePath = UnrealBuildTool.GetUProjectSourcePath();
@@ -2420,9 +2431,6 @@ namespace UnrealBuildTool
 						}
 					}
 				}
-
-				// Get the type of module we're creating
-				UEBuildModuleType ModuleType = IsGameModule ? UEBuildModuleType.GameModule : UEBuildModuleType.EngineModule;
 
 				// Now, go ahead and create the module builder instance
 				if((Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, ApplicationOutputPath, IntelliSenseGatherer, ModuleSourceFiles)) == null)

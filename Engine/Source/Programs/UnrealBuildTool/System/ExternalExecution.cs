@@ -31,6 +31,9 @@ namespace UnrealBuildTool
 		/** Module base directory */
 		public string ModuleDirectory;
 
+		/** Module type */
+		public string ModuleType;
+
 		/** Public UObject headers found in the Classes directory (legacy) */
 		public List<FileItem> PublicUObjectClassesHeaders;
 
@@ -57,6 +60,7 @@ namespace UnrealBuildTool
 		public struct Module
 		{
 			public string       Name;
+			public string		ModuleType;
 			public string       BaseDirectory;
 			public string       IncludeBase;     // The include path which all UHT-generated includes should be relative to
 			public string       OutputDirectory;
@@ -82,6 +86,7 @@ namespace UnrealBuildTool
 
 			Modules = ModuleInfo.Select(Info => new Module{
 				Name                     = Info.ModuleName,
+				ModuleType				 = Info.ModuleType,
 				BaseDirectory            = Info.ModuleDirectory,
 				IncludeBase              = Info.ModuleDirectory,
 				OutputDirectory          = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Info.ModuleDirectory, Info.ModuleName),
