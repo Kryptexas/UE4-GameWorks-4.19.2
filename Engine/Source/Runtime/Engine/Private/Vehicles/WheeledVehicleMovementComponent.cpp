@@ -103,7 +103,7 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 	SteeringInputRate.FallRate = 5.0f;
 
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	// tire load filtering
 	PxVehicleTireLoadFilterData PTireLoadFilterDef;
 	MinNormalizedTireLoad = PTireLoadFilterDef.mMinNormalisedLoad;

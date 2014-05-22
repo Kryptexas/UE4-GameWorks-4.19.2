@@ -96,13 +96,14 @@ public class UE4GameTarget : TargetRules
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			// to make Tappy Chicken as small as possible we excluded some items from the engine.
-			UEBuildConfiguration.bCompileRecast = false;
+			// uncomment below to make a smaller HTML5 build
+/*			UEBuildConfiguration.bCompileRecast = false;
 			UEBuildConfiguration.bCompileSpeedTree = false;
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysXVehicle = false;
 			UEBuildConfiguration.bCompileForSize = true;
-			UEBuildConfiguration.bCompileFreeType = false;
+			UEBuildConfiguration.bCompileFreeType = false;*/
 		}
 	}
 	public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
