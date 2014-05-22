@@ -508,6 +508,10 @@ void UPaperSprite::BuildCustomCollisionData()
 		Point = ConvertTextureSpaceToPivotSpace(Point);
 	}
 
+	//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
+	//@TODO: Use this guy instead: DecomposeMeshToHulls
+	//@TODO: Merge triangles that are convex together!
+
 	// Bake it to the runtime structure
 	switch (SpriteCollisionDomain)
 	{
@@ -516,11 +520,8 @@ void UPaperSprite::BuildCustomCollisionData()
 			checkSlow(BodySetup3D);
 			BodySetup3D->AggGeom.EmptyElements();
 
-			//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
-
 			const FVector HalfThicknessVector = PaperAxisZ * 0.5f * CollisionThickness;
-			//@TODO: Use this guy instead: DecomposeMeshToHulls
-			//@TODO: Merge triangles that are convex together!
+
 			int32 RunningIndex = 0;
 			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
 			{
@@ -547,29 +548,21 @@ void UPaperSprite::BuildCustomCollisionData()
 			checkSlow(BodySetup2D);
 			BodySetup2D->AggGeom2D.EmptyElements();
 
-			//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
-
-			//@TODO: Use this guy instead: DecomposeMeshToHulls
-			//@TODO: Merge triangles that are convex together!
 			int32 RunningIndex = 0;
 			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
 			{
-				FKConvexElem& ConvexTri = *new (BodySetup2D->AggGeom2D.ConvexElems) FKConvexElem();
+				FConvexElement2D& ConvexTri = *new (BodySetup2D->AggGeom2D.ConvexElements) FConvexElement2D();
 				ConvexTri.VertexData.Empty(3);
 				for (int32 Index = 0; Index < 3; ++Index)
 				{
 					const FVector2D& Pos2D = CollisionData[RunningIndex++];
-
-					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.X);
-
-					new (ConvexTri.VertexData) FVector(Pos3D);
+					new (ConvexTri.VertexData) FVector2D(Pos2D);
 				}
-				ConvexTri.UpdateElemBox();
 			}
 
 			BodySetup2D->InvalidatePhysicsData();
 			BodySetup2D->CreatePhysicsMeshes();
-	}
+		}
 		break;
 	default:
 		check(false);
@@ -609,7 +602,6 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
 		{
-			//@TODO:!!!
 			checkSlow(BodySetup2D);
 			BodySetup2D->AggGeom2D.EmptyElements();
 
@@ -620,10 +612,11 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
 
 			// Create a new box primitive
-			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
-
-			FKBoxElem& Box = *new (BodySetup2D->AggGeom2D.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
-			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
+			FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
+			Box.Width = FMath::Abs(BoxSize2D.X);
+			Box.Height = FMath::Abs(BoxSize2D.Y);
+			Box.Center.X = CenterInPivotSpace.X;
+			Box.Center.Y = CenterInPivotSpace.Y;
 
 			BodySetup2D->InvalidatePhysicsData();
 			BodySetup2D->CreatePhysicsMeshes();

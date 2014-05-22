@@ -77,58 +77,6 @@ void UPaperRenderComponent::SendRenderDynamicData_Concurrent()
 	}
 }
 
-void UPaperRenderComponent::CreatePhysicsState()
-{
-	Super::CreatePhysicsState();
-	CreatePhysicsState2D();
-}
-
-void UPaperRenderComponent::DestroyPhysicsState()
-{
-	Super::DestroyPhysicsState();
-	DestroyPhysicsState2D();
-}
-
-void UPaperRenderComponent::DestroyPhysicsState2D()
-{
-	// clean up physics engine representation
-	if (BodyInstance2D.IsValidBodyInstance())
-	{
-		BodyInstance2D.TermBody();
-	}
-}
-
-void UPaperRenderComponent::CreatePhysicsState2D()
-{
-	if (!BodyInstance2D.IsValidBodyInstance() && (SourceSprite != NULL) && (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics))
-	{
-		UBodySetup2D* BodySetup = GetBodySetup2D();
-		//@TODO: if (UBodySetup2D* BodySetup = GetBodySetup2D())
-		{
-			BodyInstance2D.InitBody(BodySetup, SourceSprite, ComponentToWorld, this);
-		}
-	}
-}
-
-UBodySetup2D* UPaperRenderComponent::GetBodySetup2D()
-{
-	return (SourceSprite != nullptr) ? SourceSprite->BodySetup2D : nullptr;
-}
-
-void UPaperRenderComponent::OnUpdateTransform(bool bSkipPhysicsMove)
-{
-	Super::OnUpdateTransform(bSkipPhysicsMove);
-
-	// Always send new transform to physics
-	if (bPhysicsStateCreated && !bSkipPhysicsMove)
-	{
-		// @todo UE4 rather than always pass false, this function should know if it is being teleported or not!
-		SendPhysicsTransform(false);
-
-		BodyInstance2D.SetBodyTransform(ComponentToWorld);
-	}
-}
-
 bool UPaperRenderComponent::HasAnySockets() const
 {
 	if (SourceSprite != NULL)
@@ -178,15 +126,30 @@ void UPaperRenderComponent::QuerySupportedSockets(TArray<FComponentSocketDescrip
 	}
 }
 
-void UPaperRenderComponent::SetSimulatePhysics(bool bSimulate)
-{
-	Super::SetSimulatePhysics(bSimulate);
-	BodyInstance2D.SetInstanceSimulatePhysics(bSimulate);
-}
-
 UBodySetup* UPaperRenderComponent::GetBodySetup()
 {
-	return (SourceSprite != NULL) ? SourceSprite->BodySetup3D : NULL;
+	if (SourceSprite != nullptr)
+	{
+		if (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use3DPhysics)
+		{
+			return SourceSprite->BodySetup3D;
+		}
+	}
+	
+	return nullptr;
+}
+
+UBodySetup2D* UPaperRenderComponent::GetBodySetup2D() const
+{
+	if (SourceSprite != nullptr)
+	{
+		if (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
+		{
+			return SourceSprite->BodySetup2D;
+		}
+	}
+
+	return nullptr;
 }
 
 bool UPaperRenderComponent::SetSprite(class UPaperSprite* NewSprite)

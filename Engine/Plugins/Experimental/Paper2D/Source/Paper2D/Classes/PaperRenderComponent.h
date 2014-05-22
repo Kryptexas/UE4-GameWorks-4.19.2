@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "BodyInstance2D.h"
+#include "PrimitiveComponent2D.h"
 #include "PaperRenderComponent.generated.h"
 
 UCLASS(DependsOn=UPaperSprite, MinimalAPI, ShowCategories=(Mobility), meta=(BlueprintSpawnableComponent))
-class UPaperRenderComponent : public UPrimitiveComponent
+class UPaperRenderComponent : public UPrimitiveComponent2D
 {
 	GENERATED_UCLASS_BODY()
 
@@ -18,10 +18,6 @@ protected:
 	// The material override for this sprite component (if any)
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* MaterialOverride;
-
-	// Physics scene information for this component, holds a single rigid body with multiple shapes.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision)//, meta=(ShowOnlyInnerProperties))
-	FBodyInstance2D BodyInstance2D;
 
 	// The color of the sprite (passed to the sprite material as a vertex color)
 	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
@@ -44,13 +40,10 @@ public:
 
 	// UActorComponent interface
 	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void DestroyPhysicsState() OVERRIDE;
 	virtual const UObject* AdditionalStatObject() const OVERRIDE;
 	// End of UActorComponent interface
 
 	// USceneComponent interface
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
 	virtual bool HasAnySockets() const OVERRIDE;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
@@ -59,20 +52,13 @@ public:
 	// UPrimitiveComponent interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual void SetSimulatePhysics(bool bSimulate) OVERRIDE;
 	virtual class UBodySetup* GetBodySetup() OVERRIDE;
 	// End of UPrimitiveComponent interface
 
-	/** Return the BodySetup to use for this PrimitiveComponent (single body case) */
-	virtual class UBodySetup2D* GetBodySetup2D();
+	// UPrimitiveComponent2D interface
+	virtual class UBodySetup2D* GetBodySetup2D() const OVERRIDE;
+	// End of UPrimitiveComponent2D interface
 
 	// Returns the wireframe color to use for this component.
 	FLinearColor GetWireframeColor() const;
-
-protected:
-	//@TODO: Document
-	virtual void CreatePhysicsState2D();
-
-	//@TODO: Document
-	virtual void DestroyPhysicsState2D();
 };

@@ -9,15 +9,13 @@ struct PAPER2D_API FBodyInstance2D
 {
 	GENERATED_USTRUCT_BODY()
 
-
-	/** If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. */
+	/** If true, this body will use simulation. If false, will be 'fixed' (i.e., kinematic) and move where it is told. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
 	uint32 bSimulatePhysics:1;
 
-
 	FBodyInstance2D();
 
-	void InitBody(class UBodySetup2D* Setup, const class UPaperSprite* SpriteSetupHack, const FTransform& Transform, class UPrimitiveComponent* PrimComp);//,class FPhysScene* InRBScene, class physx::PxAggregate* InAggregate = NULL);
+	void InitBody(class UBodySetup2D* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp);
 	void TermBody();
 
 	/** See if this body is valid. */
@@ -39,5 +37,8 @@ public:
 	TWeakObjectPtr<class UPrimitiveComponent> OwnerComponentPtr;
 
 protected:
+
+#if WITH_BOX2D
 	class b2Body* BodyInstancePtr;
+#endif
 };
