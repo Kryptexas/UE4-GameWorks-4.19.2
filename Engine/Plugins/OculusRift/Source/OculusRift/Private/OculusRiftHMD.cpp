@@ -823,6 +823,12 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 		if (FParse::Command(&Cmd, TEXT("RESET")) && pHMD)
 		{
 			pHMD->GetDeviceInfo(&DeviceInfo);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+			CGDirectDisplayID DisplayId = (CGDirectDisplayID)DeviceInfo.DisplayId;
+			CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+			DeviceInfo.DesktopX = DisplayBounds.origin.x;
+			DeviceInfo.DesktopY = DisplayBounds.origin.y;
+#endif
 			UpdateStereoRenderingParams();
 			return true;
 		}
@@ -1612,6 +1618,12 @@ void FOculusRiftHMD::Startup()
 
 		// Assuming we've successfully grabbed the device, read the configuration data from it, which we'll use for projection
 		pHMD->GetDeviceInfo(&DeviceInfo);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+		CGDirectDisplayID DisplayId = (CGDirectDisplayID)DeviceInfo.DisplayId;
+		CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+		DeviceInfo.DesktopX = DisplayBounds.origin.x;
+		DeviceInfo.DesktopY = DisplayBounds.origin.y;
+#endif
 	}
 
 #if !UE_BUILD_SHIPPING
@@ -2149,6 +2161,12 @@ void  FOculusMessageHandler::Tick(float)
                 {
                     OVR::HMDInfo info;
                     desc.Handle.GetDeviceInfo(&info);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+					CGDirectDisplayID DisplayId = (CGDirectDisplayID)info.DisplayId;
+					CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+					info.DesktopX = DisplayBounds.origin.x;
+					info.DesktopY = DisplayBounds.origin.y;
+#endif
                     // if strlen(info.DisplayDeviceName) == 0 then
                     // this HMD is 'fake' (created using sensor).
                     if (strlen(info.DisplayDeviceName) > 0 && (!pPlugin->pHMD || !info.IsSameDisplay(pPlugin->DeviceInfo)))

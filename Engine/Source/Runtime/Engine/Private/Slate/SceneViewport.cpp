@@ -819,7 +819,8 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 			{
 				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 				{
-					if (NewWindowMode && bNeedsResize)
+					// Resize & move only if moving to a fullscreen mode
+					if (NewWindowMode != EWindowMode::Windowed)
 					{
 						FSlateRect PreFullScreenRect = WindowToResize->GetRectInScreen();
 
