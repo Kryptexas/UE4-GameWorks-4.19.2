@@ -32,18 +32,50 @@ USlateWrapperComponent* UWidgetTree::FindWidget(FString& Name) const
 	return NULL;
 }
 
-bool UWidgetTree::RemoveWidget(USlateWrapperComponent* Widget)
+USlateNonLeafWidgetComponent* UWidgetTree::FindWidgetParent(USlateWrapperComponent* Widget, int32& OutChildIndex)
+{
+	for ( USlateWrapperComponent* Template : WidgetTemplates )
+	{
+		USlateNonLeafWidgetComponent* NonLeafTemplate = Cast<USlateNonLeafWidgetComponent>(Template);
+		if ( NonLeafTemplate )
+		{
+			for ( int32 ChildIndex = 0; ChildIndex < NonLeafTemplate->GetChildrenCount(); ChildIndex++ )
+			{
+				if ( NonLeafTemplate->GetChildAt(ChildIndex) == Widget )
+				{
+					OutChildIndex = ChildIndex;
+					return NonLeafTemplate;
+				}
+			}
+		}
+	}
+
+	OutChildIndex = -1;
+	return NULL;
+}
+
+bool UWidgetTree::RemoveWidget(USlateWrapperComponent* InRemovedWidget)
 {
 	USlateWrapperComponent* Parent = NULL;
 
 	bool bRemoved = false;
+
+	//TODO UMG Make the Widget Tree actually a tree, instead of a list, it makes things like removal difficult.
+
+	if ( USlateNonLeafWidgetComponent* InNonLeafRemovedWidget = Cast<USlateNonLeafWidgetComponent>(InRemovedWidget) )
+	{
+		while ( InNonLeafRemovedWidget->GetChildrenCount() > 0 )
+		{
+			RemoveWidget(InNonLeafRemovedWidget->GetChildAt(0));
+		}
+	}
 
 	for ( USlateWrapperComponent* Template : WidgetTemplates )
 	{
 		USlateNonLeafWidgetComponent* NonLeafTemplate = Cast<USlateNonLeafWidgetComponent>(Template);
 		if ( NonLeafTemplate )
 		{
-			if ( NonLeafTemplate->RemoveChild(Widget) )
+			if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )
 			{
 				bRemoved = true;
 				break;
@@ -53,7 +85,7 @@ bool UWidgetTree::RemoveWidget(USlateWrapperComponent* Widget)
 
 	if ( bRemoved )
 	{
-		WidgetTemplates.Remove(Widget);
+		WidgetTemplates.Remove(InRemovedWidget);
 	}
 
 	return bRemoved;

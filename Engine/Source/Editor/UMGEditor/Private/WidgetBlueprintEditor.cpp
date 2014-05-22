@@ -14,4 +14,9 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 {
 }
 
+void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
+}
+
 #undef LOCTEXT_NAMESPACE

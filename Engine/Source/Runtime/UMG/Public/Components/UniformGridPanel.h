@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include "HorizontalBoxComponent.generated.h"
+#include "UniformGridPanel.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
+class UMG_API UUniformGridPanel : public USlateNonLeafWidgetComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
 	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
-	TArray<UHorizontalBoxSlot*> Slots;
+	TArray<UUniformGridSlot*> Slots;
 
-	UHorizontalBoxSlot* AddSlot(USlateWrapperComponent* Content);
+	UUniformGridSlot* AddSlot(USlateWrapperComponent* Content);
 
 	// USlateNonLeafWidgetComponent
 	virtual int32 GetChildrenCount() const OVERRIDE;
@@ -35,7 +35,7 @@ class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
 
 protected:
 
-	TWeakPtr<class SHorizontalBox> MyHorizontalBox;
+	TWeakPtr<class SUniformGridPanel> MyUniformGridPanel;
 
 protected:
 	// USlateWrapperComponent interface

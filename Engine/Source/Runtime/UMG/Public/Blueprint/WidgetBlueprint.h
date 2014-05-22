@@ -51,6 +51,8 @@ public:
 	
 #if WITH_EDITOR
 	// UBlueprint interface
+	virtual UClass* GetBlueprintClass() const OVERRIDE;
+
 	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
 	{
 		return false;

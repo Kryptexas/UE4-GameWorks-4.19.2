@@ -12,6 +12,9 @@
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
+#include "WidgetTemplateClass.h"
+
+#define LOCTEXT_NAMESPACE "UMG"
 
 void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
@@ -38,17 +41,6 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 		]
 
 		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SButton)
-			.OnClicked(this, &SUMGEditorTree::DeleteSelected)
-			[
-				SNew(STextBlock)
-				.Text(NSLOCTEXT("SUMGEditorTree", "DeleteSelected", "Delete Selected"))
-			]
-		]
-
-		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
 			SAssignNew(WidgetTreeView, STreeView< USlateWrapperComponent* >)
@@ -57,6 +49,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 			.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
 			.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
 			.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
+			.OnContextMenuOpening(this, &SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening)
 			.TreeItemsSource(&RootWidgets)
 		]
 	];
@@ -124,6 +117,59 @@ void SUMGEditorTree::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widge
 	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
 }
 
+void SUMGEditorTree::BuildWrapWithMenu(FMenuBuilder& Menu)
+{
+	Menu.BeginSection("WrapWith", LOCTEXT("WidgetTree_WrapWith", "Wrap With..."));
+	{
+		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+		{
+			UClass* WidgetClass = *ClassIt;
+			if ( WidgetClass->IsChildOf(USlateNonLeafWidgetComponent::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+			{
+				Menu.AddMenuEntry(
+					WidgetClass->GetDisplayNameText(),
+					FText::GetEmpty(),
+					FSlateIcon(),
+					FUIAction(
+						FExecuteAction::CreateSP(this, &SUMGEditorTree::WrapSelectedWidgets, WidgetClass),
+						FCanExecuteAction()
+					)
+				);
+			}
+		}
+	}
+	Menu.EndSection();
+}
+
+TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	MenuBuilder.BeginSection("Actions");
+	{
+		const TArray<USlateWrapperComponent*> SelectionList = WidgetTreeView->GetSelectedItems();
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("WidgetTree_Delete", "Delete"),
+			LOCTEXT("WidgetTree_DeleteToolTip", "Deletes the current widget"),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP(this, &SUMGEditorTree::DeleteSelected),
+			FCanExecuteAction()
+			)
+		);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
+			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
+			FNewMenuDelegate::CreateSP(this, &SUMGEditorTree::BuildWrapWithMenu)
+		);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
 void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren)
 {
 	USlateNonLeafWidgetComponent* Widget = Cast<USlateNonLeafWidgetComponent>(InParent);
@@ -159,6 +205,27 @@ void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* 
 		Items.Add(SelectedItem);
 		ShowDetailsForObjects(Items);
 	}
+}
+
+void SUMGEditorTree::WrapSelectedWidgets(UClass* WidgetClass)
+{
+	const TArray<USlateWrapperComponent*> SelectionList = WidgetTreeView->GetSelectedItems();
+
+	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
+
+	UWidgetBlueprint* BP = GetBlueprint();
+	USlateNonLeafWidgetComponent* NewWrapperWidget = CastChecked<USlateNonLeafWidgetComponent>( Template->Create(BP->WidgetTree) );
+
+	int32 OutIndex;
+	USlateNonLeafWidgetComponent* CurrentParent = BP->WidgetTree->FindWidgetParent(SelectionList[0], OutIndex);
+	if ( CurrentParent )
+	{
+		CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
+
+		NewWrapperWidget->AddChild(SelectionList[0], FVector2D());
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 }
 
 FReply SUMGEditorTree::CreateTestUI()
@@ -207,7 +274,14 @@ FReply SUMGEditorTree::CreateTestUI()
 	return FReply::Handled();
 }
 
-FReply SUMGEditorTree::DeleteSelected()
+FReply SUMGEditorTree::HandleDeleteSelected()
+{
+	DeleteSelected();
+
+	return FReply::Handled();
+}
+
+void SUMGEditorTree::DeleteSelected()
 {
 	TArray<USlateWrapperComponent*> SelectedItems = WidgetTreeView->GetSelectedItems();
 	if ( SelectedItems.Num() > 0 )
@@ -225,8 +299,6 @@ FReply SUMGEditorTree::DeleteSelected()
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}
 	}
-
-	return FReply::Handled();
 }
 
 void SUMGEditorTree::RefreshTree()
@@ -246,3 +318,5 @@ void SUMGEditorTree::RefreshTree()
 
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?
+
+#undef LOCTEXT_NAMESPACE

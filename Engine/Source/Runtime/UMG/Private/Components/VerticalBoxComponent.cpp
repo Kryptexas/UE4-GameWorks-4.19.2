@@ -43,6 +43,16 @@ bool UVerticalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
+void UVerticalBoxComponent::ReplaceChildAt(int32 Index, USlateWrapperComponent* Content)
+{
+	UVerticalBoxSlot* Slot = Slots[Index];
+	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+}
+
 TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);

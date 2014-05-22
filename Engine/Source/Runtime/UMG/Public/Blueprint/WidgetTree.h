@@ -19,6 +19,8 @@ class UMG_API UWidgetTree : public UObject
 
 	bool RemoveWidget(class USlateWrapperComponent* Widget);
 
+	class USlateNonLeafWidgetComponent* FindWidgetParent(class USlateWrapperComponent* Widget, int32& OutChildIndex);
+
 	template< class T >
 	T* ConstructWidget(TSubclassOf<class USlateWrapperComponent> WidgetType)
 	{

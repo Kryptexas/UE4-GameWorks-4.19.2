@@ -43,6 +43,16 @@ bool UHorizontalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
+void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, USlateWrapperComponent* Content)
+{
+	UHorizontalBoxSlot* Slot = Slots[Index];
+	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+}
+
 TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);

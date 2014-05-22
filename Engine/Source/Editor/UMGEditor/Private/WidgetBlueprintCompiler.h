@@ -29,10 +29,10 @@ protected:
 	//virtual UEdGraphSchema_K2* CreateSchema() OVERRIDE;
 	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) OVERRIDE;
 	virtual void SpawnNewClass(const FString& NewClassName) OVERRIDE;
+	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) OVERRIDE;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) OVERRIDE;
 	virtual void CreateClassVariablesFromBlueprint() OVERRIDE;
 	virtual void FinishCompilingClass(UClass* Class) OVERRIDE;
-	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) OVERRIDE;
 	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class) OVERRIDE;
 	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) OVERRIDE;
 	// End FKismetCompilerContext

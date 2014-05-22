@@ -443,6 +443,9 @@ public:
 		SkeletonClassName = FName(*SkeletonClassNameString);
 	}
 
+	/** Gets the class generated when this blueprint is compiled. */
+	virtual UClass* GetBlueprintClass() const;
+
 	// Should the generic blueprint factory work for this blueprint?
 	virtual bool SupportedByDefaultBlueprintFactory() const
 	{

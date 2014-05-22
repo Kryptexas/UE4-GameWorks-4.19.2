@@ -300,7 +300,7 @@ void UBlueprint::PostLoad()
 	FBlueprintEditorUtils::PurgeNullGraphs(this);
 
 	// Remove old AutoConstructionScript graph
- 	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
+	for (int32 i = 0; i < FunctionGraphs.Num(); ++i)
 	{
 		UEdGraph* FuncGraph = FunctionGraphs[i];
 		if ((FuncGraph != NULL) && (FuncGraph->GetName() == TEXT("AutoConstructionScript")))
@@ -417,6 +417,11 @@ void UBlueprint::DebuggingWorldRegistrationHelper(UObject* ObjectProvidingWorld,
 			ObjWorld->NotifyOfBlueprintDebuggingAssociation(this, ValueToRegister);
 		}
 	}
+}
+
+UClass* UBlueprint::GetBlueprintClass() const
+{
+	return UBlueprintGeneratedClass::StaticClass();
 }
 
 void UBlueprint::SetObjectBeingDebugged(UObject* NewObject)

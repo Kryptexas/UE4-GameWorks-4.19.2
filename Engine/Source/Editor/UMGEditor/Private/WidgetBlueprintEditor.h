@@ -13,4 +13,6 @@ public:
 	FWidgetBlueprintEditor();
 
 	virtual ~FWidgetBlueprintEditor();
+
+	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 };

@@ -20,6 +20,7 @@ class UMG_API UVerticalBoxComponent : public USlateNonLeafWidgetComponent
 	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
 	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
 	virtual bool RemoveChild(USlateWrapperComponent* Child) OVERRIDE;
+	virtual void ReplaceChildAt(int32 Index, USlateWrapperComponent* Child) OVERRIDE;
 	// End USlateNonLeafWidgetComponent
 
 #if WITH_EDITOR

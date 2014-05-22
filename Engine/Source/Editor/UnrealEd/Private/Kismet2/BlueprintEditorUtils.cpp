@@ -1287,7 +1287,8 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 				FName NewSkelClassName, NewGenClassName;
 				Blueprint->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
 				UBlueprintGeneratedClass* NewClass = ConstructObject<UBlueprintGeneratedClass>(
-					UBlueprintGeneratedClass::StaticClass(), Blueprint->GetOutermost(), NewGenClassName, RF_Public|RF_Transactional);
+					Blueprint->GetBlueprintClass(), Blueprint->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
+
 				Blueprint->GeneratedClass = NewClass;
 				NewClass->ClassGeneratedBy = Blueprint;
 				NewClass->SetSuperStruct(Blueprint->ParentClass);

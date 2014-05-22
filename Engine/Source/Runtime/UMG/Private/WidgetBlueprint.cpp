@@ -35,6 +35,13 @@ void UWidgetBlueprint::PostLoad()
 #endif
 }
 
+#if WITH_EDITOR
+UClass* UWidgetBlueprint::GetBlueprintClass() const
+{
+	return UWidgetBlueprintGeneratedClass::StaticClass();
+}
+#endif
+
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	bool Result = Super::ValidateGeneratedClass(InClass);

@@ -43,6 +43,9 @@
 #include "VerticalBoxSlot.h"
 #include "VerticalBoxComponent.h"
 
+#include "UniformGridSlot.h"
+#include "UniformGridPanel.h"
+
 #include "TextBlockComponent.h"
 #include "BorderComponent.h"
 #include "ButtonComponent.h"

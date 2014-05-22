@@ -58,6 +58,12 @@ bool UContentWidget::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
+void UContentWidget::ReplaceChildAt(int32 Index, USlateWrapperComponent* Child)
+{
+	check(Index == 0);
+	Content = Child;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

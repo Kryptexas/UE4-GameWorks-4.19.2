@@ -73,6 +73,8 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 
 #if WITH_EDITOR
 
+	virtual UClass* GetBlueprintClass() const OVERRIDE;
+
 	// Inspects the hierarchy and looks for an override for the requested node GUID
 	// @param NodeGuid - Guid of the node to search for
 	// @param bIgnoreSelf - Ignore this blueprint and only search parents, handy for finding parent overrides

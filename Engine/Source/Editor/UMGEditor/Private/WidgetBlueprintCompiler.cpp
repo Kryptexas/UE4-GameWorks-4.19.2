@@ -571,6 +571,10 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 {
 	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
 
+	// Make sure our typed pointer is set
+	check(ClassToClean == NewClass);
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
+
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
 	TArray<UObject*> ClassSubObjects;
 	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);

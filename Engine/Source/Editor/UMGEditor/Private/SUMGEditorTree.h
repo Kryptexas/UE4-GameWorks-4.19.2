@@ -23,6 +23,8 @@ private:
 
 	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
 
+	void BuildWrapWithMenu(FMenuBuilder& Menu);
+	TSharedPtr<SWidget> WidgetHierarchy_OnContextMenuOpening();
 	void WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren);
 	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo);
@@ -30,7 +32,10 @@ private:
 	FReply CreateTestUI();
 	void RefreshTree();
 
-	FReply DeleteSelected();
+	FReply HandleDeleteSelected();
+	void DeleteSelected();
+
+	void WrapSelectedWidgets(UClass* WidgetClass);
 	
 private:
 

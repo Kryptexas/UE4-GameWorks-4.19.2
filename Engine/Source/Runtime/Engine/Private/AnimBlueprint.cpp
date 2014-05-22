@@ -26,6 +26,11 @@ UAnimBlueprintGeneratedClass* UAnimBlueprint::GetAnimBlueprintSkeletonClass() co
 
 #if WITH_EDITOR
 
+UClass* UAnimBlueprint::GetBlueprintClass() const
+{
+	return UAnimBlueprintGeneratedClass::StaticClass();
+}
+
 int32 UAnimBlueprint::FindOrAddGroup(FName GroupName)
 {
 	if (GroupName == NAME_None)
