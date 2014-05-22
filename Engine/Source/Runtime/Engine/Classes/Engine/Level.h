@@ -299,7 +299,7 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 
 #if WITH_EDITORONLY_DATA
 	/** Reference to the blueprint for level scripting */
-	UPROPERTY()
+	UPROPERTY(NonTransactional)
 	class ULevelScriptBlueprint* LevelScriptBlueprint;
 #endif //WITH_EDITORONLY_DATA
 

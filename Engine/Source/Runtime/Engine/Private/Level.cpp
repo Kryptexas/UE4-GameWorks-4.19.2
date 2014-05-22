@@ -1120,13 +1120,18 @@ void ULevel::PostEditUndo()
 		}
 	}
 
-	// Add the levelscriptactor back into the actors array
-	if (LevelScriptActor)
+	// Non-transactional actors may disappear from the actors list but still exist, so we need to re-add them
+	// Likewise they won't get recreated if we undo to before they were deleted, so we'll have nulls in the actors list to remove
+	Actors.Remove(nullptr);
+	TSet<AActor*> ActorsSet(Actors);
+	TArray<UObject *> InnerObjects;
+	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_PendingKill);
+	for (UObject* InnerObject : InnerObjects)
 	{
-		// LSA is transient so won't track the actors list
-		if (!Actors.Contains(LevelScriptActor))
+		AActor* InnerActor = Cast<AActor>(InnerObject);
+		if (InnerActor && !ActorsSet.Contains(InnerActor))
 		{
-			Actors.Add(LevelScriptActor);
+			Actors.Add(InnerActor);
 		}
 	}
 
