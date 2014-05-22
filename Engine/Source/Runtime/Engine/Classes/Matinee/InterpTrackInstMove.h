@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackInst.h"
 #include "InterpTrackInstMove.generated.h"
 
 UCLASS(MinimalAPI)

@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+
+#include "Matinee/InterpData.h"
+#include "Matinee/MatineeActor.h"
+
 #include "EditorSupportDelegates.h"
 #include "SoundDefinitions.h"
 #include "BusyCursor.h"

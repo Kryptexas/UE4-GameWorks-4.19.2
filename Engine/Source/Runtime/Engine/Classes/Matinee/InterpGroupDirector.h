@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Matinee/InterpGroup.h"
 #include "InterpGroupDirector.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

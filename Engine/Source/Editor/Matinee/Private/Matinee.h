@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Matinee/InterpData.h"
+
 #include "IMatinee.h"
 #include "IDistCurveEditor.h"
 #include "MatineeActions.h"
@@ -276,7 +278,7 @@ public:
 	void OnContextSetKeyTime();
 	void OnContextSetKeyTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrack* Track);
 	void OnContextSetValue();
-	void OnContextSetValueTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrackFloatBase* FloatTrack);
+	void OnContextSetValueTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, class UInterpTrackFloatBase* FloatTrack);
 
 	/** Pops up a menu and lets you set the color for the selected key. Not all track types are supported. */
 	void OnContextSetColor();
@@ -291,16 +293,16 @@ public:
 
 	/** Pops up menu and lets the user set a group to use to lookup transform info for a movement keyframe. */
 	void OnSetMoveKeyLookupGroup();
-	void OnSetMoveKeyLookupGroupTextChosen(const FString& ChosenText, int32 KeyIndex, UInterpTrackMove* MoveTrack, UInterpTrackMoveAxis* MoveTrackAxis);
+	void OnSetMoveKeyLookupGroupTextChosen(const FString& ChosenText, int32 KeyIndex, UInterpTrackMove* MoveTrack, class UInterpTrackMoveAxis* MoveTrackAxis);
 
 	/** Clears the lookup group for a currently selected movement key. */
 	void OnClearMoveKeyLookupGroup();
 
 	void OnSetAnimKeyLooping( bool bInLooping );
 	void OnSetAnimOffset( bool bInEndOffset );
-	void OnSetAnimOffsetTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrackAnimControl* AnimTrack, bool bEndOffset);
+	void OnSetAnimOffsetTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, class UInterpTrackAnimControl* AnimTrack, bool bEndOffset);
 	void OnSetAnimPlayRate();
-	void OnSetAnimPlayRateTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrackAnimControl* AnimTrack);
+	void OnSetAnimPlayRateTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, class UInterpTrackAnimControl* AnimTrack);
 
 	/** Handler for the toggle animation reverse menu item. */
 	void OnToggleReverseAnim();
@@ -341,9 +343,9 @@ public:
 	void OnSetSoundPitch();
 	void OnSetSoundPitchTextEntered(const FText& InText, ETextCommit::Type CommitInfo, TArray<int32> SoundTrackKeyIndices);
 	void OnContextDirKeyTransitionTime();
-	void OnContextDirKeyTransitionTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrackDirector* DirTrack);
+	void OnContextDirKeyTransitionTimeTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, class UInterpTrackDirector* DirTrack);
 	void OnContextDirKeyRenameCameraShot();
-	void OnContextDirKeyRenameCameraShotTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, UInterpTrackDirector* DirTrack);
+	void OnContextDirKeyRenameCameraShotTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FInterpEdSelKey* SelKey, class UInterpTrackDirector* DirTrack);
 	void OnFlipToggleKey();
 
 	/** Called when a new key condition is selected in a track keyframe context menu */
@@ -363,11 +365,11 @@ public:
 
 	/** Called when the user wants to set the clip ID number for Particle Replay track keys */
 	void OnParticleReplayKeyContext_SetClipIDNumber();
-	void OnParticleReplayKeyContext_SetClipIDNumberTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FParticleReplayTrackKey* ParticleReplayKey);
+	void OnParticleReplayKeyContext_SetClipIDNumberTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, struct FParticleReplayTrackKey* ParticleReplayKey);
 
 	/** Called when the user wants to set the duration of Particle Replay track keys */
 	void OnParticleReplayKeyContext_SetDuration();
-	void OnParticleReplayKeyContext_SetDurationTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, FParticleReplayTrackKey* ParticleReplayKey);
+	void OnParticleReplayKeyContext_SetDurationTextCommitted(const FText& InText, ETextCommit::Type CommitInfo, struct FParticleReplayTrackKey* ParticleReplayKey);
 
 	/** Called to delete the currently selected keys */
 	void OnDeleteSelectedKeys();

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Matinee/InterpTrackFloatBase.h"
 #include "InterpTrackAnimControl.generated.h"
 
 /** Structure used for holding information for one animation played on the Anim Control track. */
@@ -83,7 +84,7 @@ class UInterpTrackAnimControl : public UInterpTrackFloatBase
 	virtual float GetTrackEndTime() const OVERRIDE;
 	virtual float GetKeyframeTime(int32 KeyIndex) const OVERRIDE;
 	virtual int32 GetKeyframeIndex( float KeyTime ) const OVERRIDE;
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
+	virtual int32 AddKeyframe(float Time, class UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
 	virtual int32 SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdateOrder=true) OVERRIDE;
 	virtual void RemoveKeyframe(int32 KeyIndex) OVERRIDE;
 	virtual int32 DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL) OVERRIDE;

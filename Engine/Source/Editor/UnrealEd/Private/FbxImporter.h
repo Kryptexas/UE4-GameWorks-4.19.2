@@ -914,7 +914,7 @@ protected:
 	/**
 	 * Imports an FBX transform curve into a movement subtrack
 	 */
-	void ImportMoveSubTrack( FbxAnimCurve* FbxCurve, int32 FbxDimension, UInterpTrackMoveAxis* SubTrack, int32 CurveIndex, bool bNegative, FbxAnimCurve* RealCurve, float DefaultVal );
+	void ImportMoveSubTrack( FbxAnimCurve* FbxCurve, int32 FbxDimension, class UInterpTrackMoveAxis* SubTrack, int32 CurveIndex, bool bNegative, FbxAnimCurve* RealCurve, float DefaultVal );
 
 	/**
 	 * Imports a FBX animated element into a Matinee track.

@@ -7,6 +7,12 @@
 
 
 #include "MatineeModule.h"
+
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackColorProp.h"
+
 #include "Matinee.h"
 
 /** Ensure the curve editor is synchronised with the track editor. */

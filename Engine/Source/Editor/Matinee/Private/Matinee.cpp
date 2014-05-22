@@ -5,6 +5,18 @@
 =============================================================================*/
 
 #include "MatineeModule.h"
+
+#include "Matinee/InterpFilter.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpGroupDirector.h"
+
 #include "Matinee.h"
 #include "MatineeActions.h"
 #include "MatineeFilterButton.h"
@@ -13,7 +25,6 @@
 #include "IDistCurveEditor.h"
 
 #include "MatineeClasses.h"
-
 
 #include "CameraController.h"
 #include "MatineeConstants.h"

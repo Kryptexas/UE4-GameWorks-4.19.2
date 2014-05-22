@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BSPOps.h"

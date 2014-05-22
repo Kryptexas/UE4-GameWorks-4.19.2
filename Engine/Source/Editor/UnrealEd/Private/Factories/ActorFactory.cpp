@@ -13,6 +13,8 @@ ActorFactory.cpp:
 #include "AssetData.h"
 #include "ScopedTransaction.h"
 #include "BSPOps.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpData.h"
 
 #include "AssetRegistryModule.h"
 

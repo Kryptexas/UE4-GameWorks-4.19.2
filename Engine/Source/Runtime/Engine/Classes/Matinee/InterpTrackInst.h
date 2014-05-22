@@ -9,6 +9,8 @@
 #pragma once
 #include "InterpTrackInst.generated.h"
 
+class UInterpTrack;
+
 UCLASS(MinimalAPI)
 class UInterpTrackInst : public UObject
 {

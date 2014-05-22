@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackVectorBase.h"
 #include "InterpTrackColorProp.generated.h"
 
 UCLASS(MinimalAPI, meta=( DisplayName = "Color Property Track" ) )

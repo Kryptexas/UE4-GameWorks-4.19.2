@@ -2,6 +2,13 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpGroupCamera.h"
+#include "Matinee/InterpTrackMove.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // UCameraAnim

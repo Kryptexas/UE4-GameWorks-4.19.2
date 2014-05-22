@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "MatineeModule.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroupInst.h"
 #include "Matinee.h"
 #include "Slate.h"
 #include "SNumericEntryBox.h"

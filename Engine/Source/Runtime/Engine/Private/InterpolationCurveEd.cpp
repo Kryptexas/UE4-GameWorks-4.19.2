@@ -5,6 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackVectorBase.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
 
 /*-----------------------------------------------------------------------------
  UInterpTrackMove

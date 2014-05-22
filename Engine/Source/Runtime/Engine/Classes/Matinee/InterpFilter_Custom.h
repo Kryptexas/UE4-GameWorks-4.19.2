@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Matinee/InterpFilter.h"
 #include "InterpFilter_Custom.generated.h"
 
 UCLASS(MinimalAPI)

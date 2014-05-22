@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
 #include "RenderCore.h"
 #include "RenderResource.h"

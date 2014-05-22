@@ -8,6 +8,11 @@
 #include "PrecomputedLightVolume.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
+#include "Runtime/Engine/Classes/Matinee/MatineeActor.h"
+#include "Runtime/Engine/Classes/Matinee/InterpGroup.h"
+#include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
+#include "Runtime/Engine/Classes/Matinee/InterpTrackMove.h"
+#include "Runtime/Engine/Classes/Matinee/InterpTrackInstMove.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 

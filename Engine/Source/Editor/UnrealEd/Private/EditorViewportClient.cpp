@@ -13,6 +13,8 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "Matinee/MatineeActor.h"
+
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 

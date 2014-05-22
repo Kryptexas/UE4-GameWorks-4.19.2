@@ -4,9 +4,33 @@
 	MatineeTools.cpp: Interpolation editing support tools
 =============================================================================*/
 
+
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeClasses.h"
+
+#include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
+#include "Matinee/InterpTrackInst.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackVectorBase.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackFade.h"
+#include "Matinee/InterpTrackSlomo.h"
+#include "Matinee/InterpTrackColorScale.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackParticleReplay.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInstDirector.h"
+#include "Matinee/InterpFilter.h"
 
 #include "MatineeConstants.h"
 #include "MatineeViewSaveData.h"

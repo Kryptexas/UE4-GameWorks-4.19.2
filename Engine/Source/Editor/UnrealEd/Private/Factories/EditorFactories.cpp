@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpGroupCamera.h"
 #include "Factories.h"
 #include "SoundDefinitions.h"
 #include "BlueprintUtilities.h"

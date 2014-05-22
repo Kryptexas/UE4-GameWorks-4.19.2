@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackInst.h"
 #include "InterpTrackInstProperty.generated.h"
 
 UCLASS()

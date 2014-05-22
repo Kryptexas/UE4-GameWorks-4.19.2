@@ -11,6 +11,14 @@
 #include "Runtime/Engine/Public/Interpolation.h"
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackFloatBase.h"
+#include "Matinee/InterpTrackVectorBase.h"
+#include "Matinee/InterpTrackLinearColorBase.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackMove.h"
 
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;

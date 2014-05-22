@@ -2,6 +2,11 @@
 
 #pragma once
 
+class AMatineeActor;
+class UInterpData;
+class UInterpGroup;
+class UInterpTrack;
+
 #include "MatineeGroupData.h"
 #include "MatineeTrackData.h"
 

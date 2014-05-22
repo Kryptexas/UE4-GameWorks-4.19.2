@@ -21,6 +21,9 @@
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpData.h"
+
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IPropertyTable.h"

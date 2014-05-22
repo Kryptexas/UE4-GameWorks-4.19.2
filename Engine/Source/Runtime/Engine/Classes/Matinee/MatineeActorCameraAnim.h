@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Matinee/MatineeActor.h"
 #include "MatineeActorCameraAnim.generated.h"
 
 /**

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackInst.h"
 #include "InterpTrackInstDirector.generated.h"
 
 UCLASS(MinimalAPI)
@@ -14,7 +15,7 @@ class UInterpTrackInstDirector : public UInterpTrackInst
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void TermTrackInst(UInterpTrack* Track) OVERRIDE;
+	virtual void TermTrackInst(class UInterpTrack* Track) OVERRIDE;
 	// End UInterpTrackInst Instance
 };
 

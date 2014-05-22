@@ -29,6 +29,15 @@
 */
 
 #include "UnrealEd.h"
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackInstFloatProp.h"
 
 #include "FbxImporter.h"
 

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackVectorBase.h"
 #include "InterpTrackAudioMaster.generated.h"
 
 UCLASS(MinimalAPI, meta=( DisplayName = "Audio Master Track" ) )

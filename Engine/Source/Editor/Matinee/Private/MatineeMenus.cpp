@@ -5,6 +5,30 @@
 =============================================================================*/
 
 #include "MatineeModule.h"
+
+#include "Matinee/InterpTrackInst.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackEvent.h"
+#include "Matinee/InterpTrackToggle.h"
+#include "Matinee/InterpTrackSound.h"
+#include "Matinee/InterpTrackVisibility.h"
+#include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackColorProp.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "Matinee/InterpTrackLinearColorProp.h"
+#include "Matinee/InterpTrackAnimControl.h"
+#include "Matinee/InterpTrackParticleReplay.h"
+#include "Matinee/InterpTrackVectorMaterialParam.h"
+#include "Matinee/InterpTrackDirector.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/InterpTrackAudioMaster.h"
+#include "Matinee/InterpGroupDirector.h"
+#include "Matinee/InterpGroupInstDirector.h"
+#include "Matinee/InterpFilter_Custom.h"
+
 #include "Matinee.h"
 #include "MatineeDelegates.h"
 

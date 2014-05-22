@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Matinee/MatineeActor.h"
 #include "Net/UnrealNetwork.h"
 #include "ParticleDefinitions.h"
 #include "Database.h"

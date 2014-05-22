@@ -5,6 +5,9 @@
 
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Matinee/MatineeACtor.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackEvent.h"
 
 /*-----------------------------------------------------------------------------
  FMatineeViewportClient

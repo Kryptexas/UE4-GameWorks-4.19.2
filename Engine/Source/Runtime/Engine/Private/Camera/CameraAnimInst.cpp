@@ -2,6 +2,11 @@
 
 
 #include "EnginePrivate.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/InterpTrackInstMove.h"
+#include "Matinee/InterpTrackFloatProp.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UCameraAnimInst

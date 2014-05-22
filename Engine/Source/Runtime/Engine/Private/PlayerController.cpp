@@ -10,6 +10,8 @@
 #include "Slate.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
+#include "Matinee/InterpTrackInstDirector.h"
+#include "Matinee/MatineeActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 

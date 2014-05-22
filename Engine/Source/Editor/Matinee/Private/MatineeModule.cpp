@@ -3,6 +3,7 @@
 #include "MatineeModule.h"
 #include "ModuleManager.h"
 #include "Matinee.h"
+#include "Matinee/MatineeActor.h"
 
 const FName MatineeAppIdentifier = FName(TEXT("MatineeApp"));
 

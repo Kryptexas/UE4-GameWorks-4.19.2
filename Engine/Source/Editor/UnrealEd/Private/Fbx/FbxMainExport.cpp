@@ -33,6 +33,12 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpTrackMove.h"
+#include "Matinee/InterpTrackMoveAxis.h"
+#include "Matinee/InterpTrackFloatProp.h"
+#include "Matinee/InterpTrackInstFloatProp.h"
+#include "Matinee/InterpTrackInstMove.h"
 #include "LandscapeDataAccess.h"
 
 #include "FbxExporter.h"

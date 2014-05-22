@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpData.h"
+#include "Matinee/InterpGroupInst.h"
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"

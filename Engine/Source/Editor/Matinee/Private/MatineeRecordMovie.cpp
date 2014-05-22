@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MatineeModule.h"
+#include "Matinee/MatineeActor.h"
 #include "Matinee.h"
 
 #define LOCTEXT_NAMESPACE "MatineeMovieCapture"

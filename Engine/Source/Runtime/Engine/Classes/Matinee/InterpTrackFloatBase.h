@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Matinee/InterpTrack.h"
 #include "InterpTrackFloatBase.generated.h"
 
 UCLASS(abstract, MinimalAPI)

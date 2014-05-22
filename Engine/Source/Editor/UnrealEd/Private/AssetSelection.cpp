@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "Matinee/MatineeActor.h"
 #include "AssetSelection.h"
 #include "ScopedTransaction.h"
 

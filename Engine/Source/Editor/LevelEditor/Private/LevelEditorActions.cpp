@@ -2,6 +2,7 @@
 
 
 #include "LevelEditor.h"
+#include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
 #include "SLevelEditor.h"
 #include "LevelEditorActions.h"

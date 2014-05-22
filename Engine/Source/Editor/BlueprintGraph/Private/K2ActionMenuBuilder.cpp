@@ -5,6 +5,7 @@
 #include "ComponentAssetBroker.h"
 #include "KismetEditorUtilities.h"
 #include "ObjectEditorUtils.h"
+#include "Matinee/MatineeActor.h"
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
 

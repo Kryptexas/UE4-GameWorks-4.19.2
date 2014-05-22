@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackVectorBase.h"
 #include "InterpTrackVectorProp.generated.h"
 
 UCLASS(MinimalAPI, meta=( DisplayName = "Vector Property Track" ) )

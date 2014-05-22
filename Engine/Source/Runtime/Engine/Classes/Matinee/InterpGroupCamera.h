@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Matinee/InterpGroup.h"
 #include "InterpGroupCamera.generated.h"
 
 /**

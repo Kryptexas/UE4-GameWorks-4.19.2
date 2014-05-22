@@ -1,63 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Matinee/InterpTrack.h"
 #include "InterpTrackParticleReplay.generated.h"
 
 /**
- *
- * 
  *	This track implements support for creating and playing back captured particle system data
  */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /** Data for a single key in this track */
 USTRUCT()

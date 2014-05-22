@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Matinee/InterpTrackInstProperty.h"
 #include "InterpTrackInstFloatProp.generated.h"
 
 UCLASS(MinimalAPI)

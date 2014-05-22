@@ -4,6 +4,7 @@
 #include "SourceControlWindows.h"
 #include "AssetToolsModule.h"
 #include "EditorSupportDelegates.h"
+#include "Matinee/MatineeActor.h"
 
 #include "LevelCollectionModel.h"
 

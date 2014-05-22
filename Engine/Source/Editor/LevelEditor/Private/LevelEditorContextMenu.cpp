@@ -2,6 +2,7 @@
 
 
 #include "LevelEditor.h"
+#include "Matinee/MatineeActor.h"
 #include "BlueprintUtilities.h"
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"

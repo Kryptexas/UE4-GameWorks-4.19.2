@@ -7,6 +7,10 @@
 #ifndef __MATINEEEXPORTER_H__
 #define __MATINEEEXPORTER_H__
 
+#include "Matinee/MatineeActor.h"
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+
 class UInterpData;
 class UInterpTrackMove;
 class UInterpTrackFloatProp;

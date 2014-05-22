@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Matinee/InterpTrackVectorBase.h"
 #include "InterpTrackColorScale.generated.h"
 
 UCLASS(meta=( DisplayName = "Color Scale Track" ) )
