@@ -71,7 +71,7 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 #if WITH_PHYSX
 	/** Per chunk info */
-	TArray<FDestructibleChunkInfo> ChunkInfos;
+	TIndirectArray<FDestructibleChunkInfo> ChunkInfos;
 #endif // WITH_PHYSX 
 
 #if WITH_EDITOR
@@ -192,7 +192,7 @@ private:
 	FPhysxUserData PhysxUserData;
 
 	/** User data wrapper for the chunks passed to physx */
-	TArray<FPhysxUserData> PhysxChunkUserData;
+	TIndirectArray<FPhysxUserData> PhysxChunkUserData;
 	bool IsChunkLarge(int32 ChunkIdx) const;
 	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx);
 #endif

@@ -598,7 +598,10 @@ void FPhysScene::UpdateActiveTransforms(uint32 SceneType)
 	{
 		ActiveTransforms[SceneType].Add(&PActiveTransforms[TransformIdx]);	//it's ok to use a pointer here because the physics scene leaves the data for us until the next call to fetchTransform;
 		
+		const PxActiveTransform& PActiveTransform = PActiveTransforms[TransformIdx];
+		PxRigidActor* RigidActor = PActiveTransform.actor->isRigidActor();
 
+		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
 	}
 }
 #endif
@@ -619,6 +622,7 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 		const PxActiveTransform& PActiveTransform = *PActiveTransforms[TransformIdx];
 		PxRigidActor* RigidActor = PActiveTransform.actor->isRigidActor();
 
+		ensure(!RigidActor->userData || !FPhysxUserData::IsGarbage(RigidActor->userData));
 
 #if WITH_APEX
 		//Special code for destructible chunk
