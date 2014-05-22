@@ -27,7 +27,7 @@ namespace UnrealBuildTool
 		/**
 		 * Prepare the target for deployment.
 		 */
-		bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution);
+		bool PrepForUATPackageOrDeploy(string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor);
 	}
 
 	/// <summary>
