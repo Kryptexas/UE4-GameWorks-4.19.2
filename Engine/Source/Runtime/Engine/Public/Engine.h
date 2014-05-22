@@ -911,7 +911,6 @@
 #include "AnimTree.h"						// Animation.
 #include "SkeletalMeshTypes.h"				// Skeletal animated mesh.
 #include "Animation/SkeletalMeshActor.h"
-#include "Interpolation.h"					// Matinee.
 #include "ContentStreaming.h"				// Content streaming class definitions.
 #include "LightingBuildOptions.h"			// Definition of lighting build option struct.
 #include "PixelFormat.h"

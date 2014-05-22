@@ -7,6 +7,8 @@
 #ifndef _INC_INTERPOLATIONHITPROXY
 #define _INC_INTERPOLATIONHITPROXY
 
+#include "Interpolation.h"
+
 /** Input interface hit proxy */
 struct HInterpEdInputInterface : public HHitProxy
 {

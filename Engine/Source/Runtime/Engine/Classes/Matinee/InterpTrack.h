@@ -7,7 +7,7 @@
  */
 
 #pragma once
-
+#include "Interpolation.h"
 #include "InterpTrack.generated.h"
 
 //
