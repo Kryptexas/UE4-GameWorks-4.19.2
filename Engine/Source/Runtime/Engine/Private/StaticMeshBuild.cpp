@@ -100,6 +100,7 @@ void UStaticMesh::Build(bool bSilent)
 	// Invalidate physics data if this has changed.
 	// TODO_STATICMESH: Not necessary any longer?
 	BodySetup->InvalidatePhysicsData();
+	BodySetup->CreatePhysicsMeshes();
 #endif
 
 	// Compare the derived data keys to see if renderable mesh data has actually changed.
