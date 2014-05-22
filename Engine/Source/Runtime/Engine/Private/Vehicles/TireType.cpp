@@ -66,7 +66,7 @@ void UTireType::BeginDestroy()
 
 void UTireType::NotifyTireFrictionUpdated()
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	FPhysXVehicleManager::UpdateTireFrictionTable();
 #endif // WITH_PHYSX
 }

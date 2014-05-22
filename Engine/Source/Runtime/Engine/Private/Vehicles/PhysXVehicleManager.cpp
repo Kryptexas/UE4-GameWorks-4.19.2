@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 #include "../PhysicsEngine/PhysXSupport.h"
 #include "PhysXVehicleManager.h"

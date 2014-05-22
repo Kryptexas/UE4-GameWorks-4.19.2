@@ -15,6 +15,9 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 	GConfig->GetString( TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni );
 
 	FString SelectedPlatformDeviceProfileName;
+#if PLATFORM_HTML5
+	SelectedPlatformDeviceProfileName = FPlatformProperties::PlatformName();
+#else
 	if ( !DeviceProfileSelectionModule.IsEmpty() )
 	{
 		// Load the module we had specified in the ini and Run our logic to select a device profile for this run
@@ -22,6 +25,7 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 		SelectedPlatformDeviceProfileName = DPSelectorModule.GetRuntimeDeviceProfileName();
 		UE_LOG(LogInit, Log, TEXT("Applying CVar settings loaded from the selected device profile: [%s]"), *SelectedPlatformDeviceProfileName);
 	}
+#endif
 
 	// Load the device profile config
 	FConfigCacheIni::LoadGlobalIniFile(DeviceProfileFileName, TEXT("DeviceProfiles"));

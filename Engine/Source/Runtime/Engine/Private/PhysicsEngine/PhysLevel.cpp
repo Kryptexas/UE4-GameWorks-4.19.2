@@ -257,7 +257,9 @@ void InitGamePhys()
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK);
+#if WITH_VEHICLE
 	PxInitVehicleSDK(*GPhysXSDK);
+#endif
 
 	//Turn on PhysX 3.3 unified height field collision detection. 
 	//This approach shares the collision detection code between meshes and height fields such that height fields behave identically to the equivalent terrain created as a mesh. 

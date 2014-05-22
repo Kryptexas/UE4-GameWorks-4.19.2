@@ -81,7 +81,15 @@ public class UElibPNG : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             PublicLibraryPaths.Add(libPNGPath + "/lib/HTML5");
-            PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng.bc");
+
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng_Oz.bc");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng.bc");
+			}
         } 
     }
 }

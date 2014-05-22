@@ -293,6 +293,10 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_WIN32=1");
 				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("delayimp.lib");
 			}
+            else
+            {
+                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5_BROWSER=1");
+            }
 
 			// @todo needed?
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");

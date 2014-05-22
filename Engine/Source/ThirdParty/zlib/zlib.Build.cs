@@ -32,7 +32,14 @@ public class zlib : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib_Oz.bc");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
+			}
         }
 	}
 }

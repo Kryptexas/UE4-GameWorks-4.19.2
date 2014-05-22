@@ -5,7 +5,7 @@
 #include "VehicleWheel.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 namespace physx
 {
 	class PxVehicleDrive;
@@ -240,7 +240,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
 	float GetMaxSpringForce() const;
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	// The instanced PhysX vehicle
 	physx::PxVehicleWheels* PVehicle;
@@ -288,7 +288,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif //WITH_EDITOR
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 	/** Set the user input for the vehicle throttle */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -437,7 +437,7 @@ protected:
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerUpdateState(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 CurrentGear);
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	int32 GearToPhysXGear(const int32 Gear) const;
 
@@ -476,7 +476,7 @@ protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 	
 
 };

@@ -24,6 +24,12 @@ public class UE4GameTarget : TargetRules
 		)
 	{
 		OutExtraModuleNames.Add("UE4Game");
+		// this is important - for some reason achievements etc intertwined with the onlinesubsystem and they saved without using a fake OSS. :/
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
+		{
+			OutExtraModuleNames.Add("OnlineSubsystemNull");
+		}
+		
 
 		if (UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 		{
@@ -56,6 +62,10 @@ public class UE4GameTarget : TargetRules
 				// @todo android: Add Android online subsystem
 				OutExtraModuleNames.Add("AndroidAdvertising");
 			}
+			else if (Target.Platform == UnrealTargetPlatform.HTML5)
+			{
+				OutExtraModuleNames.Add("OnlineSubsystemNull");
+			}
 		}
 	}
 
@@ -83,8 +93,19 @@ public class UE4GameTarget : TargetRules
 			// Tag it as a UE4Game build
 			OutCPPEnvironmentConfiguration.Definitions.Add("UE4GAME=1");
 		}
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
+		{
+			// to make Tappy Chicken as small as possible we excluded some items from the engine.
+			UEBuildConfiguration.bCompileRecast = false;
+			UEBuildConfiguration.bCompileSpeedTree = false;
+			UEBuildConfiguration.bCompileAPEX = false;
+			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+			UEBuildConfiguration.bCompilePhysXVehicle = false;
+			UEBuildConfiguration.bCompileForSize = true;
+			UEBuildConfiguration.bCompileFreeType = false;
+		}
 	}
-    public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+	public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
     {
         if (HostPlatform == UnrealTargetPlatform.Mac)
         {

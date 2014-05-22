@@ -36,8 +36,7 @@ public class UEOgg : ModuleRules
         {
             OggLibPath += "HTML5Win32";
             PublicLibraryPaths.Add(OggLibPath);
-
-            PublicAdditionalLibraries.Add("libogg.lib");
+			PublicAdditionalLibraries.Add("libogg.lib");
         }
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
@@ -45,7 +44,14 @@ public class UEOgg : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-            PublicAdditionalLibraries.Add(OggLibPath + "HTML5/libogg.bc");
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				PublicAdditionalLibraries.Add(OggLibPath + "HTML5/libogg_Oz.bc");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(OggLibPath + "HTML5/libogg.bc");
+			}
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{

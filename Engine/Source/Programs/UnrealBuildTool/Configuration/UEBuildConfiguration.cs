@@ -109,6 +109,15 @@ namespace UnrealBuildTool
         /** True if we need to package up Android with the OBB in the APK file */
         public static bool bOBBinAPK;
 
+		/** True if we need PhysX vehicle support */
+		public static bool bCompilePhysXVehicle;
+
+		/** True if we need FreeType support */
+		public static bool bCompileFreeType;
+
+		/** True if we want to favor optimizing size over speed */
+		public static bool bCompileForSize;
+
 		/** Sets the configuration back to defaults. */
 		public static void Reset()
 		{
@@ -138,6 +147,9 @@ namespace UnrealBuildTool
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
             bOBBinAPK = false;
+			bCompilePhysXVehicle = true;
+			bCompileFreeType = true;
+			bCompileForSize = false;
 
 			XmlConfigLoader.Load(typeof(UEBuildConfiguration));
 

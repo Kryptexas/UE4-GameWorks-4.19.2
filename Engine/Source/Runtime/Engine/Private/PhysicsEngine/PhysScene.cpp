@@ -4,8 +4,14 @@
 #include "EnginePrivate.h"
 
 #if WITH_PHYSX
+	#include "PhysXSupport.h"
+	#include "../Vehicles/PhysXVehicleManager.h"
+	#include "PhysXSupport.h"
+#if WITH_VEHICLE
+	#include "../Vehicles/PhysXVehicleManager.h"
 #include "PhysXSupport.h"
 #include "../Vehicles/PhysXVehicleManager.h"
+#endif
 #endif
 
 #include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
@@ -51,7 +57,9 @@ FPhysScene::FPhysScene()
 	LineBatcher = NULL;
 	OwningWorld = NULL;
 #if WITH_PHYSX
+#if WITH_VEHICLE
 	VehicleManager = NULL;
+#endif
 	PhysxUserData = FPhysxUserData(this);
 
 	// Create dispatcher for tasks
@@ -415,6 +423,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 #if WITH_PHYSX
 
+#if WITH_VEHICLE
 	if (VehicleManager && SceneType == PST_Sync)
 	{
 		float TickTime = AveragedFrameTime[SceneType];
@@ -432,6 +441,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			VehicleManager->Update(AveragedFrameTime[SceneType]);
 		}
 	}
+#endif
 
 #if !WITH_APEX
 	PxScene* PScene = GetPhysXScene(SceneType);
@@ -899,10 +909,12 @@ PxScene* FPhysScene::GetPhysXScene(uint32 SceneType)
 	return GetPhysXSceneFromIndex(PhysXSceneIndex[SceneType]);
 }
 
+#if WITH_VEHICLE
 FPhysXVehicleManager* FPhysScene::GetVehicleManager()
 {
 	return VehicleManager;
 }
+#endif
 
 #if WITH_APEX
 NxApexScene* FPhysScene::GetApexScene(uint32 SceneType)
@@ -1129,12 +1141,14 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Increment scene count
 	PhysXSceneCount++;
 
+#if WITH_VEHICLE
 	// Only create PhysXVehicleManager in the sync scene
 	if (SceneType == PST_Sync)
 	{
 		check(VehicleManager == NULL);
 		VehicleManager = new FPhysXVehicleManager(PScene);
 	}
+#endif
 
 #if WITH_SUBSTEPPING
 	//Initialize substeppers
@@ -1146,11 +1160,13 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
 #endif
 #endif
+#if WITH_VEHICLE
 	if (SceneType == PST_Sync)
 	{
 		PhysSubSteppers[SceneType]->SetVehicleManager(VehicleManager);
 	}
-
+#endif
+	
 #endif
 
 #endif // WITH_PHYSX
@@ -1172,11 +1188,13 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		}
 #endif // #if WITH_APEX
 
+#if WITH_VEHICLE
 		if (SceneType == PST_Sync && VehicleManager != NULL)
 		{
 			delete VehicleManager;
 			VehicleManager = NULL;
 		}
+#endif
 
 #if WITH_SUBSTEPPING
 

@@ -164,7 +164,7 @@ void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)
 {
-	int Width = 800 , Height = 600;
+	int Width = 768 , Height = 1024;
 #if !PLATFORM_HTML5_WIN32
 	 int fs;
 	emscripten_get_canvas_size(&Width, &Height, &fs);

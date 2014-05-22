@@ -177,14 +177,14 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 
 protected:
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicle() OVERRIDE;
 
 	virtual void UpdateSimulation(float DeltaTime) OVERRIDE;
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 	/** update simulation data: engine */
 	void UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup);

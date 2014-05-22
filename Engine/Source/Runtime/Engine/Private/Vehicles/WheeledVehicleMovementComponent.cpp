@@ -12,7 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
-#if WITH_PHYSX
+
+#if WITH_VEHICLE
 
 /**
  * PhysX shader for tire friction forces
@@ -112,7 +113,7 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 #endif
 }
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 {
@@ -706,7 +707,8 @@ void UWheeledVehicleMovementComponent::PreTick(float DeltaTime)
 void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 {
 }
-#endif // WITH_PHYSX
+
+#endif // WITH_VEHICLE
 
 void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 {
@@ -870,7 +872,7 @@ void UWheeledVehicleMovementComponent::SetGearDown(bool bNewGearDown)
 
 void UWheeledVehicleMovementComponent::SetTargetGear(int32 GearNum, bool bImmediate)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	//UE_LOG( LogVehicles, Warning, TEXT(" UWheeledVehicleMovementComponent::SetTargetGear::GearNum = %d, bImmediate = %d"), GearNum, bImmediate);
 	const uint32 TargetGearNum = GearToPhysXGear(GearNum);
 	if (PVehicleDrive && PVehicleDrive->mDriveDynData.getTargetGear() != TargetGearNum)
@@ -889,7 +891,7 @@ void UWheeledVehicleMovementComponent::SetTargetGear(int32 GearNum, bool bImmedi
 
 void UWheeledVehicleMovementComponent::SetUseAutoGears(bool bUseAuto)
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		PVehicleDrive->mDriveDynData.setUseAutoGears(bUseAuto);
@@ -899,7 +901,7 @@ void UWheeledVehicleMovementComponent::SetUseAutoGears(bool bUseAuto)
 
 float UWheeledVehicleMovementComponent::GetForwardSpeed() const
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if ( PVehicle )
 	{
 		return PVehicle->computeForwardSpeed();
@@ -911,7 +913,7 @@ float UWheeledVehicleMovementComponent::GetForwardSpeed() const
 
 float UWheeledVehicleMovementComponent::GetEngineRotationSpeed() const
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{		
 		return 9.5493 *  PVehicleDrive->mDriveDynData.getEngineRotationSpeed(); // 9.5493 = 60sec/min * (Motor Omega)/(2 * Pi); Motor Omega is in radians/sec, not RPM.
@@ -939,7 +941,7 @@ float UWheeledVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 	return MaxEngineRPM;
 }
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 int32 UWheeledVehicleMovementComponent::GearToPhysXGear(const int32 Gear) const
 {
@@ -974,7 +976,7 @@ int32 UWheeledVehicleMovementComponent::PhysXGearToGear(const int32 PhysXGear) c
 
 int32 UWheeledVehicleMovementComponent::GetCurrentGear() const
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		const int32 PhysXGearNum = PVehicleDrive->mDriveDynData.getCurrentGear();
@@ -987,7 +989,7 @@ int32 UWheeledVehicleMovementComponent::GetCurrentGear() const
 
 int32 UWheeledVehicleMovementComponent::GetTargetGear() const
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		const int32 PhysXGearNum = PVehicleDrive->mDriveDynData.getTargetGear();
@@ -1000,7 +1002,7 @@ int32 UWheeledVehicleMovementComponent::GetTargetGear() const
 
 bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 {
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (PVehicleDrive)
 	{
 		return PVehicleDrive->mDriveDynData.getUseAutoGears();
@@ -1010,7 +1012,7 @@ bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 	return false;
 }
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float & OutX )
 {
@@ -1353,7 +1355,7 @@ void UWheeledVehicleMovementComponent::PostEditChangeProperty( FPropertyChangedE
 
 #endif // WITH_EDITOR
 
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {

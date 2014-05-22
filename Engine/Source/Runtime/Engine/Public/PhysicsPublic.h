@@ -277,8 +277,10 @@ private:
 	class PxCpuDispatcher*			CPUDispatcher;
 	/** Simulation event callback object */
 	class FPhysXSimEventCallback*			SimEventCallback;
+#if WITH_VEHICLE
 	/** Vehicle scene */
 	class FPhysXVehicleManager*			VehicleManager;
+#endif
 #endif	//
 
 public:
@@ -287,8 +289,10 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
+#if WITH_VEHICLE
 	/** Get the vehicle manager */
 	FPhysXVehicleManager*						GetVehicleManager();
+#endif
 #endif
 
 #if WITH_APEX

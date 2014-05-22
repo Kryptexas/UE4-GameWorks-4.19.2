@@ -82,6 +82,12 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but APEX is not.
 			Definitions.Add("WITH_APEX=0");
 		}
+		if (UEBuildConfiguration.bCompilePhysXVehicle == false)
+		{
+			// Since PhysX Vehicle is dependent on PhysX, if Vehicle is not being include, set the flag properly.
+			// This will properly cover the case where PhysX is compiled but Vehicle is not.
+			Definitions.Add("WITH_VEHICLE=0");
+		}
 
 		string PhysXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/PhysX-3.3/";
 
@@ -332,23 +338,38 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"PxTask",
 					"PhysXVisualDebuggerSDK",
 					"PhysXProfileSDK",
 					"PvdRuntime",
 					"SceneQuery",
 					"SimulationController",
-				}; 
+				};
 
             foreach (var lib in PhysXLibs)
             {
                 if (!lib.Contains("Cooking") || Target.IsCooked == false)
                 {
-                    PublicAdditionalLibraries.Add(PhysXLibDir + lib + ".bc");
+                    PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
                 }
             }
-        }
+
+			if (UEBuildConfiguration.bCompilePhysXVehicle)
+			{
+				string[] PhysXVehicleLibs = new string[] 
+				{
+					"PhysX3Vehicle",
+				};
+
+				foreach (var lib in PhysXVehicleLibs)
+				{
+					if (!lib.Contains("Cooking") || Target.IsCooked == false)
+					{
+						PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
+					}
+				}
+			}
+		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/PS4");

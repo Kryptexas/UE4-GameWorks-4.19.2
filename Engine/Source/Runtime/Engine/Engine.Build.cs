@@ -198,6 +198,10 @@ public class Engine : ModuleRules
                     "VorbisFile"
                     );
         }
+		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
+		{
+			PublicDependencyModuleNames.Add("HTML5JS");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{

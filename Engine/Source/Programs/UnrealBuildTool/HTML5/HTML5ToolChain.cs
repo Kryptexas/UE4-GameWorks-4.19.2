@@ -75,7 +75,8 @@ namespace UnrealBuildTool
 
             // we have to specify the full amount of memory with Asm.JS (1.5 G)
             // I wonder if there's a per game way to change this. 
-            Result += " -s TOTAL_MEMORY=1610612736";
+			int TotalMemory = 256 * 1024 * 1024;
+            Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
 
             // no need for exceptions
             Result += " -s DISABLE_EXCEPTION_CATCHING=1";
@@ -88,26 +89,9 @@ namespace UnrealBuildTool
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
             Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
 
-            if (TargetConfiguration == CPPTargetConfiguration.Debug)
-            {
-	            Result += " -O0";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
-            {
-	            Result += " -s GL_ASSERTIONS=1 ";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Development)
-            {
-                Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Shipping)
-            {
-	            Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
-
             // NOTE: This may slow down the compiler's startup time!
             { 
-                Result += " --memory-init-file 1";
+                Result += " -s NO_EXIT_RUNTIME=1 --memory-init-file 1";
             }
 
             return Result;
@@ -126,6 +110,38 @@ namespace UnrealBuildTool
 							}*/
 
 				Result += " -Wno-warn-absolute-paths ";
+
+				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				{
+					Result += " -O0";
+				}
+				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				{
+					Result += " -s GL_ASSERTIONS=1 ";
+				}
+				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				{
+					if (UEBuildConfiguration.bCompileForSize)
+					{
+						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
+					}
+					else
+					{
+						Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+					}
+				}
+				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				{
+					if (UEBuildConfiguration.bCompileForSize)
+					{
+						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
+					}
+					else
+					{
+						Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+					}
+				}
+
 			}
 
 			return Result;
@@ -174,6 +190,23 @@ namespace UnrealBuildTool
 
 					// enable assertions in non-Shipping/Release builds
 					Result += " -s ASSERTIONS=1";
+				}
+
+				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				{
+					Result += " -O0";
+				}
+				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				{
+					Result += " -s GL_ASSERTIONS=1 ";
+				}
+				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				{
+					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+				}
+				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				{
+					Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
 				}
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
@@ -463,7 +496,10 @@ namespace UnrealBuildTool
                 FileItem Item = FileItem.GetExistingItemByPath(InputFile);
                 if (Item != null)
                 {
-                    LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
+                    if (Item.ToString().Contains(".js"))
+                        LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
+                    else
+                        LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
                     LinkAction.PrerequisiteItems.Add(Item);
                 }
             }

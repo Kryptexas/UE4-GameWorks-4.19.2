@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 
 #include "../PhysicsEngine/PhysXSupport.h"
 

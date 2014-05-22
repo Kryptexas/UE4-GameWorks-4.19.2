@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#pragma once 
+#pragma once
+
+#if PLATFORM_HTML5_BROWSER
+	#include "HTML5JavaScriptFx.h"
+#endif
 
 /**
  * Interface for platform feature modules
@@ -24,8 +28,10 @@ public:
 	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) = 0;
 };
 
+#pragma  optimize("",off)
 
 
+//  @todo akhare - move this to core before checking - Properly implement the SaveSystem  for HTML5 
 /** A generic save game system that just uses IFileManager to save/load with normal files */
 class FGenericSaveGameSystem : public ISaveGameSystem
 {
@@ -37,17 +43,59 @@ public:
 
 	virtual bool DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex) OVERRIDE
 	{
+#if PLATFORM_HTML5_BROWSER
+		return UE_DoesSaveGameExist(TCHAR_TO_ANSI(Name),UserIndex);
+#elif PLATFORM_HTML5_WIN32
+		FILE *fp;
+		fp=fopen("c:\\test.sav", "r");
+		if (fp)
+			return true;
+		return false;
+#else
 		return IFileManager::Get().FileSize(*GetSaveGamePath(Name)) >= 0;
+#endif
 	}
 
 	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data) OVERRIDE
 	{
+#if PLATFORM_HTML5_BROWSER
+		return UE_SaveGame(TCHAR_TO_ANSI(Name),UserIndex,(char*)Data.GetData(),Data.Num());
+#elif PLATFORM_HTML5_WIN32
+		FILE *fp;
+		fp=fopen("c:\\test.sav", "wb");
+		fwrite((char*)Data.GetData(), sizeof(char), Data.Num(), fp);
+		fclose(fp);
+		return true;
+#else
 		return FFileHelper::SaveArrayToFile(Data, *GetSaveGamePath(Name));
+#endif
+
 	}
 
 	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) OVERRIDE
 	{
+#if PLATFORM_HTML5_BROWSER
+		char*	OutData;
+		int		Size;
+		UE_LoadGame(TCHAR_TO_ANSI(Name),UserIndex,&OutData,&Size);
+		Data.Append((uint8*)OutData,Size);
+		::free (OutData);
+		return true;
+#elif PLATFORM_HTML5_WIN32
+		FILE *fp;
+		fp=fopen("c:\\test.sav","rb");
+			// obtain file size:
+		fseek (fp, 0 , SEEK_END);
+		int size = ftell (fp);
+		fseek (fp, 0 , SEEK_SET);
+		Data.AddUninitialized(size);
+		int result = fread (Data.GetData(),1,size,fp);
+		fclose(fp);
+		return true;
+#else
 		return FFileHelper::LoadFileToArray(Data, *GetSaveGamePath(Name));
+#endif
+
 	}
 
 protected:
@@ -58,3 +106,5 @@ protected:
 		return FString::Printf(TEXT("%s/SaveGames/%s.sav"), *FPaths::GameSavedDir(), Name);
 	}
 };
+
+#pragma  optimize("",on)

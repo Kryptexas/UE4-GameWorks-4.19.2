@@ -94,7 +94,9 @@ void UPhysicalMaterial::UpdatePhysXMaterial()
 		PMaterial->setRestitution(Restitution);
 		uint32 CombineMode = (bOverrideFrictionCombineMode ? FrictionCombineMode.GetValue() : UPhysicsSettings::Get()->FrictionCombineMode.GetValue());
 		PMaterial->setFrictionCombineMode(static_cast<physx::PxCombineMode::Enum>(CombineMode));
+#if WITH_VEHICLE
 		FPhysXVehicleManager::UpdateTireFrictionTable();
+#endif
 	}
 #endif	// WITH_PHYSX
 }
