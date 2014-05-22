@@ -33,20 +33,6 @@ namespace PackageTools
 							   TArray<UObject*>& OutObjects );
 
 	/**
-	 * Attempts to save the specified packages; helper function for by e.g. SaveSelectedPackages().
-	 *
-	 * @param		PackagesToSave				The content packages to save.
-	 * @param		bUnloadPackagesAfterSave	If true, unload each package if it was saved successfully.
-	 * @param		pLastSaveDirectory			if specified, initializes the "Save File" dialog with this value
-	 *											[out] will be filled in with the directory the user chose for this save operation.
-	 *
-	 * @return									true if all packages were saved successfully, false otherwise.
-	 */
-	UNREALED_API bool SavePackages( const TArray<UPackage*>& PackagesToSave, 
-						bool bUnloadPackagesAfterSave, 
-						FString* pLastSaveDirectory=NULL );
-
-	/**
 	 * Handles fully loading passed in packages.
 	 *
 	 * @param	TopLevelPackages	Packages to be fully loaded.
