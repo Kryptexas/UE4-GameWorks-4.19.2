@@ -408,6 +408,7 @@ public:
 
 	/**
 	 * Called when motion is detected (controller or device)
+	 * e.g. Someone tilts or shakes their controller.
 	 * 
 	 * @param MotionEvent	The motion event generated
 	 */

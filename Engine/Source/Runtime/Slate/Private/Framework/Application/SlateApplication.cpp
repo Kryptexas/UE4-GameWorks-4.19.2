@@ -3952,7 +3952,7 @@ bool FSlateApplication::OnTouchMoved( const FVector2D& Location, int32 TouchInde
 		ControllerId,
 		TouchIndex,
 		Location,
-		Location,
+		LastCursorPosition,
 		true);
 	ProcessTouchMovedEvent(PointerEvent);
 
