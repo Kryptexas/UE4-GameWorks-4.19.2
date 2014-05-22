@@ -10,6 +10,7 @@
 #include "UObjectAnnotation.h"
 #include "DefaultValueHelper.h"
 #include "IScriptGeneratorPluginInterface.h"
+#include "Manifest.h"
 
 /*-----------------------------------------------------------------------------
 	Constants & declarations.
