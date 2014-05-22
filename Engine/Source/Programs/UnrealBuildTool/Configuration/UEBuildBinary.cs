@@ -468,8 +468,8 @@ namespace UnrealBuildTool
 
 			var OutputFiles = new List<FileItem>();
 
-			var BinaryCompileEnvironment = new CPPEnvironment(CompileEnvironment);
-			var BinaryLinkEnvironment = new LinkEnvironment(LinkEnvironment);
+			var BinaryCompileEnvironment = CompileEnvironment.DeepCopy();
+			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
 
 			// Process each module that is linked into the binary.
 			var BinaryDependencies = new List<UEBuildBinary>();
@@ -595,7 +595,7 @@ namespace UnrealBuildTool
 				if (BinaryLinkEnvironment.Config.CanProduceAdditionalConsoleApp && UEBuildConfiguration.bBuildEditor)
 				{					
 					// Produce additional binary but link it as a console app
-					LinkEnvironment ConsoleAppLinkEvironment = new LinkEnvironment(BinaryLinkEnvironment);					
+					var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
 					ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
 					ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
 					ConsoleAppLinkEvironment.Config.OutputFilePath = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePath);

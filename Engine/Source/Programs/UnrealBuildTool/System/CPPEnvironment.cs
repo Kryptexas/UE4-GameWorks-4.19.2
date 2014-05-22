@@ -261,7 +261,7 @@ namespace UnrealBuildTool
 		{}
 
 		/** Copy constructor. */
-		public CPPEnvironment(CPPEnvironment InCopyEnvironment)
+		protected CPPEnvironment(CPPEnvironment InCopyEnvironment)
 		{
 			PrecompiledHeaderFile = InCopyEnvironment.PrecompiledHeaderFile;
 			PrivateAssemblyDependencies.AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
@@ -310,5 +310,13 @@ namespace UnrealBuildTool
 			PrivateAssemblyDependencies.Add( NewPrivateAssembly );
 		}
 
+		/// <summary>
+		/// Performs a deep copy of this CPPEnvironment object.
+		/// </summary>
+		/// <returns>Copied new CPPEnvironment object.</returns>
+		public virtual CPPEnvironment DeepCopy()
+		{
+			return new CPPEnvironment(this);
+		}
 	};
 }

@@ -1279,7 +1279,8 @@ namespace UnrealBuildTool
 				{
 					// Setup a new compile environment for this module's source files.  It's pretty much the exact same as the
 					// module's compile environment, except that it will include a PCH file.
-					var ModulePCHCompileEnvironment = new CPPEnvironment( ModuleCompileEnvironment );
+
+					var ModulePCHCompileEnvironment = ModuleCompileEnvironment.DeepCopy();
 					ModulePCHCompileEnvironment.Config.PrecompiledHeaderAction          = PrecompiledHeaderAction.Include;
 					ModulePCHCompileEnvironment.Config.PrecompiledHeaderIncludeFilename = ModulePCHEnvironment.PrecompiledHeaderIncludeFilename.AbsolutePath;
 					ModulePCHCompileEnvironment.Config.PCHHeaderNameInCode              = ModulePCHEnvironment.PCHHeaderNameInCode;
@@ -1512,7 +1513,7 @@ namespace UnrealBuildTool
 		/// <returns>The new module compile environment.</returns>
 		public CPPEnvironment CreateModuleCompileEnvironment(CPPEnvironment BaseCompileEnvironment)
 		{
-			var Result = new CPPEnvironment(BaseCompileEnvironment);
+			var Result = BaseCompileEnvironment.DeepCopy();
 
 			// Override compile environment
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
@@ -1924,7 +1925,7 @@ namespace UnrealBuildTool
 		// UEBuildModule interface.
 		public override List<FileItem> Compile( CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, bool bCompileMonolithic )
 		{
-			var ModuleCLREnvironment = new CPPEnvironment(CompileEnvironment);
+			var ModuleCLREnvironment = CompileEnvironment.DeepCopy();
 
 			// Setup the module environment for the project CLR mode
 			ModuleCLREnvironment.Config.CLRMode = CPPCLRMode.CLREnabled;

@@ -1152,7 +1152,7 @@ namespace UnrealBuildTool
 
 			// We need to know what third party dylibs would be copied to the bundle
 			var Modules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-			var BinaryLinkEnvironment = new LinkEnvironment(Binary.Target.GlobalLinkEnvironment);
+			var BinaryLinkEnvironment = Binary.Target.GlobalLinkEnvironment.DeepCopy();
 			var BinaryDependencies = new List<UEBuildBinary>();
 			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
 			foreach (var Module in Modules)

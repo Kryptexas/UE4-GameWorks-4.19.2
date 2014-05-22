@@ -166,7 +166,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Copy constructor. */
-		public LinkEnvironment(LinkEnvironment InCopyEnvironment)
+		protected LinkEnvironment(LinkEnvironment InCopyEnvironment)
 		{
 			InputFiles.AddRange(InCopyEnvironment.InputFiles);
 			InputLibraries.AddRange(InCopyEnvironment.InputLibraries);
@@ -178,6 +178,15 @@ namespace UnrealBuildTool
 		public FileItem LinkExecutable( bool bBuildImportLibraryOnly )
 		{
 			return UEToolChain.GetPlatformToolChain(Config.TargetPlatform).LinkFiles(this, bBuildImportLibraryOnly);
+		}
+
+		/// <summary>
+		/// Performs a deep copy of this LinkEnvironment object.
+		/// </summary>
+		/// <returns>Copied new LinkEnvironment object.</returns>
+		public virtual LinkEnvironment DeepCopy ()
+		{
+			return new LinkEnvironment(this);
 		}
 	}
 }
