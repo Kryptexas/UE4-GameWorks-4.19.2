@@ -2360,8 +2360,6 @@ public:
 
 	void ClearDebugDisplayProperties();
 
-	bool LoadAdditionalMaps(UWorld* PersistentWorld, const TArray<FString>& MapsToLoad, FString& Error);
-
 	/**
 	 * Loads the PerMapPackages for the given map, and adds them to the RootSet
 	 *
