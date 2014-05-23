@@ -10,7 +10,13 @@
 
 bool FSocketBSDIPv6::Close(void)
 {
-	return closesocket(Socket) == 0;
+	if (Socket != INVALID_SOCKET)
+	{
+		int32 error = closesocket(Socket);
+		Socket = INVALID_SOCKET;
+		return error == 0;
+	}
+	return false;
 }
 
 
