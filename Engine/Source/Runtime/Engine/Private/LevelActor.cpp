@@ -797,7 +797,12 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 							bLoadedLevelPackage = true;
 
 							// Find the world object in the loaded package.
-							UWorld* const LoadedWorld	= UWorld::FindWorldInPackage(LevelPackage);
+							UWorld* LoadedWorld	= UWorld::FindWorldInPackage(LevelPackage);
+							// If the world was not found, it could be a redirector to a world. If so, follow it to the destination world.
+							if (!LoadedWorld)
+							{
+								LoadedWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+							}
 							check(LoadedWorld);
 
 							// LoadedWorld won't be serialized as there's a BeginLoad on the stack so we manually serialize it here.

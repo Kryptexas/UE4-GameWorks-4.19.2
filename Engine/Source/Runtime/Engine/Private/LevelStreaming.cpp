@@ -325,6 +325,17 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	{
 		// Find world object and use its PersistentLevel pointer.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
+
+		// Check for a redirector. Follow it, if found.
+		if ( !World )
+		{
+			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+			if ( World )
+			{
+				LevelPackage = World->GetOutermost();
+			}
+		}
+
 		if (World != NULL)
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -504,80 +515,75 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 		else
 		{
 			// There could have been a redirector in the package. Attempt to follow it.
-			const FString ExpectedRedirectorName = (PackageNameToLoad != NAME_None) ? PackageNameToLoad.ToString() : PackageName.ToString();
-			UObjectRedirector* WorldRedirector = FindObject<UObjectRedirector>(LevelPackage, *FPackageName::GetLongPackageAssetName(*ExpectedRedirectorName));
-			if (WorldRedirector)
+			UObjectRedirector* WorldRedirector = nullptr;
+			UWorld* DestinationWorld = UWorld::FollowWorldRedirectorInPackage(LevelPackage, &WorldRedirector);
+			if (DestinationWorld)
 			{
-				// A redirector was found! Make sure the destination world was loaded.
-				UWorld* DestinationWorld = Cast<UWorld>(WorldRedirector->DestinationObject);
-				if (DestinationWorld)
+				// To follow the world redirector for level streaming...
+				// 1) Update all globals that refer to the redirector package by name
+				// 2) Update the PackageNameToLoad to refer to the new package location
+				// 3) If the package name to load was the same as the destination package name...
+				//         ... update the package name to the new package and let the next RequestLevel try this process again.
+				//    If the package name to load was different...
+				//         ... it means the specified package name was explicit and we will just load from another file.
+
+				FName OldDesiredPackageName = FName(*InPackageName);
+				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
+				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
+				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
+
+				// Try again with the destination package to load.
+				// IMPORTANT: check this BEFORE changing PackageNameToLoad, otherwise you wont know if the package name was supposed to be different.
+				const bool bLoadingIntoDifferentPackage = (PackageName != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
+
+				// ... now set PackageNameToLoad
+				PackageNameToLoad = DestinationWorld->GetOutermost()->GetFName();
+
+				if ( PackageNameToLoad != OldDesiredPackageName )
 				{
-					// To follow the world redirector for level streaming...
-					// 1) Update all globals that refer to the redirector package by name
-					// 2) Update the PackageNameToLoad to refer to the new package location
-					// 3) If the package name to load was the same as the destination package name...
-					//         ... update the package name to the new package and let the next RequestLevel try this process again.
-					//    If the package name to load was different...
-					//         ... it means the specified package name was explicit and we will just load from another file.
-
-					FName OldDesiredPackageName = FName(*InPackageName);
-					UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
-					UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
-					ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
-
-					// Try again with the destination package to load.
-					// IMPORTANT: check this BEFORE changing PackageNameToLoad, otherwise you wont know if the package name was supposed to be different.
-					const bool bLoadingIntoDifferentPackage = (PackageName != PackageNameToLoad) && (PackageNameToLoad != NAME_None);
-
-					// ... now set PackageNameToLoad
-					PackageNameToLoad = DestinationWorld->GetOutermost()->GetFName();
-
-					if ( PackageNameToLoad != OldDesiredPackageName )
+					EWorldType::Type* OldPackageWorldType = UWorld::WorldTypePreLoadMap.Find(OldDesiredPackageName);
+					if ( OldPackageWorldType )
 					{
-						EWorldType::Type* OldPackageWorldType = UWorld::WorldTypePreLoadMap.Find(OldDesiredPackageName);
-						if ( OldPackageWorldType )
-						{
-							UWorld::WorldTypePreLoadMap.FindOrAdd(PackageNameToLoad) = *OldPackageWorldType;
-							UWorld::WorldTypePreLoadMap.Remove(OldDesiredPackageName);
-						}
+						UWorld::WorldTypePreLoadMap.FindOrAdd(PackageNameToLoad) = *OldPackageWorldType;
+						UWorld::WorldTypePreLoadMap.Remove(OldDesiredPackageName);
+					}
+				}
+
+				// Now determine if we are loading into the package explicitly or if it is okay to just load the other package.
+				if ( bLoadingIntoDifferentPackage )
+				{
+					// Loading into a new custom package explicitly. Load the destination world directly into the package.
+					// Detach the linker to load from a new file into the same package.
+					ULinkerLoad* PackageLinker = ULinkerLoad::FindExistingLinkerForPackage(LevelPackage);
+					if (PackageLinker)
+					{
+						PackageLinker->Detach(false);
 					}
 
-					// Now determine if we are loading into the package explicitly or if it is okay to just load the other package.
-					if ( bLoadingIntoDifferentPackage )
+					// Make sure the redirector is not in the way of the new world.
+					if (WorldRedirector->GetFName() == DestinationWorld->GetFName())
 					{
-						// Loading into a new custom package explicitly. Load the destination world directly into the package.
-						// Detach the linker to load from a new file into the same package.
-						ULinkerLoad* PackageLinker = ULinkerLoad::FindExistingLinkerForPackage(LevelPackage);
-						if (PackageLinker)
-						{
-							PackageLinker->Detach(false);
-						}
-
-						// Make sure the redirector is not in the way of the new world.
-						if (WorldRedirector->GetFName() == DestinationWorld->GetFName())
-						{
-							// Pass NULL as the name to make a new unique name and NULL for the outer to not change the outer.
-							WorldRedirector->Rename(NULL, NULL, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
-						}
+						// Pass NULL as the name to make a new unique name and NULL for the outer to not change the outer.
+						WorldRedirector->Rename(NULL, NULL, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 					}
-					else
+				}
+				else
+				{
+					// Loading the requested package normally. Fix up the destination world then update the requested package to the destination.
+					if (OwningWorld)
 					{
-						// Loading the requested package normally. Fix up the destination world then update the requested package to the destination.
-						if (OwningWorld)
+						if (DestinationWorld->PersistentLevel)
 						{
-							if (DestinationWorld->PersistentLevel)
-							{
-								DestinationWorld->PersistentLevel->OwningWorld = OwningWorld;
-							}
-
-							// In some cases, BSP render data is not created because the OwningWorld was not set correctly.
-							// Regenerate that render data here
-							DestinationWorld->PersistentLevel->InvalidateModelSurface();
-							DestinationWorld->PersistentLevel->CommitModelSurfaces();
+							DestinationWorld->PersistentLevel->OwningWorld = OwningWorld;
 						}
+
+						// In some cases, BSP render data is not created because the OwningWorld was not set correctly.
+						// Regenerate that render data here
+						DestinationWorld->PersistentLevel->InvalidateModelSurface();
+						DestinationWorld->PersistentLevel->CommitModelSurfaces();
+					}
 						
-						PackageName = PackageNameToLoad;
-					}
+					PackageName = PackageNameToLoad;
 				}
 			}
 		}

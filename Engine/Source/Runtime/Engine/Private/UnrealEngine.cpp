@@ -8243,6 +8243,17 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				}
 
 				NewWorld = UWorld::FindWorldInPackage(WorldPackage);
+
+				// If the world was not found, follow a redirector if there is one.
+				if ( !NewWorld )
+				{
+					NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
+					if ( NewWorld )
+					{
+						WorldPackage = NewWorld->GetOutermost();
+					}
+				}
+
 				check(NewWorld);
 #if WITH_EDITOR
 				WorldPackage->PIEInstanceID = WorldContext.PIEInstance;
@@ -8286,17 +8297,27 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			Error = FString::Printf(TEXT("Failed to load package '%s'"), *URL.Map);
 			return false;
 		}
-		
-		FScopeCycleCounterUObject MapScope(WorldPackage);
-
-		if( FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !(WorldPackage->PackageFlags & PKG_DisallowLazyLoading) )
-		{
-			UE_LOG(LogLoad, Fatal,TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."),*WorldPackage->GetName());
-		}
 
 		// Find the newly loaded world.
 		NewWorld = UWorld::FindWorldInPackage(WorldPackage);
+
+		// If the world was not found, it could be a redirector to a world. If so, follow it to the destination world.
+		if ( !NewWorld )
+		{
+			NewWorld = UWorld::FollowWorldRedirectorInPackage(WorldPackage);
+			if ( NewWorld )
+			{
+				WorldPackage = NewWorld->GetOutermost();
+			}
+		}
 		check(NewWorld);
+
+		FScopeCycleCounterUObject MapScope(WorldPackage);
+
+		if (FPlatformProperties::RequiresCookedData() && GUseSeekFreeLoading && !(WorldPackage->PackageFlags & PKG_DisallowLazyLoading))
+		{
+			UE_LOG(LogLoad, Fatal, TEXT("Map '%s' has not been cooked correctly! Most likely stale version on the XDK."), *WorldPackage->GetName());
+		}
 
 		if (WorldContext.WorldType == EWorldType::PIE)
 		{
@@ -8840,6 +8861,17 @@ static void AsyncMapChangeLevelLoadCompletionCallback(const FString& PackageName
 	{	
 		// Try to find a UWorld object in the level package.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
+
+		// If the world was not found, try to follow a redirector if it exists
+		if ( !World )
+		{
+			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+			if ( World )
+			{
+				LevelPackage = World->GetOutermost();
+			}
+		}
+
 		ULevel* Level = World ? World->PersistentLevel : NULL;	
 		
 		// Print out a warning and set the error if we couldn't find a level in this package.

@@ -1925,6 +1925,17 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	// Find world object and use its PersistentLevel pointer.
 	UWorld* EditorLevelWorld = UWorld::FindWorldInPackage(EditorLevelPackage);
+
+	// If the world was not found, try to follow a redirector, if there is one
+	if ( !EditorLevelWorld )
+	{
+		EditorLevelWorld = UWorld::FollowWorldRedirectorInPackage(EditorLevelPackage);
+		if ( EditorLevelPackage )
+		{
+			EditorLevelPackage = EditorLevelWorld->GetOutermost();
+		}
+	}
+
 	if( !EditorLevelWorld )
 		return NULL;
 
@@ -3918,7 +3929,19 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FString& PackageNa
 	// defer until tick when it's safe to perform the transition
 	if (IsInTransition())
 	{
-		SetHandlerLoadedData(LevelPackage, UWorld::FindWorldInPackage(LevelPackage));
+		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
+
+		// If the world could not be found, follow a redirector if there is one.
+		if ( !World )
+		{
+			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
+			if ( World )
+			{
+				LevelPackage = World->GetOutermost();
+			}
+		}
+
+		SetHandlerLoadedData(LevelPackage, World);
 	}
 }
 
@@ -4726,6 +4749,31 @@ UWorld* UWorld::FindWorldInPackage(UPackage* Package)
 		if ( RetVal )
 		{
 			break;
+		}
+	}
+
+	return RetVal;
+}
+
+UWorld* UWorld::FollowWorldRedirectorInPackage(UPackage* Package, UObjectRedirector** OptionalOutRedirector)
+{
+	UWorld* RetVal = nullptr;
+	TArray<UObject*> PotentialRedirectors;
+	GetObjectsWithOuter(Package, PotentialRedirectors, false);
+	for (auto ObjIt = PotentialRedirectors.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		UObjectRedirector* Redirector = Cast<UObjectRedirector>(*ObjIt);
+		if (Redirector)
+		{
+			RetVal = Cast<UWorld>(Redirector->DestinationObject);
+			if ( RetVal )
+			{
+				if ( OptionalOutRedirector )
+				{
+					(*OptionalOutRedirector) = Redirector;
+				}
+				break;
+			}
 		}
 	}
 
