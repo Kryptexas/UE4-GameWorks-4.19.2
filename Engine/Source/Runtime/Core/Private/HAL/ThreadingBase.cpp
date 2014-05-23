@@ -315,6 +315,7 @@ public:
 		, TimeToDie(0)
 		, QueuedWork(NULL)
 		, OwningThreadPool(NULL)
+		, Thread(NULL)
 	{
 	}
 

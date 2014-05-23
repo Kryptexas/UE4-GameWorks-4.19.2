@@ -566,7 +566,8 @@ class FStatsThread : public FRunnable, FSingleThreadRunnable
 public:
 
 	FStatsThread()
-		: State(FStatsThreadState::GetLocalState())
+		: Thread(nullptr)
+		, State(FStatsThreadState::GetLocalState())
 		, bReadyToProcess(false)
 	{
 		check(IsInGameThread());

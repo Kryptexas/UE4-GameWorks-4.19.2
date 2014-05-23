@@ -749,7 +749,7 @@ public:
 		}
 		int32 QueueToExecuteOn = ENamedThreads::GetQueueIndex(ThreadToExecuteOn);
 		ThreadToExecuteOn = ENamedThreads::GetThreadIndex(ThreadToExecuteOn);
-		FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
+		FTaskThread* Target = &Thread(ThreadToExecuteOn);
 		if (ThreadToExecuteOn == CurrentThreadIfKnown)
 		{
 			Target->EnqueueFromThisThread(QueueToExecuteOn, Task);
