@@ -128,7 +128,7 @@ public class AndroidPlatform : Platform
 			"%ADB% uninstall " + PackageName,
 			"%ADB% install " + Path.GetFileName(ApkName),
 			"%ADB% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
-			SC.IsCodeBasedProject ? "" : "%ADB% shell rm /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
+			"%ADB% shell rm /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 			"%ADB% shell rm -r /mnt/sdcard/obb/" + PackageName,
 			"%ADB% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
 		};
@@ -232,11 +232,11 @@ public class AndroidPlatform : Platform
 
 				string FinalRemoteDir = RemoteDir;
 				// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
-				if (!Params.IsCodeBasedProject &&
+/*				if (!Params.IsCodeBasedProject &&
 					Path.GetFileName(Filename).Equals("UE4CommandLine.txt", StringComparison.InvariantCultureIgnoreCase))
 				{
 					FinalRemoteDir = "/mnt/sdcard/UE4Game";
-				}
+				}*/
 
 				string RemoteFilename = Filename.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
  				string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, Filename, RemoteFilename);
@@ -253,11 +253,11 @@ public class AndroidPlatform : Platform
 			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
 
 			string FinalRemoteDir = RemoteDir;
-			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
+/*			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
 			if (!Params.IsCodeBasedProject)
 			{
 				FinalRemoteDir = "/mnt/sdcard/UE4Game";
-			}
+			}*/
 
 			string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
 			string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);
