@@ -126,7 +126,7 @@ protected:
 		}
 
 		// create server
-		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get();
+		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 
 		if (SocketSubsystem != nullptr)
 		{
