@@ -356,6 +356,7 @@ void FSLESSoundSource::Update( void )
 	SLmillibel MinMillibel = -3000;
 	(*SL_VolumeInterface)->GetMaxVolumeLevel( SL_VolumeInterface, &MaxMillibel );
 	SLmillibel VolumeMillibel = (Volume * (MaxMillibel - MinMillibel)) + MinMillibel;
+	VolumeMillibel = FMath::Clamp(VolumeMillibel, MinMillibel, MaxMillibel);
 	
 	SLresult result = (*SL_VolumeInterface)->SetVolumeLevel(SL_VolumeInterface, VolumeMillibel);
 	check(SL_RESULT_SUCCESS == result);
