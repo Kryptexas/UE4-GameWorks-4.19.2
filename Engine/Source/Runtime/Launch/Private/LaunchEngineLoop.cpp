@@ -1700,6 +1700,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 	}
 
+	// We need this for blueprint projects that have online functionality.
+	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 	return bSuccess;
