@@ -822,7 +822,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Cleans UnralHeaderTool
+		/// Cleans UnrealHeaderTool
 		/// </summary>
 		private void CleanUnrealHeaderTool()
 		{
@@ -1400,7 +1400,7 @@ namespace UnrealBuildTool
 
 						// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
 						// engine files, so we don't need a .generated.cpp either
-						if (DependencyModuleCPP.SourceFiles.Count != 0)
+						if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
 						{
 							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
 						}
@@ -1586,7 +1586,8 @@ namespace UnrealBuildTool
 					InFasterWithoutUnity: true,
 					InMinFilesUsingPrecompiledHeaderOverride: 0,
 					InEnableExceptions: false,
-					InEnableInlining: true
+					InEnableInlining: true,
+					bInBuildSourceFiles: true
 					);
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
@@ -2313,8 +2314,6 @@ namespace UnrealBuildTool
 				TargetInfo TargetInfo = GetTargetInfo();
 
 				// Create the module!  (It will be added to our hash table in its constructor)
-				// Figure out whether we need to build this module
-				bool bBuildFiles = OnlyModules.Count == 0 || OnlyModules.Any(x => x.OnlyModuleName == ModuleName);
 
 				// @todo projectfiles: Cross-platform modules can appear here during project generation, but they may have already
 				//   been filtered out by the project generator.  This causes the projects to not be added to directories properly.
@@ -2364,8 +2363,13 @@ namespace UnrealBuildTool
 					RulesCompiler.AddDefaultIncludePathsToModuleRules(this, ModuleName, ModuleFileName, ModuleFileRelativeToEngineDirectory, IsGameModule: IsGameModule, RulesObject: ref RulesObject);
 				}
 
+				// Figure out whether we need to build this module
+				// We don't care about actual source files when generating projects, as these are discovered separately
+				bool bDiscoverFiles = !ProjectFileGenerator.bGenerateProjectFiles;
+				bool bBuildFiles    = bDiscoverFiles && (OnlyModules.Count == 0 || OnlyModules.Any(x => x.OnlyModuleName == ModuleName));
+
 				IntelliSenseGatherer IntelliSenseGatherer = null;
-				List<FileItem> ModuleSourceFiles = new List<FileItem>();
+				List<FileItem> FoundSourceFiles = new List<FileItem>();
 				if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus || RulesObject.Type == ModuleRules.ModuleType.CPlusPlusCLR)
 				{
 					ProjectFile ProjectFile = null;
@@ -2374,30 +2378,27 @@ namespace UnrealBuildTool
 						IntelliSenseGatherer = ProjectFile;
 					}
 
-					if (!ProjectFileGenerator.bGenerateProjectFiles && bBuildFiles)	// We don't care about actual source files when generating projects, as these are discovered separately
+					// So all we care about are the game module and/or plugins.
+					//@todo Rocket: This assumes plugins that have source will be under the game folder...
+					if (bDiscoverFiles && (!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleFileName, UnrealBuildTool.GetUProjectPath())))
 					{
-						// So all we care about are the game module and/or plugins.
-						//@todo Rocket: This assumes plugins that have source will be under the game folder...
-						if (!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleFileName, UnrealBuildTool.GetUProjectPath()))
-						{
-							var SourceFilePaths = new List<string>();
+						var SourceFilePaths = new List<string>();
 
-							if (ProjectFile != null)
+						if (ProjectFile != null)
+						{
+							foreach (var SourceFile in ProjectFile.SourceFiles)
 							{
-								foreach (var SourceFile in ProjectFile.SourceFiles)
-								{
-									SourceFilePaths.Add(SourceFile.FilePath);
-								}
+								SourceFilePaths.Add(SourceFile.FilePath);
 							}
-							else
-							{
-								// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
-								SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(
-									ModuleRulesFile: ModuleFileName,
-									ExcludeNoRedistFiles: false);
-							}
-							ModuleSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
 						}
+						else
+						{
+							// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
+							SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(
+								ModuleRulesFile: ModuleFileName,
+								ExcludeNoRedistFiles: false);
+						}
+						FoundSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
 					}
 				}
 
@@ -2405,7 +2406,8 @@ namespace UnrealBuildTool
 				UEBuildModuleType ModuleType = IsGameModule ? UEBuildModuleType.GameModule : UEBuildModuleType.EngineModule;
 
 				// Now, go ahead and create the module builder instance
-				if((Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, ApplicationOutputPath, IntelliSenseGatherer, ModuleSourceFiles)) == null)
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, ApplicationOutputPath, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles);
+				if(Module == null)
 				{
 					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
 				}
@@ -2426,13 +2428,14 @@ namespace UnrealBuildTool
 		}
 
 		protected virtual UEBuildModule InstantiateModule(
-			ModuleRules RulesObject,
-			string ModuleName,
-			UEBuildModuleType ModuleType,
-			string ModuleDirectory,
-			string ApplicationOutputPath,
+			ModuleRules          RulesObject,
+			string               ModuleName,
+			UEBuildModuleType    ModuleType,
+			string               ModuleDirectory,
+			string               ApplicationOutputPath,
 			IntelliSenseGatherer IntelliSenseGatherer,
-			List<FileItem> ModuleSourceFiles)
+			List<FileItem>       ModuleSourceFiles,
+			bool                 bBuildSourceFiles)
 		{
 			switch (RulesObject.Type)
 			{
@@ -2469,7 +2472,8 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableInlining: RulesObject.bEnableInlining
+							InEnableInlining: RulesObject.bEnableInlining,
+							bInBuildSourceFiles: bBuildSourceFiles
 						);
 
 				case ModuleRules.ModuleType.CPlusPlusCLR:
@@ -2506,7 +2510,8 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableInlining: RulesObject.bEnableInlining
+							InEnableInlining: RulesObject.bEnableInlining,
+							bInBuildSourceFiles : bBuildSourceFiles
 						);
 
 				case ModuleRules.ModuleType.External:
