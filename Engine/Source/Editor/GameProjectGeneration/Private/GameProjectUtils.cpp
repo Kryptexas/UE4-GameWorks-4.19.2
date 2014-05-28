@@ -1591,15 +1591,18 @@ bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile,
 	for(int32 LastSpace; NewDirectoryName.FindLastChar(' ', LastSpace); )
 	{
 		const TCHAR *End = *NewDirectoryName + LastSpace + 1;
-		if(*End != '4' || *(End + 1) != '.' || !FChar::IsDigit(*(End + 2)))
+		if(End[0] != '4' || End[1] != '.' || !FChar::IsDigit(End[2]))
 		{
 			break;
 		}
-		End += 2;
+
+		End += 3;
+
 		while(FChar::IsDigit(*End))
 		{
 			End++;
 		}
+
 		if(*End != 0)
 		{
 			break;
