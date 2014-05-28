@@ -127,8 +127,8 @@ public:
 			// Trim whitespace at the beginning.
 			Entry = Entry.Trim();
 			// Remove brackets.
-			Entry = Entry.Replace( TEXT("("), TEXT("") );
-			Entry = Entry.Replace( TEXT(")"), TEXT("") );
+			Entry.RemoveFromStart(TEXT("("));
+			Entry.RemoveFromEnd(TEXT(")"));
 
 			FString	NodeType;
 			if( FParse::Value( *Entry, TEXT("Type="), NodeType ) )
