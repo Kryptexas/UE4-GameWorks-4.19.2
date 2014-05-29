@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
-
+#include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 
 /** 
