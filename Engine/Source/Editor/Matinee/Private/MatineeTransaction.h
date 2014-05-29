@@ -14,7 +14,7 @@ public:
 
 	// Begin FTransaction Interface
 	virtual void SaveObject( UObject* Object ) OVERRIDE;
-	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) OVERRIDE;
+	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) OVERRIDE;
 	// End FTransaction Interface
 };
 

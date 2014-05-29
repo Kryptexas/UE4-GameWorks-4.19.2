@@ -19,6 +19,7 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check((SIZE_T)Array>=(SIZE_T)Object+sizeof(UObject));
 		check((SIZE_T)Array+sizeof(FScriptArray)<=(SIZE_T)Object+Object->GetClass()->GetPropertiesSize());
 		check(ElementSize!=0);
+		check(DefaultConstructor!=NULL);
 		check(Serializer!=NULL);
 		check(Index>=0);
 		check(Count>=0);
@@ -40,8 +41,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 			// "Undo/Redo Modify" or "Saving remove order" or "Undoing remove order" or "Redoing add order".
 			if( InOper==-1 && Ar.IsLoading() )
 			{
-				Array->Insert( Index, Count, ElementSize );
-				FMemory::Memzero( (uint8*)Array->GetData() + Index*ElementSize, Count*ElementSize );
+				Array->InsertZeroed( Index, Count, ElementSize );
+				for( int32 i=Index; i<Index+Count; i++ )
+				{
+					DefaultConstructor( (uint8*)Array->GetData() + i*ElementSize );
+				}
 			}
 
 			// Serialize changed items.
@@ -57,6 +61,7 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		//UE_LOG(LogEditorTransaction, Log,  TEXT("Object %s"), *Object->GetFullName());
 		check(Index==0);
 		check(ElementSize==0);
+		check(DefaultConstructor==NULL);
 		check(Serializer==NULL);
 		Object->Serialize( Ar );
 	}
@@ -157,7 +162,7 @@ void FTransaction::SaveObject( UObject* Object )
 	{
 		ObjectMap.Add(Object,1);
 		// Save the object.
-		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL );
+		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL, NULL );
 	}
 	else
 	{
@@ -165,11 +170,12 @@ void FTransaction::SaveObject( UObject* Object )
 	}
 }
 
-void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor )
+void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor )
 {
 	check(Object);
 	check(Array);
 	check(ElementSize);
+	check(DefaultConstructor);
 	check(Serializer);
 	check(Object->IsValidLowLevel());
 	check((SIZE_T)Array>=(SIZE_T)Object);
@@ -182,7 +188,7 @@ void FTransaction::SaveArray( UObject* Object, FScriptArray* Array, int32 Index,
 	if( Object->HasAnyFlags(RF_Transactional) && (Object->GetOutermost()->PackageFlags&PKG_PlayInEditor) == 0 )
 	{
 		// Save the array.
-		new( Records )FObjectRecord( this, Object, Array, Index, Count, Oper, ElementSize, Serializer, Destructor );
+		new( Records )FObjectRecord( this, Object, Array, Index, Count, Oper, ElementSize, DefaultConstructor, Serializer, Destructor );
 	}
 }
 

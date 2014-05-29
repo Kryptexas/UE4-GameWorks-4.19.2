@@ -84,6 +84,8 @@ protected:
 		int32				Oper;
 		/** Array: Size of each item in the array */
 		int32				ElementSize;
+		/** Array: DefaultConstructor for each item in the array */
+		STRUCT_DC			DefaultConstructor;
 		/** Array: Serializer to use for each item in the array */
 		STRUCT_AR			Serializer;
 		/** Array: Destructor for each item in the array */
@@ -96,17 +98,18 @@ protected:
 		// Constructors.
 		FObjectRecord()
 		{}
-		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor )
-			:	Object		( InObject )
-			,	Array		( InArray )
-			,	Index		( InIndex )
-			,	Count		( InCount )
-			,	Oper		( InOper )
-			,	ElementSize	( InElementSize )
-			,	Serializer	( InSerializer )
-			,	Destructor	( InDestructor )
-			,	bRestored	( false )
-			,	bWantsBinarySerialization ( true )
+		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_DC InDefaultConstructor, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor )
+			:	Object						( InObject )
+			,	Array						( InArray )
+			,	Index						( InIndex )
+			,	Count						( InCount )
+			,	Oper						( InOper )
+			,	ElementSize					( InElementSize )
+			,	DefaultConstructor			( InDefaultConstructor )
+			,	Serializer					( InSerializer )
+			,	Destructor					( InDestructor )
+			,	bRestored					( false )
+			,	bWantsBinarySerialization	( true )
 		{
 			// Blueprint compile-in-place can alter class layout so use tagged serialization for objects relying on a UBlueprint's Class
 			if (UBlueprintGeneratedClass* Class = Cast<UBlueprintGeneratedClass>(InObject->GetClass()))
@@ -301,7 +304,7 @@ public:
 
 	// FTransactionBase interface.
 	virtual void SaveObject( UObject* Object );
-	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor );
+	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor );
 	virtual void SetPrimaryObject(UObject* InObject);
 
 	/**

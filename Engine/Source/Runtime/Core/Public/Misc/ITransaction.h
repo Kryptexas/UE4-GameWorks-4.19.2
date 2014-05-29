@@ -7,8 +7,9 @@
 #pragma once
 
 // Class for handling undo/redo transactions among objects.
-typedef void( *STRUCT_AR )( class FArchive& Ar, void* TPtr );
-typedef void( *STRUCT_DTOR )( void* TPtr );
+typedef void( *STRUCT_DC )( void* TPtr );						// default construct
+typedef void( *STRUCT_AR )( class FArchive& Ar, void* TPtr );	// serialize
+typedef void( *STRUCT_DTOR )( void* TPtr );						// destruct
 
 /**
  * Interface for transactions.
@@ -34,7 +35,7 @@ public:
 	 * @param Serializer -
 	 * @param Destructor -
 	 */
-	virtual void SaveArray( UObject* Object, class FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) = 0;
+	virtual void SaveArray( UObject* Object, class FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) = 0;
 
 	/**
 	 * Saves an UObject to the transaction.

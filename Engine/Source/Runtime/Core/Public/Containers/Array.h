@@ -2417,7 +2417,7 @@ public:
 		const int32 Index = Super::AddUninitialized( Count );
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		return Index;
 	}
@@ -2426,14 +2426,14 @@ public:
 		Super::InsertUninitialized( Index, Count );
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
 	void RemoveAt( int32 Index, int32 Count=1 )
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, -1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, -1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		Super::RemoveAt( Index, Count );
 	}
@@ -2441,7 +2441,7 @@ public:
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->ArrayNum, -1, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->ArrayNum, -1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 		Super::Empty( Slack );
 	}
@@ -2500,13 +2500,13 @@ public:
 	void ModifyItem( int32 Index )
 	{
 		if( GUndo )
-			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 	}
 	void ModifyAllItems()
 	{
 		if( GUndo )
 		{
-			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->Num(), 0, sizeof(T), SerializeItem, DestructItem );
+			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->Num(), 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
 	friend FArchive& operator<<( FArchive& Ar, TTransArray& A )
@@ -2516,6 +2516,10 @@ public:
 		return Ar;
 	}
 protected:
+	static void DefaultConstructItem( void* TPtr )
+	{
+		new (TPtr) T;
+	}
 	static void SerializeItem( FArchive& Ar, void* TPtr )
 	{
 		Ar << *(T*)TPtr;
