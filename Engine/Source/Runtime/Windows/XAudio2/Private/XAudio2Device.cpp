@@ -268,9 +268,11 @@ bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, int32 ErrorCode )
 		case XAUDIO2_E_DEVICE_INVALIDATED:
 			UE_LOG(LogAudio, Warning, TEXT( "%s error: Device Invalidated" ), Function );
 			break;
-		};
 
-		UE_LOG(LogAudio, Warning, TEXT( "%s error: Unhandled error code %d" ), Function, ErrorCode );
+		default:
+			UE_LOG(LogAudio, Warning, TEXT( "%s error: Unhandled error code %d" ), Function, ErrorCode );
+			break;
+		};
 
 		return( false );
 	}
