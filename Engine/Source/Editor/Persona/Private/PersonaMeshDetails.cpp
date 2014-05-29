@@ -398,7 +398,7 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 		[
 			SNew( SButton )
 			.Text( LOCTEXT("ReimportButtonLabel", "Reimport") )
-			.OnClicked( this, &FPersonaMeshDetails::OnReimportApexFileClicked, ElementIndex )
+			.OnClicked(this, &FPersonaMeshDetails::OnReimportApexFileClicked, ElementIndex, DetailLayout)
 			.IsFocusable( false )
 			.ContentPadding(0)
 			.ForegroundColor( FSlateColor::UseForeground() )
@@ -454,6 +454,27 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 	[
 		MakeApexDetailsWidget(ElementIndex)
 	];	
+	
+	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
+	FClothingAssetData& AssetData = SkelMesh->ClothingAssets[ElementIndex];
+
+	// if properties are not changed by a user through UE4 editor, loads original properties from the asset
+	if (!AssetData.bClothPropertiesChanged)
+	{
+		ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(AssetData.ApexClothingAsset->GetAsset(), AssetData.PhysicsProperties);
+	}
+
+	// cloth physics properties
+	TSharedRef<IPropertyHandle> ClothPhysicsProperties = StructProperty->GetChildHandle(FName("PhysicsProperties")).ToSharedRef();
+	uint32 NumChildren;
+	ClothPhysicsProperties->GetNumChildren(NumChildren);
+	FSimpleDelegate UpdatePhysicsPropertyDelegate = FSimpleDelegate::CreateSP(this, &FPersonaMeshDetails::UpdateClothPhysicsProperties, ElementIndex);
+	for (uint32 ChildIdx = 0; ChildIdx < NumChildren; ChildIdx++)
+	{
+		ClothPhysicsProperties->GetChildHandle(ChildIdx)->SetOnPropertyValueChanged(UpdatePhysicsPropertyDelegate);
+	}
+
+	ChildrenBuilder.AddChildProperty(ClothPhysicsProperties);
 }
 
 TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 AssetIndex) const
@@ -694,7 +715,7 @@ EVisibility FPersonaMeshDetails::IsClothingLODCheckBoxVisible(int32 MaterialInde
 	return NumLODsHasCorrespondSubmesh > 1 ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex)
+FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout)
 {
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 
@@ -702,11 +723,43 @@ FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex)
 
 	FString FileName(SkelMesh->ClothingAssets[AssetIndex].ApexFileName);
 
+	bool bNeedToLeaveProperties = false;
+	FClothPhysicsProperties CurClothPhysicsProperties;
+
+	// if this asset's cloth properties were changed in UE4 editor, then shows a warning dialog
+	if (SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged)
+	{
+		const FText Text = LOCTEXT("Warning_ClothPropertiesChanged", "This asset's physics properties have been modified inside UE4. \nWould you like to reapply the modified property values after reimporting?");
+		EAppReturnType::Type Ret = FMessageDialog::Open(EAppMsgType::YesNoCancel, Text);
+		if (EAppReturnType::Yes == Ret)
+		{
+			bNeedToLeaveProperties = true;
+			ApexClothingUtils::GetPhysicsPropertiesFromApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset->GetAsset(), CurClothPhysicsProperties);
+		}
+		else if (EAppReturnType::Cancel == Ret)
+		{
+			return FReply::Handled();
+		}
+	}
 	ApexClothingUtils::EClothUtilRetType RetType = ApexClothingUtils::ImportApexAssetFromApexFile(FileName, SkelMesh, AssetIndex);
 	switch(RetType)
 	{
 	case ApexClothingUtils::CURT_Ok:
 		UpdateComboBoxStrings();
+		if (bNeedToLeaveProperties)
+		{
+			// overwrites changed values instead of original values
+			SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged = true;
+			ApexClothingUtils::SetPhysicsPropertiesToApexAsset(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset->GetAsset(), CurClothPhysicsProperties);
+		}
+		else
+		{
+			// will lose all changed values through UE4 editor
+			SkelMesh->ClothingAssets[AssetIndex].bClothPropertiesChanged = false;
+		}
+
+		DetailLayout->ForceRefreshDetails();
+
 		break;
 	case ApexClothingUtils::CURT_Fail:
 		// Failed to create or import
@@ -1078,6 +1131,16 @@ void FPersonaMeshDetails::CheckLODMaterialMapChanges()
 		OldLODInfo = SkelMesh->LODInfo;
 	}
 }
+
+void FPersonaMeshDetails::UpdateClothPhysicsProperties(int32 AssetIndex)
+{
+	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
+	FClothingAssetData& Asset = SkelMesh->ClothingAssets[AssetIndex];
+
+	ApexClothingUtils::SetPhysicsPropertiesToApexAsset(Asset.ApexClothingAsset->GetAsset(), Asset.PhysicsProperties);
+	Asset.bClothPropertiesChanged = true;
+}
+
 #endif// #if WITH_APEX_CLOTHING
 
 

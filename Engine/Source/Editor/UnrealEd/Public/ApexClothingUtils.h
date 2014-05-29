@@ -88,6 +88,9 @@ namespace ApexClothingUtils
 
 	UNREALED_API NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
 
+	// if don't specify MaterialIndex, default material index will be used 
+	UNREALED_API void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
+	UNREALED_API void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
 #endif // #if WITH_APEX_CLOTHING
 } // namespace ApexClothingUtils
 

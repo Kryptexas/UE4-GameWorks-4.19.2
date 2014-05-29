@@ -346,6 +346,50 @@ struct FClothBonePlane
 	FPlane PlaneData;
 };
 
+/**
+ * now exposed a part of properties based on 3DS Max plug-in
+ * property names are also changed into 3DS Max plug-in's one
+ */
+USTRUCT()
+struct FClothPhysicsProperties
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Bending stiffness of the cloth in the range [0, 1]. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float BendResistance;
+
+	// Shearing stiffness of the cloth in the range [0, 1]. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float ShearResistance;
+
+	// Make cloth simulation less stretchy. A value smaller than 1 will turn it off. 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "4.0"))
+	float StretchLimit;
+
+	// Friction coefficient in the range[0, 1]
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Friction;
+	// Spring damping of the cloth in the range[0, 1]
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Damping;
+
+	// Drag coefficient n the range [0, 1] 
+	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Drag;
+
+	// Amount of gravity that is applied to the cloth. 
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float GravityScale;
+	// Amount of inertia that is kept when using local space simulation. Internal name is inertia scale
+	UPROPERTY(EditAnywhere, Category = Scale, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float InertiaBlend;
+
+	// Minimal amount of distance particles will keep of each other.
+	UPROPERTY(EditAnywhere, Category = SelfCollision, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "5.0"))
+	float SelfCollisionThickness;
+};
+
 USTRUCT()
 struct FClothingAssetData
 {
@@ -357,6 +401,13 @@ struct FClothingAssetData
 
 	UPROPERTY(EditAnywhere, Category=ClothingAssetData)
 	FString	ApexFileName;
+
+	/** the flag whether cloth physics properties are changed from UE4 editor or not */
+	UPROPERTY(EditAnywhere, Category = ClothingAssetData)
+	bool bClothPropertiesChanged;
+
+	UPROPERTY(EditAnywhere, Transient, Category = ClothingAssetData)
+	FClothPhysicsProperties PhysicsProperties;
 
 #if WITH_APEX_CLOTHING
 	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;

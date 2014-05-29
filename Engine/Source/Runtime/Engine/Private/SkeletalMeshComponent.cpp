@@ -205,11 +205,6 @@ void USkeletalMeshComponent::CreateRenderState_Concurrent()
 	// Update bHasValidBodies flag
 	UpdateHasValidBodies();
 
-#if WITH_APEX_CLOTHING
-	//clothing actors will be re-created in TickClothing
-	ReleaseAllClothingResources();
-#endif// #if WITH_APEX_CLOTHING
-
 	Super::CreateRenderState_Concurrent();
 }
 

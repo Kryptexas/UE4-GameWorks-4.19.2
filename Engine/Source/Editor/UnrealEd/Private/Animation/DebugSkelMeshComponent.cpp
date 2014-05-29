@@ -610,4 +610,11 @@ int32 UDebugSkelMeshComponent::FindCurrentSectionDisplayMode()
 	return DisplayMode;
 }
 
+void UDebugSkelMeshComponent::CheckClothTeleport(float DeltaTime)
+{
+	// do nothing to avoid clothing reset while modifying properties
+	// modifying values can cause frame delay and clothes will be reset by a large delta time (low fps)
+	// doesn't need cloth teleport while previewing
+}
+
 #endif // #if WITH_APEX_CLOTHING

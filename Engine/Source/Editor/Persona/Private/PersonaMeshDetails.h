@@ -158,7 +158,7 @@ private:
 	FReply OnOpenClothingFileClicked(IDetailLayoutBuilder* DetailLayout);
 
 	/* Reimports a clothing asset */ 
-	FReply OnReimportApexFileClicked(int32 AssetIndex);
+	FReply OnReimportApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
 
 	/* Removes a clothing asset */ 
 	FReply OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
@@ -171,6 +171,8 @@ private:
 	/* if LODMaterialMap is changed, then re-map clothing sections by changed info */
 	void CheckLODMaterialMapChanges();
 
+	/* if physics properties are changed, then save to the clothing asset */
+	void UpdateClothPhysicsProperties(int32 AssetIndex);
 #endif // #if WITH_APEX_CLOTHING
 
 };
