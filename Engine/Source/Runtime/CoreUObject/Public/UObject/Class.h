@@ -1093,11 +1093,14 @@ public:
 	}
 
 	uint8* GetStructMemory() { return SampleStructMemory; }
-	const uint8* GetStructMemory() const { return SampleStructMemory; }
-	const UScriptStruct* GetStruct() { return ScriptStruct.Get(); }
-	bool IsValid() { return ScriptStruct.IsValid() && SampleStructMemory; }
 
-	~FStructOnScope()
+	const uint8* GetStructMemory() const { return SampleStructMemory; }
+
+	const UScriptStruct* GetStruct() const { return ScriptStruct.Get(); }
+
+	bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
+
+	void Destroy()
 	{
 		if (ScriptStruct.IsValid() && SampleStructMemory)
 		{
@@ -1110,6 +1113,11 @@ public:
 			FMemory::Free(SampleStructMemory);
 			SampleStructMemory = NULL;
 		}
+	}
+
+	~FStructOnScope()
+	{
+		Destroy();
 	}
 };
 
