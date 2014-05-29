@@ -66,6 +66,9 @@ namespace Tools.DotNETCommon.LaunchProcess
 			{
 				LaunchedProcess.CancelOutputRead();
 				LaunchedProcess.CancelErrorRead();
+
+				// Protect against multiple calls
+				CaptureMessage = null;
 			}
 
 			LaunchedProcess.EnableRaisingEvents = false;
