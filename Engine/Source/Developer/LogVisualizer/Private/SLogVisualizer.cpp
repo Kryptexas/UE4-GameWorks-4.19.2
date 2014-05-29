@@ -7,6 +7,17 @@
 #include "DesktopPlatformModule.h"
 #include "Json.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+
+#if WITH_EDITOR
+#	include "Editor/UnrealEd/Public/EditorComponents.h"
+#	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
+#	include "Editor/UnrealEd/Public/TexAlignTools.h"
+#	include "Editor/UnrealEd/Public/TickableEditorObject.h"
+#	include "UnrealEdClasses.h"
+#	include "Editor/UnrealEd/Public/Editor.h"
+#	include "Editor/UnrealEd/Public/EditorViewportClient.h"
+#endif
+
 #include "SFilterList.h"
 
 #define LOCTEXT_NAMESPACE "SLogVisualizer"
@@ -225,6 +236,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					[
 						SAssignNew(LogsListWidget, SListView< TSharedPtr<FLogsListItem> >)
 						.ItemHeight(20)
+						// Called when the user double-clicks with LMB on an item in the list
+						.OnMouseButtonDoubleClick(this, &SLogVisualizer::OnListDoubleClick)
 						.ListItemsSource(&LogsList)
 						.SelectionMode(ESelectionMode::Multi)
 						.OnGenerateRow(this, &SLogVisualizer::LogsListGenerateRow)
@@ -398,6 +411,57 @@ SLogVisualizer::~SLogVisualizer()
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
 }
 
+void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
+{
+#if WITH_EDITOR
+	FVector Orgin, Extent;
+
+	bool bFoundActor = false;
+	if (LogVisualizer->Logs.IsValidIndex(LogListItem->LogIndex))
+	{
+		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
+		for (FActorIterator It(GetWorld()); It; ++It)
+		{
+			AActor* Actor = Cast<AActor>(*It);
+			if (Actor->GetFName() == Log->Name)
+			{
+				Actor->GetActorBounds(false, Orgin, Extent);
+				bFoundActor = true;
+				break;
+			}
+		}
+	}
+
+	if (!bFoundActor)
+	{
+		Extent = FVector(10, 10, 10);
+	}
+
+	//if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	if (LogVisualizer->Logs.IsValidIndex(LogListItem->LogIndex))
+	{
+		TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[LogListItem->LogIndex];
+		//TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		if (Log.IsValid() && Log->Entries.IsValidIndex(LogEntryIndex))
+		{
+			Orgin = Log->Entries[LogEntryIndex]->Location;
+		}
+	}
+
+
+	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor && EEngine != NULL)
+	{
+		for (int32 i = 0; i < EEngine->AllViewportClients.Num(); i++)
+		{
+			FEditorViewportClient* ViewportClient = EEngine->AllViewportClients[i];
+			//GEditor->MoveViewportCamerasToActor(SelectedActors, bActiveViewportOnly);
+			ViewportClient->FocusViewportOnBox(FBox::BuildAABB(Orgin, Extent));
+		}
+	}
+#endif
+}
+
 int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisLogEntry> >& InVisibleEntries)
 {
 	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
@@ -435,6 +499,15 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 					break;
 				}
 			}
+
+			for (int32 j = 0; j < Log->Entries[i]->ElementsToDraw.Num(); ++j)
+			{
+				if (Log->Entries[i]->ElementsToDraw[j].Category == NAME_None || FilterListPtr->IsFilterEnabled(Log->Entries[i]->ElementsToDraw[j].Category.ToString(), Log->Entries[i]->ElementsToDraw[j].Verbosity))
+				{
+					OutEntries.AddUnique(Log->Entries[i]);
+					break;
+				}
+			}
 		}
 
 		return;
@@ -448,10 +521,13 @@ void SLogVisualizer::OnLogCategoryFiltersChanged()
 {
 	RebuildFilteredList();
 
-	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	if (LogVisualizer && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
-		ShowEntry(Log->Entries[LogEntryIndex].Get());
+		if (Log.IsValid())
+		{
+			ShowEntry(Log->Entries[LogEntryIndex].Get());
+		}
 	}
 }
 
@@ -560,6 +636,11 @@ void SLogVisualizer::SelectionChanged(AActor* DebuggedActor, bool bIsBeingDebugg
 
 void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 {
+	if (!LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		return;
+	}
+
 	TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
 	check(Log.IsValid());
 
@@ -569,17 +650,29 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 	{
 		while (NewEntryIndex >= 0 && NewEntryIndex < Log->Entries.Num())
 		{
-			bool bShouldShow = true;
+			bool bShouldShow = false;
 			for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->LogLines.Num(); ++LineIndex)
 			{
 				if (FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->LogLines[LineIndex].Category.ToString(), Log->Entries[NewEntryIndex]->LogLines[LineIndex].Verbosity))
 				{
-					bShouldShow = false;
+					bShouldShow = true;
 					break;
 				}
 			}
 
 			if (!bShouldShow)
+			{
+				for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->ElementsToDraw.Num(); ++LineIndex)
+				{
+					if (Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Category == NAME_None || FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Category.ToString(), Log->Entries[NewEntryIndex]->ElementsToDraw[LineIndex].Verbosity))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
+			if (bShouldShow)
 			{
 				break;
 			}
@@ -621,6 +714,18 @@ void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
 			{
 				Index = UsedCategories.Add(Iter->Category.ToString());
 				FilterListPtr->AddFilter(Iter->Category.ToString(), GetColorForUsedCategory(Index));
+			}
+		}
+
+		for (auto Iter(Log->Entries[EntryIndex]->ElementsToDraw.CreateConstIterator()); Iter; Iter++)
+		{
+			const FString CategoryAsString = Iter->Category != NAME_None ? Iter->Category.ToString() : TEXT("ShapeElement");
+
+			int32 Index = UsedCategories.Find(CategoryAsString);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CategoryAsString);
+				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
 			}
 		}
 	}
@@ -816,6 +921,8 @@ FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index) const
 	case 5: return FLinearColor(FColorList::Magenta);
 	case 6: return FLinearColor(FColorList::BrightGold);
 	case 7: return FLinearColor(FColorList::NeonBlue);
+	case 8: return FLinearColor(FColorList::MediumSlateBlue);
+	case 9: return FLinearColor(FColorList::SpicyPink);
 	default:
 		return FLinearColor::White;
 	}
@@ -1142,6 +1249,11 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			
 			for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
 			{
+				if (FilterListPtr.IsValid() && !FilterListPtr->IsFilterEnabled(ElementToDraw->Category.ToString(), ElementToDraw->Verbosity))
+				{
+					continue;
+				}
+
 				const FColor Color = ElementToDraw->GetFColor();
 				Canvas->SetDrawColor(Color);
 
@@ -1502,12 +1614,20 @@ void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 
 			if (FJsonSerializer::Deserialize(Reader, Object))
 			{
-				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(LogVisualizerJson::TAG_LOGS);
+				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(VisualLogJson::TAG_LOGS);
 				for (int32 LogIndex = 0; LogIndex < JsonLogs.Num(); ++LogIndex)
 				{
-					TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
-					LogVisualizer->AddLoadedLog(NewLog);
+					TSharedPtr<FJsonObject> JsonLogObject = JsonLogs[LogIndex]->AsObject();
+					if (JsonLogObject.IsValid() != false)
+					{
+						if (JsonLogObject->HasTypedField<EJson::String>(VisualLogJson::TAG_NAME))
+						{
+							TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
+							LogVisualizer->AddLoadedLog(NewLog);
+						}
+					}
 				}
+				bIgnoreTrivialLogs = false;
 			}
 
 			FileAr->Close();
@@ -1547,7 +1667,7 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 	
 	if (EntriesArray.Num() > 0)
 	{
-		Object->SetArrayField(LogVisualizerJson::TAG_LOGS, EntriesArray);
+		Object->SetArrayField(VisualLogJson::TAG_LOGS, EntriesArray);
 
 		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*Filename);
 		if (FileAr != NULL)

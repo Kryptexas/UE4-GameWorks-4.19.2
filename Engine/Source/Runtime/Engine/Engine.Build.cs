@@ -64,7 +64,7 @@ public class Engine : ModuleRules
 				"SlateReflector",
 				"VectorVM",
 			}
-		);
+        );
 
         CircularlyReferencedDependentModules.Add("AIModule");
 

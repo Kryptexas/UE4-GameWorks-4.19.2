@@ -16,9 +16,11 @@
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 
-class FRecastQueryFilter : public dtQueryFilter, public INavigationQueryFilterInterface
+class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
 public:
+	virtual ~FRecastQueryFilter(){}
+
 	virtual void Reset() OVERRIDE;
 
 	virtual void SetAreaCost(uint8 AreaType, float Cost) OVERRIDE;
@@ -33,8 +35,7 @@ public:
 	virtual uint16 GetIncludeFlags() const OVERRIDE;
 	virtual void SetExcludeFlags(uint16 Flags) OVERRIDE;
 	virtual uint16 GetExcludeFlags() const OVERRIDE;
-
-	virtual class INavigationQueryFilterInterface* CreateCopy() const OVERRIDE { return new FRecastQueryFilter(*this); }
+	virtual INavigationQueryFilterInterface* CreateCopy() const OVERRIDE;
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 };

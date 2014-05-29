@@ -202,11 +202,11 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 
 		for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
 		{
-			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffeset;
+			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
 			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
 
 			// draw line to next loc
-			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffeset;
+			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
 			DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
 				, -1.f, 0
 				, NavigationDebugDrawing::PathLineThickness);
@@ -215,7 +215,7 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 		// draw last vert
 		if (NumPathVerts > 0)
 		{
-			DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffeset, FVector(15.f), Grey, false);
+			DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
 		}
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)

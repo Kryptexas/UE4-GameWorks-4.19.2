@@ -79,6 +79,8 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	FPaintGeometry ForegroundPaintGeometry = AllottedGeometry.ToInflatedPaintGeometry( -BorderPadding );
 	const FSlateRect ForegroundClippingRect = ForegroundPaintGeometry.ToSlateRect().IntersectionWith( MyClippingRect );
 
+	const float LogBarWidth = AllottedGeometry.Size.X;
+
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		RetLayerId++,
@@ -143,9 +145,9 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	// draw "current time"
 	{
 		const float RelativePos = Offset + (DisplayedTime.Execute() - StartTime) / TotalTime * Zoom;
-		const float PosX = (float)(AllottedGeometry.Size.X * RelativePos);
+		const float PosX = (float)(LogBarWidth * RelativePos);
 		const float ClampedSize = FMath::Clamp(TimeUnit / TotalTime * Zoom, 0.0f, 1.0f );
-		float CurrentTimeMarkWidth = (float)FMath::Max(AllottedGeometry.Size.X * ClampedSize
+		float CurrentTimeMarkWidth = (float)FMath::Max(LogBarWidth * ClampedSize
 			, ClampedSize > 0.0f ? SubPixelMinSize : 0.0f);
 		
 		// Draw Event bar
@@ -196,7 +198,7 @@ void SLogBar::Tick( const FGeometry& AllottedGeometry, const double InCurrentTim
 	{
 		if( AllottedGeometry != this->LastGeometry )
 		{
-			OnGeometryChanged.ExecuteIfBound( AllottedGeometry );
+			OnGeometryChanged.ExecuteIfBound(AllottedGeometry);
 			LastGeometry = AllottedGeometry;
 		}
 	}
@@ -214,26 +216,32 @@ void SLogBar::SelectEntry(const FGeometry& MyGeometry, const float ClickX)
 	// Go through all events and check if at least one has been clicked
 	int32 BestIndex = INDEX_NONE;
 	int32 EntryIndex = INDEX_NONE;
-	for( EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex )
+	if (Entries.Num() == 1)
 	{
-		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
-		float StartX, EndX;
-		if( CalculateEntryGeometry( Entry.Get(), MyGeometry, StartX, EndX ) )
+		BestIndex = 0;
+	}
+	else
+	{
+		for (EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
 		{
-			const int32 Distance = FMath::Abs(ClickX - StartX);
-			if (Distance < BestDistance)
+			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			float StartX, EndX;
+			if (CalculateEntryGeometry(Entry.Get(), MyGeometry, StartX, EndX))
 			{
-				BestDistance = Distance;
-				BestIndex = EntryIndex;
+				const int32 Distance = FMath::Abs(ClickX - StartX);
+				if (Distance < BestDistance)
+				{
+					BestDistance = Distance;
+					BestIndex = EntryIndex;
+				}
+				else if (Distance > LastDistance)
+				{
+					break;
+				}
+				LastDistance = Distance;
 			}
-			else if (Distance > LastDistance)
-			{
-				break;
-			}
-			LastDistance = Distance;
 		}
 	}
-
 	SelectEntryAtIndex(BestIndex);
 }
 

@@ -519,8 +519,8 @@ bool dtCrowd::updateAgentFilter(const int idx, const dtQueryFilter* filter)
 	// try to match with existing
 	for (int i = 0; i < DT_CROWD_MAX_FILTERS; i++)
 	{
-		int ret = memcmp(filter, &m_filters[i], sizeof(dtQueryFilter));
-		if (ret == 0)
+		const bool bMatching = filter->equals(m_filters[i]);
+		if (bMatching)
 		{
 			m_agents[idx].params.filter = i;
 			return true;
@@ -541,7 +541,7 @@ bool dtCrowd::updateAgentFilter(const int idx, const dtQueryFilter* filter)
 	{
 		if (used[i] == 0)
 		{
-			memcpy(&m_filters[i], filter, sizeof(dtQueryFilter));
+			m_filters[i].copyFrom(filter);
 			m_agents[idx].params.filter = i;
 			return true;
 		}

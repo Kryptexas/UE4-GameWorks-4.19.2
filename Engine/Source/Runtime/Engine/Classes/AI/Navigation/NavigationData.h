@@ -20,6 +20,8 @@ struct FSupportedAreaData
 
 	UPROPERTY(transient)
 	const UClass* AreaClass;
+
+	FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass = NULL, int32 InAreaID = INDEX_NONE);
 };
 
 /** 

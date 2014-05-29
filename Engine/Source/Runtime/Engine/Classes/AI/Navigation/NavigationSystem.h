@@ -29,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, class ANavigat
 namespace NavigationDebugDrawing
 {
 	extern const ENGINE_API float PathLineThickness;
-	extern const ENGINE_API FVector PathOffeset;
+	extern const ENGINE_API FVector PathOffset;
 	extern const ENGINE_API FVector PathNodeBoxExtent;
 }
 

@@ -52,25 +52,35 @@ struct NAVMESH_API dtQuerySpecialLinkFilter
 	virtual bool isLinkAllowed(const int UserId) const { return true; }
 };
 
-/// Defines polygon filtering and traversal costs for navigation mesh query operations.
-/// @ingroup detour
-class NAVMESH_API dtQueryFilter
+// [UE4: moved all filter variables to struct, DO NOT mess with virtual functions here!]
+struct dtQueryFilterData
 {
 	float m_areaCost[DT_MAX_AREAS];		///< Cost per area type. (Used by default implementation.)
-//@UE4 BEGIN
 #if WITH_FIXED_AREA_ENTERING_COST
 	float m_areaFixedCost[DT_MAX_AREAS];///< Fixed cost for entering an area type (Used by default implementation.)
 #endif // WITH_FIXED_AREA_ENTERING_COST
 	float heuristicScale;				///< Search heuristic scale.
-//@UE4 END
+
 	unsigned short m_includeFlags;		///< Flags for polygons that can be visited. (Used by default implementation.)
 	unsigned short m_excludeFlags;		///< Flags for polygons that should not be visted. (Used by default implementation.)
-//@UE4 BEGIN
+
 	bool m_isBacktracking;
-//@UE4 END
+
+	dtQueryFilterData();
+	
+	bool equals(const dtQueryFilterData* other) const;
+	void copyFrom(const dtQueryFilterData* source);
+};
+
+/// Defines polygon filtering and traversal costs for navigation mesh query operations.
+/// @ingroup detour
+class NAVMESH_API dtQueryFilter
+{
+protected:
+	dtQueryFilterData data;
 
 public:
-	dtQueryFilter();
+	virtual ~dtQueryFilter() {}
 	
 	/// Returns true if the polygon can be visited.  (I.e. Is traversable.)
 	///  @param[in]		ref		The reference id of the polygon test.
@@ -87,10 +97,10 @@ public:
 			const dtMeshTile* /*tile*/,
 			const dtPoly* poly) const
 	{
-		return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0
-			&& (m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST) 
+		return (poly->flags & data.m_includeFlags) != 0 && (poly->flags & data.m_excludeFlags) == 0
+			&& (data.m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
 #if WITH_FIXED_AREA_ENTERING_COST
-			&& (m_areaFixedCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
+			&& (data.m_areaFixedCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
 #endif // WITH_FIXED_AREA_ENTERING_COST
 			;
 	}
@@ -128,74 +138,82 @@ public:
 	/// Returns the traversal cost of the area.
 	///  @param[in]		i		The id of the area.
 	/// @returns The traversal cost of the area.
-	inline float getAreaCost(const int i) const { return m_areaCost[i]; }
+	inline float getAreaCost(const int i) const { return data.m_areaCost[i]; }
 
 	/// Sets the traversal cost of the area.
 	///  @param[in]		i		The id of the area.
 	///  @param[in]		cost	The new cost of traversing the area.
-	inline void setAreaCost(const int i, const float cost) { m_areaCost[i] = cost; } 
+	inline void setAreaCost(const int i, const float cost) { data.m_areaCost[i] = cost; }
 
 //@UE4 BEGIN
-	inline const float* getAllAreaCosts() const { return m_areaCost; }
+	inline const float* getAllAreaCosts() const { return data.m_areaCost; }
 	
 #if WITH_FIXED_AREA_ENTERING_COST
 	/// Returns the fixed cost for entering an area.
 	///  @param[in]		i		The id of the area.
 	///  @returns The fixed cost of the area.
-	inline float getAreaFixedCost(const int i) const { return m_areaFixedCost[i]; }
+	inline float getAreaFixedCost(const int i) const { return data.m_areaFixedCost[i]; }
 
 	/// Sets the fixed cost for entering an area.
 	///  @param[in]		i		The id of the area.
 	///  @param[in]		cost	The new fixed cost of entering the area polygon.
-	inline void setAreaFixedCost(const int i, const float cost) { m_areaFixedCost[i] = cost; } 
+	inline void setAreaFixedCost(const int i, const float cost) { data.m_areaFixedCost[i] = cost; }
 
-	inline const float* getAllFixedAreaCosts() const { return m_areaFixedCost; }
+	inline const float* getAllFixedAreaCosts() const { return data.m_areaFixedCost; }
 #endif // WITH_FIXED_AREA_ENTERING_COST
 
 	/// Retrieves euclidean distance heuristic scale
 	///  @returns heuristic scale
-	inline float getHeuristicScale() const { return heuristicScale; }
+	inline float getHeuristicScale() const { return data.heuristicScale; }
 
 	/// Retrieves euclidean distance heuristic scale
 	///  @returns heuristic scale
-	inline void setHeuristicScale(const float newScale) { heuristicScale = newScale; }
+	inline void setHeuristicScale(const float newScale) { data.heuristicScale = newScale; }
 
 	/// Filters link in regards to its side. Used for backtracking.
 	///  @returns should link with this side be accepted
 	inline bool isValidLinkSide(const unsigned char side) const 
 	{ 
 		return (side & DT_LINK_FLAG_OFFMESH_CON) == 0 || (side & DT_LINK_FLAG_OFFMESH_CON_BIDIR) != 0
-			|| (m_isBacktracking ? (side & DT_LINK_FLAG_OFFMESH_CON_BACKTRACKER) != 0
+			|| (data.m_isBacktracking ? (side & DT_LINK_FLAG_OFFMESH_CON_BACKTRACKER) != 0
 				: (side & DT_LINK_FLAG_OFFMESH_CON_BACKTRACKER) == 0);
 	}
 
 	/// Sets up filter for backtracking
-	inline void setIsBacktracking(const bool isBacktracking) { m_isBacktracking = isBacktracking; }
+	inline void setIsBacktracking(const bool isBacktracking) { data.m_isBacktracking = isBacktracking; }
 
 	/// Retrieves information whether this filter is set up for backtracking
 	///  @returns is backtracking
-	inline bool getIsBacktracking() const { return m_isBacktracking; }
+	inline bool getIsBacktracking() const { return data.m_isBacktracking; }
 //@UE4 END
 
 	/// Returns the include flags for the filter.
 	/// Any polygons that include one or more of these flags will be
 	/// included in the operation.
-	inline unsigned short getIncludeFlags() const { return m_includeFlags; }
+	inline unsigned short getIncludeFlags() const { return data.m_includeFlags; }
 
 	/// Sets the include flags for the filter.
 	/// @param[in]		flags	The new flags.
-	inline void setIncludeFlags(const unsigned short flags) { m_includeFlags = flags; }
+	inline void setIncludeFlags(const unsigned short flags) { data.m_includeFlags = flags; }
 
 	/// Returns the exclude flags for the filter.
 	/// Any polygons that include one ore more of these flags will be
 	/// excluded from the operation.
-	inline unsigned short getExcludeFlags() const { return m_excludeFlags; }
+	inline unsigned short getExcludeFlags() const { return data.m_excludeFlags; }
 
 	/// Sets the exclude flags for the filter.
 	/// @param[in]		flags		The new flags.
-	inline void setExcludeFlags(const unsigned short flags) { m_excludeFlags = flags; }	
+	inline void setExcludeFlags(const unsigned short flags) { data.m_excludeFlags = flags; }
 
 	///@}
+
+	/// Check if two filters have the same data values
+	inline bool equals(const dtQueryFilter* other) const { return data.equals(&(other->data)); }
+	inline bool equals(const dtQueryFilter& other) const { return data.equals(&(other.data)); }
+
+	/// Copy data values from source filter
+	inline void copyFrom(const dtQueryFilter* other) { data.copyFrom(&(other->data)); }
+	inline void copyFrom(const dtQueryFilter& other) { data.copyFrom(&(other.data)); }
 
 };
 

@@ -10,26 +10,6 @@ DEFINE_LOG_CATEGORY(LogVisual);
 
 DEFINE_STAT(STAT_VisualLog);
 
-namespace VisualLogJson
-{
-	static const FString TAG_NAME = TEXT("Name");
-	static const FString TAG_FULLNAME = TEXT("FullName");
-	static const FString TAG_ENTRIES = TEXT("Entries");
-	static const FString TAG_TIMESTAMP = TEXT("TimeStamp");
-	static const FString TAG_LOCATION = TEXT("Location");
-	static const FString TAG_STATUS = TEXT("Status");
-	static const FString TAG_STATUSLINES = TEXT("StatusLines");
-	static const FString TAG_CATEGORY = TEXT("Category");
-	static const FString TAG_LINE = TEXT("Line");
-	static const FString TAG_VERBOSITY = TEXT("Verb");
-	static const FString TAG_LOGLINES = TEXT("LogLines");
-	static const FString TAG_DESCRIPTION = TEXT("Description");
-	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
-	static const FString TAG_POINTS = TEXT("Points");
-	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
-	//static const FString TAG_ = TEXT("");
-}
-
 //----------------------------------------------------------------------//
 // FVisLogEntry
 //----------------------------------------------------------------------//
@@ -118,6 +98,8 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 				FElementToDraw& Element = ElementsToDraw[ElementsToDraw.Add(FElementToDraw())];
 
 				Element.Description = JsonElementObject->GetStringField(VisualLogJson::TAG_DESCRIPTION);
+				Element.Category = FName(*(JsonElementObject->GetStringField(VisualLogJson::TAG_CATEGORY)));
+				Element.Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonElementObject->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
 
 				// Element->Type << 24 | Element->Color << 16 | Element->Thicknes;
 				int32 EncodedTypeColorSize = 0;
@@ -195,6 +177,9 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 		TSharedPtr<FJsonObject> JsonElementToDrawObject = MakeShareable(new FJsonObject);
 
 		JsonElementToDrawObject->SetStringField(VisualLogJson::TAG_DESCRIPTION, Element->Description);
+		JsonElementToDrawObject->SetStringField(VisualLogJson::TAG_CATEGORY, Element->Category.ToString());
+		JsonElementToDrawObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, Element->Verbosity);
+
 		const int32 EncodedTypeColorSize = Element->Type << 24 | Element->Color << 16 | Element->Thicknes;
 		JsonElementToDrawObject->SetStringField(VisualLogJson::TAG_TYPECOLORSIZE, FString::Printf(TEXT("%d"), EncodedTypeColorSize));
 
@@ -216,25 +201,25 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	return MakeShareable(new FJsonValueObject(JsonEntryObject));
 }
 
-void FVisLogEntry::AddElement(const TArray<FVector>& Points, const FColor& Color, const FString& Description, uint16 Thickness)
+void FVisLogEntry::AddElement(const TArray<FVector>& Points, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
 {
-	FElementToDraw Element(Description, Color, Thickness);
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
 	Element.Points = Points;
 	Element.Type = FElementToDraw::Path;
 	ElementsToDraw.Add(Element);
 }
 
-void FVisLogEntry::AddElement(const FVector& Point, const FColor& Color, const FString& Description, uint16 Thickness)
+void FVisLogEntry::AddElement(const FVector& Point, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
 {
-	FElementToDraw Element(Description, Color, Thickness);
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
 	Element.Points.Add(Point);
 	Element.Type = FElementToDraw::SinglePoint;
 	ElementsToDraw.Add(Element);
 }
 
-void FVisLogEntry::AddElement(const FVector& Start, const FVector& End, const FColor& Color, const FString& Description, uint16 Thickness)
+void FVisLogEntry::AddElement(const FVector& Start, const FVector& End, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
 {
-	FElementToDraw Element(Description, Color, Thickness);
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
 	Element.Points.Reserve(2);
 	Element.Points.Add(Start);
 	Element.Points.Add(End);
@@ -242,9 +227,9 @@ void FVisLogEntry::AddElement(const FVector& Start, const FVector& End, const FC
 	ElementsToDraw.Add(Element);
 }
 
-void FVisLogEntry::AddElement(const FBox& Box, const FColor& Color, const FString& Description, uint16 Thickness)
+void FVisLogEntry::AddElement(const FBox& Box, const FName& CategoryName, const FColor& Color, const FString& Description, uint16 Thickness)
 {
-	FElementToDraw Element(Description, Color, Thickness);
+	FElementToDraw Element(Description, Color, Thickness, CategoryName);
 	Element.Points.Reserve(2);
 	Element.Points.Add(Box.Min);
 	Element.Points.Add(Box.Max);
@@ -326,17 +311,15 @@ FVisualLog::~FVisualLog()
 
 void FVisualLog::DumpRecordedLogs()
 {
-	bool bJustCreated = false;
 	if (!FileAr)
 	{
 		TempFileName = FString::Printf(TEXT("VisualLog_TEMP_%s.vlog"), *FDateTime::Now().ToString());
 		const FString TempFullFilename = FString::Printf(TEXT("%s/logs/%s"), *FPaths::GameSavedDir(), *TempFileName);
 		FileAr = IFileManager::Get().CreateFileWriter(*TempFullFilename);
 
-		const FString HeadetStr = TEXT("{\"Logs\":[");
+		const FString HeadetStr = TEXT("{\"Logs\":[{}");
 		auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
 		FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
-		bJustCreated = true;
 	}
 
 	if (!FileAr)
@@ -369,12 +352,8 @@ void FVisualLog::DumpRecordedLogs()
 			}
 			JsonLogObject->SetArrayField(VisualLogJson::TAG_ENTRIES, JsonLogEntries);
 
-			if (!bJustCreated)
-			{
-				UCS2CHAR Char = UCS2CHAR(',');
-				FileAr->Serialize(&Char, sizeof(UCS2CHAR));
-			}
-			bJustCreated = false;
+			UCS2CHAR Char = UCS2CHAR(',');
+			FileAr->Serialize(&Char, sizeof(UCS2CHAR));
 
 			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
 			FJsonSerializer::Serialize(JsonLogObject.ToSharedRef(), Writer);

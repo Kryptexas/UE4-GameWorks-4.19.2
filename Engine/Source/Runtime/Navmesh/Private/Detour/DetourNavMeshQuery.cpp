@@ -65,22 +65,24 @@
 ///
 /// @see dtNavMeshQuery
 
-dtQueryFilter::dtQueryFilter() :
-	m_includeFlags(0xffff),
-	m_excludeFlags(0)
-//@UE4 BEGIN
-	, m_isBacktracking(0)
-//@UE4 END
+dtQueryFilterData::dtQueryFilterData() : heuristicScale(0.999f), m_includeFlags(0xffff), m_excludeFlags(0), m_isBacktracking(0)
 {
 	for (int i = 0; i < DT_MAX_AREAS; ++i)
 		m_areaCost[i] = 1.0f;
 
-//@UE4 BEGIN
 #if WITH_FIXED_AREA_ENTERING_COST
 	memset(&m_areaFixedCost, 0, sizeof(m_areaFixedCost));
 #endif // WITH_FIXED_AREA_ENTERING_COST
-	heuristicScale = 0.999f;
-//@UE4 END
+}
+
+bool dtQueryFilterData::equals(const dtQueryFilterData* other) const
+{
+	return memcmp(this, other, sizeof(dtQueryFilterData)) == 0;
+}
+
+void dtQueryFilterData::copyFrom(const dtQueryFilterData* source)
+{
+	memcpy((void*)this, source, sizeof(dtQueryFilterData));
 }
 
 #ifdef DT_VIRTUAL_QUERYFILTER
@@ -88,10 +90,10 @@ bool dtQueryFilter::passFilter(const dtPolyRef /*ref*/,
 							   const dtMeshTile* /*tile*/,
 							   const dtPoly* poly) const
 {
-	return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0
-		&& (m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST) 
+	return (poly->flags & data.m_includeFlags) != 0 && (poly->flags & data.m_excludeFlags) == 0
+		&& (data.m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
 #if WITH_FIXED_AREA_ENTERING_COST
-		&& (m_areaCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
+		&& (data.m_areaFixedCost[poly->getArea()] < DT_UNWALKABLE_POLY_COST)
 #endif // WITH_FIXED_AREA_ENTERING_COST
 		;
 }
@@ -104,12 +106,12 @@ float dtQueryFilter::getCost(const float* pa, const float* pb,
 //@UE4 BEGIN
 #if WITH_FIXED_AREA_ENTERING_COST
 	const float areaChangeCost = nextPoly != 0 && nextPoly->getArea() != curPoly->getArea() 
-		? m_areaFixedCost[nextPoly->getArea()] : 0.f;
+		? data.m_areaFixedCost[nextPoly->getArea()] : 0.f;
 	
-	return dtVdist(pa, pb) * m_areaCost[curPoly->getArea()] + areaChangeCost;
+	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()] + areaChangeCost;
 #else
 //@UE4 END
-	return dtVdist(pa, pb) * m_areaCost[curPoly->getArea()];
+	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()];
 //@UE4 BEGIN
 #endif // #if WITH_FIXED_AREA_ENTERING_COST
 //@UE4 END
@@ -127,12 +129,12 @@ inline float dtQueryFilter::getCost(const float* pa, const float* pb,
 //@UE4 BEGIN
 #if WITH_FIXED_AREA_ENTERING_COST
 	const float areaChangeCost = nextPoly != 0 && nextPoly->getArea() != curPoly->getArea() 
-		? m_areaFixedCost[nextPoly->getArea()] : 0.f;
+		? data.m_areaFixedCost[nextPoly->getArea()] : 0.f;
 
-	return dtVdist(pa, pb) * m_areaCost[curPoly->getArea()] + areaChangeCost;
+	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()] + areaChangeCost;
 #else
 //@UE4 END
-	return dtVdist(pa, pb) * m_areaCost[curPoly->getArea()];
+	return dtVdist(pa, pb) * data.m_areaCost[curPoly->getArea()];
 //@UE4 BEGIN
 #endif // #if WITH_FIXED_AREA_ENTERING_COST
 //@UE4 END

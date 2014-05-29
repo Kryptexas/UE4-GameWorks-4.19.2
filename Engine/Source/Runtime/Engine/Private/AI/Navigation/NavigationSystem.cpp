@@ -94,7 +94,7 @@ namespace FNavigationSystem
 namespace NavigationDebugDrawing
 {
 	const float PathLineThickness = 3.f;
-	const FVector PathOffeset(0,0,15);
+	const FVector PathOffset(0,0,15);
 	const FVector PathNodeBoxExtent(16.f);
 }
 

@@ -262,6 +262,10 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 		RecastNavMeshImpl = new FPImplRecastNavMesh(this);
 		DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
 		TickHelper.Owner = this;
+
+		// add default and null areas up front
+		SupportedAreas.Add(FSupportedAreaData(UNavArea_Null::StaticClass(), RECAST_NULL_AREA));
+		SupportedAreas.Add(FSupportedAreaData(UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA));
 	}
 }
 

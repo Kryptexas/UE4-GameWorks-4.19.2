@@ -54,11 +54,11 @@ void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor
 	for (int32 VertIdx = 0; VertIdx < NumPathVerts-1; ++VertIdx)
 	{
 		// draw box at vert
-		FVector const VertLoc = PathPoints[VertIdx].Location + NavigationDebugDrawing::PathOffeset;
+		FVector const VertLoc = PathPoints[VertIdx].Location + NavigationDebugDrawing::PathOffset;
 		DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, VertIdx < int32(NextPathPointIndex) ? Grey : PathColor, bPersistent);
 
 		// draw line to next loc
-		FVector const NextVertLoc = PathPoints[VertIdx+1].Location + NavigationDebugDrawing::PathOffeset;
+		FVector const NextVertLoc = PathPoints[VertIdx+1].Location + NavigationDebugDrawing::PathOffset;
 		DrawDebugLine(World, VertLoc, NextVertLoc, VertIdx < int32(NextPathPointIndex)-1 ? Grey : PathColor, bPersistent
 			, /*LifeTime*/-1.f, /*DepthPriority*/0
 			, /*Thickness*/NavigationDebugDrawing::PathLineThickness);
@@ -67,7 +67,7 @@ void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor
 	// draw last vert
 	if (NumPathVerts > 0)
 	{
-		DrawDebugBox(World, PathPoints[NumPathVerts-1].Location + NavigationDebugDrawing::PathOffeset, FVector(15.f), PathColor, bPersistent);
+		DrawDebugBox(World, PathPoints[NumPathVerts-1].Location + NavigationDebugDrawing::PathOffset, FVector(15.f), PathColor, bPersistent);
 	}
 }
 
@@ -172,13 +172,14 @@ void FNavigationPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 {
 	const int32 NumPathVerts = PathPoints.Num();
 	FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Path);
+	Element.Category = LogNavigation.GetCategoryName();
 	Element.SetColor(FColorList::Green);
 	Element.Points.Reserve(NumPathVerts);
 	Element.Thicknes = 3.f;
 	
 	for (int32 VertIdx = 0; VertIdx < NumPathVerts; ++VertIdx)
 	{
-		Element.Points.Add(PathPoints[VertIdx].Location + NavigationDebugDrawing::PathOffeset);
+		Element.Points.Add(PathPoints[VertIdx].Location + NavigationDebugDrawing::PathOffset);
 	}
 
 	Snapshot->ElementsToDraw.Add(Element);
@@ -674,7 +675,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 
 	for (int32 i = 0; i < CorridorEdgesCount; ++i, ++Edge)
 	{
-		DrawDebugLine(NavData->GetWorld(), Edge->Left+NavigationDebugDrawing::PathOffeset, Edge->Right+NavigationDebugDrawing::PathOffeset
+		DrawDebugLine(NavData->GetWorld(), Edge->Left+NavigationDebugDrawing::PathOffset, Edge->Right+NavigationDebugDrawing::PathOffset
 			, FColor::Blue, bPersistent, /*LifeTime*/-1.f, /*DepthPriority*/0
 			, /*Thickness*/NavigationDebugDrawing::PathLineThickness);
 	}
@@ -687,7 +688,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 			// draw box at vert
 			FVector const VertLoc = PathPoints[VertIdx].Location 
 				+ FVector(0, 0, NavigationDebugDrawing::PathNodeBoxExtent.Z*2)
-				+ NavigationDebugDrawing::PathOffeset;
+				+ NavigationDebugDrawing::PathOffset;
 			const FVector ScreenLocation = Canvas->Project(VertLoc);
 
 			FNavMeshNodeFlags NodeFlags(PathPoints[VertIdx].Flags);
@@ -772,30 +773,63 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentI
 
 void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 {
-	Super::DescribeSelfToVisLog(Snapshot);
-	
-	if (IsStringPulled() == false)
+	if (IsStringPulled())
 	{
-		// draw the corridor as well
-		// @todo this needs to be done fast, and I mean logging a series of points
-		const TArray<FNavigationPortalEdge>* CorridorEdges = GetPathCorridorEdges();
+		// draw path points only for string pulled paths
+		Super::DescribeSelfToVisLog(Snapshot);
+	}
 
-		if (CorridorEdges)
+	// draw corridor
+#if WITH_RECAST
+	FVisLogEntry::FElementToDraw CorridorElem(FVisLogEntry::FElementToDraw::Segment);
+	CorridorElem.SetColor(FColorList::Cyan);
+	CorridorElem.Category = LogNavigation.GetCategoryName();
+	CorridorElem.Points.Reserve(PathCorridor.Num() * 6);
+	CorridorElem.Thicknes = 2;
+
+	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
+	int32 NumAreaMark = 1;
+
+	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetOwner());
+	NavMesh->BeginBatchQuery();
+
+	TArray<FVector> Verts;
+	for (int32 Idx = 0; Idx < PathCorridor.Num(); Idx++)
+	{
+		Verts.Reset();
+		NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+		
+		FVector CenterPt = FVector::ZeroVector;
+		for (int32 VIdx = 0; VIdx < Verts.Num(); VIdx++)
 		{
-			FVisLogEntry::FElementToDraw Element(FVisLogEntry::FElementToDraw::Segment);
-			Element.SetColor(FColorList::LimeGreen);
-			Element.Points.Reserve(CorridorEdges->Num() * 2);
-			Element.Thicknes = 2;
+			CenterPt += Verts[VIdx];
 
-			for (const auto& PortalEdge : *CorridorEdges)
-			{
-				Element.Points.Add(PortalEdge.Left + NavigationDebugDrawing::PathOffeset);
-				Element.Points.Add(PortalEdge.Right + NavigationDebugDrawing::PathOffeset);	
-			}
+			CorridorElem.Points.Add(Verts[VIdx] + CorridorOffset);
+			CorridorElem.Points.Add(Verts[(VIdx + 1) % Verts.Num()] + CorridorOffset);
+		}
 
-			Snapshot->ElementsToDraw.Add(Element);
+		const uint8 AreaID = NavMesh->GetPolyAreaID(PathCorridor[Idx]);
+		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
+		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
+		{
+			FVisLogEntry::FElementToDraw AreaMarkElem(FVisLogEntry::FElementToDraw::Segment);
+			AreaMarkElem.SetColor(FColorList::Orange);
+			AreaMarkElem.Category = LogNavigation.GetCategoryName();
+			AreaMarkElem.Thicknes = 2;
+			AreaMarkElem.Description = AreaClass->GetName();
+
+			CenterPt /= Verts.Num();
+			AreaMarkElem.Points.Add(CenterPt + CorridorOffset);
+			AreaMarkElem.Points.Add(CenterPt + CorridorOffset + FVector(0,0,100.0f + NumAreaMark * 50.0f));
+			Snapshot->ElementsToDraw.Add(AreaMarkElem);
+
+			NumAreaMark = (NumAreaMark + 1) % 5;
 		}
 	}
+
+	NavMesh->FinishBatchQuery();
+	Snapshot->ElementsToDraw.Add(CorridorElem);
+#endif
 }
 
 FString FNavMeshPath::GetDescription() const

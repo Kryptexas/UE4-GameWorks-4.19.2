@@ -161,12 +161,15 @@ private:
 	{
 		const float EventStart = (LogEntry->TimeStamp - StartTime) / TotalTime;
 		const float EventDuration = TimeUnit / TotalTime;
-		const float ClampedStart = FMath::Clamp(Offset + EventStart * Zoom, 0.0f, 1.0f );		
-		const float ClampedEnd = FMath::Clamp(Offset + (EventStart + EventDuration) * Zoom, 0.0f, 1.0f );
+		const float Start = Offset + EventStart * Zoom;
+		const float ClampedStart = FMath::Clamp(Start, 0.0f, 1.0f);
+		const float End = Offset + (EventStart + EventDuration) * Zoom;
+		const float ClampedEnd = FMath::Clamp(End, 0.0f, 1.0f);
 		const float ClampedSize = ClampedEnd - ClampedStart;
-		OutStartX = (float)(InGeometry.Size.X * ClampedStart);
-		OutEndX = OutStartX + (float)FMath::Max(InGeometry.Size.X * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0f);
-		return ClampedEnd > 0.0f && ClampedStart < 1.0f;
+		const float BarWidth = InGeometry.Size.X - 3;
+		OutStartX = (float)(BarWidth * ClampedStart);
+		OutEndX = OutStartX + (float)FMath::Max(BarWidth * ClampedSize, ClampedEnd > 0.0f ? SubPixelMinSize : 0.0f);
+		return End >= 0.0f && Start <= 1.0f;
 	}
 
 	/** Delegate to invoke when selection changes. */

@@ -57,6 +57,22 @@ FAsyncPathFindingQuery::FAsyncPathFindingQuery(const FPathFindingQuery& Query, c
 
 }
 //----------------------------------------------------------------------//
+// FSupportedAreaData
+//----------------------------------------------------------------------//
+FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32 InAreaID)
+	: AreaID(InAreaID), AreaClass(NavAreaClass)
+{
+	if (AreaClass != NULL)
+	{
+		AreaClassName = AreaClass->GetName();
+	}
+	else
+	{
+		AreaClassName = TEXT("Invalid");
+	}
+}
+
+//----------------------------------------------------------------------//
 // FNavDataGenerator
 //----------------------------------------------------------------------//
 void FNavDataGenerator::TriggerGeneration()

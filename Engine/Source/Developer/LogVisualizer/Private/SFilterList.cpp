@@ -87,7 +87,7 @@ public:
 
 		/** Constructs this widget with InArgs */
 		void Construct(const FArguments& InArgs)
-	{
+		{
 			bEnabled = false;
 			OnFilterChanged = InArgs._OnFilterChanged;
 			OnRequestRemove = InArgs._OnRequestRemove;
@@ -96,9 +96,9 @@ public:
 			OnRequestRemoveAll = InArgs._OnRequestRemoveAll;
 			FilterName = InArgs._FilterName;
 			ColorCategory = InArgs._ColorCategory;
+			Verbosity = ELogVerbosity::All;
 
 			// Get the tooltip and color of the type represented by this filter
-			FText FilterToolTip;
 			FilterColor = ColorCategory;
 
 			ChildSlot
@@ -110,7 +110,7 @@ public:
 					[
 						SAssignNew(ToggleButtonPtr, SFilterCheckBox)
 						.Style(FEditorStyle::Get(), "ContentBrowser.FilterButton")
-						.ToolTipText(FilterToolTip)
+						.ToolTipText(this, &SLogFilter::GetTooltipString)
 						.Padding(this, &SLogFilter::GetFilterNamePadding)
 						.IsChecked(this, &SLogFilter::IsChecked)
 						.OnCheckStateChanged(this, &SLogFilter::FilterToggled)
@@ -121,7 +121,7 @@ public:
 							.ColorAndOpacity(this, &SLogFilter::GetFilterNameColorAndOpacity)
 							.Font(FEditorStyle::GetFontStyle("ContentBrowser.FilterNameFont"))
 							.ShadowOffset(FVector2D(1.f, 1.f))
-							.Text(GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive))
+							.Text(this, &SLogFilter::GetCaptionString)
 						]
 					]
 				];
@@ -130,6 +130,30 @@ public:
 			ToggleButtonPtr->SetOnFilterMiddleButtonClicked(FOnClicked::CreateSP(this, &SLogFilter::FilterMiddleButtonClicked));
 		}
 
+		FText GetCaptionString() const
+		{
+			FString CaptionString;
+			const FString VerbosityStr = FOutputDevice::VerbosityToString(Verbosity);
+			if (Verbosity != ELogVerbosity::VeryVerbose)
+			{
+				CaptionString = FString::Printf(TEXT("%s [%s]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive), *VerbosityStr.Mid(0, 1));
+			}
+			else
+			{
+				CaptionString = FString::Printf(TEXT("%s [VV]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive));
+			}
+			return FText::FromString(CaptionString);
+		}
+
+		FText GetTooltipString() const
+		{
+			return FText::FromString( 
+				IsEnabled() ? 
+				FString::Printf(TEXT("Enabled '%s' category for '%s' verbosity and lower\nRight click to change verbosity"), *GetFilterNameAsString(), FOutputDevice::VerbosityToString(Verbosity)) 
+				: 
+				FString::Printf(TEXT("Disabled '%s' category"), *GetFilterNameAsString())
+			);
+		}
 	/** Sets whether or not this filter is applied to the combined filter */
 	void SetEnabled(bool InEnabled)
 	{
@@ -144,6 +168,16 @@ public:
 	bool IsEnabled() const
 	{
 		return bEnabled;
+	}
+
+	void SetVerbosity(ELogVerbosity::Type InVerbosity)
+	{
+		Verbosity = InVerbosity;
+	}
+
+	ELogVerbosity::Type GetVerbosity() const
+	{
+		return Verbosity;
 	}
 
 	/** Returns the display name for this filter */
@@ -193,48 +227,35 @@ private:
 	{
 		FMenuBuilder MenuBuilder(true, NULL);
 
-		FText FiletNameAsText = FText::FromString(GetFilterNameAsString());
-		MenuBuilder.BeginSection("FilterOptions", LOCTEXT("FilterContextHeading", "Filter Options"));
+		if (IsEnabled())
 		{
-			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("RemoveFilter", "Remove: {0}"), FiletNameAsText),
-				LOCTEXT("RemoveFilterTooltip", "Remove this filter from the list. It can be added again in the filters menu."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SLogFilter::RemoveFilter))
-				);
-
-			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("EnableOnlyThisFilter", "Enable this only: {0}"), FiletNameAsText),
-				LOCTEXT("EnableOnlyThisFilterTooltip", "Enable only this filter from the list."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SLogFilter::EnableOnly))
-				);
-
+			FText FiletNameAsText = FText::FromString(GetFilterNameAsString());
+			MenuBuilder.BeginSection("VerbositySelection", LOCTEXT("VerbositySelection", "Current verbosity selection"));
+			{
+				for (int32 Index = ELogVerbosity::NoLogging+1; Index < ELogVerbosity::VeryVerbose; Index++)
+				{
+					const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Index);
+					MenuBuilder.AddMenuEntry(
+						FText::Format(LOCTEXT("UseVerbosity", "Use: {0}"), FText::FromString(VerbosityStr)),
+						LOCTEXT("UseVerbosityTooltip", "Applay verbosity to selected flter."),
+						FSlateIcon(),
+						FUIAction(FExecuteAction::CreateSP(this, &SLogFilter::SetVerbosityFilter, Index))
+						);
+				}
+			}
+			MenuBuilder.EndSection();
 		}
-		MenuBuilder.EndSection();
-
-		MenuBuilder.BeginSection("FilterBulkOptions", LOCTEXT("BulkFilterContextHeading", "Bulk Filter Options"));
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("DisableAllFilters", "Disable All Filters"),
-				LOCTEXT("DisableAllFiltersTooltip", "Disables all active filters."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SLogFilter::DisableAllFilters))
-				);
-
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("RemoveAllFilters", "Remove All Filters"),
-				LOCTEXT("RemoveAllFiltersTooltip", "Removes all filters from the list."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &SLogFilter::RemoveAllFilters))
-				);
-		}
-		MenuBuilder.EndSection();
 
 		return MenuBuilder.MakeWidget();
 	}
 
 	/** Removes this filter from the filter list */
+	void SetVerbosityFilter(int32 SelectedVerbosityIndex)
+	{
+		Verbosity = (ELogVerbosity::Type)SelectedVerbosityIndex;
+		OnFilterChanged.ExecuteIfBound();
+	}
+
 	void RemoveFilter()
 	{
 		TSharedRef<SLogFilter> Self = SharedThis(this);
@@ -314,6 +335,8 @@ private:
 
 	FLinearColor ColorCategory;
 
+	ELogVerbosity::Type Verbosity;
+
 	/** The button to toggle the filter on or off */
 	TSharedPtr<SFilterCheckBox> ToggleButtonPtr;
 
@@ -369,7 +392,7 @@ bool SLogFilterList::IsFilterEnabled(const FString& InFilterName, TEnumAsByte<EL
 		const SLogFilter& Filter = Filters[Index].Get();
 		if (Filter.GetFilterName() == FilterName)
 		{
-			return Filter.IsEnabled();
+			return Filter.IsEnabled() && Filter.GetVerbosity() >= Verbosity.GetValue();
 		}
 	}
 

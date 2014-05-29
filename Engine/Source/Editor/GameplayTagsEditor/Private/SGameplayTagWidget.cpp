@@ -239,7 +239,7 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 						bRemoveParents = true;
 						if (bMultiSelect == false)
 						{
-							Container->RemoveAllTags();
+							EditableContainer.RemoveAllTags();
 						}
 						EditableContainer.AddTag(Tag);
 					}

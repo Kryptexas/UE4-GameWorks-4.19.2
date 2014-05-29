@@ -102,6 +102,7 @@ public:
 	
 	FOnZoomChanged& OnZoomChanged() { return ZoomChangedNotify; }
 
+	void OnListDoubleClick(TSharedPtr<FLogsListItem>);
 	void DoFullUpdate();
 	void RequestFullUpdate() { TimeTillNextUpdate = 0; }
 

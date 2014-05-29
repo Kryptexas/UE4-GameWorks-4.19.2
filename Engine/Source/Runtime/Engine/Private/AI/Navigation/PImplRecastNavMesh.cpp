@@ -123,6 +123,12 @@ ENavigationQueryResult::Type DTStatusToNavQueryResult(dtStatus Status)
 //----------------------------------------------------------------------//
 // FRecastQueryFilter();
 //----------------------------------------------------------------------//
+
+INavigationQueryFilterInterface* FRecastQueryFilter::CreateCopy() const 
+{
+	return new FRecastQueryFilter(*this);
+}
+
 void FRecastQueryFilter::Reset()
 {
 	dtQueryFilter* Filter = static_cast<dtQueryFilter*>(this);

@@ -80,6 +80,8 @@ struct ENGINE_API FVisLogEntry
 		};
 
 		FString Description;
+		FName Category;
+		TEnumAsByte<ELogVerbosity::Type> Verbosity;
 		TArray<FVector> Points;
 	protected:
 		friend struct FVisLogEntry;
@@ -92,10 +94,10 @@ struct ENGINE_API FVisLogEntry
 			uint16 Radius;
 		};
 
-		FElementToDraw(EElementType InType = Invalid) : Type(InType), Color(0xff), Thicknes(0)
+		FElementToDraw(EElementType InType = Invalid) : Verbosity(ELogVerbosity::All), Type(InType), Color(0xff), Thicknes(0)
 		{}
 
-		FElementToDraw(const FString& InDescription, const FColor& InColor, uint16 InThickness) : Type(uint16(Invalid)), Thicknes(InThickness)
+		FElementToDraw(const FString& InDescription, const FColor& InColor, uint16 InThickness, const FName& InCategory) : Category(InCategory), Verbosity(ELogVerbosity::All), Type(uint16(Invalid)), Thicknes(InThickness)
 		{
 			if (InDescription.IsEmpty() == false)
 			{
@@ -141,13 +143,13 @@ struct ENGINE_API FVisLogEntry
 	TSharedPtr<FJsonValue> ToJson() const;
 
 	// path
-	void AddElement(const TArray<FVector>& Points, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+	void AddElement(const TArray<FVector>& Points, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// location
-	void AddElement(const FVector& Point, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+	void AddElement(const FVector& Point, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// segment
-	void AddElement(const FVector& Start, const FVector& End, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+	void AddElement(const FVector& Start, const FVector& End, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// box
-	void AddElement(const FBox& Box, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+	void AddElement(const FBox& Box, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
@@ -198,10 +200,11 @@ struct ENGINE_API FVisLogEntry
 #define UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
+	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
 	if (FVisualLog::Get()->IsRecording()) \
 	{ \
-	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
-} \
+		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
+	} \
 }
 
 #define UE_VLOG_SEGMENT(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
@@ -209,23 +212,40 @@ struct ENGINE_API FVisLogEntry
 #define UE_VLOG_LOCATION(Actor, CategoryName, Verbosity, Location, Radius, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
-	if (FVisualLog::Get()->IsRecording()) \
+	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
+if (FVisualLog::Get()->IsRecording()) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Location, Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
+	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
 	} \
 }
 
 #define UE_VLOG_BOX(Actor, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
-	if (FVisualLog::Get()->IsRecording()) \
+	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
+if (FVisualLog::Get()->IsRecording()) \
 	{ \
-		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Box, Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
 	} \
 }
 
-namespace LogVisualizerJson
+namespace VisualLogJson
 {
+	static const FString TAG_NAME = TEXT("Name");
+	static const FString TAG_FULLNAME = TEXT("FullName");
+	static const FString TAG_ENTRIES = TEXT("Entries");
+	static const FString TAG_TIMESTAMP = TEXT("TimeStamp");
+	static const FString TAG_LOCATION = TEXT("Location");
+	static const FString TAG_STATUS = TEXT("Status");
+	static const FString TAG_STATUSLINES = TEXT("StatusLines");
+	static const FString TAG_CATEGORY = TEXT("Category");
+	static const FString TAG_LINE = TEXT("Line");
+	static const FString TAG_VERBOSITY = TEXT("Verb");
+	static const FString TAG_LOGLINES = TEXT("LogLines");
+	static const FString TAG_DESCRIPTION = TEXT("Description");
+	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
+	static const FString TAG_POINTS = TEXT("Points");
+	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
 	static const FString TAG_LOGS = TEXT("Logs");
 }
 
