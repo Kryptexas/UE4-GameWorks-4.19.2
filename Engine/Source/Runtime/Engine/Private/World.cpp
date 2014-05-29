@@ -183,10 +183,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->GameState, This );
 		Collector.AddReferencedObject( This->AuthorityGameMode, This );
 		Collector.AddReferencedObject( This->NetworkManager, This );
-		UBehaviorTreeManager* BTManager = This->GetBehaviorTreeManager();
-		Collector.AddReferencedObject( BTManager, This );
-		UEnvQueryManager* EQSManager = This->GetEnvironmentQueryManager();
-		Collector.AddReferencedObject( EQSManager, This );
 		Collector.AddReferencedObject( This->NavigationSystem, This );
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
 
@@ -208,6 +204,12 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		}
 	}
 #endif
+
+	UBehaviorTreeManager* BTManager = This->BehaviorTreeManager.GetEvenIfUnreachable();
+	Collector.AddReferencedObject(BTManager, This);
+	UEnvQueryManager* EQSManager = This->EnvironmentQueryManager.GetEvenIfUnreachable();
+	Collector.AddReferencedObject(EQSManager, This);
+
 	Super::AddReferencedObjects( This, Collector );
 }
 
