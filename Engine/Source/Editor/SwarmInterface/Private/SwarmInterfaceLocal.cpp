@@ -101,7 +101,7 @@ FSwarmInterfaceLocalImpl::FSwarmInterfaceLocalImpl( void )
 #if USE_LOCAL_SWARM_INTERFACE
 ,	bIsConnected( false )
 ,	bIsEditor( false )
-,	LightmassProcHandle( NULL )
+,	LightmassProcHandle()
 #endif
 {
 }

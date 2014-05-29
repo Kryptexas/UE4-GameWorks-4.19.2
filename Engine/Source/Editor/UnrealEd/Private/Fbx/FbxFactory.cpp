@@ -225,7 +225,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 		{
 			// Log the import message and import the mesh.
 			const TCHAR* errorMessage = FbxImporter->GetErrorMessage();
-			if (errorMessage[0] != NULL)
+			if (errorMessage[0] != '\0')
 			{
 				Warn->Log( errorMessage );
 			}

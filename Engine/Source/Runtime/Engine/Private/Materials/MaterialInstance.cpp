@@ -736,7 +736,6 @@ void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UT
 			// Iterate over both the 2D textures and cube texture expressions.
 			ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
 			ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
-			SourceMaterialResource = SourceMaterialResource;
 		}
 		else
 		{
@@ -747,7 +746,6 @@ void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UT
 			// Iterate over both the 2D textures and cube texture expressions.
 			ExpressionsByType[0] = &SourceMaterialResource->GetUniform2DTextureExpressions();
 			ExpressionsByType[1] = &SourceMaterialResource->GetUniformCubeTextureExpressions();
-			SourceMaterialResource = SourceMaterialResource;
 		}
 		
 		for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)

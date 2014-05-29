@@ -825,7 +825,9 @@ void FFbxExporter::ExportSkeletalMesh( AActor* Actor, USkeletalMeshComponent* Sk
 
 FbxSurfaceMaterial* FFbxExporter::CreateDefaultMaterial()
 {
-	FbxSurfaceMaterial* FbxMaterial = Scene->GetMaterial("Fbx Default Material");
+	// TODO(sbc): the below cast is needed to avoid clang warning.  The upstream
+	// signature in FBX should really use 'const char *'.
+	FbxSurfaceMaterial* FbxMaterial = Scene->GetMaterial(const_cast<char*>("Fbx Default Material"));
 	
 	if (!FbxMaterial)
 	{
