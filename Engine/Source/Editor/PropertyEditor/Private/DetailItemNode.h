@@ -31,7 +31,7 @@ public:
 	bool HasMultiColumnWidget() const;
 
 	/** IDetailTreeNode interface */
-	virtual SDetailsView& GetDetailsView() const OVERRIDE { return ParentCategory.Pin()->GetDetailsView(); }
+	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return ParentCategory.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
 	virtual void GetChildren( FDetailNodeList& OutChildren )  OVERRIDE;
 	virtual void OnItemExpansionChanged( bool bInIsExpanded ) OVERRIDE;

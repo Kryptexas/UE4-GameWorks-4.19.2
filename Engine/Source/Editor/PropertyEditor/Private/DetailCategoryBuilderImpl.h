@@ -145,7 +145,7 @@ public:
 	virtual const FString& GetDisplayName() const OVERRIDE { return DisplayName; }
 
 	/** IDetailTreeNode interface */
-	virtual SDetailsView& GetDetailsView() const OVERRIDE { return DetailLayoutBuilder.Pin()->GetDetailsView(); }
+	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren ) OVERRIDE;
 	virtual bool ShouldBeExpanded() const OVERRIDE;

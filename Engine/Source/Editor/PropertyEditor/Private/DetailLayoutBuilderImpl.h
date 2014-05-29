@@ -6,7 +6,7 @@ class FDetailCategoryImpl;
 class FDetailLayoutBuilderImpl : public IDetailLayoutBuilder, public TSharedFromThis<FDetailLayoutBuilderImpl>
 {
 public:
-	FDetailLayoutBuilderImpl( FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< SDetailsView >& InDetailsView );
+	FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView);
 
 	/** IDetailLayoutBuilder Interface */
 	virtual const IDetailsView& GetDetailsView() const OVERRIDE;
@@ -141,7 +141,7 @@ public:
 	void AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode );
 
 	/** @return The details view that owns this layout */
-	SDetailsView& GetDetailsView() { return DetailsView; }
+	IDetailsViewPrivate& GetDetailsView() { return DetailsView; }
 private:
 	/**
 	 * Finds a property node for the current property by searching in a fast lookup map or a path search if required
@@ -178,7 +178,7 @@ private:
 	/** The global property settings */
 	const TSharedRef< class IPropertyUtilities > PropertyDetailsUtilities;
 	/** The view where this detail customizer resides */
-	class SDetailsView& DetailsView;
+	class IDetailsViewPrivate& DetailsView;
 	/** The current class being customized */
 	UClass* CurrentCustomizationClass;
 };

@@ -7,7 +7,7 @@
 #include "IPropertyUtilities.h"
 
 
-FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl( FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< SDetailsView >& InDetailsView )
+FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
 	: PropertyMap( InPropertyMap )
 	, PropertyDetailsUtilities( InPropertyUtilities )
 	, CurrentCustomizationClass( NULL )

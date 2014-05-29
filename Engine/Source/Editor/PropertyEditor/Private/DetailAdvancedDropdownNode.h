@@ -25,7 +25,7 @@ public:
 	{}
 private:
 	/** IDetailTreeNode Interface */
-	virtual SDetailsView& GetDetailsView() const OVERRIDE { return ParentCategory.GetDetailsView(); }
+	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return ParentCategory.GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  OVERRIDE {}
 	virtual void OnItemExpansionChanged( bool bIsExpanded ) OVERRIDE {}

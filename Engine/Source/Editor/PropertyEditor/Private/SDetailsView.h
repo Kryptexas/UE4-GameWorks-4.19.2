@@ -4,6 +4,7 @@
 
 #include "AssetSelection.h"
 #include "IPropertyUtilities.h"
+#include "IDetailsViewPrivate.h"
 
 class FPropertyNode;
 class FObjectPropertyNode;
@@ -74,7 +75,7 @@ struct FDetailColumnSizeData
 	void SetColumnWidth( float InWidth ) { OnWidthChanged.ExecuteIfBound(InWidth); }
 };
 
-class SDetailsView : public IDetailsView
+class SDetailsView : public IDetailsViewPrivate
 {
 	friend class FPropertyDetailsUtilities;
 public:

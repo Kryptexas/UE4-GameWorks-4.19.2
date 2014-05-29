@@ -33,7 +33,7 @@ public:
 	FDetailCategoryGroupNode( const FDetailNodeList& InChildNodes, FName InGroupName, FDetailCategoryImpl& InParentCategory );
 
 private:
-	virtual SDetailsView& GetDetailsView() const OVERRIDE { return ParentCategory.GetDetailsView(); }
+	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return ParentCategory.GetDetailsView(); }
 	virtual void OnItemExpansionChanged( bool bIsExpanded ) OVERRIDE {}
 	virtual bool ShouldBeExpanded() const OVERRIDE { return true; }
 	virtual ENodeVisibility::Type GetVisibility() const OVERRIDE { return bShouldBeVisible ? ENodeVisibility::Visible : ENodeVisibility::HiddenDueToFiltering; }
