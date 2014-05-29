@@ -9,9 +9,9 @@
 class FAnimGraphNodeSlotDetails : public IDetailCustomization
 {
 public:
-	FAnimGraphNodeSlotDetails(TSharedRef<class FPersona> PersonalEditor);
+	FAnimGraphNodeSlotDetails(TWeakPtr<class FPersona> PersonalEditor);
 
-	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<class FPersona> PersonalEditor) 
+	static TSharedRef<IDetailCustomization> MakeInstance(TWeakPtr<class FPersona> PersonalEditor) 
 	{
 		return MakeShareable( new FAnimGraphNodeSlotDetails(PersonalEditor) );
 	}

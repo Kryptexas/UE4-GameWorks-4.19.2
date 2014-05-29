@@ -880,8 +880,9 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	// register customization of Slot node for this Persona
 	// this is so that you can open the manage window per Persona
+	TWeakPtr<FPersona> PersonaPtr = SharedThis(this);
 	Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UAnimGraphNode_Slot::StaticClass(),
-		FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphNodeSlotDetails::MakeInstance, SharedThis(this) ));
+		FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphNodeSlotDetails::MakeInstance, PersonaPtr));
 }
 
 

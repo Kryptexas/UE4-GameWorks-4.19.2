@@ -15,7 +15,7 @@
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"
 
 ////////////////////////////////////////////////////////////////
-FAnimGraphNodeSlotDetails::FAnimGraphNodeSlotDetails(TSharedRef<class FPersona> InPersonalEditor)
+FAnimGraphNodeSlotDetails::FAnimGraphNodeSlotDetails(TWeakPtr<class FPersona> InPersonalEditor)
 :PersonaEditor(InPersonalEditor)
 {
 }
