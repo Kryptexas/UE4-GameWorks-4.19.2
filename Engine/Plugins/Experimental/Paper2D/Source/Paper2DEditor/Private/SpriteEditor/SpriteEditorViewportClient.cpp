@@ -16,6 +16,7 @@ const FName FSelectionTypes::Vertex(TEXT("Vertex"));
 const FName FSelectionTypes::Edge(TEXT("Edge"));
 const FName FSelectionTypes::Pivot(TEXT("Pivot"));
 const FName FSelectionTypes::Socket(TEXT("Socket"));
+const FName FSelectionTypes::SourceRegion(TEXT("SourceRegion"));
 
 //////////////////////////////////////////////////////////////////////////
 // HSpriteSelectableObjectHitProxy
@@ -151,6 +152,49 @@ void FSpriteEditorViewportClient::DrawTriangleList(FViewport& InViewport, FScene
 			FCanvasLineItem LineItem(VertexPos, NextVertexPos);
 			LineItem.SetColor(BakedCollisionLineRenderColor);
 			Canvas.DrawItem(LineItem);
+		}
+	}
+}
+
+void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry)
+{
+	const bool bIsHitTesting = Canvas.IsHitTesting();
+	UPaperSprite* Sprite = GetSpriteBeingEdited();
+
+	const float CollisionVertexSize = 8.0f;
+
+	const float NormalLength = 15.0f;
+	const FLinearColor GeometryLineColor(GeometryVertexColor.R, GeometryVertexColor.G, GeometryVertexColor.B, 0.5f * GeometryVertexColor.A);
+	const FLinearColor GeometryNormalColor(0.0f, 1.0f, 0.0f, 0.5f);
+
+	FVector2D BoundsVertices[4];
+	BoundsVertices[0] = TextureSpaceToScreenSpace(View, Sprite->SourceUV);
+	BoundsVertices[1] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, 0));
+	BoundsVertices[2] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, Sprite->SourceDimension.Y));
+	BoundsVertices[3] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(0, Sprite->SourceDimension.Y));
+	for (int32 VertexIndex = 0; VertexIndex < 4; ++VertexIndex)
+	{
+		const int32 NextVertexIndex = (VertexIndex + 1) % 4;
+
+		FCanvasLineItem LineItem(BoundsVertices[VertexIndex], BoundsVertices[NextVertexIndex]);
+		LineItem.SetColor(GeometryVertexColor);
+		Canvas.DrawItem(LineItem);
+
+		FVector2D MidPoint = (BoundsVertices[VertexIndex] + BoundsVertices[NextVertexIndex]) * 0.5f;
+
+		if (bIsHitTesting)
+		{
+			TSharedPtr<FSpriteSelectedSourceRegion> Data = MakeShareable(new FSpriteSelectedSourceRegion());
+			Data->SpritePtr = Sprite;
+			Data->VertexIndex = VertexIndex;
+			Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+		}
+
+		Canvas.DrawTile(MidPoint.X - CollisionVertexSize*0.5f, MidPoint.Y - CollisionVertexSize*0.5f, CollisionVertexSize, CollisionVertexSize, 0.f, 0.f, 1.f, 1.f, GeometryVertexColor, GWhiteTexture);
+
+		if (bIsHitTesting)
+		{
+			Canvas.SetHitProxy(NULL);
 		}
 	}
 }
@@ -399,6 +443,13 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			const FLinearColor RenderGeomColor(1.0f, 0.2f, 0.0f, 1.0f);
 			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, true);
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+		}
+		break;
+	case ESpriteEditorMode::EditSourceRegionMode:
+		{
+			// Draw the custom render geometry
+			const FLinearColor BoundsColor(1.0f, 1.0f, 1.0f, 0.8f);
+			DrawSourceRegion(Viewport, View, Canvas, BoundsColor, true);
 		}
 		break;
 	case ESpriteEditorMode::AddSpriteMode:

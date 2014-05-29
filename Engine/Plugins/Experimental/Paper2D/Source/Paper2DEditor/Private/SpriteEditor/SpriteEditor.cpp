@@ -132,9 +132,14 @@ void SSpriteEditorViewport::BindCommands()
 	// Editing modes
 	CommandList->MapAction(
 		Commands.EnterViewMode,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterViewMode ),
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::EnterViewMode),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsInViewMode ) );
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInViewMode));
+	CommandList->MapAction(
+		Commands.EnterSourceRegionEditMode,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::EnterSourceRegionEditMode),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
 	CommandList->MapAction(
 		Commands.EnterCollisionEditMode,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterCollisionEditMode ),
@@ -466,6 +471,7 @@ void FSpriteEditor::ExtendToolbar()
 			ToolbarBuilder.BeginSection("Mode");
 			{
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
+				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterAddSpriteMode);

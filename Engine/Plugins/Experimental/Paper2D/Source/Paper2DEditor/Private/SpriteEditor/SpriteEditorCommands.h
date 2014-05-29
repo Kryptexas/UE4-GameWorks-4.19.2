@@ -33,6 +33,7 @@ public:
 
 	// Editing modes
 	TSharedPtr<FUICommandInfo> EnterViewMode;
+	TSharedPtr<FUICommandInfo> EnterSourceRegionEditMode;
 	TSharedPtr<FUICommandInfo> EnterCollisionEditMode;
 	TSharedPtr<FUICommandInfo> EnterRenderingEditMode;
 	TSharedPtr<FUICommandInfo> EnterAddSpriteMode;

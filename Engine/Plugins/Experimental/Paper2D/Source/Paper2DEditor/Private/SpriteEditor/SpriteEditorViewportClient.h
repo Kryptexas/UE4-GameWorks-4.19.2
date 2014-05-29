@@ -19,6 +19,7 @@ namespace ESpriteEditorMode
 	enum Type
 	{
 		ViewMode,
+		EditSourceRegionMode,
 		EditCollisionMode,
 		EditRenderingGeomMode,
 		AddSpriteMode
@@ -67,11 +68,13 @@ public:
 	bool IsShowNormalsChecked() const { return bShowNormals; }
 
 	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; }
+	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; }
 	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; }
 	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; }
 	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
+	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
 	bool IsInCollisionEditMode() const { return CurrentMode == ESpriteEditorMode::EditCollisionMode; }
 	bool IsInRenderingEditMode() const { return CurrentMode == ESpriteEditorMode::EditRenderingGeomMode; }
 	bool IsInAddSpriteMode() const { return CurrentMode == ESpriteEditorMode::AddSpriteMode; }
@@ -158,6 +161,7 @@ private:
 	void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
 	void DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 	void DrawSocketNames(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
+	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor, bool bIsRenderGeometry);
 
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();

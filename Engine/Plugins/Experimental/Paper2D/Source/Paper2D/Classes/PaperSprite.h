@@ -195,6 +195,7 @@ public:
 	friend class FSpriteDetailsCustomization;
 	friend class FSpriteSelectedVertex;
 	friend class FSpriteSelectedEdge;
+	friend class FSpriteSelectedSourceRegion;
 	friend struct FPaperAtlasGenerator;
 };
 
