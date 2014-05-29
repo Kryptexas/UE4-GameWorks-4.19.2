@@ -70,7 +70,7 @@ void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, US
 		&& Ar.IsPersistent();
 
 	const bool bPrepareDefaultStruct = bUseNewDefaults || bLoadDefaultFirst;
-	FStructureEditorUtils::FStructOnScope StructDefaultMem(bPrepareDefaultStruct ? UDDefaultsStruct : NULL);
+	FStructOnScope StructDefaultMem(bPrepareDefaultStruct ? UDDefaultsStruct : NULL);
 	if (bPrepareDefaultStruct)
 	{
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UDDefaultsStruct, StructDefaultMem.GetStructMemory());

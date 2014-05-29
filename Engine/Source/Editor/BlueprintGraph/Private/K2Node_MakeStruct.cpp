@@ -192,7 +192,7 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
 		
 		{
-			FStructureEditorUtils::FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
+			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
 			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);

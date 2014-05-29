@@ -44,41 +44,6 @@ public:
 		}
 	};
 
-	struct FStructOnScope
-	{
-	private:
-		UScriptStruct* ScriptStruct;
-		uint8* SampleStructMemory;
-
-		FStructOnScope(const FStructOnScope&);
-		FStructOnScope& operator=(const FStructOnScope&);
-
-	public:
-		FStructOnScope(UScriptStruct* InScriptStruct) 
-			: ScriptStruct(InScriptStruct)
-			, SampleStructMemory(NULL)
-		{
-			if(ScriptStruct)
-			{
-				SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-				ScriptStruct->InitializeScriptStruct(SampleStructMemory);
-			}
-		}
-
-		uint8* GetStructMemory() { return SampleStructMemory; }
-		const uint8* GetStructMemory() const { return SampleStructMemory; }
-
-		~FStructOnScope()
-		{
-			if(ScriptStruct)
-			{
-				ScriptStruct->DestroyScriptStruct(SampleStructMemory);
-				FMemory::Free(SampleStructMemory);
-				SampleStructMemory = NULL;
-			}
-		}
-	};
-
 	//STRUCTURE
 	static UUserDefinedStruct* CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags);
 

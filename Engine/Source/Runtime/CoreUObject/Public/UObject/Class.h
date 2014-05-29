@@ -950,14 +950,14 @@ public:
 	/** Look for the CppStructOps and hook it up **/
 	COREUOBJECT_API void PrepareCppStructOps();
 
-	FORCEINLINE ICppStructOps* GetCppStructOps()
+	FORCEINLINE ICppStructOps* GetCppStructOps() const
 	{
 		check(bPrepareCppStructOpsCompleted);
 		return CppStructOps;
 	}
 
 	/** return true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class **/
-	FORCEINLINE bool InheritedCppStructOps()
+	FORCEINLINE bool InheritedCppStructOps() const
 	{
 		check(bPrepareCppStructOpsCompleted);
 		return bCppStructOpsFromBaseClass;
@@ -974,7 +974,7 @@ public:
 	 * If it is native, it is assumed to have defaults because it has a constructor
 	 * @return true if this struct has defaults
 	**/
-	FORCEINLINE bool HasDefaults()
+	FORCEINLINE bool HasDefaults() const
 	{
 		return !!GetCppStructOps();
 	}
@@ -984,7 +984,7 @@ public:
 	 *
 	 * @param	Ar	Archive the struct is going to be serialized with later on
 	 */
-	bool ShouldSerializeAtomically( FArchive& Ar )
+	bool ShouldSerializeAtomically(FArchive& Ar) const
 	{
 		if( (StructFlags&STRUCT_Atomic) != 0)
 		{
@@ -1004,7 +1004,7 @@ public:
 	 * @param	PortFlags	Comparison flags
 	 * @return true if the structs are identical
 	 */
-	bool CompareScriptStruct( const void* A, const void* B, uint32 PortFlags );
+	bool CompareScriptStruct(const void* A, const void* B, uint32 PortFlags) const;
 
 	/**
 	 * Copy a struct over an existing struct
@@ -1014,7 +1014,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
+	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
 	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
 	 *
@@ -1022,7 +1022,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1);
+	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 	/**
 	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1030,7 +1030,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
-	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1);
+	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 	/**
 	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1038,11 +1038,52 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
 	 */
-	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1);
+	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 };
 
+struct FStructOnScope
+{
+private:
+	TWeakObjectPtr<const UScriptStruct> ScriptStruct;
+	uint8* SampleStructMemory;
+
+	FStructOnScope(const FStructOnScope&);
+	FStructOnScope& operator=(const FStructOnScope&);
+
+public:
+	FStructOnScope(const UScriptStruct* InScriptStruct)
+		: ScriptStruct(InScriptStruct)
+		, SampleStructMemory(NULL)
+	{
+		if (ScriptStruct.IsValid())
+		{
+			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
+			ScriptStruct.Get()->InitializeScriptStruct(SampleStructMemory);
+		}
+	}
+
+	uint8* GetStructMemory() { return SampleStructMemory; }
+	const uint8* GetStructMemory() const { return SampleStructMemory; }
+	const UScriptStruct* GetStruct() { return ScriptStruct.Get(); }
+	bool IsValid() { return ScriptStruct.IsValid() && SampleStructMemory; }
+
+	~FStructOnScope()
+	{
+		if (ScriptStruct.IsValid() && SampleStructMemory)
+		{
+			ScriptStruct.Get()->DestroyScriptStruct(SampleStructMemory);
+			ScriptStruct = NULL;
+		}
+
+		if (SampleStructMemory)
+		{
+			FMemory::Free(SampleStructMemory);
+			SampleStructMemory = NULL;
+		}
+	}
+};
 
 /*-----------------------------------------------------------------------------
 	UFunction.

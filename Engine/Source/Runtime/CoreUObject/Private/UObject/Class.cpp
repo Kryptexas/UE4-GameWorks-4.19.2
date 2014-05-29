@@ -1964,7 +1964,7 @@ void UScriptStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	}
 }
 
-bool UScriptStruct::CompareScriptStruct( const void* A, const void* B, uint32 PortFlags )
+bool UScriptStruct::CompareScriptStruct(const void* A, const void* B, uint32 PortFlags) const
 {
 	check(A);
 	if (StructFlags & STRUCT_IdenticalNative)
@@ -1993,7 +1993,7 @@ bool UScriptStruct::CompareScriptStruct( const void* A, const void* B, uint32 Po
 }
 
 
-void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 ArrayDim)
+void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2030,7 +2030,7 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 }
 
 
-void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim)
+void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2077,7 +2077,7 @@ void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim)
 	}
 }
 
-void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim)
+void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 {
 	uint8 *Data = (uint8*)Dest;
 	int32 Stride = GetStructureSize();
@@ -2123,7 +2123,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim)
 
 }
 
-void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim)
+void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim) const
 {
 	if (StructFlags & (STRUCT_IsPlainOldData | STRUCT_NoDestructor))
 	{
