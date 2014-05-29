@@ -132,7 +132,7 @@ void UUserWidget::PostInitProperties()
 		BGClass->InitializeWidget(this);
 	}
 
-	RebuildWrapperWidget();
+	RebuildWidget();
 }
 
 UWorld* UUserWidget::GetWorld() const
@@ -157,7 +157,7 @@ UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 	return WidgetToComponent.FindRef(InWidget);
 }
 
-void UUserWidget::RebuildWrapperWidget()
+TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
 	WidgetToComponent.Reset();
 	
@@ -193,6 +193,8 @@ void UUserWidget::RebuildWrapperWidget()
 			Hide();
 		}
 	}
+
+	return MakeWidget();
 }
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const

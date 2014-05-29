@@ -11,12 +11,9 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
 UCLASS(Abstract, editinlinenew, hideCategories=(Object, Actor, Replication, Rendering, Input))
-class UMG_API UUserWidget : public UObject
+class UMG_API UUserWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
-	TEnumAsByte<ESlateVisibility::Type> Visiblity;
 
 	/** Called when the visibility changes. */
 	UPROPERTY(BlueprintAssignable)
@@ -176,12 +173,12 @@ class UMG_API UUserWidget : public UObject
 	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
 	UWidget* GetHandleFromName(const FString& Name) const;
 
+protected:
+	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+
 private:
 	TSharedPtr<SWidget> UserRootWidget;
 	TMap< TWeakPtr<SWidget>, UWidget* > WidgetToComponent;
 
 	TWeakPtr<SWidget> FullScreenWidget;
-
-private:
-	void RebuildWrapperWidget();
 };

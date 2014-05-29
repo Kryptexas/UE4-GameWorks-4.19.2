@@ -123,13 +123,21 @@ void SUMGEditorWidgetTemplates::BuildClassWidgetList()
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		UClass* WidgetClass = *ClassIt;
-		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) )
 		{
-			TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
-			Template->Name = WidgetClass->GetDisplayNameText();
-			Template->ToolTip = WidgetClass->GetDisplayNameText();
+			const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			const bool bIsValidClass =
+				!( WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) || bIsSkeletonClass );
+			const bool bIsSameClass = WidgetClass->GetFName() == GetBlueprint()->GeneratedClass->GetFName();
 
-			AddWidgetTemplate(Template);
+			if ( bIsValidClass && !bIsSameClass )
+			{
+				TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
+				Template->Name = WidgetClass->GetDisplayNameText();
+				Template->ToolTip = WidgetClass->GetDisplayNameText();
+
+				AddWidgetTemplate(Template);
+			}
 		}
 	}
 }
