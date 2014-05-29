@@ -1918,7 +1918,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 	
 		// Don't allow braking to lower us below max speed if we started above it.
-		if (FVector::DotProduct(Acceleration, OldVelocity) > 0.0f && bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
+		if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed) && FVector::DotProduct(Acceleration, OldVelocity) > 0.0f)
 		{
 			Velocity = SafeNormalPrecise(OldVelocity) * MaxSpeed;
 		}
@@ -3364,11 +3364,16 @@ void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 		return;
 	}
 
+	if (!(bOrientRotationToMovement || bUseControllerDesiredRotation))
+	{
+		return;
+	}
+
 	const FRotator CurrentRotation = CharacterOwner->GetActorRotation();
 	FRotator DeltaRot = GetDeltaRotation(DeltaTime);
 	FRotator DesiredRotation = CurrentRotation;
 
-	if (bOrientRotationToMovement && (Velocity.IsZero() == false))
+	if (bOrientRotationToMovement)
 	{
 		DesiredRotation = ComputeOrientToMovementRotation(CurrentRotation, DeltaTime, DeltaRot);
 	}
