@@ -40,6 +40,8 @@
 	#include "Online.h"
 	#include "PlatformFeatures.h"
 	#include "DeviceProfiles/DeviceProfileManager.h"
+	#include "Commandlets/Commandlet.h"
+
 #if !UE_SERVER
 	#include "SlateRHIRendererModule.h"
 #endif
