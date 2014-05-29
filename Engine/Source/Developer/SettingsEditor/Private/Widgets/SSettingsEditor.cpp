@@ -49,18 +49,6 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	SettingsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewVisibility)));
 	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
 
-	TSharedRef<SWidget> ConfigNoticeWidget = SNew(SSettingsEditorCheckoutNotice)
-		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-		.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
-		.LockedContent()
-		[
-			SNew(SButton)
-			.OnClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
-			.Text(LOCTEXT("CheckOutButtonText", "Check Out File"))
-			.ToolTipText(LOCTEXT("CheckOutButtonTooltip", "Check out the default configuration file that holds these settings."))
-			//@TODO: .Visibility(this, &SSettingsFileCheckoutNotice::HandleCheckOutButtonVisibility)
-		];
-
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -202,7 +190,11 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 							.AutoHeight()
 							.Padding(0.0f, 0.0f, 0.0f, 16.0f)
 							[
-								ConfigNoticeWidget
+								// checkout notice
+								SNew(SSettingsEditorCheckoutNotice)
+									.OnCheckOutClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
+									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
+									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
 							]
 
 						+ SVerticalBox::Slot()
@@ -247,7 +239,7 @@ void SSettingsEditor::Tick( const FGeometry& AllottedGeometry, const double InCu
 
 		if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
 		{
-			FString ConfigFileName = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *SettingsObject->GetClass()->ClassConfigName.ToString());
+			FString ConfigFileName = GetDefaultConfigFilePath(SettingsObject);
 			bool NewCheckOutNeeded = (FPaths::FileExists(ConfigFileName) && IFileManager::Get().IsReadOnly(*ConfigFileName));
 
 			// file has been checked in or reverted
@@ -287,48 +279,48 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 bool SSettingsEditor::CheckOutDefaultConfigFile( )
 {
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (!SettingsObject.IsValid())
+	{
+		return false;
+	}
+
 	FText ErrorMessage;
 
 	// check out configuration file
-	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+	FString AbsoluteConfigFilePath = GetDefaultConfigFilePath(SettingsObject);
+	TArray<FString> FilesToBeCheckedOut;
+	FilesToBeCheckedOut.Add(AbsoluteConfigFilePath);
 
-	if (SettingsObject.IsValid())
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(AbsoluteConfigFilePath, EStateCacheUsage::ForceUpdate);
+
+	if (SourceControlState.IsValid())
 	{
-		FString RelativeConfigFilePath = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *SettingsObject->GetClass()->ClassConfigName.ToString());
-		FString AbsoluteConfigFilePath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
-
-		TArray<FString> FilesToBeCheckedOut;
-		FilesToBeCheckedOut.Add(AbsoluteConfigFilePath);
-
-		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(AbsoluteConfigFilePath, EStateCacheUsage::ForceUpdate);
-
-		if(SourceControlState.IsValid())
+		if (SourceControlState->IsDeleted())
 		{
-			if (SourceControlState->IsDeleted())
+			ErrorMessage = LOCTEXT("ConfigFileMarkedForDeleteError", "Error: The configuration file is marked for deletion.");
+		}
+		else if (!SourceControlState->IsCurrent())
+		{
+			if (false)
 			{
-				ErrorMessage = LOCTEXT("ConfigFileMarkedForDeleteError", "Error: The configuration file is marked for deletion.");
-			}
-			else if (!SourceControlState->IsCurrent())
-			{
-				if (false)
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Succeeded)
 				{
-					if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Succeeded)
-					{
-						SettingsObject->ReloadConfig();
-					}
-					else
-					{
-						ErrorMessage = LOCTEXT("FailedToSyncConfigFileError", "Error: Failed to sync the configuration file to head revision.");
-					}
+					SettingsObject->ReloadConfig();
+				}
+				else
+				{
+					ErrorMessage = LOCTEXT("FailedToSyncConfigFileError", "Error: Failed to sync the configuration file to head revision.");
 				}
 			}
-			else if (SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther())
+		}
+		else if (SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther())
+		{
+			if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Failed)
 			{
-				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Failed)
-				{
-					ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
-				}
+				ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
 			}
 		}
 	}
@@ -342,6 +334,14 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 	}
 
 	return true;
+}
+
+
+FString SSettingsEditor::GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>& SettingsObject ) const
+{
+	FString RelativeConfigFilePath = FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *SettingsObject->GetClass()->ClassConfigName.ToString());
+
+	return FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
 }
 
 
@@ -470,7 +470,22 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 }
 
 
-void SSettingsEditor::ReloadCategories(  )
+bool SSettingsEditor::MakeDefaultConfigFileWritable( )
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (!SettingsObject.IsValid())
+	{
+		return false;
+	}
+
+	FString AbsoluteConfigFilePath = GetDefaultConfigFilePath(SettingsObject);
+
+	return FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*AbsoluteConfigFilePath, false);
+}
+
+
+void SSettingsEditor::ReloadCategories( )
 {
 	CategoriesBox->ClearChildren();
 
@@ -504,7 +519,14 @@ void SSettingsEditor::ShowNotification( const FText& Text, SNotificationItem::EC
 
 FReply SSettingsEditor::HandleCheckOutButtonClicked( )
 {
-	CheckOutDefaultConfigFile();
+	if (ISourceControlModule::Get().IsEnabled())
+	{
+		CheckOutDefaultConfigFile();
+	}
+	else
+	{
+		MakeDefaultConfigFileWritable();
+	}
 
 	return FReply::Handled();
 }
@@ -734,7 +756,12 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 			}
 			else
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The default configuration file for these settings is currently not writeable, and source control is disabled."));
+				if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The default configuration file for these settings is currently not writeable. Would you like to make it writable?")) != EAppReturnType::Yes)
+				{
+					return FReply::Handled();
+				}
+
+				MakeDefaultConfigFileWritable();
 			}
 		}
 

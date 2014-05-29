@@ -15,6 +15,7 @@
 
 void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 {
+	CheckOutClickedDelegate = InArgs._OnCheckOutClicked;
 	bIsUnlocked = InArgs._Unlocked;
 
 	// default configuration notice
@@ -33,7 +34,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 					[
 						SNew(SHorizontalBox)
 
-						// Status icon
+						// Locked icon
 						+ SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
@@ -42,28 +43,24 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 									.Image(FEditorStyle::GetBrush("GenericLock"))
 							]
 
-						// Notice
+						// Locked notice
 						+ SHorizontalBox::Slot()
 							.FillWidth(1.0f)
 							.Padding(16.0f, 0.0f)
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently under source control."))
+									.Text(LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently not writable."))
 							]
 
-						// Call to action
+						// Check out button
 						+ SHorizontalBox::Slot()
 							.AutoWidth()
 							[
-								InArgs._LockedContent.Widget
-							]
-
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-									.Text(this, &SSettingsEditorCheckoutNotice::HandleSccUnavailableTextBlockText)
+								SNew(SButton)
+									.OnClicked(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked)
+									.Text(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonText)
+									.ToolTipText(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonToolTip)
 							]
 					]
 
@@ -72,6 +69,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 					[
 						SNew(SHorizontalBox)
 
+						// Unlocked icon
 						+ SHorizontalBox::Slot()
 							.AutoWidth()
 							.VAlign(VAlign_Center)
@@ -80,6 +78,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 									.Image(FEditorStyle::GetBrush("GenericUnlock"))
 							]
 
+						// Unlocked notice
 						+ SHorizontalBox::Slot()
 							.AutoWidth()
 							.Padding(16.0f, 0.0f)
@@ -97,6 +96,39 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 /* SSettingsEditorCheckoutNotice callbacks
  *****************************************************************************/
 
+FReply SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked( )
+{
+	if (CheckOutClickedDelegate.IsBound())
+	{
+		return CheckOutClickedDelegate.Execute();
+	}
+
+	return FReply::Handled();
+}
+
+
+FText SSettingsEditorCheckoutNotice::HandleCheckOutButtonText( ) const
+{
+	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
+	{
+		return LOCTEXT("CheckOutFile", "Check Out File");
+	}
+
+	return LOCTEXT("MakeWritable", "Make Writable");
+}
+
+
+FText SSettingsEditorCheckoutNotice::HandleCheckOutButtonToolTip( ) const
+{
+	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
+	{
+		return LOCTEXT("CheckOutFileTooltip", "Check out the default configuration file that holds these settings.");
+	}
+
+	return LOCTEXT("MakeWritableTooltip", "Make the default configuration file that holds these settings writable.");
+}
+
+
 EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) const
 {
 	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
@@ -105,22 +137,6 @@ EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) con
 	}
 
 	return EVisibility::Collapsed;
-}
-
-
-FText SSettingsEditorCheckoutNotice::HandleSccUnavailableTextBlockText( ) const
-{
-	if (!ISourceControlModule::Get().IsEnabled())
-	{
-		return LOCTEXT("SccDisabledNotice", "[Source control is disabled]");
-	}
-
-	if (!ISourceControlModule::Get().GetProvider().IsAvailable())
-	{
-		return LOCTEXT("SccUnavailableNotice", "[Source control server unavailable]");
-	}
-
-	return FText::GetEmpty();
 }
 
 

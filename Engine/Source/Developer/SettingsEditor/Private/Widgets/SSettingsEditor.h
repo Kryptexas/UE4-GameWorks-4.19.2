@@ -62,6 +62,14 @@ protected:
 	bool CheckOutDefaultConfigFile( );
 
 	/**
+	 * Gets the absolute path to the Default.ini for the specified object.
+	 *
+	 * @param SettingsObject The object to get the path for.
+	 * @return The path to the file.
+	 */
+	FString GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>& SettingsObject ) const;
+
+	/**
 	 * Gets the settings object of the selected section, if any.
 	 *
 	 * @return The settings object.
@@ -72,10 +80,16 @@ protected:
 	 * Creates a widget for the given settings category.
 	 *
 	 * @param Category The category to create the widget for.
-	 *
 	 * @return The created widget.
 	 */
 	TSharedRef<SWidget> MakeCategoryWidget( const ISettingsCategoryRef& Category );
+
+	/**
+	 * Makes the default configuration file for the currently selected settings object writable.
+	 *
+	 * @return true if it was made writable, false otherwise.
+	 */
+	bool MakeDefaultConfigFileWritable( );
 
 	/**
 	 * Reloads the settings categories.

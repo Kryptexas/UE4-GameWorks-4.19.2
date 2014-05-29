@@ -20,6 +20,9 @@ public:
 		/** Slot for this button's content (optional) */
 		SLATE_NAMED_SLOT(FArguments, LockedContent)
 
+		/** Called when the 'Check Out' button is clicked */
+		SLATE_EVENT(FOnClicked, OnCheckOutClicked)
+
 	SLATE_END_ARGS()
 
 	/**
@@ -31,6 +34,15 @@ public:
 
 private:
 
+	// Callback for clicking the 'Check Out' button.
+	FReply HandleCheckOutButtonClicked( );
+
+	// Callback for getting the text of the 'Check Out' button.
+	FText HandleCheckOutButtonText( ) const;
+
+	// Callback for getting the tool tip text of the 'Check Out' button.
+	FText HandleCheckOutButtonToolTip( ) const;
+
 	// Callback for determining the visibility of the check-out button.
 	EVisibility HandleCheckOutButtonVisibility( ) const;
 
@@ -40,10 +52,10 @@ private:
 		return bIsUnlocked.Get() ? 1 : 0;
 	}
 
-	// Callback for getting the visibility of the 'Source control unavailable' text block.
-	FText HandleSccUnavailableTextBlockText( ) const;
-
 private:
+
+	// Holds a delegate that is executed when the 'Check Out' button has been clicked.
+	FOnClicked CheckOutClickedDelegate;
 
 	TAttribute<bool> bIsUnlocked;
 };
