@@ -615,7 +615,13 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::FindInContentBrowser_Clicked )
 		);
-						
+
+	ActionList.MapAction( 
+		FGlobalEditorCommonCommands::Get().ViewReferences, 
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ViewReferences_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewReferences )
+		);
+
 	ActionList.MapAction( 
 		Commands.SnapCameraToActor, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("CAMERA SNAP") ) )

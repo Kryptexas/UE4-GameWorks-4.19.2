@@ -758,6 +758,12 @@ public:
 	 */
 	static void FindInContentBrowser_Clicked();
 
+	/** Called when the ViewReferences command is executed */
+	static void ViewReferences_Execute();
+
+	/** If true ViewReferences_Execute can be called */
+	static bool CanViewReferences();
+
 	/** Called to when "Edit Asset" is clicked */
 	static void EditAsset_Clicked( const EToolkitMode::Type ToolkitMode, TWeakPtr< class SLevelEditor > LevelEditor, bool bAskMultiple );
 

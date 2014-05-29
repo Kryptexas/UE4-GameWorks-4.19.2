@@ -46,6 +46,7 @@ public class UnrealEd : ModuleRules
 				"SoundClassEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
+				"ReferenceViewer",
 			}
 		);
 
@@ -169,7 +170,8 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
 				"GameplayTagsEditor",
 				"UndoHistory",
-				"SourceCodeAccess"
+				"SourceCodeAccess",
+				"ReferenceViewer"
 			}
 		);
 

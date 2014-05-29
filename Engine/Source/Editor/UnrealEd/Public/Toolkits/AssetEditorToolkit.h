@@ -197,6 +197,12 @@ private:
 		FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
 	}
 
+	/** Called when "View References" is called for this asset */
+	void ViewReferences_Execute();
+
+	/** If true ViewReferences_Execute can be called, also caches ViewableObjects */
+	bool CanViewReferences();
+
 protected:
 
 	/** For standalone asset editing tool-kits that were switched from world-centric mode on the fly, this stores
@@ -235,6 +241,9 @@ private:
 
 	/**	The tab ids for all the tabs used */
 	static const FName ToolbarTabId;
+
+	/** A cached list of selected objects that can be viewed in the reference viewer */
+	TArray< FName > ViewableObjects;
 };
 
 

@@ -11,7 +11,8 @@ public class LevelEditor : ModuleRules
 				"AssetTools",
 				"Kismet",
 				"MainFrame",
-                "PlacementMode"
+                "PlacementMode",
+				"ReferenceViewer",
 			}
 		);
 
@@ -71,7 +72,8 @@ public class LevelEditor : ModuleRules
 				"DeviceProfileEditor",
 				"DeviceProfileServices",
                 "PlacementMode",
-				"UserFeedback"
+				"UserFeedback",
+				"ReferenceViewer",
 			}
 		);
 	}

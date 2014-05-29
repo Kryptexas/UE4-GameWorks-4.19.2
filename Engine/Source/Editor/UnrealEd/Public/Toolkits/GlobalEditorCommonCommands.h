@@ -22,5 +22,6 @@ public:
 	TSharedPtr<FUICommandInfo> SummonControlTabNavigation;
 	TSharedPtr<FUICommandInfo> SummonOpenAssetDialog;
 	TSharedPtr<FUICommandInfo> OpenDocumentation;
+	TSharedPtr<FUICommandInfo> ViewReferences;
 };
 

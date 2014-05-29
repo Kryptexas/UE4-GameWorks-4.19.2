@@ -11,6 +11,7 @@
 #include "ClassIconFinder.h"
 #include "IUserFeedbackModule.h"
 #include "IDocumentation.h"
+#include "ReferenceViewer.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 
@@ -139,7 +140,12 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ) );
-
+	
+	ToolkitCommands->MapAction(
+		FGlobalEditorCommonCommands::Get().ViewReferences,
+		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::ViewReferences_Execute ),
+		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanViewReferences ));
+	
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().OpenDocumentation,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::BrowseDocumentation_Execute ) );
@@ -461,6 +467,29 @@ void FAssetEditorToolkit::BrowseDocumentation_Execute() const
 	IDocumentation::Get()->Open(GetDocumentationLink());
 }
 
+void FAssetEditorToolkit::ViewReferences_Execute()
+{
+	if (ensure( ViewableObjects.Num() > 0))
+	{
+		IReferenceViewerModule::Get().InvokeReferenceViewerTab(ViewableObjects);
+	}
+}
+
+bool FAssetEditorToolkit::CanViewReferences()
+{
+	ViewableObjects.Empty();
+	for (const auto EditingObject : EditingObjects)
+	{
+		// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
+		if (EditingObject != NULL && EditingObject->IsAsset())
+		{
+			ViewableObjects.Add(EditingObject->GetOuter()->GetFName());
+		}
+	}
+
+	return ViewableObjects.Num() > 0;
+}
+
 FString FAssetEditorToolkit::GetDocumentationLink() const
 {
 	return FString(TEXT("%ROOT%"));
@@ -580,6 +609,7 @@ void FAssetEditorToolkit::FillDefaultAssetMenuCommands( FMenuBuilder& MenuBuilde
 	if( IsActuallyAnAsset() )
 	{
 		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().FindInContentBrowser, "FindInContentBrowser", LOCTEXT("FindInContentBrowser", "Find in Content Browser...") );
+		MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().ViewReferences);
 
 		// Add a reimport menu entry for each supported editable object
 		for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
