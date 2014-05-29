@@ -105,8 +105,8 @@ bool USoundMix::CheckForDependencyLoop(USoundClass* SoundClass, TArray<USoundCla
 	{
 		const FPassiveSoundMixModifier& CurrentSoundMix = SoundClass->PassiveSoundMixModifiers[Index];
 
-		// Ignore if volume threshold is 0 as the Sound Mix will not be deactivated
-		if (CurrentSoundMix.SoundMix == this && CurrentSoundMix.VolumeThreshold > 0.0f)
+		// Ignore if volume threshold is between 0 and 10 (arbitrarily large upper value) as the Sound Mix will not be deactivated
+		if (CurrentSoundMix.SoundMix == this && CurrentSoundMix.MinVolumeThreshold > 0.f && CurrentSoundMix.MaxVolumeThreshold < 10.f)
 		{
 			ProblemClasses.AddUnique(SoundClass);
 			bFoundProblemClass = true;

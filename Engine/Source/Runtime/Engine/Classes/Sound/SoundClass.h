@@ -138,13 +138,18 @@ struct FPassiveSoundMixModifier
 	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
 	class USoundMix* SoundMix;
 
-	/** Minimum volume level to activate SoundMix at. */
+	/** Minimum volume level required to activate SoundMix. Below this value the SoundMix will not be active. */
 	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
-	float VolumeThreshold;
+	float MinVolumeThreshold;
+
+	/** Maximum volume level required to activate SoundMix. Above this value the SoundMix will not be active. */
+	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
+	float MaxVolumeThreshold;
 
 	FPassiveSoundMixModifier()
-	: SoundMix(NULL)
-	, VolumeThreshold(0.0f)
+		: SoundMix(NULL)
+		, MinVolumeThreshold(0.f)
+		, MaxVolumeThreshold(10.f)
 	{
 	}
 	

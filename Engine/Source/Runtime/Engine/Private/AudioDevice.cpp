@@ -1115,17 +1115,19 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 	// Find all passive SoundMixes from currently active wave instances
 	for( int32 WaveIndex = FirstActiveIndex; WaveIndex < WaveInstances.Num(); WaveIndex++ )
 	{
-		if( WaveInstances[WaveIndex] )
+		FWaveInstance* WaveInstance = WaveInstances[WaveIndex];
+		if (WaveInstance)
 		{
-			USoundClass* SoundClass = WaveInstances[WaveIndex]->SoundClass;
+			USoundClass* SoundClass = WaveInstance->SoundClass;
 			if( SoundClass ) 
 			{
+				const float WaveInstanceActualVolume = WaveInstance->GetActualVolume();
 				// Check each SoundMix individually for volume levels
-				for( int32 MixIndex = 0; MixIndex < SoundClass->PassiveSoundMixModifiers.Num(); ++MixIndex )
+				for (const FPassiveSoundMixModifier& PassiveSoundMixModifier : SoundClass->PassiveSoundMixModifiers)
 				{
-					if( WaveInstances[WaveIndex]->GetActualVolume() >= SoundClass->PassiveSoundMixModifiers[MixIndex].VolumeThreshold )
+					if (WaveInstanceActualVolume >= PassiveSoundMixModifier.MinVolumeThreshold && WaveInstanceActualVolume <= PassiveSoundMixModifier.MaxVolumeThreshold)
 					{
-						CurrPassiveSoundMixModifiers.AddUnique( SoundClass->PassiveSoundMixModifiers[MixIndex].SoundMix );
+						CurrPassiveSoundMixModifiers.AddUnique( PassiveSoundMixModifier.SoundMix );
 					}
 				}
 			}
@@ -1133,20 +1135,20 @@ void FAudioDevice::UpdatePassiveSoundMixModifiers(TArray<FWaveInstance*>& WaveIn
 	}
 
 	// Push SoundMixes that weren't previously active
-	for( int32 MixIndex = 0; MixIndex < CurrPassiveSoundMixModifiers.Num(); MixIndex++ )
+	for (USoundMix* CurrPassiveSoundMixModifier : CurrPassiveSoundMixModifiers)
 	{
-		if( PrevPassiveSoundMixModifiers.Find( CurrPassiveSoundMixModifiers[MixIndex] ) == INDEX_NONE )
+		if (PrevPassiveSoundMixModifiers.Find(CurrPassiveSoundMixModifier) == INDEX_NONE)
 		{
-			PushSoundMixModifier(CurrPassiveSoundMixModifiers[MixIndex], true);
+			PushSoundMixModifier(CurrPassiveSoundMixModifier, true);
 		}
 	}
 
 	// Pop SoundMixes that are no longer active
-	for( int32 MixIndex = 0; MixIndex < PrevPassiveSoundMixModifiers.Num(); MixIndex++ )
+	for (USoundMix* PrevPassiveSoundMixModifier : PrevPassiveSoundMixModifiers)
 	{
-		if( CurrPassiveSoundMixModifiers.Find( PrevPassiveSoundMixModifiers[MixIndex] ) == INDEX_NONE )
+		if (CurrPassiveSoundMixModifiers.Find(PrevPassiveSoundMixModifier) == INDEX_NONE)
 		{
-			PopSoundMixModifier(PrevPassiveSoundMixModifiers[MixIndex], true);
+			PopSoundMixModifier(PrevPassiveSoundMixModifier, true);
 		}
 	}
 
