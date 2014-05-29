@@ -21,6 +21,8 @@
 #include "LevelUtils.h"
 #include "MessageLog.h"
 
+#include "Dialogs/DlgPickAssetPath.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
 //definition of flag used to do special work when we're attempting to load the "startup map"
@@ -555,6 +557,39 @@ bool RenameStreamingLevel( FString& LevelToRename, const FString& OldBaseLevelNa
 	return false;
 }
 
+static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& InNewNameSuggestion, FString& OutPackageName)
+{
+	FString DefaultPath = InDefaultPath;
+	if (DefaultPath.IsEmpty())
+	{
+		DefaultPath = TEXT("/Game/Maps");
+	}
+
+	FString NewNameSuggestion = InNewNameSuggestion;
+	if (NewNameSuggestion.IsEmpty())
+	{
+		NewNameSuggestion = TEXT("NewMap");
+	}
+
+	FString PackageName = DefaultPath / NewNameSuggestion;
+	FString Name;
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateUniqueAssetName(PackageName, TEXT(""), PackageName, Name);
+
+	TSharedPtr<SDlgPickAssetPath> PickAssetPathWidget =
+		SNew(SDlgPickAssetPath)
+		.Title(LOCTEXT("LevelPathPickerTitle", "Save Level As"))
+		.DefaultAssetPath(FText::FromString(PackageName));
+
+	if (EAppReturnType::Ok == PickAssetPathWidget->ShowModal())
+	{
+		OutPackageName = PickAssetPathWidget->GetFullAssetPath().ToString();
+		return true;
+	}
+
+	return false;
+}
+
 /**
  * Prompts the user with a dialog for selecting a filename.
  */
@@ -574,13 +609,34 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 	while( !bFilenameIsValid )
 	{
 		FString SaveFilename;
-		if( FileDialogHelpers::SaveFile(
+		bool bSaveFileLocationSelected = false;
+		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			FString DefaultPackagePath;
+			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory, DefaultPackagePath);
+
+			FString PackageName;
+			bSaveFileLocationSelected = OpenLevelSaveAsDialog(
+				DefaultPackagePath,
+				FPaths::GetBaseFilename(DefaultFilename),
+				PackageName);
+
+			if ( bSaveFileLocationSelected )
+			{
+				SaveFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
+			}
+		}
+		else
+		{
+			bSaveFileLocationSelected = FileDialogHelpers::SaveFile(
 				NSLOCTEXT("UnrealEd", "SaveAs", "Save As").ToString(),
 				FEditorFileUtils::GetFilterString(FI_Save),
 				DefaultDirectory,
 				FPaths::GetCleanFilename(DefaultFilename),
 				SaveFilename
-			))
+				);
+		}
+		if( bSaveFileLocationSelected )
 		{
 			// Add a map file extension if none was supplied
 			if( FPaths::GetExtension(SaveFilename).IsEmpty() )

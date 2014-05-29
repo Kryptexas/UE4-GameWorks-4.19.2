@@ -17,6 +17,8 @@
 #include "ActorEditorUtils.h"
 #include "Editor/Levels/Public/LevelEdMode.h"
 
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+
 DEFINE_LOG_CATEGORY(LogLevelTools);
 
 #define LOCTEXT_NAMESPACE "EditorLevelUtils"
@@ -470,21 +472,42 @@ namespace EditorLevelUtils
 		// Editor modes cannot be active when any level saving occurs.
 		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
 
-		// Create a new world - so we can 'borrow' its level
-		UWorld* NewGWorld = UWorld::CreateWorld(EWorldType::None, false );
-		check(NewGWorld);
+		UWorld* NewWorld = nullptr;
+		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			// Create a new world
+			UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
+			Factory->WorldType = EWorldType::Inactive;
+			UPackage* Pkg = CreatePackage(NULL, NULL);
+			FName WorldName(TEXT("NewWorld"));
+			EObjectFlags Flags = RF_Public | RF_Standalone;
+			NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, WorldName, Flags, NULL, GWarn));
+			if ( NewWorld )
+			{
+				FAssetRegistryModule::AssetCreated(NewWorld);
+			}
+		}
+		else
+		{
+			// Create a new world - so we can 'borrow' its level
+			NewWorld = UWorld::CreateWorld(EWorldType::None, false );
+			check(NewWorld);
+		}
 
 		// Save the new world to disk.
-		const bool bNewWorldSaved = FEditorFileUtils::SaveLevel( NewGWorld->PersistentLevel, DefaultFilename );
+		const bool bNewWorldSaved = FEditorFileUtils::SaveLevel( NewWorld->PersistentLevel, DefaultFilename );
 		FString NewPackageName;
 		if ( bNewWorldSaved )
 		{
-			NewPackageName = NewGWorld->GetOutermost()->GetName();
+			NewPackageName = NewWorld->GetOutermost()->GetName();
 		}
 
-		// Destroy the new world we created and collect the garbage
-		NewGWorld->DestroyWorld( false );
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		if (!FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+		{
+			// Destroy the new world we created and collect the garbage
+			NewWorld->DestroyWorld( false );
+			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		}
 
 		// If the new world was saved successfully, import it as a streaming level.
 		ULevel* NewLevel = NULL;
