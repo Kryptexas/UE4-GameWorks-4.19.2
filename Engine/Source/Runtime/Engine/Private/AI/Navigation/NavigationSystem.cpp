@@ -3,6 +3,8 @@
 #include "EnginePrivate.h"
 #include "NavDataGenerator.h"
 #include "NavigationOctree.h"
+#include "AI/Navigation/NavMeshBoundsVolume.h"
+
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
