@@ -57,7 +57,14 @@
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
 		NSView* SuperView = [[self contentView] superview];
-		return [[SuperView subviews] lastObject];
+		for(NSView* View in [SuperView subviews])
+		{
+			if([View isKindOfClass:[FSlateTextView class]])
+			{
+				return View;
+			}
+		}
+		return nil;
 	}
 	else
 	{

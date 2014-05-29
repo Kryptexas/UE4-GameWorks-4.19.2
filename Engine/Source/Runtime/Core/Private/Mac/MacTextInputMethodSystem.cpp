@@ -483,9 +483,13 @@ void FMacTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputMetho
 		FSlateCocoaWindow* CocoaWindow = (FSlateCocoaWindow*)GenericWindow->GetOSWindowHandle();
 		if(CocoaWindow && [CocoaWindow openGLView])
 		{
-			FSlateTextView* TextView = (FSlateTextView*)[CocoaWindow openGLView];
-			[TextView activateInputMethod:Context];
-			return;
+			NSView* GLView = [CocoaWindow openGLView];
+			if([GLView isKindOfClass:[FSlateTextView class]])
+			{
+				FSlateTextView* TextView = (FSlateTextView*)GLView;
+				[TextView activateInputMethod:Context];
+				return;
+			}
 		}
 	}
 	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Activating a context failed when its window couldn't be found."));
@@ -508,9 +512,13 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 		FSlateCocoaWindow* CocoaWindow = (FSlateCocoaWindow*)GenericWindow->GetOSWindowHandle();
 		if(CocoaWindow && [CocoaWindow openGLView])
 		{
-			FSlateTextView* TextView = (FSlateTextView*)[CocoaWindow openGLView];
-			[TextView deactivateInputMethod];
-			return;
+			NSView* GLView = [CocoaWindow openGLView];
+			if([GLView isKindOfClass:[FSlateTextView class]])
+			{
+				FSlateTextView* TextView = (FSlateTextView*)GLView;
+				[TextView deactivateInputMethod];
+				return;
+			}
 		}
 	}
 	UE_LOG(LogMacTextInputMethodSystem, Error, TEXT("Deactivating a context failed when its window couldn't be found."));
