@@ -6,18 +6,9 @@
 
 void FStringAssetReferenceCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
-	// If we are part of an array, we need to take our meta-data from the array property
-	const UProperty* MetaDataProperty = InStructPropertyHandle->GetProperty();
-	if(InStructPropertyHandle->GetIndexInArray() != INDEX_NONE)
-	{
-		TSharedPtr<IPropertyHandle> ParentPropertyHandle = InStructPropertyHandle->GetParentHandle();
-		check(ParentPropertyHandle.IsValid() && ParentPropertyHandle->AsArray().IsValid());
-		MetaDataProperty = ParentPropertyHandle->GetProperty();
-	}
+	StructPropertyHandle = InStructPropertyHandle;
 
-	this->StructPropertyHandle = InStructPropertyHandle;
-
-	FString ClassFilterString = MetaDataProperty->GetMetaData("AllowedClasses");
+	FString ClassFilterString = StructPropertyHandle->GetMetaData("AllowedClasses");
 	if( !ClassFilterString.IsEmpty() )
 	{
 		TArray<FString> CustomClassFilterNames;
@@ -39,7 +30,7 @@ void FStringAssetReferenceCustomization::CustomizeStructHeader( TSharedRef<IProp
 		}
 	}
 
-	bExactClass = MetaDataProperty->GetBoolMetaData("ExactClass");
+	bExactClass = StructPropertyHandle->GetBoolMetaData("ExactClass");
 
 	FOnShouldFilterAsset AssetFilter;
 	UClass* ClassFilter = UObject::StaticClass();
@@ -58,7 +49,7 @@ void FStringAssetReferenceCustomization::CustomizeStructHeader( TSharedRef<IProp
 	}
 
 	// Can the field be cleared
-	const bool bAllowClear = !(MetaDataProperty->PropertyFlags & CPF_NoClear);
+	const bool bAllowClear = !(StructPropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
 
 	HeaderRow
 	.NameContent()

@@ -388,6 +388,13 @@ public:
 	virtual TSharedPtr<IPropertyHandleArray> AsArray() OVERRIDE { return NULL; }
 	virtual const UClass* GetPropertyClass() const OVERRIDE;
 	virtual UProperty* GetProperty() const OVERRIDE;
+	virtual UProperty* GetMetaDataProperty() const OVERRIDE;
+	virtual bool HasMetaData(const FName& Key) const OVERRIDE;
+	virtual const FString& GetMetaData(const FName& Key) const OVERRIDE;
+	virtual bool GetBoolMetaData(const FName& Key) const OVERRIDE;
+	virtual int32 GetINTMetaData(const FName& Key) const OVERRIDE;
+	virtual float GetFLOATMetaData(const FName& Key) const OVERRIDE;
+	virtual UClass* GetClassMetaData(const FName& Key) const OVERRIDE;
 	virtual FString GetToolTipText() const OVERRIDE;
 	virtual void SetToolTipText(const FString& ToolTip) OVERRIDE;
 	virtual FPropertyAccess::Result SetPerObjectValues( const TArray<FString>& InPerObjectValues,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) OVERRIDE;

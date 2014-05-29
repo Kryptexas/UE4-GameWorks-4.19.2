@@ -1002,6 +1002,9 @@ namespace AutomationTool
 		#region Initialization
 
 		private Dictionary<TargetRules.TargetType, SingleTargetProperties> DetectedTargets;
+		private Dictionary<UnrealTargetPlatform, ConfigCacheIni> LoadedEngineConfigs;
+		private Dictionary<UnrealTargetPlatform, ConfigCacheIni> LoadedGameConfigs;
+
 		private void AutodetectSettings(bool bReset)
 		{
 			if (bReset)
@@ -1023,6 +1026,8 @@ namespace AutomationTool
 
 			bIsCodeBasedProject = Properties.bIsCodeBasedProject;			
 			DetectedTargets = Properties.Targets;
+			LoadedEngineConfigs = Properties.EngineConfigs;
+			LoadedGameConfigs = Properties.GameConfigs;
 
 			var GameTarget = String.Empty;
 			var EditorTarget = String.Empty;
@@ -1388,6 +1393,36 @@ namespace AutomationTool
 					AutodetectSettings(false);
 				}
 				return DetectedTargets;
+			}
+		}
+
+		/// <summary>
+		/// List of all Engine ini files for this project
+		/// </summary>
+		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineConfigs
+		{
+			get
+			{
+				if (LoadedEngineConfigs == null)
+				{
+					AutodetectSettings(false);
+				}
+				return LoadedEngineConfigs;
+			}
+		}
+
+		/// <summary>
+		/// List of all Game ini files for this project
+		/// </summary>
+		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> GameConfigs
+		{
+			get
+			{
+				if (LoadedGameConfigs == null)
+				{
+					AutodetectSettings(false);
+				}
+				return LoadedGameConfigs;
 			}
 		}
 

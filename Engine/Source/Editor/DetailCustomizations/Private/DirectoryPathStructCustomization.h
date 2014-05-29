@@ -18,8 +18,14 @@ private:
 	FText GetDisplayedText(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	/** Delegate used to display a directory picker */
-	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bUseRelativePaths) const;
+	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePaths) const;
+
+	/** Check whether that the chosen path is valid */
+	bool IsValidPath(const FString& AbsolutePath, const bool bRelativeToGameContentDir, FText* const OutReason = nullptr) const;
 
 	/** The browse button widget */
 	TSharedPtr<SButton> BrowseButton;
+
+	/** Absolute path to the game content directory */
+	FString AbsoluteGameContentDir;
 };

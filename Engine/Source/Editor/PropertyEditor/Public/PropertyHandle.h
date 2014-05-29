@@ -46,6 +46,59 @@ public:
 	 */
 	virtual UProperty* GetProperty() const = 0;
 
+	/*
+	 * Gets the property we should use to read meta-data
+	 */
+	virtual UProperty* GetMetaDataProperty() const = 0;
+
+	/**
+	 * Determines if the property has any metadata associated with the key
+	 * 
+	 * @param Key The key to lookup in the metadata
+	 * @return true if there is a (possibly blank) value associated with this key
+	 */
+	virtual bool HasMetaData(const FName& Key) const = 0;
+
+	/**
+	 * Find the metadata value associated with the key
+	 * 
+	 * @param Key The key to lookup in the metadata
+	 * @return The value associated with the key
+	 */
+	virtual const FString& GetMetaData(const FName& Key) const = 0;
+
+	/**
+	 * Find the metadata value associated with the key and return bool
+	 *
+	 * @param Key The key to lookup in the metadata
+	 * @return return true if the value was true (case insensitive)
+	 */
+	virtual bool GetBoolMetaData(const FName& Key) const = 0;
+
+	/**
+	 * Find the metadata value associated with the key and return int32
+	 *
+	 * @param Key The key to lookup in the metadata
+	 * @return the int value stored in the metadata.
+	 */
+	virtual int32 GetINTMetaData(const FName& Key) const = 0;
+
+	/**
+	 * Find the metadata value associated with the key and return float
+	 *
+	 * @param Key The key to lookup in the metadata
+	 * @return the float value stored in the metadata.
+	 */
+	virtual float GetFLOATMetaData(const FName& Key) const = 0;
+
+	/**
+	 * Find the metadata value associated with the key and return UClass*
+	 *
+	 * @param Key The key to lookup in the metadata
+	 * @return the UClass value stored in the metadata.
+	 */
+	virtual UClass* GetClassMetaData(const FName& Key) const = 0;
+
 	/**
 	 * Gets the property tool tip text.
 	 */

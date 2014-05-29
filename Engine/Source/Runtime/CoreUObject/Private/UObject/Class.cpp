@@ -323,6 +323,13 @@ UClass* UField::GetClassMetaData(const TCHAR* Key) const
 	return FoundObject;
 }
 
+UClass* UField::GetClassMetaData(const FName& Key) const
+{
+	const FString & ClassName = GetMetaData(Key);
+	UClass* const FoundObject = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+	return FoundObject;
+}
+
 void UField::RemoveMetaData(const TCHAR* Key)
 {
 	UPackage* Package = GetOutermost();

@@ -403,6 +403,11 @@ void FMainFrameActionCallbacks::CookContent( const FString InPlatformName, const
 	FString PlatformName = InPlatformName;
 	FString OptionalParams;
 
+	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(*PlatformName))
+	{
+		return;
+	}
+
 	if (PlatformName == "MacNoEditor")
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
@@ -494,6 +499,11 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 	}
 #endif
 
+	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(*PlatformName))
+	{
+		return;
+	}
+
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
 
 	// let the user pick a target directory
@@ -571,22 +581,6 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 	{
 		OptionalParams += FString(TEXT(" -cookflavor=")) + PlatformName.Mid(UnderscoreLoc + 1);
 		PlatformName = PlatformName.Mid(0, UnderscoreLoc);
-	}
-
-	const int32 DirCount = PackagingSettings->DirectoriesToAlwaysCook.Num();
-	if(DirCount> 0)
-	{
-		FString Dirs = TEXT(" -cookdir=");
-		for(int32 DirIndex = 0; DirIndex < DirCount; DirIndex++)
-		{
-			Dirs += FString::Printf(TEXT("\"%s\""), *PackagingSettings->DirectoriesToAlwaysCook[DirIndex].Path);
-			if(DirCount > 1 && DirIndex != DirCount - 1)
-			{
-				Dirs += TEXT("+");
-			}
-		}
-
-		OptionalParams += Dirs;
 	}
 
 	FString ExecutableName = FPlatformProcess::ExecutableName(false);

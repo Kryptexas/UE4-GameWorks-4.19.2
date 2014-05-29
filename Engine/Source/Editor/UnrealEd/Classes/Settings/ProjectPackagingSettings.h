@@ -78,12 +78,6 @@ public:
 	bool ForDistribution;
 
 	/**
-	 * All assets in these directories will always be cooked.
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Cooking)
-	TArray<FDirectoryPath> DirectoriesToAlwaysCook;
-
-	/**
 	 * If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled).
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
@@ -95,4 +89,27 @@ public:
 	*/
 	UPROPERTY(config, EditAnywhere, Category = Packaging)
 	bool UseOBB_InAPK;
+
+	/**
+	 * Directories containing .uasset files that should always be cooked regardless of whether they're referenced by anything in your project
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Asset Directories to Cook", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToAlwaysCook;
+
+	/**
+	 * Directories containing files that should always be added to the .pak file (if using a .pak file; otherwise they're copied as individual files)
+	 * This is used to stage additional files that you manually load via the UFS (Unreal File System) file IO API
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories to Package", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsUFS;
+
+	/**
+	 * Directories containing files that should always be copied when packaging your project, but are not supposed to be part of the .pak file
+	 * This is used to stage additional files that you manually load without using the UFS (Unreal File System) file IO API, eg, third-party libraries that perform their own internal file IO
+	 * Note: These paths are relative to your project Content directory
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;
 };

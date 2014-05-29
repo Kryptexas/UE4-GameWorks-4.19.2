@@ -770,7 +770,20 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 				DirToCook = DirToCook.Right(DirToCook.Len() - (PlusIdx + 1));
 				PlusIdx = DirToCook.Find(TEXT("+"));
 			}
+			// The dir may be contained within quotes
+			DirToCook = DirToCook.TrimQuotes();
+			FPaths::NormalizeDirectoryName(DirToCook);
 			CmdLineDirEntries.Add(DirToCook);
+		}
+	}
+
+	// Also append any cookdirs from the project ini files; these dirs are relative to the game content directory
+	{
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+		for(const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
+		{
+			CmdLineDirEntries.Add(AbsoluteGameContentDir / DirToCook.Path);
 		}
 	}
 

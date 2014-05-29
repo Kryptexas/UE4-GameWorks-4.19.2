@@ -165,6 +165,19 @@ class COREUOBJECT_API UField : public UObject
 
 	/**
 	* Find the metadata value associated with the key
+	* and return int32 
+	* @param Key The key to lookup in the metadata
+	* @return the int value stored in the metadata.
+	*/
+	int32 GetINTMetaData(const FName& Key) const
+	{
+		const FString & INTString = GetMetaData(Key);
+		int32 Value = FCString::Atoi(*INTString);
+		return Value;
+	}
+
+	/**
+	* Find the metadata value associated with the key
 	* and return float
 	* @param Key The key to lookup in the metadata
 	* @return the float value stored in the metadata.
@@ -177,7 +190,22 @@ class COREUOBJECT_API UField : public UObject
 		return Value;
 	}
 
+	/**
+	* Find the metadata value associated with the key
+	* and return float
+	* @param Key The key to lookup in the metadata
+	* @return the float value stored in the metadata.
+	*/
+	float GetFLOATMetaData(const FName& Key) const
+	{
+		const FString & FLOATString = GetMetaData(Key);
+		// FString == operator does case insensitive comparison
+		float Value = FCString::Atof(*FLOATString);
+		return Value;
+	}
+
 	UClass* GetClassMetaData(const TCHAR* Key) const;
+	UClass* GetClassMetaData(const FName& Key) const;
 
 	/** Clear any metadata associated with the key */
 	void RemoveMetaData(const TCHAR* Key);

@@ -1625,6 +1625,66 @@ UProperty* FPropertyHandleBase::GetProperty() const
 	return NULL;
 }
 
+UProperty* FPropertyHandleBase::GetMetaDataProperty() const
+{
+	UProperty* MetaDataProperty = nullptr;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if( PropertyNode.IsValid() )
+	{
+		MetaDataProperty = PropertyNode->GetProperty();
+		
+		// If we are part of an array, we need to take our meta-data from the array property
+		if( PropertyNode->GetArrayIndex() != INDEX_NONE )
+		{
+			TSharedPtr<FPropertyNode> ParentNode = PropertyNode->GetParentNodeSharedPtr();
+			check(ParentNode.IsValid());
+			MetaDataProperty = ParentNode->GetProperty();
+		}
+	}
+
+	return MetaDataProperty;
+}
+
+bool FPropertyHandleBase::HasMetaData(const FName& Key) const
+{
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->HasMetaData(Key) : false;
+}
+
+const FString& FPropertyHandleBase::GetMetaData(const FName& Key) const
+{
+	// if not found, return a static empty string
+	static const FString EmptyString;
+
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->GetMetaData(Key) : EmptyString;
+}
+
+bool FPropertyHandleBase::GetBoolMetaData(const FName& Key) const
+{
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->GetBoolMetaData(Key) : false;
+}
+
+int32 FPropertyHandleBase::GetINTMetaData(const FName& Key) const
+{
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->GetINTMetaData(Key) : 0;
+}
+
+float FPropertyHandleBase::GetFLOATMetaData(const FName& Key) const
+{
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->GetFLOATMetaData(Key) : 0.0f;
+}
+
+UClass* FPropertyHandleBase::GetClassMetaData(const FName& Key) const
+{
+	UProperty* const MetaDataProperty = GetMetaDataProperty();
+	return (MetaDataProperty) ? MetaDataProperty->GetClassMetaData(Key) : nullptr;
+}
+
 FString FPropertyHandleBase::GetToolTipText() const
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();

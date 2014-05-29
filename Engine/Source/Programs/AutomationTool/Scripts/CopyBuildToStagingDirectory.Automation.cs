@@ -190,6 +190,44 @@ public partial class Project : CommandUtils
 
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Localization/Engine"), "*.locres", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Engine"), true, !Params.Pak);
 
+			// Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
+			ConfigCacheIni PlatformGameConfig = null;
+			if (Params.GameConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
+			{
+				var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
+				var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
+
+				List<string> ExtraUFSDirs;
+				if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsUFS", out ExtraUFSDirs))
+				{
+					// Each string has the format '(Path="TheDirToStage")'
+					foreach (var PathStr in ExtraUFSDirs)
+					{
+						var PathParts = PathStr.Split('"');
+						if (PathParts.Length == 3)
+						{
+							var RelativePath = PathParts[1];
+							SC.StageFiles(StagedFileType.UFS, CombinePaths(ProjectContentRoot, RelativePath), "*", true, null, CombinePaths(StageContentRoot, RelativePath), true, !Params.Pak);
+						}
+					}
+				}
+
+				List<string> ExtraNonUFSDirs;
+				if (PlatformGameConfig.GetArray("/Script/UnrealEd.ProjectPackagingSettings", "DirectoriesToAlwaysStageAsNonUFS", out ExtraNonUFSDirs))
+				{
+					// Each string has the format '(Path="TheDirToStage")'
+					foreach (var PathStr in ExtraNonUFSDirs)
+					{
+						var PathParts = PathStr.Split('"');
+						if (PathParts.Length == 3)
+						{
+							var RelativePath = PathParts[1];
+							SC.StageFiles(StagedFileType.NonUFS, CombinePaths(ProjectContentRoot, RelativePath));
+						}
+					}
+				}
+			}
+
 			StagedFileType StagedFileTypeForMovies = StagedFileType.NonUFS;
 			if (Params.FileServer)
 			{
