@@ -1718,6 +1718,10 @@ public class GUBP : BuildCommand
         {
             return WaitForPromotionUserInput.StaticGetFullName("Shared", bInLabelPromoted);
         }
+        public override string GetTriggerStateName()
+        {
+            return GetFullName();
+        } 
     }
 
     public class LabelPromotableNode : GUBPNode
