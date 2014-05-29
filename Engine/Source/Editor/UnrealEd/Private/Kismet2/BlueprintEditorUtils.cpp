@@ -1474,7 +1474,7 @@ UBlueprint* FBlueprintEditorUtils::FindBlueprintForNodeChecked(const UEdGraphNod
 // Helper function to get the blueprint that ultimately owns a graph.
 UBlueprint* FBlueprintEditorUtils::FindBlueprintForGraph(const UEdGraph* Graph)
 {
-	for (UObject* TestOuter = Graph->GetOuter(); TestOuter; TestOuter = TestOuter->GetOuter())
+	for (UObject* TestOuter = Graph ? Graph->GetOuter() : NULL; TestOuter; TestOuter = TestOuter->GetOuter())
 	{
 		if (UBlueprint* Result = Cast<UBlueprint>(TestOuter))
 		{
