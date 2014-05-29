@@ -2,6 +2,10 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "AttributeComponent.h"
+#include "GameplayCueInterface.h"
+#include "Abilities/GameplayAbility.h"
+
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
@@ -235,7 +239,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
 	// Temp, only non instance, non periodic GEs can be predictive
-	check((BaseQualifier.PredictionKey() >= 0) == (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.PredictionKey() > 0) == (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();

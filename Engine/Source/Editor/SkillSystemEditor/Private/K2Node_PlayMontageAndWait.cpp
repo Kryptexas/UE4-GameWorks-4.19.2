@@ -3,7 +3,7 @@
 
 #include "SkillSystemEditorModulePrivatePCH.h"
 #include "SkillSystemBlueprintLibrary.h"
-#include "BlueprintPlayMontageAndWaitTaskProxy.h"
+#include "Abilities/Tasks/BlueprintPlayMontageAndWaitTaskProxy.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_PlayMontageAndWait"

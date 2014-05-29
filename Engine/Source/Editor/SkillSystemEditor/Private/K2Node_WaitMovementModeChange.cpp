@@ -3,7 +3,7 @@
 
 #include "SkillSystemEditorModulePrivatePCH.h"
 #include "SkillSystemBlueprintLibrary.h"
-#include "BlueprintWaitMovementModeChangeTaskProxy.h"
+#include "Abilities/Tasks/BlueprintWaitMovementModeChangeTaskProxy.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_WaitMovementModeChange"

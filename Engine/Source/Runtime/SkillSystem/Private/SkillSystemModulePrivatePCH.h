@@ -16,11 +16,10 @@
 
 #include "SkillSystemTypes.h"
 
-#include "SkillSystemClasses.h"
+//#include "SkillSystemClasses.h"
 
 #include "SkillSystem.h"
 #include "SkillSystemModule.h"
 #include "SkillSystemLog.h"
 
 #include "PlayMontageAndWaitAction.h"
-#include "BlueprintPlayMontageAndWaitTaskProxy.h"

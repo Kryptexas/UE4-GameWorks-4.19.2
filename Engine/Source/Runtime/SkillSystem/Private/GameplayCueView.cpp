@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "GameplayCueView.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "Particles/ParticleLODLevel.h"

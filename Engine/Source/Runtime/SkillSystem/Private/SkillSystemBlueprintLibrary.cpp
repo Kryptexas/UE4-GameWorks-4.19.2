@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "SkillSystemBlueprintLibrary.h"
+#include "Abilities/GameplayAbility.h"
+#include "Abilities/GameplayAbility_Instanced.h"
+#include "Abilities/Tasks/BlueprintPlayMontageAndWaitTaskProxy.h"
+#include "Abilities/Tasks/BlueprintWaitMovementModeChangeTaskProxy.h"
 #include "LatentActions.h"
 
 USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)

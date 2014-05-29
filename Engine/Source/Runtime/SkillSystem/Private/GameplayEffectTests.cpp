@@ -1,6 +1,9 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "SkillSystemTestPawn.h"
+#include "GameplayEffect.h"
+#include "AttributeSet.h"
 #include "GameplayTagsModule.h"
 //#include "SkillSystemTestPawn.h"
 
