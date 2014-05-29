@@ -1686,8 +1686,8 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 
 			for (ULandscapeSplineControlPoint* ControlPoint : SplineTool->SelectedSplineControlPoints)
 			{
-				ULandscapeSplinesComponent* Comp = ControlPoint->GetOuterULandscapeSplinesComponent();
-				ALandscapeProxy* FromProxy = Comp ? Cast<ALandscapeProxy>(Comp->GetOuter()) : NULL;
+				ULandscapeSplinesComponent* LandscapeSplinesComp = ControlPoint->GetOuterULandscapeSplinesComponent();
+				ALandscapeProxy* FromProxy = LandscapeSplinesComp ? Cast<ALandscapeProxy>(LandscapeSplinesComp->GetOuter()) : NULL;
 				if (FromProxy)
 				{
 					if (!Landscape)
@@ -1731,13 +1731,13 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 
 						if (ControlPoint->MeshComponent)
 						{
-							UControlPointMeshComponent* Comp = ControlPoint->MeshComponent;
-							Comp->Modify();
-							Comp->UnregisterComponent();
-							Comp->DetachFromParent(true);
-							Comp->InvalidateLightingCache();
-							Comp->Rename(NULL, Landscape);
-							Comp->AttachTo(Landscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+							UControlPointMeshComponent* ControlPointMeshComp = ControlPoint->MeshComponent;
+							ControlPointMeshComp->Modify();
+							ControlPointMeshComp->UnregisterComponent();
+							ControlPointMeshComp->DetachFromParent(true);
+							ControlPointMeshComp->InvalidateLightingCache();
+							ControlPointMeshComp->Rename(NULL, Landscape);
+							ControlPointMeshComp->AttachTo(Landscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
 						}
 
 						ControlPoint->UpdateSplinePoints(true, false);
@@ -1747,8 +1747,8 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 
 			for (ULandscapeSplineSegment* Segment : SplineTool->SelectedSplineSegments)
 			{
-				ULandscapeSplinesComponent* Comp = Segment->GetOuterULandscapeSplinesComponent();
-				ALandscapeProxy* FromProxy = Comp ? Cast<ALandscapeProxy>(Comp->GetOuter()) : NULL;
+				ULandscapeSplinesComponent* LandscapeSplinesComp = Segment->GetOuterULandscapeSplinesComponent();
+				ALandscapeProxy* FromProxy = LandscapeSplinesComp ? Cast<ALandscapeProxy>(LandscapeSplinesComp->GetOuter()) : NULL;
 				if (FromProxy)
 				{
 					if (!Landscape)
@@ -1785,14 +1785,14 @@ void FEdModeLandscape::SplineMoveToCurrentLevel()
 						Segment->Rename(NULL, Landscape->SplineComponent);
 						Landscape->SplineComponent->Segments.Add(Segment);
 
-						for (USplineMeshComponent* Comp : Segment->MeshComponents)
+						for (USplineMeshComponent* SplineMeshComp : Segment->MeshComponents)
 						{
-							Comp->Modify();
-							Comp->UnregisterComponent();
-							Comp->DetachFromParent(true);
-							Comp->InvalidateLightingCache();
-							Comp->Rename(NULL, Landscape);
-							Comp->AttachTo(Landscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+							SplineMeshComp->Modify();
+							SplineMeshComp->UnregisterComponent();
+							SplineMeshComp->DetachFromParent(true);
+							SplineMeshComp->InvalidateLightingCache();
+							SplineMeshComp->Rename(NULL, Landscape);
+							SplineMeshComp->AttachTo(Landscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
 						}
 
 						Segment->UpdateSplinePoints();

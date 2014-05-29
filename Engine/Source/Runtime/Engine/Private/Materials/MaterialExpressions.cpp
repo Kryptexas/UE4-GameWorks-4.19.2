@@ -3922,12 +3922,12 @@ bool UMaterialExpressionQualitySwitch::IsInputConnectionRequired(int32 InputInde
 bool UMaterialExpressionQualitySwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	TArray<FExpressionInput*> Inputs = GetInputs();
+	TArray<FExpressionInput*> ExpressionInputs = GetInputs();
 
-	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
+	for (FExpressionInput* ExpressionInput : ExpressionInputs)
 	{
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-		if (Inputs[Index]->Expression && !Inputs[Index]->Expression->ContainsInputLoop() && Inputs[Index]->Expression->IsResultMaterialAttributes(Inputs[Index]->OutputIndex))
+		if (ExpressionInput->Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
 		{
 			return true;
 		}
@@ -4025,12 +4025,12 @@ bool UMaterialExpressionFeatureLevelSwitch::IsInputConnectionRequired(int32 Inpu
 bool UMaterialExpressionFeatureLevelSwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	TArray<FExpressionInput*> Inputs = GetInputs();
+	TArray<FExpressionInput*> ExpressionInputs = GetInputs();
 
-	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
+	for (FExpressionInput* ExpressionInput : ExpressionInputs)
 	{
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
-		if (Inputs[Index]->Expression && !Inputs[Index]->Expression->ContainsInputLoop() && Inputs[Index]->Expression->IsResultMaterialAttributes(Inputs[Index]->OutputIndex))
+		if (ExpressionInput->Expression && !ExpressionInput->Expression->ContainsInputLoop() && ExpressionInput->Expression->IsResultMaterialAttributes(ExpressionInput->OutputIndex))
 		{
 			return true;
 		}

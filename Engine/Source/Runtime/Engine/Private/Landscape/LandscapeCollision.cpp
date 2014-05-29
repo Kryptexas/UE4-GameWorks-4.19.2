@@ -266,8 +266,10 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 				HeightfieldRef = GSharedHeightfieldRefs.Add(HeightfieldGuid, new FPhysXHeightfieldRef(HeightfieldGuid));
 
 				// Create heightfield shape
-				FPhysXInputStream HeightFieldStream(CookedCollisionData.GetData(), CookedCollisionData.Num());
-				HeightfieldRef->RBHeightfield = GPhysXSDK->createHeightField(HeightFieldStream);
+				{
+					FPhysXInputStream HeightFieldStream(CookedCollisionData.GetData(), CookedCollisionData.Num());
+					HeightfieldRef->RBHeightfield = GPhysXSDK->createHeightField(HeightFieldStream);
+				}
 
 				for (UPhysicalMaterial* PhysicalMaterial : CookedPhysicalMaterials)
 				{

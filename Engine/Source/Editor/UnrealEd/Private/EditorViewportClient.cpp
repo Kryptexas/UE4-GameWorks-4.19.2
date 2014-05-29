@@ -81,10 +81,10 @@ FViewportCameraTransform::FViewportCameraTransform()
 	: TransitionCurve( new FCurveSequence( 0.0f, FocusConstants::TransitionTime, ECurveEaseFunction::CubicOut ) )
 	, ViewLocation( FVector::ZeroVector )
 	, ViewRotation( FRotator::ZeroRotator )
-	, DesiredLocation(FVector::ZeroVector)
+	, DesiredLocation( FVector::ZeroVector )
 	, LookAt( FVector::ZeroVector )
-	, StartLocation(FVector::ZeroVector)
-	, OrthoZoom(DEFAULT_ORTHOZOOM)
+	, StartLocation( FVector::ZeroVector )
+	, OrthoZoom( DEFAULT_ORTHOZOOM )
 {}
 
 void FViewportCameraTransform::SetLocation( const FVector& Position )
@@ -203,7 +203,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bNeedsLinkedRedraw(false)
 	, bNeedsInvalidateHitProxy(false)
 	, bUsingOrbitCamera(false)
-	, bDisableInput(false)
+	, bDisableInput( false )
 	, bDrawAxes(true)
 	, bSetListenerPosition(false)
 	, LandscapeLODOverride(-1)
@@ -600,11 +600,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 			OrthoHeight = (ControllingActorViewInfo.OrthoWidth / 2.0f) * YScale;
 
 			const float NearViewPlane = ViewInitOptions.ViewMatrix.GetOrigin().Z;
-			const float FarPlane = NearViewPlane - 2.0f*WORLD_MAX;
+			const float FarViewPlane = NearViewPlane - 2.0f*WORLD_MAX;
 
-			const float InverseRange = 1.0f / (FarPlane - NearViewPlane);
+			const float InverseRange = 1.0f / (FarViewPlane - NearViewPlane);
 			ZScale = -2.0f * InverseRange;
-			ZOffset = -(FarPlane + NearViewPlane) * InverseRange;
+			ZOffset = -(FarViewPlane + NearViewPlane) * InverseRange;
 		}
 		else
 		{
@@ -1500,10 +1500,6 @@ void FEditorViewportClient::UpdateMouseDelta()
 									Drag *= CameraSpeed;
 								}
 								MoveViewportCamera( Drag, Rot );
-
-								const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) ? true : false;
-								const bool MiddleMouseButtonDown = Viewport->KeyState(EKeys::MiddleMouseButton) ? true : false;
-								const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton) ? true : false;
 
 								if ( IsPerspective() && LeftMouseButtonDown && !MiddleMouseButtonDown && !RightMouseButtonDown )
 								{
@@ -3685,9 +3681,9 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 }
 
 
-void FEditorViewportClient::MouseEnter(FViewport* Viewport,int32 x, int32 y)
+void FEditorViewportClient::MouseEnter(FViewport* InViewport,int32 x, int32 y)
 {
-	MouseMove(Viewport, x, y);
+	MouseMove(InViewport, x, y);
 }
 
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
@@ -3697,13 +3693,13 @@ void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 	CurrentMousePos = FIntPoint(x, y);
 }
 
-void FEditorViewportClient::MouseLeave( FViewport* Viewport )
+void FEditorViewportClient::MouseLeave(FViewport* InViewport)
 {
 	check(IsInGameThread());
 
 	CurrentMousePos = FIntPoint(-1, -1);
 
-	FCommonViewportClient::MouseLeave(Viewport);
+	FCommonViewportClient::MouseLeave(InViewport);
 }
 
 void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )

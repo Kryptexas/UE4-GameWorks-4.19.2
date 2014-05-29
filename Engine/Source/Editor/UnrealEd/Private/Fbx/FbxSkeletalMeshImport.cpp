@@ -738,10 +738,10 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 					else
 					{
 						// first try to find parent who is null group and see if you can try test it again
-						FbxNode * Parent = Current->GetParent();
-						while (Parent)
+						FbxNode * ParentNode = Current->GetParent();
+						while (ParentNode)
 						{
-							FbxNodeAttribute* Attr = Parent->GetNodeAttribute();
+							FbxNodeAttribute* Attr = ParentNode->GetNodeAttribute();
 							if ( Attr && Attr->GetAttributeType() == FbxNodeAttribute::eNull )
 							{
 								// found it 
@@ -749,10 +749,10 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 							}
 
 							// find next parent
-							Parent = Parent->GetParent();
+							ParentNode = ParentNode->GetParent();
 						}
 
-						if ( Parent && CurrentPose->IsValidBindPose(Parent) )
+						if (ParentNode && CurrentPose->IsValidBindPose(ParentNode))
 						{
 							PoseArray.Add(CurrentPose);
 							UE_LOG(LogFbx, Warning, TEXT("Valid bind pose for Pose (%s) - %s"), *PoseName, *FString(Current->GetName()));
@@ -1096,7 +1096,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	TArray<FbxSurfaceMaterial*> FbxMaterials;
 	for( int32 NodeIndex = 0; NodeIndex < NodeArray.Num(); ++NodeIndex )
 	{
-		FbxNode* Node = NodeArray[NodeIndex];
+		Node = NodeArray[NodeIndex];
 
 		int32 MaterialCount = Node->GetMaterialCount();
 

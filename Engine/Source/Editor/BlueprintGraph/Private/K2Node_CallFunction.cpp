@@ -1220,12 +1220,12 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 				struct FStructConnectHelper
 				{
-					static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
+					static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
 					{
 						auto Pin = Node->FindPin(PinName);
 						if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
 						{
-							const bool bConnected = Schema->TryCreateConnection(Pin, BetterSelf);
+							const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
 							if (!bConnected)
 							{
 								MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);

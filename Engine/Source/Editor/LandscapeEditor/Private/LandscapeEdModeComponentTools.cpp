@@ -1164,7 +1164,7 @@ public:
 					{
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i )
 						{
-							FGizmoPreData GizmoData[NeighborNum];
+							FGizmoPreData GizmoPreData[NeighborNum];
 
 							for (int32 LocalY = 0; LocalY < 2; ++LocalY)
 							{
@@ -1172,18 +1172,18 @@ public:
 								{
 									int32 x = FMath::Clamp(LX + LocalX, X1, X2);
 									int32 y = FMath::Clamp(LY + LocalY, Y1, Y2);
-									GizmoData[LocalX + LocalY*2].Ratio = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(x, y));
+									GizmoPreData[LocalX + LocalY * 2].Ratio = LandscapeInfo->SelectedRegion.FindRef(FIntPoint(x, y));
 									int32 index = (x-X1) + (y-Y1)*(1+X2-X1);
 
 									if (bApplyToAll)
 									{
 										if ( i < 0 )
 										{
-											GizmoData[LocalX + LocalY*2].Data = Gizmo->GetNormalizedHeight( HeightData[index] );
+											GizmoPreData[LocalX + LocalY * 2].Data = Gizmo->GetNormalizedHeight(HeightData[index]);
 										}
 										else
 										{
-											GizmoData[LocalX + LocalY*2].Data = WeightDatas[index*LayerNum + i ];
+											GizmoPreData[LocalX + LocalY * 2].Data = WeightDatas[index*LayerNum + i];
 										}
 									}
 									else
@@ -1191,11 +1191,11 @@ public:
 										typename ToolTarget::CacheClass::DataType OriginalValue = Data[index];
 										if ( EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap )
 										{
-											GizmoData[LocalX + LocalY*2].Data = Gizmo->GetNormalizedHeight(OriginalValue);
+											GizmoPreData[LocalX + LocalY * 2].Data = Gizmo->GetNormalizedHeight(OriginalValue);
 										}
 										else
 										{
-											GizmoData[LocalX + LocalY*2].Data = OriginalValue;
+											GizmoPreData[LocalX + LocalY * 2].Data = OriginalValue;
 										}
 									}
 								}
@@ -1206,14 +1206,14 @@ public:
 							float FracY = LandscapeLocal.Y - LY;
 							LerpedData.Ratio = bFullCopy ? 1.f : 
 								FMath::Lerp(
-								FMath::Lerp(GizmoData[0].Ratio, GizmoData[1].Ratio, FracX),
-								FMath::Lerp(GizmoData[2].Ratio, GizmoData[3].Ratio, FracX),
+								FMath::Lerp(GizmoPreData[0].Ratio, GizmoPreData[1].Ratio, FracX),
+								FMath::Lerp(GizmoPreData[2].Ratio, GizmoPreData[3].Ratio, FracX),
 								FracY
 								);
 
 							LerpedData.Data = FMath::Lerp(
-								FMath::Lerp(GizmoData[0].Data, GizmoData[1].Data, FracX),
-								FMath::Lerp(GizmoData[2].Data, GizmoData[3].Data, FracX),
+								FMath::Lerp(GizmoPreData[0].Data, GizmoPreData[1].Data, FracX),
+								FMath::Lerp(GizmoPreData[2].Data, GizmoPreData[3].Data, FracX),
 								FracY
 								);
 
@@ -1240,29 +1240,29 @@ public:
 									}
 								}
 
-								FGizmoSelectData* GizmoData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
-								if (GizmoData)
+								FGizmoSelectData* GizmoSelectData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								if (GizmoSelectData)
 								{
 									if (bApplyToAll)
 									{
 										if (i < 0)
 										{
-											GizmoData->HeightData = LerpedData.Data;
+											GizmoSelectData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											GizmoData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
+											GizmoSelectData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
 										}
 									}
 									else
 									{
 										if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 										{
-											GizmoData->HeightData = LerpedData.Data;
+											GizmoSelectData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											GizmoData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
+											GizmoSelectData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
 								}

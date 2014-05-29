@@ -1451,13 +1451,13 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			const UStaticMesh* const Mesh = MeshComponent->StaticMesh;
 			const FBoxSphereBounds MeshBounds = Mesh->GetBounds();
 
-			const float T = MeshSettings[i].T * Rescale;
+			const float RescaledT = MeshSettings[i].T * Rescale;
 			const FLandscapeSplineMeshEntry* MeshEntry = MeshSettings[i].MeshEntry;
 			const ESplineMeshAxis::Type SideAxis = CrossAxis(MeshEntry->ForwardAxis, MeshEntry->UpAxis);
 
 			const float TEnd = MeshSettings[i + 1].T * Rescale;
 
-			const float CosInterp = 0.5f - 0.5f * FMath::Cos(T * PI);
+			const float CosInterp = 0.5f - 0.5f * FMath::Cos(RescaledT * PI);
 			const float Width = FMath::Lerp(StartWidth, EndWidth, CosInterp);
 			const bool bDoOrientationRoll = (MeshEntry->ForwardAxis == ESplineMeshAxis::X && MeshEntry->UpAxis == ESplineMeshAxis::Y) ||
 			                                (MeshEntry->ForwardAxis == ESplineMeshAxis::Y && MeshEntry->UpAxis == ESplineMeshAxis::Z) ||
@@ -1502,8 +1502,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			Offset *= Scale2D;
 			Offset = RotateVec2D(Offset, -Roll);
 
-			MeshComponent->SplineParams.StartPos = SplineInfo.Eval(T, FVector::ZeroVector);
-			MeshComponent->SplineParams.StartTangent = SplineInfo.EvalDerivative(T, FVector::ZeroVector) * (TEnd - T);
+			MeshComponent->SplineParams.StartPos = SplineInfo.Eval(RescaledT, FVector::ZeroVector);
+			MeshComponent->SplineParams.StartTangent = SplineInfo.EvalDerivative(RescaledT, FVector::ZeroVector) * (TEnd - RescaledT);
 			MeshComponent->SplineParams.StartScale = Scale2D;
 			MeshComponent->SplineParams.StartRoll = Roll;
 			MeshComponent->SplineParams.StartOffset = Offset;
@@ -1551,7 +1551,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			OffsetEnd = RotateVec2D(OffsetEnd, -RollEnd);
 
 			MeshComponent->SplineParams.EndPos = SplineInfo.Eval(TEnd, FVector::ZeroVector);
-			MeshComponent->SplineParams.EndTangent = SplineInfo.EvalDerivative(TEnd, FVector::ZeroVector) * (TEnd - T);
+			MeshComponent->SplineParams.EndTangent = SplineInfo.EvalDerivative(TEnd, FVector::ZeroVector) * (TEnd - RescaledT);
 			MeshComponent->SplineParams.EndScale = Scale2DEnd;
 			MeshComponent->SplineParams.EndRoll = RollEnd;
 			MeshComponent->SplineParams.EndOffset = OffsetEnd;

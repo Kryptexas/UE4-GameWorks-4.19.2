@@ -79,18 +79,18 @@ public:
 	{
 		struct Local
 		{
-			static void BuildLandscapeVisualizersMenu(FMenuBuilder& MenuBuilder)
+			static void BuildLandscapeVisualizersMenu(FMenuBuilder& InMenuBuilder)
 			{
 				const FLandscapeEditorCommands& LandscapeActions = FLandscapeEditorCommands::Get();
 
-				MenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
+				InMenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
 				{
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeNormal,       NAME_None, LOCTEXT("LandscapeViewModeNormal", "Normal"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLOD,          NAME_None, LOCTEXT("LandscapeViewModeLOD", "LOD"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDensity, NAME_None, LOCTEXT("LandscapeViewModeLayerDensity", "Layer Density"));
-					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDebug,   NAME_None, LOCTEXT("LandscapeViewModeLayerDebug", "Layer Debug"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeNormal, NAME_None, LOCTEXT("LandscapeViewModeNormal", "Normal"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLOD, NAME_None, LOCTEXT("LandscapeViewModeLOD", "LOD"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDensity, NAME_None, LOCTEXT("LandscapeViewModeLayerDensity", "Layer Density"));
+					InMenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDebug, NAME_None, LOCTEXT("LandscapeViewModeLayerDebug", "Layer Debug"));
 				}
-				MenuBuilder.EndSection();
+				InMenuBuilder.EndSection();
 			}
 		};
 		MenuBuilder.AddSubMenu(LOCTEXT("LandscapeSubMenu", "Visualizers"), LOCTEXT("LandscapeSubMenu_ToolTip", "Select a Landscape visualiser"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeVisualizersMenu));

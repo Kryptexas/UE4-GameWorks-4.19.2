@@ -263,9 +263,9 @@ void FLevelEditorModule::AttachSequencer(TSharedPtr<SWidget> SequencerWidget, TS
 	{
 		struct Local
 		{
-			static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> SequencerAssetEditor )
+			static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> InSequencerAssetEditor )
 			{
-				SequencerAssetEditor.Pin()->CloseWindow();
+				InSequencerAssetEditor.Pin()->CloseWindow();
 			}
 		};
 		

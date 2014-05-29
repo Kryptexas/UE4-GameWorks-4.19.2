@@ -17,7 +17,9 @@ SKILLSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogSkillSystem, Warning, All);
 	UE_LOG(LogSkillSystem, Verbosity, TEXT("%s"), *Str); \
 }
 
-#define SKILL_LOG_SCOPE( Format, ... ) SkillSystemLogScope LogScope##__LINE__( FString::Printf(Format, ##__VA_ARGS__));
+#define SKILL_LOG_TOKENPASTE_INNER(x,y) x##y
+#define SKILL_LOG_TOKENPASTE(x,y) SKILL_LOG_TOKENPASTE_INNER(x,y)
+#define SKILL_LOG_SCOPE( Format, ... ) SkillSystemLogScope SKILL_LOG_TOKENPASTE(LogScope,__LINE__)( FString::Printf(Format, ##__VA_ARGS__));
 
 struct SkillSystemLogScope
 {

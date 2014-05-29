@@ -629,11 +629,11 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			InitOptions.DefaultMenuExtender = MakeShareable(new FExtender);
 			InitOptions.DefaultMenuExtender->AddMenuExtension(
 				"FolderSection", EExtensionHook::Before, GetLevelEditorActions(),
-				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> WeakLevelEditor){
+				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> InWeakLevelEditor){
 					// Only extend the menu if we have actors selected
 					if (GEditor->GetSelectedActors()->Num())
 					{
-						FLevelEditorContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
+						FLevelEditorContextMenu::FillMenu(MenuBuilder, InWeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
 					}
 				}, WeakLevelEditor)
 			);

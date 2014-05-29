@@ -337,7 +337,7 @@ bool FTranslationDataManager::WriteJSONToTextFile(TSharedRef<FJsonObject>& Outpu
 	return CheckoutAndSaveWasSuccessful;
 }
 
-void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& ManifestFilePath )
+void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& InManifestFilePath )
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingSourceControlHistory", "Loading Translation History from Source Control..."), true);
 
@@ -345,13 +345,13 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
 	UpdateStatusOperation->SetUpdateHistory( true );
-	ECommandResult::Type Result = SourceControlProvider.Execute(UpdateStatusOperation, ManifestFilePath);
+	ECommandResult::Type Result = SourceControlProvider.Execute(UpdateStatusOperation, InManifestFilePath);
 	bool bGetHistoryFromSourceControlSucceeded = Result == ECommandResult::Succeeded;
 
 	// Now we can get information about the file's history from the source control state, retrieve that
 	TArray<FString> Files;
 	TArray< TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > States;
-	Files.Add(ManifestFilePath);
+	Files.Add(InManifestFilePath);
 	Result = SourceControlProvider.GetState( Files,  States, EStateCacheUsage::ForceUpdate );
 	bGetHistoryFromSourceControlSucceeded = bGetHistoryFromSourceControlSucceeded && (Result == ECommandResult::Succeeded);
 	FSourceControlStatePtr SourceControlState;
@@ -372,7 +372,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 			TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryItemIndex);
 			if(Revision.IsValid())
 			{
-				FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+				FString ManifestFullPath = FPaths::ConvertRelativePathToFull(InManifestFilePath);
 				FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
 
 				bool IsEngineManifest = false;
@@ -394,7 +394,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 					SavedDir = FPaths::GameSavedDir();
 				}
 
-				FString TempFileName = SavedDir / "CachedTranslationHistory" / "UE4-Manifest-" + ProjectName + "-" + FPaths::GetBaseFilename(ManifestFilePath) + "-Rev-" + FString::FromInt(Revision->GetRevisionNumber());
+				FString TempFileName = SavedDir / "CachedTranslationHistory" / "UE4-Manifest-" + ProjectName + "-" + FPaths::GetBaseFilename(InManifestFilePath) + "-Rev-" + FString::FromInt(Revision->GetRevisionNumber());
 
 				
 				if (!FPaths::FileExists(TempFileName))	// Don't bother syncing again if we already have this manifest version cached locally
@@ -451,7 +451,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 				else // OldManifestPtr.IsValid() is false
 				{
 					FFormatNamedArguments Arguments;
-					Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
+					Arguments.Add(TEXT("ManifestFilePath"), FText::FromString(InManifestFilePath));
 					Arguments.Add( TEXT("ManifestRevisionNumber"), FText::AsNumber(Revision->GetRevisionNumber()) );
 					FMessageLog TranslationEditorMessageLog("TranslationEditor");
 					TranslationEditorMessageLog.Warning(FText::Format(LOCTEXT("PreviousManifestCorrupt", "Previous revision {ManifestRevisionNumber} of {ManifestFilePath} failed to load correctly. Ignoring."), Arguments));
@@ -463,7 +463,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 	else // (bGetHistoryFromSourceControlSucceeded && SourceControlState.IsValid()) is false
 	{
 		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
+		Arguments.Add(TEXT("ManifestFilePath"), FText::FromString(InManifestFilePath));
 		FMessageLog TranslationEditorMessageLog("SourceControl");
 		TranslationEditorMessageLog.Warning(FText::Format(LOCTEXT("SourceControlStateQueryFailed", "Failed to query source control state of file {ManifestFilePath}."), Arguments));
 		TranslationEditorMessageLog.Notify(LOCTEXT("RetrieveTranslationHistoryFailed", "Unable to Retrieve Translation History from Source Control!"));

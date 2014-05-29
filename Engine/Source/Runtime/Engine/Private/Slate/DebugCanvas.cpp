@@ -114,16 +114,16 @@ FCanvas* FDebugCanvasDrawer::GetGameThreadDebugCanvas()
 }
 
 
-void FDebugCanvasDrawer::BeginRenderingCanvas( const FIntRect& InCanvasRect )
+void FDebugCanvasDrawer::BeginRenderingCanvas( const FIntRect& CanvasRect )
 {
-	if( InCanvasRect.Size().X > 0 && InCanvasRect.Size().Y > 0 )
+	if( CanvasRect.Size().X > 0 && CanvasRect.Size().Y > 0 )
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER
 		(
 			BeginRenderingDebugCanvas,
 			FDebugCanvasDrawer*, CanvasDrawer, this, 
 			FCanvasProxy*, CanvasToRender, GameThreadCanvas,
-			FIntRect, CanvasRect, InCanvasRect,
+			FIntRect, CanvasRect, CanvasRect,
 			{
 				// Delete the old rendering thread canvas
 				if( CanvasDrawer->GetRenderThreadCanvas() && CanvasToRender != NULL )

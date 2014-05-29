@@ -893,14 +893,13 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	if (!bIsCookable)
 	{
-		TArray<FFilePlatformRequest> FileRequests;
-		UnsolicitedCookedPackages.DequeueAll(FileRequests);
-		for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+		TArray<FFilePlatformRequest> UnsolicitedFileRequests;
+		UnsolicitedCookedPackages.DequeueAll(UnsolicitedFileRequests);
+		for (const FFilePlatformRequest &Request : UnsolicitedFileRequests)
 		{
-			const FFilePlatformRequest &Request = FileRequests[Index];
 			if ( Request.Platformname == PlatformFname )
 			{
-				FString StandardFilename = FileRequests[Index].Filename;
+				FString StandardFilename = Request.Filename;
 				FPaths::MakeStandardFilename( StandardFilename );
 				UnsolicitedFiles.Add( StandardFilename );
 			}
@@ -925,11 +924,10 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	UE_LOG( LogCookOnTheFly, Display, TEXT("Cook complete %s"), *FileRequest.Filename)
 
-	TArray<FFilePlatformRequest> FileRequests;
-	UnsolicitedCookedPackages.DequeueAll(FileRequests);
-	for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+	TArray<FFilePlatformRequest> UnsolicitedFileRequests;
+	UnsolicitedCookedPackages.DequeueAll(UnsolicitedFileRequests);
+	for (const FFilePlatformRequest &Request : UnsolicitedFileRequests)
 	{
-		const FFilePlatformRequest &Request = FileRequests[Index];
 		if ( Request.Filename == FileRequest.Filename )
 		{
 			// don't do anything we don't want this guy

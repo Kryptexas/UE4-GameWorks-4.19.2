@@ -881,28 +881,28 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		return nullptr;
 	}
 	
-	ALandscapeProxy*	Landscape;
+	ALandscapeProxy*	LandscapeProxy;
 	FGuid				LandscapeGuid = Settings.LandscapeGuid;
 	
 	if (LandscapeGuid.IsValid())
 	{
-		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
+		LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
 	}
 	else
 	{
-		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
+		LandscapeProxy = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
 		LandscapeGuid = FGuid::NewGuid();
 	}
 	
-	Landscape->SetActorTransform(Settings.LandscapeTransform);
+	LandscapeProxy->SetActorTransform(Settings.LandscapeTransform);
 	
 	if (Settings.LandscapeMaterial)
 	{
-		Landscape->LandscapeMaterial = Settings.LandscapeMaterial;
+		LandscapeProxy->LandscapeMaterial = Settings.LandscapeMaterial;
 	}
 	
 	// Create landscape components	
-	Landscape->Import(
+	LandscapeProxy->Import(
 		LandscapeGuid, 
 		Settings.SizeX, 
 		Settings.SizeY, 
@@ -913,7 +913,7 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		*Settings.HeightmapFilename, 
 		Settings.ImportLayers);
 
-	return Landscape;
+	return LandscapeProxy;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -528,9 +528,9 @@ void FCanvas::Flush(bool bForce)
 			// disable depth test & writes
 			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-			const FIntRect& ViewRect = Parameters.ViewRect;
+			const FIntRect& ViewportRect = Parameters.ViewRect;
 			// set viewport to RT size
-			RHISetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
+			RHISetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
 		});
 	}
 
