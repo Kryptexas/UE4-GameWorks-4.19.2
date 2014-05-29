@@ -1620,9 +1620,12 @@ void dtCrowd::updateStepCorridor(const float dt, dtCrowdAgentDebugInfo*)
 
 		// Move along navmesh.
 		m_navquery->updateLinkFilter(ag->params.linkFilter);
-		ag->corridor.movePosition(ag->npos, m_navquery, &m_filters[ag->params.filter]);
-		// Get valid constrained position back.
-		dtVcopy(ag->npos, ag->corridor.getPos());
+		const bool bMoved = ag->corridor.movePosition(ag->npos, m_navquery, &m_filters[ag->params.filter]);
+		if (bMoved)
+		{
+			// Get valid constrained position back.
+			dtVcopy(ag->npos, ag->corridor.getPos());
+		}
 
 		// If not using path, truncate the corridor to just one poly.
 		if (ag->targetState == DT_CROWDAGENT_TARGET_NONE || ag->targetState == DT_CROWDAGENT_TARGET_VELOCITY)

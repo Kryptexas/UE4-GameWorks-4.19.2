@@ -503,7 +503,7 @@ depends on local polygon density, query search extents, etc.
 The resulting position will differ from the desired position if the desired position is not on the navigation mesh, 
 or it can't be reached using a local search.
 */
-void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
+bool dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, const dtQueryFilter* filter)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -513,8 +513,14 @@ void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	static const int MAX_VISITED = 16;
 	dtPolyRef visited[MAX_VISITED];
 	int nvisited = 0;
-	navquery->moveAlongSurface(m_path[0], m_pos, npos, filter,
-							   result, visited, &nvisited, MAX_VISITED);
+
+	// [UE4: check status, it may fail due to runtime navmesh rebuild]
+	const dtStatus status = navquery->moveAlongSurface(m_path[0], m_pos, npos, filter, result, visited, &nvisited, MAX_VISITED);
+	if (dtStatusFailed(status))
+	{
+		return false;
+	}
+
 	m_npath = dtMergeCorridorStartMoved(m_path, m_npath, m_maxPath, visited, nvisited);
 	
 	// Adjust the position to stay on top of the navmesh.
@@ -522,6 +528,8 @@ void dtPathCorridor::movePosition(const float* npos, dtNavMeshQuery* navquery, c
 	navquery->getPolyHeight(m_path[0], result, &h);
 	result[1] = h;
 	dtVcopy(m_pos, result);
+
+	return true;
 }
 
 /**
