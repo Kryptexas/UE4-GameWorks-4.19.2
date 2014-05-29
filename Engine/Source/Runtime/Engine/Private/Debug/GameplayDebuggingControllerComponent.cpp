@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/HUD.h"
 #include "BehaviorTreeDelegates.h"
 #include "VisualLog.h"
 
