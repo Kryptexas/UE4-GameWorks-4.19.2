@@ -712,7 +712,7 @@ bool ULandscapeSplineControlPoint::OwnsComponent(const class UControlPointMeshCo
 }
 
 #if WITH_EDITOR
-void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
+void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, bool bUpdateAttachedSegments)
 {
 	ULandscapeSplinesComponent* OuterSplines = GetOuterULandscapeSplinesComponent();
 
@@ -738,7 +738,8 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
 			if (MeshComponent == NULL)
 			{
 				Modify();
-				MeshComponent = ConstructObject<UControlPointMeshComponent>(UControlPointMeshComponent::StaticClass(), OuterSplines->GetOuter(), NAME_None, RF_Transactional|RF_TextExportTransient);
+				OuterSplines->GetOuter()->Modify();
+				MeshComponent = ConstructObject<UControlPointMeshComponent>(UControlPointMeshComponent::StaticClass(), OuterSplines->GetOuter(), NAME_None, RF_Transactional | RF_TextExportTransient);
 				MeshComponent->bSelected = bSelected;
 				MeshComponent->AttachTo(OuterSplines);
 			}
@@ -765,6 +766,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
 			}
 
 			Modify();
+			MeshComponent->GetOuter()->Modify();
 			MeshComponent->DestroyComponent();
 			MeshComponent = NULL;
 
@@ -865,9 +867,12 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
 		bNavDirty = false;
 	}
 
-	for (const FLandscapeSplineConnection& Connection : ConnectedSegments)
+	if (bUpdateAttachedSegments)
 	{
-		Connection.Segment->UpdateSplinePoints(bUpdateCollision);
+		for (const FLandscapeSplineConnection& Connection : ConnectedSegments)
+		{
+			Connection.Segment->UpdateSplinePoints(bUpdateCollision);
+		}
 	}
 }
 
@@ -890,8 +895,7 @@ void ULandscapeSplineControlPoint::DeleteSplinePoints()
 
 	if (MeshComponent != NULL)
 	{
-		MeshComponent->Modify();
-		MeshComponent->UnregisterComponent();
+		MeshComponent->GetOuter()->Modify();
 		MeshComponent->DestroyComponent();
 		MeshComponent = NULL;
 	}
@@ -1383,6 +1387,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 			}
 			else
 			{
+				OuterSplines->GetOuter()->Modify();
 				MeshComponent = ConstructObject<USplineMeshComponent>(USplineMeshComponent::StaticClass(), OuterSplines->GetOuter(), NAME_None, RF_Transactional|RF_TextExportTransient);
 				MeshComponent->bSelected = bSelected;
 				MeshComponent->AttachTo(OuterSplines);
@@ -1427,7 +1432,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 			for (int32 i = iMesh; i < MeshComponents.Num(); i++)
 			{
-				//MeshComponents[i]->Modify();
+				MeshComponents[i]->GetOuter()->Modify();
 				MeshComponents[i]->DestroyComponent();
 			}
 
@@ -1618,6 +1623,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 			for (auto* MeshComponent : MeshComponents)
 			{
+				MeshComponent->GetOuter()->Modify();
 				MeshComponent->DestroyComponent();
 			}
 			MeshComponents.Empty();
@@ -1665,8 +1671,7 @@ void ULandscapeSplineSegment::DeleteSplinePoints()
 
 	for (auto* MeshComponent : MeshComponents)
 	{
-		MeshComponent->Modify();
-		MeshComponent->UnregisterComponent();
+		MeshComponent->GetOuter()->Modify();
 		MeshComponent->DestroyComponent();
 	}
 	MeshComponents.Empty();

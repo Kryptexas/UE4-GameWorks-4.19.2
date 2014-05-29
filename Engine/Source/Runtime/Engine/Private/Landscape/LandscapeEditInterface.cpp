@@ -53,10 +53,10 @@ void FLandscapeEditDataInterface::Flush()
 	// delete all the FLandscapeTextureDataInfo allocations
 	for( TMap<UTexture2D*, FLandscapeTextureDataInfo*>::TIterator It(TextureDataMap); It;  ++It )
 	{
-		delete It.Value();
+		delete It.Value();	// FLandscapeTextureDataInfo destructors will unlock any texture data
 	}
 
-	TextureDataMap.Empty();	// FLandscapeTextureDataInfo destructors will unlock any texture data
+	TextureDataMap.Empty();
 }
 
 #include "LevelUtils.h"
@@ -181,10 +181,10 @@ bool FLandscapeEditDataInterface::GetComponentsInRegion(int32 X1, int32 Y1, int3
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
 		for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-		{		
+		{
 			ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
 			if( Component )
-			{				
+			{
 				bNotLocked = bNotLocked && ( !FLevelUtils::IsLevelLocked(Component->GetLandscapeProxy()->GetLevel()) ) && FLevelUtils::IsLevelVisible(Component->GetLandscapeProxy()->GetLevel());
 				if (OutComponents)
 				{
@@ -248,7 +248,7 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
 		for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-		{	
+		{
 			FIntPoint ComponentKey(ComponentIndexX,ComponentIndexY);
 			ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(ComponentKey);
 

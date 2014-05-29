@@ -154,7 +154,7 @@ public:
 	virtual void AutoSetConnections(bool bIncludingValid);
 
 	/** Update spline points */
-	virtual void UpdateSplinePoints(bool bUpdateCollision = true);
+	virtual void UpdateSplinePoints(bool bUpdateCollision = true, bool bUpdateAttachedSegments = true);
 
 	/** Delete spline points */
 	virtual void DeleteSplinePoints();
