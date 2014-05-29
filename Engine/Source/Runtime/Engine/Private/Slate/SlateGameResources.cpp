@@ -173,7 +173,7 @@ void FSlateGameResources::Initialize( const FString& ScopeToDirectory, const FSt
 	BasePath = InBasePath;
 
 	TArray<UObject*> LoadedObjects;
-	if ( EngineUtils::FindOrLoadAssetsByPath( ContentRootDir, LoadedObjects ) )
+	if (EngineUtils::FindOrLoadAssetsByPath(ContentRootDir, LoadedObjects, EngineUtils::ATL_Regular))
 	{
 		for( auto ObjectIter = LoadedObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
 		{

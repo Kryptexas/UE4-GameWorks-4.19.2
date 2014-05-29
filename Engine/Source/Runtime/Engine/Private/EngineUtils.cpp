@@ -247,7 +247,7 @@ void FContentComparisonHelper::RecursiveObjectCollection(UObject* InStartObject,
 }
 #endif
 
-bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets)
+bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets, EAssetToLoad Type)
 {
 	if ( !FPackageName::IsValidLongPackageName(Path, true) )
 	{
@@ -272,7 +272,6 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 	}
 
 	// Load packages or find existing ones and fully load them
-	TSet<UPackage*> Packages;
 	for (int32 FileIdx = 0; FileIdx < Filenames.Num(); ++FileIdx)
 	{
 		const FString& Filename = Filenames[FileIdx];
@@ -290,22 +289,20 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 
 		if (Package)
 		{
-			Packages.Add(Package);
-		}
-	}
-
-	// If any packages were successfully loaded, find all assets that were in the packages and add them to OutAssets
-	if ( Packages.Num() > 0 )
-	{
-		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
-		{
-			if ( Packages.Contains(ObjIt->GetOutermost()) && ObjIt->IsAsset() )
+			TArray<UObject*> ObjectsInPackage;
+			GetObjectsWithOuter(Package, ObjectsInPackage);
+			for (UObject* Object : ObjectsInPackage)
 			{
-				OutAssets.Add(*ObjIt);
+				const bool bWantedType = 
+					((EAssetToLoad::ATL_Regular == Type) && Object->IsAsset()) ||
+					((EAssetToLoad::ATL_Class == Type) && Object->IsA<UClass>());
+				if (bWantedType)
+				{
+					OutAssets.Add(Object);
+				}
 			}
 		}
 	}
-
 	return true;
 }
 

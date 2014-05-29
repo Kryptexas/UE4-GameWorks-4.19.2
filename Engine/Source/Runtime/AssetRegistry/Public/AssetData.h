@@ -173,6 +173,26 @@ public:
 		return Asset;
 	}
 
+	UPackage* GetPackage() const
+	{
+		if (PackageName == NAME_None)
+		{
+			return NULL;
+		}
+
+		UPackage* Package = FindPackage(NULL, *PackageName.ToString());
+		if (Package)
+		{
+			Package->FullyLoad();
+		}
+		else
+		{
+			Package = LoadPackage(NULL, *PackageName.ToString(), LOAD_None);
+		}
+
+		return Package;
+	}
+
 	/** Returns true if the asset is loaded */
 	bool IsAssetLoaded() const
 	{

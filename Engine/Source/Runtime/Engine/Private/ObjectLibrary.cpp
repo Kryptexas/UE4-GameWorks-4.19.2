@@ -197,7 +197,7 @@ int32 UObjectLibrary::LoadAssetsFromPaths(TArray<FString> Paths)
 	{
 		TArray<UObject*> LoadedObjects;
 		FString Path = Paths[PathIndex];
-		if (EngineUtils::FindOrLoadAssetsByPath(Path, LoadedObjects))
+		if (EngineUtils::FindOrLoadAssetsByPath(Path, LoadedObjects, bHasBlueprintClasses ? EngineUtils::ATL_Class : EngineUtils::ATL_Regular))
 		{
 			for (int32 i = 0; i < LoadedObjects.Num(); ++i)
 			{
@@ -239,24 +239,19 @@ int32 UObjectLibrary::LoadBlueprintsFromPaths(TArray<FString> Paths)
 		TArray<UObject*> LoadedObjects;
 		FString Path = Paths[PathIndex];
 
-		if (EngineUtils::FindOrLoadAssetsByPath(Path, LoadedObjects))
+		if (EngineUtils::FindOrLoadAssetsByPath(Path, LoadedObjects, EngineUtils::ATL_Class))
 		{
 			for (int32 i = 0; i < LoadedObjects.Num(); ++i)
 			{
-				UBlueprintCore* Blueprint = Cast<UBlueprintCore>(LoadedObjects[i]);
+				auto Class = Cast<UBlueprintGeneratedClass>(LoadedObjects[i]);
 
-				if (Blueprint && Blueprint->GeneratedClass)
+				if (Class == NULL || (ObjectBaseClass && !Class->IsChildOf(ObjectBaseClass)))
 				{
-					UClass* Class = Blueprint->GeneratedClass;
-
-					if (Class == NULL || (ObjectBaseClass && !Class->IsChildOf(ObjectBaseClass)))
-					{
-						continue;
-					}
-
-					AddObject(Class);
-					Count++;
+					continue;
 				}
+
+				AddObject(Class);
+				Count++;
 			}
 		}
 	}
@@ -396,28 +391,38 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 	{
 		FAssetData& Data = AssetDataList[AssetIdx];
 
-		UObject *LoadedObject = Data.GetAsset();
-
-		if (!LoadedObject)
+		UObject *LoadedObject = NULL;
+			
+		if (!bHasBlueprintClasses)
 		{
-			continue;
-		}
+			LoadedObject = Data.GetAsset();
 
-		if (bHasBlueprintClasses && LoadedObject->IsA(UBlueprintCore::StaticClass()))
-		{
-			// If we're looking for non-blueprints and are a blueprint, look for generated class
-			UBlueprintCore* LoadedBlueprint = Cast<UBlueprintCore>(LoadedObject);
-			checkSlow(!ObjectBaseClass || LoadedBlueprint->GeneratedClass->IsChildOf(ObjectBaseClass));
-
-			LoadedObject = LoadedBlueprint->GeneratedClass;
+			checkSlow(!LoadedObject || !ObjectBaseClass || LoadedObject->IsA(ObjectBaseClass));
 		}
 		else
 		{
-			checkSlow(!ObjectBaseClass || LoadedObject->IsA(ObjectBaseClass));
+			UPackage* Package = Data.GetPackage();
+			if (Package)
+			{
+				TArray<UObject*> ObjectsInPackage;
+				GetObjectsWithOuter(Package, ObjectsInPackage);
+				for (UObject* PotentialBPGC : ObjectsInPackage)
+				{
+					if (auto LoadedBPGC = Cast<UBlueprintGeneratedClass>(PotentialBPGC))
+					{
+						checkSlow(!ObjectBaseClass || LoadedBPGC->IsChildOf(ObjectBaseClass));
+						LoadedObject = LoadedBPGC;
+						break; //there is usually only one BGPC in a package
+					}
+				}
+			}
 		}
 
-		AddObject(LoadedObject);
-		Count++;
+		if (LoadedObject)
+		{
+			AddObject(LoadedObject);
+			Count++;
+		}
 	}
 
 	return Count;

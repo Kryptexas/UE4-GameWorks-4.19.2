@@ -650,8 +650,14 @@ protected:
 
 namespace EngineUtils
 {
+	enum EAssetToLoad
+	{
+		ATL_Regular,
+		ATL_Class,
+	};
+
 	/** Loads all the assets found in the specified path and subpaths */
-	ENGINE_API bool FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets);
+	ENGINE_API bool FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets, EAssetToLoad Type);
 }
 
 /** Helper class for serializing flags describing which data have been stripped (if any). */
