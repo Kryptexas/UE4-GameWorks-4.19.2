@@ -73,7 +73,7 @@ void AGroupActor::PostEditUndo()
 bool AGroupActor::IsSelected() const
 {
 	// Group actors can only count as 'selected' if they are locked 
-	return IsLocked() && HasSelectedActors() || Super::IsSelected();
+	return (IsLocked() && HasSelectedActors()) || Super::IsSelected();
 }
 
 
