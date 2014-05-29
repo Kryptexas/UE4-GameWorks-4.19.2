@@ -22,6 +22,15 @@
 #include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
+class FDeferredResolvePath
+{
+public:
+	FDeferredResolvePath() {}
+
+	FName			PathName;
+	FNetworkGUID	OuterGUID;
+};
+
 UCLASS(transient)
 class UPackageMapClient : public UPackageMap
 {
@@ -95,8 +104,11 @@ protected:
 	void	InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );	
 	void	InternalWriteObjectPath( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );
 
-	FNetworkGUID	InternalLoadObject( FArchive& Ar, UObject*& Object, int InternalLoadObjectRecursionCount);
-	bool			InternalLoadObjectPath( FArchive& Ar, UObject*& Object, FNetworkGUID NetGUID, int InternalLoadObjectRecursionCount);
+	FNetworkGUID	InternalLoadObject( FArchive & Ar, UObject *& Object, const bool bIsOuterLevel, const int InternalLoadObjectRecursionCount );
+
+	void		ResolvePathAndAssignNetGUID_Deferred( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bIsPackage );
+	UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bIsPackage, const bool bNoLoad );
+	UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bIsPackage, const bool bNoLoad );
 
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 
@@ -127,4 +139,6 @@ protected:
 	FOutBunch *						CurrentExportBunch;
 
 	int32							ExportNetGUIDCount;
+
+	TMap< FNetworkGUID, FDeferredResolvePath >	DeferredResolvePaths;
 };
