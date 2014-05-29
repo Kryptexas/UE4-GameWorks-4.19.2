@@ -34,7 +34,7 @@ void AWheeledVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Deb
 
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-#if WITH_PHYSX
+#if WITH_VEHICLE
 	if (DebugDisplay.IsDisplayOn(NAME_Vehicle))
 	{
 		GetVehicleMovementComponent()->DrawDebug(Canvas, YL, YPos);

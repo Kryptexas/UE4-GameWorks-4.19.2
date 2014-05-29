@@ -400,16 +400,17 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		{
 			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
 		}
-#else
-		else if(!FOpenGL::SupportsTextureCubeLodEXT())
-		{
-			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
-		}
 #endif
 		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
 		{
 			Prologue = "#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
 		}
+#if !PLATFORM_ANDROID
+		else if(!FOpenGL::SupportsTextureCubeLodEXT())
+		{
+			Prologue = "#define textureCubeLodEXT textureCubeLod \n";
+		}
+#endif
 		else 
 		{
 			Prologue = "";
