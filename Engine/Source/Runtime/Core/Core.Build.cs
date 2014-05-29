@@ -81,6 +81,11 @@ public class Core : ModuleRules
 				"OpenGL"
 				);
 			PublicFrameworks.AddRange(new string[] { "Cocoa", "Carbon", "IOKit" });
+			
+			if (UEBuildConfiguration.bBuildEditor == true)
+			{
+				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
+			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

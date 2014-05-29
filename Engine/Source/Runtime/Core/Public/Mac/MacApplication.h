@@ -79,6 +79,11 @@ public:
 
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) OVERRIDE;
+
+	void SetIsUsingTrackpad(bool bInUsingTrackpad)
+	{
+		bUsingTrackpad = bInUsingTrackpad;
+	}
 #endif
 
 
