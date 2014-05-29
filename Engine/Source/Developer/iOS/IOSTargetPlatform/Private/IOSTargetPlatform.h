@@ -7,7 +7,10 @@
 #pragma once
 
 #include "Ticker.h"
+
+#if WITH_ENGINE
 #include "StaticMeshResources.h"
+#endif // WITH_ENGINE
 
 /**
  * FIOSTargetPlatform, abstraction for cooking iOS platforms

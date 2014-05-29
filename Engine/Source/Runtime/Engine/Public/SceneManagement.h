@@ -15,7 +15,7 @@
 #include "Engine/TextureLightProfile.h"
 #include "Engine/World.h"
 #include "RendererInterface.h"
-#include "GameViewportClient.h"
+#include "Engine/GameViewportClient.h"
 
 // Forward declarations.
 class FSceneViewFamily;
