@@ -587,6 +587,18 @@ void ACharacter::UnPossessed()
 }
 
 
+void ACharacter::TornOff()
+{
+	Super::TornOff();
+
+	if (CharacterMovement)
+	{
+		CharacterMovement->ResetPredictionData_Client();
+		CharacterMovement->ResetPredictionData_Server();
+	}
+}
+
+
 void ACharacter::BaseChange()
 {
 	if (CharacterMovement && CharacterMovement->MovementMode != MOVE_None)
