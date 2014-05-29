@@ -117,11 +117,6 @@ public:
 		return NULL;
 	}
 
-	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE
-	{
-		return NULL;
-	}
-
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual FString GetAppId() const OVERRIDE;
