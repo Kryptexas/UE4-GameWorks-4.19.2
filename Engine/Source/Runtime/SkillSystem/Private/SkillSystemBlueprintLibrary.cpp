@@ -4,8 +4,8 @@
 #include "SkillSystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbility_Instanced.h"
-#include "Abilities/Tasks/BlueprintPlayMontageAndWaitTaskProxy.h"
-#include "Abilities/Tasks/BlueprintWaitMovementModeChangeTaskProxy.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "LatentActions.h"
 
 USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
@@ -42,7 +42,7 @@ void USkillSystemBlueprintLibrary::StaticFuncPlayMontageAndWait(AActor* WorldCon
 	}
 }
 
-UBlueprintPlayMontageAndWaitTaskProxy* USkillSystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
+UAbilityTask_PlayMontageAndWait* USkillSystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
 {
 	check(WorldContextObject);
 
@@ -51,11 +51,11 @@ UBlueprintPlayMontageAndWaitTaskProxy* USkillSystemBlueprintLibrary::CreatePlayM
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
 
-		UBlueprintPlayMontageAndWaitTaskProxy * MyObj = NULL;
-		MyObj = NewObject<UBlueprintPlayMontageAndWaitTaskProxy>();
+		UAbilityTask_PlayMontageAndWait * MyObj = NULL;
+		MyObj = NewObject<UAbilityTask_PlayMontageAndWait>();
 
 		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(MyObj, &UBlueprintPlayMontageAndWaitTaskProxy::OnMontageEnded);
+		EndDelegate.BindUObject(MyObj, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
 
 		FGameplayAbilityActorInfo	ActorInfo;
 		ActorInfo.InitFromActor(ActorOwner);
@@ -70,7 +70,7 @@ UBlueprintPlayMontageAndWaitTaskProxy* USkillSystemBlueprintLibrary::CreatePlayM
 }
 
 
-UBlueprintWaitMovementModeChangeTaskProxy* USkillSystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
+UAbilityTask_WaitMovementModeChange* USkillSystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
 
@@ -79,8 +79,8 @@ UBlueprintWaitMovementModeChangeTaskProxy* USkillSystemBlueprintLibrary::CreateW
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
 
-		UBlueprintWaitMovementModeChangeTaskProxy * MyObj = NULL;
-		MyObj = NewObject<UBlueprintWaitMovementModeChangeTaskProxy>();
+		UAbilityTask_WaitMovementModeChange * MyObj = NULL;
+		MyObj = NewObject<UAbilityTask_WaitMovementModeChange>();
 		MyObj->RequiredMode = NewMode;
 
 		FGameplayAbilityActorInfo	ActorInfo;
@@ -89,21 +89,8 @@ UBlueprintWaitMovementModeChangeTaskProxy* USkillSystemBlueprintLibrary::CreateW
 		ACharacter * Character = Cast<ACharacter>(ActorInfo.Actor.Get());
 		if (Character)
 		{
-			/*
-				FScriptDelegate Delegate;
-				Delegate.BindUFunction(this, "OnActorBump");
-				MyPawn->OnActorHit.AddUnique(Delegate);
-			*/
-
-			//FMovementModeChangedSignature::FDelegate::CreateUObject(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
-			//MyDel.BindUObject( 
-			//Character->MovementModeChangedDelegate.Add(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange); // //FMovementModeChangedSignature::FDelegate::CreateUObject
-
-			Character->MovementModeChangedDelegate.AddDynamic(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
-
-			//Character->MovementModeChangedDelegate.AddUObject(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
+			Character->MovementModeChangedDelegate.AddDynamic(MyObj, &UAbilityTask_WaitMovementModeChange::OnMovementModeChange);
 		}
-
 		return MyObj;
 	}
 

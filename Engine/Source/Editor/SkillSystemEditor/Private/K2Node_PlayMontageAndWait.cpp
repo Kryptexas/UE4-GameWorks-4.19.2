@@ -3,7 +3,7 @@
 
 #include "SkillSystemEditorModulePrivatePCH.h"
 #include "SkillSystemBlueprintLibrary.h"
-#include "Abilities/Tasks/BlueprintPlayMontageAndWaitTaskProxy.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_PlayMontageAndWait"
@@ -14,7 +14,7 @@ UK2Node_PlayMontageAndWait::UK2Node_PlayMontageAndWait(const class FPostConstruc
 	
 	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(USkillSystemBlueprintLibrary, CreatePlayMontageAndWaitProxy);
 	ProxyFactoryClass = USkillSystemBlueprintLibrary::StaticClass();
-	ProxyClass = UBlueprintPlayMontageAndWaitTaskProxy::StaticClass();
+	ProxyClass = UAbilityTask_PlayMontageAndWait::StaticClass();
 }
 
 FString UK2Node_PlayMontageAndWait::GetCategoryName()

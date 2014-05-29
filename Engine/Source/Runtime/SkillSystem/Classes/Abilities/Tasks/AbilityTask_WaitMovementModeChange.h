@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTaskProxyBase.h"
-#include "BlueprintWaitMovementModeChangeTaskProxy.generated.h"
+#include "AbilityTask.h"
+#include "AbilityTask_WaitMovementModeChange.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMovementModeChangedDelegate, EMovementMode, NewMovementMode);
 
 UCLASS(MinimalAPI)
-class UBlueprintWaitMovementModeChangeTaskProxy : public UAbilityTaskProxyBase
+class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

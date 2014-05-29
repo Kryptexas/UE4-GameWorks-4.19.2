@@ -3,7 +3,7 @@
 
 #include "SkillSystemEditorModulePrivatePCH.h"
 #include "SkillSystemBlueprintLibrary.h"
-#include "Abilities/Tasks/BlueprintWaitMovementModeChangeTaskProxy.h"
+#include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_WaitMovementModeChange"
@@ -14,7 +14,7 @@ UK2Node_WaitMovementModeChange::UK2Node_WaitMovementModeChange(const class FPost
 	
 	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(USkillSystemBlueprintLibrary, CreateWaitMovementModeChange);
 	ProxyFactoryClass = USkillSystemBlueprintLibrary::StaticClass();
-	ProxyClass = UBlueprintWaitMovementModeChangeTaskProxy::StaticClass();
+	ProxyClass = UAbilityTask_WaitMovementModeChange::StaticClass();
 }
 
 FString UK2Node_WaitMovementModeChange::GetCategoryName()
