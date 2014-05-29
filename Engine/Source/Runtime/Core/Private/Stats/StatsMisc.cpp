@@ -2,10 +2,17 @@
 
 #include "CorePrivate.h"
 
-FScopeLogTime::FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InGlobal /*= nullptr */, EScopeLogTimeUnits InUnits /*= ScopeLog_Milliseconds */ ) 
+FScopeLogTime::FScopeLogTime( const WIDECHAR* InName, FTotalTimeAndCount* InCumulative /*= nullptr */, EScopeLogTimeUnits InUnits /*= ScopeLog_Milliseconds */ )
 : StartTime( FPlatformTime::Seconds() )
 , Name( InName )
-, Cumulative( InGlobal )
+, Cumulative( InCumulative )
+, Units( InUnits )
+{}
+
+FScopeLogTime::FScopeLogTime( const ANSICHAR* InName, FTotalTimeAndCount* InCumulative /*= nullptr*/, EScopeLogTimeUnits InUnits /*= ScopeLog_Milliseconds */ )
+: StartTime( FPlatformTime::Seconds() )
+, Name( InName )
+, Cumulative( InCumulative )
 , Units( InUnits )
 {}
 
