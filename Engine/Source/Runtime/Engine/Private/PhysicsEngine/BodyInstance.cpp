@@ -66,7 +66,7 @@ ECollisionResponse FCollisionResponse::GetResponse(ECollisionChannel Channel) co
 }
 
 /** Set all channels from ChannelResponse Array **/
-void FCollisionResponse::SetCollisionResponseContainer(const FCollisionResponseContainer & InResponseToChannels)
+void FCollisionResponse::SetCollisionResponseContainer(const FCollisionResponseContainer& InResponseToChannels)
 {
 	ResponseToChannels = InResponseToChannels;
 #if 1// @hack until PostLoad is disabled for CDO of BP WITH_EDITOR
@@ -75,7 +75,7 @@ void FCollisionResponse::SetCollisionResponseContainer(const FCollisionResponseC
 #endif
 }
 
-void FCollisionResponse::SetResponsesArray(const TArray<FResponseChannel> & InChannelResponses)
+void FCollisionResponse::SetResponsesArray(const TArray<FResponseChannel>& InChannelResponses)
 {
 #if DO_GUARD_SLOW
 	// verify if the name is overlapping, if so, ensure, do not remove in debug becuase it will cause inconsistent bug between debug/release
@@ -139,7 +139,7 @@ void FCollisionResponse::UpdateArrayFromResponseContainer()
 {
 	ResponseArray.Empty();
 
-	const FCollisionResponseContainer & DefaultResponse = FCollisionResponseContainer::GetDefaultResponseContainer();
+	const FCollisionResponseContainer& DefaultResponse = FCollisionResponseContainer::GetDefaultResponseContainer();
 
 	for(int32 i=0; i<ARRAY_COUNT(ResponseToChannels.EnumArray); i++)
 	{
@@ -166,7 +166,7 @@ void FCollisionResponse::UpdateResponseContainerFromArray()
 
 	for (auto Iter = ResponseArray.CreateIterator(); Iter; ++Iter)
 	{
-		FResponseChannel & Response = *Iter;
+		FResponseChannel& Response = *Iter;
 
 		int32 EnumIndex = UCollisionProfile::Get()->ReturnContainerIndexFromChannelName(Response.Channel);
 		if ( EnumIndex != INDEX_NONE )
@@ -391,7 +391,7 @@ void FBodyInstance::SetResponseToChannel(ECollisionChannel Channel, ECollisionRe
 	UpdatePhysicsFilterData();
 }
 
-const FCollisionResponseContainer & FBodyInstance::GetResponseToChannels() const
+const FCollisionResponseContainer& FBodyInstance::GetResponseToChannels() const
 {
 	return CollisionResponses.GetResponseContainer();
 }
@@ -528,7 +528,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	// if no collision, but if world wants to enable trace collision for components, allow it
 	if(UseCollisionEnabled == ECollisionEnabled::NoCollision && Owner && Owner->IsA(AVolume::StaticClass())==false )
 	{
-		UWorld * World = Owner->GetWorld();
+		UWorld* World = Owner->GetWorld();
 		UPrimitiveComponent* PrimComp = OwnerComponent.Get();
 		if (World && World->bEnableTraceCollision && 
 			(PrimComp->IsA(UStaticMeshComponent::StaticClass()) || PrimComp->IsA(USkeletalMeshComponent::StaticClass()) || PrimComp->IsA(UBrushComponent::StaticClass())))
@@ -1005,7 +1005,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 
 //helper function for TermBody to avoid code duplication between scenes
 #if WITH_PHYSX
-void TermBodyHelper(int32 & SceneIndex, PxRigidActor *& PRigidActor, FBodyInstance * BodyInstance)
+void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
 {
 	if (SceneIndex)
 	{
@@ -1019,7 +1019,7 @@ void TermBodyHelper(int32 & SceneIndex, PxRigidActor *& PRigidActor, FBodyInstan
 			if (PRigidActor)
 			{
 				// Let FPhysScene know
-				FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 				if (PhysScene)
 				{
 					PhysScene->TermBody(BodyInstance);
@@ -1078,20 +1078,20 @@ void FBodyInstance::TermBody()
 }
 
 #if WITH_BODY_WELDING
-void FBodyInstance::Weld(FBodyInstance * TheirBody, const FTransform & RelativeTM)
+void FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& RelativeTM)
 {
 	check(TheirBody);
 #if WITH_PHYSX
 	
-	//UBodySetup * LocalSpaceSetup = TheirBody->BodySetup->CreateSpaceCopy(RelativeTM);
+	//UBodySetup* LocalSpaceSetup = TheirBody->BodySetup->CreateSpaceCopy(RelativeTM);
 
 	//child body gets placed into the same scenes as parent body
-	if (PxRigidActor * MyBody = RigidActorSync)
+	if (PxRigidActor* MyBody = RigidActorSync)
 	{
 		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
 	}
 
-	if (PxRigidActor * MyBody = RigidActorAsync)
+	if (PxRigidActor* MyBody = RigidActorAsync)
 	{
 		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
 	}
@@ -1145,7 +1145,7 @@ namespace EScaleMode
 }
 
 //computes the relative scaling vectors based on scale mode used
-void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector & NewScale3D, const FVector & OldScale3D, FVector & RelativeScale3D, FVector & RelativeScale3DAbs, FVector & OutScale3D)
+void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector& NewScale3D, const FVector& OldScale3D, FVector& RelativeScale3D, FVector& RelativeScale3DAbs, FVector& OutScale3D)
 {
 	FVector NewScale3DAbs = NewScale3D.GetAbs();
 	FVector OldScale3DAbs = OldScale3D.GetAbs();
@@ -1210,7 +1210,7 @@ void ComputeScalingVectors(EScaleMode::Type ScaleMode, const FVector & NewScale3
 	}
 }
 
-bool FBodyInstance::UpdateBodyScale(const FVector & InScale3D)
+bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 {
 	FVector InScale3DAdjusted = InScale3D;
 #if WITH_PHYSX
@@ -1252,7 +1252,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & InScale3D)
 
 	for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ++ShapeIdx)
 	{
-		PxShape * PShape = PShapes[ShapeIdx];
+		PxShape* PShape = PShapes[ShapeIdx];
 		PxGeometryType::Enum GeomType = PShape->getGeometryType();
 		
 		if (GeomType == PxGeometryType::eSPHERE)
@@ -1281,7 +1281,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & InScale3D)
 
 	for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
 	{
-		PxGeometry * UpdatedGeometry = NULL;
+		PxGeometry* UpdatedGeometry = NULL;
 		PxShape* PShape = PShapes[ShapeIdx];
 		PxScene* PScene = PShape->getActor()->getScene();
 		SCENE_LOCK_READ(PScene);
@@ -1649,8 +1649,8 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 		// If kinematic and not teleporting, set kinematic target
 		if(!IsRigidDynamicNonKinematic(PRigidDynamic) && !bTeleport)
 		{
-			const PxScene * PScene = PRigidDynamic->getScene();
-			FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+			const PxScene* PScene = PRigidDynamic->getScene();
+			FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 			PhysScene->SetKinematicTarget(this, NewTransform, true);
 		}
 		// Otherwise, set global pose
@@ -1678,7 +1678,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 #endif  // WITH_PHYSX
 }
 
-FVector FBodyInstance::GetUnrealWorldVelocity()
+FVector FBodyInstance::GetUnrealWorldVelocity() const
 {
 	FVector LinVel(0,0,0);
 #if WITH_PHYSX
@@ -1693,7 +1693,7 @@ FVector FBodyInstance::GetUnrealWorldVelocity()
 }
 
 /** Note: returns angular velocity in degrees per second. */
-FVector FBodyInstance::GetUnrealWorldAngularVelocity()
+FVector FBodyInstance::GetUnrealWorldAngularVelocity() const
 {
 	FVector AngVel(0,0,0);
 #if WITH_PHYSX
@@ -1707,7 +1707,7 @@ FVector FBodyInstance::GetUnrealWorldAngularVelocity()
 	return AngVel;
 }
 
-FVector FBodyInstance::GetUnrealWorldVelocityAtPoint(const FVector& Point)
+FVector FBodyInstance::GetUnrealWorldVelocityAtPoint(const FVector& Point) const
 {
 	FVector LinVel(0,0,0);
 
@@ -1725,7 +1725,7 @@ FVector FBodyInstance::GetUnrealWorldVelocityAtPoint(const FVector& Point)
 }
 
 
-FVector FBodyInstance::GetCOMPosition()
+FVector FBodyInstance::GetCOMPosition() const
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -1887,14 +1887,14 @@ void FBodyInstance::SetPhysMaterialOverride( UPhysicalMaterial* NewPhysMaterial 
 
 
 
-UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial()
+UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial() const
 {
 	check( GEngine->DefaultPhysMaterial != NULL );
 
 	// Find the PhysicalMaterial we need to apply to the physics bodies.
 	// (LOW priority) Engine Mat, Material PhysMat, BodySetup Mat, Component Override, Body Override (HIGH priority)
 
-	UPhysicalMaterial * ReturnPhysMaterial = NULL;
+	UPhysicalMaterial* ReturnPhysMaterial = NULL;
 
 	// BodyInstance override
 	if( PhysMaterialOverride != NULL)	
@@ -1944,7 +1944,7 @@ UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial()
 	return ReturnPhysMaterial;
 }
 
-TArray<UPhysicalMaterial*> FBodyInstance::GetComplexPhysicalMaterials()
+TArray<UPhysicalMaterial*> FBodyInstance::GetComplexPhysicalMaterials() const
 {
 	TArray<UPhysicalMaterial*> PhysMaterials;
 
@@ -2134,7 +2134,7 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 {
 	//NewMaxAngVel = 400;
 #if WITH_PHYSX
-	PxRigidDynamic * PRigidDynamic = GetPxRigidDynamic();
+	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if (PRigidDynamic)
 	{
 		float RadNewMaxAngVel = FMath::DegreesToRadians(NewMaxAngVel);
@@ -2163,8 +2163,8 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if(IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
-		const PxScene * PScene = PRigidDynamic->getScene();
-		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		const PxScene* PScene = PRigidDynamic->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddForce(this, Force, bAllowSubstepping);
 		
 	}
@@ -2177,8 +2177,8 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if(IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
-		const PxScene * PScene = PRigidDynamic->getScene();
-		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		const PxScene* PScene = PRigidDynamic->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddForceAtPosition(this, Force, Position, bAllowSubstepping);
 	}
 #endif // WITH_PHYSX
@@ -2190,8 +2190,8 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if(IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
-		const PxScene * PScene = PRigidDynamic->getScene();
-		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		const PxScene* PScene = PRigidDynamic->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddTorque(this, Torque, bAllowSubstepping);
 	}
 #endif // WITH_PHYSX
@@ -2272,7 +2272,7 @@ void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, fl
 }
 
 
-FString FBodyInstance::GetBodyDebugName()
+FString FBodyInstance::GetBodyDebugName() const
 {
 	FString DebugName;
 
@@ -2421,7 +2421,7 @@ bool FBodyInstance::Sweep(struct FHitResult& OutHit, const FVector& Start, const
 }
 
 #if WITH_PHYSX
-bool FBodyInstance::InternalSweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape & Shape, bool bTraceComplex, const PxRigidActor* RigidBody, const PxGeometry * Geometry)
+bool FBodyInstance::InternalSweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const PxRigidActor* RigidBody, const PxGeometry* Geometry)
 {
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
@@ -2456,7 +2456,7 @@ bool FBodyInstance::InternalSweep(struct FHitResult& OutHit, const FVector& Star
 			if((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
 			{
 				GeometryFromShapeStorage GeomStorage;
-				PxGeometry * PGeom = GetGeometryFromShape(GeomStorage, PShape, true);
+				PxGeometry* PGeom = GetGeometryFromShape(GeomStorage, PShape, true);
 				PxTransform PGlobalPose = PCompTM.transform(PShape->getLocalPose());
 
 				if (PGeom)
@@ -2651,7 +2651,7 @@ SIZE_T FBodyInstance::GetBodyInstanceResourceSize(EResourceSizeMode::Type Mode) 
 	return ResSize;
 }
 
-void FBodyInstance::FixupData(class UObject * Loader)
+void FBodyInstance::FixupData(class UObject* Loader)
 {
 	check (Loader);
 
