@@ -14,16 +14,26 @@ struct FOverlapInfo
 	FOverlapInfo()
 	{}
 
+	FOverlapInfo(const FHitResult & InSweepResult)
+		: bFromSweep(true), OverlapInfo(InSweepResult)
+	{
+	}
+
 	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE)
-		:Component(InComponent), BodyIndex(InBodyIndex) 
-	{}
+		: bFromSweep(false)
+	{
+		OverlapInfo.Component = InComponent;
+		OverlapInfo.Item = InBodyIndex;
+	}
+	
+	int32 GetBodyIndex() const { return OverlapInfo.Item;  }
 
-	friend bool operator == (const FOverlapInfo& LHS, const FOverlapInfo& RHS) { return LHS.Component == RHS.Component && LHS.BodyIndex == RHS.BodyIndex; }
+	//This function completely ignores SweepResult information. It seems that places that use this function do not care, but it still seems risky
+	friend bool operator == (const FOverlapInfo& LHS, const FOverlapInfo& RHS) { return LHS.OverlapInfo.Component == RHS.OverlapInfo.Component && LHS.OverlapInfo.Item == RHS.OverlapInfo.Item; }
+	bool bFromSweep;
 
-	/** Overlapping component */
-	TWeakObjectPtr<class UPrimitiveComponent> Component;
-	/** BodyIndex of the component that is overlapping */
-	int32 BodyIndex;
+	/** Information for both sweep and overlap queries. Different parts are valid depending on bFromSweep*/
+	FHitResult OverlapInfo;
 };
 
 /** Detail mode for scene component rendering. */

@@ -1364,7 +1364,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 								}
 
 								// cache touches
-								PendingOverlaps.AddUnique(FOverlapInfo(TestHit.Component.Get(), TestHit.Item));
+								PendingOverlaps.AddUnique(FOverlapInfo(TestHit));
 							}
 						}
 					}
@@ -1764,7 +1764,7 @@ bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* Othe
 {
 	for (int32 i=0; i < OverlappingComponents.Num(); ++i)
 	{
-		if (OverlappingComponents[i].Component == OtherComp) { return true; }
+		if (OverlappingComponents[i].OverlapInfo.Component.Get() == OtherComp) { return true; }
 	}
 	return false;
 }
@@ -1780,7 +1780,7 @@ bool UPrimitiveComponent::IsOverlappingActor(const AActor* Other) const
 	{
 		for (int32 OverlapIdx=0; OverlapIdx<OverlappingComponents.Num(); ++OverlapIdx)
 		{
-			UPrimitiveComponent const* const PrimComp = OverlappingComponents[OverlapIdx].Component.Get();
+			UPrimitiveComponent const* const PrimComp = OverlappingComponents[OverlapIdx].OverlapInfo.Component.Get();
 			if ( PrimComp && (PrimComp->GetOwner() == Other) )
 			{
 				return true;
@@ -1798,7 +1798,7 @@ bool UPrimitiveComponent::GetOverlapsWithActor(const AActor* Actor, TArray<FOver
 	{
 		for (int32 OverlapIdx=0; OverlapIdx<OverlappingComponents.Num(); ++OverlapIdx)
 		{
-			UPrimitiveComponent const* const PrimComp = OverlappingComponents[OverlapIdx].Component.Get();
+			UPrimitiveComponent const* const PrimComp = OverlappingComponents[OverlapIdx].OverlapInfo.Component.Get();
 			if ( PrimComp && (PrimComp->GetOwner() == Actor) )
 			{
 				OutOverlaps.Add(OverlappingComponents[OverlapIdx]);
@@ -1825,7 +1825,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 {
 	//	UE_LOG(LogActor, Log, TEXT("BEGIN OVERLAP! Self=%s SelfComp=%s, Other=%s, OtherComp=%s"), *GetNameSafe(this), *GetNameSafe(MyComp), *GetNameSafe(OtherComp->GetOwner()), *GetNameSafe(OtherComp));
 
-	UPrimitiveComponent* OtherComp = OtherOverlap.Component.Get();
+	UPrimitiveComponent* OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 
 	if (OtherComp)
 	{
@@ -1847,12 +1847,12 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 				// first execute component delegates
 				if (!IsPendingKill())
 				{
-					OnComponentBeginOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.BodyIndex);
+					OnComponentBeginOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.GetBodyIndex(), OtherOverlap.bFromSweep, OtherOverlap.OverlapInfo);
 				}
 
 				if (!OtherComp->IsPendingKill())
 				{
-					OtherComp->OnComponentBeginOverlap.Broadcast(MyActor, this, INDEX_NONE);
+					OtherComp->OnComponentBeginOverlap.Broadcast(MyActor, this, INDEX_NONE, OtherOverlap.bFromSweep, OtherOverlap.OverlapInfo);
 				}
 
 				// then execute actor notification if this is a new actor touch
@@ -1888,7 +1888,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 
 void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies, bool bNoNotifySelf)
 {
-	UPrimitiveComponent* OtherComp = OtherOverlap.Component.Get();
+	UPrimitiveComponent* OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 
 	AActor* const OtherActor = OtherComp ? OtherComp->GetOwner() : NULL;
 	AActor* const MyActor = GetOwner();
@@ -1899,7 +1899,7 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 	{
 		if (!bNoNotifySelf && IsPrimCompValidAndAlive(this))
 		{
-			OnComponentEndOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.BodyIndex);
+			OnComponentEndOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.GetBodyIndex());
 		}
 
 		if(IsPrimCompValidAndAlive(OtherComp))
@@ -1950,9 +1950,9 @@ void UPrimitiveComponent::GetOverlappingActors(TArray<AActor*>& OutOverlappingAc
 	{
 		const FOverlapInfo& OtherOvelap = *CompIt;
 		
-		if (OtherOvelap.Component.IsValid())
+		if (OtherOvelap.OverlapInfo.Component.IsValid())
 		{
-			AActor* OtherActor = OtherOvelap.Component->GetOwner();
+			AActor* OtherActor = OtherOvelap.OverlapInfo.Component->GetOwner();
 			if (OtherActor)
 			{
 				if ( !ClassFilter || OtherActor->IsA(ClassFilter) )
@@ -1971,7 +1971,7 @@ void UPrimitiveComponent::GetOverlappingComponents(TArray<UPrimitiveComponent*>&
 
 	for (auto CompIt = OverlappingComponents.CreateConstIterator(); CompIt; ++CompIt)
 	{
-		UPrimitiveComponent* const OtherComp = (*CompIt).Component.Get();
+		UPrimitiveComponent* const OtherComp = (*CompIt).OverlapInfo.Component.Get();
 		if (OtherComp)
 		{
 			OutOverlappingComponents.Add(OtherComp);
@@ -2122,7 +2122,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 			for (auto CompIt = OldOverlappingComponents.CreateIterator(); CompIt; ++CompIt)
 			{
 				const FOverlapInfo& OtherOverlap = *CompIt;
-				if (OtherOverlap.Component.IsValid())
+				if (OtherOverlap.OverlapInfo.Component.IsValid())
 				{
 					EndComponentOverlap(OtherOverlap, bDoNotifies, false);
 				}
@@ -2132,7 +2132,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 			for (auto CompIt = NewOverlappingComponents.CreateIterator(); CompIt; ++CompIt)
 			{
 				const FOverlapInfo& OtherOverlap = *CompIt;
-				if (OtherOverlap.Component.IsValid())
+				if (OtherOverlap.OverlapInfo.Component.IsValid())
 				{
 					BeginComponentOverlap(OtherOverlap, bDoNotifies);
 				}
@@ -2147,7 +2147,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 		for (auto CompIt = OverlappingComponents.CreateIterator(); CompIt; ++CompIt)
 		{
 			const FOverlapInfo& OtherOverlap = *CompIt;
-			if (OtherOverlap.Component.IsValid())
+			if (OtherOverlap.OverlapInfo.Component.IsValid())
 			{
 				EndComponentOverlap(OtherOverlap, bDoNotifies, false);
 			}
@@ -2238,7 +2238,7 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 			for (auto CompIt = OverlappingComponents.CreateIterator(); CompIt; ++CompIt)
 			{
 				const FOverlapInfo& Overlap = *CompIt;
-				UPrimitiveComponent* OtherComponent = Overlap.Component.Get();
+				UPrimitiveComponent* OtherComponent = Overlap.OverlapInfo.Component.Get();
 				if (OtherComponent)
 				{
 					APhysicsVolume* V = Cast<APhysicsVolume>(OtherComponent->GetOwner());

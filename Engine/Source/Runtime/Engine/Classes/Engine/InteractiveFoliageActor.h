@@ -84,7 +84,7 @@ protected:
 
 	/** Called when capsule is touched */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & OverlapInfo);
 public:
 	// Begin AActor interface
 	virtual void Tick(float DeltaSeconds) OVERRIDE;

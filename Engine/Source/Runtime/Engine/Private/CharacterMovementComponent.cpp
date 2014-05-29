@@ -5519,7 +5519,7 @@ void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeSta
 	ClientData->AckMove(MoveIndex);
 }
 
-void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex )
+void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult )
 {
 	check(bEnablePhysicsInteraction);
 
@@ -5605,16 +5605,16 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 		{
 			const FOverlapInfo& Overlap = Overlaps[i];
 
-			UPrimitiveComponent* OverlapComp = Overlap.Component.Get();
+			UPrimitiveComponent* OverlapComp = Overlap.OverlapInfo.Component.Get();
 			if (!OverlapComp || OverlapComp->Mobility < EComponentMobility::Movable)
 			{ 
 				continue; 
 			}
 
 			FName BoneName = NAME_None;
-			if (Overlap.BodyIndex != INDEX_NONE && OverlapComp->IsA(USkinnedMeshComponent::StaticClass()))
+			if (Overlap.GetBodyIndex() != INDEX_NONE && OverlapComp->IsA(USkinnedMeshComponent::StaticClass()))
 			{
-				BoneName = ((USkinnedMeshComponent*)OverlapComp)->GetBoneName(Overlap.BodyIndex);
+				BoneName = ((USkinnedMeshComponent*)OverlapComp)->GetBoneName(Overlap.GetBodyIndex());
 			}
 
 			// Use the body instead of the component for cases where we have multi-body overlaps enabled

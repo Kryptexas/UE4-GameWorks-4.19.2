@@ -96,7 +96,7 @@ float AInteractiveFoliageActor::TakeDamage(float DamageAmount, FDamageEvent cons
 	return 0.f;
 }
 
-void AInteractiveFoliageActor::CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AInteractiveFoliageActor::CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	if (Other != NULL && OtherComp != NULL)
 	{
