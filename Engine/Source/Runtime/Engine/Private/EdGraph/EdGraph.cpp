@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
