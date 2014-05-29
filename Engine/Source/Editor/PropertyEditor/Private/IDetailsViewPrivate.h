@@ -89,4 +89,21 @@ public:
 	 */
 	virtual void AddExternalRootPropertyNode(TSharedRef<FObjectPropertyNode> ExternalRootNode) = 0;
 
+	/**
+	 * Creates the color picker window for this property view.
+	 *
+	 * @param PropertyEditor				The slate property node to edit.
+	 * @param bUseAlpha			Whether or not alpha is supported
+	 */
+	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) = 0;
+
+	/**
+	 * Adds an action to execute next tick
+	 */
+	virtual void EnqueueDeferredAction(FSimpleDelegate& DeferredAction) = 0;
+
+	/**
+	 * Called when properties have finished changing (after PostEditChange is called)
+	 */
+	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) = 0;
 };

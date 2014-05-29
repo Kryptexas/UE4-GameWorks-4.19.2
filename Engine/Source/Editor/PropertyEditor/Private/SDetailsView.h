@@ -58,10 +58,7 @@ public:
 	 * @param PropertyEditor				The slate property node to edit.
 	 * @param bUseAlpha			Whether or not alpha is supported
 	 */
-	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha);
-
-	/** Returns the notify hook to use when properties change */
-	virtual FNotifyHook* GetNotifyHook() const OVERRIDE { return DetailsViewArgs.NotifyHook; }
+	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) OVERRIDE;
 
 	/** Sets the callback for when the property view changes */
 	virtual void SetOnObjectArrayChanged( FOnObjectArrayChanged OnObjectArrayChangedDelegate);
@@ -155,35 +152,13 @@ private:
 	 */
 	void QueryCustomDetailLayout( class FDetailLayoutBuilderImpl& CustomDetailLayout );
 
-	/** 
-	 * Hides or shows properties based on the passed in filter text
-	 * 
-	 * @param InFilterText	The filter text
-	 */
-	void FilterView( const FString& InFilterText );
-
 	/**
 	 * Updates the details with the passed in filter                                                              
 	 */
-	void UpdateFilteredDetails();
+	virtual void UpdateFilteredDetails() OVERRIDE;
 
 	/** Called when the filter button is clicked */
 	void OnFilterButtonClicked();
-
-	/** Called when show only modified is clicked */
-	void OnShowOnlyModifiedClicked();
-	
-	/** Called when show all advanced is clicked */
-	void OnShowAllAdvancedClicked();
-
-	/** @return true if show only modified is checked */
-	bool IsShowOnlyModifiedChecked() const { return CurrentFilter.bShowOnlyModifiedProperties; }
-
-	/** @return true if show all advanced is checked */
-	bool IsShowAllAdvancedChecked() const { return CurrentFilter.bShowAllAdvanced; }
-
-	/** Called when the filter text changes.  This filters specific property nodes out of view */
-	void OnFilterTextChanged( const FText& InFilterText );
 
 	/** Called to get the visibility of the actor name area */
 	EVisibility GetActorNameAreaVisibility() const;

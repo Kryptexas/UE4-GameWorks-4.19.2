@@ -178,7 +178,7 @@ public:
 	/**
 	 * Called when properties have finished changing (after PostEditChange is called)
 	 */
-	void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 
 	/** Column width accessibility */
 	float OnGetLeftColumnWidth() const { return 1.0f - ColumnWidth; }
@@ -198,7 +198,7 @@ public:
 	/**
 	 * Adds an action to execute next tick
 	 */
-	void EnqueueDeferredAction( FSimpleDelegate& DeferredAction );
+	virtual void EnqueueDeferredAction(FSimpleDelegate& DeferredAction) OVERRIDE;
 
 	/**
 	 * @return The thumbnail pool that should be used for thumbnails being rendered in this view
@@ -209,6 +209,12 @@ public:
 	 * Returns the property utilities for this view
 	 */
 	TSharedPtr<IPropertyUtilities> GetPropertyUtilities() OVERRIDE;
+
+	/** Returns the notify hook to use when properties change */
+	virtual FNotifyHook* GetNotifyHook() const OVERRIDE
+	{ 
+		return DetailsViewArgs.NotifyHook; 
+	}
 
 	virtual ~SDetailsViewBase();
 
@@ -251,6 +257,30 @@ protected:
 	 * Returns an SWidget used as the visual representation of a node in the treeview.                     
 	 */
 	TSharedRef<ITableRow> OnGenerateRowForDetailTree( TSharedRef<IDetailTreeNode> InTreeNode, const TSharedRef<STableViewBase>& OwnerTable );
+
+	/** @return true if show only modified is checked */
+	bool IsShowOnlyModifiedChecked() const { return CurrentFilter.bShowOnlyModifiedProperties; }
+
+	/** @return true if show all advanced is checked */
+	bool IsShowAllAdvancedChecked() const { return CurrentFilter.bShowAllAdvanced; }
+
+	/** Called when show only modified is clicked */
+	void OnShowOnlyModifiedClicked();
+
+	/** Called when show all advanced is clicked */
+	void OnShowAllAdvancedClicked();
+
+	virtual void UpdateFilteredDetails() = 0;
+
+	/** Called when the filter text changes.  This filters specific property nodes out of view */
+	void OnFilterTextChanged(const FText& InFilterText);
+
+	/** 
+	 * Hides or shows properties based on the passed in filter text
+	 * 
+	 * @param InFilterText	The filter text
+	 */
+	void FilterView( const FString& InFilterText );
 
 protected:
 	/** The user defined args for the details view */

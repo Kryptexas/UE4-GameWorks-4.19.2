@@ -3,7 +3,7 @@
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyDetailsUtilities.h"
 
-FPropertyDetailsUtilities::FPropertyDetailsUtilities( SDetailsView& InDetailsView )
+FPropertyDetailsUtilities::FPropertyDetailsUtilities(IDetailsViewPrivate& InDetailsView)
 	: DetailsView( InDetailsView )
 {
 }

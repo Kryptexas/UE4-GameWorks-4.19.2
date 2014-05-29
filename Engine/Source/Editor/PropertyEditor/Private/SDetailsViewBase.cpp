@@ -194,3 +194,52 @@ TSharedPtr<IPropertyUtilities> SDetailsViewBase::GetPropertyUtilities()
 {
 	return PropertyUtilities;
 }
+
+void SDetailsViewBase::OnShowOnlyModifiedClicked()
+{
+	CurrentFilter.bShowOnlyModifiedProperties = !CurrentFilter.bShowOnlyModifiedProperties;
+
+	UpdateFilteredDetails();
+}
+
+void SDetailsViewBase::OnShowAllAdvancedClicked()
+{
+	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+
+	UpdateFilteredDetails();
+}
+
+/** Called when the filter text changes.  This filters specific property nodes out of view */
+void SDetailsViewBase::OnFilterTextChanged(const FText& InFilterText)
+{
+	FString InFilterString = InFilterText.ToString();
+	InFilterString.Trim().TrimTrailing();
+
+	// Was the filter just cleared
+	bool bFilterCleared = InFilterString.Len() == 0 && CurrentFilter.FilterStrings.Num() > 0;
+
+	FilterView(InFilterString);
+
+}
+
+/** 
+ * Hides or shows properties based on the passed in filter text
+ * 
+ * @param InFilterText	The filter text
+ */
+void SDetailsViewBase::FilterView(const FString& InFilterText)
+{
+	TArray<FString> CurrentFilterStrings;
+
+	FString ParseString = InFilterText;
+	// Remove whitespace from the front and back of the string
+	ParseString.Trim();
+	ParseString.TrimTrailing();
+	ParseString.ParseIntoArray(&CurrentFilterStrings, TEXT(" "), true);
+
+	bHasActiveFilter = CurrentFilterStrings.Num() > 0;
+
+	CurrentFilter.FilterStrings = CurrentFilterStrings;
+
+	UpdateFilteredDetails();
+}

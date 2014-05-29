@@ -6,7 +6,7 @@
 class FPropertyDetailsUtilities : public IPropertyUtilities
 {
 public:
-	FPropertyDetailsUtilities( SDetailsView& InDetailsView );
+	FPropertyDetailsUtilities(IDetailsViewPrivate& InDetailsView);
 	/** IPropertyUtilities interface */
 	virtual class FNotifyHook* GetNotifyHook() const OVERRIDE;
 	virtual bool AreFavoritesEnabled() const OVERRIDE;
@@ -18,5 +18,5 @@ public:
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 private:
-	SDetailsView& DetailsView;
+	IDetailsViewPrivate& DetailsView;
 };
