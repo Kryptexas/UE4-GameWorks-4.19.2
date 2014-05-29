@@ -7986,7 +7986,13 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 
 void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst)
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( TrInst->GetOuter() );
+	if (Sounds.Num() <= 0)
+	{
+		//UE_LOG(LogMatinee, Warning,TEXT("No sounds for sound track %s"),*GetName());
+		return;
+	}
+
+	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>(TrInst->GetOuter());
 	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
 	UInterpTrackInstSound* SoundInst = CastChecked<UInterpTrackInstSound>( TrInst );
 	UInterpGroup* Group = CastChecked<UInterpGroup>( GetOuter() );
