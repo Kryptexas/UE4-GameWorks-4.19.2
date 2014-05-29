@@ -68,6 +68,10 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define FINAL	 final
 #define ABSTRACT abstract
 
+// DLL export and import definitions
+#define DLLEXPORT			__attribute__((visibility("default")))
+#define DLLIMPORT			__attribute__((visibility("default")))
+
 // Alignment.
 #define GCC_PACK(n)			__attribute__((packed,aligned(n)))
 #define GCC_ALIGN(n)		__attribute__((aligned(n)))

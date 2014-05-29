@@ -11,7 +11,7 @@ class FCreateListener : public FUObjectArray::FUObjectCreateListener
 {
 public:
 	FCreateListener( FLiveEditorListenServer *_Owner );
-	~FCreateListener();
+	virtual ~FCreateListener();
 	virtual void NotifyUObjectCreated(const class UObjectBase *Object, int32 Index);
 
 private:
@@ -22,7 +22,7 @@ class FDeleteListener : public FUObjectArray::FUObjectDeleteListener
 {
 public:
 	FDeleteListener( FLiveEditorListenServer *_Owner );
-	~FDeleteListener();
+	virtual ~FDeleteListener();
 	virtual void NotifyUObjectDeleted(const class UObjectBase *Object, int32 Index);
 
 private:

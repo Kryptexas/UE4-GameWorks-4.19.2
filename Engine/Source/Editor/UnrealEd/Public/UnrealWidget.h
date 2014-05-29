@@ -193,8 +193,8 @@ private:
 	struct FThickArcParams
 	{
 		FThickArcParams(FPrimitiveDrawInterface* InPDI, const FVector& InPosition, UMaterialInterface* InMaterial, const float InInnerRadius, const float InOuterRadius)
-			: PDI(InPDI)
-			, Position(InPosition)
+			: Position(InPosition)
+			, PDI(InPDI)
 			, Material(InMaterial)
 			, InnerRadius(InInnerRadius)
 			, OuterRadius(InOuterRadius)

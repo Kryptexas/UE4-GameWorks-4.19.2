@@ -294,9 +294,9 @@ public:
 	FTransaction(  const TCHAR* InContext=NULL, const FText& InTitle=FText(), bool InFlip=0 )
 		:	Title( InTitle )
 		,	Context( InContext )
-		,	bFlip( InFlip )
-		,	Inc( -1 )
 		,	PrimaryObject(NULL)
+		,	bFlip(InFlip)
+		,	Inc(-1)
 	{}
 
 	// FTransactionBase interface.
