@@ -9,6 +9,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
+#include "Engine/ActorChannel.h"
 
 class FNetSerializeCB : public INetSerializeCB
 {

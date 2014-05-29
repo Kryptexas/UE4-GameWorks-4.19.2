@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EditorSettingsViewerPrivatePCH.h"
-
+#include "Tests/AutomationTestSettings.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 

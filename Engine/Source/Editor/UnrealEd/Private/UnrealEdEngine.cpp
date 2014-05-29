@@ -4,6 +4,7 @@
 
 #include "Matinee/InterpData.h"
 #include "Matinee/MatineeActor.h"
+#include "Animation/AnimCompress.h"
 
 #include "EditorSupportDelegates.h"
 #include "SoundDefinitions.h"

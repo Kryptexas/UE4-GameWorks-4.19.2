@@ -7,7 +7,7 @@
  * well as choosing the best bitwise compression for each track independently.
  *
  */
-
+#include "Animation/AnimCompress_RemoveLinearKeys.h"
 #include "AnimCompress_PerTrackCompression.generated.h"
 
 UCLASS(hidecategories=AnimCompress)

@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/ControlChannel.h"
 
 static const int32 MAX_BUNCH_SIZE = 1024 * 1024; 
 

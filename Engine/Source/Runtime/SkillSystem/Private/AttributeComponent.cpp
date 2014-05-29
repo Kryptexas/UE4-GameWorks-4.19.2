@@ -4,6 +4,7 @@
 #include "SkillSystemModulePrivatePCH.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"

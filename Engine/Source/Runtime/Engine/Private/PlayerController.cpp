@@ -13,6 +13,7 @@
 #include "DisplayDebugHelpers.h"
 #include "Matinee/InterpTrackInstDirector.h"
 #include "Matinee/MatineeActor.h"
+#include "Engine/ActorChannel.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 

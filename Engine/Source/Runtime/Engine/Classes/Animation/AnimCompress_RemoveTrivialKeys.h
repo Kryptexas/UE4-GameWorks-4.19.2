@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_RemoveTrivialKeys.generated.h"
 
 UCLASS(MinimalAPI)

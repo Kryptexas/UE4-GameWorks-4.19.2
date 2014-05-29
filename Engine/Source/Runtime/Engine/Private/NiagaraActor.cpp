@@ -2,6 +2,8 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/NiagaraActor.h"
+#include "Components/NiagaraComponent.h"
 
 ANiagaraActor::ANiagaraActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

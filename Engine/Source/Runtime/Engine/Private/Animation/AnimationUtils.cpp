@@ -5,6 +5,12 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimCompress_BitwiseCompressOnly.h"
+#include "Animation/AnimCompress_PerTrackCompression.h"
+#include "Animation/AnimCompress_RevertToRaw.h"
+#include "Animation/AnimCompress_LeastDestructive.h"
+#include "Animation/AnimCompress_RemoveEverySecondKey.h"
+#include "Animation/AnimSet.h"
 #include "AnimationUtils.h"
 #include "AnimationCompression.h"
 #include "AnimEncoding.h"

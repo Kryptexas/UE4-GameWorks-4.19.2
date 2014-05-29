@@ -9,6 +9,8 @@
 
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "Engine/ActorChannel.h"
+#include "Engine/ControlChannel.h"
 
 DEFINE_LOG_CATEGORY(LogNet);
 DEFINE_LOG_CATEGORY(LogNetPlayerMovement);

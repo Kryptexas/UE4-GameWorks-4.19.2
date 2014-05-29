@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
+#include "Net/DataReplication.h"
+#include "Engine/ActorChannel.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.

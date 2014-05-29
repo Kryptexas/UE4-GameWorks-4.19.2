@@ -5,6 +5,8 @@
 =============================================================================*/
 #include "UnrealEd.h"
 
+#include "Animation/AnimCompress_BitwiseCompressOnly.h"
+
 #include "ISourceControlModule.h"
 
 #include "PackageHelperFunctions.h"

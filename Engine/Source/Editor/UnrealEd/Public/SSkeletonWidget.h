@@ -6,6 +6,8 @@
 
 #include "Slate.h"
 
+class UAnimSet;
+
 /**
  * This below code is to select skeleton from the list 
  */

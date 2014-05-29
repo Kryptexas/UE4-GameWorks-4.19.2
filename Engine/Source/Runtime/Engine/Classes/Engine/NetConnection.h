@@ -8,6 +8,7 @@
 #include "Net/DataBunch.h"
 #include "NetConnection.generated.h"
 
+class FObjectReplicator;
 
 /*-----------------------------------------------------------------------------
 	Types.

@@ -19,6 +19,7 @@
  */
 
 #pragma once
+#include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
 UCLASS(transient)

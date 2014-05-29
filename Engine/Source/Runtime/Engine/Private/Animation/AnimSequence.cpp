@@ -10,6 +10,7 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "TargetPlatform.h"
+#include "Animation/AnimCompress_RevertToRaw.h"
 
 #define USE_SLERP 0
 

@@ -22,7 +22,7 @@
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
-
+#include "Animation/AnimSet.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpData.h"
 

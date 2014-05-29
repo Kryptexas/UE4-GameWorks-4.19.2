@@ -9,6 +9,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemTypes.h"
 #include "Net/NetworkProfiler.h"
+#include "Engine/VoiceChannel.h"
 
 /** Cleans up any voice data remaining in the queue */
 void UVoiceChannel::CleanUp()

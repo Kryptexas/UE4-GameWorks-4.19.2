@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "Tests/AutomationTestSettings.h"
 #include "ObjectTools.h"
 #include "Json.h"
 #include "AssetRegistryModule.h"

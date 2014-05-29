@@ -2,6 +2,8 @@
 
 
 #include "EnginePrivate.h"
+#include "Tests/AutomationTestSettings.h"
+
 #if WITH_EDITOR
 #include "FileHelpers.h"
 #endif

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoiceInterface.h"
+#include "Net/VoiceDataCommon.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemSteamPackage.h"
 #include "OnlineSubsystemSteamTypes.h"

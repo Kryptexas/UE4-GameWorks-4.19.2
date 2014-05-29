@@ -6,6 +6,9 @@
 //
 #include "NetDriver.generated.h"
 
+class FRepChangedPropertyTracker;
+class FRepLayout;
+class FObjectReplicator;
 
 //
 // Whether to support net lag and packet loss testing.

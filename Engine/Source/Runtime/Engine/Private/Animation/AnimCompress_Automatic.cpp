@@ -3,7 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "AnimationUtils.h"
-
+#include "Animation/AnimCompress_Automatic.h"
 
 UAnimCompress_Automatic::UAnimCompress_Automatic(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

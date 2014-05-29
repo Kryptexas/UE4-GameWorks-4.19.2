@@ -8,6 +8,7 @@
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
 #include "Net/NetworkProfiler.h"
+#include "Engine/ActorChannel.h"
 
 static TAutoConsoleVariable<int32> CVarAllowPropertySkipping( TEXT( "net.AllowPropertySkipping" ), 1, TEXT( "Allow skipping of properties that haven't changed for other clients" ) );
 

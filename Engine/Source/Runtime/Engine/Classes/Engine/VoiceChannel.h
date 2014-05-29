@@ -7,6 +7,7 @@
 #pragma once
 #include "Net/DataBunch.h"
 #include "Net/VoiceDataCommon.h"
+#include "Engine/Channel.h"
 #include "VoiceChannel.generated.h"
 
 UCLASS(transient, customConstructor)

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Engine/NiagaraScriptSourceBase.h"
 #include "NiagaraScriptSource.generated.h"
 
 UCLASS(MinimalAPI)

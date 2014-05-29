@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_Automatic.generated.h"
 
 UCLASS(hidecategories=AnimationCompressionAlgorithm)

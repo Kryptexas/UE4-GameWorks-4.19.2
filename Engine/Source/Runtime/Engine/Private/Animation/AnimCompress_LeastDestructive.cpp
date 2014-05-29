@@ -5,6 +5,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimCompress_LeastDestructive.h"
+#include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "AnimationUtils.h"
 #include "AnimEncoding.h"
 

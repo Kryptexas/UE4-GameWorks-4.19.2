@@ -6,7 +6,7 @@
  * Reverts any animation compression, restoring the animation to the raw data.
  *
  */
-
+#include "Animation/AnimCompress.h"
 #include "AnimCompress_LeastDestructive.generated.h"
 
 UCLASS()

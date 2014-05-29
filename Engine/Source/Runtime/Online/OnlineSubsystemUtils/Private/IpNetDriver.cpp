@@ -8,6 +8,7 @@ Notes:
 =============================================================================*/
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "Engine/Channel.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"

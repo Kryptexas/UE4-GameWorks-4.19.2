@@ -35,6 +35,7 @@
 #pragma once
 #include "Net/DataBunch.h"
 #include "Net/DataReplication.h"
+#include "Engine/Channel.h"
 #include "ActorChannel.generated.h"
 
 UCLASS(transient, customConstructor)

@@ -6,6 +6,7 @@
 #include "Voice.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemUtilsPackage.h"
+#include "Net/VoiceDataCommon.h"
 
 /**
  * Container for unprocessed voice data
