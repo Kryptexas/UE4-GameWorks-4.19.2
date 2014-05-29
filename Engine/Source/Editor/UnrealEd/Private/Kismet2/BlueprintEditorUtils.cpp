@@ -219,7 +219,7 @@ static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClas
 
 					if(VariableNode->VariableReference.IsLocalScope())
 					{
-						VariableNode->VariableReference.SetLocalMember(NewVarName, VariableNode->VariableReference.GetMemberScope(NodeRefClass), VariableNode->VariableReference.GetMemberGuid());
+						VariableNode->VariableReference.SetLocalMember(NewVarName, VariableNode->VariableReference.GetMemberScopeName(), VariableNode->VariableReference.GetMemberGuid());
 					}
 					else if(VariableNode->VariableReference.IsSelfContext())
 					{
@@ -3284,9 +3284,15 @@ void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const F
 	{
 		for( int32 VarIdx = 0; VarIdx < FunctionEntry->LocalVariables.Num(); ++VarIdx )
 		{
-			FunctionEntry->LocalVariables.RemoveAt(VarIdx);
-			FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName);
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+			if(FunctionEntry->LocalVariables[VarIdx].VarName == InVarName)
+			{
+				FunctionEntry->LocalVariables.RemoveAt(VarIdx);
+				FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName);
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+				// No other local variables will match, we are done
+				return;
+			}
 		}
 	}
 }
