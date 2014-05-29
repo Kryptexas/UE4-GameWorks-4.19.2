@@ -6,6 +6,9 @@
 
 #pragma once
 
+#if WITH_ENGINE
+#include "StaticMeshResources.h"
+#endif // WITH_ENGINE
 
 /**
  * Template for Mac target platforms
