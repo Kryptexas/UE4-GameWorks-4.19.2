@@ -23,7 +23,7 @@ FCollisionResponseTemplate::FCollisionResponseTemplate()
 
 bool FCollisionResponseTemplate::IsEqual(const TEnumAsByte<ECollisionEnabled::Type> InCollisionEnabled, 
 	const TEnumAsByte<enum ECollisionChannel> InObjectType, 
-	const struct FCollisionResponseContainer & InResponseToChannels)
+	const struct FCollisionResponseContainer& InResponseToChannels)
 {
 	return (CollisionEnabled == InCollisionEnabled && ObjectType == InObjectType && 
 		FMemory::Memcmp(&InResponseToChannels, &ResponseToChannels, sizeof(FCollisionResponseContainer))== 0);
@@ -43,11 +43,11 @@ UCollisionProfile::UCollisionProfile(const class FPostConstructInitializePropert
 {
 }
 
-UCollisionProfile * UCollisionProfile::Get()
+UCollisionProfile* UCollisionProfile::Get()
 {
 	static bool bInitialized = false;
 	// this is singletone. Use default object
-	UCollisionProfile * CollisionProfile = CastChecked<UCollisionProfile>(UCollisionProfile::StaticClass()->GetDefaultObject());
+	UCollisionProfile* CollisionProfile = CastChecked<UCollisionProfile>(UCollisionProfile::StaticClass()->GetDefaultObject());
 
 	if (!bInitialized)
 	{
@@ -58,7 +58,7 @@ UCollisionProfile * UCollisionProfile::Get()
 	return CollisionProfile;
 }
 
-bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate & ProfileData) const
+bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const
 {
 	// verify if it is in redirect first
 	if ( ProfileName != NAME_None )
@@ -69,12 +69,12 @@ bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionR
 	return false;
 }
 
-bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance & BodyInstance, struct FCollisionResponseTemplate & Template) const
+bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance& BodyInstance, struct FCollisionResponseTemplate& Template) const
 {
 	// make sure we're not setting invalid collision profile name
 	if ( FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
-		const FName * NewName = ProfileRedirectsMap.Find(ProfileName);
+		const FName* NewName = ProfileRedirectsMap.Find(ProfileName);
 		if ( NewName )
 		{
 			// if it's same as old version
@@ -95,7 +95,7 @@ bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance & BodyIns
 	return false;
 }
 
-bool UCollisionProfile::FindProfileData(const TArray<FCollisionResponseTemplate>	& ProfileList, FName ProfileName, struct FCollisionResponseTemplate & ProfileData) const
+bool UCollisionProfile::FindProfileData(const TArray<FCollisionResponseTemplate>& ProfileList, FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const
 {
 	if ( ProfileName != NAME_None )
 	{
@@ -112,7 +112,7 @@ bool UCollisionProfile::FindProfileData(const TArray<FCollisionResponseTemplate>
 	return false;
 }
 
-bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance & BodyInstance) const
+bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance& BodyInstance) const
 {
 	FCollisionResponseTemplate Template;
 
@@ -141,7 +141,7 @@ bool UCollisionProfile::ReadConfig(FName ProfileName, FBodyInstance & BodyInstan
 	return false;
 }
 
-const FCollisionResponseTemplate * UCollisionProfile::GetProfileByIndex(int32 Index) const
+const FCollisionResponseTemplate* UCollisionProfile::GetProfileByIndex(int32 Index) const
 { 
 	if (Profiles.IsValidIndex(Index))
 	{
@@ -156,7 +156,7 @@ void UCollisionProfile::AddChannelRedirect(FName OldName, FName NewName)
 {
 	if(OldName != NewName)
 	{
-		FName & NewValue = CollisionChannelRedirectsMap.FindOrAdd(OldName);
+		FName& NewValue = CollisionChannelRedirectsMap.FindOrAdd(OldName);
 		NewValue = NewName;
 
 		CollisionChannelRedirects.Empty();
@@ -228,10 +228,10 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	FString GameTraceChannel	= TEXT("GameTraceChannel");
 
 	// find the enum
-	UEnum * Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
+	UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
 	// we need this Enum
 	check (Enum);
-	UStruct * Struct = FCollisionResponseContainer::StaticStruct(); 
+	UStruct* Struct = FCollisionResponseContainer::StaticStruct(); 
 	check (Struct);
 	const FString KeyName = TEXT("DisplayName");
 	const FString TraceType = TEXT("TraceQuery");
@@ -249,8 +249,8 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	int32 PrefixLen = FString(TEXT("ECC_")).Len();
 
 	// need to have mapping table between ECollisionChannel and EObjectTypeQuery/ETraceTypeQuery
-	UEnum * ObjectTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EObjectTypeQuery"), true);
-	UEnum * TraceTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
+	UEnum* ObjectTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EObjectTypeQuery"), true);
+	UEnum* TraceTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
 	check (ObjectTypeEnum && TraceTypeEnum);
 
 	for ( int32 EnumIndex=0; EnumIndex<NumEnum; ++EnumIndex )
@@ -263,7 +263,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 		{
 			// verify if the Struct name matches
 			// this is to avoid situations where they mismatch and causes random bugs
-			UField * Field = FindField<UField>(Struct, DisplayName);
+			UField* Field = FindField<UField>(Struct, DisplayName);
 
 			if (!Field)
 			{
@@ -356,7 +356,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 				}
 #if WITH_EDITOR
 				// now enum is fixed, so find member variable for the field
-				UField * Field = FindField<UField>(Struct, FName(*VariableName));
+				UField* Field = FindField<UField>(Struct, FName(*VariableName));
 				// I verified up in the class, this can't happen
 				check (Field);
 				Field->SetMetaData(*KeyName, *DisplayValue);
@@ -388,10 +388,10 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	for ( int32 EnumIndex=0; EnumIndex<NumEnum; ++EnumIndex )
 	{
 		// if not hidden
-		const FString & Hidden = Enum->GetMetaData(*HiddenMeta, EnumIndex);
+		const FString& Hidden = Enum->GetMetaData(*HiddenMeta, EnumIndex);
 		if ( Hidden.IsEmpty() )
 		{
-			const FString & DisplayName = Enum->GetMetaData(*KeyName, EnumIndex);
+			const FString& DisplayName = Enum->GetMetaData(*KeyName, EnumIndex);
 			if ( !DisplayName.IsEmpty() )
 			{
 				// find out trace type or object type
@@ -483,7 +483,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 #endif
 }
 
-void UCollisionProfile::FillProfileData(TArray<FCollisionResponseTemplate>	& ProfileList, const UEnum * CollisionChannelEnum, const FString & KeyName, TArray<FCustomProfile> & EditProfileList)
+void UCollisionProfile::FillProfileData(TArray<FCollisionResponseTemplate>& ProfileList, const UEnum* CollisionChannelEnum, const FString& KeyName, TArray<FCustomProfile>& EditProfileList)
 {
 	// first go through if same name is found later, delete previous entry, this way if game overrides, 
 	// we delete engine version and use game version
@@ -551,14 +551,14 @@ void UCollisionProfile::FillProfileData(TArray<FCollisionResponseTemplate>	& Pro
 	}
 }
 
-int32 UCollisionProfile::LoadCustomResponses(FCollisionResponseTemplate & Template, const UEnum * CollisionChannelEnum, TArray<FResponseChannel>	& CustomResponses) const
+int32 UCollisionProfile::LoadCustomResponses(FCollisionResponseTemplate& Template, const UEnum* CollisionChannelEnum, TArray<FResponseChannel>& CustomResponses) const
 {
 	int32 NumOfItemsCustomized=0;
 
 	// now loads all custom setups
 	for (auto ChannelIter = CustomResponses.CreateIterator(); ChannelIter; ++ChannelIter)
 	{
-		FResponseChannel & Custom = *ChannelIter;
+		FResponseChannel& Custom = *ChannelIter;
 		bool bValueFound=false;
 
 		int32 EnumIndex = ReturnContainerIndexFromChannelName(Custom.Channel);
@@ -580,9 +580,9 @@ int32 UCollisionProfile::LoadCustomResponses(FCollisionResponseTemplate & Templa
 	return (NumOfItemsCustomized == CustomResponses.Num());
 }
 
-void UCollisionProfile::SaveCustomResponses(FCollisionResponseTemplate & Template) const
+void UCollisionProfile::SaveCustomResponses(FCollisionResponseTemplate& Template) const
 {
-	const FCollisionResponseContainer & DefaultContainer = FCollisionResponseContainer::GetDefaultResponseContainer();
+	const FCollisionResponseContainer& DefaultContainer = FCollisionResponseContainer::GetDefaultResponseContainer();
 
 	Template.CustomResponses.Empty();
 	for(int32 Index=0; Index<32; ++Index)
@@ -594,7 +594,7 @@ void UCollisionProfile::SaveCustomResponses(FCollisionResponseTemplate & Templat
 	}
 }
 
-int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName & DisplayName)  const
+int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName& DisplayName)  const
 {
 	// if we don't find it in new name
 	// @note: I think we can search redirect first in case anybody would like to reuse the name
@@ -605,7 +605,7 @@ int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName & DisplayName
 	if (NameIndex == INDEX_NONE)
 	{
 		// search for redirects
-		const FName * NewName = CollisionChannelRedirectsMap.Find(DisplayName);
+		const FName* NewName = CollisionChannelRedirectsMap.Find(DisplayName);
 		if (NewName)
 		{
 			DisplayName = *NewName;

@@ -51,7 +51,7 @@ struct ENGINE_API FCollisionResponseTemplate
 
 	bool IsEqual(const TEnumAsByte<ECollisionEnabled::Type> InCollisionEnabled, 
 		const TEnumAsByte<enum ECollisionChannel> InCollisionObjectType, 
-		const struct FCollisionResponseContainer & InResponseToChannels);
+		const struct FCollisionResponseContainer& InResponseToChannels);
 
 	void CreateCustomResponsesFromResponseContainers();
 };
@@ -91,7 +91,7 @@ struct FCustomChannelSetup
 		, bStaticObject(false)
 	{}
 
-	bool operator==(const FCustomChannelSetup & Other) const
+	bool operator==(const FCustomChannelSetup& Other) const
 	{
 		return (Channel == Other.Channel);
 	}
@@ -155,19 +155,19 @@ public:
 	static ENGINE_API const FName Vehicle_ProfileName;
 
 	/** Accessor and initializer **/
-	ENGINE_API static UCollisionProfile * Get();
+	ENGINE_API static UCollisionProfile* Get();
 
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
-	bool ReadConfig(FName ProfileName, struct FBodyInstance & BodyInstance) const;
+	bool ReadConfig(FName ProfileName, struct FBodyInstance& BodyInstance) const;
 
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
-	ENGINE_API bool GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate & ProfileData) const;
+	ENGINE_API bool GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const;
 
 	/** Accessor for UI customization **/
 	int32 GetNumOfProfiles() const { return Profiles.Num(); }
 
 	/** Accessor for UI customization **/
-	ENGINE_API const FCollisionResponseTemplate * GetProfileByIndex(int32 Index) const;
+	ENGINE_API const FCollisionResponseTemplate* GetProfileByIndex(int32 Index) const;
 
 	/** 
 	 * This function loads all config data to memory
@@ -180,7 +180,7 @@ public:
 
 	/** return index of Container index from DisplayName and vice versa**/
 	/** this is misnamed now since I changed to update name if the name changed **/
-	int32 ReturnContainerIndexFromChannelName(FName & InOutDisplayName)  const;
+	int32 ReturnContainerIndexFromChannelName(FName& InOutDisplayName)  const;
 	ENGINE_API FName ReturnChannelNameFromContainerIndex(int32 ContainerIndex)  const;
 
 	/** Convert ObjectType or TraceType to CollisionChannel */
@@ -206,12 +206,12 @@ private:
 	/** 
 	 * Profile redirects - later one overrides if same one found
 	 */
-	TMap<FName, FName>	ProfileRedirectsMap;
+	TMap<FName, FName> ProfileRedirectsMap;
 
 	/** 
 	 * Collision Channel Name redirects - later one overrides if same one found
 	 */
-	TMap<FName, FName>	CollisionChannelRedirectsMap;
+	TMap<FName, FName> CollisionChannelRedirectsMap;
 
 	/**
 	 * Display Names for each channel
@@ -227,28 +227,28 @@ private:
 	TArray<ECollisionChannel> TraceTypeMapping;
 
 	/** Get Profile Data from the list given **/
-	bool FindProfileData(const TArray<FCollisionResponseTemplate>	& ProfileList, FName ProfileName, struct FCollisionResponseTemplate & ProfileData) const;
+	bool FindProfileData(const TArray<FCollisionResponseTemplate>& ProfileList, FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const;
 
 	/** Check redirect and see if this needs to replace
 	 * 
 	 * returns true if it has been replaced
 	 * returns false if it hasn't 
 	 */
-	bool CheckRedirect(FName ProfileName, FBodyInstance & BodyInstance, struct FCollisionResponseTemplate & Template) const;
+	bool CheckRedirect(FName ProfileName, FBodyInstance& BodyInstance, struct FCollisionResponseTemplate& Template) const;
 
 	/**
 	 * Fill up ResponseToChannels for ProfileList data from config
 	 */
-	void FillProfileData(TArray<FCollisionResponseTemplate>	& ProfileList, const UEnum * CollisionChannelEnum, const FString & KeyName, TArray<FCustomProfile> & EditProfileList);
+	void FillProfileData(TArray<FCollisionResponseTemplate>& ProfileList, const UEnum* CollisionChannelEnum, const FString& KeyName, TArray<FCustomProfile>& EditProfileList);
 
 	/**
 	 * Load Custom Responses to the Template. Returns true if all are found and customized. False otherwise
 	*/
-	int32 LoadCustomResponses(FCollisionResponseTemplate & Template, const UEnum * CollisionChannelEnum, TArray<FResponseChannel>	& CustomResponses) const;
+	int32 LoadCustomResponses(FCollisionResponseTemplate& Template, const UEnum* CollisionChannelEnum, TArray<FResponseChannel>& CustomResponses) const;
 	/**
 	 * Saves Template.ResponseToChannel to CustomResponses
 	 */
-	ENGINE_API void SaveCustomResponses(FCollisionResponseTemplate & Template) const;
+	ENGINE_API void SaveCustomResponses(FCollisionResponseTemplate& Template) const;
 
 	ENGINE_API void AddChannelRedirect(FName OldName, FName NewName);
 	ENGINE_API void AddProfileRedirect(FName OldName, FName NewName);
