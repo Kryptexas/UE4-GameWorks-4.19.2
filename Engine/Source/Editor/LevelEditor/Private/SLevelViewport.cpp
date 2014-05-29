@@ -29,7 +29,6 @@
 #include "SceneOutlinerTreeItems.h"
 
 static const FName LevelEditorName("LevelEditor");
-#pragma optimize("", off)
 
 #define LOCTEXT_NAMESPACE "LevelViewport"
 
