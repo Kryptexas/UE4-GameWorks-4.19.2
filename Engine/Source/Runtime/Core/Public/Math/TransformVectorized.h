@@ -35,7 +35,10 @@ public:
 #if ENABLE_UNIT_QUAT_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckUnitQuaternion() const
 	{
-		//checkf(Rotation.IsNormalized(), TEXT("FTransform Rotation is not Normalized: %s"), *Rotation.ToString());
+		FQuat QuatRotation;
+		VectorStoreAligned(Rotation, &QuatRotation);
+
+		checkf(QuatRotation.IsNormalized(), TEXT("FTransform Rotation is not Normalized: %s"), *QuatRotation.ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckUnitQuaternion() const {}
