@@ -1147,7 +1147,7 @@ FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
 
 TSharedPtr<FComponentInstanceDataBase> UInstancedStaticMeshComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FInstancedStaticMeshSelectionData> InstanceData;
+	TSharedPtr<FComponentInstanceDataBase> InstanceData;
 #if WITH_EDITOR
 	InstanceData = MakeShareable(new FInstancedStaticMeshSelectionData(*this));
 #endif
