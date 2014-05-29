@@ -32,8 +32,6 @@
 
 #include "ContentWidget.h"
 
-#include "WidgetHost.h"
-
 #include "BoxPanelComponent.h"
 
 #include "CanvasPanelSlot.h"
@@ -64,6 +62,10 @@
 #include "ThrobberComponent.h"
 #include "CircularThrobberComponent.h"
 
+/* Slate
+ *****************************************************************************/
+ 
+ #include "SObjectWidget.h"
 
 /* Blueprint
  *****************************************************************************/

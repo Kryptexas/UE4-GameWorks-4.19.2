@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Geometry.generated.h"
+
 
 class FArrangedWidget;
 class SWidget;
@@ -20,8 +22,10 @@ class SWidget;
  * A Geometry's parent is generally thought to be the Geometry of the
  * the corresponding parent widget.
  */
-class SLATECORE_API FGeometry
+USTRUCT()
+struct SLATECORE_API FGeometry
 {
+	GENERATED_USTRUCT_BODY()
 
 public:
 

@@ -99,6 +99,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 
 void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
+	PreviewWidgetActor = NULL;
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
 	SelectedTemplate = NULL;
@@ -499,29 +500,34 @@ FCursorReply SUMGDesigner::OnCursorQuery(const FGeometry& MyGeometry, const FPoi
 void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
-	if ( WidgetActor )
-	{
-		TSharedRef<SWidget> CurrentWidget = WidgetActor->GetRootWidget();
 
-		if ( CurrentWidget != PreviewWidget.Pin() )
-		{
-			PreviewWidget = CurrentWidget;
-			PreviewSurface->SetContent(CurrentWidget);
-		}
-	}
-	else
+	if ( WidgetActor != PreviewWidgetActor )
 	{
-		ChildSlot
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
+		PreviewWidgetActor = WidgetActor;
+		if ( PreviewWidgetActor )
+		{
+			TSharedRef<SWidget> CurrentWidget = PreviewWidgetActor->MakeFullScreenWidget();
+
+			if ( CurrentWidget != PreviewWidget.Pin() )
+			{
+				PreviewWidget = CurrentWidget;
+				PreviewSurface->SetContent(CurrentWidget);
+			}
+		}
+		else
+		{
+			ChildSlot
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("NoWrappedWidget", "No Widget Preview"))
-			]
-		];
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("NoWrappedWidget", "No Widget Preview"))
+				]
+			];
+		}
 	}
 
 	// Update the selected widget to match the selected template.

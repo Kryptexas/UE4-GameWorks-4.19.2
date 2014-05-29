@@ -72,6 +72,7 @@ private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 
 	TWeakPtr<SWidget> PreviewWidget;
+	UUserWidget* PreviewWidgetActor;
 
 	USlateWrapperComponent* SelectedTemplate;
 	TWeakPtr<SWidget> SelectedWidget;

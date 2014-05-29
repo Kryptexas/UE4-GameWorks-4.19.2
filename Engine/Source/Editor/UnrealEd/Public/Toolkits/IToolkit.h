@@ -97,7 +97,7 @@ public:
 	 *
 	 * @return true if an action was processed
 	 */
-	virtual bool ProcessCommandBindings( const class FKeyboardEvent& InKeyboardEvent ) const = 0;
+	virtual bool ProcessCommandBindings( const struct FKeyboardEvent& InKeyboardEvent ) const = 0;
 
 	/** Call this function to bring all of this toolkit's tabs to the foreground in their respective stacks.  Also causes the toolkit's host window to be foregrounded, too! */
 	virtual void BringToolkitToFront() = 0;

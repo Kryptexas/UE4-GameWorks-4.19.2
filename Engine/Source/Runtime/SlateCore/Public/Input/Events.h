@@ -6,12 +6,14 @@
 
 #pragma once
 
-class SWindow;
+#include "Events.generated.h"
 
+class SWindow;
 
 /**
  * Context for keyboard focus change
  */
+UENUM()
 namespace EKeyboardFocusCause
 {
 	enum Type
@@ -34,16 +36,26 @@ namespace EKeyboardFocusCause
 		/** Keyboard focus was set in response to the owning window being activated */
 		WindowActivate,
 	};
-};
+}
 
 
 /**
  * FKeyboardFocusEvent is used when notifying widgets about keyboard focus changes
  * It is passed to event handlers dealing with keyboard focus
  */
-class FKeyboardFocusEvent
+USTRUCT()
+struct FKeyboardFocusEvent
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FKeyboardFocusEvent()
+		: Cause(EKeyboardFocusCause::SetDirectly)
+	{ }
 
 	/**
 	 * Constructor.  Events are immutable once constructed.
@@ -75,9 +87,21 @@ private:
 /**
  * Base class for all mouse and keyboard events.
  */
-class FInputEvent
+USTRUCT()
+struct FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FInputEvent()
+		: ModifierKeys(FModifierKeysState(false, false, false, false, false, false))
+		, bIsRepeat(false)
+		, EventPath(nullptr)
+	{ }
 
 	/**
 	 * Constructor.  Events are immutable once constructed.
@@ -232,10 +256,22 @@ protected:
  * FKeyboardEvent describes a keyboard action (key pressed or released.)
  * It is passed to event handlers dealing with keyboard input.
  */
-class FKeyboardEvent
+USTRUCT()
+struct FKeyboardEvent
 	: public FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FKeyboardEvent()
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), false)
+		, Key(EKeys::SpaceBar)
+		, CharacterCode(0)
+	{
+	}
 
 	/**
 	 * Constructor.  Events are immutable once constructed.
@@ -287,10 +323,22 @@ private:
 /**
  * FCharacterEvent describes a keyboard action where the utf-16 code is given.  Used for OnKeyChar messages
  */
-class FCharacterEvent
+USTRUCT()
+struct FCharacterEvent
 	: public FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FCharacterEvent()
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), false)
+		, Character(0)
+	{
+	}
+
 	FCharacterEvent( const TCHAR InCharacter, const FModifierKeysState& InModifierKeys, const bool bInIsRepeat )
 		: FInputEvent(InModifierKeys, bInIsRepeat)
 		, Character(InCharacter)
@@ -345,10 +393,29 @@ public:
  * FPointerEvent describes a mouse or touch action (e.g. Press, Release, Move, etc).
  * It is passed to event handlers dealing with pointer-based input.
  */
-class FPointerEvent
+USTRUCT()
+struct FPointerEvent
 	: public FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
 public:
+
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FPointerEvent()
+		: ScreenSpacePosition(FVector2D(0, 0))
+		, LastScreenSpacePosition(FVector2D(0, 0))
+		, CursorDelta(FVector2D(0, 0))
+		, PressedButtons(FTouchKeySet::EmptySet)
+		, EffectingButton(EKeys::LeftMouseButton)
+		, UserIndex(0)
+		, PointerIndex(0)
+		, TouchpadIndex(0)
+		, bIsTouchEvent(false)
+		, GestureType(EGestureEvent::None)
+		, WheelOrGestureDelta(0.0f, 0)
+	{ }
 
 	/** Events are immutable once constructed. */
 	FPointerEvent(
@@ -409,7 +476,7 @@ public:
 		, LastScreenSpacePosition(InLastScreenSpacePosition)
 		, CursorDelta(LastScreenSpacePosition - ScreenSpacePosition)
 		, PressedButtons(bPressLeftMouseButton ? FTouchKeySet::StandardSet : FTouchKeySet::EmptySet)
-		, EffectingButton (EKeys::LeftMouseButton)
+		, EffectingButton(EKeys::LeftMouseButton)
 		, UserIndex(InUserIndex)
 		, PointerIndex(InPointerIndex)
 		, TouchpadIndex(InTouchpadIndex)
@@ -482,7 +549,7 @@ private:
 	FVector2D ScreenSpacePosition;
 	FVector2D LastScreenSpacePosition;
 	FVector2D CursorDelta;
-	const TSet<FKey>& PressedButtons;
+	TSet<FKey> PressedButtons;
 	FKey EffectingButton;
 	uint32 UserIndex;
 	uint32 PointerIndex;
@@ -497,10 +564,21 @@ private:
  * FControllerEvent describes a controller action (e.g. Button Press, Release, Analog stick move, etc).
  * It is passed to event handlers dealing with controller input.
  */
-class FControllerEvent
+USTRUCT()
+struct FControllerEvent
 	: public FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
 public:
+
+	/**
+	 * UStruct Constructor.  Not meant for normal usage.
+	 */
+	FControllerEvent()
+		: EffectingButton(EKeys::Gamepad_RightTrigger)
+		, UserIndex(0)
+		, AnalogValue(0)
+	{ }
 
 	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
 		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), bIsRepeat)
@@ -537,10 +615,24 @@ private:
  * FMotionEvent describes a touch pad action (press, move, lift)
  * It is passed to event handlers dealing with touch input.
  */
-class FMotionEvent
+USTRUCT()
+struct FMotionEvent
 	: public FInputEvent
 {
+	GENERATED_USTRUCT_BODY()
+
 public:
+	/**
+	* UStruct Constructor.  Not meant for normal usage.
+	*/
+	FMotionEvent()
+		: UserIndex(0)
+		, Tilt(FVector(0, 0, 0))
+		, RotationRate(FVector(0, 0, 0))
+		, Gravity(FVector(0, 0, 0))
+		, Acceleration(FVector(0, 0, 0))
+	{ }
+
 	FMotionEvent(
 		uint32 InUserIndex,
 		const FVector& InTilt, 
