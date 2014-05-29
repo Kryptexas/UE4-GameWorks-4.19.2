@@ -8,6 +8,7 @@
 #include "DistributionHelpers.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNode.h"
 
 // Moving UDistributions to PostInitProps to not be default sub-objects:
 // Small enough value to be rounded to 0.0 in the editor 

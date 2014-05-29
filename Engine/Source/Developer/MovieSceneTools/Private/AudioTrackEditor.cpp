@@ -18,6 +18,7 @@
 #include "MovieSceneAudioSection.h"
 #include "CommonMovieSceneTools.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "Runtime/Engine/Public/Slate/SlateTextures.h"
 #include "ObjectTools.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"

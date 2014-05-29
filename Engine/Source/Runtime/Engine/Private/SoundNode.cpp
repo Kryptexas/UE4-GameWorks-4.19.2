@@ -3,6 +3,8 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNode.h"
+
 #if WITH_EDITORONLY_DATA
 #include "UnrealEd.h"
 #endif

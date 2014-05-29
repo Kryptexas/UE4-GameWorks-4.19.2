@@ -2,6 +2,7 @@
 
  
 #pragma once
+#include "Sound/SoundNode.h"
 #include "SoundNodeRandom.generated.h"
 
 /** 

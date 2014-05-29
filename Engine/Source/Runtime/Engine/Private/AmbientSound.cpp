@@ -5,6 +5,14 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Sound/SoundNodeAmbient.h" // deprecated
+#include "Sound/SoundNodeAmbientNonLoop.h" // deprecated
+#include "Sound/SoundNodeMixer.h"
+#include "Sound/SoundNodeRandom.h"
+#include "Sound/SoundNodeLooping.h"
+#include "Sound/SoundNodeDelay.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundNodeModulator.h"
 #include "SoundDefinitions.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

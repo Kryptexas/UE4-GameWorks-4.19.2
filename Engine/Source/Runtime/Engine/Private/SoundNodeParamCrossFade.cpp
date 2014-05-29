@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeParamCrossFade.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNodeParamCrossFade implementation.

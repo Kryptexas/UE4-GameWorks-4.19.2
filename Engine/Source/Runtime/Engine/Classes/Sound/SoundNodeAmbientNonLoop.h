@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeAmbient.h"
 #include "SoundNodeAmbientNonLoop.generated.h"
 
 UCLASS(dependson=(USoundNodeAttenuation, UDistributionFloat), editinlinenew)

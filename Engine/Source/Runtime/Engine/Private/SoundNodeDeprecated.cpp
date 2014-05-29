@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeDeprecated.h"
 
 UDEPRECATED_SoundNodeDeprecated::UDEPRECATED_SoundNodeDeprecated(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

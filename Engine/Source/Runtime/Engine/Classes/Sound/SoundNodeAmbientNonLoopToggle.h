@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeAmbientNonLoop.h"
 #include "SoundNodeAmbientNonLoopToggle.generated.h"
 
 UCLASS(hidecategories=Object, dependson=USoundNodeAttenuation, editinlinenew)

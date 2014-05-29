@@ -4,6 +4,11 @@
 #include "AmbientSoundDetails.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeLooping.h"
+#include "Sound/SoundNodeMixer.h"
+#include "Sound/SoundNodeDelay.h"
+#include "Sound/SoundNodeRandom.h"
+#include "Sound/SoundNodeWavePlayer.h"
 
 
 #define LOCTEXT_NAMESPACE "AmbientSoundDetails"

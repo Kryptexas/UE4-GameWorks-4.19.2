@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNode.h"
 #include "SoundNodeConcatenator.generated.h"
 
 /**

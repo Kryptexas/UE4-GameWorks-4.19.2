@@ -2,6 +2,7 @@
 
 #include "SoundCueEditorModule.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "ScopedTransaction.h"
 #include "Toolkits/IToolkitHost.h"
 #include "SoundCueEditor.h"

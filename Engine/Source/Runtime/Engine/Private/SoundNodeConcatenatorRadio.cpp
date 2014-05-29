@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeConcatenatorRadio.h"
 
 UDEPRECATED_SoundNodeConcatenatorRadio::UDEPRECATED_SoundNodeConcatenatorRadio(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

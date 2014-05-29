@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeMixer.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundNodeAttenuation.h"
 #if WITH_EDITORONLY_DATA
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "UnrealEd.h"

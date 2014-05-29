@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeDeprecated.h"
 #include "SoundNodeAmbient.generated.h"
 
 USTRUCT()

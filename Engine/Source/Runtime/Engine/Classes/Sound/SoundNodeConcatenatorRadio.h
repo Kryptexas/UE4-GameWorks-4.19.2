@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeDeprecated.h"
 #include "SoundNodeConcatenatorRadio.generated.h"
 
 UCLASS(deprecated, hidecategories=Object, editinlinenew, MinimalAPI)

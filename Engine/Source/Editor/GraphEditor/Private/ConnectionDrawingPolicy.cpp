@@ -12,6 +12,7 @@
 #include "AnimStateEntryNode.h"
 #include "AnimationGraphSchema.h"
 #include "AnimGraphNode_Base.h"
+#include "Sound/SoundNode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 

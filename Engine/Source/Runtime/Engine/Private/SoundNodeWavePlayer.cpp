@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeWavePlayer.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
 

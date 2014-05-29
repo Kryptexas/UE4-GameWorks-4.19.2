@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeAmbient.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNodeAmbient implementation.

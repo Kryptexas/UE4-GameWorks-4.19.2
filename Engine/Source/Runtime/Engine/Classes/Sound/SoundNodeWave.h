@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundNodeDeprecated.h"
 #include "SoundNodeWave.generated.h"
 
 UCLASS(deprecated, PerObjectConfig, hidecategories=Object, editinlinenew, MinimalAPI)

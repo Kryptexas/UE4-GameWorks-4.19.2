@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundNodeBranch.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeBranch"
 

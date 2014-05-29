@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "SoundDefinitions.h"
 #include "AudioEffect.h"
 #include "Net/UnrealNetwork.h"
