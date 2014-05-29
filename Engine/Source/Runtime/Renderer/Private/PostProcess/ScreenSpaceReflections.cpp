@@ -162,13 +162,13 @@ static int32 ComputeSSRQuality(float Quality)
 {
 	int32 Ret;
 
-	if(Quality >= 50.0f)
+	if(Quality >= 60.0f)
 	{
-		Ret = (Quality >= 75.0f) ? 4 : 3;
+		Ret = (Quality >= 80.0f) ? 4 : 3;
 	}
 	else
 	{
-		Ret = (Quality >= 25.0f) ? 2 : 1;
+		Ret = (Quality >= 40.0f) ? 2 : 1;
 	}
 
 	int SSRQualityCVar = FMath::Max(0, CVarSSRQuality.GetValueOnRenderThread());
