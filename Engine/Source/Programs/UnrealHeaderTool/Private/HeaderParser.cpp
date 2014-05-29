@@ -3923,7 +3923,8 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 			bEndOfDeclarationFound = true;
 			break;
 		}
-		else if (Token.Matches(OpeningBracket))
+
+		if (Token.Matches(OpeningBracket))
 		{
 			// This is a function definition or class declaration.
 			bDefinitionFound = true;
@@ -3936,6 +3937,11 @@ bool FHeaderParser::SkipDeclaration(FToken& Token)
 			{
 				bEndOfDeclarationFound = true;
 				break;
+			}
+
+			if (Nest < 0)
+			{
+				FError::Throwf(TEXT("Unexpected '}'. Didn't you miss a semi-colon?"));
 			}
 		}
 		else if (bMacroDeclaration && Nest == 0)
