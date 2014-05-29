@@ -318,6 +318,9 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 
+	/** Retrieves information about the total number of bytes and number of free bytes for the specified disk path. */
+	static bool GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes );
+
 	static bool SupportsMessaging()
 	{
 		return true;

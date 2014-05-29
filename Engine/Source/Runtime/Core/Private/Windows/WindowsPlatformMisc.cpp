@@ -2100,6 +2100,20 @@ void FWindowsPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& 
 	FWindowsOSVersionHelper::GetOSVersions( out_OSVersionLabel, out_OSSubVersionLabel );
 }
 
+
+bool FWindowsPlatformMisc::GetDiskTotalAndFreeSpace( const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes )
+{
+	bool bSuccess = false;
+	// We need to convert the path to make sure it is formatted with windows style Drive e.g. "C:\"
+	const FString ValidatedPath = FPaths::ConvertRelativePathToFull( InPath ).Replace( TEXT( "/" ), TEXT( "\\" ) );
+	if( ValidatedPath.Len() >= 3 && ValidatedPath[1] == ':' && ValidatedPath[2] == '\\' )
+	{
+		bSuccess = !!::GetDiskFreeSpaceEx( *ValidatedPath, nullptr, reinterpret_cast<ULARGE_INTEGER*>(&TotalNumberOfBytes), reinterpret_cast<ULARGE_INTEGER*>(&NumberOfFreeBytes) );
+	}
+	return bSuccess;	
+}
+
+
 uint32 FWindowsPlatformMisc::GetCPUInfo()
 {
 	return FCPUIDQueriedData::GetCPUInfo();
