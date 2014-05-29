@@ -23,6 +23,7 @@ public:
 
 	// USceneComponent interface
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
+	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const OVERRIDE;
 	// End of USceneComponent interface
 
 	// UPrimitiveComponent interface
@@ -31,6 +32,9 @@ public:
 
 	/** Return the BodySetup to use for this PrimitiveComponent (single body case) */
 	virtual class UBodySetup2D* GetBodySetup2D() const;
+
+	/** Get a BodyInstance from this component. The supplied name is used in the SkeletalMeshComponent case. A name of NAME_None in the skeletal case gives the root body instance. */
+	virtual const FBodyInstance2D* GetBodyInstance2D(FName BoneName = NAME_None) const;
 
 protected:
 	//@TODO: Document

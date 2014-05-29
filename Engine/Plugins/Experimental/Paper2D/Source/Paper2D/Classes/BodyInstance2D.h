@@ -13,9 +13,13 @@ struct PAPER2D_API FBodyInstance2D
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
 	uint32 bSimulatePhysics:1;
 
+	/**	Allows you to override the PhysicalMaterial to use for simple collision on this body. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Collision)
+	class UPhysicalMaterial* PhysMaterialOverride;
+
 	FBodyInstance2D();
 
-	void InitBody(class UBodySetup2D* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp);
+	void InitBody(class UBodySetup2D* Setup, const FTransform& Transform, class UPrimitiveComponent2D* PrimComp);
 	void TermBody();
 
 	/** See if this body is valid. */
@@ -32,9 +36,15 @@ struct PAPER2D_API FBodyInstance2D
 	 */
 	void SetBodyTransform(const FTransform& NewTransform);
 
+	/** Should Simulate Physics **/
+	bool ShouldInstanceSimulatingPhysics() const;
+
+	/** Returns true if this body is simulating, false if it is fixed (kinematic) */
+	bool IsInstanceSimulatingPhysics() const;
+
 public:
 	/** PrimitiveComponent containing this body.   */
-	TWeakObjectPtr<class UPrimitiveComponent> OwnerComponentPtr;
+	TWeakObjectPtr<class UPrimitiveComponent2D> OwnerComponentPtr;
 
 protected:
 

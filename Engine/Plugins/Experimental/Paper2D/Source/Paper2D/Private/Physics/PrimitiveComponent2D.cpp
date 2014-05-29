@@ -60,6 +60,18 @@ void UPrimitiveComponent2D::OnUpdateTransform(bool bSkipPhysicsMove)
 	}
 }
 
+bool UPrimitiveComponent2D::IsSimulatingPhysics(FName BoneName) const
+{
+	if (const FBodyInstance2D* BodyInst2D = GetBodyInstance2D(BoneName))
+	{
+		return BodyInst2D->IsInstanceSimulatingPhysics();
+	}
+	else
+	{
+		return Super::IsSimulatingPhysics(BoneName);
+	}
+}
+
 void UPrimitiveComponent2D::SetSimulatePhysics(bool bSimulate)
 {
 	Super::SetSimulatePhysics(bSimulate);
@@ -69,4 +81,9 @@ void UPrimitiveComponent2D::SetSimulatePhysics(bool bSimulate)
 class UBodySetup2D* UPrimitiveComponent2D::GetBodySetup2D() const
 {
 	return nullptr;
+}
+
+const FBodyInstance2D* UPrimitiveComponent2D::GetBodyInstance2D(FName BoneName) const
+{
+	return &BodyInstance2D;
 }

@@ -14,8 +14,7 @@ FBodyInstance2D::FBodyInstance2D()
 	bSimulatePhysics = true;
 }
 
-//@TODO: Everything about this block of code...
-void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp)
+void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const FTransform& Transform, class UPrimitiveComponent2D* PrimComp)
 {
 #if WITH_BOX2D
 	if (b2World* World = FPhysicsIntegration2D::FindAssociatedWorld(PrimComp->GetWorld()))
@@ -38,13 +37,14 @@ void FBodyInstance2D::InitBody(class UBodySetup2D* Setup, const FTransform& Tran
 			{
 				b2CircleShape CircleShape;
 				CircleShape.m_radius = Circle.Radius * Scale3D.Size() / UnrealUnitsPerMeter;
-				CircleShape.m_p.x = Circle.Center.X;
-				CircleShape.m_p.y = Circle.Center.Y;
+				CircleShape.m_p.x = Circle.Center.X * Scale2D.x;
+				CircleShape.m_p.y = Circle.Center.Y * Scale2D.y;
 
 				b2FixtureDef FixtureDef;
 				FixtureDef.shape = &CircleShape;
 				FixtureDef.density = 1.0f; //@TODO:
 				FixtureDef.friction = 0.3f;//@TODO:
+				//FixtureDef.restitution = ;
 
 				BodyInstancePtr->CreateFixture(&FixtureDef);
 			}
@@ -148,12 +148,12 @@ FTransform FBodyInstance2D::GetUnrealWorldTransform() const
 	if (BodyInstancePtr != NULL)
 	{
 		const b2Vec2 Pos2D = BodyInstancePtr->GetPosition();
-		const float Rotation = BodyInstancePtr->GetAngle();
+		const float RotationInRadians = BodyInstancePtr->GetAngle();
 		//@TODO: Should I use get transform?
 		//@TODO: What about scale?
 
 		const FVector Translation3D(FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Pos2D));
-		const FRotator Rotation3D(FMath::RadiansToDegrees(Rotation), 0.0f, 0.0f);
+		const FRotator Rotation3D(FMath::RadiansToDegrees(RotationInRadians), 0.0f, 0.0f);
 		const FVector Scale3D(1.0f, 1.0f, 1.0f);
 		
 		return FTransform(Rotation3D, Translation3D, Scale3D);
@@ -180,6 +180,27 @@ void FBodyInstance2D::SetBodyTransform(const FTransform& NewTransform)
 		BodyInstancePtr->SetTransform(NewLocation2D, NewAngle);
 	}
 #endif
+}
+
+bool FBodyInstance2D::ShouldInstanceSimulatingPhysics() const
+{
+	// if I'm simulating or owner is simulating
+	UPrimitiveComponent2D* OwnerComponent = OwnerComponentPtr.Get();
+	
+	// if derive from owner, and owner is simulating, this should simulate
+	if ((OwnerComponent != nullptr) && OwnerComponent->GetBodyInstance2D()->bSimulatePhysics)
+	{
+		return true;
+	}
+
+	// or else, it should look its own setting
+	return bSimulatePhysics;
+}
+
+bool FBodyInstance2D::IsInstanceSimulatingPhysics() const
+{
+	// if I'm simulating or owner is simulating
+	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
 }
 
 void FBodyInstance2D::SetInstanceSimulatePhysics(bool bSimulate)

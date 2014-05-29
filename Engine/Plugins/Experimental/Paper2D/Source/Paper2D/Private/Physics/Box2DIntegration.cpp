@@ -144,15 +144,18 @@ void FStartPhysics2DTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick T
 
 			if (FBodyInstance2D* UnrealBodyInstance = (FBodyInstance2D*)Body->GetUserData())
 			{
-				// See if the transform is actually different, and if so, move the component to match physics
-				const FTransform NewTransform = UnrealBodyInstance->GetUnrealWorldTransform();	
-				const FTransform& OldTransform = UnrealBodyInstance->OwnerComponentPtr->ComponentToWorld;
-				if (!NewTransform.Equals(OldTransform))
+				if (UnrealBodyInstance->bSimulatePhysics)
 				{
-					const FVector MoveBy = NewTransform.GetLocation() - OldTransform.GetLocation();
-					const FRotator NewRotation = NewTransform.Rotator();
+					// See if the transform is actually different, and if so, move the component to match physics
+					const FTransform NewTransform = UnrealBodyInstance->GetUnrealWorldTransform();
+					const FTransform& OldTransform = UnrealBodyInstance->OwnerComponentPtr->ComponentToWorld;
+					if (!NewTransform.Equals(OldTransform))
+					{
+						const FVector MoveBy = NewTransform.GetLocation() - OldTransform.GetLocation();
+						const FRotator NewRotation = NewTransform.Rotator();
 
-					UnrealBodyInstance->OwnerComponentPtr->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+						UnrealBodyInstance->OwnerComponentPtr->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+					}
 				}
 			}
 
