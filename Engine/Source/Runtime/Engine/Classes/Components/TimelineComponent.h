@@ -345,6 +345,9 @@ public:
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetDirectionPropertyName(FName InDirectionPropertyName);
+
+	/** Get all curves used by the Timeline */
+	void GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const;
 private:
 	/** Returns the time value of the last keyframe in any of the timeline's curves */
 	float GetLastKeyframeTime() const;
@@ -478,6 +481,9 @@ public:
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetDirectionPropertyName(FName DirectionPropertyName);
+
+	/** Get all curves used by the Timeline */
+	ENGINE_API void GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const;
 };
 
 

@@ -298,6 +298,26 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 	TimelineGuid = FGuid::NewGuid();
 }
 
+void UTimelineTemplate::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
+{
+	for (auto& Track : EventTracks)
+	{
+		InOutCurves.Add(Track.CurveKeys);
+	}
+	for (auto& Track : FloatTracks)
+	{
+		InOutCurves.Add(Track.CurveFloat);
+	}
+	for (auto& Track : VectorTracks)
+	{
+		InOutCurves.Add(Track.CurveVector);
+	}
+	for (auto& Track : LinearColorTracks)
+	{
+		InOutCurves.Add(Track.CurveLinearColor);
+	}
+}
+
 bool FTTTrackBase::operator==( const FTTTrackBase& T2 ) const
 {
 	return (TrackName == T2.TrackName) &&

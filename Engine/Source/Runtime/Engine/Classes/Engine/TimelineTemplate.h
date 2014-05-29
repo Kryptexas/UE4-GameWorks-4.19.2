@@ -203,6 +203,8 @@ class UTimelineTemplate : public UObject
 	ENGINE_API static FString TimelineTemplateNameToVariableName(FName Name);
 	ENGINE_API static FString TimelineVariableNameToTemplateName(FName Name);
 
+	ENGINE_API void GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const;
+
 	/* Perform deep copy of curves */
 	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 };

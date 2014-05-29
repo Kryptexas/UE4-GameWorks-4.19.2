@@ -536,6 +536,22 @@ float FTimeline::GetLastKeyframeTime() const
 	return MaxTime;
 }
 
+void FTimeline::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
+{
+	for (auto& Track : InterpVectors)
+	{
+		InOutCurves.Add(Track.VectorCurve);
+	}
+	for (auto& Track : InterpFloats)
+	{
+		InOutCurves.Add(Track.FloatCurve);
+	}
+	for (auto& Track : InterpLinearColors)
+	{
+		InOutCurves.Add(Track.LinearColorCurve);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // UTimelineComponent
 
@@ -764,4 +780,9 @@ void UTimelineComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty >
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( UTimelineComponent, TheTimeline );
+}
+
+void UTimelineComponent::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
+{
+	TheTimeline.GetAllCurves(InOutCurves);
 }

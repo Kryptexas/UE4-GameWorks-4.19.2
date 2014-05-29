@@ -896,6 +896,7 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 
 		// >>> Backwards Compatibility:  VER_UE4_EDITORONLY_BLUEPRINTS
 		bool bMigratedOwner = false;
+		TSet<class UCurveBase*> Curves;
 		for( auto CompIt = ComponentTemplates.CreateIterator(); CompIt; ++CompIt )
 		{
 			UActorComponent* Component = (*CompIt);
@@ -906,6 +907,10 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				ensure(bRenamed);
 				bIsStillStale |= !bRenamed;
 				bMigratedOwner = true;
+			}
+			if (auto TimelineComponent = Cast<UTimelineComponent>(Component))
+			{
+				TimelineComponent->GetAllCurves(Curves);
 			}
 		}
 
@@ -922,6 +927,16 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				bIsStillStale |= !bRenamed;
 				ensure(OldTemplateName == UTimelineTemplate::TimelineTemplateNameToVariableName(Template->GetFName()));
 				bMigratedOwner = true;
+			}
+			Template->GetAllCurves(Curves);
+		}
+		for (auto Curve : Curves)
+		{
+			if (Curve && (Curve->GetOuter() == this))
+			{
+				const bool bRenamed = Curve->Rename(NULL, BPGClass, REN_ForceNoResetLoaders|REN_DoNotDirty);
+				ensure(bRenamed);
+				bIsStillStale |= !bRenamed;
 			}
 		}
 

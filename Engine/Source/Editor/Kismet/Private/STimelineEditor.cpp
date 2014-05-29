@@ -915,6 +915,8 @@ FReply STimelineEditor::CreateNewTrack(FTimelineEdTrack::ETrackType Type)
 	TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 	UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
 	UK2Node_Timeline* TimelineNode = FBlueprintEditorUtils::FindNodeForTimeline(Blueprint, TimelineObj);
+	UClass* OwnerClass = Blueprint->GeneratedClass;
+	check(OwnerClass);
 
 	FText ErrorMessage;
 
@@ -932,7 +934,7 @@ FReply STimelineEditor::CreateNewTrack(FTimelineEdTrack::ETrackType Type)
 			{
 				FTTEventTrack NewTrack;
 				NewTrack.TrackName = TrackName;
-				NewTrack.CurveKeys = NewNamedObject<UCurveFloat>(Blueprint, NAME_None, RF_Public); // Needs to be marked public so that it can be referenced from timeline instances in the level
+				NewTrack.CurveKeys = NewNamedObject<UCurveFloat>(OwnerClass, NAME_None, RF_Public); // Needs to be marked public so that it can be referenced from timeline instances in the level
 				NewTrack.CurveKeys->bIsEventCurve = true;
 				TimelineObj->EventTracks.Add(NewTrack);
 			}
@@ -944,7 +946,7 @@ FReply STimelineEditor::CreateNewTrack(FTimelineEdTrack::ETrackType Type)
 				NewTrack.CurveFloat = FindObject<UCurveFloat>(ANY_PACKAGE, *TrackName.ToString() );
 				if (NewTrack.CurveFloat == NULL)
 				{
-					NewTrack.CurveFloat = NewNamedObject<UCurveFloat>(Blueprint, NAME_None, RF_Public); 
+					NewTrack.CurveFloat = NewNamedObject<UCurveFloat>(OwnerClass, NAME_None, RF_Public);
 				}
 				TimelineObj->FloatTracks.Add(NewTrack);
 			}
@@ -952,14 +954,14 @@ FReply STimelineEditor::CreateNewTrack(FTimelineEdTrack::ETrackType Type)
 			{
 				FTTVectorTrack NewTrack;
 				NewTrack.TrackName = TrackName;
-				NewTrack.CurveVector = NewNamedObject<UCurveVector>(Blueprint, NAME_None, RF_Public); 
+				NewTrack.CurveVector = NewNamedObject<UCurveVector>(OwnerClass, NAME_None, RF_Public);
 				TimelineObj->VectorTracks.Add(NewTrack);
 			}
 			else if(Type == FTimelineEdTrack::TT_LinearColorInterp)
 			{
 				FTTLinearColorTrack NewTrack;
 				NewTrack.TrackName = TrackName;
-				NewTrack.CurveLinearColor = NewNamedObject<UCurveLinearColor>(Blueprint, NAME_None, RF_Public); 
+				NewTrack.CurveLinearColor = NewNamedObject<UCurveLinearColor>(OwnerClass, NAME_None, RF_Public);
 				TimelineObj->LinearColorTracks.Add(NewTrack);
 			}
 
@@ -1000,23 +1002,24 @@ UCurveBase* STimelineEditor::CreateNewCurve( FTimelineEdTrack::ETrackType Type )
 {
 	TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
 	UBlueprint* Blueprint = Kismet2->GetBlueprintObj();
-
+	UClass* OwnerClass = Blueprint->GeneratedClass;
+	check(OwnerClass);
 	UCurveBase* NewCurve = NULL;
 	if(Type == FTimelineEdTrack::TT_Event)
 	{
-		NewCurve = NewNamedObject<UCurveFloat>(Blueprint, NAME_None, RF_Public); 
+		NewCurve = NewNamedObject<UCurveFloat>(OwnerClass, NAME_None, RF_Public);
 	}
 	else if(Type == FTimelineEdTrack::TT_FloatInterp)
 	{
-		NewCurve = NewNamedObject<UCurveFloat>(Blueprint, NAME_None, RF_Public); 
+		NewCurve = NewNamedObject<UCurveFloat>(OwnerClass, NAME_None, RF_Public);
 	}
 	else if(Type == FTimelineEdTrack::TT_VectorInterp)
 	{
-		NewCurve = NewNamedObject<UCurveVector>(Blueprint, NAME_None, RF_Public);
+		NewCurve = NewNamedObject<UCurveVector>(OwnerClass, NAME_None, RF_Public);
 	}
 	else if(Type == FTimelineEdTrack::TT_LinearColorInterp)
 	{
-		NewCurve = NewNamedObject<UCurveLinearColor>(Blueprint, NAME_None, RF_Public);
+		NewCurve = NewNamedObject<UCurveLinearColor>(OwnerClass, NAME_None, RF_Public);
 	}
 
 

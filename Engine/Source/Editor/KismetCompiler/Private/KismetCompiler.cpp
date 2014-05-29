@@ -197,6 +197,25 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 				SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
 			}
 		}
+		{
+			TSet<class UCurveBase*> Curves;
+			for (auto Timeline : Blueprint->Timelines)
+			{
+				Timeline->GetAllCurves(Curves);
+			}
+			for (auto Component : Blueprint->ComponentTemplates)
+			{
+				if (auto TimelineComponent = Cast<UTimelineComponent>(Component))
+				{
+					TimelineComponent->GetAllCurves(Curves);
+				}
+			}
+			for (auto Curve : Curves)
+			{
+				SubObjectsToSave.AddObject(Curve);
+			}
+		}
+
 		ClassSubObjects.RemoveAllSwap(SubObjectsToSave);
 	}
 
