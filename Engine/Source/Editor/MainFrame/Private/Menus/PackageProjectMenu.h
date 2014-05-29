@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "ProjectTargetPlatformEditor.h"
 
 #define LOCTEXT_NAMESPACE "FPackageProjectMenu"
 
@@ -30,7 +31,9 @@ public:
 		{
 			return;
 		}
-					
+		
+		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
+
 		for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
 		{
 			const ITargetPlatform* Platform = Platforms[PlatformIndex];
@@ -48,11 +51,9 @@ public:
 				CollectivePlatforms.Add(LOCTEXT("Win64","Win64"));
 
 				MenuBuilder.AddSubMenu(
-					Platform->DisplayName(),
-					Platform->DisplayName(),
+					ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(Platform), 
 					FNewMenuDelegate::CreateStatic(&FPackageProjectMenu::AddPlatformSubPlatformsToMenu, Platform, CollectivePlatforms),
-					false,
-					FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName()))
+					false
 					);
 			}
 			else
@@ -70,6 +71,8 @@ public:
 
 		MenuBuilder.AddMenuSeparator();
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().PackagingSettings);
+
+		ProjectTargetPlatformEditorModule.AddOpenProjectTargetPlatformEditorMenuItem(MenuBuilder);
 	}
 
 protected:
@@ -82,16 +85,31 @@ protected:
 	*/
 	static void AddPlatformToMenu(FMenuBuilder& MenuBuilder, const ITargetPlatform* Platform)
 	{
+		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
+
 		FUIAction Action(
 			FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProject, Platform->PlatformName(), Platform->DisplayName(), FString()),
 			FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProjectCanExecute, Platform->PlatformName(), Platform->SupportsFeature(ETargetPlatformFeatures::Packaging))
 			);
 
+		// ... generate tooltip text
+		FFormatNamedArguments TooltipArguments;
+		TooltipArguments.Add(TEXT("DisplayName"), Platform->DisplayName());
+		FText Tooltip = FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {DisplayName} platform"), TooltipArguments);
+
+		FProjectStatus ProjectStatus;
+		if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(*Platform->PlatformName()))
+		{
+			FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
+			Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
+		}
+
+		// ... and add a menu entry
 		MenuBuilder.AddMenuEntry(
-			Platform->DisplayName(),
-			FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {0} platform"), Platform->DisplayName()),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())),
-			Action
+			Action, 
+			ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(Platform), 
+			NAME_None, 
+			Tooltip
 			);
 	}
 
@@ -106,6 +124,8 @@ protected:
 	*/
 	static void AddPlatformSubPlatformsToMenu(FMenuBuilder& MenuBuilder, const ITargetPlatform* Platform, TArray<FText> DisplayNames)
 	{
+		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
+
 		for (const FText& DisplayName : DisplayNames)
 		{
 			FString OptionalParams = FString::Printf(TEXT("-targetplatform=%s"), *DisplayName.ToString());
@@ -114,11 +134,25 @@ protected:
 				FCanExecuteAction::CreateStatic(&FMainFrameActionCallbacks::PackageProjectCanExecute, Platform->PlatformName(), Platform->SupportsFeature(ETargetPlatformFeatures::Packaging))
 				);
 
+			// ... generate tooltip text
+			FFormatNamedArguments TooltipArguments;
+			TooltipArguments.Add(TEXT("DisplayName"), Platform->DisplayName());
+			TooltipArguments.Add(TEXT("DisplaySubName"), DisplayName);
+			FText Tooltip = FText::Format(LOCTEXT("PackageGameForSubPlatformTooltip", "Build, cook and package your game for the {DisplayName} | {DisplaySubName} platform"), TooltipArguments);
+
+			FProjectStatus ProjectStatus;
+			if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(*Platform->PlatformName()))
+			{
+				FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
+				Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
+			}
+
+			// ... and add a menu entry
 			MenuBuilder.AddMenuEntry(
-				DisplayName,
-				FText::Format(LOCTEXT("PackageGameForPlatformTooltip", "Build, cook and package your game for the {0} | {1} platform"), Platform->DisplayName(), DisplayName),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), *FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())),
-				Action
+				Action, 
+				ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(Platform, false, DisplayName), 
+				NAME_None, 
+				Tooltip
 				);
 		}
 	}

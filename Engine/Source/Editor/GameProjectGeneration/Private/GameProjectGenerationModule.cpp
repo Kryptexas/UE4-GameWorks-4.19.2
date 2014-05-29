@@ -77,9 +77,16 @@ bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutC
 	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
 }
 
+
 void FGameProjectGenerationModule::CheckAndWarnProjectFilenameValid()
 {
 	GameProjectUtils::CheckAndWarnProjectFilenameValid();
+}
+
+
+void FGameProjectGenerationModule::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported)
+{
+	GameProjectUtils::UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -18,6 +18,8 @@ public:
 	/** A hash that is used to determine if the project was forked from a sample */
 	uint32 EpicSampleNameHash;
 
+	/** Array of platforms that this project is targeting */
+	TArray<FName> TargetPlatforms;
 
 	/** Project info constructor */
 	FProjectInfo()
@@ -54,6 +56,14 @@ public:
 	 * @param FilePath	The filepath where the sample project is stored.
 	 */
 	void SignSampleProject(const FString& FilePath, const FString &Category);
+
+	/**
+	 * Update the list of supported target platforms based upon the parameters provided
+	 * 
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
 
 	const FProjectInfo& GetProjectInfo() const
 	{
@@ -92,10 +102,19 @@ public:
 	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
 	virtual bool SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason) OVERRIDE;
 	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const OVERRIDE;
+	virtual bool QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const OVERRIDE;
+	virtual void UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
+	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
+	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() OVERRIDE { return OnTargetPlatformsForCurrentProjectChangedEvent; }
 
 private:
+	static void QueryStatusForProjectImpl(const FProject& Project, const FString& FilePath, FProjectStatus& OutProjectStatus);
+
 	/** The project that is currently loaded in the editor */
 	TSharedPtr< FProject > CurrentlyLoadedProject;
+
+	/** Delegate called when the target platforms for the current project are changed */
+	FOnTargetPlatformsForCurrentProjectChangedEvent OnTargetPlatformsForCurrentProjectChangedEvent;
 };
 
 

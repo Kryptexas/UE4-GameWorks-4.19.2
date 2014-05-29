@@ -231,6 +231,15 @@ public:
 	/** Creates a copy of a project directory in order to upgrade it. */
 	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
 
+	/**
+	 * Update the list of supported target platforms based upon the parameters provided
+	 * This will take care of checking out and saving the updated .uproject file automatically
+	 * 
+	 * @param	InPlatformName		Name of the platform to target (eg, WindowsNoEditor)
+	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
+	 */
+	static void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
+
 private:
 	/** Generates a new project without using a template project */
 	static bool GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);

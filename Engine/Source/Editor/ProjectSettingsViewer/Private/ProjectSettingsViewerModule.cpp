@@ -6,6 +6,7 @@
 
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
+#include "ProjectTargetPlatformEditor.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -179,6 +180,14 @@ protected:
 			GetMutableDefault<UProjectPackagingSettings>()
 		);
 
+		// platforms settings
+		TWeakPtr<SWidget> ProjectTargetPlatformEditorPanel = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").CreateProjectTargetPlatformEditorPanel();
+		SettingsModule.RegisterSettings("Project", "Game", "TargetPlatforms",
+			LOCTEXT("ProjectTargetPlatformsSettingsName", "Target Platforms"),
+			LOCTEXT("ProjectTargetPlatformsSettingsDescription", "Specify which platforms your project is targeting."),
+			ProjectTargetPlatformEditorPanel.Pin().ToSharedRef()
+		);
+
 		// movie settings
 		SettingsModule.RegisterSettings("Project", "Game", "Movies",
 			LOCTEXT("MovieSettingsName", "Movies"),
@@ -226,6 +235,7 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Game", "General");
 			SettingsModule->UnregisterSettings("Project", "Game", "Maps");
 			SettingsModule->UnregisterSettings("Project", "Game", "Packaging");
+			SettingsModule->UnregisterSettings("Project", "Game", "TargetPlatforms");
 			SettingsModule->UnregisterSettings("Project", "Game", "Movies");
 //			SettingsModule->UnregisterSettings("Project", "Game", "GameSession");
 //			SettingsModule->UnregisterSettings("Project", "Game", "HUD");

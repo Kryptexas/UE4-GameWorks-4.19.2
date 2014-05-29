@@ -5007,6 +5007,8 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "LauncherCommand.CreateBuild", new IMAGE_BRUSH( "Launcher/Launcher_Build", Icon40x40 ) );
 		Set( "LauncherCommand.AdvancedBuild", new IMAGE_BRUSH( "Launcher/Launcher_Advanced", Icon40x40 ) );
 
+		Set( "Launcher.Platform.Warning", new IMAGE_BRUSH( "Icons/alert", Icon24x24) );
+
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
 		const TArray<ITargetPlatform*>& TargetPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
 		for (int32 PlatformIdx = 0; PlatformIdx < TargetPlatforms.Num(); PlatformIdx++)

@@ -17,6 +17,7 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
 #include "GameProjectGenerationModule.h"
+#include "ProjectTargetPlatformEditor.h"
 
 //@TODO: Remove this dependency
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -556,6 +557,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	// shared devices section
 	TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
 	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
+	IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
 
 	TArray<FString> PlatformsToMaybeInstallLinksFor;
 	PlatformsToMaybeInstallLinksFor.Add(TEXT("Android"));
@@ -625,18 +627,24 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 					// ... generate tooltip text
 					FFormatNamedArguments TooltipArguments;
 					TooltipArguments.Add(TEXT("DeviceID"), FText::FromString(DeviceProxy->GetName()));
-					TooltipArguments.Add(TEXT("PlatformName"), FText::FromString(Platform->PlatformName()));
-					FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Launch the game on this {PlatformName} device ({DeviceID})"), TooltipArguments);
+					TooltipArguments.Add(TEXT("DisplayName"), Platform->DisplayName());
+					FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Launch the game on this {DisplayName} device ({DeviceID})"), TooltipArguments);
+
+					FProjectStatus ProjectStatus;
+					if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(*Platform->PlatformName())) 
+					{
+						FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
+						Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
+					}
 
 					// ... and add a menu entry
 					MenuBuilder.AddMenuEntry(
-						Label,
-						Tooltip,
-						FSlateIcon(FEditorStyle::GetStyleSetName(), *IconName),
-						LaunchDeviceAction,
-						NAME_None,
+						LaunchDeviceAction, 
+						ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(Platform, true, Label), 
+						NAME_None, 
+						Tooltip, 
 						EUserInterfaceActionType::Check
-					);
+						);
 				}
 			}
 		}
@@ -687,6 +695,8 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	MenuBuilder.BeginSection("LevelEditorLaunchOptions");
 	{
 		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().OpenDeviceManager );
+		
+		ProjectTargetPlatformEditorModule.AddOpenProjectTargetPlatformEditorMenuItem(MenuBuilder);
 	}
 	MenuBuilder.EndSection();
 
@@ -1539,7 +1549,14 @@ bool FInternalPlayWorldCommandCallbacks::CanLaunchOnDevice( const FString& Devic
 
 void FInternalPlayWorldCommandCallbacks::LaunchOnDevice( const FString& DeviceId, const FString& DeviceName )
 {
-	GUnrealEd->RequestPlaySession(DeviceId, DeviceName);
+	FTargetDeviceId TargetDeviceId;
+	if (FTargetDeviceId::Parse(DeviceId, TargetDeviceId))
+	{
+		if (FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(*TargetDeviceId.GetPlatformName()))
+		{
+			GUnrealEd->RequestPlaySession(DeviceId, DeviceName);
+		}
+	}
 }
 
 

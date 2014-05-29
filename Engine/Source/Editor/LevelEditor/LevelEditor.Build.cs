@@ -44,7 +44,9 @@ public class LevelEditor : ModuleRules
 				"ContentBrowser",
                 "SceneOutliner",
                 "ActorPickerMode",
-                "RHI"
+                "RHI",
+				"Projects",
+				"TargetPlatform",
 			}
 		);
 

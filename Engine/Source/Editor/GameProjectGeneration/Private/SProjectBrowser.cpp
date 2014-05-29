@@ -7,6 +7,7 @@
 #include "SVerbChoiceDialog.h"
 #include "UProjectInfo.h"
 #include "SourceCodeNavigation.h"
+#include "TargetPlatform.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -23,8 +24,9 @@ struct FProjectItem
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
+	TArray<FName> TargetPlatforms;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
+	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem, TArray<FName> InTargetPlatforms)
 		: Name(InName)
 		, Description(InDescription)
 		, EngineIdentifier(InEngineIdentifier)
@@ -32,6 +34,7 @@ struct FProjectItem
 		, ProjectFile(InProjectFile)
 		, ProjectThumbnail(InProjectThumbnail)
 		, bIsNewProjectItem(InIsNewProjectItem)
+		, TargetPlatforms(InTargetPlatforms)
 	{ }
 
 	/** Check if this project is up to date */
@@ -426,7 +429,7 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipPath", "Path"), FText::FromString(ProjectPath) );
 	}
 
-	if (!ProjectItem->IsUpToDate())
+	if(!ProjectItem->IsUpToDate())
 	{
 		FText Description;
 		if(FDesktopPlatformModule::Get()->IsStockEngineRelease(ProjectItem->EngineIdentifier))
@@ -448,6 +451,26 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 			}
 		}
 		AddToToolTipInfoBox(InfoBox, LOCTEXT("EngineVersion", "Engine"), Description);
+	}
+
+	// Create the target platform icons
+	TSharedRef<SHorizontalBox> TargetPlatformIconsBox = SNew(SHorizontalBox);
+	for(const FName& PlatformName : ProjectItem->TargetPlatforms)
+	{
+		TargetPlatformIconsBox->AddSlot()
+		.AutoWidth()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(0, 0, 1, 0))
+		[
+			SNew(SBox)
+			.WidthOverride(20)
+			.HeightOverride(20)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *PlatformName.ToString())))
+			]
+		];
 	}
 
 	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
@@ -474,9 +497,24 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 					.AutoHeight()
 					.VAlign(VAlign_Center)
 					[
-						SNew(STextBlock)
-						.Text( ProjectItem->Name )
-						.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text( ProjectItem->Name )
+							.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+						]
+
+						+SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Center)
+						[
+							TargetPlatformIconsBox
+						]
 					]
 				]
 			]
@@ -705,6 +743,7 @@ FReply SProjectBrowser::FindProjects()
 
 	// Add all the discovered projects to the list
 	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	TArray<ITargetPlatform*> AllPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
 	for(TMap<FString, FText>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
 	{
 		const FString& ProjectFilename = *Iter.Key();
@@ -750,8 +789,24 @@ FReply SProjectBrowser::FindProjects()
 				FString ProjectEngineIdentifier;
 				bool bIsUpToDate = FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFilename, ProjectEngineIdentifier) && ProjectEngineIdentifier == EngineIdentifier;
 
+				// Work out which platforms this project is targeting (it only shows the ones we have support for locally)
+				TArray<FName> TargetPlatforms;
+				for ( ITargetPlatform* Platform : AllPlatforms )
+				{
+					// We are only interested in standalone games
+					const bool bIsGamePlatform = !Platform->IsClientOnly() && !Platform->IsServerOnly() && !Platform->HasEditorOnlyData();
+					if ( bIsGamePlatform )
+					{
+						const FName PlatformName = *Platform->PlatformName();
+						if ( ProjectStatus.IsTargetPlatformSupported(PlatformName) )
+						{
+							TargetPlatforms.Add(PlatformName);
+						}
+					}
+				}
+
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem, TargetPlatforms ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}

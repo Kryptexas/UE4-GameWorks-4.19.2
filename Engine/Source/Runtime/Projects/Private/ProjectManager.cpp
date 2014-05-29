@@ -28,9 +28,33 @@ void FProject::SignSampleProject(const FString& FilePath, const FString& Categor
 	ProjectInfo.Category = Category;
 }
 
+void FProject::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported)
+{
+	if ( bIsSupported )
+	{
+		ProjectInfo.TargetPlatforms.AddUnique(InPlatformName);
+	}
+	else
+	{
+		ProjectInfo.TargetPlatforms.Remove(InPlatformName);
+	}
+}
+
 bool FProject::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject)
 {
 	ReadNumberFromJSON(FileObject, TEXT("EpicSampleNameHash"), ProjectInfo.EpicSampleNameHash);
+
+	ProjectInfo.TargetPlatforms.Empty();
+	if ( FileObject->HasField(TEXT("TargetPlatforms")) )
+	{
+		const TSharedPtr<FJsonValue>& TargetPlatformsValue = FileObject->GetField<EJson::Array>(TEXT("TargetPlatforms"));
+		const TArray<TSharedPtr<FJsonValue>>& TargetPlatformsArray = TargetPlatformsValue->AsArray();
+		for ( const auto& TargetPlatformsEntry : TargetPlatformsArray )
+		{
+			const FString PlatformName = TargetPlatformsEntry->AsString();
+			ProjectInfo.TargetPlatforms.Add(*PlatformName);
+		}
+	}
 
 	return true;
 }
@@ -38,6 +62,16 @@ bool FProject::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >&
 void FProject::PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const
 {
 	Writer->WriteValue(TEXT("EpicSampleNameHash"), FString::Printf(TEXT("%u"), ProjectInfo.EpicSampleNameHash));
+
+	if ( ProjectInfo.TargetPlatforms.Num() > 0 )
+	{
+		Writer->WriteArrayStart(TEXT("TargetPlatforms"));
+		for ( const FName& PlatformName : ProjectInfo.TargetPlatforms )
+		{
+			Writer->WriteValue(PlatformName.ToString());
+		}
+		Writer->WriteArrayEnd();
+	}
 }
 
 
@@ -263,15 +297,69 @@ bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectSta
 		return false;
 	}
 
-	const FProjectInfo& ProjectInfo = NewProject->GetProjectInfo();
+	QueryStatusForProjectImpl(*NewProject, FilePath, OutProjectStatus);
+	return true;
+}
+
+bool FProjectManager::QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const
+{
+	if ( !CurrentlyLoadedProject.IsValid() )
+	{
+		return false;
+	}
+
+	QueryStatusForProjectImpl(*CurrentlyLoadedProject, FPaths::GetProjectFilePath(), OutProjectStatus);
+	return true;
+}
+
+void FProjectManager::QueryStatusForProjectImpl(const FProject& Project, const FString& FilePath, FProjectStatus& OutProjectStatus)
+{
+	const FProjectInfo& ProjectInfo = Project.GetProjectInfo();
 	OutProjectStatus.Name = ProjectInfo.Name;
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
 	OutProjectStatus.bCodeBasedProject = ProjectInfo.Modules.Num() > 0;
-	OutProjectStatus.bSignedSampleProject = NewProject->IsSignedSampleProject(FilePath);
-	OutProjectStatus.bRequiresUpdate = NewProject->RequiresUpdate();
+	OutProjectStatus.bSignedSampleProject = Project.IsSignedSampleProject(FilePath);
+	OutProjectStatus.bRequiresUpdate = Project.RequiresUpdate();
+	OutProjectStatus.TargetPlatforms = ProjectInfo.TargetPlatforms;
+}
 
-	return true;
+void FProjectManager::UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported)
+{
+	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
+	FText FailReason;
+	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	{
+		return;
+	}
+
+	NewProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+
+	const FString& FileContents = NewProject->SerializeToJSON();
+	FFileHelper::SaveStringToFile(FileContents, *FilePath);
+
+	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
+	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString InProjectPath = FPaths::ConvertRelativePathToFull(FilePath);
+	if ( CurrentProjectPath == InProjectPath )
+	{
+		OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+	}
+}
+
+void FProjectManager::UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported)
+{
+	if ( !CurrentlyLoadedProject.IsValid() )
+	{
+		return;
+	}
+
+	CurrentlyLoadedProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+
+	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
+	FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath());
+
+	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }
 
 IProjectManager& IProjectManager::Get()

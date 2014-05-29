@@ -33,7 +33,8 @@ public class MainFrame : ModuleRules
 				"WorkspaceMenuStructure",
 				"MessageLog",
 //				"SearchUI",
-				"TranslationEditor"
+				"TranslationEditor",
+				"Projects",
 			}
 		);
 
@@ -42,6 +43,7 @@ public class MainFrame : ModuleRules
 				"AssetTools",
 				"DesktopPlatform",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"LevelEditor",
 				"OutputLog",
 				"Settings",
@@ -63,6 +65,7 @@ public class MainFrame : ModuleRules
 				"DesktopPlatform",
                 "Documentation",
 				"GameProjectGeneration",
+				"ProjectTargetPlatformEditor",
 				"LevelEditor",
 				"OutputLog",
                 "TranslationEditor",

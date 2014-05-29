@@ -623,11 +623,10 @@ bool GameProjectUtils::BuildGameBinaries(const FString& ProjectFilename, FText& 
 
 void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 {
-	const FString& LoadedProjectFilePath = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
-	if ( !LoadedProjectFilePath.IsEmpty() )
+	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FProjectStatus ProjectStatus;
-		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus))
+		if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus))
 		{
 			if ( ProjectStatus.bRequiresUpdate )
 			{
@@ -1989,6 +1988,28 @@ bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile,
 	// Otherwise fixup the output project filename
 	OutNewProjectFile = NewDirectoryName / FPaths::GetCleanFilename(InProjectFile);
 	return true;
+}
+
+void GameProjectUtils::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported)
+{
+	const FString& ProjectFilename = FPaths::GetProjectFilePath();
+	if(!ProjectFilename.IsEmpty())
+	{
+		// First attempt to check out the file if SCC is enabled
+		if(ISourceControlModule::Get().IsEnabled())
+		{
+			FText UnusedFailReason;
+			CheckoutGameProjectFile(ProjectFilename, UnusedFailReason);
+		}
+
+		// Second make sure the file is writable
+		if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFilename))
+		{
+			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFilename, false);
+		}
+
+		IProjectManager::Get().UpdateSupportedTargetPlatformsForCurrentProject(InPlatformName, bIsSupported);
+	}
 }
 
 bool GameProjectUtils::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)

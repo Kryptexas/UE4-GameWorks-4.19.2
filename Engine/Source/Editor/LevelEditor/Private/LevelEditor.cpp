@@ -18,6 +18,7 @@
 #include "SlateReflector.h"
 #include "SDockTab.h"
 #include "ToolkitManager.h"
+#include "TargetPlatform.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -37,11 +38,10 @@ FLevelEditorModule::FLevelEditorModule()
 	{
 	}
 
-TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
+TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab) .TabRole(ETabRole::MajorTab) .ContentPadding( FMargin(0,2,0,0) );
-	LevelEditorModule.SetLevelEditorInstanceTab(LevelEditorTab);
+	SetLevelEditorInstanceTab(LevelEditorTab);
 	TSharedPtr< SWindow > OwnerWindow = InArgs.GetOwnerWindow();
 	
 	if ( !OwnerWindow.IsValid() )
@@ -54,7 +54,7 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 	{
 		TSharedPtr<SLevelEditor> LevelEditorTmp;
 		LevelEditorTab->SetContent( SAssignNew(LevelEditorTmp, SLevelEditor ) );
-		LevelEditorModule.SetLevelEditorInstance(LevelEditorTmp);
+		SetLevelEditorInstance(LevelEditorTmp);
 		LevelEditorTmp->Initialize( LevelEditorTab, OwnerWindow.ToSharedRef() );
 
 		GEditorModeTools().DeactivateAllModes();
@@ -86,6 +86,11 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContent", "{Branch}{GameName}"), Args);
 		}
 
+		// Create the target platform icons, and register our interest so we can update them if they're changed later on
+		TargetPlatformIconsBox = SNew(SHorizontalBox);
+		UpdateTargetPlatformIcons();
+		IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().AddRaw(this, &FLevelEditorModule::UpdateTargetPlatformIcons);
+
 		RightContent =
 				SNew( SHorizontalBox )
 
@@ -100,6 +105,14 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14 ) )
 						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.3f ) )
 					]
+				]
+
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					TargetPlatformIconsBox.ToSharedRef()
 				]
 
 				+SHorizontalBox::Slot()
@@ -143,7 +156,7 @@ void FLevelEditorModule::StartupModule()
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateStatic( &SpawnLevelEditor ) )
+	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateRaw( this, &FLevelEditorModule::SpawnLevelEditor ) )
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsCategory());
@@ -161,6 +174,8 @@ void FLevelEditorModule::StartupModule()
  */
 void FLevelEditorModule::ShutdownModule()
 {
+	IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().RemoveAll(this);
+
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.UnregisterLogListing("BuildAndSubmitErrors");
 
@@ -474,6 +489,49 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
 	return LevelEditorInstanceTabPtr.Pin().ToSharedRef();
+}
+
+void FLevelEditorModule::UpdateTargetPlatformIcons()
+{
+	TargetPlatformIconsBox->ClearChildren();
+
+	FProjectStatus ProjectStatus;
+	if(IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus))
+	{
+		TArray<ITargetPlatform*> AllPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
+		TArray<FName> TargetPlatforms;
+		for( ITargetPlatform* Platform : AllPlatforms)
+		{
+			// We are only interested in standalone games
+			const bool bIsGamePlatform = !Platform->IsClientOnly() && !Platform->IsServerOnly() && !Platform->HasEditorOnlyData();
+			if(bIsGamePlatform)
+			{
+				const FName PlatformName = *Platform->PlatformName();
+				if(ProjectStatus.IsTargetPlatformSupported(PlatformName))
+				{
+					TargetPlatforms.Add(PlatformName);
+				}
+			}
+		}
+
+		for(const FName& PlatformName : TargetPlatforms)
+		{
+			TargetPlatformIconsBox->AddSlot()
+			.AutoWidth()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(FMargin(2, 0, 2, 0))
+			[
+				SNew(SBox)
+				.WidthOverride(20)
+				.HeightOverride(20)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *PlatformName.ToString())))
+				]
+			];
+		}
+	}
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()

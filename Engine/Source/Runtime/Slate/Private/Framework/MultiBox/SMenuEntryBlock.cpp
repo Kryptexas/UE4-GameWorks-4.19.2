@@ -90,8 +90,9 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 {
 }
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly )
 	: FMultiBlock( UIAction, InExtensionHook )
+	, ToolTipOverride( InToolTip )
 	, EntryWidget( Contents )
 	, bIsSubMenu( false )
 	, bOpenSubMenuOnClick( false )
@@ -115,7 +116,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef
 
 
 FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly )
-: FMultiBlock( UIAction, InExtensionHook )
+	: FMultiBlock( UIAction, InExtensionHook )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
 	, bIsSubMenu( bInSubMenu )
@@ -321,6 +322,12 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 				EVisibility::Visible :
 				EVisibility::Hidden;
 
+	// Collapse (rather than Hide) the checkbox when using a custom menu widget with a button action, otherwise we add additional padding around the user defined widget
+	if (MenuEntryBlock->EntryWidget.IsValid() && UserInterfaceType == EUserInterfaceActionType::Button)
+	{
+		CheckBoxVisibility = EVisibility::Collapsed;
+	}
+
 	TAttribute<FSlateColor> CheckBoxForegroundColor = FSlateColor::UseForeground();
 	FName CheckBoxStyle = ISlateStyle::Join( StyleName, ".CheckBox" );
 	if (UserInterfaceType == EUserInterfaceActionType::Check)
@@ -339,24 +346,6 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		// Create the content for our button
 		ButtonContent = SNew( SHorizontalBox )
 		// Whatever we have in the icon area goes first
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SBox)
-			.Visibility(CheckBoxVisibility)
-			.WidthOverride( MultiBoxConstants::MenuCheckBoxSize )
-			.HeightOverride( MultiBoxConstants::MenuCheckBoxSize )
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew( SCheckBox )
-				.ForegroundColor( CheckBoxForegroundColor )
-				.IsChecked( this, &SMenuEntryBlock::IsChecked )
-				.Style( StyleSet, CheckBoxStyle )
-				.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged )
-				.ReadOnly( UserInterfaceType == EUserInterfaceActionType::Check )
-			]
-		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(FMargin(2, 0, 2, 0))
@@ -402,6 +391,33 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		];
 	}
 
+	// Create a wrapper containing the checkbox, and the generated button content
+	TSharedPtr< SWidget > CheckBoxAndButtonContent = 
+		SNew( SHorizontalBox )
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SBox)
+			.Visibility(CheckBoxVisibility)
+			.WidthOverride( MultiBoxConstants::MenuCheckBoxSize )
+			.HeightOverride( MultiBoxConstants::MenuCheckBoxSize )
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew( SCheckBox )
+				.ForegroundColor( CheckBoxForegroundColor )
+				.IsChecked( this, &SMenuEntryBlock::IsChecked )
+				.Style( StyleSet, CheckBoxStyle )
+				.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged )
+				.ReadOnly( UserInterfaceType == EUserInterfaceActionType::Check )
+			]
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			ButtonContent.ToSharedRef()
+		];
+
 	// Create a menu item button
 	TSharedPtr<SWidget> MenuEntryWidget = 
 		SNew( SButton )
@@ -419,7 +435,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 
 		.ForegroundColor( FSlateColor::UseForeground() )
 		[
-			ButtonContent.ToSharedRef()
+			CheckBoxAndButtonContent.ToSharedRef()
 		]
 
 		// Bind the button's "on clicked" event to our object's method for this

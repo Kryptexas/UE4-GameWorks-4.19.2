@@ -97,8 +97,6 @@ protected:
 		InputBindingDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
 		InputBindingDelegates.SaveDelegate = FOnSettingsSectionSave::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsSave);
 
-		InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
-
 		FSettingsSectionDelegates RegionAndLanguageDelegates;
 		RegionAndLanguageDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
 		RegionAndLanguageDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
@@ -112,6 +110,7 @@ protected:
 			RegionAndLanguageDelegates
 		);
 
+		TWeakPtr<SWidget> InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
 		SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
 			LOCTEXT("InputBindingsSettingsName", "Keyboard Shortcuts"),
 			LOCTEXT("InputBindingsSettingsDescription", "Configure keyboard shortcuts to quickly invoke operations."),
@@ -378,9 +377,6 @@ private:
 	}
 
 private:
-
-	// Holds a pointer to the input binding editor.
-	TWeakPtr<SWidget> InputBindingEditorPanel;
 
 	// Holds a pointer to the settings editor's view model.
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
