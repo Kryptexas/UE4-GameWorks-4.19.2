@@ -107,8 +107,8 @@ public:
 		, _IsEditable(true)
 		, _TitleBarEnabledOnly(false)
 		, _GraphToEdit(NULL)
-		, _AutoExpandActionMenu(false)
 		, _GraphToDiff(NULL)
+		, _AutoExpandActionMenu(false)
 		, _ShowPIENotification(true)
 		{}
 
