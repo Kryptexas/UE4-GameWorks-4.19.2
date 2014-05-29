@@ -104,6 +104,11 @@ class FXAudio2Device : public FAudioDevice
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
 
+	virtual bool SupportsRealtimeDecompression() const OVERRIDE
+	{
+		return true;
+	}
+
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
 
 	/** 

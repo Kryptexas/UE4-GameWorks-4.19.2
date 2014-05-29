@@ -243,6 +243,11 @@ public:
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
 
+	virtual bool SupportsRealtimeDecompression() const OVERRIDE
+	{
+		return true;
+	}
+
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
 
 	/** Starts up any platform specific hardware/APIs */

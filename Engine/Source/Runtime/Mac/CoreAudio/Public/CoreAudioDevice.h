@@ -362,6 +362,11 @@ class FCoreAudioDevice : public FAudioDevice
 
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
 
+	virtual bool SupportsRealtimeDecompression() const OVERRIDE
+	{ 
+		return true; 
+	}
+
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
 
 	FORCEINLINE uint32 CalculateMatrixElement( uint32 InputNum, uint32 OutputNum )

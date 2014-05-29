@@ -476,6 +476,12 @@ public:
 	/** Whether this SoundWave has an associated info class to decompress it */
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) { return false; }
 
+	/** Whether this device supports realtime decompression of sound waves (i.e. DTYPE_RealTime) */
+	virtual bool SupportsRealtimeDecompression() const
+	{ 
+		return false;	// assume no support by default
+	}
+
 	/** Creates a Compressed audio info class suitable for decompressing this SoundWave */
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) { return NULL; }
 
