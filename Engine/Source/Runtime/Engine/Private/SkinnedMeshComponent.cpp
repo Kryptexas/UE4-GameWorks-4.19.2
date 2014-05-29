@@ -317,7 +317,7 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		}
 		else 
 		{
-			RefreshBoneTransforms(); 
+			RefreshBoneTransforms(ThisTickFunction);
 		}
 	}
 }
@@ -896,7 +896,7 @@ void USkinnedMeshComponent::SetForceWireframe(bool InForceWireframe)
 }
 
 
-UMorphTarget* USkinnedMeshComponent::FindMorphTarget( FName MorphTargetName )
+UMorphTarget* USkinnedMeshComponent::FindMorphTarget( FName MorphTargetName ) const
 {
 	if( SkeletalMesh != NULL )
 	{
@@ -1566,10 +1566,9 @@ int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVertexAnimBa
 	return INDEX_NONE;
 }
 
-void USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims)
+TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const
 {
-	// Empty the existing ActiveVertexAnims array
-	ActiveVertexAnims.Empty();
+	TArray<struct FActiveVertexAnim> OutVertexAnims;
 
 	// First copy ActiveAnims
 	for(int32 AnimIdx=0; AnimIdx < ActiveAnims.Num(); AnimIdx++)
@@ -1580,7 +1579,7 @@ void USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& Mo
 			ActiveAnim.VertAnim != NULL &&
 			ActiveAnim.VertAnim->BaseSkelMesh == SkeletalMesh )
 		{
-			ActiveVertexAnims.Add(ActiveAnim);
+			OutVertexAnims.Add(ActiveAnim);
 		}
 		// @TODO Need to check for duplicates here?
 	}
@@ -1599,20 +1598,22 @@ void USkinnedMeshComponent::UpdateActiveVertexAnims(const TMap<FName, float>& Mo
 			if(Target != NULL)				
 			{
 				// See if this morph target already has an entry
-				int32 AnimIndex = FindVertexAnim(ActiveVertexAnims, Target);
+				int32 AnimIndex = FindVertexAnim(OutVertexAnims, Target);
 				// If not, add it
 				if(AnimIndex == INDEX_NONE)
 				{
-					ActiveVertexAnims.Add(FActiveVertexAnim(Target, Weight));
+					OutVertexAnims.Add(FActiveVertexAnim(Target, Weight));
 				}
 				// If it does, use the max weight
 				else
 				{
 					const float CurrentWeight = ActiveVertexAnims[AnimIndex].Weight;
-					ActiveVertexAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
+					OutVertexAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
 				}
 			}
 		}
 	}
+
+	return OutVertexAnims;
 }
 

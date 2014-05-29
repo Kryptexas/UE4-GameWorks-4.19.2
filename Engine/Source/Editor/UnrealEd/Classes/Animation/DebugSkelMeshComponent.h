@@ -157,7 +157,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	// Begin SkinnedMeshComponent Interface
 	virtual bool ShouldCPUSkin() OVERRIDE;
 	virtual void PostInitMeshObject(class FSkeletalMeshObject* MeshObject) OVERRIDE;
-	virtual void RefreshBoneTransforms() OVERRIDE;
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) OVERRIDE;
 	// End SkinnedMeshComponent Interface
 
 	// Begin SkeletalMeshComponent Interface

@@ -59,7 +59,7 @@ class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 	void ResetBoneTransformByName(FName BoneName);
 
 	// Begin USkinnedMeshComponent Interface
-	virtual void RefreshBoneTransforms() OVERRIDE;
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) OVERRIDE;
 	virtual bool AllocateTransformData() OVERRIDE;
 	// End USkinnedMeshComponent Interface
 

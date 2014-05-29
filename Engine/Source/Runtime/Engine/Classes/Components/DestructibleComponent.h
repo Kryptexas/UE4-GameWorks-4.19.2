@@ -131,7 +131,7 @@ public:
 
 	// Begin SkinnedMeshComponent interface.
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const OVERRIDE;
-	virtual void RefreshBoneTransforms() OVERRIDE;
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) OVERRIDE;
 	virtual void SetSkeletalMesh(USkeletalMesh* InSkelMesh) OVERRIDE;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
 	// End SkinnedMeshComponent interface.

@@ -473,10 +473,12 @@ public:
 	/** 
 	 * Refresh Bone Transform (SpaceBases)
 	 * Each class will need to implement this function
-	 * Ideally this function should be atomic (not relying on Tick or any other update.) 
+	 * Ideally this function should be atomic (not relying on Tick or any other update.)
+	 *
+	 * @param TickFunction Supplied as non null if we are running in a tick, allows us to create graph tasks for parallelism
 	 * 
 	 */
-	virtual void RefreshBoneTransforms() PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms,);
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms, );
 
 	/**
 	 * Tick Pose, this function ticks and do whatever it needs to do in this frame, should be called before RefreshBoneTransforms
@@ -513,7 +515,7 @@ public:
 	/** 
 	 * Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
 	 */
-	void UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims);
+	TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims) const;
 
 	/**
 	 * Checks/updates material usage on proxy based on current morph target usage
@@ -746,7 +748,7 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	virtual class UMorphTarget* FindMorphTarget( FName MorphTargetName );
+	virtual class UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
 
 	/**	
 	 * Find all bones by name within given radius 

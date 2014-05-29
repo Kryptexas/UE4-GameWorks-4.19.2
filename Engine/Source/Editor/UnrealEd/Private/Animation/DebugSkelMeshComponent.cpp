@@ -350,10 +350,10 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 	bDrawBoneInfluences = bNewShowBoneWeight;
 }
 
-void UDebugSkelMeshComponent::RefreshBoneTransforms()
+void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	// Run regular update first so we get RequiredBones up to date.
-	Super::RefreshBoneTransforms();
+	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
 
 	// Non retargeted pose.
 	NonRetargetedSpaceBases.Empty();
@@ -362,7 +362,7 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms()
 		TArray<FTransform> BackupSpaceBases = SpaceBases;
 
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
-		Super::RefreshBoneTransforms();
+		Super::RefreshBoneTransforms(NULL);
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
 
 		NonRetargetedSpaceBases = SpaceBases;
@@ -378,13 +378,13 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms()
 		if( AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 		{
 			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
-			Super::RefreshBoneTransforms();
+			Super::RefreshBoneTransforms(NULL);
 			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
 		}
 		// Otherwise we'll just get ref pose.
 		else
 		{
-			Super::RefreshBoneTransforms();
+			Super::RefreshBoneTransforms(NULL);
 		}
 	}
 	else

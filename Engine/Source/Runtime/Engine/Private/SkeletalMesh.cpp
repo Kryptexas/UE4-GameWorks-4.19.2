@@ -2812,7 +2812,7 @@ void USkeletalMesh::InitMorphTargets()
 }
 
 
-UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName )
+UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName ) const
 {
 	if( MorphTargetName != NAME_None )
 	{

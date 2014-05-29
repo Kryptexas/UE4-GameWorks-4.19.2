@@ -635,7 +635,7 @@ void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& In
 }
 #endif // WITH_APEX
 
-void UDestructibleComponent::RefreshBoneTransforms()
+void UDestructibleComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL && SkeletalMesh)

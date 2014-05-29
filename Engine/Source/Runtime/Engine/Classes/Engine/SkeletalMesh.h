@@ -748,7 +748,7 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName );
+	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
 
 	/** if name conflicts, it will overwrite the reference */
 	ENGINE_API void RegisterMorphTarget(UMorphTarget* MorphTarget);

@@ -647,14 +647,14 @@ public:
 	void FreezeClothSection(bool bFreeze);
 
 	/** Evaluate Anim System **/
-	void EvaluateAnimation(/*FTransform & ExtractedRootMotionDelta, int32 & bHasRootMotion*/);
+	void EvaluateAnimation( TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
 
 	/**
-	 * Take the LocalAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (SpaceBases).
+	 * Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
 	 * It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.
 	 * This code also applies any per-bone rotators etc. as part of the composition process
 	 */
-	void FillSpaceBases();
+	void FillSpaceBases( const TArray<FTransform>& SourceAtoms, TArray<FTransform>& DestSpaceBases ) const;
 
 	/** 
 	 * Recalculates the RequiredBones array in this SkeletalMeshComponent based on current SkeletalMesh, LOD and PhysicsAsset.
@@ -745,7 +745,7 @@ public:
 
 	// Begin USkinnedMeshComponent interface
 	virtual bool UpdateLODStatus() OVERRIDE;
-	virtual void RefreshBoneTransforms() OVERRIDE;
+	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) OVERRIDE;
 	virtual void TickPose( float DeltaTime ) OVERRIDE;
 	virtual void UpdateSlaveComponent() OVERRIDE;
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const OVERRIDE;
@@ -762,6 +762,17 @@ public:
 	 */
 	void UpdateRBJointMotors();
 
+
+	/**
+	* Runs the animation evaluation for the current pose into the supplied variables
+	*
+	* @param	OutSpaceBases			Component space bone transforms
+	* @param	OutLocalAtoms			Local space bone transforms
+	* @param	OutVertexAnims			Active vertex animations
+	* @param	OutRootBoneTranslation	Calculated root bone translation
+	*/
+	void PerformAnimationEvaluation( TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation ) const;
+	void PostAnimEvaluation( bool bDoInterpolation, bool bDuplicateToCacheBones );
 
 	/**
 	 * Blend of Physics Bones with PhysicsWeight and Animated Bones with (1-PhysicsWeight)
@@ -1005,6 +1016,34 @@ private:
 
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
+
+	// Reference to our animation evaluation tick event
+	FGraphEventRef EvaluationTickEvent;
+	FGraphEventRef TickCompletionEvent;
+
+	//Handle parallel evaluation of animation
+	TArray<FTransform> PTSpaceBases;
+	TArray<FTransform> PTLocalAtoms;
+	TArray<FActiveVertexAnim> PTVertexAnims;
+	FVector PTRootBoneTranslation;
+	bool bPTDoInterpolation;
+	bool bPTDuplicateToCacheBones;
+
+	//Parallel Task Delegates
+	FSimpleDelegateGraphTask::FDelegate ParallelEvaluationDelegate;
+	FSimpleDelegateGraphTask::FDelegate ParallelCompletionDelegate;
+
+	// Parallel evaluation wrappers
+	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(PTSpaceBases, PTLocalAtoms, PTVertexAnims, PTRootBoneTranslation); }
+	void CompleteParallelAnimationEvaluation()
+	{
+		Exchange(PTSpaceBases, bPTDoInterpolation ? CachedSpaceBases : SpaceBases);
+		Exchange(PTLocalAtoms, bPTDoInterpolation ? CachedLocalAtoms : LocalAtoms);
+		Exchange(PTVertexAnims, ActiveVertexAnims);
+		Exchange(PTRootBoneTranslation, RootBoneTranslation);
+
+		PostAnimEvaluation(bPTDoInterpolation, bPTDuplicateToCacheBones);
+	}
 
 	friend class FSkeletalMeshComponentDetails;
 
