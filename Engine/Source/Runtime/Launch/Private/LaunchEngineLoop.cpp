@@ -1586,9 +1586,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 
-#else
+#else // WITH_ENGINE
 	EndInitTextLocalization();
-#endif
+	FPlatformMisc::PlatformPostInit();
+#endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
