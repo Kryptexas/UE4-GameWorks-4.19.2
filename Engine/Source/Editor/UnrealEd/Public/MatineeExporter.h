@@ -23,6 +23,7 @@ class UInterpTrackVectorProp;
 class MatineeExporter
 {
 public:
+	virtual ~MatineeExporter() {}
 
 	/**
 	 * Creates and readies an empty document for export.

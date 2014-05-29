@@ -140,6 +140,8 @@ namespace NodeSpawnInfoHelpers
 class FNodeSpawnInfo
 {
 public:
+	virtual ~FNodeSpawnInfo () {}
+
 	/** Holds the UI Command to verify gestures for this action are held */
 	TSharedPtr< FUICommandInfo > CommandInfo;
 

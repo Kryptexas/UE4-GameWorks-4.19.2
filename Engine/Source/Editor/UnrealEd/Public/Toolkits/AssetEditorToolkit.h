@@ -248,6 +248,8 @@ DECLARE_DELEGATE_RetVal_TwoParams( TSharedRef<FExtender>, FAssetEditorExtender, 
 class UNREALED_API FExtensibilityManager
 {
 public:
+	virtual ~FExtensibilityManager() {}
+
 	/** Functions for outsiders to add or remove their extenders */
 	virtual void AddExtender(TSharedPtr<FExtender> Extender) {Extenders.AddUnique(Extender);}
 	virtual void RemoveExtender(TSharedPtr<FExtender> Extender) {Extenders.Remove(Extender);}

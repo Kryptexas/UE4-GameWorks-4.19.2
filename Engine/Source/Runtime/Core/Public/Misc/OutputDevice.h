@@ -449,6 +449,8 @@ struct CORE_API FError
 class CORE_API FExec
 {
 public:
+	virtual ~FExec() {}
+
 	/**
 	* Exec handler
 	*

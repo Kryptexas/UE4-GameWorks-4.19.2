@@ -5,6 +5,7 @@
 class IClassViewerFilter
 {
 public:
+	virtual ~IClassViewerFilter() {}
 
 	/**
 	 * Checks if a class is allowed by this filter.

@@ -34,6 +34,8 @@ enum EValidatorResult
 class UNREALED_API INameValidatorInterface
 {
 public:
+	virtual ~INameValidatorInterface() {}
+
 	/** @return true if FName is valid, false otherwise */
 	virtual EValidatorResult IsValid (const FName& Name, bool bOriginal = false) = 0;
 

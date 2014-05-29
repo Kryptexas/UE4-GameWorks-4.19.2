@@ -288,6 +288,7 @@ class FLevelEditorPlaySettingsCustomization
 	: public IDetailCustomization
 {
 public:
+	virtual ~FLevelEditorPlaySettingsCustomization() {}
 
 	// Begin IDetailCustomization interface
 

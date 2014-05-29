@@ -20,6 +20,7 @@ class FEditorLoadingSavingSettingsCustomization
 	: public IDetailCustomization
 {
 public:
+	virtual ~FEditorLoadingSavingSettingsCustomization() {}
 
 	// Begin IDetailCustomization interface
 

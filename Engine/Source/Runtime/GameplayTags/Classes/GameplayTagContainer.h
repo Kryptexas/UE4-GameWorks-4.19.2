@@ -107,6 +107,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Constructors */
 	FGameplayTagContainer();
 	FGameplayTagContainer(FGameplayTagContainer const& Other);
+	virtual ~FGameplayTagContainer() {}
 
 	/** Assignment/Equality operators */
 	FGameplayTagContainer& operator=(FGameplayTagContainer const& Other);

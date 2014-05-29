@@ -48,6 +48,7 @@ namespace FPropertyAccess
 class IDetailCustomization : public TSharedFromThis<IDetailCustomization>
 {
 public:
+  virtual ~IDetailCustomization() {}
 	/** Called when details should be customized */
 	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) = 0;
 };
@@ -143,6 +144,8 @@ public:
 class IStructCustomization : public TSharedFromThis<IStructCustomization>
 {
 public:
+	virtual ~IStructCustomization() {}
+
 	/**
 	 * Called when the header of the struct (usually where the name of the struct and information about the struct as a whole is added)
 	 * If nothing is added to the row, the header is not displayed

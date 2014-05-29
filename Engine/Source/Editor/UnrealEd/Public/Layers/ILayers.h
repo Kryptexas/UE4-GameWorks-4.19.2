@@ -33,6 +33,8 @@ class ILayers
 public:
 	typedef IFilter< const TWeakObjectPtr< AActor >& > ActorFilter;
 
+	virtual ~ILayers() {}
+
 	/** Broadcasts whenever one or more Layers are modified*/
 	DECLARE_EVENT_ThreeParams( ILayers, FOnLayersChanged, const ELayersAction::Type /*Action*/, const TWeakObjectPtr< ULayer >& /*ChangedLayer*/, const FName& /*ChangedProperty*/);
 	virtual FOnLayersChanged& OnLayersChanged() = 0;

@@ -20,6 +20,7 @@ class FGameMapsSettingsCustomization
 	: public IDetailCustomization
 {
 public:
+	virtual ~FGameMapsSettingsCustomization() {}
 
 	// Begin IDetailCustomization interface
 

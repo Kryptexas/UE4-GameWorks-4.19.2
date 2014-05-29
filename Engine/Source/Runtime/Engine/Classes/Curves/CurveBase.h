@@ -403,6 +403,8 @@ typedef FRichCurveEditInfoTemplate<const FRichCurve*>	FRichCurveEditInfoConst;
 class FCurveOwnerInterface
 {
 public:
+	virtual ~FCurveOwnerInterface() {}
+
 	/** Returns set of curves to edit. Must not release the curves while being edited. */
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const = 0;
 

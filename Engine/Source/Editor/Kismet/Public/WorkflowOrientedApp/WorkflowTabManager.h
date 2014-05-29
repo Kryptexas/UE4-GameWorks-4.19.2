@@ -140,6 +140,8 @@ public:
 
 	}
 
+	virtual ~FGenericTabHistory() {}
+
 	/**
 	 * Evokes the history data this struct represents, reinstating the payload and other data it had at the time the history was saved
 	 *

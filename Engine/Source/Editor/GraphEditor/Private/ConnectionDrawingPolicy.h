@@ -43,6 +43,8 @@ protected:
 	TSet< UEdGraphPin* > HoveredPins;
 	double LastHoverTimeEvent;
 public:
+	virtual ~FConnectionDrawingPolicy() {}
+
 	FConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements);
 
 	// Update the drawing policy with the set of hovered pins (which can be empty)

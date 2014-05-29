@@ -23,6 +23,8 @@ struct FAssetViewItem
 	{
 	}
 
+	virtual ~FAssetViewItem() {}
+
 	/** Get the type of this asset item */
 	virtual EAssetItemType::Type GetType() const = 0;
 

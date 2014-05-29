@@ -24,8 +24,8 @@ class SAnimationSegmentViewport : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SAnimationSegmentViewport )
 		: _Skeleton(NULL)
-		, _IsEditable(true)
 		, _AnimRef(NULL)
+		, _IsEditable(true)
 	{}
 		
 		SLATE_ARGUMENT( USkeleton*, Skeleton )

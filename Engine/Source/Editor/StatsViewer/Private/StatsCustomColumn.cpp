@@ -17,6 +17,8 @@ public:
 		Text = FStatsCustomColumn::GetPropertyAsText( PropertyHandle );
 	}
 
+	virtual ~FNumericStatCellPresenter() {}
+
 	virtual TSharedRef< class SWidget > ConstructDisplayWidget() OVERRIDE
 	{
 		return 

@@ -12,6 +12,8 @@ public:
 
 	SLATE_BEGIN_ARGS(SScrubControlPanel)
 		: _Value(0)
+		, _NumOfKeys()
+		, _SequenceLength()
 		, _OnValueChanged()
 		, _OnBeginSliderMovement()
 		, _OnEndSliderMovement()
@@ -29,8 +31,6 @@ public:
 		, _ViewInputMax()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
-		, _NumOfKeys()
-		, _SequenceLength()
 	{}
 		SLATE_ATTRIBUTE( float, Value )
 		SLATE_ATTRIBUTE( uint32, NumOfKeys )

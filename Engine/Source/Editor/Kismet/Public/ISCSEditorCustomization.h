@@ -8,6 +8,8 @@
 class ISCSEditorCustomization
 {
 public:
+	virtual ~ISCSEditorCustomization() {}
+
 	/** 
 	 * Process click in the viewport.
 	 * @param	InViewportClient	The viewport client receiving the click

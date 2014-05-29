@@ -44,8 +44,8 @@ public:
 	 */
 	FSessionBrowserOwnerFilter( const FString& InOwnerName, bool InEnabled, FOnSessionBrowserOwnerFilterStateChanged InOnStateChanged )
 		: Enabled(InEnabled)
-		, OnStateChanged(InOnStateChanged)
 		, OwnerName(InOwnerName)
+		, OnStateChanged(InOnStateChanged)
 	{ }
 
 

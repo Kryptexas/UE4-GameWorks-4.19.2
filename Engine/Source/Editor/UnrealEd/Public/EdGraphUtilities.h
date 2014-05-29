@@ -9,6 +9,7 @@
 struct UNREALED_API FGraphPanelNodeFactory : public TSharedFromThis<FGraphPanelNodeFactory>
 {
 public:
+	virtual ~FGraphPanelNodeFactory() {}
 	virtual TSharedPtr<class SGraphNode> CreateNode(class UEdGraphNode* Node) const { return NULL; }
 };
 
@@ -17,6 +18,7 @@ public:
 struct UNREALED_API FGraphPanelPinFactory : public TSharedFromThis<FGraphPanelPinFactory>
 {
 public:
+	virtual ~FGraphPanelPinFactory() {}
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* Pin) const { return NULL; }
 };
 
