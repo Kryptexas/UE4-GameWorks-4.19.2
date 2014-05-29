@@ -492,7 +492,15 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction( Commands.BrowseAPIReference, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BrowseAPIReference ) );
 	ActionList.MapAction( Commands.BrowseViewportControls, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::BrowseViewportControls ) );
 	ActionList.MapAction( Commands.NewLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::NewLevel_CanExecute ) );
-	ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
+	{
+		ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevelPickingDialog ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+		ActionList.MapAction( Commands.LegacyOpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	}
+	else
+	{
+		ActionList.MapAction( Commands.OpenLevel, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel ), FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OpenLevel_CanExecute ) );
+	}
 	ActionList.MapAction( Commands.Save, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Save ) );
 	ActionList.MapAction( Commands.SaveAs, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAs ), DefaultExecuteAction );
 	ActionList.MapAction( Commands.SaveAllLevels, FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SaveAllLevels ) );

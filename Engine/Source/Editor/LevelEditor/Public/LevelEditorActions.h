@@ -6,6 +6,7 @@
 
 #include "IToolkit.h"
 #include "LightmapResRatioAdjust.h"
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
 
 /**
  * Unreal level editor actions
@@ -39,6 +40,7 @@ public:
 	/** Level file commands */
 	TSharedPtr< FUICommandInfo > NewLevel;
 	TSharedPtr< FUICommandInfo > OpenLevel;
+	TSharedPtr< FUICommandInfo > LegacyOpenLevel;
 	TSharedPtr< FUICommandInfo > Save;
 	TSharedPtr< FUICommandInfo > SaveAs;
 	TSharedPtr< FUICommandInfo > SaveAllLevels;
@@ -589,6 +591,10 @@ public:
 	/** Opens an existing level */
 	static void OpenLevel();
 	static bool OpenLevel_CanExecute();
+	static struct FAssetPickerConfig CreateLevelAssetPickerConfig();
+	static void OpenLevelPickingDialog();
+	static void OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
+	
 
 	/** Opens delta transform */
 	static void DeltaTransform();
