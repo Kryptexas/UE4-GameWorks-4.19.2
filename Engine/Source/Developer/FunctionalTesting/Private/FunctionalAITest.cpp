@@ -2,7 +2,9 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
-#include "Kismet/KismetAIHelperLibrary.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "AIController.h"
 
 AFunctionalAITest::AFunctionalAITest( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
@@ -75,7 +77,7 @@ bool AFunctionalAITest::StartTest()
 			const FAITestSpawnInfo& SpawnInfo = SpawnSet.SpawnInfoContainer[SpawnIndex];
 			if (SpawnInfo.IsValid())
 			{
-				APawn* SpawnedPawn = UKismetAIHelperLibrary::SpawnAIFromClass(World, SpawnInfo.PawnClass, SpawnInfo.BehaviorTree
+				APawn* SpawnedPawn = UAIBlueprintHelperLibrary::SpawnAIFromClass(World, SpawnInfo.PawnClass, SpawnInfo.BehaviorTree
 					, SpawnInfo.SpawnLocation->GetActorLocation()
 					, SpawnInfo.SpawnLocation->GetActorRotation()
 					, /*bNoCollisionFail=*/true);

@@ -11,6 +11,7 @@
 #include "SGraphPanel.h"
 #include "ScopedTransaction.h"
 #include "EnvironmentQueryColors.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 

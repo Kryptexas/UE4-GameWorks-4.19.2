@@ -31,6 +31,10 @@
 #include "Landscape/LandscapeInfo.h"
 #include "Particles/ParticleEventManager.h"
 
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "BehaviorTree/BehaviorTreeManager.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
 
@@ -175,8 +179,10 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->GameState, This );
 		Collector.AddReferencedObject( This->AuthorityGameMode, This );
 		Collector.AddReferencedObject( This->NetworkManager, This );
-		Collector.AddReferencedObject( This->BehaviorTreeManager, This );
-		Collector.AddReferencedObject( This->EnvironmentQueryManager, This );
+		UBehaviorTreeManager* BTManager = This->GetBehaviorTreeManager();
+		Collector.AddReferencedObject( BTManager, This );
+		UEnvQueryManager* EQSManager = This->GetEnvironmentQueryManager();
+		Collector.AddReferencedObject( EQSManager, This );
 		Collector.AddReferencedObject( This->NavigationSystem, This );
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
 
@@ -664,15 +670,11 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		UNavigationSystem::CreateNavigationSystem(this);
 	}
 
-	if (GEngine->BehaviorTreeManagerClass != NULL)
-	{
-		BehaviorTreeManager = NewObject<UBehaviorTreeManager>(this, GEngine->BehaviorTreeManagerClass);
-	}
-
-	if (GEngine->EnvironmentQueryManagerClass != NULL)
-	{
-		EnvironmentQueryManager = NewObject<UEnvQueryManager>(this, GEngine->EnvironmentQueryManagerClass);
-	}
+	BehaviorTreeManager = NewObject<UBehaviorTreeManager>(this);
+	// @hackyness
+	BehaviorTreeManager->AddToRoot();
+	EnvironmentQueryManager = NewObject<UEnvQueryManager>(this);
+	EnvironmentQueryManager->AddToRoot();
 
 	if (GEngine->AvoidanceManagerClass != NULL)
 	{
@@ -2748,9 +2750,22 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	FWorldDelegates::OnWorldCleanup.Broadcast(this, bSessionEnded, bCleanupResources);
 
-	if (NavigationSystem != NULL && bCleanupResources == true)
+	if (bCleanupResources == true)
 	{
-		NavigationSystem->CleanUp();
+		if (NavigationSystem != NULL)
+		{
+			NavigationSystem->CleanUp();
+		}
+
+		if (BehaviorTreeManager.Get())
+		{
+			BehaviorTreeManager->RemoveFromRoot();
+		}
+
+		if (EnvironmentQueryManager.Get())
+		{
+			EnvironmentQueryManager->RemoveFromRoot();
+		}
 	}
 
 	NetworkActors.Empty();

@@ -5,6 +5,7 @@
 #include "K2Node_BaseAsyncTask.h"
 #include "K2Node_AIMoveTo.generated.h"
 
+// @TODO this should be moved to AIModule
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_AIMoveTo : public UK2Node_BaseAsyncTask
 {

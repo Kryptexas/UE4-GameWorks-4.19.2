@@ -9,13 +9,15 @@
 #ifndef _INC_DEBUGRENDERSCENEPROXY
 #define _INC_DEBUGRENDERSCENEPROXY
 
+#include "Debug/DebugDrawService.h"
+
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 
 	ENGINE_API FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent);
 	// FPrimitiveSceneProxy interface.
-	  
+
 	/** 
 	 * Draw the scene proxy as a dynamic element
 	 *

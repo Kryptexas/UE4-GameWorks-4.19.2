@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BTService.h"
 
 UBehaviorTreeGraphNode_Service::UBehaviorTreeGraphNode_Service(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

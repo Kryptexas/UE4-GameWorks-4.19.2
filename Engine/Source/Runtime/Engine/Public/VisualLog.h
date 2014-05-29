@@ -195,7 +195,7 @@ struct ENGINE_API FVisLogEntry
 	UE_VLOG(Actor, CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 }
 
-#define UE_VLOG_SEGMENT_THICK(Actor, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
+#define UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Thickness, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	if (FVisualLog::Get()->IsRecording()) \
@@ -204,9 +204,9 @@ struct ENGINE_API FVisLogEntry
 } \
 }
 
-#define UE_VLOG_SEGMENT(Actor, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) UE_VLOG_SEGMENT_THICK(Actor, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
+#define UE_VLOG_SEGMENT(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, 0, DescriptionFormat, ##__VA_ARGS__)
 
-#define UE_VLOG_LOCATION(Actor, Location, Radius, Color, DescriptionFormat, ...) \
+#define UE_VLOG_LOCATION(Actor, CategoryName, Verbosity, Location, Radius, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	if (FVisualLog::Get()->IsRecording()) \
@@ -215,7 +215,7 @@ struct ENGINE_API FVisLogEntry
 	} \
 }
 
-#define UE_VLOG_BOX(Actor, Box, Color, DescriptionFormat, ...) \
+#define UE_VLOG_BOX(Actor, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	if (FVisualLog::Get()->IsRecording()) \
@@ -318,11 +318,11 @@ private:
 };
 
 #else
-	#define UE_VLOG(Actor, CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__)
+	#define UE_VLOG(Actor, CategoryName, Verbosity, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__)
 	#define UE_CVLOG(Condition, Actor, CategoryName, Verbosity, Format, ...) UE_CLOG(Condition, CategoryName, Verbosity, Format, ##__VA_ARGS__)
-	#define UE_VLOG_SEGMENT(Actor, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...)
-	#define UE_VLOG_LOCATION(Actor, Location, Radius, Color, DescriptionFormat, ...)
-	#define UE_VLOG_BOX(Actor, Box, Color, DescriptionFormat, ...) 
+	#define UE_VLOG_SEGMENT(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...)
+	#define UE_VLOG_LOCATION(Actor, CategoryName, Verbosity, Location, Radius, Color, DescriptionFormat, ...)
+	#define UE_VLOG_BOX(Actor, CategoryName, Verbosity, Box, Color, DescriptionFormat, ...) 
 	#define REDIRECT_TO_VLOG(Dest)
 	#define REDIRECT_ACTOR_TO_VLOG(Src, Destination) 
 #endif

@@ -35,7 +35,7 @@ public:
 	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
 
 	/** @returns location of controlled actor - meaning center of collision bounding box */
-	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FAISystem::InvalidLocation; }
+	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector(FLT_MAX); }
 	/** @returns location of controlled actor's "feet" meaning center of bottom of collision bounding box */
 	FORCEINLINE FVector GetActorFeetLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }
 	/** @returns based location of controlled actor */

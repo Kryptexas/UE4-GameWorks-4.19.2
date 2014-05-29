@@ -7,7 +7,11 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
-#include "NavigationPathBuilder.h"
+#include "NetworkingDistanceConstants.h"
+
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "Navigation/PathFollowingComponent.h"
+#include "Navigation/NavigationComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
 

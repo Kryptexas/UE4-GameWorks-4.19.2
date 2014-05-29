@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/NavAreas/NavAreaMeta_SwitchByAgent.h"
 
 UNavAreaMeta_SwitchByAgent::UNavAreaMeta_SwitchByAgent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

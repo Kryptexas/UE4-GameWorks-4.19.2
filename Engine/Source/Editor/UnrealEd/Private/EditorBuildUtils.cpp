@@ -11,7 +11,6 @@
 #include "EditorLevelUtils.h"
 #include "BusyCursor.h"
 #include "Database.h"
-#include "NavigationPathBuilder.h"
 #include "Dialogs/SBuildProgress.h"
 #include "LightingBuildOptions.h"
 #include "Dialogs/Dialogs.h"

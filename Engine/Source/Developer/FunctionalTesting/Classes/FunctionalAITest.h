@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AI/AITypes.h"
+#include "AITypes.h"
 #include "FunctionalAITest.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIController*, Controller, APawn*, Pawn);
@@ -25,7 +25,7 @@ struct FAITestSpawnInfo
 
 	/** if set will be applied to spawned AI */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)
-	UBehaviorTree* BehaviorTree;
+	class UBehaviorTree* BehaviorTree;
 
 	/** Where should AI be spawned */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)

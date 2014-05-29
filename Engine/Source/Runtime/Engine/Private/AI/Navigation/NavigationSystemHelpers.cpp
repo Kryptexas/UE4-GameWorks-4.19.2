@@ -1,11 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AI/NavDataGenerator.h"
-#include "AI/NavigationOctree.h"
+#include "NavDataGenerator.h"
+#include "NavigationOctree.h"
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
+#include "AI/NavigationSystemHelpers.h"
 
 namespace NavigationHelper
 {
@@ -38,7 +39,7 @@ namespace NavigationHelper
 	{
 		float FallDownHeight = 0.f;
 
-		UE_VLOG_SEGMENT(Querier, FallStart, FallStart + FVector(0,0,-FallLimit)
+		UE_VLOG_SEGMENT(Querier, LogNavigation, Log, FallStart, FallStart + FVector(0, 0, -FallLimit)
 				, FColor::Red, TEXT("TerrainTrace"));
 
 		FCollisionQueryParams TraceParams(NAME_None, true, Querier);
@@ -46,7 +47,7 @@ namespace NavigationHelper
 		const bool bHit = Querier->GetWorld()->LineTraceSingle(Hit, FallStart, FallStart+FVector(0,0,-FallLimit), TraceParams, FCollisionObjectQueryParams(ECC_WorldStatic));
 		if( bHit )
 		{
-			UE_VLOG_LOCATION(Querier, Hit.Location, 15, FColor::Red, TEXT("%s")
+			UE_VLOG_LOCATION(Querier, LogNavigation, Log, Hit.Location, 15, FColor::Red, TEXT("%s")
 				, Hit.Actor.IsValid() ? *Hit.Actor->GetName() : TEXT("NULL"));
 
 			if (Cast<UStaticMeshComponent>(Hit.Component.Get()))
@@ -86,7 +87,7 @@ namespace NavigationHelper
 					if (FallDownHeight > 0.f)
 					{
 						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, WorldRight, WorldRight + FVector(0,0,-FallDownHeight)
+						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRight, WorldRight + FVector(0, 0, -FallDownHeight)
 							, FColor::Green, TEXT("FallDownHeight %d"), LinkIndex);
 
 						Link.Right.Z -= FallDownHeight;
@@ -127,7 +128,7 @@ namespace NavigationHelper
 					if (FallDownHeightStart > 0.f)
 					{
 						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, WorldRightStart, WorldRightStart + FVector(0,0,-FallDownHeightStart)
+						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightStart, WorldRightStart + FVector(0, 0, -FallDownHeightStart)
 							, FColor::Green, TEXT("FallDownHeightStart %d"), LinkIndex);
 
 						Link.RightStart.Z -= FallDownHeightStart;
@@ -135,7 +136,7 @@ namespace NavigationHelper
 					if (FallDownHeightEnd > 0.f)
 					{
 						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, WorldRightEnd, WorldRightEnd + FVector(0,0,-FallDownHeightEnd)
+						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightEnd, WorldRightEnd + FVector(0, 0, -FallDownHeightEnd)
 							, FColor::Green, TEXT("FallDownHeightEnd %d"), LinkIndex);
 
 						Link.RightEnd.Z -= FallDownHeightEnd;

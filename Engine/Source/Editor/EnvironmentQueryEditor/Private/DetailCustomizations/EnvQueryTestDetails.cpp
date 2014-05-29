@@ -2,6 +2,8 @@
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvQueryTestDetails.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryTestDetails"
 

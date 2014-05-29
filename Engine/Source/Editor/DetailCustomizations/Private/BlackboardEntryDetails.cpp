@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "BlackboardEntryDetails.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardEntryDetails"
 

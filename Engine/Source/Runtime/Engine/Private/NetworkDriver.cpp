@@ -10,8 +10,8 @@
 #include "Engine/ActorChannel.h"
 #include "Engine/VoiceChannel.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "NavigationPathBuilder.h"
 #include "OnlineSubsystemUtils.h"
+#include "NetworkingDistanceConstants.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);

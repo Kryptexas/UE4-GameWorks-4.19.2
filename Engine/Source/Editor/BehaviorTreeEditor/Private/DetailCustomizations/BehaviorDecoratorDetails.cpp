@@ -3,6 +3,7 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorDecoratorDetails.h"
 #include "IPropertyUtilities.h"
+#include "BehaviorTree/BTDecorator.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorDecoratorDetails"
 

@@ -3,8 +3,10 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "Toolkits/AssetEditorManager.h"
 
+#include "BehaviorTree/BehaviorTree.h"
 #include "Editor/BehaviorTreeEditor/Public/BehaviorTreeEditorModule.h"
 #include "Editor/BehaviorTreeEditor/Public/IBehaviorTreeEditor.h"
+
 
 #include "AssetTypeActions_BehaviorTree.h"
 #include "SBehaviorTreeDiff.h"

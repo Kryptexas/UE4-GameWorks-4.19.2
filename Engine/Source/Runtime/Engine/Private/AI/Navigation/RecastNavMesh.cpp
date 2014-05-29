@@ -2,6 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "RecastHelpers.h"
+#include "AI/Navigation/NavAreas/NavArea_Null.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"

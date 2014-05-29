@@ -4,6 +4,8 @@
 #include "SBehaviorTreeDebuggerView.h"
 #include "BehaviorTreeColors.h"
 
+#include "BehaviorTree/BlackboardData.h"
+
 SBehaviorTreeDebuggerView::SBehaviorTreeDebuggerView()
 {
 	bShowCurrentState = true;

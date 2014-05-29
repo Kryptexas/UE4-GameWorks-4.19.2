@@ -7,6 +7,12 @@
 #include "ScopedTransaction.h"
 #include "SGraphEditorImpl.h"
 #include "Toolkits/ToolkitManager.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BTService.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeSchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

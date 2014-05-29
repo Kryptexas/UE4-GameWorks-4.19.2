@@ -36,7 +36,8 @@ public class EnvironmentQueryEditor : ModuleRules
 				"GraphEditor",
                 "PropertyEditor",
 				"AnimGraph",
-				"BlueprintGraph"
+				"BlueprintGraph",
+                "AIModule",
 			}
 		);
 

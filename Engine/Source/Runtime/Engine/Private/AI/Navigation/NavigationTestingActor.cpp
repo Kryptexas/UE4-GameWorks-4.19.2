@@ -4,6 +4,7 @@
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
+#include "AI/Navigation/NavigationTestingActor.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
 {

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "AI/BehaviorTreeDelegates.h"
+#include "BehaviorTreeDelegates.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -186,10 +186,12 @@ void UGameplayDebuggingControllerComponent::ToggleActiveView(EAIDebugDrawDataVie
 	if (DebugAITargetActor)
 	{
 		MyPC->ServerReplicateMessageToAIDebugView(DebugAITargetActor, (ActiveViews & (1 << NewView)) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, NewView);
+#if WITH_EQS
 		if (DebugAITargetActor->GetDebugComponent() && NewView == EAIDebugDrawDataView::EQS)
 		{
 			DebugAITargetActor->GetDebugComponent()->EnableClientEQSSceneProxy(IsViewActive(EAIDebugDrawDataView::EQS));
 		}
+#endif // WITH_EQS
 	}
 }
 

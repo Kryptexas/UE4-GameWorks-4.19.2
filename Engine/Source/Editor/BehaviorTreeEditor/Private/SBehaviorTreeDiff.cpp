@@ -5,6 +5,7 @@
 #include "GraphDiffControl.h"
 #include "EdGraphUtilities.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 

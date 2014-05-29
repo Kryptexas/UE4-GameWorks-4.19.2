@@ -108,7 +108,6 @@ class ENGINE_API UNavigationQueryFilter : public UObject
 	TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData) const;
 	
 	/** helper functions for accessing filter */
-	static TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class AAIController* AI, UClass* FilterClass);
 	static TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass);
 
 	template<class T>

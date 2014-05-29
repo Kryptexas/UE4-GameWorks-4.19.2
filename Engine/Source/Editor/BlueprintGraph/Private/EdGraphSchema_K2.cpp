@@ -23,6 +23,7 @@
 
 #include "K2ActionMenuBuilder.h"
 #include "AssetRegistryModule.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 
 #include "K2Node_CastByteToEnum.h"
 #include "K2Node_ClassDynamicCast.h"

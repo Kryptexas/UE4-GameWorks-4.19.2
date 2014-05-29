@@ -10,6 +10,9 @@
 #include "SGraphPin.h"
 #include "ScopedTransaction.h"
 #include "BehaviorTreeColors.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 
 /////////////////////////////////////////////////////
 // SBehaviorTreePin

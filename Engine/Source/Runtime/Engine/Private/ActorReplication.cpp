@@ -4,7 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "NavigationPathBuilder.h"
+#include "NetworkingDistanceConstants.h"
 
 /*-----------------------------------------------------------------------------
 	AActor networking implementation.

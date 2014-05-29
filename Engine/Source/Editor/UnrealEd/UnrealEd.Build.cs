@@ -63,6 +63,7 @@ public class UnrealEd : ModuleRules
                 "EditorStyle",
 				"SourceControl",
 				"UnrealEdMessages",
+                "AIModule",
 				"BlueprintGraph",
 			}
 		);

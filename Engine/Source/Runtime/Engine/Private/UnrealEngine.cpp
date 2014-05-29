@@ -49,6 +49,10 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "BehaviorTree/BehaviorTreeManager.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+
 #if !UE_BUILD_SHIPPING
 #include "STaskGraph.h"
 #endif
@@ -1243,16 +1247,6 @@ void UEngine::InitializeObjectReferences()
 	if ( NavigationSystemClass == NULL )
 	{
 		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ClassName, NULL, LOAD_None, NULL);
-	}
-
-	if ( BehaviorTreeManagerClass == NULL )
-	{
-		BehaviorTreeManagerClass = LoadClass<UBehaviorTreeManager>(NULL, *BehaviorTreeManagerClassName.ClassName, NULL, LOAD_None, NULL);
-	}
-
-	if ( EnvironmentQueryManagerClass == NULL )
-	{
-		EnvironmentQueryManagerClass = LoadClass<UEnvQueryManager>(NULL, *EnvironmentQueryManagerClassName.ClassName, NULL, LOAD_None, NULL);
 	}
 
 	if ( AvoidanceManagerClass == NULL )

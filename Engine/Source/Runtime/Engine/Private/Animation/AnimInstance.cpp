@@ -12,6 +12,12 @@
 
 #include "MessageLog.h"
 
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "AIController.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "Navigation/NavigationComponent.h"
+#include "BrainComponent.h"
+
 /** Anim stats */
 
 

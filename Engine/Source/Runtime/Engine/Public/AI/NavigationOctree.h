@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GenericOctree.h"
+#include "AI/Navigation/NavigationProxy.h"
 
 struct ENGINE_API FNavigationOctreeFilter
 {

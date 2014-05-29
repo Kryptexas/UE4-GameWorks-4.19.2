@@ -3,6 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "CompilerResultsLog.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "Blueprint/AIAsyncTaskBlueprintProxy.h"
 #include "K2Node_AIMoveTo.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"
@@ -10,9 +12,9 @@
 UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UKismetAIHelperLibrary, CreateMoveToProxyObject);
-	ProxyFactoryClass = UKismetAIHelperLibrary::StaticClass();
-	ProxyClass = UKismetAIAsyncTaskProxy::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UAIBlueprintHelperLibrary, CreateMoveToProxyObject);
+	ProxyFactoryClass = UAIBlueprintHelperLibrary::StaticClass();
+	ProxyClass = UAIAsyncTaskBlueprintProxy::StaticClass();
 }
 
 FString UK2Node_AIMoveTo::GetCategoryName()

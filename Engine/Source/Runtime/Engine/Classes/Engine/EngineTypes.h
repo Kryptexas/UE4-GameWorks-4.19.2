@@ -2348,7 +2348,7 @@ namespace EComponentMobility
 }
 
 UCLASS(abstract, config=Engine)
-class UEngineTypes : public UObject
+class ENGINE_API UEngineTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
-#include "AI/BehaviorTreeDelegates.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BTNode.h"
+#include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/BTAuxiliaryNode.h"
+#include "BehaviorTreeDelegates.h"
 #include "SBehaviorTreeDebuggerView.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()

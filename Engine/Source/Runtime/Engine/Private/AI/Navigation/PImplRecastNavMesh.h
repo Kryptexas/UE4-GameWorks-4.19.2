@@ -39,7 +39,7 @@ public:
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 };
 
-struct FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
+struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
 {
 	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner) {}
 	virtual bool isLinkAllowed(const int32 UserId) const OVERRIDE;
@@ -58,7 +58,7 @@ namespace EClusterPath
 }
 
 /** Engine Private! - Private Implementation details of ARecastNavMesh */
-class FPImplRecastNavMesh
+class ENGINE_API FPImplRecastNavMesh
 {
 public:
 

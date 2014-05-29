@@ -4,6 +4,10 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorActions.h"
 #include "EnvironmentQueryConnectionDrawingPolicy.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+
 
 #define LOCTEXT_NAMESPACE "EnvironmentQuerySchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

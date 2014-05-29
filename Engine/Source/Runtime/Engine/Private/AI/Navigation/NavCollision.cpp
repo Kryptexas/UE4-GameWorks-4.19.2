@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavCollision.h"
-#include "AI/NavigationModifier.h"
+#include "NavigationModifier.h"
 #include "../Private/AI/Navigation/RecastNavMeshGenerator.h"
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"

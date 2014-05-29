@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../../Public/AI/NavDataGenerator.h"
+#include "AI/NavDataGenerator.h"
+#include "AI/Navigation/NavAreas/NavAreaMeta.h"
+#include "AI/Navigation/NavigationData.h"
 
 //----------------------------------------------------------------------//
 // FNavDataGenerator

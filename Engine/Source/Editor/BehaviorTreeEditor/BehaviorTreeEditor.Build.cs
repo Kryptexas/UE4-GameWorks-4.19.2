@@ -38,7 +38,8 @@ public class BehaviorTreeEditor : ModuleRules
                 "Kismet",
                 "PropertyEditor",
 				"AnimGraph",
-				"BlueprintGraph"
+				"BlueprintGraph",
+                "AIModule",
 			}
 		);
 

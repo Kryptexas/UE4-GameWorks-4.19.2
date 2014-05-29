@@ -6,6 +6,8 @@
 #include "Editor/EnvironmentQueryEditor/Public/EnvironmentQueryEditorModule.h"
 #include "Editor/EnvironmentQueryEditor/Public/IEnvironmentQueryEditor.h"
 
+#include "EnvironmentQuery/EnvQuery.h"
+
 #include "AssetTypeActions_EnvironmentQuery.h"
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

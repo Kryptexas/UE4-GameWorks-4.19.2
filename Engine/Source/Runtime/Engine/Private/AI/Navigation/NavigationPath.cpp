@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "VisualLog.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #define DEBUG_DRAW_OFFSET 0
 #define PATH_OFFSET_KEEP_VISIBLE_POINTS 1

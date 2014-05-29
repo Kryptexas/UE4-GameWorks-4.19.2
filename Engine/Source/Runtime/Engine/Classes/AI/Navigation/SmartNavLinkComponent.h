@@ -2,6 +2,7 @@
 
 #pragma once
 #include "NavigationTypes.h"
+#include "AI/Navigation/NavRelevantComponent.h"
 #include "SmartNavLinkComponent.generated.h"
 
 /**

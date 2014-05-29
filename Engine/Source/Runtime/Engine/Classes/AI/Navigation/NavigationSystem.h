@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "NavigationTypes.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "GenericOctreePublic.h"
 #include "NavigationSystem.generated.h"
 
@@ -583,11 +584,9 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
 
-protected:
-	UPROPERTY(transient)
-	class UCrowdManager* CrowdManager;
-
 private:
+	TWeakObjectPtr<class UCrowdManager> CrowdManager;
+
 	// required navigation data 
 	UPROPERTY(config)
 	TArray<FStringClassReference> RequiredNavigationDataClassNames;
@@ -631,7 +630,7 @@ public:
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ))
-	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL, class AAIController* Querier = NULL);
+	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL, class AController* Querier = NULL);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);
@@ -664,7 +663,7 @@ public:
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
 
-	class UCrowdManager* GetCrowdManager() const { return CrowdManager; }
+	class UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
 
 	/** spawn new crowd manager */
 	virtual void CreateCrowdManager();
@@ -1061,6 +1060,8 @@ protected:
 
 	void AddActorElementToNavOctree(class AActor* Actor, const FNavigationDirtyElement& DirtyElement);
 	void AddComponentElementToNavOctree(class UActorComponent* ActorComp, const FNavigationDirtyElement& DirtyElement, const FBox& Bounds);
+
+	void SetCrowdManager(class UCrowdManager* NewCrowdManager); 
 
 #if WITH_NAVIGATION_GENERATOR
 

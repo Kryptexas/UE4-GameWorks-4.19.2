@@ -2,6 +2,7 @@
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvironmentQueryEditorModule.h"
+#include "EnvironmentQuery/EnvQuery.h"
 
 UEnvironmentQueryFactory::UEnvironmentQueryFactory(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

@@ -7,6 +7,8 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/GameNetworkManager.h"
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "Navigation/PathFollowingComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 

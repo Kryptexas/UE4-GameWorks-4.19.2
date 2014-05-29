@@ -275,16 +275,16 @@ public:
 	void ClearSlotNodeWeights();
 	bool IsActiveSlotNode(FName SlotNodeName) const;
 
-protected:
 	// kismet event functions
 
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	virtual class APawn* TryGetPawnOwner();
+
+protected:
 	/** Returns the owning actor of this AnimInstance */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	class AActor* GetOwningActor();
-
-	UFUNCTION(BlueprintPure, Category="Animation")
-	virtual class APawn* TryGetPawnOwner();
-
+	
 	// Returns the skeletal mesh component that has created this AnimInstance
 	UFUNCTION(BlueprintPure, Category="Animation")
 	class USkeletalMeshComponent* GetOwningComponent();
@@ -406,12 +406,14 @@ public:
 	float CalculateDirection(const FVector & Velocity, const FRotator & BaseRotation);
 
 	//--- AI communication start ---//
-	/** locks indicated AI resources of animated pawn */
-	UFUNCTION(BlueprintCallable, Category="Animation", BlueprintAuthorityOnly)
+	/** locks indicated AI resources of animated pawn
+	 *	DEPRECATED. Use LockAIResourcesWithAnimation instead */
+	UFUNCTION(BlueprintCallable, Category = "Animation", BlueprintAuthorityOnly, Meta=(DeprecatedFunction, DeprecationMessage="Use LockAIResourcesWithAnimation instead"))
 	void LockAIResources(bool bLockMovement, bool LockAILogic);
 
-	/** unlocks indicated AI resources of animated pawn. Will unlock only animation-locked resources */
-	UFUNCTION(BlueprintCallable, Category="Animation", BlueprintAuthorityOnly)
+	/** unlocks indicated AI resources of animated pawn. Will unlock only animation-locked resources.
+	 *	DEPRECATED. Use UnlockAIResourcesWithAnimation instead */
+	UFUNCTION(BlueprintCallable, Category = "Animation", BlueprintAuthorityOnly, Meta=(DeprecatedFunction, DeprecationMessage="Use UnlockAIResourcesWithAnimation instead"))
 	void UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic);
 	//--- AI communication end ---//
 

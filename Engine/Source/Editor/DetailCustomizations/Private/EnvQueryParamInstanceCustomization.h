@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EnvironmentQuery/EnvQueryTypes.h"
+
 class FEnvQueryParamInstanceCustomization : public IStructCustomization
 {
 public:

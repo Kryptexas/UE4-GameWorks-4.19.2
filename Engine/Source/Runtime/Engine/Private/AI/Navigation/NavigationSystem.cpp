@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AI/NavDataGenerator.h"
-#include "AI/NavigationOctree.h"
+#include "NavDataGenerator.h"
+#include "NavigationOctree.h"
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
@@ -11,6 +11,15 @@
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #endif
+
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "Navigation/CrowdManager.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavAreas/NavArea_Null.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
@@ -514,7 +523,25 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 
 void UNavigationSystem::CreateCrowdManager()
 {
-	CrowdManager = NewObject<UCrowdManager>(this);
+	SetCrowdManager(NewObject<UCrowdManager>(this));
+}
+
+void UNavigationSystem::SetCrowdManager(UCrowdManager* NewCrowdManager)
+{
+	if (NewCrowdManager == CrowdManager.Get())
+	{
+		return;
+	}
+
+	if (CrowdManager.IsValid())
+	{
+		CrowdManager->RemoveFromRoot();
+	}
+	CrowdManager = NewCrowdManager;
+	if (NewCrowdManager != NULL)
+	{
+		CrowdManager->AddToRoot();
+	}
 }
 
 void UNavigationSystem::Tick(float DeltaSeconds)
@@ -571,7 +598,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		AsyncPathFindingQueries.Reset();
 	}
 
-	if (CrowdManager)
+	if (CrowdManager.IsValid())
 	{
 		CrowdManager->Tick(DeltaSeconds);
 	}
@@ -593,6 +620,10 @@ void UNavigationSystem::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	{
 		Collector.AddReferencedObject(PendingNavAreaRegistration[PendingAreaIndex], InThis);
 	}
+	
+	UNavigationSystem* This = CastChecked<UNavigationSystem>(InThis);
+	UCrowdManager* CrowdManager = This->GetCrowdManager();
+	Collector.AddReferencedObject(CrowdManager, InThis);
 }
 
 #if WITH_EDITOR
@@ -925,7 +956,7 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	}
 }
 
-bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass, AAIController* Querier)
+bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass, AController* Querier)
 {
 	UWorld* World = NULL;
 
@@ -2697,7 +2728,9 @@ void UNavigationSystem::CleanUp()
 			NavDataSet[NavDataIndex]->CleanUp();
 		}
 	}	
-	
+
+	SetCrowdManager(NULL);
+
 	NavDataSet.Reset();
 }
 

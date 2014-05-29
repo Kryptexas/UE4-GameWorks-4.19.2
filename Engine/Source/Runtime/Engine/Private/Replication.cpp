@@ -8,7 +8,6 @@
 #include "Matinee/MatineeInterface.h"
 #include "Matinee/MatineeActor.h"
 #include "Net/UnrealNetwork.h"
-#include "NavigationPathBuilder.h"
 #include "SoundDefinitions.h"
 
 void AMatineeActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

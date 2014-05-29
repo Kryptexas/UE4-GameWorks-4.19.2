@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "AI/Navigation/RecastHelpers.h"
 #include "Landscape/LandscapeSplineProxies.h"
 #include "Landscape/LandscapeSplinesComponent.h"
 #include "Landscape/LandscapeSplineControlPoint.h"
@@ -2568,7 +2569,6 @@ UBodySetup* USplineMeshComponent::GetBodySetup()
 	return NULL;
 }
 
-#include "../AI/Navigation/RecastHelpers.h"
 bool USplineMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
 {
 	// the NavCollision is supposed to be faster than exporting the regular collision,

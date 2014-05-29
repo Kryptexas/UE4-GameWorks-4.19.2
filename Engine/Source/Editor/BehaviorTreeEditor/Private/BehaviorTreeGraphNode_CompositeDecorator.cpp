@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTreeGraphNode_CompositeDecorator.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 

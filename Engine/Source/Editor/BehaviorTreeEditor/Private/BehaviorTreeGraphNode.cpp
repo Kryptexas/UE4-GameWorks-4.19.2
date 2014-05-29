@@ -4,6 +4,7 @@
 #include "ScopedTransaction.h"
 #include "SGraphEditorActionMenu_BehaviorTree.h"
 #include "BlueprintNodeHelpers.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 

@@ -51,7 +51,8 @@ public class Engine : ModuleRules
 				"AssetRegistry", // Here until FAssetData is moved to engine
 				"EngineMessages",
 				"EngineSettings",
-				"SynthBenchmark",
+				"SynthBenchmark",                
+                "AIModule",
 			}
 		);
 
@@ -62,7 +63,6 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
-                "AIModule"
 			}
 		);
 

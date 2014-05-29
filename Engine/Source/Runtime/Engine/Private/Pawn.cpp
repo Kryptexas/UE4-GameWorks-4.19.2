@@ -9,9 +9,9 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
-#include "NavigationPathBuilder.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
+#include "NetworkingDistanceConstants.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -26,7 +26,7 @@ APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
-	AIControllerClass = AAIController::StaticClass();
+	AIControllerClass = NULL;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	GameplayDebuggingComponentClass = UGameplayDebuggingComponent::StaticClass();
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)

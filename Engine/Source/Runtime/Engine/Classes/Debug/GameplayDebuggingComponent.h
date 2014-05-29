@@ -6,7 +6,10 @@
 
 #pragma once
 #include "GameplayDebuggingControllerComponent.h"
+#include "DebugRenderSceneProxy.h"
 #include "GameplayDebuggingComponent.generated.h"
+
+#define WITH_EQS 0
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Display, All);
 
@@ -56,8 +59,8 @@ namespace EQSDebug
 	{
 		TArray<FItemData> Items;
 		TArray<FTestData> Tests;
-		TArray<FEQSSceneProxy::FSphere> SolidSpheres;
-		TArray<FEQSSceneProxy::FText3d> Texts;
+		TArray<FDebugRenderSceneProxy::FSphere> SolidSpheres;
+		TArray<FDebugRenderSceneProxy::FText3d> Texts;
 		int32 NumValidItems;
 	};
 }
@@ -65,7 +68,7 @@ namespace EQSDebug
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
 UCLASS()
-class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
+class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -106,6 +109,7 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
 	TArray<uint8> NavmeshRepData;
 	
+#if WITH_EQS
 	/** Begin EQS replication data */
 	UPROPERTY(Replicated)
 	float EQSTimestamp;
@@ -128,10 +132,11 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
 
-	virtual bool GetComponentClassCanReplicate() const OVERRIDE{ return true; }
-
 	UFUNCTION()
 	virtual void OnRep_UpdateEQS();
+#endif // WITH_EQS
+
+	virtual bool GetComponentClassCanReplicate() const OVERRIDE{ return true; }
 
 	UFUNCTION()
 	virtual void OnRep_UpdateNavmesh();
@@ -175,6 +180,7 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerEnableTargetSelection(bool bEnable);
 
+#if WITH_EQS
 	//=============================================================================
 	// EQS debugging
 	//=============================================================================
@@ -190,6 +196,10 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	virtual bool GetShouldDebugDrawLabels() const OVERRIDE { return bDrawEQSLabels; }
 	virtual bool GetShouldDrawFailedItems() const OVERRIDE{ return bDrawEQSFailedItems; }
 	// IEQSQueryResultSourceInterface end
+protected:
+	virtual void CollectEQSData();
+public:
+#endif //WITH_EQS
 
 	//=============================================================================
 	// Rendering
@@ -208,7 +218,6 @@ protected:
 	virtual void CollectPathData();
 	virtual void CollectBasicData();
 	virtual void CollectBehaviorTreeData();
-	virtual void CollectEQSData();
 
 	virtual void GetKeyboardDesc(TArray<FDebugCategoryView>& Categories);
 

@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "AI/NavigationOctree.h"
+#include "NavigationOctree.h"
 #include "RecastHelpers.h"
+#include "AI/Navigation/NavRelevantComponent.h"
 
 #if NAVOCTREE_CONTAINS_COLLISION_DATA
 #include "RecastNavMeshGenerator.h"

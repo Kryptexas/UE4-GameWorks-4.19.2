@@ -4,8 +4,12 @@
 
 #include "Slate.h"
 #include "SlateReflector.h"
-#include "AI/NavDataGenerator.h"
+#include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "AIController.h"
+#include "EnvironmentQuery/EnvQuery.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

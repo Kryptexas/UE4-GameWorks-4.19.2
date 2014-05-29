@@ -2,6 +2,7 @@
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvTraceDataCustomization.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 
 #define LOCTEXT_NAMESPACE "EnvTraceDataCustomization"
 

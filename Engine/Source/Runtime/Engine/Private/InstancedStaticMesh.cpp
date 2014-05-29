@@ -7,7 +7,26 @@
 #include "EnginePrivate.h"
 #include "ShaderParameters.h"
 
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/InteractiveFoliageComponent.h"
+#include "Components/SplineMeshComponent.h"
+#include "Components/ModelComponent.h"
+#include "Components/NiagaraComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/DrawSphereComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "Components/VectorFieldComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "Components/TimelineComponent.h"
+#include "Slate.h"
+#include "NavDataGenerator.h"
+#include "OnlineSubsystemUtils.h"
+#include "AI/Navigation/RecastHelpers.h"
+
 #include "StaticMeshLight.h"
 #include "SpeedTreeWind.h"
 #include "ComponentInstanceDataCache.h"
@@ -1459,7 +1478,6 @@ void UInstancedStaticMeshComponent::ApplyWorldOffset(const FVector& InOffset, bo
 	MarkRenderStateDirty();
 }
 
-#include "AI/Navigation/RecastHelpers.h"
 bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
 {
 	if (StaticMesh != NULL)

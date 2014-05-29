@@ -3,6 +3,8 @@
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "ScopedTransaction.h"
 #include "SGraphEditorActionMenu_EnvironmentQuery.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "EnvironmentQuery/EnvQueryOption.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 

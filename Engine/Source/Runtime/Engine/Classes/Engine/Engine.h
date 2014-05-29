@@ -637,23 +637,7 @@ public:
 	/** The class for NavigationSystem **/
 	UPROPERTY()
 	TSubclassOf<class UNavigationSystem>  NavigationSystemClass;
-
-	/** Name of behavior tree manager class */
-	UPROPERTY(globalconfig, noclear, meta=(MetaClass="BehaviorTreeManager", DisplayName="Behavior Tree Manager Class"))
-	FStringClassReference BehaviorTreeManagerClassName;
-
-	/** The class for behavior tree manager **/
-	UPROPERTY()
-	TSubclassOf<class UBehaviorTreeManager>  BehaviorTreeManagerClass;
-
-	/** Name of environment query manager class */
-	UPROPERTY(globalconfig, noclear, meta=(MetaClass="EnvQueryManager", DisplayName="Environment Query Manager Class"))
-	FStringClassReference EnvironmentQueryManagerClassName;
-
-	/** The class for environment query manager **/
-	UPROPERTY()
-	TSubclassOf<class UEnvQueryManager>  EnvironmentQueryManagerClass;
-
+	
 	/** Name of behavior tree manager class */
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="AvoidanceManager", DisplayName="Avoidance Manager Class"))
 	FStringClassReference AvoidanceManagerClassName;

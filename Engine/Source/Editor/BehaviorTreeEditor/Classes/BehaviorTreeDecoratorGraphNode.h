@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTreeDecoratorGraphNode.generated.h"
+
 
 UCLASS()
 class UBehaviorTreeDecoratorGraphNode : public UEdGraphNode

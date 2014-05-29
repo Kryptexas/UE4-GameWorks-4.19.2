@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "AIController.h"
 
 APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP

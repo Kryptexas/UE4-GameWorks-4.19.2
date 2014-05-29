@@ -2,9 +2,17 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "AI/BehaviorTreeDelegates.h"
+#include "BehaviorTreeDelegates.h"
 #include "../AI/Navigation/RecastNavMeshGenerator.h"
 #include "../NavMeshRenderingHelpers.h"
+#include "../../Classes/AI/Navigation/NavigationSystem.h"
+
+// @todo this is here only due to circular dependency to AIModule. To be removed
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "Navigation/NavigationComponent.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -108,9 +116,11 @@ const uint32 UGameplayDebuggingComponent::ShowFlagIndex = uint32(FEngineShowFlag
 
 UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
+#if WITH_EQS
 	, EQSTimestamp(0.f)
 	, bDrawEQSLabels(true)
 	, bDrawEQSFailedItems(true)
+#endif // WITH_EQS
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
@@ -127,7 +137,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 	bHiddenInGame = false;
 	bEnabledTargetSelection = false;
 
+#if WITH_EQS
 	bEnableClientEQSSceneProxy = false;
+#endif // WITH_EQS
 	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
 }
@@ -179,10 +191,12 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
+#if WITH_EQS
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSTimestamp);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSName);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSId);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
+#endif // WITH_EQS
 }
 
 bool UGameplayDebuggingComponent::ServerEnableTargetSelection_Validate(bool bEnable)
@@ -329,10 +343,12 @@ void UGameplayDebuggingComponent::CollectDataToReplicate()
 			CollectBehaviorTreeData();
 		}
 		
+#if WITH_EQS
 		if (ShouldReplicateData(EAIDebugDrawDataView::EQS))
 		{
 			CollectEQSData();
 		}
+#endif // WITH_EQS
 	}
 }
 
@@ -387,36 +403,10 @@ void UGameplayDebuggingComponent::CollectPathData()
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
 				PathPoints.Reset();
-				
-#if WITH_RECAST
-				ARecastNavMesh* NavMesh = NewPath.IsValid() ? Cast<ARecastNavMesh>(NewPath->GetOwner()) : NULL;
-				FNavMeshPath* NavMeshPath = NewPath->CastPath<FNavMeshPath>();
-				if (NavMeshPath && NavMesh && !NavMeshPath->IsStringPulled() && NavMeshPath->PathPoints.Num() == 2)
-				{				
-					PathPoints.Add(NavMeshPath->PathPoints[0].Location);
-					NavMesh->BeginBatchQuery();
-
-					for (int32 Idx = 1; Idx < NavMeshPath->PathCorridor.Num() - 1; Idx++)
-					{
-						FVector CenterPt;
-						NavMesh->GetPolyCenter(NavMeshPath->PathCorridor[Idx], CenterPt);
-						PathPoints.Add(CenterPt);
-					}
-
-					NavMesh->FinishBatchQuery();
-					PathPoints.Add(NavMeshPath->PathPoints[1].Location);
-				}
-				else
+				for (int32 Index=0; Index < NewPath->PathPoints.Num(); ++Index)
 				{
-#endif // WITH_RECAST
-					for (int32 Index=0; Index < NewPath->PathPoints.Num(); ++Index)
-					{
-						PathPoints.Add( NewPath->PathPoints[Index].Location );
-					}
-#if WITH_RECAST
+					PathPoints.Add( NewPath->PathPoints[Index].Location );
 				}
-#endif // WITH_RECAST
-
 				CurrentPath = NewPath;
 			}
 		}
@@ -488,11 +478,13 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 		}
 #endif
 
+#if WITH_EQS
 		if (bNewStatus == false)
 		{
 			CachedQueryInstance.Reset();
 			MarkRenderStateDirty();
 		}
+#endif // WITH_EQS
 #endif
 	}
 }
@@ -506,7 +498,9 @@ void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedCo
 	else
 	{
 		SelectForDebugging(false);
+#if WITH_EQS
 		EnableClientEQSSceneProxy(false);
+#endif // WITH_EQS
 	}
 }
 
@@ -584,6 +578,7 @@ void UGameplayDebuggingComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Ca
 	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
 }
 
+#if WITH_EQS
 //////////////////////////////////////////////////////////////////////////
 // EQS Data
 //////////////////////////////////////////////////////////////////////////
@@ -779,6 +774,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 	}
 #endif
 }
+#endif // WITH_EQS
 
 //----------------------------------------------------------------------//
 // NavMesh rendering
@@ -1205,11 +1201,13 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	}
 #endif
 
+#if WITH_EQS
 	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() )
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 		CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), /*bDrawOnlyWhenSelected=*/false, EQSLocalData.SolidSpheres, EQSLocalData.Texts));
 	}
+#endif // WITH_EQS
 
 	return CompositeProxy;
 }
@@ -1226,10 +1224,12 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & Loca
 	}
 #endif
 
+#if WITH_EQS
 	if (EQSRepData.Num())
 	{
 		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	}
+#endif // WITH_EQS
 
 	return MyBounds;
 }

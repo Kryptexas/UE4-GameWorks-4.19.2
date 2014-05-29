@@ -72,6 +72,9 @@
 #include "EditorStyle.h"
 #include "EngineBuildSettings.h"
 
+// AIMdule
+#include "BehaviorTree/BehaviorTreeManager.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"

@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+// @todo AIModule circular dependency
+#include "AIController.h"
+#include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 
 UNavigationQueryFilter::UNavigationQueryFilter(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -62,12 +66,6 @@ void UNavigationQueryFilter::InitializeFilter(const ANavigationData* NavData, FN
 	// apply flags
 	Filter->SetIncludeFlags(IncludeFlags.Packed);
 	Filter->SetExcludeFlags(ExcludeFlags.Packed);
-}
-
-TSharedPtr<const struct FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const AAIController* AI, UClass* FilterClass)
-{
-	const ANavigationData* NavData = AI && AI->NavComponent ? AI->NavComponent->GetNavData() : NULL;
-	return GetQueryFilter(NavData, FilterClass);
 }
 
 TSharedPtr<const struct FNavigationQueryFilter> UNavigationQueryFilter::GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass)

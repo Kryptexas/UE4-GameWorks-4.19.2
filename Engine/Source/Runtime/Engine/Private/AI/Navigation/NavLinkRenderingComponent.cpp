@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../../Public/AI/NavLinkRenderingProxy.h"
+#include "AI/NavLinkRenderingProxy.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
 
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent

@@ -6,6 +6,8 @@ namespace UnrealBuildTool.Rules
 	{
         public AIModule(TargetInfo Target)
 		{
+            SharedPCHHeaderFile = "Runtime/AIModule/Private/AIModulePrivate.h";
+
 			PublicIncludePaths.AddRange(
 				new string[] {
                     "Runtime/AIModule/Public",
@@ -16,6 +18,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"Runtime/AIModule/Private",
+                    "Runtime/Engine/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -25,7 +28,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-					"Engine"
+					"Engine"                    
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);
@@ -48,6 +51,19 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
+
+            if (UEBuildConfiguration.bCompileRecast)
+            {
+                PrivateDependencyModuleNames.Add("Navmesh");
+                Definitions.Add("WITH_RECAST=1");
+            }
+            else
+            {
+                // Because we test WITH_RECAST in public Engine header files, we need to make sure that modules
+                // that import us also have this definition set appropriately.  Recast is a private dependency
+                // module, so it's definitions won't propagate to modules that import Engine.
+                Definitions.Add("WITH_RECAST=0");
+            }
 		}
 	}
 }

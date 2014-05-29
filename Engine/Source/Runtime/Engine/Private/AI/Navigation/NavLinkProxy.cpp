@@ -2,7 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "ObjectEditorUtils.h"
-#include "AI/NavigationModifier.h"
+#include "NavigationModifier.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkProxy.h"
 
 ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
