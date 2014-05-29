@@ -261,9 +261,9 @@ struct FTextureTargetListInfo
 	uint32 UVChannelIndex;
 	FTextureTargetListInfo(UTexture2D* InTextureData, int32 InUVChannelIndex, bool InbIsSelected = false)
 		:	TextureData(InTextureData)
-		,	UVChannelIndex(InUVChannelIndex)
 		,	bIsSelected(InbIsSelected)
 		,	UndoCount(0)
+		,	UVChannelIndex(InUVChannelIndex)
 	{}
 };
 
@@ -336,8 +336,8 @@ public:
 		/** Default ctor */
 		PaintTexture2DData() :
 			PaintingTexture2D( NULL ),
-			PaintingTexture2DDuplicate ( NULL ),
-			bIsPaintingTexture2DModified( false ),
+			bIsPaintingTexture2DModified(false),
+			PaintingTexture2DDuplicate(NULL),
 			PaintRenderTargetTexture( NULL ),
 			CloneRenderTargetTexture( NULL )
 		{}

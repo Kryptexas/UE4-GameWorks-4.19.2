@@ -412,12 +412,12 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 //-----------------------------------------------------------------
 
 FPendingDelete::FPendingDelete(UObject* InObject)
-	: Object(InObject)
+	: RemainingDiskReferences(0)
+	, RemainingMemoryReferences(0)
+	, Object(InObject)
 	, bReferencesChecked(false)
 	, bIsReferencedInMemory(false)
 	, bIsReferencedInMemoryByUndo(false)
-	, RemainingDiskReferences(0)
-	, RemainingMemoryReferences(0)
 	, bIsInternal(false)
 {
 	// Blueprints actually contain 3 assets, the UBlueprint, GeneratedClass and SkeletonGeneratedClass

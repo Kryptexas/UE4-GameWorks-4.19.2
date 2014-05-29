@@ -171,8 +171,8 @@ const float FFeedbackContextEditor::UIUpdateGatingTime = 1.0f / 60.0f;
 
 FFeedbackContextEditor::FFeedbackContextEditor() : 
 	DialogRequestCount(0),
-	SlowTaskCount(0),
-	HasTaskBeenCancelled(false)
+	HasTaskBeenCancelled(false),
+	SlowTaskCount(0)
 {
 	DialogRequestStack.Reserve(15);
 }

@@ -41,6 +41,8 @@ public:
 		return DocumentID.IsValid();
 	}
 
+	virtual ~FTabPayload_UObject() {};
+
 private:
 	// Buried constructor. Use Make instead!
 	FTabPayload_UObject(UObject* InDocumentID)

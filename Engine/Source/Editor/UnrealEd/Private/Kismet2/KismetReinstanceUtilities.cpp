@@ -12,9 +12,9 @@
 
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
 	: DuplicatedClass(NULL)
-	, bHasReinstanced(false)
 	, ClassToReinstance(InClassToReinstance)
 	, OriginalCDO(NULL)
+	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
 {
 	if( InClassToReinstance != NULL )
