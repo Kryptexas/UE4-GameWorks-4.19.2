@@ -57,15 +57,14 @@ public:
 	 */
 	static FALSoundBuffer* Init(  FALAudioDevice* ,USoundWave* );
 
-		/**
+	/**
 	 * Static function used to create a IOSAudio buffer and upload decompressed ogg vorbis data to.
 	 *
 	 * @param Wave			USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
 	 * @return FIOSAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
-	static FALSoundBuffer* CreateNativeBuffer(FALAudioDevice* , USoundWave* );
-
+	static FALSoundBuffer* CreateNativeBuffer(FALAudioDevice* AudioDevice, USoundWave* InWave);
 
 	/**
 	 * Returns the size of this buffer in bytes.
