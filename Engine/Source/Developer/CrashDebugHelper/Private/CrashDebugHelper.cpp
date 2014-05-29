@@ -867,7 +867,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	// CWD = F:\depot\UE4-Releases\4.1\Engine\Binaries\Win64
 	// RootDir = F:\depot\UE4-Releases\4.1\
 
-#define DO_LOCAL_TESTING 1
+//#define DO_LOCAL_TESTING 1
 #if	DO_LOCAL_TESTING
 	const FString RootDir = TEXT( "U:/P4EPIC/UE4-Releases/4.1/" );
 #else
