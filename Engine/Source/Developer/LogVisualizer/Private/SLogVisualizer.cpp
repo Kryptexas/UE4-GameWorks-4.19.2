@@ -204,7 +204,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 			[
 				SNew(STutorialWrapper, TEXT("CategoryFilters"))
 				[
-					SAssignNew(FilterListPtr, SFilterList)
+					SAssignNew(FilterListPtr, SLogFilterList)
 					.OnFilterChanged(this, &SLogVisualizer::OnLogCategoryFiltersChanged)
 					/*.OnGetContextMenu(this, &SLogVisualizer::GetFilterContextMenu)*/
 					/*.FrontendFilters(FrontendFilters)*/

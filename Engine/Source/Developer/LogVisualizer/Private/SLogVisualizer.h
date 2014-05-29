@@ -5,7 +5,7 @@
 #include "STimeline.h"
 #include "Debug/DebugDrawService.h"
 
-class SFilterList;
+class SLogFilterList;
 
 struct FLogsListItem
 {
@@ -214,7 +214,7 @@ private:
 	// MEMBERS
 
 	/** The filter list */
-	TSharedPtr<SFilterList> FilterListPtr;
+	TSharedPtr<SLogFilterList> FilterListPtr;
 
 	/** Index into LogVisualizer->Logs array for entries you want to show. */
 	TArray<TSharedPtr<FLogsListItem> >	LogsList;

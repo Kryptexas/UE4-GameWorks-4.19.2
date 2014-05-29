@@ -2,12 +2,12 @@
 
 #pragma once
 
-class SFilter;
+class SLogFilter;
 
 /**
 * A list of filters currently applied to an asset view.
 */
-class SFilterList : public SCompoundWidget
+class SLogFilterList : public SCompoundWidget
 {
 public:
 	/** Delegate for when filters have changed */
@@ -15,7 +15,7 @@ public:
 
 	DECLARE_DELEGATE_RetVal(TSharedPtr<SWidget>, FOnGetContextMenu);
 
-	SLATE_BEGIN_ARGS(SFilterList){}
+	SLATE_BEGIN_ARGS(SLogFilterList){}
 
 		/** Called when an asset is right clicked */
 		SLATE_EVENT(FOnGetContextMenu, OnGetContextMenu)
@@ -34,7 +34,7 @@ public:
 
 	void SomeFilterGetChanged();
 
-	TArray<TSharedRef<SFilter> > Filters;
+	TArray<TSharedRef<SLogFilter> > Filters;
 
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
