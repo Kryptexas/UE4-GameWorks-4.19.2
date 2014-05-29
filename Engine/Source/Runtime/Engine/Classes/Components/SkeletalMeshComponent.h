@@ -326,6 +326,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	float TeleportRotationThreshold;
 
+	/**
+	 * weight to blend between simulated results and key-framed positions
+	 * if weight is 1.0, shows only cloth simulation results and 0.0 will show only skinned results
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Clothing)
+	float ClothBlendWeight;
+
 	/** Draw the APEX Clothing Normals on clothing sections. */
 	uint32 bDisplayClothingNormals:1;
 

@@ -51,6 +51,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
 	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 	bNeedTeleportAndResetOnceMore = false;
+	ClothBlendWeight = 1.0f;
 #if WITH_CLOTH_COLLISION_DETECTION
 	ClothingCollisionRevision = 0;
 #endif// #if WITH_CLOTH_COLLISION_DETECTION

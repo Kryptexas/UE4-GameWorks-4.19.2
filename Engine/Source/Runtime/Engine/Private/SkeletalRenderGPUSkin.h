@@ -53,6 +53,9 @@ public:
 	/** data for updating cloth section */
 	TArray<FClothSimulData> ClothSimulUpdateData;
 
+	/** a weight factor to blend between simulated positions and skinned positions */	
+	float ClothBlendWeight;
+
 	/**
 	* Compare the given set of active morph targets with the current list to check if different
 	* @param CompareActiveVertexAnims - array of vertex anims to compare

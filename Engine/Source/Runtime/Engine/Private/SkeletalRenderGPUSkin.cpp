@@ -298,6 +298,7 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMesh
 			if( bClothFactory )
 			{				
 				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetClothShaderData();
+				ClothShaderData.ClothBlendWeight = DynamicData->ClothBlendWeight;
 				int16 ActorIdx = Chunk.CorrespondClothAssetIndex;
 				if( DynamicData->ClothSimulUpdateData.IsValidIndex(ActorIdx) )
 				{
@@ -1040,6 +1041,7 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 	USkeletalMeshComponent * SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 	if(SkelMeshComponent)
 	{
+		ClothBlendWeight = SkelMeshComponent->ClothBlendWeight;
 		SkelMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData);
 		return true;
 	}

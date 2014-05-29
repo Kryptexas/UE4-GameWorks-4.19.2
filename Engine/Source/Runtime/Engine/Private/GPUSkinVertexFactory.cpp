@@ -690,6 +690,7 @@ public:
 		FGPUSkinVertexFactoryShaderParameters::Bind(ParameterMap);
 		ClothSimulPositionsParameter.Bind(ParameterMap,TEXT("ClothSimulVertsPositions"));
 		ClothSimulNormalsParameter.Bind(ParameterMap,TEXT("ClothSimulVertsNormals"));
+		ClothBlendWeightParameter.Bind(ParameterMap, TEXT("ClothBlendWeight"));
 	}
 	/**
 	* Serialize shader params to an archive
@@ -700,6 +701,7 @@ public:
 		FGPUSkinVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << ClothSimulPositionsParameter;
 		Ar << ClothSimulNormalsParameter;
+		Ar << ClothBlendWeightParameter;
 	}
 
 	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
@@ -726,7 +728,7 @@ public:
 				RHISetShaderTexture(Shader->GetVertexShader(), ClothSimulPositionsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulPositionBuffer());
 #endif
 			}
-			
+
 			if(ClothSimulNormalsParameter.IsBound())
 			{
 #if GPUSKIN_USE_DATA_BUFFERS
@@ -735,12 +737,19 @@ public:
 				RHISetShaderTexture(Shader->GetVertexShader(), ClothSimulNormalsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulNormalBuffer());
 #endif
 			}
+
+			SetShaderValue(
+				Shader->GetVertexShader(),
+				ClothBlendWeightParameter,
+				ClothShaderData.ClothBlendWeight
+				);
 		}
 	}
 
 protected:
 	FShaderResourceParameter ClothSimulPositionsParameter;
 	FShaderResourceParameter ClothSimulNormalsParameter;
+	FShaderParameter ClothBlendWeightParameter;
 };
 
 /*-----------------------------------------------------------------------------

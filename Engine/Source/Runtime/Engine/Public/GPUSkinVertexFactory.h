@@ -692,6 +692,12 @@ class FGPUBaseSkinAPEXClothVertexFactory
 public:
 	struct ClothShaderType
 	{
+		/**
+		 * weight to blend between simulated positions and key-framed poses
+		 * if ClothBlendWeight is 1.0, it shows only simulated positions and if it is 0.0, it shows only key-framed animation
+		 */
+		float ClothBlendWeight;
+
 		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
 
 		void ReleaseClothUniformBuffer()
