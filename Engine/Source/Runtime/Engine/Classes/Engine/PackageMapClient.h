@@ -89,7 +89,7 @@ protected:
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject * Object, FString PathName, UObject * ObjOuter );
 	void	ExportNetGUIDHeader();
 
-	void	InternalGetOrAssignNetGUID(UObject* Obj, FNetworkGUID &NetGUID);
+	FNetworkGUID	InternalGetOrAssignNetGUID( const UObject * Obj );
 	bool	InternalIsMapped(UObject* Obj, FNetworkGUID &NetGUID);
 
 	void	InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );	
