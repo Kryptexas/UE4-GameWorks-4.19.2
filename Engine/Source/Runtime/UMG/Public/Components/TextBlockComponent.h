@@ -5,7 +5,7 @@
 #include "TextBlockComponent.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UTextBlockComponent : public USlateLeafWidgetComponent
+class UMG_API UTextBlockComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

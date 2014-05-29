@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SlateNonLeafWidgetComponent.generated.h"
+#include "PanelWidget.generated.h"
 
 UCLASS(Abstract)
 class UMG_API UPanelWidget : public UWidget

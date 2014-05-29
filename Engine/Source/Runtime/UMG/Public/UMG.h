@@ -25,11 +25,9 @@
 
 #include "PanelSlot.h"
 
-#include "SlateWrapperComponent.h"
+#include "Widget.h"
 
-#include "SlateLeafWidgetComponent.h"
-#include "SlateNonLeafWidgetComponent.h"
-
+#include "PanelWidget.h"
 #include "ContentWidget.h"
 
 #include "BoxPanelComponent.h"

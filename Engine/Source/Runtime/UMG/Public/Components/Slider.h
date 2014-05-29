@@ -10,7 +10,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Va
 
 /** Slider widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API USlider : public USlateLeafWidgetComponent
+class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

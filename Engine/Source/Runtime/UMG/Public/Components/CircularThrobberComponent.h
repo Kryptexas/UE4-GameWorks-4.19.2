@@ -6,7 +6,7 @@
 
 /**  A throbber widget that orients images in a spinning circle. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UCircularThrobberComponent : public USlateLeafWidgetComponent
+class UMG_API UCircularThrobberComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

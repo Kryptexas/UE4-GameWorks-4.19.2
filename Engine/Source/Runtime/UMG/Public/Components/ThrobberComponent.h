@@ -6,7 +6,7 @@
 
 /** A Throbber widget that shows several zooming circles in a row. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UThrobberComponent : public USlateLeafWidgetComponent
+class UMG_API UThrobberComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

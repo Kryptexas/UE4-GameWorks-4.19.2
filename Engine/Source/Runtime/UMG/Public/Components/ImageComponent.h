@@ -6,7 +6,7 @@
 
 /** Image widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UImageComponent : public USlateLeafWidgetComponent
+class UMG_API UImageComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
