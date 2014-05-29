@@ -22,7 +22,6 @@ DEFINE_STAT(STAT_SlateOnPaint_SCompoundWidget);
 DEFINE_STAT(STAT_SlateOnPaint_SBox);
 DEFINE_STAT(STAT_SlateOnPaint_SImage);
 DEFINE_STAT(STAT_SlateOnPaint_SViewport);
-DEFINE_STAT(STAT_SlateOnPaint);
 DEFINE_STAT(STAT_SlateOnPaint_SSlider);
 
 DEFINE_STAT(STAT_SlateDrawWindowTime);

@@ -24,7 +24,7 @@ void SUniformGridPanel::Construct( const FArguments& InArgs )
 }
 
 
-void SUniformGridPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const FVector2D CellSize(AllottedGeometry.Size.X / NumColumns, AllottedGeometry.Size.Y / NumRows);
 	const FMargin& CurrentSlotPadding(SlotPadding.Get());

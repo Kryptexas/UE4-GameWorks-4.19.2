@@ -346,7 +346,7 @@ void STrack::Construct( const FArguments& InArgs )
 	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
 }
 
-void STrack::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void STrack::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	for ( auto TrackIter = TrackNodes.CreateConstIterator() ; TrackIter ; ++TrackIter )
 	{

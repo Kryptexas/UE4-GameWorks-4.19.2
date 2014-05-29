@@ -24,7 +24,6 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("CacheDesiredSize"), STAT_SlateCacheDesiredSize,
 DECLARE_CYCLE_STAT_EXTERN( TEXT("STextBlock"), STAT_SlateCacheDesiredSize_STextBlock, STATGROUP_Slate , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT("TickWidgets"), STAT_SlateTickWidgets, STATGROUP_Slate , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT("DrawWindows"), STAT_SlateDrawWindowTime, STATGROUP_Slate , );
-DECLARE_CYCLE_STAT_EXTERN( TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STATGROUP_Slate , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT("OnPaint SImage"), STAT_SlateOnPaint_SImage, STATGROUP_Slate , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT("OnPaint SBox"), STAT_SlateOnPaint_SBox, STATGROUP_Slate , );

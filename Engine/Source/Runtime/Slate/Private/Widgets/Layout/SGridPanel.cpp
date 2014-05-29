@@ -68,7 +68,7 @@ int32 SGridPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 				LayerId = MaxLayerId+1;
 			}
 
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint(
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(
 				CurWidget.Geometry,
 				ChildClipRect,
 				OutDrawElements,
@@ -91,7 +91,7 @@ int32 SGridPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 }
 
 
-void SGridPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// PREPARE PHASE
 	// Prepare some data for arranging children.

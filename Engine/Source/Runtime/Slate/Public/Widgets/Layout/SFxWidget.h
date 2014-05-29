@@ -67,7 +67,7 @@ public:
 protected:
 	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 
 	TAttribute<float> RenderScale;
 	TAttribute<FVector2D> RenderScaleOrigin;

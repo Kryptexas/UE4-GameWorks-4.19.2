@@ -88,7 +88,7 @@ public:
 
 private:
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
 	{
 		const FVector2D WindowDesktopPosition = (ensure(OwnerWindow.IsValid()))
 			? OwnerWindow.Pin()->GetPositionInScreen()

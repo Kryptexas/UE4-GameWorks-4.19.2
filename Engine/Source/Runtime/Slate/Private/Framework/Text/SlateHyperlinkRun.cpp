@@ -68,7 +68,7 @@ int32 FSlateHyperlinkRun::OnPaint( const FTextLayout::FLineView& Line, const TSh
 	const TSharedRef< FWidgetLayoutBlock > WidgetBlock = StaticCastSharedRef< FWidgetLayoutBlock >( Block );
 
 	FGeometry WidgetGeometry = AllottedGeometry.MakeChild( Block->GetLocationOffset() * ( 1 / AllottedGeometry.Scale ), Block->GetSize() * ( 1 / AllottedGeometry.Scale ), 1.0f );
-	return WidgetBlock->GetWidget()->OnPaint( WidgetGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	return WidgetBlock->GetWidget()->Paint( WidgetGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
 FChildren* FSlateHyperlinkRun::GetChildren()

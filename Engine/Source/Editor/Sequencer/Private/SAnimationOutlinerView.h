@@ -92,7 +92,7 @@ private:
 	void GenerateWidgetForNode( TSharedRef<FSequencerDisplayNode>& InLayoutNode );
 
 	/** SPanel Interface */
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 
 	/**
 	 * Called when a node is selected in the outliner

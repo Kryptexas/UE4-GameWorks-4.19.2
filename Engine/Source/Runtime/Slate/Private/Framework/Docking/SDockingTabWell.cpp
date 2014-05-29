@@ -62,7 +62,7 @@ void SDockingTabWell::AddTab( const TSharedRef<SDockTab>& InTab, int32 AtIndex )
 }
 
 
-void SDockingTabWell::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SDockingTabWell::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// The specialized TabWell is dedicated to arranging tabs.
 	// Tabs have uniform sizing (all tabs the same size).
@@ -136,7 +136,7 @@ int32 SDockingTabWell::OnPaint( const FGeometry& AllottedGeometry, const FSlateR
 		else
 		{
 			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 			MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 		}
 	}
@@ -145,7 +145,7 @@ int32 SDockingTabWell::OnPaint( const FGeometry& AllottedGeometry, const FSlateR
 	if (ForegroundTab != TSharedPtr<SDockTab>())
 	{
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( ForegroundTabGeometry->Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = ForegroundTabGeometry->Widget->OnPaint( ForegroundTabGeometry->Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 CurWidgetsMaxLayerId = ForegroundTabGeometry->Widget->Paint( ForegroundTabGeometry->Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 		MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 	}
 

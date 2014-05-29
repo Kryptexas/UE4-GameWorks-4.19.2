@@ -45,7 +45,7 @@ int32 SCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 /* SWidget overrides
  *****************************************************************************/
 
-void SCanvas::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	if (Children.Num() > 0)
 	{
@@ -105,7 +105,7 @@ int32 SCanvas::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->OnPaint(CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 		MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 	}

@@ -38,7 +38,7 @@ FVector2D SBox::ComputeDesiredSize() const
 	return FVector2D::ZeroVector;
 }
 
-void SBox::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const EVisibility& MyCurrentVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyCurrentVisibility ) )
@@ -81,7 +81,7 @@ int32 SBox::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClip
 
 		const FSlateRect ChildClippingRect = AllottedGeometry.GetClippingRect().InsetBy( ChildSlot.SlotPadding.Get() * AllottedGeometry.Scale ).IntersectionWith(MyClippingRect);
 
-		return TheChild.Widget->OnPaint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		return TheChild.Widget->Paint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	return LayerId;
 }

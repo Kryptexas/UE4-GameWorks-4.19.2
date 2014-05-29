@@ -550,7 +550,6 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		FGeometry WindowGeometry = WindowToDraw->GetWindowGeometryInWindow();
 		int32 MaxLayerId = 0;
 		{
-			SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint );
 			MaxLayerId = WindowToDraw->OnPaint( WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(), WindowElementList, 0, FWidgetStyle(), WindowToDraw->IsEnabled() );
 		}
 

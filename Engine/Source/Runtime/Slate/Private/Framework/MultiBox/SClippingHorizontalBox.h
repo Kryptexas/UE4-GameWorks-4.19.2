@@ -26,7 +26,7 @@ public:
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 
 	/** SPanel interface */
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 
 	/** Construct this widget */
 	void Construct( const FArguments& InArgs );

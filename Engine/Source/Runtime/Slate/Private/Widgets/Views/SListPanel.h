@@ -59,7 +59,7 @@ public:
 public:
 
 	// SWidget interface
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 	virtual FChildren* GetChildren() OVERRIDE;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;

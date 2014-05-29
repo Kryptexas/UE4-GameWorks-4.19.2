@@ -90,7 +90,7 @@ TAttribute<FVector2D> ContentScale = FVector2D::UnitVector;
 /* SCompoundWidget interface
  *****************************************************************************/
 
-void SWidgetSwitcher::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SWidgetSwitcher::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	if (AllChildren.Num() > 0)
 	{

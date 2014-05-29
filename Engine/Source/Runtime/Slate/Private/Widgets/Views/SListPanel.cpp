@@ -46,7 +46,7 @@ SListPanel::FSlot& SListPanel::AddSlot(int32 InsertAtIndex)
 /**
  * Arrange the children top-to-bottom with not additional layout info.
  */
-void SListPanel::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	if ( ShouldArrangeHorizontally() )
 	{

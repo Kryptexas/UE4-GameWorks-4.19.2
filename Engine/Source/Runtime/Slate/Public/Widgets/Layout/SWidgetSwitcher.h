@@ -120,7 +120,7 @@ protected:
 
 	// Begin SCompoundWidget interface
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 	
 	virtual FVector2D ComputeDesiredSize( ) const OVERRIDE;
 

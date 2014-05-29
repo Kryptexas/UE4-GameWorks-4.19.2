@@ -108,7 +108,7 @@ public:
 
 	virtual FChildren* GetChildren() OVERRIDE;
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 
 	/**
 	 * Gets the text assigned to this text block

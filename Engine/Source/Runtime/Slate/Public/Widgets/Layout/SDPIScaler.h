@@ -28,7 +28,7 @@ public:
 
 	void Construct( const FArguments& InArgs );
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 	
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 

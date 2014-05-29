@@ -80,7 +80,7 @@ public:
 
 	// Begin SWidget overrides.
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
 	
 	virtual FVector2D ComputeDesiredSize() const;
 

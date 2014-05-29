@@ -22,7 +22,7 @@ FChildren* SLeafWidget::GetChildren( )
 }
 
 
-void SLeafWidget::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SLeafWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	// Nothing to arrange; Leaf Widgets do not have children.
 }

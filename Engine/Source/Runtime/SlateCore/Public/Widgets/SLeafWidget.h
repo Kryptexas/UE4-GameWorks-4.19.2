@@ -48,7 +48,7 @@ public:
 	 */
 	virtual FChildren* GetChildren( );
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
 
 private:
 

@@ -93,7 +93,7 @@ int32 SFxWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& M
 			.BlendColorAndOpacityTint(ColorAndOpacity.Get())
 			.SetForegroundColor( ForegroundColor );
 
-		return TheChild.Widget->OnPaint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, CompoundedWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		return TheChild.Widget->Paint( TheChild.Geometry, ChildClippingRect, OutDrawElements, LayerId + 1, CompoundedWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	return LayerId;
 
@@ -107,7 +107,7 @@ FVector2D SFxWidget::ComputeDesiredSize() const
 }
 
 
-void SFxWidget::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SFxWidget::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const EVisibility MyVisibility = this->GetVisibility();
 	if ( ArrangedChildren.Accepts( MyVisibility ) )

@@ -2,6 +2,8 @@
 
 #include "SlateCorePrivatePCH.h"
 
+DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
 
 SWidget::SWidget()
 	: CreatedInFile( TEXT("") )
@@ -477,4 +479,16 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 	this->CreatedInFileFullPath = FName( InFile );
 	this->CreatedInFile = FName( *FPaths::GetCleanFilename(InFile) );
 	this->CreatedOnLine = OnLine;
+}
+
+int32 SWidget::Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint);
+	return OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+}
+
+void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateArrangeChildren);
+	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 }

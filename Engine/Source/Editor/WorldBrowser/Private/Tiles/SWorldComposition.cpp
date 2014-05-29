@@ -253,7 +253,7 @@ public:
 	}
 	
 	/**  SWidget interface */
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
 	{
 		for (int32 ChildIndex=0; ChildIndex < VisibleChildren.Num(); ++ChildIndex)
 		{
@@ -306,7 +306,7 @@ public:
 			TSharedRef<SWorldTileItem> ChildNode = StaticCastSharedRef<SWorldTileItem>(CurWidget.Widget);
 		
 			ChildNode->bAffectedByMarquee = SelectionToVisualize->Contains(ChildNode->GetObjectBeingDisplayed());
-			LayerId = CurWidget.Widget->OnPaint(CurWidget.Geometry, MyClippingRect, OutDrawElements, NodesLayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+			LayerId = CurWidget.Widget->Paint(CurWidget.Geometry, MyClippingRect, OutDrawElements, NodesLayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 			ChildNode->bAffectedByMarquee = false;
 		}
 		

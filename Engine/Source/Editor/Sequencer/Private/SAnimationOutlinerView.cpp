@@ -196,7 +196,7 @@ void SAnimationOutlinerView::GenerateWidgetForNode( TSharedRef<FSequencerDisplay
 }
 
 
-void SAnimationOutlinerView::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SAnimationOutlinerView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	const float Padding = SequencerLayoutConstants::NodePadding;
 	const float IndentAmount = SequencerLayoutConstants::IndentAmount;

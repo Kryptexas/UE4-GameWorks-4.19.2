@@ -76,7 +76,7 @@ public:
 
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
 
 	virtual FSlateColor GetForegroundColor() const OVERRIDE;
 

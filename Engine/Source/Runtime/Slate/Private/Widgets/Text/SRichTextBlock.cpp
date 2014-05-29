@@ -113,7 +113,7 @@ FChildren* SRichTextBlock::GetChildren()
 	return TextLayout->GetChildren();
 }
 
-void SRichTextBlock::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }

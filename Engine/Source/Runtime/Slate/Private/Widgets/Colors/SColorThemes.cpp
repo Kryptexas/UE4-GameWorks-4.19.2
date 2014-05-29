@@ -379,7 +379,7 @@ EVisibility SThemeColorBlock::OnGetAlphaVisibility() const
 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 */
-void SThemeColorBlocksBar::ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+void SThemeColorBlocksBar::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	bool bPlaceHolderExists = NewColorPlaceholder.IsValid();
 

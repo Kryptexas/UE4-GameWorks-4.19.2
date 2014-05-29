@@ -36,7 +36,7 @@ public:
 
 public:
 
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
 	{
 		
 		float CurChildOffset = -PhysicalOffset;

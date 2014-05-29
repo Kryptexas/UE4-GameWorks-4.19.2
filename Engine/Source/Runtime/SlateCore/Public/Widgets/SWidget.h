@@ -92,6 +92,8 @@ public:
 	//
 
 	/**
+	 * Called to tell a widget to paint itself (and it's children).
+	 * 
 	 * The widget should respond by populating the OutDrawElements array with FDrawElements 
 	 * that represent it and any of its children.
 	 *
@@ -104,7 +106,7 @@ public:
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const = 0;
+	int32 Paint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 
 	/**
 	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
@@ -465,13 +467,15 @@ public:
 	public:
 
 	/**
+	 * Non-virtual entry point for arrange children. ensures common work is executed before calling the virtual
+	 * ArrangeChildren function.
 	 * Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
 	 * Each type of Layout panel should arrange children based on desired behavior.
 	 *
 	 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
 	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 	 */
-	virtual void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const = 0;
+	void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
 
 	/**
 	 * Every widget that has children must implement this method. This allows for iteration over the Widget's
@@ -685,6 +689,32 @@ protected:
 		// This widget should be enabled if its parent is enabled and it is enabled
 		return IsEnabled() && InParentEnabled;
 	}
+
+private:
+	/**
+	* The widget should respond by populating the OutDrawElements array with FDrawElements
+	* that represent it and any of its children. Called by the non-virtual OnPaint to enforce pre/post conditions
+	* during OnPaint.
+	*
+	* @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
+	* @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
+	* @param OutDrawElements   A list of FDrawElements to populate with the output.
+	* @param LayerId           The Layer onto which this widget should be rendered.
+	* @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
+	* @param bParentEnabled	True if the parent of this widget is enabled.
+	*
+	* @return The maximum layer ID attained by this widget or any of its children.
+	*/
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const = 0;
+
+	/**
+	* Compute the Geometry of all the children and add populate the ArrangedChildren list with their values.
+	* Each type of Layout panel should arrange children based on desired behavior.
+	*
+	* @param AllottedGeometry    The geometry allotted for this widget by its parent.
+	* @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
+	*/
+	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const = 0;
 
 protected:
 	

@@ -198,7 +198,7 @@ namespace NodePanelDefs
 	static const float MouseZoomScaling = 0.05f;
 };
 
-void SNodePanel::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+void SNodePanel::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
 	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
 	// First pass nodes
