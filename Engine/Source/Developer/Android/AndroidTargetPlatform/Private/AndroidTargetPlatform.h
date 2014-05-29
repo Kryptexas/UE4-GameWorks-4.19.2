@@ -8,6 +8,9 @@
 
 #include "Ticker.h"
 
+#if WITH_ENGINE
+#include "StaticMeshResources.h"
+#endif // WITH_ENGINE
 
 /**
  * Defines supported texture format names.
