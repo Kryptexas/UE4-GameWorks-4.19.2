@@ -60,11 +60,21 @@ bool FAssetDataGatherer::Init()
 
 uint32 FAssetDataGatherer::Run()
 {
+	int32 CacheSerializationVersion = CACHE_SERIALIZATION_VERSION;
+	
+	static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+	if ( bUsingWorldAssets )
+	{
+		// Bump the serialization version to refresh the cache when switching between -WorldAssets and without.
+		// This is a temporary hack just while WorldAssets are under development
+		CacheSerializationVersion++;
+	}
+
 	if ( bLoadAndSaveCache )
 	{
 		// load the cached data
 		FNameTableArchiveReader CachedAssetDataReader;
-		if (CachedAssetDataReader.LoadFile(*CacheFilename, CACHE_SERIALIZATION_VERSION))
+		if (CachedAssetDataReader.LoadFile(*CacheFilename, CacheSerializationVersion))
 		{
 			SerializeCache(CachedAssetDataReader);
 		}
@@ -208,7 +218,7 @@ uint32 FAssetDataGatherer::Run()
 				// If we are caching discovered assets and this is the first time we had no work to do, save off the cache now in case the user terminates unexpectedly
 				if (bLoadAndSaveCache && !bSavedCacheAfterInitialDiscovery)
 				{
-					FNameTableArchiveWriter CachedAssetDataWriter(CACHE_SERIALIZATION_VERSION);
+					FNameTableArchiveWriter CachedAssetDataWriter(CacheSerializationVersion);
 					SerializeCache(CachedAssetDataWriter);
 					CachedAssetDataWriter.SaveToFile(*CacheFilename);
 
@@ -223,7 +233,7 @@ uint32 FAssetDataGatherer::Run()
 
 	if ( bLoadAndSaveCache )
 	{
-		FNameTableArchiveWriter CachedAssetData(CACHE_SERIALIZATION_VERSION);
+		FNameTableArchiveWriter CachedAssetData(CacheSerializationVersion);
 		SerializeCache(CachedAssetData);
 		CachedAssetData.SaveToFile(*CacheFilename);
 	}

@@ -135,6 +135,14 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		return true;
 	}
 
+	// Worlds that were saved before they were marked public do not have asset data so we will synthesize it here to make sure we see all legacy umaps
+	if ( bUsingWorldAssets && bIsMapPackage && PackageFileSummary.GetFileVersionUE4() < VER_UE4_PUBLIC_WORLDS )
+	{
+		const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
+		TMap<FString, FString> TagsAndValues;
+		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, TEXT(""), AssetName, TEXT("World"), TagsAndValues, PackageFileSummary.ChunkIDs));
+	}
+
 	// Load the object count
 	int32 ObjectCount = 0;
 	*this << ObjectCount;
