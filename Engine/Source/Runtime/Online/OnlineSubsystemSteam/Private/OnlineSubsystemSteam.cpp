@@ -199,6 +199,11 @@ IOnlineIdentityPtr FOnlineSubsystemSteam::GetIdentityInterface() const
 	return IdentityInterface;
 }
 
+IOnlinePartyPtr FOnlineSubsystemSteam::GetPartyInterface() const
+{
+	return NULL;
+}
+
 IOnlineTitleFilePtr FOnlineSubsystemSteam::GetTitleFileInterface() const
 {
 	return NULL;

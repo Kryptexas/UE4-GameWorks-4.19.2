@@ -66,7 +66,10 @@ public:
 	{
 		return NULL;
 	}
-
+	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE
+	{
+		return NULL;
+	}
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const OVERRIDE
 	{
 		return NULL;
@@ -110,6 +113,11 @@ public:
 	}
 
 	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE
+	{
+		return NULL;
+	}
+
+	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE
 	{
 		return NULL;
 	}

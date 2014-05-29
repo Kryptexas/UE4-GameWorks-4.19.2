@@ -57,6 +57,24 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDestroySessionComplete, FName, bool);
 typedef FOnDestroySessionComplete::FDelegate FOnDestroySessionCompleteDelegate;
 
 /**
+ * Delegate fired when the Matchmaking for an online session has completed
+ *
+ * @param SessionName the name of the session the that can now be joined (on success)
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMatchmakingComplete, FName, bool);
+typedef FOnMatchmakingComplete::FDelegate FOnMatchmakingCompleteDelegate;
+
+/**
+ * Delegate fired when the Matchmaking request has been canceled
+ *
+ * @param SessionName the name of the session that was passed to StartMatchmaking
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnCancelMatchmakingComplete, FName, bool);
+typedef FOnCancelMatchmakingComplete::FDelegate FOnCancelMatchmakingCompleteDelegate;
+
+/**
  * Delegate fired when the search for an online session has completed
  *
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
@@ -297,6 +315,42 @@ public:
 	 * @return true if the player is registered in the session
 	 */
 	virtual bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) = 0;
+
+	/**
+	 * Begins cloud based matchmaking for a session
+	 *
+	 * @param SearchingPlayerNum the index of the player searching for a match
+	 * @param SessionName the name of the session to use, usually will be GAME_SESSION_NAME
+	 * @param NewSessionSettings the desired settings to match against or create with when forming new sessions
+	 * @param SearchSettings the desired settings that the matched session will have
+	 *
+	 * @return true if successful searching for sessions, false otherwise
+	 */
+	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) = 0;
+
+	/**
+	 * Delegate fired when the cloud matchmaking has completed
+	 *
+	 * @param SessionName The name of the session that was found via matchmaking
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnMatchmakingComplete, FName, bool);
+
+	/**
+	 * Cancel a Matchmaking request for a given session name
+	 *
+	 * @param SearchingPlayerNum the index of the player canceling the search
+	 * @param SessionName the name of the session that was passed to StartMatchmaking (or CreateSession)
+	 */ 
+	virtual bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) = 0;
+
+	/**
+	 * Delegate fired when the cloud matchmaking has been canceled
+	 *
+	 * @param SessionName the name of the session that was canceled
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnCancelMatchmakingComplete, FName, bool);
 
 	/**
 	 * Searches for sessions matching the settings specified

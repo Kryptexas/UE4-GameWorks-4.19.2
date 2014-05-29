@@ -495,6 +495,8 @@ public:
 	virtual bool EndSession(FName SessionName) OVERRIDE;
 	virtual bool DestroySession(FName SessionName) OVERRIDE;
 	virtual bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) OVERRIDE;
+	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) OVERRIDE;
+	virtual bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) OVERRIDE;
 	virtual bool FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings) OVERRIDE;
 	virtual bool CancelFindSessions() OVERRIDE;
 	virtual bool PingSearchResults(const FOnlineSessionSearchResult& SearchResult) OVERRIDE;

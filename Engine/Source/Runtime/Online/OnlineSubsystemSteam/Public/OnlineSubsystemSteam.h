@@ -220,6 +220,7 @@ public:
 	virtual IOnlineExternalUIPtr GetExternalUIInterface() const OVERRIDE;
 	virtual IOnlineTimePtr GetTimeInterface() const OVERRIDE;
 	virtual IOnlineIdentityPtr GetIdentityInterface() const OVERRIDE;
+	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE;
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const OVERRIDE;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const OVERRIDE;
 	virtual IOnlineStorePtr GetStoreInterface() const OVERRIDE;

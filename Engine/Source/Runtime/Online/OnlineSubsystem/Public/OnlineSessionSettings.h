@@ -437,6 +437,10 @@ public:
 #define SEARCH_USER FName(TEXT("SEARCHUSER"))
 /** Keywords to match in session search */
 #define SEARCH_KEYWORDS FName(TEXT("SEARCHKEYWORDS"))
+/** If set, use the named Xbox Live hopper to find a session via matchmaking (value is a string) */
+#define SEARCH_XBOX_LIVE_HOPPER_NAME FName(TEXT("LIVEHOPPERNAME"))
+/** Which session template from the service configuration to use */
+#define SEARCH_XBOX_LIVE_SESSION_TEMPLATE_NAME FName(TEXT("LIVESESSIONTEMPLATE"))
 
 /** 
  * Encapsulation of a search for sessions request.
@@ -463,6 +467,9 @@ public:
 	 * in the same bucket is often not a useful comparison and skill is better
 	 */
 	int32 PingBucketSize;
+
+	/** Amount of time to wait for the search results. May not apply to all platforms. */
+	float TimeoutInSeconds;
 
 	/** Constructor */
 	FOnlineSessionSearch() :

@@ -156,8 +156,6 @@ void FOnlineAsyncTaskManager::Exit(void)
 
 void FOnlineAsyncTaskManager::AddToInQueue(FOnlineAsyncTask* NewTask)
 {
-	// assert if not game thread	
-	check(IsInGameThread());
 	FScopeLock Lock(&InQueueLock);
 	InQueue.Add(NewTask);
 	WorkEvent->Trigger();
