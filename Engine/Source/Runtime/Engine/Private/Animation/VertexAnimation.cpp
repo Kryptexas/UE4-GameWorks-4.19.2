@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 UVertexAnimation::UVertexAnimation(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

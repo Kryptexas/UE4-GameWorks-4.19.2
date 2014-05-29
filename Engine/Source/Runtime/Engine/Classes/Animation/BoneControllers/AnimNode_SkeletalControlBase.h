@@ -11,7 +11,6 @@
 #include "../InputScaleBias.h"
 #include "AnimNode_SkeletalControlBase.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogSkeletalControl, Warning, All);
 
 USTRUCT()
 struct ENGINE_API FAnimNode_SkeletalControlBase : public FAnimNode_Base

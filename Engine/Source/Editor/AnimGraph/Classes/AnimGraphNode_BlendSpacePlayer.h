@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
+#include "Animation/AnimNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_BlendSpacePlayer.generated.h"
 
 UCLASS(MinimalAPI)

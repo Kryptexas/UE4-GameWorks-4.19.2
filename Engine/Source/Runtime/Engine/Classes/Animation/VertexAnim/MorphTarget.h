@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Animation/VertexAnim/VertexAnimBase.h"
 #include "MorphTarget.generated.h"
 
 class USkeletalMesh;

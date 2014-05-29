@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "EditorSupportDelegates.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalMeshSorting.h"

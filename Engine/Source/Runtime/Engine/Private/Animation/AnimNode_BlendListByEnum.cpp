@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
+#include "Animation/AnimNode_BlendListByEnum.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_BlendListByEnum

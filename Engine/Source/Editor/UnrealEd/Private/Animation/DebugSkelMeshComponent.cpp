@@ -5,6 +5,7 @@
 #include "SkeletalRenderPublic.h"
 #include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy

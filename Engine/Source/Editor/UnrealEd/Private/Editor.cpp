@@ -4,6 +4,8 @@
 #include "UnrealEd.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/InteractiveFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"

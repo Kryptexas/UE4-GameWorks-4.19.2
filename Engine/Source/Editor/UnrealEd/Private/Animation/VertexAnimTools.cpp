@@ -4,7 +4,7 @@
 #include "FbxImporter.h"
 #include "FbxExporter.h"
 #include "VertexAnimTools.h"
-
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 /** Util to find all meshes with a vertex cache deformer */
 void RecursiveFindVertexAnimMeshes(FbxNode* Node, TArray<FbxMesh*>& OutVertexCacheMeshes)

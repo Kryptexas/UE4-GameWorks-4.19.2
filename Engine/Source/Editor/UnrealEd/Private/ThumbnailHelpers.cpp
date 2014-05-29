@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 #include "ThumbnailHelpers.h"
 #include "FXSystem.h"
-
+#include "Animation/SkeletalMeshActor.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 /*

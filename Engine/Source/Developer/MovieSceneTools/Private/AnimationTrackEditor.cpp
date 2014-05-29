@@ -18,6 +18,7 @@
 #include "MovieSceneAnimationSection.h"
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
+#include "Animation/SkeletalMeshActor.h"
 
 
 

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_SequenceEvaluator.generated.h"
 
 // Evaluates a point in an anim sequence, using a specific time input rather than advancing time internally.

@@ -9,6 +9,7 @@
 #include "AnimStateConduitNode.h"
 #include "AnimationStateMachineGraph.h"
 #include "AnimGraphNode_StateMachineBase.h"
+#include "Animation/AnimNode_StateMachine.h"
 
 /////////////////////////////////////////////////////
 // SStateMachineOutputPin

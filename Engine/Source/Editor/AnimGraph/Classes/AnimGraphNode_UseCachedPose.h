@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_UseCachedPose.h"
 #include "AnimGraphNode_UseCachedPose.generated.h"
 
 UCLASS(MinimalAPI)

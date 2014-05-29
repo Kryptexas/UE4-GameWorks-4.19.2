@@ -11,6 +11,7 @@
 #include "Runtime/Engine/Public/Interpolation.h"
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpGroupDirector.h"
 #include "Matinee/InterpGroupInst.h"
@@ -19,8 +20,9 @@
 #include "Matinee/InterpTrackLinearColorBase.h"
 #include "Matinee/InterpTrackEvent.h"
 #include "Matinee/InterpTrackMove.h"
+#include "Matinee/MatineeAnimInterface.h"
 #include "Materials/MaterialInstanceActor.h"
-
+#include "Animation/SkeletalMeshActor.h"
 #include "Particles/Emitter.h"
 
 static const int32 GroupHeadHeight = 24;

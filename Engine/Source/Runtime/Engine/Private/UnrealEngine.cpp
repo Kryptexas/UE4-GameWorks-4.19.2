@@ -41,6 +41,7 @@
 #include "AudioDevice.h"
 #include "ActiveSound.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"

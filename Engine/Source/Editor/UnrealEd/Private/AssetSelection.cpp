@@ -21,6 +21,7 @@
 #include "Landscape/Landscape.h"
 
 #include "Particles/Emitter.h"
+#include "Animation/SkeletalMeshActor.h"
 
 extern void OnPlaceStaticMeshActor( AActor* MeshActor, bool bUseSurfaceOrientation );
 

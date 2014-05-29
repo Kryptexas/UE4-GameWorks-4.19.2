@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "Materials/MaterialExpressionTextureSample.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "EditorSupportDelegates.h"
 #include "SoundDefinitions.h"
 #include "CameraController.h"
@@ -40,6 +41,7 @@
 #include "LevelEditorActions.h"
 #include "BrushBuilderDragDropOp.h"
 #include "AssetRegistryModule.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 

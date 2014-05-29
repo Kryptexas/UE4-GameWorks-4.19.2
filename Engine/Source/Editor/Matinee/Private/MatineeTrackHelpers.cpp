@@ -21,6 +21,7 @@
 #include "Matinee/InterpTrackVectorProp.h"
 #include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpGroupInst.h"
+#include "Matinee/MatineeAnimInterface.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 

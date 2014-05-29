@@ -14,7 +14,7 @@
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "ActorEditorUtils.h"
 #include "Foliage/InstancedFoliageActor.h"
-
+#include "Animation/SkeletalMeshActor.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystemComponent.h"
 

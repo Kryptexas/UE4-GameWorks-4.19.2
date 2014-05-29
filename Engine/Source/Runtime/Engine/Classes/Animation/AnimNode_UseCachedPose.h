@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_UseCachedPose.generated.h"
 
 USTRUCT()

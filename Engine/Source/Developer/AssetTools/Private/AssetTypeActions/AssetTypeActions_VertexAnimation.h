@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Animation/VertexAnim/VertexAnimation.h"
+
 class FAssetTypeActions_VertexAnimation : public FAssetTypeActions_Base
 {
 public:

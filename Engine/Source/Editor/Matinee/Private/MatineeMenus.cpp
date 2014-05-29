@@ -36,6 +36,7 @@
 #include "DesktopPlatformModule.h"
 #include "PackageTools.h"
 #include "SoundDefinitions.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "WorkspaceMenuStructureModule.h"
 

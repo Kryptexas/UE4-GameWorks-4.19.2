@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_TransitionResult.h"
 #include "AnimGraphNode_TransitionResult.generated.h"
 
 UCLASS(MinimalAPI)

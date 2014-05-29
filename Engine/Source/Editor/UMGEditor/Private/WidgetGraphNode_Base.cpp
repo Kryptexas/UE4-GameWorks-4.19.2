@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
+#include "Animation/AnimNodeBase.h"
 #include "BlueprintEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "K2ActionMenuBuilder.h"

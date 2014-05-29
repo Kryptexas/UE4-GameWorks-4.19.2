@@ -16,6 +16,7 @@
 #include "Matinee/InterpTrackVisibility.h"
 #include "Matinee/InterpTrackEvent.h"
 #include "Matinee/InterpGroupDirector.h"
+#include "Matinee/MatineeAnimInterface.h"
 
 #include "Matinee.h"
 #include "MatineeActions.h"

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_BlendListBase.h"
+#include "Animation/AnimNode_BlendListByEnum.h"
 #include "AnimGraphNode_BlendListByEnum.generated.h"
 
 UCLASS(MinimalAPI)

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "Animation/BoneControllers/AnimNode_ModifyBone.h"
 #include "AnimGraphNode_ModifyBone.generated.h"
 
 UCLASS(MinimalAPI)

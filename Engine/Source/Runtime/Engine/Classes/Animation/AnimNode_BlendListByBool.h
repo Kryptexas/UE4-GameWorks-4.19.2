@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AnimNodeBase.h"
+#include "Animation/AnimNode_BlendListBase.h"
 #include "AnimNode_BlendListByBool.generated.h"
 
 // This node is effectively a 'branch', picking one of two input poses based on an input Boolean value

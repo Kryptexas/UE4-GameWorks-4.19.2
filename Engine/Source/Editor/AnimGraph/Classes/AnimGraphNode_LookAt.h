@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "Animation/BoneControllers/AnimNode_LookAt.h"
 #include "AnimGraphNode_LookAt.generated.h"
 
 UCLASS(MinimalAPI)

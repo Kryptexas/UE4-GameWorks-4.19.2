@@ -3,6 +3,7 @@
 #pragma once
 
 #include "InputScaleBias.h"
+#include "Animation/AnimNodeBase.h"
 #include "AnimNode_TwoWayBlend.generated.h"
 
 // This represents a baked transition

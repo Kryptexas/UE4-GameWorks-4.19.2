@@ -9,6 +9,7 @@
 #include "AnimEncoding.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
+#include "Animation/AnimData/BoneMaskFilter.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);

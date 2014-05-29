@@ -4,6 +4,7 @@
 
 #include "KismetCompiler.h"
 #include "AnimGraphDefinitions.h"
+#include "Animation/AnimNodeBase.h"
 
 //
 // Forward declarations.

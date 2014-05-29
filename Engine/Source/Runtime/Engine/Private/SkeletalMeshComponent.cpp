@@ -14,6 +14,8 @@
 #include "AnimationRuntime.h"
 #include "PhysXASync.h"
 #include "AnimTree.h"
+#include "Animation/AnimNodeBase.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 #include "Particles/ParticleSystemComponent.h"
 

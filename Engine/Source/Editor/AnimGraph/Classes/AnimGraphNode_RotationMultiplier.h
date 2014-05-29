@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "Animation/BoneControllers/AnimNode_RotationMultiplier.h"
 #include "AnimGraphNode_RotationMultiplier.generated.h"
 
 UCLASS(MinimalAPI)

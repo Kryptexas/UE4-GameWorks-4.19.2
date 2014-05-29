@@ -3,6 +3,7 @@
 
 #include "PersonaPrivatePCH.h"
 
+#include "Animation/VertexAnim/VertexAnimation.h"
 #include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetRegistryModule.h"

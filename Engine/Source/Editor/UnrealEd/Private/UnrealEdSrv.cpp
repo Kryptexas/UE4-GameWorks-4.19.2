@@ -25,6 +25,7 @@
 #include "HighResScreenshot.h"
 #include "ActorEditorUtils.h"
 #include "Matinee/InterpData.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Landscape/LandscapeInfo.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Landscape/LandscapeGizmoActiveActor.h"

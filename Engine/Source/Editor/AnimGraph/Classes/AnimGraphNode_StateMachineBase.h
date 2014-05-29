@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_StateMachine.h"
 #include "AnimGraphNode_StateMachineBase.generated.h"
 
 UCLASS(Abstract)

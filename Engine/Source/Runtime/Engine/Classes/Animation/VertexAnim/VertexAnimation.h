@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Animation/VertexAnim/VertexAnimBase.h"
 #include "VertexAnimation.generated.h"
 
 

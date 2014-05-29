@@ -25,6 +25,7 @@
 #include "Animation/AnimSet.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpData.h"
+#include "Animation/SkeletalMeshActor.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

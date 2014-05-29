@@ -35,7 +35,7 @@
 #include "UnrealEd.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackAnimControl.h"
-
+#include "Animation/SkeletalMeshActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxAnimationExport, Log, All);
 

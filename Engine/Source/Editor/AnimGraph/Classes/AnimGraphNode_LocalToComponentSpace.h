@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNodeSpaceConversions.h"
 #include "AnimGraphNode_LocalToComponentSpace.generated.h"
 
 UCLASS(MinimalAPI)

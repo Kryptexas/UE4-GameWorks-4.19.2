@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Animation/BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 

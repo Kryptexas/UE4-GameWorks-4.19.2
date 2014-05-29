@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
+#include "Animation/BoneControllers/AnimNode_WheelHandler.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_WheelHandler

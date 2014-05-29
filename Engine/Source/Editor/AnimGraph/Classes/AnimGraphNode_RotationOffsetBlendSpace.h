@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_BlendSpaceBase.h"
+#include "Animation/AnimNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.generated.h"
 
 UCLASS(MinimalAPI)

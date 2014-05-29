@@ -6,6 +6,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimNodeBase.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 #include "AnimationRuntime.h"
 
 /////////////////////////////////////////////////////

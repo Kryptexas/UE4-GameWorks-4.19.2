@@ -17,6 +17,8 @@ ActorFactory.cpp:
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 #include "Engine/InteractiveFoliageActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Animation/VertexAnim/VertexAnimation.h"
 
 #include "AssetRegistryModule.h"
 

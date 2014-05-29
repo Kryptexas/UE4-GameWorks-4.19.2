@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "EngineUtils.h"
+#include "AnimationRuntime.h"
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"

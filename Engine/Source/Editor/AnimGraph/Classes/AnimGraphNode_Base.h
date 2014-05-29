@@ -2,6 +2,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "Animation/AnimNodeBase.h"
 #include "AnimGraphNode_Base.generated.h"
 
 //

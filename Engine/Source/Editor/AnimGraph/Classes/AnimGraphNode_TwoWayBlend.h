@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "Animation/AnimNode_TwoWayBlend.h"
 #include "AnimGraphNode_TwoWayBlend.generated.h"
 
 UCLASS(MinimalAPI)
