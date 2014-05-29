@@ -7,8 +7,8 @@
 #pragma once
 #include "PlayerStart.generated.h"
 
-UCLASS(ClassGroup=Common, hidecategories=Collision,MinimalAPI)
-class APlayerStart : public ANavigationObjectBase
+UCLASS(ClassGroup=Common, hidecategories=Collision)
+class ENGINE_API APlayerStart : public ANavigationObjectBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -21,9 +21,9 @@ class APlayerStart : public ANavigationObjectBase
 	TSubobjectPtr<class UArrowComponent> ArrowComponent;
 #endif
 
-	ENGINE_API virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() OVERRIDE;
 	
-	ENGINE_API virtual void PostUnregisterAllComponents() OVERRIDE;
+	virtual void PostUnregisterAllComponents() OVERRIDE;
 };
 
 
