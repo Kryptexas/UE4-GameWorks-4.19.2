@@ -372,6 +372,13 @@ void TermGamePhys()
 		return;
 	}
 
+	if (GPhysCommandHandler != NULL)
+	{
+		GPhysCommandHandler->Flush();	//finish off any remaining commands
+		delete GPhysCommandHandler;
+		GPhysCommandHandler = NULL;
+	}
+
 #if WITH_APEX
 #if WITH_APEX_LEGACY
 	if(GApexModuleLegacy != NULL)
@@ -397,12 +404,6 @@ void TermGamePhys()
 
 	PxCloseExtensions();
 	PxCloseVehicleSDK();
-
-	if (GPhysCommandHandler != NULL)
-	{
-		delete GPhysCommandHandler;
-		GPhysCommandHandler = NULL;
-	}
 
 	if(GPhysXSDK != NULL)
 	{
