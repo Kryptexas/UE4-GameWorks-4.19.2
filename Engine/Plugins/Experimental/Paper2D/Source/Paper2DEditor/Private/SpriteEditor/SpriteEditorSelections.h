@@ -120,29 +120,64 @@ public:
 		{
 			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
 			const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-			float AllowedDelta = 0;
-
-			switch (VertexIndex) 
+            int XAxis = 0; // -1 = min, 0 = none, 1 = max
+            int YAxis = 0; // ditto
+            
+			switch (VertexIndex)
 			{
-			case 0:
-				AllowedDelta = FMath::Clamp(Delta.Y, -Sprite->SourceUV.Y, Sprite->SourceDimension.Y - 1);
-				Sprite->SourceUV.Y += AllowedDelta;
-				Sprite->SourceDimension.Y -= AllowedDelta;
-				break;
-			case 1:
-				Sprite->SourceDimension.X = FMath::Clamp(Sprite->SourceDimension.X + Delta.X, 1.0f, SourceDims.X - Sprite->SourceUV.X);
-				break;
-			case 2:
-				Sprite->SourceDimension.Y = FMath::Clamp(Sprite->SourceDimension.Y + Delta.Y, 1.0f, SourceDims.Y - Sprite->SourceUV.Y);
-				break;
-			case 3:
-				AllowedDelta = FMath::Clamp(Delta.X, -Sprite->SourceUV.X, Sprite->SourceDimension.X - 1);
-				Sprite->SourceUV.X += AllowedDelta;
-				Sprite->SourceDimension.X -= AllowedDelta;
-				break;
+            case 0: // Top left
+                XAxis = -1;
+                YAxis = -1;
+                break;
+            case 1: // Top right
+                XAxis = 1;
+                YAxis = -1;
+                break;
+            case 2: // Bottom right
+                XAxis = 1;
+                YAxis = 1;
+                break;
+            case 3: // Bottom left
+                XAxis = -1;
+                YAxis = 1;
+                break;
+            case 4: // Top
+                YAxis = -1;
+                break;
+            case 5: // Right
+                XAxis = 1;
+                break;
+            case 6: // Bottom
+                YAxis = 1;
+                break;
+            case 7: // Left
+                XAxis = -1;
+                break;
 			default:
 				break;
 			}
+            
+            if (XAxis == -1)
+            {
+                float AllowedDelta = FMath::Clamp(Delta.X, -Sprite->SourceUV.X, Sprite->SourceDimension.X - 1);
+                Sprite->SourceUV.X += AllowedDelta;
+                Sprite->SourceDimension.X -= AllowedDelta;
+            }
+            else if (XAxis == 1)
+            {
+				Sprite->SourceDimension.X = FMath::Clamp(Sprite->SourceDimension.X + Delta.X, 1.0f, SourceDims.X - Sprite->SourceUV.X);
+            }
+            
+            if (YAxis == -1)
+            {
+				float AllowedDelta = FMath::Clamp(Delta.Y, -Sprite->SourceUV.Y, Sprite->SourceDimension.Y - 1);
+				Sprite->SourceUV.Y += AllowedDelta;
+				Sprite->SourceDimension.Y -= AllowedDelta;
+            }
+            else if (YAxis == 1)
+            {
+				Sprite->SourceDimension.Y = FMath::Clamp(Sprite->SourceDimension.Y + Delta.Y, 1.0f, SourceDims.Y - Sprite->SourceUV.Y);
+            }
 		}
 	}
 
@@ -157,18 +192,30 @@ public:
 			FVector2D BoundsVertex = Sprite->SourceUV;
 			switch (VertexIndex)
 			{
-			case 0:
+            case 0:
+                break;
+            case 1:
+                BoundsVertex.X += Sprite->SourceDimension.X;
+                break;
+            case 2:
+                BoundsVertex.X += Sprite->SourceDimension.X;
+                BoundsVertex.Y += Sprite->SourceDimension.Y;
+                break;
+            case 3:
+                BoundsVertex.Y += Sprite->SourceDimension.Y;
+                break;
+			case 4:
 				BoundsVertex.X += Sprite->SourceDimension.X * 0.5f;
 				break;
-			case 1:
+			case 5:
 				BoundsVertex.X += Sprite->SourceDimension.X;
 				BoundsVertex.Y += Sprite->SourceDimension.Y * 0.5f;
 				break;
-			case 2:
+			case 6:
 				BoundsVertex.X += Sprite->SourceDimension.X * 0.5f;
 				BoundsVertex.Y += Sprite->SourceDimension.Y;
 				break;
-			case 3:
+			case 7:
 				BoundsVertex.Y += Sprite->SourceDimension.Y * 0.5f;
 				break;
 			default:

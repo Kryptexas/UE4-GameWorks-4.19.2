@@ -161,11 +161,15 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
 
-	const float CollisionVertexSize = 8.0f;
+    const float CornerCollisionVertexSize = 8.0f;
+	const float EdgeCollisionVertexSize = 6.0f;
 
 	const float NormalLength = 15.0f;
 	const FLinearColor GeometryLineColor(GeometryVertexColor.R, GeometryVertexColor.G, GeometryVertexColor.B, 0.5f * GeometryVertexColor.A);
 	const FLinearColor GeometryNormalColor(0.0f, 1.0f, 0.0f, 0.5f);
+    
+    const bool bDrawEdgeHitProxies = true;
+    const bool bDrawCornerHitProxies = true;
 
 	FVector2D BoundsVertices[4];
 	BoundsVertices[0] = TextureSpaceToScreenSpace(View, Sprite->SourceUV);
@@ -181,21 +185,45 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 		Canvas.DrawItem(LineItem);
 
 		FVector2D MidPoint = (BoundsVertices[VertexIndex] + BoundsVertices[NextVertexIndex]) * 0.5f;
+        FVector2D CornerPoint = BoundsVertices[VertexIndex];
 
-		if (bIsHitTesting)
-		{
-			TSharedPtr<FSpriteSelectedSourceRegion> Data = MakeShareable(new FSpriteSelectedSourceRegion());
-			Data->SpritePtr = Sprite;
-			Data->VertexIndex = VertexIndex;
-			Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
-		}
+        // Add edge hit proxy
+        if (bDrawEdgeHitProxies)
+        {
+            if (bIsHitTesting)
+            {
+                TSharedPtr<FSpriteSelectedSourceRegion> Data = MakeShareable(new FSpriteSelectedSourceRegion());
+                Data->SpritePtr = Sprite;
+                Data->VertexIndex = 4 + VertexIndex;
+                Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+            }
 
-		Canvas.DrawTile(MidPoint.X - CollisionVertexSize*0.5f, MidPoint.Y - CollisionVertexSize*0.5f, CollisionVertexSize, CollisionVertexSize, 0.f, 0.f, 1.f, 1.f, GeometryVertexColor, GWhiteTexture);
+            Canvas.DrawTile(MidPoint.X - EdgeCollisionVertexSize*0.5f, MidPoint.Y - EdgeCollisionVertexSize*0.5f, EdgeCollisionVertexSize, EdgeCollisionVertexSize, 0.f, 0.f, 1.f, 1.f, GeometryVertexColor, GWhiteTexture);
 
-		if (bIsHitTesting)
-		{
-			Canvas.SetHitProxy(NULL);
-		}
+            if (bIsHitTesting)
+            {
+                Canvas.SetHitProxy(NULL);
+            }
+        }
+
+        // Add corner hit proxy
+        if (bDrawCornerHitProxies)
+        {
+            if (bIsHitTesting)
+            {
+                TSharedPtr<FSpriteSelectedSourceRegion> Data = MakeShareable(new FSpriteSelectedSourceRegion());
+                Data->SpritePtr = Sprite;
+                Data->VertexIndex = VertexIndex;
+                Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+            }
+            
+            Canvas.DrawTile(CornerPoint.X - CornerCollisionVertexSize * 0.5f, CornerPoint.Y - CornerCollisionVertexSize * 0.5f, CornerCollisionVertexSize, CornerCollisionVertexSize, 0.f, 0.f, 1.f, 1.f, GeometryVertexColor, GWhiteTexture);
+
+            if (bIsHitTesting)
+            {
+                Canvas.SetHitProxy(NULL);
+            }
+        }
 	}
 }
 
