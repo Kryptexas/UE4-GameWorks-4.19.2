@@ -4,6 +4,7 @@
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "SkillSystemTestAttributeSet.h"
 #include "GameplayTagsModule.h"
+#include "AttributeComponent.h"
 
 UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

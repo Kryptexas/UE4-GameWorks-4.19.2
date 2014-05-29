@@ -2,9 +2,16 @@
 
 #include "SkillSystemModulePrivatePCH.h"
 #include "SkillSystemTestPawn.h"
+#include "SkillSystemTestAttributeSet.h"
 #include "GameplayEffect.h"
 #include "AttributeSet.h"
 #include "GameplayTagsModule.h"
+#include "AttributeComponent.h"
+#include "GameplayEffectExtension_LifestealTest.h"
+#include "GameplayEffectExtension_ShieldTest.h"
+#include "GameplayEffectStackingExtension_CappedNumberTest.h"
+#include "GameplayEffectStackingExtension_DiminishingReturnsTest.h"
+
 //#include "SkillSystemTestPawn.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayEffectsTest, "SkillSystem.GameplayEffects", EAutomationTestFlags::ATF_Editor)

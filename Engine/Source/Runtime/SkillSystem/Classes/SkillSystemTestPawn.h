@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameplayCueInterface.h"
+#include "GameplayCueView.h"
 #include "SkillSystemTestPawn.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)

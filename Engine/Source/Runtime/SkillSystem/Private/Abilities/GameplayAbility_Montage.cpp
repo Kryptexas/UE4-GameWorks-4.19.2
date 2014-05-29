@@ -2,6 +2,8 @@
 
 #include "SkillSystemModulePrivatePCH.h"
 #include "Abilities/GameplayAbility_Montage.h"
+#include "GameplayEffect.h"
+#include "AttributeComponent.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

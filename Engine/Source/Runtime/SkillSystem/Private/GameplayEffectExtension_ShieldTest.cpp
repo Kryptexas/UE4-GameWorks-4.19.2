@@ -3,6 +3,8 @@
 #include "SkillSystemModulePrivatePCH.h"
 #include "GameplayEffectExtension_ShieldTest.h"
 #include "GameplayTagsModule.h"
+#include "AttributeComponent.h"
+#include "SkillSystemTestAttributeSet.h"
 
 UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

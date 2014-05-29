@@ -2,6 +2,7 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "AttributeComponent.h"
 #include "Abilities/GameplayAbility.h"
 
 #include "Net/UnrealNetwork.h"

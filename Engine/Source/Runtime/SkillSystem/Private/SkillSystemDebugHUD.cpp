@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "AttributeComponent.h"
 #include "SkillSystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
 

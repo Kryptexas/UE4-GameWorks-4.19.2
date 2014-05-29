@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
+#include "GameplayEffect.h"
 #include "GameplayEffectStackingExtension.generated.h"
 
 struct FGameplayEffectStackingCallbackData

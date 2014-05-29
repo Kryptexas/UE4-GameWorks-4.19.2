@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Abilities/GameplayAbility.h"
 #include "GameplayAbility_Montage.generated.h"
 
 /**

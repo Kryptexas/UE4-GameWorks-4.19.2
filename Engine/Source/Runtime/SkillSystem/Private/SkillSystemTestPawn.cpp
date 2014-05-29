@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "SkillSystemTestPawn.h"
+#include "SkillSystemTestAttributeSet.h"
+#include "AttributeComponent.h"
 
 FName  ASkillSystemTestPawn::AttributeComponentName(TEXT("AttributeComponent0"));
 

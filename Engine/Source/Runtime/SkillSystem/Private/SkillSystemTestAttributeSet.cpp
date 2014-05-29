@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "SkillSystemTestAttributeSet.h"
 #include "GameplayTagsModule.h"
+#include "GameplayEffectExtension.h"
+#include "AttributeComponent.h"
+
 
 USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

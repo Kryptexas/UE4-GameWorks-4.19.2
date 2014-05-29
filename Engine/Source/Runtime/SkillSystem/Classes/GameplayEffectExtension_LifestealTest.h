@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayEffectExtension.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"

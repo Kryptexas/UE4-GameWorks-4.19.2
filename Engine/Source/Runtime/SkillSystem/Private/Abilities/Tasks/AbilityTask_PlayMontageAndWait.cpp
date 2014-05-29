@@ -1,5 +1,6 @@
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 
 UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

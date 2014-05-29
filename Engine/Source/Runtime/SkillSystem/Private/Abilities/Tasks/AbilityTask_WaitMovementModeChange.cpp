@@ -1,5 +1,6 @@
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 
 UAbilityTask_WaitMovementModeChange::UAbilityTask_WaitMovementModeChange(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
