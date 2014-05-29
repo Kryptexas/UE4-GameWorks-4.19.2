@@ -120,7 +120,6 @@ public partial class Project : CommandUtils
 		{
 			if (Params.ClientTargetPlatforms.Count > 0)
 			{
-				UnrealTargetPlatform ClientPlatform = Params.ClientTargetPlatforms[0];
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
 				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
 				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, Params.RunCommandline);

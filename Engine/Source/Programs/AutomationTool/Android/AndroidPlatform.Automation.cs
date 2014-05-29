@@ -154,7 +154,6 @@ public class AndroidPlatform : Platform
 		{
 			throw new AutomationException("Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
-		var TargetConfiguration = SC.StageTargetConfigurations[0];
 
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
 		string ObbName = GetFinalObbName(ApkName);

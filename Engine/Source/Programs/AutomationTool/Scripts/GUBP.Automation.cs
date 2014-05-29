@@ -3282,8 +3282,6 @@ public class GUBP : BuildCommand
     }
     public void SaveGraphVisualization(List<string> Nodes)
     {
-        var TimerStartTime = DateTime.UtcNow;
-
         var GraphNodes = new List<GraphNode>();
 
         var NodeToGraphNodeMap = new Dictionary<string, GraphNode>();
@@ -4742,7 +4740,6 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
         {
             if (CodeProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
             {
-                var Target = CodeProj.Properties.Targets[TargetRules.TargetType.Editor];
                 bool AnySeparate = false;
                 var PromotedHosts = new List<UnrealTargetPlatform>();
 

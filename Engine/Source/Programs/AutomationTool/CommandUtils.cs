@@ -651,7 +651,7 @@ namespace AutomationTool
 			foreach (var Filename in Filenames)
 			{
 				var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-				bExists = InternalUtils.SafeFileExists(Filename) && bExists;
+				bExists = InternalUtils.SafeFileExists(NormalizedFilename) && bExists;
 			}
 			return bExists;
 		}
@@ -677,7 +677,7 @@ namespace AutomationTool
             foreach (var Filename in Filenames)
             {
                 var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
-                bExists = InternalUtils.SafeFileExists(Filename, bQuiet) && bExists;
+                bExists = InternalUtils.SafeFileExists(NormalizedFilename, bQuiet) && bExists;
             }
             return bExists;
         }
@@ -1353,8 +1353,6 @@ namespace AutomationTool
             {
                 throw new AutomationException("Failed to create directory {0} for copy", TargetPathBase);
             }
-
-			string[] SourceList = Directory.GetFiles(SourcePathBase);
 
 			DirectoryInfo SourceDirectory = new DirectoryInfo(SourcePathBase);
 			DirectoryInfo[] SourceSubdirectories = SourceDirectory.GetDirectories();
