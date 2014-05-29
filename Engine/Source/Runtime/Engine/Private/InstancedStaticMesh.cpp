@@ -1133,33 +1133,32 @@ public:
 	{
 	}
 
-	virtual FName GetDataTypeName() const
-	{
-		return SourceComponentName;
-	}
-
 public:
 	/** The cached selected instances */
 	TBitArray<> SelectedInstances;
 };
 #endif
 
-void UInstancedStaticMeshComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
 {
-#if WITH_EDITOR
-	Cache.AddInstanceData(MakeShareable(new FInstancedStaticMeshSelectionData(*this)));
-#endif
+	static const FName InstanceStaticMeshComponentInstanceDataName(TEXT("InstancedStaticMeshSelectionData"));
+	return InstanceStaticMeshComponentInstanceDataName;
 }
 
-void UInstancedStaticMeshComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> UInstancedStaticMeshComponent::GetComponentInstanceData() const
+{
+	TSharedPtr<FInstancedStaticMeshSelectionData> InstanceData;
+#if WITH_EDITOR
+	InstanceData = MakeShareable(new FInstancedStaticMeshSelectionData(*this));
+#endif
+	return InstanceData;
+}
+
+void UInstancedStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
 {
 #if WITH_EDITOR
-	TArray< TSharedPtr<FComponentInstanceDataBase> > Data;
-	Cache.GetInstanceDataOfType(GetFName(), Data);
-	if(Data.Num() > 0)
-	{
-		SelectedInstances = StaticCastSharedPtr<FInstancedStaticMeshSelectionData>(Data[0])->SelectedInstances;
-	}
+	check(ComponentInstanceData.IsValid());
+	SelectedInstances = StaticCastSharedPtr<FInstancedStaticMeshSelectionData>(ComponentInstanceData)->SelectedInstances;
 #endif
 }
 

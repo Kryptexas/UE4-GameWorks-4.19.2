@@ -1711,7 +1711,7 @@ public:
 	 * @param	Transform			The transform to construct the actor at.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 */
-	void ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache);
+	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache);
 
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.

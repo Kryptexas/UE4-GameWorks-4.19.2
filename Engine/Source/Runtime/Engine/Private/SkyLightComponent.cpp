@@ -293,17 +293,9 @@ bool USkyLightComponent::IsReadyForFinishDestroy()
 class FPrecomputedSkyLightInstanceData : public FComponentInstanceDataBase
 {
 public:
-	static const FName PrecomputedSkyLightInstanceDataTypeName;
-
-	virtual ~FPrecomputedSkyLightInstanceData()
+	FPrecomputedSkyLightInstanceData(const USkyLightComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
 	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
-	{
-		return PrecomputedSkyLightInstanceDataTypeName;
-	}
-	// End FComponentInstanceDataBase interface
 
 	FGuid LightGuid;
 	bool bPrecomputedLightingIsValid;
@@ -313,48 +305,41 @@ public:
 };
 
 // Init type name static
-const FName FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName(TEXT("PrecomputedSkyLightInstanceData"));
-
-void USkyLightComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName USkyLightComponent::GetComponentInstanceDataType() const
 {
-	// Allocate new struct for holding light map data
-	TSharedRef<FPrecomputedSkyLightInstanceData> LightMapData = MakeShareable(new FPrecomputedSkyLightInstanceData());
-
-	// Fill in info
-	LightMapData->LightGuid = LightGuid;
-	LightMapData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
-	LightMapData->ProcessedSkyTexture = ProcessedSkyTexture;
-	LightMapData->IrradianceEnvironmentMap = IrradianceEnvironmentMap;
-
-	// Add to cache
-	Cache.AddInstanceData(LightMapData);
+	static const FName PrecomputedSkyLightInstanceDataTypeName(TEXT("PrecomputedSkyLightInstanceData"));
+	return PrecomputedSkyLightInstanceDataTypeName;
 }
 
-void USkyLightComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> USkyLightComponent::GetComponentInstanceData() const
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName, CachedData);
+	TSharedRef<FPrecomputedSkyLightInstanceData> InstanceData = MakeShareable(new FPrecomputedSkyLightInstanceData(this));
+	InstanceData->LightGuid = LightGuid;
+	InstanceData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
+	InstanceData->ProcessedSkyTexture = ProcessedSkyTexture;
+	InstanceData->IrradianceEnvironmentMap = IrradianceEnvironmentMap;
 
-	for (int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++)
+	return InstanceData;
+}
+
+void USkyLightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	check(ComponentInstanceData.IsValid());
+	TSharedPtr<FPrecomputedSkyLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedSkyLightInstanceData>(ComponentInstanceData);
+
+	LightGuid = LightMapData->LightGuid;
+	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
+	ProcessedSkyTexture = LightMapData->ProcessedSkyTexture;
+	IrradianceEnvironmentMap = LightMapData->IrradianceEnvironmentMap;
+
+	if (ProcessedSkyTexture && bSavedConstructionScriptValuesValid)
 	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FPrecomputedSkyLightInstanceData::PrecomputedSkyLightInstanceDataTypeName);
-		TSharedPtr<FPrecomputedSkyLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedSkyLightInstanceData>(CachedData[DataIdx]);
-
-		LightGuid = LightMapData->LightGuid;
-		bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
-		ProcessedSkyTexture = LightMapData->ProcessedSkyTexture;
-		IrradianceEnvironmentMap = LightMapData->IrradianceEnvironmentMap;
-
-		if (ProcessedSkyTexture && bSavedConstructionScriptValuesValid)
-		{
-			// We have valid capture state, remove the queued update
-			bCaptureDirty = false;
-			SkyCapturesToUpdate.Remove(this);
-		}
-
-		MarkRenderStateDirty();
+		// We have valid capture state, remove the queued update
+		bCaptureDirty = false;
+		SkyCapturesToUpdate.Remove(this);
 	}
+
+	MarkRenderStateDirty();
 }
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)

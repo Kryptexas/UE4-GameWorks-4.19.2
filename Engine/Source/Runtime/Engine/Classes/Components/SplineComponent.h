@@ -20,8 +20,9 @@ class ENGINE_API USplineComponent : public USceneComponent
 	FInterpCurveFloat SplineReparamTable;
 
 	// Begin UActorComponent interface.
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const OVERRIDE;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
 	// End UActorComponent interface.
 
 	/** Update the SplineReparamTable */

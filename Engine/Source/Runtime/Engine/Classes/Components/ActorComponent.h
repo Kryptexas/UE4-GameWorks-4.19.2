@@ -419,9 +419,13 @@ public:
 	virtual void PostNetReceive() { }
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
-	virtual void GetComponentInstanceData(class FComponentInstanceDataCache& Cache) const {}
+	virtual TSharedPtr<class FComponentInstanceDataBase> GetComponentInstanceData() const { return NULL; }
+
+	/** The type of the component instance data that this component is interested in */
+	virtual FName GetComponentInstanceDataType() const { return NAME_None; }
+
 	/** Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData */
-	virtual void ApplyComponentInstanceData(const class FComponentInstanceDataCache& Cache) {}
+	virtual void ApplyComponentInstanceData(TSharedPtr<class FComponentInstanceDataBase> ComponentInstanceData ) {}
 
 	// Begin UObject interface.
 	virtual void BeginDestroy() OVERRIDE;

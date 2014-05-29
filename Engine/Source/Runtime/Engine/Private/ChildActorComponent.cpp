@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "ComponentInstanceDataCache.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 
@@ -22,6 +23,47 @@ void UChildActorComponent::OnComponentDestroyed()
 
 	DestroyChildActor();
 }
+
+class FChildActorComponentInstanceData : public FComponentInstanceDataBase
+{
+public:
+	FChildActorComponentInstanceData(const UChildActorComponent* Component)
+		: FComponentInstanceDataBase(Component)
+		, ChildActorName(Component->ChildActorName)
+	{
+	}
+
+	FName ChildActorName;
+};
+
+FName UChildActorComponent::GetComponentInstanceDataType() const
+{
+	static const FName ChildActorComponentInstanceDataName(TEXT("ChildActorInstanceData"));
+	return ChildActorComponentInstanceDataName;
+}
+
+TSharedPtr<FComponentInstanceDataBase> UChildActorComponent::GetComponentInstanceData() const
+{
+	TSharedPtr<FChildActorComponentInstanceData> InstanceData;
+	if (!ChildActorName.IsNone())
+	{
+		// Allocate new struct for holding light map data
+		 InstanceData = MakeShareable(new FChildActorComponentInstanceData(this));
+	}
+
+	return InstanceData;
+}
+
+void UChildActorComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	check(ComponentInstanceData.IsValid());
+	ChildActorName = StaticCastSharedPtr<FChildActorComponentInstanceData>(ComponentInstanceData)->ChildActorName;
+	if (ChildActor)
+	{
+		ChildActor->Rename(*ChildActorName.ToString(), NULL, REN_DoNotDirty);
+	}
+}
+
 
 void UChildActorComponent::CreateChildActor()
 {
@@ -54,6 +96,7 @@ void UChildActorComponent::CreateChildActor()
 			Params.bDeferConstruction = true; // We defer construction so that we set ParentComponentActor prior to component registration so they appear selected
 			Params.bAllowDuringConstructionScript = true;
 			Params.OverrideLevel = GetOwner()->GetLevel();
+			Params.Name = ChildActorName;
 
 			// Spawn actor of desired class
 			FVector Location = GetComponentLocation();
@@ -63,6 +106,8 @@ void UChildActorComponent::CreateChildActor()
 			// If spawn was successful, 
 			if(ChildActor != NULL)
 			{
+				ChildActorName = ChildActor->GetFName();
+
 #if WITH_EDITOR
 				// Remember which actor spawned it (for selection in editor etc)
 				ChildActor->ParentComponentActor = GetOwner();
@@ -92,6 +137,7 @@ void UChildActorComponent::DestroyChildActor()
 			// World may be NULL during shutdown
 			if(World != NULL)
 			{
+				ChildActor->Rename(*MakeUniqueObjectName(GetOuter(), ChildActor->GetClass(), TEXT("DESTROYED_CHILDACTOR")).ToString(), NULL, REN_DoNotDirty);
 				World->DestroyActor(ChildActor);
 			}
 		}

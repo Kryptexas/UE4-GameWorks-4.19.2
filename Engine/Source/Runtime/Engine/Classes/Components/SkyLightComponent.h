@@ -122,8 +122,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	virtual bool IsReadyForFinishDestroy() OVERRIDE;
 	// End UObject Interface
 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const OVERRIDE;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
 
 	/** Called each tick to recapture and queued sky captures. */
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);

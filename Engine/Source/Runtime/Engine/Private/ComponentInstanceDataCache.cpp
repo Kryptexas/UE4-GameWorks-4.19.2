@@ -63,20 +63,7 @@ bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Compone
 	return bMatches;
 }
 
-void FComponentInstanceDataCache::AddInstanceData(TSharedPtr<FComponentInstanceDataBase> NewData)
-{
-	check(NewData.IsValid());
-	FName TypeName = NewData->GetDataTypeName();
-	TypeToDataMap.Add(TypeName, NewData);
-}
-
-void FComponentInstanceDataCache::GetInstanceDataOfType(FName TypeName, TArray< TSharedPtr<FComponentInstanceDataBase> >& OutData) const
-{
-	TypeToDataMap.MultiFind(TypeName, OutData);
-}
-
-
-void FComponentInstanceDataCache::GetFromActor(AActor* Actor, FComponentInstanceDataCache& Cache)
+FComponentInstanceDataCache::FComponentInstanceDataCache(AActor* Actor)
 {
 	if(Actor != NULL)
 	{
@@ -84,12 +71,16 @@ void FComponentInstanceDataCache::GetFromActor(AActor* Actor, FComponentInstance
 		Actor->GetComponents(Components);
 
 		// Grab per-instance data we want to persist
-		for (int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)
+		for (UActorComponent* Component : Components)
 		{
-			UActorComponent* Component = Components[CompIdx];
 			if(Component->bCreatedByConstructionScript) // Only cache data from 'created by construction script' components
 			{
-				Component->GetComponentInstanceData(Cache);
+				TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData = Component->GetComponentInstanceData();
+				if (ComponentInstanceData.IsValid())
+				{
+					check(!Component->GetComponentInstanceDataType().IsNone());
+					TypeToDataMap.Add(Component->GetComponentInstanceDataType(), ComponentInstanceData);
+				}
 			}
 		}
 	}
@@ -103,12 +94,26 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor) const
 		Actor->GetComponents(Components);
 
 		// Apply per-instance data.
-		for (int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)
+		for (UActorComponent* Component : Components)
 		{
-			UActorComponent* Component = Components[CompIdx];
 			if(Component->bCreatedByConstructionScript) // Only try and apply data to 'created by construction script' components
 			{
-				Component->ApplyComponentInstanceData(*this);
+				const FName ComponentInstanceDataType = Component->GetComponentInstanceDataType();
+
+				if (!ComponentInstanceDataType.IsNone())
+				{
+					TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
+					TypeToDataMap.MultiFind(ComponentInstanceDataType, CachedData);
+
+					for (TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData : CachedData)
+					{
+						if (ComponentInstanceData.IsValid() && ComponentInstanceData->MatchesComponent(Component))
+						{
+							Component->ApplyComponentInstanceData(ComponentInstanceData);
+							break;
+						}
+					}
+				}
 			}
 		}
 	}

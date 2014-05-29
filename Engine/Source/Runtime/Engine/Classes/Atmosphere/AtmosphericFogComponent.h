@@ -83,8 +83,6 @@ struct FAtmospherePrecomputeParameters
 	}
 };
 
-
-
 /**
  *	Used to create fogging effects such as clouds.
  */
@@ -260,9 +258,12 @@ public:
 	ENGINE_API void ReleaseResource();
 
 	// Begin UActorComponent interface.
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const OVERRIDE;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
 	// End UActorComponent interface.
+
+	const FAtmospherePrecomputeParameters& GetPrecomputeParameters() const { return PrecomputeParams;  }
 
 private:
 #if WITH_EDITORONLY_DATA

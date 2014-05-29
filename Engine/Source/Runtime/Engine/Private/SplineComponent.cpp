@@ -103,54 +103,29 @@ void USplineComponent::RefreshSplineInputs()
 class FSplineInstanceData : public FComponentInstanceDataBase
 {
 public:
-	static const FName SplineInstanceDataTypeName;
-
-	virtual ~FSplineInstanceData()
-	{}
-
-	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
+	FSplineInstanceData(const USplineComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+		, SplineInfo(SourceComponent->SplineInfo)
 	{
-		return SplineInstanceDataTypeName;
 	}
-	// End FComponentInstanceDataBase interface
-
-	/** Name of component */
-	FName ComponentName;
 
 	/** Lightmaps from LODData */
 	FInterpCurveVector SplineInfo;
 };
 
-// Init type name static
-const FName FSplineInstanceData::SplineInstanceDataTypeName(TEXT("SplineInstanceData"));
-
-void USplineComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName USplineComponent::GetComponentInstanceDataType() const
 {
-	TSharedRef<FSplineInstanceData> SplineData = MakeShareable(new FSplineInstanceData());
-	SplineData->ComponentName = GetFName();
-	SplineData->SplineInfo = SplineInfo;
-
-	// Add to cache
-	Cache.AddInstanceData(SplineData);
+	static const FName SplineInstanceDataTypeName(TEXT("SplineInstanceData"));
+	return SplineInstanceDataTypeName;
 }
 
-void USplineComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> USplineComponent::GetComponentInstanceData() const
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FSplineInstanceData::SplineInstanceDataTypeName, CachedData);
+	return MakeShareable(new FSplineInstanceData(this));
+}
 
-	for (int32 DataIdx = 0; DataIdx < CachedData.Num(); DataIdx++)
-	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FSplineInstanceData::SplineInstanceDataTypeName);
-		TSharedPtr<FSplineInstanceData> SplineData = StaticCastSharedPtr<FSplineInstanceData>(CachedData[DataIdx]);
-
-		// See if data matches current state
-		if (SplineData->ComponentName == GetFName())
-		{
-			SplineInfo = SplineData->SplineInfo;
-			UpdateSplineReparamTable();
-		}
-	}
+void USplineComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	SplineInfo = StaticCastSharedPtr<FSplineInstanceData>(ComponentInstanceData)->SplineInfo;
+	UpdateSplineReparamTable();
 }

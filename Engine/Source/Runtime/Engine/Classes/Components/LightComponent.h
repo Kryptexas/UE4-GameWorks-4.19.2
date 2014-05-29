@@ -4,7 +4,6 @@
 #pragma once
 #include "LightComponent.generated.h"
 
-
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponent : public ULightComponentBase
 {
@@ -245,8 +244,9 @@ public:
 #endif // WITH_EDITOR
 	// End UObject interface.
 
-	virtual void GetComponentInstanceData(FComponentInstanceDataCache& Cache) const OVERRIDE;
-	virtual void ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const OVERRIDE;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;

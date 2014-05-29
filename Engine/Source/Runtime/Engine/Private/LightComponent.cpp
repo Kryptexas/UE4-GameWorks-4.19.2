@@ -755,15 +755,22 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
 {
 public:
-	static const FName PrecomputedLightInstanceDataTypeName;
-
+	FPrecomputedLightInstanceData(const ULightComponent* SourceComponent)
+		: FComponentInstanceDataBase(SourceComponent)
+		, Transform(SourceComponent->ComponentToWorld)
+		, LightGuid(SourceComponent->LightGuid)
+		, ShadowMapChannel(SourceComponent->ShadowMapChannel)
+		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
+		, bPrecomputedLightingIsValid(SourceComponent->bPrecomputedLightingIsValid)
+	{}
+			
 	virtual ~FPrecomputedLightInstanceData()
 	{}
 
 	// Begin FComponentInstanceDataBase interface
-	virtual FName GetDataTypeName() const OVERRIDE
+	virtual bool MatchesComponent(const UActorComponent* Component) const OVERRIDE
 	{
-		return PrecomputedLightInstanceDataTypeName;
+		return Transform.Equals(CastChecked<ULightComponent>(Component)->ComponentToWorld);
 	}
 	// End FComponentInstanceDataBase interface
 
@@ -774,53 +781,34 @@ public:
 	bool bPrecomputedLightingIsValid;
 };
 
-// Init type name static
-const FName FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
-
-void ULightComponent::GetComponentInstanceData(FComponentInstanceDataCache& Cache) const
+FName ULightComponent::GetComponentInstanceDataType() const
 {
-	// Allocate new struct for holding light map data
-	TSharedRef<FPrecomputedLightInstanceData> LightMapData = MakeShareable(new FPrecomputedLightInstanceData());
-
-	// Fill in info
-	LightMapData->Transform = ComponentToWorld;
-	LightMapData->LightGuid = LightGuid;
-	LightMapData->ShadowMapChannel = ShadowMapChannel;
-	LightMapData->PreviewShadowMapChannel = PreviewShadowMapChannel;
-	LightMapData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
-
-	// Add to cache
-	Cache.AddInstanceData(LightMapData);
+	static const FName PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
+	return PrecomputedLightInstanceDataTypeName;
 }
 
-void ULightComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
+TSharedPtr<FComponentInstanceDataBase> ULightComponent::GetComponentInstanceData() const
 {
-	TArray< TSharedPtr<FComponentInstanceDataBase> > CachedData;
-	Cache.GetInstanceDataOfType(FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName, CachedData);
+	// Allocate new struct for holding light map data
+	return MakeShareable(new FPrecomputedLightInstanceData(this));
+}
 
-	for (int32 DataIdx = 0; DataIdx<CachedData.Num(); DataIdx++)
-	{
-		check(CachedData[DataIdx].IsValid());
-		check(CachedData[DataIdx]->GetDataTypeName() == FPrecomputedLightInstanceData::PrecomputedLightInstanceDataTypeName);
-		TSharedPtr<FPrecomputedLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedLightInstanceData>(CachedData[DataIdx]);
+void ULightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+{
+	check(ComponentInstanceData.IsValid());
+	TSharedPtr<FPrecomputedLightInstanceData> LightMapData = StaticCastSharedPtr<FPrecomputedLightInstanceData>(ComponentInstanceData);
 
-		// See if data matches current state
-		//@todo - compare all state that affects static lighting like radius, indirect lighting intensity, etc
-		if (LightMapData->Transform.Equals(ComponentToWorld))
-		{
-			LightGuid = LightMapData->LightGuid;
-			ShadowMapChannel = LightMapData->ShadowMapChannel;
-			PreviewShadowMapChannel = LightMapData->PreviewShadowMapChannel;
-			bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
+	LightGuid = LightMapData->LightGuid;
+	ShadowMapChannel = LightMapData->ShadowMapChannel;
+	PreviewShadowMapChannel = LightMapData->PreviewShadowMapChannel;
+	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
 
-			MarkRenderStateDirty();
+	MarkRenderStateDirty();
 
 #if WITH_EDITOR
-			// Update the icon with the new state of PreviewShadowMapChannel
-			UpdateLightSpriteTexture();
+	// Update the icon with the new state of PreviewShadowMapChannel
+	UpdateLightSpriteTexture();
 #endif
-		}
-	}
 }
 
 int32 ULightComponent::GetNumMaterials() const

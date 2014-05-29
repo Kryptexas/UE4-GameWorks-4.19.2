@@ -18,9 +18,16 @@ class UChildActorComponent : public USceneComponent
 	UPROPERTY(BlueprintReadOnly, Category = ChildActorComponent, TextExportTransient)
 	AActor*	ChildActor;
 
+	/** We try to keep the child actor's name as best we can, so we store it off here when destroying */
+	FName ChildActorName;
+
 	// Begin ActorComponent interface.
 	virtual void OnComponentCreated() OVERRIDE;
 	virtual void OnComponentDestroyed() OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
+	virtual FName GetComponentInstanceDataType() const OVERRIDE;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
+
 	// End ActorComponent interface.
 
 	/** Create the child actor */
