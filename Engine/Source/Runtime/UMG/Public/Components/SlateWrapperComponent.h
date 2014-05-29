@@ -10,7 +10,7 @@
 
 /** This is the base class for all Slate widget wrapper components */
 UCLASS(Abstract, hideCategories=(Activation, "Components|Activation", ComponentReplication, LOD, Rendering))
-class UMG_API USlateWrapperComponent : public UActorComponent
+class UMG_API USlateWrapperComponent : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -59,6 +59,9 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
+	UPROPERTY(Transient)
+	bool bCreatedByConstructionScript;
+
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool GetIsEnabled() const;
 
@@ -79,8 +82,7 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	//void SetCursor(const TAttribute< TOptional< TEnumAsByte<EMouseCursor::Type> > >& InCursor);
 
 	// UActorComponent interface
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
+	virtual void OnUnregister();
 	// End of UActorComponent interface
 
 	TSharedRef<SWidget> GetWidget();

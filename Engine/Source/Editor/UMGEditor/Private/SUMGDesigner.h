@@ -13,7 +13,7 @@ public:
 	SLATE_BEGIN_ARGS( SUMGDesigner ) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
+	void Construct(const FArguments& InArgs, TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor);
 	virtual ~SUMGDesigner();
 
 	// SWidget interface
@@ -69,8 +69,8 @@ private:
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
 
 private:
-	TWeakPtr<FBlueprintEditor> BlueprintEditor;
-	TWeakObjectPtr<AUserWidget> PreviewWidgetActor;
+	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
+
 	TWeakPtr<SWidget> PreviewWidget;
 
 	USlateWrapperComponent* SelectedTemplate;

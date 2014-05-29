@@ -15,7 +15,7 @@ class UWidgetBlueprintFactory : public UFactory
 
 	// The parent class of the created blueprint
 	UPROPERTY(EditAnywhere, Category=WidgetBlueprintFactory, meta=(AllowAbstract = ""))
-	TSubclassOf<class AUserWidget> ParentClass;
+	TSubclassOf<class UUserWidget> ParentClass;
 
 	// Begin UFactory Interface
 	virtual bool ConfigureProperties() OVERRIDE;

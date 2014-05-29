@@ -42,15 +42,10 @@ void USlateWrapperComponent::SetToolTipText(const FText& InToolTipText)
 	MyWidget->SetToolTipText(ToolTipText);
 }
 
-void USlateWrapperComponent::OnRegister()
-{
-	Super::OnRegister();
-}
-
 void USlateWrapperComponent::OnUnregister()
 {
 	MyWidget = NULL;
-	Super::OnUnregister();
+//	Super::OnUnregister();
 }
 
 void USlateWrapperComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -78,7 +73,7 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 TSharedRef<SWidget> USlateWrapperComponent::RebuildWidget()
 {
 	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));
-	return SNullWidget::NullWidget;
+	return SNew(SSpacer);
 }
 
 EVisibility USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)

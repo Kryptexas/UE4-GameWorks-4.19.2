@@ -15,10 +15,10 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	//PrimaryComponentTick.bCanEverTick = true;
 
-	bAutoActivate = true;
-	bTickInEditor = true;
+	//bAutoActivate = true;
+	//bTickInEditor = true;
 }
 
 USlateWrapperComponent* UContentWidget::GetContent()

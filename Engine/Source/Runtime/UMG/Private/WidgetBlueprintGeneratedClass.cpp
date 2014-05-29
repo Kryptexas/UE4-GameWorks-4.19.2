@@ -33,10 +33,8 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 	}
 }
 
-void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
+void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* Actor) const
 {
-	Super::CreateComponentsForActor(Actor);
-
 	// Duplicate the graph, keeping track of what was duplicated
 	TMap<UObject*, UObject*> DuplicatedObjectList;
 
@@ -45,7 +43,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 
 	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
 
-	AUserWidget* WidgetActor = CastChecked<AUserWidget>(Actor);
+	UUserWidget* WidgetActor = CastChecked<UUserWidget>(Actor);
 	UClass* ActorClass = Actor->GetClass();
 
 	for ( USlateWrapperComponent* Widget : ClonedTree->WidgetTemplates )
@@ -56,13 +54,13 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 			continue;
 		}
 
-		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), Actor->SerializedComponents.Num()) );
+		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), Actor->Components.Num()) );
 
 		FString VariableName = Widget->GetName();
 
 		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		Actor->SerializedComponents.Add(Widget); // Add to array so it gets saved
-		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
+		Actor->Components.Add(Widget); // Add to array so it gets saved
+//		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
 		// Find property with the same name as the template and assign the new Timeline to it
 		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
@@ -96,7 +94,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 			}
 		}
 
-		Widget->RegisterComponent();
+//		Widget->RegisterComponent();
 
 #if WITH_EDITOR
 		Widget->ConnectEditorData();

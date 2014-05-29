@@ -33,7 +33,7 @@ struct UMG_API FDelegateEditorBinding
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
 
-UCLASS(dependson=(UBlueprint, AUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
+UCLASS(dependson=(UBlueprint, UUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
 class UMG_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()

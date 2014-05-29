@@ -32,6 +32,8 @@
 
 #include "ContentWidget.h"
 
+#include "WidgetHost.h"
+
 #include "BoxPanelComponent.h"
 
 #include "CanvasPanelSlot.h"
@@ -74,7 +76,8 @@
 
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintGeneratedClass.h"
- 
+
+#include "WidgetActor.h"
 
 /* Interfaces
  *****************************************************************************/

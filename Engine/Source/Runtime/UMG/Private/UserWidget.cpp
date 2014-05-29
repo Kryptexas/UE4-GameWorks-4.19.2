@@ -103,15 +103,14 @@ protected:
 
 
 /////////////////////////////////////////////////////
-// AUserWidget
+// UUserWidget
 
-AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
+UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	RootWidget = SNullWidget::NullWidget;
 	Visiblity = ESlateVisibility::Visible;
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bTickEvenWhenPaused = true;
+	/*PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;*/
 	bShowCursorWhenVisible = false;
 	bAbsoluteLayout = false;
 	bModal = false;
@@ -120,80 +119,51 @@ AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
 	VerticalAlignment = VAlign_Fill;
 }
 
-void AUserWidget::OnConstruction(const FTransform& Transform)
+void UUserWidget::PostInitProperties()
 {
-	Super::OnConstruction(Transform);
+	Super::PostInitProperties();
+
+	Components.Reset();
+
+	// Only do this if this widget is of a blueprint class
+	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if ( BGClass != NULL )
+	{
+		BGClass->InitializeWidget(this);
+	}
 
 	RebuildWrapperWidget();
 }
 
-void AUserWidget::Destroyed()
+UWorld* UUserWidget::GetWorld() const
 {
-	RootWidget.Reset();
-	Super::Destroyed();
+	UObject* Outer = GetOuter();
+	if ( Outer == NULL )
+	{
+		return NULL;
+	}
+
+	// TODO UMG Global UI elements should go where?  who will be their outer.  Currently CreateWidget node makes the level their owner.
+	if ( ULevel* Level = Cast<ULevel>(Outer) )
+	{
+		return Level->OwningWorld;
+	}
+
+	return NULL;
 }
 
-void AUserWidget::RerunConstructionScripts()
-{
-	Super::RerunConstructionScripts();
-
-	RebuildWrapperWidget();
-}
-
-void AUserWidget::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
-{
-	//if ( BindingEvaluator )
-	//{
-	//	// TODO UMG pass in this as a parameter, so it has the context to set properties?
-	//	ProcessEvent(BindingEvaluator, NULL);
-	//}
-	//static AUserWidget* TestWidget;
-	//static FWidgetNode_Base* LinkedPtr = NULL;
-
-	//FText GlueText()
-	//{
-	//	LinkedPtr->EvaluateGraphExposedInputs.Execute(TestWidget);
-	//	FWidgetNode_Text* TextNode = (FWidgetNode_Text*)LinkedPtr;
-	//	return TextNode->Text;
-	//}
-
-	//TextBlock->LinkedTextAttribute = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&GlueText));
-
-	//UWorld* World = GetWorld();
-	//if ( World && World->IsGameWorld() )
-	//{
-	//	if ( UWidgetBlueprintGeneratedClass* WidgetBlueprintClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
-	//	{
-	//		for ( UStructProperty* Attribute : WidgetBlueprintClass->WidgetNodeProperties )
-	//		{
-
-	//		}
-	//	}
-
-
-	//	//if ( bShowCursorWhenVisible && GetIsVisible() )
-	//	//{
-	//	//	World->GetFirstLocalPlayerFromController()->PlayerController->bShowMouseCursor = true;
-	//	//	UGameViewportClient* Viewport = World->GetGameViewport();
-	//	//}
-	//}
-}
-
-USlateWrapperComponent* AUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
+USlateWrapperComponent* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
 	return WidgetToComponent.FindRef(InWidget);
 }
 
-void AUserWidget::RebuildWrapperWidget()
+void UUserWidget::RebuildWrapperWidget()
 {
 	WidgetToComponent.Reset();
-	RootWidget = SNullWidget::NullWidget;
+	RootWidget = SNew(SSpacer);
 	
-	TArray<USlateWrapperComponent*> SlateWrapperComponents;
-	GetComponents(SlateWrapperComponents);
-
 	// Add the first component to the root of the widget surface.
-	if ( SlateWrapperComponents.Num() > 0 )
+	if ( Components.Num() > 0 )
 	{
 		if ( bAbsoluteLayout )
 		{
@@ -206,7 +176,7 @@ void AUserWidget::RebuildWrapperWidget()
 				.VAlign(VerticalAlignment)
 				.HAlign(HorizontalAlignment)
 				[
-					SlateWrapperComponents[0]->GetWidget()
+					Components[0]->GetWidget()
 				];
 		}
 		else
@@ -218,7 +188,7 @@ void AUserWidget::RebuildWrapperWidget()
 				.HAlign(HorizontalAlignment)
 				.VAlign(VerticalAlignment)
 				[
-					SlateWrapperComponents[0]->GetWidget()
+					Components[0]->GetWidget()
 				];
 
 			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Size);
@@ -228,9 +198,9 @@ void AUserWidget::RebuildWrapperWidget()
 	}
 
 	// Place all of our top-level children Slate wrapped components into the overlay
-	for (int32 ComponentIndex = 0; ComponentIndex < SlateWrapperComponents.Num(); ++ComponentIndex)
+	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
 	{
-		USlateWrapperComponent* Handle = SlateWrapperComponents[ComponentIndex];
+		USlateWrapperComponent* Handle = Components[ComponentIndex];
 		TSharedRef<SWidget> Widget = Handle->GetWidget();
 
 		WidgetToComponent.Add(Widget, Handle);
@@ -261,7 +231,7 @@ void AUserWidget::RebuildWrapperWidget()
 	}
 }
 
-TSharedPtr<SWidget> AUserWidget::GetWidgetFromName(const FString& Name) const
+TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
 	for ( auto& Entry : WidgetToComponent )
 	{
@@ -274,7 +244,7 @@ TSharedPtr<SWidget> AUserWidget::GetWidgetFromName(const FString& Name) const
 	return TSharedPtr<SWidget>();
 }
 
-USlateWrapperComponent* AUserWidget::GetHandleFromName(const FString& Name) const
+USlateWrapperComponent* UUserWidget::GetHandleFromName(const FString& Name) const
 {
 	for ( auto& Entry : WidgetToComponent )
 	{
@@ -287,12 +257,22 @@ USlateWrapperComponent* AUserWidget::GetHandleFromName(const FString& Name) cons
 	return NULL;
 }
 
-TSharedRef<SWidget> AUserWidget::GetRootWidget()
+TSharedRef<SWidget> UUserWidget::GetRootWidget()
 {
 	return RootWidget.ToSharedRef();
 }
 
-void AUserWidget::Show()
+USlateWrapperComponent* UUserWidget::GetRootWidgetComponent()
+{
+	if ( Components.Num() > 0 )
+	{
+		return Components[0];
+	}
+
+	return NULL;
+}
+
+void UUserWidget::Show()
 {
 	RootWidget->SetVisibility(EVisibility::Visible);
 	OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
@@ -311,7 +291,7 @@ void AUserWidget::Show()
 	}
 }
 
-void AUserWidget::Hide()
+void UUserWidget::Hide()
 {
 	RootWidget->SetVisibility(EVisibility::Hidden);
 	OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
@@ -332,12 +312,12 @@ void AUserWidget::Hide()
 	}
 }
 
-bool AUserWidget::GetIsVisible()
+bool UUserWidget::GetIsVisible()
 {
 	return RootWidget->GetVisibility().IsVisible();
 }
 
-TEnumAsByte<ESlateVisibility::Type> AUserWidget::GetVisiblity()
+TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 {
 	return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
 }

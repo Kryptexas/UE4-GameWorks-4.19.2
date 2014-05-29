@@ -7,6 +7,8 @@
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
 
+#include "WidgetBlueprintEditor.h"
+
 #include "WidgetTemplateDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -95,9 +97,8 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 /////////////////////////////////////////////////////
 // SUMGDesigner
 
-void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
+void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
-	PreviewWidgetActor = NULL;
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
 	SelectedTemplate = NULL;
@@ -164,6 +165,7 @@ void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
+		
 	}
 }
 
@@ -173,6 +175,8 @@ void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProper
 	{
 		return;
 	}
+
+	//UpdatePreview(InBlueprint);
 }
 
 void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
@@ -211,7 +215,7 @@ USlateWrapperComponent* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeo
 
 	PreviewSurface->SetVisibility(EVisibility::HitTestInvisible);
 
-	AUserWidget* WidgetActor = PreviewWidgetActor.Get();
+	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
 	if ( WidgetActor )
 	{
 		USlateWrapperComponent* PreviewHandle = NULL;
@@ -494,11 +498,8 @@ FCursorReply SUMGDesigner::OnCursorQuery(const FGeometry& MyGeometry, const FPoi
 
 void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	AActor* PreviewActor = BlueprintEditor.Pin()->GetPreviewActor();
-	AUserWidget* WidgetActor = Cast<AUserWidget>(PreviewActor);
-	PreviewWidgetActor = WidgetActor;
-
-	if (WidgetActor)
+	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
+	if ( WidgetActor )
 	{
 		TSharedRef<SWidget> CurrentWidget = WidgetActor->GetRootWidget();
 
@@ -518,7 +519,7 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("NoWrappedWidget", "No actor; Open the viewport and tab back"))
+				.Text(LOCTEXT("NoWrappedWidget", "No Widget Preview"))
 			]
 		];
 	}
@@ -526,7 +527,6 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 	// Update the selected widget to match the selected template.
 	if ( SelectedTemplate )
 	{
-		AUserWidget* WidgetActor = PreviewWidgetActor.Get();
 		if ( WidgetActor )
 		{
 			// Set the selected widget so that we can draw the highlight

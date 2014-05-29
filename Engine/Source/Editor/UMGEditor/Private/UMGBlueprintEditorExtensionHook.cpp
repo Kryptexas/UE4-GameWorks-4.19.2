@@ -46,36 +46,20 @@ public:
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
 	{
-		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
+		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
-		TSharedPtr<SWidget> Result;
-		if ( BlueprintEditorPtr->CanAccessComponentsMode() )
-		{
-			Result = BlueprintEditorPtr->GetSCSViewport();
-		}
+		//TSharedPtr<SWidget> Result;
+		//if ( BlueprintEditorPtr->CanAccessComponentsMode() )
+		//{
+		//	Result = BlueprintEditorPtr->GetSCSViewport();
+		//}
 
-		if ( Result.IsValid() )
-		{
-			return SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.FillWidth(0)
-			[
-				// HACK: Super hack to make sure we have a preview actor.
-				Result.ToSharedRef()
-			]
-
+		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.FillWidth(1)
 			[
 				SNew(SUMGDesigner, BlueprintEditorPtr)
 			];
-		}
-		else
-		{
-			return SNew(SErrorText)
-				.BackgroundColor(FLinearColor::Transparent)
-				.ErrorText(LOCTEXT("SCSViewportView_Unavailable", "Viewport is not available for this Blueprint.").ToString());
-		}
 	}
 };
 
@@ -142,11 +126,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FComponentsEditorModeOverride
 
-class FComponentsEditorModeOverride : public FBlueprintComponentsApplicationMode
+class FComponentsEditorModeOverride : public FBlueprintDefaultsApplicationMode
 {
 public:
 	FComponentsEditorModeOverride(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
-		: FBlueprintComponentsApplicationMode(InBlueprintEditor)
+		: FBlueprintDefaultsApplicationMode(InBlueprintEditor)
 	{
 		//BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FConstructionScriptEditorSummoner(InBlueprintEditor)));
 		//BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSCSViewportSummoner(InBlueprintEditor)));
@@ -155,10 +139,11 @@ public:
 		//BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
 
 		//BlueprintComponentsTabFactories.UnregisterFactory(FBlueprintEditorTabs::ConstructionScriptEditorID);
-		BlueprintComponentsTabFactories.UnregisterFactory(FBlueprintEditorTabs::SCSViewportID);
-		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSlatePreviewSummoner(InBlueprintEditor)));
-		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSlateTreeSummoner(InBlueprintEditor)));
-		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FWidgetTemplatesSummoner(InBlueprintEditor)));
+		//BlueprintDefaultsTabFactories.UnregisterFactory(FBlueprintEditorTabs::SCSViewportID);
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlatePreviewSummoner(InBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlateTreeSummoner(InBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FWidgetTemplatesSummoner(InBlueprintEditor)));
 
 		TabLayout = FTabManager::NewLayout( "Standalone_UMGEditor_Layout_v2" )
 		->AddArea
@@ -224,14 +209,14 @@ public:
 
 	virtual void PreDeactivateMode() OVERRIDE
 	{
-		FBlueprintComponentsApplicationMode::PreDeactivateMode();
+		FBlueprintDefaultsApplicationMode::PreDeactivateMode();
 
 		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
 	}
 
 	virtual void PostActivateMode() OVERRIDE
 	{
-		FBlueprintComponentsApplicationMode::PostActivateMode();
+		FBlueprintDefaultsApplicationMode::PostActivateMode();
 
 		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
 
@@ -305,14 +290,14 @@ class FBlueprintEditorExtenderForSlatePreview
 public:
 	static TSharedRef<FApplicationMode> OnModeCreated(const FName ModeName, TSharedRef<FApplicationMode> InMode)
 	{
-		if (ModeName == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+		if (ModeName == FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
 		{
 			//@TODO: Bit of a lie - push GetBlueprint up, or pass in editor!
 			auto LieMode = StaticCastSharedRef<FComponentsEditorModeOverride>(InMode);
 
 			if (UBlueprint* BP = LieMode->GetBlueprint())
 			{
-				if (BP->ParentClass->IsChildOf(AUserWidget::StaticClass()))
+				if (BP->ParentClass->IsChildOf(UUserWidget::StaticClass()))
 				{
 					return MakeShareable(new FComponentsEditorModeOverride(LieMode->GetBlueprintEditor()));
 				}
@@ -325,7 +310,7 @@ public:
 
 			if ( UBlueprint* BP = LieMode->GetBlueprint() )
 			{
-				if ( BP->ParentClass->IsChildOf(AUserWidget::StaticClass()) )
+				if ( BP->ParentClass->IsChildOf(UUserWidget::StaticClass()) )
 				{
 					return MakeShareable(new FGraphEditorModeOverride(LieMode->GetBlueprintEditor(), ModeName));
 				}

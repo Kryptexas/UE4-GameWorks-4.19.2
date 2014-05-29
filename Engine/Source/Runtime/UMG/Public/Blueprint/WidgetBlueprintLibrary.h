@@ -10,5 +10,5 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	/** Creates a widget */
 	UFUNCTION(BlueprintCallable, meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true", FriendlyName = "Create Widget" ), Category="User Interface|Widget")
-	static class AUserWidget* Create(UObject* WorldContextObject, TSubclassOf<class AUserWidget> WidgetType);
+	static class UUserWidget* Create(UObject* WorldContextObject, TSubclassOf<class UUserWidget> WidgetType);
 };

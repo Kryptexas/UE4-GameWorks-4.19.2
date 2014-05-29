@@ -14,7 +14,7 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeP
 {
 }
 
-AUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<AUserWidget> WidgetType)
+UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType)
 {
 	if ( WidgetType->HasAnyClassFlags(CLASS_Abstract) )
 	{
@@ -22,11 +22,12 @@ AUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 		return NULL;
 	}
 
-	//TODO ConstructObject after AUserWidget is no longer an actor.
+	//TODO ConstructObject after UUserWidget is no longer an actor.
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	AUserWidget* NewWidget = World->SpawnActor<AUserWidget>(WidgetType);
-	
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(WidgetType, World->GetCurrentLevel());
+	//UUserWidget* NewWidget = World->SpawnActor<UUserWidget>(WidgetType);
+		
 	return NewWidget;
 }
 

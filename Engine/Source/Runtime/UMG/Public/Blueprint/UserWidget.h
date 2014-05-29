@@ -4,10 +4,12 @@
 
 #include "UserWidget.generated.h"
 
+//TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
-UCLASS(Abstract, hideCategories=(Object, Actor, Replication, Rendering, Input))
-class UMG_API AUserWidget : public AActor
+UCLASS(Abstract, editinlinenew, hideCategories=(Object, Actor, Replication, Rendering, Input))
+class UMG_API UUserWidget : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -75,12 +77,13 @@ class UMG_API AUserWidget : public AActor
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	// AActor interface
-	virtual void OnConstruction(const FTransform& Transform) OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
-	virtual void RerunConstructionScripts() OVERRIDE;
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
-	// End of AActor interface
+	UPROPERTY()
+	TArray<USlateWrapperComponent*> Components;
+	
+	//UObject interface
+	virtual void PostInitProperties() OVERRIDE;
+	virtual class UWorld* GetWorld() const OVERRIDE;
+	// End of UObject interface
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -99,6 +102,7 @@ class UMG_API AUserWidget : public AActor
 	USlateWrapperComponent* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	TSharedRef<SWidget> GetRootWidget();
+	USlateWrapperComponent* GetRootWidgetComponent();
 
 	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
 	USlateWrapperComponent* GetHandleFromName(const FString& Name) const;

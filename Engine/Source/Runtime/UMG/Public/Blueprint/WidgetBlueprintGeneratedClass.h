@@ -41,7 +41,7 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	/** This is transient data calculated at link time. */
 	TArray<UStructProperty*> WidgetNodeProperties;
 
-	virtual void CreateComponentsForActor(AActor* Actor) const OVERRIDE;
-
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+
+	void InitializeWidget(class UUserWidget* Actor) const;
 };

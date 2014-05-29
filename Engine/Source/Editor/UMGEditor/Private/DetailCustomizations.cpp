@@ -283,6 +283,12 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
+		// Ignore null outter objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
 		//TODO UMG handle multiple things selected
 
 		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
