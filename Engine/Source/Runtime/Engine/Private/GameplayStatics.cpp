@@ -320,15 +320,20 @@ void UGameplayStatics::UnloadStreamLevel(UObject* WorldContextObject, FName Leve
 
 ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject, FName InPackageName)
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	
-	FString ShortPackageName = FStreamLevelAction::MakeSafeShortLevelName(InPackageName, World);
-
-	for (auto It = World->StreamingLevels.CreateConstIterator(); It; ++It)
+	if (InPackageName != NAME_None)
 	{
-		if (FPackageName::GetShortName((*It)->PackageName) == ShortPackageName)
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		const FString SearchPackageName = FStreamLevelAction::MakeSafeLevelName(InPackageName, World);
+
+		for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
 		{
-			return *It;
+			// We check only suffix of package name, to handle situations when packages were saved for play into a temporary folder
+			// Like Saved/Autosaves/PackageName
+			if (LevelStreaming && 
+				LevelStreaming->PackageName.ToString().EndsWith(SearchPackageName, ESearchCase::IgnoreCase))
+			{
+				return LevelStreaming;
+			}
 		}
 	}
 	

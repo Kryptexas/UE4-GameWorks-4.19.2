@@ -18,11 +18,11 @@ public:
 	FStreamLevelAction(bool bIsLoading, const FName & InLevelName, bool bIsMakeVisibleAfterLoad, bool bIsShouldBlockOnLoad, const FLatentActionInfo& InLatentInfo, UWorld* World);
 
 	/**
-	 * Given a level name, returns a short level name that will work with Play on Editor or Play on Console
+	 * Given a level name, returns level name that will work with Play on Editor or Play on Console
 	 *
 	 * @param	InLevelName		Raw level name (no UEDPIE or UED<console> prefix)
 	 */
-	static FString MakeSafeShortLevelName( const FName& InLevelName, UWorld* InWorld );
+	static FString MakeSafeLevelName( const FName& InLevelName, UWorld* InWorld );
 
 	/**
 	 * Helper function to potentially find a level streaming object by name and cache the result
