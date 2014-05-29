@@ -105,7 +105,7 @@ void FTestEntitlementsInterface::FinishTest()
 	delete this;
 }
 
-void FTestEntitlementsInterface::OnCreateEntitlementsGroupComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& UserId)
+void FTestEntitlementsInterface::OnCreateEntitlementsGroupComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& )
 {
 	UE_LOG(LogOnline, Log, TEXT("created entitlements group. Result=%s Error=[%s]"), 
 		bWasSuccessful ? TEXT("true") : TEXT("false"), *Error);
@@ -124,7 +124,7 @@ void FTestEntitlementsInterface::OnCreateEntitlementsGroupComplete(bool bWasSucc
 	}
 }
 
-void FTestEntitlementsInterface::OnGrantEntitlementsComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& UserId, TArray<FEntitlement>& NewEntitlements, TArray<FEntitlement>& ModifiedEntitlements)
+void FTestEntitlementsInterface::OnGrantEntitlementsComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& InUserId, TArray<FEntitlement>& NewEntitlements, TArray<FEntitlement>& ModifiedEntitlements)
 {
 	UE_LOG(LogOnline, Log, TEXT("granted entitlements. Result=%s Error=[%s]"), 
 		bWasSuccessful ? TEXT("true") : TEXT("false"), *Error);
@@ -135,7 +135,7 @@ void FTestEntitlementsInterface::OnGrantEntitlementsComplete(bool bWasSuccessful
 		// @todo check the returned new/modified in addition to getting the full cache to check
 		// Check that the cached entitlements are correct after granting 1
 		TMap<FString, FEntitlement> Entitlements;
-		EntitlementsOSS->GetEntitlements(UserId, Entitlements);
+		EntitlementsOSS->GetEntitlements(InUserId, Entitlements);
 		if (Entitlements.Num() != 1)
 		{
 			UE_LOG(LogOnline, Error, TEXT("Incorrect number of entitlement1 found after granting 1 entitlement: %d"), Entitlements.Num());
@@ -166,7 +166,7 @@ void FTestEntitlementsInterface::OnGrantEntitlementsComplete(bool bWasSuccessful
 	{
 		// Check on the plural entitlement granting results in local cache
 		TMap<FString, FEntitlement> Entitlements;
-		EntitlementsOSS->GetEntitlements(UserId, Entitlements);
+		EntitlementsOSS->GetEntitlements(InUserId, Entitlements);
 		if (Entitlements.Num() != 4)
 		{
 			UE_LOG(LogOnline, Error, TEXT("Incorrect number of entitlements found after granting multiple entitlement: %d"), Entitlements.Num());
@@ -205,7 +205,7 @@ void FTestEntitlementsInterface::OnGrantEntitlementsComplete(bool bWasSuccessful
 	}
 }
 
-void FTestEntitlementsInterface::OnConsumeEntitlementComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& UserId, TArray<FEntitlement>& NewEntitlements, TArray<FEntitlement>& ModifiedEntitlements)
+void FTestEntitlementsInterface::OnConsumeEntitlementComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& InUserId, TArray<FEntitlement>& NewEntitlements, TArray<FEntitlement>& ModifiedEntitlements)
 {
 	UE_LOG(LogOnline, Log, TEXT("consumed entitlement. Result=%s Error=[%s]"), 
 		bWasSuccessful ? TEXT("true") : TEXT("false"), *Error);
@@ -213,7 +213,7 @@ void FTestEntitlementsInterface::OnConsumeEntitlementComplete(bool bWasSuccessfu
 	// @todo check the returned new/modified in addition to getting the full cache to check
 	// Check on the entitlement consumption results in local cache
 	TMap<FString, FEntitlement> Entitlements;
-	EntitlementsOSS->GetEntitlements(UserId, Entitlements);
+	EntitlementsOSS->GetEntitlements(InUserId, Entitlements);
 	if (Entitlements.Num() != 4)
 	{
 		UE_LOG(LogOnline, Error, TEXT("Incorrect number of entitlements found after granting multiple entitlement: %d"), Entitlements.Num());
@@ -252,14 +252,14 @@ void FTestEntitlementsInterface::OnConsumeEntitlementComplete(bool bWasSuccessfu
 	}
 }
 
-void FTestEntitlementsInterface::OnEnumerateEntitlementsComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& UserId)
+void FTestEntitlementsInterface::OnEnumerateEntitlementsComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& InUserId)
 {
 	UE_LOG(LogOnline, Log, TEXT("enumerated entitlements. Result=%s Error=[%s]"), 
 		bWasSuccessful ? TEXT("true") : TEXT("false"), *Error);
 
 	// Now check em out
 	TMap<FString, FEntitlement> Entitlements;
-	EntitlementsOSS->GetEntitlements(UserId, Entitlements);
+	EntitlementsOSS->GetEntitlements(InUserId, Entitlements);
 	if (Entitlements.Num() != 4)
 	{
 		UE_LOG(LogOnline, Error, TEXT("Incorrect number of entitlements found: %d"), Entitlements.Num());
@@ -292,7 +292,7 @@ void FTestEntitlementsInterface::OnEnumerateEntitlementsComplete(bool bWasSucces
 	}
 }
 
-void FTestEntitlementsInterface::OnDeleteEntitlementsGroupComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& UserId)
+void FTestEntitlementsInterface::OnDeleteEntitlementsGroupComplete(bool bWasSuccessful, const FString& Error, const FUniqueNetId& )
 {
 	UE_LOG(LogOnline, Log, TEXT("deleting entitlements group. Result=%s Error=[%s]"), 
 		bWasSuccessful ? TEXT("true") : TEXT("false"), *Error);

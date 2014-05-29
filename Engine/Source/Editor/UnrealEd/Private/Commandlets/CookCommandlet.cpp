@@ -345,17 +345,12 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 
 		if ( TargetPlatformNames.Num() )
 		{
-			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+			const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();
+
+			for (const FString &TargetPlatformName : TargetPlatformNames)
 			{
-				const FString &TargetPlatformName = TargetPlatformNames[Index];
-
-
-				const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();	
-
-
-				for ( int Index = 0; Index < TargetPlatforms.Num(); ++Index )
+				for (ITargetPlatform *TargetPlatform : TargetPlatforms)
 				{
-					ITargetPlatform *TargetPlatform = TargetPlatforms[ Index ];
 					if ( TargetPlatform->PlatformName() == TargetPlatformName )
 					{
 						Platforms.Add( TargetPlatform );

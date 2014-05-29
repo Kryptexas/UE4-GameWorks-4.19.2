@@ -147,7 +147,7 @@ bool FTestVoice::Tick(float DeltaTime)
 						FMemory::Memcpy(RawCaptureData.GetTypedData(), Remainder.GetTypedData(), LastRemainderSize);
 					}
 
-					EVoiceCaptureState::Type MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetTypedData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes);
+					MicState = VoiceCapture->GetVoiceData(RawCaptureData.GetTypedData() + LastRemainderSize, NewVoiceDataBytes, NewVoiceDataBytes);
 					TotalVoiceBytes = NewVoiceDataBytes + LastRemainderSize;
 					bDoWork = MicState == EVoiceCaptureState::Ok;
 				}

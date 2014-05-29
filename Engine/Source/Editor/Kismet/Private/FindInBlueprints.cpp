@@ -505,8 +505,8 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 		const FBPInterfaceDescription& InterfaceDesc = Blueprint->ImplementedInterfaces[i];
 		
 		// First check the interface name
- 		FString NodeSearchString = InterfaceDesc.Interface->GetName();
-		const bool bInterfaceMatchesSearch = StringMatchesSearchTokens(Tokens, NodeSearchString);
+ 		FString InterfaceNodeSearchString = InterfaceDesc.Interface->GetName();
+		const bool bInterfaceMatchesSearch = StringMatchesSearchTokens(Tokens, InterfaceNodeSearchString);
 
 		for (int32 FuncIdx = 0; FuncIdx < InterfaceDesc.Graphs.Num(); FuncIdx++)
 		{
@@ -539,7 +539,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 		// Did we match interface name but no functions ?
 		if( ( bInterfaceMatchesSearch == true ) && ( RootInterfaceResult->Children.Num() == 0 ) )
 		{
-			const FString InterfaceNameResult = FString::Printf(*LOCTEXT("BlueprintResultInterfaceImplementation", "Interface implementation: %s").ToString(), *NodeSearchString);
+			const FString InterfaceNameResult = FString::Printf(*LOCTEXT("BlueprintResultInterfaceImplementation", "Interface implementation: %s").ToString(), *InterfaceNodeSearchString);
 			const FSearchResult NodeResult(new FFindInBlueprintsResult(InterfaceNameResult, RootInterfaceResult, InterfaceDesc.Interface->GetClass(), 0));
 			RootInterfaceResult->Children.Add(NodeResult);
 		}

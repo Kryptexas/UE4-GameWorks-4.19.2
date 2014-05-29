@@ -372,9 +372,9 @@ bool UIpNetDriver::HandleSocketsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UW
 	Ar.Logf(TEXT(""));
 	if (Socket != NULL)
 	{
-		TSharedRef<FInternetAddr> LocalAddr = GetSocketSubsystem()->CreateInternetAddr();
-		Socket->GetAddress(*LocalAddr);
-		Ar.Logf(TEXT("%s Socket: %s"), *GetDescription(), *LocalAddr->ToString(true));
+		TSharedRef<FInternetAddr> LocalInternetAddr = GetSocketSubsystem()->CreateInternetAddr();
+		Socket->GetAddress(*LocalInternetAddr);
+		Ar.Logf(TEXT("%s Socket: %s"), *GetDescription(), *LocalInternetAddr->ToString(true));
 	}		
 	else
 	{

@@ -11,8 +11,8 @@ public:
 		return MakeShareable(new FBlueprintWidgetCustomization(Blueprint));
 	}
 
-	FBlueprintWidgetCustomization(UBlueprint* Blueprint)
-		: Blueprint(CastChecked<UWidgetBlueprint>(Blueprint))
+	FBlueprintWidgetCustomization(UBlueprint* InBlueprint)
+		: Blueprint(CastChecked<UWidgetBlueprint>(InBlueprint))
 	{
 	}
 	

@@ -79,10 +79,12 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 	};
 
 	// Macros to allow for scoping of draw events
-	#define SCOPED_DRAW_EVENT(Name, Color) FDrawEvent Event_##Name; if(GEmitDrawEvents) Event_##Name.Start(Color, TEXT(#Name));
-	#define SCOPED_DRAW_EVENTF(Name, Color, Format, ...) FDrawEvent Event_##Name; if(GEmitDrawEvents) Event_##Name.Start(Color, Format, ##__VA_ARGS__);
-	#define SCOPED_CONDITIONAL_DRAW_EVENT(Name, Condition, Color) FDrawEvent Event_##Name; if(GEmitDrawEvents && (Condition)) Event_##Name.Start(Color, TEXT(#Name));
-	#define SCOPED_CONDITIONAL_DRAW_EVENTF(Name, Condition, Color, Format, ...) FDrawEvent Event_##Name; if(GEmitDrawEvents && (Condition)) Event_##Name.Start(Color, Format, ##__VA_ARGS__);
+	#define SCOPED_DRAW_TOKENPASTE_INNER(x,y) x##y
+	#define SCOPED_DRAW_TOKENPASTE(x,y) SCOPED_DRAW_TOKENPASTE_INNER(x,y)
+	#define SCOPED_DRAW_EVENT(Name, Color) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(Color, TEXT(#Name));
+	#define SCOPED_DRAW_EVENTF(Name, Color, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(Color, Format, ##__VA_ARGS__);
+	#define SCOPED_CONDITIONAL_DRAW_EVENT(Name, Condition, Color) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(Color, TEXT(#Name));
+	#define SCOPED_CONDITIONAL_DRAW_EVENTF(Name, Condition, Color, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(Color, Format, ##__VA_ARGS__);
 
 #else
 

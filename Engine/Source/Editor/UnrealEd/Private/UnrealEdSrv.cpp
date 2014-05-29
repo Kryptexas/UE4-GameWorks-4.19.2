@@ -1082,9 +1082,9 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				const FString& SourceFilePath = Data->SourceFilePath;
 				if( !SourceFilePath.IsEmpty() )
 				{
-					for (const FString& Str : SearchTerms)
+					for (const FString& SearchTerm : SearchTerms)
 					{
-						if (SourceFilePath.Contains(Str))
+						if (SourceFilePath.Contains(SearchTerm))
 						{
 							Data->Modify();
 							UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *SourceFilePath);

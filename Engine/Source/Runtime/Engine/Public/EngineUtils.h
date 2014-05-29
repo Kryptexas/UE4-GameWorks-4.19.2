@@ -25,10 +25,10 @@ struct HActor : public HHitProxy
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 MaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 InMaterialIndex)
 		: Actor( InActor )
 		, PrimComponent( InPrimComponent )
-		, MaterialIndex( MaterialIndex )
+		, MaterialIndex( InMaterialIndex )
 		{}
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority) 
@@ -38,11 +38,11 @@ struct HActor : public HHitProxy
 		, MaterialIndex( -1 )
 		{}
 
-	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 MaterialIndex)
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 InMaterialIndex)
 		: HHitProxy(InPriority)
 		, Actor(InActor)
 		, PrimComponent(InPrimComponent)
-		, MaterialIndex(MaterialIndex)
+		, MaterialIndex(InMaterialIndex)
 		{}
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE

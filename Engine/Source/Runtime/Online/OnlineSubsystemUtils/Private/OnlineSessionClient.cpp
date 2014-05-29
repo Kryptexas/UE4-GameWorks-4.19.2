@@ -80,12 +80,12 @@ void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
 	if (OnlineSub)
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+		IOnlineSessionPtr OnlineSessionInt = OnlineSub->GetSessionInterface();
 
 		int32 ControllerId = GetControllerId();
 		if (ControllerId != INVALID_CONTROLLERID)
 		{
-			SessionInt->ClearOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
+			OnlineSessionInt->ClearOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
 		}
 	}
 }

@@ -161,8 +161,8 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 
 				if (LinkedNode == OldNode)
 				{
-					int32 PinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
-					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[PinIndex];
+					const int32 LinkedPinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
+					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[LinkedPinIndex];
 				}
 			}
 		}

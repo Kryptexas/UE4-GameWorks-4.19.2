@@ -2363,9 +2363,9 @@ void FPersona::RemoveUnusedBones()
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().GetAssets(Filter, SkeletalMeshes);
 
-		FText Message = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
+		FText TimeTakenMessage = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
 		
-		if(FMessageDialog::Open( EAppMsgType::YesNo, Message ) == EAppReturnType::Yes)
+		if(FMessageDialog::Open( EAppMsgType::YesNo, TimeTakenMessage ) == EAppReturnType::Yes)
 		{
 			const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssets", "Processing Skeletal Meshes for {0}"), FText::FromString(TargetSkeleton->GetName()) );
 			GWarn->BeginSlowTask(StatusUpdate, true );
@@ -2412,10 +2412,10 @@ void FPersona::RemoveUnusedBones()
 			// If we have any bones left they are unused
 			if(SkeletonBones.Num() > 0)
 			{
-				const FText Message = FText::Format(LOCTEXT("RemoveBoneWarning", "Continuing will remove the following bones from the skeleton '{0}'. These bones are not being used by any of the SkeletalMeshes assigned to this skeleton\n\nOnce the bones have been removed all loaded animations for this skeleton will be recompressed (any that aren't loaded will be recompressed the next time they are loaded)."), FText::FromString(TargetSkeleton->GetName()) );
+				const FText RemoveBoneMessage = FText::Format(LOCTEXT("RemoveBoneWarning", "Continuing will remove the following bones from the skeleton '{0}'. These bones are not being used by any of the SkeletalMeshes assigned to this skeleton\n\nOnce the bones have been removed all loaded animations for this skeleton will be recompressed (any that aren't loaded will be recompressed the next time they are loaded)."), FText::FromString(TargetSkeleton->GetName()) );
 
 				// Ask User whether they would like to remove the bones from the skeleton
-				if (SSkeletonBoneRemoval::ShowModal(SkeletonBones, Message))
+				if (SSkeletonBoneRemoval::ShowModal(SkeletonBones, RemoveBoneMessage))
 				{
 					//Remove these bones from the skeleton
 					TargetSkeleton->RemoveBonesFromSkeleton(SkeletonBones, true);

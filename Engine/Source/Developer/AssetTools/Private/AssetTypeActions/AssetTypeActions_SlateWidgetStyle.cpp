@@ -22,7 +22,7 @@ void FAssetTypeActions_SlateWidgetStyle::GetActions( const TArray<UObject*>& InO
 	);
 }
 
-void FAssetTypeActions_SlateWidgetStyle::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
+void FAssetTypeActions_SlateWidgetStyle::OpenAssetEditor( const TArray<UObject*>& Objects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
 	struct Local
 	{
@@ -41,7 +41,7 @@ void FAssetTypeActions_SlateWidgetStyle::OpenAssetEditor( const TArray<UObject*>
 		}
 	};
 
-	FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, InObjects, FSimpleAssetEditor::FGetDetailsViewObjects::CreateStatic(&Local::GetSubObjects));
+	FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, Objects, FSimpleAssetEditor::FGetDetailsViewObjects::CreateStatic(&Local::GetSubObjects));
 }
 
 void FAssetTypeActions_SlateWidgetStyle::ExecuteEdit(TArray<TWeakObjectPtr< USlateWidgetStyleAsset >> Styles)

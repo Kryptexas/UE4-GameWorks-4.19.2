@@ -1294,8 +1294,8 @@ void ConvertInterpToFBX(uint8 UnrealInterpMode, FbxAnimCurveDef::EInterpolationT
 		Tangent = (FbxAnimCurveDef::ETangentMode) (FbxAnimCurveDef::eTangentAuto | FbxAnimCurveDef::eTangentGenericClamp);
 		break;
 	case CIM_Unknown:  // ???
-		FbxAnimCurveDef::EInterpolationType Interpolation = FbxAnimCurveDef::eInterpolationConstant;
-		FbxAnimCurveDef::ETangentMode Tangent = FbxAnimCurveDef::eTangentAuto;
+		Interpolation = FbxAnimCurveDef::eInterpolationConstant;
+		Tangent = FbxAnimCurveDef::eTangentAuto;
 		break;
 	}
 }
