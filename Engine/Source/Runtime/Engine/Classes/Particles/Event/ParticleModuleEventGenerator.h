@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Particles/Event/ParticleModuleEventBase.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleEventGenerator.generated.h"
 
 /**
@@ -14,7 +15,7 @@ struct FParticleEvent_GenerateInfo
 
 	/** The type of event. */
 	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)
-	TEnumAsByte<enum EParticleEventType> Type;
+	TEnumAsByte<EParticleEventType> Type;
 
 	/** How often to trigger the event (<= 1 means EVERY time). */
 	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)

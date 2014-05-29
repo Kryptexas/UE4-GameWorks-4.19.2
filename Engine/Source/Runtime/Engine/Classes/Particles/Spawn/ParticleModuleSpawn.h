@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
+#include "Particles/ParticleEmitter.h"
 #include "ParticleModuleSpawn.generated.h"
 
 class UParticleLODLevel;
@@ -22,11 +23,11 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 
 	/** The method to utilize when burst-emitting particles. */
 	UPROPERTY(EditAnywhere, Category=Burst)
-	TEnumAsByte<enum EParticleBurstMethod> ParticleBurstMethod;
+	TEnumAsByte<EParticleBurstMethod> ParticleBurstMethod;
 
 	/** The array of burst entries. */
 	UPROPERTY(EditAnywhere, export, noclear, Category=Burst)
-	TArray<struct FParticleBurst> BurstList;
+	TArray<FParticleBurst> BurstList;
 
 	/** Scale all burst entries by this amount. */
 	UPROPERTY(EditAnywhere, Category=Burst)

@@ -3,6 +3,8 @@
 
 #pragma once
 #include "Particles/ParticleModule.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSpriteEmitter.h"
 #include "ParticleModuleRequired.generated.h"
 
 UENUM()
@@ -58,7 +60,7 @@ class UParticleModuleRequired : public UParticleModule
 	 *	PSA_TypeSpecific	- Use the alignment method indicated int he type data module.
 	 */
 	UPROPERTY(EditAnywhere, Category=Emitter)
-	TEnumAsByte<enum EParticleScreenAlignment> ScreenAlignment;
+	TEnumAsByte<EParticleScreenAlignment> ScreenAlignment;
 
 	/** If true, update the emitter in local space										*/
 	UPROPERTY(EditAnywhere, Category=Emitter)
@@ -145,7 +147,7 @@ class UParticleModuleRequired : public UParticleModule
 	//
 	/** The method to utilize when burst-emitting particles						*/
 	UPROPERTY()
-	TEnumAsByte<enum EParticleBurstMethod> ParticleBurstMethod;
+	TEnumAsByte<EParticleBurstMethod> ParticleBurstMethod;
 
 	/** The array of burst entries.												*/
 	UPROPERTY(export, noclear)
@@ -198,7 +200,7 @@ class UParticleModuleRequired : public UParticleModule
 	 *						  and the next 
 	 */
 	UPROPERTY(EditAnywhere, Category=SubUV)
-	TEnumAsByte<enum EParticleSubUVInterpMethod> InterpolationMethod;
+	TEnumAsByte<EParticleSubUVInterpMethod> InterpolationMethod;
 
 	/** The number of sub-images horizontally in the texture							*/
 	UPROPERTY(EditAnywhere, Category=SubUV)

@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataMesh.generated.h"
 
 class UParticleEmitter;
@@ -114,7 +115,7 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	 *		EPAL_ROTATE_Z	 -	Ignored for mesh emitters. Treated as EPAL_NONE.
 	 */
 	UPROPERTY(EditAnywhere, Category=Orientation)
-	TEnumAsByte<enum EParticleAxisLock> AxisLockOption;
+	TEnumAsByte<EParticleAxisLock> AxisLockOption;
 
 	/**
 	 *	If true, then point the X-axis of the mesh towards the camera.

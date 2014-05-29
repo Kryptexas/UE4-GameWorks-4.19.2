@@ -52,7 +52,7 @@ class UParticleModuleOrientationAxisLock : public UParticleModuleOrientationBase
 	 *		EPAL_ROTATE_Z		Lock the sprite rotation on the Z-axis.
 	 */
 	UPROPERTY(EditAnywhere, Category=Orientation)
-	TEnumAsByte<enum EParticleAxisLock> LockAxisFlags;
+	TEnumAsByte<EParticleAxisLock> LockAxisFlags;
 
 
 	// Begin UObject Interface

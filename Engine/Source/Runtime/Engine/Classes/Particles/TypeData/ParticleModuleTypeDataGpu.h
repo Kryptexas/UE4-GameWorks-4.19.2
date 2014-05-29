@@ -8,6 +8,7 @@
 
 #include "Distributions.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataGpu.generated.h"
 
 /**
@@ -161,7 +162,7 @@ struct FGPUSpriteEmitterInfo
 
 	/** The method for locking the particles to a particular axis. */
 	UPROPERTY()
-	TEnumAsByte<enum EParticleAxisLock> LockAxisFlag;
+	TEnumAsByte<EParticleAxisLock> LockAxisFlag;
 
 	/** If true, collisions are enabled for this emitter. */
 	UPROPERTY()
