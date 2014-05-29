@@ -122,6 +122,11 @@ FPhysicsScene2D::~FPhysicsScene2D()
 	EndPhysicsTickFunction.UnRegisterTickFunction();
 }
 
+bool FPhysicsScene2D::ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB)
+{
+	return b2ContactFilter::ShouldCollide(FixtureA, FixtureB);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FStartPhysics2DTickFunction
 

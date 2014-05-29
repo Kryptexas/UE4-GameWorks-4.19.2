@@ -33,7 +33,7 @@ struct FEndPhysics2DTickFunction : public FTickFunction
 //////////////////////////////////////////////////////////////////////////
 // FPhysicsWorld2D
 
-struct FPhysicsScene2D
+struct FPhysicsScene2D : public b2ContactFilter
 {
 	class b2World* World;
 	UWorld* UnrealWorld;
@@ -44,8 +44,13 @@ struct FPhysicsScene2D
 	// Tick function for ending physics
 	FEndPhysics2DTickFunction EndPhysicsTickFunction;
 
+public:
 	FPhysicsScene2D(UWorld* AssociatedWorld);
-	~FPhysicsScene2D();
+	virtual ~FPhysicsScene2D();
+
+	// b2ContactFilter interface
+	virtual bool ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB) OVERRIDE;
+	// End of b2ContactFilter interface
 };
 
 #endif
