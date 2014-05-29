@@ -221,10 +221,6 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 	{
 		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
 	}
-	else if( TestState == EAutomationState::InProcess )
-	{
-		ToolTip = LOCTEXT("TestToolTipInProgress", "In progress");
-	}
 	else if( TestState == EAutomationState::NotEnoughParticipants )
 	{
 		ToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.");
@@ -234,13 +230,17 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("GameName"), FText::FromString(TestStatus->GetGameInstanceName(ClusterIndex)));
 
-		if (TestState == EAutomationState::Success)
+		if (TestState == EAutomationState::InProcess)
 		{
-			ToolTip = LOCTEXT("TestToolTipComplete", "Completed on: ");
+			ToolTip = FText::Format(LOCTEXT("TestToolTipInProgress", "In progress on: {GameName}"), Args);
+		}
+		else if (TestState == EAutomationState::Success)
+		{
+			ToolTip = FText::Format(LOCTEXT("TestToolTipComplete", "Completed on: {GameName}"), Args);
 		}
 		else
 		{
-			ToolTip = LOCTEXT("TestToolTipFailed", "Failed on: ");
+			ToolTip = FText::Format(LOCTEXT("TestToolTipFailed", "Failed on: {GameName}"), Args);
 		}
 	}
 	return ToolTip;
