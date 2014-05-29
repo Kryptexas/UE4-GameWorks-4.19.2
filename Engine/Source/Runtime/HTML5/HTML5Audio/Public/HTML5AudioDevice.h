@@ -27,6 +27,8 @@ class FALAudioDevice;
 #pragma pack (pop)
 #endif 
 
+DECLARE_LOG_CATEGORY_EXTERN(LogALAudio, Log, All);
+
 /**
  * OpenAL implementation of FSoundBuffer, containing the wave data and format information.
  */
@@ -205,6 +207,12 @@ public:
 	virtual bool InitializeHardware() OVERRIDE;
  
 	/**
+	 * Tears down audio device by stopping all sounds, removing all buffers,  destroying all sources, ... Called by both Destroy and ShutdownAfterError
+	 * to perform the actual tear down.
+	 */
+	virtual void TeardownHardware() OVERRIDE;
+
+	/**
 	 * Update the audio device and calculates the cached inverse transform later
 	 * on used for spatialization.
 	 *
@@ -224,10 +232,14 @@ public:
 	 */
 	virtual void FreeResource( USoundWave* SoundWave );
 
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+
 	void FindProcs( bool AllowExt );
 
 	// Error checking.
-	bool alError( const TCHAR* Text, bool Log = 1 );
+	bool alError( const TCHAR* Text, bool Log = true );
 
 protected:
 
@@ -239,11 +251,6 @@ protected:
 	void FindProc( void*& ProcAddress, char* Name, char* SupportName, bool& Supports, bool AllowExt );
 	bool FindExt( const TCHAR* Name );
 
-	/**
-	 * Tears down audio device by stopping all sounds, removing all buffers,  destroying all sources, ... Called by both Destroy and ShutdownAfterError
-	 * to perform the actual tear down.
-	 */
-	void Teardown( void );
 
 	// Variables.
 

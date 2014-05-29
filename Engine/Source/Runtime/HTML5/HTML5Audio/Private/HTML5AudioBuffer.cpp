@@ -9,7 +9,7 @@
 /*------------------------------------------------------------------------------------
 	FALSoundBuffer.
 ------------------------------------------------------------------------------------*/
-/** 
+/**
  * Constructor
  *
  * @param AudioDevice	audio device this sound buffer is going to be attached to.
@@ -20,8 +20,8 @@ FALSoundBuffer::FALSoundBuffer( FALAudioDevice* InAudioDevice )
 }
 
 /**
- * Destructor 
- * 
+ * Destructor
+ *
  * Frees wave data and detaches itself from audio device.
  */
 FALSoundBuffer::~FALSoundBuffer( void )
@@ -92,6 +92,18 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioResourceCreationTime );
 
+	// This code is not relevant for now on HTML5 but adding this for consistency with other platforms.
+	// Check to see if thread has finished decompressing on the other thread
+
+	if (Wave->AudioDecompressor != NULL)
+	{
+		Wave->AudioDecompressor->EnsureCompletion();
+
+		// Remove the decompressor
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
+	}
+
 	// Can't create a buffer without any source data
 	if( Wave == NULL || Wave->NumChannels == 0 )
 	{
@@ -102,7 +114,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat());
 
 	FALSoundBuffer* Buffer = NULL;
-	
+
 	// Find the existing buffer if any
 	if( Wave->ResourceID )
 	{
@@ -129,7 +141,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 		// Keep track of associated resource name.
 		Buffer->ResourceName = Wave->GetPathName();
 
-		Buffer->InternalFormat = AudioDevice->GetInternalFormat( Wave->NumChannels );		
+		Buffer->InternalFormat = AudioDevice->GetInternalFormat( Wave->NumChannels );
 		Buffer->NumChannels = Wave->NumChannels;
 		Buffer->SampleRate = Wave->SampleRate;
 
