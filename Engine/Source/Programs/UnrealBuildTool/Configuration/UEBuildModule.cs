@@ -19,7 +19,6 @@ namespace UnrealBuildTool
 		Developer,
 		Editor,
 		ThirdParty,
-		Plugin,
 		Program,
 		Game,
 	}
@@ -38,11 +37,47 @@ namespace UnrealBuildTool
 		public static readonly string RuntimeFolder = String.Format("{0}Runtime{0}", Path.DirectorySeparatorChar);
 		public static readonly string DeveloperFolder = String.Format("{0}Developer{0}", Path.DirectorySeparatorChar);
 		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
-		public static readonly string PluginFolder = String.Format("Plugins{0}", Path.DirectorySeparatorChar);
-		public static readonly string ThirdPartyFolder = String.Format("{0}ThirdParty{0}", Path.DirectorySeparatorChar);
 		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
 
-		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
+		public static UEBuildModuleType GetPluginModuleType(string ModuleName)
+		{
+			UEBuildModuleType ModuleType = UEBuildModuleType.Unknown;
+			PluginInfo Info = Plugins.GetPluginInfoForModule(ModuleName);
+			if (null == Info)
+			{
+				return ModuleType;
+			}
+			foreach (PluginInfo.PluginModuleInfo ModuleInfo in Info.Modules)
+			{
+				if (ModuleInfo.Name == ModuleName)
+				{
+					switch (ModuleInfo.Type)
+					{
+						case PluginInfo.PluginModuleType.Developer:
+							ModuleType = UEBuildModuleType.Developer;
+							break;
+						case PluginInfo.PluginModuleType.Editor:
+						case PluginInfo.PluginModuleType.EditorNoCommandlet:
+							ModuleType = UEBuildModuleType.Editor;
+							break;
+						case PluginInfo.PluginModuleType.Program:
+							ModuleType = UEBuildModuleType.Program;
+							break;
+						case PluginInfo.PluginModuleType.Runtime:
+						case PluginInfo.PluginModuleType.RuntimeNoCommandlet:
+							ModuleType = UEBuildModuleType.Runtime;
+							break;
+						default:
+							throw new BuildException("Unhandled plugin module type {0}", ModuleInfo.Type.ToString());
+					}
+					// break out of loop
+					break;
+				}
+			}
+			return ModuleType;
+		}
+
+		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
 		{
 			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.RuntimeFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
@@ -55,14 +90,6 @@ namespace UnrealBuildTool
 			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.EditorFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
 				ModuleType = UEBuildModuleType.Editor;
-			}
-			else if (ModuleFileRelativeToEngineDirectory.StartsWith(UEBuildModule.PluginFolder, StringComparison.InvariantCultureIgnoreCase))
-			{
-				ModuleType = UEBuildModuleType.Plugin;
-			}
-			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ThirdPartyFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
-			{
-				ModuleType = UEBuildModuleType.ThirdParty;
 			}
 			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{

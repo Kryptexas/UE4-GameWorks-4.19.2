@@ -2355,27 +2355,42 @@ namespace UnrealBuildTool
 				var ModuleType = UEBuildModuleType.Unknown;
 				var ApplicationOutputPath = "";
 				var ModuleFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(ModuleFileName, ProjectFileGenerator.EngineRelativePath);
-				if (ModuleFileRelativeToEngineDirectory.StartsWith("..") || Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
+
+				// see if it's external
+				if (RulesObject.Type == ModuleRules.ModuleType.External)
 				{
-					ApplicationOutputPath = ModuleFileName;
-					int SourceIndex = ApplicationOutputPath.LastIndexOf(Path.DirectorySeparatorChar + "Source" + Path.DirectorySeparatorChar);
-					if (SourceIndex != -1)
-					{
-						ApplicationOutputPath = ApplicationOutputPath.Substring(0, SourceIndex + 1);
-						ModuleType = UEBuildModuleType.Game;
-					}
-					else
-					{
-						throw new BuildException("Unable to parse application directory for module '{0}' ({1}). Is it in '../../<APP>/Source'?",
-							ModuleName, ModuleFileName);
-					}
+					ModuleType = UEBuildModuleType.ThirdParty;
 				}
 				else
 				{
-					ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleType, ModuleFileRelativeToEngineDirectory);
+					// Check if it's a plugin
+					ModuleType = UEBuildModule.GetPluginModuleType(ModuleName);
 					if (ModuleType == UEBuildModuleType.Unknown)
 					{
-						throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+						// not a plugin, see if it is a game module 
+						if (ModuleFileRelativeToEngineDirectory.StartsWith("..") || Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
+						{
+							ApplicationOutputPath = ModuleFileName;
+							int SourceIndex = ApplicationOutputPath.LastIndexOf(Path.DirectorySeparatorChar + "Source" + Path.DirectorySeparatorChar);
+							if (SourceIndex != -1)
+							{
+								ApplicationOutputPath = ApplicationOutputPath.Substring(0, SourceIndex + 1);
+								ModuleType = UEBuildModuleType.Game;
+							}
+							else
+							{
+								throw new BuildException("Unable to parse application directory for module '{0}' ({1}). Is it in '../../<APP>/Source'?",
+									ModuleName, ModuleFileName);
+							}
+						}
+						else
+						{
+							ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleName, ModuleType, ModuleFileRelativeToEngineDirectory);
+							if (ModuleType == UEBuildModuleType.Unknown)
+							{
+								throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+							}
+						}
 					}
 				}
 

@@ -13,7 +13,6 @@ struct EBuildModuleType
 		Developer,
 		Editor,
 		ThirdParty,
-		Plugin,
 		Program,
 		Game,
 		// NOTE: If you add a new value, make sure to update the ToString() method below!
@@ -50,10 +49,6 @@ struct EBuildModuleType
 		else if (FCString::Stricmp(Value, TEXT("ThirdParty")) == 0)
 		{
 			return ThirdParty;
-		}
-		else if (FCString::Stricmp(Value, TEXT("Plugin")) == 0)
-		{
-			return Plugin;
 		}
 		else if (FCString::Stricmp(Value, TEXT("Program")) == 0)
 		{
