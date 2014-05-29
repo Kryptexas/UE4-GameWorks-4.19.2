@@ -47,6 +47,7 @@
 #include "Matinee/InterpTrackInstFloatProp.h"
 #include "Matinee/InterpTrackInstMove.h"
 
+#include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
 #include "Landscape/LandscapeProxy.h"
 

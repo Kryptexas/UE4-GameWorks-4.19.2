@@ -11,6 +11,7 @@
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 
+#include "StaticMeshResources.h"
 #include "MeshPaintEdMode.h"
 #include "Factories.h"
 #include "ScopedTransaction.h"

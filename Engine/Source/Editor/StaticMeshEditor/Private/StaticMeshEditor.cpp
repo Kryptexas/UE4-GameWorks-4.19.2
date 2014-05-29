@@ -10,6 +10,7 @@
 #include "StaticMeshEditorActions.h"
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "ISocketManager.h"
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"

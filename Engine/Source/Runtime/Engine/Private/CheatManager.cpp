@@ -6,6 +6,7 @@
 #include "SlateReflector.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
+#include "VisualLog.h"
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "AIController.h"
 #include "EnvironmentQuery/EnvQuery.h"

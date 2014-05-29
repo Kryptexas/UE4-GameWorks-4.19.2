@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "ShaderParameters.h"
+#include "StaticLighting.h"
 
 #include "Components/InteractiveFoliageComponent.h"
 #include "Components/SplineMeshComponent.h"
@@ -27,6 +28,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "AI/Navigation/RecastHelpers.h"
 
+#include "StaticMeshResources.h"
 #include "StaticMeshLight.h"
 #include "SpeedTreeWind.h"
 #include "ComponentInstanceDataCache.h"

@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Model.h"
+
 #if WITH_EDITOR
 #include "GeomTools.h"
 #endif

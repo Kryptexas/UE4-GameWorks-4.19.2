@@ -7,6 +7,8 @@ LandscapeLight.h: Static lighting for LandscapeComponents
 #ifndef _LANDSCAPELIGHT_H
 #define _LANDSCAPELIGHT_H
 
+#include "StaticLighting.h"
+
 class ULandscapeComponent;
 
 /** A texture mapping for landscapes */

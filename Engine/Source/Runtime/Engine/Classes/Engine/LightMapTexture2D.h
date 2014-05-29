@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Engine/Texture2D.h"
 #include "LightMapTexture2D.generated.h"
 
 /**

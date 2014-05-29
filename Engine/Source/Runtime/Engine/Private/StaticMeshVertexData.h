@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "StaticMeshResources.h"
+
 /** The implementation of the static mesh vertex data storage type. */
 template<typename VertexDataType>
 class TStaticMeshVertexData :

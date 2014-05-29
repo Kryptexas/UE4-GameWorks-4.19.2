@@ -49,6 +49,9 @@ struct BoneTrackPair
 typedef TArray<BoneTrackPair> BoneTrackArray;
 
 
+/** Array of FTransform using the game memory stack */
+typedef TArray< FTransform, TMemStackAllocator<> > FTransformArray;
+
 /**
  * Extracts a single BoneAtom from an Animation Sequence.
  *

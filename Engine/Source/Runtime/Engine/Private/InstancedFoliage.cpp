@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"

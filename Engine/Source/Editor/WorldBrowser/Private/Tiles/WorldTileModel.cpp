@@ -8,6 +8,7 @@
 #include "WorldTileCollectionModel.h"
 #include "WorldTileModel.h"
 
+#include "Engine/WorldComposition.h"
 #include "Landscape/Landscape.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"

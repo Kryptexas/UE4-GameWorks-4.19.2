@@ -8,6 +8,7 @@
 #include "TextureLayout.h"
 #include "ModelLight.h"
 #include "Collision.h"
+#include "Model.h"
 
 //
 //	Static vars

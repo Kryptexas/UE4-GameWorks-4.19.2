@@ -419,27 +419,15 @@
 #include "Animation/VertexAnim/MorphTarget.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "Engine/World.h"
-#include "Engine/WorldComposition.h"
 
-#include "VisualLog.h"
 #include "SystemSettings.h"					// Scalability options.
 #include "SceneManagement.h"				// Scene management.
-#include "StaticLighting.h"					// Static lighting definitions.
-#include "LightMap.h"						// Light-maps.
-#include "ShadowMap.h"
-#include "Model.h"							// Model class.
 
 #include "NavDataGenerator.h"
 #include "NavLinkRenderingProxy.h"
 #include "NavigationModifier.h"
 #include "NavigationOctree.h"
-#include "StaticMeshResources.h"			// Static meshes.
-#include "AnimTree.h"						// Animation.
-#include "SkeletalMeshTypes.h"				// Skeletal animated mesh.
-#include "Animation/SkeletalMeshActor.h"
 #include "ContentStreaming.h"				// Content streaming class definitions.
-#include "LightingBuildOptions.h"			// Definition of lighting build option struct.
-#include "PixelFormat.h"
 #include "PhysicsPublic.h"
 #include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"

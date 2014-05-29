@@ -5,8 +5,10 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "RawIndexBuffer.h"
 #include "MeshBuild.h"
 #include "PhysicsEngine/PhysXSupport.h"
+
 
 /** compare based on base mesh source vertex indices */
 struct FCompareVertexAnimDeltas

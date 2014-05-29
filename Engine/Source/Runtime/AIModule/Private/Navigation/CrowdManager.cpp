@@ -11,6 +11,7 @@
 #include "Navigation/CrowdManager.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdAgentInterface.h"
+#include "VisualLog.h"
 
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_AICrowd, STATCAT_Advanced);
 

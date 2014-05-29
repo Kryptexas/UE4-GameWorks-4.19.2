@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "RawIndexBuffer.h"
+
 /**
  * The LOD settings to use for a group of static meshes.
  */

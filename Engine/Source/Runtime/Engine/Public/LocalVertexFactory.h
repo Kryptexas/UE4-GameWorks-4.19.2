@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "VertexFactory.h"
+#include "Components.h"
+
 /*=============================================================================
 	LocalVertexFactory.h: Local vertex factory definitions.
 =============================================================================*/

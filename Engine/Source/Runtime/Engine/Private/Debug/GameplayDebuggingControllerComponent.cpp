@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "BehaviorTreeDelegates.h"
+#include "VisualLog.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

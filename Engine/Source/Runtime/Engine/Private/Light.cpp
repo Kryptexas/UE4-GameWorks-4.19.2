@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 
 ALight::ALight(const class FPostConstructInitializeProperties& PCIP)

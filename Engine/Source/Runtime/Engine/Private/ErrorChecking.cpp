@@ -10,6 +10,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Model.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

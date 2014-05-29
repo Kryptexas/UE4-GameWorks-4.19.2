@@ -7,6 +7,7 @@
 #pragma once
 
 #include "ShaderCore.h"
+#include "Shader.h"
 #include "RenderResource.h"
 #include "SecureHash.h"
 

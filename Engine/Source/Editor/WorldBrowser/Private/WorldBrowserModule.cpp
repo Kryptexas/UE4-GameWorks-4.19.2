@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
+#include "Engine/WorldComposition.h"
 #include "ModuleManager.h"
 #include "StreamingLevels/StreamingLevelEdMode.h"
 #include "Tiles/WorldTileCollectionModel.h"

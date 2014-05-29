@@ -4,6 +4,7 @@
  =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "GeomTools.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomTools, Log, All);

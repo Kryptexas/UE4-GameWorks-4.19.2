@@ -5,8 +5,8 @@
 #	include "Detour/DetourNavMeshQuery.h"
 #endif
 #include "Navigation/NavigationComponent.h"
-
 #include "AI/Navigation/SmartNavLinkComponent.h"
+#include "VisualLog.h"
 
 #define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
 

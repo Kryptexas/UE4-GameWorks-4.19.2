@@ -14,6 +14,11 @@
 
 class FPhysScene;
 class FSceneViewFamily;
+class IInterface_PostProcessVolume;
+class ULocalPlayer;
+class UGameViewportClient;
+class ABrush;
+class UModel;
 
 template<typename,typename> class TOctree;
 

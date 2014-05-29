@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
 #include "../Private/GeomFitUtils.h"

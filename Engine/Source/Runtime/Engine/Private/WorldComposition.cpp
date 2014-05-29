@@ -4,6 +4,7 @@
 	WorldComposition.cpp: UWorldComposition implementation
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Engine/WorldComposition.h"
 #include "LevelUtils.h"
 
 #if WITH_EDITOR

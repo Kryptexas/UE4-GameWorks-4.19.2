@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 #include "PrecomputedLightVolume.h"
+#include "Runtime/Engine/Public/StaticMeshResources.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
 #include "Runtime/Engine/Classes/Matinee/MatineeActor.h"

@@ -13,6 +13,7 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "PhysXASync.h"
+#include "AnimTree.h"
 
 #include "Particles/ParticleSystemComponent.h"
 

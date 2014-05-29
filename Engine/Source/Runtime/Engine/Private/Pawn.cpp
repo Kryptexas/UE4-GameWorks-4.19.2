@@ -12,6 +12,7 @@
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
 #include "NetworkingDistanceConstants.h"
+#include "VisualLog.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);

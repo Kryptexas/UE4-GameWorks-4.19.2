@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "LevelUtils.h"
 #include "FXSystem.h"

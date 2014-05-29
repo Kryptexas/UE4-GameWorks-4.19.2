@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/InteractiveFoliageActor.h"
+#include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BSPOps.h"

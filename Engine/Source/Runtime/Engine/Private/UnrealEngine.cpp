@@ -8,6 +8,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/Console.h"
+#include "VisualLog.h"
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"

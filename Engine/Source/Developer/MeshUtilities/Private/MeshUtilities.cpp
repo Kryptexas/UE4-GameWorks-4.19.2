@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshUtilitiesPrivate.h"
+#include "StaticMeshResources.h"
 #include "SkeletalMeshTypes.h"
 #include "Landscape/LandscapeRender.h"
 #include "MeshBuild.h"

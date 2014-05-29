@@ -6,8 +6,11 @@ Level.cpp: Level-related functions
 
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Engine/WorldComposition.h"
 #include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
+#include "Model.h"
+#include "StaticLighting.h"
 #include "SoundDefinitions.h"
 #include "PrecomputedLightVolume.h"
 #include "TickTaskManagerInterface.h"

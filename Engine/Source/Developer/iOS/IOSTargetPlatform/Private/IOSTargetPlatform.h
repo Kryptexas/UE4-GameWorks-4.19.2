@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Ticker.h"
-
+#include "StaticMeshResources.h"
 
 /**
  * FIOSTargetPlatform, abstraction for cooking iOS platforms

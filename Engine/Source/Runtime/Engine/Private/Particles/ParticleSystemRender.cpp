@@ -4,6 +4,7 @@
 	ParticleSystemRender.cpp: Particle system rendering functions.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "DiagnosticTable.h"
 #include "ParticleResources.h"

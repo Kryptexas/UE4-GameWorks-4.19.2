@@ -7,10 +7,12 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
+#include "AnimTree.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
 
 #include "MessageLog.h"
+
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "AIController.h"

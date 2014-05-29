@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "StaticMeshResources.h"
 
 /**
  * Template for Windows target platforms

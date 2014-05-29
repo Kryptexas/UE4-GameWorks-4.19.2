@@ -8,6 +8,7 @@
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "VisualLog.h"
 
 //----------------------------------------------------------------------//
 // UBehaviorTreeComponent

@@ -19,6 +19,8 @@
 #endif // WITH_NAVIGATION_GENERATOR
 
 #include "AI/Navigation/SmartNavLinkComponent.h"
+#include "VisualLog.h"
+
 
 //----------------------------------------------------------------------//
 // bunch of compile-time checks to assure types used by Recast and our

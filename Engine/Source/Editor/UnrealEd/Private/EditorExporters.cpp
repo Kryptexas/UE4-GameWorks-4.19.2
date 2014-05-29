@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "SoundDefinitions.h"
 #include "Landscape/LandscapeDataAccess.h"

@@ -7,6 +7,7 @@
 #include "LevelEditorActions.h"
 #include "EditorBuildUtils.h"
 #include "MessageLog.h"
+#include "LightingBuildOptions.h"
 
 #include "AssetToolsModule.h"
 

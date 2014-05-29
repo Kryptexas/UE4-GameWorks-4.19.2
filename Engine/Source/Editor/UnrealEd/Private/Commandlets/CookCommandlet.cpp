@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 
+#include "Engine/WorldComposition.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
 #include "ISourceControlModule.h"

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Texture.h"
+#include "ShowFlags.h"
 
 /*-----------------------------------------------------------------------------
 	System settings and scalability options.

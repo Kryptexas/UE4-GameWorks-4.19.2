@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 
 #if WITH_EDITORONLY_DATA
 #include "RawMesh.h"

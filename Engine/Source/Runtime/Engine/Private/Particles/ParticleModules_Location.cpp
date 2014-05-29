@@ -7,6 +7,7 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "RawIndexBuffer.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Location/ParticleModuleLocation.h"
 #include "Particles/Location/ParticleModuleLocationBoneSocket.h"

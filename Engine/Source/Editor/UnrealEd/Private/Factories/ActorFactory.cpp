@@ -7,6 +7,7 @@ ActorFactory.cpp:
 #include "UnrealEd.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "StaticMeshResources.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"

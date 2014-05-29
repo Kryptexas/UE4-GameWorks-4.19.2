@@ -17,6 +17,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "SkeletalRenderGPUSkin.h"
+#include "RawIndexBuffer.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

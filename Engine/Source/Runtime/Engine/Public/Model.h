@@ -9,6 +9,15 @@
 #include "Engine.h"
 #include "RawIndexBuffer.h"
 #include "LocalVertexFactory.h"
+#include "RenderUtils.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+
+struct FStaticLightingVertex;
+class ABrush;
+class UModel;
+class ULightComponent;
+class UPolys;
 
 //
 // One vertex associated with a Bsp node's polygon.  Contains a vertex index

@@ -6,6 +6,7 @@
 
 // Engine includes.
 #include "EnginePrivate.h"
+#include "Model.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogExporter, Log, All);
 

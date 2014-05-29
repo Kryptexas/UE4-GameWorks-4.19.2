@@ -5,6 +5,7 @@
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "VisualLog.h"
 
 static const int32 EQSMaxItemsDrawn = 10000;
 

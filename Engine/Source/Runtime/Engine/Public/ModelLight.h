@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "StaticLighting.h"
+#include "Model.h"
+
 /** Represents a BSP surface to the static lighting system. */
 class FBSPSurfaceStaticLighting : public FStaticLightingTextureMapping, public FStaticLightingMesh
 {

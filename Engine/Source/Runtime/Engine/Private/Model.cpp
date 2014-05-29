@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Model.h"
 #include "MeshBuild.h"
 
 float UModel::BSPTexelScale = 100.0f;

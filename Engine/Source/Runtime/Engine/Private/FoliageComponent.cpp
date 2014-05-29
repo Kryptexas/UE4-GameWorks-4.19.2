@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "Engine/InteractiveFoliageActor.h"
 #include "Components/InteractiveFoliageComponent.h"
 

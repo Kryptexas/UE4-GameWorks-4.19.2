@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 
+#include "StaticMeshResources.h"
 #include "StaticMeshVertexData.h"
 
 /*-----------------------------------------------------------------------------

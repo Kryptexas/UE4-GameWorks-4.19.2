@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "Factories.h"
 #include "TextureLayout.h"
 #include "BSPOps.h"

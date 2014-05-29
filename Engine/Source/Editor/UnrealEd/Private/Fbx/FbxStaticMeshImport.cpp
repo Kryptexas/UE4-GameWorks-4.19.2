@@ -38,6 +38,7 @@
 #include "MeshUtilities.h"
 
 #include "Engine.h"
+#include "StaticMeshResources.h"
 #include "TextureLayout.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"

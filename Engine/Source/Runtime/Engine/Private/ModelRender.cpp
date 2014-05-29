@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "Model.h"
 #include "HModel.h"
 
 

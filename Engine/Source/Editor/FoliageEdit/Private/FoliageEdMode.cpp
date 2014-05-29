@@ -5,6 +5,7 @@
 ================================================================================*/
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "ObjectTools.h"
 #include "FoliageEdMode.h"
 #include "ScopedTransaction.h"

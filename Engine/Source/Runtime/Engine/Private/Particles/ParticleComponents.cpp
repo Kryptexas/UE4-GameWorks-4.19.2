@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
 #include "LevelUtils.h"

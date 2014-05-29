@@ -2,6 +2,7 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
+#include "VisualLog.h"
 
 AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)

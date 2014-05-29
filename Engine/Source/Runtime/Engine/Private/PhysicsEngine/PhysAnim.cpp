@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "AnimTree.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"

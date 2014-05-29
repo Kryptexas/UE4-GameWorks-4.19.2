@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "Model.h"
 #include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
 

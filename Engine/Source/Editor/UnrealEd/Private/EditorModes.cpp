@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Engine/BookMark.h"
+#include "StaticMeshResources.h"
 #include "EditorSupportDelegates.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"

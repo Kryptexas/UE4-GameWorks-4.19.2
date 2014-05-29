@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "RawIndexBuffer.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "StaticMeshResources.h"
 #include "DragTool_FrustumSelect.h"
 #include "ActorEditorUtils.h"
 #include "ScopedTransaction.h"

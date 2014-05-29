@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/WorldComposition.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"

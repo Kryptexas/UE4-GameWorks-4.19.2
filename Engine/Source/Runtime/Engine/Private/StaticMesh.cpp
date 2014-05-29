@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "StaticMeshResources.h"
 #include "MeshBuild.h"
 #include "GenericOctree.h"
 #include "TessellationRendering.h"

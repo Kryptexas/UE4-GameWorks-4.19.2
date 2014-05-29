@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "RenderUtils.h"
+
 /*=============================================================================
 	Components.h: Forward declarations of object components of actors
 =============================================================================*/

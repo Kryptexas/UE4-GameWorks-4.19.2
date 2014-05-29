@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "StaticLighting.h"
+
 /** Represents the triangles of one LOD of a static mesh primitive to the static lighting system. */
 class FStaticMeshStaticLightingMesh : public FStaticLightingMesh
 {
