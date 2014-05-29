@@ -19,6 +19,8 @@
 
 #include "DetailCustomizations.h"
 
+#include "WidgetBlueprintEditor.h"
+
 #define LOCTEXT_NAMESPACE "UMG_EXTENSION"
 
 /////////////////////////////////////////////////////
