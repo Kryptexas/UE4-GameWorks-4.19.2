@@ -8,6 +8,8 @@
 
 #include "DeviceProfileEditorPCH.h"
 
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "DeviceProfiles/DeviceProfile.h"
 #include "ISourceControlModule.h"
 #include "PropertyEditorModule.h"
 #include "PropertyPath.h"

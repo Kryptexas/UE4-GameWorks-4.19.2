@@ -2,6 +2,7 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
+#include "Engine/Breakpoint.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "GraphEditor.h"
 #include "BlueprintUtilities.h"

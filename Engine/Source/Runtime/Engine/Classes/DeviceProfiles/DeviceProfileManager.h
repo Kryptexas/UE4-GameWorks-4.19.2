@@ -8,6 +8,8 @@
 
 #include "DeviceProfileManager.generated.h"
 
+class UDeviceProfile;
+
 // Delegate used to refresh the UI when the profiles change
 DECLARE_MULTICAST_DELEGATE( FOnManagerUpdated );
 

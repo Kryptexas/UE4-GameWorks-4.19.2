@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Engine/CodecMovie.h"
 #include "CodecMovieFallback.generated.h"
 
 UCLASS()

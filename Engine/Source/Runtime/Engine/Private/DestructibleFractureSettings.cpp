@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/DestructibleFractureSettings.h"
 #include "PhysicsEngine/PhysXSupport.h"
 
 
@@ -408,7 +409,7 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<NxExplicitRenderTri
 	return Success;
 }
 
-bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDestructibleAsset& ApexDestructibleAsset, EImportOptions::Type Options)
+bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDestructibleAsset& ApexDestructibleAsset, EDestructibleImportOptions::Type Options)
 {
 	bool Success = false;
 
@@ -418,7 +419,7 @@ bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDes
 
 		IExplicitHierarchicalMesh& EHM = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 
-		if (!(Options & EImportOptions::PreserveSettings))
+		if (!(Options & EDestructibleImportOptions::PreserveSettings))
 		{
 			// Now apply the y -> -y and v -> 1-v transformation to all vertex data
 			for (PxU32 PartIndex = 0; PartIndex < EHM.partCount(); ++PartIndex)

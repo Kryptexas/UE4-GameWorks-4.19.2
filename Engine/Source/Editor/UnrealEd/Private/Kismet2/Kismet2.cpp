@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "Engine/LevelScriptBlueprint.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
 #include "AnimationGraph.h"

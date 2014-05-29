@@ -13,6 +13,7 @@
 #include "DelegateFilter.h"
 #include "Editor/SceneOutliner/Public/ISceneOutlinerColumn.h"
 #include "DeviceProfileServices.h"
+#include "DeviceProfiles/DeviceProfile.h"
 #include "EditorViewportCommands.h"
 #include "SLevelEditor.h"
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"

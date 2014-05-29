@@ -18,4 +18,9 @@ class UAnimationTransitionSchema : public UEdGraphSchema_K2
 
 private:
 	void GetSourceStateActions(FGraphContextMenuBuilder& ContextMenuBuilder) const;
+
+	static UAnimStateTransitionNode* GetTransitionNodeFromGraph(const FAnimBlueprintDebugData& DebugData, const UEdGraph* Graph);
+
+	static UAnimStateNode* GetStateNodeFromGraph(const FAnimBlueprintDebugData& DebugData, const UEdGraph* Graph);
+
 };

@@ -2,6 +2,8 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "Engine/Breakpoint.h"
+
 #include "K2Node.h"
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
 

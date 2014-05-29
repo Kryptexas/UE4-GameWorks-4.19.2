@@ -5,7 +5,8 @@
 =============================================================================*/
 
 #include "DeviceProfileServicesPCH.h"
-
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "DeviceProfiles/DeviceProfile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDeviceProfileServices, Log, All);
 

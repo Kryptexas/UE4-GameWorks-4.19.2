@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node_Tunnel.h"
+#include "EdGraph/EdGraph.h"
 #include "K2Node_MacroInstance.generated.h"
 
 UCLASS(MinimalAPI)

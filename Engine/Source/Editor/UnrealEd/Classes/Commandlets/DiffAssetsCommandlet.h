@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Commandlets/Commandlet.h"
 #include "DiffAssetsCommandlet.generated.h"
 
 UCLASS()

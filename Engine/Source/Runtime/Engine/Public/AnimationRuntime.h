@@ -7,6 +7,8 @@
 
 #pragma once
 
+struct FInputBlendPose;
+
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
 

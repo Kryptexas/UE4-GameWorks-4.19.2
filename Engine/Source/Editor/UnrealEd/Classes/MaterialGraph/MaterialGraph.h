@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "EdGraph/EdGraph.h"
 #include "MaterialGraph.generated.h"
 
 DECLARE_DELEGATE_RetVal( bool, FRealtimeStateGetter );

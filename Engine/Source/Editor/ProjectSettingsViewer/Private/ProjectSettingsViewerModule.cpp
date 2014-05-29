@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "ProjectSettingsViewerPrivatePCH.h"
-
+#include "Engine/Console.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 

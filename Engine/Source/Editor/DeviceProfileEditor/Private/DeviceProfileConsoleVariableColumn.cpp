@@ -10,6 +10,7 @@
 #include "PropertyHandle.h"
 
 // Misc includes
+#include "DeviceProfiles/DeviceProfile.h"
 #include "ScopedTransaction.h"
 
 

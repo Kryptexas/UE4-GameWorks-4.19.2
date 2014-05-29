@@ -6,10 +6,6 @@
 
 #if WITH_APEX
 
-#if WITH_EDITOR
-#include "ApexDestructibleAssetImport.h"
-#endif
-
 // Forward declares
 namespace physx
 {
@@ -26,6 +22,20 @@ namespace physx
 	};
 };
 #endif // WITH_APEX
+
+/** 
+ * Options for APEX asset import.
+ **/
+namespace EDestructibleImportOptions
+{
+	enum Type
+	{
+		// Just imports the APEX asset
+		None				= 0,
+		// Preserves settings in DestructibleMesh 
+		PreserveSettings	= 1<<0,
+	};
+};
 
 /** Parameters to describe the application of U,V coordinates on a particular slice within a destructible. */
 USTRUCT()
@@ -221,7 +231,7 @@ class UDestructibleFractureSettings : public UObject
 	 *
 	 * @returns true if successful
 	 */
-	ENGINE_API	bool					BuildRootMeshFromApexDestructibleAsset(physx::apex::NxDestructibleAsset& ApexDestructibleAsset, EImportOptions::Type Options = EImportOptions::None);
+	ENGINE_API	bool					BuildRootMeshFromApexDestructibleAsset(physx::apex::NxDestructibleAsset& ApexDestructibleAsset, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
 
 	/**
 	 * Build set of Voronoi sites internal to the root mesh

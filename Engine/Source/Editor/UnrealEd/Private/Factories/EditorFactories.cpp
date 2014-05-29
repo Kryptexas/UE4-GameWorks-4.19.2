@@ -45,6 +45,10 @@
 
 #include "Particles/ParticleSystem.h"
 
+#if WITH_APEX
+#include "ApexDestructibleAssetImport.h"
+#endif // WITH_APEX
+
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
 #include "AllowWindowsPlatformTypes.h"
@@ -6832,7 +6836,7 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
 		UDestructibleMesh* ReimportedDestructibleMesh = ImportDestructibleMeshFromApexDestructibleAsset(DestructibleMesh->GetOuter(), *ApexDestructibleAsset, DestructibleMesh->GetFName(), DestructibleMesh->GetFlags(), NULL,
-																										EImportOptions::PreserveSettings);
+																										EDestructibleImportOptions::PreserveSettings);
 		if( ReimportedDestructibleMesh != NULL )
 		{
 			check( ReimportedDestructibleMesh == DestructibleMesh );

@@ -4,6 +4,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "EngineUtils.h"
+#include "Engine/Console.h"
 
 #include "DiagnosticTable.h"
 #include "TargetPlatform.h"

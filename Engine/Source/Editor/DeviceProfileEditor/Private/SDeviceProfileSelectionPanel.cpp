@@ -6,6 +6,8 @@
 
 
 #include "DeviceProfileEditorPCH.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "PropertyEditorModule.h"
 
 

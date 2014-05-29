@@ -12,6 +12,7 @@
 #include "FileManagerGeneric.h"
 #include "TaskGraphInterfaces.h"
 
+
 #include "Projects.h"
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
@@ -38,6 +39,7 @@
 	#include "ParticleHelper.h"
 	#include "Online.h"
 	#include "PlatformFeatures.h"
+	#include "DeviceProfiles/DeviceProfileManager.h"
 #if !UE_SERVER
 	#include "SlateRHIRendererModule.h"
 #endif

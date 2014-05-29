@@ -21,6 +21,7 @@
 #include "SLevelOfDetailBranchNode.h"
 #include "STutorialWrapper.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 

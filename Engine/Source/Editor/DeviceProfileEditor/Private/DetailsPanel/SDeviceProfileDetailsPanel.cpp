@@ -7,6 +7,7 @@
 
 
 #include "DeviceProfileEditorPCH.h"
+#include "DeviceProfiles/DeviceProfile.h"
 
 
 #define LOCTEXT_NAMESPACE "DeviceProfileDetailsPanel"

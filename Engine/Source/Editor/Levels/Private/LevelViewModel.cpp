@@ -2,6 +2,7 @@
 
 #include "LevelsPrivatePCH.h"
 
+#include "Engine/LevelScriptBlueprint.h"
 #include "LevelViewModel.h"
 #include "LevelUtils.h"
 #include "EditorLevelUtils.h"

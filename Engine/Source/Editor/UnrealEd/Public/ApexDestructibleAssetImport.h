@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "Engine/DestructibleFractureSettings.h"
+
 /*=============================================================================
 	ApexDestructibleAssetImport.h:
 
@@ -23,19 +25,7 @@ namespace physx
 	};
 };
 
-/** 
- * Options for APEX asset import.
- **/
-namespace EImportOptions
-{
-	enum Type
-	{
-		// Just imports the APEX asset
-		None				= 0,
-		// Preserves settings in DestructibleMesh 
-		PreserveSettings	= 1<<0,
-	};
-};
+
 
 /**
  * Creates an APEX NxDestructibleAsset from a binary buffer.
@@ -68,11 +58,11 @@ physx::apex::NxDestructibleAsset* CreateApexDestructibleAssetFromFile(const FStr
  * @param DestructibleMesh - the UDestructibleMesh to which to apply the new APEX Desrtructible Asset
  * @param ApexDestructibleAsset - the NxDestructibleAsset to use
  * @param OutData - Optional import data to populate
- * @param Options - Additional options to modify the import behavior ( see EImportOptions::Type )
+ * @param Options - Additional options to modify the import behavior ( see EDestructibleImportOptions::Type )
  *
  * @return true if successful
  */
-UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EImportOptions::Type Options = EImportOptions::None);
+UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
 
 /**
  * Creates a DestructibleMesh from an APEX Destructible Asset with the given name and flags.
@@ -82,11 +72,11 @@ UNREALED_API bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, 
  * @param Name - the Unreal name for the UDestructibleMesh
  * @param Flags - object flags for the UDestructibleMesh
  * @param OutData - Optional import data to populate
- * @param Options - Additional options to modify the import behavior ( see EImportOptions::Type )
+ * @param Options - Additional options to modify the import behavior ( see EDestructibleImportOptions::Type )
  *
  * @return The newly created UDestructibleMesh if successful, NULL otherwise
  */
-UNREALED_API UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EImportOptions::Type Options = EImportOptions::None);
+UNREALED_API UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InParent, physx::apex::NxDestructibleAsset& ApexDestructibleAsset, FName Name, EObjectFlags Flags, FSkeletalMeshImportData* OutData, EDestructibleImportOptions::Type Options = EDestructibleImportOptions::None);
 
 /**
  * Builds a UDestructibleMesh from its internal fracture settings

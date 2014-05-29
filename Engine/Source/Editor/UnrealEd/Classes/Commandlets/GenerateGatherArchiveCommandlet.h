@@ -4,6 +4,7 @@
 
 #include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationManifest.h"
+#include "Commandlets/Commandlet.h"
 #include "GenerateGatherArchiveCommandlet.generated.h"
 
 

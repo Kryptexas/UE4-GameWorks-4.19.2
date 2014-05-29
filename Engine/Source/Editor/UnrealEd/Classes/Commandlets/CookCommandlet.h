@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Commandlets/Commandlet.h"
 #include "CookCommandlet.generated.h"
 
 UCLASS()

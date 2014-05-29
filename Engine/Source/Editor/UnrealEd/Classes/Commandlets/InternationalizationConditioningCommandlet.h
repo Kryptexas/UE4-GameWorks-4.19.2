@@ -2,6 +2,7 @@
 
 #pragma once 
 
+#include "Commandlets/Commandlet.h"
 #include "InternationalizationConditioningCommandlet.generated.h"
 
 

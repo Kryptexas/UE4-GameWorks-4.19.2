@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/DestructibleFractureSettings.h"
 #include "PhysicsEngine/PhysXSupport.h"
 
 #if WITH_APEX && WITH_EDITOR
@@ -57,7 +58,7 @@ void UDestructibleMesh::PostLoad()
 				// re create destructible asset if it exceeds
 				if (ApexDestructibleAsset != NULL)
 				{
-					SetApexDestructibleAsset(*this, *ApexDestructibleAsset, NULL, EImportOptions::PreserveSettings);
+					SetApexDestructibleAsset(*this, *ApexDestructibleAsset, NULL, EDestructibleImportOptions::PreserveSettings);
 				}
 #else
 				UE_LOG(LogDestructible, Warning, TEXT("Can't render %s asset because it exceeds max GPU skin bones supported(%d). You'll need to resave this in the editor."), *GetName(), MaxGPUSkinBones);

@@ -129,30 +129,7 @@ public:
 		SnapshotBuffer = NULL;
 	}
 
-	UAnimStateTransitionNode* GetTransitionNodeFromGraph(const UEdGraph* Graph) const
-	{
-		if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = TransitionGraphToNodeMap.Find(Graph))
-		{
-			return TransNodePtr->Get();
-		}
 
-		if (const TWeakObjectPtr<UAnimStateTransitionNode>* TransNodePtr = TransitionBlendGraphToNodeMap.Find(Graph))
-		{
-			return TransNodePtr->Get();
-		}
-
-		return NULL;
-	}
-
-	UAnimStateNode* GetStateNodeFromGraph(const UEdGraph* Graph) const
-	{
-		if (const TWeakObjectPtr<UAnimStateNode>* StateNodePtr = StateGraphToNodeMap.Find(Graph))
-		{
-			return StateNodePtr->Get();
-		}
-
-		return NULL;
-	}
 
 	bool IsReplayingSnapshot() const { return SnapshotIndex != INDEX_NONE; }
 	void TakeSnapshot(UAnimInstance* Instance);

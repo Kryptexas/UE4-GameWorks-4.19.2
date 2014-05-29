@@ -203,7 +203,7 @@ void FDestructibleMeshEditorViewportClient::Fracture()
 		else if (DestructibleMesh->ApexDestructibleAsset != NULL)
 		{
 			DestructibleMesh = ImportDestructibleMeshFromApexDestructibleAsset(DestructibleMesh->GetOuter(), *DestructibleMesh->ApexDestructibleAsset, DestructibleMesh->GetFName(), DestructibleMesh->GetFlags(), NULL,
- 																			   EImportOptions::PreserveSettings);
+ 																			   EDestructibleImportOptions::PreserveSettings);
 		}
 		
 		DestructibleMesh->FractureSettings->CreateVoronoiSitesInRootMesh();

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EdGraph/EdGraph.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -134,6 +135,16 @@ void UEdGraphNode::SnapToGrid(float GridSnapSize)
 {
 	NodePosX = GridSnapSize * FMath::RoundToInt(NodePosX/GridSnapSize);
 	NodePosY = GridSnapSize * FMath::RoundToInt(NodePosY/GridSnapSize);
+}
+
+class UEdGraph* UEdGraphNode::GetGraph() const
+{
+	UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
+	if (Graph == NULL)
+	{
+		ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
+	}
+	return Graph;
 }
 
 void UEdGraphNode::DestroyNode()

@@ -5,6 +5,7 @@ Level.cpp: Level-related functions
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/LevelScriptBlueprint.h"
 #include "Sound/SoundNodeWave.h"
 #include "Net/UnrealNetwork.h"
 #include "SoundDefinitions.h"

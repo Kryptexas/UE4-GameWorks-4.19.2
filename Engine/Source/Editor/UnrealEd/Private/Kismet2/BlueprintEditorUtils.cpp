@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 
 #include "Matinee/MatineeActor.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 #include "LatentActions.h"
 #include "Kismet2/CompilerResultsLog.h"

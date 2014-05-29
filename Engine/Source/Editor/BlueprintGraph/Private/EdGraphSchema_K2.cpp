@@ -7,6 +7,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
+#include "Engine/LevelScriptBlueprint.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"

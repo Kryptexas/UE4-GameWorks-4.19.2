@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Commandlets/ResavePackagesCommandlet.h"
 #include "KismetUpdateCommandlet.generated.h"
 
 UCLASS()

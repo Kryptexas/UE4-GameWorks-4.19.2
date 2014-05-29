@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Console.h"
 #include "Slate.h"
 #include "DefaultValueHelper.h"
 

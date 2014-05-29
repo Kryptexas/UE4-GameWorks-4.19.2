@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Commandlets/Commandlet.h"
 #include "DerivedDataCacheCommandlet.generated.h"
 
 

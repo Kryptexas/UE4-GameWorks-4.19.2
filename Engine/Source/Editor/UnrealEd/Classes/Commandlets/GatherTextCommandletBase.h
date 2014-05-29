@@ -4,6 +4,7 @@
 
 #include "UnrealString.h"
 #include "InternationalizationManifest.h"
+#include "Commandlets/Commandlet.h"
 #include "GatherTextCommandletBase.generated.h"
 
 class FWordCountReportData

@@ -2,7 +2,7 @@
 
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Engine/LevelScriptBlueprint.h"
 #include "BlueprintUtilities.h"
 
 

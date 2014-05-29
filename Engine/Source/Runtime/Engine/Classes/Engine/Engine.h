@@ -8,6 +8,7 @@
 #include "Engine.generated.h"
 
 class FScreenSaverInhibitor;
+class UDeviceProfileManager;
 
 UENUM()
 enum EFullyLoadPackageType

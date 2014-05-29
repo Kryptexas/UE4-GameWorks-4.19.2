@@ -3,6 +3,7 @@
 /** Commandlet for running automated commands through the launcher */
 
 #pragma once
+#include "Commandlets/Commandlet.h"
 #include "AutomatedLauncherCommandlet.generated.h"
 
 UCLASS()

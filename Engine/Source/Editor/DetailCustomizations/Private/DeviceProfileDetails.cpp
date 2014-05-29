@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "DetailCustomizationsPrivatePCH.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "DeviceProfileDetails.h"
 
 

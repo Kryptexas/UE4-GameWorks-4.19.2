@@ -12,6 +12,14 @@ namespace NxParameterized
 {
 	class Interface;
 }
+
+namespace physx
+{
+	namespace apex
+	{
+		class NxDestructibleAsset;
+	}
+}
 #endif
 
 /**

@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Commandlets/Commandlet.h"
 #include "GenerateDistillFileSetsCommandlet.generated.h"
 
 UCLASS()

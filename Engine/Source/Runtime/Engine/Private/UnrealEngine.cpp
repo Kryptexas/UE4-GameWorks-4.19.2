@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Engine/Console.h"
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"
@@ -38,6 +39,7 @@
 #include "StatsData.h"
 #include "AudioDevice.h"
 #include "ActiveSound.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"

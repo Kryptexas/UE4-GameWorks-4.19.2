@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/Breakpoint.h"
 #include "BlueprintUtilities.h"
 
 UBreakpoint::UBreakpoint(const class FPostConstructInitializeProperties& PCIP)

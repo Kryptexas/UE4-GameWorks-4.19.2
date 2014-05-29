@@ -200,15 +200,7 @@ public:
 	}
 
 	/** Returns the graph that contains this node */
-	class UEdGraph* GetGraph() const
-	{
-		UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
-		if(Graph == NULL)
-		{
-			ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
-		}
-		return Graph;
-	}
+	class UEdGraph* GetGraph() const;
 
 	/**
 	 * Allocate default pins for a given node, based only the NodeType, which should already be filled in.

@@ -13,6 +13,7 @@
 #include "ClassIconFinder.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "BlueprintGraphDefinitions.h"
+#include "Engine/Breakpoint.h"
 #include "ActorMaterialCategory.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"

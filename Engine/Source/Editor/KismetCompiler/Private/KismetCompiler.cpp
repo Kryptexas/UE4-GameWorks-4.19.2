@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "KismetCompilerPrivatePCH.h"
+#include "Engine/LevelScriptBlueprint.h"
 #include "KismetCompilerBackend.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"

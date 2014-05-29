@@ -5,6 +5,7 @@
 #include "SequencerObjectSpawner.h"
 #include "Toolkits/IToolkitHost.h"
 #include "MovieScene.h"
+#include "Engine/LevelScriptBlueprint.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
