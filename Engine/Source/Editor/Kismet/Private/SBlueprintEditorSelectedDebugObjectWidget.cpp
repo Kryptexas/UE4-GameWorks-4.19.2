@@ -413,7 +413,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 			}
 
 			// We don't have a specific debug world, but the object isnt in a PIE world
-			if (ObjWorld->WorldType != EWorldType::PIE)
+			if ((ObjWorld->WorldType != EWorldType::PIE) && (ObjWorld->WorldType != EWorldType::Editor))
 			{
 				continue;
 			}
