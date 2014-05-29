@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameplayAbility.h"
+#include "Abilities/GameplayAbility.h"
 #include "SkillSystemBlueprintLibrary.generated.h"
 
 class UBlueprintPlayMontageAndWaitTaskProxy;
@@ -18,4 +18,7 @@ class USkillSystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UBlueprintPlayMontageAndWaitTaskProxy* CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, class UAnimMontage *MontageToPlay);
+
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static class UBlueprintWaitMovementModeChangeTaskProxy* CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode);
 };

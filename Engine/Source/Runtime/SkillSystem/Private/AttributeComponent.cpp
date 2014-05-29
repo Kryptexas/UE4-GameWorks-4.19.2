@@ -27,6 +27,8 @@ UAttributeComponent::UAttributeComponent(const class FPostConstructInitializePro
 	ActiveGameplayEffects.Owner = this;
 
 	SetIsReplicated(true);
+	ReplicatedPredictionKey = 0;
+	LocalPredictionKey = 0;
 }
 
 UAttributeComponent::~UAttributeComponent()
@@ -61,7 +63,7 @@ void UAttributeComponent::ModifyStats(TSubclassOf<class UAttributeSet> Attribute
 	}
 }
 
-UAttributeSet*	UAttributeComponent::GetOrCreateAttributeSubobject(UClass *AttributeClass)
+UAttributeSet*	UAttributeComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
 	UAttributeSet *MyAttributes  = NULL;
@@ -72,41 +74,28 @@ UAttributeSet*	UAttributeComponent::GetOrCreateAttributeSubobject(UClass *Attrib
 		{
 			MyAttributes = ConstructObject<UAttributeSet>(AttributeClass, OwningActor);
 			SpawnedAttributes.AddUnique(MyAttributes);
-			//LastSpawnedSet = MyAttributes;
-			TestFloat= 999.f;
 		}
 	}
 
 	return MyAttributes;
 }
 
-UAttributeSet* UAttributeComponent::GetAttributeSubobjectChecked(UClass *AttributeClass) const
+UAttributeSet* UAttributeComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
 	UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
 	check(Set);
 	return Set;
 }
 
-UAttributeSet* UAttributeComponent::GetAttributeSubobject(UClass *AttributeClass) const
+UAttributeSet* UAttributeComponent::GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
-	// FIXME: Lookup may would be helpful here
-
-	AActor *ActorOwner = GetOwner();
-	if (ActorOwner)
+	for (UAttributeSet * Set : SpawnedAttributes)
 	{
-		TArray<UObject*> ChildObjects;
-		GetObjectsWithOuter(ActorOwner, ChildObjects);
-
-		for (int32 ChildIndex=0; ChildIndex < ChildObjects.Num(); ++ChildIndex)
+		if (Set && Set->IsA(AttributeClass))
 		{
-			UObject *Obj = ChildObjects[ChildIndex];
-			if (Obj->GetClass()->IsChildOf(AttributeClass))
-			{
-				return Cast<UAttributeSet>(Obj);
-			}
+			return Set;
 		}
 	}
-
 	return NULL;
 }
 
@@ -213,6 +202,11 @@ bool UAttributeComponent::HasAnyTags(FGameplayTagContainer &Tags)
 	return ActiveGameplayEffects.HasAnyTags(Tags);
 }
 
+bool UAttributeComponent::HasAllTags(FGameplayTagContainer &Tags)
+{
+	return ActiveGameplayEffects.HasAllTags(Tags);
+}
+
 void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
 {
 	for (int32 idx=0; idx < ActiveGameplayEffects.GameplayEffects.Num(); ++idx)
@@ -239,6 +233,9 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
+	// Temp, only non instance, non periodic GEs can be predictive
+	check((BaseQualifier.PredictionKey() >= 0) == (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
 	if ((ChanceToApply < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToApply))
@@ -257,7 +254,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		float Duration = Spec.GetDuration();
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec);
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
@@ -454,17 +451,6 @@ void UAttributeComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Sp
 	}
 }
 
-void UAttributeComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UAttributeComponent, ActiveGameplayEffects);
-}
-
-void UAttributeComponent::OnRep_GameplayEffects()
-{
-
-}
-
 void UAttributeComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
 {
 	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
@@ -478,6 +464,111 @@ bool UAttributeComponent::CanApplyAttributeModifiers(const UGameplayEffect *Game
 TArray<float> UAttributeComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+}
+
+// ---------------------------------------------------------------------------------------
+
+void UAttributeComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UAttributeComponent, SpawnedAttributes);
+	DOREPLIFETIME(UAttributeComponent, ActiveGameplayEffects);
+
+	DOREPLIFETIME(UAttributeComponent, ReplicatedInstancedAbilities);
+	DOREPLIFETIME(UAttributeComponent, ActivatableAbilities);
+
+	DOREPLIFETIME(UAttributeComponent, ReplicatedPredictionKey);
+}
+
+bool UAttributeComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		if (Set)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Set, *Bunch, *RepFlags);
+		}
+	}
+
+	for (UGameplayAbility* Ability : ReplicatedInstancedAbilities)
+	{
+		if (Ability)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
+}
+
+void UAttributeComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs)
+{
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		if (Set && Set->IsNameStableForNetworking())
+		{
+			Objs.Add(Set);
+		}
+	}
+}
+
+void UAttributeComponent::PostNetReceive()
+{
+	Super::PostNetReceive();
+}
+
+void UAttributeComponent::OnRep_GameplayEffects()
+{
+
+}
+
+void UAttributeComponent::OnRep_PredictionKey()
+{
+	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
+	int32 idx = 0;
+	for ( ; idx < PredictionDelegates.Num(); ++idx)
+	{
+		if (PredictionDelegates[idx].Key <= ReplicatedPredictionKey)
+		{
+			PredictionDelegates[idx].Value.Broadcast();
+		}
+		else
+		{
+			break;
+		}
+	}
+	if (idx > 0)
+	{
+		// Remove everyone we called Broadcast on in one call
+		PredictionDelegates.RemoveAt(0, idx);
+	}
+}
+
+FAttributeComponentPredictionKeyClear& UAttributeComponent::GetPredictionKeyDelegate(int32 PredictionKey)
+{
+	// See if we already have one for this key
+	for (TPair<int32, FAttributeComponentPredictionKeyClear> & Item : PredictionDelegates)
+	{
+		if (Item.Key == PredictionKey)
+		{
+			return Item.Value;
+		}
+	}
+
+	// Create a new one
+	TPair<int32, FAttributeComponentPredictionKeyClear> NewPair;
+	NewPair.Key = PredictionKey;
+	
+	PredictionDelegates.Add(NewPair);
+	return PredictionDelegates.Last().Value;
+}
+
+int32 UAttributeComponent::GetNextPredictionKey()
+{
+	return ++LocalPredictionKey;
 }
 
 // ---------------------------------------------------------------------------------------

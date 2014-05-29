@@ -1444,12 +1444,19 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 	Owner->SetNumericAttribute(Attribute, NewPropertyValue);
 }
 
-FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec)
+FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey)
 {
 	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
-	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime());
+	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 	
-	MarkItemDirty(NewEffect);
+	if (InPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
+	{
+		MarkItemDirty(NewEffect);
+	}
+	else
+	{
+		Owner->GetPredictionKeyDelegate(InPredictionKey).AddUObject(Owner, &UAttributeComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
+	}
 	return NewEffect;
 }
 
@@ -1687,6 +1694,38 @@ bool FActiveGameplayEffectsContainer::HasAnyTags(FGameplayTagContainer &Tags)
 	}
 
 	return false;
+}
+
+bool FActiveGameplayEffectsContainer::HasAllTags(FGameplayTagContainer &Tags)
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
+
+	for (auto It = Tags.CreateConstIterator(); It;  ++It)
+	{
+		bool Found = false;
+		for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
+		{
+			// Fixme: check stacking rules!
+
+			/**
+			 *	The desired behavior here is:
+			 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
+			 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
+			 */
+
+			if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasTag(*It, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+			{
+				Found = true;
+				break;
+			}
+		}
+		if (!Found)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)

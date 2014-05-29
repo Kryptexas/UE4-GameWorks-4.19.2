@@ -23,7 +23,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
 	virtual bool K2_CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const;
 
-	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const OVERRIDE;	
+	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const OVERRIDE;
 
 	// -------------------------------------------------
 
@@ -41,10 +41,32 @@ public:
 
 	// -------------------------------------------------
 
-	virtual bool AllowInstancing() const OVERRIDE
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
+	virtual void K2_PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+
+	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+
+	// -------------------------------------------------
+
+	virtual EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const OVERRIDE
 	{
-		return true;
+		return InstancedPerExecution ? EGameplayAbilityInstancingPolicy::InstancedPerExecution : EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	}
+
+	virtual EGameplayAbilityReplicationPolicy::Type GetReplicationPolicy() const OVERRIDE
+	{
+		return ReplicationPolicy;
+	}
+
+	UPROPERTY(EditDefaultsOnly, Category=Advanced)
+	TEnumAsByte<EGameplayAbilityReplicationPolicy::Type> ReplicationPolicy;
+
+	UPROPERTY(EditDefaultsOnly, Category=Advanced)
+	bool	InstancedPerExecution;
+
+	int32 GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack);
+
+	bool CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack);
 
 private:
 	

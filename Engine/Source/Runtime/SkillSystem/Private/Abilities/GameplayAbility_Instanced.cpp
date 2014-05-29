@@ -12,6 +12,8 @@
 UGameplayAbility_Instanced::UGameplayAbility_Instanced(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	InstancedPerExecution = true;
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateOwner;
 }
 
 bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const
@@ -40,6 +42,8 @@ void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo A
 {
 	Super::CommitExecute(ActorInfo);
 
+	check(!HasAnyFlags(RF_ClassDefaultObject));
+
 	// Call into blueprint (fixme: cache this)
 	static FName FuncName = FName(TEXT("K2_CommitAbility"));
 	UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
@@ -52,6 +56,8 @@ void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo A
 
 void UGameplayAbility_Instanced::ActivateAbility(FGameplayAbilityActorInfo ActorInfo)
 {
+	//check(!HasAnyFlags(RF_ClassDefaultObject));
+
 	// Call into blueprint (fixme: cache this)
 	static FName FuncName = FName(TEXT("K2_ActivateAbility"));
 	UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
@@ -60,4 +66,48 @@ void UGameplayAbility_Instanced::ActivateAbility(FGameplayAbilityActorInfo Actor
 	{
 		K2_ActivateAbility(ActorInfo);
 	}
+}
+
+void UGameplayAbility_Instanced::PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+{
+	Super::PredictiveActivateAbility(ActorInfo);
+
+	// FIXME
+	if(!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		// Call into blueprint (fixme: cache this)
+		static FName FuncName = FName(TEXT("K2_PredictiveActivateAbility"));
+		UFunction* PredictiveActivateFunction = GetClass()->FindFunctionByName(FuncName);
+
+		if (PredictiveActivateFunction&& PredictiveActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
+		{
+			K2_PredictiveActivateAbility(ActorInfo);
+		}
+	}
+}
+
+int32 UGameplayAbility_Instanced::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
+{
+	if(HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return FunctionCallspace::Local;
+	}
+	check(GetOuter() != NULL);
+	return GetOuter()->GetFunctionCallspace(Function, Parameters, Stack);
+}
+
+bool UGameplayAbility_Instanced::CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack)
+{
+	check(!HasAnyFlags(RF_ClassDefaultObject));
+	check(GetOuter() != NULL);
+
+	AActor* Owner = CastChecked<AActor>(GetOuter());
+	UNetDriver* NetDriver = Owner->GetNetDriver();
+	if (NetDriver)
+	{
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
+		return true;
+	}
+
+	return false;
 }

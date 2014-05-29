@@ -6,6 +6,8 @@ namespace UnrealBuildTool.Rules
 	{
         public SkillSystem(TargetInfo Target)
 		{
+            PrivateIncludePaths.Add("../../Engine/Source/Runtime/SkillSystem/Private");
+            
 			PublicIncludePaths.AddRange(
 				new string[] {
 					// ... add public include paths required here ...

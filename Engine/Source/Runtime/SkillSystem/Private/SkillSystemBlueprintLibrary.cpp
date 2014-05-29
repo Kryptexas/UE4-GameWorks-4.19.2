@@ -8,6 +8,7 @@ USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostCons
 {
 }
 
+// Fixme: remove this function!!!
 void USkillSystemBlueprintLibrary::StaticFuncPlayMontageAndWait(AActor* WorldContextObject, UAnimMontage * Montage, FLatentActionInfo LatentInfo)
 {
 	check(WorldContextObject);
@@ -18,9 +19,20 @@ void USkillSystemBlueprintLibrary::StaticFuncPlayMontageAndWait(AActor* WorldCon
 		if (LatentActionManager.FindExistingAction<FPlayMontageAndWaitAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
 		{
 			FGameplayAbilityActorInfo	ActorInfo;
-			ActorInfo.InitFromActor(WorldContextObject);
 
-			LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FPlayMontageAndWaitAction(ActorInfo, Montage, LatentInfo));
+			AActor * ActorOwner = NULL;
+			UObject * TestObj = WorldContextObject;
+			while(ActorOwner == NULL && TestObj != NULL)
+			{
+				ActorOwner = Cast<AActor>(TestObj);
+				TestObj = TestObj->GetOuter();
+			}
+
+			if (ActorOwner)
+			{
+				ActorInfo.InitFromActor(ActorOwner);  
+				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FPlayMontageAndWaitAction(ActorInfo, Montage, LatentInfo));
+			}
 		}
 	}
 }
@@ -49,6 +61,46 @@ UBlueprintPlayMontageAndWaitTaskProxy* USkillSystemBlueprintLibrary::CreatePlayM
 		return MyObj;
 	}
 
+	return NULL;	
+}
+
+
+UBlueprintWaitMovementModeChangeTaskProxy* USkillSystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
+{
+	check(WorldContextObject);
+
+	UGameplayAbility_Instanced * Ability = Cast<UGameplayAbility_Instanced>(WorldContextObject);
+	if (Ability)
+	{
+		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
+
+		UBlueprintWaitMovementModeChangeTaskProxy * MyObj = NULL;
+		MyObj = NewObject<UBlueprintWaitMovementModeChangeTaskProxy>();
+		MyObj->RequiredMode = NewMode;
+
+		FGameplayAbilityActorInfo	ActorInfo;
+		ActorInfo.InitFromActor(ActorOwner);
+
+		ACharacter * Character = Cast<ACharacter>(ActorInfo.Actor.Get());
+		if (Character)
+		{
+			/*
+				FScriptDelegate Delegate;
+				Delegate.BindUFunction(this, "OnActorBump");
+				MyPawn->OnActorHit.AddUnique(Delegate);
+			*/
+
+			//FMovementModeChangedSignature::FDelegate::CreateUObject(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
+			//MyDel.BindUObject( 
+			//Character->MovementModeChangedDelegate.Add(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange); // //FMovementModeChangedSignature::FDelegate::CreateUObject
+
+			Character->MovementModeChangedDelegate.AddDynamic(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
+
+			//Character->MovementModeChangedDelegate.AddUObject(MyObj, &UBlueprintWaitMovementModeChangeTaskProxy::OnMovementModeChange);
+		}
+
+		return MyObj;
+	}
+
 	return NULL;
-	
 }

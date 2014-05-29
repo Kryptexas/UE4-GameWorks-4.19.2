@@ -9,7 +9,7 @@
 //
 
 
-SKILLSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogSkillSystem, Log, All);
+SKILLSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogSkillSystem, Warning, All);
 
 #define SKILL_LOG(Verbosity, Format, ...) \
 { \

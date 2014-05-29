@@ -27,11 +27,16 @@ struct FGameplayAbilityBindInfo
 
 	UPROPERTY(EditAnywhere, Category=BindInfo)
 	TSubclassOf<UGameplayAbility>	GameplayAbilityClass;
+
+	UPROPERTY(EditAnywhere, Category = BindInfo)
+	class UGameplayAbility * GameplayAbilityInstance;
 };
 
 /**
 * UGameplayAbilitySet
-*	This contains a list of abilities along with key bindings. THis will be very game specific, so it is expected for games to override this clas.
+*	This contains a list of abilities along with key bindings. This will be very game specific, so it is expected for games to override this class.
+*	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the attribute component (rather than attribute component processing the ability set).
+*	Ideally this avoids games having to implement their own UAttributeComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
 */
 UCLASS(Blueprintable)
 class SKILLSYSTEM_API UGameplayAbilitySet : public UDataAsset
@@ -42,4 +47,10 @@ public:
 
 	UPROPERTY(EditAnywhere, Category=AbilitySet)
 	TArray<FGameplayAbilityBindInfo>	Abilities;
+
+	/** Give all of the abilities in this set to given AttributeComponent */
+	virtual void InitializeAbilities(UAttributeComponent *AttributeComponent) const;
+
+	/** Binds the ability set directly to this inputcomponent and attributecomponent. This is a convenience method, not all games will want to bind input directly to abilities. */
+	virtual void BindInputComponentToAbilities(UInputComponent *InputComponent, UAttributeComponent *AttributeComponent) const;
 };

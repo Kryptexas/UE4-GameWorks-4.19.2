@@ -12,7 +12,7 @@ UGameplayAbility_Montage::UGameplayAbility_Montage(const class FPostConstructIni
 	: Super(PCIP)
 {
 	PlayRate = 1.f;
-	ReplicationType = EGameplayAbilityReplication::Server;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Server;
 }
 
 void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo OwnerInfo)

@@ -39,7 +39,7 @@ struct SKILLSYSTEM_API FGameplayAttribute
 	void SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const;
 
 	float GetNumericValueChecked(class UAttributeSet* Src) const;
-
+	
 	/** Equality/Inequality operators */
 	bool operator==(const FGameplayAttribute& Other) const;
 	bool operator!=(const FGameplayAttribute& Other) const;
@@ -62,12 +62,17 @@ private:
 	UProperty*	Attribute;
 };
 
-UCLASS(Blueprintable)
+UCLASS(DefaultToInstanced, Blueprintable)
 class SKILLSYSTEM_API UAttributeSet : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	bool IsSupportedForNetworking() const OVERRIDE
+	{
+		return true;
+	}
 
 	/** Called just before modifying the value of an attribute. AttributeSet can make additional modifications here. */
 	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) { }

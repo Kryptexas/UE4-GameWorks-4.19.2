@@ -973,6 +973,7 @@ struct FModifierQualifier
 
 	FModifierQualifier()
 		: MyType(EGameplayMod::Max)
+		, MyPredictionKey(0)
 	{
 	}
 
@@ -987,6 +988,20 @@ struct FModifierQualifier
 	EGameplayMod::Type Type() const
 	{
 		return MyType;
+	}
+
+	// ----------------------------------
+	// PredictionKey is used by networking/replication to specify that a GameplayEffect has been predictively created/added.
+
+	int32 PredictionKey() const
+	{
+		return MyPredictionKey;
+	}
+
+	FModifierQualifier& PredictionKey(int32 InPredictionKey)
+	{
+		MyPredictionKey = InPredictionKey;
+		return *this;
 	}
 
 	// ----------------------------------
@@ -1045,6 +1060,7 @@ private:
 	EGameplayMod::Type	MyType;
 	FActiveGameplayEffectHandle MyIgnoreHandle;		// Do not modify this handle
 	FActiveGameplayEffectHandle MyExclusiveTargetHandle;	// Only modify this handle
+	int32 MyPredictionKey;
 };
 
 /**
@@ -1190,15 +1206,17 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		: StartGameStateTime(0)
 		, StartWorldTime(0.f)
 		, NextExecuteTime(0.f)
+		, PredictionKey(0)
 	{
 	}
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime)
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, int32 InPredictionKey)
 		: Handle(InHandle)
 		, Spec(InSpec)
 		, StartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
 		, NextExecuteTime(0.f)
+		, PredictionKey(InPredictionKey)
 	{
 		// Init NextExecuteTime if necessary
 		float Period = GetPeriod();
@@ -1227,6 +1245,14 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	UPROPERTY(NotReplicated)
 	float NextExecuteTime;
+
+	int32 PredictionKey;
+
+	float GetTimeRemaining(float WorldTime)
+	{
+		float Duration = GetDuration();		
+		return (Duration == UGameplayEffect::INFINITE_DURATION ? -1.f : Duration - (WorldTime - StartWorldTime));
+	}
 	
 	float GetDuration() const
 	{
@@ -1253,36 +1279,6 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	{
 		return Handle == Other.Handle;
 	}
-};
-
-
-USTRUCT()
-struct FActiveGameplayEffectData
-{
-	GENERATED_USTRUCT_BODY()
-
-	FActiveGameplayEffectData()
-		: Handle()
-		, Duration(0.f)
-		, Magnitude(0.f)
-	{
-	}
-
-	FActiveGameplayEffectData(const FActiveGameplayEffectHandle InHandle, const float InDuration, const float InMagnitude)
-		: Handle(InHandle)
-		, Duration(InDuration)
-		, Magnitude(InMagnitude)
-	{
-	}
-
-	UPROPERTY()
-	FActiveGameplayEffectHandle	Handle;
-
-	UPROPERTY()
-	float	Duration;
-
-	UPROPERTY()
-	float	Magnitude;
 };
 
 /** Generic querying data structure for active GameplayEffects. Lets us ask things like:
@@ -1325,7 +1321,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	UPROPERTY()
 	TArray< FActiveGameplayEffect >	GameplayEffects;
 	
-	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec);
+	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey);
 
 	// returns true if none of the active effects provide immunity to Spec
 	// returns false if one (or more) of the active effects provides immunity to Spec
@@ -1377,6 +1373,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	bool bNeedToRecalculateStacks;
 
 	bool HasAnyTags(FGameplayTagContainer &Tags);
+
+	bool HasAllTags(FGameplayTagContainer &Tags);
 
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 	
