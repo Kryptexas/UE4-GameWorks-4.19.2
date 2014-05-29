@@ -688,11 +688,11 @@ public:
 				SNew(STextBlock).Text(FText::FromString("Preview sync?"))
 			];
 
-		CloseButton = SNew(SButton)
+		GoBackButton = SNew(SButton)
 			.IsEnabled(false)
-			.OnClicked(this, &SMainTabWidget::OnCloseButtonClick)
+			.OnClicked(this, &SMainTabWidget::OnGoBackButtonClick)
 			[
-				SNew(STextBlock).Text(FText::FromString("Close"))
+				SNew(STextBlock).Text(FText::FromString("Go back"))
 			];
 
 		LogListView = SNew(SListView<TSharedPtr<FString> >)
@@ -714,6 +714,16 @@ public:
 				+ SVerticalBox::Slot().AutoHeight()
 				[
 					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth()
+					[
+						SNew(SButton).HAlign(HAlign_Right)
+						.OnClicked(this, &SMainTabWidget::OnReloadLabels)
+						.IsEnabled(this, &SMainTabWidget::IsReloadLabelsReady)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock).Text(FText::FromString("Reload Labels"))
+						]
+					]
 					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
 					+ SHorizontalBox::Slot().AutoWidth()
 					[
@@ -752,7 +762,7 @@ public:
 					+ SHorizontalBox::Slot()
 					+ SHorizontalBox::Slot().AutoWidth()
 					[
-						CloseButton.ToSharedRef()
+						GoBackButton.ToSharedRef()
 					]
 				]
 			];
@@ -762,11 +772,9 @@ public:
 				Switcher.ToSharedRef()
 			];
 
-		DataRefresh();
-
 		FUnrealSync::RegisterOnDataRefresh(FUnrealSync::FOnDataRefresh::CreateRaw(this, &SMainTabWidget::DataRefresh));
 
-		FUnrealSync::StartLoadingData();
+		OnReloadLabels();
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -808,14 +816,17 @@ private:
 	}
 
 	/**
-	 * Function that is called on when Close button is clicked.
-	 * It tells the app to close.
+	 * Function that is called on when go back button is clicked.
+	 * It tells the app to go back to the beginning.
 	 *
 	 * @returns Tells that this event was handled.
 	 */
-	FReply OnCloseButtonClick()
+	FReply OnGoBackButtonClick()
 	{
-		FPlatformMisc::RequestExit(false);
+		Switcher->SetActiveWidgetIndex(0);
+		LogLines.Empty();
+		LogListView->RequestListRefresh();
+		OnReloadLabels();
 
 		return FReply::Handled();
 	}
@@ -829,6 +840,28 @@ private:
 	bool IsSyncReady() const
 	{
 		return GetCurrentSyncCmdLineProvider().IsReadyForSync();
+	}
+
+	/**
+	 * Tells reload labels button if it should be enabled.
+	 *
+	 * @returns True if reload labels button should be enabled. False otherwise.
+	 */
+	bool IsReloadLabelsReady() const
+	{
+		return !FUnrealSync::IsLoadingInProgress();
+	}
+
+	/**
+	 * Launches reload labels background process.
+	 *
+	 * @returns Tells that this event was handled.
+	 */
+	FReply OnReloadLabels()
+	{
+		FUnrealSync::StartLoadingData();
+
+		return FReply::Handled();
 	}
 
 	/**
@@ -848,7 +881,6 @@ private:
 			FUnrealSync::TerminateLoadingProcess();
 		}
 
-		Switcher->GetActiveWidget()->SetEnabled(false);
 		Switcher->SetActiveWidgetIndex(1);
 		FUnrealSync::LaunchSync(bArtist, bPreview, CommandLine,
 			FUnrealSync::FOnSyncFinished::CreateRaw(this, &SMainTabWidget::SyncingFinished),
@@ -898,7 +930,7 @@ private:
 	 */
 	void SyncingFinished(bool bSuccess)
 	{
-		CloseButton->SetEnabled(true);
+		GoBackButton->SetEnabled(true);
 	}
 
 	/**
@@ -958,8 +990,8 @@ private:
 	TArray<TSharedPtr<FString> > LogLines;
 	/* Log list view. */
 	TSharedPtr<SListView<TSharedPtr<FString> > > LogListView;
-	/* Close button reference. */
-	TSharedPtr<SButton> CloseButton;
+	/* Go back button reference. */
+	TSharedPtr<SButton> GoBackButton;
 
 	/* Array of sync command line providers. */
 	TArray<TSharedRef<ISyncCommandLineProvider> > SyncCommandLineProviders;

@@ -130,3 +130,20 @@ FP4DataLoader::~FP4DataLoader()
 {
 	Terminate();
 }
+
+bool FP4DataLoader::IsInProgress() const
+{
+	return bInProgress;
+}
+
+void FP4DataLoader::Exit()
+{
+	bInProgress = false;
+}
+
+bool FP4DataLoader::Init()
+{
+	bInProgress = true;
+
+	return true;
+}

@@ -10,14 +10,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealSync, Log, All);
 
 IMPLEMENT_APPLICATION(UnrealSync, "UnrealSync");
 
-/**
- * WinMain, called when the application is started
- */
-int WINAPI WinMain(_In_ HINSTANCE hInInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR, _In_ int nCmdShow)
+void RunUnrealSync(const TCHAR* CommandLine)
 {
 	InitGUI();
-
-	return 0;
 }
 
 FString FUnrealSync::GetLatestLabelForGame(const FString& GameName)
@@ -190,6 +185,12 @@ void FUnrealSync::RegisterOnDataRefresh(FOnDataRefresh OnDataRefresh)
 
 void FUnrealSync::StartLoadingData()
 {
+	bLoadingFinished = false;
+	Data.Reset();
+	LoaderThread.Reset();
+
+	OnDataRefresh.ExecuteIfBound();
+
 	LoaderThread = MakeShareable(new FP4DataLoader(
 		FP4DataLoader::FOnLoadingFinished::CreateStatic(&FUnrealSync::OnP4DataLoadingFinished)
 		));
@@ -204,10 +205,7 @@ void FUnrealSync::OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> Data)
 {
 	FUnrealSync::Data = Data;
 
-	if (Data.IsValid())
-	{
-		bLoadingFinished = true;
-	}
+	bLoadingFinished = true;
 
 	OnDataRefresh.ExecuteIfBound();
 }

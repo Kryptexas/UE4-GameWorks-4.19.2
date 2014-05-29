@@ -59,11 +59,35 @@ public:
 	virtual ~FP4DataLoader();
 
 	/**
+	 * Initializes the runnable object.
+	 *
+	 * This method is called in the context of the thread object that aggregates this, not the
+	 * thread that passes this runnable to a new thread.
+	 *
+	 * @return True if initialization was successful, false otherwise
+	 */
+	virtual bool Init() OVERRIDE;
+
+	/**
 	 * Main function to run for this thread.
 	 *
 	 * @returns Exit code.
 	 */
 	uint32 Run() OVERRIDE;
+
+	/**
+	 * Exits the runnable object.
+	 *
+	 * Called in the context of the aggregating thread to perform any cleanup.
+	 */
+	virtual void Exit();
+
+	/**
+	 * Is this loading thread in progress?
+	 *
+	 * @returns True if this thread is in progress. False otherwise.
+	 */
+	bool IsInProgress() const;
 
 	/**
 	 * Signals that the loading process should be terminated.
@@ -76,6 +100,9 @@ private:
 
 	/* Handle for thread object. */
 	FRunnableThread *Thread;
+
+	/* If this thread is still running. */
+	bool bInProgress;
 
 	/* Signals if the loading process should be terminated. */
 	bool bTerminate;

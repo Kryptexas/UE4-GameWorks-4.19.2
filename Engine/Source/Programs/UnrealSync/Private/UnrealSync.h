@@ -7,6 +7,11 @@
 #include "P4DataCache.h"
 
 /**
+ * Main program function.
+ */
+void RunUnrealSync(const TCHAR* CommandLine);
+
+/**
  * Helper class with functions used to sync engine.
  */
 class FUnrealSync
@@ -79,6 +84,16 @@ public:
 	 * Start async loading of the P4 label data in case user wants it.
 	 */
 	static void StartLoadingData();
+
+	/**
+	 * Tells that labels names are currently being loaded.
+	 *
+	 * @returns True if labels names are currently being loaded. False otherwise.
+	 */
+	static bool IsLoadingInProgress()
+	{
+		return LoaderThread.IsValid() && LoaderThread->IsInProgress();
+	}
 
 	/**
 	 * Terminates background P4 data loading process.
