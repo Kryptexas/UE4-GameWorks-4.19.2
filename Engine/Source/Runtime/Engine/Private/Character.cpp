@@ -666,6 +666,7 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
 	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
+	MovementModeChangedDelegate.Broadcast(this, PrevMovementMode, PrevCustomMode);
 }
 
 

@@ -4,6 +4,7 @@
 
 #include "Character.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
 //
 // Forward declarations
 //
@@ -449,6 +450,8 @@ public:
 	 */
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0);
 
+	/** Native multicast delegate for MovementMode changing. */
+	FMovementModeChangedSignature MovementModeChangedDelegate;
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
 	 * @param	PrevMovementMode	Movement mode before the change
