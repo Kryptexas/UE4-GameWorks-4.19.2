@@ -83,6 +83,9 @@ class UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBas
 	UPROPERTY(EditAnywhere, Category=VertSurface)
 	TArray<int32> ValidMaterialIndices;
 
+	/** If true, particles inherit the associated vertex color on spawn. This feature is not supported for GPU particles. */
+	UPROPERTY(EditAnywhere, Category = VertSurface)
+	uint32 bInheritVertexColor : 1;
 
 	// Begin UObject Interface
 	virtual void PostLoad() OVERRIDE;
@@ -108,6 +111,7 @@ class UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBas
 	virtual int32 GetNumberOfCustomMenuOptions() const OVERRIDE;
 	virtual bool GetCustomMenuEntryDisplayString(int32 InEntryIndex, FString& OutDisplayString) const OVERRIDE;
 	virtual bool PerformCustomMenuEntry(int32 InEntryIndex) OVERRIDE;
+	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) OVERRIDE;
 #endif
 	//End UParticleModule Interface
 

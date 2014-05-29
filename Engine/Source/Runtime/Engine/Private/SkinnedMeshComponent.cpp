@@ -1425,6 +1425,31 @@ FVector USkinnedMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
 		: GetTypedSkinnedVertexPosition<false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex);
 }
 
+FColor USkinnedMeshComponent::GetVertexColor(int32 VertexIndex) const
+{
+	// Fail if no mesh
+	if (!SkeletalMesh || !MeshObject)
+	{
+		return FColor(255, 255, 255, 255);
+	}
+
+	FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+
+	// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
+	int32 ChunkIndex;
+	int32 VertIndex;
+	bool bSoftVertex;
+	bool bHasExtraBoneInfluences;
+	Model.GetChunkAndSkinType(VertexIndex, ChunkIndex, VertIndex, bSoftVertex, bHasExtraBoneInfluences);
+
+	check(ChunkIndex < Model.Chunks.Num());
+	const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIndex];
+	
+	int32 VertexBase = bSoftVertex ? Chunk.GetSoftVertexBufferIndex() : Chunk.GetRigidVertexBufferIndex();
+
+	return Model.ColorVertexBuffer.VertexColor(VertexBase + VertIndex);
+}
+
 
 void USkinnedMeshComponent::HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOption)
 {

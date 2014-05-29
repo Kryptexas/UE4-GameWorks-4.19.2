@@ -2093,6 +2093,8 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 		return;
 	}
 
+	FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
+
 	// Determine the bone/socket to spawn at
 	int32 SourceIndex = -1;
 	int32 ActiveBoneIndex = -1;
@@ -2118,7 +2120,6 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 	}
 	else if(SourceType == VERTSURFACESOURCE_Surface)
 	{
-		FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
 		int32 SectionCount = LODModel.Sections.Num();
 		int32 RandomSection = FMath::RoundToInt(FMath::SRand() * ((float)SectionCount-1));
 
@@ -2181,6 +2182,33 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				{
 					Particle.BaseVelocity = InstancePayload->BoneVelocities[VelocityIndex];
 				}
+			}
+			
+			if (bInheritVertexColor)
+			{
+				FColor UseColor;
+				if (SourceType == VERTSURFACESOURCE_Vert)
+				{
+					UseColor = SourceComponent->GetVertexColor(SourceIndex);
+				}
+				else if (SourceType == VERTSURFACESOURCE_Surface)
+				{
+					int32 VertIndex[3];
+					FColor VertColors[3];
+
+					VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
+					VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
+					VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
+					VertColors[0] = SourceComponent->GetVertexColor(VertIndex[0]);
+					VertColors[1] = SourceComponent->GetVertexColor(VertIndex[1]);
+					VertColors[2] = SourceComponent->GetVertexColor(VertIndex[2]);
+					UseColor.R = (VertColors[0].R + VertColors[1].R + VertColors[2].R) / 3;
+					UseColor.G = (VertColors[0].G + VertColors[1].G + VertColors[2].G) / 3;
+					UseColor.B = (VertColors[0].B + VertColors[1].B + VertColors[2].B) / 3;
+					UseColor.A = (VertColors[0].A + VertColors[1].A + VertColors[2].A) / 3;
+				}
+				Particle.Color = UseColor;
+				Particle.BaseColor = UseColor;
 			}
 
 			if (bMeshRotationActive)
@@ -2470,6 +2498,18 @@ bool UParticleModuleLocationSkelVertSurface::PerformCustomMenuEntry(int32 InEntr
 	}
 	return false;
 }
+
+bool UParticleModuleLocationSkelVertSurface::IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString)
+{
+	if ( bInheritVertexColor && LODLevel && LODLevel->TypeDataModule && LODLevel->TypeDataModule->IsA<UParticleModuleTypeDataGpu>() )
+	{
+		OutErrorString = NSLOCTEXT("UnrealEd", "Module_LocationSkelVertSurface_InheritVertexColorOnGPUError", "Inherit Vertex Color is not supported on GPU emitters.").ToString();
+		return false;
+	}
+
+	return true;
+}
+
 #endif
 
 USkeletalMeshComponent* UParticleModuleLocationSkelVertSurface::GetSkeletalMeshComponentSource(FParticleEmitterInstance* Owner)

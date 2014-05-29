@@ -465,6 +465,13 @@ public:
 	 * @param VertexIndex Vertex Index. If compressed, this will be slow. 
 	 */
 	FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
+	
+	/**
+	* Returns color of the vertex.
+	*
+	* @param VertexIndex Vertex Index. If compressed, this will be slow.
+	*/
+	FColor GetVertexColor(int32 VertexIndex) const;
 
 	/**
 	 * Update functions
