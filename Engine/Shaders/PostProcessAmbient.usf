@@ -230,6 +230,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 		// some view dependent and some non view dependent (hard coded)
 		float DependentSplit = 0.5f;
 
+		float3 SubsurfaceColor = DecodeSubsurfaceColor( GBuffer.CustomData );
 		float3 SubsurfaceLighting = 0;
 
 		// view independent (shared lookup for diffuse for better performance
@@ -237,7 +238,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 		// view dependent (blurriness is hard coded)
 		SubsurfaceLighting += TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, ScreenVector, AbsoluteDiffuseMip - 2.5f).rgb * AmbientOcclusion * (1.0f - DependentSplit);
 
-		DiffuseAndSpecular += GBuffer.SubsurfaceColor * SubsurfaceLighting;
+		DiffuseAndSpecular += SubsurfaceColor * SubsurfaceLighting;
 	}
 	
 	OutColor = float4(DiffuseAndSpecular * AmbientCubemapColor.rgb, 0);

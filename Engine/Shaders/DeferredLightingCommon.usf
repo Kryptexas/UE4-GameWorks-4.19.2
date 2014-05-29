@@ -274,6 +274,7 @@ float3 PointLightSpecularMIS( FScreenSpaceData ScreenSpaceData, FDeferredLightDa
 float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModelId, float3 L, float3 V, half3 N, float SubsurfaceExtinction )
 {
 	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
+	float3 SubsurfaceColor = DecodeSubsurfaceColor( InGBufferData.CustomData );
 
 	if (LightingModelId == LIGHTINGMODELID_SUBSURFACE)
 	{
@@ -290,7 +291,7 @@ float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModel
 		float BackScatter = InGBufferData.GBufferAO * NormalContribution / (PI * 2);
 
 		// lerp to never exceed 1 (energy conserving)
-		return InGBufferData.SubsurfaceColor * (lerp(BackScatter, 1, InScatter) * SubsurfaceExtinction);
+		return SubsurfaceColor * (lerp(BackScatter, 1, InScatter) * SubsurfaceExtinction);
 	}
 	else if (LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
 	{
@@ -298,7 +299,7 @@ float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModel
 
 		float OpacityFactor = InGBufferData.Opacity;
 		float3 PreintegratedBRDF = Texture2DSampleLevel(PreIntegratedBRDF, PreIntegratedBRDFSampler, float2(saturate(dot(N, L) * .5 + .5), 1 - OpacityFactor), 0).rgb;
-		return PreintegratedBRDF * InGBufferData.SubsurfaceColor * SubsurfaceExtinction;
+		return PreintegratedBRDF * SubsurfaceColor * SubsurfaceExtinction;
 	}
 
 	return 0;

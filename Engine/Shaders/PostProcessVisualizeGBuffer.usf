@@ -54,7 +54,7 @@ float3 GetGBufferChannelData(FGBufferData GBuffer, float2 UV, int ChannelIndex)
 		case GBUFFER_VISUALIZATION_MODE_DIFFUSE_RGB: return pow( GBuffer.DiffuseColor, 1/2.2 );
 		case GBUFFER_VISUALIZATION_MODE_SPECULAR_RGB: return pow( GBuffer.SpecularColor, 1/2.2 );
 		case GBUFFER_VISUALIZATION_MODE_BASE_RGB: return pow( GBuffer.BaseColor, 1/2.2 );
-		case GBUFFER_VISUALIZATION_MODE_SUBSURFACE_RGB: return pow( GBuffer.SubsurfaceColor, 1/2.2 );
+		case GBUFFER_VISUALIZATION_MODE_SUBSURFACE_RGB: return pow( GBuffer.CustomData, 1/2.2 );
 		case GBUFFER_VISUALIZATION_MODE_WORLD_NORMAL: return GBuffer.WorldNormal * 0.5f + 0.5f;
 		case GBUFFER_VISUALIZATION_MODE_SEP_TRANS_RGB: return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).rgb*20;
 		case GBUFFER_VISUALIZATION_MODE_OPACITY: return GBuffer.Opacity;

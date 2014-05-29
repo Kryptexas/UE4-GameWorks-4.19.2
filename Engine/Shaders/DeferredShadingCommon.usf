@@ -51,9 +51,7 @@ float2 UnitVectorToOctahedron( float3 N )
 	N.xy /= dot( 1, abs(N) );
 	if( N.z <= 0 )
 	{
-		bool2 GreaterThanZero = N.xy >= 0;
-		float2 Value = ( GreaterThanZero ? (float2)1 : (float2)-1 );
-		N.xy = ( 1 - abs(N.yx) ) * Value;
+		N.xy = ( 1 - abs(N.yx) ) * ( N.xy >= 0 ? float2(1,1) : float2(-1,-1) );
 	}
 	return N.xy;
 }
@@ -63,9 +61,7 @@ float3 OctahedronToUnitVector( float2 Oct )
 	float3 N = float3( Oct, 1 - dot( 1, abs(Oct) ) );
 	if( N.z < 0 )
 	{
-		bool2 GreaterThanZero = N.xy >= 0;
-		float2 Value = ( GreaterThanZero ? (float2)1 : (float2)-1 );
-		N.xy = ( 1 - abs(N.yx) ) * Value;
+		N.xy = ( 1 - abs(N.yx) ) * ( N.xy >= 0 ? float2(1,1) : float2(-1,-1) );
 	}
 	return normalize(N);
 }
@@ -108,12 +104,14 @@ float2 Pack888To1212( float3 x )
 
 float3 EncodeNormal( float3 N )
 {
-	return Pack1212To888( UnitVectorToOctahedron( N ) * 0.5 + 0.5 );
+	return N * 0.5 + 0.5;
+	//return Pack1212To888( UnitVectorToOctahedron( N ) * 0.5 + 0.5 );
 }
 
 float3 DecodeNormal( float3 N )
 {
-	return OctahedronToUnitVector( Pack888To1212( N )* 2 - 1 );
+	return N * 2 - 1;
+	//return OctahedronToUnitVector( Pack888To1212( N ) * 2 - 1 );
 }
 
 float3 EncodeSpecularColor(float3 SpecularColor)
@@ -224,6 +222,11 @@ float ComputeRoughnessFromAngle( float Angle, const float Threshold = 0.04f )
 	return Roughness;
 }
 
+float AddAngleToRoughness( float Angle, float Roughness )
+{
+	return saturate( sqrt( Square( Roughness ) + 0.33333 * Angle ) );
+}
+
 // @param Scalar clamped in 0..1 range
 // @param Mask 0..1
 // @return 8bit in range 0..1
@@ -243,11 +246,6 @@ float Decode71(float Scalar, out int Mask)
 	Mask = (int)(Scalar > 0.5f);
 
 	return (Scalar - 0.5f * Mask) * 2.0f;
-}
-
-float AddAngleToRoughness( float Angle, float Roughness )
-{
-	return saturate( sqrt( Square( Roughness ) + 0.33333 * Angle ) );
 }
 
 #define LIGHTINGMODELID_UNLIT				0
@@ -272,7 +270,7 @@ struct FGBufferData
 	// 0..1
 	float Specular;
 	// 0..1
-	float3 SubsurfaceColor;
+	float3 CustomData;
 	// Indirect irradiance luma
 	float IndirectIrradiance;
 	// Static shadow factors for channels assigned by Lightmass
@@ -284,10 +282,10 @@ struct FGBufferData
 	float Opacity;
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
-	// 0..3 LIGHTINGMODELID_UNLIT / LIGHTINGMODELID_DEFAULT_LIT / LIGHTINGMODELID_SUBSURFACE / LIGHTINGMODELID_PREINTEGRATED_SKIN
-	int LightingModelId;
+	// 0..255 LIGHTINGMODELID_UNLIT / LIGHTINGMODELID_DEFAULT_LIT / LIGHTINGMODELID_SUBSURFACE / LIGHTINGMODELID_PREINTEGRATED_SKIN
+	uint LightingModelId;
 	// 0..1 decal receiver mask
-	int DecalMask;
+	uint DecalMask;
 	// in world units
 	float CustomDepth;
 	// in unreal units (linear), can be used to reconstruct world position,
@@ -334,10 +332,10 @@ void EncodeGBuffer(
 	float QuantizationBias = 0		// -0.5 to 0.5 random float. Used to bias quantization.
 	)
 {
-	OutGBufferA.rgb = float3(Data.WorldNormal * 0.5f + 0.5f);
+	OutGBufferA.rgb = EncodeNormal( Data.WorldNormal );
 
 	// compress in 2 bits
-	OutGBufferA.a = Data.LightingModelId / 3.0f;
+	OutGBufferA.a = Data.DecalMask * (1.0 / 3.0);
 
 	if (Data.LightingModelId == LIGHTINGMODELID_UNLIT)
 	{
@@ -359,22 +357,17 @@ void EncodeGBuffer(
 		OutGBufferB.b = 0;
 		OutGBufferC.rgb = EncodeBaseColor(Data.BaseColor);
 #endif
-		OutGBufferB.a = Encode71(Data.GBufferAO, Data.DecalMask);;
-		OutGBufferC.a = EncodeIndirectIrradiance(Data.IndirectIrradiance) + QuantizationBias * (1.0 / 255.0);
+		OutGBufferB.a = Data.LightingModelId * (1.0 / 255.0);
 
-		float3 BufferDColor = bSubsurface ? EncodeSubsurfaceColor(Data.SubsurfaceColor) : float3(0, 0, 0);
+		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
+		OutGBufferC.a = EncodeIndirectIrradiance( Data.IndirectIrradiance * Data.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
 
 		// Roughness in OutGBufferD.r instead of OutGBufferB.a so that deferred decals can blend in roughness while using MRT
-		OutGBufferD = float4(Data.Roughness, BufferDColor.r, BufferDColor.g, BufferDColor.b);
+		OutGBufferD.r = Data.Roughness;
+		OutGBufferD.gba = Data.CustomData;
 	}
 
 	OutGBufferE = Data.PrecomputedShadowFactors;
-}
-
-int DecodeLightingModelId(float4 InGBufferA)
-{
-	// decompress from 2 bits (works with low and high precision GBuffer textures)
-	return (int)(InGBufferA.a * 3.999f);
 }
 
 /** Populates FGBufferData */
@@ -390,14 +383,15 @@ FGBufferData DecodeGBufferData(
 {
 	FGBufferData ret;
 
-	ret.WorldNormal = InGBufferA.xyz * 2 - 1;
+	ret.WorldNormal = DecodeNormal( InGBufferA.xyz );
 
 	if(bGetNormalizedNormal)
 	{
 		ret.WorldNormal = normalize(ret.WorldNormal);
 	}
 
-	ret.LightingModelId = DecodeLightingModelId(InGBufferA);
+	ret.DecalMask		= (uint)( InGBufferA.a * 3.999 );
+	ret.LightingModelId	= (uint)( InGBufferB.a * 255.999 );
 	
 	bool bSubsurface = (ret.LightingModelId == LIGHTINGMODELID_SUBSURFACE || ret.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
 
@@ -427,19 +421,11 @@ FGBufferData DecodeGBufferData(
 
 #endif
 
-	if( bSubsurface )
-	{
-		ret.SubsurfaceColor = DecodeSubsurfaceColor(InGBufferD.gba);
-		ret.Opacity = InGBufferB.r;
-	}
-	else
-	{
-		ret.SubsurfaceColor = 0;
-		ret.Opacity = 0;
-	}
+	ret.Opacity = bSubsurface ? InGBufferB.r : 0;
 	
 	ret.Roughness = InGBufferD.r;
-	ret.GBufferAO = Decode71(InGBufferB.a, ret.DecalMask);
+	ret.CustomData = InGBufferD.gba;
+	ret.GBufferAO = 1;
 	ret.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
 	ret.PrecomputedShadowFactors = InGBufferE;
 	ret.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
@@ -460,8 +446,8 @@ FDBufferData DecodeDBufferData(
 	ret.Color = DBufferA.rgb;
 	ret.ColorOpacity = DBufferA.a;
 
-	// UNORM 4 channel
-	ret.WorldNormal = float3(DBufferB.rgb * 2 - 1);
+	// UNORM 4 channel, 128/255 represents 0
+	ret.WorldNormal = DBufferB.rgb * 2 - (256.0 / 255.0);
 	ret.NormalOpacity = DBufferB.a;
 
 	// UNORM 2 channel

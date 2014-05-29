@@ -181,10 +181,10 @@ void MainPS(
 	Data.Specular = Specular;
 #endif
 	Data.Roughness = GetMaterialRoughness(MaterialParameters);
-	Data.SubsurfaceColor = GetMaterialSubsurfaceColor(MaterialParameters);
+	Data.CustomData = 0;
 	Data.IndirectIrradiance = 0;
 	Data.PrecomputedShadowFactors = 0;
-	Data.GBufferAO = GetMaterialAmbientOcclusion(MaterialParameters);
+	Data.GBufferAO = 1;
 	Data.Opacity = Opacity;
 	Data.LightingModelId = LIGHTINGMODELID_DEFAULT_LIT;
 	Data.DecalMask = 1;

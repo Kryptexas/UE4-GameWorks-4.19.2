@@ -713,7 +713,7 @@ void Main(
 		Data.Specular = Specular;
 #endif
 		Data.Roughness = Roughness;
-		Data.SubsurfaceColor = SubsurfaceColor;
+		Data.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
 		Data.IndirectIrradiance = IndirectIrradiance;
 		Data.PrecomputedShadowFactors = PrecomputedShadowFactors;
 		Data.GBufferAO = MaterialAO;

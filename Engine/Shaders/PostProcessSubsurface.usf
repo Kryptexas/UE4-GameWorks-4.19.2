@@ -155,7 +155,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 			//		float Subsurface = (1 - ScreenSpaceData.GBuffer.DecalMask) > 0.5f && ScreenSpaceData.GBuffer.Depth < 1000.0f;
 			FLATTEN if(LocalScreenSpaceData.GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE)
 			{
-				float3 Color = ColorOverDistance(LocalScreenSpaceData.GBuffer.SubsurfaceColor, r);
+				float3 Color = ColorOverDistance(DecodeSubsurfaceColor(LocalScreenSpaceData.GBuffer.CustomData), r);
 				float ColorLum = Luminance(Color);
 
 				OutColor += float4(Color, 1) * float4(SampleDiffuseLighting(LocalUV), 1);	
