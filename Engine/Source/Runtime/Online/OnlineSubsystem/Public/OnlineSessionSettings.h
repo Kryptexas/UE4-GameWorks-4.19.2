@@ -332,17 +332,6 @@ public:
 	{
 	}
 
-	/** Copy Constructor */
-	FOnlineSession(const FOnlineSession& Src) :
-		OwningUserId(Src.OwningUserId),
-		OwningUserName(Src.OwningUserName),
-		SessionSettings(Src.SessionSettings),
-		NumOpenPrivateConnections(Src.NumOpenPrivateConnections),
-		NumOpenPublicConnections(Src.NumOpenPublicConnections)
-	{
-		// NOTE: SessionInfo is copied manually per platform
-	}
-
 	virtual ~FOnlineSession() {}
 };
 
