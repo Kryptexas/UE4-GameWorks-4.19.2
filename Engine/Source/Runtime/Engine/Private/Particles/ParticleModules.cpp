@@ -3195,8 +3195,10 @@ void UParticleModuleKillBox::Update(FParticleEmitterInstance* Owner, int32 Offse
 {
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 
-	FVector CheckLL = LowerLeftCorner.GetValue(Owner->EmitterTime, Owner->Component);
-	FVector CheckUR = UpperRightCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector LL = LowerLeftCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector UR = UpperRightCorner.GetValue(Owner->EmitterTime, Owner->Component);
+	FVector CheckLL = LL.ComponentMin(UR);
+	FVector CheckUR = UR.ComponentMax(LL);
 	if (bAbsolute == false)
 	{
 		CheckLL += Owner->Component->GetComponentLocation();
