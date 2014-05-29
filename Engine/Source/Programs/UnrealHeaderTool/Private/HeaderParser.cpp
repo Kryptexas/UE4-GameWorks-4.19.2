@@ -6361,7 +6361,9 @@ ECompilationResult::Type FHeaderParser::ParseHeaders(FClasses& AllClasses, FHead
 		// Check for circular dependency. If the DependsOnClass is dependent on the SubClass, there is one.
 		if (AllClasses.IsDependentOn(DependsOnClass, Class))
 		{
-			FError::Throwf(TEXT("Class %s DependsOn(%s) is a circular dependency."),*DependsOnClass->GetName(),*Class->GetName());
+			HeaderParser.Class = Class;
+			HeaderParser.InputLine = GClassDeclarationLineNumber[Class];
+			FError::Throwf(TEXT("Error: Class %s DependsOn(%s) is a circular dependency."),*DependsOnClass->GetName(),*Class->GetName());
 		}
 
 		// Find first base class of DependsOnClass that is not a base class of Class.

@@ -75,11 +75,25 @@ bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source) const
 	// suspect is too.
 	for (auto It : Suspect->GetDependentNames())
 	{
-		const FClass* Dependency = FindClass(*It.ToString());
+		auto DependentName = It.ToString();
+		const FClass* Dependency = FindClass(*DependentName);
 
-		// Error.
 		if (!Dependency)
-			continue;
+		{
+			// Check if DependentName is a header file. If so, rerun the check on name without ".h" extension.
+			if (DependentName.EndsWith(TEXT(".h")))
+			{
+				DependentName.RemoveFromEnd(TEXT(".h"));
+				Dependency = FindClass(*DependentName);
+			}
+
+			// If still no class found, we're out of luck.
+			if (!Dependency)
+			{
+				// Error.
+				continue;
+			}
+		}
 
 		// the parser disallows declaring the parent class as a dependency, so the only way this could occur is
 		// if the parent for a native class has been changed (which causes the new parent to be inserted as a dependency),
