@@ -194,9 +194,6 @@ private:
 	/** Render stationary light overlap as complexity to scene color. */
 	void RenderStationaryLightOverlap();
 	
-	/** Renders the scene's distortion */
-	void RenderDistortion();
-
 	/** 
 	 * Renders the scene's translucency.
 	 */

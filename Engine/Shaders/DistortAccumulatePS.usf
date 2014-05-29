@@ -17,7 +17,7 @@ float4 DistortionParams;
 /** output distortion offsets as color so they can be accumulated (via blending) */
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
-	float4	PixelPosition	: TEXCOORD5,
+	float4	PixelPosition	: TEXCOORD6,
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
 	)
@@ -59,7 +59,11 @@ void Main(
 
 	// Sample depth at distortion offset
 	float2 DistortScreenUV = ScreenUV + Distortion;
+#if COMPILER_GLSL_ES2
+	float DistortSceneDepth = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, DistortScreenUV).w;
+#else
 	float DistortSceneDepth = CalcSceneDepth(DistortScreenUV);
+#endif
 
 	// Soft thresholding 
 	float Bias = -Refraction.y;
@@ -68,7 +72,7 @@ void Main(
 	float ZCompare = MaterialParameters.ScreenPosition.w;
 	float InvWidth = 1.0f / max(1.0f, Range );
 	Distortion *= saturate((Z - ZCompare) * InvWidth + Bias);
-	
+
 	//Scale up for better precision in low/subtle refractions at the expense of artefacts at higher refraction.
 	Distortion*= DistortionScaleBias;
 

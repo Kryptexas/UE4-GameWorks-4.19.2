@@ -96,6 +96,11 @@ void FForwardShadingSceneRenderer::Render()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
+		if (ViewFamily.EngineShowFlags.Refraction)
+		{
+			// to apply refraction effect by distorting the scene color
+			RenderDistortion();
+		}
 		RenderTranslucency();
 	}
 

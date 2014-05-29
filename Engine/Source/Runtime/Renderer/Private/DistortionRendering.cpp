@@ -20,7 +20,7 @@ class FDistortionApplyScreenPS : public FGlobalShader
 	DECLARE_SHADER_TYPE(FDistortionApplyScreenPS,Global);
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3); }
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
 
 	FDistortionApplyScreenPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
@@ -118,7 +118,7 @@ protected:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) && DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 public:
@@ -154,7 +154,6 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3)
 			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 };
@@ -178,7 +177,6 @@ protected:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType)
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3)
 			&& DistortMeshPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 };
@@ -200,7 +198,7 @@ class TDistortionMeshPS : public FMeshMaterialShader
 public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) && DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
+		return DistortMeshPolicy::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
 	TDistortionMeshPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -750,14 +748,10 @@ void FDistortionPrimSet::AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneP
 	Prims.Add(PrimitiveSceneProxy);
 }
 
-/*-----------------------------------------------------------------------------
-	FDeferredShadingSceneRenderer
------------------------------------------------------------------------------*/
-
 /** 
  * Renders the scene's distortion 
  */
-void FDeferredShadingSceneRenderer::RenderDistortion()
+void FSceneRenderer::RenderDistortion()
 {
 	SCOPED_DRAW_EVENT(Distortion, DEC_SCENE_ITEMS);
 
@@ -916,3 +910,4 @@ void FDeferredShadingSceneRenderer::RenderDistortion()
 		GSceneRenderTargets.FinishRenderingSceneColor(false);
 	}
 }
+
