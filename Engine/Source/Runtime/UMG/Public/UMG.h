@@ -63,7 +63,9 @@
 #include "ThrobberComponent.h"
 #include "CircularThrobberComponent.h"
 
+#include "TableViewBase.h"
 #include "ListView.h"
+#include "TileView.h"
 
 /* Slate
  *****************************************************************************/

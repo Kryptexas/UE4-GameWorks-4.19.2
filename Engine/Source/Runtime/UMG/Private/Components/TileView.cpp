@@ -5,24 +5,26 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UListView
+// UTileView
 
-UListView::UListView(const FPostConstructInitializeProperties& PCIP)
+UTileView::UTileView(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = true;
 
-	ItemHeight = 16.0f;
+	ItemWidth = 128.0f;
+	ItemHeight = 128.0f;
 	SelectionMode = ESelectionMode::Single;
 }
 
-TSharedRef<SWidget> UListView::RebuildWidget()
+TSharedRef<SWidget> UTileView::RebuildWidget()
 {
-	return SNew(SListView< UObject* >)
+	return SNew(STileView< UObject* >)
 		.SelectionMode(SelectionMode)
 		.ListItemsSource(&Items)
+		.ItemWidth(ItemWidth)
 		.ItemHeight(ItemHeight)
-		.OnGenerateRow(BIND_UOBJECT_DELEGATE(SListView< UObject* >::FOnGenerateRow, HandleOnGenerateRow))
+		.OnGenerateTile(BIND_UOBJECT_DELEGATE(STileView< UObject* >::FOnGenerateRow, HandleOnGenerateTile))
 		//.OnSelectionChanged(this, &SSocketManager::SocketSelectionChanged_Execute)
 		//.OnContextMenuOpening(this, &SSocketManager::OnContextMenuOpening)
 		//.OnItemScrolledIntoView(this, &SSocketManager::OnItemScrolledIntoView)
@@ -35,12 +37,12 @@ TSharedRef<SWidget> UListView::RebuildWidget()
 		;
 }
 
-TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const
+TSharedRef<ITableRow> UTileView::HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const
 {
 	// Call the user's delegate to see if they want to generate a custom widget bound to the data source.
-	if ( OnGenerateRowEvent.IsBound() )
+	if ( OnGenerateTileEvent.IsBound() )
 	{
-		UWidget* Widget = OnGenerateRowEvent.Execute(Item);
+		UWidget* Widget = OnGenerateTileEvent.Execute(Item);
 		if ( Widget != NULL )
 		{
 			return SNew(STableRow< UObject* >, OwnerTable)

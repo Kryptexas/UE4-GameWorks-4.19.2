@@ -6,6 +6,63 @@
 
 #include "UserWidget.generated.h"
 
+static FGeometry NullGeometry;
+static FSlateRect NullRect;
+static FSlateWindowElementList NullElementList;
+static FWidgetStyle NullStyle;
+
+USTRUCT()
+struct UMG_API FPaintContext
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	/** Don't ever use this constructor.  Needed for code generation. */
+	FPaintContext()
+		: AllottedGeometry(NullGeometry)
+		, MyClippingRect(NullRect)
+		, OutDrawElements(NullElementList)
+		, LayerId(0)
+		, InWidgetStyle(NullStyle)
+		, bParentEnabled(true)
+		, MaxLayer(0)
+	{ }
+
+	FPaintContext(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled)
+		: AllottedGeometry(AllottedGeometry)
+		, MyClippingRect(MyClippingRect)
+		, OutDrawElements(OutDrawElements)
+		, LayerId(LayerId)
+		, InWidgetStyle(InWidgetStyle)
+		, bParentEnabled(bParentEnabled)
+		, MaxLayer(LayerId)
+	{
+	}
+
+	/** We override the assignment operator to allow generated code to compile with the const ref member. */
+	void operator=( const FPaintContext& Other )
+	{
+		const_cast<FGeometry&>( AllottedGeometry ) = Other.AllottedGeometry;
+		const_cast<FSlateRect&>( MyClippingRect ) = Other.MyClippingRect;
+		OutDrawElements = Other.OutDrawElements;
+		LayerId = Other.LayerId;
+		const_cast<FWidgetStyle&>( InWidgetStyle ) = Other.InWidgetStyle;
+		bParentEnabled = Other.bParentEnabled;
+	}
+
+public:
+
+	const FGeometry& AllottedGeometry;
+	const FSlateRect& MyClippingRect;
+	FSlateWindowElementList& OutDrawElements;
+	int32 LayerId;
+	const FWidgetStyle& InWidgetStyle;
+	bool bParentEnabled;
+
+	int32 MaxLayer;
+};
+
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
@@ -97,6 +154,9 @@ class UMG_API UUserWidget : public UWidget
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
+
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);

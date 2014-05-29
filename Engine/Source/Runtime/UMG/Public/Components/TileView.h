@@ -2,14 +2,17 @@
 
 #pragma once
 
-#include "ListView.generated.h"
+#include "TileView.generated.h"
 
-UCLASS(meta=( BlueprintSpawnableComponent ), ClassGroup=UserInterface)
-class UMG_API UListView : public UTableViewBase
+UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	UPROPERTY(EditDefaultsOnly, Category=Content)
+	float ItemWidth;
 
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	float ItemHeight;
@@ -22,20 +25,20 @@ public:
 
 	/** Called when the button is clicked */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
-	FOnGenerateRowUObject OnGenerateRowEvent;
+	FOnGenerateRowUObject OnGenerateTileEvent;
 
 protected:
-	TSharedPtr< SListView<UObject*> > ListWidget() const
+	TSharedPtr< STileView<UObject*> > ListWidget() const
 	{
 		if ( MyWidget.IsValid() )
 		{
-			return StaticCastSharedRef< SListView<UObject*> >(MyWidget.ToSharedRef());
+			return StaticCastSharedRef< STileView<UObject*> >(MyWidget.ToSharedRef());
 		}
 
-		return TSharedPtr< SListView<UObject*> >();
+		return TSharedPtr< STileView<UObject*> >();
 	}
 
-	TSharedRef<ITableRow> HandleOnGenerateRow(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const;
+	TSharedRef<ITableRow> HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const;
 
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
