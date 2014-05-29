@@ -1846,6 +1846,11 @@ bool FEdModeFoliage::InputKey( FLevelEditorViewportClient* ViewportClient, FView
 								Instance.Location = Hit.Location;
 								Instance.ZOffset = 0.f;
 								Instance.Base = Hit.Component.Get();
+								// We cannot be based on an a blueprint component as these will disappear when the construction script is re-run
+								if (Instance.Base && Instance.Base->bCreatedByConstructionScript)
+								{
+									Instance.Base = NULL;
+								}
 
 								if( Instance.Flags & FOLIAGE_AlignToNormal )
 								{

@@ -1518,6 +1518,12 @@ void AInstancedFoliageActor::PostLoad()
 				}
 				else
 				{
+					// Clear out the Base for any instances based on blueprint components, as they will be destroyed when the construction scripts are re-run.
+					if (Instance.Base && Instance.Base->bCreatedByConstructionScript)
+					{
+						Instance.Base = NULL;
+					}
+
 					// Add valid instances to the hash.
 					MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
 					FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(Instance.Base);
