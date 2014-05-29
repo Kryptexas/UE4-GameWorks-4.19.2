@@ -627,7 +627,7 @@ void Main(
 
 	#if !MATERIAL_LIGHTINGMODEL_UNLIT
 
-		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, IndirectIrradiance) * DiffuseColor * MaterialAO;
+		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, IndirectIrradiance) * (DiffuseColor + SubsurfaceColor) * MaterialAO;
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
