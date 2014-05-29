@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "MathExpressionsPrivatePCH.h"
+#include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_MathExpression.h"
 #include "BlueprintGraphClasses.h"
 #include "Kismet2NameValidators.h"
@@ -225,15 +225,15 @@ public:
 	{
 		if (Token.TokenType == FBasicToken::TOKEN_Identifier)
 		{
-			return FString::Printf(TEXT("identifier'%s'"), Token.Identifier);
+			return FString::Printf(TEXT("%s"), Token.Identifier);
 		}
 		else if (Token.TokenType == FBasicToken::TOKEN_Const)
 		{
-			return FString::Printf(TEXT("const'%s'"), *Token.GetConstantValue());
+			return FString::Printf(TEXT("%s"), *Token.GetConstantValue());
 		}
 		else
 		{
-			return FString::Printf(TEXT("UnexpectedTokenType'%s'"), Token.Identifier);
+			return FString::Printf(TEXT("(UnexpectedTokenType)%s"), Token.Identifier);
 		}
 	}
 
@@ -329,7 +329,7 @@ public:
 	virtual FString ToString() const OVERRIDE
 	{
 		const FString RightStr = RHS->ToString();
-		return FString::Printf(TEXT("(%s %s)"), *Operator, *RightStr);
+		return FString::Printf(TEXT("(%s%s)"), *Operator, *RightStr);
 	}
 
 public:
@@ -705,14 +705,16 @@ public:
 							Add(Alias, TestFunction);
 						}
 					}
-					else if (TestFunction->HasMetaData(FBlueprintMetadata::MD_CompactNodeTitle))
+					else
 					{
-						FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
-						Add(FunctionName, TestFunction);
-					}
-					else if (TestFunction->HasMetaData(FBlueprintMetadata::MD_FriendlyName))
-					{
-						FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_FriendlyName);
+						if (TestFunction->HasMetaData(FBlueprintMetadata::MD_CompactNodeTitle))
+						{
+							FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_CompactNodeTitle);
+						}
+						else if (TestFunction->HasMetaData(FBlueprintMetadata::MD_FriendlyName))
+						{
+							FunctionName = TestFunction->GetMetaData(FBlueprintMetadata::MD_FriendlyName);
+						}
 						Add(FunctionName, TestFunction);
 					}
 				}
@@ -835,6 +837,10 @@ private:
 		FUNC_ALIASES_BEGIN("Square")
 			ADD_ALIAS("SQUARE")
 		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("FClamp")
+			ADD_ALIAS("CLAMP")
+		FUNC_ALIASES_END
 				
 		FUNC_ALIASES_BEGIN("MultiplyMultiply_FloatFloat")
 			ADD_ALIAS("POWER")
@@ -846,6 +852,11 @@ private:
 			// name and we still want it as a viable option
 			ADD_ALIAS("ASIN")
 			ADD_ALIAS("ARCSIN")
+		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("ACos")
+			ADD_ALIAS("ACOS")
+			ADD_ALIAS("ARCCOS")
 		FUNC_ALIASES_END
 		
 		FUNC_ALIASES_BEGIN("MakeVector")
@@ -920,7 +931,7 @@ private:
 
 /**
  * FCodeGenFragments facilitate the making of pin connections/defaults. When 
- * turning an expression tree into a network of UK2Nodes you traverse the tree,
+ * turning an expression tree into a network of UK2Nodes, you traverse the tree,
  * working backwards from the expression's result node. This means that when you
  * spawn a UK2Node, you don't have the node (or literals) that should be plugged 
  * into it, that is why these fragments are created (to track the associated 
@@ -1233,9 +1244,12 @@ public:
 		{
 			CompiledFragments.Add(&ExpressionNode, GenerateLiteralFragment(ExpressionNode.Token, *ActiveMessageLog));
 		}
-		else
+		else // TOKEN_Symbol
 		{
-			ActiveMessageLog->Error(*LOCTEXT("UnexpectedTokenType", "Unhandled token type in expression: '@@'").ToString(), CompilingNode);
+			FText ErrorText = FText::Format(LOCTEXT("UhandledTokenType", "Unhandled token '{0}' in expression: '@@'"),
+				FText::FromString(ExpressionNode.Token.Identifier));
+
+			ActiveMessageLog->Error(*ErrorText.ToString(), CompilingNode);
 		}
 		
 		// keep traversing the expression tree... we should handle cascading
@@ -1334,7 +1348,7 @@ public:
 		// don't want to double up on the error message (in the "Post" phase)
 		if (Phase == VISIT_Pre)
 		{
-			FText ErrorText = FText::Format(LOCTEXT("UnaryExpressionError", "Currently, prefixed unary operators {0} are prohibited in expressions: '@@'"),
+			FText ErrorText = FText::Format(LOCTEXT("UnaryExpressionError", "Currently, unary operators {0} are prohibited in expressions: '@@'"),
 				FText::FromString(ExpressionNode.ToString()));
 			
 			ActiveMessageLog->Error(*ErrorText.ToString(), CompilingNode);
@@ -1600,7 +1614,7 @@ private:
 							else
 							{
 								// too many pins - shouldn't be possible due to the checking in FindMatchingFunction() above
-								FText ErrorText = LOCTEXT("ConnectPinError", "'@@' requires more parameters than were provided");
+								FText ErrorText = LOCTEXT("ConnectPinError", "The '@@' function requires more parameters than were provided");
 								MessageLog.Error(*ErrorText.ToString(), FunctionCall);
 								break;
 							}
@@ -1626,7 +1640,7 @@ private:
 		}
 		else
 		{
-			FText ErrorText = FText::Format(LOCTEXT("OperatorParamsError", "Cannot find a '{0}' operator that takes the supplied param types, for expression: '@@'"),
+			FText ErrorText = FText::Format(LOCTEXT("OperatorParamsError", "Cannot find a '{0}' function that takes the supplied param types, for expression: '@@'"),
 				FText::FromString(FunctionName));
 			MessageLog.Error(*ErrorText.ToString(), CompilingNode);
 		}
@@ -1756,7 +1770,18 @@ public:
 		ExpressionString = InExpression;
 		ResetParser(*ExpressionString);
 
-		return Expression();
+		TSharedRef<IFExpressionNode> FullExpression = Expression();
+		// if we didn't parse the full expression and the parser doesn't have 
+		// an error, then there is some unhandled string postfixed to the 
+		// expression (something like "2.x" or "5var")
+		if (InputPos < InputLen && IsValid())
+		{
+			FText ErrorText = FText::Format(LOCTEXT("UnhandledPostfixError", "Unhandled trailing '{0}' at the end of the expression"), 
+				FText::FromString(&Input[InputPos]));
+			SetError(FErrorState::ParseError, ErrorText);
+		}
+
+		return FullExpression;
 	}
 
 private:
@@ -2383,7 +2408,7 @@ void UK2Node_MathExpression::PostPlacedNewNode()
 //------------------------------------------------------------------------------
 void UK2Node_MathExpression::ReconstructNode()
 {
-	if (!HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
+	if (!HasAnyFlags(RF_NeedLoad))
 	{
 		RebuildExpression(Expression);
 	}

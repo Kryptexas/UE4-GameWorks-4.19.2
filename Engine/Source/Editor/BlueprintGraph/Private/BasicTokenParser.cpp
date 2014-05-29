@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "MathExpressionsPrivatePCH.h"
+#include "BlueprintGraphPrivatePCH.h"
 #include "BasicTokenParser.h"
 
 #define LOCTEXT_NAMESPACE "BasicTokenParser"

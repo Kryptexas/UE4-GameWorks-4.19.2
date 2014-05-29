@@ -53,7 +53,6 @@ public:
 	void SetConstInt(int32 InInt);
 	void SetConstBool(bool InBool);
 	void SetConstFloat(float InFloat);
-
 	void SetConstName(FName InName);
 	void SetConstString(TCHAR* InString, int32 MaxLength=MAX_STRING_CONST_SIZE);
 
