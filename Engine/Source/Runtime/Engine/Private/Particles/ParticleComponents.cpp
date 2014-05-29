@@ -4763,19 +4763,47 @@ int32 UParticleSystemComponent::GetNumActiveParticles() const
 	return NumParticles;
 }
 
-void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated)
+void UParticleSystemComponent::GetTrailEmitters(TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters)
 {
-	int32 NumEmitters = EmitterInstances.Num();
-	for (int32 i = 0; i < NumEmitters; ++i)
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
 	{
-		FParticleEmitterInstance* Instance = EmitterInstances[i];
-		if (Instance && Instance->IsTrailEmitter())
+		if (Inst && Inst->IsTrailEmitter())
 		{
-			FParticleAnimTrailEmitterInstance* TrailInstance = (FParticleAnimTrailEmitterInstance*)(Instance);
-			if ((bIncludeUnassociated && TrailInstance->AnimNotifyState == NULL) || TrailInstance->AnimNotifyState == InAnimNotifyState)
-			{
-				OutTrailEmitters.Add(TrailInstance);
-			}
+			OutTrailEmitters.Add((FParticleAnimTrailEmitterInstance*)(Inst));
+		}
+	}
+}
+
+void UParticleSystemComponent::BeginTrails(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
+{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->BeginTrail();
+			Inst->SetTrailSourceData(InFirstSocketName, InSecondSocketName, InWidthMode, InWidth);
+		}
+	}
+}
+
+void UParticleSystemComponent::EndTrails()
+{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->EndTrail();
+		}
+	}
+}
+
+void UParticleSystemComponent::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
+{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			Inst->SetTrailSourceData(InFirstSocketName, InSecondSocketName, InWidthMode, InWidth);
 		}
 	}
 }

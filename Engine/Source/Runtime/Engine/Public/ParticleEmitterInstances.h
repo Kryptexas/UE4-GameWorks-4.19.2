@@ -645,6 +645,26 @@ public:
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift);
 		
 	virtual bool IsTrailEmitter()const{ return false; }
+
+	/**
+	* Begins the trail.
+	*/
+	virtual void BeginTrail(){}
+
+	/**
+	* Ends the trail.
+	*/
+	virtual void EndTrail(){}
+
+	/**
+	* Sets the data that defines this trail.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	virtual void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth){}
 protected:
 
 	/**
@@ -1390,11 +1410,6 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	ETrailWidthMode WidthMode;
 
 	/**
-	 *	The anim notify state that spawned this emitter.
-	 */
-	class UAnimNotifyState* AnimNotifyState;
-
-	/**
 	*	When set, the current trail will be marked as dead in the next tick.
 	*/
 	bool bTagTrailAsDead;
@@ -1505,17 +1520,13 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 
 	/**
 	 * Begins the trail.
-	 *
-	 * @param	InAnimNotifyState	The AnimNotifyState that created (or is creating) this trail.
 	 */
-	void BeginTrail(UAnimNotifyState* InAnimNotifyState);	
-	
+	virtual void BeginTrail();
+
 	/**
 	 * Ends the trail.
-	 *
-	 * @return  True if this was a trail ended by this notify, false otherwise.
 	 */
-	void EndTrail();
+	virtual void EndTrail();
 
 	/**
 	* Sets the date that defines this trail.
@@ -1525,7 +1536,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	* @param	InWidthMode			How the width value is applied to the trail.
 	* @param	InWidth				The width of the trail.
 	*/
-	void SetTrailSourceData( FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth );
+	virtual void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
 
 	bool IsTrailActive()const;
 

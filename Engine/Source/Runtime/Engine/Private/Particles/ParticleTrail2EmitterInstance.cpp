@@ -2831,7 +2831,6 @@ FParticleAnimTrailEmitterInstance::FParticleAnimTrailEmitterInstance() :
 	, SecondSocketName(NAME_None)
 	, Width(1.0f)
 	, WidthMode( ETrailWidthMode_FromCentre )
-	, AnimNotifyState(NULL)
 	, bTagTrailAsDead(false)
 	, bTrailEnabled(false)
 #if WITH_EDITORONLY_DATA
@@ -4058,16 +4057,8 @@ SIZE_T FParticleAnimTrailEmitterInstance::GetResourceSize(EResourceSizeMode::Typ
 	return ResSize;
 }
 
-void FParticleAnimTrailEmitterInstance::BeginTrail(class UAnimNotifyState* InAnimNotifyState)
+void FParticleAnimTrailEmitterInstance::BeginTrail()
 {
-	if( !AnimNotifyState )
-	{
-		//This is the first time we've been triggered.
-		AnimNotifyState = InAnimNotifyState;
-	}
-
-	check(AnimNotifyState == InAnimNotifyState);
-
 	//Mark any existing trails as dead.
 	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 	{
@@ -4088,8 +4079,6 @@ void FParticleAnimTrailEmitterInstance::BeginTrail(class UAnimNotifyState* InAni
 
 void FParticleAnimTrailEmitterInstance::EndTrail()
 {
-	check(AnimNotifyState);
-
 	FirstSocketName = NAME_None;
 	SecondSocketName = NAME_None;
 	bTagTrailAsDead = true;
@@ -4098,7 +4087,6 @@ void FParticleAnimTrailEmitterInstance::EndTrail()
 
 void FParticleAnimTrailEmitterInstance::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth )
 {
-	check(AnimNotifyState);
 	check(!InFirstSocketName.IsNone());
 	check(!InSecondSocketName.IsNone());
 

@@ -20,6 +20,15 @@ struct FDynamicEmitterDataBase;
 struct FDynamicEmitterReplayDataBase;
 struct FParticleAnimTrailEmitterInstance;
 
+/** Controls the way that the width scale property affects anim trails */
+UENUM()
+enum ETrailWidthMode
+{
+	ETrailWidthMode_FromCentre UMETA(DisplayName = "From Centre"),
+	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
+	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
+};
+
 /** Enum for specifying type of a name instance parameter. */
 UENUM()
 enum EParticleSysParamType
@@ -627,11 +636,37 @@ public:
 	
 	/**
 	* Fills the passed array with all trail emitters associated with a particular AnimNotifyState.
-	* @param InAnimNotifyState	The AnimNotifyState collecting the trails.
-	* @param OutTrailEmitters	The array to fill with pointers to
-	* @param bIncludeUnassociated If true, trails that have not yet been associated with an AnimNotifyState are included in OutTrailEmitters.
+	* @param OutTrailEmitters	The array to fill with pointers to the trail emitters.
 	*/
-	virtual void GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated = false);
+	virtual void GetTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters);
+	
+	/**
+	* Begins all trail emitters in this component.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void BeginTrails(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
+
+	/**
+	* Ends all trail emitters in this component.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void EndTrails();
+
+	/**
+	* Sets the defining data for all trails in this component.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Effects|Particles|Trails")
+	void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth);
 
 public:
 	TArray<struct FParticleEmitterInstance*> EmitterInstances;

@@ -5,15 +5,6 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);
 
-/** The way that the width scale property affects the trail */
-UENUM()
-enum ETrailWidthMode
-{
-	ETrailWidthMode_FromCentre UMETA(DisplayName = "From Centre"),
-	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
-	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
-};
-
 UCLASS(editinlinenew, Blueprintable, const, hidecategories = Object, collapsecategories, MinimalAPI, meta = (ShowHiddenSelfPins, DisplayName = "Trail"))
 class UAnimNotifyState_Trail : public UAnimNotifyState
 {
