@@ -118,7 +118,7 @@ namespace
 				else
 				{
 					// Recursively search for any other parent nodes farther up the tree that might be selected
-					return IsParentNodeSelected(ParentNodePtr, SelectedNodes);
+					return IsMovableParentNodeSelected(ParentNodePtr, SelectedNodes);
 				}
 			}
 		}
