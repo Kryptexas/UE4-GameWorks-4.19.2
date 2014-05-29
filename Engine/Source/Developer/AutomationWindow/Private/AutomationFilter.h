@@ -33,9 +33,18 @@ public:
 			FilterPassed = false;
 		}
 
-		if( ShowErrors || ShowWarnings )
+		if (ShowWarnings && ShowErrors)
 		{
-		 	FilterPassed = InReport->HasErrors() || InReport->HasWarnings();
+			FilterPassed = InReport->HasWarnings() || InReport->HasErrors();
+		}
+		else if (!ShowWarnings && ShowErrors)
+		{
+			FilterPassed = InReport->HasErrors();
+		}
+		else if (ShowWarnings && !ShowErrors)
+		{
+			// Do not show report as a warning if it should be highlighted as an Error!
+			FilterPassed = InReport->HasWarnings() && !InReport->HasErrors();
 		}
 
 		return FilterPassed;
