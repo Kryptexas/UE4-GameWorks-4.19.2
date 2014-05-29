@@ -12,7 +12,7 @@ namespace EStreamingLevelMode
 	enum Type
 	{
 		AlwaysLoaded,
-		Kismet,
+		Blueprint,
 		Bounds,
 	};
 }
