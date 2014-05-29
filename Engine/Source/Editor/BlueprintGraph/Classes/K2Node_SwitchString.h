@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_Switch.h"
 #include "K2Node_SwitchString.generated.h"
 
 UCLASS(MinimalAPI)

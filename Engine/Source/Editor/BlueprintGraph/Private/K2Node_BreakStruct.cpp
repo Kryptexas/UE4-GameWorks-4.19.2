@@ -2,7 +2,6 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "K2Node_BreakStruct.h"
 #include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_BreakStruct"

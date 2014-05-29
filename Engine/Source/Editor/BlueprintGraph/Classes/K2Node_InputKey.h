@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node.h"
 #include "K2Node_InputKey.generated.h"
 
 UCLASS(MinimalAPI)

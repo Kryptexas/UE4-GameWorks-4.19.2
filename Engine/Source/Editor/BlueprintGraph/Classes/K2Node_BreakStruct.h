@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node_StructMemberGet.h"
 #include "K2Node_BreakStruct.generated.h"
 
 UCLASS(MinimalAPI)

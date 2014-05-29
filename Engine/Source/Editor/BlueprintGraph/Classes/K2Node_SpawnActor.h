@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node.h"
 #include "K2Node_SpawnActor.generated.h"
 
 UCLASS(MinimalAPI)

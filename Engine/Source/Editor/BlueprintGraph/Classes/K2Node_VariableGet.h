@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2node_Variable.h"
 #include "K2Node_VariableGet.generated.h"
 
 UCLASS(MinimalAPI)

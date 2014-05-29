@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "K2Node_Switch.h"
+#include "NodeDependingOnEnumInterface.h"
 #include "K2Node_SwitchEnum.generated.h"
 
 UCLASS(MinimalAPI)

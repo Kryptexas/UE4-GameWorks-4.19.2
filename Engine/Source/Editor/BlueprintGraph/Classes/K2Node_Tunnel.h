@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+#include "K2Node_EditablePinBase.h"
 #include "K2Node_Tunnel.generated.h"
 
 UCLASS(MinimalAPI)

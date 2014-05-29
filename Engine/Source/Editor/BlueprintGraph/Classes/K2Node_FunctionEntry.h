@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+#include "K2Node_FunctionTerminator.h"
 #include "K2Node_FunctionEntry.generated.h"
 
 UCLASS(MinimalAPI)

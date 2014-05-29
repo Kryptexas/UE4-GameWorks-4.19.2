@@ -7,6 +7,25 @@
 #include "ObjectEditorUtils.h"
 #include "Matinee/MatineeActor.h"
 
+#include "K2Node_CastByteToEnum.h"
+#include "K2Node_ClassDynamicCast.h"
+#include "K2Node_EnumLiteral.h"
+#include "K2Node_ForEachElementInEnum.h"
+#include "K2Node_GetEnumeratorName.h"
+#include "K2Node_GetEnumeratorNameAsString.h"
+#include "K2Node_GetInputAxisValue.h"
+#include "K2Node_GetInputVectorAxisValue.h"
+#include "K2Node_GetNumEnumEntries.h"
+#include "K2Node_InputAxisKeyEvent.h"
+#include "K2Node_InputVectorAxisEvent.h"
+#include "K2Node_Message.h"
+#include "K2Node_MultiGate.h"
+#include "K2Node_SwitchEnum.h"
+#include "K2Node_SwitchString.h"
+#include "K2Node_VariableSetRef.h"
+
+#include "EdGraphSchema_K2_Actions.h"
+
 #define LOCTEXT_NAMESPACE "KismetSchema"
 
 /*******************************************************************************

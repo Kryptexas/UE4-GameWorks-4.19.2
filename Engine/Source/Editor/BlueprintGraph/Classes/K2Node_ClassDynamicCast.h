@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.generated.h"
 
 UCLASS(MinimalAPI)

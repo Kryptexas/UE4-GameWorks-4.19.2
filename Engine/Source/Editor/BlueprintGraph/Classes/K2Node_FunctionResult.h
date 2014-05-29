@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_FunctionTerminator.h"
 #include "K2Node_FunctionResult.generated.h"
 
 UCLASS(MinimalAPI)

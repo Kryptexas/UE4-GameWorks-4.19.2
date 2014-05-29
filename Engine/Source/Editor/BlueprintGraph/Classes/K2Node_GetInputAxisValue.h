@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "K2Node_CallFunction.h"
 #include "K2Node_GetInputAxisValue.generated.h"
 
 UCLASS(MinimalAPI)

@@ -5,6 +5,9 @@
 #include "Kismet2NameValidators.h"
 #include "ScopedTransaction.h"
 
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_LocalVariable.h"
+
 UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

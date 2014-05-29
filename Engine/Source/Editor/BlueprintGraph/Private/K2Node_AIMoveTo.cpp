@@ -3,6 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "CompilerResultsLog.h"
+#include "K2Node_AIMoveTo.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"
 

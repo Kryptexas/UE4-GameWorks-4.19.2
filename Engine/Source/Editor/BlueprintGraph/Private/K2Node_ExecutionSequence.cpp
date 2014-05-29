@@ -3,6 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
+#include "KismetCompilerMisc.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 

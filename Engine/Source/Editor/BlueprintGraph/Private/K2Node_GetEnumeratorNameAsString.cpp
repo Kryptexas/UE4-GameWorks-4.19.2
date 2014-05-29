@@ -3,7 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "K2Node_GetEnumeratorNameAsString.h"
 
 UK2Node_GetEnumeratorNameAsString::UK2Node_GetEnumeratorNameAsString(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

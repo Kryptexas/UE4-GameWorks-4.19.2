@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_Event.h"
 #include "K2Node_CustomEvent.generated.h"
 
 UCLASS(MinimalAPI)

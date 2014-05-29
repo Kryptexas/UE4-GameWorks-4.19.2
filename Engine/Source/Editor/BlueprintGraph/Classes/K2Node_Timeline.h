@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node.h"
 #include "K2Node_Timeline.generated.h"
 
 UCLASS(MinimalAPI)

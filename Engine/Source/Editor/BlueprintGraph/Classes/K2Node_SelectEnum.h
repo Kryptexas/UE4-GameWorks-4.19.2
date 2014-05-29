@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_Select.h"
 #include "K2Node_SelectEnum.generated.h"
 
 UCLASS(MinimalAPI, deprecated)

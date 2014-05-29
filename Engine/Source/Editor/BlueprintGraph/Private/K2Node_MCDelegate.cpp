@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "K2Node_BaseMCDelegate.h"
-#include "K2Node_AddDelegate.h"
-#include "K2Node_CallDelegate.h"
-#include "K2Node_ClearDelegate.h"
-#include "K2Node_RemoveDelegate.h"
 #include "CompilerResultsLog.h"
 #include "DelegateNodeHandlers.h"
 

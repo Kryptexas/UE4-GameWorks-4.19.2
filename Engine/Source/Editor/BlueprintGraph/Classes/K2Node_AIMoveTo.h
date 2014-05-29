@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_BaseAsyncTask.h"
 #include "K2Node_AIMoveTo.generated.h"
 
 UCLASS()

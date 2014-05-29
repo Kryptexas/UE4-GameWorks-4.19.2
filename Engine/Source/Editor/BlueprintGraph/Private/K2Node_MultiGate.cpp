@@ -2,10 +2,10 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
-
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "K2Node_MultiGate.h"
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 
 //////////////////////////////////////////////////////////////////////////

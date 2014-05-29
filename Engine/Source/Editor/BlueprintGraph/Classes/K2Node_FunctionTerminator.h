@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_EditablePinBase.h"
 #include "K2Node_FunctionTerminator.generated.h"
 
 UCLASS(abstract, MinimalAPI)

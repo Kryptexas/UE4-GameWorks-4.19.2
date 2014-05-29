@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "K2Node_CallFunction.h"
 #include "K2Node_CallParentFunction.generated.h"
 
 UCLASS(MinimalAPI)

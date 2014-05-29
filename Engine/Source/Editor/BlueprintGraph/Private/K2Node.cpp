@@ -2,6 +2,7 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "K2Node.h"
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
 
 #define LOCTEXT_NAMESPACE "K2Node"

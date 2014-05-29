@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "NodeDependingOnEnumInterface.h"
 #include "K2Node_GetNumEnumEntries.generated.h"
 
 UCLASS(MinimalAPI)

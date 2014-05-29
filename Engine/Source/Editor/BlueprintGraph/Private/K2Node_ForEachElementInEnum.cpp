@@ -3,8 +3,11 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetNodeHelperLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "K2Node_CastByteToEnum.h"
+#include "K2Node_ForEachElementInEnum.h"
+#include "K2Node_GetNumEnumEntries.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

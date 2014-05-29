@@ -4,7 +4,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "Kismet2NameValidators.h"
-#include "K2Node_BaseMCDelegate.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"

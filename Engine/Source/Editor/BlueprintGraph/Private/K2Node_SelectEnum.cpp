@@ -2,7 +2,7 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
-
+#include "K2Node_SelectEnum.h"
 
 UDEPRECATED_K2Node_SelectEnum::UDEPRECATED_K2Node_SelectEnum(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

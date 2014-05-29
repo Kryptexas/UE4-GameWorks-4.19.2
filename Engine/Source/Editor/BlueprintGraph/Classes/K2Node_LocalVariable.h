@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node_TemporaryVariable.h"
 #include "K2Node_LocalVariable.generated.h"
 
 UCLASS(MinimalAPI, deprecated)

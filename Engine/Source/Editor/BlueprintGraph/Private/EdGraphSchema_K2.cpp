@@ -24,6 +24,12 @@
 #include "K2ActionMenuBuilder.h"
 #include "AssetRegistryModule.h"
 
+#include "K2Node_CastByteToEnum.h"
+#include "K2Node_ClassDynamicCast.h"
+#include "K2Node_GetEnumeratorName.h"
+#include "K2Node_GetEnumeratorNameAsString.h"
+#include "K2Node_Tunnel.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintMetadata
 

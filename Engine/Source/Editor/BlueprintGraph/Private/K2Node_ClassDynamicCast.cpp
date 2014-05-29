@@ -2,6 +2,7 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_ClassDynamicCast.h"
 #include "DynamicCastHandler.h"
 
 struct FClassDynamicCastHelper
