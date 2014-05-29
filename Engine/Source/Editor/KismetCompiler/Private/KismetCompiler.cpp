@@ -3060,6 +3060,10 @@ void FKismetCompilerContext::Compile()
 	// Run thru the class defined variables first, get them registered
 	CreateClassVariablesFromBlueprint();
 
+	// Add any interfaces that the blueprint implements to the class
+	// (has to happen before we validate pin links in CreateFunctionList(), so that we can verify self/interface pins)
+	AddInterfacesFromBlueprint(NewClass);
+
 	// Construct a context for each function, doing validation and building the function interface
 	{	
 		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_CreateFunctionList);
@@ -3177,9 +3181,6 @@ void FKismetCompilerContext::Compile()
 
 	{
 		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_FinalizationWork);
-
-		// Add any interfaces that the blueprint implements to the class
-		AddInterfacesFromBlueprint(NewClass);
 
 		// Set any final flags and seal the class, build a CDO, etc...
 		FinishCompilingClass(NewClass);

@@ -2700,12 +2700,26 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 	{
 		UClass const* InterfaceClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
 		UClass const* InputClass     = Cast<UClass const>(Input.PinSubCategoryObject.Get());
+
+		if (Input.PinSubCategory == PSC_Self)
+		{
+			InputClass = CallingContext;
+		}
+		check(InputClass != nullptr);
+
 		return InputClass->ImplementsInterface(InterfaceClass) || InterfaceClass->IsChildOf(InputClass);
 	}
 	else if ((Output.PinCategory == PC_Object) && (Input.PinCategory == PC_Interface))
 	{
 		UClass const* OutputClass    = Cast<UClass const>(Output.PinSubCategoryObject.Get());
 		UClass const* InterfaceClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
+
+		if (Output.PinSubCategory == PSC_Self)
+		{
+			OutputClass = CallingContext;
+		}
+		check(OutputClass != nullptr);
+
 		return OutputClass->ImplementsInterface(InterfaceClass) || OutputClass->IsChildOf(InterfaceClass);
 	}
 
