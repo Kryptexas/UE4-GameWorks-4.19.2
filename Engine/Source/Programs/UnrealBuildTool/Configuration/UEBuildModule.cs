@@ -806,8 +806,11 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** A list of the absolute paths of source files in the module. */
-		public readonly SourceFilesClass SourceFiles = new SourceFilesClass();
+		/** A list of the absolute paths of source files to be built in this module. */
+		public readonly SourceFilesClass SourceFilesToBuild = new SourceFilesClass();
+
+		/** A list of the source files that were found for the module. */
+		public readonly SourceFilesClass SourceFilesFound = new SourceFilesClass();
 
 		/** The preprocessor definitions used to compile this module's private implementation. */
 		List<string> Definitions;
@@ -859,6 +862,43 @@ namespace UnrealBuildTool
 		/** The processed dependencies for the class */
 		public ProcessedDependenciesClass ProcessedDependencies = null;
 
+		/** Categorizes source files into per-extension buckets */
+		private static void CategorizeSourceFiles(IEnumerable<FileItem> InSourceFiles, SourceFilesClass OutSourceFiles)
+		{
+			foreach (var SourceFile in InSourceFiles)
+			{
+				string Extension = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant();
+				if (!SourceFile.bExists)
+				{
+					OutSourceFiles.MissingFiles.Add(SourceFile);
+				}
+				else if (Extension == ".CPP")
+				{
+					OutSourceFiles.CPPFiles.Add(SourceFile);
+				}
+				else if (Extension == ".C")
+				{
+					OutSourceFiles.CFiles.Add(SourceFile);
+				}
+				else if (Extension == ".CC")
+				{
+					OutSourceFiles.CCFiles.Add(SourceFile);
+				}
+				else if (Extension == ".MM" || Extension == ".M")
+				{
+					OutSourceFiles.MMFiles.Add(SourceFile);
+				}
+				else if (Extension == ".RC")
+				{
+					OutSourceFiles.RCFiles.Add(SourceFile);
+				}
+				else
+				{
+					OutSourceFiles.OtherFiles.Add(SourceFile);
+				}
+			}
+		}
+
 		public UEBuildModuleCPP(
 			UEBuildTarget InTarget,
 			string InName,
@@ -891,7 +931,8 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining
+			bool InEnableInlining,
+			bool bInBuildSourceFiles
 			)
 			: base(	InTarget,
 					InName, 
@@ -919,37 +960,10 @@ namespace UnrealBuildTool
 		{
 			IntelliSenseGatherer = InIntelliSenseGatherer;
 
-			foreach (var SourceFile in InSourceFiles)
+			CategorizeSourceFiles(InSourceFiles, SourceFilesFound);
+			if (bInBuildSourceFiles)
 			{
-				string Extension = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant();
-				if (!SourceFile.bExists)
-				{
-					SourceFiles.MissingFiles.Add(SourceFile);
-				}
-				else if (Extension == ".CPP")
-				{
-					SourceFiles.CPPFiles.Add(SourceFile);
-				}
-				else if (Extension == ".C")
-				{
-					SourceFiles.CFiles.Add(SourceFile);
-				}
-				else if (Extension == ".CC")
-				{
-					SourceFiles.CCFiles.Add(SourceFile);
-				}
-				else if (Extension == ".MM" || Extension == ".M")
-				{
-					SourceFiles.MMFiles.Add(SourceFile);
-				}
-				else if (Extension == ".RC")
-				{
-					SourceFiles.RCFiles.Add(SourceFile);
-				}
-				else
-				{
-					SourceFiles.OtherFiles.Add(SourceFile);
-				}
+				CategorizeSourceFiles(InSourceFiles, SourceFilesToBuild);
 			}
 
 			Definitions = ListFromOptionalEnumerableStringParameter(InDefinitions);
@@ -1000,12 +1014,12 @@ namespace UnrealBuildTool
 			}
 
 			// Throw an error if the module's source file list referenced any non-existent files.
-			if (SourceFiles.MissingFiles.Count > 0)
+			if (SourceFilesToBuild.MissingFiles.Count > 0)
 			{
 				throw new BuildException(
 					"UBT ERROR: Module \"{0}\" references non-existent files:\n{1} (perhaps a file was added to the project but not checked in)",
 					Name,
-					string.Join("\n", SourceFiles.MissingFiles.Select(M => M.AbsolutePath))
+					string.Join("\n", SourceFilesToBuild.MissingFiles.Select(M => M.AbsolutePath))
 				);
 			}
 
@@ -1016,11 +1030,11 @@ namespace UnrealBuildTool
 			if (Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{
 				// Add default PCLaunch.rc file if this module has no own resource file specified
-				if (SourceFiles.RCFiles.Count <= 0)
+				if (SourceFilesToBuild.RCFiles.Count <= 0)
 				{
 					string DefRC = Path.Combine(Directory.GetCurrentDirectory(), "Runtime/Launch/Resources/Windows/PCLaunch.rc");
 					FileItem Item = FileItem.GetItemByFullPath(DefRC);
-					SourceFiles.RCFiles.Add(Item);
+					SourceFilesToBuild.RCFiles.Add(Item);
 				}
 			}
 
@@ -1050,7 +1064,7 @@ namespace UnrealBuildTool
 			{
 				bModuleUsesUnityBuild = false;
 			}
-			else if( !BuildConfiguration.bForceUnityBuild && IsGameModule && SourceFiles.CPPFiles.Count < BuildConfiguration.MinGameModuleSourceFilesForUnityBuild )
+			else if( !BuildConfiguration.bForceUnityBuild && IsGameModule && SourceFilesToBuild.CPPFiles.Count < BuildConfiguration.MinGameModuleSourceFilesForUnityBuild )
 			{
 				// Game modules with only a small number of source files are usually better off having faster iteration times
 				// on single source file changes, so we forcibly disable unity build for those modules
@@ -1088,7 +1102,7 @@ namespace UnrealBuildTool
 
 				// Determine what potential precompiled header is used by each source file.
 				double SharedPCHTotalTime = 0.0;
-				foreach( var CPPFile in SourceFiles.CPPFiles )
+				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 				{
 					if (bUseSharedPCHFiles)
 					{
@@ -1212,13 +1226,13 @@ namespace UnrealBuildTool
 
 				// If there was one header that was included first by enough C++ files, use it as the precompiled header.
 				// Only use precompiled headers for projects with enough files to make the PCH creation worthwhile.
-				if( SharedPCHHeaderFile != null || SourceFiles.CPPFiles.Count >= MinFilesUsingPrecompiledHeader )
+				if( SharedPCHHeaderFile != null || SourceFilesToBuild.CPPFiles.Count >= MinFilesUsingPrecompiledHeader )
 				{
 					FileItem PCHToUse;
 
 					if( SharedPCHHeaderFile != null )
 					{
-						ModulePCHEnvironment = ApplySharedPCH(GlobalCompileEnvironment, CompileEnvironment, ModuleCompileEnvironment, SourceFiles.CPPFiles, ref SharedPCHHeaderFile);
+						ModulePCHEnvironment = ApplySharedPCH(GlobalCompileEnvironment, CompileEnvironment, ModuleCompileEnvironment, SourceFilesToBuild.CPPFiles, ref SharedPCHHeaderFile);
 						if (ModulePCHEnvironment != null)
 						{
 							// @todo SharedPCH: Ideally we would exhaustively check for a compatible compile environment (definitions, imports/exports, etc)
@@ -1238,7 +1252,7 @@ namespace UnrealBuildTool
 					if (PCHToUse != null)
 					{
 						// Update all CPPFiles to point to the PCH
-						foreach (var CPPFile in SourceFiles.CPPFiles)
+						foreach (var CPPFile in SourceFilesToBuild.CPPFiles)
 						{
 							CPPFile.PCHHeaderNameInCode              = PCHToUse.AbsolutePath;
 							CPPFile.PrecompiledHeaderIncludeFilename = PCHToUse.AbsolutePath;
@@ -1255,7 +1269,7 @@ namespace UnrealBuildTool
 							PCHHeaderFile = SharedPCHHeaderFile;
 							PCHModuleName = SharedPCHModuleName;
 						}
-						var PCHHeaderNameInCode = SourceFiles.CPPFiles[ 0 ].PCHHeaderNameInCode;
+						var PCHHeaderNameInCode = SourceFilesToBuild.CPPFiles[ 0 ].PCHHeaderNameInCode;
 
 						ModulePCHEnvironment = new PrecompileHeaderEnvironment( PCHModuleName, PCHHeaderNameInCode, PCHHeaderFile, ModuleCompileEnvironment.Config.CLRMode, ModuleCompileEnvironment.Config.OptimizeCode );
 
@@ -1292,7 +1306,7 @@ namespace UnrealBuildTool
 						ModulePCHCompileEnvironment.Config.bForceIncludePrecompiledHeader = true;
 					}
 
-					var CPPFilesToBuild = SourceFiles.CPPFiles;
+					var CPPFilesToBuild = SourceFilesToBuild.CPPFiles;
 					if (bModuleUsesUnityBuild)
 					{
 						// unity files generated for only the set of files which share the same PCH environment
@@ -1354,9 +1368,9 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if( !bWasModuleCodeCompiled && SourceFiles.CPPFiles.Count > 0 )
+			if( !bWasModuleCodeCompiled && SourceFilesToBuild.CPPFiles.Count > 0 )
 			{
-				var CPPFilesToCompile = SourceFiles.CPPFiles;
+				var CPPFilesToCompile = SourceFilesToBuild.CPPFiles;
 				if (bModuleUsesUnityBuild)
 				{
 					CPPFilesToCompile = Unity.GenerateUnityCPPs( CPPFilesToCompile, ModuleCompileEnvironment, Name );
@@ -1372,13 +1386,13 @@ namespace UnrealBuildTool
 			}
 
 			// Compile C files directly.
-			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFiles.CFiles, Name).ObjectFiles);
+			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFilesToBuild.CFiles, Name).ObjectFiles);
 
 			// Compile CC files directly.
-			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFiles.CCFiles, Name).ObjectFiles);
+			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFilesToBuild.CCFiles, Name).ObjectFiles);
 
 			// Compile MM files directly.
-			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFiles.MMFiles, Name).ObjectFiles);
+			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileFiles(SourceFilesToBuild.MMFiles, Name).ObjectFiles);
 
 			// If we're building Rocket, generate a static library for this module
 			if(RedistStaticLibraryPath != null)
@@ -1400,7 +1414,7 @@ namespace UnrealBuildTool
 			}
 
 			// Compile RC files.
-			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileRCFiles(SourceFiles.RCFiles).ObjectFiles);
+			LinkInputFiles.AddRange(ModuleCompileEnvironment.CompileRCFiles(SourceFilesToBuild.RCFiles).ObjectFiles);
 
 			return LinkInputFiles;
 		}
@@ -1454,7 +1468,7 @@ namespace UnrealBuildTool
 				return;
 
 			FileItem UniquePCH = null;
-			foreach( var CPPFile in SourceFiles.CPPFiles )
+			foreach( var CPPFile in SourceFilesFound.CPPFiles )
 			{
 				// Find headers used by the source file.
 				var PCH = ProcessDependencies(CPPFile, ModuleCompileEnvironment);
@@ -1909,7 +1923,8 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining
+			bool InEnableInlining,
+			bool bInBuildSourceFiles
 			)
 		: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,InDefinitions,
@@ -1917,7 +1932,7 @@ namespace UnrealBuildTool
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
-			InEnableExceptions, InEnableInlining)
+			InEnableExceptions, InEnableInlining, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = ListFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}
