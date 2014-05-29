@@ -201,14 +201,7 @@ namespace UnrealBuildTool.Linux
         public override void ValidateUEBuildConfiguration()
         {
             BuildConfiguration.bUseUnityBuild = true;
-
-            UEBuildConfiguration.bCompileLeanAndMeanUE = true;
-            UEBuildConfiguration.bCompilePhysX = true;
             UEBuildConfiguration.bCompileAPEX = false;
-
-            UEBuildConfiguration.bBuildEditor = false;
-            UEBuildConfiguration.bBuildDeveloperTools = false;
-            UEBuildConfiguration.bCompileSimplygon = false;
 
             // Don't stop compilation at first error...
             BuildConfiguration.bStopXGECompilationAfterErrors = true;
@@ -226,30 +219,6 @@ namespace UnrealBuildTool.Linux
          *	@return	bool	true if PDB files should be used, false if not
          */
         public override bool ShouldUsePDBFiles(CPPTargetPlatform Platform, CPPTargetConfiguration Configuration, bool bCreateDebugInfo)
-        {
-            return true;
-        }
-
-        /**
-         *	Whether the editor should be built for this platform or not
-         *	
-         *	@param	InPlatform		The UnrealTargetPlatform being built
-         *	@param	InConfiguration	The UnrealTargetConfiguration being built
-         *	@return	bool			true if the editor should be built, false if not
-         */
-        public override bool ShouldNotBuildEditor(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-        {
-            return true;
-        }
-
-        /**
-         *	Whether the platform requires cooked data
-         *	
-         *	@param	InPlatform		The UnrealTargetPlatform being built
-         *	@param	InConfiguration	The UnrealTargetConfiguration being built
-         *	@return	bool			true if the platform requires cooked data, false if not
-         */
-        public override bool BuildRequiresCookedData(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
         {
             return true;
         }
@@ -308,20 +277,20 @@ namespace UnrealBuildTool.Linux
          */
         public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
         {
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_UNICODE");
-
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
 
             // link with Linux libraries.
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("pthread");
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
 
-            UEBuildConfiguration.bCompileSimplygon = false;
+            // Disable Simplygon support if compiling against the NULL RHI.
+            if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
+            {
+                UEBuildConfiguration.bCompileSimplygon = false;
+            }
         }
 
         /**
