@@ -2341,14 +2341,22 @@ void SSCSEditor::PerformComboAddClass(TSubclassOf<UActorComponent> ComponentClas
 	}
 }
 
-
-
-
-
-
 TArray<FSCSEditorTreeNodePtrType>  SSCSEditor::GetSelectedNodes() const
 {
-	return SCSTreeWidget->GetSelectedItems();
+	TArray<FSCSEditorTreeNodePtrType> SelectedTreeNodes = SCSTreeWidget->GetSelectedItems();
+
+	struct FCompareSelectedSCSEditorTreeNodes
+	{
+		FORCEINLINE bool operator()(const FSCSEditorTreeNodePtrType& A, const FSCSEditorTreeNodePtrType& B) const
+		{
+			return B.IsValid() && B->IsAttachedTo(A);
+		}
+	};
+
+	// Ensure that nodes are ordered from parent to child (otherwise they are sorted in the order that they were selected)
+	SelectedTreeNodes.Sort(FCompareSelectedSCSEditorTreeNodes());
+
+	return SelectedTreeNodes;
 }
 
 FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComponent* ActorComponent, bool bIncludeAttachedComponents) const

@@ -100,6 +100,31 @@ namespace
 
 		return false;
 	}
+
+	// Determine whether or not the given node has a parent node that is not the root node, is movable and is selected
+	bool IsMovableParentNodeSelected(const FSCSEditorTreeNodePtrType& NodePtr, const TArray<FSCSEditorTreeNodePtrType>& SelectedNodes)
+	{
+		if(NodePtr.IsValid())
+		{
+			// Check for a valid parent node
+			FSCSEditorTreeNodePtrType ParentNodePtr = NodePtr->GetParent();
+			if(ParentNodePtr.IsValid() && !ParentNodePtr->IsRoot())
+			{
+				if(SelectedNodes.Contains(ParentNodePtr))
+				{
+					// The parent node is not the root node and is also selected; success
+					return true;
+				}
+				else
+				{
+					// Recursively search for any other parent nodes farther up the tree that might be selected
+					return IsParentNodeSelected(ParentNodePtr, SelectedNodes);
+				}
+			}
+		}
+
+		return false;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -357,8 +382,9 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				for(auto It(SelectedNodes.CreateIterator());It;++It)
 				{
 					FSCSEditorTreeNodePtrType SelectedNodePtr = *It;
-					// Don't allow editing of a root node or inherited SCS node
-					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited();
+					// Don't allow editing of a root node, inherited SCS node or child node that also has a movable (non-root) parent node selected
+					const bool bCanEdit =  !SelectedNodePtr->IsRoot() && !SelectedNodePtr->IsInherited()
+						&& !IsMovableParentNodeSelected(SelectedNodePtr, SelectedNodes);
 
 					if(bCanEdit)
 					{
