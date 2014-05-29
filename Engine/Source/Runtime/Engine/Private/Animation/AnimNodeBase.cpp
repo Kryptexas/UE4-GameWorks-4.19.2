@@ -119,8 +119,8 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+	Output.DiagnosticCheckNaN();
+	Output.DiagnosticCheckUnitQuaternion();
 }
 
 /////////////////////////////////////////////////////
@@ -143,79 +143,17 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+	Output.DiagnosticCheckNaN();
+	Output.DiagnosticCheckUnitQuaternion();
 }
 
 /////////////////////////////////////////////////////
 // FPoseContext
 
-bool FPoseContext::ContainsNaN() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if (Pose.Bones[BoneIndex].ContainsNaN())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool FPoseContext::IsNormalized() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if( !Pose.Bones[BoneIndex].IsRotationNormalized() )
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
 
 /////////////////////////////////////////////////////
 // FComponentSpacePoseContext
 
-bool FComponentSpacePoseContext::ContainsNaN() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if (Pose.Bones[BoneIndex].ContainsNaN())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool FComponentSpacePoseContext::IsNormalized() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if( !Pose.Bones[BoneIndex].IsRotationNormalized() )
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
 
 /////////////////////////////////////////////////////
 // FNodeDebugData

@@ -13,6 +13,12 @@
 	#define ENABLE_NAN_DIAGNOSTIC 0
 #endif
 
+// Assert on non unit quaternions.
+#ifndef  ENABLE_UNIT_QUAT_DIAGNOSTIC
+	#define ENABLE_UNIT_QUAT_DIAGNOSTIC 0
+#endif // ! ENABLE_UNIT_QUAT_DIAGNOSTIC
+
+
 /*-----------------------------------------------------------------------------
 	Definitions.
 -----------------------------------------------------------------------------*/

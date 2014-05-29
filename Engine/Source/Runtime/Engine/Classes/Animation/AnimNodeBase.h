@@ -139,8 +139,35 @@ public:
 		FAnimationRuntime::InitializeTransform(AnimInstance->RequiredBones, Pose.Bones);
 	}
 
-	bool ContainsNaN() const;
-	bool IsNormalized() const;
+#if ENABLE_UNIT_QUAT_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const
+	{
+		check(AnimInstance && AnimInstance->RequiredBones.IsValid());
+		const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
+		for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
+		{
+			const int32 BoneIndex = RequiredBoneIndices[Iter];
+			Pose.Bones[BoneIndex].DiagnosticCheckUnitQuaternion();
+		}
+	}
+#else
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const {}
+#endif
+
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		check(AnimInstance && AnimInstance->RequiredBones.IsValid());
+		const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
+		for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
+		{
+			const int32 BoneIndex = RequiredBoneIndices[Iter];
+			Pose.Bones[BoneIndex].DiagnosticCheckNaN_All();
+		}
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
 };
 
 
@@ -171,8 +198,35 @@ public:
 		Pose.AllocateLocalPoses(AnimInstance->RequiredBones, AnimInstance->RequiredBones.GetRefPoseArray());
 	}
 
-	bool ContainsNaN() const;
-	bool IsNormalized() const;
+#if ENABLE_UNIT_QUAT_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const
+	{
+		check(AnimInstance && AnimInstance->RequiredBones.IsValid());
+		const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
+		for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
+		{
+			const int32 BoneIndex = RequiredBoneIndices[Iter];
+			Pose.Bones[BoneIndex].DiagnosticCheckUnitQuaternion();
+		}
+	}
+#else
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const {}
+#endif
+
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		check(AnimInstance && AnimInstance->RequiredBones.IsValid());
+		const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
+		for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
+		{
+			const int32 BoneIndex = RequiredBoneIndices[Iter];
+			Pose.Bones[BoneIndex].DiagnosticCheckNaN_All();
+		}
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
 };
 
 struct FNodeDebugData

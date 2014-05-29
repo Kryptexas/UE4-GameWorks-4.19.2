@@ -32,6 +32,15 @@ public:
 	 */
 	static CORE_API const FTransform Identity;
 
+#if ENABLE_UNIT_QUAT_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const
+	{
+		checkf(Rotation.IsNormalized(), TEXT("FTransform Rotation is not Normalized: %s"), *Rotation.ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckUnitQuaternion() const {}
+#endif
+
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
