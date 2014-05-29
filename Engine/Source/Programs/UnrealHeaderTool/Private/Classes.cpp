@@ -89,16 +89,17 @@ bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source) const
 
 			// If still no class found, we're out of luck.
 			if (!Dependency)
-			{
-				// Error.
 				continue;
-			}
 		}
 
 		// the parser disallows declaring the parent class as a dependency, so the only way this could occur is
 		// if the parent for a native class has been changed (which causes the new parent to be inserted as a dependency),
 		// if this is the case, skip it or we'll go into a loop
 		if (Suspect->GetSuperClass() == Dependency)
+			continue;
+
+		// Ignore inter-module dependencies, since modules should be self-contained when they are compiled.
+		if (Dependency->GetOutermost() != Suspect->GetOutermost())
 			continue;
 
 		if (Dependency == Source || IsDependentOn(Dependency, Source))
