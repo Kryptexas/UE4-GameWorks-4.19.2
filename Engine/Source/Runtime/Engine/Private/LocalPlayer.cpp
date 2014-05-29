@@ -8,6 +8,7 @@
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
+#include "PhysicsPublic.h"
 
 #include "RenderCore.h"
 #include "ColorList.h"

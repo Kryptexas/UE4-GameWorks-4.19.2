@@ -5,6 +5,7 @@ LandscapeCollision.cpp: Landscape collision
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeRender.h"
 #include "../PhysicsEngine/PhysXSupport.h"

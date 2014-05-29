@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 
 #if WITH_PHYSX
+#include "PhysicsPublic.h"
 #include "../PhysicsEngine/PhysXSupport.h"
 #include "PhysXCollision.h"
 #include "CollisionDebugDrawing.h"

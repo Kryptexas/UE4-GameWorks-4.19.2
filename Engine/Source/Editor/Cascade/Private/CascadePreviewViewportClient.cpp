@@ -12,6 +12,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSpriteEmitter.h"
+#include "PhysicsPublic.h"
 
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 

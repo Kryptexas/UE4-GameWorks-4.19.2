@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "LevelUtils.h"
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "Collision.h"
 
 #if WITH_PHYSX

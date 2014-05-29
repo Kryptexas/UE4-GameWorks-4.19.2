@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
+#include "PhysicsPublic.h"
 
 #include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"

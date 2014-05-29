@@ -3,6 +3,8 @@
 #include "EnginePrivate.h"
 #if WITH_RECAST
 
+#include "PhysicsPublic.h"
+
 #if WITH_PHYSX
 	#include "../../PhysicsEngine/PhysXSupport.h"
 #endif

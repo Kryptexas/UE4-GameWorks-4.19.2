@@ -389,7 +389,6 @@
 #include "NavigationModifier.h"
 #include "NavigationOctree.h"
 #include "ContentStreaming.h"				// Content streaming class definitions.
-#include "PhysicsPublic.h"
 #include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"
 #include "UnrealEngine.h"					// Unreal engine helpers.

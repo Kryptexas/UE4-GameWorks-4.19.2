@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "DynamicMeshBuilder.h"
 #include "../../../../Source/Runtime/Engine/Classes/Engine/TextRenderActor.h"
 
 ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)

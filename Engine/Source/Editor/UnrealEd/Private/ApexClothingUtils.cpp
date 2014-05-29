@@ -4,6 +4,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
+#include "PhysicsPublic.h"
 #include "ApexClothingUtils.h"
 
 #if WITH_APEX

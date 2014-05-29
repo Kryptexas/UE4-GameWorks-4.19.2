@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "ShaderParameters.h"
 #include "StaticLighting.h"
 

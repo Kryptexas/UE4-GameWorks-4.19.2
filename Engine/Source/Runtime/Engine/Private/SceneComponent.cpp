@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
 

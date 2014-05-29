@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "DynamicMeshBuilder.h"
 
 /** The index buffer type used for dynamic meshes. */
 class FDynamicMeshIndexBuffer : public FDynamicPrimitiveResource, public FIndexBuffer

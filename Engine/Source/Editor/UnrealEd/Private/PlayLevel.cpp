@@ -26,6 +26,7 @@
 #include "TargetDeviceServices.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
+#include "PhysicsPublic.h"
 
 #include "Online.h"
 

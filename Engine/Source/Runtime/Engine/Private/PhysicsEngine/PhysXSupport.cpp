@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
 

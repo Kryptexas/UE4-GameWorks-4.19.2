@@ -17,6 +17,7 @@
 #include "LandscapeEdModeTools.h"
 #include "ScopedTransaction.h"
 #include "ImageWrapper.h"
+#include "DynamicMeshBuilder.h"
 
 //Slate dependencies
 #include "Editor/LevelEditor/Public/LevelEditor.h"

@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SnappingUtils.h"
+#include "DynamicMeshBuilder.h"
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 

@@ -18,6 +18,7 @@
 #include "LevelEditor.h"
 #include "Toolkits/ToolkitManager.h"
 #include "EditorLevelUtils.h"
+#include "DynamicMeshBuilder.h"
 
 #include "Editor/FoliageEdit/Public/FoliageEditModule.h"
 #include "ActorEditorUtils.h"

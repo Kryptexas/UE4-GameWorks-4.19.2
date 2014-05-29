@@ -6,8 +6,18 @@
 
 class USkeletalMeshComponent;
 class FPhysScene;
+struct FClothPhysicsProperties;
 
 #if WITH_APEX_CLOTHING
+
+namespace physx
+{
+	namespace apex
+	{
+		class NxClothingAsset;
+	}
+}
+
 struct FSubmeshInfo
 {
 	int32  SubmeshIndex;
@@ -73,7 +83,7 @@ namespace ApexClothingUtils
 
 	//if AssetIndex is -1, means newly added asset, otherwise re-import
 	UNREALED_API EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile,USkeletalMesh* SkelMesh, int32 AssetIndex=-1);
-	UNREALED_API bool GetSubmeshInfoFromApexAsset(NxClothingAsset *InAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos);
+	UNREALED_API bool GetSubmeshInfoFromApexAsset(physx::apex::NxClothingAsset *InAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos);
 
 	//Imported LOD is decided according to bUseLOD in clothing asset
 	UNREALED_API bool ImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex);
@@ -83,14 +93,14 @@ namespace ApexClothingUtils
 
 	UNREALED_API void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
 	UNREALED_API void ReapplyClothingDataToSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
-	UNREALED_API int32 GetNumLODs(NxClothingAsset *InAsset);
-	UNREALED_API int32 GetNumRenderSubmeshes(NxClothingAsset *InAsset, int32 LODIndex);
+	UNREALED_API int32 GetNumLODs(physx::apex::NxClothingAsset *InAsset);
+	UNREALED_API int32 GetNumRenderSubmeshes(physx::apex::NxClothingAsset *InAsset, int32 LODIndex);
 
-	UNREALED_API NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
+	UNREALED_API physx::apex::NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
 
 	// if don't specify MaterialIndex, default material index will be used 
-	UNREALED_API void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
-	UNREALED_API void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
+	UNREALED_API void GetPhysicsPropertiesFromApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
+	UNREALED_API void SetPhysicsPropertiesToApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
 #endif // #if WITH_APEX_CLOTHING
 } // namespace ApexClothingUtils
 

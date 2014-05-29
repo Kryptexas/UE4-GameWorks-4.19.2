@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PreviewScene.h"
+#include "PhysicsPublic.h"
 
 class UPhATEdSkeletalMeshComponent;
 class UPhysicsHandleComponent;

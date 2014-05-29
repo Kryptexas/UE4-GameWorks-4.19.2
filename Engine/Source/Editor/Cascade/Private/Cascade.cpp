@@ -13,6 +13,7 @@
 #include "SCascadeEmitterCanvas.h"
 #include "CascadeActions.h"
 #include "Cascade.h"
+#include "PhysicsPublic.h"
 
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"

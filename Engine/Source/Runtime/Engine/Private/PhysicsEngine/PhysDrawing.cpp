@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "PhysXSupport.h"
+#include "DynamicMeshBuilder.h"
 
 static const int32 DrawCollisionSides = 16;
 static const int32 DrawConeLimitSides = 40;

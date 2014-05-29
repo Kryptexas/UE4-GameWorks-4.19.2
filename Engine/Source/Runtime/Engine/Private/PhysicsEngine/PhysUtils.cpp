@@ -8,6 +8,7 @@
  ===========================================================================*/
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "Model.h"
 #include "PhysXSupport.h"
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "DebugRenderSceneProxy.h"
+#include "DynamicMeshBuilder.h"
 #include "AI/Navigation/RecastHelpers.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);

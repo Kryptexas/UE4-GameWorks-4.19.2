@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 
 #if WITH_VEHICLE
 #include "../PhysicsEngine/PhysXSupport.h"
-#endif // WITH_PHYSX
+#endif // WITH_VEHICLE
 
 UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

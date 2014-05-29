@@ -7,9 +7,7 @@
 
 #pragma once
 
-#include "DynamicMeshBuilder.h"
 #include "PhysxUserData.h"
-#include "LocalVertexFactory.h"
 
 /**
  * Physics stats
@@ -476,7 +474,7 @@ struct FPhysSceneShaderInfo
 
 #endif
 
-// Might be handy somewhere...
+/** Enum to indicate types of simple shapes */
 enum EKCollisionPrimitiveType
 {
 	KPT_Sphere = 0,

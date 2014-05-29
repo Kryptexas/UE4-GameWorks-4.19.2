@@ -15,6 +15,7 @@ Level.cpp: Level-related functions
 #include "PrecomputedLightVolume.h"
 #include "TickTaskManagerInterface.h"
 #include "BlueprintUtilities.h"
+#include "DynamicMeshBuilder.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

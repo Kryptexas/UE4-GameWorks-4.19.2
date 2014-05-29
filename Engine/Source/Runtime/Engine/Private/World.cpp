@@ -24,6 +24,7 @@
 #include "SoundDefinitions.h"
 #include "VisualLog.h"
 #include "LevelUtils.h"
+#include "PhysicsPublic.h"
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

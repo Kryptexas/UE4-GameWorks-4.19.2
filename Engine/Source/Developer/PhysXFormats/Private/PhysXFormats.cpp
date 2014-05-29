@@ -4,6 +4,7 @@
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 #include "Engine.h"
+#include "PhysicsPublic.h"
 #include "TargetPlatform.h"
 #include "PhysXFormats.h"
 

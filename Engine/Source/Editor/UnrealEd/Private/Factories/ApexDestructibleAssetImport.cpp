@@ -15,6 +15,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 
 #include "Engine.h"
+#include "PhysicsPublic.h"
 #include "Engine/DestructibleFractureSettings.h"
 #include "TextureLayout.h"
 #include "SkelImport.h"

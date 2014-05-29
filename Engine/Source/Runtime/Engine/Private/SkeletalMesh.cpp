@@ -19,6 +19,7 @@
 #include "MapErrors.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "RawIndexBuffer.h"
+#include "PhysicsPublic.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

@@ -14,6 +14,7 @@
 #include "Sound/SoundNodeModulator.h"
 #include "Factories.h"
 #include "SoundDefinitions.h"
+#include "PhysicsPublic.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BmpImageSupport.h"

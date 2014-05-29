@@ -6,6 +6,7 @@
 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
 #include "ParticleDefinitions.h"

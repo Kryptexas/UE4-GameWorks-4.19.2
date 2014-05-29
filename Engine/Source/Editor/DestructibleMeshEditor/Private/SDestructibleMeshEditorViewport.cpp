@@ -2,6 +2,7 @@
 
 #include "DestructibleMeshEditorPrivatePCH.h"
 
+#include "PhysicsPublic.h"
 #include "MouseDeltaTracker.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "PreviewScene.h"

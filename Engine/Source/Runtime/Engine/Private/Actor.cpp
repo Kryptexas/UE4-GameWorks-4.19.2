@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "LatentActions.h"

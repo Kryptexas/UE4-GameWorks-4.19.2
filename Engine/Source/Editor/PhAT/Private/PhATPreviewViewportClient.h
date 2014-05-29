@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PhysicsPublic.h"
+
 class FPhAT;
 class FPhATSharedData;
 class SPhATPreviewViewport;

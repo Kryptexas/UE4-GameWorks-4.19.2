@@ -38,6 +38,7 @@
 	#include "GlobalShader.h"
 	#include "ParticleHelper.h"
 	#include "Online.h"
+	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
 	#include "DeviceProfiles/DeviceProfileManager.h"
 	#include "Commandlets/Commandlet.h"
