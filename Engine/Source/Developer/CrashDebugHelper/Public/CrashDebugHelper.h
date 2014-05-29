@@ -2,6 +2,10 @@
 
 #pragma once
 
+struct FPDBCacheEntry;
+typedef TSharedRef<FPDBCacheEntry> FPDBCacheEntryRef;
+typedef TSharedPtr<FPDBCacheEntry> FPDBCacheEntryPtr;
+
 enum EProcessorArchitecture
 {
 	PA_UNKNOWN,
@@ -135,6 +139,9 @@ public:
 	TArray<FCrashThreadInfo> Threads;
 	TArray<FCrashModuleInfo> Modules;
 
+	/** Shared pointer to the PDB Cache entry, if valid contains all information about synced PDBs. */
+	FPDBCacheEntryPtr PDBCacheEntry;
+
 	FCrashInfo()
 		: ChangelistBuiltFrom( -1 )
 		, SourceLineNumber( 0 )
@@ -164,7 +171,6 @@ private:
 /** Helper structure for tracking crash debug information */
 struct CRASHDEBUGHELPER_API FCrashDebugInfo
 {
-public:
 	/** The name of the crash dump file */
 	FString CrashDumpName;
 	/** The engine version of the crash dump build */
@@ -175,6 +181,206 @@ public:
 	FString SourceControlLabel;
 };
 
+/** Helper struct that holds various information about one PDB Cache entry. */
+struct FPDBCacheEntry
+{
+	/** Initialization constructor. */
+	FPDBCacheEntry( const FString& InLabel, const int32 InSizeGB )
+		: Label( InLabel )
+		, SizeGB( InSizeGB )
+	{}
+
+	void SetLastAccessTimeToNow()
+	{
+		LastAccessTime = FDateTime::UtcNow();
+	}
+
+	/** Paths to files associated with this PDB Cache entry. */
+	TArray<FString> Files;
+
+	/** P4 Label associated with this PDB Cache entry. */
+	const FString Label;
+	
+	/** Last access time, changed every time this PDB cache entry is used. */
+	FDateTime LastAccessTime;
+
+	/** Size of the cache entry, in GBs. Rounded-up. */
+	const int32 SizeGB;
+};
+
+struct FPDBCacheEntryByAccessTime
+{
+	FORCEINLINE bool operator()( const FPDBCacheEntryRef& A, const FPDBCacheEntryRef& B ) const
+	{
+		return A->LastAccessTime.GetTicks() < B->LastAccessTime.GetTicks();
+	}
+};
+
+/** Implements PDB cache. */
+struct FPDBCache
+{
+	//friend class ICrashDebugHelper;
+protected:
+
+	// Defaults for the PDB cache.
+	enum
+	{
+		/** Size of the PDB cache, in GBs. */
+		PDB_CACHE_SIZE_GB = 128,
+		MIN_FREESPACE_GB = 64,
+		/** Age of file when it should be deleted from the PDB cache. */
+		DAYS_TO_DELETE_UNUSED_FILES = 14,
+
+		/**
+		*	Number of iterations inside the CleanPDBCache method.
+		*	Mostly to verify that MinDiskFreeSpaceGB requirement is met.
+		*/
+		CLEAN_PDBCACHE_NUM_ITERATIONS = 2,
+
+		/** Number of bytes per one gigabyte. */
+		NUM_BYTES_PER_GB = 1024 * 1024 * 1024
+	};
+
+	/** Dummy file used to read/set the file timestamp. */
+	static const TCHAR* PDBTimeStampFile;
+
+	/** Map of the PDB Cache entries. */
+	TMap<FString, FPDBCacheEntryRef> PDBCacheEntries;
+
+	/** Path to the folder where the PDB cache is stored. */
+	FString PDBCachePath;
+
+	/** The builtFromCL to use instead of extracting from the minidump */
+	int32 BuiltFromCL;
+
+	/** Age of file when it should be deleted from the PDB cache. */
+	int32 DaysToDeleteUnusedFilesFromPDBCache;
+
+	/** Size of the PDB cache, in GBs. */
+	int32 PDBCacheSizeGB;
+
+	/**
+	*	Minimum disk free space that should be available on the disk where the PDB cache is stored, in GBs.
+	*	Minidump diagnostics runs usually on the same drive as the crash reports drive, so we need to leave some space for the crash receiver.
+	*	If there is not enough disk free space, we will run the clean-up process.
+	*/
+	int32 MinDiskFreeSpaceGB;
+
+	/** Whether to use the PDB cache. */
+	bool bUsePDBCache;
+
+public:
+	/** Default constructor. */
+	FPDBCache()
+		: BuiltFromCL( 0 )
+		, DaysToDeleteUnusedFilesFromPDBCache( DAYS_TO_DELETE_UNUSED_FILES )
+		, PDBCacheSizeGB( PDB_CACHE_SIZE_GB )
+		, MinDiskFreeSpaceGB( MIN_FREESPACE_GB )
+		, bUsePDBCache( false )
+	{}
+
+	/** Basic initialization, reading config etc.. */
+	void Init();
+
+	/**
+	 * @return whether to use the PDB cache.
+	 */
+	bool UsePDBCache() const
+	{
+		return bUsePDBCache;
+	}
+	
+	/**
+	 * @return true, if the PDB Cache contains the specified label.
+	 */
+	bool ContainsPDBCacheEntry( const FString& InLabel ) const
+	{
+		return PDBCacheEntries.Contains( CleanLabelName( InLabel ) );
+	}
+
+	/**
+	 *	Touches a PDB Cache entry by updating the timestamp.
+	 */
+	void TouchPDBCacheEntry( const FString& InLabel );
+
+	/**
+	 * @return a PDB Cache entry for the specified label.
+	 */
+	FPDBCacheEntryRef FindPDBCacheEntry( const FString& InLabel )
+	{
+		return PDBCacheEntries.FindChecked( CleanLabelName( InLabel ) );
+	}
+
+	/**
+	 *	Creates a new PDB Cache entry, initializes it and adds to the database.
+	 */
+	FPDBCacheEntryRef CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& SyncedFiles );
+
+protected:
+	/** Initializes the PDB Cache. */
+	void InitializePDBCache();
+
+	/**
+	 * @return the size of the PDB cache entry, in GBs.
+	 */
+	int32 GetPDBCacheEntrySizeGB( const FString& InLabel ) const
+	{
+		return PDBCacheEntries.FindChecked( InLabel )->SizeGB;
+	}
+
+	/**
+	 * @return the size of the PDB cache directory, in GBs.
+	 */
+	int32 GetPDBCacheSizeGB() const
+	{
+		int32 Result = 0;
+		if( bUsePDBCache )
+		{
+			for( const auto& It : PDBCacheEntries )
+			{
+				Result += It.Value->SizeGB;
+			}
+		}
+		return Result;
+	}
+
+	/**
+	 * Cleans the PDB Cache.
+	 *
+	 * @param DaysToKeep - removes all PDB Cache entries that are older than this value
+	 * @param NumberOfGBsToBeCleaned - if specifies, will try to remove as many PDB Cache entries as needed
+	 * to free disk space specified by this value
+	 *
+	 */
+	void CleanPDBCache( int32 DaysToKeep, int32 NumberOfGBsToBeCleaned = 0 );
+
+
+	/**
+	 *	Reads an existing PDB Cache entry.
+	 */
+	FPDBCacheEntryRef ReadPDBCacheEntry( const FString& InLabel );
+
+	/**
+	 *	Sort PDB Cache entries by last access time.
+	 */
+	void SortPDBCache()
+	{
+		PDBCacheEntries.ValueSort( FPDBCacheEntryByAccessTime() );
+	}
+
+	/**
+	 *	Removes a PDB Cache entry from the database.
+	 *	Also removes all external files associated with this PDB Cache entry.
+	 */
+	void RemovePDBCacheEntry( const FString& InLabel );
+
+	/** Replaces all / chars with _ for the specified label name. */
+	FString CleanLabelName( const FString& InLabel ) const
+	{
+		return InLabel.Replace( TEXT( "/" ), TEXT( "_" ) );
+	}
+};
+
 /** The public interface for the crash dump handler singleton. */
 class CRASHDEBUGHELPER_API ICrashDebugHelper
 {
@@ -183,26 +389,24 @@ protected:
 	FString DepotName;
 	/** The local folder where symbol files should be stored */
 	FString LocalSymbolStore;
-	/** The database that the builder version information is stored in */
-	FString DatabaseName;
-	/** The catalog that the builder version info is stored in */
-	FString DatabaseCatalog;
 	/** In the event that a database query for a label fails, use this pattern to search in source control for the label */
 	FString SourceControlBuildLabelPattern;
 	/** The builtFromCL to use instead of extracting from the minidump */
 	int32 BuiltFromCL;
-
+	
 	/** Indicates that the crash handler is ready to do work */
 	bool bInitialized;
+
+	/** Instance of the PDB Cache. */
+	FPDBCache PDBCache;
 
 public:
 	/** A platform independent representation of a crash */
 	FCrashInfo CrashInfo;
-
+	
 	/** Virtual destructor */
 	virtual ~ICrashDebugHelper()
-	{
-	};
+	{}
 
 	/**
 	 *	Initialize the helper
@@ -210,18 +414,6 @@ public:
 	 *	@return	bool		true if successful, false if not
 	 */
 	virtual bool Init();
-
-	/** Get the database name */
-	const FString& GetDatabaseName() const
-	{
-		return DatabaseName;
-	}
-
-	/** Get the catalog name */
-	const FString& GetDatabaseCatalog() const
-	{
-		return DatabaseCatalog;
-	}
 
 	/** Get the depot name */
 	const FString& GetDepotName() const

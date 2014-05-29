@@ -63,19 +63,7 @@ bool ICrashDebugHelper::Init()
 		bInitialized = false;
 	}
 
-	// Look up the builder database name - fail if not found
-	if (GConfig->GetString(TEXT("Engine.CrashDebugHelper"), TEXT("BuilderDatabase"), DatabaseName, GEngineIni) == false)
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("Failed to get BuilderDatabase from ini file... crash handling disabled"));
-		bInitialized = false;
-	}
-
-	// Look up the builder database catalog - fail if not found
-	if (GConfig->GetString(TEXT("Engine.CrashDebugHelper"), TEXT("DatabaseCatalog"), DatabaseCatalog, GEngineIni) == false)
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("Failed to get builder DatabaseCatalog from ini file... crash handling disabled"));
-		bInitialized = false;
-	}
+	PDBCache.Init();
 
 	return bInitialized;
 }
@@ -147,74 +135,101 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo->LabelName );
 	if(Labels.Num() > 0)
 	{
-		// Sync every module from every label. If the same modules appear in every label, this will fail.
-		for (auto LabelIt = Labels.CreateConstIterator(); LabelIt; ++LabelIt)
+		const bool bContains = PDBCache.UsePDBCache() && PDBCache.ContainsPDBCacheEntry( CrashInfo->LabelName );
+		if( bContains )
 		{
-			TSharedRef<ISourceControlLabel> Label = *LabelIt;
+			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Label %s found in the PDB Cache, using it" ), *CrashInfo->LabelName );
+			CrashInfo->PDBCacheEntry = PDBCache.FindPDBCacheEntry( CrashInfo->LabelName );
+			PDBCache.TouchPDBCacheEntry( CrashInfo->LabelName );
+			return true;
+		}
+		else
+		{
+			TArray<FString> SyncedFiles;
 
-			//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
-			if (Label->GetName().Contains(TEXT("Mac")))
+			// Sync every module from every label. If the same modules appear in every label, this will fail.
+			for( auto LabelIt = Labels.CreateConstIterator(); LabelIt; ++LabelIt )
 			{
-				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Skipping Mac label '%s' when syncing modules."), *Label->GetName());
-			}
-			else
-			{
-				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Syncing modules with label '%s'."), *Label->GetName());
+				TSharedRef<ISourceControlLabel> Label = *LabelIt;
 
-		        TArray<FString> FilesToSync;
-		        for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
-		        {
-			        FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-			        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-			        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
-        
-			        {
-				        TSharedRef<ISourceControlLabel> Label = Labels[0];
-				        if( Label->Sync(DepotPath) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				        }
-        
-				        FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-				        if( Label->Sync(PDBName) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-				        }
-        
-				        //@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
-				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
-				        if( Label->Sync(DepotPath) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				        }
-        
-				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
-				        if( Label->Sync(PDBName) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-				        }
-        
-				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
-				        if( Label->Sync(DepotPath) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				        }
-        
-				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
-				        if( Label->Sync(PDBName) )
-				        {
-					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-				        }
+				//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
+				if( Label->GetName().Contains( TEXT( "Mac" ) ) )
+				{
+					UE_LOG( LogCrashDebugHelper, Log, TEXT( " Skipping Mac label '%s' when syncing modules." ), *Label->GetName() );
+				}
+				else
+				{
+					UE_LOG( LogCrashDebugHelper, Log, TEXT( " Syncing modules with label '%s'." ), *Label->GetName() );
+
+					TArray<FString> FilesToSync;
+					for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+					{
+						// Sometimes P4 may hang due to spamming the server with the commands, if so try uncommenting the line below.
+						//FPlatformProcess::Sleep( 0.1f );
+						FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+						// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+						DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
+
+						{
+							TSharedRef<ISourceControlLabel> Label = Labels[0];
+							if( Label->Sync( DepotPath ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
+							}
+							SyncedFiles.Add( DepotPath );
+
+				        	FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
+							if( Label->Sync( PDBName ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );
+							}
+							SyncedFiles.Add( PDBName );
+
+							//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
+							DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+							// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+							DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
+							if( Label->Sync( DepotPath ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
+							}
+							SyncedFiles.Add( DepotPath );
+
+							DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+							PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+							if( Label->Sync( PDBName ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );		
+							}
+							SyncedFiles.Add( PDBName );
+
+							DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+							// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+							DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
+							if( Label->Sync( DepotPath ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
+							}
+							SyncedFiles.Add( DepotPath );
+
+							DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+							PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+							if( Label->Sync( PDBName ) )
+							{
+								UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );
+							}
+							SyncedFiles.Add( PDBName );
+						}
 					}
 				}
 			}
-		}
+
+			if( PDBCache.UsePDBCache() )
+			{
+				// Initialize and add a new PDB Cache entry to the database.
+				CrashInfo->PDBCacheEntry = PDBCache.CreateAndAddPDBCacheEntry( CrashInfo->LabelName, DepotName, SyncedFiles );
+			}
+		}		
 	}
 	else
 	{
@@ -639,85 +654,11 @@ FString ICrashDebugHelper::RetrieveBuildLabel(int32 InEngineVersion, int32 InCha
 {
 	FString FoundLabelString;
 
-	if ((DatabaseName.Len() == 0) || (DatabaseCatalog.Len() == 0))
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Invalid databasename and/or databasecatalog set."));
-		return FoundLabelString;
-	}
-
 	if ((InEngineVersion < 0) && (InChangelistNumber < 0))
 	{
 		UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Invalid parameters."));
 		return FoundLabelString;
 	}
-
-	// Open a database connection
-	// Create the connection object; needs to be deleted via "delete".
-	FDataBaseConnection* Connection = FDataBaseConnection::CreateObject();
-	check(Connection);
-
-	// Create the connection string with Windows Authentication as the way to handle permissions/ login/ security.
-	FString ConnectionString = FString::Printf(
-		TEXT("Provider=sqloledb;Data Source=%s;Initial Catalog=%s;Trusted_Connection=Yes;"), *DatabaseName, *DatabaseCatalog);
-
-	// Try to open connection to DB - this is a synchronous operation.
-	if (Connection->Open(*ConnectionString, NULL, NULL))
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Connection to %s.%s succeeded"), *DatabaseName, *DatabaseCatalog);
-
-		// Setup the query command
-		FString LabelRequestCmd = TEXT("SELECT Label FROM Versioning WHERE ");
-		if (InEngineVersion >= 0)
-		{
-			LabelRequestCmd += FString::Printf(TEXT("EngineVersion = %d"), InEngineVersion);
-		}
-		else
-		{
-			check(InChangelistNumber >= 0);
-			LabelRequestCmd += FString::Printf(TEXT("Changelist = %d"), InChangelistNumber);
-		}
-
-		// Run the query
-		FDataBaseRecordSet* NewRecordSet = NULL;
-		if (Connection->Execute(*LabelRequestCmd, NewRecordSet) == false)
-		{
-			UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Failed to exec SQLCommand for..."));
-			UE_LOG(LogCrashDebugHelper, Warning, TEXT("\t%s"), *LabelRequestCmd);
-		}
-		else
-		{
-			if ((NewRecordSet == NULL) || (NewRecordSet->GetRecordCount() == 0))
-			{
-				if (InEngineVersion >= 0)
-				{
-					UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: No results for engine version %d"), InEngineVersion);
-				}
-				else
-				{
-					UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: No results for changelist %d"), InChangelistNumber);
-				}
-			}
-			else
-			{
-				for (FDataBaseRecordSet::TIterator It(NewRecordSet); It; ++It)
-				{
-					FoundLabelString = It->GetString(TEXT("Label"));
-					FoundLabelString.TrimTrailing();
-				}
-			}
-		}
-
-		Connection->Close();
-	}
-	else
-	{
-		// Connection failed :(
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Connection to %s.%s failed"), *DatabaseName, *DatabaseCatalog);
-	}
-
-	// delete
-	delete Connection;
-	Connection = NULL;
 
 	// If we failed to find the label, try to find the label directly in source control by using the pattern supplied via ini
 	if ( FoundLabelString.IsEmpty() && InChangelistNumber >= 0 && !SourceControlBuildLabelPattern.IsEmpty() )
@@ -734,10 +675,300 @@ FString ICrashDebugHelper::RetrieveBuildLabel(int32 InEngineVersion, int32 InCha
 			}
 
 			FoundLabelString = Labels[0]->GetName();
-			UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel: Failed to find build label in database %s.%s, but found label %s matching pattern %s in source control."), *DatabaseName, *DatabaseCatalog, *FoundLabelString, *TestLabel);
+			UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel: Found label %s matching pattern %s in source control."), *FoundLabelString, *TestLabel);
 		}
 	}
 
 	return FoundLabelString;
 }
+
+/*-----------------------------------------------------------------------------
+	PDB Cache implementation
+-----------------------------------------------------------------------------*/
+
+const TCHAR* FPDBCache::PDBTimeStampFile = TEXT( "PDBTimeStamp.txt" );
+
+void FPDBCache::Init()
+{
+	// PDB Cache
+	// Default configuration
+	// PDBCachePath=U:/CrashReport/PDBCache
+	// DaysToDeleteUnusedFilesFromPDBCache=14
+	// PDBCacheSizeGB=128
+	// MinFreeSizeGB=64
+	// bUsePDBCache=true
+
+	// Look up whether we want to use the PDB cache.
+	GConfig->GetBool( TEXT( "Engine.CrashDebugHelper" ), TEXT( "bUsePDBCache" ), bUsePDBCache, GEngineIni );
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "bUsePDBCache is %s" ), bUsePDBCache ? TEXT( "enabled" ) : TEXT( "disabled" ) );
+
+	// Get the rest of the PDB cache configuration.
+	if( bUsePDBCache )
+	{
+		if( !GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "PDBCachePath" ), PDBCachePath, GEngineIni ) )
+		{
+			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get PDBCachePath from ini file... PDB Cache disabled" ) );
+			bUsePDBCache = false;
+		}
+	}
+
+	if( bUsePDBCache )
+	{
+		if( !GConfig->GetInt( TEXT( "Engine.CrashDebugHelper" ), TEXT( "PDBCacheSizeGB" ), PDBCacheSizeGB, GEngineIni ) )
+		{
+			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get PDBCachePath from ini file... Using default value" ) );
+		}
+
+		if( !GConfig->GetInt( TEXT( "Engine.CrashDebugHelper" ), TEXT( "MinDiskFreeSpaceGB" ), MinDiskFreeSpaceGB, GEngineIni ) )
+		{
+			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get MinDiskFreeSpaceGB from ini file... Using default value" ) );
+		}
+
+		if( !GConfig->GetInt( TEXT( "Engine.CrashDebugHelper" ), TEXT( "DaysToDeleteUnusedFilesFromPDBCache" ), DaysToDeleteUnusedFilesFromPDBCache, GEngineIni ) )
+		{
+			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get DaysToDeleteUnusedFilesFromPDBCache from ini file... Using default value" ) );
+		}
+
+		InitializePDBCache();
+		CleanPDBCache( DaysToDeleteUnusedFilesFromPDBCache );
+
+		// Verify that we have enough space to enable the PDB Cache.
+		uint64 TotalNumberOfBytes = 0;
+		uint64 NumberOfFreeBytes = 0;
+		FPlatformMisc::GetDiskTotalAndFreeSpace( PDBCachePath, TotalNumberOfBytes, NumberOfFreeBytes );
+
+		const int32 TotalDiscSpaceGB = int32( TotalNumberOfBytes >> 30 );
+		const int32 DiskFreeSpaceGB = int32( NumberOfFreeBytes >> 30 );
+
+		if( DiskFreeSpaceGB < MinDiskFreeSpaceGB )
+		{
+			// There is not enough free space, calculate the current PDB cache usage and try removing the old data.
+			const int32 CurrentPDBCacheSizeGB = GetPDBCacheSizeGB();
+			const int32 DiskFreeSpaceAfterCleanGB = DiskFreeSpaceGB + CurrentPDBCacheSizeGB;
+			if( DiskFreeSpaceAfterCleanGB < MinDiskFreeSpaceGB )
+			{
+				UE_LOG( LogCrashDebugHelper, Error, TEXT( "There is not enough free space. PDB Cache disabled." ) );
+				UE_LOG( LogCrashDebugHelper, Error, TEXT( "Current disk free space is %i GBs." ), DiskFreeSpaceGB );
+				UE_LOG( LogCrashDebugHelper, Error, TEXT( "To enable the PDB Cache you need to free %i GB of space" ), MinDiskFreeSpaceGB - DiskFreeSpaceAfterCleanGB );
+				bUsePDBCache = false;
+				// Remove all data.
+				CleanPDBCache( 0 );
+			}
+			else
+			{
+				// Clean the PDB cache until we get enough free space.
+				CleanPDBCache( DaysToDeleteUnusedFilesFromPDBCache, MinDiskFreeSpaceGB - DiskFreeSpaceGB );
+			}
+		}
+	}
+
+	if( bUsePDBCache )
+	{
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCachePath=%s" ), *PDBCachePath );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCacheSizeGB=%i" ), PDBCacheSizeGB );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "MinDiskFreeSpaceGB=%i" ), MinDiskFreeSpaceGB );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "DaysToDeleteUnusedFilesFromPDBCache=%i" ), DaysToDeleteUnusedFilesFromPDBCache );
+	}
+}
+
+
+void FPDBCache::InitializePDBCache()
+{
+	const double StartTime = FPlatformTime::Seconds();
+
+	TArray<FString> PDBCacheEntryDirectories;
+	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *PDBCachePath, false, true );
+
+	for( const auto& DirPath : PDBCacheEntryDirectories )
+	{
+		FPDBCacheEntryRef Entry = ReadPDBCacheEntry( DirPath );
+		PDBCacheEntries.Add( DirPath, Entry );
+	}
+
+	SortPDBCache();
+
+	const double TotalTime = FPlatformTime::Seconds() - StartTime;
+	UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDB Cache initialized in %.2f ms" ), TotalTime*1000.0f );
+	UE_LOG( LogCrashDebugHelper, Log, TEXT( "Found %i entries which occupy %i GBs" ), PDBCacheEntries.Num(), GetPDBCacheSizeGB() );
+}
+
+void FPDBCache::CleanPDBCache( int32 DaysToDelete, int32 NumberOfGBsToBeCleaned /*= 0 */ )
+{
+	// Not very efficient, but should do the trick.
+	// Revisit it later.
+	const double StartTime = FPlatformTime::Seconds();
+
+	TSet<FString> EntriesToBeRemoved;
+
+	// Find all outdated PDB Cache entries and mark them for removal.
+	const double DaysToDeleteAsSeconds = FTimespan( DaysToDelete, 0, 0, 0 ).GetTotalSeconds();
+	int32 NumGBsCleaned = 0;
+	for( const auto& It : PDBCacheEntries )
+	{
+		const FPDBCacheEntryRef& Entry = It.Value;
+		const FString EntryDirectory = PDBCachePath / Entry->Label;
+		const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
+
+		const double EntryFileAge = IFileManager::Get().GetFileAgeSeconds( *EntryTimeStampFilename );
+		if( EntryFileAge > DaysToDeleteAsSeconds )
+		{
+			EntriesToBeRemoved.Add( Entry->Label );
+			NumGBsCleaned += Entry->SizeGB;
+		}
+	}
+
+	if( NumberOfGBsToBeCleaned > 0 && NumGBsCleaned < NumberOfGBsToBeCleaned )
+	{
+		// Do the second pass if we need to remove more PDB Cache entries due to the free disk space restriction.
+		for( const auto& It : PDBCacheEntries )
+		{
+			const FPDBCacheEntryRef& Entry = It.Value;
+
+			if( !EntriesToBeRemoved.Contains(Entry->Label) )
+			{
+				EntriesToBeRemoved.Add( Entry->Label );
+				NumGBsCleaned += Entry->SizeGB;
+
+				if( NumGBsCleaned > NumberOfGBsToBeCleaned )
+				{
+					// Break the loop, we are done.
+					break;
+				}
+			}
+		}
+	}
+
+	// Remove all marked PDB Cache entries.
+	for( const auto& EntryLabel : EntriesToBeRemoved )
+	{
+		RemovePDBCacheEntry( EntryLabel );
+	}
+
+	const double TotalTime = FPlatformTime::Seconds() - StartTime;
+	UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDB Cache cleaned in %.2f ms" ), TotalTime*1000.0f );
+}
+
+FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& SyncedFiles )
+{
+	const FString CleanedLabelName = CleanLabelName( OriginalLabelName );
+	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
+	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
+
+	// Verify there is a entry timestamp file.
+	const bool bSaved = FFileHelper::SaveStringToFile( EntryTimeStampFilename, *EntryTimeStampFilename );
+	UE_CLOG( !bSaved, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
+	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
+
+	// Copy all synced files to the PDC Cache entry directory.
+	// DepotName = //depot/UE4-Releases/4.1/
+	// OriginalLabelName = //depot/UE4-Releases/4.2/Rocket-CL-2082666
+	// CleanedLabelName = __depot_UE4-Releases_4.2_Rocket-CL-2082666
+	// SyncedFiles = { //depot/UE4-Releases/4.1/engine/binaries/dotnet/swarminterface*.dll, ... }
+	// CWD = F:\depot\UE4-Releases\4.1\Engine\Binaries\Win64
+	// RootDir = F:\depot\UE4-Releases\4.1\
+
+#define DO_LOCAL_TESTING 1
+#if	DO_LOCAL_TESTING
+	const FString RootDir = TEXT( "U:/P4EPIC/UE4-Releases/4.1/" );
+#else
+	const FString RootDir = FPaths::RootDir();
+#endif // DO_LOCAL_TESTING
+
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry %s is being copied from %s, it will take some time" ), *CleanedLabelName, *OriginalLabelName );
+	for( const auto& Filename : SyncedFiles )
+	{
+		const FString SourceDirectoryWithSearch = Filename.Replace( *DepotName, *RootDir );
+
+		TArray<FString> MatchedFiles;
+		IFileManager::Get().FindFiles( MatchedFiles, *SourceDirectoryWithSearch, true, false );
+
+		for( const auto& MatchedFilename : MatchedFiles )
+		{
+			const FString SrcFilename = FPaths::GetPath( SourceDirectoryWithSearch ) / MatchedFilename;
+			const FString DestFilename = EntryDirectory / SrcFilename.Replace( *RootDir, TEXT("") );
+			IFileManager::Get().Copy( *DestFilename, *SrcFilename );
+		}
+	}
+
+
+	TArray<FString> PDBFiles;
+	IFileManager::Get().FindFilesRecursive( PDBFiles, *EntryDirectory, TEXT( "*.*" ), true, false );
+
+	// Calculate the size of this PDB Cache entry.
+	int64 TotalSize = 0;
+	for( const auto& Filename : PDBFiles )
+	{
+		const int64 FileSize = IFileManager::Get().FileSize( *Filename );
+		TotalSize += FileSize;
+	}
+
+	// Round-up the size.
+	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+
+	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CleanedLabelName, SizeGB ) );
+	NewCacheEntry->LastAccessTime = LastAccessTime;
+	NewCacheEntry->Files = PDBFiles;
+	
+	PDBCacheEntries.Add( CleanedLabelName, NewCacheEntry );
+	SortPDBCache();
+
+	return NewCacheEntry;
+}
+
+FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& InLabel )
+{
+	const FString EntryDirectory = PDBCachePath / InLabel;
+	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
+
+	// Verify there is a entry timestamp file.
+	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
+
+	TArray<FString> PDBFiles;
+	IFileManager::Get().FindFilesRecursive( PDBFiles, *EntryDirectory, TEXT( "*.*" ), true, false );
+
+	// Calculate the size of this PDB Cache entry.
+	int64 TotalSize = 0;
+	for( const auto& Filename : PDBFiles )
+	{
+		const int64 FileSize = IFileManager::Get().FileSize( *Filename );
+		TotalSize += FileSize;
+	}
+
+	// Round-up the size.
+	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+
+	FPDBCacheEntryRef NewEntry = MakeShareable( new FPDBCacheEntry( InLabel, SizeGB ) );
+	NewEntry->LastAccessTime = LastAccessTime;
+	NewEntry->Files = PDBFiles;
+	return NewEntry;
+}
+
+void FPDBCache::TouchPDBCacheEntry( const FString& InLabel )
+{
+	const FString CleanedLabelName = CleanLabelName( InLabel );
+	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
+	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
+
+	FPDBCacheEntryRef Entry = PDBCacheEntries.FindChecked( CleanedLabelName );
+	Entry->SetLastAccessTimeToNow();
+
+	const bool bResult = IFileManager::Get().SetTimeStamp( *EntryTimeStampFilename, Entry->LastAccessTime );
+	SortPDBCache();
+}
+
+void FPDBCache::RemovePDBCacheEntry( const FString& InLabel )
+{
+	const double StartTime = FPlatformTime::Seconds();
+
+	const FString EntryDirectory = PDBCachePath / InLabel;
+
+	FPDBCacheEntryRef& Entry = PDBCacheEntries.FindChecked( InLabel );
+	IFileManager::Get().DeleteDirectory( *EntryDirectory, true, true );
+	PDBCacheEntries.Remove( InLabel );
+
+	const double TotalTime = FPlatformTime::Seconds() - StartTime;
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry %s removed in %.2f ms, restored %i GBs" ), *InLabel, TotalTime*1000.0f, Entry->SizeGB );
+}
+
+
 
