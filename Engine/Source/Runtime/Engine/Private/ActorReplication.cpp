@@ -258,7 +258,6 @@ bool AActor::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FRepl
 
 void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList)
 {	
-#if 0
 	// For experimenting with replicating ALL stably named components initially
 	for (UActorComponent* Component : OwnedComponents)
 	{
@@ -268,17 +267,17 @@ void AActor::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList
 			Component->GetSubobjectsWithStableNamesForNetworking(ObjList);
 		}
 	}
-#else
-	for (TWeakObjectPtr<class UActorComponent> WeakPtr : ReplicatedComponents)
+
+	// Sort the list so that we generate the same list on client/server
+	struct FCompareComponentNames
 	{
-		UActorComponent * Component = WeakPtr.Get();
-		if (Component && Component->IsNameStableForNetworking())
+		FORCEINLINE bool operator()( UObject & A, UObject & B ) const
 		{
-			ObjList.Add(Component);
-			Component->GetSubobjectsWithStableNamesForNetworking(ObjList);
+			return A.GetName() < B.GetName();
 		}
-	}
-#endif
+	};
+
+	Sort( ObjList.GetTypedData(), ObjList.Num(), FCompareComponentNames() );
 }
 
 void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)
