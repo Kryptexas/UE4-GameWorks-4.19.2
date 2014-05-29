@@ -44,6 +44,9 @@
 #include "UniformGridSlot.h"
 #include "UniformGridPanel.h"
 
+#include "OverlaySlot.h"
+#include "Overlay.h"
+
 #include "TextBlockComponent.h"
 #include "BorderComponent.h"
 #include "ButtonComponent.h"
