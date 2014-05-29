@@ -81,6 +81,11 @@ FString UKismetStringLibrary::Conv_RotatorToString(FRotator InRot)
 	return InRot.ToString();	
 }
 
+FString UKismetStringLibrary::Conv_TransformToString(FTransform InTrans)
+{
+	return FString::Printf(TEXT("Translation: %s Rotation: %s Scale %s"), *InTrans.GetTranslation().ToString(), *InTrans.Rotator().ToString(), *InTrans.GetScale3D().ToString());
+}
+
 FString UKismetStringLibrary::Conv_ObjectToString(class UObject* InObj)
 {
 	return (InObj != NULL) ? InObj->GetName() : FString(TEXT("None"));

@@ -36,6 +36,10 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToString (rotator)", CompactNodeTitle = "->"), Category="Utilities|String")
 	static FString Conv_RotatorToString(FRotator InRot);
 
+	/** Converts a transform value to a string, in the form 'Translation: X= Y= Z= Rotation: P= Y= R= Scale: X= Y= Z=' */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToString (transform)", CompactNodeTitle = "->"), Category="Utilities|String")
+	static FString Conv_TransformToString(FTransform InTrans);
+
 	/** Converts a UObject value to a string by calling the object's GetName method */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToString (object)", CompactNodeTitle = "->"), Category="Utilities|String")
 	static FString Conv_ObjectToString(class UObject* InObj);
