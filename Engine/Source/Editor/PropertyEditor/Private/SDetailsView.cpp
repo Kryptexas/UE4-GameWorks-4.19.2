@@ -22,11 +22,6 @@
 SDetailsView::~SDetailsView()
 {
 	SaveExpandedItems();
-
-	if( ThumbnailPool.IsValid() )
-	{
-		ThumbnailPool->ReleaseResources();
-	}
 };
 
 /**
@@ -212,58 +207,6 @@ TSharedRef<SDetailTree> SDetailsView::ConstructTreeView( TSharedRef<SScrollBar>&
 	.ExternalScrollbar( ScrollBar );
 }
 
-void SDetailsView::OnGetChildrenForDetailTree( TSharedRef<IDetailTreeNode> InTreeNode, TArray< TSharedRef<IDetailTreeNode> >& OutChildren )
-{
-	InTreeNode->GetChildren( OutChildren );
-}
-
-
-TSharedRef<ITableRow> SDetailsView::OnGenerateRowForDetailTree( TSharedRef<IDetailTreeNode> InTreeNode, const TSharedRef<STableViewBase>& OwnerTable )
-{
-	return InTreeNode->GenerateNodeWidget( OwnerTable, ColumnSizeData, PropertyUtilities.ToSharedRef() );
-}
-
-void SDetailsView::SetRootExpansionStates( const bool bExpand, const bool bRecurse )
-{
-	for (auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
-	{
-		SetNodeExpansionState(*Iter, bExpand, bRecurse );
-	}
-}
-
-void SDetailsView::SetNodeExpansionState( TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive )
-{
-	TArray< TSharedRef<IDetailTreeNode> > Children;
-	InTreeNode->GetChildren( Children );
-
-	if( Children.Num() )
-	{
-		RequestItemExpanded( InTreeNode, bIsItemExpanded );
-		InTreeNode->OnItemExpansionChanged( bIsItemExpanded );
-
-		if( bRecursive )
-		{
-			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
-			{
-				TSharedRef<IDetailTreeNode> Child = Children[ChildIndex];
-
-				SetNodeExpansionState( Child, bIsItemExpanded, bRecursive );
-			}
-		}
-	}
-}
-
-void SDetailsView::SetNodeExpansionStateRecursive( TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded )
-{
-	SetNodeExpansionState( InTreeNode, bIsItemExpanded, true );
-}
-
-void SDetailsView::OnItemExpansionChanged( TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded )
-{
-	SetNodeExpansionState( InTreeNode, bIsItemExpanded, false );
-}
-
-
 void SDetailsView::SetColorPropertyFromColorPicker(FLinearColor NewColor)
 {
 	const TSharedPtr< FPropertyNode > PinnedColorPropertyNode = ColorPropertyNode.Pin();
@@ -291,12 +234,6 @@ FReply SDetailsView::OnOpenRawPropertyEditorClicked()
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 	PropertyEditorModule.CreatePropertyEditorToolkit( EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), SelectedObjects );
 
-	return FReply::Handled();
-}
-
-FReply SDetailsView::OnLockButtonClicked()
-{
-	bIsLocked = !bIsLocked;
 	return FReply::Handled();
 }
 
@@ -333,33 +270,10 @@ EVisibility SDetailsView::GetActorNameAreaVisibility() const
 	return bVisible ? EVisibility::Visible : EVisibility::Collapsed; 
 }
 
-void SDetailsView::HideFilterArea(bool bHide)
-{
-	DetailsViewArgs.bAllowSearch = !bHide;
-}
-
 EVisibility SDetailsView::GetFilterBoxVisibility() const
 {
 	// Visible if we allow search and we have anything to search otherwise collapsed so it doesn't take up room
 	return DetailsViewArgs.bAllowSearch && RootPropertyNode->GetNumObjects() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-EVisibility SDetailsView::GetTreeVisibility() const
-{
-	return DetailLayout.IsValid() && DetailLayout->HasDetails() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-/** Returns the image used for the icon on the filter button */ 
-const FSlateBrush* SDetailsView::OnGetFilterButtonImageResource() const
-{
-	if( bHasActiveFilter )
-	{
-		return FEditorStyle::GetBrush(TEXT("PropertyWindow.FilterCancel"));
-	}
-	else
-	{
-		return FEditorStyle::GetBrush(TEXT("PropertyWindow.FilterSearch"));
-	}
 }
 
 /**
@@ -632,7 +546,6 @@ void SDetailsView::SetObject( UObject* InObject, bool bForceRefresh )
 	SetObjects( ObjectWeakPtrs, bForceRefresh );
 }
 
-
 bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const
 {
 	bool bShouldSetObjects = false;
@@ -763,12 +676,6 @@ void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject 
 
 	double ElapsedTime = FPlatformTime::Seconds() - StartTime;
 }
-
-void SDetailsView::EnqueueDeferredAction( FSimpleDelegate& DeferredAction )
-{
-	DeferredActions.AddUnique( DeferredAction );
-}
-
 
 void SDetailsView::ReplaceObjects( const TMap<UObject*, UObject*>& OldToNewObjectMap )
 {
@@ -1234,7 +1141,6 @@ void SDetailsView::UpdateFilteredDetails()
 	DetailTree->RequestTreeRefresh();
 }
 
-
 /** Ticks the property view.  This function performs a data consistency check */
 void SDetailsView::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -1361,13 +1267,6 @@ void SDetailsView::Tick( const FGeometry& AllottedGeometry, const double InCurre
 	}
 }
 
-void SDetailsView::OnColorPickerWindowClosed( const TSharedRef<SWindow>& Window ) 
-{
-	// A color picker window is no longer open
-	bHasOpenColorPicker = false;
-	ColorPropertyNode.Reset();
-}
-
 /** 
  * Creates the color picker window for this property view.
  *
@@ -1418,11 +1317,6 @@ void SDetailsView::CreateColorPickerWindow(const TSharedRef< FPropertyEditor >& 
 	OpenColorPicker(PickerArgs);
 }
 
-TSharedPtr<IPropertyUtilities> SDetailsView::GetPropertyUtilities() 
-{
-	return PropertyUtilities;
-}
-
 void SDetailsView::SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate)
 {
 	OnObjectArrayChanged = OnObjectArrayChangedDelegate;
@@ -1448,7 +1342,6 @@ UClass* SDetailsView::GetBaseClass()
 	return NULL;
 }
 
-
 void SDetailsView::RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
 	check( Class );
@@ -1466,74 +1359,6 @@ void SDetailsView::UnregisterInstancedCustomPropertyLayout( UClass* Class )
 	check( Class );
 
 	InstancedClassToDetailLayoutMap.Remove( Class );
-}
-
-void SDetailsView::SetIsPropertyVisibleDelegate( FIsPropertyVisible InIsPropertyVisible )
-{
-	IsPropertyVisibleDelegate = InIsPropertyVisible;
-}
-
-void SDetailsView::SetIsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled IsPropertyEditingEnabled )
-{
-	IsPropertyEditingEnabledDelegate = IsPropertyEditingEnabled;
-}
-
-bool SDetailsView::IsPropertyEditingEnabled() const
-{
-	// If the delegate is not bound assume property editing is enabled, otherwise ask the delegate
-	return !IsPropertyEditingEnabledDelegate.IsBound() || IsPropertyEditingEnabledDelegate.Execute();
-}
-
-void SDetailsView::SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance OnGetGenericDetails )
-{
-	GenericLayoutDelegate = OnGetGenericDetails;
-}
-
-TSharedPtr<FAssetThumbnailPool> SDetailsView::GetThumbnailPool() const
-{
-	if( !ThumbnailPool.IsValid() )
-	{
-		// Create a thumbnail pool for the view if it doesnt exist.  This does not use resources of no thumbnails are used
-		ThumbnailPool = MakeShareable( new FAssetThumbnailPool( 50, TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP(this, &SDetailsView::IsHovered) ) ) );
-	}
-
-	return ThumbnailPool;
-}
-
-void SDetailsView::NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) 
-{
-	OnFinishedChangingPropertiesDelegate.Broadcast(PropertyChangedEvent);
-}
-
-void SDetailsView::RequestItemExpanded( TSharedRef<IDetailTreeNode> TreeNode, bool bExpand )
-{
-	// Don't change expansion state if its already in that state
-	if( DetailTree->IsItemExpanded(TreeNode) != bExpand )
-	{
-		FilteredNodesRequestingExpansionState.Add( TreeNode, bExpand );
-	}
-}
-
-void SDetailsView::RefreshTree()
-{
-	DetailTree->RequestTreeRefresh();
-}
-
-void SDetailsView::SaveCustomExpansionState( const FString& NodePath, bool bIsExpanded )
-{
-	if( bIsExpanded )
-	{
-		ExpandedDetailNodes.Add( NodePath );
-	}
-	else
-	{
-		ExpandedDetailNodes.Remove( NodePath );
-	}
-}
-
-bool SDetailsView::GetCustomSavedExpansionState( const FString& NodePath ) const
-{
-	return ExpandedDetailNodes.Contains( NodePath );
 }
 
 bool SDetailsView::SupportsKeyboardFocus() const
@@ -1561,11 +1386,6 @@ void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> 
 bool SDetailsView::IsCategoryHiddenByClass( FName CategoryName ) const
 {
 	return RootPropertyNode->GetHiddenCategories().Contains( CategoryName );
-}
-
-bool SDetailsView::IsPropertyVisible( const UProperty* Property ) const
-{
-	return IsPropertyVisibleDelegate.IsBound() ? IsPropertyVisibleDelegate.Execute( Property ) : true;
 }
 
 #undef LOCTEXT_NAMESPACE

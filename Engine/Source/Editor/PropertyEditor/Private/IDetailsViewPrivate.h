@@ -7,6 +7,8 @@
 class FNotifyHook;
 class IDetailTreeNode;
 class IPropertyUtilities;
+class FPropertyNode;
+class FObjectPropertyNode;
 
 class IDetailsViewPrivate : public IDetailsView
 {
