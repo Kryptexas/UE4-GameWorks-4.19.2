@@ -4,7 +4,7 @@
 #include "ExceptionHandling.h"
 
 #if WITH_EDITOR
-#include "Editor/MainFrame/Private/MainFrameActions.h"
+#include "Editor/MainFrame/Private/Frame/MainFrameActions.h"
 #endif
 
 #include <locale.h>

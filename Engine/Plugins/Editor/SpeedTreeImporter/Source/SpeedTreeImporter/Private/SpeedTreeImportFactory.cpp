@@ -18,7 +18,7 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 
-#include "Mainframe.h"
+#include "MainFrame.h"
 #include "ModuleManager.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
