@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "RawIndexBuffer.h"
 #include "LocalVertexFactory.h"
 #include "RenderUtils.h"

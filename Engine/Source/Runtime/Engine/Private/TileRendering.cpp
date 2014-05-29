@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "TileRendering.h"
+#include "EngineModule.h"
 
 /** 
 * vertex data for a screen quad 

@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "RefCounting.h"
 #include "ShaderCore.h"
 #include "Shader.h"

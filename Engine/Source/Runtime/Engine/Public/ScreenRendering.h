@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "Shader.h"
 #include "ShaderParameters.h"
 #include "GlobalShader.h"

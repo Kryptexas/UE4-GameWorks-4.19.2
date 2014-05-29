@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "VertexFactory.h"
 #include "UniformBuffer.h"
 

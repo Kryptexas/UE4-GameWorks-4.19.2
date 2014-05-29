@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "Shader.h"
 #include "SceneManagement.h"
 #include "ShaderParameters.h"

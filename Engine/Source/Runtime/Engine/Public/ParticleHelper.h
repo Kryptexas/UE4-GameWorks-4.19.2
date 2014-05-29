@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"

@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "SceneManagement.h"
-#include "EnginePrivate.h"
+#include "EngineModule.h"
 #include "StereoRendering.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"

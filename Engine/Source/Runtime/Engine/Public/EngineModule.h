@@ -2,6 +2,8 @@
 // 
 // Engine module class
 
+#pragma once
+
 /** Implements the engine module. */
 class FEngineModule : public FDefaultModuleImpl
 {

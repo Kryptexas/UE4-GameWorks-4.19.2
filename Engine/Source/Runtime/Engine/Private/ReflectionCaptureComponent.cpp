@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
+#include "EngineModule.h"
 
 /** 
  * Size of all reflection captures.

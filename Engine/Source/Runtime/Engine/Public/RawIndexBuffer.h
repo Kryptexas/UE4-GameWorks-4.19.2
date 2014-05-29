@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "RenderResource.h"
 
 class FRawIndexBuffer : public FIndexBuffer

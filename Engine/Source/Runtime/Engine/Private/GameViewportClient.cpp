@@ -15,6 +15,7 @@
 #include "IHeadMountedDisplay.h"
 #include "SVirtualJoystick.h"
 #include "SceneViewport.h"
+#include "EngineModule.h"
 
 #include "HighResScreenshot.h"
 

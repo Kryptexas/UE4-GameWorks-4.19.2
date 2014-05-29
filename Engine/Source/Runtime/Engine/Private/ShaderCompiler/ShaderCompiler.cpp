@@ -10,6 +10,7 @@
 #include "GlobalShader.h"
 #include "TargetPlatform.h"
 #include "DerivedDataCacheInterface.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 

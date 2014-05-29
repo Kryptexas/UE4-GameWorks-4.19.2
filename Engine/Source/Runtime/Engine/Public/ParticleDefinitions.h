@@ -6,6 +6,5 @@
 
 #pragma once
 
-#include "Engine.h"
 #include "ParticleHelper.h"
 #include "ParticleEmitterInstances.h"

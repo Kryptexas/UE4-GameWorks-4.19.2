@@ -13,6 +13,7 @@
 #include "MallocProfiler.h"
 #include "Net/NetworkProfiler.h"
 #include "ConfigCacheIni.h"
+#include "EngineModule.h"
 
 #include "AVIWriter.h"
 
