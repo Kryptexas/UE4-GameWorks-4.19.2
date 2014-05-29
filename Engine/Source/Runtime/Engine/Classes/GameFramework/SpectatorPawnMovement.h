@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "GameFramework/FloatingPawnMovement.h"
 #include "SpectatorPawnMovement.generated.h"
 
 UCLASS(DependsOn=UFloatingPawnMovement)

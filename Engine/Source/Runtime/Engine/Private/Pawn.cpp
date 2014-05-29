@@ -7,6 +7,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "ParticleDefinitions.h"

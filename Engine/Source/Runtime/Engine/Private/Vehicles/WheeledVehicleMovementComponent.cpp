@@ -4,6 +4,9 @@
 #include "PhysicsPublic.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
+#include "Vehicles/VehicleWheel.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Vehicles/TireType.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"

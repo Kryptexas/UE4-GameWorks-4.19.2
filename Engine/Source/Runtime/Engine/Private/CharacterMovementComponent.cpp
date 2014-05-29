@@ -8,6 +8,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "GameFramework/Character.h"
+
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"
 

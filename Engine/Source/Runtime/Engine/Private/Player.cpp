@@ -8,6 +8,7 @@
 
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/HUD.h"
 
 #include "RenderCore.h"
 #include "ColorList.h"

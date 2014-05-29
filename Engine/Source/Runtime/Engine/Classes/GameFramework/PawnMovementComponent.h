@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "GameFramework/NavMovementComponent.h"
 #include "PawnMovementComponent.generated.h"
 
 UCLASS(abstract)

@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ///////////////////////////////////////////////////////////////////////////
 //

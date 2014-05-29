@@ -9,6 +9,7 @@
 #include "AnimationUtils.h"
 #include "AnimTree.h"
 #include "Animation/AnimNode_StateMachine.h"
+#include "GameFramework/Character.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
 

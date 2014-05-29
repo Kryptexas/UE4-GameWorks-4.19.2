@@ -8,6 +8,7 @@
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "GameFramework/Character.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics

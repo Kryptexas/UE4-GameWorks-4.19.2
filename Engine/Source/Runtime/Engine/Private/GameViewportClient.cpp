@@ -2,12 +2,12 @@
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
+#include "GameFramework/HUD.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "FXSystem.h"
 #include "SubtitleManager.h"
 #include "ImageUtils.h"
-
 #include "RenderCore.h"
 #include "ColorList.h"
 #include "Slate.h"

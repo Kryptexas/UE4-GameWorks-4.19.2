@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
+#include "Components/SplineMeshComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

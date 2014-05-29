@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "Vehicles/VehicleWheel.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Vehicles/TireType.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"

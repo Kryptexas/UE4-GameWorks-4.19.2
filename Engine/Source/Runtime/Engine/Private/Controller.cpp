@@ -9,6 +9,7 @@
 #include "ConfigCacheIni.h"
 #include "NetworkingDistanceConstants.h"
 #include "VisualLog.h"
+#include "GameFramework/Character.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"

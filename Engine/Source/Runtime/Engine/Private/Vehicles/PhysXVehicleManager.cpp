@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "Vehicles/TireType.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
 
 #if WITH_VEHICLE
 

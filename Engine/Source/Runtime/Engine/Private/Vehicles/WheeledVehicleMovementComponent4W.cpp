@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
 
 #if WITH_VEHICLE
 #include "../PhysicsEngine/PhysXSupport.h"

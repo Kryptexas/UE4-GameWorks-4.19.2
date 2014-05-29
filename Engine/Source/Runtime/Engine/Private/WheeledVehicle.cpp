@@ -6,6 +6,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/WheeledVehicle.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
 #include "DisplayDebugHelpers.h"
 
 FName AWheeledVehicle::VehicleMovementComponentName(TEXT("MovementComp"));

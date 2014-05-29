@@ -6,6 +6,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/SpectatorPawn.h"
+#include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/DebugCameraHUD.h"
 
 /** The currently selected actor. */

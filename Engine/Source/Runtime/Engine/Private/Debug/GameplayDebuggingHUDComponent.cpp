@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Debug/GameplayDebuggingComponent.h"
+#include "Debug/GameplayDebuggingHUDComponent.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/SpectatorPawn.h"
 #include "Engine/DebugCameraHUD.h"
 
 // ------------------

@@ -4,6 +4,7 @@
  * Base VehicleSim for the 4W PhysX vehicle class
  */
 #pragma once
+#include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "WheeledVehicleMovementComponent4W.generated.h"
 
 UENUM()

@@ -5,7 +5,7 @@
  */
 
 #include "EnginePrivate.h"
-
+#include "GameFramework/HUD.h"
 
 void FlushPersistentDebugLines( const UWorld* InWorld )
 {

@@ -6,7 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "GameFramework/SpectatorPawnMovement.h"
 
 USpectatorPawnMovement::USpectatorPawnMovement(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

@@ -7,6 +7,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/DefaultPawn.h"
 #include "SpectatorPawn.generated.h"
 
 

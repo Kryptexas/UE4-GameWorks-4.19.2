@@ -6,6 +6,7 @@
 
 #pragma once
 #include "AI/Navigation/NavAgentInterface.h"
+#include "GameFramework/MovementComponent.h"
 #include "NavMovementComponent.generated.h"
 
 UCLASS(abstract, dependson=(UNavigationSystem, UPrimitiveComponent, INavAgentInterface))

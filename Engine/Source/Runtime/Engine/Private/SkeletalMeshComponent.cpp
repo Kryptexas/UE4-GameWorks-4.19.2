@@ -16,7 +16,7 @@
 #include "AnimTree.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
-
+#include "GameFramework/Character.h"
 #include "Particles/ParticleSystemComponent.h"
 
 #ifndef EXPERIMENTAL_PARALLEL_CODE  
