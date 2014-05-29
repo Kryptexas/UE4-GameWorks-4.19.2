@@ -23,8 +23,8 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 
 	if (FParse::Command(&Cmd, TEXT("AIIgnorePlayers")))
 	{
-		AAIController::ToggleAIIgnorePlayers();		
-		bHandled = true; 
+		AAIController::ToggleAIIgnorePlayers();
+		//bHandled = true; 
 	}
 	else if (FParse::Command(&Cmd, TEXT("AILoggingVerbose")))
 	{
@@ -36,7 +36,7 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 				PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
 			}
 		}
-		bHandled = true;
+		//bHandled = true;
 	}
 
 	return bHandled;
