@@ -221,7 +221,7 @@ FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 		// Handle pure filenames & Posix paths.
 		bool FarHost=0;
 		bool FarMap=0;
-		if( FCString::Strlen(URL)>2 && (URL[1]==':' || (URL[0]=='/' && !FPackageName::IsValidLongPackageName(URL, true))) )
+		if( FCString::Strlen(URL)>2 && ((URL[0] != '[' && URL[1]==':') || (URL[0]=='/' && !FPackageName::IsValidLongPackageName(URL, true))) )
 		{
 			// Pure filename.
 			Protocol = UrlConfig.DefaultProtocol;
