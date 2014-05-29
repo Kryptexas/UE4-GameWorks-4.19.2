@@ -161,6 +161,7 @@ function preRunHandler() {
 var Module = {
   preRun: [preRunHandler],
   postRun: [],
+  TOTAL_MEMORY: %HEAPSIZE%,
   noImageDecoding: true,
   noAudioDecoding: true,
         arguments: [%UE4CMDLINE%],
