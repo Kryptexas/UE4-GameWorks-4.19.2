@@ -40,7 +40,7 @@ static FString GSavedCommandLine;
 //handler for the quit apple event used by the Dock menu
 - (void)handleQuitEvent:(NSAppleEventDescriptor*)Event withReplyEvent:(NSAppleEventDescriptor*)ReplyEvent
 {
-    [self OnQuitRequest:self];
+	[NSApp terminate:self];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
@@ -61,16 +61,6 @@ static FString GSavedCommandLine;
 	RunCrashReportClient(*GSavedCommandLine);
 	
 	[NSApp terminate: self];
-}
-
-- (IBAction)OnQuitRequest:(id)Sender
-{
-	[NSApp terminate: self];
-}
-
-- (IBAction)OnShowAboutWindow:(id)Sender
-{
-	[NSApp orderFrontStandardAboutPanel: Sender];
 }
 
 @end
@@ -98,5 +88,9 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += Argument;
 	}
 	
-	return NSApplicationMain(argc, (const char **)argv);
+	SCOPED_AUTORELEASE_POOL;
+	[NSApplication sharedApplication];
+	[NSApp setDelegate:[UE4AppDelegate new]];
+	[NSApp run];
+	return 0;
 }

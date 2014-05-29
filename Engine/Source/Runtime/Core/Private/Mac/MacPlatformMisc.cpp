@@ -205,8 +205,84 @@ void FMacPlatformMisc::PlatformInit()
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
-	
+
 	GMacAppInfo.Init();
+}
+
+void FMacPlatformMisc::PlatformPostInit()
+{
+	// Setup the app menu in menu bar
+	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
+	if (bIsBundledApp)
+	{
+		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(GGameName).GetNSString();
+
+		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
+		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];
+
+		NSMenuItem* PreferencesItem = GIsEditor ? [[[NSMenuItem alloc] initWithTitle:@"Preferences..." action:@selector(showPreferencesWindow:) keyEquivalent:@","] autorelease] : nil;
+
+		NSMenuItem* HideItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Hide %@", AppName] action:@selector(hide:) keyEquivalent:@"h"] autorelease];
+		NSMenuItem* HideOthersItem = [[[NSMenuItem alloc] initWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"] autorelease];
+		[HideOthersItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
+		NSMenuItem* ShowAllItem = [[[NSMenuItem alloc] initWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""] autorelease];
+
+		SEL RequestQuitSelector = [[NSApp delegate] respondsToSelector:@selector(requestQuit:)] ? @selector(requestQuit:) : @selector(terminate:);
+		NSMenuItem* QuitItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"Quit %@", AppName] action:RequestQuitSelector keyEquivalent:@"q"] autorelease];
+
+		NSMenuItem* ServicesItem = [[NSMenuItem new] autorelease];
+		NSMenu* ServicesMenu = [[NSMenu new] autorelease];
+		[ServicesItem setTitle:@"Services"];
+		[ServicesItem setSubmenu:ServicesMenu];
+		[NSApp setServicesMenu:ServicesMenu];
+
+		NSMenu* AppMenu = [[NSMenu new] autorelease];
+		[AppMenu addItem:AboutItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		if (PreferencesItem)
+		{
+			[AppMenu addItem:PreferencesItem];
+			[AppMenu addItem:[NSMenuItem separatorItem]];
+		}
+		[AppMenu addItem:ServicesItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		[AppMenu addItem:HideItem];
+		[AppMenu addItem:HideOthersItem];
+		[AppMenu addItem:ShowAllItem];
+		[AppMenu addItem:[NSMenuItem separatorItem]];
+		[AppMenu addItem:QuitItem];
+
+		NSMenu* MenuBar = [[NSMenu new] autorelease];
+		NSMenuItem* AppMenuItem = [[NSMenuItem new] autorelease];
+		[MenuBar addItem:AppMenuItem];
+		[NSApp setMainMenu:MenuBar];
+		[AppMenuItem setSubmenu:AppMenu];
+
+		UpdateWindowMenu();
+	}
+}
+
+void FMacPlatformMisc::UpdateWindowMenu()
+{
+	NSMenu* WindowMenu = [NSApp windowsMenu];
+	if (!WindowMenu)
+	{
+		WindowMenu = [[NSMenu new] autorelease];
+		[WindowMenu setTitle:@"Window"];
+		NSMenuItem* WindowMenuItem = [[NSMenuItem new] autorelease];
+		[WindowMenuItem setSubmenu:WindowMenu];
+		[[NSApp mainMenu] addItem:WindowMenuItem];
+		[NSApp setWindowsMenu:WindowMenu];
+	}
+
+	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
+	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
+	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+
+	[WindowMenu addItem:MinimizeItem];
+	[WindowMenu addItem:ZoomItem];
+	[WindowMenu addItem:[NSMenuItem separatorItem]];
+	[WindowMenu addItem:BringAllToFrontItem];
 }
 
 void FMacPlatformMisc::PreventScreenSaver()

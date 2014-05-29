@@ -12,6 +12,7 @@
 struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+	static void PlatformPostInit();
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static TArray<uint8> GetMacAddress();
@@ -119,6 +120,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 
 	/** @return Get the name of the platform specific file manager (Finder) */
 	static FText GetFileManagerName();
+
+	static void UpdateWindowMenu();
 };
 
 #ifdef __OBJC__

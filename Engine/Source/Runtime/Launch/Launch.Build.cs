@@ -119,6 +119,7 @@ public class Launch : ModuleRules
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
 				PrivateDependencyModuleNames.Add("MainFrame");
+				PrivateDependencyModuleNames.Add("Settings");
 			}
 			else
 			{
