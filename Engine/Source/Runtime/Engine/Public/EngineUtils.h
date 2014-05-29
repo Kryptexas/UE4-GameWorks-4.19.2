@@ -568,8 +568,21 @@ private:
  */
 ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
 
-/** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
-void GetLevelStreamingStatus( UWorld* InWorld, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName );
+/** SubLevel status information */
+struct FSubLevelStatus
+{
+	FName				PackageName;
+	EStreamingStatus	StreamingStatus;
+	int32				LODIndex;
+	bool				bPlayerInside;
+};
+
+/**
+ *	Gathers SubLevels status from a provided world
+ *	@param InWorld		World to gather sublevels stats from
+ *	@return				sublevels status (streaming state, LOD index, where player is)
+ */
+TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* InWorld );
 
 #if !UE_BUILD_SHIPPING
 
