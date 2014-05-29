@@ -175,7 +175,7 @@ void SProjectTargetPlatformSettings::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.AutoWrapText(true)
-					.Text(LOCTEXT("PlatformsListDescription", "Use the list above to select the platforms that your project is targeting. Attempting to run your project on a platform that hasn't been selected will result in a warning stating that the project may not run as expected."))
+					.Text(LOCTEXT("PlatformsListDescription", "Select the supported platforms for your project. Attempting to package, run, or cook your project on an unsupported platform will result in a warning."))
 				]
 
 				+SVerticalBox::Slot()
@@ -183,7 +183,7 @@ void SProjectTargetPlatformSettings::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.AutoWrapText(true)
-					.Text(LOCTEXT("PlatformsListNote", "Please note that selecting no platforms is considered the same as selecting all platforms."))
+					.Text(LOCTEXT("PlatformsListNote", "Note: Selecting no platforms is considered the same as selecting all platforms."))
 				]
 			]
 		]

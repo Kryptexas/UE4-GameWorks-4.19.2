@@ -182,9 +182,9 @@ protected:
 
 		// platforms settings
 		TWeakPtr<SWidget> ProjectTargetPlatformEditorPanel = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").CreateProjectTargetPlatformEditorPanel();
-		SettingsModule.RegisterSettings("Project", "Game", "TargetPlatforms",
-			LOCTEXT("ProjectTargetPlatformsSettingsName", "Target Platforms"),
-			LOCTEXT("ProjectTargetPlatformsSettingsDescription", "Specify which platforms your project is targeting."),
+		SettingsModule.RegisterSettings("Project", "Game", "SupportedPlatforms",
+			LOCTEXT("ProjectSupportedPlatformsSettingsName", "Supported Platforms"),
+			LOCTEXT("ProjectSupportedPlatformsSettingsDescription", "Specify which platforms your project supports."),
 			ProjectTargetPlatformEditorPanel.Pin().ToSharedRef()
 		);
 
@@ -235,7 +235,7 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Game", "General");
 			SettingsModule->UnregisterSettings("Project", "Game", "Maps");
 			SettingsModule->UnregisterSettings("Project", "Game", "Packaging");
-			SettingsModule->UnregisterSettings("Project", "Game", "TargetPlatforms");
+			SettingsModule->UnregisterSettings("Project", "Game", "SupportedPlatforms");
 			SettingsModule->UnregisterSettings("Project", "Game", "Movies");
 //			SettingsModule->UnregisterSettings("Project", "Game", "GameSession");
 //			SettingsModule->UnregisterSettings("Project", "Game", "HUD");

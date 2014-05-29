@@ -38,10 +38,10 @@ public:
 		};
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("TargetPlatformsMenuLabel", "Target Platforms..."),
-			LOCTEXT("ProjectSettingsMenuToolTip", "Change which platforms this project is targeting"),
+			LOCTEXT("SupportedPlatformsMenuLabel", "Supported Platforms..."),
+			LOCTEXT("SupportedPlatformsMenuToolTip", "Change which platforms this project supports"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Game"), FName("TargetPlatforms")))
+			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Game"), FName("SupportedPlatforms")))
 			);
 	}
 
@@ -114,18 +114,18 @@ public:
 
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("DisplayName"), Platform->DisplayName());
-			FText WarningText = FText::Format(LOCTEXT("ShowUnsupportedTargetWarning_Message", "{DisplayName} is not listed as a target platform for this project, so may not run as expected.\n\nDo you wish to continue?"), Args);
+			FText WarningText = FText::Format(LOCTEXT("ShowUnsupportedPlatformWarning_Message", "{DisplayName} is not listed as a supported platform for this project, so may not run as expected.\n\nDo you wish to continue?"), Args);
 
 			FSuppressableWarningDialog::FSetupInfo Info(
 				WarningText, 
-				LOCTEXT("ShowUnsupportedTargetWarning_Title", "Unsupported Platform"), 
-				TEXT("SuppressUnsupportedTargetWarningDialog")
+				LOCTEXT("ShowUnsupportedPlatformWarning_Title", "Unsupported Platform"), 
+				TEXT("SuppressUnsupportedPlatformWarningDialog")
 				);
-			Info.ConfirmText = LOCTEXT("ShowUnsupportedTargetWarning_Confirm", "Continue");
-			Info.CancelText = LOCTEXT("ShowUnsupportedTargetWarning_Cancel", "Cancel");
-			FSuppressableWarningDialog UnsupportedTargetWarningDialog(Info);
+			Info.ConfirmText = LOCTEXT("ShowUnsupportedPlatformWarning_Confirm", "Continue");
+			Info.CancelText = LOCTEXT("ShowUnsupportedPlatformWarning_Cancel", "Cancel");
+			FSuppressableWarningDialog UnsupportedPlatformWarningDialog(Info);
 
-			return UnsupportedTargetWarningDialog.ShowModal() != FSuppressableWarningDialog::EResult::Cancel;
+			return UnsupportedPlatformWarningDialog.ShowModal() != FSuppressableWarningDialog::EResult::Cancel;
 		}
 
 		return true;
