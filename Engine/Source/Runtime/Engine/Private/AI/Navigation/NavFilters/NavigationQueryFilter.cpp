@@ -2,7 +2,6 @@
 
 #include "EnginePrivate.h"
 // @todo AIModule circular dependency
-#include "AIController.h"
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 

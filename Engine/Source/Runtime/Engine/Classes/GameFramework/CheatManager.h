@@ -159,10 +159,6 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void Summon(const FString& ClassName);
 
-	// Toggle AI ignoring the player.
-	UFUNCTION(exec)
-	virtual void AIIgnorePlayers();
-
 	/** Freeze everything in the level except for players. */
 	UFUNCTION(exec)
 	virtual void PlayersOnly();
@@ -207,10 +203,6 @@ class ENGINE_API UCheatManager : public UObject
 	virtual void ServerToggleAILogging();
 
 	void DumpAILogs();
-
-	/** makes various AI logging categories verbose */
-	UFUNCTION(exec)
-	virtual void AILoggingVerbose();
 
 	/** Toggle capsule trace debugging. Will trace a capsule from current view point and show where it hits the world */
 	UFUNCTION(exec)

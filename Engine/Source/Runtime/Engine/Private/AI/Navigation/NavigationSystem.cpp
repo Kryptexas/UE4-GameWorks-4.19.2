@@ -262,7 +262,7 @@ TSubclassOf<class UNavArea> UNavigationSystem::DefaultWalkableArea = NULL;
 TSubclassOf<class UNavArea> UNavigationSystem::DefaultObstacleArea = NULL;
 FOnNavAreaChanged UNavigationSystem::NavAreaAddedObservers;
 FOnNavAreaChanged UNavigationSystem::NavAreaRemovedObservers;
-#if !UE_BUILD_SHIPPING
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 FNavigationSystemExec UNavigationSystem::ExecHandler;
 #endif // !UE_BUILD_SHIPPING
 

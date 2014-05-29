@@ -371,11 +371,6 @@ void UCheatManager::Summon( const FString& ClassName )
 	}
 }
 
-void UCheatManager::AIIgnorePlayers()
-{
-	AAIController::ToggleAIIgnorePlayers();
-}
-
 void UCheatManager::PlayersOnly()
 {
 	check( GetWorld() );
@@ -643,16 +638,6 @@ void UCheatManager::ToggleAILogging()
 	}
 #endif
 }
-
-void UCheatManager::AILoggingVerbose()
-{
-	APlayerController* PC = GetOuterAPlayerController();
-	if (PC)
-	{
-		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
-	}
-}
-
 
 #define SAFE_TRACEINDEX_DECREASE(x) ((--x)<0)? 9:(x)
 
