@@ -31,8 +31,6 @@
 template <typename ItemType>
 class SListView : public STableViewBase, TListTypeTraits<ItemType>::SerializerType, public ITypedTableView< ItemType >
 {
-	checkAtCompileTime( TIsValidListItem<ItemType>::Value, ItemType_must_be_a_pointer_or_TSharedPtr );
-
 public:
 	typedef typename TListTypeTraits< ItemType >::NullableType NullableItemType;
 

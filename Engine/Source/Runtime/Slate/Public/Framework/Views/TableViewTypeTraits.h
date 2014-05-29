@@ -22,6 +22,7 @@ template<typename T> struct TIsValidListItem< TWeakObjectPtr<T> >						{ enum { 
  */
 template <typename T> struct TListTypeTraits
 {
+	checkAtCompileTime(TIsValidListItem<T>::Value, ItemType_must_be_a_pointer_or_TSharedPtr);
 };
 
 
