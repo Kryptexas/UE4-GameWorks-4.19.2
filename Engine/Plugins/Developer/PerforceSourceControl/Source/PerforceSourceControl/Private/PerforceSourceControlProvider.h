@@ -38,7 +38,9 @@ public:
 	virtual bool UsesLocalReadOnlyState() const OVERRIDE;
 	virtual void Tick() OVERRIDE;
 	virtual TArray< TSharedRef<class ISourceControlLabel> > GetLabels( const FString& InMatchingSpec ) const OVERRIDE;
+#if SOURCE_CONTROL_WITH_SLATE
 	virtual TSharedRef<class SWidget> MakeSettingsWidget() const OVERRIDE;
+#endif
 
 	/**
 	 * Register a worker with the provider.

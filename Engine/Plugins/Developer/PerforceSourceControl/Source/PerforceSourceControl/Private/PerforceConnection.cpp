@@ -167,8 +167,8 @@ static bool TestConnection(ClientApi& P4Client, const FString& ClientSpecName, b
 		FMemory::Memcpy(ClientSpecUTF8Name, TCHAR_TO_ANSI(*ClientSpecName), ClientSpecName.Len() + 1);
 	}
 
-	char *ArgV[] = { "-o", (char*)ClientSpecUTF8Name };
-	P4Client.SetArgv(2, ArgV);
+	const char *ArgV[] = { "-o", (char*)ClientSpecUTF8Name };
+	P4Client.SetArgv(2, const_cast<char*const*>(ArgV));
 
 	P4Client.Run("client", &User);
 
@@ -262,8 +262,8 @@ bool FPerforceConnection::Login(const FPerforceConnectionInfo& InConnectionInfo)
 	FP4RecordSet Records;
 	FP4LoginClientUser User(InConnectionInfo.Password, Records, false, ErrorMessages);
 
-	char *ArgV[] = { "-a" };
-	P4Client.SetArgv(1, ArgV);
+	const char *ArgV[] = { "-a" };
+	P4Client.SetArgv(1, const_cast<char*const*>(ArgV));
 	P4Client.Run("login", &User);
 
 	if(ErrorMessages.Num())
@@ -590,7 +590,7 @@ bool FPerforceConnection::RunCommand(const FString& InCommand, const TArray<FStr
 
 	double SCCStartTime = FPlatformTime::Seconds();
 
-	P4Client.SetArgv(ArgC, (ANSICHAR**)ArgV);
+	P4Client.SetArgv(ArgC, (char**)ArgV);
 
 	FP4KeepAlive KeepAlive(InIsCancelled);
 	P4Client.SetBreak(&KeepAlive);
@@ -625,8 +625,8 @@ int32 FPerforceConnection::CreatePendingChangelist(const FText &Description, FOn
 	TArray<FString> Params;
 	FP4RecordSet Records;
 
-	char *ArgV[] = { "-i" };
-	P4Client.SetArgv(1, ArgV);
+	const char *ArgV[] = { "-i" };
+	P4Client.SetArgv(1, const_cast<char*const*>(ArgV));
 
 	FP4KeepAlive KeepAlive(InIsCancelled);
 	P4Client.SetBreak(&KeepAlive);

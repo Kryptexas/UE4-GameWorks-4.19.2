@@ -402,10 +402,12 @@ TArray< TSharedRef<ISourceControlLabel> > FPerforceSourceControlProvider::GetLab
 	return Labels;
 }
 
+#if SOURCE_CONTROL_WITH_SLATE
 TSharedRef<class SWidget> FPerforceSourceControlProvider::MakeSettingsWidget() const
 {
 	return SNew(SPerforceSourceControlSettings);
 }
+#endif
 
 TSharedPtr<IPerforceSourceControlWorker, ESPMode::ThreadSafe> FPerforceSourceControlProvider::CreateWorker(const FName& InOperationName) const
 {

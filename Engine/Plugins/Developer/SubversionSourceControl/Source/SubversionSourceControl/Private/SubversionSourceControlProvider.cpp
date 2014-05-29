@@ -449,10 +449,12 @@ TArray< TSharedRef<ISourceControlLabel> > FSubversionSourceControlProvider::GetL
 	return Labels;
 }
 
+#if SOURCE_CONTROL_WITH_SLATE
 TSharedRef<class SWidget> FSubversionSourceControlProvider::MakeSettingsWidget() const
 {
 	return SNew(SSubversionSourceControlSettings);
 }
+#endif
 
 ECommandResult::Type FSubversionSourceControlProvider::ExecuteSynchronousCommand(FSubversionSourceControlCommand& InCommand, const FText& Task, bool bSuppressResponseMsg)
 {
