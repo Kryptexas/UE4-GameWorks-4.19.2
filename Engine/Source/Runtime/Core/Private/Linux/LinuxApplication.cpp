@@ -293,7 +293,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			if(buttonEvent.type == SDL_MOUSEBUTTONUP)
 			{
-				MessageHandler->OnMouseUp( button );
+				MessageHandler->OnMouseUp(button);
 			}
 			// SDL 2.0.2+
 			//else if(buttonEvent.clicks > 1)
@@ -886,13 +886,16 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 	const bool bEnable = bIsMouseCaptureEnabled || bIsMouseCursorLocked;
 	FLinuxCursor *LinuxCursor = static_cast< FLinuxCursor* >(Cursor.Get());
 
-	if( bEnable )
+	// this is a hacky heuristic which makes QA-ClickHUD work while not ruining SlateViewer...
+	bool bShouldGrab = (IS_PROGRAM != 0 || GIsEditor) && !LinuxCursor->IsHidden();
+
+	if (bEnable)
 	{
 		if( TargetWindow )
 		{
 			MouseCaptureWindow = TargetWindow;
 		}
-		if (MouseCaptureWindow && !LinuxCursor->IsHidden())
+		if (bShouldGrab && MouseCaptureWindow)
 		{
 			if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE))
 			{
@@ -904,7 +907,7 @@ void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 	{
 		if( MouseCaptureWindow )
 		{
-			if (!LinuxCursor->IsHidden())
+			if (bShouldGrab)
 			{
 				if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE))
 				{

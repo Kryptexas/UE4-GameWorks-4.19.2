@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "OpenGLDrvPrivate.h"
+#include "ds_extensions.h"
 
 /*------------------------------------------------------------------------------
 	OpenGL function pointers.
@@ -107,6 +108,12 @@ static void _PlatformCreateDummyGLWindow( FPlatformOpenGLContext *OutContext )
 
 	OutContext->hWnd					= h_wnd;
 	OutContext->bReleaseWindowOnDestroy	= true;
+
+	int CacheRet = DSEXT_CacheX11Info(h_wnd);
+	if (EDSExtSuccess != CacheRet)
+	{
+		UE_LOG(LogRHI, Error, TEXT("Could not cache X11 info, DSExt error: %d"), CacheRet);
+	}
 }
 
 /**
