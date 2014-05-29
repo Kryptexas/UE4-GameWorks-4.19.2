@@ -565,36 +565,28 @@ void UObject::ConditionalPostLoad()
 {
 	if( HasAnyFlags(RF_NeedPostLoad) )
 	{
-		if( GetLinker() )
-		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			checkSlow(!DebugPostLoad.Contains(this));
-			DebugPostLoad.Add(this);
+		checkSlow(!DebugPostLoad.Contains(this));
+		DebugPostLoad.Add(this);
 #endif
-			ClearFlags( RF_NeedPostLoad );
+		ClearFlags( RF_NeedPostLoad );
 
-			UObject* ObjectArchetype = GetArchetype();
-			if ( ObjectArchetype != NULL )
-			{
-				//make sure our archetype executes ConditionalPostLoad first.
-				ObjectArchetype->ConditionalPostLoad();
-			}
+		UObject* ObjectArchetype = GetArchetype();
+		if ( ObjectArchetype != NULL )
+		{
+			//make sure our archetype executes ConditionalPostLoad first.
+			ObjectArchetype->ConditionalPostLoad();
+		}
 
-			ConditionalPostLoadSubobjects();
-			PostLoad();
+		ConditionalPostLoadSubobjects();
+		PostLoad();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if( DebugPostLoad.Contains(this) )
-			{
-				UE_LOG(LogObj, Fatal, TEXT("%s failed to route PostLoad.  Please call Super::PostLoad() in your <className>::PostLoad() function. "), *GetFullName() );
-			}
-#endif
-		}
-		else
+		if( DebugPostLoad.Contains(this) )
 		{
-			UE_LOG(LogObj, Log, TEXT("%s did not route PostLoad, because it didn't have a linker"), *GetFullName());
-			ClearFlags( RF_NeedPostLoad|RF_NeedPostLoadSubobjects );
+			UE_LOG(LogObj, Fatal, TEXT("%s failed to route PostLoad.  Please call Super::PostLoad() in your <className>::PostLoad() function. "), *GetFullName() );
 		}
+#endif
 	}
 }
 

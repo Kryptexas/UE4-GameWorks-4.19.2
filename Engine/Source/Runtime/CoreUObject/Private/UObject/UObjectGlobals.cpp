@@ -1508,8 +1508,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 			if ( !DupObjectInfo.DuplicatedObject->IsTemplate() )
 			{
 				// Don't want to call PostLoad on class duplicated CDOs
-				DupObjectInfo.DuplicatedObject->PostLoad();
-				DupObjectInfo.DuplicatedObject->PostLoadSubobjects(NULL);
+				DupObjectInfo.DuplicatedObject->ConditionalPostLoad();
 			}
 			DupObjectInfo.DuplicatedObject->CheckDefaultSubobjects();
 		}
