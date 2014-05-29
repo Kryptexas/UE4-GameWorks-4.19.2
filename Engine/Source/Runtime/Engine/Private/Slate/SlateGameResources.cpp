@@ -124,7 +124,7 @@ const FSlateWidgetStyle* FSlateGameResources::GetWidgetStyleInternal( const FNam
 
 	const FSlateWidgetStyle* Style = StyleAsset->GetStyleChecked( DesiredTypeName );
 
-	if ( Style == NULL )
+	if ( Style == NULL && GIsEditor)
 	{
 		TSharedRef< FTokenizedMessage > Message = FTokenizedMessage::Create( EMessageSeverity::Error, FText::Format( NSLOCTEXT("SlateStyleSet", "WrongWidgetStyleType", "The Slate Widget Style '{0}' is not of the desired type. Desired: '{1}', Actual: '{2}'"), FText::FromName( StyleName ), FText::FromName( DesiredTypeName ), FText::FromName( StyleAsset->CustomStyle->GetStyle()->GetTypeName() ) ) );
 		Message->AddToken( FAssetNameToken::Create( StyleAsset->GetPathName(), FText::FromString( StyleAsset->GetName() ) ) );

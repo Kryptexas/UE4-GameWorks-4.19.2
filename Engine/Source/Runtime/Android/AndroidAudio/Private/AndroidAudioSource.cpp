@@ -312,7 +312,7 @@ void FSLESSoundSource::Update( void )
 	{
 		return;
 	}
-
+	
 	float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
 	if( SetStereoBleed() )
 	{
@@ -321,7 +321,7 @@ void FSLESSoundSource::Update( void )
 	}
 	Volume *= GVolumeMultiplier;
 	Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
-
+	
 	const float Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);
 
 	// Set whether to apply reverb
@@ -329,7 +329,7 @@ void FSLESSoundSource::Update( void )
 
 	// Set the HighFrequencyGain value
 	SetHighFrequencyGain();
-
+	
 	FVector Location;
 	FVector	Velocity;
 	

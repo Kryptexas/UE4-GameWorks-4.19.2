@@ -1139,6 +1139,36 @@ public class GUBP : BuildCommand
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
                 AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
+
+            if (GUBP.bBuildRocket)
+            {
+                var Target = bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Game];
+                var Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform);
+                foreach (var Config in Configs)
+                {
+                    if (HostPlatform == UnrealTargetPlatform.Win64)
+                    {
+                        if (TargetPlatform == UnrealTargetPlatform.Win32 && Config != UnrealTargetConfiguration.Shipping)
+                        {
+                            continue;
+                        }
+                        if (TargetPlatform == UnrealTargetPlatform.Win64 && Config != UnrealTargetConfiguration.Development)
+                        {
+                            continue;
+                        }
+                        if (TargetPlatform == UnrealTargetPlatform.Android && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                        {
+                            continue;
+                        }
+                    }
+                    else if (Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                    {
+                        continue;
+                    }
+                    Log("Building {0} for Host={1} Target={2} Config={3} for rocket.   Node={4}", Target.TargetName, HostPlatform, TargetPlatform, Config, GetFullName());
+                }
+            }
+
         }
 
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform)
@@ -1198,11 +1228,22 @@ public class GUBP : BuildCommand
                         {
                             if (GUBP.bBuildRocket)
                             {
-                                if (HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.Win32 && Config != UnrealTargetConfiguration.Shipping)
+                                if (HostPlatform == UnrealTargetPlatform.Win64)
                                 {
-                                    continue;
+                                    if (TargetPlatform == UnrealTargetPlatform.Win32 && Config != UnrealTargetConfiguration.Shipping)
+                                    {
+                                        continue;
+                                    }
+                                    if (TargetPlatform == UnrealTargetPlatform.Win64 && Config != UnrealTargetConfiguration.Development)
+                                    {
+                                        continue;
+                                    }
+                                    if (TargetPlatform == UnrealTargetPlatform.Android && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                                    {
+                                        continue;
+                                    }
                                 }
-                                if (HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.Win64 && Config != UnrealTargetConfiguration.Development)
+                                else if (Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
                                 {
                                     continue;
                                 }

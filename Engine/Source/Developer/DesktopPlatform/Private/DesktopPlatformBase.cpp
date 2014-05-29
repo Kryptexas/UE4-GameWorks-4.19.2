@@ -252,7 +252,8 @@ bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedback
 
 	// Enumerate all the files
 	TArray<FString> FileNames;
-	GetProjectBuildProducts(ProjectDir, FileNames);
+	TArray<FString> DirectoryNames;
+	GetProjectBuildProducts(ProjectDir, FileNames, DirectoryNames);
 
 	// Remove all the files
 	for(int32 Idx = 0; Idx < FileNames.Num(); Idx++)
@@ -264,24 +265,22 @@ bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedback
 			return false;
 		}
 
-		// Try to remove an empty directory hierarchy
-		FString DirName = FPaths::GetPath(FileNames[Idx]);
-		for(;;)
+		// Update the progress
+		Warn->UpdateProgress(Idx, FileNames.Num() + DirectoryNames.Num());
+	}
+
+	// Remove all the directories
+	for(int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
+	{
+		// Remove the directory
+		if(!IFileManager::Get().DeleteDirectory(*DirectoryNames[Idx], false, true))
 		{
-			TArray<FString> Contents;
-			IFileManager::Get().FindFiles(Contents, *(DirName / TEXT("*")), true, true);
-
-			if(Contents.Num() > 0) break;
-			if(!IFileManager::Get().DeleteDirectory(*DirName)) break;
-
-			int32 ParentIdx;
-			if(!DirName.FindLastChar(TEXT('/'), ParentIdx)) break;
-
-			DirName = DirName.Left(ParentIdx);
+			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete directory '%s'"), *DirectoryNames[Idx]);
+			return false;
 		}
 
 		// Update the progress
-		Warn->UpdateProgress(Idx, FileNames.Num());
+		Warn->UpdateProgress(Idx + FileNames.Num(), FileNames.Num() + DirectoryNames.Num());
 	}
 
 	// End the task
@@ -494,7 +493,7 @@ const FUProjectDictionary &FDesktopPlatformBase::GetCachedProjectDictionary(cons
 	return *Dictionary;
 }
 
-void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TArray<FString> &OutFileNames)
+void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TArray<FString> &OutFileNames, TArray<FString> &OutDirectoryNames)
 {
 	FString NormalizedProjectDir = ProjectDir;
 	FPaths::NormalizeDirectoryName(NormalizedProjectDir);
@@ -511,48 +510,16 @@ void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TA
 		BuildRootDirectories.Add(FPaths::GetPath(PluginFileNames[Idx]));
 	}
 
-	// Find all the target filenames
-	TArray<FString> TargetNames;
-	IFileManager::Get().FindFilesRecursive(TargetNames, *(NormalizedProjectDir / TEXT("Source")), TEXT("*.Target.cs"), true, false, false);
-	for(int32 Idx = 0; Idx < TargetNames.Num(); Idx++)
+	// Add all the intermediate directories
+	for(int32 Idx = 0; Idx < BuildRootDirectories.Num(); Idx++)
 	{
-		TargetNames[Idx] = FPaths::GetCleanFilename(TargetNames[Idx]);
-		TargetNames[Idx].RemoveFromEnd(TEXT(".Target.cs"));
-	}
-	TargetNames.Add(TEXT("UE4Editor"));
-
-	// Add the binaries for all of the build roots
-	for(int32 RootIdx = 0; RootIdx < BuildRootDirectories.Num(); RootIdx++)
-	{
-		const FString &BuildRootDirectory = BuildRootDirectories[RootIdx];
-
-		// Find all the binaries under this build root
-		TArray<FString> Binaries;
-		IFileManager::Get().FindFilesRecursive(Binaries, *(BuildRootDirectory / TEXT("Binaries")), TEXT("*"), true, false);
-
-		// Remove all the binaries starting with a target name
-		for(int32 BinaryIdx = 0; BinaryIdx < Binaries.Num(); BinaryIdx++)
-		{
-			FString BinaryName = FPaths::GetCleanFilename(Binaries[BinaryIdx]);
-			for(int32 TargetIdx = 0; TargetIdx < TargetNames.Num(); TargetIdx++)
-			{
-				if(BinaryName.StartsWith(TargetNames[TargetIdx]))
-				{
-					const TCHAR *End = *BinaryName + TargetNames[TargetIdx].Len();
-					if(*End == 0 || *End == TEXT('.') || *End == TEXT('-'))
-					{
-						OutFileNames.Add(Binaries[BinaryIdx]);
-						break;
-					}
-				}
-			}
-		}
+		OutDirectoryNames.Add(BuildRootDirectories[Idx] / TEXT("Intermediate"));
 	}
 
-	// Add the intermediate folders for all of the build roots
-	for(int32 RootIdx = 0; RootIdx < BuildRootDirectories.Num(); RootIdx++)
+	// Add the files in the cleaned directories to the output list
+	for(int32 Idx = 0; Idx < OutDirectoryNames.Num(); Idx++)
 	{
-		IFileManager::Get().FindFilesRecursive(OutFileNames, *(BuildRootDirectories[RootIdx] / TEXT("Intermediate")), TEXT("*"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(OutFileNames, *OutDirectoryNames[Idx], TEXT("*"), true, false, false);
 	}
 }
 
