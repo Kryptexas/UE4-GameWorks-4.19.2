@@ -34,8 +34,7 @@
 #include "MatineeExporter.h"
 #include "FbxImporter.h"
 
-#include "Landscape/LandscapeProxy.h"
-
+class ALandscapeProxy;
 struct FAnimControlTrackKey;
 
 namespace UnFbx

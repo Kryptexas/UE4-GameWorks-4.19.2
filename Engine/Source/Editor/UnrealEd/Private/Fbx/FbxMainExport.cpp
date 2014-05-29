@@ -48,6 +48,7 @@
 #include "Matinee/InterpTrackInstMove.h"
 
 #include "LandscapeDataAccess.h"
+#include "Landscape/LandscapeProxy.h"
 
 #include "FbxExporter.h"
 #include "RawMesh.h"
