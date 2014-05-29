@@ -20,15 +20,6 @@ struct FDynamicEmitterDataBase;
 struct FDynamicEmitterReplayDataBase;
 struct FParticleAnimTrailEmitterInstance;
 
-/** Controls the way that the width scale property affects anim trails */
-UENUM()
-enum ETrailWidthMode
-{
-	ETrailWidthMode_FromCentre UMETA(DisplayName = "From Centre"),
-	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
-	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
-};
-
 /** Enum for specifying type of a name instance parameter. */
 UENUM()
 enum EParticleSysParamType
