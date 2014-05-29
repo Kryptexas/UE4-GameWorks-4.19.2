@@ -1638,13 +1638,10 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 
 	if (!PNewPose.isValid())
 	{
+		UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::SetBodyTransform: Trying to set new transform with bad data [p=(%f,%f,%f) q=(%f,%f,%f,%f)]"), PNewPose.p.x, PNewPose.p.y, PNewPose.p.z, PNewPose.q.x, PNewPose.q.y, PNewPose.q.z, PNewPose.q.w);
 		return;
 	}
-	else
-	{
-		UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::SetBodyTransform: Trying to set new transform with bad data [p=(%f,%f,%f) q=(%f,%f,%f,%f)]"), PNewPose.p.x, PNewPose.p.y, PNewPose.p.z, PNewPose.q.x, PNewPose.q.y, PNewPose.q.z, PNewPose.q.w);
-	}
-
+	
 	SCENE_LOCK_WRITE(RigidActor->getScene());
 	// SIMULATED & KINEMATIC
 	if(PRigidDynamic)
