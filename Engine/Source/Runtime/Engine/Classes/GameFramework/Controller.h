@@ -20,6 +20,7 @@
 //=============================================================================
 
 #pragma once
+#include "AI/Navigation/NavAgentInterface.h"
 #include "Controller.generated.h"
 
 class UNavigationComponent;

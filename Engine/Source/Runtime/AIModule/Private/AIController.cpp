@@ -10,6 +10,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
+#include "GameFramework/Pawn.h"
 #include "AIController.h"
 
 // mz@todo these need to be removed, legacy code

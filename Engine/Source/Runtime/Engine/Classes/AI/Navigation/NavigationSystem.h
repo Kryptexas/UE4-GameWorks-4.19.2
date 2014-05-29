@@ -4,7 +4,9 @@
 
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "GenericOctreePublic.h"
+//#include "AI/Navigation/NavigationData.h"
 #include "NavigationSystem.generated.h"
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)
@@ -620,10 +622,10 @@ public:
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToActor(AController* Controller, const AActor* Goal);
+	static void SimpleMoveToActor(class AController* Controller, const AActor* Goal);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	static void SimpleMoveToLocation(AController* Controller, const FVector& Goal);
+	static void SimpleMoveToLocation(class AController* Controller, const FVector& Goal);
 
 	/** Performs navigation raycast on NavigationData appropriate for given Querier.
 	 *	@param Querier if not passed default navigation data will be used

@@ -286,7 +286,7 @@ protected:
 	TWeakObjectPtr<AActor> DestinationActor;
 
 	/** cached DestinationActor cast to INavAgentInterface. Use SetDestinationActor to set this */
-	const INavAgentInterface* DestinationAgent;
+	const class INavAgentInterface* DestinationAgent;
 
 	/** destination for current path segment */
 	FBasedPosition CurrentDestination;

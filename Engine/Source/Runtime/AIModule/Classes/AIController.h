@@ -13,6 +13,7 @@
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "GameFramework/Controller.h"
 #include "AIController.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);

@@ -9,6 +9,13 @@
 #endif
 
 #include "Core.h"
+//#include "CoreUObject.h"
+//#include "Engine/EngineBaseTypes.h"
+//#include "Engine/EngineTypes.h"
+//// @todo consider making this non-shippable
+//#include "DisplayDebugHelpers.h"
+//#include "InputCoreTypes.h"
+//#include "GameFramework/Actor.h"
 #include "Engine.h"
 
 #include "AIModule.h"
