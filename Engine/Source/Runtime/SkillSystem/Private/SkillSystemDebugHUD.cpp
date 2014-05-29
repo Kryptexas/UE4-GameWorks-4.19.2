@@ -153,7 +153,7 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 	}
 }
 
-FAutoConsoleCommandWithWorldAndArgs TestObjectRefSerializeCommand(
+FAutoConsoleCommandWithWorldAndArgs SkillSystemToggleDebugHUDCommand(
 	TEXT("SkillSystem.ToggleDebugHUD"),
 	TEXT("ToggleDebugHUD Drawing"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(ToggleDebugHUD)
