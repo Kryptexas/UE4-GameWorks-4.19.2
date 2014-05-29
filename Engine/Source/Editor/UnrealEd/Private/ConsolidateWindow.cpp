@@ -665,7 +665,7 @@ bool SConsolidateToolWidget::AreObjClassesHomogeneous()
 		// Starting from the second consolidation object, iterate through all consolidation objects
 		// to see if they all share a common class
 		++ConsolidationObjIter;
-		for ( ConsolidationObjIter; ConsolidationObjIter; ++ConsolidationObjIter )
+		for ( ; ConsolidationObjIter; ++ConsolidationObjIter )
 		{
 			const UObject* CurObj = *ConsolidationObjIter;
 			check( CurObj );

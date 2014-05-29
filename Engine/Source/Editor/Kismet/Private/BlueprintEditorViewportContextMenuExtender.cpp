@@ -73,7 +73,7 @@ void RecompileOutOfDateKismetForSelection()
 
 	// Run thru all selected actors, looking for out of date blueprints
 	FSelectionIterator SelectedActorItr( GEditor->GetSelectedActorIterator() );
-	for (SelectedActorItr; SelectedActorItr; ++SelectedActorItr)
+	for ( ; SelectedActorItr; ++SelectedActorItr)
 	{
 		AActor* CurrentActor = Cast<AActor>(*SelectedActorItr);
 

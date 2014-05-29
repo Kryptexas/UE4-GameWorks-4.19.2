@@ -3212,7 +3212,7 @@ void UEditorEngine::SelectAllActorsWithClass( bool bArchetype )
 			++SelectedActorIter;
 		}
 		// Check all the other selected actors
-		for ( SelectedActorIter; SelectedActorIter && bAllSameClassAndArchetype; ++SelectedActorIter )
+		for ( ; SelectedActorIter && bAllSameClassAndArchetype; ++SelectedActorIter )
 		{
 			AActor* CurActor = *SelectedActorIter;
 			if ( CurActor->GetClass() != FirstClass || CurActor->GetArchetype() != FirstArchetype )

@@ -1395,7 +1395,7 @@ void FMatinee::ViewEndOfTrack()
 	if( GetSelectedTrackCount() > 0 )
 	{
 		FSelectedTrackIterator TrackIt(GetSelectedTrackIterator());
-		for( TrackIt; TrackIt; ++TrackIt )
+		for( ; TrackIt; ++TrackIt )
 		{
 			UInterpTrack* Track = *TrackIt;
 			if (Track->GetTrackEndTime() > NewEndTime)
@@ -2121,7 +2121,7 @@ void FMatinee::AddKey()
 	{
 		// Populate the list of tracks that we need to add keys to.
 		FSelectedTrackIterator TrackIt(GetSelectedTrackIterator());
-		for( TrackIt; TrackIt; ++TrackIt )
+		for( ; TrackIt; ++TrackIt )
 		{
 			// Only allow keys to be added to multiple tracks at once if they are subtracks of a movement track.
 			if( (*TrackIt)->IsA( UInterpTrackMoveAxis::StaticClass() ) ) 

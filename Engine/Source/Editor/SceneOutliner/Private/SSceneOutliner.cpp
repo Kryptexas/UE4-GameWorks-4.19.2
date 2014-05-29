@@ -591,7 +591,6 @@ namespace SceneOutliner
 			HideTemporaryActorsFilter = SceneOutlinerFilters::CreateHideTemporaryActorsFilter();
 		}
 
-		sizeof(TSharedPtr<TDelegateFilter<const AActor*const>>);
 		if ( bHideTemporaryActors )
 		{			
 			Filters->Add( HideTemporaryActorsFilter );

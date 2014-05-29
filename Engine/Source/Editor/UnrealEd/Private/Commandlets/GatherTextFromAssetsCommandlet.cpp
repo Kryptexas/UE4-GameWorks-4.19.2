@@ -801,7 +801,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	for( int32 BatchIndex = 0; BatchIndex < BatchCount; ++BatchIndex )
 	{
 		int32 PackagesInThisBatch = 0;
-		for( PackageIndex; PackageIndex < PackageCount && PackagesInThisBatch < PackagesPerBatchCount; ++PackageIndex )
+		for( ; PackageIndex < PackageCount && PackagesInThisBatch < PackagesPerBatchCount; ++PackageIndex )
 		{
 			FString PackageFileName = PackageFileNamesToLoad[PackageIndex];
 
