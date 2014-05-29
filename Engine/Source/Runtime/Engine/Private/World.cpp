@@ -675,10 +675,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	}
 
 	BehaviorTreeManager = NewObject<UBehaviorTreeManager>(this);
-	// @hackyness
-	BehaviorTreeManager->AddToRoot();
 	EnvironmentQueryManager = NewObject<UEnvQueryManager>(this);
-	EnvironmentQueryManager->AddToRoot();
 
 	if (GEngine->AvoidanceManagerClass != NULL)
 	{
@@ -2759,16 +2756,6 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		if (NavigationSystem != NULL)
 		{
 			NavigationSystem->CleanUp();
-		}
-
-		if (BehaviorTreeManager.Get())
-		{
-			BehaviorTreeManager->RemoveFromRoot();
-		}
-
-		if (EnvironmentQueryManager.Get())
-		{
-			EnvironmentQueryManager->RemoveFromRoot();
 		}
 	}
 
