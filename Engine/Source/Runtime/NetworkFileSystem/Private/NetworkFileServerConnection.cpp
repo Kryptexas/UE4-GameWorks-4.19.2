@@ -750,7 +750,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FString ProjectDir = FPaths::GetPath(FPaths::GetProjectFilePath());
-		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Sandboxes"), *(FString("Cooked-") + ConnectedPlatformName));
+		SandboxDirectory = FPaths::Combine(*ProjectDir, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		if( bIsStreamingRequest )
 		{
 			RootDirectories.Add(ProjectDir);
@@ -760,15 +760,16 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	{
 		if (FPaths::GetExtension(GameName) == IProjectManager::GetProjectFileExtension())
 		{
-			SandboxDirectory = FString::Printf(TEXT("%s/Saved/Sandboxes/Cooked-%s"), *FPaths::GetPath(GameName), *ConnectedPlatformName);
+			SandboxDirectory = FPaths::Combine(*FPaths::GetPath(GameName), TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		}
 		else
 		{
 			//@todo: This assumes the game is located in the UE4 Root directory
-			FString SandboxFolder = FString::Printf(TEXT("Cooked-%s"), *ConnectedPlatformName);
-			SandboxDirectory = FPaths::Combine(*FPaths::GetRelativePathToRoot(), *GameName, TEXT("Saved/Sandboxes"), *SandboxFolder);
+			SandboxDirectory = FPaths::Combine(*FPaths::GetRelativePathToRoot(), *GameName, TEXT("Saved"), TEXT("Cooked"), *ConnectedPlatformName);
 		}
 	}
+	// Convert to full path so that the sandbox wrapper doesn't re-base to Saved/Sandboxes
+	SandboxDirectory = FPaths::ConvertRelativePathToFull(SandboxDirectory);
 
 	// delete any existing one first, in case game name somehow changed and client is re-asking for files (highly unlikely)
 	delete Sandbox;

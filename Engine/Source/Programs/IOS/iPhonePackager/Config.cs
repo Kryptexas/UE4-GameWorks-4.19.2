@@ -77,7 +77,7 @@ namespace iPhonePackager
 		/// </summary>
 		public static string CookedDirectory
 		{
-			get { return Path.GetFullPath(GameDirectory + @"\Saved\Sandboxes\Cooked-IOS"); }
+			get { return Path.GetFullPath(GameDirectory + @"\Saved\Cooked\IOS"); }
 		}
 
 		/// <summary>

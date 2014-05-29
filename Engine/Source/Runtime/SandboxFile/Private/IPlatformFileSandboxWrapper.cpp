@@ -13,6 +13,11 @@ FSandboxPlatformFile::FSandboxPlatformFile(bool bInEntireEngineWillUseThisSandbo
 {
 }
 
+static FString GetCookedSandboxDir()
+{
+	return FPaths::Combine(*(FPaths::GameDir()), TEXT("Cooked"), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()));
+}
+
 bool FSandboxPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
 {
 	FString SandboxDir;
@@ -20,8 +25,7 @@ bool FSandboxPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLi
 #if PLATFORM_DESKTOP && (UE_GAME || UE_SERVER)
 	if (FPlatformProperties::RequiresCookedData() && SandboxDir.IsEmpty() && Inner == &FPlatformFileManager::Get().GetPlatformFile() && bEntireEngineWillUseThisSandbox)
 	{
-		FString SandboxName = FString(TEXT("Cooked-")) + ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
-		SandboxDir = FPaths::Combine(*(FPaths::GameDir()), TEXT("Saved"), TEXT("Sandboxes"), *SandboxDir);
+		SandboxDir = GetCookedSandboxDir();
 		bResult = FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*SandboxDir);
 	}
 #endif
@@ -35,8 +39,7 @@ bool FSandboxPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 #if PLATFORM_DESKTOP && (UE_GAME || UE_SERVER)
 	if (CommandLineDirectory.IsEmpty() && bEntireEngineWillUseThisSandbox)
 	{
-		FString SandboxName = FString(TEXT("Cooked-")) + ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
-		CommandLineDirectory = FPaths::Combine(*(FPaths::GameDir()), TEXT("Saved"), TEXT("Sandboxes"), *SandboxName);
+		CommandLineDirectory = GetCookedSandboxDir();
 		UE_LOG(LogInit, Display, TEXT("No sandbox specified, assuming %s"), *CommandLineDirectory);
 	}
 #endif

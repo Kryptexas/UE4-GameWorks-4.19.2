@@ -1977,7 +1977,7 @@ public class GUBP : BuildCommand
 
         public override string RootIfAnyForTempStorage()
         {
-            return CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved", "Sandboxes", "Cooked-" + CookPlatform);
+            return CombinePaths(Path.GetDirectoryName(GameProj.FilePath), "Saved", "Cooked", CookPlatform);
         }
         public override void DoBuild(GUBP bp)
         {

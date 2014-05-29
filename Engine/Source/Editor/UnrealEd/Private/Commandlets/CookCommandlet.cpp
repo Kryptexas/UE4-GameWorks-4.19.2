@@ -571,12 +571,14 @@ FString UCookCommandlet::GetOutputDirectoryOverride() const
 	// Output directory override.	
 	if (!FParse::Value(*Params, TEXT("Output="), OutputDirectory))
 	{
-		OutputDirectory = TEXT("Cooked-[Platform]");
+		// Full path so that the sandbox wrapper doesn't try to re-base it under Sandboxes
+		OutputDirectory = FPaths::Combine(*FPaths::GameDir(), TEXT("Saved"), TEXT("Cooked"), TEXT("[Platform]"));
+		OutputDirectory = FPaths::ConvertRelativePathToFull(OutputDirectory);
 	}
 	else if (!OutputDirectory.Contains(TEXT("[Platform]"), ESearchCase::IgnoreCase, ESearchDir::FromEnd) )
 	{
 		// Output directory needs to contain [Platform] token to be able to cook for multiple targets.
-		OutputDirectory += TEXT("/Cooked-[Platform]");
+		OutputDirectory = FPaths::Combine(*OutputDirectory, TEXT("[Platform]"));
 	}
 	FPaths::NormalizeDirectoryName(OutputDirectory);
 

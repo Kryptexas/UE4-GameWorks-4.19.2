@@ -635,7 +635,7 @@ public partial class Project : CommandUtils
 			}
 			else if (!Params.Stage)
 			{
-				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir, "Saved/Sandboxes", "Cooked-" + SC.CookPlatform);
+				var SandboxPath = CombinePaths(SC.RuntimeProjectRootDir, "Saved", "Cooked", SC.CookPlatform);
 				if (!SC.StageTargetPlatform.LaunchViaUFE)
 				{
 					TempCmdLine += "-sandbox=" + CommandUtils.MakePathSafeToUseWithCommandLine(SandboxPath) + " ";
