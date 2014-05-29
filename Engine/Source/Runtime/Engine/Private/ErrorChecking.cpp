@@ -11,6 +11,9 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "Model.h"
+#include "GameFramework/PainCausingVolume.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
+#include "Engine/LevelStreamingVolume.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

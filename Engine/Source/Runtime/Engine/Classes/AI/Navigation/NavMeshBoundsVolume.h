@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "NavMeshBoundsVolume.generated.h"
 
 UCLASS(MinimalAPI)

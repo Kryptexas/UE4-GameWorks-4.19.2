@@ -1,8 +1,8 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Interfaces/Interface_PostProcessVolume.h"
 #include "PostProcessComponent.generated.h"
-
 /**
  *  PostProcessComponent. Enables Post process controls for blueprints.
  *	Will use a parent UShapeComponent to provide volume data if available.

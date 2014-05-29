@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "PostProcessVolume.generated.h"
 
 	// for FPostprocessSettings

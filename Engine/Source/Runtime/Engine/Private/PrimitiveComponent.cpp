@@ -5,12 +5,13 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
 #include "LevelUtils.h"
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
-#endif
+#endif // WITH_PHYSX
 #include "Collision/CollisionDebugDrawing.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

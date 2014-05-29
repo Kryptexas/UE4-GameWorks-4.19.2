@@ -11,6 +11,7 @@
 #include "RecastNavMeshGenerator.h"
 #include "PImplRecastNavMesh.h"
 #include "SurfaceIterators.h"
+#include "Ai/Navigation/NavMeshBoundsVolume.h"
 
 // recast includes
 #include "Recast.h"

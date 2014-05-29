@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/PhysicsVolume.h"
 #include "DefaultPhysicsVolume.generated.h"
 
 UCLASS(notplaceable, transient, MinimalAPI)

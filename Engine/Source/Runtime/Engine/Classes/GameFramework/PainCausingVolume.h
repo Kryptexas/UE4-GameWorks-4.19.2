@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/PhysicsVolume.h"
 #include "PainCausingVolume.generated.h"
 
 

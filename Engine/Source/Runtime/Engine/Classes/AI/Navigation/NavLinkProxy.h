@@ -2,6 +2,7 @@
 
 #pragma once
 #include "NavigationTypes.h"
+#include "Ai/Navigation/NavRelevantActorInterface.h"
 #include "NavLinkProxy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, class AActor*, MovingActor, const FVector&, DestinationPoint );

@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "Engine/Brush.h"
 #include "Volume.generated.h"
 
 UCLASS(MinimalAPI, showcategories=Collision, hidecategories=(Brush, Physics), abstract)

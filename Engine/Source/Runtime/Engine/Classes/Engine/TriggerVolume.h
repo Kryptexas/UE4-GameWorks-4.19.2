@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "TriggerVolume.generated.h"
 
 UCLASS()

@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "MovementComponent"

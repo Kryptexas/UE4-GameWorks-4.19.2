@@ -8,6 +8,7 @@
 #include "PhysicsPublic.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/PhysicsVolume.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
