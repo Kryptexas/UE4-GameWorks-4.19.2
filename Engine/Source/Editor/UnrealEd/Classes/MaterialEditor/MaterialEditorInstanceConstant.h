@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "MaterialEditorInstanceConstant.generated.h"
 
 USTRUCT()

@@ -7,6 +7,7 @@
 =============================================================================*/
 
 #include "Engine/TextureDefines.h"
+#include "UnrealClient.h"
 
 class UTexture2D;
 

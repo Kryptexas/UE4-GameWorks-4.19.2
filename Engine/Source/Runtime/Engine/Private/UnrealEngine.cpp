@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "AllEngineHeaders.h"
 
 #include "Net/UnrealNetwork.h"
 #include "FileManagerGeneric.h"
@@ -37,6 +36,8 @@
 #include "IHeadMountedDisplay.h"
 #include "Scalability.h"
 #include "StatsData.h"
+#include "AudioDevice.h"
+#include "ActiveSound.h"
 
 #if !UE_BUILD_SHIPPING
 #include "STaskGraph.h"

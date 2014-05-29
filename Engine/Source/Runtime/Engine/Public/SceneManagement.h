@@ -27,6 +27,7 @@ class FVertexBuffer;
 class FVertexFactory;
 class FAtmosphericFogSceneInfo;
 class ISceneViewExtension;
+class HHitProxy;
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);

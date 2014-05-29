@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "PixelFormat.h"
 #include "ShaderCompiler.h"
 #include "MaterialCompiler.h"

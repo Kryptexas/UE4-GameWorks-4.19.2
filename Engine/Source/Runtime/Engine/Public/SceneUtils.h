@@ -9,6 +9,9 @@
 // Colors that are defined for a particular mesh type
 // Each event type will be displayed using the defined color
 #pragma once
+
+#include "DynamicRHI.h"
+
 #define DEC_LIGHT			FColor(255,0,0,255)
 #define DEC_SKEL_MESH		FColor(255,0,255,255)
 #define DEC_STATIC_MESH		FColor(0,128,255,255)

@@ -7,6 +7,7 @@
  *  The typical use case is for structs used in the renderer and also in script code.
  */
 
+#include "TaskGraphInterfaces.h"
 #include "EngineBaseTypes.generated.h"
 
 //

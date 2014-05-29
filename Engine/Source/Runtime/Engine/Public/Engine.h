@@ -10,7 +10,6 @@
 
 #include "Core.h"
 #include "CoreUObject.h"
-#include "RHI.h"
 #include "InputCore.h"
 #include "EngineSettings.h"
 #include "EngineStats.h"
@@ -23,15 +22,12 @@
 -----------------------------------------------------------------------------*/
 
 #include "Tickable.h"						// FTickableGameObject interface.
-#include "RenderingThread.h"				// for FRenderCommandFence
 #include "Engine/EngineBaseTypes.h"
-#include "UnrealClient.h"					// for FViewportClient
 
 // EngineClasses.h
 #include "Engine/LatentActionManager.h"
 #include "Engine/Scene.h"
 #include "Camera/CameraTypes.h"
-#include "Engine/EngineBaseTypes.h"
 #include "Engine/NetSerialization.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_AssetUserData.h"
@@ -117,7 +113,6 @@
 #include "Engine/PointLight.h"
 #include "Engine/SpotLight.h"
 #include "Engine/GeneratedMeshAreaLight.h"
-#include "Materials/MaterialInstanceActor.h"
 #include "AI/Navigation/NavigationData.h"
 #include "AI/Navigation/NavigationGraph.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
@@ -717,7 +712,6 @@
 #include "Animation/BoneControllers/AnimNode_HandIKRetargeting.h"
 #include "Animation/AnimNodeSpaceConversions.h"
 #include "Camera/CameraStackTypes.h"
-#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/TextureDefines.h"
 #include "Tests/TextPropertyTestObject.h"

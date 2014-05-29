@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
+#include "Sequencer.h"
 #include "SSection.h"
 #include "IKeyArea.h"
 #include "ISequencerSection.h"

@@ -58,6 +58,7 @@
 #include "Matinee/InterpGroupInstCamera.h"
 #include "Matinee/InterpFilter_Classes.h"
 #include "Matinee/InterpFilter_Custom.h"
+#include "Materials/MaterialInstanceActor.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "InterpolationHitProxy.h"

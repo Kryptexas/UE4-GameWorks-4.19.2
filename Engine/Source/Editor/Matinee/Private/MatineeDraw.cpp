@@ -19,6 +19,7 @@
 #include "Matinee/InterpTrackLinearColorBase.h"
 #include "Matinee/InterpTrackEvent.h"
 #include "Matinee/InterpTrackMove.h"
+#include "Materials/MaterialInstanceActor.h"
 
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;
