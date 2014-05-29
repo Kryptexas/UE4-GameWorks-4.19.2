@@ -1720,7 +1720,7 @@ public class GUBP : BuildCommand
         }
         public override string GetFullName()
         {
-            return base.GetFullName() + IsMainBranch();
+            return base.GetFullName();// + IsMainBranch();
         }
         public static string IsMainBranch()
         {
