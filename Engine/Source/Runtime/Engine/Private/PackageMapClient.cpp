@@ -568,11 +568,11 @@ bool UPackageMapClient::InternalIsMapped(UObject* Object, FNetworkGUID &NetGUID)
  *	Finds objects from PathName and ObjOuter, and assigns it a NetGUID. Called on the client after serialziing a
  *	<NetGUID, Path> pair.
  */
-UObject * UPackageMapClient::NetGUIDAssign(FNetworkGUID NetGUID, FString PathName, UObject *ObjOuter)
+UObject * UPackageMapClient::ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, FString PathName, UObject *ObjOuter)
 {
-	if (NetGUID.IsDynamic())
+	if ( InOutNetGUID.IsDynamic() )
 	{
-		UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::NetGUIDAssign. Trying to load dynamic NetGUID by path: <%s,%s>. Outer: %s"), *NetGUID.ToString(), *PathName, ObjOuter ? *ObjOuter->GetName() : TEXT("NULL"));
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::ResolvePathAndAssignNetGUID. Trying to load dynamic NetGUID by path: <%s,%s>. Outer: %s" ), *InOutNetGUID.ToString(), *PathName, ObjOuter ? *ObjOuter->GetName() : TEXT( "NULL" ) );
 	}
 
 	// We don't have the object mapped yet
@@ -585,12 +585,12 @@ UObject * UPackageMapClient::NetGUIDAssign(FNetworkGUID NetGUID, FString PathNam
 			// This could be garbage or a security risk
 			// Another possibility is in dynamic property replication if the server reads the previously serialized state
 			// that has a now destroyed actor in it.
-			UE_LOG( LogNetPackageMap, Warning, TEXT("Could not find Object for: NetGUID <%s, %s> (and IsNetGUIDAuthority())"), *NetGUID.ToString(), *PathName );
+			UE_LOG( LogNetPackageMap, Warning, TEXT("Could not find Object for: NetGUID <%s, %s> (and IsNetGUIDAuthority())"), *InOutNetGUID.ToString(), *PathName );
 			return NULL;
 		}
 		else
 		{
-			UE_LOG(LogNetPackageMap, Log, TEXT("Could not find Object for: NetGUID <%s, %s>"), *NetGUID.ToString(), *PathName );
+			UE_LOG(LogNetPackageMap, Log, TEXT("Could not find Object for: NetGUID <%s, %s>"), *InOutNetGUID.ToString(), *PathName );
 		}
 		
 
@@ -605,7 +605,7 @@ UObject * UPackageMapClient::NetGUIDAssign(FNetworkGUID NetGUID, FString PathNam
 			if (!ObjOuter || Package)
 			{
 				Object = LoadPackage(Package, *PathName, LOAD_None);
-				UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::NetGUIDAssign  LoadPackage %s. Found: %s"), *PathName, Object ? *Object->GetName() : TEXT("NULL") );
+				UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::ResolvePathAndAssignNetGUID  LoadPackage %s. Found: %s"), *PathName, Object ? *Object->GetName() : TEXT("NULL") );
 			}
 			else
 			{
@@ -614,9 +614,9 @@ UObject * UPackageMapClient::NetGUIDAssign(FNetworkGUID NetGUID, FString PathNam
 		}
 	}
 
-	if (Object)
+	if ( Object )
 	{
-		AssignNetGUID(Object, NetGUID);
+		InOutNetGUID = AssignNetGUID( Object, InOutNetGUID );
 	}
 
 	return Object;
@@ -837,7 +837,7 @@ bool UPackageMapClient::InternalLoadObjectPath( FArchive& Ar, UObject*& Object, 
 	// ----------------
 	if ( !Object && !OuterFailure )
 	{
-		Object = NetGUIDAssign( NetGUID, PathName, ObjOuter );
+		Object = ResolvePathAndAssignNetGUID( NetGUID, PathName, ObjOuter );
 	}
 
 	// ----------------	

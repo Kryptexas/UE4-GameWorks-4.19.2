@@ -54,7 +54,7 @@ class UPackageMapClient : public UPackageMap
 	virtual void LogDebugInfo(FOutputDevice& Ar) OVERRIDE;
 	virtual bool SupportsObject( const UObject* Object ) OVERRIDE;
 	
-	virtual UObject * NetGUIDAssign(FNetworkGUID NetGUID, FString Path, UObject *ObjOuter = NULL) OVERRIDE;
+	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, FString Path, UObject * ObjOuter ) OVERRIDE;
 
 	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) OVERRIDE;
 

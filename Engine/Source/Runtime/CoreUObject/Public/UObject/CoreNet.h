@@ -167,7 +167,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 	FClassNetCache* GetClassNetCache(UClass* Class);
 	void	ClearClassNetCache();
 
-	virtual UObject * NetGUIDAssign(FNetworkGUID NetGUID, FString Path, UObject *ObjOuter = NULL) { return NULL; }
+	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, FString Path, UObject * ObjOuter ) { return NULL; }
 	
 	virtual void HandleUnAssignedObject(const UObject* Obj) { }
 
