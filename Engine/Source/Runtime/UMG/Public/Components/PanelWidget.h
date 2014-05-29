@@ -12,7 +12,13 @@ class UMG_API UPanelWidget : public UWidget
 	virtual int32 GetChildrenCount() const { return 0; }
 	virtual UWidget* GetChildAt(int32 Index) const { return NULL; }
 
+	virtual int32 GetChildIndex(UWidget* Content) const { return -1; }
+
 	virtual void ReplaceChildAt(int32 Index, UWidget* Child)
+	{
+	}
+
+	virtual void InsertChildAt(int32 Index, UWidget* Child)
 	{
 	}
 

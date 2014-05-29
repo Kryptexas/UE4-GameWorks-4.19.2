@@ -20,9 +20,9 @@ UBorderComponent::UBorderComponent(const FPostConstructInitializeProperties& PCI
 	//BorderImage = *BorderDefaults._BorderImage.Get();
 	DesiredSizeScale = BorderDefaults._DesiredSizeScale.Get();
 	ContentScale = BorderDefaults._ContentScale.Get();
-	ContentColorAndOpacity = BorderDefaults._ColorAndOpacity.Get();
-	BorderColorAndOpacity = BorderDefaults._BorderBackgroundColor.Get();
-	ForegroundColor = BorderDefaults._ForegroundColor.Get();
+	ContentColorAndOpacity = FLinearColor::White;
+	BorderColorAndOpacity = FLinearColor::White;
+	ForegroundColor = FLinearColor::Black;
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
 }
 

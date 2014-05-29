@@ -8,6 +8,9 @@ UCLASS()
 class UMG_API UPanelSlot : public UObject
 {
 	GENERATED_UCLASS_BODY()
+	
+	UPROPERTY()
+	class UPanelWidget* Parent;
 
 	UPROPERTY()
 	class UWidget* Content;

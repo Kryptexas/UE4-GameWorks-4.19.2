@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -12,6 +12,106 @@
 #include "WidgetTemplateDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
+
+class FDesignerExtension : public TSharedFromThis<FDesignerExtension>
+{
+public:
+	virtual void Initialize(UWidgetBlueprint* InBlueprint)
+	{
+		Blueprint = InBlueprint;
+	}
+
+	virtual void BuildWidgetsForSelection(const TArray< UWidget* >& Selection, TArray< TSharedRef<SWidget> >& Widgets) = 0;
+
+	FName GetExtensionId() const { return ExtensionId; }
+
+protected:
+	FName ExtensionId;
+	UWidgetBlueprint* Blueprint;
+};
+
+class FVerticalSlotExtension : public FDesignerExtension
+{
+public:
+	FVerticalSlotExtension()
+	{
+		ExtensionId = FName(TEXT("VerticalSlot"));
+	}
+
+	bool IsActive(const TArray< UWidget* >& Selection)
+	{
+		for ( UWidget* Widget : Selection )
+		{
+			if ( !Widget->Slot || !Widget->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
+			{
+				return false;
+			}
+		}
+
+		return Selection.Num() == 1;
+	}
+	
+	virtual void BuildWidgetsForSelection(const TArray< UWidget* >& Selection, TArray< TSharedRef<SWidget> >& Widgets) OVERRIDE
+	{
+		SelectionCache = Selection;
+
+		if ( !IsActive(Selection) )
+		{
+			return;
+		}
+
+		TSharedRef<SButton> UpButton =
+			SNew(SButton)
+			.Text(LOCTEXT("UpArrow", "↑"))
+			.OnClicked(this, &FVerticalSlotExtension::HandleUpPressed);
+
+		TSharedRef<SButton> DownButton =
+			SNew(SButton)
+			.Text(LOCTEXT("DownArrow", "↓"))
+			.OnClicked(this, &FVerticalSlotExtension::HandleDownPressed);
+
+		Widgets.Add(UpButton);
+		Widgets.Add(DownButton);
+	}
+
+private:
+
+	FReply HandleUpPressed()
+	{
+		for ( UWidget* Widget : SelectionCache )
+		{
+			UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
+			UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+
+			int32 CurrentIndex = Parent->GetChildIndex(Widget);
+			Parent->Slots.RemoveAt(CurrentIndex);
+			Parent->Slots.Insert(VerticalSlot, FMath::Max(CurrentIndex - 1, 0));
+		}
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		return FReply::Handled();
+	}
+
+	FReply HandleDownPressed()
+	{
+		for ( UWidget* Widget : SelectionCache )
+		{
+			UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
+			UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+
+			int32 CurrentIndex = Parent->GetChildIndex(Widget);
+			Parent->Slots.RemoveAt(CurrentIndex);
+			Parent->Slots.Insert(VerticalSlot, FMath::Min(CurrentIndex + 1, Parent->GetChildrenCount()));
+		}
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		return FReply::Handled();
+	}
+
+	TArray< UWidget* > SelectionCache;
+};
 
 //class SDesignerWidget : public SBorder
 //{
@@ -116,6 +216,8 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 	DragDirections[DH_BOTTOM_CENTER] = FVector2D(0, 1);
 	DragDirections[DH_BOTTOM_RIGHT] = FVector2D(1, 1);
 
+	Register(MakeShareable(new FVerticalSlotExtension()));
+
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SUMGDesigner::OnBlueprintChanged);
 
@@ -136,7 +238,8 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
 			[
-				SNew(STextBlock)
+				SAssignNew(ExtensionWidgetCanvas, SCanvas)
+				.Visibility(EVisibility::SelfHitTestInvisible)
 			]
 		]
 	);
@@ -160,6 +263,12 @@ UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
 	}
 
 	return NULL;
+}
+
+void SUMGDesigner::Register(TSharedRef<FDesignerExtension> Extension)
+{
+	Extension->Initialize(GetBlueprint());
+	DesignerExtensions.Add(Extension);
 }
 
 void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
@@ -260,6 +369,36 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			TArray<UWidget*> SelectedTemplates;
 			SelectedTemplates.Add(SelectedTemplate);
 			ShowDetailsForObjects(SelectedTemplates);
+
+			// Remove all the current extension widgets
+			ExtensionWidgetCanvas->ClearChildren();
+
+			ExtensionWidgets.Reset();
+
+			// Build extension widgets for new selection
+			for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
+			{
+				Ext->BuildWidgetsForSelection(SelectedTemplates, ExtensionWidgets);
+			}
+
+			TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
+
+			// Add Widgets to designer surface
+			for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
+			{
+				ExtensionBox->AddSlot()
+					.AutoWidth()
+					[
+						ExWidget
+					];
+			}
+
+			ExtensionWidgetCanvas->AddSlot()
+				.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetSelectionDesignerWidgetsLocation))
+				.Size(FVector2D(100, 24))
+				[
+					ExtensionBox
+				];
 		}
 	}
 	else
@@ -335,6 +474,36 @@ bool SUMGDesigner::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget,
 	}
 
 	return false;
+}
+
+bool SUMGDesigner::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
+{
+	FWidgetPath WidgetPath;
+	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
+	{
+		FArrangedWidget ArrangedDesigner = WidgetPath.FindArrangedWidget(this->AsShared());
+
+		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
+		ArrangedWidget.Geometry.AbsolutePosition -= ArrangedDesigner.Geometry.AbsolutePosition;
+		return true;
+	}
+
+	return false;
+}
+
+FVector2D SUMGDesigner::GetSelectionDesignerWidgetsLocation() const
+{
+	if ( SelectedWidget.IsValid() )
+	{
+		TSharedRef<SWidget> Widget = SelectedWidget.Pin().ToSharedRef();
+
+		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+		GetArrangedWidgetRelativeToDesigner(Widget, ArrangedWidget);
+
+		return ArrangedWidget.Geometry.AbsolutePosition - FVector2D(0, 25);
+	}
+
+	return FVector2D(0, 0);
 }
 
 int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const

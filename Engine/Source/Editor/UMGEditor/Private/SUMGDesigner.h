@@ -6,6 +6,8 @@
 #include "SNodePanel.h"
 #include "SDesignSurface.h"
 
+class FDesignerExtension;
+
 class SUMGDesigner : public SDesignSurface
 {
 public:
@@ -32,6 +34,8 @@ public:
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
 	// End of SWidget interface
 
+	void Register(TSharedRef<FDesignerExtension> Extension);
+
 private:
 	UWidget* GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
 
@@ -42,6 +46,9 @@ private:
 
 	bool GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
 	bool GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+	bool GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+
+	FVector2D GetSelectionDesignerWidgetsLocation() const;
 
 private:
 	enum DragHandle
@@ -64,6 +71,12 @@ private:
 
 	TArray< FVector2D > DragDirections;
 
+	/** Extensions for the designer to allow for custom widgets to be inserted onto the design surface as selection changes. */
+	TArray< TSharedRef<FDesignerExtension> > DesignerExtensions;
+
+	/** Temporary widgets that are destroyed every time selection changes and are built from the current selection by extensions. */
+	TArray< TSharedRef<SWidget> > ExtensionWidgets;
+
 private:
 	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
@@ -78,6 +91,7 @@ private:
 	TWeakPtr<SWidget> SelectedWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;
+	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 
 	DragHandle CurrentHandle;
 };

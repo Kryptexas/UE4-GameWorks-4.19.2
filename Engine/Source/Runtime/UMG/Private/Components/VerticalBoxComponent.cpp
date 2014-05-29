@@ -21,6 +21,21 @@ UWidget* UVerticalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
+int32 UVerticalBoxComponent::GetChildIndex(UWidget* Content) const
+{
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	{
+		UVerticalBoxSlot* Slot = Slots[SlotIndex];
+
+		if ( Slot->Content == Content )
+		{
+			return SlotIndex;
+		}
+	}
+
+	return -1;
+}
+
 bool UVerticalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
@@ -29,15 +44,11 @@ bool UVerticalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
 
 bool UVerticalBoxComponent::RemoveChild(UWidget* Child)
 {
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	int32 SlotIndex = GetChildIndex(Child);
+	if ( SlotIndex != -1 )
 	{
-		UVerticalBoxSlot* Slot = Slots[SlotIndex];
-
-		if ( Slot->Content == Child )
-		{
-			Slots.RemoveAt(SlotIndex);
-			return true;
-		}
+		Slots.RemoveAt(SlotIndex);
+		return true;
 	}
 
 	return false;
@@ -51,6 +62,19 @@ void UVerticalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
 #if WITH_EDITOR
 	Content->Slot = Slot;
 #endif
+}
+
+void UVerticalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
+{
+	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
+	Slot->Content = Content;
+	Slot->Parent = this;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+
+	Slots.Insert(Slot, Index);
 }
 
 TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
@@ -71,6 +95,8 @@ TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 				Slots[SlotIndex] = Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 			}
 
+			Slot->Parent = this;
+
 			auto& NewSlot = Canvas->AddSlot()
 				.Padding(Slot->Padding)
 				.HAlign(Slot->HorizontalAlignment)
@@ -90,6 +116,7 @@ UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
+	Slot->Parent = this;
 
 #if WITH_EDITOR
 	Content->Slot = Slot;
@@ -105,6 +132,9 @@ void UVerticalBoxComponent::ConnectEditorData()
 {
 	for ( UVerticalBoxSlot* Slot : Slots )
 	{
+		// TODO UMG Find a better way to assign the parent pointers for slots.
+		Slot->Parent = this;
+
 		if ( Slot->Content )
 		{
 			Slot->Content->Slot = Slot;

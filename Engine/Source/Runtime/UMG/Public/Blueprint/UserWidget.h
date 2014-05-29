@@ -67,7 +67,7 @@ public:
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
-UCLASS(Abstract, editinlinenew, hideCategories=(Object, Actor, Replication, Rendering, Input))
+UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable)
 class UMG_API UUserWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
