@@ -13,3 +13,6 @@
 
 #include "AssetTypeActions_Base.h"
 #include "AssetTypeActions_Blueprint.h"
+
+#include "DesignerExtension.h"
+#include "VerticalSlotExtension.h"

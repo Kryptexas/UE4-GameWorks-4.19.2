@@ -13,6 +13,7 @@ public class UMGEditor : ModuleRules
 				"Developer/AssetTools/Private/AssetTypeActions",
 				"Editor/UMGEditor/Private", // For PCH includes (because they don't work with relative paths, yet)
 				"Editor/UMGEditor/Private/Templates",
+                "Editor/UMGEditor/Private/Extensions",
 			});
 
 		PrivateIncludePathModuleNames.AddRange(
