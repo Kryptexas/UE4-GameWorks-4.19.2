@@ -21,6 +21,8 @@
 #include "Matinee/InterpTrackMove.h"
 #include "Materials/MaterialInstanceActor.h"
 
+#include "Particles/Emitter.h"
+
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;
 static const int32 SubTrackHeight = 19;

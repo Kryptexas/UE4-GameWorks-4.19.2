@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "Particles/Trail/ParticleModuleTrailBase.h"
 #include "ParticleModuleTrailSource.generated.h"
 
 UENUM()

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Rotation/ParticleModuleRotationBase.h"
 #include "ParticleModuleMeshRotation.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Init Mesh Rotation"))

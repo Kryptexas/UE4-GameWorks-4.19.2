@@ -6,6 +6,11 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/Spawn/ParticleModuleSpawnBase.h"
+#include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleSpawnBase::UParticleModuleSpawnBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

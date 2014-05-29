@@ -60,6 +60,7 @@
 #include "FindInMaterial.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 

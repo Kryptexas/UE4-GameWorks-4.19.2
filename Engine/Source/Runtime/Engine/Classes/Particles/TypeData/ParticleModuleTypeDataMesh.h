@@ -2,7 +2,10 @@
 
 
 #pragma once
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataMesh.generated.h"
+
+class UParticleEmitter;
 
 UENUM()
 enum EMeshScreenAlignment

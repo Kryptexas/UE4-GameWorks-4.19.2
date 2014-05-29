@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Particles/ParticleModule.h"
 
 class FCascade;
 class SCascadeEmitterCanvas;

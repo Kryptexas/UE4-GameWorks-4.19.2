@@ -5,6 +5,9 @@
 #include "SkillSystemModulePrivatePCH.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UGameplayCueView::UGameplayCueView(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

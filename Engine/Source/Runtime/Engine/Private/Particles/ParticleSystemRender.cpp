@@ -7,6 +7,16 @@
 #include "ParticleDefinitions.h"
 #include "DiagnosticTable.h"
 #include "ParticleResources.h"
+#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "Particles/Rotation/ParticleModuleRotation.h"
+#include "Particles/Rotation/ParticleModuleRotation_Seeded.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 /** 
  * Whether to track particle rendering stats.  

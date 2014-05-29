@@ -8,6 +8,14 @@
 #include "SCascadeEmitterCanvas.h"
 #include "CascadeEmitterCanvasClient.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
 
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)

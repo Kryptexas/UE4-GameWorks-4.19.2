@@ -44,6 +44,9 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
 /** Used for the "tagsounds" and "checksounds" commands only			*/

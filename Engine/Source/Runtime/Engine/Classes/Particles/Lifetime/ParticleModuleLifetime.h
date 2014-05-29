@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "ParticleModuleLifetime.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lifetime"))

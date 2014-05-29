@@ -51,6 +51,9 @@
 #include "Customization/AnimGraphNodeSlotDetails.h"
 
 #include "AnimPreviewInstance.h"
+
+#include "Particles/ParticleSystemComponent.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////

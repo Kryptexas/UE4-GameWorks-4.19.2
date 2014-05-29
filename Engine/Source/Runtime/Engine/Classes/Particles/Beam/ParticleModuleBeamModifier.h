@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "Particles/Beam/ParticleModuleBeamBase.h"
 #include "ParticleModuleBeamModifier.generated.h"
 
 /**	What to modify. */

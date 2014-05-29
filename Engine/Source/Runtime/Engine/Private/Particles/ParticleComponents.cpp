@@ -18,6 +18,34 @@
 #include "ObjectEditorUtils.h"
 #endif
 
+#include "Particles/Collision/ParticleModuleCollision.h"
+#include "Particles/Color/ParticleModuleColorOverLife.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Event/ParticleModuleEventReceiverBase.h"
+#include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
+#include "Particles/Lifetime/ParticleModuleLifetime.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/Orbit/ParticleModuleOrbit.h"
+#include "Particles/Size/ParticleModuleSize.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/Spawn/ParticleModuleSpawnBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/Velocity/ParticleModuleVelocity.h"
+#include "Particles/Emitter.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
+#include "Particles/ParticleEventManager.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystemReplay.h"
+
+
 #define LOCTEXT_NAMESPACE "ParticleComponents"
 
 DEFINE_LOG_CATEGORY(LogParticles);

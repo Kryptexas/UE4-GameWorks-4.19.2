@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/RotationRate/ParticleModuleRotationRateBase.h"
 #include "ParticleModuleMeshRotationRateMultiplyLife.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Mesh Rotation Rate * Life"))

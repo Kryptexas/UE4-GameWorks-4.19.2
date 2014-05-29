@@ -6,6 +6,8 @@
  */
 
 #pragma once
+#include "Particles/Parameter/ParticleModuleParameterBase.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleParameterDynamic.generated.h"
 
 /**

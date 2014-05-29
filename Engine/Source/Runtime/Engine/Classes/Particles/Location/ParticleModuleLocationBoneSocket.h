@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationBoneSocket.generated.h"
 
 UENUM()

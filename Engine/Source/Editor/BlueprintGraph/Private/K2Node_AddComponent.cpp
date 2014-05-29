@@ -6,6 +6,7 @@
 #include "ParticleDefinitions.h"
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 

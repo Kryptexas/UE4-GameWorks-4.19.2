@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocation.h"
 #include "ParticleModuleLocation_Seeded.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Location (Seed)"))

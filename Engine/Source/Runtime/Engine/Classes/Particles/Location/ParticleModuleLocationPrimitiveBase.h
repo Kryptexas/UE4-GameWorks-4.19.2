@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationPrimitiveBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object)

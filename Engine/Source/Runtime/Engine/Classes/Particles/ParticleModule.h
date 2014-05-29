@@ -2,7 +2,12 @@
 
 
 #pragma once
+#include "ParticleHelper.h"
 #include "ParticleModule.generated.h"
+
+class UParticleEmitter;
+class UParticleLODLevel;
+struct FParticleEmitterInstance;
 
 /** ModuleType
  *	Indicates the kind of emitter the module can be applied to.

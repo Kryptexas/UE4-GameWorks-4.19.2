@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataBeam2.generated.h"
 
 UENUM()

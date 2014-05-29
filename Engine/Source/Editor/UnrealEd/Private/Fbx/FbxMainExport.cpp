@@ -52,6 +52,7 @@
 
 #include "FbxExporter.h"
 #include "RawMesh.h"
+#include "Particles/Emitter.h"
 
 namespace UnFbx
 {

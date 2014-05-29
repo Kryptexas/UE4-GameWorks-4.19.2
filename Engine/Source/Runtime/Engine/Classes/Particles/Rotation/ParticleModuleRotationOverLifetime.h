@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Rotation/ParticleModuleRotationBase.h"
 #include "ParticleModuleRotationOverLifetime.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Rotation/Life"))

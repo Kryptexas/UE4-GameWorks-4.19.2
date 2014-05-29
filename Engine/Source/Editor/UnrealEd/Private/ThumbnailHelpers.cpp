@@ -4,6 +4,8 @@
 #include "ThumbnailHelpers.h"
 #include "FXSystem.h"
 
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 /*
 ***************************************************************
   FThumbnailPreviewScene

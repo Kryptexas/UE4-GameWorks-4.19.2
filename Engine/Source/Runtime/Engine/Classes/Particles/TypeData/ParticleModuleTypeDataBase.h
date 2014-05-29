@@ -2,7 +2,10 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleTypeDataBase.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, MinimalAPI)
 class UParticleModuleTypeDataBase : public UParticleModule

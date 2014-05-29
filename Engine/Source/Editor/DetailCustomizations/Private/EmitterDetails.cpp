@@ -2,7 +2,8 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "EmitterDetails.h"
-
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 TSharedRef<IDetailCustomization> FEmitterDetails::MakeInstance()
 {

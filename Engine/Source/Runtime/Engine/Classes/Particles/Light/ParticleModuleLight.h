@@ -2,6 +2,8 @@
 
 
 #pragma once
+
+#include "Particles/Light/ParticleModuleLightBase.h"
 #include "ParticleModuleLight.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Light"))

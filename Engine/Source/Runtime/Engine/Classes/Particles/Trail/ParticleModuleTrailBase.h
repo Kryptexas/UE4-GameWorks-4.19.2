@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleTrailBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Trail"))

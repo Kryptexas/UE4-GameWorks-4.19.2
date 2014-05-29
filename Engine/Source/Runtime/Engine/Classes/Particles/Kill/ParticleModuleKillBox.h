@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Kill/ParticleModuleKillBase.h"
 #include "ParticleModuleKillBox.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Kill Box"))

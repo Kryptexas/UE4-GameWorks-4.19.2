@@ -7,6 +7,7 @@
 
 const FName CascadeAppIdentifier = FName(TEXT("CascadeApp"));
 
+class FCascade;
 
 /*-----------------------------------------------------------------------------
    FCascadeModule

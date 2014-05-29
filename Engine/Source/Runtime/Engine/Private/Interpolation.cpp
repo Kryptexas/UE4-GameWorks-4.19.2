@@ -65,6 +65,9 @@
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
 #include "MatineeUtils.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleSystemReplay.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

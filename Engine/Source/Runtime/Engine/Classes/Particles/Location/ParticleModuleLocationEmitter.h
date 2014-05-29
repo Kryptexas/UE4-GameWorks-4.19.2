@@ -9,6 +9,7 @@
 //=============================================================================
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationEmitter.generated.h"
 
 UENUM()

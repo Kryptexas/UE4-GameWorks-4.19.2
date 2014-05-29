@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Orbit/ParticleModuleOrbitBase.h"
 #include "ParticleModuleOrbit.generated.h"
 
 UENUM()

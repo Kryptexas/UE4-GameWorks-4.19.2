@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
 #include "ParticleModuleAccelerationOverLifetime.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Acceleration/Life"), MinimalAPI)

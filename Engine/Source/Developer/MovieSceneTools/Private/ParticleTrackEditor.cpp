@@ -18,7 +18,7 @@
 #include "MovieSceneParticleSection.h"
 #include "CommonMovieSceneTools.h"
 #include "AssetRegistryModule.h"
-
+#include "Particles/Emitter.h"
 
 
 namespace AnimatableParticleEditorConstants

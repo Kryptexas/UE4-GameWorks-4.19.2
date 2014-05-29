@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "Particles/SubUV/ParticleModuleSubUVBase.h"
+#include "Particles/ParticleEmitter.h"
 #include "ParticleModuleSubUV.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "SubImage Index"))

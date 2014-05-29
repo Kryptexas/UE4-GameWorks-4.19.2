@@ -8,6 +8,18 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/Velocity/ParticleModuleVelocity.h"
+#include "Particles/Velocity/ParticleModuleVelocityBase.h"
+#include "Particles/Velocity/ParticleModuleVelocityCone.h"
+#include "Particles/Velocity/ParticleModuleVelocityInheritParent.h"
+#include "Particles/Velocity/ParticleModuleVelocityOverLifetime.h"
+#include "Particles/Velocity/ParticleModuleVelocity_Seeded.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleVelocityBase::UParticleModuleVelocityBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

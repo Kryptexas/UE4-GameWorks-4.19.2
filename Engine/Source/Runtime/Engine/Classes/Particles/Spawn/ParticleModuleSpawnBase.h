@@ -2,7 +2,10 @@
 
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleSpawnBase.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Spawn"))
 class UParticleModuleSpawnBase : public UParticleModule

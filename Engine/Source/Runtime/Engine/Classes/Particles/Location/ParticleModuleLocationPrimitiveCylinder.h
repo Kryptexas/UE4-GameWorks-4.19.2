@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationPrimitiveBase.h"
 #include "ParticleModuleLocationPrimitiveCylinder.generated.h"
 
 UENUM()

@@ -2,7 +2,7 @@
 
 #pragma once
 
-
+#include "Particles/ParticleSystemComponent.h"
 #include "CascadeParticleSystemComponent.generated.h"
 
 /** 

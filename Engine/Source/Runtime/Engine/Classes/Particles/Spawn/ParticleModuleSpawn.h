@@ -2,7 +2,10 @@
 
 
 #pragma once
+#include "Particles/Spawn/ParticleModuleSpawnBase.h"
 #include "ParticleModuleSpawn.generated.h"
+
+class UParticleLODLevel;
 
 UCLASS(editinlinenew, hidecategories=Object, hidecategories=ParticleModuleSpawnBase, MinimalAPI, meta=(DisplayName = "Spawn"))
 class UParticleModuleSpawn : public UParticleModuleSpawnBase

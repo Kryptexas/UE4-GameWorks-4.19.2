@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Color/ParticleModuleColor.h"
 #include "ParticleModuleColor_Seeded.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Init Color (Seed)"))

@@ -3,7 +3,9 @@
 #include "EnginePrivate.h"
 #include "MessageLog.h"
 #include "ParticleDefinitions.h"
-
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 #define LOCTEXT_NAMESPACE "AnimNotifyState_Trail"
 
 DEFINE_LOG_CATEGORY(LogAnimTrails);

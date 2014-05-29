@@ -7,6 +7,7 @@
 #include "LatentActions.h"
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
+#include "Particles/ParticleSystemComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics

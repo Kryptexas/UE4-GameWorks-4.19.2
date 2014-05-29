@@ -10,6 +10,8 @@
 #include "SoundDefinitions.h"
 #include "Sound/SoundNode.h"
 
+#include "Particles/ParticleModule.h"
+
 // Moving UDistributions to PostInitProps to not be default sub-objects:
 // Small enough value to be rounded to 0.0 in the editor 
 // but significant enough to properly detect uninitialized defaults.

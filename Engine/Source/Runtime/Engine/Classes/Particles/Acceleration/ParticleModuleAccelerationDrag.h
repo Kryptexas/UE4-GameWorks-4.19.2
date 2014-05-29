@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
 #include "ParticleModuleAccelerationDrag.generated.h"
 
 UCLASS(editinlinenew, hidecategories=(Object, Acceleration), MinimalAPI, meta=(DisplayName = "Drag"))

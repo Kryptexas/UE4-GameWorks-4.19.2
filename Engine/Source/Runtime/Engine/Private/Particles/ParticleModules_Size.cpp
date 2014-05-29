@@ -8,6 +8,13 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Size/ParticleModuleSize_Seeded.h"
+#include "Particles/Size/ParticleModuleSizeMultiplyLife.h"
+#include "Particles/Size/ParticleModuleSizeScale.h"
+#include "Particles/Size/ParticleModuleSizeScaleBySpeed.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleSizeBase::UParticleModuleSizeBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

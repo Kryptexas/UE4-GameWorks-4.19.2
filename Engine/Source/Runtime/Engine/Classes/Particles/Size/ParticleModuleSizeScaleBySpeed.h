@@ -5,7 +5,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/Size/ParticleModuleSizeBase.h"
 #include "ParticleModuleSizeScaleBySpeed.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Size By Speed"))

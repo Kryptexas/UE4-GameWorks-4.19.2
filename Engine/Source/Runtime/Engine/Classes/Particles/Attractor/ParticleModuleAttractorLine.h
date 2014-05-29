@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Attractor/ParticleModuleAttractorBase.h"
 #include "ParticleModuleAttractorLine.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Line Attractor"))

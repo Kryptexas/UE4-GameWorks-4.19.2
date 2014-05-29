@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Size/ParticleModuleSizeBase.h"
 #include "ParticleModuleSizeMultiplyLife.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Size By Life"))

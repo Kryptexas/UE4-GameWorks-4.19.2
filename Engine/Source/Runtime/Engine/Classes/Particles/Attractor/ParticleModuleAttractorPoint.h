@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Attractor/ParticleModuleAttractorBase.h"
 #include "ParticleModuleAttractorPoint.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Point Attractor"))

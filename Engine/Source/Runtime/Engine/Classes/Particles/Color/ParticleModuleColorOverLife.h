@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Color/ParticleModuleColorBase.h"
 #include "ParticleModuleColorOverLife.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Color Over Life"))

@@ -6,6 +6,10 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Orbit/ParticleModuleOrbit.h"
+#include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleOrbitBase::UParticleModuleOrbitBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

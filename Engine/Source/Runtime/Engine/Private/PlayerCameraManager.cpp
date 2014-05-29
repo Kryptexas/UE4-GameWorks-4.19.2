@@ -5,7 +5,7 @@
 #include "SoundDefinitions.h"
 #include "Particles/EmitterCameraLensEffectBase.h"
 #include "IHeadMountedDisplay.h"
-
+#include "Particles/EmitterCameraLensEffectBase.h"
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
 

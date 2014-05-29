@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Color/ParticleModuleColorBase.h"
 #include "ParticleModuleColor.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Color"))

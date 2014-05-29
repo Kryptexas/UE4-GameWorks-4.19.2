@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Camera/ParticleModuleCameraBase.h"
 #include "ParticleModuleCameraOffset.generated.h"
 
 /**

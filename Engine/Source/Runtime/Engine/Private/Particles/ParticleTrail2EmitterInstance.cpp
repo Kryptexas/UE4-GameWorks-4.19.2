@@ -7,7 +7,19 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-
+#include "ParticleHelper.h"
+#include "Particles/Event/ParticleModuleEventGenerator.h"
+#include "Particles/Lifetime/ParticleModuleLifetime.h"
+#include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
+#include "Particles/Trail/ParticleModuleTrailSource.h"
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
+#include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleSpriteEmitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleModuleRequired.h"
 /** trail stats */
 
 

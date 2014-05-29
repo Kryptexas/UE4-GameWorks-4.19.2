@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Attractor/ParticleModuleAttractorBase.h"
 #include "ParticleModuleAttractorParticle.generated.h"
 
 UENUM()

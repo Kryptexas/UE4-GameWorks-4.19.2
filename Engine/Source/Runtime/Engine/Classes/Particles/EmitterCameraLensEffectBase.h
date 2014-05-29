@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Particles/Emitter.h"
 #include "EmitterCameraLensEffectBase.generated.h"
 
 UCLASS(abstract, Blueprintable, dependson=AEmitter, MinimalAPI)

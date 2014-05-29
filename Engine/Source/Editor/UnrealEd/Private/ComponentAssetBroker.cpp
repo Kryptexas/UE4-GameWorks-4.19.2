@@ -5,6 +5,9 @@
 
 #include "SoundDefinitions.h"
 
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
 

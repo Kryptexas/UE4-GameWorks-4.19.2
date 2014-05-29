@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/Attractor/ParticleModuleAttractorBase.h"
 #include "ParticleModuleAttractorPointGravity.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Point Gravity"))

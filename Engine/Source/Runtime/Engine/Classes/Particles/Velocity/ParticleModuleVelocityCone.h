@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Velocity/ParticleModuleVelocityBase.h"
 #include "ParticleModuleVelocityCone.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Velocity Cone"))

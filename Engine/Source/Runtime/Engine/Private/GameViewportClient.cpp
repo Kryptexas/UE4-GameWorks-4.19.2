@@ -17,6 +17,8 @@
 
 #include "HighResScreenshot.h"
 
+#include "Particles/ParticleSystemComponent.h"
+
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
 

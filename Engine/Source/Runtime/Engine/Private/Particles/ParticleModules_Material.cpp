@@ -6,6 +6,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "Particles/Material/ParticleModuleMeshMaterial.h"
 
 UParticleModuleMaterialBase::UParticleModuleMaterialBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

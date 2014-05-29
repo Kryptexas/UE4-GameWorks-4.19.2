@@ -14,6 +14,8 @@
 #include "AnimationRuntime.h"
 #include "PhysXASync.h"
 
+#include "Particles/ParticleSystemComponent.h"
+
 #ifndef EXPERIMENTAL_PARALLEL_CODE  
 	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
 #endif

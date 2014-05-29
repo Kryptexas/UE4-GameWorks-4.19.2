@@ -7,6 +7,15 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Color/ParticleModuleColor.h"
+#include "Particles/Color/ParticleModuleColorBase.h"
+#include "Particles/Color/ParticleModuleColorOverLife.h"
+#include "Particles/Color/ParticleModuleColorScaleOverLife.h"
+#include "Particles/Color/ParticleModuleColor_Seeded.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleColorBase::UParticleModuleColorBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

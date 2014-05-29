@@ -5,6 +5,8 @@
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
 
+#include "Particles/ParticleSystem.h"
+
 UParticleSystemThumbnailRenderer::UParticleSystemThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "Particles/Beam/ParticleModuleBeamBase.h"
 #include "ParticleModuleBeamTarget.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Target"))

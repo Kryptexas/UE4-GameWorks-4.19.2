@@ -6,6 +6,8 @@
 
 #include "UnrealEd.h"
 
+#include "Particles/ParticleSystemComponent.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogVectorFieldFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "VectorFieldFactory"

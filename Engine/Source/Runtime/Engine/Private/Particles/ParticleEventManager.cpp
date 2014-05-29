@@ -2,6 +2,9 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "Particles/ParticleEventManager.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Particles/Emitter.h"
 
 /*-----------------------------------------------------------------------------
 	AParticleEventManager implementation.
@@ -67,8 +70,3 @@ void AParticleEventManager::HandleParticleBurstEvents( UParticleSystemComponent*
 		}
 	}
 }
-
-
-
-
-

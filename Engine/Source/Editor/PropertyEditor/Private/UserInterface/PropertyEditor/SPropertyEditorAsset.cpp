@@ -13,7 +13,7 @@
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
-
+#include "Particles/ParticleSystem.h"
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
 DECLARE_DELEGATE( FOnCopy );

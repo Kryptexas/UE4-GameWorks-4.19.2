@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Event/ParticleModuleEventBase.h"
 #include "ParticleModuleEventGenerator.generated.h"
 
 /**

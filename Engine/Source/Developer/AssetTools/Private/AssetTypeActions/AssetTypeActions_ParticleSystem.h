@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Particles/ParticleSystem.h"
+
 class FAssetTypeActions_ParticleSystem : public FAssetTypeActions_Base
 {
 public:

@@ -14,6 +14,7 @@
 
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "Particles/ParticleSystem.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 

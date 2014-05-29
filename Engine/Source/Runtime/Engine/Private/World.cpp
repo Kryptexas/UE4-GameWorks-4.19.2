@@ -29,6 +29,7 @@
 #include "MallocProfiler.h"
 
 #include "Landscape/LandscapeInfo.h"
+#include "Particles/ParticleEventManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);

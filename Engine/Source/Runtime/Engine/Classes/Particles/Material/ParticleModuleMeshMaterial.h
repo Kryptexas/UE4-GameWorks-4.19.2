@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Material/ParticleModuleMaterialBase.h"
 #include "ParticleModuleMeshMaterial.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Mesh Material"))

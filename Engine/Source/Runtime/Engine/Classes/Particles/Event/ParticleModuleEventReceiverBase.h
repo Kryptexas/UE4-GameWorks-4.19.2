@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "Particles/Event/ParticleModuleEventBase.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "ParticleModuleEventReceiverBase.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, abstract)

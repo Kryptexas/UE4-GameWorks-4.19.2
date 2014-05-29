@@ -8,6 +8,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Particles/ParticleEventManager.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

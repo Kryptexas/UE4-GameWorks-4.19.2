@@ -20,6 +20,8 @@
 #include "LevelEditorViewport.h"
 #include "Landscape/Landscape.h"
 
+#include "Particles/Emitter.h"
+
 extern void OnPlaceStaticMeshActor( AActor* MeshActor, bool bUseSurfaceOrientation );
 
 namespace AssetSelectionUtils

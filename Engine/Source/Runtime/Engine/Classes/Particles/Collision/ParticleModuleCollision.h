@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Collision/ParticleModuleCollisionBase.h"
 #include "ParticleModuleCollision.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Collision"))

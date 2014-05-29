@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 #pragma once
-
+#include "Particles/VectorField/ParticleModuleVectorFieldBase.h"
 #include "ParticleModuleVectorFieldRotation.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "VF Init Rotation"))

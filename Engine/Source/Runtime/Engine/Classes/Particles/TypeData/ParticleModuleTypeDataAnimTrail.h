@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataAnimTrail.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "AnimTrail Data"))

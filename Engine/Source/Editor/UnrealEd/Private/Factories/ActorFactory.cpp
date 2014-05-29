@@ -19,6 +19,10 @@ ActorFactory.cpp:
 
 #include "AssetRegistryModule.h"
 
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
 
 #define LOCTEXT_NAMESPACE "ActorFactory"

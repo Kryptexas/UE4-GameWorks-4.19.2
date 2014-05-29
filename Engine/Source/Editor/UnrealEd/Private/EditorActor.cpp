@@ -15,6 +15,9 @@
 #include "ActorEditorUtils.h"
 #include "Foliage/InstancedFoliageActor.h"
 
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorActor, Log, All);

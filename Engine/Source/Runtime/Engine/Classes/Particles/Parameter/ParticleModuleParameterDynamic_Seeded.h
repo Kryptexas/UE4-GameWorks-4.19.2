@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "ParticleModuleParameterDynamic_Seeded.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Dynamic (Seed)"))

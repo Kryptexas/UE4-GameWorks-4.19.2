@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataRibbon.generated.h"
 
 UENUM()

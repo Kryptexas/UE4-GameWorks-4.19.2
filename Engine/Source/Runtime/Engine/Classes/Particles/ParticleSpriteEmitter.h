@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/ParticleEmitter.h"
 #include "ParticleSpriteEmitter.generated.h"
 
 UENUM()

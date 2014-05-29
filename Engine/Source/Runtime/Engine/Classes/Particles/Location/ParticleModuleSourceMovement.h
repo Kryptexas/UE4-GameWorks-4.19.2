@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleSourceMovement.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Source Movement"))

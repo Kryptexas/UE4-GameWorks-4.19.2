@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "Particles/ParticleModule.h"
 #include "ParticleModuleBeamBase.generated.h"
 
 /** The method to use in determining the source/target. */

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Orientation/ParticleModuleOrientationBase.h"
 #include "ParticleModuleOrientationAxisLock.generated.h"
 
 // Flags indicating lock

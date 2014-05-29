@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Size/ParticleModuleSizeBase.h"
 #include "ParticleModuleSize.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Size"))

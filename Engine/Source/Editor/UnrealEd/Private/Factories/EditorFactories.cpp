@@ -43,6 +43,8 @@
 
 #include "Foliage/InstancedFoliageActor.h"
 
+#include "Particles/ParticleSystem.h"
+
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
 #include "AllowWindowsPlatformTypes.h"

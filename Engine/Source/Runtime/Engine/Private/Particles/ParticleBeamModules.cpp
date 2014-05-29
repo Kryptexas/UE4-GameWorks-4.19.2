@@ -7,6 +7,14 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
+#include "Particles/Beam/ParticleModuleBeamBase.h"
+#include "Particles/Beam/ParticleModuleBeamModifier.h"
+#include "Particles/Beam/ParticleModuleBeamNoise.h"
+#include "Particles/Beam/ParticleModuleBeamSource.h"
+#include "Particles/Beam/ParticleModuleBeamTarget.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.

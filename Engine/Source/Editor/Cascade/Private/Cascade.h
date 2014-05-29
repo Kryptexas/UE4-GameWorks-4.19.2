@@ -6,11 +6,14 @@
 #include "IDistCurveEditor.h"
 #include "CascadeConfiguration.h"
 #include "CascadeParticleSystemComponent.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleModule.h"
 
 class SCascadePreviewViewport;
 class SCascadeEmitterCanvas;
 class UCascadeParticleSystemComponent;
 class UCascadeConfiguration;
+
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCascade, Log, All);
 

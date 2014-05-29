@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Spawn/ParticleModuleSpawnBase.h"
 #include "ParticleModuleSpawnPerUnit.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Spawn PerUnit"))

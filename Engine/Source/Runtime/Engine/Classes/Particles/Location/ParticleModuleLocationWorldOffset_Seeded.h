@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Particles/Location/ParticleModuleLocationWorldOffset.h"
 #include "ParticleModuleLocationWorldOffset_Seeded.generated.h"
 
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset (Seed)"))
