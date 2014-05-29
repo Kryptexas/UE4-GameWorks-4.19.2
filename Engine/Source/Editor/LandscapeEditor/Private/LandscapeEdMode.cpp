@@ -93,15 +93,8 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 		LandscapeEdit.GetHeightDataFast(Comp->GetSectionBase().X, Comp->GetSectionBase().Y, Comp->GetSectionBase().X + Comp->ComponentSizeQuads, Comp->GetSectionBase().Y + Comp->ComponentSizeQuads, (uint16*)HeightData.GetTypedData(), 0, (uint16*)NormalData.GetTypedData());
 
 		// Construct the heightmap textures
-		UObject* Outer = bMoveToCurrentLevel ? Comp->GetWorld()->GetCurrentLevel()->GetOutermost() : Comp->GetOutermost();
-		HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Outer, NAME_None, RF_Public);
-		HeightmapTexture->Source.Init2DWithMipChain(HeightmapSizeU, HeightmapSizeV, TSF_BGRA8);
-		HeightmapTexture->SRGB = false;
-		HeightmapTexture->CompressionNone = true;
-		HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-		HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-		HeightmapTexture->AddressX = TA_Clamp;
-		HeightmapTexture->AddressY = TA_Clamp;
+		UObject* TextureOuter = bMoveToCurrentLevel ? Comp->GetWorld()->GetCurrentLevel() : nullptr;
+		HeightmapTexture = Comp->GetLandscapeProxy()->CreateLandscapeTexture(HeightmapSizeU, HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8, TextureOuter);
 
 		int32 MipSubsectionSizeQuads = Comp->SubsectionSizeQuads;
 		int32 MipSizeU = HeightmapSizeU;

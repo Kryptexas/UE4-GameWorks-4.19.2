@@ -417,6 +417,40 @@ void ULandscapeComponent::PostLoad()
 			}
 		}
 	}
+
+#if WITH_EDITOR
+	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (GetLinkerUE4Version() < VER_UE4_MOVE_LANDSCAPE_MICS_AND_TEXTURES_WITHIN_LEVEL)
+		{
+			ULevel* Level = GetLevel();
+			if (ensure(Level))
+			{
+				TArray<UObject*> ObjectsToMoveFromPackgeToLevel;
+				for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+				{
+					ObjectsToMoveFromPackgeToLevel.Add(CurrentMIC);
+				}
+				ObjectsToMoveFromPackgeToLevel.Add(HeightmapTexture);
+				for (auto* Tex : WeightmapTextures)
+				{
+					ObjectsToMoveFromPackgeToLevel.Add(Tex);
+				}
+				ObjectsToMoveFromPackgeToLevel.Add(XYOffsetmapTexture);
+
+				UPackage* MyPackage = GetOutermost();
+				for (auto* Obj : ObjectsToMoveFromPackgeToLevel)
+				{
+					if (Obj && Obj->GetOuter() == MyPackage)
+					{
+						Obj->ClearFlags(RF_Public);
+						Obj->Rename(*Obj->GetName(), Level, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+					}
+				}
+			}
+		}
+	}
+#endif
 }
 
 #endif // WITH_EDITOR
@@ -531,6 +565,12 @@ ALandscape* ULandscapeComponent::GetLandscapeActor() const
 		return Landscape->GetLandscapeActor();
 	}
 	return NULL;
+}
+
+ULevel* ULandscapeComponent::GetLevel() const
+{
+	AActor* MyOwner = GetOwner();
+	return MyOwner ? MyOwner->GetLevel() : NULL;
 }
 
 ALandscapeProxy* ULandscapeComponent::GetLandscapeProxy() const

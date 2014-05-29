@@ -3764,14 +3764,7 @@ void FLandscapeEditDataInterface::SetSelectData(int32 X1, int32 Y1, int32 X2, in
 				//FlushRenderingCommands();
 				// Construct Texture...
 				int32 WeightmapSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections;
-				DataTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Component->GetOutermost(), NAME_None, RF_Public);
-				DataTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_G8);
-				DataTexture->SRGB = false;
-				DataTexture->CompressionNone = true;
-				DataTexture->MipGenSettings = TMGS_LeaveExistingMips;
-				DataTexture->AddressX = TA_Clamp;
-				DataTexture->AddressY = TA_Clamp;
-				DataTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+				DataTexture = Component->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_G8);
 				// Alloc dummy mips
 				ULandscapeComponent::CreateEmptyTextureMips(DataTexture, true);
 				DataTexture->PostEditChange();
@@ -3911,14 +3904,7 @@ void FLandscapeEditDataInterface::SetXYOffsetDataTempl(int32 X1, int32 Y1, int32
 					//FlushRenderingCommands();
 					// Construct Texture...
 					int32 WeightmapSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections;
-					XYOffsetTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), Component->GetOutermost(), NAME_None, RF_Public);
-					XYOffsetTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-					XYOffsetTexture->SRGB = false;
-					XYOffsetTexture->CompressionNone = true;
-					XYOffsetTexture->MipGenSettings = TMGS_LeaveExistingMips;
-					XYOffsetTexture->AddressX = TA_Clamp;
-					XYOffsetTexture->AddressY = TA_Clamp;
-					XYOffsetTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap; // for now...
+					XYOffsetTexture = Component->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 					// Alloc dummy mips
 					ULandscapeComponent::CreateEmptyTextureMips(XYOffsetTexture, true);
 					XYOffsetTexture->PostEditChange();

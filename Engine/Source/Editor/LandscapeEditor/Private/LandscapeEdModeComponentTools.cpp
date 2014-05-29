@@ -572,14 +572,7 @@ public:
 								int32 WeightmapSize = (Comp->SubsectionSizeQuads+1) * Comp->NumSubsections;
 
 								// We need a new weightmap texture
-								CurrentWeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), World->GetCurrentLevel()->GetOutermost(), NAME_None, RF_Public);
-								CurrentWeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-								CurrentWeightmapTexture->SRGB = false;
-								CurrentWeightmapTexture->CompressionNone = true;
-								CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-								CurrentWeightmapTexture->AddressX = TA_Clamp;
-								CurrentWeightmapTexture->AddressY = TA_Clamp;
-								CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+								CurrentWeightmapTexture = Comp->GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 								// Alloc dummy mips
 								Comp->CreateEmptyTextureMips(CurrentWeightmapTexture);
 								CurrentWeightmapTexture->PostEditChange();

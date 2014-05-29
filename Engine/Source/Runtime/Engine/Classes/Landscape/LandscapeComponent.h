@@ -302,6 +302,9 @@ public:
 	/** Get the landscape actor associated with this component. */
 	class ALandscape* GetLandscapeActor() const;
 
+	/** Get the level in which the owning actor resides */
+	class ULevel* GetLevel() const;
+
 	/** @todo document */
 	ENGINE_API class ALandscapeProxy* GetLandscapeProxy() const;
 

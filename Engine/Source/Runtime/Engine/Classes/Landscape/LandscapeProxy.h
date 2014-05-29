@@ -427,6 +427,9 @@ public:
 
 	/** @return Current size of bounding rectangle in quads space */
 	ENGINE_API FIntRect GetBoundingRect() const;
+
+	/** Creates a Texture2D for use by this landscape proxy or one of it's components. If OptionalOverrideOuter is not specified, the level is used. */
+	ENGINE_API class UTexture2D* CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter = nullptr) const;
 #endif
 };
 

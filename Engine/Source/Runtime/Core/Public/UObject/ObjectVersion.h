@@ -546,6 +546,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_LOAD_FOR_EDITOR_GAME,
 	// Manual serialization of FRichCurveKey to save space
 	VER_UE4_SERIALIZE_RICH_CURVE_KEY,
+	// Change the outer of ULandscapeMaterialInstanceConstants and Landscape-related textures to the level in which they reside
+	VER_UE4_MOVE_LANDSCAPE_MICS_AND_TEXTURES_WITHIN_LEVEL,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

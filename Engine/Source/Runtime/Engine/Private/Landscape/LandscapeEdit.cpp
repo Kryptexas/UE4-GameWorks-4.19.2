@@ -92,7 +92,12 @@ ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMater
 	if( CombinationMaterialInstance == NULL || CombinationMaterialInstance->Parent != LandscapeMaterial || (Proxy && Proxy->GetOutermost() != CombinationMaterialInstance->GetOutermost()) )
 	{
 		FlushRenderingCommands();
-		CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), Proxy ? Proxy->GetOutermost() : GetTransientPackage(), NAME_None, RF_Public);
+		UObject* MICOuter = GetTransientPackage();
+		if ( Proxy && Proxy->GetLevel() )
+		{
+			MICOuter = Proxy->GetLevel();
+		}
+		CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), MICOuter);
 		if (Proxy)
 		{
 			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
@@ -123,7 +128,7 @@ ULandscapeMaterialInstanceConstant* ALandscapeProxy::GetLayerThumbnailMIC(UMater
 	}
 
 	// Create the instance for this component, that will use the layer combination instance.
-	ULandscapeMaterialInstanceConstant* MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetTransientPackage(), NAME_None, RF_Public);
+	ULandscapeMaterialInstanceConstant* MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetTransientPackage());
 	MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 	MaterialInstance->bIsLayerThumbnail = true;
 
@@ -164,7 +169,7 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 		{
 			FlushRenderingCommands();
 
-			CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+			CombinationMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetLevel());
 			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
 			Proxy->MaterialInstanceConstantMap.Add(*LayerKey,CombinationMaterialInstance);
 			CombinationMaterialInstance->SetParentEditorOnly(LandscapeMaterial);
@@ -219,7 +224,7 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		// Create the instance for this component, that will use the layer combination instance.
 		if( MaterialInstance == NULL || GetOutermost() != MaterialInstance->GetOutermost() )
 		{
-			MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+			MaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetLevel());
 		}
 
 		// For undo
@@ -1762,19 +1767,8 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 			HeightmapInfo.HeightmapSizeV = (1<<FMath::CeilLogTwo( ((HmY==NumHeightmapsY-1) ? FinalComponentsY : ComponentsPerHeightmap)*ComponentSizeVerts ));
 
 			// Construct the heightmap textures
-			HeightmapInfo.HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None/*FName(TEXT("Heightmap"))*/, RF_Public);
-			HeightmapInfo.HeightmapTexture->Source.Init2DWithMipChain(
-				HeightmapInfo.HeightmapSizeU,
-				HeightmapInfo.HeightmapSizeV,
-				TSF_BGRA8
-				);
-			HeightmapInfo.HeightmapTexture->SRGB = false;
-			HeightmapInfo.HeightmapTexture->CompressionNone = true;
-			HeightmapInfo.HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-			HeightmapInfo.HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-			HeightmapInfo.HeightmapTexture->AddressX = TA_Clamp;
-			HeightmapInfo.HeightmapTexture->AddressY = TA_Clamp;
-
+			HeightmapInfo.HeightmapTexture = CreateLandscapeTexture(HeightmapInfo.HeightmapSizeU, HeightmapInfo.HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8);
+			
 			int32 MipSubsectionSizeQuads = SubsectionSizeQuads;
 			int32 MipSizeU = HeightmapInfo.HeightmapSizeU;
 			int32 MipSizeV = HeightmapInfo.HeightmapSizeV;
@@ -2068,14 +2062,7 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 				else
 				{
 					// We couldn't find a suitable place for these layers, so lets make a new one.
-					UTexture2D* WeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-					WeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-					WeightmapTexture->SRGB = false;
-					WeightmapTexture->CompressionNone = true;
-					WeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-					WeightmapTexture->AddressX = TA_Clamp;
-					WeightmapTexture->AddressY = TA_Clamp;
-					WeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+					UTexture2D* WeightmapTexture = CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 					FColor* MipData = (FColor*)WeightmapTexture->Source.LockMip(0);
 
 					int32 ThisAllocationLayers = FMath::Min<int32>(RemainingLayers,4);
@@ -4213,14 +4200,7 @@ void ULandscapeComponent::ReallocateWeightmaps(FLandscapeEditDataInterface* Data
 			int32 WeightmapSize = (SubsectionSizeQuads+1) * NumSubsections;
 
 			// We need a new weightmap texture
-			CurrentWeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-			CurrentWeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-			CurrentWeightmapTexture->SRGB = false;
-			CurrentWeightmapTexture->CompressionNone = true;
-			CurrentWeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-			CurrentWeightmapTexture->AddressX = TA_Clamp;
-			CurrentWeightmapTexture->AddressY = TA_Clamp;
-			CurrentWeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+			CurrentWeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 			// Alloc dummy mips
 			CreateEmptyTextureMips(CurrentWeightmapTexture);
 			CurrentWeightmapTexture->PostEditChange();
@@ -4402,15 +4382,8 @@ void ULandscapeComponent::InitHeightmapData(TArray<FColor>& Heights, bool bUpdat
 	int32 HeightmapSizeV = (1<<FMath::CeilLogTwo( ComponentSizeVerts ));
 
 	// Height map construction
-	HeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-	HeightmapTexture->Source.Init2DWithMipChain(HeightmapSizeU,HeightmapSizeV,TSF_BGRA8);
-	HeightmapTexture->SRGB = false;
-	HeightmapTexture->CompressionNone = true;
-	HeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-	HeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Heightmap;
-	HeightmapTexture->AddressX = TA_Clamp;
-	HeightmapTexture->AddressY = TA_Clamp;
-
+	HeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(HeightmapSizeU, HeightmapSizeV, TEXTUREGROUP_Terrain_Heightmap, TSF_BGRA8);
+	
 	int32 MipSubsectionSizeQuads = SubsectionSizeQuads;
 	int32 MipSizeU = HeightmapSizeU;
 	int32 MipSizeV = HeightmapSizeV;
@@ -4785,14 +4758,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	}
 
 	int32 WeightmapSize = (SubsectionSizeQuads+1) * NumSubsections;
-	UTexture2D* WeightmapTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetOutermost(), NAME_None, RF_Public);
-	WeightmapTexture->Source.Init2DWithMipChain(WeightmapSize,WeightmapSize,TSF_BGRA8);
-	WeightmapTexture->SRGB = false;
-	WeightmapTexture->CompressionNone = true;
-	WeightmapTexture->MipGenSettings = TMGS_LeaveExistingMips;
-	WeightmapTexture->AddressX = TA_Clamp;
-	WeightmapTexture->AddressY = TA_Clamp;
-	WeightmapTexture->LODGroup = TEXTUREGROUP_Terrain_Weightmap;
+	UTexture2D* WeightmapTexture = GetLandscapeActor()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 	CreateEmptyTextureMips(WeightmapTexture);
 
 	{
@@ -4839,7 +4805,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 
 	if (!bIsCooking)
 	{
-		UMaterialInstanceDynamic* MobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost()); 
+		UMaterialInstanceDynamic* MobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetLevel()); 
 		// Set the layer mask
 		int32 CurrentIdx = 0;
 		for( int32 AllocIdx=0;AllocIdx<WeightmapLayerAllocations.Num();AllocIdx++ )
@@ -4860,7 +4826,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	else // for cooking
 	{
 		UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true); 
-		UMaterialInstanceConstant* MobileMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetOutermost(), NAME_None, RF_Public);
+		UMaterialInstanceConstant* MobileMaterialInstance = ConstructObject<ULandscapeMaterialInstanceConstant>(ULandscapeMaterialInstanceConstant::StaticClass(), GetLevel());
 
 		MobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 
@@ -5053,6 +5019,21 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 
 	// Copy to PlatformData as Compressed
 	PlatformData.InitializeFromUncompressedData(NewPlatformData);
+}
+
+UTexture2D* ALandscapeProxy::CreateLandscapeTexture(int32 InSizeX, int32 InSizeY, TextureGroup InLODGroup, ETextureSourceFormat InFormat, UObject* OptionalOverrideOuter) const
+{
+	UObject* TexOuter = OptionalOverrideOuter ? OptionalOverrideOuter : GetLevel();
+	UTexture2D* NewTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), TexOuter);
+	NewTexture->Source.Init2DWithMipChain(InSizeX, InSizeY, InFormat);
+	NewTexture->SRGB = false;
+	NewTexture->CompressionNone = true;
+	NewTexture->MipGenSettings = TMGS_LeaveExistingMips;
+	NewTexture->AddressX = TA_Clamp;
+	NewTexture->AddressY = TA_Clamp;
+	NewTexture->LODGroup = InLODGroup;
+
+	return NewTexture;
 }
 
 #endif //WITH_EDITOR
