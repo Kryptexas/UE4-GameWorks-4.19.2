@@ -18,7 +18,7 @@ public:
 
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object, ActorComponent), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Script)
-class UScriptComponent : public UActorComponent
+class SCRIPTPLUGIN_API UScriptComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 

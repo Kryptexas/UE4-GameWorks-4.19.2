@@ -4,7 +4,7 @@
 
 /** Definition of a specific ability that is applied to a character. Exists as part of a Trait. */
 UCLASS(BlueprintType, MinimalAPI)
-class UScriptAsset : public UDataAsset
+class SCRIPTPLUGIN_API UScriptAsset : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
