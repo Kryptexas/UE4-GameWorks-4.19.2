@@ -2,9 +2,10 @@
 #pragma once
 
 #include "BTCompositeNode.h"
+#include "BTTaskNode.h"
 #include "BehaviorTree.generated.h"
 
-UCLASS(DependsOn = (UBTCompositeNode, UBTTaskNode), BlueprintType)
+UCLASS(BlueprintType)
 class AIMODULE_API UBehaviorTree : public UObject
 {
 	GENERATED_UCLASS_BODY()

@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavigationTypes.h"
+#include "AI/NavDataGenerator.h"
 #include "NavigationData.generated.h"
+
+class FNavDataGenerator; 
 
 USTRUCT()
 struct FSupportedAreaData
@@ -22,7 +26,7 @@ struct FSupportedAreaData
  *	Represents abstract Navigation Data (sub-classed as NavMesh, NavGraph, etc)
  *	Used as a common interface for all navigation types handled by NavigationSystem
  */
-UCLASS(config=Engine, defaultconfig, dependson=UNavigationSystem, NotBlueprintable, abstract)
+UCLASS(config=Engine, defaultconfig, NotBlueprintable, abstract)
 class ENGINE_API ANavigationData : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -162,7 +166,7 @@ public:
 	// Querying                                                                
 	//----------------------------------------------------------------------//
 	FORCEINLINE TSharedPtr<const FNavigationQueryFilter> GetDefaultQueryFilter() const { return DefaultQueryFilter; }
-	FORCEINLINE const INavigationQueryFilterInterface* GetDefaultQueryFilterImpl() const { return DefaultQueryFilter->GetImplementation(); }	
+	FORCEINLINE const class INavigationQueryFilterInterface* GetDefaultQueryFilterImpl() const { return DefaultQueryFilter->GetImplementation(); }	
 	FORCEINLINE FVector GetDefaultQueryExtent() const { return NavDataConfig.DefaultQueryExtent; }
 
 	/** 
@@ -323,7 +327,7 @@ protected:
 	virtual int32 GetNewAreaID(const UClass* AreaClass) const;
 	
 #if WITH_NAVIGATION_GENERATOR
-	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) PURE_VIRTUAL(ANavigationData::ConstructGenerator, return NULL; );
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) PURE_VIRTUAL(ANavigationData::ConstructGenerator, return NULL; );
 #endif // WITH_NAVIGATION_GENERATOR
 
 protected:

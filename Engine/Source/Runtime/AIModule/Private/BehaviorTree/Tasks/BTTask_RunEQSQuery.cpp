@@ -47,7 +47,8 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponen
 EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UWorld* MyWorld = OwnerComp->GetWorld();
-	UEnvQueryManager* QueryManager = MyWorld->GetEnvironmentQueryManager();
+	UEnvQueryManager* QueryManager = UAISystem::GetCurrentEQSManager(MyWorld);
+	
 	if (QueryManager)
 	{
 		FBTEnvQueryTaskMemory* MyMemory = (FBTEnvQueryTaskMemory*)NodeMemory;

@@ -7,10 +7,6 @@
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLog.h"
-// @todo this is here only due to circular dependency to AIModule. To be removed
-#include "AIController.h"
-#include "EnvironmentQuery/EnvQuery.h"
-#include "EnvironmentQuery/EnvQueryManager.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -1098,59 +1094,6 @@ void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
 		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
 			GetOuterAPlayerController()->ClientMessage(*ViewNames[Index]);
-		}
-	}
-}
-
-void UCheatManager::RunEQS(const FString& QueryName)
-{
-	APlayerController* MyPC = GetOuterAPlayerController();
-	UEnvQueryManager* EQS = GetWorld()->GetEnvironmentQueryManager();
-	if (MyPC && EQS)
-	{
-		AActor* Target = NULL;
-		UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		if (DebugComp)
-		{
-			Target = DebugComp->GetCurrentDebugTarget();
-		}
-
-#if WITH_EDITOR
-		if (Target == NULL && GEditor != NULL)
-		{
-			Target = GEditor->GetSelectedObjects()->GetTop<AActor>();
-
-			// this part should not be needed, but is due to gameplay debugging messed up design
-			if (Target == NULL)
-			{
-				for (FObjectIterator It(UGameplayDebuggingComponent::StaticClass()); It && (Target == NULL); ++It)
-				{
-					UGameplayDebuggingComponent* Comp = ((UGameplayDebuggingComponent*)*It);
-					if (Comp->IsSelected())
-					{
-						Target = Comp->GetOwner();
-					}
-				}
-			}
-		}
-#endif // WITH_EDITOR
-
-		if (Target)
-		{
-			UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
-			
-			if (QueryTemplate)
-			{
-				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-			}
-			else
-			{
-				GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-			}
-		}
-		else
-		{
-			GetOuterAPlayerController()->ClientMessage(TEXT("No debugging target"));
 		}
 	}
 }

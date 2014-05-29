@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavigationGraph.h"
 #include "NavigationGraphNodeComponent.generated.h"
 
-UCLASS(config=Engine, dependson=ANavigationGraph, MinimalAPI, HideCategories=(Mobility))
+UCLASS(config=Engine, MinimalAPI, HideCategories=(Mobility))
 class UNavigationGraphNodeComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

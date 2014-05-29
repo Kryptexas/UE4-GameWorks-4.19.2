@@ -570,12 +570,9 @@ private:
 	UPROPERTY(Transient)
 	class AGameMode*							AuthorityGameMode;
 
-	/** Behavior tree manager used by game */	
-	TWeakObjectPtr<class UBehaviorTreeManager> BehaviorTreeManager;
-
-	/** Environment query manager used by game */
-	TWeakObjectPtr<class UEnvQueryManager>		EnvironmentQueryManager;
-
+	UPROPERTY(Transient)
+	class UAISystemBase*						AISystem;
+	
 	/** RVO avoidance manager used by game */
 	UPROPERTY(Transient)
 	class UAvoidanceManager*					AvoidanceManager;
@@ -1415,19 +1412,14 @@ public:
 	/** NavigationSystem const getter */
 	FORCEINLINE const UNavigationSystem* GetNavigationSystem() const { return NavigationSystem; }
 
-	/** Behavior tree manager getter */
-	FORCEINLINE class UBehaviorTreeManager* GetBehaviorTreeManager() { return BehaviorTreeManager.Get(); }
-	/** Behavior tree manager const getter */
-	FORCEINLINE const class UBehaviorTreeManager* GetBehaviorTreeManager() const { return BehaviorTreeManager.Get(); }
+	/** AISystem getter */
+	FORCEINLINE UAISystemBase* GetAISystem() { return AISystem; }
+	/** AISystem const getter */
+	FORCEINLINE const UAISystemBase* GetAISystem() const { return AISystem; }
 
-	/** Behavior tree manager getter */
-	FORCEINLINE class UEnvQueryManager* GetEnvironmentQueryManager() { return EnvironmentQueryManager.Get(); }
-	/** Behavior tree manager const getter */
-	FORCEINLINE const class UEnvQueryManager* GetEnvironmentQueryManager() const { return EnvironmentQueryManager.Get(); }
-
-	/** Behavior tree manager getter */
+	/** Avoidance manager getter */
 	FORCEINLINE class UAvoidanceManager* GetAvoidanceManager() { return AvoidanceManager; }
-	/** Behavior tree manager const getter */
+	/** Avoidance manager getter */
 	FORCEINLINE const class UAvoidanceManager* GetAvoidanceManager() const { return AvoidanceManager; }
 
 	/** Returns an iterator for the controller list. */

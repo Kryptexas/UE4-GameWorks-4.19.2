@@ -1205,7 +1205,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 		return false;
 	}
 
-	UBehaviorTreeManager* BTManager = GetWorld()->GetBehaviorTreeManager();
+	UBehaviorTreeManager* BTManager = Cast<UAISystem>(GetWorld()->GetAISystem())->GetBehaviorTreeManager();
 	if (BTManager == NULL)
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: behavior tree manager not found!"), *GetNameSafe(TreeAsset));

@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavAgentInterface.h"
+#include "AI/Navigation/NavPathObserverInterface.h"
 #include "AI/Navigation/NavigationPathGenerator.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "NavigationComponent.generated.h"
 
-UCLASS(dependson=(UNavAgentInterface, UNavPathObserverInterface, UNavigationSystem), config=Engine)
+UCLASS(config=Engine)
 class AIMODULE_API UNavigationComponent : public UActorComponent, public INavigationPathGenerator
 {
 	GENERATED_UCLASS_BODY()

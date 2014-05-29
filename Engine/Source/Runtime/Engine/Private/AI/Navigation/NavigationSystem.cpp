@@ -26,9 +26,9 @@
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
 #if WITH_RECAST
-static const uint32 MAX_SEARCH_NODES = RECAST_MAX_SEARCH_NODES;
+static const uint32 MAX_NAV_SEARCH_NODES = RECAST_MAX_SEARCH_NODES;
 #else // WITH_RECAST
-static const uint32 MAX_SEARCH_NODES = 2048;
+static const uint32 MAX_NAV_SEARCH_NODES = 2048;
 #endif // WITH_RECAST
 
 DEFINE_LOG_CATEGORY(LogNavigation);
@@ -73,7 +73,10 @@ DEFINE_STAT(STAT_Navigation_PathVisibilityOptimisation);
 
 //----------------------------------------------------------------------//
 // consts
-//----------------------------------------------------------	------------//
+//----------------------------------------------------------------------//
+
+const uint32 FNavigationQueryFilter::DefaultMaxSearchNodes = MAX_NAV_SEARCH_NODES;
+
 namespace FNavigationSystem
 {
 	// these are totally arbitrary values, and it should haven happen these are ever used.
@@ -94,164 +97,6 @@ namespace NavigationDebugDrawing
 	const FVector PathOffeset(0,0,15);
 	const FVector PathNodeBoxExtent(16.f);
 }
-
-//----------------------------------------------------------------------//
-// FNavigationQueryFilter
-//----------------------------------------------------------------------//
-const uint32 FNavigationQueryFilter::DefaultMaxSearchNodes = MAX_SEARCH_NODES;
-
-FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter& Source)
-{	
-	Assign(Source);
-}
-
-FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter* Source)
-	: MaxSearchNodes(DefaultMaxSearchNodes)
-{	
-	if (Source != NULL)
-	{
-		Assign(*Source);
-	}
-}
-
-FNavigationQueryFilter::FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source)
-	: MaxSearchNodes(DefaultMaxSearchNodes)
-{
-	if (Source.IsValid())
-	{
-		SetFilterImplementation(Source->GetImplementation());
-	}
-}
-
-FNavigationQueryFilter& FNavigationQueryFilter::operator=(const FNavigationQueryFilter& Source)
-{
-	Assign(Source);
-	return *this;
-}
-
-void FNavigationQueryFilter::Assign(const FNavigationQueryFilter& Source)
-{
-	if (Source.GetImplementation() != NULL)
-	{
-		QueryFilterImpl = Source.QueryFilterImpl;
-	}
-	MaxSearchNodes = Source.GetMaxSearchNodes();
-}
-
-TSharedPtr<FNavigationQueryFilter> FNavigationQueryFilter::GetCopy() const
-{
-	TSharedPtr<FNavigationQueryFilter> Copy = MakeShareable(new FNavigationQueryFilter());
-	Copy->QueryFilterImpl = MakeShareable(QueryFilterImpl->CreateCopy());
-	Copy->MaxSearchNodes = MaxSearchNodes;
-
-	return Copy;
-}
-
-void FNavigationQueryFilter::SetAreaCost(uint8 AreaType, float Cost)
-{
-	check(QueryFilterImpl.IsValid());
-	QueryFilterImpl->SetAreaCost(AreaType, Cost);
-}
-
-void FNavigationQueryFilter::SetFixedAreaEnteringCost(uint8 AreaType, float Cost)
-{
-	check(QueryFilterImpl.IsValid());
-	QueryFilterImpl->SetFixedAreaEnteringCost(AreaType, Cost);
-}
-
-void FNavigationQueryFilter::SetExcludedArea(uint8 AreaType)
-{
-	QueryFilterImpl->SetExcludedArea(AreaType);
-}
-
-void FNavigationQueryFilter::SetAllAreaCosts(const TArray<float>& CostArray)
-{
-	SetAllAreaCosts(CostArray.GetTypedData(), CostArray.Num());
-}
-
-void FNavigationQueryFilter::SetAllAreaCosts(const float* CostArray, const int32 Count)
-{
-	QueryFilterImpl->SetAllAreaCosts(CostArray, Count);
-}
-
-void FNavigationQueryFilter::GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const
-{
-	QueryFilterImpl->GetAllAreaCosts(CostArray, FixedCostArray, Count);
-}
-
-void FNavigationQueryFilter::SetIncludeFlags(uint16 Flags)
-{
-	QueryFilterImpl->SetIncludeFlags(Flags);
-}
-
-uint16 FNavigationQueryFilter::GetIncludeFlags() const
-{
-	return QueryFilterImpl->GetIncludeFlags();
-}
-
-void FNavigationQueryFilter::SetExcludeFlags(uint16 Flags)
-{
-	QueryFilterImpl->SetExcludeFlags(Flags);
-}
-
-uint16 FNavigationQueryFilter::GetExcludeFlags() const
-{
-	return QueryFilterImpl->GetExcludeFlags();
-}
-
-
-//----------------------------------------------------------------------//
-// 
-//----------------------------------------------------------------------//
-FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
-	: NavData(InNavData)
-	, Owner(InOwner)
-	, StartLocation(Start)
-	, EndLocation(End)
-	, QueryFilter(SourceQueryFilter)
-{
-	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
-	{
-		QueryFilter = NavData->GetDefaultQueryFilter();
-	}
-}
-
-FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
-	: NavData(Source.NavData)
-	, Owner(Source.Owner)
-	, StartLocation(Source.StartLocation)
-	, EndLocation(Source.EndLocation)
-	, QueryFilter(Source.QueryFilter)
-	, NavDataFlags(Source.NavDataFlags)
-{
-	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
-	{
-		QueryFilter = NavData->GetDefaultQueryFilter();
-	}
-}
-
-//----------------------------------------------------------------------//
-// FAsyncPathFindingQuery
-//----------------------------------------------------------------------//
-uint32 FAsyncPathFindingQuery::LastPathFindingUniqueID = INVALID_NAVQUERYID;
-
-FAsyncPathFindingQuery::FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
-	: FPathFindingQuery(InOwner, InNavData, Start, End, SourceQueryFilter)
-	, QueryID(GetUniqueID())
-	, OnDoneDelegate(Delegate)
-{
-
-}
-
-FAsyncPathFindingQuery::FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode)
-	: FPathFindingQuery(Query)
-	, QueryID(GetUniqueID())
-	, OnDoneDelegate(Delegate)
-	, Mode(QueryMode)
-{
-
-}
-
 
 //----------------------------------------------------------------------//
 // UNavigationSystem                                                                

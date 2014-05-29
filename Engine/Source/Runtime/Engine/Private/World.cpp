@@ -27,6 +27,7 @@
 #include "VisualLog.h"
 #include "LevelUtils.h"
 #include "PhysicsPublic.h"
+#include "AI/AISystemBase.h"
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -37,10 +38,6 @@
 
 #include "Landscape/LandscapeInfo.h"
 #include "Particles/ParticleEventManager.h"
-
-// @todo this is here only due to circular dependency to AIModule. To be removed
-#include "BehaviorTree/BehaviorTreeManager.h"
-#include "EnvironmentQuery/EnvQueryManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -126,8 +123,6 @@ void UWorld::Serialize( FArchive& Ar )
 		//@todo.CONSOLE: How to handle w/out having a cooker/pakcager?
 #endif	//#if WITH_EDITORONLY_DATA
 
-		Ar << BehaviorTreeManager;
-		Ar << EnvironmentQueryManager;
 		Ar << NavigationSystem;
 		Ar << AvoidanceManager;
 	}
@@ -207,11 +202,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		}
 	}
 #endif
-
-	UBehaviorTreeManager* BTManager = This->BehaviorTreeManager.GetEvenIfUnreachable();
-	Collector.AddReferencedObject(BTManager, This);
-	UEnvQueryManager* EQSManager = This->EnvironmentQueryManager.GetEvenIfUnreachable();
-	Collector.AddReferencedObject(EQSManager, This);
 
 	Super::AddReferencedObjects( This, Collector );
 }
@@ -679,9 +669,16 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		UNavigationSystem::CreateNavigationSystem(this);
 	}
 
-	BehaviorTreeManager = NewObject<UBehaviorTreeManager>(this);
-	EnvironmentQueryManager = NewObject<UEnvQueryManager>(this);
-
+	auto AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
+	if (AISystemModule)
+	{
+		AISystem = AISystemModule->CreateAISystemInstance(this);
+		if (AISystem == NULL)
+		{
+			UE_LOG(LogWorld, Error, TEXT("Failed to create AISystem instance of class %s!"), *UAISystemBase::GetAISystemClassName().ClassName);
+		}
+	}
+	
 	if (GEngine->AvoidanceManagerClass != NULL)
 	{
 		AvoidanceManager = NewObject<UAvoidanceManager>(this, GEngine->AvoidanceManagerClass);
@@ -2720,6 +2717,11 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		NavigationSystem->OnInitializeActors();
 	}
 
+	if (AISystem != NULL)
+	{
+		AISystem->InitializeActorsForPlay(bResetTime);
+	}
+
 	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
 	{
 		ULevel*	Level = Levels[LevelIndex];
@@ -2755,6 +2757,11 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	check(IsVisibilityRequestPending() == false);
 
 	FWorldDelegates::OnWorldCleanup.Broadcast(this, bSessionEnded, bCleanupResources);
+
+	if (AISystem != NULL)
+	{
+		AISystem->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
+	}
 
 	if (bCleanupResources == true)
 	{
@@ -3882,6 +3889,11 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		{
 			Level->LevelScriptActor->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
 		}
+	}
+
+	if (AISystem != NULL)
+	{
+		AISystem->WorldOriginChanged(PreviosWorldOrigin, GlobalOriginOffset);
 	}
 
 	// Broadcast that have finished world shifting

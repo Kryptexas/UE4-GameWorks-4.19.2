@@ -64,7 +64,7 @@ struct FFocusKnowledge
 	TArray<struct FFocusItem> Priorities;
 };
 
-UCLASS(BlueprintType, Blueprintable, dependson=(UPathFollowingComponent))
+UCLASS(BlueprintType, Blueprintable)
 class AIMODULE_API AAIController : public AController
 {
 	GENERATED_UCLASS_BODY()

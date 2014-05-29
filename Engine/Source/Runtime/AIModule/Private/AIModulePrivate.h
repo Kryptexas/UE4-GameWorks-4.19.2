@@ -2,13 +2,6 @@
 
 #pragma once
 
-
-
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
-#include "Core.h"
 //#include "CoreUObject.h"
 //#include "Engine/EngineBaseTypes.h"
 //#include "Engine/EngineTypes.h"
@@ -21,6 +14,7 @@
 #include "AIModule.h"
 
 #include "AITypes.h"
+#include "AISystem.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "AIController.h"

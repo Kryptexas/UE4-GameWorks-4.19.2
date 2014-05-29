@@ -26,41 +26,43 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
 #if WITH_EDITORONLY_DATA
-	UArrowComponent* ArrowComponent = FindComponentByClass<UArrowComponent>();
-	if (ArrowComponent != NULL)
-	{
-		ArrowComponent->SetRelativeScale3D(FVector(2,2,2));
-		ArrowComponent->bIsScreenSizeScaled = true;
-	}
-
-	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
-	{
-		struct FConstructorStatics
-		{
-			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextureObject;
-			FName ID_Misc;
-			FText NAME_Misc;
-			FConstructorStatics()
-				: TextureObject(TEXT("/Engine/EditorResources/S_Pawn"))
-				, ID_Misc(TEXT("Misc"))
-				, NAME_Misc(NSLOCTEXT("SpriteCategory", "Misc", "Misc"))
-			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
-
-		SpriteComponent->Sprite = ConstructorStatics.TextureObject.Get();
-		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-		SpriteComponent->bHiddenInGame = true;
-		//SpriteComponent->Mobility = EComponentMobility::Static;
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
-		SpriteComponent->AttachParent = RootComponent;
-		SpriteComponent->bIsScreenSizeScaled = true;
-	}
-
 	EdRenderComp = PCIP.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		UArrowComponent* ArrowComponent = FindComponentByClass<UArrowComponent>();
+		if (ArrowComponent != NULL)
+		{
+			ArrowComponent->SetRelativeScale3D(FVector(2, 2, 2));
+			ArrowComponent->bIsScreenSizeScaled = true;
+		}
+
+		TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+		if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
+		{
+			struct FConstructorStatics
+			{
+				ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextureObject;
+				FName ID_Misc;
+				FText NAME_Misc;
+				FConstructorStatics()
+					: TextureObject(TEXT("/Engine/EditorResources/S_Pawn"))
+					, ID_Misc(TEXT("Misc"))
+					, NAME_Misc(NSLOCTEXT("SpriteCategory", "Misc", "Misc"))
+				{
+				}
+			};
+			static FConstructorStatics ConstructorStatics;
+
+			SpriteComponent->Sprite = ConstructorStatics.TextureObject.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			SpriteComponent->bHiddenInGame = true;
+			//SpriteComponent->Mobility = EComponentMobility::Static;
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
+			SpriteComponent->AttachParent = RootComponent;
+			SpriteComponent->bIsScreenSizeScaled = true;
+		}
+	}
 #endif // WITH_EDITORONLY_DATA
 
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
@@ -117,7 +119,7 @@ void AEQSTestingPawn::PostLoad()
 		SpriteComponent->bHiddenInGame = !bShouldBeVisibleInGame;
 	}
 
-	UEnvQueryManager* EQS = GetWorld() ? GetWorld()->GetEnvironmentQueryManager() : NULL;
+	UEnvQueryManager* EQS = GetWorld() ? UAISystem::GetCurrentEQSManager(GetWorld()) : NULL;
 	if (EQS)
 	{
 		RunEQSQuery();
@@ -154,7 +156,7 @@ void AEQSTestingPawn::Reset()
 
 void AEQSTestingPawn::MakeOneStep()
 {
-	UEnvQueryManager* EQS = GetWorld()->GetEnvironmentQueryManager();
+	UEnvQueryManager* EQS = UAISystem::GetCurrentEQSManager(GetWorld());
 	if (EQS == NULL)
 	{
 		return;

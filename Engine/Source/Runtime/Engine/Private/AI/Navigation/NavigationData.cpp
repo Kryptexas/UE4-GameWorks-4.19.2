@@ -6,6 +6,57 @@
 #include "AI/Navigation/NavigationData.h"
 
 //----------------------------------------------------------------------//
+// FPathFindingQuery
+//----------------------------------------------------------------------//
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+: NavData(InNavData)
+, Owner(InOwner)
+, StartLocation(Start)
+, EndLocation(End)
+, QueryFilter(SourceQueryFilter)
+{
+	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
+	{
+		QueryFilter = NavData->GetDefaultQueryFilter();
+	}
+}
+
+FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
+: NavData(Source.NavData)
+, Owner(Source.Owner)
+, StartLocation(Source.StartLocation)
+, EndLocation(Source.EndLocation)
+, QueryFilter(Source.QueryFilter)
+, NavDataFlags(Source.NavDataFlags)
+{
+	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
+	{
+		QueryFilter = NavData->GetDefaultQueryFilter();
+	}
+}
+
+//----------------------------------------------------------------------//
+// FAsyncPathFindingQuery
+//----------------------------------------------------------------------//
+uint32 FAsyncPathFindingQuery::LastPathFindingUniqueID = INVALID_NAVQUERYID;
+
+FAsyncPathFindingQuery::FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+: FPathFindingQuery(InOwner, InNavData, Start, End, SourceQueryFilter)
+, QueryID(GetUniqueID())
+, OnDoneDelegate(Delegate)
+{
+
+}
+
+FAsyncPathFindingQuery::FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode)
+: FPathFindingQuery(Query)
+, QueryID(GetUniqueID())
+, OnDoneDelegate(Delegate)
+, Mode(QueryMode)
+{
+
+}
+//----------------------------------------------------------------------//
 // FNavDataGenerator
 //----------------------------------------------------------------------//
 void FNavDataGenerator::TriggerGeneration()

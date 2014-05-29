@@ -5,6 +5,111 @@
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 
+//----------------------------------------------------------------------//
+// FNavigationQueryFilter
+//----------------------------------------------------------------------//
+FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter& Source)
+{
+	Assign(Source);
+}
+
+FNavigationQueryFilter::FNavigationQueryFilter(const FNavigationQueryFilter* Source)
+: MaxSearchNodes(DefaultMaxSearchNodes)
+{
+	if (Source != NULL)
+	{
+		Assign(*Source);
+	}
+}
+
+FNavigationQueryFilter::FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source)
+: MaxSearchNodes(DefaultMaxSearchNodes)
+{
+	if (Source.IsValid())
+	{
+		SetFilterImplementation(Source->GetImplementation());
+	}
+}
+
+FNavigationQueryFilter& FNavigationQueryFilter::operator=(const FNavigationQueryFilter& Source)
+{
+	Assign(Source);
+	return *this;
+}
+
+void FNavigationQueryFilter::Assign(const FNavigationQueryFilter& Source)
+{
+	if (Source.GetImplementation() != NULL)
+	{
+		QueryFilterImpl = Source.QueryFilterImpl;
+	}
+	MaxSearchNodes = Source.GetMaxSearchNodes();
+}
+
+TSharedPtr<FNavigationQueryFilter> FNavigationQueryFilter::GetCopy() const
+{
+	TSharedPtr<FNavigationQueryFilter> Copy = MakeShareable(new FNavigationQueryFilter());
+	Copy->QueryFilterImpl = MakeShareable(QueryFilterImpl->CreateCopy());
+	Copy->MaxSearchNodes = MaxSearchNodes;
+
+	return Copy;
+}
+
+void FNavigationQueryFilter::SetAreaCost(uint8 AreaType, float Cost)
+{
+	check(QueryFilterImpl.IsValid());
+	QueryFilterImpl->SetAreaCost(AreaType, Cost);
+}
+
+void FNavigationQueryFilter::SetFixedAreaEnteringCost(uint8 AreaType, float Cost)
+{
+	check(QueryFilterImpl.IsValid());
+	QueryFilterImpl->SetFixedAreaEnteringCost(AreaType, Cost);
+}
+
+void FNavigationQueryFilter::SetExcludedArea(uint8 AreaType)
+{
+	QueryFilterImpl->SetExcludedArea(AreaType);
+}
+
+void FNavigationQueryFilter::SetAllAreaCosts(const TArray<float>& CostArray)
+{
+	SetAllAreaCosts(CostArray.GetTypedData(), CostArray.Num());
+}
+
+void FNavigationQueryFilter::SetAllAreaCosts(const float* CostArray, const int32 Count)
+{
+	QueryFilterImpl->SetAllAreaCosts(CostArray, Count);
+}
+
+void FNavigationQueryFilter::GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const
+{
+	QueryFilterImpl->GetAllAreaCosts(CostArray, FixedCostArray, Count);
+}
+
+void FNavigationQueryFilter::SetIncludeFlags(uint16 Flags)
+{
+	QueryFilterImpl->SetIncludeFlags(Flags);
+}
+
+uint16 FNavigationQueryFilter::GetIncludeFlags() const
+{
+	return QueryFilterImpl->GetIncludeFlags();
+}
+
+void FNavigationQueryFilter::SetExcludeFlags(uint16 Flags)
+{
+	QueryFilterImpl->SetExcludeFlags(Flags);
+}
+
+uint16 FNavigationQueryFilter::GetExcludeFlags() const
+{
+	return QueryFilterImpl->GetExcludeFlags();
+}
+
+//----------------------------------------------------------------------//
+// UNavigationQueryFilter
+//----------------------------------------------------------------------//
 UNavigationQueryFilter::UNavigationQueryFilter(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	IncludeFlags.Packed = 0xffff;

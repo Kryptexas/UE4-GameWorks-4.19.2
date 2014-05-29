@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/NavigationData.h"
 #include "NavigationGraph.generated.h"
+
+class UNavigationSystem;
 
 USTRUCT()
 struct FNavGraphEdge
@@ -50,13 +53,16 @@ struct FNavGraphNode
 };
 
 /** currently abstract since it's not full implemented */
-UCLASS(config=Engine, dependson=UNavigationSystem, MinimalAPI, abstract)
+UCLASS(config=Engine, MinimalAPI, abstract)
 class ANavigationGraph : public ANavigationData
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
 #if WITH_NAVIGATION_GENERATOR
-	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
 #endif // WITH_NAVIGATION_GENERATOR
-	static ANavigationData* CreateNavigationInstances(class UNavigationSystem* NavSys);
+
+public:
+	static ANavigationData* CreateNavigationInstances(UNavigationSystem* NavSys);
 };

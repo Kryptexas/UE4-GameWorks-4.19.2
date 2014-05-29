@@ -4,12 +4,13 @@
 
 #include "GameFramework/Character.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EQSTestingPawn.generated.h"
 
 /** this class is abstract even though it's perfectly functional on its own.
  *	The reason is to stop it from showing as valid player pawn type when configuring 
  *	project's game mode. */
-UCLASS(abstract, hidecategories=(Advanced, Attachment, Collision, Animation),DependsOn=(UEnvQueryTypes))
+UCLASS(abstract, hidecategories=(Advanced, Attachment, Collision, Animation))
 class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()

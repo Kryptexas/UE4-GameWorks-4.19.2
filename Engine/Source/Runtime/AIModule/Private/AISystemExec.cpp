@@ -19,24 +19,28 @@ FAISystemExec AISystemExecInstance;
 
 bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
+	if (Inworld == NULL)
+	{
+		return false;
+	}
+
+	UAISystem* AISys = UAISystem::GetCurrent(Inworld);	
 	bool bHandled = false;
 
-	if (FParse::Command(&Cmd, TEXT("AIIgnorePlayers")))
+	if (AISys != NULL)
 	{
-		AAIController::ToggleAIIgnorePlayers();
-		//bHandled = true; 
-	}
-	else if (FParse::Command(&Cmd, TEXT("AILoggingVerbose")))
-	{
-		if (Inworld)
+		if (FParse::Command(&Cmd, TEXT("AIIgnorePlayers")))
 		{
-			APlayerController* PC = Inworld->GetFirstPlayerController();
-			if (PC)
-			{
-				PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
-			}
+			AISys->AIIgnorePlayers();
+			bHandled = true;
 		}
-		//bHandled = true;
+		else if (FParse::Command(&Cmd, TEXT("AILoggingVerbose")))
+		{
+			AISys->AILoggingVerbose();
+			bHandled = true;
+		}
+
+		// void UAISystem::RunEQS(const FString& QueryName)
 	}
 
 	return bHandled;

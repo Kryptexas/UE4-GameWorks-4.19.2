@@ -642,7 +642,7 @@ public:
 	/** Name of behavior tree manager class */
 	UPROPERTY(globalconfig, noclear, meta=(MetaClass="AvoidanceManager", DisplayName="Avoidance Manager Class"))
 	FStringClassReference AvoidanceManagerClassName;
-
+	
 	/** The class for behavior tree manager **/
 	UPROPERTY()
 	TSubclassOf<class UAvoidanceManager>  AvoidanceManagerClass;

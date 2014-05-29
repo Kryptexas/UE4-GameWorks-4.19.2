@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "AI/AISystemBase.h"
 
 /**
  * The public interface to this module
  */
-class IAIModule : public IModuleInterface
+class IAIModule : public IAISystemModule
 {
 
 public:

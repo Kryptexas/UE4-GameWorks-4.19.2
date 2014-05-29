@@ -11,8 +11,32 @@
 #define INVALID_NAVDATA uint32(0)
 #define INVALID_NAVEXTENT (FVector::ZeroVector)
 
+#define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
+#define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 100.f
+
+/** Whether to compile in navigation data generation - should be compiled at least when WITH_EDITOR is true */
+#define WITH_NAVIGATION_GENERATOR (WITH_RECAST || WITH_EDITOR)
+
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
+
+namespace FNavigationSystem
+{
+	/** used as a fallback value for navigation agent radius, when none specified via UNavigationSystem::SupportedAgents */
+	extern const float FallbackAgentRadius;
+
+	/** used as a fallback value for navigation agent height, when none specified via UNavigationSystem::SupportedAgents */
+	extern const float FallbackAgentHeight;
+
+	static const FBox InvalidBoundingBox(0);
+
+	enum ECreateIfEmpty
+	{
+		Invalid = -1,
+		DontCreate = 0,
+		Create = 1,
+	};
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Navigation data generation
@@ -276,6 +300,194 @@ protected:
 
 	/** Identifier of navigation data used to generate this path */
 	TWeakObjectPtr<class ANavigationData> Owner;
+};
+
+USTRUCT()
+struct FMovementProperties
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
+	uint32 bCanCrouch:1;    // if true, this pawn is capable of crouching
+
+	// movement capabilities - used by AI for reachability tests
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
+	uint32 bCanJump:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
+	uint32 bCanWalk:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
+	uint32 bCanSwim:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
+	uint32 bCanFly:1;
+
+	FMovementProperties()
+		: bCanCrouch(false)
+		, bCanJump(false)
+		, bCanWalk(false)
+		, bCanSwim(false)
+		, bCanFly(false)
+	{
+	}
+};
+
+USTRUCT()
+struct FNavAgentProperties : public FMovementProperties
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	float AgentRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	float AgentHeight;
+
+	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
+		: AgentRadius(Radius)
+		, AgentHeight(Height)
+	{
+	}
+
+	void UpdateWithCollisionComponent(class UShapeComponent* CollisionComponent);
+
+	FORCEINLINE bool IsValid() const { return AgentRadius >= 0 && AgentHeight >= 0; }
+
+	FORCEINLINE bool IsEquivalent(const FNavAgentProperties& Other, float Precision = 5.f) const
+	{
+		return FGenericPlatformMath::Abs(AgentRadius - Other.AgentRadius) < Precision && FGenericPlatformMath::Abs(AgentHeight - Other.AgentHeight) < Precision;
+	}
+
+	bool operator==(const FNavAgentProperties& Other) const
+	{
+		return IsEquivalent(Other);
+	}
+
+	FVector GetExtent() const
+	{
+		return FVector(AgentRadius, AgentRadius, AgentHeight / 2);
+	}
+};
+
+inline uint32 GetTypeHash(const FNavAgentProperties& A)
+{
+	return (int16(A.AgentRadius) << 16) | int16(A.AgentHeight);
+}
+
+USTRUCT()
+struct ENGINE_API FNavDataConfig : public FNavAgentProperties
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	FName Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	FColor Color;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Querying, config)
+	FVector DefaultQueryExtent;
+
+	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight)
+		: FNavAgentProperties(Radius, Height)
+		, Name(TEXT("Default"))
+		, Color(140,255,0,164)
+		, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
+	{
+	}	
+};
+
+UENUM()
+namespace ENavigationQueryResult
+{
+	enum Type
+	{
+		Invalid,
+		Error,
+		Fail,
+		Success
+	};
+}
+
+struct FPathFindingResult
+{
+	FNavPathSharedPtr Path;
+	ENavigationQueryResult::Type Result;
+
+	FPathFindingResult(ENavigationQueryResult::Type InResult = ENavigationQueryResult::Invalid) : Result(InResult)
+	{}
+
+	FORCEINLINE bool IsSuccessful() const { return Result == ENavigationQueryResult::Success; }
+	FORCEINLINE bool IsPartial() const { return Result == ENavigationQueryResult::Fail && Path.IsValid() && Path->IsPartial(); }
+};
+
+struct ENGINE_API FPathFindingQuery
+{
+	TWeakObjectPtr<const class ANavigationData> NavData;
+	TWeakObjectPtr<const UObject> Owner;
+	FVector StartLocation;
+	FVector EndLocation;
+	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
+
+	/** additional flags passed to navigation data handling request */
+	int32 NavDataFlags;
+
+	FPathFindingQuery()
+		: NavData(NULL)
+		, Owner(NULL)
+		, StartLocation(FVector::ZeroVector)
+		, EndLocation(FVector::ZeroVector)
+		, NavDataFlags(0)
+	{
+	}
+
+	FPathFindingQuery(const FPathFindingQuery& Source);
+
+	FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL);
+};
+
+namespace EPathFindingMode
+{
+	enum Type
+	{
+		Regular,
+		Hierarchical,
+	};
+};
+
+/**
+*	Delegate used to communicate that path finding query has been finished.
+*	@param uint32 unique Query ID of given query
+*	@param ENavigationQueryResult enum expressed query result.
+*	@param FNavPathSharedPtr resulting path. Valid only for ENavigationQueryResult == ENavigationQueryResult::Fail
+*		(may contain path leading as close to destination as possible)
+*		and ENavigationQueryResult == ENavigationQueryResult::Success
+*/
+DECLARE_DELEGATE_ThreeParams(FNavPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr);
+
+struct FAsyncPathFindingQuery : public FPathFindingQuery
+{
+	const uint32 QueryID;
+	const FNavPathQueryDelegate OnDoneDelegate;
+	const TEnumAsByte<EPathFindingMode::Type> Mode;
+	FPathFindingResult Result;
+
+	FAsyncPathFindingQuery()
+		: QueryID(INVALID_NAVQUERYID)
+	{
+	}
+
+	FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
+	FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode);
+
+protected:
+	FORCEINLINE static uint32 GetUniqueID()
+	{
+		return ++LastPathFindingUniqueID;
+	}
+
+	static uint32 LastPathFindingUniqueID;
 };
 
 //////////////////////////////////////////////////////////////////////////

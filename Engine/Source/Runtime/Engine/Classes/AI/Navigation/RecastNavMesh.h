@@ -4,6 +4,7 @@
 
 #include "NavAreas/NavArea.h"
 #include "Tickable.h"
+#include "AI/Navigation/NavigationData.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */
@@ -29,6 +30,12 @@
 #define RECAST_NULL_AREA			0
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
+
+class FNavDataGenerator;
+class FPImplRecastNavMesh;
+class FRecastQueryFilter;
+class USmartNavLinkComponent;
+class UNavArea;
 
 UENUM()
 namespace ERecastPartitioning
@@ -654,13 +661,13 @@ public:
 
 protected:
 #if WITH_NAVIGATION_GENERATOR
-	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
 	virtual void SortNavigationTiles();
 #endif // WITH_NAVIGATION_GENERATOR
 	// End ANavigationData Interface
 
 	/** Serialization helper. */
-	void SerializeRecastNavMesh(FArchive& Ar, class FPImplRecastNavMesh*& NavMesh);
+	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
 
 public:
 	/** Returns bounding box for the whole navmesh. */
@@ -737,13 +744,13 @@ public:
 	// Smart links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateSmartLink(class USmartNavLinkComponent* LinkComp) OVERRIDE;
+	virtual void UpdateSmartLink(USmartNavLinkComponent* LinkComp) OVERRIDE;
 
 	/** update area class and poly flags for all offmesh links with given UserId */
-	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const;
+	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;
 
 	/** update area class and poly flags for all offmesh segment links with given UserId */
-	void UpdateSegmentLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const;
+	void UpdateSegmentLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;
 
 	//----------------------------------------------------------------------//
 	// Batch processing (important with async rebuilding)
@@ -804,7 +811,7 @@ public:
 	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundClusters, bool bBackTracking = false) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
-	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
+	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
 
 	/** Get all polys from tile */
 	bool GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) const;
@@ -834,7 +841,7 @@ public:
 	/** Checks whether this instance of navmesh supports given Agent type */
 	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const OVERRIDE;
 
-	static const class FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
+	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
 	
 	/** initialize tiles set with given size */
@@ -891,7 +898,7 @@ private:
 	 *	@NOTE: if we switch over to C++11 this should be unique_ptr
 	 *	@TODO since it's no secret we're using recast there's no point in having separate implementation class. FPImplRecastNavMesh should be merged into ARecastNavMesh
 	 */
-	class FPImplRecastNavMesh* RecastNavMeshImpl;
+	FPImplRecastNavMesh* RecastNavMeshImpl;
 
 	/** array containing tile references of all navmesh tiles recently rebuild. Handled and cleared in Tick function */
 	TArray<uint32> FreshTiles;

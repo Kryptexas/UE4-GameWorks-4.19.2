@@ -57,7 +57,7 @@ int32 FEnvQueryRequest::Execute(EEnvQueryRunMode::Type RunMode, FQueryFinishedSi
 		}
 	}
 
-	UEnvQueryManager* EnvQueryManager = World->GetEnvironmentQueryManager();
+	UEnvQueryManager* EnvQueryManager = UAISystem::GetCurrentEQSManager(World);
 	if (EnvQueryManager == NULL)
 	{
 		UE_LOG(LogEQS, Warning, TEXT("Missing EQS manager!"));
@@ -91,13 +91,13 @@ void UEnvQueryManager::FinishDestroy()
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 {
-	return World ? World->GetEnvironmentQueryManager() : NULL;
+	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
 }
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(class UObject* WorldContextObject)
 {
 	UWorld* World = WorldContextObject ? GEngine->GetWorldFromContextObject(WorldContextObject) : NULL;
-	return World ? World->GetEnvironmentQueryManager() : NULL;
+	return World ? UAISystem::GetCurrentEQSManager(World) : NULL;
 }
 
 #if WITH_EDITOR
@@ -111,7 +111,7 @@ void UEnvQueryManager::NotifyAssetUpdate(UEnvQuery* Query)
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 	if (World)
 	{
-		UEnvQueryManager* EQS = World->GetEnvironmentQueryManager();
+		UEnvQueryManager* EQS = UAISystem::GetCurrentEQSManager(World);
 		if (EQS)
 		{
 			EQS->InstanceCache.Reset();
