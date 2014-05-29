@@ -1733,7 +1733,7 @@ public class GUBP : BuildCommand
         }
         public override string GetTriggerStateName()
         {
-            return StaticGetFullName(bLabelPromoted);
+            return GetFullName();
         } 
     }    
 
