@@ -83,6 +83,9 @@ void SAssetView::Construct( const FArguments& InArgs )
 	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
 	FCoreDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
 
+	// Listen for when packages' dirty states are updated
+	UPackage::PackageDirtyStateUpdatedEvent.AddSP(this, &SAssetView::OnPackageDirtyStateUpdated);
+
 	// Listen for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SAssetView::HandleSettingChanged);
 
@@ -1922,6 +1925,11 @@ void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& 
 	{
 		RecentlyLoadedOrChangedAssets.Add( FName(*Asset->GetPathName()), Asset );
 	}
+}
+
+void SAssetView::OnPackageDirtyStateUpdated(UPackage* Package)
+{
+	RequestListRefresh();
 }
 
 void SAssetView::OnDynamicFiltersChanged()

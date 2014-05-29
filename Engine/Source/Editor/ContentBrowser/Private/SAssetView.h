@@ -317,6 +317,9 @@ private:
 	/** Handler for when an asset's property has changed */
 	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
 
+	/** Handler for when a package's dirty state has changed */
+	void OnPackageDirtyStateUpdated(UPackage* Package);
+
 	/** Handler for when any dynamic filters have been changed */
 	void OnDynamicFiltersChanged();
 
