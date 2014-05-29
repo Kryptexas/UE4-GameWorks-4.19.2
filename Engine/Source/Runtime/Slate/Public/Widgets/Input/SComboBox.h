@@ -12,10 +12,10 @@ class SComboRow : public STableRow< OptionType >
 public:
 
 	SLATE_BEGIN_ARGS( SComboRow )
-		: _RowContent()
+		: _Content()
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<SWidget>, RowContent )
+		SLATE_DEFAULT_SLOT( FArguments, Content )
 	SLATE_END_ARGS()
 
 public:
@@ -29,7 +29,7 @@ public:
 			typename STableRow<OptionType>::FArguments()
 			.Content()
 			[
-				InArgs._RowContent->AsShared()
+				InArgs._Content.Widget
 			]
 			, InOwnerTable
 		);
@@ -284,9 +284,21 @@ private:
 	/** Generate a row for the InItem in the combo box's list (passed in as OwnerTable). Do this by calling the user-specified OnGenerateWidget */
 	TSharedRef<ITableRow> GenerateMenuItemRow( OptionType InItem, const TSharedRef<STableViewBase>& OwnerTable)
 	{
-		return
-		SNew( SComboRow<OptionType>, OwnerTable)
-		.RowContent(OnGenerateWidget.Execute(InItem) );
+		if (OnGenerateWidget.IsBound())
+		{
+			return SNew(SComboRow<OptionType>, OwnerTable)
+				[
+					OnGenerateWidget.Execute(InItem)
+				];
+		}
+		else
+		{
+			return SNew(SComboRow<OptionType>, OwnerTable)
+				[
+					SNew(STextBlock).Text(NSLOCTEXT("SlateCore", "ComboBoxMissingOnGenerateWidgetMethod", "Please provide a .OnGenerateWidget() handler."))
+				];
+
+		}
 	}
 
 	/** Invoked when the selection in the list changes */

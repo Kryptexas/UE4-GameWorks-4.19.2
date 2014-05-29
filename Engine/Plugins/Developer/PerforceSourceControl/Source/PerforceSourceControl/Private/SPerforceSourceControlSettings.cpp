@@ -421,7 +421,7 @@ TSharedRef<ITableRow> SPerforceSourceControlSettings::OnGenerateWorkspaceRow(TSh
 {
 	return
 		SNew(SComboRow< TSharedRef<FString> >, OwnerTable)
-		.RowContent( 
+		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.FillWidth(1)
@@ -431,7 +431,7 @@ TSharedRef<ITableRow> SPerforceSourceControlSettings::OnGenerateWorkspaceRow(TSh
 				.Text(*InItem)
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
-		);
+		];
 }
 
 void SPerforceSourceControlSettings::OnWorkspaceSelected(TSharedPtr<FString> InItem, ESelectInfo::Type InSelectInfo)
