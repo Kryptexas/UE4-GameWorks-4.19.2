@@ -11,5 +11,5 @@ public:
 
 	virtual FText GetCategory() OVERRIDE;
 
-	virtual USlateWrapperComponent* Create(UWidgetTree* Tree) OVERRIDE;
+	virtual UWidget* Create(UWidgetTree* Tree) OVERRIDE;
 };

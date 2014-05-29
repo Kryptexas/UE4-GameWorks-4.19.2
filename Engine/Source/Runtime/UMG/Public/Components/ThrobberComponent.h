@@ -31,7 +31,7 @@ class UMG_API UThrobberComponent : public USlateLeafWidgetComponent
 	USlateBrushAsset* PieceImage;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

@@ -39,9 +39,9 @@ public:
 	USlateWidgetStyleAsset* Style;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	FSlateColor GetColorAndOpacity() const;
 	FLinearColor GetShadowColorAndOpacity() const;

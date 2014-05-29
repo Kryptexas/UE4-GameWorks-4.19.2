@@ -10,9 +10,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// USlateNonLeafWidgetComponent
+// UPanelWidget
 
-USlateNonLeafWidgetComponent::USlateNonLeafWidgetComponent(const FPostConstructInitializeProperties& PCIP)
+UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 //	PrimaryComponentTick.bCanEverTick = true;

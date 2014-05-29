@@ -119,7 +119,7 @@ protected:
 	UWidgetBlueprintGeneratedClass* NewWidgetBlueprintClass;
 
 	// Map of properties created for widgets; to aid in debug data generation
-	TMap<class USlateWrapperComponent*, class UProperty*> WidgetToMemberVariableMap;
+	TMap<class UWidget*, class UProperty*> WidgetToMemberVariableMap;
 
 	///----------------------------------------------------------------
 	// Callback system properties.

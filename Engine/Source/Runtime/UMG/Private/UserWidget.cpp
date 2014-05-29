@@ -152,7 +152,7 @@ UWorld* UUserWidget::GetWorld() const
 	return NULL;
 }
 
-USlateWrapperComponent* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
+UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
 	return WidgetToComponent.FindRef(InWidget);
 }
@@ -174,7 +174,7 @@ void UUserWidget::RebuildWrapperWidget()
 	// Place all of our top-level children Slate wrapped components into the overlay
 	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
 	{
-		USlateWrapperComponent* Handle = Components[ComponentIndex];
+		UWidget* Handle = Components[ComponentIndex];
 		TSharedRef<SWidget> Widget = Handle->GetWidget();
 
 		WidgetToComponent.Add(Widget, Handle);
@@ -208,7 +208,7 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 	return TSharedPtr<SWidget>();
 }
 
-USlateWrapperComponent* UUserWidget::GetHandleFromName(const FString& Name) const
+UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
 	for ( auto& Entry : WidgetToComponent )
 	{
@@ -256,13 +256,13 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 				MakeWidget()
 			];
 
-		NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Size);
+		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
 
 		return VerticalBox;
 	}
 }
 
-USlateWrapperComponent* UUserWidget::GetRootWidgetComponent()
+UWidget* UUserWidget::GetRootWidgetComponent()
 {
 	if ( Components.Num() > 0 )
 	{
@@ -344,7 +344,7 @@ TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
 
-		return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
+		return UWidget::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
 	}
 
 	return ESlateVisibility::Collapsed;

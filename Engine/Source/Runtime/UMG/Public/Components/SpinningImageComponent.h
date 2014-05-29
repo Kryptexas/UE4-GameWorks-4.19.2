@@ -15,7 +15,7 @@ class UMG_API USpinningImageComponent : public UImageComponent
 	float Period;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

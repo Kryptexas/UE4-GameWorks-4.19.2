@@ -12,7 +12,7 @@ public:
 	SLATE_BEGIN_ARGS( SUMGEditorTreeItem ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USlateWrapperComponent* InItem);
+	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, UWidget* InItem);
 
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
 	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) OVERRIDE;
@@ -24,5 +24,5 @@ private:
 	FString GetItemTooltipText() const;
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
-	USlateWrapperComponent* Item;
+	UWidget* Item;
 };

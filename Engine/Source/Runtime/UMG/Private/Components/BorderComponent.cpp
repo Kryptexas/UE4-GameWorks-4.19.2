@@ -50,7 +50,7 @@ TSharedRef<SWidget> UBorderComponent::RebuildWidget()
 	return NewBorder;
 }
 
-void UBorderComponent::SetContent(USlateWrapperComponent* Content)
+void UBorderComponent::SetContent(UWidget* Content)
 {
 	Super::SetContent(Content);
 

@@ -33,12 +33,12 @@ public:
 	// End of SWidget interface
 
 private:
-	USlateWrapperComponent* GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
+	UWidget* GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
 
 	UWidgetBlueprint* GetBlueprint() const;
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
-	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
+	void ShowDetailsForObjects(TArray<UWidget*> Widgets);
 
 	bool GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
 	bool GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
@@ -74,7 +74,7 @@ private:
 	TWeakPtr<SWidget> PreviewWidget;
 	UUserWidget* PreviewWidgetActor;
 
-	USlateWrapperComponent* SelectedTemplate;
+	UWidget* SelectedTemplate;
 	TWeakPtr<SWidget> SelectedWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;

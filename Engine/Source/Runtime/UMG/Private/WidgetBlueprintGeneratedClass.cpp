@@ -46,7 +46,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* Actor) const
 	UUserWidget* WidgetActor = CastChecked<UUserWidget>(Actor);
 	UClass* ActorClass = Actor->GetClass();
 
-	for ( USlateWrapperComponent* Widget : ClonedTree->WidgetTemplates )
+	for ( UWidget* Widget : ClonedTree->WidgetTemplates )
 	{
 		// Not fatal if NULL, but shouldn't happen
 		if ( !ensure(Widget != NULL) )

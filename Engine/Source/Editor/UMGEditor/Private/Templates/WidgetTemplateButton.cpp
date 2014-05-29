@@ -18,7 +18,7 @@ FText FWidgetTemplateButton::GetCategory()
 	return LOCTEXT("Common", "Common");
 }
 
-USlateWrapperComponent* FWidgetTemplateButton::Create(UWidgetTree* Tree)
+UWidget* FWidgetTemplateButton::Create(UWidgetTree* Tree)
 {
 	UButtonComponent* Button = Tree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 	UTextBlockComponent* Text = Tree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());

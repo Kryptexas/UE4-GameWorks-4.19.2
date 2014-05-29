@@ -62,7 +62,7 @@ struct UMG_API FGridPanelSlot
 
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UGridPanelComponent : public USlateNonLeafWidgetComponent
+class UMG_API UGridPanelComponent : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -81,9 +81,9 @@ protected:
 	TSet<FIntPoint> UniqueSlotCoordinates;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	void RebuildUniqueSlotTable();
 	void EnsureSlotIsUnique(FGridPanelSlot& SlotConfig);

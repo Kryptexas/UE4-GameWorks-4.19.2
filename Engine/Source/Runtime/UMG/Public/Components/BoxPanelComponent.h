@@ -51,7 +51,7 @@ struct UMG_API FBoxPanelSlot
 
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UBoxPanelComponent : public USlateNonLeafWidgetComponent
+class UMG_API UBoxPanelComponent : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -71,7 +71,7 @@ protected:
 	TWeakPtr<class SConcreteBoxPanel> MyBox;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

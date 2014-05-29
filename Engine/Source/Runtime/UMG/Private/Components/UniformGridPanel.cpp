@@ -16,18 +16,18 @@ int32 UUniformGridPanel::GetChildrenCount() const
 	return Slots.Num();
 }
 
-USlateWrapperComponent* UUniformGridPanel::GetChildAt(int32 Index) const
+UWidget* UUniformGridPanel::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
 
-bool UUniformGridPanel::AddChild(USlateWrapperComponent* Child, FVector2D Position)
+bool UUniformGridPanel::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;
 }
 
-bool UUniformGridPanel::RemoveChild(USlateWrapperComponent* Child)
+bool UUniformGridPanel::RemoveChild(UWidget* Child)
 {
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
@@ -43,7 +43,7 @@ bool UUniformGridPanel::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
-void UUniformGridPanel::ReplaceChildAt(int32 Index, USlateWrapperComponent* Content)
+void UUniformGridPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 {
 	UUniformGridSlot* Slot = Slots[Index];
 	Slot->Content = Content;
@@ -77,7 +77,7 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	return NewPanel;
 }
 
-UUniformGridSlot* UUniformGridPanel::AddSlot(USlateWrapperComponent* Content)
+UUniformGridSlot* UUniformGridPanel::AddSlot(UWidget* Content)
 {
 	UUniformGridSlot* Slot = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
 	Slot->Content = Content;

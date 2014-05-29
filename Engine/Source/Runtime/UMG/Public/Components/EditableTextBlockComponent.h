@@ -9,7 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextBlock_TextChangedEven
 
 /** Editable text box widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UEditableTextBlockComponent : public USlateWrapperComponent
+class UMG_API UEditableTextBlockComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -87,9 +87,9 @@ protected:
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent
+	// End of UWidget
 
 	void SlateOnTextChanged(const FText& Text);
 };

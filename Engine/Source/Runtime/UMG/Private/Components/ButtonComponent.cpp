@@ -65,7 +65,7 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 	return NewButton;
 }
 
-void UButtonComponent::SetContent(USlateWrapperComponent* InContent)
+void UButtonComponent::SetContent(UWidget* InContent)
 {
 	Super::SetContent(InContent);
 

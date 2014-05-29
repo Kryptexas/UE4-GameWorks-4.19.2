@@ -10,17 +10,17 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UWidgetTree::RenameWidget(USlateWrapperComponent* Widget, FString& NewName)
+void UWidgetTree::RenameWidget(UWidget* Widget, FString& NewName)
 {
 	Widget->Rename(*NewName);
 
 	// TODO Update nodes in the blueprint!
 }
 
-USlateWrapperComponent* UWidgetTree::FindWidget(FString& Name) const
+UWidget* UWidgetTree::FindWidget(FString& Name) const
 {
 	FString ExistingName;
-	for ( USlateWrapperComponent* Widget : WidgetTemplates )
+	for ( UWidget* Widget : WidgetTemplates )
 	{
 		Widget->GetName(ExistingName);
 		if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
@@ -32,11 +32,11 @@ USlateWrapperComponent* UWidgetTree::FindWidget(FString& Name) const
 	return NULL;
 }
 
-USlateNonLeafWidgetComponent* UWidgetTree::FindWidgetParent(USlateWrapperComponent* Widget, int32& OutChildIndex)
+UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
-	for ( USlateWrapperComponent* Template : WidgetTemplates )
+	for ( UWidget* Template : WidgetTemplates )
 	{
-		USlateNonLeafWidgetComponent* NonLeafTemplate = Cast<USlateNonLeafWidgetComponent>(Template);
+		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
 		if ( NonLeafTemplate )
 		{
 			for ( int32 ChildIndex = 0; ChildIndex < NonLeafTemplate->GetChildrenCount(); ChildIndex++ )
@@ -54,15 +54,15 @@ USlateNonLeafWidgetComponent* UWidgetTree::FindWidgetParent(USlateWrapperCompone
 	return NULL;
 }
 
-bool UWidgetTree::RemoveWidget(USlateWrapperComponent* InRemovedWidget)
+bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
-	USlateWrapperComponent* Parent = NULL;
+	UWidget* Parent = NULL;
 
 	bool bRemoved = false;
 
 	//TODO UMG Make the Widget Tree actually a tree, instead of a list, it makes things like removal difficult.
 
-	if ( USlateNonLeafWidgetComponent* InNonLeafRemovedWidget = Cast<USlateNonLeafWidgetComponent>(InRemovedWidget) )
+	if ( UPanelWidget* InNonLeafRemovedWidget = Cast<UPanelWidget>(InRemovedWidget) )
 	{
 		while ( InNonLeafRemovedWidget->GetChildrenCount() > 0 )
 		{
@@ -70,9 +70,9 @@ bool UWidgetTree::RemoveWidget(USlateWrapperComponent* InRemovedWidget)
 		}
 	}
 
-	for ( USlateWrapperComponent* Template : WidgetTemplates )
+	for ( UWidget* Template : WidgetTemplates )
 	{
-		USlateNonLeafWidgetComponent* NonLeafTemplate = Cast<USlateNonLeafWidgetComponent>(Template);
+		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
 		if ( NonLeafTemplate )
 		{
 			if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )

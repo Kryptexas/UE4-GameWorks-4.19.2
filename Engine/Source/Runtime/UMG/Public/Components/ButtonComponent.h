@@ -81,7 +81,7 @@ public:
 
 
 	// UContentWidget interface
-	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
+	virtual void SetContent(UWidget* Content) OVERRIDE;
 	// End UContentWidget interface
 
 protected:
@@ -96,9 +96,9 @@ protected:
 	}
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	FMargin GetContentPadding() const;
 

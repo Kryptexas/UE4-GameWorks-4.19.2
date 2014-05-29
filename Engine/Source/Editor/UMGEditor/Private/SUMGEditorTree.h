@@ -21,13 +21,13 @@ private:
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
-	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
+	void ShowDetailsForObjects(TArray<UWidget*> Widgets);
 
 	void BuildWrapWithMenu(FMenuBuilder& Menu);
 	TSharedPtr<SWidget> WidgetHierarchy_OnContextMenuOpening();
-	void WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren);
-	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable);
-	void WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo);
+	void WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren);
+	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	void WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo);
 
 	FReply CreateTestUI();
 	void RefreshTree();
@@ -41,7 +41,7 @@ private:
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
-	TArray< USlateWrapperComponent* > RootWidgets;
+	TArray< UWidget* > RootWidgets;
 
-	TSharedPtr< STreeView< USlateWrapperComponent* > > WidgetTreeView;
+	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
 };

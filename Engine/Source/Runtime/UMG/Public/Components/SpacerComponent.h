@@ -15,9 +15,9 @@ class UMG_API USpacerComponent : public USlateLeafWidgetComponent
 	FVector2D Size;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	FVector2D GetSpacerSize() const;
 };

@@ -3,9 +3,9 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// USlateWrapperComponent
+// UWidget
 
-USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializeProperties& PCIP)
+UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsEnabled = true;
@@ -13,12 +13,12 @@ USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializePro
 	Visiblity = ESlateVisibility::Visible;
 }
 
-bool USlateWrapperComponent::GetIsEnabled() const
+bool UWidget::GetIsEnabled() const
 {
 	return MyWidget.IsValid() ? MyWidget->IsEnabled() : bIsEnabled;
 }
 
-void USlateWrapperComponent::SetIsEnabled(bool bInIsEnabled)
+void UWidget::SetIsEnabled(bool bInIsEnabled)
 {
 	bIsEnabled = bInIsEnabled;
 	if ( MyWidget.IsValid() )
@@ -27,33 +27,33 @@ void USlateWrapperComponent::SetIsEnabled(bool bInIsEnabled)
 	}
 }
 
-TEnumAsByte<ESlateVisibility::Type> USlateWrapperComponent::GetVisibility()
+TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
 {
-	return USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
+	return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
 }
 
-void USlateWrapperComponent::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
+void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
 {
-	MyWidget->SetVisibility(USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(InVisibility));
+	MyWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
 }
 
-void USlateWrapperComponent::SetToolTipText(const FText& InToolTipText)
+void UWidget::SetToolTipText(const FText& InToolTipText)
 {
 	MyWidget->SetToolTipText(ToolTipText);
 }
 
-void USlateWrapperComponent::OnUnregister()
+void UWidget::OnUnregister()
 {
 	MyWidget = NULL;
 //	Super::OnUnregister();
 }
 
-void USlateWrapperComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UWidget::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// TODO Rename?
 }
 
-TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
+TSharedRef<SWidget> UWidget::GetWidget()
 {
 	if ( !MyWidget.IsValid() )
 	{
@@ -70,13 +70,13 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 	return MyWidget.ToSharedRef();
 }
 
-TSharedRef<SWidget> USlateWrapperComponent::RebuildWidget()
+TSharedRef<SWidget> UWidget::RebuildWidget()
 {
 	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));
 	return SNew(SSpacer);
 }
 
-EVisibility USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)
+EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)
 {
 	switch ( Input )
 	{
@@ -96,7 +96,7 @@ EVisibility USlateWrapperComponent::ConvertSerializedVisibilityToRuntime(TEnumAs
 	}
 }
 
-TEnumAsByte<ESlateVisibility::Type> USlateWrapperComponent::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+TEnumAsByte<ESlateVisibility::Type> UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
 {
 	if ( Input == EVisibility::Visible )
 	{
@@ -125,7 +125,7 @@ TEnumAsByte<ESlateVisibility::Type> USlateWrapperComponent::ConvertRuntimeToSeri
 	}
 }
 
-FSizeParam USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input)
+FSizeParam UWidget::ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input)
 {
 	switch ( Input.SizeRule )
 	{

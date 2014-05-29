@@ -58,16 +58,16 @@ class UMG_API UBorderComponent : public UContentWidget
 	bool bShowEffectWhenDisabled;
 
 	// UContentWidget interface
-	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
+	virtual void SetContent(UWidget* Content) OVERRIDE;
 	// End UContentWidget interface
 
 protected:
 	TWeakPtr<class SBorder> MyBorder;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	FMargin GetContentPadding() const;
 	FLinearColor GetContentColor() const;

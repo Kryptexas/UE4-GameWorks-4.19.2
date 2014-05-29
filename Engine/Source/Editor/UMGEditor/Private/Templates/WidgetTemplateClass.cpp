@@ -6,7 +6,7 @@
 
 #define LOCTEXT_NAMESPACE "UMGEditor"
 
-FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<USlateWrapperComponent> InWidgetClass)
+FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 	: WidgetClass(InWidgetClass)
 {
 }
@@ -17,9 +17,9 @@ FText FWidgetTemplateClass::GetCategory()
 	return LOCTEXT("Class", "Class");
 }
 
-USlateWrapperComponent* FWidgetTemplateClass::Create(UWidgetTree* Tree)
+UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
 {
-	return Tree->ConstructWidget<USlateWrapperComponent>(WidgetClass);
+	return Tree->ConstructWidget<UWidget>(WidgetClass);
 }
 
 #undef LOCTEXT_NAMESPACE

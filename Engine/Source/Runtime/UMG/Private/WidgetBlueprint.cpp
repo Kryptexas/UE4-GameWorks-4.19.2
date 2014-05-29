@@ -28,7 +28,7 @@ void UWidgetBlueprint::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	for ( USlateWrapperComponent* Widget : WidgetTree->WidgetTemplates )
+	for ( UWidget* Widget : WidgetTree->WidgetTemplates )
 	{
 		Widget->ConnectEditorData();
 	}

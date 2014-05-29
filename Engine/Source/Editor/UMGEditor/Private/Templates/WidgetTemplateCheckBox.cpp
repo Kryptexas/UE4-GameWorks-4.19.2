@@ -18,7 +18,7 @@ FText FWidgetTemplateCheckBox::GetCategory()
 	return LOCTEXT("Common", "Common");
 }
 
-USlateWrapperComponent* FWidgetTemplateCheckBox::Create(UWidgetTree* Tree)
+UWidget* FWidgetTemplateCheckBox::Create(UWidgetTree* Tree)
 {
 	UHorizontalBoxComponent* Horizontal = Tree->ConstructWidget<UHorizontalBoxComponent>(UHorizontalBoxComponent::StaticClass());
 	UCheckBoxComponent* Checkbox = Tree->ConstructWidget<UCheckBoxComponent>(UCheckBoxComponent::StaticClass());

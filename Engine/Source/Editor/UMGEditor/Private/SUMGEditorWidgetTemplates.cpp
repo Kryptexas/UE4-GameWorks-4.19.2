@@ -123,7 +123,7 @@ void SUMGEditorWidgetTemplates::BuildClassWidgetList()
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		UClass* WidgetClass = *ClassIt;
-		if ( WidgetClass->IsChildOf(USlateWrapperComponent::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
 		{
 			TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 			Template->Name = WidgetClass->GetDisplayNameText();

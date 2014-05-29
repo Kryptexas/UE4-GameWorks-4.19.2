@@ -46,7 +46,7 @@ int32 UCanvasPanelComponent::GetChildrenCount() const
 	return Slots.Num();
 }
 
-USlateWrapperComponent* UCanvasPanelComponent::GetChildAt(int32 Index) const
+UWidget* UCanvasPanelComponent::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
@@ -83,7 +83,7 @@ TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 	return NewCanvas;
 }
 
-UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content)
+UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(UWidget* Content)
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -97,7 +97,7 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content
 	return Slot;
 }
 
-bool UCanvasPanelComponent::AddChild(USlateWrapperComponent* Child, FVector2D Position)
+bool UCanvasPanelComponent::AddChild(UWidget* Child, FVector2D Position)
 {
 	UCanvasPanelSlot* Slot = AddSlot(Child);
 	Slot->Position = Position;

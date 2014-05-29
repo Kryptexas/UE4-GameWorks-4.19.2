@@ -43,7 +43,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SAssignNew(WidgetTreeView, STreeView< USlateWrapperComponent* >)
+			SAssignNew(WidgetTreeView, STreeView< UWidget* >)
 			.ItemHeight(20.0f)
 			.SelectionMode(ESelectionMode::Single)
 			.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
@@ -95,13 +95,13 @@ void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProp
 	}
 }
 
-void SUMGEditorTree::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
+void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> Widgets)
 {
 	// Convert the selection set to an array of UObject* pointers
 	FString InspectorTitle;
 	TArray<UObject*> InspectorObjects;
 	InspectorObjects.Empty(Widgets.Num());
-	for ( USlateWrapperComponent* Widget : Widgets )
+	for ( UWidget* Widget : Widgets )
 	{
 		//if ( NodePtr->CanEditDefaults() )
 		{
@@ -124,7 +124,7 @@ void SUMGEditorTree::BuildWrapWithMenu(FMenuBuilder& Menu)
 		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 		{
 			UClass* WidgetClass = *ClassIt;
-			if ( WidgetClass->IsChildOf(USlateNonLeafWidgetComponent::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
 			{
 				Menu.AddMenuEntry(
 					WidgetClass->GetDisplayNameText(),
@@ -147,7 +147,7 @@ TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
 
 	MenuBuilder.BeginSection("Actions");
 	{
-		const TArray<USlateWrapperComponent*> SelectionList = WidgetTreeView->GetSelectedItems();
+		const TArray<UWidget*> SelectionList = WidgetTreeView->GetSelectedItems();
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("WidgetTree_Delete", "Delete"),
@@ -170,14 +170,14 @@ TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
 	return MenuBuilder.MakeWidget();
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren)
+void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
 {
-	USlateNonLeafWidgetComponent* Widget = Cast<USlateNonLeafWidgetComponent>(InParent);
+	UPanelWidget* Widget = Cast<UPanelWidget>(InParent);
 	if ( Widget )
 	{
 		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
 		{
-			USlateWrapperComponent* Child = Widget->GetChildAt(i);
+			UWidget* Child = Widget->GetChildAt(i);
 			if ( Child )
 			{
 				OutChildren.Add(Child);
@@ -186,10 +186,10 @@ void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InPar
 	}
 }
 
-TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return
-		SNew(STableRow< USlateWrapperComponent* >, OwnerTable)
+		SNew(STableRow< UWidget* >, OwnerTable)
 		.Padding(2.0f)
 //		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
 		[
@@ -197,11 +197,11 @@ TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(USlateWrap
 		];
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo)
+void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)
 {
 	if ( SelectInfo != ESelectInfo::Direct )
 	{
-		TArray<USlateWrapperComponent*> Items;
+		TArray<UWidget*> Items;
 		Items.Add(SelectedItem);
 		ShowDetailsForObjects(Items);
 	}
@@ -209,15 +209,15 @@ void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* 
 
 void SUMGEditorTree::WrapSelectedWidgets(UClass* WidgetClass)
 {
-	const TArray<USlateWrapperComponent*> SelectionList = WidgetTreeView->GetSelectedItems();
+	const TArray<UWidget*> SelectionList = WidgetTreeView->GetSelectedItems();
 
 	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 
 	UWidgetBlueprint* BP = GetBlueprint();
-	USlateNonLeafWidgetComponent* NewWrapperWidget = CastChecked<USlateNonLeafWidgetComponent>( Template->Create(BP->WidgetTree) );
+	UPanelWidget* NewWrapperWidget = CastChecked<UPanelWidget>( Template->Create(BP->WidgetTree) );
 
 	int32 OutIndex;
-	USlateNonLeafWidgetComponent* CurrentParent = BP->WidgetTree->FindWidgetParent(SelectionList[0], OutIndex);
+	UPanelWidget* CurrentParent = BP->WidgetTree->FindWidgetParent(SelectionList[0], OutIndex);
 	if ( CurrentParent )
 	{
 		CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
@@ -231,7 +231,7 @@ void SUMGEditorTree::WrapSelectedWidgets(UClass* WidgetClass)
 FReply SUMGEditorTree::CreateTestUI()
 {
 	UWidgetBlueprint* BP = GetBlueprint();
-	TArray<USlateWrapperComponent*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
+	TArray<UWidget*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
 
 	if ( WidgetTemplates.Num() > 0 )
 	{
@@ -283,13 +283,13 @@ FReply SUMGEditorTree::HandleDeleteSelected()
 
 void SUMGEditorTree::DeleteSelected()
 {
-	TArray<USlateWrapperComponent*> SelectedItems = WidgetTreeView->GetSelectedItems();
+	TArray<UWidget*> SelectedItems = WidgetTreeView->GetSelectedItems();
 	if ( SelectedItems.Num() > 0 )
 	{
 		UWidgetBlueprint* BP = GetBlueprint();
 
 		bool bRemoved = false;
-		for ( USlateWrapperComponent* Item : SelectedItems )
+		for ( UWidget* Item : SelectedItems )
 		{
 			bRemoved = BP->WidgetTree->RemoveWidget(Item);
 		}
@@ -306,7 +306,7 @@ void SUMGEditorTree::RefreshTree()
 	RootWidgets.Reset();
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	TArray<USlateWrapperComponent*>& WidgetTemplates = Blueprint->WidgetTree->WidgetTemplates;
+	TArray<UWidget*>& WidgetTemplates = Blueprint->WidgetTree->WidgetTemplates;
 
 	if ( WidgetTemplates.Num() > 0 )
 	{

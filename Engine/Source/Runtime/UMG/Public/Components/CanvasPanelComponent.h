@@ -5,7 +5,7 @@
 #include "CanvasPanelComponent.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UCanvasPanelComponent : public USlateNonLeafWidgetComponent
+class UMG_API UCanvasPanelComponent : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -17,22 +17,22 @@ class UMG_API UCanvasPanelComponent : public USlateNonLeafWidgetComponent
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FVector2D DesiredCanvasSize;
 
-	UCanvasPanelSlot* AddSlot(USlateWrapperComponent* Content);
-	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
+	UCanvasPanelSlot* AddSlot(UWidget* Content);
+	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
 
-	// USlateNonLeafWidgetComponent
+	// UPanelWidget
 	virtual int32 GetChildrenCount() const OVERRIDE;
-	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
-	// End USlateNonLeafWidgetComponent
+	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
+	// End UPanelWidget
 
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
 
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual void ConnectEditorData() OVERRIDE;
-	// End USlateWrapperComponent interface
+	// End UWidget interface
 #endif
 
 protected:
@@ -40,7 +40,7 @@ protected:
 	TWeakPtr<class SFixedSizeCanvas> MyCanvas;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

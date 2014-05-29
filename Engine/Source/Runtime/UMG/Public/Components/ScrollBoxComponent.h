@@ -5,14 +5,14 @@
 #include "ScrollBoxComponent.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UScrollBoxComponent : public USlateWrapperComponent
+class UMG_API UScrollBoxComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
 protected:
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

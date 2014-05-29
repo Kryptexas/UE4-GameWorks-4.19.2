@@ -19,9 +19,9 @@ class UMG_API UImageComponent : public USlateLeafWidgetComponent
 	FSlateColor ColorAndOpacity;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	const FSlateBrush* GetImageBrush() const;
 	FSlateColor GetColorAndOpacity() const;

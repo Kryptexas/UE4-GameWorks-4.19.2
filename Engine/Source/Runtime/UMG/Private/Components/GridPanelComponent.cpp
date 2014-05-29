@@ -30,12 +30,12 @@ TSharedRef<SWidget> UGridPanelComponent::RebuildWidget()
 	//	}
 	//	
 	//	// Make sure all children are assigned to a slot
-	//	TArray<USlateWrapperComponent*> WrappedComponentsInSlotOrder;
+	//	TArray<UWidget*> WrappedComponentsInSlotOrder;
 	//	WrappedComponentsInSlotOrder.AddZeroed(Slots.Num());
 
 	//	for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
 	//	{
-	//		if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
+	//		if (UWidget* Wrapper = Cast<UWidget>(AttachChildren[ComponentIndex]))
 	//		{
 	//			if (Wrapper->IsRegistered())
 	//			{

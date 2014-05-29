@@ -180,7 +180,7 @@ void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProper
 	//UpdatePreview(InBlueprint);
 }
 
-void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
+void SUMGDesigner::ShowDetailsForObjects(TArray<UWidget*> Widgets)
 {
 	// @TODO COde duplication
 
@@ -188,7 +188,7 @@ void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets
 	FString InspectorTitle;
 	TArray<UObject*> InspectorObjects;
 	InspectorObjects.Empty(Widgets.Num());
-	for ( USlateWrapperComponent* Widget : Widgets )
+	for ( UWidget* Widget : Widgets )
 	{
 		//if ( NodePtr->CanEditDefaults() )
 		{
@@ -204,7 +204,7 @@ void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets
 	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
 }
 
-USlateWrapperComponent* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
+UWidget* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
@@ -219,7 +219,7 @@ USlateWrapperComponent* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeo
 	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
 	if ( WidgetActor )
 	{
-		USlateWrapperComponent* PreviewHandle = NULL;
+		UWidget* PreviewHandle = NULL;
 		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
 		{
 			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
@@ -236,7 +236,7 @@ USlateWrapperComponent* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeo
 		if ( PreviewHandle )
 		{
 			FString Name = PreviewHandle->GetName();
-			USlateWrapperComponent* Template = Blueprint->WidgetTree->FindWidget(Name);
+			UWidget* Template = Blueprint->WidgetTree->FindWidget(Name);
 			return Template;
 		}
 	}
@@ -257,7 +257,7 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 		{
 			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
 			// Set the template as selected in the details panel
-			TArray<USlateWrapperComponent*> SelectedTemplates;
+			TArray<UWidget*> SelectedTemplates;
 			SelectedTemplates.Add(SelectedTemplate);
 			ShowDetailsForObjects(SelectedTemplates);
 		}
@@ -578,15 +578,15 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 	if ( DragDropOp.IsValid() )
 	{
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		USlateWrapperComponent* Template = GetTemplateAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+		UWidget* Template = GetTemplateAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
 
 		UWidgetBlueprint* BP = GetBlueprint();
 
-		if ( Template && Template->IsA(USlateNonLeafWidgetComponent::StaticClass()) )
+		if ( Template && Template->IsA(UPanelWidget::StaticClass()) )
 		{
-			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Template);
+			UPanelWidget* Parent = Cast<UPanelWidget>(Template);
 
-			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 
 			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 			Parent->AddChild(Widget, LocalPosition);
@@ -603,7 +603,7 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 		else if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
 		{
 			// No existing templates so just create it and make it the root widget.
-			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 			SelectedTemplate = Widget;
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);

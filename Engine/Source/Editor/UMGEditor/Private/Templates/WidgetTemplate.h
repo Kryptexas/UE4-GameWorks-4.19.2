@@ -9,7 +9,7 @@ public:
 
 	virtual FText GetCategory() = 0;
 
-	virtual USlateWrapperComponent* Create(class UWidgetTree* Tree) = 0;
+	virtual UWidget* Create(class UWidgetTree* Tree) = 0;
 
 public:
 	FText Name;

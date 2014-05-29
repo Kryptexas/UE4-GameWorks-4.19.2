@@ -11,20 +11,20 @@ class UMG_API UWidgetTree : public UObject
 
 	/** Array of templates for widgets */
 	UPROPERTY()
-	TArray<class USlateWrapperComponent*> WidgetTemplates;
+	TArray<class UWidget*> WidgetTemplates;
 
-	void RenameWidget(USlateWrapperComponent* Widget, FString& NewName);
+	void RenameWidget(UWidget* Widget, FString& NewName);
 
-	class USlateWrapperComponent* FindWidget(FString& Name) const;
+	class UWidget* FindWidget(FString& Name) const;
 
-	bool RemoveWidget(class USlateWrapperComponent* Widget);
+	bool RemoveWidget(class UWidget* Widget);
 
-	class USlateNonLeafWidgetComponent* FindWidgetParent(class USlateWrapperComponent* Widget, int32& OutChildIndex);
+	class UPanelWidget* FindWidgetParent(class UWidget* Widget, int32& OutChildIndex);
 
 	template< class T >
-	T* ConstructWidget(TSubclassOf<class USlateWrapperComponent> WidgetType)
+	T* ConstructWidget(TSubclassOf<class UWidget> WidgetType)
 	{
-		USlateWrapperComponent* Widget = (USlateWrapperComponent*)ConstructObject<class USlateWrapperComponent>(WidgetType, this);
+		UWidget* Widget = (UWidget*)ConstructObject<class UWidget>(WidgetType, this);
 		WidgetTemplates.Add(Widget);
 
 		return (T*)Widget;

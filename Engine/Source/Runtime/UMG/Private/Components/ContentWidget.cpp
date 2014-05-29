@@ -21,12 +21,12 @@ UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	//bTickInEditor = true;
 }
 
-USlateWrapperComponent* UContentWidget::GetContent()
+UWidget* UContentWidget::GetContent()
 {
 	return Content;
 }
 
-void UContentWidget::SetContent(USlateWrapperComponent* InContent)
+void UContentWidget::SetContent(UWidget* InContent)
 {
 	Content = InContent;
 }
@@ -36,18 +36,18 @@ int32 UContentWidget::GetChildrenCount() const
 	return Content != NULL ? 1 : 0;
 }
 
-USlateWrapperComponent* UContentWidget::GetChildAt(int32 Index) const
+UWidget* UContentWidget::GetChildAt(int32 Index) const
 {
 	return Content;
 }
 
-bool UContentWidget::AddChild(USlateWrapperComponent* InContent, FVector2D Position)
+bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 {
 	Content = InContent;
 	return true;
 }
 
-bool UContentWidget::RemoveChild(USlateWrapperComponent* Child)
+bool UContentWidget::RemoveChild(UWidget* Child)
 {
 	if ( Content == Child )
 	{
@@ -58,7 +58,7 @@ bool UContentWidget::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
-void UContentWidget::ReplaceChildAt(int32 Index, USlateWrapperComponent* Child)
+void UContentWidget::ReplaceChildAt(int32 Index, UWidget* Child)
 {
 	check(Index == 0);
 	Content = Child;

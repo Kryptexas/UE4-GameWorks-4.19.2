@@ -5,7 +5,7 @@
 #include "UniformGridPanel.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UUniformGridPanel : public USlateNonLeafWidgetComponent
+class UMG_API UUniformGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -13,24 +13,24 @@ class UMG_API UUniformGridPanel : public USlateNonLeafWidgetComponent
 	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
 	TArray<UUniformGridSlot*> Slots;
 
-	UUniformGridSlot* AddSlot(USlateWrapperComponent* Content);
+	UUniformGridSlot* AddSlot(UWidget* Content);
 
-	// USlateNonLeafWidgetComponent
+	// UPanelWidget
 	virtual int32 GetChildrenCount() const OVERRIDE;
-	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
-	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
-	virtual bool RemoveChild(USlateWrapperComponent* Child) OVERRIDE;
-	virtual void ReplaceChildAt(int32 Index, USlateWrapperComponent* Child) OVERRIDE;
-	// End USlateNonLeafWidgetComponent
+	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
+	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
+	virtual bool RemoveChild(UWidget* Child) OVERRIDE;
+	virtual void ReplaceChildAt(int32 Index, UWidget* Child) OVERRIDE;
+	// End UPanelWidget
 
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
 
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual void ConnectEditorData() OVERRIDE;
-	// End USlateWrapperComponent interface
+	// End UWidget interface
 #endif
 
 protected:
@@ -38,7 +38,7 @@ protected:
 	TWeakPtr<class SUniformGridPanel> MyUniformGridPanel;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 };

@@ -70,9 +70,9 @@ protected:
 		return TSharedPtr<class SSlider>();
 	}
 
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent interface
+	// End of UWidget interface
 
 	void HandleOnValueChanged(float InValue);
 	void HandleOnMouseCaptureBegin();

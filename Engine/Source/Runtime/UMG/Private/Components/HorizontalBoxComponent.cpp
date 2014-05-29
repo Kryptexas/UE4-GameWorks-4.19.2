@@ -16,18 +16,18 @@ int32 UHorizontalBoxComponent::GetChildrenCount() const
 	return Slots.Num();
 }
 
-USlateWrapperComponent* UHorizontalBoxComponent::GetChildAt(int32 Index) const
+UWidget* UHorizontalBoxComponent::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
 
-bool UHorizontalBoxComponent::AddChild(USlateWrapperComponent* Child, FVector2D Position)
+bool UHorizontalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;
 }
 
-bool UHorizontalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
+bool UHorizontalBoxComponent::RemoveChild(UWidget* Child)
 {
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
@@ -43,7 +43,7 @@ bool UHorizontalBoxComponent::RemoveChild(USlateWrapperComponent* Child)
 	return false;
 }
 
-void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, USlateWrapperComponent* Content)
+void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = Slots[Index];
 	Slot->Content = Content;
@@ -79,14 +79,14 @@ TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
 				];
 
-			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Slot->Size);
+			NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Slot->Size);
 		}
 	}
 
 	return NewCanvas;
 }
 
-UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(USlateWrapperComponent* Content)
+UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;

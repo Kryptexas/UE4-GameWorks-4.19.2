@@ -10,7 +10,7 @@ class UMG_API UPanelSlot : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	class USlateWrapperComponent* Content;
+	class UWidget* Content;
 
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
 

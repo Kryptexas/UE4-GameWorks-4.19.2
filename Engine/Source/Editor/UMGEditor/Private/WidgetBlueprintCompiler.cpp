@@ -536,7 +536,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	for ( UWidget* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
@@ -583,7 +583,7 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 
 	if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
 	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<USlateWrapperComponent>(Blueprint->WidgetTree->WidgetTemplates));
+		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UWidget>(Blueprint->WidgetTree->WidgetTemplates));
 	}
 }
 
@@ -595,7 +595,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 	ValidateWidgetNames();
 
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	for ( UWidget* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
 		// Skip non-variable widgets
 		if ( !Widget->bIsVariable )

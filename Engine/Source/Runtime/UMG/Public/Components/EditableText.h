@@ -9,7 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextCommittedEvent, cons
 
 /** Editable text box widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UEditableText : public USlateWrapperComponent
+class UMG_API UEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -88,9 +88,9 @@ protected:
 	FOnEditableTextCommittedEvent OnTextCommitted;
 
 protected:
-	// USlateWrapperComponent interface
+	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
-	// End of USlateWrapperComponent
+	// End of UWidget
 
 #if WITH_EDITOR
 	// UObject interface

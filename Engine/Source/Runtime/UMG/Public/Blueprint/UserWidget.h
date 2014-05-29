@@ -80,7 +80,7 @@ class UMG_API UUserWidget : public UObject
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	UPROPERTY()
-	TArray<USlateWrapperComponent*> Components;
+	TArray<UWidget*> Components;
 	
 	//UObject interface
 	virtual void PostInitProperties() OVERRIDE;
@@ -166,19 +166,19 @@ class UMG_API UUserWidget : public UObject
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 
-	USlateWrapperComponent* GetWidgetHandle(TSharedRef<SWidget> InWidget);
+	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	TSharedRef<SWidget> MakeWidget();
 	TSharedRef<SWidget> MakeFullScreenWidget();
 
-	USlateWrapperComponent* GetRootWidgetComponent();
+	UWidget* GetRootWidgetComponent();
 
 	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
-	USlateWrapperComponent* GetHandleFromName(const FString& Name) const;
+	UWidget* GetHandleFromName(const FString& Name) const;
 
 private:
 	TSharedPtr<SWidget> UserRootWidget;
-	TMap< TWeakPtr<SWidget>, USlateWrapperComponent* > WidgetToComponent;
+	TMap< TWeakPtr<SWidget>, UWidget* > WidgetToComponent;
 
 	TWeakPtr<SWidget> FullScreenWidget;
 

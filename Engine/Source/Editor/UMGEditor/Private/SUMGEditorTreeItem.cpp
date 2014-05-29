@@ -13,7 +13,7 @@
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
 
-void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USlateWrapperComponent* InItem)
+void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, UWidget* InItem)
 {
 	BlueprintEditor = InBlueprintEditor;
 	Item = InItem;
@@ -76,12 +76,12 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
 	{
-		if ( Item->IsA(USlateNonLeafWidgetComponent::StaticClass()) )
+		if ( Item->IsA(UPanelWidget::StaticClass()) )
 		{
 			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());			
-			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Item);
+			UPanelWidget* Parent = Cast<UPanelWidget>(Item);
 
-			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 
 			Parent->AddChild(Widget, FVector2D(0,0));
 
