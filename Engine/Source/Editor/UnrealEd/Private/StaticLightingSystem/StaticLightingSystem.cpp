@@ -8,6 +8,7 @@
 
 FSwarmDebugOptions GSwarmDebugOptions;
 
+#include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
 #include "LightingBuildOptions.h"
 #include "StaticLightingPrivate.h"
 #include "Database.h"

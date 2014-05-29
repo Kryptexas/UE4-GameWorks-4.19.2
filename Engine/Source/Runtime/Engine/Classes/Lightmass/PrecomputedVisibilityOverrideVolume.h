@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "PrecomputedVisibilityOverrideVolume.generated.h"
 
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)

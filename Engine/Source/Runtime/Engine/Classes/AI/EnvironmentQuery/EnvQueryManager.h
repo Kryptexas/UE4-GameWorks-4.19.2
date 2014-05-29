@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EnvQueryTypes.h"
+#include "Tickable.h"
 #include "EnvQueryManager.generated.h"
 
 /** wrapper for easy query execution */

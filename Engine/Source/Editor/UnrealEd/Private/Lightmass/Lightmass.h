@@ -17,6 +17,9 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#include "Lightmass/LightmassImportanceVolume.h"
+#include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
+
 /** Forward declarations of Lightmass types */
 namespace Lightmass
 {

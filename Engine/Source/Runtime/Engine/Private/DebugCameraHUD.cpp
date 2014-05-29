@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/DebugCameraHUD.h"
 
 // ------------------
 // Externals

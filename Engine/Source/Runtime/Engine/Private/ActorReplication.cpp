@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameNetworkManager.h"
 #include "NavigationPathBuilder.h"
 
 /*-----------------------------------------------------------------------------

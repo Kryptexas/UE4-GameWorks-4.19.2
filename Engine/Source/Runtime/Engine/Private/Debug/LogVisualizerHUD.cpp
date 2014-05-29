@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Debug/LogVisualizerHUD.h"
+#include "Debug/LogVisualizerCameraController.h"
 
 #define LOCTEXT_NAMESPACE "ALogVisualizerHUD"
 

@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
 #include "LevelUtils.h"
 #include "ImageUtils.h"
 #include "FXSystem.h"
@@ -5944,41 +5945,6 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 		{
 			SetTemplate( PS_CameraEffect );
 		}
-	}
-}
-
-
-AEmitterSpawnable::AEmitterSpawnable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-	ParticleSystemComponent->SecondsBeforeInactive = 0;
-	
-	bDestroyOnSystemFinish = true;
-	bNetTemporary = true;
-}
-
-void AEmitterSpawnable::SetTemplate(UParticleSystem* NewTemplate)
-{
-	Super::SetTemplate(NewTemplate);
-
-	ParticleTemplate = NewTemplate;
-}
-
-void AEmitterSpawnable::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-{
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-	
-	DOREPLIFETIME_CONDITION( AEmitterSpawnable, ParticleTemplate, COND_InitialOnly );
-}
-
-void AEmitterSpawnable::OnRep_ParticleTemplate()
-{
-	SetTemplate(ParticleTemplate);
-	ParticleSystemComponent->ActivateSystem();
-	if (ParticleTemplate == NULL && bDestroyOnSystemFinish)
-	{
-		// prevent emitter from hanging around forever with no template
-		Destroy();
 	}
 }
 

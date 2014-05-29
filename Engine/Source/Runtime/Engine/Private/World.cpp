@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Matinee/MatineeActor.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameNetworkManager.h"
 #include "ParticleDefinitions.h"
 #include "Database.h"
 #include "Net/NetworkProfiler.h"

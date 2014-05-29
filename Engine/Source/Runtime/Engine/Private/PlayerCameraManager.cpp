@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "Particles/EmitterCameraLensEffectBase.h"
 #include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);

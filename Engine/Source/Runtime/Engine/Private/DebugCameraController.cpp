@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/DebugCameraHUD.h"
 
 /** The currently selected actor. */
 AActor* GDebugSelectedActor = NULL;

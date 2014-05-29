@@ -21,6 +21,7 @@
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Landscape/LandscapeProxy.h"
+#include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpData.h"

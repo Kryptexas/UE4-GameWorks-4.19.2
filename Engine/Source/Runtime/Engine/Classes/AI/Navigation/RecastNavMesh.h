@@ -3,6 +3,7 @@
 #pragma once
 
 #include "NavAreas/NavArea.h"
+#include "Tickable.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */

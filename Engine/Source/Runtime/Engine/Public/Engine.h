@@ -6,39 +6,31 @@
 
 #pragma once
 
-#include "EngineDefines.h"
-
 #include "Core.h"
 #include "CoreUObject.h"
 #include "InputCore.h"
+#include "EngineDefines.h"
 #include "EngineSettings.h"
 #include "EngineStats.h"
 #include "EngineLogs.h"
-
 #include "EngineGlobals.h"
 
 /*-----------------------------------------------------------------------------
 	Engine public includes.
 -----------------------------------------------------------------------------*/
 
-#include "Tickable.h"						// FTickableGameObject interface.
 #include "Engine/EngineBaseTypes.h"
-
-// EngineClasses.h
 #include "Camera/CameraTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "Sound/AmbientSound.h"
 #include "Engine/Brush.h"
-#include "Engine/BrushShape.h"
 #include "GameFramework/Volume.h"
 #include "Engine/BlockingVolume.h"
 #include "GameFramework/CameraBlockingVolume.h"
 #include "Engine/CullDistanceVolume.h"
 #include "Engine/LevelStreamingVolume.h"
-#include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
-#include "Lightmass/LightmassImportanceVolume.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
 #include "AI/Navigation/NavRelevantActorInterface.h"
 #include "AI/Navigation/NavModifierVolume.h"
@@ -48,8 +40,6 @@
 #include "GameFramework/PainCausingVolume.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/PostProcessVolume.h"
-#include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
-#include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Sound/ReverbVolume.h"
 #include "Engine/TriggerVolume.h"
 #include "Camera/CameraActor.h"
@@ -69,28 +59,19 @@
 #include "GameFramework/Info.h"
 #include "GameFramework/GameMode.h"
 #include "Components/InputComponent.h"
-#include "Engine/ScriptViewportClient.h"
-#include "Engine/GameViewportClient.h"
 #include "Curves/CurveBase.h"
 #include "Curves/CurveFloat.h"
 #include "GameFramework/ForceFeedbackEffect.h"
-#include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/DebugCameraController.h"
-#include "Debug/LogVisualizerCameraController.h"
 #include "Engine/DecalActor.h"
 #include "PhysicsEngine/DestructibleActor.h"
 #include "Particles/Emitter.h"
-#include "Particles/EmitterCameraLensEffectBase.h"
-#include "Particles/EmitterSpawnable.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/HUD.h"
-#include "Engine/DebugCameraHUD.h"
-#include "Debug/LogVisualizerHUD.h"
 #include "Debug/GameplayDebuggingHUDComponent.h"
 #include "Atmosphere/AtmosphericFog.h"
 #include "Engine/ExponentialHeightFog.h"
-#include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"

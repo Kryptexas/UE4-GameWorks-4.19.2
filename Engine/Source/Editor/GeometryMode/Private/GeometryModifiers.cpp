@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
+#include "Engine/BrushShape.h"
 #include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "BSPOps.h"

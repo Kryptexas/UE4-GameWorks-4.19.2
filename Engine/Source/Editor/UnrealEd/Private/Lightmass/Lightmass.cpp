@@ -13,6 +13,8 @@
 #include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
 #include "Runtime/Engine/Classes/Matinee/InterpTrackMove.h"
 #include "Runtime/Engine/Classes/Matinee/InterpTrackInstMove.h"
+#include "Lightmass/PrecomputedVisibilityVolume.h"
+#include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
