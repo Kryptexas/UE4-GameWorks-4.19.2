@@ -912,6 +912,10 @@ namespace UnrealBuildTool
 
 					if (ExeName.StartsWith("UE4Editor"))
 					{
+					}
+
+					if (ExeName.StartsWith("UE4Editor"))
+					{
 						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
 					}
 
