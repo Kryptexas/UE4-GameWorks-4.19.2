@@ -37,7 +37,15 @@ public:
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("VariableName"), FText::FromName(VarNode->VariableReference.GetMemberName()));
 
-			CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFound_Error", "Unable to find local variable with name '{VariableName}' for @@"), Args).ToString(), Node);
+			if(VarNode->VariableReference.GetMemberScopeName() != Context.Function->GetName())
+			{
+				Args.Add(TEXT("ScopeName"), FText::FromString(VarNode->VariableReference.GetMemberScopeName()));
+				CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFoundInScope_Error", "Unable to find local variable with name '{VariableName}' for @@, scope expected: @@, scope found: {ScopeName}"), Args).ToString(), Node, Node->GetGraph());
+			}
+			else
+			{
+				CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFound_Error", "Unable to find local variable with name '{VariableName}' for @@"), Args).ToString(), Node);
+			}
 		}
 
 		FNodeHandlingFunctor::RegisterNets(Context, Node);
