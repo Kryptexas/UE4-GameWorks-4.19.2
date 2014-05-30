@@ -65,12 +65,15 @@ TSharedRef<IDetailCustomization> FInternationalizationSettingsModelDetails::Make
 
 FInternationalizationSettingsModelDetails::~FInternationalizationSettingsModelDetails()
 {
+	check(Model.IsValid());
+	Model->OnSettingChanged().RemoveAll(this);
 }
 
 void FInternationalizationSettingsModelDetails::OnSettingsChanged()
 {
 	FInternationalization& I18N = FInternationalization::Get();
 
+	check(Model.IsValid());
 	FString SavedCultureName = Model->GetCultureName();
 	if ( !SavedCultureName.IsEmpty() && SavedCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
