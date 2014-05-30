@@ -4,6 +4,8 @@
 
 #include "ComponentVisualizer.h"
 
+struct FViewportClick;
+
 /** Class that managed active component visualizer and routes input to it */
 class UNREALED_API FComponentVisualizerManager
 {
@@ -13,16 +15,19 @@ public:
 
 
 	/** Activate a component visualizer given a clicked proxy */
-	void HandleProxyForComponentVis(HHitProxy *HitProxy);
+	bool HandleProxyForComponentVis(HHitProxy *HitProxy);
 	/** Clear active component visualizer */
 	void ClearActiveComponentVis();
 
 	/** Pass key input to active visualizer */
-	bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
+	bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const;
 	/** Pass delta input to active visualizer */
-	bool HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale);
+	bool HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const;
 	/** Get widget location from active visualizer */
-	bool GetWidgetLocation(FVector& OutLocation);
+	bool GetWidgetLocation(FVector& OutLocation) const;
+
+	/** Generate context menu for the component visualizer */
+	TSharedPtr<SWidget> GenerateContextMenuForComponentVis() const;
 
 private:
 	/** Currently 'active' visualizer that we should pass input to etc */

@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct FViewportClick;
+
 struct HComponentVisProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY(UNREALED_API);
@@ -23,6 +25,11 @@ struct HComponentVisProxy : public HHitProxy
 class UNREALED_API FComponentVisualizer : public TSharedFromThis<FComponentVisualizer>
 {
 public:
+	FComponentVisualizer() {}
+	virtual ~FComponentVisualizer() {}
+
+	/** */
+	virtual void OnRegister() {}
 	/** Draw visualization for the supplied component */
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) {}
 	/** */
@@ -30,11 +37,13 @@ public:
 	/** */
 	virtual void EndEditing() {}
 	/** */
-	virtual bool GetWidgetLocation(FVector& OutLocation) { return false; }
+	virtual bool GetWidgetLocation(FVector& OutLocation) const { return false; }
 	/** */
 	virtual bool HandleInputDelta(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltalRotate, FVector& DeltaScale) { return false; }
 	/** */
 	virtual bool HandleInputKey(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,FKey Key,EInputEvent Event) { return false; }
+	/** */
+	virtual TSharedPtr<SWidget> GenerateContextMenu() const { return TSharedPtr<SWidget>(); }
 
 	/** Find the name of the property that points to this component */
 	static FName GetComponentPropertyName(const UActorComponent* Component);

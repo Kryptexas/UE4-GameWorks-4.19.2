@@ -568,10 +568,26 @@ bool FEdMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProx
 
 	if(HitProxy)
 	{	
-		GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
+		bool bHandled = GUnrealEd->ComponentVisManager.HandleProxyForComponentVis(HitProxy);
+		if (bHandled && Click.GetKey() == EKeys::RightMouseButton)
+		{
+			TSharedPtr<SWidget> MenuWidget = GUnrealEd->ComponentVisManager.GenerateContextMenuForComponentVis();
+			if (MenuWidget.IsValid())
+			{
+				auto ParentLevelEditorPinned = InViewportClient->ParentLevelEditor.Pin();
+				if (ParentLevelEditorPinned.IsValid())
+				{
+					FSlateApplication::Get().PushMenu(
+						ParentLevelEditorPinned.ToSharedRef(),
+						MenuWidget.ToSharedRef(),
+						FSlateApplication::Get().GetCursorPos(),
+						FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+				}
+			}
+		}
 	}
 
-	return 0;
+	return false;
 }
 
 void FEdMode::Enter()

@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 #include "ComponentVisualizerManager.h"
 
-void FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy)
+bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy)
 {
 	if (HitProxy->IsA(HComponentVisProxy::StaticGetType()))
 	{
@@ -24,6 +24,7 @@ void FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy
 					}
 
 					EditedVisualizer = Visualizer;
+					return true;
 				}
 			}
 		}
@@ -32,6 +33,8 @@ void FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy
 	{
 		ClearActiveComponentVis();
 	}
+
+	return false;
 }
 
 void FComponentVisualizerManager::ClearActiveComponentVis()
@@ -43,7 +46,7 @@ void FComponentVisualizerManager::ClearActiveComponentVis()
 	}
 }
 
-bool FComponentVisualizerManager::HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool FComponentVisualizerManager::HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const
 {
 	if(EditedVisualizer.IsValid())
 	{
@@ -56,7 +59,7 @@ bool FComponentVisualizerManager::HandleInputKey(FLevelEditorViewportClient* Vie
 	return false;
 }
 
-bool FComponentVisualizerManager::HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
+bool FComponentVisualizerManager::HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const
 {
 	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 	{
@@ -70,7 +73,7 @@ bool FComponentVisualizerManager::HandleInputDelta(FLevelEditorViewportClient* I
 }
 
 
-bool FComponentVisualizerManager::GetWidgetLocation(FVector& OutLocation)
+bool FComponentVisualizerManager::GetWidgetLocation(FVector& OutLocation) const
 {
 	if (EditedVisualizer.IsValid())
 	{
@@ -78,4 +81,15 @@ bool FComponentVisualizerManager::GetWidgetLocation(FVector& OutLocation)
 	}
 
 	return false;
+}
+
+
+TSharedPtr<SWidget> FComponentVisualizerManager::GenerateContextMenuForComponentVis() const
+{
+	if (EditedVisualizer.IsValid())
+	{
+		return EditedVisualizer.Pin()->GenerateContextMenu();
+	}
+
+	return TSharedPtr<SWidget>();
 }

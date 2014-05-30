@@ -15,8 +15,10 @@ public class ComponentVisualizers : ModuleRules
                 "InputCore",
 				"Engine",
 				"Slate",
+                "SlateCore",
 				"UnrealEd",
                 "PropertyEditor",
+                "EditorStyle"
 			}
 			);
 	}

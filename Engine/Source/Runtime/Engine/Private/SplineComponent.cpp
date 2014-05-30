@@ -12,6 +12,8 @@
 USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	Duration = 1.0f;
+
 	// Add 2 keys by default
 	int32 PointIndex = SplineInfo.AddPoint(0.f, FVector(0,0,0));
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
@@ -33,46 +35,207 @@ void USplineComponent::UpdateSplineReparamTable()
 	{
 		return;
 	}
-	
-	const int32 NumKeys = SplineInfo.Points.Num(); // Number of keys on spline
-	const int32 NumSteps = 10 * (NumKeys-1); // TODO: Make this adaptive...
-	
-	// Find range of input
-	float Param = SplineInfo.Points[0].InVal;
-	const float MaxInput = SplineInfo.Points[NumKeys-1].InVal;
-	const float Interval = (MaxInput - Param)/((float)(NumSteps-1)); 
-	
-	// Add first entry, using first point on curve, total distance will be 0
-	FVector OldSplinePos = SplineInfo.Eval(Param, FVector::ZeroVector);
-	float TotalDist = 0.f;
-	SplineReparamTable.AddPoint(TotalDist, Param);
-	Param += Interval;
 
-	// Then work over rest of points	
-	for(int32 i=1; i<NumSteps; i++)
+	const int32 NumSegments = SplineInfo.Points.Num() - 1;
+	const int32 NumSteps = 4 * NumSegments;
+
+	// Build array of segment lengths
+	TArray<float> SegmentLengths;
+	SegmentLengths.Reset(NumSegments);
+
+	float TotalLength = 0.0f;
+	for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
 	{
-		// Iterate along spline at regular param intervals
-		const FVector NewSplinePos = SplineInfo.Eval(Param, FVector::ZeroVector);
-		
-		TotalDist += (NewSplinePos - OldSplinePos).Size();
-		OldSplinePos = NewSplinePos;
-
-		SplineReparamTable.AddPoint(TotalDist, Param);
-
-		// move along
-		Param += Interval;
+		float SegmentLength = GetSegmentLength(SegmentIndex);
+		SegmentLengths.Add(SegmentLength);
+		TotalLength += SegmentLength;
 	}
+
+	// Now step through the spine at a constant distance interval, adding points to the reparam table
+	int32 CurrentSegment = 0;
+	float AccumulatedLength = 0.0f;
+	for (int32 Step = 0; Step < NumSteps; ++Step)
+	{
+		const float TargetLength = TotalLength * Step / NumSteps;
+
+		while (TargetLength - AccumulatedLength > SegmentLengths[CurrentSegment])
+		{
+			AccumulatedLength += SegmentLengths[CurrentSegment];
+			CurrentSegment++;
+		}
+
+		const float Param = GetSegmentParamFromLength(CurrentSegment, TargetLength - AccumulatedLength, SegmentLengths[CurrentSegment]);
+		const int32 Index = SplineReparamTable.AddPoint(TargetLength, CurrentSegment + Param);
+		SplineReparamTable.Points[Index].InterpMode = CIM_CurveAuto;
+	}
+
+	const int32 Index = SplineReparamTable.AddPoint(TotalLength, NumSegments);
+	SplineReparamTable.Points[Index].InterpMode = CIM_CurveAuto;
+
+	SplineReparamTable.AutoSetTangents();
 }
+
+
+float USplineComponent::GetSegmentLength(const int32 Index, const float Param) const
+{
+	check(Index < SplineInfo.Points.Num() - 1);
+	check(Param >= 0.0f && Param <= 1.0f);
+
+	// Evaluate the length of a Hermite spline segment.
+	// This calculates the integral of |dP/dt| dt, where P(t) is the spline equation with components (x(t), y(t), z(t)).
+	// This isn't solvable analytically, so we use a numerical method (Legendre-Gauss quadrature) which performs very well
+	// with functions of this type, even with very few samples.  In this case, just 5 samples is sufficient to yield a
+	// reasonable result.
+
+	struct FLegendreGaussCoefficient
+	{
+		float Abscissa;
+		float Weight;
+	};
+
+	static const FLegendreGaussCoefficient LegendreGaussCoefficients[] =
+	{
+		{ 0.0f, 0.5688889f },
+		{ -0.5384693f, 0.47862867f },
+		{ 0.5384693f, 0.47862867f },
+		{ -0.90617985f, 0.23692688f },
+		{ 0.90617985f, 0.23692688f }
+	};
+
+	const auto& StartPoint = SplineInfo.Points[Index];
+	const auto& EndPoint = SplineInfo.Points[Index + 1];
+	check(EndPoint.InVal - StartPoint.InVal == 1.0f);
+
+	const auto& P0 = StartPoint.OutVal;
+	const auto& T0 = StartPoint.LeaveTangent;
+	const auto& P1 = EndPoint.OutVal;
+	const auto& T1 = EndPoint.ArriveTangent;
+
+	// Cache the coefficients to be fed into the function to calculate the spline derivative at each sample point as they are constant.
+	const FVector Coeff1 = ((P0 - P1) * 2.0f + T0 + T1) * 3.0f;
+	const FVector Coeff2 = (P1 - P0) * 6.0f - T0 * 4.0f - T1 * 2.0f;
+	const FVector Coeff3 = T0;
+
+	const float HalfParam = Param * 0.5f;
+
+	float Length = 0.0f;
+	for (const auto& LegendreGaussCoefficient : LegendreGaussCoefficients)
+	{
+		// Calculate derivative at each Legendre-Gauss sample, and perform a weighted sum
+		const float Alpha = HalfParam * (1.0f + LegendreGaussCoefficient.Abscissa);
+		const FVector Derivative = (Coeff1 * Alpha + Coeff2) * Alpha + Coeff3;
+		Length += Derivative.Size() * LegendreGaussCoefficient.Weight;
+	}
+	Length *= HalfParam;
+
+	return Length;
+}
+
+
+float USplineComponent::GetSegmentParamFromLength(const int32 Index, const float Length, const float SegmentLength) const
+{
+	if (SegmentLength == 0.0f)
+	{
+		return 0.0f;
+	}
+
+	// Given a function P(x) which yields points along a spline with x = 0...1, we can define a function L(t) to be the
+	// Euclidian length of the spline from P(0) to P(t):
+	//
+	//    L(t) = integral of |dP/dt| dt
+	//         = integral of sqrt((dx/dt)^2 + (dy/dt)^2 + (dz/dt)^2) dt
+	//
+	// This method evaluates the inverse of this function, i.e. given a length d, it obtains a suitable value for t such that:
+	//    L(t) - d = 0
+	//
+	// We use Newton-Raphson to iteratively converge on the result:
+	//
+	//    t' = t - f(t) / (df/dt)
+	//
+	// where: t is an initial estimate of the result, obtained through basic linear interpolation,
+	//        f(t) is the function whose root we wish to find = L(t) - d,
+	//        (df/dt) = d(L(t))/dt = |dP/dt|
+
+	check(Index < SplineInfo.Points.Num() - 1);
+	check(Length >= 0.0f && Length <= SegmentLength);
+	check(SplineInfo.Points[Index + 1].InVal - SplineInfo.Points[Index].InVal == 1.0f);
+
+	float Param = Length / SegmentLength;  // initial estimate for t
+
+	// two iterations of Newton-Raphson is enough
+	for (int32 Iteration = 0; Iteration < 2; ++Iteration)
+	{
+		float TangentMagnitude = SplineInfo.EvalDerivative(Index + Param, FVector::ZeroVector).Size();
+		if (TangentMagnitude > 0.0f)
+		{
+			Param -= (GetSegmentLength(Index, Param) - Length) / TangentMagnitude;
+			Param = FMath::Clamp(Param, 0.0f, 1.0f);
+		}
+	}
+
+	return Param;
+}
+
+
+void USplineComponent::ClearSplinePoints()
+{
+	SplineInfo.Reset();
+	SplineReparamTable.Reset();
+}
+
+
+void USplineComponent::AddSplineWorldPoint(const FVector& Position)
+{
+	float InputKey = static_cast<float>(SplineInfo.Points.Num());
+	int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Position));
+	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
+
+	SplineInfo.AutoSetTangents();
+	UpdateSplineReparamTable();
+}
+
+
+void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
+{
+	SplineInfo.Reset();
+	float InputKey = 0.0f;
+	for (const auto& Point : Points)
+	{
+		int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Point));
+		SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
+		InputKey += 1.0f;
+	}
+
+	SplineInfo.AutoSetTangents();
+	UpdateSplineReparamTable();
+}
+
 
 float USplineComponent::GetSplineLength() const
 {
+	const int32 NumPoints = SplineReparamTable.Points.Num();
+
 	// This is given by the input of the last entry in the remap table
-	if(SplineReparamTable.Points.Num() > 0)
+	if (NumPoints > 0)
 	{
-		return SplineReparamTable.Points[SplineReparamTable.Points.Num()-1].InVal;
+		return SplineReparamTable.Points[NumPoints - 1].InVal;
 	}
 	
 	return 0.f;
+}
+
+
+float USplineComponent::GetInputKeyAtDistanceAlongSpline(float Distance) const
+{
+	const int32 NumPoints = SplineInfo.Points.Num();
+
+	if (NumPoints < 2)
+	{
+		return 0.0f;
+	}
+
+	const float TimeMultiplier = Duration / (NumPoints - 1.0f);
+	return SplineReparamTable.Eval(Distance, 0.f) * TimeMultiplier;
 }
 
 
@@ -90,6 +253,69 @@ FVector USplineComponent::GetWorldDirectionAtDistanceAlongSpline(float Distance)
 	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).SafeNormal();
 	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
+
+
+FRotator USplineComponent::GetWorldRotationAtDistanceAlongSpline(float Distance) const
+{
+	const float Param = SplineReparamTable.Eval(Distance, 0.f);
+	const FVector Forward = SplineInfo.EvalDerivative(Param, FVector(1.0f, 0.0f, 0.0f));
+	return Forward.Rotation() + ComponentToWorld.Rotator();
+}
+
+
+FVector USplineComponent::GetWorldLocationAtTime(float Time, bool bUseConstantVelocity) const
+{
+	if (Duration == 0.0f)
+	{
+		return FVector::ZeroVector;
+	}
+
+	if (bUseConstantVelocity)
+	{
+		return GetWorldLocationAtDistanceAlongSpline(Time / Duration * GetSplineLength());
+	}
+
+	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
+	const FVector Location = SplineInfo.Eval(Time * TimeMultiplier, FVector::ZeroVector);
+	return ComponentToWorld.TransformPosition(Location);
+}
+
+
+FVector USplineComponent::GetWorldDirectionAtTime(float Time, bool bUseConstantVelocity) const
+{
+	if (Duration == 0.0f)
+	{
+		return FVector::ZeroVector;
+	}
+
+	if (bUseConstantVelocity)
+	{
+		return GetWorldDirectionAtDistanceAlongSpline(Time / Duration * GetSplineLength());
+	}
+
+	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
+	const FVector Tangent = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector::ZeroVector).SafeNormal();
+	return ComponentToWorld.TransformVectorNoScale(Tangent);
+}
+
+
+FRotator USplineComponent::GetWorldRotationAtTime(float Time, bool bUseConstantVelocity) const
+{
+	if (Duration == 0.0f)
+	{
+		return FRotator::ZeroRotator;
+	}
+
+	if (bUseConstantVelocity)
+	{
+		return GetWorldRotationAtDistanceAlongSpline(Time / Duration * GetSplineLength());
+	}
+
+	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
+	const FVector Forward = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector(1.0f, 0.0f, 0.0f));
+	return Forward.Rotation() + ComponentToWorld.Rotator();
+}
+
 
 void USplineComponent::RefreshSplineInputs()
 {

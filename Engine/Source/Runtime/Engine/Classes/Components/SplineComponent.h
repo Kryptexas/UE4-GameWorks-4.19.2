@@ -19,6 +19,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UPROPERTY()
 	FInterpCurveFloat SplineReparamTable;
 
+	/** Specifies the duration of the spline in seconds */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spline)
+	float Duration;
+
 	// Begin UActorComponent interface.
 	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
 	virtual FName GetComponentInstanceDataType() const OVERRIDE;
@@ -28,20 +32,56 @@ class ENGINE_API USplineComponent : public USceneComponent
 	/** Update the SplineReparamTable */
 	void UpdateSplineReparamTable();
 
+	/** Clears all the points in the spline */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	void ClearSplinePoints();
+
+	/** Adds a world space point to the spline */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	void AddSplineWorldPoint(const FVector& Position);
+
+	/** Sets the spline to an array of world space points */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	void SetSplineWorldPoints(const TArray<FVector>& Points);
+
 	/** Returns total length along this spline */
 	UFUNCTION(BlueprintCallable, Category=Spline) 
 	float GetSplineLength() const;
-	
+
+	/** Given a distance along the length of this spline, return the corresponding input key at that point */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	float GetInputKeyAtDistanceAlongSpline(float Distance) const;
+
 	/** Given a distance along the length of this spline, return the point in space where this puts you */
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetWorldLocationAtDistanceAlongSpline(float Distance) const;
 	
-	/** Given a distance along the length of this spline, return a unit direction vector of the spline there. */
+	/** Given a distance along the length of this spline, return a unit direction vector of the spline tangent there. */
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetWorldDirectionAtDistanceAlongSpline(float Distance) const;
 
+	/** Given a distance along the length of this spline, return a rotation corresponding to the spline's position and direction there. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FRotator GetWorldRotationAtDistanceAlongSpline(float Distance) const;
+
+	/** Given a time from 0 to the spline duration, return the point in space where this puts you */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector GetWorldLocationAtTime(float Time, bool bUseConstantVelocity = false) const;
+
+	/** Given a time from 0 to the spline duration, return a unit direction vector of the spline tangent there. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector GetWorldDirectionAtTime(float Time, bool bUseConstantVelocity = false) const;
+
+	/** Given a time from 0 to the spline duration, return a rotation corresponding to the spline's position and direction there. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FRotator GetWorldRotationAtTime(float Time, bool bUseConstantVelocity = false) const;
+
 	/** Walk through keys and set time for each one */
 	void RefreshSplineInputs();
+
+private:
+	float GetSegmentLength(const int32 Index, const float Param = 1.0f) const;
+	float GetSegmentParamFromLength(const int32 Index, const float Length, const float SegmentLength) const;
 };
 
 

@@ -2148,51 +2148,43 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		}
 		else if( HitProxy->IsA( HWidgetAxis::StaticGetType() ) )
 		{
-			if(Click.GetKey() == EKeys::RightMouseButton)
+			// The user clicked on an axis translation/rotation hit proxy.  However, we want
+			// to find out what's underneath the axis widget.  To do this, we'll need to render
+			// the viewport's hit proxies again, this time *without* the axis widgets!
+
+			// OK, we need to be a bit evil right here.  Basically we want to hijack the ShowFlags
+			// for the scene so we can re-render the hit proxies without any axis widgets.  We'll
+			// store the original ShowFlags and modify them appropriately
+			const bool bOldModeWidgets1 = EngineShowFlags.ModeWidgets;
+			const bool bOldModeWidgets2 = View.Family->EngineShowFlags.ModeWidgets;
+
+			EngineShowFlags.ModeWidgets = 0;
+			FSceneViewFamily* SceneViewFamily = const_cast< FSceneViewFamily* >( View.Family );
+			SceneViewFamily->EngineShowFlags.ModeWidgets = 0;
+			bool bWasWidgetDragging = Widget->IsDragging();
+			Widget->SetDragging(false);
+
+			// Invalidate the hit proxy map so it will be rendered out again when GetHitProxy
+			// is called
+			Viewport->InvalidateHitProxy();
+
+			// This will actually re-render the viewport's hit proxies!
+			HHitProxy* HitProxyWithoutAxisWidgets = Viewport->GetHitProxy( HitX, HitY );
+			if( HitProxyWithoutAxisWidgets != NULL && !HitProxyWithoutAxisWidgets->IsA( HWidgetAxis::StaticGetType() ))
 			{
-				// If this is a right click, always handle as though we're clicking the backdrop
-				ClickHandlers::ClickBackdrop(this, Click);
+				// Try this again, but without the widget this time!
+				ProcessClick( View, HitProxyWithoutAxisWidgets, Key, Event, HitX, HitY );
 			}
-			else
-			{
-				// The user clicked on an axis translation/rotation hit proxy.  However, we want
-				// to find out what's underneath the axis widget.  To do this, we'll need to render
-				// the viewport's hit proxies again, this time *without* the axis widgets!
 
-				// OK, we need to be a bit evil right here.  Basically we want to hijack the ShowFlags
-				// for the scene so we can re-render the hit proxies without any axis widgets.  We'll
-				// store the original ShowFlags and modify them appropriately
-				const bool bOldModeWidgets1 = EngineShowFlags.ModeWidgets;
-				const bool bOldModeWidgets2 = View.Family->EngineShowFlags.ModeWidgets;
+			// Undo the evil
+			EngineShowFlags.ModeWidgets = bOldModeWidgets1;
+			SceneViewFamily->EngineShowFlags.ModeWidgets = bOldModeWidgets2;
 
-				EngineShowFlags.ModeWidgets = 0;
-				FSceneViewFamily* SceneViewFamily = const_cast< FSceneViewFamily* >( View.Family );
-				SceneViewFamily->EngineShowFlags.ModeWidgets = 0;
-				bool bWasWidgetDragging = Widget->IsDragging();
-				Widget->SetDragging(false);
+			Widget->SetDragging(bWasWidgetDragging);
 
-				// Invalidate the hit proxy map so it will be rendered out again when GetHitProxy
-				// is called
-				Viewport->InvalidateHitProxy();
-
-				// This will actually re-render the viewport's hit proxies!
-				HHitProxy* HitProxyWithoutAxisWidgets = Viewport->GetHitProxy( HitX, HitY );
-				if( HitProxyWithoutAxisWidgets != NULL && !HitProxyWithoutAxisWidgets->IsA( HWidgetAxis::StaticGetType() ))
-				{
-					// Try this again, but without the widget this time!
-					ProcessClick( View, HitProxyWithoutAxisWidgets, Key, Event, HitX, HitY );
-				}
-
-				// Undo the evil
-				EngineShowFlags.ModeWidgets = bOldModeWidgets1;
-				SceneViewFamily->EngineShowFlags.ModeWidgets = bOldModeWidgets2;
-
-				Widget->SetDragging(bWasWidgetDragging);
-
-				// Invalidate the hit proxy map again so that it'll be refreshed with the original
-				// scene contents if we need it again later.
-				Viewport->InvalidateHitProxy();
-			}
+			// Invalidate the hit proxy map again so that it'll be refreshed with the original
+			// scene contents if we need it again later.
+			Viewport->InvalidateHitProxy();
 		}
 	}
 }

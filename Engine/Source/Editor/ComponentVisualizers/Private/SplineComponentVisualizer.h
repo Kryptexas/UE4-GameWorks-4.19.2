@@ -33,25 +33,34 @@ struct HSplineKeyProxy : public HSplineVisProxy
 class FSplineComponentVisualizer : public FComponentVisualizer
 {
 public:
-	FSplineComponentVisualizer()
-	: FComponentVisualizer()
-	, SelectedKeyIndex(INDEX_NONE)
-	, bAllowDuplication(true)
-	{}
+	FSplineComponentVisualizer();
+	virtual ~FSplineComponentVisualizer();
 
 	// Begin FComponentVisualizer interface
+	virtual void OnRegister() OVERRIDE;
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
 	virtual bool VisProxyHandleClick(HComponentVisProxy* VisProxy) OVERRIDE;
 	virtual void EndEditing() OVERRIDE;
-	virtual bool GetWidgetLocation(FVector& OutLocation) OVERRIDE;
-	virtual bool HandleInputDelta(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltalRotate, FVector& DeltaScale) OVERRIDE;
+	virtual bool GetWidgetLocation(FVector& OutLocation) const OVERRIDE;
+	virtual bool HandleInputDelta(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) OVERRIDE;
 	virtual bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
+	virtual TSharedPtr<SWidget> GenerateContextMenu() const OVERRIDE;
 	// End FComponentVisualizer interface
 
 	/** Get the spline component we are currently editing */
-	USplineComponent* GetEditedSplineComponent();
+	USplineComponent* GetEditedSplineComponent() const;
 
 private:
+
+	void OnDeleteKey();
+	void OnDuplicateKey();
+	bool IsSelectionValid() const;
+
+	void OnResetToAutomaticTangent();
+	bool CanResetToAutomaticTangent() const;
+
+	/** Output log commands */
+	TSharedPtr<FUICommandList> SplineComponentVisualizerActions;
 
 	/** Actor that owns the currently edited spline */
 	TWeakObjectPtr<AActor> SplineOwningActor;
