@@ -760,16 +760,6 @@ public:
 		return FVector2D::ZeroVector;
 	}
 
-	virtual float GetDepthBiasScale() const 
-	{ 
-		return 1;
-	}
-
-	virtual float GetShadowTransitionScale() const 
-	{ 
-		return 1;
-	}
-
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const {}
 
@@ -925,13 +915,6 @@ protected:
 
 	/** Scale for indirect lighting from this light.  When 0, indirect lighting is disabled. */
 	float IndirectLightingScale;
-
-	/** 
-	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
-	 * At close to 0, shadows will start far from their caster, and there won't be self shadowing artifacts.
-	 * At close to 1, shadows will start very close to their caster, but there will be many self shadowing artifacts.
-	 */
-	float SelfShadowingAccuracy;
 
 	/** User setting from light component, 0:no bias, 0.5:reasonable, larger object might appear to float */
 	float ShadowBias;

@@ -36,14 +36,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 
 	/** 
 	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
-	 * At close to 0, shadows will start far from their caster, and there won't be self shadowing artifacts.
-	 * At close to 1, shadows will start very close to their caster, but there will be many self shadowing artifacts.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = "0", UIMax = "1"))
-	float SelfShadowingAccuracy;
-
-	/** 
-	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
 	 * At 0, shadows will start at the their caster surface, but there will be many self shadowing artifacts.
 	 * larger values, shadows will start further from their caster, and there won't be self shadowing artifacts but object might appear to fly.
 	 * around 0.5 seems to be a good tradeoff. This also affects the soft transition of shadows

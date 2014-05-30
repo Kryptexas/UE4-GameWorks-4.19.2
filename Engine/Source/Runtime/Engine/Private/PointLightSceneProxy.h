@@ -233,24 +233,6 @@ public:
 		return true;
 	}
 
-	virtual float GetDepthBiasScale() const 
-	{ 
-		return FMath::Lerp(2.0f, 0.0f, SelfShadowingAccuracy);
-	}
-
-	virtual float GetShadowTransitionScale() const 
-	{ 
-		if (SelfShadowingAccuracy < .5f)
-		{
-			return FMath::Lerp(0.01f, 1.0f, SelfShadowingAccuracy * 2);
-		}
-		else
-		{
-			// Center an accuracy of .5 at 1
-			return FMath::Lerp(-10.0f, 12.0f, SelfShadowingAccuracy);
-		}
-	}
-
 private:
 
 	/** Updates the light scene info's radius from the component. */

@@ -2141,7 +2141,8 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 	if (IsWholeScenePointLightShadow())
 	{
 		DepthBias = CVarPointLightShadowDepthBias.GetValueOnRenderThread() * 512.0f / FMath::Max(ResolutionX, ResolutionY);
-		DepthBias *= LightSceneInfo->Proxy->GetDepthBiasScale();
+		// * 2.0f to be compatible with the system we had before ShadowBias
+		DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
@@ -2180,7 +2181,8 @@ void FProjectedShadowInfo::UpdateShaderDepthBias()
 			// spot lights (old code, might need to be improved)
 			const float LightTypeDepthBias = CVarSpotLightShadowDepthBias.GetValueOnRenderThread();
 			DepthBias = LightTypeDepthBias * 512.0f / ((MaxSubjectZ - MinSubjectZ) * FMath::Max(ResolutionX, ResolutionY));
-			DepthBias *= LightSceneInfo->Proxy->GetDepthBiasScale();
+			// * 2.0f to be compatible with the system we had before ShadowBias
+			DepthBias *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 		}
 	}
 
@@ -2195,7 +2197,8 @@ float FProjectedShadowInfo::ComputeTransitionSize() const
 	{
 		// todo: optimize
 		TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
-		TransitionSize /= LightSceneInfo->Proxy->GetShadowTransitionScale();
+		// * 2.0f to be compatible with the system we had before ShadowBias
+		TransitionSize *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
@@ -2221,7 +2224,8 @@ float FProjectedShadowInfo::ComputeTransitionSize() const
 	{
 		// todo: optimize
 		TransitionSize = bDirectionalLight ? (1.0f / CVarShadowTransitionScale.GetValueOnRenderThread()) : (1.0f / CVarSpotLightShadowTransitionScale.GetValueOnRenderThread());
-		TransitionSize /= LightSceneInfo->Proxy->GetShadowTransitionScale();
+		// * 2.0f to be compatible with the system we had before ShadowBias
+		TransitionSize *= 2.0f * LightSceneInfo->Proxy->GetUserShadowBias();
 	}
 
 	return TransitionSize;

@@ -306,16 +306,6 @@ public:
 		return true;
 	}
 
-	virtual float GetDepthBiasScale() const 
-	{ 
-		return FMath::Lerp(2.0f, 0.0f, SelfShadowingAccuracy);
-	}
-
-	virtual float GetShadowTransitionScale() const 
-	{ 
-		return FMath::Lerp(0.0f, 2.0f, SelfShadowingAccuracy);
-	}
-
 private:
 
 	void UpdateLightShaftOverrideDirection_RenderThread(FVector NewLightShaftOverrideDirection)
@@ -606,7 +596,6 @@ void UDirectionalLightComponent::PostEditChangeProperty(FPropertyChangedEvent& P
 	CascadeDistributionExponent = FMath::Clamp(CascadeDistributionExponent, .1f, 10.0f);
 	CascadeTransitionFraction = FMath::Clamp(CascadeTransitionFraction, 0.0f, 0.3f);
 	ShadowDistanceFadeoutFraction = FMath::Clamp(ShadowDistanceFadeoutFraction, 0.0f, 1.0f);
-	SelfShadowingAccuracy = FMath::Clamp(SelfShadowingAccuracy, 0.01f, 1.0f);
 	// max range is larger than UI
 	ShadowBias = FMath::Clamp(ShadowBias, 0.0f, 10.0f);
 
