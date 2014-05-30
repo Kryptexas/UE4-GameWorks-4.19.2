@@ -486,7 +486,7 @@ void ProcessBasePassMeshForForwardShading(
 		}
 	}
 	else if (bIsLitMaterial
-		&& IsIndirectLightingCacheAllowed(GRHIFeatureLevel)
+		&& IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 		&& Parameters.PrimitiveSceneProxy
 		// Movable objects need to get their GI from the indirect lighting cache
 		&& Parameters.PrimitiveSceneProxy->IsMovable())

@@ -144,9 +144,9 @@ int32 FindSectionByMaterialIndex( USkeletalMesh* SkelMesh, uint32 LODIndex, uint
 	return -1;
 }
 
-uint32 GetMaxClothSimulVertices()
+uint32 GetMaxClothSimulVertices(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
 	{					
 		return MAX_APEXCLOTH_VERTICES_FOR_VB;
 	}

@@ -1933,6 +1933,13 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 	}
 }
 
+void FScene::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	FeatureLevel = InFeatureLevel;
+	GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+	SetMaxRHIFeatureLevel(InFeatureLevel);
+}
+
 /**
  * Dummy NULL scene interface used by dedicated servers.
  */

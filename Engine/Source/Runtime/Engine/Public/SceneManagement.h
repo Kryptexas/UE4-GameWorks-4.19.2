@@ -1321,16 +1321,16 @@ struct FMeshBatch
 	const FMaterialRenderProxy* MaterialRenderProxy;
 
 
-	FORCEINLINE bool IsTranslucent() const
+	FORCEINLINE bool IsTranslucent(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		// Note: blend mode does not depend on the feature level we are actually rendering in.
-		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode());
+		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 	}
 
-	FORCEINLINE bool IsMasked() const
+	FORCEINLINE bool IsMasked(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		// Note: blend mode does not depend on the feature level we are actually rendering in.
-		return MaterialRenderProxy && MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsMasked();
+		return MaterialRenderProxy && MaterialRenderProxy->GetMaterial(InFeatureLevel)->IsMasked();
 	}
 
 	/** Converts from an int32 index into a int8 */
@@ -1343,7 +1343,7 @@ struct FMeshBatch
 	/** 
 	* @return vertex stride specified for the mesh. 0 if not dynamic
 	*/
-	FORCEINLINE uint32 GetDynamicVertexStride() const
+	FORCEINLINE uint32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const
 	{
 		if (UseDynamicData && DynamicVertexData)
 		{
@@ -2033,6 +2033,7 @@ public:
 	virtual bool IsEditorScene() const { return false; }
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GRHIFeatureLevel; }
+	virtual void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel) {}
 
 protected:
 	virtual ~FSceneInterface() {}

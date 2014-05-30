@@ -313,9 +313,10 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	)
 {
 	bool bDirty = false;
+	const auto FeatureLevel = View.GetFeatureLevel();
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
@@ -352,7 +353,8 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				PrimitiveSceneProxy, 
 				!bPreFog,
 				bEditorCompositeDepthTest,
-				ESceneRenderTargetsMode::SetTextures
+				ESceneRenderTargetsMode::SetTextures,
+				FeatureLevel
 			),
 			FDrawTranslucentMeshAction(
 				View,
@@ -360,8 +362,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 				HitProxyId,
 				DrawingContext.TranslucentSelfShadow,
 				PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow()
-			),
-			View.GetFeatureLevel()
+			)
 		);
 
 		if (bDisableDepthTest || bEnableResponsiveAA)
@@ -492,6 +493,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 	bool bSeparateTranslucencyPass) const
 {
 	checkSlow(ViewRelevance.HasTranslucency());
+	auto FeatureLevel = View.GetFeatureLevel();
 
 	if(ViewRelevance.bDrawRelevance)
 	{
@@ -520,8 +522,8 @@ void FTranslucentPrimSet::RenderPrimitive(
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					// Only render static mesh elements using translucent materials
-					&& StaticMesh.IsTranslucent() 
-					&& (StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
+					&& StaticMesh.IsTranslucent(FeatureLevel)
+					&& (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 						View,

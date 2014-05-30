@@ -5004,6 +5004,27 @@ void UWorld::GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShado
 	}
 }
 
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (InFeatureLevel != Scene->GetFeatureLevel())
+	{
+		Scene->ChangeFeatureLevel(InFeatureLevel);
+		
+		FFXSystemInterface::Destroy(FXSystem);
+		FXSystem = FFXSystemInterface::Create(InFeatureLevel);
+		Scene->SetFXSystem(FXSystem);
+	}
+}
+
+void UWorld::ForceFeatureLevelUpdate(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	FGlobalComponentReregisterContext RecreateComponents;
+	UMaterial::AllMaterialsCacheResourceShadersForRendering();
+	UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+	GetGlobalShaderMap(GShaderPlatformForFeatureLevel[InFeatureLevel], true);
+	RecompileGlobalShaders();
+}
+
 /**
 * Dump visible actors in current world.
 */

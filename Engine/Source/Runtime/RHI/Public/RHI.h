@@ -316,12 +316,10 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
 
 /** The current feature level supported by the RHI. */
-inline ERHIFeatureLevel::Type GetRHIFeatureLevel()
-{
-	return GMaxRHIFeatureLevel;
-}
+extern RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel();
 
-#define GRHIFeatureLevel GetRHIFeatureLevel()
+//#define GRHIFeatureLevel GetRHIFeatureLevel()
+#define GRHIFeatureLevel GMaxRHIFeatureLevel
 
 /** Set the current feature level supported by the RHI. */
 extern RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType);

@@ -77,7 +77,7 @@ namespace ApexClothingUtils
 	// Find mesh section index in a StaticLODModel by material index
 	UNREALED_API int32 FindSectionByMaterialIndex( USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 MaterialIndex );
 
-	UNREALED_API uint32 GetMaxClothSimulVertices();
+	UNREALED_API uint32 GetMaxClothSimulVertices(ERHIFeatureLevel::Type InFeatureLevel);
 
 #if WITH_APEX_CLOTHING
 

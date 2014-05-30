@@ -2494,7 +2494,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 */
 	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 	{
-		if (CurrentRHISupportsGPUParticles())
+		if (RHISupportsGPUParticles(InOwnerProxy->GetScene()->GetFeatureLevel()))
 		{
 			Simulation->PendingDeltaSeconds = PendingDeltaSeconds;
 
@@ -2544,7 +2544,9 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 */
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE
 	{
-		if (CurrentRHISupportsGPUParticles())
+		auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
+
+		if (RHISupportsGPUParticles(FeatureLevel))
 		{
 			SCOPE_CYCLE_COUNTER(STAT_GPUSpritePreRenderTime);
 
@@ -2556,11 +2558,11 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 			if (Simulation->SimulationIndex != INDEX_NONE
 				&& Simulation->VertexBuffer.ParticleCount > 0)
 			{
-				EBlendMode BlendMode = Material->GetRenderProxy(false)->GetMaterial(GRHIFeatureLevel)->GetBlendMode();
+				EBlendMode BlendMode = Material->GetRenderProxy(false)->GetMaterial(FeatureLevel)->GetBlendMode();
 				const bool bOpaque = (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked);
 
 				const bool bAllowSorting = FXConsoleVariables::bAllowGPUSorting
-					&& GRHIFeatureLevel == ERHIFeatureLevel::SM5
+					&& FeatureLevel == ERHIFeatureLevel::SM5
 					&& !bOpaque;
 
 				// If the simulation wants to collide against the depth buffer
@@ -2615,7 +2617,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 */
 	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View)
 	{
-		if (CurrentRHISupportsGPUParticles())
+		if (RHISupportsGPUParticles(View->GetFeatureLevel()))
 		{
 			check(Simulation);
 
@@ -2935,7 +2937,7 @@ public:
 		const bool bSimulateGPUParticles = 
 			FXConsoleVariables::bFreezeGPUSimulation == false &&
 			FXConsoleVariables::bFreezeParticleSimulation == false &&
-			CurrentRHISupportsGPUParticles();
+			RHISupportsGPUParticles(FXSystem->GetFeatureLevel());
 
 		if (bSimulateGPUParticles)
 		{
@@ -3045,7 +3047,7 @@ public:
 
 		if (FXConsoleVariables::bFreezeGPUSimulation ||
 			FXConsoleVariables::bFreezeParticleSimulation ||
-			!CurrentRHISupportsGPUParticles())
+			!RHISupportsGPUParticles(FXSystem->GetFeatureLevel()))
 		{
 			return;
 		}
@@ -3826,7 +3828,7 @@ void FFXSystem::DestroyGPUSimulation()
 
 void FFXSystem::InitGPUResources()
 {
-	if (CurrentRHISupportsGPUParticles())
+	if (RHISupportsGPUParticles(FeatureLevel))
 	{
 		check(ParticleSimulationResources);
 		ParticleSimulationResources->Init();
@@ -3835,7 +3837,7 @@ void FFXSystem::InitGPUResources()
 
 void FFXSystem::ReleaseGPUResources()
 {
-	if (CurrentRHISupportsGPUParticles())
+	if (RHISupportsGPUParticles(FeatureLevel))
 	{
 		check(ParticleSimulationResources);
 		ParticleSimulationResources->Release();

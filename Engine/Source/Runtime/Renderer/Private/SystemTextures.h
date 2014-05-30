@@ -17,13 +17,14 @@ class FSystemTextures : public FRenderResource
 public:
 	FSystemTextures()
 	: FRenderResource()
+	, FeatureLevelInitializedTo(ERHIFeatureLevel::ES2)
 	, bTexturesInitialized(false)
 	{}
 
 	/**
 	 * Initialize/allocate textures if not already.
 	 */
-	void InitializeTextures();
+	void InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// FRenderResource interface.
 	/**
@@ -48,6 +49,8 @@ public:
 	/** Texture that holds a single value containing the maximum depth that can be stored as FP16. */
 	TRefCountPtr<IPooledRenderTarget> MaxFP16Depth;
 
+	/** Maximum feature level that the textures have been initialized up to */
+	ERHIFeatureLevel::Type FeatureLevelInitializedTo;
 	bool bTexturesInitialized;
 };
 

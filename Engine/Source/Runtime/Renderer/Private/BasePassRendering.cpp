@@ -162,7 +162,7 @@ public:
 	{
 		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;		
  
-		if (StaticMesh->IsMasked())
+		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
 			DrawType = FScene::EBasePass_Masked;	
 		}
@@ -209,9 +209,9 @@ void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMes
 				StaticMesh->PrimitiveSceneInfo->Proxy,
 				false,
 				bEditorCompositeDepthTest,
-				ESceneRenderTargetsMode::DontSet),
-			FDrawBasePassStaticMeshAction(Scene,StaticMesh),
-			Scene->GetFeatureLevel()
+				ESceneRenderTargetsMode::DontSet,
+				Scene->GetFeatureLevel()),
+			FDrawBasePassStaticMeshAction(Scene,StaticMesh)
 			);
 	}
 }
@@ -339,14 +339,14 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				PrimitiveSceneProxy,
 				!bPreFog,
 				DrawingContext.bEditorCompositeDepthTest,
-				DrawingContext.TextureMode
+				DrawingContext.TextureMode,
+				View.GetFeatureLevel()
 				),
 			FDrawBasePassDynamicMeshAction(
 				View,
 				bBackFace,
 				HitProxyId
-				),
-			View.GetFeatureLevel()
+				)
 			);
 		return true;
 	}

@@ -623,6 +623,11 @@ public:
 	/** Return the array of objects currently bieng debugged. */
 	const FBlueprintToDebuggedObjectMap& GetBlueprintObjectsBeingDebugged() const{ return BlueprintObjectsBeingDebugged; };
 
+	/** Change the feature level that this world is current rendering with */
+	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
+
+	static void ForceFeatureLevelUpdate(ERHIFeatureLevel::Type InFeatureLevel);
+
 private:
 	/** List of all the controllers in the world. */
 	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;

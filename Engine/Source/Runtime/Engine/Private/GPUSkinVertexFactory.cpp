@@ -429,6 +429,7 @@ public:
 	{
 		if(Shader->GetVertexShader())
 		{
+			const auto FeatureLevel = View.GetFeatureLevel();
 			const FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
 
 			SetShaderValue(
@@ -442,7 +443,7 @@ public:
 				ShaderData.MeshExtension
 				);
 			
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				if(BoneMatrices.IsBound())
 				{
@@ -460,7 +461,7 @@ public:
 
 			bool bLocalPerBoneMotionBlur = false;
 			
-			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsLocked())
+			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsLocked())
 			{
 				// we are in the velocity rendering pass
 

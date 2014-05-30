@@ -16,71 +16,86 @@ TGlobalResource<FSystemTextures> GSystemTextures;
 
 uint8 Quantize8SignedByte(float x);
 
-void FSystemTextures::InitializeTextures()
+void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	// Do not double allocate
-	if (bTexturesInitialized)
+	if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
 	{
+		// Already initialized up to at least the feature level we need, so do nothing
 		return;
 	}
 
 	// start with a defined state for the scissor rect (D3D11 was returning (0,0,0,0) which caused a clear to not execute correctly)
 	// todo: move this to an earlier place (for dx9 is has to be after device creation which is after window creation)
 	RHISetScissorRect(false, 0, 0, 0, 0);
-	
-	// Create a dummy white texture.
+
+	// First initialize textures that are common to all feature levels. This is always done the first time we come into this function, as doesn't care about the
+	// requested feature level
+	if (!bTexturesInitialized)
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, WhiteDummy, TEXT("WhiteDummy"));
-
-		RHISetRenderTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-		RHIClear(true, FLinearColor(1, 1, 1, 1), false, 0, false, 0, FIntRect());
-		RHICopyToResolveTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, WhiteDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-	}
-
-	// Create a dummy black texture.
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, BlackDummy, TEXT("BlackDummy"));
-
-		RHISetRenderTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-		RHIClear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
-		RHICopyToResolveTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, BlackDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-	}
-
-	// Create the PerlinNoiseGradient texture
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 128), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_None, false));
-		GRenderTargetPool.FindFreeElement(Desc, PerlinNoiseGradient, TEXT("PerlinNoiseGradient"));
-		// Write the contents of the texture.
-		uint32 DestStride;
-		uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture,0,RLM_WriteOnly,DestStride,false);
-		// seed the pseudo random stream with a good value
-		FRandomStream RandomStream(12345);
-		// Values represent float3 values in the -1..1 range.
-		// The vectors are the edge mid point of a cube from -1 .. 1
-		static uint32 gradtable[] = 
+		// Create a dummy white texture.
 		{
-			0x88ffff, 0xff88ff, 0xffff88,
-			0x88ff00, 0xff8800, 0xff0088,
-			0x8800ff, 0x0088ff, 0x00ff88,
-			0x880000, 0x008800, 0x000088,
-		};
-		for(int32 y = 0; y < Desc.Extent.Y; ++y)
-		{
-			for(int32 x = 0; x < Desc.Extent.X; ++x)
-			{
-				uint32* Dest = (uint32*)(DestBuffer + x * sizeof(uint32) + y * DestStride);
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, WhiteDummy, TEXT("WhiteDummy"));
 
-				// pick a random direction (hacky way to overcome the quality issues FRandomStream has)
-				*Dest = gradtable[(uint32)(RandomStream.GetFraction() * 11.9999999f)];
-			}
+			RHISetRenderTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHIClear(true, FLinearColor(1, 1, 1, 1), false, 0, false, 0, FIntRect());
+			RHICopyToResolveTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, WhiteDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
-		RHIUnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture,0,false);
+
+		// Create a dummy black texture.
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, BlackDummy, TEXT("BlackDummy"));
+
+			RHISetRenderTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHIClear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
+			RHICopyToResolveTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, BlackDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		}
+
+		// Create the PerlinNoiseGradient texture
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 128), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_None, false));
+			GRenderTargetPool.FindFreeElement(Desc, PerlinNoiseGradient, TEXT("PerlinNoiseGradient"));
+			// Write the contents of the texture.
+			uint32 DestStride;
+			uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			// seed the pseudo random stream with a good value
+			FRandomStream RandomStream(12345);
+			// Values represent float3 values in the -1..1 range.
+			// The vectors are the edge mid point of a cube from -1 .. 1
+			static uint32 gradtable[] =
+			{
+				0x88ffff, 0xff88ff, 0xffff88,
+				0x88ff00, 0xff8800, 0xff0088,
+				0x8800ff, 0x0088ff, 0x00ff88,
+				0x880000, 0x008800, 0x000088,
+			};
+			for (int32 y = 0; y < Desc.Extent.Y; ++y)
+			{
+				for (int32 x = 0; x < Desc.Extent.X; ++x)
+				{
+					uint32* Dest = (uint32*)(DestBuffer + x * sizeof(uint32)+y * DestStride);
+
+					// pick a random direction (hacky way to overcome the quality issues FRandomStream has)
+					*Dest = gradtable[(uint32)(RandomStream.GetFraction() * 11.9999999f)];
+				}
+			}
+			RHIUnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+		}
+
+		if (!GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
+		{
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_FloatRGBA, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, MaxFP16Depth, TEXT("MaxFP16Depth"));
+
+			RHISetRenderTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHIClear(true, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), false, 0, false, 0, FIntRect());
+			RHICopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		}
 	}
 
 	// Create the PerlinNoise3D texture (similar to http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise/)
-	if(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM5 && InFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		uint32 Extent = 16;
 
@@ -191,7 +206,7 @@ void FSystemTextures::InitializeTextures()
 	}
 
 	// Create the SSAO randomization texture
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevelInitializedTo < ERHIFeatureLevel::SM3 && InFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		float g_AngleOff1 = 127;
 		float g_AngleOff2 = 198;
@@ -234,119 +249,107 @@ void FSystemTextures::InitializeTextures()
 				*Dest = Bases[Index];
 			}
 		}
-		RHIUnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture,0,false);
-	}
+		RHIUnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 
-
-	// Create preintegrated BRDF texture
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
-	{
-		// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
-		const bool bReference = false;
-
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), PF_R8G8, TexCreate_HideInVisualizeTexture | TexCreate_FastVRAM, TexCreate_None, false));
-
-		if(bReference)
 		{
-			Desc.Extent.X = 128;
-			Desc.Extent.Y = 128;
-			Desc.Format =  PF_G16R16;
-		}
+			// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
+			const bool bReference = false;
 
-		GRenderTargetPool.FindFreeElement(Desc, PreintegratedGF, TEXT("PreintegratedGF"));
-		// Write the contents of the texture.
-		uint32 DestStride;
-		uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture,0,RLM_WriteOnly,DestStride,false);
-		
-		// x is NoV, y is roughness
-		for( int32 y = 0; y < Desc.Extent.Y; y++ )
-		{
-			float Roughness = (float)( y + 0.5f ) / Desc.Extent.Y;
-			float m = Roughness * Roughness;
-			float m2 = m*m;
-			float k = m * 0.5f;
-			
-			for( int32 x = 0; x < Desc.Extent.X; x++ )
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(128, 32), PF_R8G8, TexCreate_HideInVisualizeTexture | TexCreate_FastVRAM, TexCreate_None, false));
+
+			if (bReference)
 			{
-				float NoV = (float)( x + 0.5f ) / Desc.Extent.X;
-				float G_SchlickV = 1.0f / ( NoV * (1.0f - k) + k );
-				float G_SmithV = 2.0f / ( NoV + FMath::Sqrt( (NoV*NoV) * (1.0f - m2) + m2 ) );
+				Desc.Extent.X = 128;
+				Desc.Extent.Y = 128;
+				Desc.Format = PF_G16R16;
+			}
 
-				FVector V;
-				V.X = FMath::Sqrt( 1.0f - NoV * NoV );	// sin
-				V.Y = 0.0f;
-				V.Z = NoV;								// cos
+			GRenderTargetPool.FindFreeElement(Desc, PreintegratedGF, TEXT("PreintegratedGF"));
+			// Write the contents of the texture.
+			uint32 DestStride;
+			uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 
-				float A = 0.0f;
-				float B = 0.0f;
+			// x is NoV, y is roughness
+			for (int32 y = 0; y < Desc.Extent.Y; y++)
+			{
+				float Roughness = (float)(y + 0.5f) / Desc.Extent.Y;
+				float m = Roughness * Roughness;
+				float m2 = m*m;
+				float k = m * 0.5f;
 
-				const uint32 NumSamples = 128;
-				for( uint32 i = 0; i < NumSamples; i++ )
+				for (int32 x = 0; x < Desc.Extent.X; x++)
 				{
-					float E1 = (float)i / NumSamples;
-					float E2 = (double)ReverseBits(i) / (double)0x100000000LL;
+					float NoV = (float)(x + 0.5f) / Desc.Extent.X;
+					float G_SchlickV = 1.0f / (NoV * (1.0f - k) + k);
+					float G_SmithV = 2.0f / (NoV + FMath::Sqrt((NoV*NoV) * (1.0f - m2) + m2));
 
-					float Phi = 2.0f * PI * E1;
-					float CosPhi = FMath::Cos( Phi );
-					float SinPhi = FMath::Sin( Phi );
-					float CosTheta = FMath::Sqrt( (1.0f - E2) / ( 1.0f + (m2 - 1.0f) * E2 ) );
-					float SinTheta = FMath::Sqrt( 1.0f - CosTheta * CosTheta );
+					FVector V;
+					V.X = FMath::Sqrt(1.0f - NoV * NoV);	// sin
+					V.Y = 0.0f;
+					V.Z = NoV;								// cos
 
-					FVector H( SinTheta * FMath::Cos( Phi ), SinTheta * FMath::Sin( Phi ), CosTheta );
+					float A = 0.0f;
+					float B = 0.0f;
 
-					FVector L = 2.0f * ( V | H ) * H - V;
-
-					float NoL = FMath::Max( L.Z, 0.0f );
-					float NoH = FMath::Max( H.Z, 0.0f );
-					float VoH = FMath::Max( V | H, 0.0f );
-
-					if( NoL > 0.0f )
+					const uint32 NumSamples = 128;
+					for (uint32 i = 0; i < NumSamples; i++)
 					{
-						float G_SchlickL = 1.0f / ( NoL * (1.0f - k) + k );
-						float G_SmithL = 2.0f / ( NoL + FMath::Sqrt( (NoL*NoL) * (1.0f - m2) + m2 ) );
+						float E1 = (float)i / NumSamples;
+						float E2 = (double)ReverseBits(i) / (double)0x100000000LL;
 
-						float Vis_G = VoH * (NoL / NoH) * G_SchlickL;
-						float Fc = 1.0f - VoH;
-						Fc *= FMath::Square( Fc*Fc );
-						A += Vis_G * (1.0f - Fc);
-						B += Vis_G * Fc;
+						float Phi = 2.0f * PI * E1;
+						float CosPhi = FMath::Cos(Phi);
+						float SinPhi = FMath::Sin(Phi);
+						float CosTheta = FMath::Sqrt((1.0f - E2) / (1.0f + (m2 - 1.0f) * E2));
+						float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
+
+						FVector H(SinTheta * FMath::Cos(Phi), SinTheta * FMath::Sin(Phi), CosTheta);
+
+						FVector L = 2.0f * (V | H) * H - V;
+
+						float NoL = FMath::Max(L.Z, 0.0f);
+						float NoH = FMath::Max(H.Z, 0.0f);
+						float VoH = FMath::Max(V | H, 0.0f);
+
+						if (NoL > 0.0f)
+						{
+							float G_SchlickL = 1.0f / (NoL * (1.0f - k) + k);
+							float G_SmithL = 2.0f / (NoL + FMath::Sqrt((NoL*NoL) * (1.0f - m2) + m2));
+
+							float Vis_G = VoH * (NoL / NoH) * G_SchlickL;
+							float Fc = 1.0f - VoH;
+							Fc *= FMath::Square(Fc*Fc);
+							A += Vis_G * (1.0f - Fc);
+							B += Vis_G * Fc;
+						}
+					}
+					A /= NumSamples;
+					B /= NumSamples;
+
+					A *= G_SchlickV;
+					B *= G_SchlickV;
+
+					if (bReference)
+					{
+						uint16* Dest = (uint16*)(DestBuffer + x * sizeof(uint32)+y * DestStride);
+						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 65535.0f + 0.5f);
+						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 65535.0f + 0.5f);
+					}
+					else
+					{
+						uint8* Dest = (uint8*)(DestBuffer + x * sizeof(uint16)+y * DestStride);
+						Dest[0] = (int32)(FMath::Clamp(A, 0.0f, 1.0f) * 255.9999f);
+						Dest[1] = (int32)(FMath::Clamp(B, 0.0f, 1.0f) * 255.9999f);
 					}
 				}
-				A /= NumSamples;
-				B /= NumSamples;
-				
-				A *= G_SchlickV;
-				B *= G_SchlickV;
-
-				if(bReference)
-				{
-					uint16* Dest = (uint16*)(DestBuffer + x * sizeof(uint32) + y * DestStride);
-					Dest[0] = (int32)( FMath::Clamp( A, 0.0f, 1.0f ) * 65535.0f + 0.5f );
-					Dest[1] = (int32)( FMath::Clamp( B, 0.0f, 1.0f ) * 65535.0f + 0.5f );
-				}
-				else
-				{
-					uint8* Dest = (uint8*)(DestBuffer + x * sizeof(uint16) + y * DestStride);
-					Dest[0] = (int32)( FMath::Clamp( A, 0.0f, 1.0f ) * 255.9999f );
-					Dest[1] = (int32)( FMath::Clamp( B, 0.0f, 1.0f ) * 255.9999f );
-				}
 			}
+			RHIUnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 		}
-		RHIUnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture,0,false);
-	}
-
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
-	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_FloatRGBA, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, MaxFP16Depth, TEXT("MaxFP16Depth"));
-
-		RHISetRenderTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-		RHIClear(true, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), false, 0, false, 0, FIntRect());
-		RHICopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 	}
 
 	// Initialize textures only once.
 	bTexturesInitialized = true;
+	FeatureLevelInitializedTo = InFeatureLevel;
 }
 
 void FSystemTextures::ReleaseDynamicRHI()

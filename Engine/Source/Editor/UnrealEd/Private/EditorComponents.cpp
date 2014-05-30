@@ -50,11 +50,11 @@ static TAutoConsoleVariable<float> CVarEditor2DSnapScale(
 	TEXT("Tweak to define the grid rendering in 2D viewports."),
 	ECVF_RenderThreadSafe);
 
-static bool IsEditorCompositingMSAAEnabled()
+static bool IsEditorCompositingMSAAEnabled(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	bool Ret = false;
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (InFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		// only supported on SM5 yet
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MSAA.CompositingSampleCount"));
@@ -127,7 +127,7 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 		return;
 	}
 
-	bool bMSAA = IsEditorCompositingMSAAEnabled();
+	bool bMSAA = IsEditorCompositingMSAAEnabled(View->GetFeatureLevel());
 	bool bIsPerspective = ( View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f );
 
 	// in unreal units

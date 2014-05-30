@@ -1498,7 +1498,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const
 	{
 		checkf(0, TEXT("GetDynamicVertexStride MUST be overridden"));
 		return 0;
@@ -1697,9 +1697,9 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const OVERRIDE
 	{
-		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM3;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
 	}
 
@@ -1954,7 +1954,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
 	{
 		return sizeof(FMeshParticleInstanceVertex);
 	}
@@ -2251,7 +2251,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}
@@ -2434,7 +2434,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride() const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}

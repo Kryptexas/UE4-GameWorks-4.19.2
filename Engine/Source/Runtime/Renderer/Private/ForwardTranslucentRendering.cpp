@@ -174,7 +174,8 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	bool bDirty = false;
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
+	const auto FeatureLevel = View.GetFeatureLevel();
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only render translucent materials.
@@ -187,7 +188,8 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 				PrimitiveSceneProxy,
 				true,
 				false,
-				ESceneRenderTargetsMode::SetTextures
+				ESceneRenderTargetsMode::SetTextures,
+				FeatureLevel
 				),
 			FDrawTranslucentMeshForwardShadingAction(
 				View,
@@ -280,7 +282,7 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 				FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					// Only render static mesh elements using translucent materials
-					&& StaticMesh.IsTranslucent() )
+					&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
 				{
 					FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
 						View,

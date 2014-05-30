@@ -2373,7 +2373,7 @@ FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
 		StaticMesh &&
 		StaticMesh->HasValidRenderData();
 
-	if (bMeshIsValid && (GRHIFeatureLevel >= ERHIFeatureLevel::SM3))
+	if (bMeshIsValid && (GetScene()->GetFeatureLevel() >= ERHIFeatureLevel::SM3))
 	{
 		return ::new FSplineMeshSceneProxy(this);
 	}

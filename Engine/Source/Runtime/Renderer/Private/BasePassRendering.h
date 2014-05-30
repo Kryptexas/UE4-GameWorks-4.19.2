@@ -785,6 +785,7 @@ public:
 	/** Whether or not to perform depth test in the pixel shader */
 	const bool bEditorCompositeDepthTest;
 	ESceneRenderTargetsMode::Type TextureMode;
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	/** Initialization constructor. */
 	FProcessBasePassMeshParameters(
@@ -793,7 +794,8 @@ public:
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
-		ESceneRenderTargetsMode::Type InTextureMode
+		ESceneRenderTargetsMode::Type InTextureMode,
+		ERHIFeatureLevel::Type InFeatureLevel
 		):
 		Mesh(InMesh),
 		BatchElementMask(Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1), // 1 bit set for each mesh element
@@ -803,7 +805,8 @@ public:
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
-		TextureMode(InTextureMode)
+		TextureMode(InTextureMode),
+		FeatureLevel(InFeatureLevel)
 	{
 	}
 
@@ -815,8 +818,9 @@ public:
 		const FPrimitiveSceneProxy* InPrimitiveSceneProxy,
 		bool InbAllowFog,
 		bool bInEditorCompositeDepthTest,
-		ESceneRenderTargetsMode::Type InTextureMode
-		):
+		ESceneRenderTargetsMode::Type InTextureMode,
+		ERHIFeatureLevel::Type InFeatureLevel
+		) :
 		Mesh(InMesh),
 		BatchElementMask(InBatchElementMask),
 		Material(InMaterial),
@@ -825,7 +829,8 @@ public:
 		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
-		TextureMode(InTextureMode)
+		TextureMode(InTextureMode),
+		FeatureLevel(InFeatureLevel)
 	{
 	}
 };
@@ -834,8 +839,7 @@ public:
 template<typename ProcessActionType>
 void ProcessBasePassMesh(
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action,
-	ERHIFeatureLevel::Type InFeatureLevel
+	const ProcessActionType& Action
 	)
 {
 	// Check for a cached light-map.
@@ -850,9 +854,9 @@ void ProcessBasePassMesh(
 	if (!(Parameters.TextureMode == ESceneRenderTargetsMode::DontSet && bNeedsSceneTextures))
 	{
 		// Render self-shadowing only for >= SM4 and fallback to non-shadowed for lesser shader models
-		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && InFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && Parameters.FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			if (IsIndirectLightingCacheAllowed(InFeatureLevel)
+			if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 				&& Action.AllowIndirectLightingCache()
 				&& Parameters.PrimitiveSceneProxy)
 			{
@@ -908,7 +912,7 @@ void ProcessBasePassMesh(
 							{
 								Action.template Process<FSimpleDynamicLightingPolicy>(Parameters, FSimpleDynamicLightingPolicy(), FSimpleDynamicLightingPolicy::ElementDataType());
 							}
-							else if (IsIndirectLightingCacheAllowed(InFeatureLevel)
+							else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 								&& Action.AllowIndirectLightingCache()
 								&& Parameters.PrimitiveSceneProxy
 								// Use the indirect lighting cache shaders if the object has a cache allocation
@@ -918,7 +922,7 @@ void ProcessBasePassMesh(
 									// Use the indirect lighting cache shaders if the object is movable, it may not have a cache allocation yet because that is done in InitViews
 									|| Parameters.PrimitiveSceneProxy->IsMovable()))
 							{
-								if (CanIndirectLightingCacheUseVolumeTexture(InFeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
+								if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
 								{
 									// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
 									Action.template Process<FCachedVolumeIndirectLightingPolicy>(Parameters,FCachedVolumeIndirectLightingPolicy(),FCachedVolumeIndirectLightingPolicy::ElementDataType());

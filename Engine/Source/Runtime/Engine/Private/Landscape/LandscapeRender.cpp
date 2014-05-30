@@ -551,7 +551,8 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 ,	LODBias(InComponent->LODBias)
 ,	LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	const auto FeatureLevel = GetScene()->GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		HeightmapTexture = NULL;
 		HeightmapSubsectionOffsetU = 0;
@@ -1014,12 +1015,12 @@ void FLandscapeComponentSceneProxy::OnTransformChanged()
 
 namespace
 {
-	inline bool RequiresAdjacencyInformation(FMaterialRenderProxy* MaterialRenderProxy) // Assumes VertexFactory supports tessellation, and rendering thread with this function
+	inline bool RequiresAdjacencyInformation(FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) // Assumes VertexFactory supports tessellation, and rendering thread with this function
 	{
 		if (RHISupportsTessellation(GRHIShaderPlatform) && MaterialRenderProxy )
 		{
 			check ( IsInRenderingThread() );
-			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(InFeatureLevel);
 			check( MaterialResource );
 			EMaterialTessellationMode TessellationMode = MaterialResource->GetTessellationMode();
 			bool bEnableCrackFreeDisplacement = MaterialResource->IsCrackFreeDisplacementEnabled();
@@ -1053,7 +1054,7 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy );
+	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, GetScene()->GetFeatureLevel() );
 
 	MeshBatch.VertexFactory = VertexFactory;
 	MeshBatch.MaterialRenderProxy = RenderProxy;
@@ -1356,7 +1357,7 @@ void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 	// Could be different from bRequiresAdjacencyInformation during shader compilation
 	FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
-	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy );
+	bool bCurrentRequiresAdjacencyInformation = RequiresAdjacencyInformation( RenderProxy, View->GetFeatureLevel() );
 	DynamicMesh.Type = bCurrentRequiresAdjacencyInformation ? PT_12_ControlPointPatchList : PT_TriangleList;
 
 	// Setup the LOD parameters in DynamicMesh.

@@ -721,7 +721,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(const FViewInfo* ViewInfo,bool b
 						FStaticMesh& StaticMesh = PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes[StaticMeshIdx];
 						if( ViewInfo->StaticMeshVisibilityMap[StaticMesh.Id]
 							// Only render static mesh elements using translucent materials
-							&& StaticMesh.IsTranslucent() )
+							&& StaticMesh.IsTranslucent(ViewInfo->GetFeatureLevel()) )
 						{
 							bDirty |= TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawStaticMesh(
 								ViewInfo,

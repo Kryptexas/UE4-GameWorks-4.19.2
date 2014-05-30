@@ -1430,6 +1430,7 @@ public:
 	virtual bool IsEditorScene() const OVERRIDE { return bIsEditorScene; }
 
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() const OVERRIDE { return FeatureLevel; }
+	virtual void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel) OVERRIDE;
 
 private:
 

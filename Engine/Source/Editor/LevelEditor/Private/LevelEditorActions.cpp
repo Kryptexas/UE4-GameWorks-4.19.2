@@ -535,7 +535,14 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// Here be dragons...
+	// try iterating over all worlds here
+	for (TObjectIterator<UWorld> It; It; ++It)
+	{
+		UWorld* World = *It;
+		World->ChangeFeatureLevel(InPreviewFeatureLevel);
+	}
+	
+	UWorld::ForceFeatureLevelUpdate(InPreviewFeatureLevel);
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)

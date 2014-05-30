@@ -15,7 +15,7 @@ void EmitMeshDrawEvents(const FPrimitiveSceneProxy* PrimitiveSceneProxy, const F
 	{
 		// Only show material name at the top level
 		// Note: this is the parent's material name, not the material instance
-		SCOPED_DRAW_EVENTF(MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetFriendlyName());
+		SCOPED_DRAW_EVENTF(MaterialEvent, DEC_SCENE_ITEMS, *Mesh.MaterialRenderProxy->GetMaterial(PrimitiveSceneProxy->GetScene()->GetFeatureLevel())->GetFriendlyName());
 		if (PrimitiveSceneProxy)
 		{
 			// Show Actor, level and resource name inside the material name
@@ -1218,6 +1218,7 @@ int32 DrawRichMesh(
 		return PDI->DrawMesh( Mesh );
 	}
 
+	const auto FeatureLevel = PDI->View->GetFeatureLevel();
 	const FEngineShowFlags& EngineShowFlags = PDI->View->Family->EngineShowFlags;
 
 	if(bDrawInWireframe)
@@ -1234,7 +1235,7 @@ int32 DrawRichMesh(
 			BaseColor = LevelColor;
 		}
 
-		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition())
 		{
 			// If the material is mesh-modifying, we cannot rely on substitution
 			const FOverrideSelectionColorMaterialRenderProxy WireframeMaterialInstance(
@@ -1262,7 +1263,7 @@ int32 DrawRichMesh(
 	else if(PDI->View->Family->EngineShowFlags.LightComplexity)
 	{
 		// Don't render unlit translucency when in 'light complexity' viewmode.
-		if (!Mesh.IsTranslucent() || Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetShadingModel() != MSM_Unlit)
+		if (!Mesh.IsTranslucent(FeatureLevel) || Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit)
 		{
 			// Count the number of lights interacting with this primitive.
 			int32 NumDynamicLights = GetRendererModule().GetNumDynamicLightsAffectingPrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo(),Mesh.LCI);
@@ -1286,11 +1287,11 @@ int32 DrawRichMesh(
 	else if(!EngineShowFlags.Materials && !PDI->View->bForceShowMaterials)
 	{
 		// Don't render unlit translucency when in 'lighting only' viewmode.
-		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetShadingModel() != MSM_Unlit
+		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit
 			// Don't render translucency in 'lighting only', since the viewmode works by overriding with an opaque material
 			// This would cause a mismatch of the material's blend mode with the primitive's view relevance,
 			// And make faint particles block the view
-			&& !IsTranslucentBlendMode(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode()))
+			&& !IsTranslucentBlendMode(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode()))
 		{
 			// When materials aren't shown, apply the same basic material to all meshes.
 			FMeshBatch ModifiedMesh = Mesh;
@@ -1403,7 +1404,7 @@ int32 DrawRichMesh(
 		if(EngineShowFlags.MeshEdges)
 		{
 			// Draw the mesh's edges in blue, on top of the base geometry.
-			if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+			if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition())
 			{
 				const FSceneView* View = PDI->View;
 

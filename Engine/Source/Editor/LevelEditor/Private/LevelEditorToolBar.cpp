@@ -476,9 +476,11 @@ static void MakeMaterialQualityLevelMenu( FMenuBuilder& MenuBuilder )
 
 static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
 {
-	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ShaderModelPreviewHeading", "Shader Model Preview"));
+	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "FeatureLevelPreviewHeading", "Feature Level Preview"));
 	{
-		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
+		static const ERHIFeatureLevel::Type MaxFeatureLevel = GMaxRHIFeatureLevel;
+
+		for (int32 i = MaxFeatureLevel; i >= 0; --i)
 		{
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
 		}
@@ -549,8 +551,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 		if (CVarFeatureLevelPreview.GetValueOnGameThread() != 0)
 		{
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("ShaderModelPreviewSubMenu", "Shader Model Preview"),
-				LOCTEXT("ShaderModelPreviewSubMenu_ToolTip", "Sets the shader model preview mode"),
+				LOCTEXT("FeatureLevelPreviewSubMenu", "Feature Level Preview"),
+				LOCTEXT("FeatureLevelPreviewSubMenu_ToolTip", "Sets the feature level preview mode"),
 				FNewMenuDelegate::CreateStatic(&MakeShaderModelPreviewMenu));
 		}
 	}

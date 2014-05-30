@@ -48,7 +48,7 @@ void FForwardShadingSceneRenderer::Render()
 	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures();
+	GSystemTextures.InitializeTextures(FeatureLevel);
 
 	// Allocate the maximum scene render target space for the current view family.
 	GSceneRenderTargets.Allocate(ViewFamily);

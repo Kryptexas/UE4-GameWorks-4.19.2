@@ -72,6 +72,10 @@ public:
 	/*--------------------------------------------------------------------------
 		Internal interface for GPU simulation.
 	--------------------------------------------------------------------------*/
+	/**
+	 * Retrieve feature level that this FXSystem was created for
+	 */
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
 
 	/**
 	 * Add a new GPU simulation to the system.

@@ -59,7 +59,7 @@ public:
 	{
 		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;		
  
-		if (StaticMesh->IsMasked())
+		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
 			DrawType = FScene::EBasePass_Masked;	
 		}
@@ -88,7 +88,8 @@ public:
 void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
+	const auto FeatureLevel = Scene->GetFeatureLevel();
+	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.
@@ -101,7 +102,8 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FSt
 				StaticMesh->PrimitiveSceneInfo->Proxy,
 				true,
 				false,
-				ESceneRenderTargetsMode::DontSet
+				ESceneRenderTargetsMode::DontSet,
+				FeatureLevel
 				),
 			FDrawBasePassForwardShadingStaticMeshAction(Scene,StaticMesh)
 			);
@@ -206,7 +208,8 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
+	const auto FeatureLevel = View.GetFeatureLevel();
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.
@@ -219,7 +222,8 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				PrimitiveSceneProxy,
 				true,
 				false,
-				DrawingContext.TextureMode
+				DrawingContext.TextureMode,
+				FeatureLevel
 				),
 			FDrawBasePassForwardShadingDynamicMeshAction(
 				View,

@@ -1130,7 +1130,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	{
 		// Determine how many vertices and indices are needed to render.
 		const int32 ParticleCount = SourceData->ActiveParticleCount;
-		const int32 VertexSize = GetDynamicVertexStride();
+		const int32 VertexSize = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 		const int32 DynamicParameterVertexSize = sizeof(FParticleVertexDynamicParameter);
 		const int32 VertexPerParticle = bInstanced ? 1 : 4;
 		const int32 ViewCount = ViewFamily->Views.Num();
@@ -1369,7 +1369,7 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			// Set the sprite uniform buffer for this view.
 			check( SpriteVertexFactory );
 			SpriteVertexFactory->SetSpriteUniformBuffer( PerViewUniformBuffers[ViewIndex] );
-			SpriteVertexFactory->SetInstanceBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(), bInstanced );
+			SpriteVertexFactory->SetInstanceBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()), bInstanced );
 			SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation->VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
 			// Construct the mesh element to render.
@@ -1740,7 +1740,7 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 			check(!bUsesDynamicParameter || DynamicParameterDataAllocations[InstanceBufferIndex].IsValid());
 
 			// Set the particle instance data. This buffer is generated in PreRenderView.
-			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
+			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()));
 			MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
 		}
 
@@ -1799,7 +1799,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		ParticleCount = Source.MaxDrawCount;
 	}
 
-	const int32 InstanceVertexStride  = GetDynamicVertexStride();
+	const int32 InstanceVertexStride  = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 	const int32 DynamicParameterVertexStride  = GetDynamicParameterVertexStride();
 	const int32 ViewCount = ViewFamily->Views.Num();
 	if(bInstanced)
@@ -2685,7 +2685,7 @@ int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimit
 
 			if( Allocation && IndexAllocation && Allocation->IsValid() && IndexAllocation->IsValid() )
 			{
-				BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride() );
+				BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()) );
 				BeamTrailVertexFactory->SetDynamicParameterBuffer( NULL, 0, 0 );
 
 				FMeshBatch Mesh;
@@ -5480,7 +5480,7 @@ int32 FDynamicTrailsEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			// Create and set the uniform buffer for this emitter.
 			FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = (FParticleBeamTrailVertexFactory*)VertexFactory;
 			BeamTrailVertexFactory->SetBeamTrailUniformBuffer( CreateBeamTrailUniformBuffer( Proxy, SourcePointer, View ) );
-			BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride() );
+			BeamTrailVertexFactory->SetVertexBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(View->GetFeatureLevel()) );
 			BeamTrailVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation ? DynamicParameterAllocation->VertexOffset : 0, GetDynamicParameterVertexStride() );
 
 			FMeshBatch Mesh;
@@ -5575,7 +5575,7 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		int32 VertexStride = GetDynamicVertexStride();
+		int32 VertexStride = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
 		int32 DynamicParameterVertexStride = 0;
 		if (bUsesDynamicParameter == true)
 		{
