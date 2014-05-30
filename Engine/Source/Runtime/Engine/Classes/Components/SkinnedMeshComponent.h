@@ -464,8 +464,8 @@ public:
 	 *
 	 * @param VertexIndex Vertex Index. If compressed, this will be slow. 
 	 */
-	FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
-	
+	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
+
 	/**
 	* Returns color of the vertex.
 	*
@@ -480,8 +480,8 @@ public:
 	/** 
 	 * Refresh Bone Transform (SpaceBases)
 	 * Each class will need to implement this function
-	 * Ideally this function should be atomic (not relying on Tick or any other update.)
-	 *
+	 * Ideally this function should be atomic (not relying on Tick or any other update.) 
+	 * 
 	 * @param TickFunction Supplied as non null if we are running in a tick, allows us to create graph tasks for parallelism
 	 * 
 	 */

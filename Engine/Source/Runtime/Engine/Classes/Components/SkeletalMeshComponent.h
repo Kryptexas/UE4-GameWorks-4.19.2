@@ -756,6 +756,7 @@ public:
 	virtual void UnHideBone( int32 BoneIndex ) OVERRIDE;
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset,bool bForceReInit = false) OVERRIDE;
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) OVERRIDE;
+	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const OVERRIDE;
 	// End USkinnedMeshComponent interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
@@ -965,6 +966,12 @@ public:
 
 	/** only check whether there are valid clothing actors or not */
 	bool HasValidClothingActors();
+
+	/** get root bone matrix by the root bone index which Apex cloth asset is holding */
+	void GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& OutRootBoneMatrix) const;
+
+	/** if the vertex index is valid for simulated vertices, returns the position in world space */
+	bool GetClothSimulatedPosition(int32 AssetIndex, int32 VertexIndex, FVector& OutSimulPos) const;
 
 #if WITH_CLOTH_COLLISION_DETECTION
 
