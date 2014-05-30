@@ -557,13 +557,27 @@ namespace AutomationTool
             string Root = RootSharedTempStorageDirectory();
             return CombinePaths(Root, "UE4", SharedSubdir);
         }
-        public static bool HaveSharedTempStorage()
+        public static bool HaveSharedTempStorage(bool ForSaving)
         {
-            if (!DirectoryExists_NoExceptions(UE4TempStorageDirectory()))
+            var Dir = UE4TempStorageDirectory();
+            if (ForSaving)
             {
-                return false;
+                int Retries = 24;
+                while (--Retries > 0)
+                {
+                    if (DirectoryExistsAndIsWritable_NoExceptions(Dir))
+                    {
+                        return true;
+                    }
+                    FindDirectories_NoExceptions(false, "*", false, Dir); // there is some internet evidence to suggest this might perk up the mac share
+                    System.Threading.Thread.Sleep(5000);
+                }
             }
-            return true;
+            else if (DirectoryExists_NoExceptions(Dir))
+            {
+                return true;
+            }
+            return false;
         }
 
         public static string ResolveSharedTempStorageDirectory(string GameFolder)

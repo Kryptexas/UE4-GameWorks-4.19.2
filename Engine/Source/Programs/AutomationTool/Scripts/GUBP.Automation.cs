@@ -4058,19 +4058,19 @@ public class GUBP : BuildCommand
         if (bFakeEC)
         {
             LocalOnly = true;
-        }
+        } 
         if (bSaveSharedTempStorage)
         {
-            if (!HaveSharedTempStorage())
+            if (!HaveSharedTempStorage(true))
             {
                 throw new AutomationException("Request to save to temp storage, but {0} is unavailable.", UE4TempStorageDirectory());
             }
             bSignBuildProducts = true;
         }
-        else if (!LocalOnly && !HaveSharedTempStorage())
+        else if (!LocalOnly && !HaveSharedTempStorage(false))
         {
             Log("Looks like we want to use shared temp storage, but since we don't have it, we won't use it.");
-            LocalOnly = false;
+            LocalOnly = true;
         }
 
         bool CommanderSetup = ParseParam("CommanderJobSetupOnly");
