@@ -115,6 +115,9 @@ extern RHI_API bool GSupportsGSRenderTargetLayerSwitchingToMips;
 /** True if the RHI supports separate blend states per render target. */
 extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 
+/** True if the RHI supports depth bounds testing */
+extern RHI_API bool GSupportsDepthBoundsTest;
+
 /** The offset from the upper left corner of a pixel to the position which is used to sample textures for fragments of that pixel. */
 extern RHI_API float GPixelCenterOffset;
 

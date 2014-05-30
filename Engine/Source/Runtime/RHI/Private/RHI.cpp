@@ -134,6 +134,7 @@ bool GSupportsEmulatedVertexInstancing = false;
 bool GVertexElementsCanShareStreamOffset = true;
 bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
+bool GSupportsDepthBoundsTest = false;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;

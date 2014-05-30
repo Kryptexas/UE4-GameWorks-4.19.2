@@ -21,6 +21,12 @@ static TAutoConsoleVariable<float> CVarCSMSplitPenumbraScale(
 	TEXT("Scale applied to the penumbra size of Cascaded Shadow Map splits, useful for minimizing the transition between splits"),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarCSMDepthBoundsTest(
+	TEXT("r.Shadow.CSMDepthBoundsTest"),
+	1,
+	TEXT("Whether to use depth bounds tests rather than stencil tests for the CSM bounds"),
+	ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarSpotLightShadowTransitionScale(
 	TEXT("r.Shadow.SpotLightTransitionScale"),
 	60.0f,
@@ -1607,6 +1613,8 @@ void FProjectedShadowInfo::RenderProjection(int32 ViewIndex, const FViewInfo* Vi
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
 	RHISetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 	
+	bool bDepthBoundsTestEnabled = false;
+
 	// If this is a preshadow, mask the projection by the receiver primitives.
 	if (bPreShadow)
 	{
@@ -1665,53 +1673,79 @@ void FProjectedShadowInfo::RenderProjection(int32 ViewIndex, const FViewInfo* Vi
 	}
 	else if (IsWholeSceneDirectionalShadow())
 	{
-		// Increment stencil on front-facing zfail, decrement on back-facing zfail.
-		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHISetDepthStencilState(TStaticDepthStencilState<
-			false,CF_GreaterEqual,
-			true,CF_Always,SO_Keep,SO_Increment,SO_Keep,
-			true,CF_Always,SO_Keep,SO_Decrement,SO_Keep,
-			0xff,0xff
-			>::GetRHI());
-
-		RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-
-		checkSlow(SplitIndex >= 0);
-		checkSlow(bDirectionalLight);
-
-		// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
-
-		// Find the projection shaders.
-		TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(GetGlobalShaderMap());
-		VertexShaderNoTransform->SetParameters(*View);
-		SetGlobalBoundShaderState(MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
-
-		FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
-		FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
-		float StencilNear = Near.Z / Near.W;
-		float StencilFar = Far.Z / Far.W;
-
-		FVector4 Verts[] =
+		if( GSupportsDepthBoundsTest && CVarCSMDepthBoundsTest.GetValueOnRenderThread() != 0 )
 		{
-			// Far Plane
-			FVector4( 1,  1,  StencilFar),
-			FVector4(-1,  1,  StencilFar),
-			FVector4( 1, -1,  StencilFar),
-			FVector4( 1, -1,  StencilFar),
-			FVector4(-1,  1,  StencilFar),
-			FVector4(-1, -1,  StencilFar),
+			FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
+			FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
+			float DepthNear = Near.Z / Near.W;
+			float DepthFar = Far.Z / Far.W;
 
-			// Near Plane
-			FVector4(-1,  1, StencilNear),
-			FVector4( 1,  1, StencilNear),
-			FVector4(-1, -1, StencilNear),
-			FVector4(-1, -1, StencilNear),
-			FVector4( 1,  1, StencilNear),
-			FVector4( 1, -1, StencilNear),
-		};
+			if( DepthFar > 1 ) DepthFar = 1.f;
+			else if( DepthFar < 0 ) DepthFar = 0.f;
 
-		// Only draw the near plane if this is not the nearest split
-		RHIDrawPrimitiveUP(PT_TriangleList, (SplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
+			if( DepthNear > 1 ) DepthNear = 1.f;
+			else if( DepthNear < 0 ) DepthNear = 0.f;
+
+			if( DepthNear <= DepthFar )
+			{
+				DepthNear = 1.0f;
+				DepthFar = 0.0f;
+			}
+
+			// Note, using a reversed z depth surface
+			RHIEnableDepthBoundsTest( true, DepthFar, DepthNear );
+			bDepthBoundsTestEnabled = true;
+		}
+		else
+		{
+			// Increment stencil on front-facing zfail, decrement on back-facing zfail.
+			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
+			RHISetDepthStencilState(TStaticDepthStencilState<
+				false,CF_GreaterEqual,
+				true,CF_Always,SO_Keep,SO_Increment,SO_Keep,
+				true,CF_Always,SO_Keep,SO_Decrement,SO_Keep,
+				0xff,0xff
+				>::GetRHI());
+
+			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+
+			checkSlow(SplitIndex >= 0);
+			checkSlow(bDirectionalLight);
+
+			// Draw 2 fullscreen planes, front facing one at the near subfrustum plane, and back facing one at the far.
+
+			// Find the projection shaders.
+			TShaderMapRef<FShadowProjectionNoTransformVS> VertexShaderNoTransform(GetGlobalShaderMap());
+			VertexShaderNoTransform->SetParameters(*View);
+			SetGlobalBoundShaderState(MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
+
+			FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
+			FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
+			float StencilNear = Near.Z / Near.W;
+			float StencilFar = Far.Z / Far.W;
+
+			FVector4 Verts[] =
+			{
+				// Far Plane
+				FVector4( 1,  1,  StencilFar),
+				FVector4(-1,  1,  StencilFar),
+				FVector4( 1, -1,  StencilFar),
+				FVector4( 1, -1,  StencilFar),
+				FVector4(-1,  1,  StencilFar),
+				FVector4(-1, -1,  StencilFar),
+
+				// Near Plane
+				FVector4(-1,  1, StencilNear),
+				FVector4( 1,  1, StencilNear),
+				FVector4(-1, -1, StencilNear),
+				FVector4(-1, -1, StencilNear),
+				FVector4( 1,  1, StencilNear),
+				FVector4( 1, -1, StencilNear),
+			};
+
+			// Only draw the near plane if this is not the nearest split
+			RHIDrawPrimitiveUP(PT_TriangleList, (SplitIndex > 0) ? 4 : 2, Verts, sizeof(FVector4));
+		}
 	}
 	// Not a preshadow, mask the projection to any pixels inside the frustum.
 	else
@@ -1759,17 +1793,25 @@ void FProjectedShadowInfo::RenderProjection(int32 ViewIndex, const FViewInfo* Vi
 		RHIDrawIndexedPrimitiveUP(PT_TriangleList, 0, 8, 12, GCubeIndices, sizeof(uint16), FrustumVertices, sizeof(FVector4));
 	}
 
-	// no depth test or writes, solid rasterization w/ back-face culling.
-	// Test stencil for non-zero.
+	// solid rasterization w/ back-face culling.
 	RHISetRasterizerState(
 		XOR(View->bReverseCulling, IsWholeSceneDirectionalShadow()) ? TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI());
 
-	RHISetDepthStencilState(TStaticDepthStencilState<
-		false,CF_Always,
-		true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep,
-		false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-		0xff,0xff
-		>::GetRHI());
+	if( bDepthBoundsTestEnabled )
+	{
+		// no depth test or writes
+		RHISetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	}
+	else
+	{
+		// no depth test or writes, Test stencil for non-zero.
+		RHISetDepthStencilState( TStaticDepthStencilState<
+			false, CF_Always,
+			true, CF_NotEqual, SO_Keep, SO_Keep, SO_Keep,
+			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+			0xff, 0xff
+		>::GetRHI() );
+	}
 
 	// Light Attenuation channel assignment:
 	//  R:     WholeSceneShadows, non SSS
@@ -1871,8 +1913,16 @@ void FProjectedShadowInfo::RenderProjection(int32 ViewIndex, const FViewInfo* Vi
 		RHIDrawIndexedPrimitiveUP( PT_TriangleList, 0, 8, 12, GCubeIndices, sizeof(uint16), FrustumVertices, sizeof(FVector4));
 	}
 
-	// Clear the stencil buffer to 0.
-	RHIClear(false,FColor(0,0,0),false,0,true,0, FIntRect());
+	if( bDepthBoundsTestEnabled )
+	{
+		// Disable depth bounds testing
+		RHIEnableDepthBoundsTest(false, 0, 1);
+	}
+	else
+	{
+		// Clear the stencil buffer to 0.
+		RHIClear(false,FColor(0,0,0),false,0,true,0, FIntRect());
+	}
 }
 
 

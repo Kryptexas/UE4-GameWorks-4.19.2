@@ -625,6 +625,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsVertexTextureFetch = true;
 	GSupportsRenderTargetFormat_PF_G8 = true;
 	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
+	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 

@@ -576,6 +576,13 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			GRHISupportsAsyncTextureCreation = false;
 		}
 
+#if PLATFORM_DESKTOP
+		if( IsRHIDeviceNVIDIA() )
+		{
+			GSupportsDepthBoundsTest = true;
+		}
+#endif
+
 		SetupAfterDeviceCreation();
 
 		// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
