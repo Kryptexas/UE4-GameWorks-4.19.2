@@ -4491,7 +4491,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 
 		Material->TwoSided	= bTwoSided;
 		Material->BlendMode = Blending;
-		Material->SetLightingModel(LightingModel);
+		Material->SetShadingModel(ShadingModel);
 
 		Material->PostEditChange();
 	}

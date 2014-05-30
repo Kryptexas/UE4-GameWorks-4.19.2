@@ -459,7 +459,7 @@ void ProcessBasePassMeshForForwardShading(
 	)
 {
 	// Check for a cached light-map.
-	const bool bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
+	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 
 	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
 		? Parameters.Mesh.LCI->GetLightMapInteraction() 

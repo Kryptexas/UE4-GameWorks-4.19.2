@@ -59,7 +59,7 @@ void DirectionalPixelMain(
 		float3 WorldPosition = ScreenVector * SceneDepth + View.ViewOrigin.xyz;
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.LightingModelId, LightData, GetPerPixelLightAttenuation(InUV), uint2(0,0));
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), uint2(0,0));
 	}
 }
 
@@ -93,7 +93,7 @@ void RadialPixelMain(
 		Random.x ^= View.Random;
 		Random.y ^= View.Random;
 
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.LightingModelId, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(ScreenUV), Random);
 		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
 	}
 }

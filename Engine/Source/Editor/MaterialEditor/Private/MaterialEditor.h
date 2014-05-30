@@ -117,7 +117,7 @@ public:
 	virtual bool IsWireframe() const { return false; }
 	virtual bool IsMasked() const { return false; }
 	virtual enum EBlendMode GetBlendMode() const { return BLEND_Opaque; }
-	virtual enum EMaterialLightingModel GetLightingModel() const { return MLM_Unlit; }
+	virtual enum EMaterialShadingModel GetShadingModel() const { return MSM_Unlit; }
 	virtual float GetOpacityMaskClipValue() const { return 0.5f; }
 	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
 	/**

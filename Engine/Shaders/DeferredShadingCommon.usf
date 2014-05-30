@@ -248,11 +248,11 @@ float Decode71(float Scalar, out int Mask)
 	return (Scalar - 0.5f * Mask) * 2.0f;
 }
 
-#define LIGHTINGMODELID_UNLIT				0
-#define LIGHTINGMODELID_DEFAULT_LIT			1
-#define LIGHTINGMODELID_SUBSURFACE			2
-#define LIGHTINGMODELID_PREINTEGRATED_SKIN	3
-#define LIGHTINGMODELID_NUM					4
+#define SHADINGMODELID_UNLIT				0
+#define SHADINGMODELID_DEFAULT_LIT			1
+#define SHADINGMODELID_SUBSURFACE			2
+#define SHADINGMODELID_PREINTEGRATED_SKIN	3
+#define SHADINGMODELID_NUM					4
 
 // all values that are output by the forward rendering pass
 struct FGBufferData
@@ -282,8 +282,8 @@ struct FGBufferData
 	float Opacity;
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
-	// 0..255 LIGHTINGMODELID_UNLIT / LIGHTINGMODELID_DEFAULT_LIT / LIGHTINGMODELID_SUBSURFACE / LIGHTINGMODELID_PREINTEGRATED_SKIN
-	uint LightingModelId;
+	// 0..255 SHADINGMODELID_UNLIT / SHADINGMODELID_DEFAULT_LIT / SHADINGMODELID_SUBSURFACE / SHADINGMODELID_PREINTEGRATED_SKIN
+	uint ShadingModelID;
 	// 0..1 decal receiver mask
 	uint DecalMask;
 	// in world units
@@ -337,7 +337,7 @@ void EncodeGBuffer(
 	// compress in 2 bits
 	OutGBufferA.a = Data.DecalMask * (1.0 / 3.0);
 
-	if (Data.LightingModelId == LIGHTINGMODELID_UNLIT)
+	if (Data.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
 		OutGBufferB = 0;
 		OutGBufferC = 0;
@@ -345,7 +345,7 @@ void EncodeGBuffer(
 	}
 	else
 	{
-		bool bSubsurface = (Data.LightingModelId == LIGHTINGMODELID_SUBSURFACE || Data.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
+		bool bSubsurface = (Data.ShadingModelID == SHADINGMODELID_SUBSURFACE || Data.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
 
 #if DIFFUSE_SPEC_INPUTS
 		OutGBufferB.rgb = EncodeSpecularColor(Data.SpecularColor);
@@ -357,7 +357,7 @@ void EncodeGBuffer(
 		OutGBufferB.b = 0;
 		OutGBufferC.rgb = EncodeBaseColor(Data.BaseColor);
 #endif
-		OutGBufferB.a = Data.LightingModelId * (1.0 / 255.0);
+		OutGBufferB.a = Data.ShadingModelID * (1.0 / 255.0);
 
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
 		OutGBufferC.a = EncodeIndirectIrradiance( Data.IndirectIrradiance * Data.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
@@ -391,9 +391,9 @@ FGBufferData DecodeGBufferData(
 	}
 
 	ret.DecalMask		= (uint)( InGBufferA.a * 3.999 );
-	ret.LightingModelId	= (uint)( InGBufferB.a * 255.999 );
+	ret.ShadingModelID	= (uint)( InGBufferB.a * 255.999 );
 	
-	bool bSubsurface = (ret.LightingModelId == LIGHTINGMODELID_SUBSURFACE || ret.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN);
+	bool bSubsurface = (ret.ShadingModelID == SHADINGMODELID_SUBSURFACE || ret.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
 
 #if DIFFUSE_SPEC_INPUTS
 	ret.BaseColor = 0;

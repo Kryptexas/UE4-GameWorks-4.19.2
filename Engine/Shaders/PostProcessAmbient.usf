@@ -225,7 +225,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	float AmbientOcclusion = GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion;
 
 	// Subsurface
-	BRANCH if(GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE || GBuffer.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
+	BRANCH if(GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN)
 	{
 		// some view dependent and some non view dependent (hard coded)
 		float DependentSplit = 0.5f;

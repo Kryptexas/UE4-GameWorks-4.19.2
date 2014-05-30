@@ -344,7 +344,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 
 		BRANCH
 		// Only light pixels marked as using deferred shading
-		if (GBuffer.LightingModelId > 0)
+		if (GBuffer.ShadingModelID > 0)
 		{
 			// Accumulate reflections from captures affecting this tile, applying largest captures first so that the smallest ones display on top
 			LOOP
@@ -540,7 +540,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 #endif
 
 	// Only light pixels marked as using deferred shading
-	BRANCH if (GBuffer.LightingModelId > 0 && SkyLightParameters.y > 0 && !Covered)
+	BRANCH if (GBuffer.ShadingModelID > 0 && SkyLightParameters.y > 0 && !Covered)
 	{
 #if !USE_LIGHTMAPS
 		DiffuseLighting.rgb += DiffuseLighting.a * GetSkyLightReflection(GBuffer.WorldNormal, 1, USE_LIGHTMAPS);
@@ -580,7 +580,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
 #else
 		BRANCH
-		if( GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE )
+		if( GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE )
 		{
 			GBuffer.DiffuseColor += DecodeSubsurfaceColor(GBuffer.CustomData);
 		}

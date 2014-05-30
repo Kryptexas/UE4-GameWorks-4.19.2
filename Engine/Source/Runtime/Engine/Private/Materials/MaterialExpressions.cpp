@@ -897,14 +897,14 @@ void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* InMaterial, int32 
 
 		if( bUseMaterialAttributes )
 		{
-			InMaterial->SetLightingModel(MLM_DefaultLit);
+			InMaterial->SetShadingModel(MSM_DefaultLit);
 			InMaterial->bUseMaterialAttributes = true;
 			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_MaterialAttributes);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 		else
 		{
-			InMaterial->SetLightingModel(MLM_Unlit);
+			InMaterial->SetShadingModel(MSM_Unlit);
 			InMaterial->bUseMaterialAttributes = false;
 
 			// Connect the selected expression to the emissive node of the expression preview material.  The emissive material is not affected by light which is why its a good choice.

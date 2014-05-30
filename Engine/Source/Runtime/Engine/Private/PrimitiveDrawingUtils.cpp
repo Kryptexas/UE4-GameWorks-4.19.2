@@ -1262,7 +1262,7 @@ int32 DrawRichMesh(
 	else if(PDI->View->Family->EngineShowFlags.LightComplexity)
 	{
 		// Don't render unlit translucency when in 'light complexity' viewmode.
-		if (!Mesh.IsTranslucent() || Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetLightingModel() != MLM_Unlit)
+		if (!Mesh.IsTranslucent() || Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetShadingModel() != MSM_Unlit)
 		{
 			// Count the number of lights interacting with this primitive.
 			int32 NumDynamicLights = GetRendererModule().GetNumDynamicLightsAffectingPrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo(),Mesh.LCI);
@@ -1286,7 +1286,7 @@ int32 DrawRichMesh(
 	else if(!EngineShowFlags.Materials && !PDI->View->bForceShowMaterials)
 	{
 		// Don't render unlit translucency when in 'lighting only' viewmode.
-		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetLightingModel() != MLM_Unlit
+		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetShadingModel() != MSM_Unlit
 			// Don't render translucency in 'lighting only', since the viewmode works by overriding with an opaque material
 			// This would cause a mismatch of the material's blend mode with the primitive's view relevance,
 			// And make faint particles block the view

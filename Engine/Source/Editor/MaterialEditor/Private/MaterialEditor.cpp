@@ -232,7 +232,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 		// Hack: serialize the new material with an archive that does nothing so that its material resources are created
 		Material->Serialize(DummyArchive);
 	}
-	Material->SetLightingModel(MLM_Unlit);
+	Material->SetShadingModel(MSM_Unlit);
 
 	// Propagate all object flags except for RF_Standalone, otherwise the preview material function won't GC once
 	// the material editor releases the reference.

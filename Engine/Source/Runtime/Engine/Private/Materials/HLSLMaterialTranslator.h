@@ -389,7 +389,7 @@ public:
 			}
 
 
-			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetLightingModel() != MLM_Unlit && !Material->IsUsedWithDeferredDecal())
+			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetShadingModel() != MSM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
 			}
@@ -427,12 +427,12 @@ public:
 				Errorf(TEXT("Light function materials must be opaque."));
 			}
 
-			if (Material->IsLightFunction() && Material->GetLightingModel() != MLM_Unlit)
+			if (Material->IsLightFunction() && Material->GetShadingModel() != MSM_Unlit)
 			{
 				Errorf(TEXT("Light function materials must use unlit."));
 			}
 
-			if (Material->GetMaterialDomain() == MD_PostProcess && Material->GetLightingModel() != MLM_Unlit)
+			if (Material->GetMaterialDomain() == MD_PostProcess && Material->GetShadingModel() != MSM_Unlit)
 			{
 				Errorf(TEXT("Post process materials must use unlit."));
 			}
@@ -2344,7 +2344,7 @@ protected:
 			|| SceneTextureId == PPI_Roughness
 			|| SceneTextureId == PPI_MaterialAO
 			|| SceneTextureId == PPI_DecalMask
-			|| SceneTextureId == PPI_LightingModel;
+			|| SceneTextureId == PPI_ShadingModel;
 
 		// not yet tracked:
 		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion

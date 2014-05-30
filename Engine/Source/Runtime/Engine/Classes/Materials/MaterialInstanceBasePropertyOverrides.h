@@ -20,9 +20,9 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	UPROPERTY(EditAnywhere, Category=Material)
 	bool bOverride_BlendMode;
 
-	/** Enables override of the lighting model. */
+	/** Enables override of the shading model. */
 	UPROPERTY(EditAnywhere, Category=Material)
-	bool bOverride_LightingModel;
+	bool bOverride_ShadingModel;
 
 	/** Enables override of the two sided property. */
 	UPROPERTY(EditAnywhere, Category=Material)
@@ -36,9 +36,9 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	UPROPERTY(EditAnywhere, Category=Material, meta=(editcondition = "bOverride_BlendMode"))
 	TEnumAsByte<EBlendMode> BlendMode;
 
-	/** The lighting model */
-	UPROPERTY(EditAnywhere, Category=Material, meta=(editcondition = "bOverride_LightingModel"))
-	TEnumAsByte<EMaterialLightingModel> LightingModel;	
+	/** The shading model */
+	UPROPERTY(EditAnywhere, Category=Material, meta=(editcondition = "bOverride_ShadingModel"))
+	TEnumAsByte<EMaterialShadingModel> ShadingModel;	
 	
 	/** If the material is two sided or not. */
 	UPROPERTY(EditAnywhere, Category=Material, meta=(editcondition = "bOverride_TwoSided"))
@@ -59,7 +59,7 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 		if( Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_PHASE_2 )
 		{
 			Ar	<< Ref.bOverride_BlendMode << Ref.BlendMode
-				<< Ref.bOverride_LightingModel << Ref.LightingModel
+				<< Ref.bOverride_ShadingModel << Ref.ShadingModel
 				<< Ref.bOverride_TwoSided;
 
 			bool bTwoSided = Ref.TwoSided != 0;

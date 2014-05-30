@@ -925,14 +925,14 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	// Create the Fbx material
 	FbxSurfaceMaterial* FbxMaterial = NULL;
 	
-	// Set the lighting model
-	if (Material->GetLightingModel() == MLM_DefaultLit)
+	// Set the shading model
+	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
 		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
 		((FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->SpecularColor));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
-	else // if (Material->LightingModel == MLM_Unlit)
+	else // if (Material->ShadingModel == MSM_Unlit)
 	{
 		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
 	}

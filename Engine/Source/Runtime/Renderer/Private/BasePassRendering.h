@@ -418,7 +418,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Only compile skylight version for lit materials
-		const bool bCacheShaders = !bEnableSkyLight || (Material->GetLightingModel() != MLM_Unlit);
+		const bool bCacheShaders = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
 
 		return bCacheShaders
 			&& TBasePassPixelShaderBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType);
@@ -780,7 +780,7 @@ public:
 	const FMaterial* Material;
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
 	EBlendMode BlendMode;
-	EMaterialLightingModel LightingModel;
+	EMaterialShadingModel ShadingModel;
 	const bool bAllowFog;
 	/** Whether or not to perform depth test in the pixel shader */
 	const bool bEditorCompositeDepthTest;
@@ -800,7 +800,7 @@ public:
 		Material(InMaterial),
 		PrimitiveSceneProxy(InPrimitiveSceneProxy),
 		BlendMode(InMaterial->GetBlendMode()),
-		LightingModel(InMaterial->GetLightingModel()),
+		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode)
@@ -822,7 +822,7 @@ public:
 		Material(InMaterial),
 		PrimitiveSceneProxy(InPrimitiveSceneProxy),
 		BlendMode(InMaterial->GetBlendMode()),
-		LightingModel(InMaterial->GetLightingModel()),
+		ShadingModel(InMaterial->GetShadingModel()),
 		bAllowFog(InbAllowFog),
 		bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 		TextureMode(InTextureMode)
@@ -839,7 +839,7 @@ void ProcessBasePassMesh(
 	)
 {
 	// Check for a cached light-map.
-	const bool bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
+	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 	const bool bNeedsSceneTextures = Parameters.Material->NeedsSceneTextures();
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);

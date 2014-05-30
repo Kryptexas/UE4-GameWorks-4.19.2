@@ -100,13 +100,13 @@ enum ETranslucencyLightingMode
 };
 
 UENUM()
-enum EMaterialLightingModel
+enum EMaterialShadingModel
 {
-	MLM_DefaultLit UMETA(DisplayName="Default Lit"),
-	MLM_Unlit UMETA(DisplayName="Unlit"),
-	MLM_Subsurface UMETA(DisplayName="Subsurface"),
-	MLM_PreintegratedSkin UMETA(DisplayName="Preintegrated Skin"),
-	MLM_MAX,
+	MSM_DefaultLit			UMETA(DisplayName="Default Lit"),
+	MSM_Unlit				UMETA(DisplayName="Unlit"),
+	MSM_Subsurface			UMETA(DisplayName="Subsurface"),
+	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
+	MSM_MAX,
 };
 
 // This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.

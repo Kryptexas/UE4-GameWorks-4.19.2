@@ -60,9 +60,9 @@ class UNREALED_API UTextureFactory : public UFactory
 	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The blend mode of the created material"))
 	TEnumAsByte<enum EBlendMode> Blending;
 
-	/** The lighting model of the created material */
-	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The lighting model of the created material"))
-	TEnumAsByte<enum EMaterialLightingModel> LightingModel;
+	/** The shading model of the created material */
+	UPROPERTY(EditAnywhere, Category=CreateMaterial, meta=(ToolTip="The shading model of the created material"))
+	TEnumAsByte<enum EMaterialShadingModel> ShadingModel;
 
 	/** The mip-map generation settings for the texture; Allows customization of the content of the mip-map chain */
 	UPROPERTY(EditAnywhere, Category=TextureFactory, meta=(ToolTip="The mip-map generation settings for the texture; Allows customization of the content of the mip-map chain"))

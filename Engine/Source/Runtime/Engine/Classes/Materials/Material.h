@@ -253,7 +253,7 @@ struct FMaterialParameterCollectionInfo
 
 /**
  * A Material is an asset which can be applied to a mesh to control the visual look of the scene. In general,
- * when light from the scene hits the surface, the lighting model of the material is used to calculate how
+ * when light from the scene hits the surface, the shading model of the material is used to calculate how
  * that light interacts with the surface. 
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
@@ -332,7 +332,7 @@ class UMaterial : public UMaterialInterface
 private:
 	/** Determines how inputs are combined to create the material's final color. */
 	UPROPERTY(EditAnywhere, Category=Material, AssetRegistrySearchable)
-	TEnumAsByte<enum EMaterialLightingModel> LightingModel;
+	TEnumAsByte<enum EMaterialShadingModel> ShadingModel;
 public:
 
 	/** If BlendMode is BLEND_Masked, the surface is not rendered where OpacityMask < OpacityMaskClipValue. */
@@ -351,7 +351,7 @@ public:
 	UPROPERTY()
 	FScalarMaterialInput TessellationMultiplier;
 
-	/** Inner material color, only used for LightingModel=Subsurface */
+	/** Inner material color, only used for ShadingModel=Subsurface */
 	UPROPERTY()
 	FColorMaterialInput SubsurfaceColor;
 
@@ -426,7 +426,7 @@ public:
 	float TranslucentSelfShadowSecondOpacity;
 
 	/** 
-	 * Controls how diffuse the material's backscattering is when using the MLM_Subsurface lighting model.
+	 * Controls how diffuse the material's backscattering is when using the MSM_Subsurface shading model.
 	 * Larger exponents give a less diffuse look (smaller, brighter backscattering highlight).
 	 * This is only used when the object is casting a volumetric translucent shadow from a directional light.
 	 */
@@ -750,10 +750,10 @@ public:
 
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialLightingModel GetLightingModel_Internal() const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 
-	ENGINE_API void SetLightingModel(EMaterialLightingModel NewModel) {LightingModel = NewModel;}
+	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
@@ -1072,8 +1072,8 @@ public:
 	void GetReferencedParameterCollectionIds(TArray<FGuid>& OutIds) const;
 
 	/* Helper functions for text output of properties. */
-	static const TCHAR* GetMaterialLightingModelString(EMaterialLightingModel InMaterialLightingModel);
-	static EMaterialLightingModel GetMaterialLightingModelFromString(const TCHAR* InMaterialLightingModelStr);
+	static const TCHAR* GetMaterialShadingModelString(EMaterialShadingModel InMaterialShadingModel);
+	static EMaterialShadingModel GetMaterialShadingModelFromString(const TCHAR* InMaterialShadingModelStr);
 	static const TCHAR* GetBlendModeString(EBlendMode InBlendMode);
 	static EBlendMode GetBlendModeFromString(const TCHAR* InBlendModeStr);
 

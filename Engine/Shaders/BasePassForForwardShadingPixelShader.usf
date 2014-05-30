@@ -173,7 +173,7 @@ void Main(
 		#endif
 	#endif
 
-	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
 
 		#if SIMPLE_DYNAMIC_LIGHTING

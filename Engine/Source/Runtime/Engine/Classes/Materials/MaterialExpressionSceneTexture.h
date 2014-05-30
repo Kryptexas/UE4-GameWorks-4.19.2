@@ -53,8 +53,8 @@ enum ESceneTextureId
 	PPI_PostProcessInput6 UMETA(DisplayName="PostProcessInput6"),
 	/** Decal Mask, single bit */
 	PPI_DecalMask UMETA(DisplayName="Decal Mask"),
-	/** Lighting model, two bits */
-	PPI_LightingModel UMETA(DisplayName="Lighting Model"),
+	/** Shading model */
+	PPI_ShadingModel UMETA(DisplayName="Shading Model"),
 	/** Ambient Occlusion, single channel */
 	PPI_AmbientOcclusion UMETA(DisplayName="Ambient Occlusion"),
 };

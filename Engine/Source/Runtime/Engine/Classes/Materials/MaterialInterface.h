@@ -444,13 +444,13 @@ public:
 	*/
 	ENGINE_API float GetOpacityMaskClipValue() const;
 	ENGINE_API EBlendMode GetBlendMode() const;
-	ENGINE_API EMaterialLightingModel GetLightingModel() const;
+	ENGINE_API EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API bool IsTwoSided() const;
 
 	/** Game thread versions of the accessors. On the render thread there are equivelant getters in FMaterial. */
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialLightingModel GetLightingModel_Internal() const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and

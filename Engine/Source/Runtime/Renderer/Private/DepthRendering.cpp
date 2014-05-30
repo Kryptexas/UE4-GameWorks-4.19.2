@@ -501,7 +501,7 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 	bool bDirty = false;
 
 	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
-	const EMaterialLightingModel LightingModel = Material->GetLightingModel();
+	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 	bDirty |= DrawMesh(
 		View,
 		DrawingContext,

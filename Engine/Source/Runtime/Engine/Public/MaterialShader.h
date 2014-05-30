@@ -21,8 +21,8 @@
 		Frequency \
 		);
 
-/** Converts an EMaterialLightingModel to a string description. */
-extern FString GetLightingModelString(EMaterialLightingModel LightingModel);
+/** Converts an EMaterialShadingModel to a string description. */
+extern FString GetShadingModelString(EMaterialShadingModel ShadingModel);
 
 /** Converts an EBlendMode to a string description. */
 extern FString GetBlendModeString(EBlendMode BlendMode);

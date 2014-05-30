@@ -86,7 +86,7 @@ void FBufferVisualizationData::ConfigureConsoleCommand()
 	ConsoleDocumentationOverviewTargets += AvailableVisualizationMaterials;
 
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BufferVisualizationOverviewTargets"),
-		TEXT("DiffuseColor,SpecularColor,SubsurfaceColor,WorldNormal,SeparateTranslucencyRGB,,,Opacity,SeparateTranslucencyA,,,DecalMask,SceneDepth,Roughness,MaterialAO,LightingModel"), 
+		TEXT("DiffuseColor,SpecularColor,SubsurfaceColor,WorldNormal,SeparateTranslucencyRGB,,,Opacity,SeparateTranslucencyA,,,DecalMask,SceneDepth,Roughness,MaterialAO,ShadingModel"), 
 		*ConsoleDocumentationOverviewTargets,
 		ECVF_Default);
 }

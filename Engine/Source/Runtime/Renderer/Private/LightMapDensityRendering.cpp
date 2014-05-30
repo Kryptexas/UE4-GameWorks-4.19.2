@@ -115,7 +115,7 @@ bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
 		MaterialRenderProxy = GEngine->LevelColorationLitMaterial->GetRenderProxy(false);
 	}
 
-	bool bIsLitMaterial = (Material->GetLightingModel() != MLM_Unlit);
+	bool bIsLitMaterial = (Material->GetShadingModel() != MSM_Unlit);
 	/*const */FLightMapInteraction LightMapInteraction = (Mesh.LCI && bIsLitMaterial) ? Mesh.LCI->GetLightMapInteraction() : FLightMapInteraction();
 	// force simple lightmaps based on system settings
 	bool bAllowHighQualityLightMaps = AllowHighQualityLightmaps() && LightMapInteraction.AllowsHighQualityLightmaps();

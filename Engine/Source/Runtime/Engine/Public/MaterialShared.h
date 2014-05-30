@@ -1108,7 +1108,7 @@ public:
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
 	virtual enum EBlendMode GetBlendMode() const = 0;
-	virtual enum EMaterialLightingModel GetLightingModel() const = 0;
+	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 	virtual float GetOpacityMaskClipValue() const = 0;
 	virtual bool IsDistorted() const { return false; };
@@ -1756,7 +1756,7 @@ public:
 	ENGINE_API virtual uint32 GetDecalBlendMode() const;
 	ENGINE_API virtual uint32 GetMaterialDecalResponse() const;
 	ENGINE_API virtual bool HasNormalConnected() const;
-	ENGINE_API virtual enum EMaterialLightingModel GetLightingModel() const;
+	ENGINE_API virtual enum EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const;
 	ENGINE_API virtual float GetOpacityMaskClipValue() const;
 	ENGINE_API virtual bool IsDistorted() const;
@@ -1784,7 +1784,7 @@ public:
 	ENGINE_API virtual void NotifyCompilationFinished() OVERRIDE;
 
 	/**
-	 * Gets instruction counts that best represent the likely usage of this material based on lighting model and other factors.
+	 * Gets instruction counts that best represent the likely usage of this material based on shading model and other factors.
 	 * @param Descriptions - an array of descriptions to be populated
 	 * @param InstructionCounts - an array of instruction counts matching the Descriptions.  
 	 *		The dimensions of these arrays are guaranteed to be identical and all values are valid.

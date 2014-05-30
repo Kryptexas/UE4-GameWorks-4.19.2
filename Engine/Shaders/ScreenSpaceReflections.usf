@@ -303,7 +303,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 
 #if 1
 	// Early out
-	BRANCH if( RoughnessFade == 0 || ScreenSpaceData.GBuffer.LightingModelId == 0 )
+	BRANCH if( RoughnessFade == 0 || ScreenSpaceData.GBuffer.ShadingModelID == 0 )
 	{
 		return;
 	}

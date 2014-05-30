@@ -195,7 +195,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 			float3 BackscatteredLighting = 0;
 
-			#if MATERIAL_LIGHTINGMODEL_SUBSURFACE
+			#if MATERIAL_SHADINGMODEL_SUBSURFACE
 
 				float InScatterPower = GetMaterialTranslucentBackscatteringExponent();
 				// Setup a pow lobe to approximate anisotropic in-scattering near to the light direction
@@ -625,7 +625,7 @@ void Main(
 	half3 Color = 0;
 	float IndirectIrradiance = 0;
 
-	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+	#if !MATERIAL_SHADINGMODEL_UNLIT
 
 		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, IndirectIrradiance) * (DiffuseColor + SubsurfaceColor) * MaterialAO;
 
@@ -652,11 +652,11 @@ void Main(
 	#endif
 		
 	// Volume lighting for lit translucency
-	#if (MATERIAL_LIGHTINGMODEL_DEFAULT_LIT || MATERIAL_LIGHTINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
+	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
 		Color += GetTranslucencyLighting(MaterialParameters, DiffuseColor, Roughness, SpecularColor, IndirectIrradiance, MaterialAO);
 	#endif
 
-	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+	#if !MATERIAL_SHADINGMODEL_UNLIT
 		Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
 	#endif
 
@@ -720,16 +720,16 @@ void Main(
 		Data.Opacity = Opacity;
 		Data.DecalMask = Primitive.DecalReceiverMask;
 
-		#if MATERIAL_LIGHTINGMODEL_UNLIT
-			Data.LightingModelId = LIGHTINGMODELID_UNLIT;
-		#elif MATERIAL_LIGHTINGMODEL_DEFAULT_LIT
-			Data.LightingModelId = LIGHTINGMODELID_DEFAULT_LIT;
-		#elif MATERIAL_LIGHTINGMODEL_SUBSURFACE
-			Data.LightingModelId = LIGHTINGMODELID_SUBSURFACE;
-		#elif MATERIAL_LIGHTINGMODEL_PREINTEGRATED_SKIN
-			Data.LightingModelId = LIGHTINGMODELID_PREINTEGRATED_SKIN;
+		#if MATERIAL_SHADINGMODEL_UNLIT
+			Data.ShadingModelID = SHADINGMODELID_UNLIT;
+		#elif MATERIAL_SHADINGMODEL_DEFAULT_LIT
+			Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+		#elif MATERIAL_SHADINGMODEL_SUBSURFACE
+			Data.ShadingModelID = SHADINGMODELID_SUBSURFACE;
+		#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
+			Data.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
 		#else
-			// missing lighting model, compiler should report LightingModelId is not set
+			// missing shading model, compiler should report ShadingModelID is not set
 		#endif
 
 		#if !ALLOW_STATIC_LIGHTING

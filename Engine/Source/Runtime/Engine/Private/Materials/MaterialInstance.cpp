@@ -2331,14 +2331,14 @@ EBlendMode UMaterialInstance::GetBlendMode_Internal() const
 	return GetMaterial()->GetBlendMode();
 }
 
-EMaterialLightingModel UMaterialInstance::GetLightingModel_Internal() const
+EMaterialShadingModel UMaterialInstance::GetShadingModel_Internal() const
 {
 	checkSlow(IsInGameThread());
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_LightingModel )
+	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_ShadingModel )
 	{
-		return BasePropertyOverrides->LightingModel;
+		return BasePropertyOverrides->ShadingModel;
 	}
-	return GetMaterial()->GetLightingModel();
+	return GetMaterial()->GetShadingModel();
 }
 
 bool UMaterialInstance::IsTwoSided_Internal() const
@@ -2371,11 +2371,11 @@ bool UMaterialInstance::GetBlendModeOverride(EBlendMode& OutResult) const
 	return false;
 }
 
-bool UMaterialInstance::GetLightingModelOverride(EMaterialLightingModel& OutResult) const
+bool UMaterialInstance::GetShadingModelOverride(EMaterialShadingModel& OutResult) const
 {
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_LightingModel )
+	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_ShadingModel )
 	{
-		OutResult = BasePropertyOverrides->LightingModel;
+		OutResult = BasePropertyOverrides->ShadingModel;
 		return true;
 	}
 	return false;

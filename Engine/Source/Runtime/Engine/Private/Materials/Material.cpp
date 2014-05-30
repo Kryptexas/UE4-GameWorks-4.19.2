@@ -1288,21 +1288,21 @@ UPhysicalMaterial* UMaterial::GetPhysicalMaterial() const
 #define TEXT_TO_ENUM(eVal, txt)		if (FCString::Stricmp(TEXT(#eVal), txt) == 0)	return eVal;
 #endif
 
-const TCHAR* UMaterial::GetMaterialLightingModelString(EMaterialLightingModel InMaterialLightingModel)
+const TCHAR* UMaterial::GetMaterialShadingModelString(EMaterialShadingModel InMaterialShadingModel)
 {
-	switch (InMaterialLightingModel)
+	switch (InMaterialShadingModel)
 	{
-		FOREACH_ENUM_EMATERIALLIGHTINGMODEL(CASE_ENUM_TO_TEXT)
+		FOREACH_ENUM_EMATERIALSHADINGMODEL(CASE_ENUM_TO_TEXT)
 	}
-	return TEXT("MLM_DefaultLit");
+	return TEXT("MSM_DefaultLit");
 }
 
-EMaterialLightingModel UMaterial::GetMaterialLightingModelFromString(const TCHAR* InMaterialLightingModelStr)
+EMaterialShadingModel UMaterial::GetMaterialShadingModelFromString(const TCHAR* InMaterialShadingModelStr)
 {
-	#define TEXT_TO_LIGHTINGMODEL(m) TEXT_TO_ENUM(m, InMaterialLightingModelStr);
-	FOREACH_ENUM_EMATERIALLIGHTINGMODEL(TEXT_TO_LIGHTINGMODEL)
-	#undef TEXT_TO_LIGHTINGMODEL
-	return MLM_DefaultLit;
+	#define TEXT_TO_SHADINGMODEL(m) TEXT_TO_ENUM(m, InMaterialShadingModelStr);
+	FOREACH_ENUM_EMATERIALSHADINGMODEL(TEXT_TO_SHADINGMODEL)
+	#undef TEXT_TO_SHADINGMODEL
+	return MSM_DefaultLit;
 }
 
 const TCHAR* UMaterial::GetBlendModeString(EBlendMode InBlendMode)
@@ -1678,7 +1678,7 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 
 		Roughness.Constant = 0.4238f;
 
-		if( LightingModel != MLM_Unlit )
+		if( ShadingModel != MSM_Unlit )
 		{
 			// Multiply SpecularColor by FresnelBaseReflectFraction
 			if( SpecularColor.IsConnected() && FresnelBaseReflectFraction_DEPRECATED != 1.0f )
@@ -1725,7 +1725,7 @@ void UMaterial::BackwardsCompatibilityInputConversion()
 		}
 	}
 
-	if( LightingModel != MLM_Unlit && UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 0 )
+	if( ShadingModel != MSM_Unlit && UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 0 )
 	{
 		bool bIsDS = DiffuseColor.IsConnected() || SpecularColor.IsConnected();
 		bool bIsBMS = BaseColor.IsConnected() || Metallic.IsConnected() || Specular.IsConnected();
@@ -1901,10 +1901,10 @@ void UMaterial::PostLoad()
 	bUsedAsLightFunction_DEPRECATED = false;
 	bUsedWithDeferredDecal_DEPRECATED = false;
 
-	// Fix the lighting model to be valid.  Loading a material saved with a lighting model that has been removed will yield a MLM_MAX.
-	if(LightingModel == MLM_MAX)
+	// Fix the shading model to be valid.  Loading a material saved with a shading model that has been removed will yield a MSM_MAX.
+	if(ShadingModel == MSM_MAX)
 	{
-		LightingModel = MLM_DefaultLit;
+		ShadingModel = MSM_DefaultLit;
 	}
 
 	if(DecalBlendMode == DBM_MAX)
@@ -2114,7 +2114,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return MaterialDomain == MD_Surface;
 		}
 	
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, LightingModel))
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
 		{
 			return MaterialDomain == MD_Surface;
 		}
@@ -2153,7 +2153,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentMultipleScatteringExtinction)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset))
 		{
-			return IsTranslucentBlendMode(BlendMode) && LightingModel != MLM_Unlit;
+			return IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
 		}
 	}
 
@@ -3366,22 +3366,22 @@ EBlendMode UMaterial::GetBlendMode_Internal() const
 	return BlendMode;
 }
 
-EMaterialLightingModel UMaterial::GetLightingModel_Internal() const
+EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
 {
 	switch (MaterialDomain)
 	{
 		case MD_Surface:
 		case MD_DeferredDecal:
-			return LightingModel;
+			return ShadingModel;
 
 		// Post process and light function materials must be rendered with the unlit model.
 		case MD_PostProcess:
 		case MD_LightFunction:
-			return MLM_Unlit;
+			return MSM_Unlit;
 
 		default:
 			checkNoEntry();
-			return MLM_Unlit;
+			return MSM_Unlit;
 	}
 }
 
@@ -3398,7 +3398,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	}
 	else if(MaterialDomain == MD_LightFunction)
 	{
-		// light functions should already use MLM_Unlit but we also we don't want WorldPosOffset
+		// light functions should already use MSM_Unlit but we also we don't want WorldPosOffset
 		return InProperty == MP_EmissiveColor;
 	}
 	else if(MaterialDomain == MD_DeferredDecal)
@@ -3489,7 +3489,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 		break;
 	case MP_Opacity:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
-		if(LightingModel == MLM_Subsurface || LightingModel == MLM_PreintegratedSkin)
+		if(ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin)
 		{
 			Active = true;
 		}
@@ -3504,13 +3504,13 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	case MP_Specular:
 	case MP_Roughness:
 	case MP_AmbientOcclusion:
-		Active = LightingModel != MLM_Unlit;
+		Active = ShadingModel != MSM_Unlit;
 		break;
 	case MP_Normal:
-		Active = LightingModel != MLM_Unlit || Refraction.IsConnected();
+		Active = ShadingModel != MSM_Unlit || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
-		Active = LightingModel == MLM_Subsurface || LightingModel == MLM_PreintegratedSkin;
+		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:

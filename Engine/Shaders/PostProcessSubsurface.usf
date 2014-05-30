@@ -57,7 +57,7 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
-	FLATTEN if(ScreenSpaceData.GBuffer.LightingModelId >= LIGHTINGMODELID_SUBSURFACE)
+	FLATTEN if(ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE)
 	{
 		float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 
@@ -153,7 +153,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 			// hack
 			//		float Subsurface = ScreenSpaceData.GBuffer.Roughness > 0.4f;
 			//		float Subsurface = (1 - ScreenSpaceData.GBuffer.DecalMask) > 0.5f && ScreenSpaceData.GBuffer.Depth < 1000.0f;
-			FLATTEN if(LocalScreenSpaceData.GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE)
+			FLATTEN if(LocalScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE)
 			{
 				float3 Color = ColorOverDistance(DecodeSubsurfaceColor(LocalScreenSpaceData.GBuffer.CustomData), r);
 				float ColorLum = Luminance(Color);
@@ -173,7 +173,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float4 SceneColor4 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
 	float4 SSSColor = OutColor;
 
-	SSSColor.a = (ScreenSpaceData.GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE);
+	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE);
 
 	// partly translucent surface (0.9 means 10% of the opaque is blended in)
 	SSSColor.a *= 0.3f;

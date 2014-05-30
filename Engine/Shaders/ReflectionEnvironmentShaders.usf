@@ -386,7 +386,7 @@ void StandardDeferredReflectionPS(
 
 	BRANCH
 	// Only light pixels marked as using deferred shading
-	if (ScreenSpaceData.GBuffer.LightingModelId > 0)
+	if (ScreenSpaceData.GBuffer.ShadingModelID > 0)
 	{
 		FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
 		float SceneDepth = CalcSceneDepth(ScreenUV);
@@ -495,7 +495,7 @@ void ReflectionApplyPS(
 	
 	BRANCH
 	// Only light pixels marked as lit
-	if( GBuffer.LightingModelId > 0 )
+	if( GBuffer.ShadingModelID > 0 )
 	{
 		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
 		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );

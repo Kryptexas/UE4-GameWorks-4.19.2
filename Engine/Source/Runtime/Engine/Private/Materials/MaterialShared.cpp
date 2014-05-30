@@ -807,12 +807,12 @@ EBlendMode FMaterialResource::GetBlendMode() const
 	return Ret;
 }
 
-EMaterialLightingModel FMaterialResource::GetLightingModel() const 
+EMaterialShadingModel FMaterialResource::GetShadingModel() const 
 { 
-	EMaterialLightingModel Ret;
-	if( !(MaterialInstance && MaterialInstance->GetLightingModelOverride(Ret)) )
+	EMaterialShadingModel Ret;
+	if( !(MaterialInstance && MaterialInstance->GetShadingModelOverride(Ret)) )
 	{
-		Ret = Material->GetLightingModel_Internal();
+		Ret = Material->GetShadingModel_Internal();
 	}
 	return Ret;
 }
@@ -877,7 +877,7 @@ void FMaterialResource::NotifyCompilationFinished()
 }
 
 /**
- * Gets instruction counts that best represent the likely usage of this material based on lighting model and other factors.
+ * Gets instruction counts that best represent the likely usage of this material based on shading model and other factors.
  * @param Descriptions - an array of descriptions to be populated
  * @param InstructionCounts - an array of instruction counts matching the Descriptions.  
  *		The dimensions of these arrays are guaranteed to be identical and all values are valid.
@@ -927,7 +927,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 
 	if (GetFeatureLevel() > ERHIFeatureLevel::ES2)
 	{
-		if (GetLightingModel() == MLM_Unlit)
+		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
 			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
@@ -961,7 +961,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 		const TCHAR* ShaderSuffix = bMobileHDR ? TEXT("HDRLinear64") : TEXT("LDRGamma32");
 		const TCHAR* DescSuffix = bMobileHDR ? TEXT(" (HDR)") : TEXT(" (LDR)");
 
-		if (GetLightingModel() == MLM_Unlit)
+		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
 			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy%s"), ShaderSuffix));
@@ -1153,15 +1153,15 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
 
-	switch(GetLightingModel())
+	switch(GetShadingModel())
 	{
-	case MLM_DefaultLit: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_DEFAULT_LIT"),TEXT("1")); break;
-	case MLM_Subsurface: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_SUBSURFACE"),TEXT("1")); break;
-	case MLM_PreintegratedSkin: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_PREINTEGRATED_SKIN"),TEXT("1")); break;
-	case MLM_Unlit: OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_UNLIT"),TEXT("1")); break;
+	case MSM_DefaultLit: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),TEXT("1")); break;
+	case MSM_Subsurface: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_SUBSURFACE"),TEXT("1")); break;
+	case MSM_PreintegratedSkin: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN"),TEXT("1")); break;
+	case MSM_Unlit: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_UNLIT"),TEXT("1")); break;
 	default: 
-		UE_LOG(LogMaterial, Warning, TEXT("Unknown material lighting model: %u  Setting to MLM_DefaultLit"),(int32)GetLightingModel());
-		OutEnvironment.SetDefine(TEXT("MATERIAL_LIGHTINGMODEL_DEFAULT_LIT"),TEXT("1"));
+		UE_LOG(LogMaterial, Warning, TEXT("Unknown material shading model: %u  Setting to MSM_DefaultLit"),(int32)GetShadingModel());
+		OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),TEXT("1"));
 	
 	};
 
@@ -1735,7 +1735,7 @@ int32 FMaterialResource::GetSamplerUsage() const
 FString FMaterialResource::GetMaterialUsageDescription() const
 {
 	check(Material);
-	FString BaseDescription = GetLightingModelString(GetLightingModel()) + TEXT(", ") + GetBlendModeString(GetBlendMode());
+	FString BaseDescription = GetShadingModelString(GetShadingModel()) + TEXT(", ") + GetBlendModeString(GetBlendMode());
 
 	if (IsSpecialEngineMaterial())
 	{
@@ -2310,11 +2310,11 @@ void DoMaterialAttributeReorder(FExpressionInput* Input)
 FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	:bOverride_OpacityMaskClipValue(false)
 	,bOverride_BlendMode(false)
-	,bOverride_LightingModel(false)
+	,bOverride_ShadingModel(false)
 	,bOverride_TwoSided(false)
 	,OpacityMaskClipValue(0.0f)
 	,BlendMode(BLEND_Opaque)
-	,LightingModel(MLM_DefaultLit)
+	,ShadingModel(MSM_DefaultLit)
 	,TwoSided(0)
 {
 
@@ -2324,7 +2324,7 @@ void FMaterialInstanceBasePropertyOverrides::Init(const UMaterialInstance& Insta
 {
 	OpacityMaskClipValue = Instance.GetOpacityMaskClipValue();
 	BlendMode = Instance.GetBlendMode();
-	LightingModel = Instance.GetLightingModel();
+	ShadingModel = Instance.GetShadingModel();
 	TwoSided = (uint32)Instance.IsTwoSided();
 }
 
@@ -2344,11 +2344,11 @@ void FMaterialInstanceBasePropertyOverrides::UpdateHash(FSHA1& HashState) const
  		HashState.Update((const uint8*)&BlendMode, sizeof(BlendMode));
 	}
 
-	if(bOverride_LightingModel)
+	if(bOverride_ShadingModel)
 	{
-		const FString HashString = TEXT("bOverride_LightingModel");
+		const FString HashString = TEXT("bOverride_ShadingModel");
 		HashState.UpdateWithString(*HashString, HashString.Len());
-		HashState.Update((const uint8*)&LightingModel, sizeof(LightingModel));
+		HashState.Update((const uint8*)&ShadingModel, sizeof(ShadingModel));
 	}
 
 	//This does seem like it needs to be in the hash but due to some shaders being added to when two sided is enabled
@@ -2374,8 +2374,8 @@ bool FMaterialInstanceBasePropertyOverrides::Update(const FMaterialInstanceBaseP
 	bRet |= (Updated.bOverride_BlendMode != bOverride_BlendMode);
 	bRet |= Updated.bOverride_BlendMode && (BlendMode != Updated.BlendMode);
 
-	bRet |= (Updated.bOverride_LightingModel != bOverride_LightingModel);
-	bRet |= Updated.bOverride_LightingModel && (LightingModel != Updated.LightingModel);
+	bRet |= (Updated.bOverride_ShadingModel != bOverride_ShadingModel);
+	bRet |= Updated.bOverride_ShadingModel && (ShadingModel != Updated.ShadingModel);
 
 	bRet |= (Updated.bOverride_TwoSided != bOverride_TwoSided);
 	bRet |= Updated.bOverride_TwoSided && (TwoSided != Updated.TwoSided);

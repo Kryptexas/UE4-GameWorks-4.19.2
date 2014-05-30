@@ -186,7 +186,7 @@ void MainPS(
 	Data.PrecomputedShadowFactors = 0;
 	Data.GBufferAO = 1;
 	Data.Opacity = Opacity;
-	Data.LightingModelId = LIGHTINGMODELID_DEFAULT_LIT;
+	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	Data.DecalMask = 1;
 
 	#if DECAL_RENDERSTAGE == 0

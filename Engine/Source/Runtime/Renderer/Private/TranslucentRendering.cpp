@@ -252,7 +252,7 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		const bool bIsLitMaterial = Parameters.LightingModel != MLM_Unlit;
+		const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
 
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
@@ -317,7 +317,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	// Determine the mesh's material and blend mode.
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
-	const EMaterialLightingModel LightingModel = Material->GetLightingModel();
+	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))

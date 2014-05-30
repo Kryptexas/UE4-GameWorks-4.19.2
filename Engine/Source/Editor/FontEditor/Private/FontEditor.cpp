@@ -132,7 +132,7 @@ void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr
 	Factory = ConstructObject<UTextureFactory>(UTextureFactory::StaticClass());
 	// Set the defaults
 	Factory->Blending = BLEND_Opaque;
-	Factory->LightingModel = MLM_Unlit;
+	Factory->ShadingModel = MSM_Unlit;
 	Factory->bDeferCompression = true;
 	Factory->MipGenSettings = TMGS_NoMipmaps;
 	

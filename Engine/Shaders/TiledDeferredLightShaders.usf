@@ -167,15 +167,15 @@ void TiledDeferredLightingMain(
 	FGBufferData InGBufferData = ScreenSpaceData.GBuffer; 
 	float3 CameraVector = normalize(WorldPosition - View.ViewOrigin.xyz);
 
-	// Multiple lighting models are being handled by unrolling a top level loop
-	// This generates faster code with the D3D11 shader compiler than a single pass over all lights, which branches on GBuffer.LightingModelId in PointLightSubsurface
-	// Presumably because the compiler was able to remove the lighting model branches in the unrolled loop iterations
+	// Multiple shading models are being handled by unrolling a top level loop
+	// This generates faster code with the D3D11 shader compiler than a single pass over all lights, which branches on GBuffer.ShadingModelID in PointLightSubsurface
+	// Presumably because the compiler was able to remove the shading model branches in the unrolled loop iterations
 	UNROLL
-	for (int TileLightingModelId = 1; TileLightingModelId < LIGHTINGMODELID_NUM; TileLightingModelId++)
+	for (uint TileShadingModelID = 1; TileShadingModelID < SHADINGMODELID_NUM; TileShadingModelID++)
 	{
-		// Only light pixels with the lighting model being processed in this loop iteration
+		// Only light pixels with the shading model being processed in this loop iteration
 		BRANCH
-		if (InGBufferData.LightingModelId == TileLightingModelId)
+		if (InGBufferData.ShadingModelID == TileShadingModelID)
 		{
 			LOOP
 			for (uint TileLightIndex = 0; TileLightIndex < NumLightsAffectingTile; TileLightIndex++) 
@@ -200,14 +200,14 @@ void TiledDeferredLightingMain(
 				LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
 	
 				// Lights requiring light attenuation are not supported tiled for now
-				CompositedLighting += GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, TileLightingModelId, LightData, float4(1, 1, 1, 1), uint2(0,0));
+				CompositedLighting += GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, TileShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0));
 			}
 		}
 	}
 		
-	// The simple lighting model does not depend on LightingModelId, so use it anytime the material is lit
+	// The simple shading model does not depend on ShadingModelID, so use it anytime the material is lit
 	BRANCH
-	if (InGBufferData.LightingModelId != LIGHTINGMODELID_UNLIT)
+	if (InGBufferData.ShadingModelID != SHADINGMODELID_UNLIT)
 	{
 		LOOP
 		for (uint TileLightIndex = 0; TileLightIndex < NumSimpleLightsAffectingTile; TileLightIndex++) 

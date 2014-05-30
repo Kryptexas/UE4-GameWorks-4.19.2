@@ -40,7 +40,7 @@ struct FDeferredLightData
 	bool bShadowed;
 };
 
-/** Data about a single light to be shaded with the simple lighting model, designed for speed and limited feature set. */
+/** Data about a single light to be shaded with the simple shading model, designed for speed and limited feature set. */
 struct FSimpleDeferredLightData
 {
 	float4 LightPositionAndInvRadius;
@@ -271,12 +271,12 @@ float3 PointLightSpecularMIS( FScreenSpaceData ScreenSpaceData, FDeferredLightDa
 	return SpecularLighting / (NumSamplesGGX + NumSamplesCone);
 }
 
-float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModelId, float3 L, float3 V, half3 N, float SubsurfaceExtinction )
+float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, uint ShadingModelID, float3 L, float3 V, half3 N, float SubsurfaceExtinction )
 {
 	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
 	float3 SubsurfaceColor = DecodeSubsurfaceColor( InGBufferData.CustomData );
 
-	if (LightingModelId == LIGHTINGMODELID_SUBSURFACE)
+	if (ShadingModelID == SHADINGMODELID_SUBSURFACE)
 	{
 		L = normalize( L );
 		float3 H = normalize(V + L);
@@ -293,7 +293,7 @@ float3 PointLightSubsurface( FScreenSpaceData ScreenSpaceData, int LightingModel
 		// lerp to never exceed 1 (energy conserving)
 		return SubsurfaceColor * (lerp(BackScatter, 1, InScatter) * SubsurfaceExtinction);
 	}
-	else if (LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
+	else if (ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN)
 	{
 		L = normalize( L );
 
@@ -351,7 +351,7 @@ void GetShadowTerms(FScreenSpaceData ScreenSpaceData, FDeferredLightData LightDa
 }
 
 /** Calculates lighting for a given position, normal, etc with a fully featured lighting model designed for quality. */
-float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV, FScreenSpaceData ScreenSpaceData, int LightingModelId, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
+float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV, FScreenSpaceData ScreenSpaceData, uint ShadingModelID, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
 {
 	float3 N = ScreenSpaceData.GBuffer.WorldNormal;
 	float3 L = LightData.LightDirection;
@@ -440,14 +440,14 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 
 #if LIGHTCULLING_FINE == 1
 		// optimization that should help if there are a lot of shadowed pixels
-		BRANCH if (ShadowedAttenuation > 0 || LightingModelId == LIGHTINGMODELID_SUBSURFACE)
+		BRANCH if (ShadowedAttenuation > 0 || ShadingModelID == SHADINGMODELID_SUBSURFACE)
 #endif
 		{
 			const float3 LightColor = LightData.LightColorAndFalloffExponent.rgb;
 
 			float3 DiffuseLighting = PointLightDiffuse( ScreenSpaceData, L, -CameraVector, N );
 			float3 SpecularLighting = PointLightSpecular( ScreenSpaceData, LightData, L, -CameraVector, N );
-			float3 SubsurfaceLighting = PointLightSubsurface( ScreenSpaceData, LightingModelId, L, -CameraVector, N, SSSShadowTerm );
+			float3 SubsurfaceLighting = PointLightSubsurface( ScreenSpaceData, ShadingModelID, L, -CameraVector, N, SSSShadowTerm );
 			
 #define RAY_TRACE 0
 #if RAY_TRACE
