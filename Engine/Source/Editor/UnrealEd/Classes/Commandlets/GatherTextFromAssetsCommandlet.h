@@ -27,9 +27,8 @@ class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 	GENERATED_UCLASS_BODY()
 
 	void ProcessPackages( const TArray< UPackage* >& PackagesToProcess );
-	void ProcessObject( UObject* Object, const UPackage* ObjectPackage );
 	void ProcessDialogueWave( const UDialogueWave* DialogueWave );
-	bool ProcessTextProperty( UTextProperty* TextProp, UObject* Object, const FString& ObjectPath, const bool bFixBroken, bool& OutRepaired );
+	bool ProcessTextProperty( UTextProperty* TextProp, FText* Data, UObject* Object, bool& OutRepaired );
 
 public:
 	// Begin UCommandlet Interface
