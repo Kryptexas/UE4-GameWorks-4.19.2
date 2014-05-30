@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/CullDistanceVolume.h"
-#include "Engine/DefaultPhysicsVolume.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/Console.h"
 #include "Engine/WorldComposition.h"
 #include "Matinee/MatineeActor.h"
