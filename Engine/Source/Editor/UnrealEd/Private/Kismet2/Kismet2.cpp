@@ -193,6 +193,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	NewBP->ParentClass = ParentClass;
 	NewBP->BlueprintSystemVersion = UBlueprint::GetCurrentBlueprintSystemVersion();
 	NewBP->bIsNewlyCreated = true;
+	NewBP->bLegacyNeedToPurgeSkelRefs = false;
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 

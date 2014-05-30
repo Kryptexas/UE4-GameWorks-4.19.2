@@ -484,9 +484,11 @@ public:
 	{
 		if( TargetBlueprint != NULL && (TargetBlueprint->BlueprintType != BPTYPE_MacroLibrary) )
 		{
-			check(TargetBlueprint->SkeletonGeneratedClass);
+			if( ensureMsgf(TargetBlueprint->SkeletonGeneratedClass, TEXT("Blueprint %s is missing its skeleton generated class - known possible for assets on revision 1 older than 2088505"), *TargetBlueprint->GetName() ) )
+			{
+				TargetBlueprint->SkeletonGeneratedClass->GetDefaultObject()->Serialize(*this);
+			}
 			check(TargetBlueprint->GeneratedClass);
-			TargetBlueprint->SkeletonGeneratedClass->GetDefaultObject()->Serialize(*this);
 			TargetBlueprint->GeneratedClass->GetDefaultObject()->Serialize(*this);
 
 			TArray<UObject*> SubObjs;
