@@ -81,16 +81,21 @@ int32 GetBoundFullScreenModeCVar()
 // depending on WindowMode and the console variable r.FullScreenMode
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	EWindowMode::Type CurrentWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
-
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if (WindowMode != EWindowMode::Windowed && GEngine && GEngine->HMDDevice.IsValid())
+		if (WindowMode == EWindowMode::Windowed)
+		{
+			return WindowMode;
+		}
+
+		if (GEngine && GEngine->HMDDevice.IsValid())
 		{
 			return EWindowMode::Fullscreen;
 		}
-		
-		return CurrentWindowMode;
+
+		// Figure out which full screen mode we should be
+		EWindowMode::Type DesiredFullScreenWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
+		return DesiredFullScreenWindowMode;
 	}
 
 	return EWindowMode::Fullscreen;
