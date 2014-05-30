@@ -256,6 +256,14 @@ FString UKismetStringLibrary::GetSubstring(const FString& SourceString, int32 St
 	return SourceString.Mid(StartIndex, Length);
 }
 
+int32 UKismetStringLibrary::FindSubstring(const FString& SearchIn, const FString& Substring, bool bUseCase, bool bSearchFromEnd, int32 StartPosition)
+{
+	ESearchCase::Type Case = bUseCase ? ESearchCase::CaseSensitive : ESearchCase::IgnoreCase;
+	ESearchDir::Type Dir = bSearchFromEnd ? ESearchDir::FromEnd : ESearchDir::FromStart;
+
+	return SearchIn.Find(Substring, Case, Dir, StartPosition);
+}
+
 int32 UKismetStringLibrary::GetCharacterAsNumber(const FString& SourceString, int32 Index)
 {
 	if ((Index >= 0) && (Index < SourceString.Len()))

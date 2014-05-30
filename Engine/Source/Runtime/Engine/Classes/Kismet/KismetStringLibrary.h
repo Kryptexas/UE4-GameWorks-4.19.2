@@ -232,6 +232,18 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(StartIndex="0", Length="1"), Category="Utilities|String")
 	static FString GetSubstring(const FString& SourceString, int32 StartIndex, int32 Length);
 
+	/**
+	 * Finds the starting index of a substring in the a specified string
+	 * @param SearchIn The string to search within
+	 * @param Substring The string to look for in the SearchIn string
+	 * @param bUseCase Whether or not to be case-sensitive
+	 * @param bSearchFromEnd Whether or not to start the search from the end of the string instead of the beginning
+	 * @param StartPosition The position to start the search from
+	 * @return The index (starting from 0 if bSearchFromEnd is false) of the first occurence of the substring
+	 */
+	UFUNCTION(BlueprintPure, Category = "String")
+	static int32 FindSubstring(const FString& SearchIn, const FString& Substring, bool bUseCase = false, bool bSearchFromEnd = false, int32 StartPosition = -1);
+
 	/** 
 	 * Gets a single character from the string (as an integer)
 	 * @param SourceString - The string to convert
