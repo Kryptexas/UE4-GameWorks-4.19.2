@@ -254,7 +254,7 @@ public class PhysX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PhysXLibDir += "/Linux";
+			PhysXLibDir += "/Linux/" + Target.Architecture;
 
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir);

@@ -41,5 +41,10 @@ public class zlib : ModuleRules
 				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
 			}
         }
-	}
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            PublicLibraryPaths.Add(zlibPath + "Lib/Linux/" + Target.Architecture);
+            PublicAdditionalLibraries.Add("z");
+        }
+    }
 }

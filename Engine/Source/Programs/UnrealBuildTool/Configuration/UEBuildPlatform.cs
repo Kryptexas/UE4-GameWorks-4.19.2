@@ -153,6 +153,15 @@ namespace UnrealBuildTool
 		 */
 		string GetActiveArchitecture();
 		
+        /**
+         * Allow the platform to apply architecture-specific name according to its rules
+         * 
+         * @param BinaryName name of the binary, not specific to any architecture
+         *
+         * @return Possibly architecture-specific name
+         */
+        string ApplyArchitectureName(string BinaryName);
+
 		/**
 		 * Setup the configuration environment for building
 		 * 
@@ -1049,11 +1058,24 @@ namespace UnrealBuildTool
 			return ExeName;
 		}
 
-		/**
-		 *	Setup the configuration environment for building
-		 *	
-		 *	@param	InBuildTarget		The target being built
-		 */
+        /**
+         * Allow the platform to apply architecture-specific name according to its rules
+         * 
+         * @param BinaryName name of the binary, not specific to any architecture
+         *
+         * @return Possibly architecture-specific name
+         */
+        public virtual string ApplyArchitectureName(string BinaryName)
+        {
+            // by default, use logic that assumes architectures to start with "-"
+            return BinaryName + GetActiveArchitecture();
+        }
+
+        /**
+         *	Setup the configuration environment for building
+         *	
+         *	@param	InBuildTarget		The target being built
+         */
 		public virtual void SetUpConfigurationEnvironment(UEBuildTarget InBuildTarget)
 		{
 			// Determine the C++ compile/link configuration based on the Unreal configuration.

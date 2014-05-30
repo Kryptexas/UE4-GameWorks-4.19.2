@@ -25,6 +25,15 @@ namespace UnrealBuildTool.Linux
             return DefaultArchitecture;
         }
 
+        /**
+         * Allow the platform to apply architecture-specific name according to its rules
+         */
+        public override string ApplyArchitectureName(string BinaryName)
+        {
+            // Linux ignores architecture-specific names, although it might be worth it to prepend architecture
+            return BinaryName;
+        }
+
         /** 
          * Whether platform supports switching SDKs during runtime
          * 
@@ -293,7 +302,6 @@ namespace UnrealBuildTool.Linux
 
             // link with Linux libraries.
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("pthread");
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
 
             // Disable Simplygon support if compiling against the NULL RHI.
             if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))

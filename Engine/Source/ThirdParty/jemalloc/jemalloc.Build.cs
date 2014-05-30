@@ -15,8 +15,8 @@ public class jemalloc : ModuleRules
 		// for use by other libraries
 		// "drop-in" means that jemalloc replaces libc malloc()/free() and every allocation is made
 		// through it - including libraries like libcurl
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/include/Linux/separate");
-		PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/lib/Linux/separate");
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/include/Linux/" + Target.Architecture + "/separate");
+		PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/lib/Linux/" + Target.Architecture + "/separate");
 		//PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/include/Linux/drop-in");
 		//PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "jemalloc/lib/Linux/drop-in");
             PublicAdditionalLibraries.Add("jemalloc");

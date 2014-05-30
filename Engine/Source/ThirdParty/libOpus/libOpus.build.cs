@@ -47,14 +47,7 @@ public class libOpus : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			if (File.Exists(LibraryPath + "Linux/libopus.so"))
-			{
-				LibraryPath += "Linux";
-			}
-			else
-			{
-				LibraryPath += "Linux/CentOS6/";
-			}
+            LibraryPath += "Linux/" + Target.Architecture;
             PublicLibraryPaths.Add(LibraryPath);
             PublicAdditionalLibraries.Add("opus");
 		}

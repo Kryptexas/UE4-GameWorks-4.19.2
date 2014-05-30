@@ -69,7 +69,7 @@ public class UElibPNG : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/libpng.a");
+            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
 
             if (UEBuildConfiguration.bBuildDedicatedServer)
             {

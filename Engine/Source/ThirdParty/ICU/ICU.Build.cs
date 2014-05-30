@@ -65,7 +65,7 @@ public class ICU : ModuleRules
 			}
             else
             {
-                ICURootPath += "Linux/";
+                ICURootPath += "Linux/" + Target.Architecture + "/";
             }
 			string LibraryExtension = "a";
 			string LibraryNamePrefix = "libicu";

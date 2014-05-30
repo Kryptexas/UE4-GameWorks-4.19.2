@@ -14,7 +14,7 @@ public class SDL2 : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            PublicLibraryPaths.Add(SDL2LibPath + "Linux");
+            PublicLibraryPaths.Add(SDL2LibPath + "Linux/" + Target.Architecture);
             PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "SDL2/DisplayServerExtensions/bin");
             PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "SDL2/DisplayServerExtensions/include");
             PublicAdditionalLibraries.Add("EpicSDL2");

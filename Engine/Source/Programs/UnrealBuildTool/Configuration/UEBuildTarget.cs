@@ -1871,7 +1871,7 @@ namespace UnrealBuildTool
 			}
 
 			// append the architecture to the end of the binary name
-			BinarySuffix += BuildPlatform.GetActiveArchitecture();
+            BinarySuffix = BuildPlatform.ApplyArchitectureName(BinarySuffix);
 
 			string OutBinaryPath = "";
 			// Append binary file name

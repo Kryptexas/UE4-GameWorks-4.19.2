@@ -22,7 +22,7 @@ public class OpenAL : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(OpenALPath + "lib/Linux/");
+			PublicLibraryPaths.Add(OpenALPath + "lib/Linux/" + Target.Architecture);
 			PublicAdditionalLibraries.Add("openal");
 		}
     }

@@ -37,7 +37,7 @@ public class FBX : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			string LibDir = FBXSDKDir + "lib/linux/";
+			string LibDir = FBXSDKDir + "lib/linux/" + Target.Architecture;
 			if (!Directory.Exists(LibDir))
 			{
 				string Err = string.Format("FBX SDK not found in {0}", LibDir);

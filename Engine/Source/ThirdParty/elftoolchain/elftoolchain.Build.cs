@@ -12,7 +12,7 @@ public class elftoolchain : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "elftoolchain/lib/Linux");
+            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "elftoolchain/lib/Linux/" + Target.Architecture);
             PublicAdditionalLibraries.Add("elf");
             PublicAdditionalLibraries.Add("dwarf");
         }

@@ -75,7 +75,7 @@ public class UEOgg : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(OggLibPath + "Linux");
+			PublicLibraryPaths.Add(OggLibPath + "Linux/" + Target.Architecture);
 			PublicAdditionalLibraries.Add("ogg");
 		}
 	}
