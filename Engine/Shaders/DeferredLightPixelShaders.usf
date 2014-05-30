@@ -47,13 +47,11 @@ void DirectionalPixelMain(
 {
 	OutColor = 0;
 	float3 CameraVector = normalize(ScreenVector);
-	float4 WorldNormal = Texture2DSampleLevel(GBufferATexture, GBufferATextureSampler, InUV, 0) * float4(2,2,2,1) - float4(1,1,1,0);
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(InUV);
 
-	BRANCH
 	// Only light pixels marked as using deferred shading
-	if (WorldNormal.w > 0)
+	BRANCH if( ScreenSpaceData.GBuffer.ShadingModelID > 0 )
 	{
 		float SceneDepth = CalcSceneDepth(InUV);
 		float3 WorldPosition = ScreenVector * SceneDepth + View.ViewOrigin.xyz;
@@ -74,13 +72,11 @@ void RadialPixelMain(
 {
 	OutColor = 0;
 	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-	float4 WorldNormal = Texture2DSampleLevel(GBufferATexture, GBufferATextureSampler, ScreenUV, 0) * float4(2,2,2,1) - float4(1,1,1,0);
 	
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(ScreenUV);
 
-	BRANCH
 	// Only light pixels marked as using deferred shading
-	if (WorldNormal.w > 0)
+	BRANCH if( ScreenSpaceData.GBuffer.ShadingModelID > 0 )
 	{
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
