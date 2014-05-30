@@ -1118,20 +1118,21 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 			{
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Function", "Rename Function" ) );
 				FString NewNameString = NewText.ToString();
-				FBlueprintEditorUtils::RenameGraph(Graph, *NewNameString );
 
 				// Search through all function entry nodes for local variables to update their scope name
 				TArray<UK2Node_Variable*> VariableNodes;
-				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(FBlueprintEditorUtils::FindBlueprintForGraph(Graph), VariableNodes);
+				Graph->GetNodesOfClass<UK2Node_Variable>(VariableNodes);
 
 				for (UK2Node_Variable* const VariableNode : VariableNodes)
 				{
 					if(VariableNode->VariableReference.IsLocalScope())
 					{
 						// Update the variable's scope to be the graph's name (which mirrors the UFunction)
-						VariableNode->VariableReference.SetLocalMember(VariableNode->VariableReference.GetMemberName(), Graph->GetName(), VariableNode->VariableReference.GetMemberGuid());
+						VariableNode->VariableReference.SetLocalMember(VariableNode->VariableReference.GetMemberName(), NewNameString, VariableNode->VariableReference.GetMemberGuid());
 					}
 				}
+
+				FBlueprintEditorUtils::RenameGraph(Graph, *NewNameString );
 			}
 		}
 	}
