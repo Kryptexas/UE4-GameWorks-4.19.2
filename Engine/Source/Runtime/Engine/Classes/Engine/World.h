@@ -1417,6 +1417,11 @@ public:
 	/** NavigationSystem const getter */
 	FORCEINLINE const UNavigationSystem* GetNavigationSystem() const { return NavigationSystem; }
 
+	/** AISystem getter. if AISystem is missing it tries to create one and returns the result.
+	 *	@NOTE the result can be NULL, for example on client games or if no AI module or AISystem class have not been specified
+	 *	@see UAISystemBase::AISystemClassName and UAISystemBase::AISystemModuleName*/
+	UAISystemBase* CreateAISystem();
+
 	/** AISystem getter */
 	FORCEINLINE UAISystemBase* GetAISystem() { return AISystem; }
 	/** AISystem const getter */
@@ -1784,6 +1789,7 @@ public:
 			, bRequiresHitProxies(true)
 			, bCreatePhysicsScene(true)
 			, bCreateNavigation(false)
+			, bCreateAISystem(false)
 			, bShouldSimulatePhysics(true)
 			, bEnableTraceCollision(false)
 			, bTransactional(true)
@@ -1795,6 +1801,7 @@ public:
 		uint32 bRequiresHitProxies:1;
 		uint32 bCreatePhysicsScene:1;
 		uint32 bCreateNavigation:1;
+		uint32 bCreateAISystem:1;
 		uint32 bShouldSimulatePhysics:1;
 		uint32 bEnableTraceCollision:1;
 		uint32 bTransactional:1;
@@ -1805,6 +1812,7 @@ public:
 		InitializationValues& RequiresHitProxies(const bool bRequires) { bRequiresHitProxies = bRequires; return *this; }
 		InitializationValues& CreatePhysicsScene(const bool bCreate) { bCreatePhysicsScene = bCreate; return *this; }
 		InitializationValues& CreateNavigation(const bool bCreate) { bCreateNavigation = bCreate; return *this; }
+		InitializationValues& CreateAISystem(const bool bCreate) { bCreateAISystem = bCreate; return *this; }
 		InitializationValues& ShouldSimulatePhysics(const bool bInShouldSimulatePhysics) { bShouldSimulatePhysics = bInShouldSimulatePhysics; return *this; }
 		InitializationValues& EnableTraceCollision(const bool bInEnableTraceCollision) { bEnableTraceCollision = bInEnableTraceCollision; return *this; }
 		InitializationValues& SetTransactional(const bool bInTransactional) { bTransactional = bInTransactional; return *this; }

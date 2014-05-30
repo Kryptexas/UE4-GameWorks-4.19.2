@@ -2437,6 +2437,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	}
 	
 	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
+	PlayWorld->CreateAISystem();
 
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 

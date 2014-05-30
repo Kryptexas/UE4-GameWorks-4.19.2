@@ -3,6 +3,8 @@
 #include "AIModulePrivate.h"
 #include "AISystem.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogAIModule, Log, All);
+
 class FAIModule : public IAIModule
 {
 	// Begin IModuleInterface
@@ -28,6 +30,8 @@ void FAIModule::ShutdownModule()
 
 UAISystemBase* FAIModule::CreateAISystemInstance(UWorld* World)
 {
+	UE_LOG(LogAIModule, Log, TEXT("Creating AISystem for world %s"), *GetNameSafe(World));
+	
 	TSubclassOf<class UAISystemBase> AISystemClass = LoadClass<UAISystemBase>(NULL, *UAISystem::GetAISystemClassName().ClassName, NULL, LOAD_None, NULL);
 	return ConstructObject<UAISystemBase>(AISystemClass, World);
 }

@@ -2173,6 +2173,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 
 					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+					Context.World()->CreateAISystem();
 
 					// Assign stationary light channels for previewing
 					ULightComponent::ReassignStationaryLightChannels(Context.World(), false);

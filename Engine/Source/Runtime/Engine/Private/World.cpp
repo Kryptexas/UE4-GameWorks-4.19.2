@@ -629,6 +629,26 @@ void UWorld::UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffe
 	}
 }
 
+UAISystemBase* UWorld::CreateAISystem()
+{
+#if WITH_SERVER_CODE || WITH_EDITOR
+	// create navigation system for editor and server targets, but remove it from game clients
+	if (AISystem == NULL && GetNetMode() != NM_Client)
+	{
+		auto AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
+		if (AISystemModule)
+		{
+			AISystem = AISystemModule->CreateAISystemInstance(this);
+			if (AISystem == NULL)
+			{
+				UE_LOG(LogWorld, Error, TEXT("Failed to create AISystem instance of class %s!"), *UAISystemBase::GetAISystemClassName().ClassName);
+			}
+		}
+	}
+#endif
+	return AISystem; 
+}
+
 void UWorld::InitWorld(const InitializationValues IVS)
 {
 	if (!ensure(!bIsWorldInitialized))
@@ -669,14 +689,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		UNavigationSystem::CreateNavigationSystem(this);
 	}
 
-	auto AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
-	if (AISystemModule)
+	if (IVS.bCreateAISystem)
 	{
-		AISystem = AISystemModule->CreateAISystemInstance(this);
-		if (AISystem == NULL)
-		{
-			UE_LOG(LogWorld, Error, TEXT("Failed to create AISystem instance of class %s!"), *UAISystemBase::GetAISystemClassName().ClassName);
-		}
+		CreateAISystem();
 	}
 	
 	if (GEngine->AvoidanceManagerClass != NULL)
@@ -953,7 +968,7 @@ UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEng
 	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
 	UWorld* NewWorld = new( WorldPackage				, *WorldNameString			) UWorld(FPostConstructInitializeProperties(),FURL(NULL));
 	NewWorld->WorldType = InWorldType;
-	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor));
+	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor).CreateAISystem(InWorldType == EWorldType::Editor));
 
 	// Clear the dirty flag set during SpawnActor and UpdateLevelComponents
 	WorldPackage->SetDirtyFlag(false);

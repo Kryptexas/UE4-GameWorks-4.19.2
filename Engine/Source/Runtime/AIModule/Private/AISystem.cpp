@@ -16,6 +16,11 @@ UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCI
 	}
 }
 
+UAISystem::~UAISystem()
+{
+	CleanupWorld(true, true, NULL);
+}
+
 void UAISystem::InitializeActorsForPlay(bool bTimeGotReset)
 {
 

@@ -22,8 +22,9 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	UPROPERTY(Transient)
 	UEnvQueryManager* EnvironmentQueryManager;
 
-	// IAISystemInterface begin	
-	//virtual IAISystemInterface* CreateInstanceForWorldImpl(UWorld* World);
+	~UAISystem();
+
+	// IAISystemInterface begin		
 	virtual void InitializeActorsForPlay(bool bTimeGotReset) OVERRIDE;
 	virtual void WorldOriginChanged(FIntPoint OldOrigin, FIntPoint NewOrigin) OVERRIDE;
 	virtual void CleanupWorld(bool bSessionEnded = true, bool bCleanupResources = true, UWorld* NewWorld = NULL) OVERRIDE;
