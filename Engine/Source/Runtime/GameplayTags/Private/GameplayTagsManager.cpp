@@ -35,10 +35,10 @@ const UDataTable* UGameplayTagsManager::LoadGameplayTagTable()
 	}
 #if WITH_EDITOR
 	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
-	if (GIsEditor && GEditor && GameplayTagTable && !RegisteredObjectReimport)
+	if (GIsEditor && GameplayTagTable && !RegisteredObjectReimport)
 	{
 		RegisteredObjectReimport = true;
-		GEditor->OnObjectReimported().AddUObject(this, &UGameplayTagsManager::OnObjectReimported);
+		FEditorDelegates::OnAssetPostImport.AddUObject(this, &UGameplayTagsManager::OnObjectReimported);
 	}
 #endif
 	return GameplayTagTable;
@@ -240,7 +240,7 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags( const FString& InFilterS
 	}
 }
 
-void UGameplayTagsManager::OnObjectReimported(UObject* InObject)
+void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* InObject)
 {
 	// Re-construct the gameplay tag tree if the base table is re-imported
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GameplayTagTable)

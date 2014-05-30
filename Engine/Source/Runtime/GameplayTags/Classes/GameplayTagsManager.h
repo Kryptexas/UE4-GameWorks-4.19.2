@@ -150,9 +150,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** 
 	 * Called via delegate when an object is re-imported in the editor
 	 * 
-	 * @param InObject	Object that was re-imported
+	 * @param ImportFactory	Factory responsible for the re-import
+	 * @param InObject		Object that was re-imported
 	 */
-	void OnObjectReimported(UObject* InObject);
+	void OnObjectReimported(class UFactory* ImportFactory, UObject* InObject);
 
 #endif //WITH_EDITOR
 
