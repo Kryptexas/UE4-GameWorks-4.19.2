@@ -81,7 +81,7 @@ private:
 
 public:
 
-	//@TODO: These are both fixed on a XZ coordinate system
+	//@TODO: BOX2D: These conversion functions ignore the Paper2D coordinate system (they are fixed on a XZ coordinate system)
 	static inline FVector ConvertBoxVectorToUnreal(const b2Vec2& Vector)
 	{
 		return FVector(Vector.x * UnrealUnitsPerMeter, 0.0f, Vector.y * UnrealUnitsPerMeter);
@@ -90,6 +90,16 @@ public:
 	static inline b2Vec2 ConvertUnrealVectorToBox(const FVector& Vector)
 	{
 		return b2Vec2(Vector.X / UnrealUnitsPerMeter, Vector.Z / UnrealUnitsPerMeter);
+	}
+
+	static inline float ConvertUnrealAngularVelocityToBox(const FVector& AngularVelocity)
+	{
+		return FMath::DegreesToRadians<float>(AngularVelocity.Y);
+	}
+
+	static inline FVector ConvertBoxAngularVelocityToUnreal(const float AngularVelocity)
+	{
+		return FVector(0.0f, FMath::RadiansToDegrees<float>(AngularVelocity), 0.0f);
 	}
 
 	// Finds the scene associated with the specified UWorld

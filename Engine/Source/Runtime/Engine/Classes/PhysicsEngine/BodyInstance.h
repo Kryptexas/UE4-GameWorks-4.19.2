@@ -61,7 +61,7 @@ private:
 
 	/** Custom Channels for Responses */
 	UPROPERTY()
-	TArray<FResponseChannel>			ResponseArray;
+	TArray<FResponseChannel> ResponseArray;
 
 	friend struct FBodyInstance;
 };
@@ -250,9 +250,9 @@ public:
 	void LoadProfileData(bool bVerifyProfile);
 
 #if WITH_PHYSX
-typedef physx::PxAggregate* PhysXAggregateType;
+	typedef physx::PxAggregate* PhysXAggregateType;
 #elif WITH_BOX2D
-typedef void* PhysXAggregateType;
+	typedef void* PhysXAggregateType;
 #endif
 
 #if WITH_PHYSX || WITH_BOX2D
@@ -276,8 +276,11 @@ typedef void* PhysXAggregateType;
 	 */
 	bool UpdateBodyScale(const FVector& InScale3D);
 
+	/** Returns the center of mass of this body (in world space) */
 	FVector GetCOMPosition() const;
-	void DrawCOMPosition( class FPrimitiveDrawInterface* PDI, float COMRenderSize, const FColor& COMRenderColor );
+
+	/** Draws the center of mass as a wire star */
+	void DrawCOMPosition(class FPrimitiveDrawInterface* PDI, float COMRenderSize, const FColor& COMRenderColor);
 
 	/** Utility for copying properties from one BodyInstance to another. */
 	void CopyBodyInstancePropertiesFrom(const FBodyInstance* FromInst);
@@ -311,6 +314,9 @@ typedef void* PhysXAggregateType;
 	TArray<physx::PxShape*> GetAllShapes(int32& OutNumSyncShapes) const;
 #endif	//WITH_PHYSX
 
+	/** Returns true if the body is not static */
+	bool IsDynamic() const;
+
 	/** Returns the body's mass */
 	float GetBodyMass() const;
 	/** Return bounds of physics representation */
@@ -326,7 +332,7 @@ typedef void* PhysXAggregateType;
 	/** Should Simulate Physics **/
 	bool ShouldInstanceSimulatingPhysics(bool bIgnoreOwner=false);
 	/** Returns whether this body is awake */
-	bool IsInstanceAwake();
+	bool IsInstanceAwake() const;
 	/** Wake this body */
 	void WakeInstance();
 	/** Force this body to sleep */
@@ -358,10 +364,10 @@ typedef void* PhysXAggregateType;
 	/** Get current transform in world space from physics body. */
 	FTransform GetUnrealWorldTransform() const;
 
-	/** 
-		*	Move the physics body to a new pose. 
-		*	@param	bTeleport	If true, no velocity is inferred on the kinematic body from this movement, but it moves right away.
-		*/
+	/**
+	 *	Move the physics body to a new pose.
+	 *	@param	bTeleport	If true, no velocity is inferred on the kinematic body from this movement, but it moves right away.
+	 */
 	void SetBodyTransform(const FTransform& NewTransform, bool bTeleport);
 
 	/** Get current velocity in world space from physics body. */
