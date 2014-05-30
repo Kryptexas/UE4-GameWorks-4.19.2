@@ -229,10 +229,6 @@ public class UnrealEd : ModuleRules
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
 		}
-		else
-		{
-			Definitions.Add("WITH_SIMPLYGON=0");
-		}
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{

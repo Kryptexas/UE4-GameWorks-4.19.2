@@ -22,11 +22,6 @@ public:
 };
 
 
-#if !WITH_SIMPLYGON_DLL
-	int InitializeSimplygonSDK( const char* LicenseData , SimplygonSDK::ISimplygonSDK** OutInterfacePtr );
-	void GetInterfaceVersionSimplygonSDK( char* DestString );
-#endif // #if !WITH_SIMPLYGON_DLL
-
 DEFINE_LOG_CATEGORY_STATIC(LogSimplygon, Log, All);
 IMPLEMENT_MODULE(FSimplygonMeshReductionModule, SimplygonMeshReduction);
 
@@ -322,18 +317,13 @@ public:
 	
 	bool IsSupported() const 
 	{
-#if WITH_SIMPLYGON_DLL
 		return true;
-#else
-		return false;
-#endif
 	}
 	static FSimplygonMeshReduction* Create()
 	{
 		SimplygonSDK::ISimplygonSDK* SDK = NULL;
 		ANSICHAR VersionHash[200];
 
-#if WITH_SIMPLYGON_DLL
 		if (FRocketSupport::IsRocket())
 		{
 			// this was killing DDC build, for now we won't even try in rocket mode.
@@ -379,7 +369,6 @@ public:
 			SDK = NULL;
 			return NULL;
 		}
-#endif
 
 		GetInterfaceVersionSimplygonSDK(VersionHash);
 		if (FCStringAnsi::Strcmp(VersionHash, SimplygonSDK::GetInterfaceVersionHash()) != 0)
@@ -389,13 +378,11 @@ public:
 		}
 
 		const char* LicenseData = NULL;
-#if WITH_SIMPLYGON_DLL
 		TArray<uint8> LicenseFileContents;
 		if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(*DllPath, TEXT("license.dat")), FILEREAD_Silent) && LicenseFileContents.Num() > 0)
 		{
 			LicenseData = (const char*)LicenseFileContents.GetTypedData();
 		}
-#endif // #if WITH_SIMPLYGON_DLL
 
 		int32 Result = InitializeSimplygonSDK(LicenseData, &SDK);
 		if (Result != SimplygonSDK::SG_ERROR_NOERROR && Result != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
