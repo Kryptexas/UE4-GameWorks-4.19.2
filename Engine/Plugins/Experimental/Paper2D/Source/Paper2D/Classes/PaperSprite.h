@@ -139,6 +139,7 @@ public:
 	FVector2D ConvertPivotSpaceToTextureSpace(FVector2D Input) const;
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
 	FVector ConvertPivotSpaceToTextureSpace(FVector Input) const;
+	FVector2D ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const;
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
@@ -150,6 +151,8 @@ public:
 
 	void RebuildCollisionData();
 	void RebuildRenderData();
+
+	void ExtractSourceRegionFromTexturePoint(const FVector2D& Point);
 
 	void FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2D& OutBoxPosition, /*out*/ FVector2D& OutBoxSize);
 	static void FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanSize, float AlphaThreshold, UTexture2D* Texture, TArray< TArray<FIntPoint> >& OutPoints);

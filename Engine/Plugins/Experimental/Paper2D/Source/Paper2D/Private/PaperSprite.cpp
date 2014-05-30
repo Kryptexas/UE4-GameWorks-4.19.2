@@ -9,6 +9,7 @@
 
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
+#include "BitmapUtils.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTextureReader
@@ -341,6 +342,32 @@ struct FBoundaryImage
 		}
 	}
 };
+
+void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePoint)
+{
+	int SourceX = FMath::RoundToInt(SourcePoint.X);
+	int SourceY = FMath::RoundToInt(SourcePoint.Y);
+	int ClosestValidX = 0;
+	int ClosestValidY = 0;
+
+	FBitmap Bitmap(SourceTexture, 0, 0);
+	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceX, SourceY, 10, /*out*/ ClosestValidX, /*out*/ ClosestValidY))
+	{
+		int OriginX = 0;
+		int OriginY = 0;
+		int DimensionX = 0;
+		int DimensionY = 0;
+		if (Bitmap.HasConnectedRect(ClosestValidX, ClosestValidY, false, /*out*/ OriginX, /*out*/ OriginY, /*out*/ DimensionX, /*out*/ DimensionY))
+		{
+			if (DimensionX > 0 && DimensionY > 0)
+			{
+				SourceUV = FVector2D(OriginX, OriginY);
+				SourceDimension = FVector2D(DimensionX, DimensionY);
+				PostEditChange();
+			}
+		}
+	}
+}
 
 #endif
 
@@ -1052,6 +1079,14 @@ FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoi
 // 	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 // 	return FVector(SourcePoint.X, SourcePoint.Y, SourceDims.Y - SourcePoint.Z);
 // }
+
+FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const
+{
+	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+	const FVector ProjectionX = WorldPoint.ProjectOnTo(PaperAxisX);
+	const FVector ProjectionY = WorldPoint.ProjectOnTo(PaperAxisY);
+	return FVector2D(FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size(), SourceDims.Y - FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size());		
+}
 
 FTransform UPaperSprite::GetPivotToWorld() const
 {

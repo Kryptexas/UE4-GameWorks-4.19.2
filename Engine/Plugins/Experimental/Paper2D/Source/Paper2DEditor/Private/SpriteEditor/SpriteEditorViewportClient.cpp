@@ -525,11 +525,20 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		const FVector PivotInWorldSpace = TextureSpaceToWorldSpace(PivotInTextureSpace);
 		RenderSpriteComponent->SetRelativeLocation(PivotInWorldSpace);
 
-		// Zoom in on the sprite
-		//@TODO: This doesn't work correctly, only partially zooming in or something
-		if (bDeferZoomToSprite)
+		bool bSourceTextureViewComponentVisibility = bShowSourceTexture || (CurrentMode == ESpriteEditorMode::EditSourceRegionMode);
+		if (bSourceTextureViewComponentVisibility != SourceTextureViewComponent->IsVisible())
 		{
-			FocusViewportOnBox(RenderSpriteComponent->Bounds.GetBox(), true);
+			bDeferZoomToSprite = true;
+			SourceTextureViewComponent->SetVisibility(bSourceTextureViewComponentVisibility);
+		}
+
+		// Zoom in on the sprite
+		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
+		FIntPoint Size = Viewport->GetSizeXY();
+		if (bDeferZoomToSprite && Size.X > 0 && Size.Y > 0)
+		{
+			UPaperRenderComponent *ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
+			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
 			bDeferZoomToSprite = false;
 		}		
 	}
@@ -584,6 +593,14 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 	{
 		ClearSelectionSet();
 
+		if (Event == EInputEvent::IE_DoubleClick && CurrentMode == ESpriteEditorMode::EditSourceRegionMode)
+		{
+			FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
+			UPaperSprite* Sprite = GetSpriteBeingEdited();
+			FVector2D TexturePoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
+			Sprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
+		}
+
 		FPaperEditorViewportClient::ProcessClick(View, HitProxy, Key, Event, HitX, HitY);
 	}
 }
@@ -622,8 +639,9 @@ bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisLis
 		if (SelectionSet.Num() > 0)
 		{
 			UPaperSprite* Sprite = GetSpriteBeingEdited();
-			Sprite->RebuildCollisionData();
-			Sprite->RebuildRenderData();
+			// Sprite->RebuildCollisionData();
+			// Sprite->RebuildRenderData();
+			Sprite->PostEditChange();
 			bManipulationDirtiedSomething = true;
 
 			Invalidate();
