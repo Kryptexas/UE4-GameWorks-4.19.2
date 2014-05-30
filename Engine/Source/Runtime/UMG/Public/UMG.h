@@ -55,6 +55,7 @@
 #include "EditableTextBlockComponent.h"
 #include "ImageComponent.h"
 #include "Slider.h"
+#include "ComboBox.h"
 
 #include "GridPanelComponent.h"
 #include "ScrollBoxComponent.h"

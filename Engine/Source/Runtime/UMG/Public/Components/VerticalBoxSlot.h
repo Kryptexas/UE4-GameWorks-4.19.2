@@ -23,4 +23,9 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
+
+	void BuildSlot(TSharedRef<SVerticalBox> InVerticalBox);
+
+private:
+	SVerticalBox::FSlot* Slot;
 };

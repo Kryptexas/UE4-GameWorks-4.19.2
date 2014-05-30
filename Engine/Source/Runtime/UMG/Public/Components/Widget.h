@@ -21,6 +21,8 @@ class UMG_API UWidget : public UObject
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 
+	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetUObject, UObject*, Item);
+
 	// Events
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSReply, FOnReply);
 

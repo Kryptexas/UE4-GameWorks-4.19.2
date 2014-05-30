@@ -48,7 +48,14 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
+	void BuildSlot(TSharedRef<SCanvas> Canvas);
+
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) OVERRIDE;
 
 	virtual bool CanResize(const FVector2D& Direction) const OVERRIDE;
+
+	void SetPosition(FVector2D Position);
+
+private:
+	SCanvas::FSlot* Slot;
 };

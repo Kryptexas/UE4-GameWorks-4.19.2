@@ -4,10 +4,10 @@
 
 #include "DesignerExtension.h"
 
-class FVerticalSlotExtension : public FDesignerExtension
+class FHorizontalSlotExtension : public FDesignerExtension
 {
 public:
-	FVerticalSlotExtension();
+	FHorizontalSlotExtension();
 
 	bool IsActive(const TArray< FSelectedWidget >& Selection);
 	
@@ -15,11 +15,9 @@ public:
 
 private:
 
-	FReply HandleUpPressed();
-	FReply HandleDownPressed();
-
-	void MoveUp(UWidget* Widget);
-	void MoveDown(UWidget* Widget);
+	FReply HandleShift(int32 ShiftAmount);
+	
+	void ShiftHorizontal(UWidget* Widget, int32 ShiftAmount);
 
 	TArray< FSelectedWidget > SelectionCache;
 };

@@ -7,7 +7,21 @@
 
 UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, Slot(NULL)
 {
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;
+}
+
+void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
+{
+	Slot = &VerticalBox->AddSlot()
+		.Padding(Padding)
+		.HAlign(HorizontalAlignment)
+		.VAlign(VerticalAlignment)
+		[
+			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
+		];
+
+	Slot->SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
 }

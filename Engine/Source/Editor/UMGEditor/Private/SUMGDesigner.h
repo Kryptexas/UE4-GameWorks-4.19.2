@@ -5,6 +5,7 @@
 #include "SCompoundWidget.h"
 #include "SNodePanel.h"
 #include "SDesignSurface.h"
+#include "DesignerExtension.h"
 
 class FDesignerExtension;
 
@@ -37,7 +38,7 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
-	UWidget* GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
+	FSelectedWidget GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
 
 	UWidgetBlueprint* GetBlueprint() const;
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
@@ -87,7 +88,7 @@ private:
 	TWeakPtr<SWidget> PreviewWidget;
 	UUserWidget* PreviewWidgetActor;
 
-	UWidget* SelectedTemplate;
+	FSelectedWidget CurrentSelection;
 	TWeakPtr<SWidget> SelectedWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;

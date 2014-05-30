@@ -96,16 +96,7 @@ TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 			}
 
 			Slot->Parent = this;
-
-			auto& NewSlot = Canvas->AddSlot()
-				.Padding(Slot->Padding)
-				.HAlign(Slot->HorizontalAlignment)
-				.VAlign(Slot->VerticalAlignment)
-				[
-					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-				];
-
-			NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Slot->Size);
+			Slot->BuildSlot(NewCanvas);
 		}
 	}
 

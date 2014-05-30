@@ -21,6 +21,21 @@ UWidget* UHorizontalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
+int32 UHorizontalBoxComponent::GetChildIndex(UWidget* Content) const
+{
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	{
+		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
+
+		if ( Slot->Content == Content )
+		{
+			return SlotIndex;
+		}
+	}
+
+	return -1;
+}
+
 bool UHorizontalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
@@ -29,15 +44,11 @@ bool UHorizontalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
 
 bool UHorizontalBoxComponent::RemoveChild(UWidget* Child)
 {
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	int32 SlotIndex = GetChildIndex(Child);
+	if ( SlotIndex != -1 )
 	{
-		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
-
-		if ( Slot->Content == Child )
-		{
-			Slots.RemoveAt(SlotIndex);
-			return true;
-		}
+		Slots.RemoveAt(SlotIndex);
+		return true;
 	}
 
 	return false;
@@ -51,6 +62,19 @@ void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
 #if WITH_EDITOR
 	Content->Slot = Slot;
 #endif
+}
+
+void UHorizontalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
+{
+	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
+	Slot->Content = Content;
+	Slot->Parent = this;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+
+	Slots.Insert(Slot, Index);
 }
 
 TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
@@ -90,6 +114,7 @@ UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
+	Slot->Parent = this;
 
 #if WITH_EDITOR
 	Content->Slot = Slot;
@@ -106,6 +131,7 @@ void UHorizontalBoxComponent::ConnectEditorData()
 	for ( UHorizontalBoxSlot* Slot : Slots )
 	{
 		Slot->Content->Slot = Slot;
+		Slot->Parent = this;
 	}
 }
 

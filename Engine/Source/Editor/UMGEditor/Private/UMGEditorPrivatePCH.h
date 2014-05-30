@@ -7,6 +7,8 @@
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
 
+#include "BlueprintEditorUtils.h"
+
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"
@@ -16,3 +18,6 @@
 
 #include "DesignerExtension.h"
 #include "VerticalSlotExtension.h"
+#include "HorizontalSlotExtension.h"
+#include "CanvasSlotExtension.h"
+#include "UniformGridSlotExtension.h"

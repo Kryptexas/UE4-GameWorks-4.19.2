@@ -22,4 +22,15 @@ class UMG_API UUniformGridSlot : public UPanelSlot
 	
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	int32 Column;
+
+	UFUNCTION(BlueprintCallable, Category=Layout)
+	void SetRow(int32 InRow);
+
+	UFUNCTION(BlueprintCallable, Category=Layout)
+	void SetColumn(int32 InColumn);
+
+	void BuildSlot(TSharedRef<SUniformGridPanel> GridPanel);
+
+private:
+	SUniformGridPanel::FSlot* Slot;
 };

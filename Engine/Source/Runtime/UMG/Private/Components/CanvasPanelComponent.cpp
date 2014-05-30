@@ -69,14 +69,7 @@ TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 				Slots[SlotIndex] = Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 			}
 
-			auto NewSlot = Canvas->AddSlot()
-				.Position(Slot->Position)
-				.Size(Slot->Size)
-				.HAlign(Slot->HorizontalAlignment)
-				.VAlign(Slot->VerticalAlignment)
-				[
-					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-				];
+			Slot->BuildSlot(Canvas.ToSharedRef());
 		}
 	}
 
@@ -87,6 +80,7 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(UWidget* Content)
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 	Slot->Content = Content;
+	Slot->Parent = this;
 
 #if WITH_EDITOR
 	Content->Slot = Slot;
@@ -112,6 +106,7 @@ void UCanvasPanelComponent::ConnectEditorData()
 {
 	for ( UCanvasPanelSlot* Slot : Slots )
 	{
+		Slot->Parent = this;
 		Slot->Content->Slot = Slot;
 	}
 }
@@ -128,18 +123,6 @@ void UCanvasPanelComponent::PostEditChangeProperty(struct FPropertyChangedEvent&
 		{
 			Slots[SlotIndex] = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 		}
-
-		//FName& SlotName = Slots[SlotIndex].SlotName;
-
-		//if ((SlotName == NAME_None) || UniqueSlotNames.Contains(SlotName))
-		//{
-		//	do 
-		//	{
-		//		SlotName = FName(TEXT("Slot"), SlotNumbering++);
-		//	} while (UniqueSlotNames.Contains(SlotName));
-		//}
-
-		//UniqueSlotNames.Add(SlotName);
 	}
 }
 #endif

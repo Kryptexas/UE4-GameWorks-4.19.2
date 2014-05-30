@@ -18,9 +18,11 @@ class UMG_API UHorizontalBoxComponent : public UPanelWidget
 	// UPanelWidget
 	virtual int32 GetChildrenCount() const OVERRIDE;
 	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
+	virtual int32 GetChildIndex(UWidget* Content) const OVERRIDE;
 	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
 	virtual bool RemoveChild(UWidget* Child) OVERRIDE;
 	virtual void ReplaceChildAt(int32 Index, UWidget* Child) OVERRIDE;
+	virtual void InsertChildAt(int32 Index, UWidget* Child) OVERRIDE;
 	// End UPanelWidget
 
 #if WITH_EDITOR

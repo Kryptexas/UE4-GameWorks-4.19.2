@@ -66,12 +66,7 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 			Slots[SlotIndex] = Slot = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
 		}
 
-		auto& NewSlot = NewPanel->AddSlot(Slot->Column, Slot->Row)
-			.HAlign(Slot->HorizontalAlignment)
-			.VAlign(Slot->VerticalAlignment)
-			[
-				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-			];
+		Slot->BuildSlot(NewPanel);
 	}
 
 	return NewPanel;
@@ -81,6 +76,7 @@ UUniformGridSlot* UUniformGridPanel::AddSlot(UWidget* Content)
 {
 	UUniformGridSlot* Slot = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
 	Slot->Content = Content;
+	Slot->Parent = this;
 
 #if WITH_EDITOR
 	Content->Slot = Slot;
@@ -98,6 +94,7 @@ void UUniformGridPanel::ConnectEditorData()
 	for ( UUniformGridSlot* Slot : Slots )
 	{
 		Slot->Content->Slot = Slot;
+		Slot->Parent = this;
 	}
 }
 

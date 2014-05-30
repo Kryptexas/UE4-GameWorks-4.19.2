@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -10,11 +10,11 @@ FVerticalSlotExtension::FVerticalSlotExtension()
 	ExtensionId = FName(TEXT("VerticalSlot"));
 }
 
-bool FVerticalSlotExtension::IsActive(const TArray< UWidget* >& Selection)
+bool FVerticalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
 {
-	for ( UWidget* Widget : Selection )
+	for ( const FSelectedWidget& Widget : Selection )
 	{
-		if ( !Widget->Slot || !Widget->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
+		if ( !Widget.Template->Slot || !Widget.Template->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
 		{
 			return false;
 		}
@@ -23,7 +23,7 @@ bool FVerticalSlotExtension::IsActive(const TArray< UWidget* >& Selection)
 	return Selection.Num() == 1;
 }
 
-void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< UWidget* >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
 {
 	SelectionCache = Selection;
 
@@ -34,12 +34,12 @@ void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< UWidget* >& 
 
 	TSharedRef<SButton> UpButton =
 		SNew(SButton)
-		.Text(LOCTEXT("UpArrow", "?"))
+		.Text(LOCTEXT("UpArrow", "↑"))
 		.OnClicked(this, &FVerticalSlotExtension::HandleUpPressed);
 
 	TSharedRef<SButton> DownButton =
 		SNew(SButton)
-		.Text(LOCTEXT("DownArrow", "?"))
+		.Text(LOCTEXT("DownArrow", "↓"))
 		.OnClicked(this, &FVerticalSlotExtension::HandleDownPressed);
 
 	Widgets.Add(UpButton);
@@ -48,16 +48,13 @@ void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< UWidget* >& 
 
 FReply FVerticalSlotExtension::HandleUpPressed()
 {
-	for ( UWidget* Widget : SelectionCache )
+	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-		UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
-
-		int32 CurrentIndex = Parent->GetChildIndex(Widget);
-		Parent->Slots.RemoveAt(CurrentIndex);
-		Parent->Slots.Insert(VerticalSlot, FMath::Max(CurrentIndex - 1, 0));
+		MoveUp(Selection.Preview);
+		MoveUp(Selection.Template);
 	}
 
+	//TODO UMG Reorder the live slot without rebuilding the structure
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 
 	return FReply::Handled();
@@ -65,19 +62,36 @@ FReply FVerticalSlotExtension::HandleUpPressed()
 
 FReply FVerticalSlotExtension::HandleDownPressed()
 {
-	for ( UWidget* Widget : SelectionCache )
+	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-		UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
-
-		int32 CurrentIndex = Parent->GetChildIndex(Widget);
-		Parent->Slots.RemoveAt(CurrentIndex);
-		Parent->Slots.Insert(VerticalSlot, FMath::Min(CurrentIndex + 1, Parent->GetChildrenCount()));
+		MoveDown(Selection.Preview);
+		MoveDown(Selection.Template);
 	}
 
+	//TODO UMG Reorder the live slot without rebuilding the structure
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 
 	return FReply::Handled();
+}
+
+void FVerticalSlotExtension::MoveUp(UWidget* Widget)
+{
+	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
+	UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+
+	int32 CurrentIndex = Parent->GetChildIndex(Widget);
+	Parent->Slots.RemoveAt(CurrentIndex);
+	Parent->Slots.Insert(VerticalSlot, FMath::Max(CurrentIndex - 1, 0));
+}
+
+void FVerticalSlotExtension::MoveDown(UWidget* Widget)
+{
+	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
+	UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+
+	int32 CurrentIndex = Parent->GetChildIndex(Widget);
+	Parent->Slots.RemoveAt(CurrentIndex);
+	Parent->Slots.Insert(VerticalSlot, FMath::Min(CurrentIndex + 1, Parent->GetChildrenCount()));
 }
 
 #undef LOCTEXT_NAMESPACE
