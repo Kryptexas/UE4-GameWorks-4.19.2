@@ -462,9 +462,12 @@ namespace SceneOutliner
 
 		FCoreDelegates::OnActorLabelChanged.RemoveAll(this);
 
-		auto& Folders = FActorFolders::Get();
-		Folders.OnFolderCreate.RemoveAll(this);
-		Folders.OnFolderDelete.RemoveAll(this);
+		if (FActorFolders::IsAvailable())
+		{
+			auto& Folders = FActorFolders::Get();
+			Folders.OnFolderCreate.RemoveAll(this);
+			Folders.OnFolderDelete.RemoveAll(this);
+		}
 	}
 
 	TArray<FOutlinerTreeItemPtr> SSceneOutliner::GetSelectedItems()

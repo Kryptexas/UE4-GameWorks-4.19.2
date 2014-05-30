@@ -45,7 +45,10 @@ struct UNREALED_API FActorFolders : public FGCObject
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
 	// End FGCObject Interface
 
-	/** Singleton access */
+	/** Check whether the singleton is valid */
+	static bool IsAvailable() { return Singleton != nullptr; }
+
+	/** Singleton access - only valid if IsAvailable() */
 	static FActorFolders& Get();
 
 	/** Initialize the singleton instance - called on Editor Startup */
