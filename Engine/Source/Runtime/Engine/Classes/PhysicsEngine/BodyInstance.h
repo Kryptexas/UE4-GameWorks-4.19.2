@@ -554,3 +554,16 @@ protected:
 
 #endif	//WITH_BOX2D
 };
+
+
+#if WITH_EDITOR
+
+// Helper methods for classes with body instances
+struct FBodyInstanceEditorHelpers
+{
+	ENGINE_API static void EnsureConsistentMobilitySimulationSettingsOnPostEditChange(UPrimitiveComponent* Component, FPropertyChangedEvent& PropertyChangedEvent);
+
+private:
+	FBodyInstanceEditorHelpers() {}
+};
+#endif

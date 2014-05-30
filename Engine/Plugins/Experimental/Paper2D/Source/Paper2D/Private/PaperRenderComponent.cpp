@@ -11,8 +11,6 @@
 UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
 	MaterialOverride = nullptr;
@@ -21,6 +19,15 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 
 	Mobility = EComponentMobility::Static;
 }
+
+#if WITH_EDITOR
+void UPaperRenderComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
 
 FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
 {

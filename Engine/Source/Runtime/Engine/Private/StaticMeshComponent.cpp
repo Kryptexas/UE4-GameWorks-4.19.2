@@ -1060,48 +1060,9 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		{
 			GEngine->TriggerStreamingDataRebuild();
 		}
-
-		// Automatically change collision profile based on mobility and physics settings (if it is currently one of the default profiles)
-		bool bMobilityChanged = PropertyThatChanged->GetName().Contains(TEXT("Mobility"));
-		bool bSimulatePhysicsChanged = PropertyThatChanged->GetName().Contains(TEXT("bSimulatePhysics"));
-		if( bMobilityChanged || bSimulatePhysicsChanged )
-		{
-			// If we enabled physics simulation, but we are not marked movable, do that for them
-			if(bSimulatePhysicsChanged && BodyInstance.bSimulatePhysics && (Mobility != EComponentMobility::Movable))
-			{
-				SetMobility(EComponentMobility::Movable);
-			}
-			// If we made the component no longer movable, but simulation was enabled, disable that for them
-			else if(bMobilityChanged && (Mobility != EComponentMobility::Movable) && BodyInstance.bSimulatePhysics)
-			{
-				BodyInstance.bSimulatePhysics = false;
-			}
-
-			// If the collision profile is one of the 'default' ones for a StaticMeshActor, make sure it is the correct one
-			// If user has changed it to something else, don't touch it
-			FName CurrentProfileName = BodyInstance.GetCollisionProfileName();
-			if(	CurrentProfileName == UCollisionProfile::BlockAll_ProfileName ||
-				CurrentProfileName == UCollisionProfile::BlockAllDynamic_ProfileName ||
-				CurrentProfileName == UCollisionProfile::PhysicsActor_ProfileName )
-			{
-				if(Mobility == EComponentMobility::Movable)
-				{
-					if(BodyInstance.bSimulatePhysics)
-					{
-						BodyInstance.SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
-					}
-					else
-					{
-						BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
-					}
-				}
-				else
-				{
-					BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-				}
-			}
-		}
 	}
+
+	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);
 
 	LightmassSettings.EmissiveBoost = FMath::Max(LightmassSettings.EmissiveBoost, 0.0f);
 	LightmassSettings.DiffuseBoost = FMath::Max(LightmassSettings.DiffuseBoost, 0.0f);

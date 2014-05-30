@@ -21,8 +21,6 @@ protected:
 	// The color of the sprite (passed to the sprite material as a vertex color)
 	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
 	FLinearColor SpriteColor;
-protected:
-	friend class FPaperRenderSceneProxy;
 
 public:
 	/** Change the PaperSprite used by this instance. */
@@ -36,6 +34,16 @@ public:
 	/** Set color of the sprite */
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void SetSpriteColor(FLinearColor NewColor);
+
+	// Returns the wireframe color to use for this component.
+	FLinearColor GetWireframeColor() const;
+
+public:
+	// UObject interface
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
+	// End of UObject interface
 
 	// UActorComponent interface
 	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
@@ -54,6 +62,6 @@ public:
 	virtual class UBodySetup* GetBodySetup() OVERRIDE;
 	// End of UPrimitiveComponent interface
 
-	// Returns the wireframe color to use for this component.
-	FLinearColor GetWireframeColor() const;
+protected:
+	friend class FPaperRenderSceneProxy;
 };

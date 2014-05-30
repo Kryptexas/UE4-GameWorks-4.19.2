@@ -2871,4 +2871,58 @@ bool FBodyInstance::UseAsyncScene() const
 	return bUseAsyncScene && bHasAsyncScene;
 }
 
+////////////////////////////////////////////////////////////////////////////
+// FBodyInstanceEditorHelpers
+
+void FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(UPrimitiveComponent* Component, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (UProperty* PropertyThatChanged = PropertyChangedEvent.Property)
+	{
+		const FName PropertyName = PropertyThatChanged->GetFName();
+
+		// Automatically change collision profile based on mobility and physics settings (if it is currently one of the default profiles)
+		const bool bMobilityChanged = PropertyName == GET_MEMBER_NAME_CHECKED(USceneComponent, Mobility);
+		const bool bSimulatePhysicsChanged = PropertyName == GET_MEMBER_NAME_CHECKED(FBodyInstance, bSimulatePhysics);
+
+		if (bMobilityChanged || bSimulatePhysicsChanged)
+		{
+			// If we enabled physics simulation, but we are not marked movable, do that for them
+			if (bSimulatePhysicsChanged && Component->BodyInstance.bSimulatePhysics && (Component->Mobility != EComponentMobility::Movable))
+			{
+				Component->SetMobility(EComponentMobility::Movable);
+			}
+			// If we made the component no longer movable, but simulation was enabled, disable that for them
+			else if (bMobilityChanged && (Component->Mobility != EComponentMobility::Movable) && Component->BodyInstance.bSimulatePhysics)
+			{
+				Component->BodyInstance.bSimulatePhysics = false;
+			}
+
+			// If the collision profile is one of the 'default' ones for a StaticMeshActor, make sure it is the correct one
+			// If user has changed it to something else, don't touch it
+			const FName CurrentProfileName = Component->BodyInstance.GetCollisionProfileName();
+			if ((CurrentProfileName == UCollisionProfile::BlockAll_ProfileName) ||
+				(CurrentProfileName == UCollisionProfile::BlockAllDynamic_ProfileName) ||
+				(CurrentProfileName == UCollisionProfile::PhysicsActor_ProfileName))
+			{
+				if (Component->Mobility == EComponentMobility::Movable)
+				{
+					if (Component->BodyInstance.bSimulatePhysics)
+					{
+						Component->BodyInstance.SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
+					}
+					else
+					{
+						Component->BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+					}
+				}
+				else
+				{
+					Component->BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+				}
+			}
+		}
+	}
+}
+
+
 #undef LOCTEXT_NAMESPACE

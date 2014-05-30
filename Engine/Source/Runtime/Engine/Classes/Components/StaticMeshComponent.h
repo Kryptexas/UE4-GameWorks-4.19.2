@@ -208,6 +208,8 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
 	virtual bool HasAnySockets() const OVERRIDE;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
+	virtual bool DoesSocketExist(FName InSocketName) const OVERRIDE;
 	virtual bool ShouldCollideWhenPlacing() const OVERRIDE
 	{
 		// Current Method of collision does not work with non-capsule shapes, enable when it works with static meshes
@@ -391,11 +393,6 @@ public:
 	 *								If false, set it to use vertex light mapping.
 	 */
 	virtual bool SetStaticLightingMapping(bool bTextureMapping, int32 ResolutionToUse);
-
-	/** Socket support overrides. */
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
-
-	virtual bool DoesSocketExist(FName InSocketName) const OVERRIDE;
 
 	/**
 	 * Returns the named socket on the static mesh component.
