@@ -20,6 +20,7 @@
 #include "PrecomputedLightVolume.h"
 #include "UObjectAnnotation.h"
 #include "RenderCore.h"
+#include "GlobalShader.h"
 #include "EngineModule.h"
 #include "ParticleHelper.h"
 #include "TickTaskManagerInterface.h"
