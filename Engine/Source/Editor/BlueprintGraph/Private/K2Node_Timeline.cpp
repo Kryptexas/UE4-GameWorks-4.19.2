@@ -353,7 +353,7 @@ void UK2Node_Timeline::PrepareForCopying()
 	//Set the GUID so we can identify which timeline template the copied node should use
 	UTimelineTemplate* Template  = Blueprint->FindTimelineTemplateByVariableName(TimelineName);
 	check(Template);
-	TimelineGuid = Template->TimelineGuid =  FGuid::NewGuid(); //refresh the guid 
+	TimelineGuid = Template->TimelineGuid; // hold onto the template's Guid so on paste we can match it up on paste
 }
 
 //Determine if all the tracks contained with both arrays are identical
