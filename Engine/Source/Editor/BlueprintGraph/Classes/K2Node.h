@@ -495,7 +495,8 @@ public:
 	/** Get the class that owns this member */
 	UClass* GetMemberParentClass(UClass* SelfScope) const
 	{
-		return bSelfContext ? SelfScope : (UClass*)MemberParentClass;
+		// Local variables with a MemberScope act much the same as being SelfContext, their parent class is SelfScope.
+		return (bSelfContext || !MemberScope.IsEmpty())? SelfScope : (UClass*)MemberParentClass;
 	}
 
 	/** Get the scope of this member, using a node to derive the class */
@@ -508,6 +509,12 @@ public:
 	UStruct* GetMemberScope(UClass* InMemberParentClass) const
 	{
 		return FindField<UStruct>(InMemberParentClass, *MemberScope);
+	}
+
+	/** Get the name of the scope of this member */
+	FString GetMemberScopeName() const
+	{
+		return MemberScope;
 	}
 
 	/** 
