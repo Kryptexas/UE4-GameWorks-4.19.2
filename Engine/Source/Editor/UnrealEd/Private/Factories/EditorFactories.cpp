@@ -6011,6 +6011,10 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
+		// update the data in case the file source has changed
+		ImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::CurrentFilename, AnimSequence);
+		ImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::CurrentFilename).ToString();
+
 		// Try to find the outer package so we can dirty it up
 		if (AnimSequence->GetOuter())
 		{
