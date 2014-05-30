@@ -78,12 +78,6 @@ public class Launch : ModuleRules
 			// LaunchEngineLoop.cpp does a LoadModule() on OnlineSubsystem and OnlineSubsystemUtils when compiled WITH_ENGINE, so they must be marked as dependencies so that they get compiled and cleaned
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystem");
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystemUtils");
-
-			// XboxOneLauch calls into OnlineSubsystemLive to handle invites
-			if (Target.Platform == UnrealTargetPlatform.XboxOne)
-			{
-				PrivateDependencyModuleNames.Add("OnlineSubsystemLive");
-			}
 		}
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
