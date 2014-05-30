@@ -16,6 +16,15 @@ namespace UnrealBuildTool.Linux
         /** Platform name (embeds architecture for now) */
         static private string TargetPlatformName = "Linux_x64";
 
+        /** Linux architecture (compiler target triplet) */
+        static private string DefaultArchitecture = "x86_64-unknown-linux-gnu";
+
+        /** The current architecture */
+        public override string GetActiveArchitecture()
+        {
+            return DefaultArchitecture;
+        }
+
         /** 
          * Whether platform supports switching SDKs during runtime
          * 
