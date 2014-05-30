@@ -15,15 +15,7 @@
 
 #include "MessageLog.h"
 
-
-// @todo this is here only due to circular dependency to AIModule. To be removed
-#include "AIController.h"
-#include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
-#include "BrainComponent.h"
-
 /** Anim stats */
-
 
 DEFINE_STAT(STAT_UpdateSkelMeshBounds);
 DEFINE_STAT(STAT_MeshObjectUpdate);
@@ -1950,42 +1942,12 @@ void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 // 
 void UAnimInstance::LockAIResources(bool bLockMovement, bool LockAILogic)
 {
-	APawn* PawnOwner = TryGetPawnOwner();
-	if (PawnOwner)
-	{
-		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
-		if( OwningAI )
-		{
-			if (bLockMovement && OwningAI->PathFollowingComponent)
-			{
-				OwningAI->PathFollowingComponent->LockResource(EAILockSource::Animation);
-			}
-			if (LockAILogic && OwningAI->BrainComponent)
-			{
-				OwningAI->BrainComponent->LockResource(EAILockSource::Animation);
-			}			
-		}
-	}
+	UE_LOG(LogAnimation, Error, TEXT("%s: LockAIResources is no longer supported. Please use LockAIResourcesWithAnimation instead."), *GetName());	
 }
 
 void UAnimInstance::UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic)
 {
-	APawn* PawnOwner = TryGetPawnOwner();
-	if (PawnOwner)
-	{
-		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
-		if( OwningAI )
-		{
-			if (bUnlockMovement && OwningAI->PathFollowingComponent)
-			{
-				OwningAI->PathFollowingComponent->ClearResourceLock(EAILockSource::Animation);
-			}
-			if (UnlockAILogic && OwningAI->BrainComponent)
-			{
-				OwningAI->BrainComponent->ClearResourceLock(EAILockSource::Animation);
-			}			
-		}
-	}
+	UE_LOG(LogAnimation, Error, TEXT("%s: UnlockAIResources is no longer supported. Please use UnlockAIResourcesWithAnimation instead."), *GetName());
 }
 
 #undef LOCTEXT_NAMESPACE 

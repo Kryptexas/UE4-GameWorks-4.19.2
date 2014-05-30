@@ -7,8 +7,6 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
-// @todo this is here only due to circular dependency to AIModule. To be removed
-#include "AIController.h"
 
 APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP
@@ -110,9 +108,10 @@ void APlayerState::PostInitializeComponents()
 		return;
 	}
 
-	if (Cast<AAIController>(GetOwner()) != NULL)
+	AController* OwningController = Cast<AController>(GetOwner());
+	if (OwningController != NULL)
 	{
-		bIsABot = true;
+		bIsABot = (Cast<APlayerController>(OwningController) == NULL);
 	}
 
 	if (World->GameState)
