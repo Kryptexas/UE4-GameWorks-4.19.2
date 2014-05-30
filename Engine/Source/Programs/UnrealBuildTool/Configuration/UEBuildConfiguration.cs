@@ -13,6 +13,9 @@ namespace UnrealBuildTool
 		/** Whether to include PhysX APEX support */
 		public static bool bCompileAPEX;
 
+		/** Whether to include Box2D support */
+		public static bool bCompileBox2D;
+
         /** Whether to include ICU unicode/i18n support in core */
         public static bool bCompileICU;
 
@@ -125,6 +128,7 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
+			bCompileBox2D = true;
 			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;

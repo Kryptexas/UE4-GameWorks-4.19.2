@@ -55,10 +55,6 @@ public:
 	virtual class UBodySetup* GetBodySetup() OVERRIDE;
 	// End of UPrimitiveComponent interface
 
-	// UPrimitiveComponent2D interface
-	virtual class UBodySetup2D* GetBodySetup2D() const OVERRIDE;
-	// End of UPrimitiveComponent2D interface
-
 	// Returns the wireframe color to use for this component.
 	FLinearColor GetWireframeColor() const;
 };

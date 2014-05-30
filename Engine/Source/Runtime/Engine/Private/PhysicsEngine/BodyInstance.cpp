@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BodyInstance.cpp
-=============================================================================*/ 
-
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
@@ -18,6 +14,11 @@
 
 #define LOCTEXT_NAMESPACE "BodyInstance"
 
+#if WITH_BOX2D
+#include "../PhysicsEngine2D/Box2DIntegration.h"
+#include "PhysicsEngine/BodySetup2D.h"
+#include "PhysicsEngine/AggregateGeometry2D.h"
+#endif	//WITH_BOX2D
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
@@ -217,6 +218,9 @@ FBodyInstance::FBodyInstance()
 , BodyAggregate(NULL)
 , PhysxUserData(this)
 #endif	//WITH_PHYSX
+#if WITH_BOX2D
+, BodyInstancePtr(nullptr)
+#endif
 {
 }
 
@@ -676,9 +680,109 @@ void FBodyInstance::UpdatePhysicsFilterData()
 #endif // WITH_PHYSX
 }
 
-#if WITH_PHYSX
+#if WITH_PHYSX || WITH_BOX2D
 void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
 {
+#if WITH_BOX2D
+	if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(Setup))
+	{
+		BodySetup = Setup;
+		Scale3D = Transform.GetScale3D();
+
+		if (b2World* World = FPhysicsIntegration2D::FindAssociatedWorld(PrimComp->GetWorld()))
+		{
+			const FVector Scale3D = Transform.GetScale3D();
+			const b2Vec2 Scale2D = FPhysicsIntegration2D::ConvertUnrealVectorToBox(Scale3D);
+
+			if (Setup != nullptr)
+			{
+				OwnerComponent = PrimComp;
+
+				b2BodyDef BodyDefinition;
+				BodyDefinition.type = bSimulatePhysics ? b2_dynamicBody : b2_kinematicBody;
+
+				BodyInstancePtr = World->CreateBody(&BodyDefinition);
+				BodyInstancePtr->SetUserData(this);
+
+				// Circles
+				for (const FCircleElement2D& Circle : BodySetup2D->AggGeom2D.CircleElements)
+				{
+					b2CircleShape CircleShape;
+					CircleShape.m_radius = Circle.Radius * Scale3D.Size() / UnrealUnitsPerMeter;
+					CircleShape.m_p.x = Circle.Center.X * Scale2D.x;
+					CircleShape.m_p.y = Circle.Center.Y * Scale2D.y;
+
+					b2FixtureDef FixtureDef;
+					FixtureDef.shape = &CircleShape;
+					FixtureDef.density = 1.0f; //@TODO:
+					FixtureDef.friction = 0.3f;//@TODO:
+					//FixtureDef.restitution = ;
+
+					BodyInstancePtr->CreateFixture(&FixtureDef);
+				}
+
+				// Boxes
+				for (const FBoxElement2D& Box : BodySetup2D->AggGeom2D.BoxElements)
+				{
+					const b2Vec2 HalfBoxSize(Box.Width * 0.5f * Scale2D.x, Box.Height * 0.5f * Scale2D.y);
+					const b2Vec2 BoxCenter(Box.Center.X * Scale2D.x, Box.Center.Y * Scale2D.y);
+
+					b2PolygonShape DynamicBox;
+					DynamicBox.SetAsBox(HalfBoxSize.x, HalfBoxSize.y, BoxCenter, FMath::DegreesToRadians(Box.Angle));
+
+					b2FixtureDef FixtureDef;
+					FixtureDef.shape = &DynamicBox;
+					FixtureDef.density = 1.0f; //@TODO:
+					FixtureDef.friction = 0.3f;//@TODO:
+
+					BodyInstancePtr->CreateFixture(&FixtureDef);
+				}
+
+				// Convex hulls
+				for (const FConvexElement2D& Convex : BodySetup2D->AggGeom2D.ConvexElements)
+				{
+					const int32 NumVerts = Convex.VertexData.Num();
+
+					if (NumVerts <= b2_maxPolygonVertices)
+					{
+						TArray<b2Vec2, TInlineAllocator<b2_maxPolygonVertices>> Verts;
+
+						for (int32 VertexIndex = 0; VertexIndex < Convex.VertexData.Num(); ++VertexIndex)
+						{
+							const FVector2D SourceVert = Convex.VertexData[VertexIndex];
+							new (Verts)b2Vec2(SourceVert.X * Scale2D.x, SourceVert.Y * Scale2D.y);
+						}
+
+						b2PolygonShape ConvexPoly;
+						ConvexPoly.Set(Verts.GetTypedData(), Verts.Num());
+
+						b2FixtureDef FixtureDef;
+						FixtureDef.shape = &ConvexPoly;
+						FixtureDef.density = 1.0f; //@TODO:
+						FixtureDef.friction = 0.3f;//@TODO:
+
+						BodyInstancePtr->CreateFixture(&FixtureDef);
+					}
+					else
+					{
+						UE_LOG(LogPhysics, Warning, TEXT("Too many vertices in a 2D convex body")); //@TODO: Create a better error message that indicates the asset
+					}
+				}
+
+				SetBodyTransform(Transform, /*bTeleport=*/ true);
+			}
+		}
+		else
+		{
+			//@TODO: Error out?
+		}
+
+		return;
+	}
+#endif
+
+
+#if WITH_PHYSX
 	PhysxUserData = FPhysxUserData(this);
 
 	check(Setup);
@@ -1001,8 +1105,9 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		    }
 		}
 	}
-}
 #endif // WITH_PHYSX
+}
+#endif // WITH_PHYSX || WITH_BOX2D
 
 //helper function for TermBody to avoid code duplication between scenes
 #if WITH_PHYSX
@@ -1057,13 +1162,30 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
+#if WITH_BOX2D
+	if (BodyInstancePtr != NULL)
+	{
+		if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
+		{
+			if (b2World* World = FPhysicsIntegration2D::FindAssociatedWorld(OwnerComponentInst->GetWorld()))
+			{
+				World->DestroyBody(BodyInstancePtr);
+			}
+			else
+			{
+				BodyInstancePtr->SetUserData(nullptr);
+			}
+		}
+		BodyInstancePtr = nullptr;
+	}
+#endif
+
 #if WITH_PHYSX
 	// Release sync actor
 	TermBodyHelper(SceneIndexSync, RigidActorSync, this);
 	// Release async actor
 	TermBodyHelper(SceneIndexAsync, RigidActorAsync, this);
 
-	BodySetup = NULL;
 	// releasing BodyAggregate, it shouldn't contain RigidActor now, because it's released above
 	if(BodyAggregate)
 	{
@@ -1075,6 +1197,7 @@ void FBodyInstance::TermBody()
 
 	// @TODO UE4: Release spring body here
 
+	BodySetup = NULL;
 	OwnerComponent = NULL;
 }
 
@@ -1466,33 +1589,40 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 
 void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 {
+	// In skeletal case, we need both our bone and skelcomponent flag to be true.
+	// This might be 'and'ing us with ourself, but thats fine.
+	const bool bUseSimulate = IsInstanceSimulatingPhysics();
+
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if(PRigidDynamic != NULL)
 	{
-		// In skeletal case, we need both our bone and skelcomponent flag to be true.
-		// This might be 'and'ing us with ourself, but thats fine.
-		const bool bUseSimulate = IsInstanceSimulatingPhysics();
-
 		// If we want it fixed, and it is currently not kinematic
 		bool bNewKinematic = (bUseSimulate == false);
 		{
 			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
 			PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
 		}
-
-		if (bUseSimulate)
-		{
-			PhysicsBlendWeight = 1.f;
-		}
-		else 
-		{
-			PhysicsBlendWeight = 0.f;
-		}
-
-		bSimulatePhysics = bUseSimulate;
 	}
 #endif
+
+#if WITH_BOX2D
+	if (BodyInstancePtr != NULL)
+	{
+		BodyInstancePtr->SetType(bUseSimulate ? b2_dynamicBody : b2_kinematicBody);
+	}
+#endif
+
+	if (bUseSimulate)
+	{
+		PhysicsBlendWeight = 1.f;
+	}
+	else
+	{
+		PhysicsBlendWeight = 0.f;
+	}
+
+	bSimulatePhysics = bUseSimulate;
 }
 
 
@@ -1565,6 +1695,7 @@ bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
 bool FBodyInstance::IsValidBodyInstance() const
 {
 	bool Retval = false;
+
 #if WITH_PHYSX
 	PxRigidActor* PActor = GetPxRigidActor();
 	if(PActor != NULL)
@@ -1573,6 +1704,13 @@ bool FBodyInstance::IsValidBodyInstance() const
 	}
 #endif // WITH_PHYSX
 
+#if WITH_BOX2D
+	if (BodyInstancePtr != nullptr)
+	{
+		Retval = true;
+	}
+#endif
+
 	return Retval;
 }
 
@@ -1580,17 +1718,32 @@ bool FBodyInstance::IsValidBodyInstance() const
 FTransform FBodyInstance::GetUnrealWorldTransform() const
 {
 #if WITH_PHYSX
-	PxTransform PTM = PxTransform::createIdentity();
-
 	PxRigidActor* PActor = GetPxRigidActor();
-	if(PActor != NULL)
+	if (PActor != NULL)
 	{		
 		SCOPED_SCENE_READ_LOCK(PActor->getScene());
-		PTM = PActor->getGlobalPose();
-	}
 
-	return P2UTransform(PTM);
+		PxTransform PTM = PActor->getGlobalPose();
+
+		return P2UTransform(PTM);
+	}
 #endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr != NULL)
+	{
+		const b2Vec2 Pos2D = BodyInstancePtr->GetPosition();
+		const float RotationInRadians = BodyInstancePtr->GetAngle();
+		//@TODO: Should I use get transform?
+		//@TODO: What about scale?
+
+		const FVector Translation3D(FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Pos2D));
+		const FRotator Rotation3D(FMath::RadiansToDegrees(RotationInRadians), 0.0f, 0.0f);
+		const FVector Scale3D(1.0f, 1.0f, 1.0f);
+
+		return FTransform(Rotation3D, Translation3D, Scale3D);
+	}
+#endif
 
 	return FTransform::Identity;
 }
@@ -1602,15 +1755,6 @@ extern bool GShouldLogOutAFrameOfSetBodyTransform;
 void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTeleport)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SetBodyTransform);
-	
-#if WITH_PHYSX
-	PxRigidActor* RigidActor = GetPxRigidActor();
-	if(RigidActor == NULL)
-	{
-		return;
-	}
-
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if(GShouldLogOutAFrameOfSetBodyTransform == true)
@@ -1625,58 +1769,78 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 		return;
 	}
 
-	// Do nothing if already in correct place
+#if WITH_PHYSX
+	PxRigidActor* RigidActor = GetPxRigidActor();
+	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
+
+	if (RigidActor != nullptr)
 	{
-		SCOPED_SCENE_READ_LOCK(RigidActor->getScene());
-		const PxTransform PCurrentPose = RigidActor->getGlobalPose();
-		if( NewTransform.Equals(P2UTransform(PCurrentPose)) )
+		// Do nothing if already in correct place
 		{
+			SCOPED_SCENE_READ_LOCK(RigidActor->getScene());
+			const PxTransform PCurrentPose = RigidActor->getGlobalPose();
+			if (NewTransform.Equals(P2UTransform(PCurrentPose)))
+			{
+				return;
+			}
+		}
+
+		const PxTransform PNewPose = U2PTransform(NewTransform);
+
+		if (!PNewPose.isValid())
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::SetBodyTransform: Trying to set new transform with bad data [p=(%f,%f,%f) q=(%f,%f,%f,%f)]"), PNewPose.p.x, PNewPose.p.y, PNewPose.p.z, PNewPose.q.x, PNewPose.q.y, PNewPose.q.z, PNewPose.q.w);
 			return;
 		}
-	}
 
-	const PxTransform PNewPose = U2PTransform(NewTransform);
-
-	if (!PNewPose.isValid())
-	{
-		UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::SetBodyTransform: Trying to set new transform with bad data [p=(%f,%f,%f) q=(%f,%f,%f,%f)]"), PNewPose.p.x, PNewPose.p.y, PNewPose.p.z, PNewPose.q.x, PNewPose.q.y, PNewPose.q.z, PNewPose.q.w);
-		return;
-	}
-	
-	SCENE_LOCK_WRITE(RigidActor->getScene());
-	// SIMULATED & KINEMATIC
-	if(PRigidDynamic)
-	{
-		// If kinematic and not teleporting, set kinematic target
-		if(!IsRigidDynamicNonKinematic(PRigidDynamic) && !bTeleport)
+		SCENE_LOCK_WRITE(RigidActor->getScene());
+		// SIMULATED & KINEMATIC
+		if (PRigidDynamic)
 		{
-			const PxScene* PScene = PRigidDynamic->getScene();
-			FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-			PhysScene->SetKinematicTarget(this, NewTransform, true);
+			// If kinematic and not teleporting, set kinematic target
+			if (!IsRigidDynamicNonKinematic(PRigidDynamic) && !bTeleport)
+			{
+				const PxScene* PScene = PRigidDynamic->getScene();
+				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+				PhysScene->SetKinematicTarget(this, NewTransform, true);
+			}
+			// Otherwise, set global pose
+			else
+			{
+				PRigidDynamic->setGlobalPose(PNewPose);
+			}
 		}
-		// Otherwise, set global pose
+		// STATIC
 		else
 		{
-			PRigidDynamic->setGlobalPose(PNewPose);
+			const bool bIsGame = !GIsEditor || (OwnerComponent != NULL && OwnerComponent->GetWorld()->IsGameWorld());
+			// Do NOT move static actors in-game, give a warning but let it happen
+			if (bIsGame)
+			{
+				const FString ComponentPathName = (OwnerComponent != NULL) ? OwnerComponent->GetPathName() : TEXT("NONE");
+				UE_LOG(LogPhysics, Warning, TEXT("MoveFixedBody: Trying to move component'%s' with a non-Movable Mobility."), *ComponentPathName);
+			}
+			// In EDITOR, go ahead and move it with no warning, we are editing the level
+			RigidActor->setGlobalPose(PNewPose);
 		}
-	}
-	// STATIC
-	else
-	{
-		const bool bIsGame = !GIsEditor || (OwnerComponent != NULL && OwnerComponent->GetWorld()->IsGameWorld());
-		// Do NOT move static actors in-game, give a warning but let it happen
-		if( bIsGame )
-		{
-			const FString ComponentPathName = (OwnerComponent != NULL) ? OwnerComponent->GetPathName() : TEXT("NONE");
-			UE_LOG(LogPhysics, Warning, TEXT("MoveFixedBody: Trying to move component'%s' with a non-Movable Mobility."), *ComponentPathName);
-		}
-		// In EDITOR, go ahead and move it with no warning, we are editing the level
-		RigidActor->setGlobalPose(PNewPose);
-	}
 
-	SCENE_UNLOCK_WRITE(RigidActor->getScene());
-
+		SCENE_UNLOCK_WRITE(RigidActor->getScene());
+	}
 #endif  // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr != NULL)
+	{
+		const FVector NewLocation = NewTransform.GetLocation();
+		const b2Vec2 NewLocation2D(FPhysicsIntegration2D::ConvertUnrealVectorToBox(NewLocation));
+
+		//@TODO: What about scale?
+		const FRotator NewRotation3D(NewTransform.GetRotation());
+		const float NewAngle = FMath::DegreesToRadians(NewRotation3D.Pitch);
+
+		BodyInstancePtr->SetTransform(NewLocation2D, NewAngle);
+	}
+#endif
 }
 
 FVector FBodyInstance::GetUnrealWorldVelocity() const
@@ -1816,6 +1980,11 @@ void FBodyInstance::CopyBodyInstancePropertiesFrom(const FBodyInstance* FromInst
 	check(!BodyAggregate);
 #endif //WITH_PHYSX
 	//check(SceneIndex == 0);
+
+#if WITH_BOX2D
+	check(!FromInst->BodyInstancePtr);
+	check(!BodyInstancePtr);
+#endif
 
 	*this = *FromInst;
 }

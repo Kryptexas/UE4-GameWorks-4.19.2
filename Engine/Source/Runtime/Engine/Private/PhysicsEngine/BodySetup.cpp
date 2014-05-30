@@ -985,7 +985,7 @@ class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const
 	return PhysMat;
 }
 
-float UBodySetup::CalculateMass(const UPrimitiveComponent* Component)
+float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 {
 	FVector ComponentScale(1.0f, 1.0f, 1.0f);
 	const FBodyInstance* BodyInstance = NULL;
@@ -1027,11 +1027,18 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component)
 	}
 
 	// Then scale mass to avoid big differences between big and small objects.
-	const float BasicMass = AggGeom.GetVolume(ComponentScale) * DensityKGPerCubicUU;
-	//@TODO: Some static meshes are triggering this - disabling until content can be analyzed - ensureMsgf(BasicMass >= 0.0f, TEXT("UBodySetup::CalculateMass(%s) - The volume of the aggregate geometry is negative"), *Component->GetReadableName());
+	const float BasicVolume = GetVolume(ComponentScale);
+	//@TODO: Some static meshes are triggering this - disabling until content can be analyzed - ensureMsgf(BasicVolume >= 0.0f, TEXT("UBodySetup::CalculateMass(%s) - The volume of the aggregate geometry is negative"), *Component->GetReadableName());
+
+	const float BasicMass = FMath::Max<float>(BasicVolume, 0.0f) * DensityKGPerCubicUU;
 
 	const float UsePow = FMath::Clamp<float>(RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
 	const float RealMass = FMath::Pow(BasicMass, UsePow);
 
 	return RealMass * MassScale;
+}
+
+float UBodySetup::GetVolume(const FVector& Scale) const
+{
+	return AggGeom.GetVolume(Scale);
 }

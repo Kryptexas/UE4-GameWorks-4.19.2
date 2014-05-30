@@ -16,6 +16,7 @@ public class Box2D : ModuleRules
 		string Box2DBaseDir = Path.Combine(ModuleBaseDirectory, "Box2D_v2.3.1");
 
 		// Add the libraries for the current platform
+		//@TODO: This need to be kept in sync with RulesCompiler.cs for now
 		bool bSupported = false;
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
@@ -32,8 +33,8 @@ public class Box2D : ModuleRules
 			PublicAdditionalLibraries.Add(LibName);
 		}
 
-		// Box2D included define
-		Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
+		// Box2D included define (this should be handled by using SetupModuleBox2DSupport instead)
+		//Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 
 		if (bSupported)
 		{

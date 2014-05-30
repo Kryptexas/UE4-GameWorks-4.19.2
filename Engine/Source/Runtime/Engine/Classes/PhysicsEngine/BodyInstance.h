@@ -212,6 +212,7 @@ public:
 	int32 VelocitySolverIterationCount;
 
 public:
+
 #if WITH_PHYSX
 	/** Internal use. Physics-engine representation of this body in the synchronous scene. */
 	physx::PxRigidActor* RigidActorSync;
@@ -249,7 +250,13 @@ public:
 	void LoadProfileData(bool bVerifyProfile);
 
 #if WITH_PHYSX
-	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp,class FPhysScene* InRBScene, physx::PxAggregate* InAggregate = NULL);
+typedef physx::PxAggregate* PhysXAggregateType;
+#elif WITH_BOX2D
+typedef void* PhysXAggregateType;
+#endif
+
+#if WITH_PHYSX || WITH_BOX2D
+	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
 #endif	//WITH_PHYSX
 
 	void TermBody();
@@ -539,4 +546,11 @@ private:
 	friend class FBodyInstanceCustomization;
 	friend class ULandscapeHeightfieldCollisionComponent;
 	friend class ULandscapeMeshCollisionComponent;
+
+#if WITH_BOX2D
+
+protected:
+	class b2Body* BodyInstancePtr;
+
+#endif	//WITH_BOX2D
 };

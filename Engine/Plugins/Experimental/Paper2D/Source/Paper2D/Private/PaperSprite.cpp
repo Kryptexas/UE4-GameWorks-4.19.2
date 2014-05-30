@@ -7,6 +7,7 @@
 
 #if WITH_EDITORONLY_DATA
 
+#include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
 #include "BitmapUtils.h"
@@ -428,8 +429,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	bool bBothModified = false;
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SpriteCollisionDomain)) ||
-		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup3D)) ||
-		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup2D)) ||
+		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, BodySetup)) ||
 		(PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionGeometry)) )
 	{
 		bCollisionDataModified = true;
@@ -476,22 +476,21 @@ void UPaperSprite::RebuildCollisionData()
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
-		BodySetup2D = nullptr;
-		if (BodySetup3D == nullptr)
+		BodySetup = nullptr;
+		if (BodySetup == nullptr)
 		{
-			BodySetup3D = NewObject<UBodySetup>(this);
+			BodySetup = NewObject<UBodySetup>(this);
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup3D = nullptr;
-		if (BodySetup2D == nullptr)
+		BodySetup = nullptr;
+		if (BodySetup == nullptr)
 		{
-			BodySetup2D = NewObject<UBodySetup2D>(this);
+			BodySetup = NewObject<UBodySetup2D>(this);
 		}
 		break;
 	case ESpriteCollisionMode::None:
-		BodySetup2D = nullptr;
-		BodySetup3D = nullptr;
+		BodySetup = nullptr;
 		CollisionGeometry.Reset();
 		break;
 	}
@@ -544,7 +543,8 @@ void UPaperSprite::BuildCustomCollisionData()
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
-			checkSlow(BodySetup3D);
+			checkSlow(BodySetup);
+			UBodySetup* BodySetup3D = BodySetup;
 			BodySetup3D->AggGeom.EmptyElements();
 
 			const FVector HalfThicknessVector = PaperAxisZ * 0.5f * CollisionThickness;
@@ -572,7 +572,7 @@ void UPaperSprite::BuildCustomCollisionData()
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
 		{
-			checkSlow(BodySetup2D);
+			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
 			BodySetup2D->AggGeom2D.EmptyElements();
 
 			int32 RunningIndex = 0;
@@ -608,7 +608,8 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 	case ESpriteCollisionMode::Use3DPhysics:
 		{
 			// Store the bounding box as an actual box for 3D physics
-			checkSlow(BodySetup3D);
+			checkSlow(BodySetup);
+			UBodySetup* BodySetup3D = BodySetup;
 			BodySetup3D->AggGeom.EmptyElements();
 
 			// Determine the box center in pivot space
@@ -629,7 +630,7 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
 		{
-			checkSlow(BodySetup2D);
+			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
 			BodySetup2D->AggGeom2D.EmptyElements();
 
 			// Determine the box center in pivot space
@@ -1206,7 +1207,7 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::FixedNegativeVolume)
+	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::RemovedBodyInstance2D)
 	{
 		RebuildCollisionData();
 	}

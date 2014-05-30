@@ -5,6 +5,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "Rendering/PaperBatchManager.h"
 #include "Rendering/PaperBatchSceneProxy.h"
+#include "PhysicsEngine/BodySetup2D.h"
 
 static FPackedNormal PackedNormalX(FVector(1.0f, 0.0f, 0.0f));
 static FPackedNormal PackedNormalY(FVector(0.0f, 1.0f, 0.0f));
@@ -220,7 +221,11 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 		// Show 3D physics
 		if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 		{
-			if (UBodySetup* BodySetup = SourceSprite->BodySetup3D)
+			if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(SourceSprite->BodySetup))
+			{
+				//@TODO: Draw 2D debugging geometry
+			}
+			else if (UBodySetup* BodySetup = SourceSprite->BodySetup)
 			{
 				if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 				{

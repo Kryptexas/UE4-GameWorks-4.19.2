@@ -9,6 +9,10 @@
 	#include "PhysXSupport.h"
 #endif
 
+#if WITH_BOX2D
+	#include "../PhysicsEngine2D/Box2DIntegration.h"
+#endif
+
 #ifndef APEX_STATICALLY_LINKED
 	#define APEX_STATICALLY_LINKED	0
 #endif
@@ -213,6 +217,10 @@ FString FEndClothSimulationFunction::DiagnosticMessage()
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
 {
+#if WITH_BOX2D
+	FPhysicsIntegration2D::InitializePhysics();
+#endif
+
 #if WITH_PHYSX
 	// Do nothing if SDK already exists
 	if(GPhysXFoundation != NULL)
@@ -366,6 +374,10 @@ void InitGamePhys()
 
 void TermGamePhys()
 {
+#if WITH_BOX2D
+	FPhysicsIntegration2D::ShutdownPhysics();
+#endif
+
 #if WITH_PHYSX
 	// Do nothing if they were never initialized
 	if(GPhysXFoundation == NULL)

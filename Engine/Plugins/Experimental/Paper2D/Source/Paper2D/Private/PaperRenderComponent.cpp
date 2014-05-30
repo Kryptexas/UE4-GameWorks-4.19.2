@@ -3,6 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperRenderSceneProxy.h"
 #include "PaperRenderComponent.h"
+#include "PhysicsEngine/BodySetup2D.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperRenderComponent
@@ -38,7 +39,7 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform & LocalToWor
 		FBoxSphereBounds NewBounds = SourceSprite->GetRenderBounds().TransformBy(LocalToWorld);
 
 		// Add bounds of collision geometry (if present).
-		if (UBodySetup* BodySetup = SourceSprite->BodySetup3D)
+		if (UBodySetup* BodySetup = SourceSprite->BodySetup)
 		{
 			const FBox AggGeomBox = BodySetup->AggGeom.CalcAABB(LocalToWorld);
 			if (AggGeomBox.IsValid)
@@ -128,28 +129,7 @@ void UPaperRenderComponent::QuerySupportedSockets(TArray<FComponentSocketDescrip
 
 UBodySetup* UPaperRenderComponent::GetBodySetup()
 {
-	if (SourceSprite != nullptr)
-	{
-		if (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use3DPhysics)
-		{
-			return SourceSprite->BodySetup3D;
-		}
-	}
-	
-	return nullptr;
-}
-
-UBodySetup2D* UPaperRenderComponent::GetBodySetup2D() const
-{
-	if (SourceSprite != nullptr)
-	{
-		if (SourceSprite->SpriteCollisionDomain == ESpriteCollisionMode::Use2DPhysics)
-		{
-			return SourceSprite->BodySetup2D;
-		}
-	}
-
-	return nullptr;
+	return (SourceSprite != nullptr) ? SourceSprite->BodySetup : nullptr;
 }
 
 bool UPaperRenderComponent::SetSprite(class UPaperSprite* NewSprite)

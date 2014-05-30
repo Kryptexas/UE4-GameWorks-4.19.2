@@ -454,25 +454,28 @@ class UBodySetup : public UObject
 	/** Build scale for this body setup (static mesh settings define this value) */
 	UPROPERTY()
 	FVector BuildScale3D;
-public:
+
 	/** GUID used to uniquely identify this setup so it can be found in the DDC */
-	FGuid						BodySetupGuid;
+	FGuid BodySetupGuid;
 
 	/** Cooked physics data for each format */
-	FFormatContainer			CookedFormatData;
+	FFormatContainer CookedFormatData;
 
+#if WITH_PHYSX
 	/** Physics triangle mesh, created from cooked data in CreatePhysicsMeshes */
-	physx::PxTriangleMesh*		TriMesh;
+	physx::PxTriangleMesh* TriMesh;
 
 	/** Physics triangle mesh, flipped across X, created from cooked data in CreatePhysicsMeshes */
-	physx::PxTriangleMesh*		TriMeshNegX;
+	physx::PxTriangleMesh* TriMeshNegX;
+#endif
 
 	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */
-	bool						bCreatedPhysicsMeshes;
+	bool bCreatedPhysicsMeshes;
 
 	/** Indicates whether this setup has any cooked collision data. */
-	bool						bHasCookedCollisionData;
+	bool bHasCookedCollisionData;
 
+public:
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
@@ -485,39 +488,41 @@ public:
 	//
 	// UBodySetup interface.
 	//
-	ENGINE_API void			CopyBodyPropertiesFrom(class UBodySetup* FromSetup);
+	ENGINE_API void CopyBodyPropertiesFrom(class UBodySetup* FromSetup);
 
 	/** Add collision shapes from another body setup to this one */
-	ENGINE_API void			AddCollisionFrom(class UBodySetup* FromSetup);
+	ENGINE_API void AddCollisionFrom(class UBodySetup* FromSetup);
 
 
 	/** Create Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) from cooked data */
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX). Must be called before the BodySetup is destroyed */
-	ENGINE_API void			CreatePhysicsMeshes();
+	ENGINE_API virtual void CreatePhysicsMeshes();
 
+	/** Returns the volume of this element */
+	ENGINE_API virtual float GetVolume(const FVector& Scale) const;
 
 	/** Release Physics meshes (ConvexMeshes, TriMesh & TriMeshNegX) */
-	ENGINE_API void			ClearPhysicsMeshes();
+	ENGINE_API void ClearPhysicsMeshes();
 
 	/** Calculates the mass. You can pass in the component where additional information is pulled from ( Scale, PhysMaterialOverride ) */
-	ENGINE_API float		CalculateMass(const UPrimitiveComponent* Component = NULL);
+	ENGINE_API virtual float CalculateMass(const UPrimitiveComponent* Component = nullptr) const;
 
 	/** Returns the physics material used for this body. If none, specified, returns the default engine material. */
 	ENGINE_API class UPhysicalMaterial* GetPhysMaterial() const;
 
 #if WITH_EDITOR
 	/** Clear all simple collision */
-	ENGINE_API void			RemoveSimpleCollision();
+	ENGINE_API void RemoveSimpleCollision();
 
 	/** 
 	 * Rescales simple collision geometry.  Note you must recreate physics meshes after this 
 	 *
 	 * @param BuildScale	The scale to apply to the geometry
 	 */
-	ENGINE_API void			RescaleSimpleCollision( FVector BuildScale );
+	ENGINE_API void RescaleSimpleCollision( FVector BuildScale );
 
 	/** Invalidate physics data */
-	ENGINE_API void			InvalidatePhysicsData();	
+	ENGINE_API virtual void	InvalidatePhysicsData();	
 
 	/**
 	 * Converts a UModel to a set of convex hulls for simplified collision.  Any convex elements already in
@@ -528,7 +533,7 @@ public:
 	 * @param		bRemoveExisting			If true, clears any pre-existing collision
 	 * @return								true on success, false on failure because of vertex count overflow.
 	 */
-	ENGINE_API void			CreateFromModel(class UModel* InModel, bool bRemoveExisting);
+	ENGINE_API void CreateFromModel(class UModel* InModel, bool bRemoveExisting);
 #endif // WITH_EDITOR
 
 	/**
@@ -544,13 +549,10 @@ public:
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
 #if WITH_BODY_WELDING
-	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM = NULL);
+	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform* RelativeTM = NULL);
 #else
-	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
+	void AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
 #endif
 #endif // WITH_PHYSX
 
 };
-
-
-

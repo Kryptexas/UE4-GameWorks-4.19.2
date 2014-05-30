@@ -81,13 +81,9 @@ public:
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
 public:
-	// Baked physics data (3D domain).
+	// Baked physics data.
 	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
-	class UBodySetup* BodySetup3D;
-
-	// Baked physics data (2D domain).
-	UPROPERTY() //@TODO: Is anything in this worth exposing to edit? Category=Physics, EditAnywhere, EditInline
-	class UBodySetup2D* BodySetup2D;
+	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
 

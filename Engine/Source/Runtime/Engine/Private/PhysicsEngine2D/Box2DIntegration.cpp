@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Paper2DPrivatePCH.h"
+#include "EnginePrivate.h"
 #include "Box2DIntegration.h"
 
 #if WITH_BOX2D
@@ -147,19 +147,19 @@ void FStartPhysics2DTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick T
 		{
 			b2Body* NextBody = Body->GetNext();
 
-			if (FBodyInstance2D* UnrealBodyInstance = (FBodyInstance2D*)Body->GetUserData())
+			if (FBodyInstance* UnrealBodyInstance = static_cast<FBodyInstance*>(Body->GetUserData()))
 			{
 				if (UnrealBodyInstance->bSimulatePhysics)
 				{
 					// See if the transform is actually different, and if so, move the component to match physics
 					const FTransform NewTransform = UnrealBodyInstance->GetUnrealWorldTransform();
-					const FTransform& OldTransform = UnrealBodyInstance->OwnerComponentPtr->ComponentToWorld;
+					const FTransform& OldTransform = UnrealBodyInstance->OwnerComponent->ComponentToWorld;
 					if (!NewTransform.Equals(OldTransform))
 					{
 						const FVector MoveBy = NewTransform.GetLocation() - OldTransform.GetLocation();
 						const FRotator NewRotation = NewTransform.Rotator();
 
-						UnrealBodyInstance->OwnerComponentPtr->MoveComponent(MoveBy, NewRotation, false, NULL, MOVECOMP_SkipPhysicsMove);
+						UnrealBodyInstance->OwnerComponent->MoveComponent(MoveBy, NewRotation, /*bSweep=*/ false, /*OutHit=*/ nullptr, MOVECOMP_SkipPhysicsMove);
 					}
 				}
 			}

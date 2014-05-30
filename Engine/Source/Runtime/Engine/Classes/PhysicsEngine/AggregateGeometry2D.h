@@ -7,7 +7,7 @@
 
 /** One convex hull, used for simplified collision. */
 USTRUCT()
-struct FConvexElement2D
+struct ENGINE_API FConvexElement2D
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -27,7 +27,7 @@ struct FConvexElement2D
 
 /** Sphere shape used for collision */
 USTRUCT()
-struct FCircleElement2D
+struct ENGINE_API FCircleElement2D
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -65,7 +65,7 @@ public:
 
 /** Box shape used for collision */
 USTRUCT()
-struct FBoxElement2D
+struct ENGINE_API FBoxElement2D
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -111,7 +111,7 @@ struct FBoxElement2D
 
 // Container for an aggregate of 2D collision shapes
 USTRUCT()
-struct FAggregateGeometry2D
+struct ENGINE_API FAggregateGeometry2D
 {
 	GENERATED_USTRUCT_BODY()
 

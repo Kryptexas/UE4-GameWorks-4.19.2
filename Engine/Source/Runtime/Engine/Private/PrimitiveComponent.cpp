@@ -12,6 +12,9 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
 #endif // WITH_PHYSX
+#if WITH_BOX2D
+#include "PhysicsEngine/BodySetup2D.h"
+#endif
 #include "Collision/CollisionDebugDrawing.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -357,7 +360,7 @@ void UPrimitiveComponent::CreatePhysicsState()
 				return;
 			}
 
-#if WITH_PHYSX
+#if WITH_PHYSX || WITH_BOX2D
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, ComponentToWorld, this, World->GetPhysicsScene());
 #endif //WITH_PHYSX

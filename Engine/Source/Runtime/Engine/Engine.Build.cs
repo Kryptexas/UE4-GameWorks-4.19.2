@@ -161,14 +161,13 @@ public class Engine : ModuleRules
 			PublicDependencyModuleNames.Add("UnrealEd");	// @todo api: Only public because of WITH_EDITOR and UNREALED_API
 			CircularlyReferencedDependentModules.Add("UnrealEd");
 
-			//PrivateDependencyModuleNames.Add("BlueprintGraph");
-			//CircularlyReferencedDependentModules.Add("BlueprintGraph");
-
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 			PrivateIncludePaths.Add("Developer/TextureCompressor/Public");
 		}
 
 		SetupModulePhysXAPEXSupport(Target);
+
+		SetupModuleBox2DSupport(Target);
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))

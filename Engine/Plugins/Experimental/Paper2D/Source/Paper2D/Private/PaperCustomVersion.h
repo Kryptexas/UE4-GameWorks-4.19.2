@@ -13,6 +13,8 @@ struct FPaperCustomVersion
 		// Fixed negative volume in UPaperSprite 3D aggregate geometry (caused collision issues)
 		FixedNegativeVolume = 1,
 
+		// Removed FBodyInstance2D and moved 2D physics support into Engine (requires regenerating 2D agg geom)
+		RemovedBodyInstance2D = 2,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

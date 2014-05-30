@@ -1,8 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Paper2DPrivatePCH.h"
+#include "EnginePrivate.h"
+#include "PhysicsEngine/AggregateGeometry2D.h"
 
 static const int32 DrawCollisionSides = 16;
+
+//@TODO: PAPER2D: These should be renamed, and set when the Paper2D ones are loaded
+FVector PaperAxisX(1.0f, 0.0f, 0.0f);
+FVector PaperAxisY(0.0f, 0.0f, 1.0f);
+FVector PaperAxisZ(0.0f, -1.0f, 0.0f);
 
 //////////////////////////////////////////////////////////////////////////
 // FCircleElement2D

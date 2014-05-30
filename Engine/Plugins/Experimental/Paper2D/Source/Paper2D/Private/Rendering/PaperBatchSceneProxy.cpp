@@ -4,8 +4,6 @@
 #include "PaperBatchSceneProxy.h"
 #include "PaperRenderSceneProxy.h"
 
-#include "Physics/Box2DIntegration.h"
-
 //////////////////////////////////////////////////////////////////////////
 // FPaperBatchSceneProxy
 

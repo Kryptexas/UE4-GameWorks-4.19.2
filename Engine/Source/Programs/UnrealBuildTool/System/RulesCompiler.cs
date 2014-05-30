@@ -263,6 +263,29 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 			}
 		}
+
+		/// <summary>
+		/// Setup this module for Box2D support (based on the settings in UEBuildConfiguration)
+		/// </summary>
+		public void SetupModuleBox2DSupport(TargetInfo Target)
+		{
+			//@TODO: This need to be kept in sync with RulesCompiler.cs for now
+			bool bSupported = false;
+			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			{
+				bSupported = true;
+			}
+
+			bSupported = bSupported && UEBuildConfiguration.bCompileBox2D;
+	
+			if (bSupported)
+			{
+				AddThirdPartyPrivateStaticDependencies(Target, "Box2D");
+			}
+
+			// Box2D included define (required because pointer types may be in public exported structures)
+			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
+		}
 	}
 
 	/// <summary>
