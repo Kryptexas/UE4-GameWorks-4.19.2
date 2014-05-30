@@ -321,7 +321,12 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 
 				InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("submit"), SubmitParams, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 
-				if(InCommand.bCommandSuccessful)
+				if (InCommand.ErrorMessages.Num() > 0)
+				{
+					InCommand.bCommandSuccessful = false;
+				}
+
+				if (InCommand.bCommandSuccessful)
 				{
 					check(InCommand.Operation->GetName() == "CheckIn");
 					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
