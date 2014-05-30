@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include "PrimitiveComponent2D.h"
 #include "PaperRenderComponent.generated.h"
 
 UCLASS(DependsOn=UPaperSprite, MinimalAPI, ShowCategories=(Mobility), meta=(BlueprintSpawnableComponent))
-class UPaperRenderComponent : public UPrimitiveComponent2D
+class UPaperRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
