@@ -32,7 +32,6 @@ public class Paper2D : ModuleRules
 			PrivateDependencyModuleNames.Add("UnrealEd");
 		}
 
-		// Link Box2D in privately; don't want to expose the headers externally
-		PrivateDependencyModuleNames.Add("Box2D");
+		SetupModuleBox2DSupport(Target);
 	}
 }
