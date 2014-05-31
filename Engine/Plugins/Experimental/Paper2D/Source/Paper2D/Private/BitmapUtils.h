@@ -7,7 +7,7 @@
 
 struct FBitmap
 {
-	FBitmap(UTexture2D* SourceTexture, int AlphaThreshold, int DefaultValue)
+	FBitmap(UTexture2D* SourceTexture, int AlphaThreshold, uint8 DefaultValue = 0)
 		: Width(0)
 		, Height(0)
 		, DefaultValue(DefaultValue)
@@ -74,7 +74,7 @@ struct FBitmap
 	}
 
 	// Create an empty bitmap
-	FBitmap(int Width, int Height, int DefaultValue)
+	FBitmap(int Width, int Height, int DefaultValue = 0)
 		: Width(Width)
 		, Height(Height)
 		, DefaultValue(DefaultValue)
@@ -119,7 +119,7 @@ struct FBitmap
 
 	bool IsColumnEmpty(int X, int Y0, int Y1)
 	{
-		for (int Y = Y0; Y < Y1; ++Y)
+		for (int Y = Y0; Y <= Y1; ++Y)
 		{
 			if (GetPixel(X, Y) != 0)
 			{
@@ -131,7 +131,7 @@ struct FBitmap
 
 	bool IsRowEmpty(int X0, int X1, int Y)
 	{
-		for (int X = X0; X < X1; ++X)
+		for (int X = X0; X <= X1; ++X)
 		{
 			if (GetPixel(X, Y) != 0)
 			{
@@ -142,7 +142,7 @@ struct FBitmap
 	}
 
 	// Returns the tight bounding box around pixels that are not 0
-	void GetTightBounds(int& OutX, int& OutY, int& OutWidth, int& OutHeight)
+	void GetTightBounds(FIntPoint& Origin, FIntPoint& Dimension)
 	{
 		int Top = 0;
 		int Bottom = Height - 1;
@@ -165,10 +165,10 @@ struct FBitmap
 			--Right;
 		}
 
-		OutX = Left;
-		OutY = Top;
-		OutWidth = Right - Left + 1;
-		OutHeight = Bottom - Top + 1;
+		Origin.X = Left;
+		Origin.Y = Top;
+		Dimension.X = Right - Left + 1;
+		Dimension.Y = Bottom - Top + 1;
 	}
 
 	// Performs a flood fill on the target bitmap, with the boundary defined
@@ -206,25 +206,27 @@ struct FBitmap
 	}
 
 	// Walk the border pixels to find any intersecting islands we haven't already filled in the mask bitmap
-	bool HasOverlappingIsland(FBitmap& MaskBitmap, int X0, int Y0, int Width, int Height, int& FillX, int& FillY)
+	bool HasOverlappingIsland(FBitmap& MaskBitmap, const FIntPoint& Origin, const FIntPoint& Dimension, FIntPoint& OutFill)
 	{
-		FillX = 0;
-		FillY = 0;
-		int X1 = X0 + Width - 1;
-		int Y1 = Y0 + Height - 1;
+		OutFill.X = 0;
+		OutFill.Y = 0;
+		const int X0 = Origin.X;
+		const int Y0 = Origin.Y;
+		const int X1 = Origin.X + Dimension.X - 1;
+		const int Y1 = Origin.Y + Dimension.Y - 1;
 
 		for (int X = X0; X <= X1; ++X)
 		{
 			if (MaskBitmap.GetPixel(X, Y0) == 0 && GetPixel(X, Y0) != 0)
 			{
-				FillX = X;
-				FillY = Y0;
+				OutFill.X = X;
+				OutFill.Y = Y0;
 				return true;
 			}
 			if (MaskBitmap.GetPixel(X, Y1) == 0 && GetPixel(X, Y1) != 0)
 			{
-				FillX = X;
-				FillY = Y1;
+				OutFill.X = X;
+				OutFill.Y = Y1;
 				return true;
 			}
 		}
@@ -233,14 +235,14 @@ struct FBitmap
 		{
 			if (MaskBitmap.GetPixel(X0, Y) == 0 && GetPixel(X0, Y) != 0)
 			{
-				FillX = X0;
-				FillY = Y;
+				OutFill.X = X0;
+				OutFill.Y = Y;
 				return true;
 			}
 			if (MaskBitmap.GetPixel(X1, Y) == 0 && GetPixel(X1, Y) != 0)
 			{
-				FillX = X1;
-				FillY = Y;
+				OutFill.X = X1;
+				OutFill.Y = Y;
 				return true;
 			}
 		}
@@ -251,10 +253,10 @@ struct FBitmap
 	// Sets pixels to 1 marking the rectangle outline
 	void DrawRectOutline(int StartX, int StartY, int Width, int Height)
 	{
-		int X0 = StartX;
-		int Y0 = StartY;
-		int X1 = StartX + Width - 1;
-		int Y1 = StartY + Height - 1;
+		const int X0 = StartX;
+		const int Y0 = StartY;
+		const int X1 = StartX + Width - 1;
+		const int Y1 = StartY + Height - 1;
 		for (int Y = Y0; Y <= Y1; ++Y)
 		{
 			SetPixel(X0, Y, 1);
@@ -267,17 +269,32 @@ struct FBitmap
 		}
 	}
 
+	void FillRect(int StartX, int StartY, int Width, int Height)
+	{
+		const int X0 = StartX;
+		const int Y0 = StartY;
+		const int X1 = StartX + Width - 1;
+		const int Y1 = StartY + Height - 1;
+		for (int Y = Y0; Y <= Y1; ++Y)
+		{
+			for (int X = X0; X <= X1; ++X)
+			{
+				SetPixel(X, Y, 1);
+			}
+		}
+	}
+
 	// Finds the rect of the contour of the shape clicked on, extended by rectangles to support
 	// separated but intersecting islands.
-	bool HasConnectedRect(int X, int Y, bool Extend, int& OutOriginX, int& OutOriginY, int& OutDimensionX, int& OutDimensionY)
+	bool HasConnectedRect(const int X, const int Y, bool Extend, FIntPoint& OutOrigin, FIntPoint& OutDimension)
 	{
 		if (GetPixel(X, Y) == 0) 
 		{
 			// selected an empty pixel
-			OutOriginX = 0;
-			OutOriginY = 0;
-			OutDimensionX = 0;
-			OutDimensionY = 0;
+			OutOrigin.X = 0;
+			OutOrigin.Y = 0;
+			OutDimension.X = 0;
+			OutDimension.Y = 0;
 			return false;
 		}
 
@@ -286,7 +303,7 @@ struct FBitmap
 		FBitmap MaskBitmap(Width, Height, 0);
 		if (Extend)
 		{
-			MaskBitmap.DrawRectOutline(OutOriginX, OutOriginY, OutDimensionX, OutDimensionY);
+			MaskBitmap.DrawRectOutline(OutOrigin.X, OutOrigin.Y, OutDimension.X, OutDimension.Y);
 		}
 
 		// MaxPasses shouldn't be nessecary, but worst case interlocked pixel
@@ -294,31 +311,33 @@ struct FBitmap
 		// reduce these problems, but may not be desirable in all cases.
 		int NumPasses = 0;
 		int MaxPasses = 40;
-		OutOriginX = 0;
-		OutOriginY = 0;
-		OutDimensionX = 0;
-		OutDimensionY = 0;
-		int FillPointX = X;
-		int FillPointY = Y;
+		FIntPoint Origin(0, 0);
+		FIntPoint Dimension(0, 0);
+		FIntPoint FillPoint(X, Y);
 		do
 		{
 			// This is probably going to be a botleneck at larger texture sizes
 			// A contour tracing algorithm will probably suffice here.
-			FloodFill(MaskBitmap, FillPointX, FillPointY);
-			MaskBitmap.GetTightBounds(OutOriginX, OutOriginY, OutDimensionX, OutDimensionY);
-		} while (NumPasses++ < MaxPasses && HasOverlappingIsland(MaskBitmap, OutOriginX, OutOriginY, OutDimensionX, OutDimensionY, /*out*/FillPointX, /*out*/FillPointY));
+			FloodFill(MaskBitmap, FillPoint.X, FillPoint.Y);
+			MaskBitmap.GetTightBounds(/*out*/Origin, /*out*/Dimension);
+		} while (NumPasses++ < MaxPasses && HasOverlappingIsland(MaskBitmap, Origin, Dimension, /*out*/FillPoint));
+
+		checkSlow(Dimension.X > 0 && Dimension.Y > 0);
+
+		OutOrigin = Origin;
+		OutDimension = Dimension;
 
 		return true;
 	}
 
 	// Wind through the bitmap from StartX, StartY to find the closest hit point
-	bool FoundClosestValidPoint(int StartX, int StartY, int MaxAllowedSearchDistance, int& HitX, int& HitY)
+	bool FoundClosestValidPoint(int StartX, int StartY, const int MaxAllowedSearchDistance, FIntPoint& OutHitPoint)
 	{
 		// Constrain the point within the image bounds
 		StartX = FMath::Clamp(StartX, 0, Width - 1);
 		StartY = FMath::Clamp(StartY, 0, Height - 1);
-		HitX = StartX;
-		HitY = StartY;
+		OutHitPoint.X = StartX;
+		OutHitPoint.Y = StartY;
 
 		// Should probably calculate a better max based on StartX and StartY
 		int RequiredSearchDistance = (FMath::Max(Width, Height) + 1) / 2;
@@ -335,14 +354,14 @@ struct FBitmap
 			{
 				if (GetPixel(X0, Y) != 0) 
 				{
-					HitX = X0;
-					HitY = Y;
+					OutHitPoint.X = X0;
+					OutHitPoint.Y = Y;
 					return true;
 				}
 				if (GetPixel(X1, Y) != 0) 
 				{
-					HitX = X1;
-					HitY = Y;
+					OutHitPoint.X = X1;
+					OutHitPoint.Y = Y;
 					return true;
 				}
 			}
@@ -350,14 +369,14 @@ struct FBitmap
 			{
 				if (GetPixel(X, Y0) != 0) 
 				{
-					HitX = X;
-					HitY = Y0;
+					OutHitPoint.X = X;
+					OutHitPoint.Y = Y0;
 					return true;
 				}
 				if (GetPixel(X, Y1) != 0) 
 				{
-					HitX = X;
-					HitY = Y1;
+					OutHitPoint.X = X;
+					OutHitPoint.Y = Y1;
 					return true;
 				}
 			}
@@ -366,10 +385,60 @@ struct FBitmap
 		return false;
 	}
 
+	// Detects all valid rects in this bitmap
+	void ExtractRects(TArray<FIntRect>& OutRects)
+	{
+		FBitmap MaskBitmap(Width, Height);
+
+		for (int Y = 0; Y < Height; ++Y)
+		{
+			for (int X = 0; X < Width; ++X)
+			{
+				if (MaskBitmap.GetPixel(X, Y) == 0 && GetPixel(X, Y) != 0)
+				{
+					FIntPoint Origin;
+					FIntPoint Dimension;
+
+					// Found something we don't already know of in the mask
+					if (HasConnectedRect(X, Y, false, /*out*/Origin, /*out*/Dimension))
+					{
+						FIntRect NewRect(Origin, Origin + Dimension);
+						bool bHasOverlap = false;
+						do
+						{
+							bHasOverlap = false;
+							for (int OutRectIndex = 0; OutRectIndex < OutRects.Num(); ++OutRectIndex)
+							{
+								FIntRect& ExistingRect = OutRects[OutRectIndex];
+								bool bRectsOverlapping = NewRect.Max.X > ExistingRect.Min.X
+														&& NewRect.Min.X < ExistingRect.Max.X
+														&& NewRect.Max.Y > ExistingRect.Min.Y
+														&& NewRect.Min.Y < ExistingRect.Max.Y;
+								if (bRectsOverlapping)
+								{
+									NewRect = FIntRect(FMath::Min(NewRect.Min.X, ExistingRect.Min.X), FMath::Min(NewRect.Min.Y, ExistingRect.Min.Y),
+													   FMath::Max(NewRect.Max.X, ExistingRect.Max.X), FMath::Max(NewRect.Max.Y, ExistingRect.Max.Y));
+									OutRects.RemoveAtSwap(OutRectIndex, 1, false);
+									break;
+								}
+							}
+						} while (bHasOverlap);
+
+						// Mark in the mask, avoid checking for any more sprites within this rect
+						MaskBitmap.FillRect(NewRect.Min.X, NewRect.Min.Y, NewRect.Width(), NewRect.Height());
+						checkSlow(NewRect.Width() > 0 && NewRect.Height() > 0);
+
+						OutRects.Add(NewRect);
+					}
+				}
+			}
+		}
+	}
+
 	TArray<uint8> RawData;
 	int32 Width;
 	int32 Height;
-	int32 DefaultValue;
+	uint8 DefaultValue;
 };
 
 

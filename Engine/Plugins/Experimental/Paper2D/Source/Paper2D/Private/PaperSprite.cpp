@@ -13,144 +13,6 @@
 #include "BitmapUtils.h"
 
 //////////////////////////////////////////////////////////////////////////
-// FTextureReader
-
-struct FTextureReader
-{
-	FTextureReader(UTexture2D* SourceTexture)
-		: Width(0)
-		, Height(0)
-		, BytesPerPixel(0)
-		, TransparentBlack(0,0,0,0)
-		, AlphaThreshold(0)
-		, X0(0)
-		, Y0(0)
-		, X1(0)
-		, Y1(0)
-	{
-		// use the source art if it exists
-		FTextureSource* TextureSource = NULL;
-		if ((SourceTexture != NULL) && SourceTexture->Source.IsValid())
-		{
-			switch (SourceTexture->Source.GetFormat())
-			{
-			case TSF_G8:
-			case TSF_BGRA8:
-				TextureSource = &(SourceTexture->Source);
-				break;
-			default:
-				break;
-			};
-		}
-
-		if (TextureSource != NULL)
-		{
-			TextureSource->GetMipData(RawData, 0);
-			Width = TextureSource->GetSizeX();
-			Height = TextureSource->GetSizeY();
-			BytesPerPixel = TextureSource->GetBytesPerPixel();
-			PixelFormat = TextureSource->GetFormat();
-
-			X0 = 0;
-			Y0 = 0;
-			X1 = Width-1;
-			Y1 = Height-1;
-		}
-	}
-
-	void SetBounds(int32 NewX0, int32 NewY0, int32 NewX1, int32 NewY1)
-	{
-		X0 = NewX0;
-		Y0 = NewY0;
-		X1 = NewX1;
-		Y1 = NewY1;
-	}
-
-	bool IsValid() const
-	{
-		return (Source != NULL);
-	}
-
-	FColor GetColor(int32 X, int32 Y) const
-	{
-		if ((X < 0) || (Y < 0) || (X >= Width) || (Y >= Height))
-		{
-			return TransparentBlack;
-		}
-
-		int32 PixelByteOffset = (X + Y * Width) * BytesPerPixel;
-		const uint8* PixelPtr = RawData.GetTypedData() + PixelByteOffset;
-
-		if (PixelFormat == TSF_BGRA8)
-		{
-			return *((FColor*)PixelPtr);
-		}
-		else
-		{
-			checkSlow(PixelFormat == TSF_G8);
-			const uint8 Intensity = *PixelPtr;
-			return FColor(Intensity, Intensity, Intensity, Intensity);
-		}
-	}
-
-	bool PixelPassesThreshold(int32 X, int32 Y) const
-	{
-		return GetColor(X, Y).A > AlphaThreshold;
-	}
-
-	bool PixelPassesThreshold(int32 X, int32 Y, bool bOutOfBoundsValue) const
-	{
-		if ((X < X0) || (Y < Y0) || (X > X1) || (Y >= Y1))
-		{
-			return bOutOfBoundsValue;
-		}
-		else
-		{
-			return GetColor(X, Y).A > AlphaThreshold;
-		}
-	}
-public:
-	FTextureSource* Source;
-	TArray<uint8> RawData;
-	int32 Width;
-	int32 Height;
-	int32 BytesPerPixel;
-	ETextureSourceFormat PixelFormat;
-	FColor TransparentBlack;
-	int32 AlphaThreshold;
-
-	// Bounds for the second form of PixelPassesThreshold
-	int32 X0;
-	int32 Y0;
-	int32 X1;
-	int32 Y1;
-};
-
-bool IsClearRow(FTextureReader& Reader, int32 X0, int32 X1, int32 Y)
-{
-	for (int32 X = X0; X <= X1; ++X)
-	{
-		if (Reader.PixelPassesThreshold(X, Y))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool IsClearColumn(FTextureReader& Reader, int32 X, int32 Y0, int32 Y1)
-{
-	for (int32 Y = Y0; Y <= Y1; ++Y)
-	{
-		if (Reader.PixelPassesThreshold(X, Y))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-//////////////////////////////////////////////////////////////////////////
 // maf
 
 void RemoveCollinearPoints(TArray<FIntPoint>& PointList)
@@ -346,24 +208,20 @@ struct FBoundaryImage
 
 void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePoint)
 {
-	int SourceX = FMath::RoundToInt(SourcePoint.X);
-	int SourceY = FMath::RoundToInt(SourcePoint.Y);
-	int ClosestValidX = 0;
-	int ClosestValidY = 0;
+	FIntPoint SourceIntPoint(FMath::RoundToInt(SourcePoint.X), FMath::RoundToInt(SourcePoint.Y));
+	FIntPoint ClosestValidPoint;
 
 	FBitmap Bitmap(SourceTexture, 0, 0);
-	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceX, SourceY, 10, /*out*/ ClosestValidX, /*out*/ ClosestValidY))
+	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ClosestValidPoint))
 	{
-		int OriginX = 0;
-		int OriginY = 0;
-		int DimensionX = 0;
-		int DimensionY = 0;
-		if (Bitmap.HasConnectedRect(ClosestValidX, ClosestValidY, false, /*out*/ OriginX, /*out*/ OriginY, /*out*/ DimensionX, /*out*/ DimensionY))
+		FIntPoint Origin;
+		FIntPoint Dimension;
+		if (Bitmap.HasConnectedRect(ClosestValidPoint.X, ClosestValidPoint.Y, false, /*out*/ Origin, /*out*/ Dimension))
 		{
-			if (DimensionX > 0 && DimensionY > 0)
+			if (Dimension.X > 0 && Dimension.Y > 0)
 			{
-				SourceUV = FVector2D(OriginX, OriginY);
-				SourceDimension = FVector2D(DimensionX, DimensionY);
+				SourceUV = FVector2D(Origin.X, Origin.Y);
+				SourceDimension = FVector2D(Dimension.X, Dimension.Y);
 				PostEditChange();
 			}
 		}
@@ -714,37 +572,36 @@ void UPaperSprite::FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2
 	int32 BottomBound = (int32)(SourceUV.Y + SourceDimension.Y - 1);
 
 
-	FTextureReader Reader(SourceTexture);
-	if (Reader.IsValid())
+	int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+	FBitmap SourceBitmap(SourceTexture, AlphaThresholdInt);
+	if (SourceBitmap.IsValid())
 	{
-		Reader.AlphaThreshold = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
-
 		// Make sure the initial bounds starts in the texture
-		LeftBound = FMath::Clamp(LeftBound, 0, Reader.Width-1);
-		RightBound = FMath::Clamp(RightBound, 0, Reader.Width-1);
-		TopBound = FMath::Clamp(TopBound, 0, Reader.Height-1);
-		BottomBound = FMath::Clamp(BottomBound, 0, Reader.Height-1);
+		LeftBound = FMath::Clamp(LeftBound, 0, SourceBitmap.Width-1);
+		RightBound = FMath::Clamp(RightBound, 0, SourceBitmap.Width-1);
+		TopBound = FMath::Clamp(TopBound, 0, SourceBitmap.Height-1);
+		BottomBound = FMath::Clamp(BottomBound, 0, SourceBitmap.Height-1);
 
 		// Pull it in from the top
-		while ((TopBound < BottomBound) && IsClearRow(Reader, LeftBound, RightBound, TopBound))
+		while ((TopBound < BottomBound) && SourceBitmap.IsRowEmpty(LeftBound, RightBound, TopBound))
 		{
 			++TopBound;
 		}
 
 		// Pull it in from the bottom
-		while ((BottomBound > TopBound) && IsClearRow(Reader, LeftBound, RightBound, BottomBound))
+		while ((BottomBound > TopBound) && SourceBitmap.IsRowEmpty(LeftBound, RightBound, BottomBound))
 		{
 			--BottomBound;
 		}
 
 		// Pull it in from the left
-		while ((LeftBound < RightBound) && IsClearColumn(Reader, LeftBound, TopBound, BottomBound))
+		while ((LeftBound < RightBound) && SourceBitmap.IsColumnEmpty(LeftBound, TopBound, BottomBound))
 		{
 			++LeftBound;
 		}
 
 		// Pull it in from the right
-		while ((RightBound > LeftBound) && IsClearColumn(Reader, RightBound, TopBound, BottomBound))
+		while ((RightBound > LeftBound) && SourceBitmap.IsColumnEmpty(RightBound, TopBound, BottomBound))
 		{
 			--RightBound;
 		}
@@ -829,13 +686,11 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 		4, //from7
 	};
 
-	FTextureReader Reader(Texture);
-	if (Reader.IsValid())
+	int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+	FBitmap SourceBitmap(Texture, AlphaThresholdInt);
+	if (SourceBitmap.IsValid())
 	{
-		checkSlow((LeftBound >= 0) && (TopBound >= 0) && (RightBound < Reader.Width) && (BottomBound < Reader.Height));
-		Reader.SetBounds(LeftBound, TopBound, RightBound, BottomBound);
-
-		Reader.AlphaThreshold = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+		checkSlow((LeftBound >= 0) && (TopBound >= 0) && (RightBound < SourceBitmap.Width) && (BottomBound < SourceBitmap.Height));
 
 		// Create the 'output' boundary image
 		FBoundaryImage BoundaryImage(ScanPos, ScanSize);
@@ -847,7 +702,8 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 			for (int32 X = LeftBound - 1; X < RightBound + 2; ++X)
 			{
 				const bool bAlreadyTaggedAsBoundary = BoundaryImage.GetPixel(X, Y) > 0;
-				const bool bIsFilledPixel = Reader.PixelPassesThreshold(X, Y, false);
+				const bool bPixelInsideBounds = (X >= LeftBound && X <= RightBound && Y >= TopBound && Y <= BottomBound);
+				const bool bIsFilledPixel = bPixelInsideBounds && SourceBitmap.GetPixel(X, Y) != 0;
 
 				if (bInsideBoundary)
 				{
@@ -886,7 +742,8 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 							// Test pixel (clockwise from the current pixel)
 							const int32 CX = PX + NeighborX[NeighborPhase];
 							const int32 CY = PY + NeighborY[NeighborPhase];
-							const bool bTestPixelPasses = Reader.PixelPassesThreshold(CX, CY, false);
+							const bool bTestPixelInsideBounds = (CX >= LeftBound && CX <= RightBound && CY >= TopBound && CY <= BottomBound);
+							const bool bTestPixelPasses = bTestPixelInsideBounds && SourceBitmap.GetPixel(CX, CY) != 0;
 
 							UE_LOG(LogPaper2D, Log, TEXT("Outer P(%d,%d), C(%d,%d) Ph%d %s"),
 								PX, PY, CX, CY, NeighborPhase, bTestPixelPasses ? TEXT("[BORDER]") : TEXT("[]"));
