@@ -122,6 +122,18 @@ void FOpenGLES2::ProcessQueryGLInt()
 {
 	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_UNIFORM_VECTORS, 0, MaxVertexUniformComponents);
 	LOG_AND_GET_GL_INT(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 0, MaxPixelUniformComponents);
+
+	const GLint RequiredMaxVertexUniformComponents = 256;
+	if (MaxVertexUniformComponents < RequiredMaxVertexUniformComponents)
+	{
+		UE_LOG(LogRHI,Warning,
+			TEXT("Device reports support for %d vertex uniform vectors, UE4 requires %d. Rendering artifacts may occur, especially with skeletal meshes. Some drivers, e.g. iOS, report a smaller number than is actually supported."),
+			MaxVertexUniformComponents,
+			RequiredMaxVertexUniformComponents
+			);
+	}
+	MaxVertexUniformComponents = FMath::Max<GLint>(MaxVertexUniformComponents, RequiredMaxVertexUniformComponents);
+
 	MaxVertexUniformComponents *= 4;
 	MaxPixelUniformComponents *= 4;
 	MaxGeometryUniformComponents = 0;
