@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UImageComponent
+// UImage
 
-UImageComponent::UImageComponent(const FPostConstructInitializeProperties& PCIP)
+UImage::UImage(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, Image()
 	, ColorAndOpacity(FLinearColor::White)
@@ -16,14 +16,14 @@ UImageComponent::UImageComponent(const FPostConstructInitializeProperties& PCIP)
 	//	Image = *FEditorStyle::GetDefaultBrush();
 }
 
-TSharedRef<SWidget> UImageComponent::RebuildWidget()
+TSharedRef<SWidget> UImage::RebuildWidget()
 {
 	return SNew(SImage)
 		.Image( BIND_UOBJECT_ATTRIBUTE(const FSlateBrush*, GetImageBrush) )
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) );
 }
 
-const FSlateBrush* UImageComponent::GetImageBrush() const
+const FSlateBrush* UImage::GetImageBrush() const
 {
 	if ( Image == NULL )
 	{
@@ -34,7 +34,7 @@ const FSlateBrush* UImageComponent::GetImageBrush() const
 	return &Image->Brush;
 }
 
-FSlateColor UImageComponent::GetColorAndOpacity() const
+FSlateColor UImage::GetColorAndOpacity() const
 {
 	return ColorAndOpacity;
 }

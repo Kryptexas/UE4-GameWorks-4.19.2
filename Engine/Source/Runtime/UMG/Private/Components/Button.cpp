@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UButtonComponent
+// UButton
 
-UButtonComponent::UButtonComponent(const FPostConstructInitializeProperties& PCIP)
+UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SButton::FArguments ButtonDefaults;
@@ -24,7 +24,7 @@ UButtonComponent::UButtonComponent(const FPostConstructInitializeProperties& PCI
 	ForegroundColor = FLinearColor::Black;
 }
 
-TSharedRef<SWidget> UButtonComponent::RebuildWidget()
+TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	SButton::FArguments ButtonDefaults;
 
@@ -65,7 +65,7 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 	return NewButton;
 }
 
-void UButtonComponent::SetContent(UWidget* InContent)
+void UButton::SetContent(UWidget* InContent)
 {
 	Super::SetContent(InContent);
 
@@ -75,37 +75,37 @@ void UButtonComponent::SetContent(UWidget* InContent)
 	}
 }
 
-FLinearColor UButtonComponent::GetButtonColorAndOpacity()
+FLinearColor UButton::GetButtonColorAndOpacity()
 {
 	return ButtonWidget()->GetBorderBackgroundColor().GetSpecifiedColor();
 }
 
-void UButtonComponent::SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity)
+void UButton::SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity)
 {
 	ButtonWidget()->SetBorderBackgroundColor(InButtonColorAndOpacity);
 }
 
-FLinearColor UButtonComponent::GetForegroundColor()
+FLinearColor UButton::GetForegroundColor()
 {
 	return ButtonWidget()->GetForegroundColor().GetSpecifiedColor();
 }
 
-void UButtonComponent::SetForegroundColor(FLinearColor InForegroundColor)
+void UButton::SetForegroundColor(FLinearColor InForegroundColor)
 {
 	ButtonWidget()->SetForegroundColor(InForegroundColor);
 }
 
-FMargin UButtonComponent::GetContentPadding()
+FMargin UButton::GetContentPadding()
 {
 	return ButtonWidget()->GetContentPadding();
 }
 
-void UButtonComponent::SetContentPadding(FMargin InContentPadding)
+void UButton::SetContentPadding(FMargin InContentPadding)
 {
 	ButtonWidget()->SetContentPadding(InContentPadding);
 }
 
-FReply UButtonComponent::HandleOnClicked()
+FReply UButton::HandleOnClicked()
 {
 	if ( OnClickedEvent.IsBound() )
 	{

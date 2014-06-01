@@ -5,15 +5,15 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UScrollBoxComponent
+// UScrollBox
 
-UScrollBoxComponent::UScrollBoxComponent(const FPostConstructInitializeProperties& PCIP)
+UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
 }
 
-TSharedRef<SWidget> UScrollBoxComponent::RebuildWidget()
+TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
 	return SNew(SScrollBox);
 }

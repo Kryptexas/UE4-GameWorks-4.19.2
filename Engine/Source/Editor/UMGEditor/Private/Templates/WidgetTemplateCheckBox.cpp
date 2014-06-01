@@ -20,9 +20,9 @@ FText FWidgetTemplateCheckBox::GetCategory()
 
 UWidget* FWidgetTemplateCheckBox::Create(UWidgetTree* Tree)
 {
-	UHorizontalBoxComponent* Horizontal = Tree->ConstructWidget<UHorizontalBoxComponent>(UHorizontalBoxComponent::StaticClass());
-	UCheckBoxComponent* Checkbox = Tree->ConstructWidget<UCheckBoxComponent>(UCheckBoxComponent::StaticClass());
-	UTextBlockComponent* Text = Tree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
+	UHorizontalBox* Horizontal = Tree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UCheckBox* Checkbox = Tree->ConstructWidget<UCheckBox>(UCheckBox::StaticClass());
+	UTextBlock* Text = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	Text->Text = LOCTEXT("CheckboxText", "Checkbox Text");
 	Text->Font.Size = 10;
 

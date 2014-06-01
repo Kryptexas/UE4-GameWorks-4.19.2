@@ -5,22 +5,22 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// USpacerComponent
+// USpacer
 
-USpacerComponent::USpacerComponent(const FPostConstructInitializeProperties& PCIP)
+USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, Size(1.0f, 1.0f)
 {
 	bIsVariable = false;
 }
 
-TSharedRef<SWidget> USpacerComponent::RebuildWidget()
+TSharedRef<SWidget> USpacer::RebuildWidget()
 {
 	return SNew(SSpacer)
 		.Size( BIND_UOBJECT_ATTRIBUTE(FVector2D, GetSpacerSize) );
 }
 
-FVector2D USpacerComponent::GetSpacerSize() const
+FVector2D USpacer::GetSpacerSize() const
 {
 	return Size;
 }

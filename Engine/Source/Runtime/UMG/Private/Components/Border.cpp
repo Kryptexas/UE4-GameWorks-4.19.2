@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UBorderComponent
+// UBorder
 
-UBorderComponent::UBorderComponent(const FPostConstructInitializeProperties& PCIP)
+UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
@@ -26,7 +26,7 @@ UBorderComponent::UBorderComponent(const FPostConstructInitializeProperties& PCI
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
 }
 
-TSharedRef<SWidget> UBorderComponent::RebuildWidget()
+TSharedRef<SWidget> UBorder::RebuildWidget()
 {
 	TSharedRef<SBorder> NewBorder = SNew(SBorder)
 		.HAlign(HorizontalAlignment)
@@ -50,7 +50,7 @@ TSharedRef<SWidget> UBorderComponent::RebuildWidget()
 	return NewBorder;
 }
 
-void UBorderComponent::SetContent(UWidget* Content)
+void UBorder::SetContent(UWidget* Content)
 {
 	Super::SetContent(Content);
 
@@ -61,17 +61,17 @@ void UBorderComponent::SetContent(UWidget* Content)
 	}
 }
 
-FMargin UBorderComponent::GetContentPadding() const
+FMargin UBorder::GetContentPadding() const
 {
 	return ContentPadding;
 }
 
-FLinearColor UBorderComponent::GetContentColor() const
+FLinearColor UBorder::GetContentColor() const
 {
 	return ContentColorAndOpacity;
 }
 
-const FSlateBrush* UBorderComponent::GetBorderBrush() const
+const FSlateBrush* UBorder::GetBorderBrush() const
 {
 	if ( BorderBrush == NULL )
 	{
@@ -82,12 +82,12 @@ const FSlateBrush* UBorderComponent::GetBorderBrush() const
 	return &BorderBrush->Brush;
 }
 
-FSlateColor UBorderComponent::GetBorderColor() const
+FSlateColor UBorder::GetBorderColor() const
 {
 	return BorderColorAndOpacity;
 }
 
-FSlateColor UBorderComponent::GetForegroundColor() const
+FSlateColor UBorder::GetForegroundColor() const
 {
 	return ForegroundColor;
 }

@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "CheckBoxComponent.generated.h"
+#include "CheckBox.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, bool, bIsChecked );
 
 /** Check box widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UCheckBoxComponent : public UWidget
+class UMG_API UCheckBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

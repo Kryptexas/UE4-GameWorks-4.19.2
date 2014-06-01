@@ -3,25 +3,25 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// UVerticalBoxComponent
+// UVerticalBox
 
-UVerticalBoxComponent::UVerticalBoxComponent(const FPostConstructInitializeProperties& PCIP)
+UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
 }
 
-int32 UVerticalBoxComponent::GetChildrenCount() const
+int32 UVerticalBox::GetChildrenCount() const
 {
 	return Slots.Num();
 }
 
-UWidget* UVerticalBoxComponent::GetChildAt(int32 Index) const
+UWidget* UVerticalBox::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
 
-int32 UVerticalBoxComponent::GetChildIndex(UWidget* Content) const
+int32 UVerticalBox::GetChildIndex(UWidget* Content) const
 {
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
@@ -36,13 +36,13 @@ int32 UVerticalBoxComponent::GetChildIndex(UWidget* Content) const
 	return -1;
 }
 
-bool UVerticalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
+bool UVerticalBox::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;
 }
 
-bool UVerticalBoxComponent::RemoveChild(UWidget* Child)
+bool UVerticalBox::RemoveChild(UWidget* Child)
 {
 	int32 SlotIndex = GetChildIndex(Child);
 	if ( SlotIndex != -1 )
@@ -54,7 +54,7 @@ bool UVerticalBoxComponent::RemoveChild(UWidget* Child)
 	return false;
 }
 
-void UVerticalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
+void UVerticalBox::ReplaceChildAt(int32 Index, UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = Slots[Index];
 	Slot->Content = Content;
@@ -64,7 +64,7 @@ void UVerticalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
 #endif
 }
 
-void UVerticalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
+void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -77,7 +77,7 @@ void UVerticalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
 	Slots.Insert(Slot, Index);
 }
 
-TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
+TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 {
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);
 	MyVerticalBox = NewCanvas;
@@ -103,7 +103,7 @@ TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 	return NewCanvas;
 }
 
-UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(UWidget* Content)
+UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -119,7 +119,7 @@ UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
-void UVerticalBoxComponent::ConnectEditorData()
+void UVerticalBox::ConnectEditorData()
 {
 	for ( UVerticalBoxSlot* Slot : Slots )
 	{
@@ -134,7 +134,7 @@ void UVerticalBoxComponent::ConnectEditorData()
 	}
 }
 
-void UVerticalBoxComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UVerticalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names
 	int32 SlotNumbering = 1;

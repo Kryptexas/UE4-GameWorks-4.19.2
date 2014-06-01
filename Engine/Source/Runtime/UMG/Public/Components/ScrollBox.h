@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "ScrollBoxComponent.generated.h"
+#include "ScrollBox.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UScrollBoxComponent : public UWidget
+class UMG_API UScrollBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

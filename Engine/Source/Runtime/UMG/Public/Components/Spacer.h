@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "SpacerComponent.generated.h"
+#include "Spacer.generated.h"
 
 /** A spacer widget; it does not have a visual representation, and just provides padding between other widgets. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API USpacerComponent : public UWidget
+class UMG_API USpacer : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

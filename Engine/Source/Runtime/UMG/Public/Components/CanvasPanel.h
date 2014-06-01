@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "CanvasPanelComponent.generated.h"
+#include "CanvasPanel.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UCanvasPanelComponent : public UPanelWidget
+class UMG_API UCanvasPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 

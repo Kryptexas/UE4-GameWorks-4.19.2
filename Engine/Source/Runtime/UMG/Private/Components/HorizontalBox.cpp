@@ -3,25 +3,25 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// UHorizontalBoxComponent
+// UHorizontalBox
 
-UHorizontalBoxComponent::UHorizontalBoxComponent(const FPostConstructInitializeProperties& PCIP)
+UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
 }
 
-int32 UHorizontalBoxComponent::GetChildrenCount() const
+int32 UHorizontalBox::GetChildrenCount() const
 {
 	return Slots.Num();
 }
 
-UWidget* UHorizontalBoxComponent::GetChildAt(int32 Index) const
+UWidget* UHorizontalBox::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
 
-int32 UHorizontalBoxComponent::GetChildIndex(UWidget* Content) const
+int32 UHorizontalBox::GetChildIndex(UWidget* Content) const
 {
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
@@ -36,13 +36,13 @@ int32 UHorizontalBoxComponent::GetChildIndex(UWidget* Content) const
 	return -1;
 }
 
-bool UHorizontalBoxComponent::AddChild(UWidget* Child, FVector2D Position)
+bool UHorizontalBox::AddChild(UWidget* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;
 }
 
-bool UHorizontalBoxComponent::RemoveChild(UWidget* Child)
+bool UHorizontalBox::RemoveChild(UWidget* Child)
 {
 	int32 SlotIndex = GetChildIndex(Child);
 	if ( SlotIndex != -1 )
@@ -54,7 +54,7 @@ bool UHorizontalBoxComponent::RemoveChild(UWidget* Child)
 	return false;
 }
 
-void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
+void UHorizontalBox::ReplaceChildAt(int32 Index, UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = Slots[Index];
 	Slot->Content = Content;
@@ -64,7 +64,7 @@ void UHorizontalBoxComponent::ReplaceChildAt(int32 Index, UWidget* Content)
 #endif
 }
 
-void UHorizontalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
+void UHorizontalBox::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -77,7 +77,7 @@ void UHorizontalBoxComponent::InsertChildAt(int32 Index, UWidget* Content)
 	Slots.Insert(Slot, Index);
 }
 
-TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
+TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 {
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);
 	MyHorizontalBox = NewCanvas;
@@ -110,7 +110,7 @@ TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 	return NewCanvas;
 }
 
-UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(UWidget* Content)
+UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -126,7 +126,7 @@ UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
-void UHorizontalBoxComponent::ConnectEditorData()
+void UHorizontalBox::ConnectEditorData()
 {
 	for ( UHorizontalBoxSlot* Slot : Slots )
 	{
@@ -135,7 +135,7 @@ void UHorizontalBoxComponent::ConnectEditorData()
 	}
 }
 
-void UHorizontalBoxComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UHorizontalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names
 	int32 SlotNumbering = 1;

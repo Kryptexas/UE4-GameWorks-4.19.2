@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "TextBlockComponent.generated.h"
+#include "TextBlock.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UTextBlockComponent : public UWidget
+class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

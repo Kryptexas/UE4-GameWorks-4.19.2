@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UEditableTextBlockComponent
+// UEditableTextBlock
 
-UEditableTextBlockComponent::UEditableTextBlockComponent(const FPostConstructInitializeProperties& PCIP)
+UEditableTextBlock::UEditableTextBlock(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	ForegroundColor = FLinearColor::Black;
@@ -30,7 +30,7 @@ UEditableTextBlockComponent::UEditableTextBlockComponent(const FPostConstructIni
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
-TSharedRef<SWidget> UEditableTextBlockComponent::RebuildWidget()
+TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
@@ -54,7 +54,7 @@ TSharedRef<SWidget> UEditableTextBlockComponent::RebuildWidget()
 		;
 }
 
-void UEditableTextBlockComponent::SlateOnTextChanged(const FText& Text)
+void UEditableTextBlock::SlateOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
 }

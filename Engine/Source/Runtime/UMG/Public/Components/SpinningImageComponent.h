@@ -6,7 +6,7 @@
 
 /** A widget that displays a spinning image. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API USpinningImageComponent : public UImageComponent
+class UMG_API USpinningImageComponent : public UImage
 {
 	GENERATED_UCLASS_BODY()
 

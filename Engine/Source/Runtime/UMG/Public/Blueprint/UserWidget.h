@@ -11,6 +11,10 @@ static FSlateRect NullRect;
 static FSlateWindowElementList NullElementList;
 static FWidgetStyle NullStyle;
 
+/**
+ * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
+ * allow script code to override OnPaint behavior.
+ */
 USTRUCT()
 struct UMG_API FPaintContext
 {
@@ -67,6 +71,9 @@ public:
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
+/**
+ * 
+ */
 UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable)
 class UMG_API UUserWidget : public UWidget
 {

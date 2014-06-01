@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UTextBlockComponent
+// UTextBlock
 
-UTextBlockComponent::UTextBlockComponent(const FPostConstructInitializeProperties& PCIP)
+UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
@@ -23,7 +23,7 @@ UTextBlockComponent::UTextBlockComponent(const FPostConstructInitializePropertie
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
 
-TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
+TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 

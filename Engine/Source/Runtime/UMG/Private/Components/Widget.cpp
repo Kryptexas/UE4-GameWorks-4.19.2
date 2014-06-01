@@ -42,12 +42,6 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 	MyWidget->SetToolTipText(ToolTipText);
 }
 
-void UWidget::OnUnregister()
-{
-	MyWidget = NULL;
-//	Super::OnUnregister();
-}
-
 void UWidget::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// TODO Rename?
@@ -60,6 +54,7 @@ TSharedRef<SWidget> UWidget::GetWidget()
 		MyWidget = RebuildWidget();
 		MyWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
 		MyWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+		//MyWidget->SetCursor(OPTIONAL_BINDING(EMouseCursor)
 
 		if ( !ToolTipText.IsEmpty() )
 		{

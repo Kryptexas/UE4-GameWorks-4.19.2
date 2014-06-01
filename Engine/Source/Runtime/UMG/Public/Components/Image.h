@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "ImageComponent.generated.h"
+#include "Image.generated.h"
 
 /** Image widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UImageComponent : public UWidget
+class UMG_API UImage : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

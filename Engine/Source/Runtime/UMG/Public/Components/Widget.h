@@ -3,16 +3,29 @@
 #pragma once
 
 #include "SlateWrapperTypes.h"
+
 #include "Widget.generated.h"
 
+/**
+ * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
+ */
 #define OPTIONAL_BINDING(ReturnType, MemberName) MemberName ## Delegate.IsBound() ? TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()) : TAttribute< ReturnType >(MemberName)
+
+/**
+ * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget,
+ * also allows a conversion function to be provided to convert between the SWidget value and the value exposed to UMG.
+ */
 #define OPTIONAL_BINDING_CONVERT(ReturnType, MemberName, ConvertedType, ConversionFunction) MemberName ## Delegate.IsBound() ? TAttribute< ConvertedType >::Create(TAttribute< ConvertedType >::FGetter::CreateUObject(this, &ThisClass::ConversionFunction, TAttribute< ReturnType >::Create(MemberName ## Delegate.GetUObject(), MemberName ## Delegate.GetFunctionName()))) : ConversionFunction(TAttribute< ReturnType >(MemberName))
 
-/** This is the base class for all Slate widget wrapper components */
-UCLASS(Abstract, hideCategories=(Activation, "Components|Activation", ComponentReplication, LOD, Rendering))
+/**
+ * This is the base class for all wrapped Slate controls that are exposed to UMG.
+ */
+UCLASS(Abstract)
 class UMG_API UWidget : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	// Common Bindings
 	DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FGetBool);
@@ -20,20 +33,29 @@ class UMG_API UWidget : public UObject
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetUObject, UObject*, Item);
 
 	// Events
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSReply, FOnReply);
 
-	UPROPERTY(EditAnywhere, Category=Variable)
-	FString Name;
-
-	UPROPERTY(EditAnywhere, Category=Variable)
+	/**
+	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
+	 * as variables, so this allows only the most useful ones to end up being exposed.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category=Variable)
 	bool bIsVariable;
 
+	/** Flag if the Widget was created from a blueprint */
+	UPROPERTY(Transient)
+	bool bCreatedByConstructionScript;
+
 #if WITH_EDITOR
-	UPROPERTY(Transient, EditInline, EditAnywhere, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
+	/**
+	 * The parent slot of the UWidget.  Allows us to easily inline edit the layout controlling this widget.
+	 */
+	UPROPERTY(Transient, EditInline, EditDefaultsOnly, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
 	UPanelSlot* Slot;
 #endif
 
@@ -41,28 +63,37 @@ class UMG_API UWidget : public UObject
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	bool bIsEnabled;
 
+	/** A bindable delegate for bIsEnabled */
 	UPROPERTY()
 	FGetBool bIsEnabledDelegate;
 
 	//TODO UMG ToolTipWidget
 
+	/** Tooltip text to show when the user hovers over the widget with the mouse */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	FText ToolTipText;
 
+	/** A bindable delegate for ToolTipText */
 	UPROPERTY()
 	FGetText ToolTipTextDelegate;
 
+	/** The visibility of the widget */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	TEnumAsByte<ESlateVisibility::Type> Visiblity;
 
+	/** A bindable delegate for Visibility */
 	UPROPERTY()
 	FGetSlateVisibility VisiblityDelegate;
 
+	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
+
+	/** The cursor to show when the mouse is over the widget */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
-	UPROPERTY(Transient)
-	bool bCreatedByConstructionScript;
+	/** A bindable delegate for Cursor */
+	UPROPERTY()
+	FGetMouseCursor CursorDelegate;
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool GetIsEnabled() const;
@@ -79,21 +110,11 @@ class UMG_API UWidget : public UObject
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
 
-	//TOptional< TEnumAsByte<EMouseCursor::Type> > GetCursor() const;
-
-	//void SetCursor(const TAttribute< TOptional< TEnumAsByte<EMouseCursor::Type> > >& InCursor);
-
-	// UActorComponent interface
-	virtual void OnUnregister();
-	// End of UActorComponent interface
-
 	TSharedRef<SWidget> GetWidget();
 
 #if WITH_EDITOR
 	virtual void ConnectEditorData() { }
-#endif
 
-#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface

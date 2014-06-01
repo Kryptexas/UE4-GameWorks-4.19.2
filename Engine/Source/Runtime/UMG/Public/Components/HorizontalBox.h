@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include "VerticalBoxComponent.generated.h"
+#include "HorizontalBox.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UVerticalBoxComponent : public UPanelWidget
+class UMG_API UHorizontalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
 	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
-	TArray<UVerticalBoxSlot*> Slots;
+	TArray<UHorizontalBoxSlot*> Slots;
 
-	UVerticalBoxSlot* AddSlot(UWidget* Content);
+	UHorizontalBoxSlot* AddSlot(UWidget* Content);
 
 	// UPanelWidget
 	virtual int32 GetChildrenCount() const OVERRIDE;
@@ -37,7 +37,7 @@ class UMG_API UVerticalBoxComponent : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SVerticalBox> MyVerticalBox;
+	TWeakPtr<class SHorizontalBox> MyHorizontalBox;
 
 protected:
 	// UWidget interface

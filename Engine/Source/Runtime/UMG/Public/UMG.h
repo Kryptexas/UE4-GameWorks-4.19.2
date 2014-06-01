@@ -33,13 +33,13 @@
 #include "BoxPanelComponent.h"
 
 #include "CanvasPanelSlot.h"
-#include "CanvasPanelComponent.h"
+#include "CanvasPanel.h"
 
 #include "HorizontalBoxSlot.h"
-#include "HorizontalBoxComponent.h"
+#include "HorizontalBox.h"
 
 #include "VerticalBoxSlot.h"
-#include "VerticalBoxComponent.h"
+#include "VerticalBox.h"
 
 #include "UniformGridSlot.h"
 #include "UniformGridPanel.h"
@@ -47,19 +47,20 @@
 #include "OverlaySlot.h"
 #include "Overlay.h"
 
-#include "TextBlockComponent.h"
-#include "BorderComponent.h"
-#include "ButtonComponent.h"
-#include "CheckBoxComponent.h"
+#include "TextBlock.h"
+#include "Border.h"
+#include "Button.h"
+#include "CheckBox.h"
 #include "EditableText.h"
-#include "EditableTextBlockComponent.h"
-#include "ImageComponent.h"
+#include "EditableTextBlock.h"
+#include "Image.h"
 #include "Slider.h"
 #include "ComboBox.h"
 
 #include "GridPanelComponent.h"
-#include "ScrollBoxComponent.h"
-#include "SpacerComponent.h"
+#include "ScrollBox.h"
+#include "Spacer.h"
+
 #include "SpinningImageComponent.h"
 #include "ThrobberComponent.h"
 #include "CircularThrobberComponent.h"

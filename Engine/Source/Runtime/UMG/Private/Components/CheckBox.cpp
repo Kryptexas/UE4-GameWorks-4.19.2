@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UCheckBoxComponent
+// UCheckBox
 
-UCheckBoxComponent::UCheckBoxComponent(const FPostConstructInitializeProperties& PCIP)
+UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SCheckBox::FArguments CheckBoxDefaults;
@@ -21,7 +21,7 @@ UCheckBoxComponent::UCheckBoxComponent(const FPostConstructInitializeProperties&
 	BorderBackgroundColor = FLinearColor::White;
 }
 
-TSharedRef<SWidget> UCheckBoxComponent::RebuildWidget()
+TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
 	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
 	if ( StylePtr == NULL )
@@ -65,12 +65,12 @@ TSharedRef<SWidget> UCheckBoxComponent::RebuildWidget()
 // 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
 }
 
-ESlateCheckBoxState::Type UCheckBoxComponent::GetCheckState() const
+ESlateCheckBoxState::Type UCheckBox::GetCheckState() const
 {
 	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
-void UCheckBoxComponent::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState)
+void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState)
 {
 	//@TODO: Choosing to treat Undetermined as Checked
 	const bool bWantsToBeChecked = NewState != ESlateCheckBoxState::Unchecked;

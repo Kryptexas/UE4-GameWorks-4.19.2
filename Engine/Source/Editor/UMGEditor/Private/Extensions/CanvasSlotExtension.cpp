@@ -84,7 +84,7 @@ void FCanvasSlotExtension::MoveByAmount(UWidget* Widget, FVector2D Delta)
 	if ( !Delta.IsZero() )
 	{
 		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Widget->Slot);
-		UCanvasPanelComponent* Parent = Cast<UCanvasPanelComponent>(CanvasSlot->Parent);
+		UCanvasPanel* Parent = Cast<UCanvasPanel>(CanvasSlot->Parent);
 
 		CanvasSlot->SetPosition(CanvasSlot->Position + Delta);
 	}

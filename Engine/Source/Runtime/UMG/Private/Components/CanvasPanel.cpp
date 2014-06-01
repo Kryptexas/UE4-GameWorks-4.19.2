@@ -32,26 +32,26 @@ class SFixedSizeCanvas : public SCanvas
 };
 
 /////////////////////////////////////////////////////
-// UCanvasPanelComponent
+// UCanvasPanel
 
-UCanvasPanelComponent::UCanvasPanelComponent(const FPostConstructInitializeProperties& PCIP)
+UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
 	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
 }
 
-int32 UCanvasPanelComponent::GetChildrenCount() const
+int32 UCanvasPanel::GetChildrenCount() const
 {
 	return Slots.Num();
 }
 
-UWidget* UCanvasPanelComponent::GetChildAt(int32 Index) const
+UWidget* UCanvasPanel::GetChildAt(int32 Index) const
 {
 	return Slots[Index]->Content;
 }
 
-TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
+TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
 	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
 	MyCanvas = NewCanvas;
@@ -76,7 +76,7 @@ TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 	return NewCanvas;
 }
 
-UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(UWidget* Content)
+UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 	Slot->Content = Content;
@@ -91,7 +91,7 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(UWidget* Content)
 	return Slot;
 }
 
-bool UCanvasPanelComponent::AddChild(UWidget* Child, FVector2D Position)
+bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
 {
 	UCanvasPanelSlot* Slot = AddSlot(Child);
 	Slot->Position = Position;
@@ -102,7 +102,7 @@ bool UCanvasPanelComponent::AddChild(UWidget* Child, FVector2D Position)
 
 #if WITH_EDITOR
 
-void UCanvasPanelComponent::ConnectEditorData()
+void UCanvasPanel::ConnectEditorData()
 {
 	for ( UCanvasPanelSlot* Slot : Slots )
 	{
@@ -111,7 +111,7 @@ void UCanvasPanelComponent::ConnectEditorData()
 	}
 }
 
-void UCanvasPanelComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UCanvasPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names
 	int32 SlotNumbering = 1;

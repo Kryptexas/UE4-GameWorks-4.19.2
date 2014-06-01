@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "ButtonComponent.generated.h"
+#include "Button.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
 /** Buttons are clickable widgets */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UButtonComponent : public UContentWidget
+class UMG_API UButton : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 

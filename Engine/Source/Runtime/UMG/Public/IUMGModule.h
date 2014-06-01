@@ -4,6 +4,9 @@
 
 #include "ModuleInterface.h"
 
+/**
+ * Interface for the UMG Module.
+ */
 class IUMGModule : public IModuleInterface
 {
 public:

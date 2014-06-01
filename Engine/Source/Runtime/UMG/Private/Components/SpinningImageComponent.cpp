@@ -5,7 +5,7 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UImageComponent
+// UImage
 
 USpinningImageComponent::USpinningImageComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

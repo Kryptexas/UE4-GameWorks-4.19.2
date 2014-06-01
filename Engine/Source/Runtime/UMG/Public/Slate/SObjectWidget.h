@@ -2,6 +2,12 @@
 
 #pragma once
 
+/**
+ * The SObjectWidet allows UMG to insert an SWidget into the hierarchy that manages the lifetime of the
+ * UMG UWidget that created it.  Once the SObjectWidget is destroyed it frees the reference it holds to
+ * The UWidget allowing it to be garbage collected.  It also forwards the slate events to the UUserWidget
+ * so that it can forward them to listeners.
+ */
 class SObjectWidget : public SCompoundWidget, public FGCObject
 {
 	SLATE_BEGIN_ARGS(SObjectWidget)
@@ -51,5 +57,6 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 	virtual FReply OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent) OVERRIDE;
 
 private:
+	/** The UWidget that created this SObjectWidget who needs to be kept alive. */
 	class UUserWidget* WidgetObject;
 };

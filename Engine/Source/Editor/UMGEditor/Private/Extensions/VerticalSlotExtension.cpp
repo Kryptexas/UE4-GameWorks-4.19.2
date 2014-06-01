@@ -77,7 +77,7 @@ FReply FVerticalSlotExtension::HandleDownPressed()
 void FVerticalSlotExtension::MoveUp(UWidget* Widget)
 {
 	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+	UVerticalBox* Parent = Cast<UVerticalBox>(VerticalSlot->Parent);
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
 	Parent->Slots.RemoveAt(CurrentIndex);
@@ -87,7 +87,7 @@ void FVerticalSlotExtension::MoveUp(UWidget* Widget)
 void FVerticalSlotExtension::MoveDown(UWidget* Widget)
 {
 	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBoxComponent* Parent = Cast<UVerticalBoxComponent>(VerticalSlot->Parent);
+	UVerticalBox* Parent = Cast<UVerticalBox>(VerticalSlot->Parent);
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
 	Parent->Slots.RemoveAt(CurrentIndex);

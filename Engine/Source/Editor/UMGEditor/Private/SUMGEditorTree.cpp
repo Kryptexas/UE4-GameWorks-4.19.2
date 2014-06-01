@@ -235,23 +235,23 @@ FReply SUMGEditorTree::CreateTestUI()
 
 	if ( WidgetTemplates.Num() > 0 )
 	{
-		UVerticalBoxComponent* Vertical = CastChecked<UVerticalBoxComponent>(WidgetTemplates[2]);
+		UVerticalBox* Vertical = CastChecked<UVerticalBox>(WidgetTemplates[2]);
 
-		UButtonComponent* NewButton = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
+		UButton* NewButton = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 
 		Vertical->AddChild(NewButton, FVector2D(0,0));
 	}
 	else
 	{
-		UCanvasPanelComponent* Canvas = BP->WidgetTree->ConstructWidget<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass());
-		UBorderComponent* Border = BP->WidgetTree->ConstructWidget<UBorderComponent>(UBorderComponent::StaticClass());
-		UVerticalBoxComponent* Vertical = BP->WidgetTree->ConstructWidget<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass());
-		UButtonComponent* Button1 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button2 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button3 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-		UButtonComponent* Button4 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
+		UCanvasPanel* Canvas = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+		UBorder* Border = BP->WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		UVerticalBox* Vertical = BP->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		UButton* Button1 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UButton* Button2 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UButton* Button3 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+		UButton* Button4 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 
-		UTextBlockComponent* Text1 = BP->WidgetTree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
+		UTextBlock* Text1 = BP->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		Text1->Text = FText::FromString(TEXT("Button!"));
 		Button4->SetContent(Text1);
 

@@ -20,8 +20,8 @@ FText FWidgetTemplateButton::GetCategory()
 
 UWidget* FWidgetTemplateButton::Create(UWidgetTree* Tree)
 {
-	UButtonComponent* Button = Tree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
-	UTextBlockComponent* Text = Tree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
+	UButton* Button = Tree->ConstructWidget<UButton>(UButton::StaticClass());
+	UTextBlock* Text = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 
 	Text->Text = FText::FromString(TEXT("Button Text"));
 	Text->Font.Size = 10;
