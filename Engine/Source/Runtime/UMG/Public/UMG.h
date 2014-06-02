@@ -59,7 +59,6 @@
 #include "ProgressBar.h"
 #include "ComboBox.h"
 
-#include "GridPanelComponent.h"
 #include "Spacer.h"
 
 #include "SpinningImageComponent.h"
