@@ -21,6 +21,15 @@ void SProgressBar::Construct( const FArguments& InArgs )
 	CurveSequence.Play();
 }
 
+TOptional<float> SProgressBar::GetPercent() const
+{
+	return Percent.Get();
+}
+
+void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
+{
+	Percent = InPercent;
+}
 
 int32 SProgressBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {

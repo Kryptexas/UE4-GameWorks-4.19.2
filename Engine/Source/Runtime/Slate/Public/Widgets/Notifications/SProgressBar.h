@@ -62,6 +62,12 @@ public:
 
 	FVector2D ComputeDesiredSize() const;
 
+	/** See Slate attribute Percent */
+	TOptional<float> GetPercent() const;
+
+	/** See Slate attribute Percent */
+	void SetPercent(TAttribute< TOptional<float> > InPercent);
+
 private:
 
 	/** The text displayed over the progress bar */
