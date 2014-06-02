@@ -30,8 +30,6 @@
 #include "PanelWidget.h"
 #include "ContentWidget.h"
 
-#include "BoxPanelComponent.h"
-
 #include "CanvasPanelSlot.h"
 #include "CanvasPanel.h"
 
