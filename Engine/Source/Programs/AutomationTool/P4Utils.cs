@@ -616,7 +616,9 @@ namespace AutomationTool
         public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
             // If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
-            bool bSummaryIsOnSameLine = CommandLine.IndexOf("-L", StringComparison.InvariantCultureIgnoreCase) == -1;
+            bool ContainsDashL = CommandLine.StartsWith("-L ", StringComparison.InvariantCultureIgnoreCase) ||
+                CommandLine.IndexOf(" -L ", StringComparison.InvariantCultureIgnoreCase) > 0;
+            bool bSummaryIsOnSameLine = !ContainsDashL;
             if (bSummaryIsOnSameLine && LongComment)
             {
                 CommandLine = "-L " + CommandLine;
@@ -689,7 +691,7 @@ namespace AutomationTool
 							Line = Lines[ LineIndex ];
 							if( !String.IsNullOrEmpty( Line ) )
 							{
-								throw new AutomationException("Was expecting blank line after Change header output from P4");
+                                throw new AutomationException("Was expecting blank line after Change header output from P4, got {0}", Line);
 							}
 
 							++LineIndex;
@@ -704,6 +706,7 @@ namespace AutomationTool
 								if (SummaryChangeAt == 0 && SummaryOnAt > SummaryChangeAt && SummaryByAt > SummaryOnAt)
 								{
 									// OK, we found a new change. This isn't part of our summary.  We're done with the summary.  Back we go.
+                                    //CommandUtils.Log("Next summary is {0}", Line);
 									--LineIndex;
 									break;
 								}

@@ -1889,16 +1889,29 @@ class TestChanges : BuildCommand
 {
     public override void ExecuteBuild()
     {
-        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2061085,2061287 //depot/UE4-LauncherReleases/*/Build/...@2061085,2061287");
-        
-        List<P4Connection.ChangeRecord> ChangeRecords;
-        if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2091742,2091950 //depot/UE4-LauncherReleases/*/Build/...@2091742,2091950");
+
         {
-            throw new AutomationException("failed");
+            List<P4Connection.ChangeRecord> ChangeRecords;
+            if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+            {
+                throw new AutomationException("failed");
+            }
+            foreach (var Record in ChangeRecords)
+            {
+                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            }
         }
-        foreach (var Record in ChangeRecords)
         {
-            Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            List<P4Connection.ChangeRecord> ChangeRecords;
+            if (!P4.Changes(out ChangeRecords, "-L " + CommandParam, true, true, LongComment: false))
+            {
+                throw new AutomationException("failed");
+            }
+            foreach (var Record in ChangeRecords)
+            {
+                Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+            }
         }
     }
 }
