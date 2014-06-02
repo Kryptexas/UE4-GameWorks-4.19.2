@@ -14,6 +14,7 @@ struct FStartPhysics2DTickFunction : public FTickFunction
 	struct FPhysicsScene2D* Target;
 
 	// FTickFunction interface
+
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	virtual FString DiagnosticMessage() OVERRIDE;
 	// End of FTickFunction interface

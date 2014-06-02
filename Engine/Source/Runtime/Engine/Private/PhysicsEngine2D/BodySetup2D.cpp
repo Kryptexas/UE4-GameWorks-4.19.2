@@ -17,6 +17,7 @@ UBodySetup2D::UBodySetup2D(const FPostConstructInitializeProperties& PCIP)
 void UBodySetup2D::InvalidatePhysicsData()
 {
 	//ClearPhysicsMeshes();
+
 	//BodySetupGuid = FGuid::NewGuid(); // change the guid
 	//CookedFormatData.FlushData();
 }

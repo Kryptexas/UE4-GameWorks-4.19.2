@@ -25,6 +25,7 @@ public:
 		, View(NULL)
 	{
 		//@TODO:
+
 		SetFlags(b2Draw::e_shapeBit | b2Draw::e_jointBit | b2Draw::e_centerOfMassBit);
 	}
 
