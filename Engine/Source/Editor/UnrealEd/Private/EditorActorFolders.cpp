@@ -142,13 +142,19 @@ void FActorFolders::OnWorldSaved(uint32 SaveFlags, UWorld* World, bool bSuccess)
 
 void FActorFolders::OnLevelActorAdded(AActor* InActor)
 {
-	check(InActor && InActor->GetWorld());
+	check(InActor);
 
-	FScopedTransaction Transaction(LOCTEXT("UndoAction_ActorAdded", "Actor Folder Added"));
+	UWorld* World = InActor->GetWorld();
+	check(World);
 
-	if (!AddFolderToWorld(*InActor->GetWorld(), InActor->GetFolderPath()))
+	const FName FolderPath = InActor->GetFolderPath();
+
+	if (WillAddFolderToWorld(*World, FolderPath))
 	{
-		Transaction.Cancel();
+		FScopedTransaction Transaction(LOCTEXT("UndoAction_ActorAdded", "Actor Folder Added"));
+
+		const bool bAddedFolder = AddFolderToWorld(*World, FolderPath);
+		check(bAddedFolder);
 	}
 }
 
@@ -208,6 +214,11 @@ const TMap<FName, FActorFolderProps>& FActorFolders::GetFolderPropertiesForWorld
 FActorFolderProps* FActorFolders::GetFolderProperties(UWorld& InWorld, FName InPath)
 {
 	return GetOrCreateFoldersForWorld(InWorld).Folders.Find(InPath);
+}
+
+bool FActorFolders::FoldersExistForWorld(UWorld& InWorld) const
+{
+	return (TemporaryWorldFolders.Find(&InWorld) != NULL);
 }
 
 UEditorActorFolders& FActorFolders::GetOrCreateFoldersForWorld(UWorld& InWorld)
@@ -424,6 +435,19 @@ bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 	}
 
 	return RenamedFolders.Num() != 0;
+}
+
+bool FActorFolders::WillAddFolderToWorld(UWorld& InWorld, FName Path) const
+{
+	bool bWillAddFolders = false;
+
+	if (!Path.IsNone() && FoldersExistForWorld(InWorld))
+	{
+		UEditorActorFolders& Folders = *TemporaryWorldFolders.FindChecked(&InWorld);
+		bWillAddFolders = !Folders.Folders.Contains(Path);
+	}
+
+	return bWillAddFolders;
 }
 
 bool FActorFolders::AddFolderToWorld(UWorld& InWorld, FName Path)

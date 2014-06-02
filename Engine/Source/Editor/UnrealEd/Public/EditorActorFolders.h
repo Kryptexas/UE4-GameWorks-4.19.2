@@ -90,6 +90,9 @@ struct UNREALED_API FActorFolders : public FGCObject
 
 private:
 
+	/** Returns true if folders have been created for the specified world */
+	bool FoldersExistForWorld(UWorld& InWorld) const;
+
 	/** Get or create a folder container for the specified world */
 	UEditorActorFolders& GetOrCreateFoldersForWorld(UWorld& InWorld);
 
@@ -117,6 +120,9 @@ private:
 
 	/** Remove any references to folder arrays for dead worlds */
 	void Housekeeping();
+
+	/** Returns true if calling AddFolderToWorld with the provided details would add a new folder */
+	bool WillAddFolderToWorld(UWorld& InWorld, FName Path) const;
 
 	/** Add a folder to the folder map for the specified world. Does not trigger any events. */
 	bool AddFolderToWorld(UWorld& InWorld, FName Path);
