@@ -8,7 +8,7 @@
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
 */
-class FThreadIdleStats : public TThreadSingleton<FThreadIdleStats>
+class CORE_API FThreadIdleStats : public TThreadSingleton<FThreadIdleStats>
 {
 	friend class TThreadSingleton<FThreadIdleStats>;
 
