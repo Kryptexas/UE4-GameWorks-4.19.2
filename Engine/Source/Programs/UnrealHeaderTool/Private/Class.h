@@ -16,6 +16,8 @@ struct EEnforceInterfacePrefix
 	};
 };
 
+class FClasses;
+
 class FClass : public UClass
 {
 public:
@@ -42,6 +44,13 @@ public:
 	 * @return The super class of this class.
 	 */
 	FClass* GetSuperClass() const;
+
+	/**
+	 * Returns the 'within' class of this class.
+	 *
+	 * @return The 'within' class of this class.
+	 */
+	FClass* GetClassWithin() const;
 
 	TArray<FName> GetDependentNames() const;
 

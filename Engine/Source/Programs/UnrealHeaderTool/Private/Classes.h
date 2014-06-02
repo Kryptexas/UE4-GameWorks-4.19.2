@@ -38,6 +38,8 @@ public:
 
 	TArray<FClass*> GetDerivedClasses(FClass* Parent) const;
 
+	FClass* FindAnyClass(const TCHAR* ClassName) const;
+
 	/** 
 	 * Attempts to find a script class based on the given name. Will attempt to strip
 	 * the prefix of the given name while searching. Throws script errors when appropriate.
@@ -87,6 +89,8 @@ public:
 	 * @return	true if SearchClass was successfully moved to the new location
 	 */
 	void ChangeParentClass(FClass* Class);
+
+	bool ContainsClass(const FClass* Class) const;
 
 	/**
 	 * Validates the state of the tree (shouldn't be needed once this class has well-defined invariants).

@@ -21,7 +21,7 @@ FFunctionData* FClassMetaData::FindFunctionData( UFunction* Function )
 	if ( Result == NULL )
 	{
 		UClass* OwnerClass = Function->GetOwnerClass();
-		FClassMetaData* OwnerClassData = GScriptHelper->FindClassData(OwnerClass);
+		FClassMetaData* OwnerClassData = GScriptHelper.FindClassData(OwnerClass);
 		if ( OwnerClassData && OwnerClassData != this )
 		{
 			Result = OwnerClassData->FindFunctionData(Function);
@@ -54,7 +54,7 @@ FStructData* FClassMetaData::FindStructData( UScriptStruct* Struct )
 	if ( Result == NULL )
 	{
 		UClass* OwnerClass = Struct->GetOwnerClass();
-		FClassMetaData* OwnerClassData = GScriptHelper->FindClassData(OwnerClass);
+		FClassMetaData* OwnerClassData = GScriptHelper.FindClassData(OwnerClass);
 		if ( OwnerClassData && OwnerClassData != this )
 		{
 			Result = OwnerClassData->FindStructData(Struct);
@@ -137,7 +137,7 @@ FTokenData* FClassMetaData::FindTokenData( UProperty* Prop )
 
 	if ( Result == NULL && OuterClass != NULL )
 	{
-		FClassMetaData* SuperClassData = GScriptHelper->FindClassData(OuterClass);
+		FClassMetaData* SuperClassData = GScriptHelper.FindClassData(OuterClass);
 		if ( SuperClassData && SuperClassData != this )
 		{
 			Result = SuperClassData->FindTokenData(Prop);

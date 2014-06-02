@@ -32,11 +32,15 @@ namespace EExportFunctionType
 	};
 }
 
+class FClass;
+class FClasses;
+class FModuleClasses;
+
 struct FNativeClassHeaderGenerator
 {
 private:
 
-	UClass*				CurrentClass;
+	FClass*				CurrentClass;
 	TArray<FClass*>		Classes;
 	FString				API;
 	FString			ClassesHeaderPath;
@@ -164,6 +168,7 @@ private:
 
 	/** Return the name of the singleton function that returns the UObject for Item **/
 	FString GetSingletonName(UField* Item, bool bRequiresValidObject=true);
+	FString GetSingletonName(FClass* Item, bool bRequiresValidObject=true);
 
 	/** 
 	 * Export functions used to find and call C++ or script implementation of a script function in the interface 
@@ -173,15 +178,16 @@ private:
 	/**
 	 * Exports the C++ class declarations for a native interface class.
 	 */
-	void ExportInterfaceClassDeclaration( UClass* Class );
+	void ExportInterfaceClassDeclaration( FClass* Class );
 
 	/**
 	 * Appends the header definition for an inheritance hierarchy of classes to the header.
 	 * Wrapper for ExportClassHeaderRecursive().
 	 *
+	 * @param	AllClasses			The classes being processed.
 	 * @param	Class				The class to be exported.
 	 */
-	void ExportClassHeader( UClass* Class );
+	void ExportClassHeader( FClasses& AllClasses, FClass* Class );
 
 	/**
 	 * After all of the dependency checking, and setup for isolating the generated code, actually export the class
@@ -189,7 +195,7 @@ private:
 	 * @param	Class				The class to be exported.
 	 * @param	bValidNonTemporaryClass	Is the class permanent, or a temporary shell?
 	 */
-	void ExportClassHeaderInner( UClass* Class, bool bValidNonTemporaryClass );
+	void ExportClassHeaderInner( FClass* Class, bool bValidNonTemporaryClass );
 
 	/**
 	 * After all of the dependency checking, but before actually exporting the class, set up the generated code
@@ -197,17 +203,18 @@ private:
 	 * @param	Class				The class to be exported.
 	 * @param	bIsExportClass		true if this is an export class
 	 */
-	void ExportClassHeaderWrapper( UClass* Class, bool bIsExportClass );
+	void ExportClassHeaderWrapper( FClass* Class, bool bIsExportClass );
 
 	/**
 	 * Appends the header definition for an inheritance hierarchy of classes to the header.
 	 *
+	 * @param	AllClasses				The classes being processed.
 	 * @param	Class					The class to be exported.
 	 * @param	DependencyChain			Used for finding errors. Must be empty before the first call.
 	 * @param	VisitedSet				The set of classes visited so far. Must be empty before the first call.
 	 * @param	bCheckDependenciesOnly	Whether we should just keep checking for dependency errors, without exporting anything.
 	 */
-	void ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly );
+	void ExportClassHeaderRecursive( FClasses& AllClasses, FClass* Class, TArray<FClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly );
 
 	/**
 	 * Returns a string in the format CLASS_Something|CLASS_Something which represents all class flags that are set for the specified
@@ -370,14 +377,14 @@ private:
 	void ExportFunctionThunk(FStringOutputDevice& RPCWrappers, const FFuncInfo& FunctionData, const TArray<UProperty*>& Parameters, UProperty* Return);
 
 	/** Exports the native function registration code for the given class. */
-	void ExportNatives(UClass* Class);
+	void ExportNatives(FClass* Class);
 
 	/**
 	 * Exports generated singleton functions for UObjects that used to be stored in .u files.
 	 * 
 	 * @param	Class			Class to export
 	**/
-	void ExportNativeGeneratedInitCode(UClass* Class);
+	void ExportNativeGeneratedInitCode(FClass* Class);
 
 	/**
 	 * Exports a generated singleton function to setup the package for compiled-in classes.

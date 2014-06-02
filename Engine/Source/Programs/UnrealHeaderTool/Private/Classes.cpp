@@ -61,9 +61,7 @@ FClass* FClasses::GetRootClass() const
 
 bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source) const
 {
-	// A class is not dependent on itself.
-	if (Suspect == Source)
-		return false;
+	check(Suspect != Source);
 
 	// Children are all implicitly dependent on their parent, that is, children require their parent
 	// to be compiled first therefore if the source is a parent of the suspect, the suspect is
@@ -106,15 +104,6 @@ bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source) const
 			return true;
 	}
 
-	// Consider all children of the suspect if any of them are dependent on the source, the suspect is
-	// too because it itself is dependent on its children.
-
-	if(!Suspect->HasAnyClassFlags(CLASS_Interface))
-	{
-		if (!ClassTree.FindNode(const_cast<FClass*>(Suspect)))
-			FError::Throwf(TEXT("Unparsed class '%s' found while validating DependsOn entries for '%s'"), *Suspect->GetName(), *Source->GetName());
-	}
-
 	return false;
 }
 
@@ -146,6 +135,13 @@ TArray<FClass*> FClasses::GetDerivedClasses(FClass* Parent) const
 	}
 
 	return Result;
+}
+
+FClass* FClasses::FindAnyClass(const TCHAR* ClassName) const
+{
+	check(ClassName);
+
+	return (FClass*)FindObject<UClass>(ANY_PACKAGE, ClassName);
 }
 
 FClass* FClasses::FindScriptClass(const FString& InClassName) const
@@ -209,12 +205,21 @@ TArray<FClass*> FClasses::GetClassesInPackage(UPackage* InPackage) const
 	return Result;
 }
 
+#if WIP_UHT_REFACTOR
+
 void FClasses::ChangeParentClass(FClass* Class)
 {
 	ClassTree.ChangeParentClass(Class);
+}
+
+bool FClasses::ContainsClass(const FClass* Class) const
+{
+	return !!ClassTree.FindNode(const_cast<FClass*>(Class));
 }
 
 void FClasses::Validate()
 {
 	ClassTree.Validate();
 }
+
+#endif

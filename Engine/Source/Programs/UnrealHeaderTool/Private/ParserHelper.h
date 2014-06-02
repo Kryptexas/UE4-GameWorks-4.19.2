@@ -5,7 +5,7 @@
 
 #pragma once
 
-extern class FCompilerMetadataManager*	GScriptHelper;
+extern class FCompilerMetadataManager GScriptHelper;
 
 /*-----------------------------------------------------------------------------
 	FPropertyBase.
@@ -1591,15 +1591,6 @@ public:
 class FCompilerMetadataManager : protected TMap<UClass*, TScopedPointer<FClassMetaData> >
 {
 public:
-
-	~FCompilerMetadataManager()
-	{
-		if ( this == GScriptHelper )
-		{
-			GScriptHelper = NULL;
-		}
-	}
-
 	/**
 	 * Adds a new class to be tracked
 	 * 
@@ -1734,39 +1725,35 @@ struct FNameLookupCPP
 	const TCHAR* GetNameCPP( UStruct* Struct, bool bForceInterface = false )
 	{
 		TCHAR* NameCPP = StructNameMap.FindRef( Struct );
-		if ((NameCPP != NULL) && !bForceInterface)
-		{
+		if (NameCPP && !bForceInterface)
 			return NameCPP;
+
+		FString DesiredStructName = Struct->GetName();
+		if (UClass* TestClass = Cast<UClass>(Struct))
+		{
+			if (TestClass->HasAnyClassFlags(CLASS_Temporary))
+			{
+				DesiredStructName = GClassHeaderNameWithNoPathMap[TestClass];
+			}
+		}
+
+		FString	TempName = FString(bForceInterface ? TEXT("I") : Struct->GetPrefixCPP()) + DesiredStructName;
+		int32 StringLength = TempName.Len();
+
+		NameCPP = new TCHAR[StringLength + 1];
+		FCString::Strcpy( NameCPP, StringLength + 1, *TempName );
+		NameCPP[StringLength] = 0;
+
+		if (bForceInterface)
+		{
+			InterfaceAllocations.Add(NameCPP);
 		}
 		else
 		{
-			FString DesiredStructName = Struct->GetName();
-			if (UClass* TestClass = Cast<UClass>(Struct))
-			{
-				if (TestClass->HasAnyClassFlags(CLASS_Temporary))
-				{
-					DesiredStructName = GClassHeaderNameWithNoPathMap[TestClass];
-				}
-			}
-
-			FString	TempName = FString(bForceInterface ? TEXT("I") : Struct->GetPrefixCPP()) + DesiredStructName;
-			int32 StringLength = TempName.Len();
-
-			NameCPP = new TCHAR[StringLength + 1];
-			FCString::Strcpy( NameCPP, StringLength + 1, *TempName );
-			NameCPP[StringLength] = 0;
-
-			if (bForceInterface)
-			{
-				InterfaceAllocations.Add(NameCPP);
-			}
-			else
-			{
-				StructNameMap.Add( Struct, NameCPP );
-			}
-			
-			return NameCPP;
+			StructNameMap.Add( Struct, NameCPP );
 		}
+			
+		return NameCPP;
 	}
 
 private:
@@ -1775,7 +1762,7 @@ private:
 	TArray<TCHAR*> InterfaceAllocations;
 };
 
-extern FNameLookupCPP* NameLookupCPP;
+extern FNameLookupCPP NameLookupCPP;
 
 
 /////////////////////////////////////////////////////
