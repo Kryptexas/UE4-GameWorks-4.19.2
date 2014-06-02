@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Anchors.h"
+
 #include "CanvasPanelSlot.generated.h"
 
 UCLASS()
@@ -9,53 +11,36 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Position. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D Position;
+	/** Offset. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FMargin Offset;
+	
+	/** Anchors. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FAnchors Anchors;
 
-	/** Size. */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D Size;
+	/** Alignment. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FVector2D Alignment;
 
-	/**
-	* Horizontal pivot position
-	*  Given a top aligned slot, where '+' represents the
-	*  anchor point defined by PositionAttr.
-	*
-	*   Left				Center				Right
-	+ _ _ _ _            _ _ + _ _          _ _ _ _ +
-	|		  |		   | 		   |	  |		    |
-	| _ _ _ _ |        | _ _ _ _ _ |	  | _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported.
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/**
-	* Vertical pivot position
-	*   Given a left aligned slot, where '+' represents the
-	*   anchor point defined by PositionAttr.
-	*
-	*   Top					Center			  Bottom
-	*	+_ _ _ _ _		 _ _ _ _ _		 _ _ _ _ _
-	*	|         |		| 		  |		|		  |
-	*	|         |     +		  |		|		  |
-	*	| _ _ _ _ |		| _ _ _ _ |		+ _ _ _ _ |
-	*
-	*  Note: FILL is NOT supported.
-	*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
-
-	void BuildSlot(TSharedRef<SCanvas> Canvas);
+	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) OVERRIDE;
 
 	virtual bool CanResize(const FVector2D& Direction) const OVERRIDE;
 
-	void SetPosition(FVector2D Position);
+	/** Sets the position of the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetOffset(FMargin InOffset);
+	
+	/** Sets the anchors on the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetAnchors(FAnchors InAnchors);
+
+	/** Sets the alignment on the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetAlignment(FVector2D InAlignment);
 
 private:
-	SCanvas::FSlot* Slot;
+	SConstraintCanvas::FSlot* Slot;
 };

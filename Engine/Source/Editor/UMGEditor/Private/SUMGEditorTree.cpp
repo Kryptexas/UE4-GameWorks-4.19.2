@@ -256,10 +256,7 @@ FReply SUMGEditorTree::CreateTestUI()
 		Button4->SetContent(Text1);
 
 		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
-		Slot->Size.X = 200;
-		Slot->Size.Y = 300;
-		Slot->Position.X = 20;
-		Slot->Position.Y = 50;
+		Slot->Offset = FMargin(200, 300, 20, 50);
 
 		Border->SetContent(Vertical);
 

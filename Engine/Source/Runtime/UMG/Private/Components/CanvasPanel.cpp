@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////
 // SFixedSizeCanvas
 
-class SFixedSizeCanvas : public SCanvas
+class SFixedSizeCanvas : public SConstraintCanvas
 {
 	SLATE_BEGIN_ARGS( SFixedSizeCanvas )
 		{
@@ -17,8 +17,8 @@ class SFixedSizeCanvas : public SCanvas
 
 	void Construct(const FArguments& InArgs, FVector2D InSize)
 	{
-		SCanvas::FArguments ParentArgs;
-		SCanvas::Construct(ParentArgs);
+		SConstraintCanvas::FArguments ParentArgs;
+		SConstraintCanvas::Construct(ParentArgs);
 
 		CanvasSize = InSize;
 	}
@@ -94,8 +94,7 @@ UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
 {
 	UCanvasPanelSlot* Slot = AddSlot(Child);
-	Slot->Position = Position;
-	Slot->Size = FVector2D(100, 25);
+	Slot->Offset = FMargin(Position.X, Position.Y, 100, 25);
 
 	return true;
 }

@@ -9,19 +9,17 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 	, Slot(NULL)
 {
-	Position = FVector2D::ZeroVector;
-	Size = FVector2D(1.0f, 1.0f);
-	HorizontalAlignment = HAlign_Left;
-	VerticalAlignment = VAlign_Top;
+	Offset = FMargin(0, 0, 1, 1);
+	Anchors = FAnchors(0.5f, 0.5f);
+	Alignment = FVector2D(0.5f, 0.5f);
 }
 
-void UCanvasPanelSlot::BuildSlot(TSharedRef<SCanvas> Canvas)
+void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 {
 	Slot = &Canvas->AddSlot()
-		.Position(Position)
-		.Size(Size)
-		.HAlign(HorizontalAlignment)
-		.VAlign(VerticalAlignment)
+		.Offset(Offset)
+		.Anchors(Anchors)
+		.Alignment(Alignment)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
 		];
@@ -31,27 +29,26 @@ void UCanvasPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amoun
 {
 	if ( Direction.X < 0 )
 	{
-		Position.X -= Amount.X * Direction.X;
-		Size.X += Amount.X * Direction.X;
+		Offset.Left -= Amount.X * Direction.X;
+		Offset.Right += Amount.X * Direction.X;
 	}
 	if ( Direction.Y < 0 )
 	{
-		Position.Y -= Amount.Y * Direction.Y;
-		Size.Y += Amount.Y * Direction.Y;
+		Offset.Top -= Amount.Y * Direction.Y;
+		Offset.Bottom += Amount.Y * Direction.Y;
 	}
 	if ( Direction.X > 0 )
 	{
-		Size.X += Amount.X * Direction.X;
+		Offset.Right += Amount.X * Direction.X;
 	}
 	if ( Direction.Y > 0 )
 	{
-		Size.Y += Amount.Y * Direction.Y;
+		Offset.Bottom += Amount.Y * Direction.Y;
 	}
 
 	if ( Slot )
 	{
-		Slot->Position(Position);
-		Slot->Size(Size);
+		Slot->Offset(Offset);
 	}
 }
 
@@ -60,11 +57,29 @@ bool UCanvasPanelSlot::CanResize(const FVector2D& Direction) const
 	return true;
 }
 
-void UCanvasPanelSlot::SetPosition(FVector2D InPosition)
+void UCanvasPanelSlot::SetOffset(FMargin InOffset)
 {
-	Position = InPosition;
+	Offset = InOffset;
 	if ( Slot )
 	{
-		Slot->Position(InPosition);
+		Slot->Offset(InOffset);
+	}
+}
+
+void UCanvasPanelSlot::SetAnchors(FAnchors InAnchors)
+{
+	Anchors = InAnchors;
+	if ( Slot )
+	{
+		Slot->Anchors(InAnchors);
+	}
+}
+
+void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
+{
+	Alignment = InAlignment;
+	if ( Slot )
+	{
+		Slot->Alignment(InAlignment);
 	}
 }

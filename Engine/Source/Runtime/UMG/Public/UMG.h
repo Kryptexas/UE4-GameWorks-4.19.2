@@ -17,6 +17,8 @@
 #include "Slate.h"
 #include "SlateCore.h"
 
+#include "Anchors.h"
+#include "SConstraintCanvas.h"
 
 /* Components
  *****************************************************************************/
@@ -72,7 +74,7 @@
 /* Slate
  *****************************************************************************/
  
- #include "SObjectWidget.h"
+#include "SObjectWidget.h"
 
 /* Blueprint
  *****************************************************************************/

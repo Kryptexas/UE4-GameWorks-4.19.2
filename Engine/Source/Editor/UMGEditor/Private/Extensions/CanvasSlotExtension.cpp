@@ -86,7 +86,11 @@ void FCanvasSlotExtension::MoveByAmount(UWidget* Widget, FVector2D Delta)
 		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Widget->Slot);
 		UCanvasPanel* Parent = Cast<UCanvasPanel>(CanvasSlot->Parent);
 
-		CanvasSlot->SetPosition(CanvasSlot->Position + Delta);
+		FMargin Offset = CanvasSlot->Offset;
+		Offset.Left += Delta.X;
+		Offset.Top += Delta.Y;
+
+		CanvasSlot->SetOffset(Offset);
 	}
 }
 
