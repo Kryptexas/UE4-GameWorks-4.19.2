@@ -25,6 +25,9 @@ class UNREALED_API UTransBuffer
 	/** Number of actions in the current transaction */
 	int32 ActiveCount;
 
+	/** The cached count of the number of object records each time a transaction is begun */
+	TArray<int32> ActiveRecordCounts;
+
 	/** Maximum number of bytes the transaction buffer is allowed to occupy */
 	SIZE_T MaxMemory;
 

@@ -354,6 +354,7 @@ public:
 	 */
 	void GetTransactionObjects(TArray<UObject*>& Objects);
 	void RemoveRecords( int32 Count = 1 );
+	int32 GetRecordCount() const;
 
 	/**
 	 * Outputs the contents of the ObjectMap to the specified output device.

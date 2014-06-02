@@ -92,9 +92,14 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 	}
 }
 
+int32 FTransaction::GetRecordCount() const
+{
+	return Records.Num();
+}
+
 void FTransaction::RemoveRecords( int32 Count /* = 1  */ )
 {
-	if ( Records.Num() >= Count )
+	if ( Count > 0 && Records.Num() >= Count )
 	{
 		Records.RemoveAt( Records.Num() - Count, Count );
 
@@ -238,8 +243,8 @@ void FTransaction::Apply()
 			FBSPOps::bspBuildBounds( Model );
 			++NumModelsModified;
 		}
-		ChangedObject->PostEditUndo();
-	}
+			ChangedObject->PostEditUndo();
+		}
 	
 	// Rebuild BSP here instead of waiting for the next tick since
 	// multiple transaction events can occur in a single tick
@@ -249,7 +254,7 @@ void FTransaction::Apply()
 	}
 
 	// Flip it.
-	if( bFlip )
+	if (bFlip)
 	{
 		Inc *= -1;
 	}
@@ -326,7 +331,7 @@ void UTransBuffer::Serialize( FArchive& Ar )
 	{
 		Ar << UndoBuffer;
 	}
-	Ar << ResetReason << UndoCount << ActiveCount;
+	Ar << ResetReason << UndoCount << ActiveCount << ActiveRecordCounts;
 
 	CheckState();
 }
@@ -367,7 +372,7 @@ int32 UTransBuffer::Begin( const TCHAR* SessionContext, const FText& Description
 {
 	CheckState();
 	const int32 Result = ActiveCount;
-	if( ActiveCount++==0 )
+	if (ActiveCount++ == 0)
 	{
 		// Cancel redo buffer.
 		if( UndoCount )
@@ -385,6 +390,8 @@ int32 UTransBuffer::Begin( const TCHAR* SessionContext, const FText& Description
 		// Begin a new transaction.
 		GUndo = new(UndoBuffer)FTransaction( SessionContext, Description, 1 );
 	}
+	const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
+	ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
 	CheckState();
 	return Result;
 }
@@ -410,6 +417,7 @@ int32 UTransBuffer::End()
 #endif
 			GUndo = NULL;
 		}
+		ActiveRecordCounts.Pop();
 		CheckState();
 	}
 	return ActiveCount;
@@ -443,6 +451,7 @@ void UTransBuffer::Reset( const FText& Reason )
 	UndoCount    = 0;
 	ResetReason  = Reason;
 	ActiveCount  = 0;
+	ActiveRecordCounts.Empty();
 
 	CheckState();
 }
@@ -465,12 +474,19 @@ void UTransBuffer::Cancel( int32 StartIndex /*=0*/ )
 		}
 		else
 		{
+			int32 RecordsToKeep = 0;
+			for (int32 ActiveIndex = 0; ActiveIndex <= StartIndex; ++ActiveIndex)
+			{
+				RecordsToKeep += ActiveRecordCounts[ActiveIndex];
+			}
+
 			FTransaction& Transaction = UndoBuffer.Last();
-			Transaction.RemoveRecords(ActiveCount - StartIndex);
+			Transaction.RemoveRecords(Transaction.GetRecordCount() - RecordsToKeep);
 		}
 
 		// reset the active count
 		ActiveCount = StartIndex;
+		ActiveRecordCounts.SetNum(StartIndex);
 	}
 
 	CheckState();
@@ -652,6 +668,7 @@ void UTransBuffer::CheckState() const
 	// Validate the internal state.
 	check(UndoBuffer.Num()>=UndoCount);
 	check(ActiveCount>=0);
+	check(ActiveRecordCounts.Num() == ActiveCount);
 }
 
 
