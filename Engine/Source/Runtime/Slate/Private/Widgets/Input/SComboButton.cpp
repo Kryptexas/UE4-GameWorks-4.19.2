@@ -15,8 +15,6 @@ void SComboButton::Construct( const FArguments& InArgs )
 	
 	OnGetMenuContent = InArgs._OnGetMenuContent;
 	OnComboBoxOpened = InArgs._OnComboBoxOpened;
-	MenuHeight = InArgs._MenuHeight;
-	MenuWidth = InArgs._MenuWidth;
 	Method = InArgs._Method;
 	ContentWidgetPtr = InArgs._MenuContent.Widget;
 	ContentScale = InArgs._ContentScale;
@@ -127,17 +125,11 @@ FReply SComboButton::OnButtonClicked()
 void SComboButton::SetMenuContent( const TSharedRef< SWidget >& InContent )
 {
 	MenuContent = 
-		// Wrap in configurable box to restrain height/width of menu
-		SNew(SBox)
-		.WidthOverride(MenuWidth)
-		.HeightOverride(MenuHeight)
+		SNew(SBorder)
+		.BorderImage(MenuBorderBrush)
+		.Padding(MenuBorderPadding)
 		[
-			SNew(SBorder)
-			.BorderImage(MenuBorderBrush)
-			.Padding(MenuBorderPadding)
-			[
-				InContent
-			]
+			InContent
 		];
 }
 

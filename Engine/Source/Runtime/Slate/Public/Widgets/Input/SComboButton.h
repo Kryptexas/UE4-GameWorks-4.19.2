@@ -55,10 +55,6 @@ public:
 
 		/** Spawn a new window or reuse current window for this combo*/
 		SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )
-		/** The max height of the combo menu list */
-		SLATE_ATTRIBUTE( FOptionalSize, MenuHeight )
-		/** The max width of the combo menu list */
-		SLATE_ATTRIBUTE( FOptionalSize, MenuWidth )
 	SLATE_END_ARGS()
 	
 	/**
@@ -106,12 +102,6 @@ protected:
 
 	/** Padding to use to add a "menu border" around the drop-down content */
 	FMargin MenuBorderPadding;
-
-	/** The max height of the menu */
-	TAttribute<FOptionalSize> MenuWidth;
-
-	/** When specified, ignore the content's desired size and report the.HeightOverride as the Box's desired height. */
-	TAttribute<FOptionalSize> MenuHeight;
 
 	/** The content widget, if any, set by the user on creation */
 	TWeakPtr<SWidget> ContentWidgetPtr;
