@@ -7,6 +7,12 @@
 class SListPanel;
 class SHeaderRow;
 
+enum class EAllowOverscroll
+{
+	Yes,
+	No
+};
+
 /**
  * Contains ListView functionality that does not depend on the type of data being observed by the ListView.
  */
@@ -88,10 +94,11 @@ protected:
 	 *
 	 * @param MyGeometry      The geometry of the ListView at the time
 	 * @param ScrollByAmount  The amount to scroll by in Slate Screen Units.
+	 * @param AllowOverscroll Should we allow scrolling past the beginning/end of the list?
 	 *
 	 * @return The amount actually scrolled in items
 	 */
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount );
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmount, EAllowOverscroll AllowOverscroll );
 
 	/**
 	 * Scroll the view to an offset
@@ -230,6 +237,40 @@ protected:
 
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor;
+
+	struct SLATE_API FOverscroll
+	{
+	public:
+
+		FOverscroll( const float InMaxOverscroll );
+
+		/** @return The Amount actually scrolled */
+		float ScrollBy( float Delta );
+
+		/** How far the user scrolled above/below the beginning/end of the list. */
+		float GetOverscroll() const;
+
+		/** Ticks the overscroll manager so it can animate. */
+		void UpdateOverscroll( float InDeltaTime );
+
+		/**
+		 * Should ScrollDelta be applied to overscroll or to regular item scrolling.
+		 *
+		 * @param bIsAtStartOfList  Are we at the very beginning of the list (i.e. showing the first item at the top of the view)?
+		 * @param bIsAtEndOfList    Are we showing the last item on the screen completely?
+		 * @param ScrollDelta       How much the user is trying to scroll in Slate Units.
+		 *
+		 * @return true if the user's scrolling should be applied toward overscroll.
+		 */
+		bool ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const;
+
+	private:
+		/** How much we've over-scrolled above/below the beginning/end of the list. */
+		float OverscrollAmount;
+
+		/** The maximum amount that we can scroll past the edge. */
+		const float MaxOverscroll;
+	} Overscroll;
 
 private:
 	

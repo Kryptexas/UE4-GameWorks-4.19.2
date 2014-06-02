@@ -3,6 +3,11 @@
 #include "SlatePrivatePCH.h"
 #include "SListPanel.h"
 
+namespace ListConstants
+{
+	static const float OvershootMax = 50.0f;
+	static const float OvershootBounceRate = 350.0f;
+}
 
 /** Create the child widgets that comprise the list */
 void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
@@ -160,11 +165,20 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 		if ( !IsRightClickScrolling() )
 		{
 			this->InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
-
 			const float ScrollVelocity = this->InertialScrollManager.GetScrollVelocity();
+
 			if ( ScrollVelocity != 0.f )
 			{
-				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime);
+				this->ScrollBy(AllottedGeometry, ScrollVelocity * InDeltaTime, EAllowOverscroll::Yes);
+			}
+
+			Overscroll.UpdateOverscroll( InDeltaTime );
+
+			if (Overscroll.GetOverscroll() != 0.0f)
+			{
+				InertialScrollManager.ClearScrollVelocity();	
+				
+				this->RequestListRefresh();
 			}
 		}
 
@@ -192,8 +206,11 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 				ScrollOffset = ReGenerateResults.NewScrollOffset;
 			}
 			
+			
 			ScrollOffset = FMath::Max(0.0, ScrollOffset);
-			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) );
+			const float OverscrollAmount = Overscroll.GetOverscroll();
+			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) +  OverscrollAmount );
+			
 
 			UpdateSelectionSet();
 
@@ -313,7 +330,7 @@ FReply STableViewBase::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		if( IsRightClickScrolling() )
 		{
 			this->InertialScrollManager.AddScrollSample(-ScrollByAmount, FPlatformTime::Seconds());
-			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount );
+			const float AmountScrolled = this->ScrollBy( MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes );
 
 			FReply Reply = FReply::Handled();
 
@@ -365,7 +382,7 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		this->InertialScrollManager.ClearScrollVelocity();
 
-		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount );
+		const float AmountScrolledInItems = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No );
 		if (FMath::Abs(AmountScrolledInItems) > 0.0f)
 		{
 			return FReply::Handled();
@@ -424,7 +441,7 @@ FReply STableViewBase::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 	AmountScrolledWhileRightMouseDown += FMath::Abs( ScrollByAmount );
 
 	this->InertialScrollManager.AddScrollSample( ScrollByAmount, FPlatformTime::Seconds());
-	const float AmountScrolled = this->ScrollBy( MyGeometry, ScrollByAmount );
+	const float AmountScrolled = this->ScrollBy( MyGeometry, ScrollByAmount, EAllowOverscroll::Yes );
 
 	if (AmountScrolledWhileRightMouseDown > SlatePanTriggerDistance)
 	{
@@ -518,21 +535,26 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, SelectionMode( ESelectionMode::Multi )
 	, SoftwareCursorPosition( ForceInitToZero )
 	, bShowSoftwareCursor( false )
-	, bItemsNeedRefresh( true )
+	, Overscroll( ListConstants::OvershootMax )
+	, bItemsNeedRefresh( true )	
 {
 }
 
-float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits )
+float STableViewBase::ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll )
 {
 	const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 	const float FractionalScrollOffsetInItems = (ScrollOffset + GetScrollRateInItems() * ScrollByAmountInSlateUnits) / NumItemsBeingObserved;
-	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems, 0.0, 1.0 ) * NumItemsBeingObserved;
+	const double ClampedScrollOffsetInItems = FMath::Clamp<double>( FractionalScrollOffsetInItems*NumItemsBeingObserved, -10.0f, NumItemsBeingObserved+10.0f ) * NumItemsBeingObserved;
+	if (AllowOverscroll == EAllowOverscroll::Yes)
+	{
+		Overscroll.ScrollBy( ClampedScrollOffsetInItems - ScrollByAmountInSlateUnits );
+	}
 	return ScrollTo( ClampedScrollOffsetInItems );
 }
 
 float STableViewBase::ScrollTo( float InScrollOffset )
 {
-	const float NewScrollOffset = FMath::Clamp( InScrollOffset, 0.0f, (float)GetNumItemsBeingObserved() );
+	const float NewScrollOffset = FMath::Clamp( InScrollOffset, -10.0f, GetNumItemsBeingObserved()+10.0f );
 	float AmountScrolled = FMath::Abs( ScrollOffset - NewScrollOffset );
 	ScrollOffset = NewScrollOffset;
 
@@ -644,4 +666,53 @@ FVector2D STableViewBase::GetScrollDistanceRemaining()
 TSharedRef<class SWidget> STableViewBase::GetScrollWidget()
 {
 	return SharedThis(this);
+}
+
+
+STableViewBase::FOverscroll::FOverscroll( const float InMaxOverscroll )
+: OverscrollAmount( 0.0f )
+, MaxOverscroll( InMaxOverscroll )
+{
+}
+
+float STableViewBase::FOverscroll::ScrollBy( float Delta )
+{
+	const float ValueBeforeDeltaApplied = OverscrollAmount;
+	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount + 1.0f;
+	const float EasedDelta = Delta / OverscrollMagnitude;
+	OverscrollAmount = FMath::Clamp(OverscrollAmount + EasedDelta, -ListConstants::OvershootMax, ListConstants::OvershootMax);
+
+	return ValueBeforeDeltaApplied - OverscrollAmount;
+}
+
+float STableViewBase::FOverscroll::GetOverscroll() const
+{
+	return OverscrollAmount;
+}
+
+void STableViewBase::FOverscroll::UpdateOverscroll( float InDeltaTime )
+{
+	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount;
+	const float PullForce = OverscrollMagnitude + 1.0f;
+	const float EasedDelta = ListConstants::OvershootBounceRate * InDeltaTime * PullForce;
+
+	if ( OverscrollAmount > 0 )
+	{
+		OverscrollAmount = FMath::Max( 0.0f, OverscrollAmount - EasedDelta * InDeltaTime );
+	}
+	else
+	{
+		OverscrollAmount = FMath::Min( 0.0f, OverscrollAmount +  EasedDelta * InDeltaTime );
+	}
+}
+
+bool STableViewBase::FOverscroll::ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const
+{
+	const bool bShouldApplyOverscroll =
+		// We can scroll past the edge of the list only if we are at the edge
+		(bIsAtStartOfList && ScrollDelta < 0) || (bIsAtEndOfList && ScrollDelta > 0) ||
+		// ... or if we are already past the edge and are scrolling in the opposite direction.
+		(OverscrollAmount > 0 && ScrollDelta < 0) || (OverscrollAmount < 0 && ScrollDelta > 0);
+
+	return bShouldApplyOverscroll;
 }

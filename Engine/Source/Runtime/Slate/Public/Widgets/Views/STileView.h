@@ -240,12 +240,34 @@ public:
 
 protected:
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) OVERRIDE
 	{
-		const float ItemHeight = this->GetItemHeight();
-		const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
+		// Working around a CLANG bug, where all the base class
+		// members require an explicit namespace resolution.
+		typedef STableViewBase S;
 
-		return this->ScrollTo( NewScrollOffset );
+		const bool bWholeListVisible = S::ScrollOffset == 0 && S::bWasAtEndOfList;
+		if (bWholeListVisible)
+		{
+			return 0;
+		}
+		else if ( AllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		{
+			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / (10 * GetNumItemsWide());
+			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
+			if (ActuallyScrolledBy != 0.0f)
+			{
+				this->RequestListRefresh();
+			}
+			return ActuallyScrolledBy;
+		}
+		else
+		{
+			const float ItemHeight = this->GetItemHeight();
+			const double NewScrollOffset = this->ScrollOffset + ( ( ScrollByAmountInSlateUnits * GetNumItemsWide() ) / ItemHeight );
+
+			return this->ScrollTo( NewScrollOffset );
+		}
 	}
 
 	virtual int32 GetNumItemsWide() const OVERRIDE

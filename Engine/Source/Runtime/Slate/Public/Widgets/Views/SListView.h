@@ -1116,108 +1116,133 @@ protected:
 		}
 	}
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) OVERRIDE
 	{
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;
 
-		const TArray<ItemType>* SourceItems = ItemsSource;
-		if ( SourceItems != NULL && SourceItems->Num() > 0 )
+		const bool bWholeListVisible = ScrollOffset == 0 && bWasAtEndOfList;
+		if (bWholeListVisible)
 		{
-			int ItemIndex = StartingItemIndex;
-			while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
+			return 0;
+		}
+		else if ( AllowOverscroll == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll( ScrollOffset == 0, bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
+		{
+			const float UnclampedScrollDelta = FMath::Sign(ScrollByAmountInSlateUnits) * AbsScrollByAmount / 10;				
+			const float ActuallyScrolledBy = Overscroll.ScrollBy( UnclampedScrollDelta );
+			if (ActuallyScrolledBy != 0.0f)
 			{
-				const ItemType CurItem = (*SourceItems)[ ItemIndex ];
-				TSharedPtr<ITableRow> RowWidget = WidgetGenerator.GetWidgetForItem( CurItem );
-				if ( !RowWidget.IsValid() )
+				this->RequestListRefresh();
+			}
+			return ActuallyScrolledBy;
+		}
+		else
+		{
+			// We know how far we want to scroll in SlateUnits, but we store scroll offset in "number of widgets".
+			// Challenge: each widget can be a different height.
+			// Strategy:
+			//           Scroll "one widget's height" at a time until we've scrolled as far as the user asked us to.
+			//           Generate widgets on demand so we can figure out how tall they are.
+
+			const TArray<ItemType>* SourceItems = ItemsSource;
+			if ( SourceItems != NULL && SourceItems->Num() > 0 )
+			{
+				int ItemIndex = StartingItemIndex;
+				while( AbsScrollByAmount != 0 && ItemIndex < SourceItems->Num() && ItemIndex >= 0 )
 				{
-					// We couldn't find an existing widgets, meaning that this data item was not visible before.
-					// Make a new widget for it.
-					RowWidget = this->GenerateNewWidget( CurItem );
-
-					// It is useful to know the item's index that the widget was generated from.
-					// Helps with even/odd coloring
-					RowWidget->SetIndexInList(ItemIndex);
-
-					// Let the item generator know that we encountered the current Item and associated Widget.
-					WidgetGenerator.OnItemSeen( CurItem, RowWidget.ToSharedRef() );
-
-					RowWidget->AsWidget()->SlatePrepass();
-				}
-
-				if ( ScrollByAmountInSlateUnits > 0 )
-				{
-					FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
-					const float RemainingHeight = DesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
-
-					if ( AbsScrollByAmount > RemainingHeight )
+					const ItemType CurItem = (*SourceItems)[ ItemIndex ];
+					TSharedPtr<ITableRow> RowWidget = WidgetGenerator.GetWidgetForItem( CurItem );
+					if ( !RowWidget.IsValid() )
 					{
-						if ( ItemIndex != SourceItems->Num() )
+						// We couldn't find an existing widgets, meaning that this data item was not visible before.
+						// Make a new widget for it.
+						RowWidget = this->GenerateNewWidget( CurItem );
+
+						// It is useful to know the item's index that the widget was generated from.
+						// Helps with even/odd coloring
+						RowWidget->SetIndexInList(ItemIndex);
+
+						// Let the item generator know that we encountered the current Item and associated Widget.
+						WidgetGenerator.OnItemSeen( CurItem, RowWidget.ToSharedRef() );
+
+						RowWidget->AsWidget()->SlatePrepass();
+					}
+
+					if ( ScrollByAmountInSlateUnits > 0 )
+					{
+						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						const float RemainingHeight = DesiredSize.Y * ( 1.0 - FMath::Fractional( NewScrollOffset ) );
+
+						if ( AbsScrollByAmount > RemainingHeight )
 						{
-							AbsScrollByAmount -= RemainingHeight;
+							if ( ItemIndex != SourceItems->Num() )
+							{
+								AbsScrollByAmount -= RemainingHeight;
+								NewScrollOffset = 1.0f + (int32)NewScrollOffset;
+								++ItemIndex;
+							}
+							else
+							{
+								NewScrollOffset = SourceItems->Num();
+								break;
+							}
+						} 
+						else if ( AbsScrollByAmount == RemainingHeight )
+						{
 							NewScrollOffset = 1.0f + (int32)NewScrollOffset;
-							++ItemIndex;
+							break;
 						}
 						else
 						{
-							NewScrollOffset = SourceItems->Num();
+							NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / DesiredSize.Y ) );
 							break;
 						}
-					} 
-					else if ( AbsScrollByAmount == RemainingHeight )
-					{
-						NewScrollOffset = 1.0f + (int32)NewScrollOffset;
-						break;
 					}
 					else
 					{
-						NewScrollOffset = (int32)NewScrollOffset + ( 1.0f - ( ( RemainingHeight - AbsScrollByAmount ) / DesiredSize.Y ) );
-						break;
-					}
-				}
-				else
-				{
-					FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
+						FVector2D DesiredSize = RowWidget->AsWidget()->GetDesiredSize();
 
-					float Fractional = FMath::Fractional( NewScrollOffset );
-					if ( Fractional == 0 )
-					{
-						Fractional = 1.0f;
-						--NewScrollOffset;
-					}
-
-					const float PrecedingHeight = DesiredSize.Y * Fractional;
-
-					if ( AbsScrollByAmount > PrecedingHeight )
-					{
-						if ( ItemIndex != 0 )
+						float Fractional = FMath::Fractional( NewScrollOffset );
+						if ( Fractional == 0 )
 						{
-							AbsScrollByAmount -= PrecedingHeight;
+							Fractional = 1.0f;
+							--NewScrollOffset;
+						}
+
+						const float PrecedingHeight = DesiredSize.Y * Fractional;
+
+						if ( AbsScrollByAmount > PrecedingHeight )
+						{
+							if ( ItemIndex != 0 )
+							{
+								AbsScrollByAmount -= PrecedingHeight;
+								NewScrollOffset -= FMath::Fractional( NewScrollOffset );
+								--ItemIndex;
+							}
+							else
+							{
+								NewScrollOffset = 0;
+								break;
+							}
+						} 
+						else if ( AbsScrollByAmount == PrecedingHeight )
+						{
 							NewScrollOffset -= FMath::Fractional( NewScrollOffset );
-							--ItemIndex;
+							break;
 						}
 						else
 						{
-							NewScrollOffset = 0;
+							NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / DesiredSize.Y );
 							break;
 						}
-					} 
-					else if ( AbsScrollByAmount == PrecedingHeight )
-					{
-						NewScrollOffset -= FMath::Fractional( NewScrollOffset );
-						break;
-					}
-					else
-					{
-						NewScrollOffset = (int32)NewScrollOffset + ( ( PrecedingHeight - AbsScrollByAmount ) / DesiredSize.Y );
-						break;
 					}
 				}
 			}
-		}
 
-		return ScrollTo( NewScrollOffset );
+
+			return ScrollTo( NewScrollOffset );
+		}
 	}
 
 protected:
