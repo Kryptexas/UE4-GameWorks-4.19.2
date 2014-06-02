@@ -73,7 +73,6 @@ class               UTextProperty;
 class               UArrayProperty;
 class				UDelegateProperty;
 class				UMulticastDelegateProperty;
-class				UAttributeProperty;
 class			UStruct;
 class				UFunction;
 class				UClass;

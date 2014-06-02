@@ -2443,57 +2443,6 @@ public:
 	}
 };
 
-/*-----------------------------------------------------------------------------
-	UAttributeProperty.
------------------------------------------------------------------------------*/
-
-//
-// Describes a TAttribute .
-//
-
-class COREUOBJECT_API UAttributeProperty : public UProperty
-{
-	DECLARE_CASTED_CLASS_INTRINSIC(UAttributeProperty,UProperty,0,CoreUObject,CASTCLASS_UAttributeProperty)
-
-	// Variables.
-	UProperty* Inner;
-public:
-	UAttributeProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, int32 InElementSize )
-	:	UProperty( PCIP, EC_CppProperty, InOffset, InFlags)
-	{
-		ElementSize = InElementSize;
-	}
-
-	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End of UObject interface
-
-	// UField interface
-	virtual void AddCppProperty( UProperty* Property ) OVERRIDE;
-	// End of UField interface
-
-	// UProperty interface
-	virtual FString GetCPPMacroType(FString& ExtendedTypeText) const  OVERRIDE;
-	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const OVERRIDE;
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE;
-	virtual bool Identical(const void* A, const void* B, uint32 PortFlags) const OVERRIDE;
-	virtual void SerializeItem(FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults) const OVERRIDE;
-	virtual bool NetSerializeItem(FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL) const OVERRIDE;
-	virtual void ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal(const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText) const OVERRIDE;
-	virtual void CopyValuesInternal(void* Dest, void const* Src, int32 Count) const OVERRIDE;
-	virtual void ClearValueInternal(void* Data) const OVERRIDE;
-	virtual void DestroyValueInternal(void* Dest) const OVERRIDE;
-	virtual bool IsLocalized() const OVERRIDE;
-	virtual bool PassCPPArgsByRef() const OVERRIDE;
-	virtual void InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph) OVERRIDE;
-	virtual bool ContainsObjectReference() const OVERRIDE;
-	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void EmitReferenceInfo(FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
-	// End of UProperty interface
-};
 
 /*-----------------------------------------------------------------------------
 	UStructProperty.

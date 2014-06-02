@@ -348,16 +348,11 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				// Is this a property of an array
 				bool bIsChildOfArray = PropertyEditorHelpers::IsChildOfArray( ChildNode );
 
-				bool bIsChildOfAttribute = ParentProperty ? ParentProperty->IsA<UAttributeProperty>() : false;
-
 				// Edit inline new properties should be visible by default
 				bVisibleByDefault |= bIsEditInlineNew;
 
-				// Children of arrays are not visible directly
+				// Children of arrays are not visible directly,
 				bVisibleByDefault &= !bIsChildOfArray;
-
-				// Children of attributes are not visible directly
-				bVisibleByDefault &= !bIsChildOfAttribute;
 
 				// See if the user requested specific property visibility 
 				const bool bIsUserVisible = IsPropertyVisible( Property ); 
@@ -381,7 +376,7 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				}
 
 				// Do not add children of customized in struct properties or arrays
-				if( !bIsChildOfCustomizedStruct && !bIsChildOfArray && !bIsChildOfAttribute )
+				if( !bIsChildOfCustomizedStruct && !bIsChildOfArray )
 				{
 					// Get the class property map
 					FClassInstanceToPropertyMap& ClassInstanceMap = ClassToPropertyMap.FindOrAdd( Property->GetOwnerStruct()->GetFName() );
