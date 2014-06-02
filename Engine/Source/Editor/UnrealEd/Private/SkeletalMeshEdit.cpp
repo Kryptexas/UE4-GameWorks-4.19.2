@@ -713,7 +713,6 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 				NewInterpMode = RCIM_Cubic;
 				// get tangents
 				{
-					float LeaveTangent, ArriveTangent;
 					LeaveTangent = Key.GetDataFloat(FbxAnimCurveDef::eRightSlope);
 
 					if ( KeyIndex > 0 )
