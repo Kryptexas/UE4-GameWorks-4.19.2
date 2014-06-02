@@ -317,6 +317,8 @@ protected:
 	void UpdateSubMenuState();
 
 private:
+	const FSlateBrush* GetCheckBoxImageBrushFromStyle(const FCheckBoxStyle* Style) const;
+
 	/** The brush to use when an item should appear checked */
 	const FSlateBrush* CheckedImage;
 	/** The brush to use when an item should appear unchecked */

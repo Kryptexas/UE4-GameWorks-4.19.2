@@ -42,7 +42,6 @@ public:
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
 		, _ForegroundColor()
 		, _BorderBackgroundColor ()
-		, _ReadOnly( false )
 		, _IsFocusable( true )
 		{}
 
@@ -75,8 +74,6 @@ public:
 
 		/** The color of the background border (set by the Style arg but the Style can be overridden with this) */
 		SLATE_ATTRIBUTE( FSlateColor, BorderBackgroundColor )
-
-		SLATE_ATTRIBUTE( bool, ReadOnly )
 
 		SLATE_ARGUMENT( bool, IsFocusable )
 		
@@ -177,9 +174,6 @@ protected:
 
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;
-
-	/** When true, this checkbox will not be toggleable */
-	bool bReadOnly;
 
 	/** When true, this checkbox will be keyboard focusable. Defaults to true. */
 	bool bIsFocusable;

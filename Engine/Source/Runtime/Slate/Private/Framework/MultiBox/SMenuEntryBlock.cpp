@@ -404,12 +404,15 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
-				SNew( SCheckBox )
-				.ForegroundColor( CheckBoxForegroundColor )
-				.IsChecked( this, &SMenuEntryBlock::IsChecked )
-				.Style( StyleSet, CheckBoxStyle )
-				.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged )
-				.ReadOnly( UserInterfaceType == EUserInterfaceActionType::Check )
+				// For check style menus, use an image instead of a CheckBox because it can't really be checked.
+				UserInterfaceType == EUserInterfaceActionType::Check
+					? StaticCastSharedRef<SWidget>(SNew(SImage)
+						.Image(this, &SMenuEntryBlock::GetCheckBoxImageBrushFromStyle, &StyleSet->GetWidgetStyle<FCheckBoxStyle>(CheckBoxStyle)))
+					: StaticCastSharedRef<SWidget>(SNew(SCheckBox)
+						.ForegroundColor( CheckBoxForegroundColor )
+						.IsChecked( this, &SMenuEntryBlock::IsChecked )
+						.Style( StyleSet, CheckBoxStyle )
+						.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged ))
 			]
 		]
 		+SHorizontalBox::Slot()
@@ -615,12 +618,15 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
-				SNew( SCheckBox )
-				.ForegroundColor( CheckBoxForegroundColor )
-				.IsChecked( this, &SMenuEntryBlock::IsChecked )
-				.Style( StyleSet, CheckBoxStyle )
-				.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged )
-				.ReadOnly( UserInterfaceType == EUserInterfaceActionType::Check )
+				// For check style menus, use an image instead of a CheckBox because it can't really be checked.
+				UserInterfaceType == EUserInterfaceActionType::Check
+					? StaticCastSharedRef<SWidget>(SNew( SImage )
+						.Image(this, &SMenuEntryBlock::GetCheckBoxImageBrushFromStyle, &StyleSet->GetWidgetStyle<FCheckBoxStyle>(CheckBoxStyle)))
+					: StaticCastSharedRef<SWidget>(SNew( SCheckBox )
+						.ForegroundColor( CheckBoxForegroundColor )
+						.IsChecked( this, &SMenuEntryBlock::IsChecked )
+						.Style( StyleSet, CheckBoxStyle )
+						.OnCheckStateChanged( this, &SMenuEntryBlock::OnCheckStateChanged ))
 			]
 		]
 		+ SHorizontalBox::Slot()
@@ -1195,3 +1201,22 @@ FSlateColor SMenuEntryBlock::InvertOnHover() const
 		return FSlateColor::UseForeground();
 	}
 }
+
+
+/**
+ * Private helper to assign a checkbox image from a given style. Used to create static check boxes
+ * so we don't have to literally create a read only checkbox just to show the image for one.
+ * 
+ * @param Style the style we are extracting the image brushes from.
+ * @return the brush associated with the checkbox state for this MenuEntryBlock
+ */
+const FSlateBrush* SMenuEntryBlock::GetCheckBoxImageBrushFromStyle(const FCheckBoxStyle* Style) const
+{
+	switch (IsChecked())
+	{
+	case ESlateCheckBoxState::Checked: return &Style->CheckedImage;
+	case ESlateCheckBoxState::Unchecked: return &Style->UncheckedImage;
+	default: return &Style->UndeterminedImage;
+	}
+}
+

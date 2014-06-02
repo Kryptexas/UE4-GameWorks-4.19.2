@@ -148,7 +148,7 @@ public:
 		{
 			bIsPressed = false;
 
-			if (!bReadOnly && IsHovered() && HasMouseCapture())
+			if (IsHovered() && HasMouseCapture())
 			{
 				if (OnLayerCtrlClicked.IsBound())
 				{

@@ -17,7 +17,6 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 	ESlateCheckBoxType::Type CheckBoxType = InArgs._Type.IsSet() ? InArgs._Type.GetValue() : InArgs._Style->CheckBoxType.GetValue();
 
 	bIsPressed = false;
-	bReadOnly = InArgs._ReadOnly.Get();
 	bIsFocusable = InArgs._IsFocusable;
 
 	if( CheckBoxType == ESlateCheckBoxType::CheckBox )
@@ -102,7 +101,7 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 bool SCheckBox::SupportsKeyboardFocus() const
 {
 	// Buttons are focusable by default
-	return !bReadOnly && bIsFocusable;
+	return bIsFocusable;
 }
 
 FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -136,7 +135,7 @@ FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& In
  */
 FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bReadOnly )
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		bIsPressed = true;
 
@@ -212,7 +211,7 @@ FReply SCheckBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 			//       may never receive an OnMouseButtonUp() call.  We make sure that our bIsPressed
 			//       state is reset by overriding OnMouseLeave().
 		}
-		else if ( !bReadOnly )
+		else
 		{
 			const bool IsUnderMouse = MyGeometry.IsUnderLocation( MouseEvent.GetScreenSpacePosition() );
 			if ( IsUnderMouse )
@@ -274,16 +273,16 @@ const FSlateBrush* SCheckBox::OnGetCheckImage() const
 	switch( State )
 	{
 		case ESlateCheckBoxState::Unchecked:
-			ImageToUse = IsPressed() ? UncheckedPressedImage : ( ( IsHovered() && !bReadOnly ) ? UncheckedHoveredImage : UncheckedImage );
+			ImageToUse = IsPressed() ? UncheckedPressedImage : ( IsHovered() ? UncheckedHoveredImage : UncheckedImage );
 			break;
 	
 		case ESlateCheckBoxState::Checked:
-			ImageToUse = IsPressed() ? CheckedPressedImage : ( ( IsHovered() && !bReadOnly ) ? CheckedHoveredImage : CheckedImage );
+			ImageToUse = IsPressed() ? CheckedPressedImage : ( IsHovered() ? CheckedHoveredImage : CheckedImage );
 			break;
 	
 		default:
 		case ESlateCheckBoxState::Undetermined:
-			ImageToUse = IsPressed() ? UndeterminedPressedImage : ( ( IsHovered() && !bReadOnly ) ? UndeterminedHoveredImage : UndeterminedImage );
+			ImageToUse = IsPressed() ? UndeterminedPressedImage : ( IsHovered() ? UndeterminedHoveredImage : UndeterminedImage );
 			break;
 	}
 

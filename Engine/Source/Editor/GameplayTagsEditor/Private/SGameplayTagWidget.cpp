@@ -177,7 +177,7 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 			.OnCheckStateChanged(this, &SGameplayTagWidget::OnTagCheckStatusChanged, InItem)
 			.IsChecked(this, &SGameplayTagWidget::IsTagChecked, InItem)
 			.ToolTipText(TooltipText)
-			.ReadOnly( bReadOnly )
+			.IsEnabled(!bReadOnly)
 			[
 				SNew(STextBlock)
 				.Text(FText::FromName(InItem->GetSimpleTag()))
