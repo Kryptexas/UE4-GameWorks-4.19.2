@@ -18,6 +18,8 @@ class SKILLSYSTEM_API UGameplayAbility_Instanced : public UGameplayAbility
 
 public:
 	
+	virtual void EndAbility(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+	
 	// -------------------------------------------------
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)

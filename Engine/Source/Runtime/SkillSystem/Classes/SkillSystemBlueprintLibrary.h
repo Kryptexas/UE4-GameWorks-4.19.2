@@ -3,22 +3,33 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
+#include "SkillSystemTypes.h"
 #include "SkillSystemBlueprintLibrary.generated.h"
 
-class UBlueprintPlayMontageAndWaitTaskProxy;
+class UAnimMontage;
+class UAbilityTask_PlayMontageAndWait;
+class UAbilityTask_WaitMovementModeChange;
+class UAbilityTask_WaitOverlap;
 
 UCLASS(MinimalAPI)
 class USkillSystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = "Utilities|FlowControl", meta = (Latent, HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", LatentInfo = "LatentInfo" ))
-	static void	StaticFuncPlayMontageAndWait(AActor* WorldContextObject, UAnimMontage * Montage, struct FLatentActionInfo LatentInfo);
+	UFUNCTION(BlueprintPure, Category = Ability)
+	static UAttributeComponent* GetAttributeComponent(AActor *Actor);
 
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
+
+	// -------------------------------------------------------------------------------
 
 	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static class UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, class UAnimMontage *MontageToPlay);
+	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay);
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static class UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode);
+	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
+
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitOverlap* CreateWaitOverlap(UObject* WorldContextObject, EMovementMode NewMode);
 };

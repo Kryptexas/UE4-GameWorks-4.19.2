@@ -57,8 +57,6 @@ void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo A
 
 void UGameplayAbility_Instanced::ActivateAbility(FGameplayAbilityActorInfo ActorInfo)
 {
-	//check(!HasAnyFlags(RF_ClassDefaultObject));
-
 	// Call into blueprint (fixme: cache this)
 	static FName FuncName = FName(TEXT("K2_ActivateAbility"));
 	UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
@@ -111,4 +109,17 @@ bool UGameplayAbility_Instanced::CallRemoteFunction(UFunction* Function, void* P
 	}
 
 	return false;
+}
+
+void UGameplayAbility_Instanced::EndAbility(const FGameplayAbilityActorInfo ActorInfo)
+{
+	Super::EndAbility(ActorInfo);
+
+	if (InstancedPerExecution)
+	{
+		MarkPendingKill();
+	}
+
+	// Remove from owning attributecomponent?
+	// generic way of releasing all callbacks!
 }

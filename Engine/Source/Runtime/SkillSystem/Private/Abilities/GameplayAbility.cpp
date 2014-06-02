@@ -150,6 +150,11 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorI
 	return true;	
 }
 
+void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo ActorInfo)
+{
+
+}
+
 void UGameplayAbility::ActivateAbility(FGameplayAbilityActorInfo ActorInfo)
 {
 	// Child classes may want to do stuff here...
@@ -332,3 +337,37 @@ void FGameplayAbilityActorInfo::SetActivationConfirmed()
 }
 
 //----------------------------------------------------------------------
+
+void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+{
+	// Improve relationship between InstigatorContext and 
+	
+
+	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
+									InstigatorInfo.Actor.Get(),		// The actor who instigated this
+									1.f,							// FIXME: Leveling
+									NULL							// FIXME: CurveData override... should we just remove this?
+									);
+	if (HasHitResult())
+	{
+		SpecToApply.InstigatorContext.AddHitResult(*GetHitResult());
+	}
+
+	TArray<AActor*> Actors = GetActors();
+	for (AActor * TargetActor : Actors)
+	{
+		check(TargetActor);
+		
+		UAttributeComponent * TargetComponent = USkillSystemBlueprintLibrary::GetAttributeComponent(TargetActor);
+		if (TargetComponent)
+		{
+			InstigatorInfo.AttributeComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+		}
+	}
+}
+
+
+FString FGameplayAbilityTargetData::ToString() const
+{
+	return TEXT("BASE CLASS");
+}

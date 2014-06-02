@@ -16,7 +16,7 @@ UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const c
 void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	UAttributeComponent *Source = Data.EffectSpec.InstigatorStack.GetOriginInstigatorAttributeComponent();
+	UAttributeComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent();
 
 	// FIXME: some annoyances here: Damage about to be applied = Data.EvaluatedData.Magnitude = negative. Do some sign flipping here that would make more sense if we were dealing with
 	// 'damage' (positive) instead of 'health' (negative)

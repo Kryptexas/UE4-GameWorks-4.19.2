@@ -11,6 +11,8 @@ const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
 const float UGameplayEffect::NO_PERIOD = 0.f;
 const float FGameplayEffectLevelSpec::INVALID_LEVEL = -1.f;
 
+#pragma optimize( "", off )
+
 #if SKILL_SYSTEM_AGGREGATOR_DEBUG
 FAggregator::FAllocationStats FAggregator::AllocationStats;
 #endif
@@ -50,9 +52,9 @@ bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const FGameplayTagC
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *Owner, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor * Instigator, float Level, const FGlobalCurveDataOverride *CurveData)
 : Def(InDef)
-, ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Owner)))
+, ModifierLevel(TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, InDef->LevelInfo, Instigator)))
 , Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
 , Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
 , ChanceToApplyToTarget(new FAggregator(InDef->ChanceToApplyToTarget.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToApplyToTarget"), *InDef->GetName())))
@@ -66,6 +68,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *O
 	ChanceToExecuteOnGameplayEffect.Get()->RegisterLevelDependancies();
 
 	// check the stacking policy for this gameplay effect and warn if it's set up badly
+	// FIXME: this check should be done in the UGameplayEffect PostEdit or PostLoad - not in the spec startup
 	if (Def->StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
 	{
 		StackingPolicy = Def->StackingPolicy;
@@ -143,17 +146,17 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor *O
 		}
 	}
 
-	InitModifiers(CurveData, Owner, Level);
+	InitModifiers(CurveData, Instigator, Level);
 
 	if (InDef)
 	{
 		for (UGameplayEffect* TargetDef : InDef->TargetEffects)
 		{
-			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Owner, Instigator, Level, CurveData)));
+			TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, Instigator, Level, CurveData)));
 		}
 	}
 
-	InstigatorStack.AddInstigator(Instigator);
+	InstigatorContext.AddInstigator(Instigator);
 }
 
 void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level)
@@ -412,7 +415,7 @@ FModifierSpec::FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGa
 	Aggregator.Get()->RegisterLevelDependancies();
 	if (InInfo.TargetEffect)
 	{
-		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Owner, Level, CurveData));
+		TargetEffectSpec = TSharedPtr<FGameplayEffectSpec>(new FGameplayEffectSpec(InInfo.TargetEffect, Owner, Level, CurveData));
 	}
 }
 
@@ -446,6 +449,7 @@ bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToB
 void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 {
 	Instigator = InInstigator;
+	InstigatorAttributeComponent = NULL;
 
 	// Cache off his attribute component.
 	if (Instigator)
@@ -462,6 +466,41 @@ void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 			}
 		}
 	}
+}
+
+void FGameplayEffectInstigatorContext::AddHitResult(const FHitResult InHitResult)
+{
+	check(!HitResult.IsValid());
+	HitResult = TSharedPtr<FHitResult>(new FHitResult(InHitResult));
+}
+
+bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << Instigator;
+
+	bool HasHitResults = HitResult.IsValid();
+	Ar << HasHitResults;
+	if (Ar.IsLoading())
+	{
+		if (HasHitResults)
+		{
+			if (!HitResult.IsValid())
+			{
+				HitResult = TSharedPtr<FHitResult>(new FHitResult());
+			}
+			AddInstigator(Instigator); // Just to initialize InstigatorAttributeComponent
+		}
+	}
+
+	if (HasHitResults == 1)
+	{
+		Ar << HitResult->BoneName;
+		HitResult->Location.NetSerialize(Ar, Map, bOutSuccess);
+		HitResult->Normal.NetSerialize(Ar, Map, bOutSuccess);
+	}
+
+	bOutSuccess = true;
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1190,7 +1229,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 	// check if the new effect removes or modifies existing effects
 	if (Spec.Def->AppliesImmunityTo == EGameplayImmunity::ActiveGE)
 	{
-		for (int ii = 0; ii < GameplayEffects.Num(); ++ii)
+		for (int32 ii = 0; ii < GameplayEffects.Num(); ++ii)
 		{
 			// should we try to apply this to the current effect?
 			if ((ChanceToExecute < 1.f - SMALL_NUMBER) && (FMath::FRand() > ChanceToExecute))
@@ -1206,7 +1245,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			}
 
 			// we kept the effect, now check its mods to see if we should remove any of them
-			for (int jj = 0; jj < GameplayEffects[ii].Spec.Modifiers.Num(); ++jj)
+			for (int32 jj = 0; jj < GameplayEffects[ii].Spec.Modifiers.Num(); ++jj)
 			{
 				const FGameplayModifierEvaluatedData& Data = GameplayEffects[ii].Spec.Modifiers[jj].Aggregator.Get()->Evaluate();
 				if (GameplayEffects[ii].Spec.Def->AreGameplayEffectTagRequirementsSatisfied(Data.Tags))
@@ -1452,13 +1491,16 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 {
 	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
 	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
-	
-	if (InPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
+
+	if (InPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect should not call MarkItemDirty
 	{
 		MarkItemDirty(NewEffect);
 	}
 	else
 	{
+		// Clients predicting should call MarkArrayDirty to force the internal replication map to be rebuilt.
+		MarkArrayDirty();
+
 		Owner->GetPredictionKeyDelegate(InPredictionKey).AddUObject(Owner, &UAttributeComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
 	}
 	return NewEffect;
@@ -1560,10 +1602,14 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 		if (Duration > 0.f && Effect.StartWorldTime + Effect.GetDuration() < CurrentTime)
 		{
 			Owner->InvokeGameplayCueRemoved(Effect.Spec);
-
 			MarkArrayDirty();
 			GameplayEffects.RemoveAtSwap(Idx);
 			Idx--;
+
+			// Hack: force netupdate on owner. This isn't really necessary in real gameplay but is nice
+			// during debugging where breakpoints or pausing can messup network update times. Open issue
+			// with network team.
+			Owner->GetOwner()->ForceNetUpdate();
 
 			// todo: check if the removed effect deals with an attribute that stacks, if not don't set the flag
 			bNeedToRecalculateStacks = true;
@@ -1736,7 +1782,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Instigator, Level, Owner->GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, Owner->GetCurveDataOverride());
 
 	ApplyActiveEffectsTo(Spec, FModifierQualifier().Type(EGameplayMod::IncomingGE));
 	

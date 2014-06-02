@@ -80,7 +80,10 @@ void ASkillSystemDebugHUD::DrawDebugAttributeComponent(UAttributeComponent *Comp
 	float X = 20.f;
 	float Y = 20.f;
 
-	FString String = FString::Printf(TEXT("%s (%d)"), *Component->GetPathName(), Component->IsDefaultSubobject());
+	FString String = FString::Printf(TEXT("%.2f"), Component->GetWorld()->GetTimeSeconds());
+	DrawWithBackground(Font, String, Color, EAlignHorizontal::Left, X, EAlignVertical::Top, Y);
+
+	String = FString::Printf(TEXT("%s (%d)"), *Component->GetPathName(), Component->IsDefaultSubobject());
 	DrawWithBackground(Font, String, Color, EAlignHorizontal::Left, X, EAlignVertical::Top, Y);
 
 	
@@ -151,6 +154,7 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 	{
 		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &ASkillSystemDebugHUD::DrawDebugHUD);
 		UDebugDrawService::Unregister(DrawDebugDelegate);
+		HUD->Destroy();
 	}
 }
 

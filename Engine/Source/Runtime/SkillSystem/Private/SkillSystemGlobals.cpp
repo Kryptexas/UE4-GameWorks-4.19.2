@@ -59,3 +59,16 @@ void USkillSystemGlobals::OnDataTableReimported(UObject* InObject)
 }
 
 #endif
+
+
+UAttributeComponent * USkillSystemGlobals::GetAttributeComponentFromActor(AActor *Actor) const
+{
+	if (Actor)
+	{
+		return Actor->FindComponentByClass<UAttributeComponent>();
+	}
+
+	// Caller should check this
+	ensure(false);
+	return NULL;
+}

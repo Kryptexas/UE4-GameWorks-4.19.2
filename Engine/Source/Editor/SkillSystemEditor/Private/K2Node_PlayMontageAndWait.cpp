@@ -2,6 +2,7 @@
 
 
 #include "SkillSystemEditorModulePrivatePCH.h"
+#include "K2Node_PlayMontageAndWait.h"
 #include "SkillSystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "CompilerResultsLog.h"

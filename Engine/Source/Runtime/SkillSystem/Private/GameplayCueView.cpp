@@ -9,6 +9,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "GameplayTagsModule.h"
 
 UGameplayCueView::UGameplayCueView(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -16,44 +17,55 @@ UGameplayCueView::UGameplayCueView(const class FPostConstructInitializePropertie
 
 }
 
-
-void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
+FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEvent::Type Type, const FGameplayTag BaseTag)
 {
-	check(Owner);
-	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
+
+	for (auto InnerTagIt = TagAndParentsContainer.CreateConstIterator(); InnerTagIt; ++InnerTagIt)
 	{
+		FGameplayTag Tag = *InnerTagIt;
+
 		for (UGameplayCueView * Def : Definitions)
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == EGameplayCueEvent::Applied && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+				if (View.CueType == Type && View.Tags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
-					View.SpawnViewEffects(Owner, NULL);
+					return &View;
 				}
 			}
 		}
 	}
+
+	return NULL;
 }
 
-void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
+void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		for (UGameplayCueView * Def : Definitions)
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Applied, *TagIt))
 		{
-			for (FGameplayCueViewInfo & View : Def->Views)
-			{
-				if (View.CueType == EGameplayCueEvent::Executed && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
-				{
-					View.SpawnViewEffects(Owner, NULL);
-				}
-			}
+			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
 	}
 }
 
-void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
+void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
+{
+	check(Owner);
+	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
+	{
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Executed, *TagIt))
+		{
+			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+		}
+	}
+}
+
+void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 
@@ -65,22 +77,17 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 		ClearEffects(Effects);
 		check(Effects.Num() == 0);
 
-		// Add new effects
-		for (UGameplayCueView * Def : Definitions)
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Added, *TagIt))
 		{
-			for (FGameplayCueViewInfo & View : Def->Views)
-			{
-				if (View.CueType == EGameplayCueEvent::Added && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
-				{
-					TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View.SpawnViewEffects(Owner, &SpawnedObjects);
-					Effects.Add(SpawnedEffects);
-				}
-			}
+			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+
+			TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View->SpawnViewEffects(Owner, &SpawnedObjects, InstigatorContext);
+			Effects.Add(SpawnedEffects);
 		}
 	}
 }
 
-void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
+void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
 
@@ -93,16 +100,11 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 			SpawnedViewEffects.Remove(*TagIt);
 		}	
 		
-		// Add new effects
-		for (UGameplayCueView * Def : Definitions)
+		// Remove old effects
+		
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Removed, *TagIt))
 		{
-			for (FGameplayCueViewInfo & View : Def->Views)
-			{
-				if (View.CueType == EGameplayCueEvent::Removed && View.Tags.HasTag(*TagIt, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
-				{
-					View.SpawnViewEffects(Owner, NULL);
-				}
-			}
+			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
 	}
 }
@@ -155,7 +157,7 @@ void FGameplayCueHandler::ClearEffects(TArray< TSharedPtr<FGameplayCueViewEffect
 	}
 }
 
-TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects) const
+TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectInstigatorContext InstigatorContext) const
 {
 	check(Owner);
 
@@ -171,7 +173,18 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 	}
 	if (ParticleSystem)
 	{
-		SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent());
+		if (InstigatorContext.HitResult.IsValid())
+		{
+			FHitResult &HitResult = *InstigatorContext.HitResult.Get();
+
+			SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent(), NAME_None, HitResult.Location,
+				HitResult.Normal.Rotation(), EAttachLocation::KeepWorldPosition);
+		}
+		else
+		{
+			SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent());
+		}		
+
 		if (SpawnedObjects)
 		{
 			SpawnedObjects->Add(SpawnedEffects->ParticleSystemComponent.Get());
@@ -185,7 +198,7 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule &&
 					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule->EmitterLoops == 0)
 				{
-					SKILL_LOG(Warning, TEXT("%s - particle system has a looping emitter...."), *SpawnedEffects->ParticleSystemComponent->GetName());
+					SKILL_LOG(Warning, TEXT("%s - particle system has a looping emitter. This should not be used in a executed GameplayCue!"), *SpawnedEffects->ParticleSystemComponent->GetName());
 					break;
 				}
 			}

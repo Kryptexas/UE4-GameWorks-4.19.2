@@ -17,6 +17,17 @@ DEFINE_LOG_CATEGORY(LogAttributeComponent);
 
 #define LOCTEXT_NAMESPACE "AttributeComponent"
 
+
+int32 DebugGameplayCues = 0;
+static FAutoConsoleVariableRef CVarDebugGameplayCues(
+	TEXT("SkillSystem.DebugGameplayCues"),
+	DebugGameplayCues,
+	TEXT("Enables Debugging for GameplayCue events"),
+	ECVF_Default
+	);
+
+#pragma optimize( "", off )
+
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
@@ -167,7 +178,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToTarget(UGa
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), GetOwner(), Level, GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(),  Level, GetCurveDataOverride());
 	
 	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 }
@@ -181,7 +192,9 @@ FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(co
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Instigator, Level, GetCurveDataOverride());
+	check(GameplayEffect);
+
+	FGameplayEffectSpec	Spec(GameplayEffect, Instigator, Level, GetCurveDataOverride());
 
 	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
 }
@@ -239,7 +252,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
 	// Temp, only non instance, non periodic GEs can be predictive
-	check((BaseQualifier.PredictionKey() > 0) == (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	check((BaseQualifier.PredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -257,6 +270,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	{
 	
 		float Duration = Spec.GetDuration();
+
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
 			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
@@ -381,6 +395,12 @@ float UAttributeComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandl
 
 void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
 {
+	if (DebugGameplayCues)
+	{
+		SKILL_LOG(Warning, TEXT("InvokeGameplayCueExecute: %s"), *Spec.ToSimpleString());
+	}
+
+
 	AActor *ActorOwner = GetOwner();
 	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
 	if (!GameplayCueInterface)
@@ -393,7 +413,13 @@ void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Sp
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueExecuted(CueInfo.GameplayCueTags, NormalizedMagnitude);
+		GameplayCueInterface->GameplayCueExecuted(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
+
+		if (DebugGameplayCues)
+		{
+			DrawDebugSphere(GetWorld(), Spec.InstigatorContext.HitResult->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
+			SKILL_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
+		}
 	}
 }
 
@@ -411,7 +437,7 @@ void UAttributeComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueActivated(CueInfo.GameplayCueTags, NormalizedMagnitude);
+		GameplayCueInterface->GameplayCueActivated(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
 	}
 }
 
@@ -434,7 +460,7 @@ void UAttributeComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueAdded(CueInfo.GameplayCueTags, NormalizedMagnitude);
+		GameplayCueInterface->GameplayCueAdded(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
 	}
 }
 
@@ -452,7 +478,7 @@ void UAttributeComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Sp
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueRemoved(CueInfo.GameplayCueTags, NormalizedMagnitude);
+		GameplayCueInterface->GameplayCueRemoved(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
 	}
 }
 

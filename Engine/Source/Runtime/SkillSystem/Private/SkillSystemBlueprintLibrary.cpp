@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility_Instanced.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
+#include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
 #include "LatentActions.h"
 
 USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
@@ -13,40 +14,10 @@ USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostCons
 {
 }
 
-// Fixme: remove this function!!!
-void USkillSystemBlueprintLibrary::StaticFuncPlayMontageAndWait(AActor* WorldContextObject, UAnimMontage * Montage, FLatentActionInfo LatentInfo)
-{
-	check(WorldContextObject);
-
-	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
-	{
-		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-		if (LatentActionManager.FindExistingAction<FPlayMontageAndWaitAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == NULL)
-		{
-			FGameplayAbilityActorInfo	ActorInfo;
-
-			AActor * ActorOwner = NULL;
-			UObject * TestObj = WorldContextObject;
-			while(ActorOwner == NULL && TestObj != NULL)
-			{
-				ActorOwner = Cast<AActor>(TestObj);
-				TestObj = TestObj->GetOuter();
-			}
-
-			if (ActorOwner)
-			{
-				ActorInfo.InitFromActor(ActorOwner);  
-				LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, new FPlayMontageAndWaitAction(ActorInfo, Montage, LatentInfo));
-			}
-		}
-	}
-}
-
 UAbilityTask_PlayMontageAndWait* USkillSystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
 {
 	check(WorldContextObject);
-
-	UGameplayAbility_Instanced * Ability = Cast<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
 	if (Ability)
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
@@ -73,8 +44,7 @@ UAbilityTask_PlayMontageAndWait* USkillSystemBlueprintLibrary::CreatePlayMontage
 UAbilityTask_WaitMovementModeChange* USkillSystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
-
-	UGameplayAbility_Instanced * Ability = Cast<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
 	if (Ability)
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
@@ -95,4 +65,57 @@ UAbilityTask_WaitMovementModeChange* USkillSystemBlueprintLibrary::CreateWaitMov
 	}
 
 	return NULL;
+}
+
+/**
+ *	Need:
+ *	-Easy way to specify which primitive components should be used for this overlap test
+ *	-Easy way to specify which types of actors/collision overlaps that we care about/want to block on
+ */
+
+UAbilityTask_WaitOverlap* USkillSystemBlueprintLibrary::CreateWaitOverlap(class UObject* WorldContextObject, EMovementMode NewMode)
+{
+	check(WorldContextObject);
+	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
+	if (Ability)
+	{
+		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
+
+		UAbilityTask_WaitOverlap * MyObj = NULL;
+		MyObj = NewObject<UAbilityTask_WaitOverlap>();
+
+
+		// TEMP
+		UPrimitiveComponent * PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
+		if (!PrimComponent)
+		{			
+			PrimComponent = ActorOwner->FindComponentByClass<UPrimitiveComponent>();
+		}
+		check(PrimComponent);
+
+		PrimComponent->OnComponentBeginOverlap.AddDynamic(MyObj, &UAbilityTask_WaitOverlap::OnOverlapCallback);
+		PrimComponent->OnComponentHit.AddDynamic(MyObj, &UAbilityTask_WaitOverlap::OnHitCallback);
+
+		return MyObj;
+	}
+
+	return NULL;
+}
+
+/**
+ *	Fixme: This is supposed to be a small optimization but here we are going through module code, then a global uobject, then finally a virtual function - yuck!
+ *		-think of a better way to have a global, overridable per project function. Thats it!
+ */
+
+UAttributeComponent* USkillSystemBlueprintLibrary::GetAttributeComponent(AActor *Actor)
+{
+	return ISkillSystemModule::Get().GetSkillSystemGlobals().GetAttributeComponentFromActor(Actor);
+}
+
+void USkillSystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+{
+	if (Target.Data.IsValid())
+	{
+		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);	
+	}
 }

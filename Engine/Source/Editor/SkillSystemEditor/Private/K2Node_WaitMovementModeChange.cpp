@@ -2,6 +2,7 @@
 
 
 #include "SkillSystemEditorModulePrivatePCH.h"
+#include "K2Node_WaitMovementModeChange.h"
 #include "SkillSystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "CompilerResultsLog.h"

@@ -153,6 +153,8 @@ public:
 	//		Commit()				- Commits reources/cooldowns etc. Activate() must call this!
 	//		
 	//		CancelAbility()			- 
+	//
+	//		EndAbility()			- 
 	//	
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -175,6 +177,10 @@ public:
 
 	/** Input binding. Base implementation does nothing */
 	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo ActorInfo);
+
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	virtual void EndAbility(const FGameplayAbilityActorInfo ActorInfo);
+
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//

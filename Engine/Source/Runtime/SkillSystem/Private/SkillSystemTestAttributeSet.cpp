@@ -56,7 +56,7 @@ void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModC
 		if (Data.EvaluatedData.Magnitude > 0.f)
 		{
 			// Check the source - does he have Crit?
-			USkillSystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorStack.GetOriginInstigatorAttributeComponent()->GetSet<USkillSystemTestAttributeSet>();
+			USkillSystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent()->GetSet<USkillSystemTestAttributeSet>();
 			if (SourceAttributes && SourceAttributes->CritChance > 0.f)
 			{
 				if (FMath::FRand() <= SourceAttributes->CritChance)

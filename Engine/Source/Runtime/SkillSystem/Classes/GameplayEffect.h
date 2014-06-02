@@ -23,6 +23,7 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExected, co
 #endif
 
 class UGameplayEffect;
+class UAttributeComponent;
 
 UENUM(BlueprintType)
 namespace EGameplayModOp
@@ -601,6 +602,7 @@ struct FGameplayEffectInstigatorContext
 
 	FGameplayEffectInstigatorContext()
 		: Instigator(NULL)
+		, InstigatorAttributeComponent(NULL)
 	{
 	}
 
@@ -615,6 +617,8 @@ struct FGameplayEffectInstigatorContext
 
 	void AddInstigator(class AActor *InInstigator);
 
+	void AddHitResult(const FHitResult InHitResult);
+
 	FString ToString() const
 	{
 		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
@@ -626,19 +630,34 @@ struct FGameplayEffectInstigatorContext
 		return Instigator;
 	}
 
-	class UAttributeComponent * GetOriginInstigatorAttributeComponent() const
+	UAttributeComponent * GetOriginalInstigatorAttributeComponent() const
 	{
 		return InstigatorAttributeComponent;
 	}
-
-	// @todo: Need a way to track instigator per stack
+	
 	/** Instigator controller */
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	class AActor* Instigator;
 
 	UPROPERTY(NotReplicated)
-	class UAttributeComponent *InstigatorAttributeComponent;
+	UAttributeComponent *InstigatorAttributeComponent;
+
+	/** Trace information - may be NULL in many cases */
+	TSharedPtr<FHitResult>	HitResult;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 };
+
+template<>
+struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithCopy = true		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+	};
+};
+
 
 /**
  * FAggregatorRef
@@ -1124,7 +1143,7 @@ struct FGameplayEffectSpec
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Owner, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData );
+	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Instigator, float Level, const FGlobalCurveDataOverride *CurveData );
 	
 	UPROPERTY()
 	const UGameplayEffect * Def;
@@ -1133,7 +1152,8 @@ struct FGameplayEffectSpec
 	TSharedPtr< FGameplayEffectLevelSpec > ModifierLevel;
 	
 	// Replicated
-	FGameplayEffectInstigatorContext InstigatorStack; // This tells us how we got here (who / what applied us)
+	UPROPERTY()
+	FGameplayEffectInstigatorContext InstigatorContext; // This tells us how we got here (who / what applied us)
 
 	float GetDuration() const;
 	float GetPeriod() const;
@@ -1356,7 +1376,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void OnPropertyAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
 
-	class UAttributeComponent *Owner;
+	UAttributeComponent *Owner;
 
 	void TEMP_TickActiveEffects(float DeltaSeconds);
 
