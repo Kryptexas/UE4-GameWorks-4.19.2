@@ -285,6 +285,12 @@ public:
 	virtual void Exit();
 
 	/**
+	 *  FSingleThreadRunnable accessor for ticking this FRunnable when multi-threading is disabled. 
+	 *  @return FSingleThreadRunnable Interface for this FRunnable object.
+	 */
+	virtual class FSingleThreadRunnable* GetSingleThreadInterface() { return this; }
+
+	/**
 	 * Add online async tasks that need processing onto the incoming queue
 	 * @param NewTask - some request of the online services
 	 */
@@ -333,9 +339,12 @@ public:
 	 */
 	virtual void OnlineTick() = 0;
 
+	// FSingleThreadRunnable interface
+	/**
+	 *  Non blocking version of FOnlineAsyncTaskManager::Run.
+	 *  
+	 */
 	virtual void Tick();
-
-	virtual class FSingleThreadRunnable* GetSingleThreadInterface() { return this; }
 
 
 };

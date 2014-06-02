@@ -223,8 +223,6 @@ void FOnlineAsyncTaskManager::GameTick()
 	while (Item != NULL);
 }
 
-
-// Non blocking single threaded tick for Online Async Tasks. 
 void FOnlineAsyncTaskManager::Tick()
 {
 
