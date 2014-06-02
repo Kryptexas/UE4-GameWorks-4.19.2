@@ -11,8 +11,10 @@ class UMG_API USpinningImageComponent : public UImage
 	GENERATED_UCLASS_BODY()
 
 	/** The amount of time in seconds for a full rotation */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float Period;
+
+	//TODO UMG Set period dynamically.
 
 protected:
 	// UWidget interface

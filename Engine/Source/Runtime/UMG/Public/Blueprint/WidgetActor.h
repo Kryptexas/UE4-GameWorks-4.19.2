@@ -4,6 +4,7 @@
 
 #include "WidgetActor.generated.h"
 
+/** A widget actor can be added to the world, giving a widget 3D world position. */
 UCLASS()
 class UMG_API AWidgetActor : public AActor
 {

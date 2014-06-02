@@ -21,7 +21,7 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 	//FOnMouseCaptureBeginEvent OnMouseCaptureBegin;
 	//FOnMouseCaptureEndEvent OnMouseCaptureEnd;
 
-	TSharedRef<SSlider> NewWidget = SNew(SSlider)
+	MySlider = SNew(SSlider)
 		.Orientation(Orientation)
 		.SliderBarColor(SliderBarColor)
 		.SliderHandleColor(SliderHandleColor)
@@ -30,7 +30,7 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
 
-	return NewWidget;
+	return MySlider.ToSharedRef();
 }
 
 void USlider::HandleOnValueChanged(float InValue)
@@ -50,12 +50,12 @@ void USlider::HandleOnMouseCaptureEnd()
 
 float USlider::GetValue()
 {
-	return SliderWidget()->GetValue();
+	return MySlider->GetValue();
 }
 
 void USlider::SetValue(float InValue)
 {
-	return SliderWidget()->SetValue(InValue);
+	return MySlider->SetValue(InValue);
 }
 
 /////////////////////////////////////////////////////

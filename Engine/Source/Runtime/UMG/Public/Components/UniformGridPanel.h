@@ -4,15 +4,31 @@
 
 #include "UniformGridPanel.generated.h"
 
+/** A panel that evenly divides up available space between all of its children. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UUniformGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
-	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
+	UPROPERTY(EditDefaultsOnly, EditInline, Category=Slots)
 	TArray<UUniformGridSlot*> Slots;
 
+	/** Padding given to each slot */
+	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	FMargin SlotPadding;
+
+	/** The minimum desired width of the slots */
+	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	float MinDesiredSlotWidth;
+
+	/** The minimum desired height of the slots */
+	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	float MinDesiredSlotHeight;
+
+	//TODO UMG Add ways to make adding slots callable by blueprints.
+
+	/** Adds content to the panel, and constructs a new slot to hold it. */
 	UUniformGridSlot* AddSlot(UWidget* Content);
 
 	// UPanelWidget

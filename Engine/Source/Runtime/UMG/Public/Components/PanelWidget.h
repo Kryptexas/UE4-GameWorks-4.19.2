@@ -4,10 +4,13 @@
 
 #include "PanelWidget.generated.h"
 
+/** The base class for all UMG panel widgets.  Panel widgets layout a collection of child widgets. */
 UCLASS(Abstract)
 class UMG_API UPanelWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	virtual int32 GetChildrenCount() const { return 0; }
 	virtual UWidget* GetChildAt(int32 Index) const { return NULL; }

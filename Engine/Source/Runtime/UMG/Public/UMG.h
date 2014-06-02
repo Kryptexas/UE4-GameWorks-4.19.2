@@ -47,6 +47,9 @@
 #include "OverlaySlot.h"
 #include "Overlay.h"
 
+#include "ScrollBoxSlot.h"
+#include "ScrollBox.h"
+
 #include "TextBlock.h"
 #include "Border.h"
 #include "Button.h"
@@ -55,10 +58,10 @@
 #include "EditableTextBlock.h"
 #include "Image.h"
 #include "Slider.h"
+#include "ProgressBar.h"
 #include "ComboBox.h"
 
 #include "GridPanelComponent.h"
-#include "ScrollBox.h"
 #include "Spacer.h"
 
 #include "SpinningImageComponent.h"

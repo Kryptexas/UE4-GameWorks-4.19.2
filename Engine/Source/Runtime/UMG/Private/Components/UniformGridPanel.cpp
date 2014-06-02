@@ -55,7 +55,12 @@ void UUniformGridPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 {
-	TSharedRef<SUniformGridPanel> NewPanel = SNew(SUniformGridPanel);
+	TSharedRef<SUniformGridPanel> NewPanel =
+		SNew(SUniformGridPanel)
+		.SlotPadding(SlotPadding)
+		.MinDesiredSlotWidth(MinDesiredSlotWidth)
+		.MinDesiredSlotHeight(MinDesiredSlotHeight);
+	
 	MyUniformGridPanel = NewPanel;
 
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )

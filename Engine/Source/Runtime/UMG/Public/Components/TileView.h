@@ -4,6 +4,7 @@
 
 #include "TileView.generated.h"
 
+/** A flow panel that presents the contents as a set of tiles all uniformly sized. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UTileView : public UTableViewBase
 {
@@ -23,7 +24,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	TEnumAsByte<ESelectionMode::Type> SelectionMode;
 
-	/** Called when the button is clicked */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateTileEvent;
 

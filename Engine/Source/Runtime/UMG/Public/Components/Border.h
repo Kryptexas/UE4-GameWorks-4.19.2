@@ -4,8 +4,10 @@
 
 #include "Border.generated.h"
 
-/** A border is a container widget that can contain one child widget, providing an opportunity to surround it with a border image and adjustable padding. */
-
+/**
+ * A border is a container widget that can contain one child widget, providing an opportunity 
+ * to surround it with a border image and adjustable padding.
+ */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UBorder : public UContentWidget
 {

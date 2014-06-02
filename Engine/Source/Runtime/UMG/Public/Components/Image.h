@@ -10,6 +10,8 @@ class UMG_API UImage : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Image to draw */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( DisplayThumbnail = "true" ))
 	USlateBrushAsset* Image;

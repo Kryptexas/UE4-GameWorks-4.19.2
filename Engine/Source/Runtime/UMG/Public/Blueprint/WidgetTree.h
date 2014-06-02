@@ -4,6 +4,7 @@
 
 #include "WidgetTree.generated.h"
 
+/** The widget tree manages the collection of widgets in a blueprint widget. */
 UCLASS()
 class UMG_API UWidgetTree : public UObject
 {
@@ -21,6 +22,7 @@ class UMG_API UWidgetTree : public UObject
 
 	class UPanelWidget* FindWidgetParent(class UWidget* Widget, int32& OutChildIndex);
 
+	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
 	T* ConstructWidget(TSubclassOf<class UWidget> WidgetType)
 	{

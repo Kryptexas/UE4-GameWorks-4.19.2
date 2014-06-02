@@ -4,11 +4,12 @@
 
 #include "TableViewBase.generated.h"
 
+/** The base class for all wrapped table views */
 UCLASS(Abstract, meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UTableViewBase : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Delegate for constructing a UWidget based on a UObject */
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FOnGenerateRowUObject, UObject*, Item);
-	
 };

@@ -6,6 +6,7 @@
 
 #include "OverlaySlot.generated.h"
 
+/** Slot for the UOverlay panel.  Allows content to be hover above other content. */
 UCLASS()
 class UMG_API UOverlaySlot : public UPanelSlot
 {

@@ -11,13 +11,13 @@ class UMG_API USpacer : public UWidget
 	GENERATED_UCLASS_BODY()
 
 	/** The size of the spacer */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D Size;
+
+	//TODO UMG UFunction SetSize
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
-
-	FVector2D GetSpacerSize() const;
 };

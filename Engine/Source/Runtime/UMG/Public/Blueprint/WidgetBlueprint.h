@@ -33,6 +33,9 @@ struct UMG_API FDelegateEditorBinding
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
 
+/**
+ * The widget blueprint enables extending UUserWidget the user extensible UWidget.
+ */
 UCLASS(dependson=(UBlueprint, UUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
 class UMG_API UWidgetBlueprint : public UBlueprint
 {

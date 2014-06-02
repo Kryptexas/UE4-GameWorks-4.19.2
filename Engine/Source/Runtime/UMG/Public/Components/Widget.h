@@ -95,24 +95,31 @@ public:
 	UPROPERTY()
 	FGetMouseCursor CursorDelegate;
 
+	/** Gets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool GetIsEnabled() const;
 
+	/** Sets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetIsEnabled(bool bInIsEnabled);
 
+	/** Sets the tooltip text for the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetToolTipText(const FText& InToolTipText);
 
+	/** Gets the current visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
 
+	/** Sets the visiblity of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
 
+	/** Gets the underlying Slate SWidget for this UWidget. */
 	TSharedRef<SWidget> GetWidget();
 
 #if WITH_EDITOR
+	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
 
 	// UObject interface
@@ -128,6 +135,7 @@ public:
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
 protected:
+	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
 	virtual TSharedRef<SWidget> RebuildWidget();
 
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
@@ -136,5 +144,6 @@ protected:
 	}
 
 protected:
+	/** The underlying SWidget. */
 	TSharedPtr<SWidget> MyWidget;
 };

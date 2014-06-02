@@ -18,7 +18,7 @@ UListView::UListView(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UListView::RebuildWidget()
 {
-	return SNew(SListView< UObject* >)
+	MyListView = SNew(SListView< UObject* >)
 		.SelectionMode(SelectionMode)
 		.ListItemsSource(&Items)
 		.ItemHeight(ItemHeight)
@@ -33,6 +33,8 @@ TSharedRef<SWidget> UListView::RebuildWidget()
 		//		+ SHeaderRow::Column(TEXT("Socket"))
 		//	);
 		;
+
+	return MyListView.ToSharedRef();
 }
 
 TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const

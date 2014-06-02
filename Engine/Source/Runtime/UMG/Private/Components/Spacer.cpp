@@ -17,12 +17,7 @@ USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> USpacer::RebuildWidget()
 {
 	return SNew(SSpacer)
-		.Size( BIND_UOBJECT_ATTRIBUTE(FVector2D, GetSpacerSize) );
-}
-
-FVector2D USpacer::GetSpacerSize() const
-{
-	return Size;
+		.Size(Size);
 }
 
 /////////////////////////////////////////////////////

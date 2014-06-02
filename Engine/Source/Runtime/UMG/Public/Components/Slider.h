@@ -51,24 +51,17 @@ class UMG_API USlider : public UWidget
 	UPROPERTY(BlueprintAssignable)
 	FOnFloatValueChangedEvent OnValueChanged;
 
-	/*  */
+	/** Gets the current value of the slider. */
 	UFUNCTION(BlueprintPure, Category="Behavior")
 	float GetValue();
 
-	/*  */
+	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float InValue);
 
 protected:
-	TSharedPtr<class SSlider> SliderWidget() const
-	{
-		if ( MyWidget.IsValid() )
-		{
-			return StaticCastSharedRef<SSlider>(MyWidget.ToSharedRef());
-		}
-
-		return TSharedPtr<class SSlider>();
-	}
+	/** Native Slate Widget */
+	TSharedPtr<SSlider> MySlider;
 
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;

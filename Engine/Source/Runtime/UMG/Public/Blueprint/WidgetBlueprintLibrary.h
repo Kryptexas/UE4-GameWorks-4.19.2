@@ -12,7 +12,7 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", UnsafeDuringActorConstruction = "true", FriendlyName = "Create Widget" ), Category="User Interface|Widget")
 	static class UUserWidget* Create(UObject* WorldContextObject, TSubclassOf<class UUserWidget> WidgetType);
 
-	/** Paint Functions */
+	/** Draws a box */
 	UFUNCTION(BlueprintCallable, Category="Painting")
 	static void DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint = FLinearColor::White);
 
@@ -29,6 +29,13 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	// TODO UMG DrawLines
 
+	/** 
+	 * Draws text.
+	 *
+	 * @param InString		The string to draw.
+	 * @param Position		The starting position where the text is drawn in local space.
+	 * @param Tint			Color to render the line.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Painting")
 	static void DrawText(UPARAM(ref) FPaintContext& Context, const FString& InString, FVector2D Position, FLinearColor Tint = FLinearColor::White);
 
