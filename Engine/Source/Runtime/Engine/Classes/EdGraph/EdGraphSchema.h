@@ -4,6 +4,8 @@
 
 #include "EdGraphSchema.generated.h"
 
+class FSlateRect;
+
 /** Distinguishes between different graph types. Graphs can have different properties; for example: functions have one entry point, ubergraphs can have multiples. */
 UENUM()
 enum EGraphType

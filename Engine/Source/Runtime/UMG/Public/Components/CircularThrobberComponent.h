@@ -4,6 +4,8 @@
 
 #include "CircularThrobberComponent.generated.h"
 
+class USlateBrushAsset;
+
 /**  A throbber widget that orients images in a spinning circle. */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UCircularThrobberComponent : public UWidget

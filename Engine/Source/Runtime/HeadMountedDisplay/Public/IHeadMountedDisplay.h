@@ -3,6 +3,7 @@
 #pragma once
 
 #include "StereoRendering.h"
+#include "Layout/SlateRect.h"
 
 // depending on your kit and SDK, you may want to use this.
 // new distortion handling still in development.

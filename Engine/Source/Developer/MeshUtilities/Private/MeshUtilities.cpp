@@ -13,6 +13,7 @@
 #include "Landscape/LandscapeDataAccess.h"
 #include "ImageUtils.h"
 #include "MaterialExportUtils.h"
+#include "Textures/TextureAtlas.h"
 
 /*------------------------------------------------------------------------------
 	MeshUtilities module.

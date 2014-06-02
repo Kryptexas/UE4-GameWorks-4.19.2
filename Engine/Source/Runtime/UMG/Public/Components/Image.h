@@ -4,6 +4,8 @@
 
 #include "Image.generated.h"
 
+class USlateBrushAsset;
+
 /** Image widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UImage : public UWidget

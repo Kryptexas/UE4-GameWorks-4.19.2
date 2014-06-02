@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Slate/SlateBrushAsset.h"
+
 class FAssetTypeActions_SlateBrush : public FAssetTypeActions_Base
 {
 public:

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-
+#include "Slate/SlateBrushAsset.h"
 #include "Factories/SlateBrushAssetFactory.h"
 
 #define LOCTEXT_NAMESPACE "SlateBrushAssetFactory"

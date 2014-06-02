@@ -4,6 +4,8 @@
 #ifndef __SLATE_VIEWPORT_H__
 #define __SLATE_VIEWPORT_H__
 
+#include "SlateCore.h"
+
 /** Called in FSceneViewport::ResizeFrame after ResizeViewport*/
 DECLARE_DELEGATE_OneParam( FOnSceneViewportResize, FVector2D );
 

@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Slate.h"
+#include "Slate/SlateBrushAsset.h"
 #include "AssetRegistryModule.h"
 #include "SlateGameResources.h"
 #include "MessageLog.h"
