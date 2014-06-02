@@ -19,7 +19,7 @@ extern bool GOBBinAPK;
 // FJNIHelper
 
 // Caches access to the environment, attached to the current thread
-class FJNIHelper : public FThreadSingleton<FJNIHelper>
+class FJNIHelper : public TThreadSingleton<FJNIHelper>
 {
 public:
 	static JNIEnv* GetEnvironment()
@@ -31,7 +31,7 @@ private:
 	JNIEnv* CachedEnv = NULL;
 
 private:
-	friend class FThreadSingleton<FJNIHelper>;
+	friend class TThreadSingleton<FJNIHelper>;
 
 	FJNIHelper()
 		: CachedEnv(nullptr)
@@ -61,7 +61,7 @@ private:
 	}
 };
 
-template<> uint32 FThreadSingleton<FJNIHelper>::TlsSlot = 0;
+template<> uint32 TThreadSingleton<FJNIHelper>::TlsSlot = 0;
 
 JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 {

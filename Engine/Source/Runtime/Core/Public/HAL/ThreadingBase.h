@@ -835,56 +835,81 @@ extern CORE_API bool IsInGameThread ();
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread ();
 
-/**
-* This a special version of singleton. It means that there is created only one instance for each thread.
-* Calling Get() method is thread-safe, but first call should be done on the game thread. 
-* @see TForceInitAtBoot usage.
-*/
-template< class T >
-class CORE_API FThreadSingleton
-{
-	/** TLS slot that holds a FThreadSingleton. */
-	static uint32 TlsSlot;
 
-protected:
-	FThreadSingleton()
-		: ThreadId(FPlatformTLS::GetCurrentThreadId())
+/** Minimal base class for the thread singleton. */
+struct FThreadSingleton
+{
+	typedef FThreadSingleton* (*TCreateSingletonFuncPtr)();
+	typedef void (FThreadSingleton::*TDestroySingletonFuncPtr)();
+
+	CORE_API virtual ~FThreadSingleton()
 	{}
 
-	/** Thread ID this singleton was created on. */
-	const uint32 ThreadId;
+	virtual void DeleteThis() = 0;
+};
 
+/** Thread singleton initializer. */
+class FThreadSingletonInitializer
+{
 public:
 	/**
-	 * @return an instance of a singleton for the current thread.
+	* @return an instance of a singleton for the current thread.
+	*/
+	static CORE_API FThreadSingleton* Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot );
+};
+
+/**
+ * This a special version of singleton. It means that there is created only one instance for each thread.
+ * Calling Get() method is thread-safe, but first call should be done on the game thread.
+ * @see DECLARE_THREAD_SINGLETON usage.
+ */
+template < class T >
+class TThreadSingleton : public FThreadSingleton
+{
+	/**
+	 * @return TLS slot that holds a TThreadSingleton.
 	 */
-	static T& Get()
+	static uint32& GetTlsSlot()
 	{
-		if( !TlsSlot )
-		{
-			check(IsInGameThread());
-			TlsSlot = FPlatformTLS::AllocTlsSlot();
-		}
-		T* ThreadSingleton = (T*)FPlatformTLS::GetTlsValue(TlsSlot);
-		if( !ThreadSingleton )
-		{
-			const uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
-			ThreadSingleton = new T();
-			FRunnableThread::GetThreadRegistry().Lock();
-			FRunnableThread* RunnableThread = FRunnableThread::GetThreadRegistry().GetThread(ThreadId);
-			if( RunnableThread )
-			{
-				RunnableThread->OnThreadDestroyed().AddRaw( ThreadSingleton, &FThreadSingleton<T>::Shutdown );
-			}
-			FRunnableThread::GetThreadRegistry().Unlock();
-			FPlatformTLS::SetTlsValue(TlsSlot, ThreadSingleton);
-		}
-		return *ThreadSingleton;
+		static uint32 TlsSlot = 0;
+		return TlsSlot;
 	}
 
-	void Shutdown()
+protected:
+	/** Default constructor. */
+	TThreadSingleton()
+		: ThreadId( FPlatformTLS::GetCurrentThreadId() )
+	{}
+
+	/**
+	 * @return a new instance of the thread singleton.
+	 */
+	static FThreadSingleton* Create()
+	{
+		return new T();
+	}
+
+	/**
+	 *	Deletes this instance of the thread singleton. 
+	 */
+	virtual void DeleteThis()
 	{
 		T* This = (T*)this;
 		delete This;
 	}
+
+	/** Thread ID of this thread singleton. */
+	const uint32 ThreadId;
+
+public:
+	/**
+	 *	@return an instance of a singleton for the current thread.
+	 */
+	FORCEINLINE static T& Get()
+	{
+		return *(T*)FThreadSingletonInitializer::Get( &T::Create, &FThreadSingleton::DeleteThis, T::GetTlsSlot() );
+	}
 };
+
+#define DECLARE_THREAD_SINGLETON(ClassType) \
+	static auto& GForceInitAtBoot_ThreadSingletonInitializer_##ClassType = ClassType::Get();

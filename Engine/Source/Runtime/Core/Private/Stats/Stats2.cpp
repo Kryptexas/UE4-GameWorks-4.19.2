@@ -7,13 +7,12 @@
 
 #include "CorePrivate.h"
 
-template<> uint32 FThreadSingleton<FThreadIdleStats>::TlsSlot = 0;
+DECLARE_THREAD_SINGLETON( FThreadIdleStats );
 
 struct FStats2Globals
 {
 	static void Get()
 	{
-		FThreadIdleStats::Get();
 #if	STATS
 		FStartupMessages::Get();
 		IStatGroupEnableManager::Get();

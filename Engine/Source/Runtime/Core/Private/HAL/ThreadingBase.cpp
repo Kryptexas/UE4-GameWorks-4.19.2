@@ -596,3 +596,33 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 {
 	return new FQueuedThreadPoolBase;
 }
+
+/*-----------------------------------------------------------------------------
+	FThreadSingletonInitializer
+-----------------------------------------------------------------------------*/
+
+FThreadSingleton* FThreadSingletonInitializer::Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot )
+{
+	check( CreateFunc != nullptr );
+	check( DestroyFunc != nullptr );
+	if( TlsSlot == 0 )
+	{
+		check( IsInGameThread() );
+		TlsSlot = FPlatformTLS::AllocTlsSlot();
+	}
+	FThreadSingleton* ThreadSingleton = (FThreadSingleton*)FPlatformTLS::GetTlsValue( TlsSlot );
+	if( !ThreadSingleton )
+	{
+		const uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
+		ThreadSingleton = (*CreateFunc)();
+		FRunnableThread::GetThreadRegistry().Lock();
+		FRunnableThread* RunnableThread = FRunnableThread::GetThreadRegistry().GetThread( ThreadId );
+		if( RunnableThread )
+		{
+			RunnableThread->OnThreadDestroyed().AddRaw( ThreadSingleton, DestroyFunc );
+		}
+		FRunnableThread::GetThreadRegistry().Unlock();
+		FPlatformTLS::SetTlsValue( TlsSlot, ThreadSingleton );
+	}
+	return ThreadSingleton;
+}

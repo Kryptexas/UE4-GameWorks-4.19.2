@@ -8,9 +8,9 @@
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds
 */
-class CORE_API FThreadIdleStats : public FThreadSingleton<FThreadIdleStats>
+class FThreadIdleStats : public TThreadSingleton<FThreadIdleStats>
 {
-	friend class FThreadSingleton<FThreadIdleStats>;
+	friend class TThreadSingleton<FThreadIdleStats>;
 
 	FThreadIdleStats()
 		: Waits(0)
