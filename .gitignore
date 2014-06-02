@@ -20,6 +20,8 @@
 *.opensdf
 *.sdf
 /*.xcodeproj
+/Makefile
+/CMakeLists.txt
 
 # Derived data cache is never checked in
 /Engine/DerivedDataCache/**
@@ -54,6 +56,12 @@
 # Ignore any saved local files
 /Engine/Saved/**
 
+# Install stamp linux dependencies
+/Engine/Build/BatchFiles/Linux/dependencies.sha1sums.installed
+
+# log files for linux scripts (e.g. BuildThirdParty.sh)
+/Engine/Build/BatchFiles/Linux/*.log
+
 # Ignore third party folders
 /Engine/Source/ThirdParty/ANGLE/**
 /Engine/Source/ThirdParty/DirectShow/**
@@ -75,13 +83,16 @@
 /Engine/Source/ThirdParty/Licenses/**
 /Engine/Source/ThirdParty/Mac/**
 /Engine/Source/ThirdParty/MCPP/**
+/Engine/Source/ThirdParty/NVIDIA/**
 /Engine/Source/ThirdParty/nvtesslib/**
 /Engine/Source/ThirdParty/nvTextureTools/**
 /Engine/Source/ThirdParty/nvTriStrip/**
 /Engine/Source/ThirdParty/Oculus/**
 /Engine/Source/ThirdParty/Ogg/**
+/Engine/Source/ThirdParty/OneSky/**
 /Engine/Source/ThirdParty/OpenAL/**
 /Engine/Source/ThirdParty/OpenGL/**
+/Engine/Source/ThirdParty/OpenSSL/**
 /Engine/Source/ThirdParty/Perforce/**
 /Engine/Source/ThirdParty/PhysX/**
 /Engine/Source/ThirdParty/portmidi/**
@@ -96,7 +107,12 @@
 
 # Add back in all the build files for third party modules
 !/Engine/Source/ThirdParty/**/*.[Bb]uild.cs
+!/Engine/Source/ThirdParty/hlslcc/Makefile
 
 # Ignore sample and template projects
 /Samples/**
 /Templates/**
+
+# Ignore Unix backup files
+*~
+
