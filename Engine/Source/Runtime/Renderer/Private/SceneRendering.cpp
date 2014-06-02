@@ -412,7 +412,10 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	}
 	
 	ViewUniformShaderParameters.RenderTargetSize = BufferSize;
-	ViewUniformShaderParameters.ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
+	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
+	// After 4.2 we can put the workaround in the cross compiler.
+	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
+	ViewUniformShaderParameters.ExposureScale = FVector4(ExposureScale,ExposureScale,ExposureScale,ExposureScale);
 	ViewUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
 	ViewUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
 	ViewUniformShaderParameters.DepthOfFieldNearTransitionRegion = FinalPostProcessSettings.DepthOfFieldNearTransitionRegion;

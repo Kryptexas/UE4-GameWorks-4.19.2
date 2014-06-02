@@ -3,7 +3,7 @@
 /*=============================================================================
 	OpenGLShaders.cpp: OpenGL shader RHI implementation.
 =============================================================================*/
-
+ 
 #include "OpenGLDrvPrivate.h"
 #include "Shader.h"
 #include "GlobalShader.h"
@@ -1688,6 +1688,9 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 {
 	check(GlobalUniformArraySize == -1);
 
+	// Uniform arrays have to be multiples of float4s.
+	UniformArraySize = Align(UniformArraySize,SizeOfFloat4);
+
 	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
 	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
 
@@ -1703,7 +1706,7 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize;
+		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1730,7 +1733,7 @@ void FOpenGLShaderParameterCache::MarkAllDirty()
 	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize;
+		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1780,10 +1783,14 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 		const int32 NumVectors = PackedArrays[PackedUniform].Size / BytesPerRegister;
 		GLint Location = UniformInfo.Location;
 		const void* UniformData = PackedGlobalUniforms[ArrayIndex];
-		if (PackedGlobalUniformDirty[ArrayIndex].HighVector > PackedGlobalUniformDirty[ArrayIndex].LowVector)
+
+		// This has to be >=. If LowVector == HighVector it means that particular vector was written to.
+		if (PackedGlobalUniformDirty[ArrayIndex].HighVector >= PackedGlobalUniformDirty[ArrayIndex].LowVector)
 		{
 			const uint32 StartVector = PackedGlobalUniformDirty[ArrayIndex].LowVector;
-			uint32 NumDirtyVectors = PackedGlobalUniformDirty[ArrayIndex].HighVector - StartVector;
+			// The number of dirty vectors is the index of the highest vector written minus the first plus one.
+			// The plus one is important so that we upload the highest vector written.
+			uint32 NumDirtyVectors = PackedGlobalUniformDirty[ArrayIndex].HighVector - StartVector + 1;
 			NumDirtyVectors = FMath::Min(NumDirtyVectors, NumVectors - StartVector);
 			check(NumDirtyVectors);
 			UniformData = (uint8*)UniformData + PackedGlobalUniformDirty[ArrayIndex].LowVector * SizeOfFloat4;
@@ -1835,6 +1842,8 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 				const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 				if (Info.SourceUBIndex == BufferIndex)
 				{
+					check((Info.SourceOffsetInFloats + Info.SizeInFloats) * sizeof(float) <= (uint32)GlobalUniformArraySize);
+
 					float* RESTRICT ScratchMem = (float*)PackedGlobalUniforms[Info.DestUBTypeIndex];
 					ScratchMem += Info.DestOffsetInFloats;
 					FMemory::Memcpy(ScratchMem, SourceData + Info.SourceOffsetInFloats, Info.SizeInFloats * sizeof(float));
