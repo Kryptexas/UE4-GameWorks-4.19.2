@@ -432,8 +432,22 @@ void UParticleModuleSizeScale::SetToSensibleDefaults(UParticleEmitter* Owner)
 UParticleModuleSizeScaleBySpeed::UParticleModuleSizeScaleBySpeed(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bUpdateModule = true;
 	MaxScale.X = 1;
 	MaxScale.Y = 1;
+}
+
+void UParticleModuleSizeScaleBySpeed::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
+{
+	FVector Scale(SpeedScale.X, SpeedScale.Y, 1.0f);
+	FVector ScaleMax(MaxScale.X, MaxScale.Y, 1.0f);
+
+	BEGIN_UPDATE_LOOP;
+		FVector Size = Scale * Particle.Velocity.Size();
+		Size = Size.ComponentMax(FVector(1.0f));
+		Size = Size.ComponentMin(ScaleMax);
+		Particle.Size = Particle.BaseSize * Size;
+	END_UPDATE_LOOP;
 }
 
 

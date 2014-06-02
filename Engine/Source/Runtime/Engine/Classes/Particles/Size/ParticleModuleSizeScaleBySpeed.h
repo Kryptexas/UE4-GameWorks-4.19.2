@@ -23,7 +23,8 @@ class UParticleModuleSizeScaleBySpeed : public UParticleModuleSizeBase
 
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
+	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
 	// End UParticleModule Interface
 };
 
