@@ -466,8 +466,7 @@ public:
 	 * Loads and generates a destination ini file and adds it to GConfig:
 	 *   - Looking on commandline for override source/dest .ini filenames
 	 *   - Generating the name for the engine to refer to the ini
-	 *   - Loading a source .ini file
-	 *   - Processing all BasedOn's
+	 *   - Loading a source .ini file hierarchy
 	 *   - Filling out an FConfigFile
 	 *   - Save the generated ini
 	 *   - Adds the FConfigFile to GConfig
