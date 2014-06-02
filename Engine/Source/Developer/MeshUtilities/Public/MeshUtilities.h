@@ -69,6 +69,40 @@ public:
 };
 
 /**
+ * Mesh merging settings
+ */
+struct FMeshMergingSettings
+{
+	/** */
+	bool bGnerateAtlasedLightmapUV;
+	
+	/** */
+	bool bImportVertexColors;
+
+	/** */
+	bool bImportAllUVChannels;
+
+	/** */
+	int32 TargetLightmapUVChannel;
+
+	/** */
+	bool bPivotPointAtZero;
+
+	
+	/** Default settings. */
+	FMeshMergingSettings()
+		: bGnerateAtlasedLightmapUV(true)
+		, bImportVertexColors(false)
+		, bImportAllUVChannels(false)
+		, TargetLightmapUVChannel(1)
+		, bPivotPointAtZero(false)
+	{
+	}
+};
+
+
+
+/**
  * Mesh reduction module interface.
  */
 class IMeshReductionModule : public IModuleInterface
@@ -197,12 +231,14 @@ public:
 	 * and merge into signle mesh grouping them by unique materials
 	 *
 	 * @param SourceActors				List of actors to merge
+	 * @param InSettings				Settings to use
 	 * @param PackageName				Destination package name for a generated assets
 	 * @param OutAssetsToSync			Merged mesh assets
 	 * @param OutMergedActorLocation	World position of merged mesh
 	 */
 	virtual void MergeActors(
-		const TArray<AActor*>& SourceActors, 
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
 		const FString& PackageName, 
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation) const = 0;

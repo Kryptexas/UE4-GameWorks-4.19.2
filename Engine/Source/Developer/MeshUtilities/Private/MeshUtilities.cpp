@@ -103,7 +103,8 @@ private:
 	virtual void ShutdownModule() OVERRIDE;
 
 	virtual void MergeActors(
-		const TArray<AActor*>& SourceActors, 
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
 		const FString& PackageName,
 		TArray<UObject*>& 
 		OutAssetsToSync, 
@@ -2951,7 +2952,12 @@ private:
 	TArray<const FAtlasedTextureSlot*>		PackedLigthmapSlots;
 };
 
-void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FString& InPackageName, TArray<UObject*>& OutAssetsToSync, FVector& OutMergedActorLocation) const
+void FMeshUtilities::MergeActors(
+	const TArray<AActor*>& SourceActors, 
+	const FMeshMergingSettings& InSettings, 
+	const FString& InPackageName, 
+	TArray<UObject*>& OutAssetsToSync, 
+	FVector& OutMergedActorLocation) const
 {
 	TArray<UStaticMeshComponent*> ComponentsToMerge;
 	
@@ -3019,6 +3025,12 @@ void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FStr
 		return;	
 	}
 
+	// Should we use vertex colors?
+	if (!InSettings.bImportVertexColors)
+	{
+		bWithVertexColors = false;
+	}
+	
 	//For each raw mesh, re-map the material indices according to the MaterialMap
 	for (int32 MeshIndex = 0; MeshIndex < SourceMeshes.Num(); ++MeshIndex)
 	{
@@ -3032,6 +3044,9 @@ void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FStr
 	}
 
 	FRawMeshExt MergedMesh;
+
+	// Set target channel for lightmap UV
+	MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightmapUVChannel;
 
 	// Pack lightmaps
 	static const uint32 MaxLightmapRes = 2048;
@@ -3053,8 +3068,8 @@ void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FStr
 
 	// Use first mesh for naming and pivot
 	MergedMesh.AssetPackageName = SourceMeshes[0].AssetPackageName;
-	MergedMesh.Pivot = SourceMeshes[0].Pivot;
-		
+	MergedMesh.Pivot = InSettings.bPivotPointAtZero ? FVector::ZeroVector : SourceMeshes[0].Pivot;
+	
 	// Merge meshes into single mesh
 	for (int32 SourceMeshIdx = 0; SourceMeshIdx < SourceMeshes.Num(); ++SourceMeshIdx)
 	{
@@ -3074,7 +3089,6 @@ void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FStr
 
 		for (FVector VertexPos : SourceRawMesh.VertexPositions)
 		{
-			MergedMesh.Pivot = FVector::ZeroVector; // bake vertices in world space. TODO: optional
 			TargetRawMesh.VertexPositions.Add(VertexPos - MergedMesh.Pivot);
 		}
 						
@@ -3099,10 +3113,21 @@ void FMeshUtilities::MergeActors(const TArray<AActor*>& SourceActors, const FStr
 				FMemory::Memset(&TargetRawMesh.WedgeColors[ColorsOffset], 0xFF, ColorsNum*TargetRawMesh.WedgeColors.GetTypeSize());
 			}
 		}
-		
-		// Only first UV channel will be used 
-		TargetRawMesh.WedgeTexCoords[0].Append(SourceRawMesh.WedgeTexCoords[0]);
-		
+
+		if (InSettings.bImportAllUVChannels)
+		{
+	/*		const int32 NumChannels = ARRAY_COUNT(TargetRawMesh.WedgeTexCoords);
+			for (int32 ChannelIdx = 0; ChannelIdx < NumChannels; ++ChannelIdx)
+			{
+				int32 TargetChannelIdx+= (ChannelIdx >= MergedMesh.LightMapCoordinateIndex ?)
+			}*/
+			TargetRawMesh.WedgeTexCoords[0].Append(SourceRawMesh.WedgeTexCoords[0]);
+		}
+		else // Only first UV channel will be used 
+		{
+			TargetRawMesh.WedgeTexCoords[0].Append(SourceRawMesh.WedgeTexCoords[0]);
+		}
+				
 		// Transform lightmap UVs
 		if (MergedMesh.LightMapRes)
 		{
