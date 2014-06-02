@@ -61,7 +61,7 @@ private:
 	}
 };
 
-template<> uint32 TThreadSingleton<FJNIHelper>::TlsSlot = 0;
+DECLARE_THREAD_SINGLETON( FJNIHelper );
 
 JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 {
