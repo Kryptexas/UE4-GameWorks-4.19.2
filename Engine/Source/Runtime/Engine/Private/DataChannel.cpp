@@ -1997,7 +1997,7 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
 		check( SubObj != NULL );
 		Actor->OnSubobjectCreatedFromReplication( SubObj );
-		Connection->PackageMap->AssignNetGUID( SubObj, NetGUID );
+		Connection->Driver->GuidCache->AssignNetGUID( SubObj, NetGUID );
 	}
 
 	check( Cast< AActor >( SubObj ) == NULL );
@@ -2072,9 +2072,9 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 	// here, by forcing the packagemap to give them a NetGUID.
 	//
 	// Once we can lazily handle unmapped references on the client side, this can be simplified.
-	if (!Connection->PackageMap->SupportsObject(Obj))
+	if ( !Connection->Driver->GuidCache->SupportsObject( Obj ) )
 	{
-		FNetworkGUID NetGUID = Connection->PackageMap->AssignNewNetGUID(Obj);	//Make sure he gets a NetGUID so that he is now 'supported'
+		FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID( Obj );	//Make sure he gets a NetGUID so that he is now 'supported'
 	}
 
 	bool NewSubobject = false;
@@ -2223,16 +2223,19 @@ FAutoConsoleCommandWithWorld DeleteDormantActorCommand(
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static void	FindNetGUID( const TArray<FString>& Args, UWorld* InWorld )
 {
-	for (FObjectIterator ObjIt(UNetGUIDCache::StaticClass()); ObjIt; ++ObjIt)
+	for (FObjectIterator ObjIt(UNetDriver::StaticClass()); ObjIt; ++ObjIt)
 	{
-		UNetGUIDCache *Cache = Cast<UNetGUIDCache>(*ObjIt);
-		if (Cache->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+		UNetDriver * Driver = Cast< UNetDriver >( *ObjIt );
+
+		if ( Driver->HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject ) )
+		{
 			continue;
+		}
 
 		if (Args.Num() <= 0)
 		{
 			// Display all
-			for (auto It = Cache->History.CreateIterator(); It; ++It)
+			for (auto It = Driver->GuidCache->History.CreateIterator(); It; ++It)
 			{
 				FString Str = It.Value();
 				FNetworkGUID NetGUID = It.Key();
@@ -2246,7 +2249,7 @@ static void	FindNetGUID( const TArray<FString>& Args, UWorld* InWorld )
 			FNetworkGUID NetGUID(GUIDValue);
 
 			// Search
-			FString Str = Cache->History.FindRef(NetGUID);
+			FString Str = Driver->GuidCache->History.FindRef(NetGUID);
 
 			if (!Str.IsEmpty())
 			{

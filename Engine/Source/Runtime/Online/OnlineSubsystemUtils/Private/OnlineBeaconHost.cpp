@@ -134,7 +134,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 						AOnlineBeaconClient* NewClientActor = SpawnBeaconActor();
 						if (NewClientActor && BeaconType == NewClientActor->GetBeaconType())
 						{
-							FNetworkGUID NetGUID = Connection->PackageMap->AssignNewNetGUID(NewClientActor);
+							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID( NewClientActor );
 							NewClientActor->SetNetConnection(Connection);
 							Connection->OwningActor = NewClientActor;
 							NewClientActor->Role = ROLE_None;

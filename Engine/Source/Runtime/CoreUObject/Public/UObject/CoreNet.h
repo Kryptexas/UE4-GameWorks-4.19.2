@@ -99,45 +99,12 @@ public:
  */
 #define MAX_OBJECT_INDEX (uint32(1) << 31)
 
-/** Stores an object with path associated with FNetworkGUID */
-class FNetGuidCacheObject
-{
-public:
-	TWeakObjectPtr< UObject >		Object;
-	FString							FullPath;
-};
-
-class COREUOBJECT_API UNetGUIDCache : public UObject
-{
-	DECLARE_CLASS_INTRINSIC(UNetGUIDCache,UObject,CLASS_Transient|0,CoreUObject);
-
-	virtual void PostInitProperties();
-
-	// Fixme: use a single data structure for this
-	TMap<FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
-	TMap<TWeakObjectPtr<UObject>, FNetworkGUID>		NetGUIDLookup;
-
-	int32	UniqueNetIDs[2];
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// History for debugging entries in the packagemap
-	TMap<FNetworkGUID, FString>	History;
-#endif
-};
-
-
 //
 // Maps objects and names to and from indices for network communication.
 //
 class COREUOBJECT_API UPackageMap : public UObject
 {
 	DECLARE_CLASS_INTRINSIC(UPackageMap,UObject,CLASS_Transient|0,CoreUObject);
-
-	
-	UPackageMap( const class FPostConstructInitializeProperties& PCIP, FNetObjectIsDynamic Delegate ) :
-		UObject(PCIP), ObjectIsDynamicDelegate(Delegate)
-	{
-	}
 
 	// Begin UObject interface.
 	virtual void	PostInitProperties();
@@ -146,15 +113,6 @@ class COREUOBJECT_API UPackageMap : public UObject
 	static void		AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 	
-	// @todo document
-	virtual bool CanSerializeObject(const UObject* Obj);
-	
-	// @todo document
-	virtual bool SupportsPackage( UObject* InOuter );
-
-	// @todo document
-	virtual bool SupportsObject( const UObject* Obj );
-
 	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName );
 
 	// @todo document
@@ -164,34 +122,16 @@ class COREUOBJECT_API UPackageMap : public UObject
 	virtual bool SerializeName( FArchive& Ar, FName& Name );
 
 	/** get the cached field to index mappings for the given class */
-	FClassNetCache* GetClassNetCache(UClass* Class);
-	void	ClearClassNetCache();
-
-	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
-	
-	virtual void HandleUnAssignedObject(const UObject* Obj) { }
-
-	virtual FNetworkGUID GetObjectNetGUID(const UObject* Obj);
-
-	virtual UObject * GetObjectFromNetGUID(FNetworkGUID NetGUID);
+	FClassNetCache *	GetClassNetCache(UClass* Class);
+	void				ClearClassNetCache();
 
 	virtual void ResetPackageMap();
-
-	/** Removes deleted objects from the package map lookup tables */
-	virtual void CleanPackageMap();
-
-	/**
-	 * logs debug info (package list, etc) to the specified output device
-	 * @param Ar - the device to log to
-	 */
-	virtual void LogDebugInfo(FOutputDevice& Ar);
 
 	virtual void SetLocked(bool L) { }
 
 	// Variables.
 
-	virtual FNetworkGUID AssignNewNetGUID(const UObject* Object);
-	virtual FNetworkGUID AssignNetGUID(const UObject* Object, FNetworkGUID NewNetworkGUID);
+	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
 
 	void ResetUnAckedObject() { bSerializedUnAckedObject = false; }
 	bool SerializedUnAckedObject() { return bSerializedUnAckedObject; }
@@ -208,10 +148,6 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) { }
 
-	UNetGUIDCache * GetNetGUIDCache() { return Cache; }
-
-	FNetObjectIsDynamic ObjectIsDynamicDelegate;
-
 	virtual void NotifyStreamingLevelUnload(UObject* UnloadedLevel) { }
 
 	virtual bool PrintExportBatch() { return false; }
@@ -223,28 +159,25 @@ class COREUOBJECT_API UPackageMap : public UObject
 	bool			GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
 	FNetworkGUID	GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
 
+	virtual void		LogDebugInfo( FOutputDevice & Ar);
+	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID );
+
 protected:
 
-	virtual bool IsDynamicObject(const UObject* Object);
 	virtual bool IsNetGUIDAuthority() { return true; }
-
-	UNetGUIDCache * Cache;
-
-	/** map from package names to their index in List */
-	TMap<FName, int32> PackageListMap;
 
 	// @todo document
 	TMap<TWeakObjectPtr<UClass>, FClassNetCache*> ClassFieldIndices;
 
-	bool	bSuppressLogs;
-	bool	bShouldSerializeUnAckedObjects;
-	bool	bSerializedUnAckedObject;
-	bool	bSerializedCDO;
+	bool			bSuppressLogs;
+	bool			bShouldSerializeUnAckedObjects;
+	bool			bSerializedUnAckedObject;
+	bool			bSerializedCDO;
 
 	bool			bLoadedUnmappedObject;
 	FNetworkGUID	LastUnmappedNetGUID;
 
-	FString	DebugContextString;
+	FString			DebugContextString;
 };
 
 /** Represents a range of PacketIDs, inclusive */
@@ -292,13 +225,13 @@ enum ELifetimeCondition
 	COND_None				= 0,		// This property has no condition, and will send anytime it changes
 	COND_InitialOnly		= 1,		// This property will only attempt to send on the initial bunch
 	COND_OwnerOnly			= 2,		// This property will only send to the actor's owner
-	COND_SkipOwner			= 4,		// This property send to every connection EXCEPT the owner
-	COND_SimulatedOnly		= 5,		// This property will only send to simulated actors
-	COND_AutonomousOnly		= 6,		// This property will only send to autonomous actors
-	COND_SimulatedOrPhysics	= 7,		// This property will send to simulated OR bRepPhysics actors
-	COND_InitialOrOwner		= 8,		// This property will send on the initial packet, or to the actors owner
-	COND_Custom				= 9,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
-	COND_Max				= 10,
+	COND_SkipOwner			= 3,		// This property send to every connection EXCEPT the owner
+	COND_SimulatedOnly		= 4,		// This property will only send to simulated actors
+	COND_AutonomousOnly		= 5,		// This property will only send to autonomous actors
+	COND_SimulatedOrPhysics	= 6,		// This property will send to simulated OR bRepPhysics actors
+	COND_InitialOrOwner		= 7,		// This property will send on the initial packet, or to the actors owner
+	COND_Custom				= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
+	COND_Max				= 9,
 };
 
 /** FLifetimeProperty

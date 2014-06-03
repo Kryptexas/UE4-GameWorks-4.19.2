@@ -106,10 +106,7 @@ bool UPackageMap::SerializeName(FArchive& Ar, FName& Name)
 	}
 	return true;
 }
-bool UPackageMap::CanSerializeObject(const UObject* Obj)
-{
-	return SupportsObject(Obj);
-}
+
 bool UPackageMap::SerializeObject( FArchive& Ar, UClass* Class, UObject*& Object, FNetworkGUID *OutNetGUID )
 {
 	// For now this is unsupported, but we could implement this serialization in a way that is compatible with UPackageMapClient,
@@ -124,10 +121,21 @@ bool UPackageMap::WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUI
 	return true;
 }
 
+void UPackageMap::LogDebugInfo( FOutputDevice & Ar)
+{
+	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::LogDebugInfo"));
+}
+
+UObject * UPackageMap::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
+{
+	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::GetObjectFromNetGUID"));
+	return NULL;
+}
+
 FClassNetCache* UPackageMap::GetClassNetCache( UClass* Class )
 {
 	FClassNetCache* Result = ClassFieldIndices.FindRef(Class);
-	if( !Result )// && SupportsObject(Class) )
+	if( !Result )
 	{
 		Result                       = ClassFieldIndices.Add( Class, new FClassNetCache(Class) );
 		Result->Super                = NULL;
@@ -143,11 +151,8 @@ FClassNetCache* UPackageMap::GetClassNetCache( UClass* Class )
 		{
 			// Add sandboxed items to net cache.  
 			UField* Field = Class->NetFields[i];
-			//if( SupportsObject(Field ) )
-			{
-				int32 ThisIndex      = Result->GetMaxIndex();
-				new(Result->Fields)FFieldNetCache( Field, ThisIndex );
-			}
+			int32 ThisIndex	= Result->GetMaxIndex();
+			new(Result->Fields)FFieldNetCache( Field, ThisIndex );
 		}
 
 		Result->Fields.Shrink();
@@ -168,291 +173,15 @@ void UPackageMap::ClearClassNetCache()
 	ClassFieldIndices.Empty();
 }
 
-void UPackageMap::LogDebugInfo(FOutputDevice& Ar)
-{
-	for (auto It = Cache->ObjectLookup.CreateIterator(); It; ++It)
-	{
-		FNetworkGUID NetGUID = It.Key();
-		UObject *Obj = It.Value().Object.Get();
-		UE_LOG(LogCoreNet, Log, TEXT("%s - %s"), *NetGUID.ToString(), Obj ? *Obj->GetPathName() : TEXT("NULL"));
-	}
-}
-
-bool UPackageMap::SupportsObject( const UObject* Object )
-{
-	/** In this PackageMap implementation, all Objects are supported.*/
-	return true;
-}
-bool UPackageMap::SupportsPackage( UObject* InOuter )
-{
-	/** In this PackageMap implementation, all Packages are supported.*/
-	return true;
-}
-
 void UPackageMap::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
-	Ar << Cache;
-
-	if ( Ar.IsCountingMemory() && Cache )
-	{
-		Cache->ObjectLookup.CountBytes( Ar );
-		Cache->NetGUIDLookup.CountBytes( Ar );
-	}
 }
 
 void UPackageMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UPackageMap * This = CastChecked<UPackageMap>( InThis );
-
-	if ( This->Cache != NULL )
-	{
-		Collector.AddReferencedObject( This->Cache, This );		
-	}
-
 	return Super::AddReferencedObjects( InThis, Collector );
-}
-
-FNetworkGUID UPackageMap::GetObjectNetGUID(const UObject *Object)
-{
-	FNetworkGUID NetGUID;
-	if (!Object || !SupportsObject(Object))
-	{
-		return NetGUID;
-	}
-	
-	NetGUID = Cache->NetGUIDLookup.FindRef(Object);
-	if (!NetGUID.IsValid())
-	{
-		NetGUID = AssignNewNetGUID(Object);
-	}
-	return NetGUID;
-}
-
-UObject * UPackageMap::GetObjectFromNetGUID( FNetworkGUID NetGUID )
-{
-	if ( !ensure( NetGUID.IsValid() ) )
-	{
-		return NULL;
-	}
-
-	if ( !ensure( !NetGUID.IsDefault() ) )
-	{
-		return NULL;
-	}
-
-	FNetGuidCacheObject * CacheObjectPtr = Cache->ObjectLookup.Find( NetGUID );
-
-	if ( CacheObjectPtr == NULL )
-	{
-		// We don't have the object mapped yet
-		return NULL;
-	}
-
-	UObject * Object = CacheObjectPtr->Object.Get();
-
-	if ( Object != NULL )
-	{
-		check( Object->GetPathName() == CacheObjectPtr->FullPath );
-		return Object;
-	}
-
-	if ( CacheObjectPtr->FullPath.IsEmpty() )
-	{
-		// This probably isn't possible, but making it a warning
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: No full path for %s" ), *NetGUID.ToString() );
-		return NULL;
-	}
-
-	if ( NetGUID.IsDynamic() )
-	{
-		// Dynamic objects don't have stable names, so we can't possibly reload the same object
-		UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "GetObjectFromNetGUID: Cannot re-create dynamic object after GC <%s, %s>" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-		return NULL;
-	}
-
-	//
-	// The object was previously mapped, but we GC'd it
-	// We need to reload it now
-	//
-
-	Object = StaticFindObject( UObject::StaticClass(), NULL, *CacheObjectPtr->FullPath, false );
-
-	if ( Object == NULL )
-	{
-		if ( IsNetGUIDAuthority() )
-		{
-			// The authority shouldn't be loading resources on demand, at least for now.
-			// This could be garbage or a security risk
-			// Another possibility is in dynamic property replication if the server reads the previously serialized state
-			// that has a now destroyed actor in it.
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Could not find Object for: NetGUID <%s, %s> (and IsNetGUIDAuthority())" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-			return NULL;
-		}
-		else
-		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Could not find Object for: NetGUID <%s, %s>"), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-		}
-
-		Object = StaticLoadObject( UObject::StaticClass(), NULL, *CacheObjectPtr->FullPath, NULL, LOAD_NoWarn );
-
-		if ( Object )
-		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: StaticLoadObject. Found: %s" ), Object ? *Object->GetName() : TEXT( "NULL" ) );
-		}
-		else
-		{
-			Object = LoadPackage( NULL, *CacheObjectPtr->FullPath, LOAD_None );
-			UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: LoadPackage. Found: %s" ), Object ? *Object->GetName() : TEXT( "NULL" ) );
-		}
-	}
-	else
-	{
-		// If we actually found the object, we probably shouldn't have GC'd it, so that's odd
-		//UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Object should not be found after GC: <%s, %s>" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-	}
-
-	if ( Object == NULL )
-	{
-		// If we get here, that means we have an invalid path, which shouldn't be possible, but making it a warning
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: FAILED to re-create object after GC: <%s, %s>" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-	}
-	else
-	{
-		// Reassign the object pointer for quick access next time
-		CacheObjectPtr->Object = Object;		
-		// Make sure the object is in the GUIDToObjectLookup.
-		Cache->NetGUIDLookup.Add( Object, NetGUID );
-	}
-
-	return Object;
-}
-
-/**
- *	Generate a new NetGUID for this object and assign it.
- */
-FNetworkGUID UPackageMap::AssignNewNetGUID(const UObject* Object)
-{
-	if (!IsNetGUIDAuthority())
-	{
-		// We cannot make new NetGUIDs
-		return FNetworkGUID::GetDefault();
-	}
-
-	// Generate new NetGUID and assign it
-	int32 idx = 0;
-	if (!IsDynamicObject(Object))
-	{
-		idx = 1;
-	}
-
-	return AssignNetGUID(Object, (++Cache->UniqueNetIDs[idx] << 1) | idx);
-}
-
-/**
- *	Assigns the given UObject the give NetNetworkGUID.
- */
-FNetworkGUID UPackageMap::AssignNetGUID(const UObject* Object, FNetworkGUID NewNetworkGUID)
-{
-	if (NewNetworkGUID.IsDefault())
-	{
-		// This is the default NetGUID, look up or generate a real one
-		NewNetworkGUID = Cache->NetGUIDLookup.FindRef(Object);
-		if (!NewNetworkGUID.IsValid())
-		{
-			NewNetworkGUID = AssignNewNetGUID(Object);
-		}
-		HandleUnAssignedObject(Object);
-		return NewNetworkGUID;
-	}
-
-	UE_LOG(LogNetPackageMap, Log, TEXT("Assigning %s NetGUID <%s>"), Object ? *Object->GetName() : TEXT("NULL"), *NewNetworkGUID.ToString() );
-	
-	// Check for reassignment: this can happen during seamless travel, so leaving this off for now, but is useful for debugging purposes, so leaving it in.
-#if 0
-	{
-		FNetworkGUID OldNetGUID = Cache->NetGUIDLookup.FindRef(Object);
-		if (OldNetGUID.IsValid() && !OldNetGUID.IsDefault())
-		{
-			UE_LOG(LogNetPackageMap, Log, TEXT("Attempting to reassign NetGUID to %s (was previously <%s>. Now is <%s>"), Object ? *Object->GetName() : TEXT("NULL"), *OldNetGUID.ToString(),  *NewNetworkGUID.ToString() );
-		}
-
-		UObject *OldObject = Cache->ObjectLookup.FindRef(NewNetworkGUID).Get();
-		if (OldObject)
-		{
-			UE_LOG(LogNetPackageMap, Warning, TEXT("Attempting to reassign NetGUID <%s> to %s (It is already assigned to object %s"), *NewNetworkGUID.ToString(), Object ? *Object->GetName() : TEXT("NULL"), *OldNetGUID.ToString(), *OldObject->GetName() );
-		}
-	}
-#endif
-
-	// Actually assign
-	FNetGuidCacheObject CacheObject;
-
-	CacheObject.Object = Object;
-	CacheObject.FullPath = Object->GetPathName();
-
-	// Remove any existing entries
-	{
-		const FNetGuidCacheObject * ExistingCacheObjectPtr = Cache->ObjectLookup.Find( NewNetworkGUID );
-
-		if ( ExistingCacheObjectPtr )
-		{
-			const UObject * OldObject = ExistingCacheObjectPtr->Object.Get();
-
-			// If we find static guid in the cache, this means we didn't find it in GetObjectFromNetGUID
-			// This is a problem, since we should never get this far if we do find it there
-			if ( !NewNetworkGUID.IsDynamic() )
-			{
-				UE_LOG( LogNetPackageMap, Warning, TEXT( "AssignNetGUID: NewNetworkGUID was in ObjectLookup cache but is static: <%s> %s" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ) );
-			}
-
-			// If this net guid was found but the old object is NULL, this can happen due to:
-			//	1. Actor channel was closed locally (but we don't remove the net guid entry, since we can't know for sure if it will be referenced again)
-			//		a. Then when we re-create a channel, and assign this actor, we will find the old guid entry here
-			//	2. Dynamic object was locally GC'd, but then exported again from the server
-			//
-			// If this net guid was found and the objects match, we don't care. This can happen due to:
-			//	1. Same thing above can happen, but if we for some reason didn't destroy the actor/object we will see this case
-			//
-			// If the object pointers are different, this can be a problem, 
-			//	since this should only be possible if something gets out of sync during the net guid exchange code
-			if ( OldObject != NULL && OldObject != Object )
-			{
-				UE_LOG( LogNetPackageMap, Warning, TEXT( "Reassigning NetGUID <%s> to %s (was assigned to object %s)" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ), OldObject ? *OldObject->GetPathName() : TEXT( "NULL" ) );
-			}
-			else
-			{
-				UE_LOG( LogNetPackageMap, Verbose, TEXT( "Reassigning NetGUID <%s> to %s (was assigned to object %s)" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ), OldObject ? *OldObject->GetPathName() : TEXT( "NULL" ) );
-			}
-
-			Cache->NetGUIDLookup.Remove( ExistingCacheObjectPtr->Object );
-		}
-
-		const FNetworkGUID * ExistingNetworkGUIDPtr = Cache->NetGUIDLookup.Find( Object );
-
-		if ( ExistingNetworkGUIDPtr )
-		{
-			// This can happen when the server destroys a package/object and the client doesn't.
-			// The server will simply assign a new guid, and the client will assign to the old object that never got deleted locally
-			UE_LOG( LogNetPackageMap, Log, TEXT( "Changing NetGUID on object %s from <%s:%s> to <%s:%s>" ), Object ? *Object->GetPathName() : TEXT( "NULL" ), *ExistingNetworkGUIDPtr->ToString(), ExistingNetworkGUIDPtr->IsDynamic() ? TEXT("TRUE") : TEXT("FALSE"), *NewNetworkGUID.ToString(), NewNetworkGUID.IsDynamic() ? TEXT("TRUE") : TEXT("FALSE") );
-			Cache->ObjectLookup.Remove( *ExistingNetworkGUIDPtr );
-		}
-	}
-
-	Cache->ObjectLookup.Add( NewNetworkGUID, CacheObject );
-	Cache->NetGUIDLookup.Add( Object, NewNetworkGUID );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	Cache->History.Add(NewNetworkGUID, Object ? Object->GetPathName() : TEXT("NULL"));
-#endif
-
-	return NewNetworkGUID;
-}
-
-bool UPackageMap::IsDynamicObject(const UObject* Object)
-{
-	check(ObjectIsDynamicDelegate.IsBound());
-	return ObjectIsDynamicDelegate.Execute(Object);
 }
 
 void UPackageMap::FinishDestroy()
@@ -463,83 +192,7 @@ void UPackageMap::FinishDestroy()
 
 void UPackageMap::ResetPackageMap()
 {
-	Cache->ObjectLookup.Empty();
-	Cache->NetGUIDLookup.Empty();
-	Cache->UniqueNetIDs[0] = Cache->UniqueNetIDs[1] = 0;
-}
-
-class FArchiveCountMemGUID : public FArchive
-{
-public:
-	FArchiveCountMemGUID() : Mem( 0 ) { ArIsCountingMemory = true; }
-	void CountBytes( SIZE_T InNum, SIZE_T InMax ) { Mem += InMax; }
-	SIZE_T Mem;
-};
-
-void UPackageMap::CleanPackageMap()
-{
-	// NOTE - Quick fix for some package map issues where client was cleaning up guids, which was causing issues.
-	// For now, we no longer clean these up.  The client can sometimes cleanup guids that the server doesn't which causes issues.
-	// The guid memory will leak for now until we find a better way.
-
-	// Free any dynamic guids that refer to objects that are dead
-	for ( auto It = Cache->ObjectLookup.CreateIterator(); It; ++It )
-	{
-		if ( It.Value().Object.IsValid() )
-		{
-			// Make sure the path matches (which can change during seamless travel)
-			It.Value().FullPath = It.Value().Object->GetPathName();
-			continue;
-		}
-
-		if ( It.Key().IsDynamic() )
-		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "Cleaning reference to NetGUID: <%s> (%s) (ObjectLookup)" ), *It.Key().ToString(), *It.Value().FullPath );
-			It.RemoveCurrent();
-		}
-	}
-	
-
-	for ( auto It = Cache->NetGUIDLookup.CreateIterator(); It; ++It )
-	{
-		if ( !It.Key().IsValid() )
-		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "Cleaning reference to NetGUID: <%s> (NetGUIDLookup)" ), *It.Value().ToString() );
-			It.RemoveCurrent();
-		}
-	}
-
-	// Sanity check
-	for ( auto It = Cache->ObjectLookup.CreateIterator(); It; ++It )
-	{
-		check( It.Value().Object.IsValid() || It.Key().IsStatic() );
-
-		if ( It.Value().Object.IsValid() )
-		{
-			checkf( !It.Value().Object.IsValid() || Cache->NetGUIDLookup.FindRef( It.Value().Object ) == It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-		}
-		else
-		{
-			for ( auto It2 = Cache->NetGUIDLookup.CreateIterator(); It2; ++It2 )
-			{
-				checkf( It2.Value() != It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-			}
-		}
-	}
-
-	for ( auto It = Cache->NetGUIDLookup.CreateIterator(); It; ++It )
-	{
-		check( It.Key().IsValid() );
-		checkf( Cache->ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
-	}
-
-	FArchiveCountMemGUID CountBytesAr;
-
-	Cache->ObjectLookup.CountBytes( CountBytesAr );
-	Cache->NetGUIDLookup.CountBytes( CountBytesAr );
-
-	// Make this a warning to be a constant reminder that we need to ultimately free this memory when we find a solution
-	UE_LOG( LogNetPackageMap, Warning, TEXT( "CleanPackageMap ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), Cache->ObjectLookup.Num(), Cache->NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
+	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::ResetPackageMap"));
 }
 
 void UPackageMap::PostInitProperties()
@@ -547,33 +200,9 @@ void UPackageMap::PostInitProperties()
 	Super::PostInitProperties();
 	bShouldSerializeUnAckedObjects = true;
 	bSerializedUnAckedObject = false;
-
-	// Create the NetGUIDCache now if we don't have one. The pattern should be that the MasterMap (a plain UPackageMap) will always
-	// create one here, but UPackageMapClient and other subclasses will take thier Cache in as a parameter so that is it shared 
-	// (e.g., one 1 UNetGUIDCache exists on the server and is referenced be each client connection's package map).
-	// 
-	// This also keeps subclasses from <i>requiring</i> a master map to pass in their UNetGUIDCache; if we don't pass one in on construction
-	// they can use their own and still work. This may be useful for 'sideways' connections or other backend communication
-	if ( !Cache && !HasAnyFlags(RF_ClassDefaultObject) )
-	{
-		Cache = new UNetGUIDCache (FPostConstructInitializeProperties());
-	}
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackageMap, UObject,
-	{
-	}
-);
-
-// ----------------------------------------------------------------
-
-void UNetGUIDCache::PostInitProperties()
-{
-	Super::PostInitProperties();
-	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
-}
-
-IMPLEMENT_CORE_INTRINSIC_CLASS(UNetGUIDCache, UObject,
 	{
 	}
 );

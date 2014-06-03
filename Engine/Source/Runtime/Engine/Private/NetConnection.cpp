@@ -114,8 +114,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	//PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, NULL /*Driver->MasterMap->GetNetGUIDCache() */);
-	PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, Driver->MasterMap->GetNetGUIDCache() );
+	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -162,7 +161,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	}
 
 	// Create package map.
-	PackageMap = new(this)UPackageMapClient(FPostConstructInitializeProperties(), this, Driver->MasterMap->ObjectIsDynamicDelegate, Driver->MasterMap->GetNetGUIDCache() );
+	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
 }
 
 void UNetConnection::Serialize( FArchive& Ar )

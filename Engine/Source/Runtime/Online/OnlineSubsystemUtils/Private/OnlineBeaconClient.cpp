@@ -133,7 +133,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				FNetControlMessage<NMT_BeaconAssignGUID>::Receive(Bunch, NetGUID);
 				if (NetGUID.IsValid())
 				{
-					Connection->PackageMap->AssignNetGUID(this, NetGUID);
+					Connection->Driver->GuidCache->AssignNetGUID( this, NetGUID );
 
 					FString BeaconType = GetBeaconType();
 					FNetControlMessage<NMT_BeaconNetGUIDAck>::Send(Connection, BeaconType);

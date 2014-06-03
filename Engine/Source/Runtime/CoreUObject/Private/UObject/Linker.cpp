@@ -680,6 +680,7 @@ ULinkerLoad* GetPackageLinker
 			}
 		}
 
+#if 0
 		// Make sure the package is accessible in the sandbox.
 		if( Sandbox && !Sandbox->SupportsPackage(InOuter) )
 		{
@@ -689,6 +690,7 @@ ULinkerLoad* GetPackageLinker
 			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
 			return NULL;
 		}
+#endif
 
 		// Create new linker.
 		if( !Result )

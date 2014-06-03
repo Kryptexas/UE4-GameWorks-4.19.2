@@ -99,11 +99,12 @@ void UNetDriver::PostInitProperties()
 		PacketSimulationSettings.RegisterCommands();
 		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
 #endif
-		RoleProperty       = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
-		RemoteRoleProperty = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
+		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
+		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
-		MasterMap          = new UPackageMap(FPostConstructInitializeProperties(), FNetObjectIsDynamic::CreateUObject(this, &UNetDriver::NetObjectIsDynamic));
-		ProfileStats	   = FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
+		GuidCache			= TSharedPtr< FNetGUIDCache >( new FNetGUIDCache( this ) );
+
+		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
 	}
 	// By default we're the game net driver and any child ones must override this
 	NetDriverName = NAME_GameNetDriver;
@@ -961,7 +962,7 @@ void UNetDriver::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	// Prevent referenced objects from being garbage collected.
-	Ar << ClientConnections << ServerConnection << MasterMap << RoleProperty << RemoteRoleProperty;
+	Ar << ClientConnections << ServerConnection << RoleProperty << RemoteRoleProperty;
 
 	if (Ar.IsCountingMemory())
 	{
@@ -986,14 +987,14 @@ void UNetDriver::FinishDestroy()
 		// Low level destroy.
 		LowLevelDestroy();
 
-		// Delete the master package map.
-		MasterMap = NULL;
+		// Delete the guid cache
+		GuidCache.Reset();
 	}
 	else
 	{
 		check(ServerConnection==NULL);
 		check(ClientConnections.Num()==0);
-		check(MasterMap==NULL);
+		check(!GuidCache.IsValid());
 	}
 	Super::FinishDestroy();
 }
@@ -1144,7 +1145,7 @@ bool UNetDriver::HandleNetDisconnectCommand( const TCHAR* Cmd, FOutputDevice& Ar
 bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if WITH_SERVER_CODE
-	UPackageMap * PackageMap = new( this )UPackageMap( FPostConstructInitializeProperties(), MasterMap->ObjectIsDynamicDelegate );
+	UPackageMap * PackageMap = new( this )UPackageMap( FPostConstructInitializeProperties() );
 
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
@@ -1285,7 +1286,8 @@ FActorDestructionInfo *	CreateDestructionInfo( UNetDriver * NetDriver, AActor* T
 	if (DestructionInfo)
 		return DestructionInfo;
 
-	FNetworkGUID NetGUID = NetDriver->MasterMap->GetObjectNetGUID(ThisActor);
+	FNetworkGUID NetGUID = NetDriver->GuidCache->GetOrAssignNetGUID( ThisActor );
+
 	FActorDestructionInfo &NewInfo = NetDriver->DestroyedStartupOrDormantActors.FindOrAdd( NetGUID );
 	NewInfo.DestroyedPosition = ThisActor->GetActorLocation();
 	NewInfo.NetGUID = NetGUID;
@@ -1325,7 +1327,7 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 	const bool bIsServer = ServerConnection == NULL;
 	if (bIsServer)
 	{
-		const bool bIsActorStatic = MasterMap->GetObjectNetGUID(ThisActor).IsStatic();
+		const bool bIsActorStatic = !GuidCache->IsDynamicObject( ThisActor );
 		const bool bActorHasRole = ThisActor->GetRemoteRole() != ROLE_None;
 		const bool ShouldCreateDestructionInfo = bIsServer && bIsActorStatic && bActorHasRole && !IsSeamlessTravel;
 
@@ -2358,8 +2360,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							// we can't create the channel if the client is in a different world than we are
 							// or the package map doesn't support the actor's class/archetype (or the actor itself in the case of serializable actors)
 							// or it's an editor placed actor and the client hasn't initialized the level it's in
-							if ( Channel == NULL && Connection->PackageMap->SupportsObject(Actor->GetClass()) &&
-									Connection->PackageMap->SupportsObject(Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype()) )
+							if ( Channel == NULL && GuidCache->SupportsObject(Actor->GetClass()) &&
+									GuidCache->SupportsObject(Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype()) )
 							{
 								if (bLevelInitializedForActor)
 								{
@@ -2833,9 +2835,9 @@ bool UNetDriver::VerifyPackageInfo(FPackageInfo& Info)
 
 void UNetDriver::ResetPackageMaps()
 {
-	if (MasterMap)
+	if ( GuidCache.IsValid() )
 	{
-		MasterMap->ResetPackageMap();
+		GuidCache->Reset();
 	}
 
 	if (ServerConnection && ServerConnection->PackageMap)
@@ -2899,13 +2901,9 @@ void UNetDriver::ResetGameWorldState()
 
 void UNetDriver::CleanPackageMaps()
 {
-	if (MasterMap)
+	if ( GuidCache.IsValid() )
 	{
-		MasterMap->CleanPackageMap();
-	}
-	if (ServerConnection && ServerConnection->PackageMap)
-	{
-		ServerConnection->PackageMap->CleanPackageMap();
+		GuidCache->CleanReferences();
 	}
 }
 

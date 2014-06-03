@@ -208,13 +208,8 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 	OwningChannel = InActorChannel;
 
 	// Cache off netGUID so if this object gets deleted we can close it
-	ObjectNetGUID = OwningChannel->Connection->PackageMap->GetObjectNetGUID( GetObject() );
-
-	if ( !ObjectNetGUID.IsValid() )
-	{
-		ObjectNetGUID = OwningChannel->Connection->PackageMap->AssignNewNetGUID( GetObject() );
-		check( !ObjectNetGUID.IsDefault() && ObjectNetGUID.IsValid() );
-	}
+	ObjectNetGUID = OwningChannel->Connection->Driver->GuidCache->GetOrAssignNetGUID( GetObject() );
+	check( !ObjectNetGUID.IsDefault() && ObjectNetGUID.IsValid() );
 
 	// Allocate retirement list.
 	// SetNum now constructs, so this is safe
