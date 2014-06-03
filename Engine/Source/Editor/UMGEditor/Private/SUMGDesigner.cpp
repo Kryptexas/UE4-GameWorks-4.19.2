@@ -417,6 +417,78 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 		);
 
 		DrawDragHandles(SelectionGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
+
+		if ( CurrentSelection.IsValid() && CurrentSelection.Template->Slot )
+		{
+			const float X = AllottedGeometry.AbsolutePosition.X;
+			const float Y = AllottedGeometry.AbsolutePosition.Y;
+			const float Width = AllottedGeometry.Size.X;
+			const float Height = AllottedGeometry.Size.Y;
+
+			float Selection_X = SelectionGeometry.DrawPosition.X;
+			float Selection_Y = SelectionGeometry.DrawPosition.Y;
+			float Selection_Width = SelectionGeometry.DrawSize.X;
+			float Selection_Height = SelectionGeometry.DrawSize.Y;
+
+			const FVector2D LeftRightSize = FVector2D(32, 16);
+			const FVector2D TopBottomSize = FVector2D(16, 32);
+
+			// @TODO UMG - Don't use the curve editors brushes
+			const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
+			FLinearColor KeyColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.f);
+
+			if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CurrentSelection.Template->Slot) )
+			{
+				//Set("UMGEditor.AnchorCenter", new IMAGE_BRUSH("Icons/umg_anchor_center", Icon16x16));
+				//Set("UMGEditor.AnchorTopBottom", new IMAGE_BRUSH("Icons/umg_anchor_top_bottom", FVector2D(16, 32)));
+				//Set("UMGEditor.AnchorLeftRight", new IMAGE_BRUSH("Icons/umg_anchor_left_right", FVector2D(32, 16)));
+
+				// Left
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					++LayerId,
+					FPaintGeometry(FVector2D(X + Width * CanvasSlot->Anchors.Minimum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
+					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+					);
+
+				// Right
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					++LayerId,
+					FPaintGeometry(FVector2D(X + Width * CanvasSlot->Anchors.Maximum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
+					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+					);
+
+
+				// Top
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					++LayerId,
+					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->Anchors.Minimum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
+					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+					);
+
+				// Bottom
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					++LayerId,
+					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->Anchors.Maximum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
+					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+					);
+			}
+		}
 	}
 
 	return LayerId;

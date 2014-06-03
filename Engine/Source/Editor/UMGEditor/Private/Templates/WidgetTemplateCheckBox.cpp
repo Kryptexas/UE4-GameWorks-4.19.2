@@ -15,7 +15,7 @@ FWidgetTemplateCheckBox::FWidgetTemplateCheckBox()
 
 FText FWidgetTemplateCheckBox::GetCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Preset", "Preset");
 }
 
 UWidget* FWidgetTemplateCheckBox::Create(UWidgetTree* Tree)

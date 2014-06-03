@@ -15,7 +15,7 @@ FWidgetTemplateButton::FWidgetTemplateButton()
 
 FText FWidgetTemplateButton::GetCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Preset", "Preset");
 }
 
 UWidget* FWidgetTemplateButton::Create(UWidgetTree* Tree)

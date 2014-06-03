@@ -41,6 +41,13 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetAlignment(FVector2D InAlignment);
 
+#if WITH_EDITOR
+	// UObject interface
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	// End of UObject interface
+#endif
+
 private:
 	SConstraintCanvas::FSlot* Slot;
 };

@@ -10,11 +10,12 @@
 UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	HorizontalAlignment = HAlign_Center;
+	VerticalAlignment = VAlign_Center;
+
 	SButton::FArguments ButtonDefaults;
 
 	Style = NULL;
-	HorizontalAlignment = ButtonDefaults._HAlign;
-	VerticalAlignment = ButtonDefaults._VAlign;
 	ContentPadding = ButtonDefaults._ContentPadding.Get();
 
 	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();

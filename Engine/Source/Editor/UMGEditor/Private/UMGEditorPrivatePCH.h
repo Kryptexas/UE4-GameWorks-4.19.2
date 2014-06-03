@@ -21,3 +21,6 @@
 #include "HorizontalSlotExtension.h"
 #include "CanvasSlotExtension.h"
 #include "UniformGridSlotExtension.h"
+
+#include "DetailCustomizations.h"
+#include "CanvasSlotCustomization.h"

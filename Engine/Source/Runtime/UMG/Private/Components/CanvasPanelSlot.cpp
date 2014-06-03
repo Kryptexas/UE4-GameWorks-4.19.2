@@ -83,3 +83,19 @@ void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 		Slot->Alignment(InAlignment);
 	}
 }
+
+#if WITH_EDITOR
+void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	//static FName AnchorsProperty(TEXT("Anchors"));
+
+	//if ( PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == AnchorsProperty )
+	//{
+
+	//}
+}
+
+void UCanvasPanelSlot::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+}
+#endif

@@ -18,6 +18,7 @@
 #include "IDetailsView.h"
 
 #include "DetailCustomizations.h"
+#include "CanvasSlotCustomization.h"
 
 #include "WidgetBlueprintEditor.h"
 
@@ -225,7 +226,9 @@ public:
 		TSharedRef<class SKismetInspector> Inspector = MyBlueprintEditor.Pin()->GetInspector();
 		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
 		Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), LayoutDelegateDetails);
-		//Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UDelegateProperty::StaticClass(), LayoutDelegateDetails);
+		
+		FOnGetDetailCustomizationInstance CanvasSlotCustomization = FOnGetDetailCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
+		Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UCanvasPanelSlot::StaticClass(), CanvasSlotCustomization);
 	}
 
 	UWidgetBlueprint* GetBlueprint() const

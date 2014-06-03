@@ -13,8 +13,14 @@ FWidgetTemplateClass::FWidgetTemplateClass(TSubclassOf<UWidget> InWidgetClass)
 
 FText FWidgetTemplateClass::GetCategory()
 {
-	// TODO this should be pulled from metadata from the class, that describes its categorization, is it a panel, a common control...etc?
-	return LOCTEXT("Class", "Class");
+	const FString& Category = WidgetClass->GetMetaData("Category");
+
+	if ( Category.IsEmpty() )
+	{
+		return LOCTEXT("Misc", "Misc");
+	}
+
+	return FText::FromString(Category);
 }
 
 UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)

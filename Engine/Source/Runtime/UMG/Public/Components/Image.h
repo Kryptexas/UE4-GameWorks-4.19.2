@@ -7,7 +7,7 @@
 class USlateBrushAsset;
 
 /** Image widget */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( BlueprintSpawnableComponent, Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UImage : public UWidget
 {
 	GENERATED_UCLASS_BODY()
