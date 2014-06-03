@@ -455,10 +455,21 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 							const int32 SizeOfPrefix = ARRAY_COUNT(StringToRemove);
 							ValueString = ValueString.Mid(SizeOfPrefix - 1, ValueString.Len() - SizeOfPrefix).Replace(TEXT("Engine."), TEXT(""));
 						}
-
-						// We have no type information by this point, so no idea if it's a bool :(
-						const bool bIsBool = false;
-						AddToToolTipInfoBox( InfoBox, FText::FromString(FName::NameToDisplayString(TagIt.Key().ToString(), bIsBool)), FText::FromString(ValueString), bImportant );
+						
+						// Check for DisplayName metadata
+						FText DisplayName;
+						if (UProperty* Field = FindField<UProperty>(AssetClass, TagIt.Key()))
+						{
+							DisplayName = Field->GetDisplayNameText();
+						}
+						else
+						{
+							// We have no type information by this point, so no idea if it's a bool :(
+							const bool bIsBool = false;
+							DisplayName = FText::FromString(FName::NameToDisplayString(TagIt.Key().ToString(), bIsBool));
+						}
+					
+						AddToToolTipInfoBox(InfoBox, DisplayName, FText::FromString(ValueString), bImportant);
 					}
 				}
 			}
