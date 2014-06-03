@@ -9,8 +9,8 @@ DECLARE_DELEGATE_RetVal_OneParam( bool, FIsPropertyVisible, const UProperty* con
 /** Delegate called to get a detail layout for a specific object class */
 DECLARE_DELEGATE_RetVal( TSharedRef<class IDetailCustomization>, FOnGetDetailCustomizationInstance );
 
-/** Delegate called to get a struct property layout for a specific struct class */
-DECLARE_DELEGATE_RetVal( TSharedRef<class IStructCustomization>, FOnGetStructCustomizationInstance );
+/** Delegate called to get a property layout for a specific property type */
+DECLARE_DELEGATE_RetVal( TSharedRef<class IPropertyTypeCustomization>, FOnGetPropertyTypeCustomizationInstance );
 
 /** Notification for when a property view changes */
 DECLARE_DELEGATE_TwoParams( FOnObjectArrayChanged, const FString&, const TArray< TWeakObjectPtr< UObject > >& );
@@ -38,3 +38,7 @@ DECLARE_DELEGATE_RetVal(bool, FIsPropertyEditingEnabled );
  * unsafe)
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFinishedChangingProperties, const FPropertyChangedEvent&);
+
+/* Deprecated customization delegate support*/
+DECLARE_DELEGATE_RetVal( TSharedRef<class IStructCustomization>, FOnGetStructCustomizationInstance );
+

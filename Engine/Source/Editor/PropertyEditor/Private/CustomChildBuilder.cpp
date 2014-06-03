@@ -50,21 +50,21 @@ IDetailPropertyRow& FCustomChildrenBuilder::AddChildProperty( TSharedRef<IProper
 	return *NewCustomization.PropertyRow;
 }
 
-class SStandaloneCustomStructValue : public SCompoundWidget, public IStructCustomizationUtils
+class SStandaloneCustomStructValue : public SCompoundWidget, public IPropertyTypeCustomizationUtils
 {
 public:
 	SLATE_BEGIN_ARGS( SStandaloneCustomStructValue )
 	{}
 	SLATE_END_ARGS()
 	
-	void Construct( const FArguments& InArgs, TSharedPtr<IStructCustomization> InCustomizationInterface, TSharedRef<IPropertyHandle> InStructPropertyHandle, TSharedRef<FDetailCategoryImpl> InParentCategory )
+	void Construct( const FArguments& InArgs, TSharedPtr<IPropertyTypeCustomization> InCustomizationInterface, TSharedRef<IPropertyHandle> InStructPropertyHandle, TSharedRef<FDetailCategoryImpl> InParentCategory )
 	{
 		CustomizationInterface = InCustomizationInterface;
 		StructPropertyHandle = InStructPropertyHandle;
 		ParentCategory = InParentCategory;
 		CustomPropertyWidget = MakeShareable(new FDetailWidgetRow);
 
-		CustomizationInterface->CustomizeStructHeader(InStructPropertyHandle, *CustomPropertyWidget, *this);
+		CustomizationInterface->CustomizeHeader(InStructPropertyHandle, *CustomPropertyWidget, *this);
 
 		ChildSlot
 		[
@@ -80,7 +80,7 @@ public:
 
 private:
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
-	TSharedPtr<IStructCustomization> CustomizationInterface;
+	TSharedPtr<IPropertyTypeCustomization> CustomizationInterface;
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;
 	TSharedPtr<FDetailWidgetRow> CustomPropertyWidget;
 };
@@ -91,10 +91,10 @@ TSharedRef<SWidget> FCustomChildrenBuilder::GenerateStructValueWidget( TSharedRe
 	UStructProperty* StructProperty = CastChecked<UStructProperty>( StructPropertyHandle->GetProperty() );
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct);
-	if (StructLayoutInstanceDelegate.IsBound())
+	FPropertyTypeLayoutCallback LayoutCallback = PropertyEditorModule.GetPropertyTypeCustomization(StructProperty);
+	if (LayoutCallback.IsValid())
 	{
-		TSharedRef<IStructCustomization> CustomStructInterface = StructLayoutInstanceDelegate.Execute();
+		TSharedRef<IPropertyTypeCustomization> CustomStructInterface = LayoutCallback.GetCustomizationInstance();
 
 		return SNew( SStandaloneCustomStructValue, CustomStructInterface, StructPropertyHandle, ParentCategory.Pin().ToSharedRef() );
 	}

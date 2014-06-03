@@ -2,7 +2,7 @@
 
 #pragma once
 
-class FDetailPropertyRow : public IDetailPropertyRow, public IStructCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
+class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
 public:
 	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode = NULL);
@@ -19,7 +19,7 @@ public:
 	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget ) OVERRIDE;
 	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, FDetailWidgetRow& Row ) OVERRIDE;
 
-	/** IStructCustomizationUtils interface */
+	/** IPropertyTypeCustomizationUtils interface */
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
 	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const OVERRIDE;
 
@@ -101,10 +101,10 @@ private:
 	TAttribute<bool> IsParentEnabled;
 	/** Visibility of the property */
 	TAttribute<EVisibility> PropertyVisibility;
-	/** If the property on this row is a customized struct, this is the interface to that customization */
-	TSharedPtr<IStructCustomization> CustomStructInterface;
-	/** Builder for children of a customized struct */
-	TSharedPtr<class FCustomChildrenBuilder> StructLayoutBuilder;
+	/** If the property on this row is a customized property type, this is the interface to that customization */
+	TSharedPtr<IPropertyTypeCustomization> CustomTypeInterface;
+	/** Builder for children of a customized property type */
+	TSharedPtr<class FCustomChildrenBuilder> PropertyTypeLayoutBuilder;
 	/** The property handle for this row */
 	TSharedPtr<IPropertyHandle> PropertyHandle;
 	/** The property node for this row */

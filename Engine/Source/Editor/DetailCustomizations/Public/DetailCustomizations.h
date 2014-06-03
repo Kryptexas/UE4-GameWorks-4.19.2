@@ -28,6 +28,8 @@ public:
 	}
 
 private:
+	void RegisterPropertyTypeCustomizations();
+	void RegisterObjectCustomizations();
 
 	/**
 	 * Registers a custom class
@@ -43,10 +45,11 @@ private:
 	* @param StructName				The name of the struct to register for property customization
 	* @param StructLayoutDelegate	The delegate to call to get the custom detail layout instance
 	*/
-	void RegisterStructPropertyLayout(FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate);
+	void RegisterCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate );
 
+	void RegisterStructPropertyLayout(FName StructPropertyName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 private:
 	/** List of registered class that we must unregister when the module shuts down */
 	TSet< FName > RegisteredClassNames;
-	TSet< FName > RegisteredStructs;
+	TSet< FName > RegisteredPropertyTypes;
 };

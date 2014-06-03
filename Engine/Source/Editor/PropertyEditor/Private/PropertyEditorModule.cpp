@@ -24,6 +24,53 @@
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
 
+
+void FPropertyTypeLayoutCallbackList::Add( const FPropertyTypeLayoutCallback& NewCallback )
+{
+	if( !NewCallback.PropertyTypeIdentifier.IsValid() )
+	{
+		BaseCallback = NewCallback;
+	}
+	else
+	{
+		IdentifierList.Add( NewCallback );
+	}
+}
+
+void FPropertyTypeLayoutCallbackList::Remove( const TSharedPtr<IPropertyTypeIdentifier>& InIdentifier )
+{
+	if( !InIdentifier.IsValid() )
+	{
+		BaseCallback = FPropertyTypeLayoutCallback();
+	}
+	else
+	{
+		IdentifierList.RemoveAllSwap( [&InIdentifier]( FPropertyTypeLayoutCallback& Callback) { return Callback.PropertyTypeIdentifier == InIdentifier; } );
+	}
+}
+
+const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const UProperty& Property )
+{
+	if( IdentifierList.Num() > 0 )
+	{
+		FPropertyTypeLayoutCallback* Callback =
+			IdentifierList.FindByPredicate
+			(
+				[&Property]( const FPropertyTypeLayoutCallback& Callback )
+				{
+					return Callback.PropertyTypeIdentifier->IsPropertyTypeCustomized( Property );
+				}
+			);
+
+		if( Callback )
+		{
+			return *Callback;
+		}
+	}
+
+	return BaseCallback;
+}
+
 void FPropertyEditorModule::StartupModule()
 {
 }
@@ -330,27 +377,73 @@ void FPropertyEditorModule::RegisterCustomPropertyLayout( FName ClassName, FOnGe
 	}
 }
 
-void FPropertyEditorModule::RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate )
+void FPropertyEditorModule::UnregisterCustomPropertyLayout(FName ClassName)
 {
-	if( StructTypeName != NAME_None )
+	if (ClassName != NAME_None)
 	{
-		StructTypeToLayoutMap.Add( StructTypeName, StructLayoutDelegate );
+		ClassNameToDetailLayoutNameMap.Remove(ClassName);
 	}
 }
 
-void FPropertyEditorModule::UnregisterCustomPropertyLayout( FName ClassName )
+void FPropertyEditorModule::RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate )
 {
-	if( ClassName != NAME_None )
+	if (StructTypeName != NAME_None)
 	{
-		ClassNameToDetailLayoutNameMap.Remove( ClassName );
+		FPropertyTypeLayoutCallback Callback;
+		Callback.DeprecatedLayoutDelegate = StructLayoutDelegate;
+
+		FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find(StructTypeName);
+		if (LayoutCallbacks)
+		{
+			LayoutCallbacks->Add(Callback);
+		}
+		else
+		{
+			FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
+			NewLayoutCallbacks.Add(Callback);
+			PropertyTypeToLayoutMap.Add(StructTypeName, NewLayoutCallbacks);
+		}
 	}
 }
 
 void FPropertyEditorModule::UnregisterStructPropertyLayout( FName StructTypeName )
 {
-	if( StructTypeName != NAME_None )
+	UnregisterCustomPropertyTypeLayout( StructTypeName );
+}
+
+
+void FPropertyEditorModule::RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier )
+{
+	if( PropertyTypeName != NAME_None )
 	{
-		StructTypeToLayoutMap.Remove( StructTypeName );
+		FPropertyTypeLayoutCallback Callback;
+		Callback.PropertyTypeLayoutDelegate = PropertyTypeLayoutDelegate;
+		Callback.PropertyTypeIdentifier = Identifier;
+
+		FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find( PropertyTypeName );
+		if( LayoutCallbacks )
+		{
+			LayoutCallbacks->Add( Callback );
+		}
+		else
+		{
+			FPropertyTypeLayoutCallbackList NewLayoutCallbacks;
+			NewLayoutCallbacks.Add( Callback );
+			PropertyTypeToLayoutMap.Add( PropertyTypeName, NewLayoutCallbacks );
+		}
+	}
+}
+
+void FPropertyEditorModule::UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> Identifier )
+{
+	if( PropertyTypeName != NAME_None )
+	{
+		FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find( PropertyTypeName );
+
+		if( LayoutCallbacks )
+		{
+			LayoutCallbacks->Remove( Identifier );
+		}
 	}
 }
 
@@ -473,16 +566,48 @@ bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct) const
 {
 	if (Struct && !Struct->IsA<UUserDefinedStruct>())
 	{
-		return StructTypeToLayoutMap.Contains(Struct->GetFName());
+		return PropertyTypeToLayoutMap.Contains(Struct->GetFName());
 	}
 	return false;
 }
 
-FOnGetStructCustomizationInstance FPropertyEditorModule::GetStructCustomizaton(const UStruct* Struct)
+FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(const UProperty* Property)
 {
-	if (Struct && !Struct->IsA<UUserDefinedStruct>())
+	if( Property )
 	{
-		return StructTypeToLayoutMap.FindRef(Struct->GetFName());
+		const UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+		bool bStructProperty = StructProperty && StructProperty->Struct;
+		const bool bUserDefinedStruct = bStructProperty && StructProperty->Struct->IsA<UUserDefinedStruct>();
+		bStructProperty &= !bUserDefinedStruct;
+
+		const UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+		const bool bEnumProperty = ByteProperty && ByteProperty->Enum;
+
+		FName PropertyTypeName;
+		if( bStructProperty )
+		{
+			PropertyTypeName = StructProperty->Struct->GetFName();
+		}
+		else if( bEnumProperty )
+		{
+			PropertyTypeName = ByteProperty->Enum->GetFName();
+		}
+		else
+		{
+			PropertyTypeName = Property->GetFName();
+		}
+
+
+		if (PropertyTypeName != NAME_None)
+		{
+			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find(PropertyTypeName);
+			if (LayoutCallbacks)
+			{
+				const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(*Property);
+				return Callback;
+			}
+		}
 	}
-	return FOnGetStructCustomizationInstance();
+
+	return FPropertyTypeLayoutCallback();
 }

@@ -48,7 +48,8 @@ namespace FPropertyAccess
 class IDetailCustomization : public TSharedFromThis<IDetailCustomization>
 {
 public:
-  virtual ~IDetailCustomization() {}
+	virtual ~IDetailCustomization() {}
+
 	/** Called when details should be customized */
 	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) = 0;
 };
@@ -60,12 +61,12 @@ class IPropertyTableCellPresenter;
 
 
 /**
- * Utilities for struct customization
+ * Utilities for property type customization
  */
-class IStructCustomizationUtils
+class IPropertyTypeCustomizationUtils
 {
 public:
-	virtual ~IStructCustomizationUtils(){};
+	virtual ~IPropertyTypeCustomizationUtils(){};
 
 	/**
 	 * @return the font used for properties and details
@@ -87,6 +88,9 @@ public:
 	*/
 	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const { return NULL; }
 };
+
+/** Deprecated IStructCustomizationUtils interface */
+typedef IPropertyTypeCustomizationUtils IStructCustomizationUtils;
 
 /**
  * Builder for adding children to a detail customization
@@ -139,12 +143,46 @@ public:
 };
 
 /**
- * Base class for struct customizations
+ * Base class for property type customizations
  */
-class IStructCustomization : public TSharedFromThis<IStructCustomization>
+class IPropertyTypeCustomization : public TSharedFromThis<IPropertyTypeCustomization>
 {
 public:
-	virtual ~IStructCustomization() {}
+	virtual ~IPropertyTypeCustomization() {}
+
+	/**
+	 * Called when the header of the property (the row in the details panel where the property is shown)
+	 * If nothing is added to the row, the header is not displayed
+	 *
+	 * @param PropertyHandle			Handle to the property being customized
+	 * @param HeaderRow					A row that widgets can be added to
+	 * @param StructCustomizationUtils	Utilities for customization
+	 */
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils ) = 0;
+
+	/**
+	 * Called when the children of the property should be customized or extra rows added
+	 *
+	 * @param PropertyHandle			Handle to the property being customized
+	 * @param StructBuilder				A builder for adding children
+	 * @param StructCustomizationUtils	Utilities for customization
+	 */
+	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils ) = 0;
+};
+
+/** Deprecated IStructCustomization interface */
+class IStructCustomization : public IPropertyTypeCustomization
+{
+public:
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils )
+	{
+		CustomizeStructHeader( PropertyHandle, HeaderRow, CustomizationUtils );
+	}
+
+	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils ) 
+	{
+		CustomizeStructChildren( PropertyHandle, ChildBuilder, CustomizationUtils );
+	}
 
 	/**
 	 * Called when the header of the struct (usually where the name of the struct and information about the struct as a whole is added)
@@ -166,6 +204,18 @@ public:
 	virtual void CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils ) = 0;
 };
 
+/** 
+ * Base class for adding an extra data to identify a custom property type
+ */
+class IPropertyTypeIdentifier
+{
+public:
+	virtual ~IPropertyTypeIdentifier() {}
+
+	virtual bool IsPropertyTypeCustomized( const UProperty& InProperty ) const = 0;
+};
+
+
 
 /**
  * Callback executed to query the custom layout of details
@@ -178,9 +228,43 @@ struct FDetailLayoutCallback
 	int32 Order;
 };
 
+struct FPropertyTypeLayoutCallback
+{
+	FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate;
+
+	FOnGetStructCustomizationInstance DeprecatedLayoutDelegate;
+
+	TSharedPtr<IPropertyTypeIdentifier> PropertyTypeIdentifier;
+
+	bool IsValid() { return PropertyTypeLayoutDelegate.IsBound() || DeprecatedLayoutDelegate.IsBound(); }
+
+	TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
+	{
+		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : DeprecatedLayoutDelegate.Execute();
+	}
+};
+
+
+struct FPropertyTypeLayoutCallbackList
+{
+	/** The base callback is a registered callback with a null identifier */
+	FPropertyTypeLayoutCallback BaseCallback;
+
+	/** List of registered callbacks with a non null identifier */
+	TArray< FPropertyTypeLayoutCallback > IdentifierList;
+
+	void Add( const FPropertyTypeLayoutCallback& NewCallback );
+	
+	void Remove( const TSharedPtr<IPropertyTypeIdentifier>& InIdentifier );
+
+	const FPropertyTypeLayoutCallback& Find( const UProperty& Property );
+};
+
 typedef TMap< TWeakObjectPtr<UStruct>, FDetailLayoutCallback > FCustomDetailLayoutMap;
 typedef TMap< FName, FDetailLayoutCallback > FCustomDetailLayoutNameMap;
-typedef TMap< FName, FOnGetStructCustomizationInstance > FCustomStructLayoutMap;
+
+/** This is a multimap as there many be more than one customization per property type */
+typedef TMap< FName, FPropertyTypeLayoutCallbackList > FCustomPropertyTypeLayoutMap;
 
 class FPropertyEditorModule : public IModuleInterface
 {
@@ -225,20 +309,12 @@ public:
 	virtual bool HasUnlockedDetailViews() const;
 
 	/**
-	 * Registers a custom detail layout delegate for a specific class name
+	 * Registers a custom detail layout delegate for a specific class
 	 *
-	 * @param ClassName	The class name the custom detail layout is for
+	 * @param ClassName	The name of the class that the custom detail layout is for
 	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
 	 */
 	virtual void RegisterCustomPropertyLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
-
-	/**
-	 * Registers a custom detail layout delegate for a specific class
-	 *
-	 * @param Class	The class the custom detail layout is for
-	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
-	 */
-	virtual void RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 
 	/**
 	 * Unregisters a custom detail layout delegate for a specific class name
@@ -246,6 +322,32 @@ public:
 	 * @param ClassName	The class name with the custom detail layout delegate to remove
 	 */
 	virtual void UnregisterCustomPropertyLayout( FName ClassName );
+
+	/**
+	 * Registers a property type customization
+	 * A property type is a specific UProperty type, a struct, or enum type
+	 *
+	 * @param PropertyTypeName		The name of the property type to customize.  For structs and enums this is the name of the struct class or enum	(not StructProperty or ByteProperty) 
+	 * @param PropertyTypeLayoutDelegate	The delegate to call when querying for a custom layout of the property type
+	 * @param Identifier			An identifier to use to differentiate between two customizations on the same type
+	 */
+	virtual void RegisterCustomPropertyTypeLayout( FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate, TSharedPtr<IPropertyTypeIdentifier> Identifier = NULL );
+
+	/**
+	 * Unregisters a custom detail layout for a properrty type
+	 *
+	 * @param PropertyTypeName 	The name of the property type that was registered
+	 * @param Identifier 		An identifier to use to differentiate between two customizations on the same type
+	 */
+	virtual void UnregisterCustomPropertyTypeLayout( FName PropertyTypeName, TSharedPtr<IPropertyTypeIdentifier> InIdentifier = NULL );
+
+	/**
+	 * Registers a custom detail layout delegate for a specific class
+	 *
+	 * @param Class	The class the custom detail layout is for
+	 * @param StructLayoutDelegate	The delegate to call when querying for custom detail layouts for the struct properties
+	 */
+	virtual void RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 
 	/**
 	 * Unregisters a custom detail layout delegate for a specific structure
@@ -320,7 +422,7 @@ public:
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< UObject* >& ObjectsToEdit );
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< TWeakObjectPtr< UObject > >& ObjectsToEdit );
 
-	FOnGetStructCustomizationInstance GetStructCustomizaton(const UStruct* Struct);
+	FPropertyTypeLayoutCallback GetPropertyTypeCustomization(const UProperty* InProperty);
 	bool IsCustomizedStruct(const UStruct* Struct) const;
 
 private:
@@ -347,6 +449,6 @@ private:
 	TArray< TWeakPtr<class SSingleProperty> > AllSinglePropertyViews;
 	/** A mapping of class names to detail layout delegates, called when querying for custom detail layouts */
 	FCustomDetailLayoutNameMap ClassNameToDetailLayoutNameMap;
-	/** A mapping of structs to struct layout delegates, called when querying for custom struct layouts */
-	FCustomStructLayoutMap StructTypeToLayoutMap;
+	/** A mapping of property names to property type layout delegates, called when querying for custom property layouts */
+	FCustomPropertyTypeLayoutMap PropertyTypeToLayoutMap;
 };
