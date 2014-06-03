@@ -296,15 +296,20 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
 		}
 	}
 
-	// allow HMDs to override fov
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-	{
-		float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
-		if (HmdFov > 0)
-		{
-			OutViewInfo.FOV = HmdFov;
-		}
-	}
+    // allow HMDs to override fov
+    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+    {
+		float HFOV, VFOV;
+        GEngine->HMDDevice->GetFieldOfView(HFOV, VFOV);
+        if (VFOV > 0 && HFOV > 0)
+        {
+            OutViewInfo.FOV = FMath::Max(HFOV, VFOV);
+			// AspectRatio won't be used until bConstrainAspectRatio is set to true,
+			// but it doesn't really matter since HMD calcs its own projection matrix.
+			//OutViewInfo.AspectRatio = HFOV / VFOV;
+			//OutViewInfo.bConstrainAspectRatio = true;
+        }
+    }
 }
 
 FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
@@ -460,7 +465,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
 	{
-		ViewFamily->ViewExtensions[ViewExt]->SetupView(*View);
+		ViewFamily->ViewExtensions[ViewExt]->SetupView(*ViewFamily, *View); //!!AB
 	}
 	return View;
 }
@@ -658,7 +663,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	{
 		// Create the projection matrix (and possibly constrain the view rectangle)
 		if (ViewInfo.bConstrainAspectRatio)
-		{		
+		{			
 			// Enforce a particular aspect ratio for the render of the scene. 
 			// Results in black bars at top/bottom etc.
 			ProjectionData.SetConstrainedViewRectangle(ViewportClient->Viewport->CalculateViewExtents(ViewInfo.AspectRatio, UnconstrainedRectangle));

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -9,6 +9,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"OculusRift/Private",
+					"../../../Source/Runtime/Renderer/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -18,8 +19,11 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-                    "InputCore",
 					"Engine",
+					"RHI",
+					"RenderCore",
+					"Renderer",
+					"ShaderCore",
 					"HeadMountedDisplay"
 				}
 				);

@@ -52,12 +52,6 @@ bool DoScreenSpaceReflections(const FViewInfo& View)
 		return false;
 	}
 
-	if(GEngine->IsStereoscopic3D())
-	{
-		// todo: revisit that later
-		return false;
-	}
-
 	if(View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity < 1.0f)
 	{
 		return false;

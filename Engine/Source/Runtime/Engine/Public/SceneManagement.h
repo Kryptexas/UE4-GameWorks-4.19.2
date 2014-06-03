@@ -2876,6 +2876,9 @@ public:
 	/** The render target which the views are being rendered to. */
 	const FRenderTarget* RenderTarget;
 
+	/** Indicates that a separate render target is in use (not a backbuffer RT) */
+	bool bUseSeparateRenderTarget;
+
 	/** The scene being viewed. */
 	FSceneInterface* Scene;
 

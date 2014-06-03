@@ -973,10 +973,18 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			{
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
+				if (GEngine->HMDDevice.IsValid())
+				{
+					GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
+				}
 				DebugCanvas->PopTransform();
 
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
+				if (GEngine->HMDDevice.IsValid())
+				{
+					GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
+				}
 				if (DebugCanvas != NULL)
 				{
 					DebugCanvas->PopTransform();

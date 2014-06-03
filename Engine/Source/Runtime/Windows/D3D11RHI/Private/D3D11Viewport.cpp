@@ -202,7 +202,10 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 		{
 			DXGI_MODE_DESC BufferDesc = SetupDXGI_MODE_DESC();
 
-			VERIFYD3D11RESULT_EX(SwapChain->ResizeTarget(&BufferDesc), D3DRHI->GetDevice());
+			if (FAILED(SwapChain->ResizeTarget(&BufferDesc)))
+			{
+				ConditionalResetSwapChain(true);
+			}
 		}
 	}
 

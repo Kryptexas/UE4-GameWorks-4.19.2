@@ -7,15 +7,17 @@ public class LibOVR : ModuleRules
 	public LibOVR(TargetInfo Target)
 	{
 		/** Mark the current version of the Oculus SDK */
-		string LibOVRVersion = "025";
+		string LibOVRVersion = "";
 		Type = ModuleType.External;
+
+        Definitions.Add("OVR_CAPI_VISIONSUPPORT=1");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR_" + LibOVRVersion + "/Include");
+            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
 
-            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR_" + LibOVRVersion + "/Lib/";
+            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/";
 			string LibraryName = "libovr";
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
@@ -26,6 +28,7 @@ public class LibOVR : ModuleRules
             {
                 LibraryPath += "Win32/";
             }
+			LibraryPath += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryName + ".lib");
             //PublicAdditionalLibraries.Add(LibraryName + "d.lib");
@@ -33,9 +36,9 @@ public class LibOVR : ModuleRules
 		}
 		else if ((Target.Platform == UnrealTargetPlatform.Mac))
 		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR_" + LibOVRVersion + "/Include");
+            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
 
-            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR_" + LibOVRVersion + "/Lib/MacOS/Release/";
+            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
 			string LibraryName = "libovr";
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");
