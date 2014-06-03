@@ -81,6 +81,52 @@ struct FTimerUnifiedDelegate
 	}
 };
 
+// Unique handle that can be used to distinguish timers that have identical delegates.
+struct FTimerHandle
+{
+	FTimerHandle()
+	: Handle(INDEX_NONE)
+	{
+
+	}
+
+	FTimerHandle(int32 InHandle)
+		: Handle(InHandle)
+	{
+
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	void Invalidate()
+	{
+		Handle = INDEX_NONE;
+	}
+
+	void MakeValid();
+
+	bool operator==(const FTimerHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FTimerHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%d"), Handle);
+	}
+
+private:
+	int32 Handle;
+};
+
 namespace ETimerStatus
 {
 	enum Type
@@ -111,6 +157,8 @@ struct FTimerData
 
 	/** Holds the delegate to call. */
 	FTimerUnifiedDelegate TimerDelegate;
+
+	FTimerHandle TimerHandle;
 
 	FTimerData()
 		: bLoop(false), Status(ETimerStatus::Active)
@@ -148,36 +196,104 @@ public:
 	{}
 
 
-/**
+	/**
 	 * Sets a timer to call the given native function at a set interval.  If a timer is already set
 	 * for this delegate, it will update the current timer to the new parameters and reset its 
 	 * elapsed time to 0.
 	 *
-	 * @param inObj			Object to call the timer function on.
-	 * @param inTimerMethod Method to call when timer fires.
-	 * @param inRate		The amount of time between set and firing.  If <= 0.f, clears existing timers.
-	 * @param inbLoop		true to keep firing at Rate intervals, false to fire only once.
+	 * @param InObj					Object to call the timer function on.
+	 * @param InTimerMethod			Method to call when timer fires.
+	 * @param InRate				The amount of time between set and firing.  If <= 0.f, clears existing timers.
+	 * @param InbLoop				true to keep firing at Rate intervals, false to fire only once.
+	 * @param InFirstDelay			The time for the first iteration of a looping timer. If < 0.f inRate will be used.
 	 */
 	template< class UserClass >	
-	FORCEINLINE void SetTimer( UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod, float inRate, bool inbLoop = false)
+	FORCEINLINE void SetTimer(UserClass* InObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr InTimerMethod, float InRate, bool InbLoop = false, float InFirstDelay = -1.f)
 	{
-		SetTimer( FTimerDelegate::CreateUObject(inObj, inTimerMethod), inRate, inbLoop );
+		SetTimer( FTimerDelegate::CreateUObject(InObj, InTimerMethod), InRate, InbLoop, InFirstDelay );
 	}
 	template< class UserClass >	
-	FORCEINLINE void SetTimer( UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod, float inRate, bool inbLoop = false)
+	FORCEINLINE void SetTimer(UserClass* InObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr InTimerMethod, float InRate, bool InbLoop = false, float InFirstDelay = -1.f)
 	{
-		SetTimer( FTimerDelegate::CreateUObject(inObj, inTimerMethod), inRate, inbLoop );
+		SetTimer( FTimerDelegate::CreateUObject(InObj, InTimerMethod), InRate, InbLoop, InFirstDelay );
 	}
 
 	/** Version that takes any generic delegate. */
-	FORCEINLINE void SetTimer(FTimerDelegate const& InDelegate, float InRate, bool InbLoop)
+	FORCEINLINE void SetTimer(FTimerDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay = -1.f)
 	{
-		InternalSetTimer( FTimerUnifiedDelegate(InDelegate), InRate, InbLoop );
+		InternalSetTimer( FTimerUnifiedDelegate(InDelegate), InRate, InbLoop, InFirstDelay );
 	}
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
-	FORCEINLINE void SetTimer(FTimerDynamicDelegate const& InDynDelegate, float InRate, bool InbLoop)
+	FORCEINLINE void SetTimer(FTimerDynamicDelegate const& InDynDelegate, float InRate, bool InbLoop, float InFirstDelay = -1.f)
 	{
-		InternalSetTimer( FTimerUnifiedDelegate(InDynDelegate), InRate, InbLoop );
+		InternalSetTimer( FTimerUnifiedDelegate(InDynDelegate), InRate, InbLoop, InFirstDelay );
+	}
+
+	/**
+	* Sets a timer to call the given native function at a set interval.  If a timer is already set
+	* for this delegate, it will update the current timer to the new parameters and reset its
+	* elapsed time to 0.
+	*
+	* @param InOutHandle			Handle to identify this timer. If it is invalid when passed in it will be made into a valid handle.
+	* @param InObj					Object to call the timer function on.
+	* @param InTimerMethod			Method to call when timer fires.
+	* @param InRate					The amount of time between set and firing.  If <= 0.f, clears existing timers.
+	* @param InbLoop				true to keep firing at Rate intervals, false to fire only once.
+	* @param InFirstDelay			The time for the first iteration of a looping timer. If < 0.f inRate will be used.
+	*/
+	template< class UserClass >
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, UserClass* InObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr InTimerMethod, float InRate, bool InbLoop = false, float InFirstDelay = -1.f)
+	{
+		SetTimer(InOutHandle, FTimerDelegate::CreateUObject(InObj, InTimerMethod), InRate, InbLoop, InFirstDelay);
+	}
+	template< class UserClass >
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, UserClass* InObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr InTimerMethod, float InRate, bool InbLoop = false, float InFirstDelay = -1.f)
+	{
+		SetTimer(InOutHandle, FTimerDelegate::CreateUObject(InObj, InTimerMethod), InRate, InbLoop, InFirstDelay);
+	}
+
+	/** Version that takes any generic delegate. */
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, FTimerDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay = -1.f)
+	{
+		InternalSetTimer(InOutHandle, FTimerUnifiedDelegate(InDelegate), InRate, InbLoop, InFirstDelay);
+	}
+	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, FTimerDynamicDelegate const& InDynDelegate, float InRate, bool InbLoop, float InFirstDelay = -1.f)
+	{
+		InternalSetTimer(InOutHandle, FTimerUnifiedDelegate(InDynDelegate), InRate, InbLoop, InFirstDelay);
+	}
+	/*** Version that doesn't take a delegate */
+	FORCEINLINE void SetTimer(FTimerHandle& InOutHandle, float InRate, bool InbLoop, float InFirstDelay = -1.f)
+	{
+		InternalSetTimer(InOutHandle, FTimerUnifiedDelegate(), InRate, InbLoop, InFirstDelay);
+	}
+
+	/**
+	* Sets a timer to call the given native function on the next tick.
+	*
+	* @param inObj					Object to call the timer function on.
+	* @param inTimerMethod			Method to call when timer fires.
+	*/
+	template< class UserClass >
+	FORCEINLINE void SetTimerForNextTick(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod)
+	{
+		SetTimerForNextTick(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+	template< class UserClass >
+	FORCEINLINE void SetTimerForNextTick(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod)
+	{
+		SetTimerForNextTick(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	/** Version that takes any generic delegate. */
+	FORCEINLINE void SetTimerForNextTick(FTimerDelegate const& InDelegate)
+	{
+		InternalSetTimerForNextTick(FTimerUnifiedDelegate(InDelegate));
+	}
+	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
+	FORCEINLINE void SetTimerForNextTick(FTimerDynamicDelegate const& InDynDelegate)
+	{
+		InternalSetTimerForNextTick(FTimerUnifiedDelegate(InDynDelegate));
 	}
 
 
@@ -207,6 +323,11 @@ public:
 	FORCEINLINE void ClearTimer(FTimerDynamicDelegate const& InDynDelegate)
 	{
 		InternalClearTimer( FTimerUnifiedDelegate(InDynDelegate) );
+	}
+	/** Version that takes a handle */
+	FORCEINLINE void ClearTimer(FTimerHandle const& InHandle)
+	{
+		InternalClearTimer(InHandle);
 	}
 
 	/** Clears all timers that are bound to functions on the given object. */
@@ -239,12 +360,23 @@ public:
 	/** Version that takes any generic delegate. */
 	FORCEINLINE void PauseTimer(FTimerDelegate const& InDelegate)
 	{
-		InternalPauseTimer( FTimerUnifiedDelegate(InDelegate) );
+		int32 TimerIdx;
+		FTimerData const* TimerToPause = FindTimer(FTimerUnifiedDelegate(InDelegate), &TimerIdx);
+		InternalPauseTimer(TimerToPause, TimerIdx);
 	}
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE void PauseTimer(FTimerDynamicDelegate const& InDynDelegate)
 	{
-		InternalPauseTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		int32 TimerIdx;
+		FTimerData const* TimerToPause = FindTimer(FTimerUnifiedDelegate(InDynDelegate), &TimerIdx);
+		InternalPauseTimer(TimerToPause, TimerIdx);
+	}
+	/** Version that takes a handle */
+	FORCEINLINE void PauseTimer(FTimerHandle const& InHandle)
+	{
+		int32 TimerIdx;
+		FTimerData const* TimerToPause = FindTimer(InHandle, &TimerIdx);
+		InternalPauseTimer(TimerToPause, TimerIdx);
 	}
 
 	/**
@@ -267,12 +399,20 @@ public:
 	/** Version that takes any generic delegate. */
 	FORCEINLINE void UnPauseTimer(FTimerDelegate const& InDelegate)
 	{
-		InternalUnPauseTimer( FTimerUnifiedDelegate(InDelegate) );
+		int32 TimerIdx = FindTimerInList( PausedTimerList, FTimerUnifiedDelegate(InDelegate) );
+		InternalUnPauseTimer(TimerIdx);
 	}
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE void UnPauseTimer(FTimerDynamicDelegate const& InDynDelegate)
 	{
-		InternalUnPauseTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		int32 TimerIdx = FindTimerInList( PausedTimerList, FTimerUnifiedDelegate(InDynDelegate) );
+		InternalUnPauseTimer(TimerIdx);
+	}
+	/** Version that takes a handle */
+	FORCEINLINE void UnPauseTimer(FTimerHandle const& InHandle)
+	{
+		int32 TimerIdx = FindTimerInList(PausedTimerList, InHandle);
+		InternalUnPauseTimer(TimerIdx);
 	}
 
 	/**
@@ -297,13 +437,22 @@ public:
 	/** Version that takes any generic delegate. */
 	FORCEINLINE float GetTimerRate(FTimerDelegate const& InDelegate)
 	{
-		return InternalGetTimerRate( FTimerUnifiedDelegate(InDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDelegate) );
+		return InternalGetTimerRate(TimerData);
 	}
 
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE float GetTimerRate(FTimerDynamicDelegate const& InDynDelegate)
 	{
-		return InternalGetTimerRate( FTimerUnifiedDelegate(InDynDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		return InternalGetTimerRate(TimerData);
+	}
+
+	/** Version that takes a handle */
+	FORCEINLINE float GetTimerRate(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer(InHandle);
+		return InternalGetTimerRate(TimerData);
 	}
 
 	/**
@@ -336,6 +485,13 @@ public:
 	FORCEINLINE bool IsTimerActive(FTimerDynamicDelegate const& InDynDelegate)
 	{
 		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		return ( (TimerData != NULL) && (TimerData->Status != ETimerStatus::Paused) );
+	}
+
+	/** Version that takes a handle */
+	FORCEINLINE bool IsTimerActive(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer( InHandle );
 		return ( (TimerData != NULL) && (TimerData->Status != ETimerStatus::Paused) );
 	}
 
@@ -372,6 +528,53 @@ public:
 		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Paused));
 	}
 
+	/** Version that takes a handle */
+	FORCEINLINE bool IsTimerPaused(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer(InHandle);
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Paused));
+	}
+
+	/**
+	* Returns true if the specified timer exists and is pending
+	*
+	* @param inObj			Object binding for query.
+	* @param inTimerMethod	Method binding for query.
+	* @return				true if the timer matching the given criteria exists and is paused, false otherwise.
+	*/
+	template< class UserClass >
+	FORCEINLINE bool IsTimerPending(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod) const
+	{
+		return IsTimerPending(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	template< class UserClass >
+	FORCEINLINE bool IsTimerPending(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod)  const
+	{
+		return IsTimerPending(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	/** Version that takes any generic delegate. */
+	FORCEINLINE bool IsTimerPending(FTimerDelegate const& InDelegate) const
+	{
+		FTimerData const* const TimerData = FindTimer(FTimerUnifiedDelegate(InDelegate));
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Pending));
+	}
+
+	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
+	FORCEINLINE bool IsTimerPending(FTimerDynamicDelegate const& InDynDelegate) const
+	{
+		FTimerData const* const TimerData = FindTimer(FTimerUnifiedDelegate(InDynDelegate));
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Pending));
+	}
+
+	/** Version that takes a handle */
+	FORCEINLINE bool IsTimerPending(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer(InHandle);
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Pending));
+	}
+
 	/**
 	* Returns true if the specified timer exists
 	*
@@ -404,6 +607,12 @@ public:
 		return FindTimer(FTimerUnifiedDelegate(InDynDelegate)) != NULL;
 	}
 
+	/** Version that takes a handle */
+	FORCEINLINE bool TimerExists(FTimerHandle const& InHandle)
+	{
+		return FindTimer(InHandle) != NULL;
+	}
+
 	/**
 	 * Gets the current elapsed time for the specified timer.
 	 *
@@ -424,12 +633,21 @@ public:
 	/** Version that takes any generic delegate. */
 	FORCEINLINE float GetTimerElapsed(FTimerDelegate const& InDelegate)
 	{
-		return InternalGetTimerElapsed( FTimerUnifiedDelegate(InDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDelegate) );
+		return InternalGetTimerElapsed(TimerData);
 	}
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE float GetTimerElapsed(FTimerDynamicDelegate const& InDynDelegate)
 	{
-		return InternalGetTimerElapsed( FTimerUnifiedDelegate(InDynDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		return InternalGetTimerElapsed(TimerData);
+	}
+
+	/** Version that takes a handle */
+	FORCEINLINE float GetTimerElapsed(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer(InHandle);
+		return InternalGetTimerElapsed(TimerData);
 	}
 
 	/**
@@ -452,12 +670,20 @@ public:
 	/** Version that takes any generic delegate. */
 	FORCEINLINE float GetTimerRemaining(FTimerDelegate const& InDelegate)
 	{
-		return InternalGetTimerRemaining( FTimerUnifiedDelegate(InDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDelegate) );
+		return InternalGetTimerRemaining(TimerData);
 	}
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE float GetTimerRemaining(FTimerDynamicDelegate const& InDynDelegate)
 	{
-		return InternalGetTimerRemaining( FTimerUnifiedDelegate(InDynDelegate) );
+		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDynDelegate) );
+		return InternalGetTimerRemaining(TimerData);
+	}
+	/** Version that takes a handle */
+	FORCEINLINE float GetTimerRemaining(FTimerHandle const& InHandle)
+	{
+		FTimerData const* const TimerData = FindTimer(InHandle);
+		return InternalGetTimerRemaining(TimerData);
 	}
 
 	/** Timer manager has been ticked this frame? */
@@ -468,22 +694,28 @@ public:
 
 private:
 
-	void InternalSetTimer( FTimerUnifiedDelegate const& InDelegate, float inRate, bool inbLoop );
+	void InternalSetTimer( FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay );
+	void InternalSetTimer( FTimerHandle& InOutHandle, FTimerUnifiedDelegate const& InDelegate, float InRate, bool InbLoop, float InFirstDelay );
+	void InternalSetTimer( FTimerData& NewTimerData, float InRate, bool InbLoop, float InFirstDelay );
+	void InternalSetTimerForNextTick( FTimerUnifiedDelegate const& InDelegate );
 	void InternalClearTimer( FTimerUnifiedDelegate const& InDelegate );
-	void InternalClearAllTimers(void const* Object);
+	void InternalClearTimer( FTimerHandle const& InDelegate );
+	void InternalClearAllTimers( void const* Object );
 
-	/** Will find a timer either in the active or paused list. */
+	/** Will find a timer in the active, paused, or pending list. */
 	FTimerData const* FindTimer( FTimerUnifiedDelegate const& InDelegate, int32* OutTimerIndex=NULL ) const;
+	FTimerData const* FindTimer( FTimerHandle const& InHandle, int32* OutTimerIndex = NULL ) const;
 
-	void InternalPauseTimer( FTimerUnifiedDelegate const& InDelegate );
-	void InternalUnPauseTimer( FTimerUnifiedDelegate const& InDelegate );
-
-	float InternalGetTimerRate( FTimerUnifiedDelegate const& InDelegate ) const;
-	float InternalGetTimerElapsed( FTimerUnifiedDelegate const& InDelegate ) const;
-	float InternalGetTimerRemaining( FTimerUnifiedDelegate const& InDelegate ) const;
+	void InternalPauseTimer( FTimerData const* TimerToPause, int32 TimerIdx );
+	void InternalUnPauseTimer( int32 PausedTimerIdx );
+	
+	float InternalGetTimerRate( FTimerData const* const TimerData ) const;
+	float InternalGetTimerElapsed( FTimerData const* const TimerData ) const;
+	float InternalGetTimerRemaining( FTimerData const* const TimerData ) const;
 
 	/** Will find the given timer in the given TArray and return its index. */ 
-	int32 FindTimerInList(const TArray<FTimerData> &SearchArray, FTimerUnifiedDelegate const& InDelegate ) const;
+	int32 FindTimerInList( const TArray<FTimerData> &SearchArray, FTimerUnifiedDelegate const& InDelegate ) const;
+	int32 FindTimerInList( const TArray<FTimerData> &SearchArray, FTimerHandle const& InHandle ) const;
 
 	/** Heap of actively running timers. */
 	TArray<FTimerData> ActiveTimerHeap;
