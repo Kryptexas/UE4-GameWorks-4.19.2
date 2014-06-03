@@ -632,8 +632,12 @@ struct FApexClothCollisionVolumeData
 	*/
 
 	int32	BoneIndex;
+	// for convexes
 	uint32	ConvexVerticesCount;
 	uint32	ConvexVerticesStart;
+	TArray<FVector> BoneVertices;
+	TArray<FPlane>  BonePlanes;
+	// for capsules
 	float	CapsuleRadius;
 	float	CapsuleHeight;
 	FMatrix LocalPose;
@@ -646,7 +650,7 @@ struct FApexClothCollisionVolumeData
 		CapsuleRadius = 0.0f;
 		CapsuleHeight = 0.0f;
 		LocalPose.SetIdentity();
-	};
+	}
 
 	bool IsCapsule()
 	{
