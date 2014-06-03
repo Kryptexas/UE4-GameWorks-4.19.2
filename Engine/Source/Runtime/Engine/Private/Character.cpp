@@ -560,6 +560,8 @@ void ACharacter::Restart()
 {
 	Super::Restart();
 	bPressedJump = false;
+	JumpKeyHoldTime = 0.0f;
+	ClearJumpInput();
 }
 
 void ACharacter::PawnClientRestart()
