@@ -786,13 +786,13 @@ float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothin
 				}
 			}*/
 		}
+	}
 
-		// See if the code in the base class wants to replace this
-		float SuperTickRate = Super::GetMaxTickRate(DeltaTime, bAllowFrameRateSmoothing);
-		if(SuperTickRate != 0.0)
-		{
-			MaxTickRate = SuperTickRate;
-		}
+	// See if the code in the base class wants to replace this
+	float SuperTickRate = Super::GetMaxTickRate(DeltaTime, bAllowFrameRateSmoothing);
+	if(SuperTickRate != 0.0)
+	{
+		MaxTickRate = SuperTickRate;
 	}
 
 	return MaxTickRate;

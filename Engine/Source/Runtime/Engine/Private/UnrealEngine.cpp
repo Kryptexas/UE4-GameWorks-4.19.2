@@ -5459,11 +5459,11 @@ static TAutoConsoleVariable<float> CVarMaxFPS(
 // CauseHitches cvar
 static TAutoConsoleVariable<int32> CVarCauseHitches(
 	TEXT("CauseHitches"),0,
-	TEXT("Causes a 100ms hitch every second."));
+	TEXT("Causes a 200ms hitch every second."));
 
 static TAutoConsoleVariable<int32> CVarUnsteadyFPS(
 	TEXT("t.UnsteadyFPS"),0,
-	TEXT("Causes FPS to bounce around randomly in the 10-30 range."));
+	TEXT("Causes FPS to bounce around randomly in the 8-32 range."));
 
 /** Get tick rate limitor. */
 float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
