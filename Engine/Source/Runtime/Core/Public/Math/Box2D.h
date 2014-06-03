@@ -284,22 +284,6 @@ public:
 	FORCEINLINE bool Intersect( const FBox2D & other ) const;
 
 	/**
-	 * Test for intersection of bounding box and this bounding box in the X plane
-	 *
-	 * @param other bounding box to test intersection
-	 * @return true if the other box intersects this box in the X Plane, otherwise false
-	 */
-	FORCEINLINE bool IntersectX( const FBox2D& other ) const;
-	
-	/**
-	 * Test for intersection of bounding box and this bounding box in the Y plane
-	 *
-	 * @param other bounding box to test intersection
-	 * @return true if the other box intersects this box in the Y Plane, otherwise false
-	 */
-	FORCEINLINE bool IntersectY( const FBox2D& other ) const;
-	
-	/**
 	 * Test if point is inside this box
 	 *
 	 * @param Point to test
@@ -426,26 +410,6 @@ FORCEINLINE bool FBox2D::Intersect( const FBox2D & Other ) const
 		return false;
 	}
 
-	if ((Min.Y > Other.Max.Y) || (Other.Min.Y > Max.Y))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-
-FORCEINLINE bool FBox2D::IntersectX( const FBox2D& Other ) const
-{
-	if ((Min.X > Other.Max.X) || (Other.Min.X > Max.X))
-	{
-		return false;
-	}
-
-	return true;
-}
-FORCEINLINE bool FBox2D::IntersectY( const FBox2D& Other ) const
-{
 	if ((Min.Y > Other.Max.Y) || (Other.Min.Y > Max.Y))
 	{
 		return false;

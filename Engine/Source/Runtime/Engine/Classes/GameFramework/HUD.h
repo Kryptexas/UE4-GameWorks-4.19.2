@@ -401,6 +401,64 @@ public:
 	UFUNCTION(BlueprintPure, Category=HUD)
 	void Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection);
 
+
+	/*
+	 * Returns the array of actors inside a selection rectangle, with a class filter.
+	 *
+	 * Sample usage:
+	 *
+	 *       TArray<AStaticMeshActor*> ActorsInSelectionRect;
+	 * 		Canvas->GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
+	 *
+	 *
+	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
+	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
+	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
+	 *
+	 * returns false if selection could not occur. Make sure template class is extending AActor.
+	 */
+	template <typename ClassFilter>
+	bool GetActorsInSelectionRectangle(const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<ClassFilter*>& OutActors, bool bActorMustBeFullyEnclosed = false)
+	{
+		//Is Actor subclass?
+		if (!ClassFilter::StaticClass()->IsChildOf(AActor::StaticClass()))
+		{
+			return false;
+		}
+
+		//Run Inner Function, output to Base AActor Array
+		TArray<AActor*> OutActorsBaseArray;
+		GetActorsInSelectionRectangle(ClassFilter, FirstPoint, SecondPoint, OutActorsBaseArray, bActorMustBeFullyEnclosed);
+
+		//Construct casted template type array
+		for (AActor* EachActor : OutActorsBaseArray)
+		{
+			OutActors.Add(CastChecked<ClassFilter>(EachActor));
+		}
+
+		return true;
+	};
+
+	/**
+	 * Returns the array of actors inside a selection rectangle, with a class filter.
+	 *
+	 * Sample usage:
+	 *
+	 *       TArray<AStaticMeshActor*> ActorsInSelectionRect;
+	 * 		Canvas->GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
+	 *
+	 *
+	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
+	 * @param SecondPoint					The second point, where the mouse cursor currently is / the other point of the box selection, in screen space.
+	 * @return OutActors					The actors that are within the selection box according to selection rule
+	 * @param bActorMustBeFullyEnclosed  	The Selection rule: whether the selection box can partially intersect Actor, or must fully enclose the Actor.
+	 *
+	 */
+	UFUNCTION(BlueprintPure, Category=HUD)
+	void GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed = false);
+
+
 	/**
 	 * Add a hitbox to the hud
 	 * @param Position			Coordinates of the top left of the hit box.

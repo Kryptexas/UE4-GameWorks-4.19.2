@@ -631,6 +631,76 @@ void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVect
 	}
 }
 
+
+void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, const FVector2D& FirstPoint, const FVector2D& SecondPoint, TArray<AActor*>& OutActors, bool bActorMustBeFullyEnclosed)
+{
+	//Create Selection Rectangle from Points
+	FBox2D SelectionRectangle;
+
+	//This method ensures that an appropriate rectangle is generated, 
+	//		no matter what the coordinates of first and second point actually are.
+	SelectionRectangle += FirstPoint;
+	SelectionRectangle += SecondPoint;
+
+
+	//The Actor Bounds Point Mapping
+	const FVector BoundsPointMapping[8] =
+	{
+		FVector(1, 1, 1),
+		FVector(1, 1, -1),
+		FVector(1, -1, 1),
+		FVector(1, -1, -1),
+		FVector(-1, 1, 1),
+		FVector(-1, 1, -1),
+		FVector(-1, -1, 1),
+		FVector(-1, -1, -1)
+	};
+
+	//~~~
+
+	//For Each Actor of the Class Filter Type
+	for (TActorIterator<AActor> Itr(GetWorld(), ClassFilter); Itr; ++Itr)
+	{
+		AActor* EachActor = *Itr;
+
+		//Get Actor Bounds				//casting to base class, checked by template in the .h
+		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(true); /* All Components */
+
+		//Center
+		const FVector BoxCenter = EachActorBounds.GetCenter();
+
+		//Extents
+		const FVector BoxExtents = EachActorBounds.GetExtent();
+
+		// Build 2D bounding box of actor in screen space
+		FBox2D ActorBox2D(0);
+		for (uint8 BoundsPointItr = 0; BoundsPointItr < 8; BoundsPointItr++)
+		{
+			// Project vert into screen space.
+			const FVector ProjectedWorldLocation = Project(BoxCenter + (BoundsPointMapping[BoundsPointItr] * BoxExtents));
+			// Add to 2D bounding box
+			ActorBox2D += FVector2D(ProjectedWorldLocation.X, ProjectedWorldLocation.Y);
+		}
+
+		//Selection Box must fully enclose the Projected Actor Bounds
+		if (bActorMustBeFullyEnclosed)
+		{
+			if(SelectionRectangle.IsInside(ActorBox2D))
+			{
+				OutActors.Add(Cast<AActor>(EachActor));
+			}
+		}
+		//Partial Intersection with Projected Actor Bounds
+		else
+		{
+			if (SelectionRectangle.Intersect(ActorBox2D))
+			{
+				OutActors.Add(Cast<AActor>(EachActor));
+			}
+		}
+	}
+}
+
 void AHUD::DrawRect(FLinearColor Color, float ScreenX, float ScreenY, float Width, float Height)
 {
 	if (IsCanvasValid_WarnIfNot())	
