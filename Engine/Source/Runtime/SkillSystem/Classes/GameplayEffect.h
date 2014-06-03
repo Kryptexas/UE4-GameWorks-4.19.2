@@ -5,14 +5,14 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
+#include "TimerManager.h"
 #include "GameplayEffect.generated.h"
 
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData &);
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExected, const FGameplayAttribute &, const struct FGameplayEffectSpec &, struct FGameplayModifierEvaluatedData &);
 
-//FGameplayEffectModCallbackData
-//DECLARE_DELEGATE_TwoParam(FOnGameplayEffectSpecExected, const struct FGameplayEffectSpec &, struct FGameplayModifierEvaluatedData &);
+struct FActiveGameplayEffect;
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
 
@@ -1225,7 +1225,6 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	FActiveGameplayEffect()
 		: StartGameStateTime(0)
 		, StartWorldTime(0.f)
-		, NextExecuteTime(0.f)
 		, PredictionKey(0)
 	{
 	}
@@ -1235,16 +1234,8 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		, Spec(InSpec)
 		, StartGameStateTime(InStartGameStateTime)
 		, StartWorldTime(CurrentWorldTime)
-		, NextExecuteTime(0.f)
 		, PredictionKey(InPredictionKey)
 	{
-		// Init NextExecuteTime if necessary
-		float Period = GetPeriod();
-		if (Period != UGameplayEffect::NO_PERIOD)
-		{
-			NextExecuteTime = CurrentWorldTime + SMALL_NUMBER;
-		}
-
 		for (FModifierSpec &Mod : Spec.Modifiers)
 		{
 			Mod.Aggregator.Get()->ActiveHandle = InHandle;
@@ -1263,8 +1254,9 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	UPROPERTY(NotReplicated)
 	float StartWorldTime;
 
-	UPROPERTY(NotReplicated)
-	float NextExecuteTime;
+	FTimerHandle PeriodHandle;
+
+	FTimerHandle DurationHandle;
 
 	int32 PredictionKey;
 
@@ -1284,10 +1276,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		return Spec.GetPeriod();
 	}
 
-	void AdvanceNextExecuteTime(float CurrentTime, float SpillOver=0.f)
-	{
-		NextExecuteTime += GetPeriod();
-	}
+	bool CanBeStacked(const FActiveGameplayEffect& Other) const;
 
 	void PrintAll() const;
 
@@ -1351,7 +1340,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 		
 	void ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 	
-	bool ExecuteGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning attribute component
+	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning attribute component
 
 	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
 
@@ -1378,7 +1367,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	UAttributeComponent *Owner;
 
-	void TEMP_TickActiveEffects(float DeltaSeconds);
+	void CheckDuration(FActiveGameplayEffectHandle Handle);
+
+	void StacksNeedToRecalculate();
 
 	// recalculates all of the stacks in the current container
 	void RecalculateStacking();
@@ -1403,7 +1394,13 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	int32 GetGameStateTime() const;
 	float GetWorldTime() const;
 
+	void OnDurationAggregatorDirty(FAggregator* Aggregator, UAttributeComponent* Owner, FActiveGameplayEffectHandle Handle);
+
 private:
+
+	FTimerHandle StackHandle;
+
+	bool InternalRemoveActiveGameplayEffect(int32 Idx);
 
 	FAggregatorRef & FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 

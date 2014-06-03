@@ -202,13 +202,15 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 
-	// Generic 'Get expected mangitude (list) if I was to apply this outoging or incoming'
+	// Generic 'Get expected magnitude (list) if I was to apply this outgoing or incoming'
 
 	// Get duration or magnitude (list) of active effects
 	//		-Get duration of CD
 	//		-Get magnitude + duration of a movespeed buff
 
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
+
+	void OnRestackGameplayEffects();
 
 	// --------------------------------------------
 	// Temp / Debug
@@ -217,11 +219,6 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	void TEMP_ApplyActiveGameplayEffects();
 	
 	void PrintAllGameplayEffects() const;
-
-	void TEMP_TimerTest();
-	void TEMP_TimerTestCallback(int32 x);
-	
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 
 	void PushGlobalCurveOveride(UCurveTable *OverrideTable)
 	{
@@ -311,6 +308,8 @@ private:
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
 	void ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+
+	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
 
 	// --------------------------------------------
 	// Internal Utility / helper functions

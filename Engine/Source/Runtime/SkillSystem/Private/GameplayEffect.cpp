@@ -250,8 +250,13 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const
 
 			case EGameplayModEffect::Duration:
 			{
-				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
-				NumApplied++;
+				// don't modify infinite duration unless we're overriding it
+				if (GetDuration() > 0.f || InMod.Info.ModifierOp == EGameplayModOp::Override)
+				{
+					Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
+					NumApplied++;
+				}
+				
 				break;
 			}
 
@@ -1110,6 +1115,11 @@ void FGameplayModifierEvaluatedData::InvokePostExecute(const FGameplayEffectModC
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
+bool FActiveGameplayEffect::CanBeStacked(const FActiveGameplayEffect& Other) const
+{
+	return (Handle != Other.Handle) && Spec.GetStackingType() == Other.Spec.GetStackingType() && Spec.Def->Modifiers[0].Attribute == Other.Spec.Def->Modifiers[0].Attribute;
+}
+
 void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray)
 {
 	InArray.Owner->InvokeGameplayCueRemoved(Spec);
@@ -1192,6 +1202,8 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 		{
 			SKILL_LOG_SCOPE(TEXT("Applying Mod %s to ActiveEffects"),  *Mod.ToSimpleString());
 
+			bool bUpdateStackedEffects = false;
+
 			// TODO: Tag checks here
 
 			// This modifies GEs that are currently active, so apply this to them...
@@ -1203,6 +1215,12 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 				}
 
 				ActiveEffect.Spec.ApplyModifiersFrom( Spec, FModifierQualifier().Type(EGameplayMod::ActiveGE) );
+				bUpdateStackedEffects = true;
+			}
+
+			if (bUpdateStackedEffects)
+			{
+				StacksNeedToRecalculate();
 			}
 		}
 	}
@@ -1357,18 +1375,19 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 
 }
 
-bool FActiveGameplayEffectsContainer::ExecuteGameplayEffect(FActiveGameplayEffectHandle Handle)
+void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
 	// Could make this a map for quicker lookup
-	for (int32 idx = 0; idx < GameplayEffects.Num(); ++idx)
+	for (FActiveGameplayEffect& Effect : GameplayEffects)
 	{
-		if (GameplayEffects[idx].Handle == Handle)
+		if (Effect.Handle == Handle)
 		{
-			return true;
+			// Execute
+			ExecuteActiveEffectsFrom(Effect.Spec, FModifierQualifier().IgnoreHandle(Effect.Handle));
+
+			return;
 		}
 	}
-
-	return false;
 }
 
 void FActiveGameplayEffectsContainer::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
@@ -1409,6 +1428,23 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplay
 	
 	SKILL_LOG(Warning, TEXT("GetGameplayEffectDuration called with invalid Handle: %s"), *Handle.ToString() );
 	return UGameplayEffect::INFINITE_DURATION;
+}
+
+void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Aggregator, UAttributeComponent* Owner, FActiveGameplayEffectHandle Handle)
+{
+	for (FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.Handle == Handle)
+		{
+			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+			float CurrDuration = Effect.GetDuration();
+			float TimeRemaining = CurrDuration - TimerManager.GetTimerElapsed(Effect.DurationHandle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, Handle);
+			TimerManager.SetTimer(Effect.DurationHandle, Delegate, CurrDuration, false, FMath::Max(TimeRemaining, 0.f));
+
+			return;
+		}
+	}
 }
 
 float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
@@ -1487,12 +1523,67 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 	Owner->SetNumericAttribute(Attribute, NewPropertyValue);
 }
 
+void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
+{
+	if (!bNeedToRecalculateStacks)
+	{
+		bNeedToRecalculateStacks = true;
+		FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+		FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::OnRestackGameplayEffects);
+
+		TimerManager.SetTimerForNextTick(Delegate);
+	}
+}
+
 FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey)
 {
 	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
 	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 
-	if (InPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect should not call MarkItemDirty
+	// register callbacks with the timer manager
+	if (Owner)
+	{
+		if (Spec.GetDuration() > 0.f)
+		{
+			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, LastAssignedHandle);
+			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, Spec.GetDuration(), false, Spec.GetDuration());
+		}
+
+		// The timer manager moves things from the pending list to the active list after checking the active list on the first tick so we need to execute here
+		if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
+		{
+			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::ExecutePeriodicEffect, LastAssignedHandle);
+
+			// If this is a periodic stacking effect, make sure that it's in sync with the others.
+			float FirstDelay = -1.f;
+			bool bApplyToNextTick = true;
+			if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
+			{
+				for (FActiveGameplayEffect& Effect : GameplayEffects)
+				{
+					if (Effect.CanBeStacked(NewEffect))
+					{
+						FirstDelay = TimerManager.GetTimerRemaining(Effect.PeriodHandle);
+						bApplyToNextTick = TimerManager.IsTimerPending(Effect.PeriodHandle);
+						break;
+					}
+				}
+			}
+			
+			if (bApplyToNextTick)
+			{
+				TimerManager.SetTimerForNextTick(Delegate); // not part of a stack or the first item on the stack, execute once right away
+			}
+
+			TimerManager.SetTimer(NewEffect.PeriodHandle, Delegate, Spec.GetPeriod(), true, FirstDelay); // this is going to be off by a frame for stacking because of the pending list
+		}
+
+		NewEffect.Spec.Duration.Get()->OnDirty = FAggregator::FOnDirty::CreateRaw(this, &FActiveGameplayEffectsContainer::OnDurationAggregatorDirty, Owner, LastAssignedHandle);
+	}
+	
+	if (InPredictionKey == 0 || IsNetAuthority())	// Clients predicting a GameplayEffect must not call MarkItemDirty
 	{
 		MarkItemDirty(NewEffect);
 	}
@@ -1509,19 +1600,48 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
 	// Could make this a map for quicker lookup
-	for (int32 idx = 0; idx < GameplayEffects.Num(); ++idx)
+	for (int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
 	{
-		if (GameplayEffects[idx].Handle == Handle)
+		if (GameplayEffects[Idx].Handle == Handle)
 		{
-			Owner->InvokeGameplayCueRemoved(GameplayEffects[idx].Spec);
-
-			GameplayEffects.RemoveAtSwap(idx);
-			MarkArrayDirty();
-			return true;
+			return InternalRemoveActiveGameplayEffect(Idx);
 		}
 	}
 
 	SKILL_LOG(Warning, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
+	return false;
+}
+
+bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 Idx)
+{
+	if (ensure(Idx < GameplayEffects.Num()))
+	{
+		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
+		Owner->InvokeGameplayCueRemoved(GameplayEffects[Idx].Spec);
+
+		if (GameplayEffects[Idx].DurationHandle.IsValid())
+		{
+			Owner->GetWorld()->GetTimerManager().ClearTimer(GameplayEffects[Idx].DurationHandle);
+		}
+		if (GameplayEffects[Idx].PeriodHandle.IsValid())
+		{
+			Owner->GetWorld()->GetTimerManager().ClearTimer(GameplayEffects[Idx].PeriodHandle);
+		}
+
+		GameplayEffects.RemoveAtSwap(Idx);
+		MarkArrayDirty();
+
+		// Hack: force netupdate on owner. This isn't really necessary in real gameplay but is nice
+		// during debugging where breakpoints or pausing can messup network update times. Open issue
+		// with network team.
+		Owner->GetOwner()->ForceNetUpdate();
+
+		StacksNeedToRecalculate();
+
+		return true;
+	}
+
+	SKILL_LOG(Warning, TEXT("InternalRemoveActiveGameplayEffect called with invalid index: %d"), Idx);
 	return false;
 }
 
@@ -1561,66 +1681,47 @@ float FActiveGameplayEffectsContainer::GetWorldTime() const
 	return World->GetTimeSeconds();
 }
 
-void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
+void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle Handle)
 {
-	if (!IsNetAuthority())
-	{
-		// For now - clients don't tick their GameplayEffects at all. 
-		// We eventually want them to tick to predicate gameplay cue events.
-		return;
-	}
-
-	float CurrentTime = GetWorldTime();
-
-	// effects may have been added outside of the tick during the last frame
-	if (bNeedToRecalculateStacks)
-	{
-		RecalculateStacking();
-	}
-
 	for (int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
 	{
-		FActiveGameplayEffect &Effect = GameplayEffects[Idx];
-
-		if (Effect.NextExecuteTime > 0)
+		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
+		if (Effect.Handle == Handle)
 		{
-			float TimeOver = CurrentTime - Effect.NextExecuteTime;
-			while (TimeOver >= -KINDA_SMALL_NUMBER)
+			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+
+			// The duration may have changed since we registered this callback with the timer manager.
+			// Make sure that this effect should really be destroyed now
+			float Duration = Effect.GetDuration();
+			float CurrentTime = GetWorldTime();
+			if (Duration > 0.f && (Effect.StartWorldTime + Duration) < CurrentTime)
 			{
-				// Advance
-				Effect.AdvanceNextExecuteTime(CurrentTime);
+				// This gameplay effect has hit its duration. Check if it needs to execute one last time before removing it.
+				if (Effect.PeriodHandle.IsValid())
+				{
+					float PeriodTimeRemaining = TimerManager.GetTimerRemaining(Effect.PeriodHandle);
+					if (FMath::IsNearlyEqual(PeriodTimeRemaining, 0.f))
+					{
+						ExecuteActiveEffectsFrom(Effect.Spec, FModifierQualifier().IgnoreHandle(Effect.Handle));
+					}
+				}
 
-				// Execute
-				ExecuteActiveEffectsFrom( Effect.Spec, FModifierQualifier().IgnoreHandle(Effect.Handle) );
-
-				// Update TimeOver
-				TimeOver = CurrentTime - Effect.NextExecuteTime;
+				InternalRemoveActiveGameplayEffect(Idx);
 			}
+			else
+			{
+				// check the time remaining for the current gameplay effect duration timer
+				// if it is less than zero create a new callback with the correct time remaining
+				float TimeRemaining = TimerManager.GetTimerRemaining(Effect.DurationHandle);
+				if (TimeRemaining <= 0.f)
+				{
+					FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, Effect.Handle);
+					TimerManager.SetTimer(Effect.DurationHandle, Delegate, (Effect.StartWorldTime + Duration) - CurrentTime, false);
+				}
+			}
+
+			break;
 		}
-
-		float Duration = Effect.GetDuration();
-		if (Duration > 0.f && Effect.StartWorldTime + Effect.GetDuration() < CurrentTime)
-		{
-			Owner->InvokeGameplayCueRemoved(Effect.Spec);
-			MarkArrayDirty();
-			GameplayEffects.RemoveAtSwap(Idx);
-			Idx--;
-
-			// Hack: force netupdate on owner. This isn't really necessary in real gameplay but is nice
-			// during debugging where breakpoints or pausing can messup network update times. Open issue
-			// with network team.
-			Owner->GetOwner()->ForceNetUpdate();
-
-			// todo: check if the removed effect deals with an attribute that stacks, if not don't set the flag
-			bNeedToRecalculateStacks = true;
-		}
-	}
-
-	// this needs to be updated here instead of waiting for the start of the next tick
-	// an instantaneous effect could come in before the start of the next tick
-	if (bNeedToRecalculateStacks)
-	{
-		RecalculateStacking();
 	}
 }
 

@@ -251,8 +251,9 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
-	// Temp, only non instance, non periodic GEs can be predictive
-	check((BaseQualifier.PredictionKey() == 0) || (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
+	// Temp, only non instant, non periodic GEs can be predictive
+	// Effects with other effects may be a mix so go with non-predictive
+	check(!(BaseQualifier.PredictionKey() > 0) || ((Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION && Spec.GetPeriod() == UGameplayEffect::NO_PERIOD) || Spec.TargetEffectSpecs.Num() > 0));
 
 	// check if the effect being applied actually succeeds
 	float ChanceToApply = Spec.GetChanceToApplyToTarget();
@@ -273,20 +274,15 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
+			// recalculating stacking needs to come before creating the new effect
+			if (Spec.StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
+			{
+				ActiveGameplayEffects.StacksNeedToRecalculate();
+			}
 			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, BaseQualifier.PredictionKey());
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
-			/*
-			FIXME: Timer. Currently using polling in ::Tick until timer issues sorted out.
-			float Period = NewActiveEffect.GetPeriod();
-			if (Period > 0.f)
-			{
-				GetWorld()->GetTimerManager().SetTimer(FTimerDelegate::CreateUObject(this, &UAttributeComponent::ExecutePeriodicEffect, MyHandle), Period, true);
-			}
-			*/
-
-			
 			bInvokeGameplayCueApplied = true;
 		}
 		
@@ -311,10 +307,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	{
 		// We're immune to this effect
 		return FActiveGameplayEffectHandle();
-	}
-
-	// todo: apply some better logic to this so that we don't recalculate stacking effects as often
-	ActiveGameplayEffects.bNeedToRecalculateStacks = true;
+	}	
 	
 	// Now that we have the final version of this effect, actually apply it if its going to be hanging around
 	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION )
@@ -360,13 +353,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 
 void UAttributeComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)
 {
-	// Fixme: this will be the callback to execute periodic effects, but since the timer manager can't 
-	// can't have multiple timers registered to a single function on a single object, we are just doing polling in Tick
-	/*
-	if (!ActiveGameplayEffects.ExecuteGameplayEffect(Handle))
-	{
-	}
-	*/
+	ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
 }
 
 void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
@@ -376,6 +363,11 @@ void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec,
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
 	
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, QualifierContext);
+}
+
+void UAttributeComponent::CheckDurationExpired(FActiveGameplayEffectHandle Handle)
+{
+	ActiveGameplayEffects.CheckDuration(Handle);
 }
 
 bool UAttributeComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
@@ -495,6 +487,11 @@ bool UAttributeComponent::CanApplyAttributeModifiers(const UGameplayEffect *Game
 TArray<float> UAttributeComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+}
+
+void UAttributeComponent::OnRestackGameplayEffects()
+{
+	ActiveGameplayEffects.RecalculateStacking();
 }
 
 // ---------------------------------------------------------------------------------------
@@ -624,7 +621,6 @@ void FActiveGameplayEffect::PrintAll() const
 {
 	SKILL_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
 	SKILL_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
-	SKILL_LOG(Log, TEXT("NextExecuteTime: %.2f"), NextExecuteTime);
 	Spec.PrintAll();
 }
 
@@ -739,26 +735,6 @@ void FGameplayModifierEvaluatedData::PrintAll() const
 void FGameplayEffectLevelSpec::PrintAll() const
 {
 	SKILL_LOG(Log, TEXT("ConstantLevel: %.2f"), ConstantLevel);
-}
-
-void UAttributeComponent::TEMP_TimerTest()
-{
-	GetWorld()->GetTimerManager().SetTimer(FTimerDelegate::CreateUObject(this, &UAttributeComponent::TEMP_TimerTestCallback, 1), 1.0, false);
-	GetWorld()->GetTimerManager().SetTimer(FTimerDelegate::CreateUObject(this, &UAttributeComponent::TEMP_TimerTestCallback, 2), 1.0, false);
-}
-
-void UAttributeComponent::TEMP_TimerTestCallback(int32 x)
-{
-	SKILL_LOG(Log, TEXT("TEMP_TimerTestCallback: %d"), x);
-}
-
-void UAttributeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsTick);
-	SKILL_LOG_SCOPE(TEXT("Ticking %s"), *GetName());
-
-	// This should be tmep until timer manager stuff is figured out
-	ActiveGameplayEffects.TEMP_TickActiveEffects(DeltaTime);
 }
 
 #undef LOCTEXT_NAMESPACE

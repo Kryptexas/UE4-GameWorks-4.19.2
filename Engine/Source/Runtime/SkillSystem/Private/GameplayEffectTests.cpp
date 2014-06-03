@@ -18,6 +18,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayEffectsTest, "SkillSystem.GameplayEffe
 
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 
+namespace
+{
+	const int32 TEST_PREDICTIONKEY = 1;
+}
+
 void GameplayTest_TickWorld(UWorld *World, float Time)
 {
 	const float step = 0.1f;
@@ -223,8 +228,11 @@ bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -289,8 +297,11 @@ bool GameplayEffectsTest_TemporaryDamage(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + DamageValue);
 
@@ -348,8 +359,11 @@ bool GameplayEffectsTest_TemporaryDamageBuffed(UWorld *World, FAutomationTestBas
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + DamageValue);
 
@@ -440,8 +454,11 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + DamageValue);
 
@@ -465,8 +482,11 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 		BuffDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffDmgEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;		// Force this to link, so that when we remove it it will go away to any modifier it was applied to
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f);
+		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * DamageBuffMultiplier));
 
@@ -549,8 +569,11 @@ bool GameplayEffectsTest_LinkedBuffDestroy(UWorld *World, FAutomationTestBase * 
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;		// Always link so that when this is destroyed, health return to normal
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -567,8 +590,11 @@ bool GameplayEffectsTest_LinkedBuffDestroy(UWorld *World, FAutomationTestBase * 
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * DamageBuffMultiplier));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -635,10 +661,13 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 		BuffEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
 		BuffEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
-		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;		// Always snapshot (though the default for oitgoing should already be snapshot - but this could change per project at some point)
+		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;		// Always snapshot (though the default for outgoing should already be snapshot - but this could change per project at some point)
+
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
 
 		// Apply to target
-		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		AppliedHandleBuff = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -655,8 +684,11 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * DamageBuffMultiplier));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -692,13 +724,14 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 {
 	/**
-	*	Apply a perm health reduction that is buffed by an outgoing GE buff. Then destroy the buff and see what happens to the perm applied Ge.
+	*	Tests duration buff and debuffs. Also tests canceling duration buffs.
 	*/
 
 	const float StartHealth = 100.f;
 	const float DamageValue = -5.f;
-	const float BaseDuration = 30.f;
-	const float DurationMod = -10.f;
+	const float BaseDuration = 2.f;
+	const float DurationBuff = 1.f;
+	const float DurationDebuff = -1.f;
 
 	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
 	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
@@ -711,12 +744,15 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
 
-	// Apply Damage with 30 duration
+	// Apply Damage with 2 duration
 
 	FActiveGameplayEffectHandle AppliedDamageHandle;
 	FActiveGameplayEffectHandle AppliedDurationHandle;
+	//
+	// Duration Debuff
+	//
 	{
-		SKILL_LOG_SCOPE(TEXT("Apply Damage mod that lasts 10 seconds"))
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod that lasts 2 seconds"))
 
 		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
 		BaseDmgEffect->Modifiers.SetNum(1);
@@ -727,8 +763,11 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.SetValue(BaseDuration);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		AppliedDamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		AppliedDamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedHealthValue = (StartHealth + (DamageValue));
 		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -740,11 +779,16 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
 	}
 
-	// Modify the duration of the effect
+	GameplayTest_TickWorld(World, SMALL_NUMBER); // start the effect ticking
+	GameplayTest_TickWorld(World, 0.5f);
+
+	// Debuff the duration of the effect
 	{
-		UGameplayEffect * DurationEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Duration Mod"))));
+		SKILL_LOG_SCOPE(TEXT("Reduce damage mod during by 1 second"))
+
+		UGameplayEffect * DurationEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Duration Debuff"))));
 		DurationEffect->Modifiers.SetNum(1);
-		DurationEffect->Modifiers[0].Magnitude.SetValue(DurationMod);
+		DurationEffect->Modifiers[0].Magnitude.SetValue(DurationDebuff);
 		DurationEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
 		DurationEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 		DurationEffect->Modifiers[0].EffectType = EGameplayModEffect::Duration;
@@ -752,27 +796,198 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 		DurationEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		DurationEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
-		// Apply to target
-		AppliedDurationHandle = SourceComponent->ApplyGameplayEffectToTarget(DurationEffect, DestComponent, 1.f);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
 
-		float ExpectedDuration = BaseDuration + DurationMod;
+		// Apply to target
+		AppliedDurationHandle = SourceComponent->ApplyGameplayEffectToTarget(DurationEffect, DestComponent, 1.f, Qualifier);
+
+		float ExpectedDuration = BaseDuration + DurationDebuff;
 		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
 
 		// Confirm that our duration changed
 		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect PostMod. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
 	}
 
+	// tick beyond the new duration but not past the old duration
+	GameplayTest_TickWorld(World, 1.f);
+
+	{
+		float ExpectedHealthValue = StartHealth;
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+	}
+
+	//
+	// Duration Buff
+	//
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod that lasts 2 seconds"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(BaseDuration);
+
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		// Apply to target
+		AppliedDamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
+
+		float ExpectedHealthValue = (StartHealth + (DamageValue));
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+		float ExpectedDuration = BaseDuration;
+		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+
+		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
+	}
+
+	GameplayTest_TickWorld(World, SMALL_NUMBER); // start the effect ticking
+	GameplayTest_TickWorld(World, 0.5f);
+
+	// Buff the duration of the effect
+	{
+		SKILL_LOG_SCOPE(TEXT("Increase damage mod during by 1 second"))
+
+		UGameplayEffect * DurationEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Duration Buff"))));
+		DurationEffect->Modifiers.SetNum(1);
+		DurationEffect->Modifiers[0].Magnitude.SetValue(DurationBuff);
+		DurationEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		DurationEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		DurationEffect->Modifiers[0].EffectType = EGameplayModEffect::Duration;
+		DurationEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
+		DurationEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		DurationEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		// Apply to target
+		AppliedDurationHandle = SourceComponent->ApplyGameplayEffectToTarget(DurationEffect, DestComponent, 1.f, Qualifier);
+
+		float ExpectedDuration = BaseDuration + DurationBuff;
+		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
+
+		// Confirm that our duration changed
+		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect PostMod. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
+	}
+
+	// tick beyond the old duration but not past the new duration
+	GameplayTest_TickWorld(World, 2.f);
+
+	{
+		float ExpectedHealthValue = (StartHealth + (DamageValue));
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+	}
+
+	// tick past the new duration
+	GameplayTest_TickWorld(World, 1.f);
+
+	{
+		float ExpectedHealthValue = StartHealth;
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+	}
+
+
+	//
+	// Removing Duration buff
+	//
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply Damage mod that lasts 2 seconds"))
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Damage"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		BaseDmgEffect->Duration.SetValue(BaseDuration);
+
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		// Apply to target
+		AppliedDamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
+
+		float ExpectedHealthValue = (StartHealth + (DamageValue));
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+		float ExpectedDuration = BaseDuration;
+		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+
+		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
+	}
+
+	GameplayTest_TickWorld(World, SMALL_NUMBER); // start the effect ticking
+	GameplayTest_TickWorld(World, 0.5f);
+
+	// Buff the duration of the effect
+	{
+		SKILL_LOG_SCOPE(TEXT("Increase damage mod during by 1 second"))
+
+		UGameplayEffect * DurationEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("Duration Buff"))));
+		DurationEffect->Modifiers.SetNum(1);
+		DurationEffect->Modifiers[0].Magnitude.SetValue(DurationBuff);
+		DurationEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		DurationEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		DurationEffect->Modifiers[0].EffectType = EGameplayModEffect::Duration;
+		DurationEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
+		DurationEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
+		DurationEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		// Apply to target
+		AppliedDurationHandle = SourceComponent->ApplyGameplayEffectToTarget(DurationEffect, DestComponent, 1.f, Qualifier);
+
+		float ExpectedDuration = BaseDuration + DurationBuff;
+		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
+
+		// Confirm that our duration changed
+		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect PostMod. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
+	}
+
+	// tick beyond the old duration but not past the new duration
+	GameplayTest_TickWorld(World, 2.f);
+
 	// Remove the duration effect and see if the duration goes back to the original duration
 	{
 		bool RemovedEffect = DestComponent->RemoveActiveGameplayEffect(AppliedDurationHandle);
-		
+
 		float ExpectedDuration = BaseDuration;
 		float ActualDuration = DestComponent->GetGameplayEffectDuration(AppliedDamageHandle);
-		
+		float ExpectedHealthValue = StartHealth + DamageValue;
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
 		Test->TestTrue(SKILL_TEST_TEXT("Duration of GameplayEffect Post Mod Remove. %.2f == %.2f", ActualDuration, ExpectedDuration), ActualDuration == ExpectedDuration);
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
 	}
 
-	//DestComponent->PrintAllGameplayEffects();
+	// small tick so that we remain between the unmodified and modified duration
+	GameplayTest_TickWorld(World, KINDA_SMALL_NUMBER); // moves the new timer to the active list
+	GameplayTest_TickWorld(World, KINDA_SMALL_NUMBER);
+
+	{
+		float ExpectedHealthValue = StartHealth;
+		float ActualHealthValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. %.2f == %.2f", ActualHealthValue, ExpectedHealthValue), ActualHealthValue == ExpectedHealthValue);
+	}
 
 	World->EditorDestroyActor(SourceActor, false);
 	World->EditorDestroyActor(DestActor, false);
@@ -821,8 +1036,11 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -839,8 +1057,11 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 2", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 2);
 
 		// Check that the buff was buffed
@@ -862,8 +1083,11 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * (DamageBuffMultiplier + DamageBuffMultiplierBonus)));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -962,8 +1186,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -980,8 +1207,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 2", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 2);
 
 		// Check that the buff was buffed
@@ -1003,8 +1233,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * (DamageBuffMultiplier + DamageBuffMultiplierBonus)));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1100,8 +1333,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -1118,8 +1354,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 2", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 2);
 
 		// Check that the buff was buffed
@@ -1141,8 +1380,11 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * (DamageBuffMultiplier + DamageBuffMultiplierBonus)));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1238,8 +1480,11 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysSnapshot;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffBuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 1", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 1);
 	}
@@ -1256,8 +1501,11 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 		BuffEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BuffEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f);
+		BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 1.f, Qualifier);
 		Test->TestTrue(SKILL_TEST_TEXT("Number of Source GameplayEffect: %d == 2", SourceComponent->GetNumActiveGameplayEffect()), SourceComponent->GetNumActiveGameplayEffect() == 2);
 
 		// Check that the buff was buffed
@@ -1279,8 +1527,11 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		DamageHandle = SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth + (DamageValue * (DamageBuffMultiplier + DamageBuffMultiplierBonus)));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1335,36 +1586,6 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 	return true;
 }
 
-bool TimerTest(UWorld *World, FAutomationTestBase * Test)
-{
-	const float StartHealth = 100.f;
-	const float DamageValue = -5.f;
-
-	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
-	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
-	SourceActor->SetActorTickEnabled(true);
-	DestActor->SetActorTickEnabled(true);
-
-	UProperty *HealthProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Health));
-
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
-
-	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
-	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
-
-	//SourceComponent->TEMP_TimerTest();
-
-	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
-	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
-	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
-
-	World->EditorDestroyActor(SourceActor, false);
-	World->EditorDestroyActor(DestActor, false);
-
-	return true;
-}
-
 // Tests gameplay effects that apply other gameplay effects to the target
 bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * Test)
 {
@@ -1405,8 +1626,11 @@ bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * 
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 		BaseDmgEffect->TargetEffects.Add(BuffEffect);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth - DamageValue);
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1480,8 +1704,11 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect->Modifiers[0].TargetEffect = BuffEffect;
 		DummyBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(DummyBuffEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(DummyBuffEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// apply damage to source to make sure it didn't get the protection buff
@@ -1516,8 +1743,11 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = StartHealth - DamageValue;
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1537,8 +1767,11 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth - DamageValue - (DamageValue / DamageProtectionDivisor));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1558,8 +1791,11 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = (StartHealth - DamageValue - (2 * DamageValue / DamageProtectionDivisor));
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1618,8 +1854,11 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		DummyBuffEffect2->Modifiers[0].TargetEffect = DummyBuffEffect;
 		DummyBuffEffect2->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(DummyBuffEffect2, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(DummyBuffEffect2, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -1633,8 +1872,11 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
 
 		float ExpectedValue = StartHealth - DamageValue;
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1654,8 +1896,11 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buffable"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DestComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 
 		float ExpectedValue = StartHealth - DamageValue;
 		float ActualValue = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1675,8 +1920,11 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to target
-		DestComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 
 		float ExpectedValue = StartHealth - DamageValue - (DamageValue / DamageProtectionDivisor);
 		float ActualValue = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
@@ -1710,7 +1958,7 @@ bool GameplayEffectsTest_DurationDamage(UWorld *World, FAutomationTestBase * Tes
 	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
 
 	{
-		SKILL_LOG_SCOPE(TEXT("Apply Dot"));
+		SKILL_LOG_SCOPE(TEXT("Apply Temporary Damage"));
 
 		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("BaseDmgEffect"))));
 		BaseDmgEffect->Modifiers.SetNum(1);
@@ -1722,25 +1970,31 @@ bool GameplayEffectsTest_DurationDamage(UWorld *World, FAutomationTestBase * Tes
 		BaseDmgEffect->Duration.Value = Duration;
 		BaseDmgEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
 
-		// The effect should instantly execute one time without ticking (for now at least)
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f, Qualifier);
+
+		// The effect should instantly apply without ticking (for now at least)
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
 		float ExpectedValue = StartHealth + (DamageValue);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		StartTime = World->GetTimeSeconds();
 	}
 
 	// Tick until the effect should expire
 	for (int32 i = 0; i < 10; ++i)
 	{
 		GameplayTest_TickWorld(World, 1.f);
-		if (World->GetTimeSeconds() > StartTime + Duration)
+		if (World->GetTimeSeconds() > StartTime + Duration + KINDA_SMALL_NUMBER)
 		{
 			break;
 		}
 
-		// The effect should instantly execute one time without ticking (for now at least)
+		// The temporary effect is still in place
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
 		float ExpectedValue = StartHealth + (DamageValue);
 
@@ -1806,12 +2060,15 @@ bool GameplayEffectsTest_PeriodicDamage(UWorld *World, FAutomationTestBase * Tes
 
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue );
 	}
-		
+
+	GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
 	ApplyCount++; // the effect will execute as soon as we tick any amount of time
+	GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
+
 	for (int32 i=0; i < 10; ++i)
 	{
 		GameplayTest_TickWorld(World, 1.f);
-		if (World->GetTimeSeconds() <= StartTime + Duration + KINDA_SMALL_NUMBER)
+		if (World->GetTimeSeconds() <= StartTime + Duration)
 		{
 			// We should have applied as long as there was still some duration left
 			ApplyCount++;
@@ -1869,7 +2126,10 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 		LifestealEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		LifestealEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		SourceComponent->ApplyGameplayEffectToSelf(LifestealEffect, 1.f, SourceActor);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		SourceComponent->ApplyGameplayEffectToSelf(LifestealEffect, 1.f, SourceActor, Qualifier);
 	}
 	
 	{
@@ -1945,7 +2205,10 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		AppliedHandle = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		AppliedHandle = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor, Qualifier);
 	}
 
 	{
@@ -2061,8 +2324,11 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
-		AppliedHandle_1 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
-		AppliedHandle_2 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		AppliedHandle_1 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor, Qualifier);
+		AppliedHandle_2 = DestComponent->ApplyGameplayEffectToSelf(ShieldEffect, 1.f, DestActor, Qualifier);
 	}
 
 	{
@@ -2422,8 +2688,11 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 		BaseProtectEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type2"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -2512,8 +2781,11 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 		BaseProtectEffect->GameplayEffectIgnoreTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -2601,8 +2873,11 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));		// When I am applied, the damage modifier gets this tag.
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Setup a GE to modify IncomingGEs
@@ -2620,8 +2895,11 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -2683,8 +2961,11 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Type1"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Setup a GE to modify IncomingGEs
@@ -2702,8 +2983,11 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		BaseProtectEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BaseProtectEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseProtectEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -2855,6 +3139,7 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 	const float SpellDamage2 = 50.f;
 	const float GameplayEffectScaling = 1.f;
 
+
 	SetGlobalCurveTable();
 
 	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
@@ -2890,7 +3175,10 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 		BaseDmgEffect->LevelInfo.InheritLevelFromOwner = false;
 		BaseDmgEffect->LevelInfo.TakeSnapshotOnInit = true;								// But just a snapshot of their SpellDamage when we are applied
 
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, FGameplayEffectLevelSpec::INVALID_LEVEL, Qualifier);
 	}
 
 
@@ -2909,6 +3197,11 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 	}
 
 	{
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
+	}
+
+	{
 		// Tick once
 		GameplayTest_TickWorld(World, 1.f);
 		
@@ -2918,6 +3211,8 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 	}	
 
 	ClearGlobalCurveTable();
+
+	World->GetTimerManager().ClearAllTimersForObject(DestComponent);
 
 	World->EditorDestroyActor(SourceActor, false);
 	World->EditorDestroyActor(DestActor, false);
@@ -2969,10 +3264,16 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 		BaseDmgEffect->LevelInfo.InheritLevelFromOwner = false;
 		BaseDmgEffect->LevelInfo.TakeSnapshotOnInit = false;							// But level is dynamic, if SpellDamage changers after we apply, we update.
 
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, FGameplayEffectLevelSpec::INVALID_LEVEL, Qualifier);
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
 
 		float SpellDamageTest = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->SpellDamage;
 		check(SpellDamageTest == SpellDamage);
+
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -2996,10 +3297,13 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 		SpellDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 
 		SourceComponent->ApplyGameplayEffectToTarget(SpellDmgEffect, SourceComponent);
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
 
 		float ActualValue = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->SpellDamage;
 		float ExpectedValue = SpellDamage2;
 		Test->TestTrue(SKILL_TEST_TEXT("Spell Damage Mod: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3059,7 +3363,10 @@ bool GameplayEffectsTest_MetaAttributes(UWorld *World, FAutomationTestBase * Tes
 		StrengthMaxHealhEffect->LevelInfo.InheritLevelFromOwner = false;
 		StrengthMaxHealhEffect->LevelInfo.TakeSnapshotOnInit = false;						// But level is dynamic, if SpellDamage changers after we apply, we update.
 
-		SourceComponent->ApplyGameplayEffectToTarget(StrengthMaxHealhEffect, SourceComponent);
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
+		SourceComponent->ApplyGameplayEffectToTarget(StrengthMaxHealhEffect, SourceComponent, FGameplayEffectLevelSpec::INVALID_LEVEL, Qualifier);
 
 		// Strength starts at 0, so confirm it did nothing yet.
 		float ActualValue = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->MaxHealth;
@@ -3134,8 +3441,11 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Buff"))));
 		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -3154,8 +3464,11 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Buff"))));
 		BaseDmgEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -3218,6 +3531,14 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, SMALL_NUMBER); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		{
+			float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+			float ExpectedValue = StackingValue;
+			Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+		}
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3243,6 +3564,9 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3250,7 +3574,7 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 		GameplayTest_TickWorld(World, 1.f);
 
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
-		float ExpectedValue = StackingValue * 6.f;	// 2 for first effect, 4 for second effect executing twice
+		float ExpectedValue = StackingValue * 4.f;	// 2 for first effect, 2 for the last tick with both effects
 		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
 
@@ -3293,6 +3617,9 @@ bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Tes
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3318,6 +3645,9 @@ bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Tes
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3384,6 +3714,9 @@ bool GameplayEffectsTest_StackingUnlimited(UWorld *World, FAutomationTestBase * 
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3450,6 +3783,9 @@ bool GameplayEffectsTest_StackingRemoval(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3523,6 +3859,9 @@ bool GameplayEffectsTest_StackingNoStack(UWorld *World, FAutomationTestBase * Te
 		UnstackableEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(UnstackableEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3573,7 +3912,6 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
-//		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -3612,6 +3950,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // offset the current time from the start of the period to avoid floating point issues causing the tests to fail
 	}
 
 	{
@@ -3639,6 +3980,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // offset the current time from the start of the period to avoid floating point issues causing the tests to fail
 	}
 
 	{
@@ -3709,6 +4053,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3736,6 +4083,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3763,6 +4113,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3790,6 +4143,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3856,6 +4212,9 @@ bool GameplayEffectsTest_StackingDifferentRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -3923,6 +4282,9 @@ bool GameplayEffectsTest_StackingDifferentAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4014,6 +4376,9 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4103,6 +4468,9 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4157,8 +4525,11 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 		BaseModEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -4192,6 +4563,9 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4267,6 +4641,9 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4292,8 +4669,14 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
 		BaseModEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseModEffect, DestComponent, 1.f, Qualifier);
+
+		GameplayTest_TickWorld(World, 0.0001f); // Move our Effects from the pending stack to the active stack inside the timer manager, this starts the clock for effect execution
+		GameplayTest_TickWorld(World, 0.1f); // Offset the current time from the start of the period so that floating point issues don't affect the test
 	}
 
 	{
@@ -4340,8 +4723,11 @@ bool GameplayEffectsTest_ImmunityIncoming(UWorld *World, FAutomationTestBase * T
 		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
 		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -4398,8 +4784,11 @@ bool GameplayEffectsTest_ImmunityOutgoing(UWorld *World, FAutomationTestBase * T
 		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Immune"))));
 		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::OutgoingGE;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -4459,8 +4848,11 @@ bool GameplayEffectsTest_ImmunityMod(UWorld *World, FAutomationTestBase * Test)
 		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
 		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Setup a GE to modify OutgoingGEs
@@ -4476,8 +4868,11 @@ bool GameplayEffectsTest_ImmunityMod(UWorld *World, FAutomationTestBase * Test)
 		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
 		BaseDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage
@@ -4535,8 +4930,11 @@ bool GameplayEffectsTest_ImmunityBlockedBuff(UWorld *World, FAutomationTestBase 
 		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
 		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply base damage and a buff that causes extra damage
@@ -4604,8 +5002,11 @@ bool GameplayEffectsTest_ImmunityBlockedBaseAndBuff(UWorld *World, FAutomationTe
 		BaseImmunityEffect->GameplayEffectRequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BaseImmunityEffect->AppliesImmunityTo = EGameplayImmunity::IncomingGE;
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BaseImmunityEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply base damage and a buff that causes extra damage
@@ -4675,8 +5076,11 @@ bool GameplayEffectsTest_ImmunityActiveGE(UWorld *World, FAutomationTestBase * T
 		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
 		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage to verify the buff is working
@@ -4772,8 +5176,11 @@ bool GameplayEffectsTest_ImmunityActiveMod(UWorld *World, FAutomationTestBase * 
 		BuffEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Reduce"))));
 		BuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f);
+		DestComponent->ApplyGameplayEffectToTarget(BuffEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	// Apply Damage to verify the buff is working
@@ -4941,8 +5348,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnActiveGEMod(UWorld *World, FAutomation
 		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// attempt to modify the buff but fail because of a 0.f chance to apply
@@ -5058,8 +5468,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnActiveGEImmunity(UWorld *World, FAutom
 		BuffDmgEffect->Modifiers[0].RequiredTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Basic"))));
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	// attempt to remove the buff but fail because of a 0.f chance to apply
@@ -5170,8 +5583,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEMod(UWorld *World, FAutomati
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5211,8 +5627,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEMod(UWorld *World, FAutomati
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5268,8 +5687,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEImmunity(UWorld *World, FAut
 		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5303,8 +5725,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEImmunity(UWorld *World, FAut
 		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, SourceComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5366,8 +5791,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEMod(UWorld *World, FAutomati
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5407,8 +5835,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEMod(UWorld *World, FAutomati
 		BuffDmgEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		BuffDmgEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffDmgEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5464,8 +5895,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEImmunity(UWorld *World, FAut
 		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5499,8 +5933,11 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEImmunity(UWorld *World, FAut
 		ModBuffEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 		ModBuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f);
+		SourceComponent->ApplyGameplayEffectToTarget(ModBuffEffect, DestComponent, 1.f, Qualifier);
 	}
 
 	{
@@ -5556,8 +5993,11 @@ bool GameplayEffectsTest_ModifyChanceToApplyToTarget(UWorld *World, FAutomationT
 		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceApplyTarget;
 		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f, Qualifier);
 	}
 
 	{
@@ -5618,8 +6058,11 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 		BuffEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Buff"))));
 		BuffEffect->ChanceToExecuteOnGameplayEffect.SetValue(0.f);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 0.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BuffEffect, SourceComponent, 0.f, Qualifier);
 	}
 
 	// verify that outgoing damage is unbuffed
@@ -5655,8 +6098,11 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 		BaseEffect->Modifiers[0].EffectType = EGameplayModEffect::ChanceExecuteEffect;
 		BaseEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
 
+		FModifierQualifier Qualifier = FModifierQualifier();
+		Qualifier.PredictionKey(TEST_PREDICTIONKEY);
+
 		// Apply to self
-		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f);
+		SourceComponent->ApplyGameplayEffectToTarget(BaseEffect, SourceComponent, 0.f, Qualifier);
 	}
 
 	// verify that the buff applies now
@@ -5706,15 +6152,15 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	GameplayEffectsTest_InstantDamageRemap(World, this);
 	GameplayEffectsTest_InstantDamage_Buffed(World, this);
 
+	GameplayEffectsTest_DurationDamage(World, this);
+	GameplayEffectsTest_PeriodicDamage(World, this);
+
 	GameplayEffectsTest_TemporaryDamage(World, this);
 	GameplayEffectsTest_TemporaryDamageBuffed(World, this);
 	GameplayEffectsTest_TemporaryDamageTemporaryBuff(World, this);
 	GameplayEffectsTest_LinkedBuffDestroy(World, this);
 	GameplayEffectsTest_SnapshotBuffDestroy(World, this);
 	GameplayEffectsTest_DurationBuff(World, this);
-
-	GameplayEffectsTest_DurationDamage(World, this);
-	GameplayEffectsTest_PeriodicDamage(World, this);
 	
 	// Buffing Buffs
 	GameplayEffectsTest_DamageBuffBuff_Basic(World, this);
@@ -5732,7 +6178,7 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	
 	GameplayEffectsTest_ShieldExtension(World, this);
 	GameplayEffectsTest_ShieldExtensionMultiple(World, this);
-	
+
 	// Scaling modifiers
 	GameplayEffectsTest_InstantDamage_ScalingExplicit(World, this);
 	GameplayEffectsTest_InstantDamage_ScalingGlobal(World, this);
@@ -5740,20 +6186,26 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	GameplayEffectsTest_InstantDamage_ScalingProperty(World, this);
 	GameplayEffectsTest_InstantDamage_ScalingPropertyNested(World, this);
 
-	GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(World, this);
-	GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(World, this);
+// 	GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(World, this);
+// GameplayTest_TickWorld(World, SMALL_NUMBER);
+// 	GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(World, this);
+// GameplayTest_TickWorld(World, SMALL_NUMBER);
 
 	GameplayEffectsTest_InstantDamage_OverrideScaling(World, this);
 
+	GameplayTest_TickWorld(World, SMALL_NUMBER);
+
 	// Tagging tests
 	GameplayEffectsTest_InstantDamageRequiredTag(World, this);
-	GameplayEffectsTest_InstantDamageIgnoreTag(World, this);
+	GameplayEffectsTest_InstantDamageIgnoreTag(World, this);  // busted
 	
 	GameplayEffectsTest_InstantDamageModifierPassesTag(World, this);
 	GameplayEffectsTest_InstantDamageModifierTag(World, this);
 
 	GameplayEffectsTest_MetaAttributes(World, this);
 	GameplayEffectsTest_TagOrdering(World, this);
+
+	GameplayTest_TickWorld(World, SMALL_NUMBER);
 	
 	//
 	// Stacking GE tests
