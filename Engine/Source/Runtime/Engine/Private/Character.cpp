@@ -831,7 +831,7 @@ void ACharacter::PostNetReceive()
 	if (Role == ROLE_SimulatedProxy)
 	{
 		CharacterMovement->bNetworkUpdateReceived = true;
-		CharacterMovement->bNetworkMovementModeChanged = (SavedMovementMode != ReplicatedMovementMode);
+		CharacterMovement->bNetworkMovementModeChanged = (CharacterMovement->bNetworkMovementModeChanged || (SavedMovementMode != ReplicatedMovementMode));
 	}
 
 	Super::PostNetReceive();

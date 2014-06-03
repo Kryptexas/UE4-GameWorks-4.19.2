@@ -927,6 +927,13 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 		// Do not override Velocity.Z if falling.
 		Velocity = FVector(RootMotionVelocity.X, RootMotionVelocity.Y, (MovementMode == MOVE_Falling ? Velocity.Z : RootMotionVelocity.Z));
 
+		// Update replicated movement mode.
+		if (bNetworkMovementModeChanged)
+		{
+			bNetworkMovementModeChanged = false;
+			ApplyNetworkMovementMode(CharacterOwner->GetReplicatedMovementMode());
+		}
+
 		StartNewPhysics(DeltaSeconds, 0);
 		// fixme laurent - simulate movement seems to have step up issues? investigate as that would be cheaper to use.
 		// 		SimulateMovement(DeltaSeconds);
