@@ -96,8 +96,13 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Culling)
 	int32 InstanceEndCullDistance;
 
+	/** Add an instance to this component. Transform is given in local space of this component.  */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
 	void AddInstance(const FTransform& InstanceTransform);
+
+	/** Add an instance to this component. Transform is given in world space. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	 void AddInstanceWorldSpace(const FTransform& WorldTransform);
 
 	virtual bool ShouldCreatePhysicsState() const;
 

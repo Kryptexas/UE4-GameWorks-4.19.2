@@ -1434,6 +1434,13 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 	MarkRenderStateDirty();
 }
 
+void UInstancedStaticMeshComponent::AddInstanceWorldSpace(const FTransform& WorldTransform)
+ {
+	// Transform from world space to local space
+	FTransform RelativeTM = WorldTransform.GetRelativeTransform(ComponentToWorld);
+	AddInstance(RelativeTM);
+}
+
 bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 {
 	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
