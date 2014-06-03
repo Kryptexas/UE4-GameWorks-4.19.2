@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayTags.h"
+#include "GameplayEffect.h"
 #include "GameplayCueView.generated.h"
 
 /** 

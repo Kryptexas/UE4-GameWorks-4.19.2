@@ -4,6 +4,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
 #include "AttributeComponent.h"
+#include "SkillSystemBlueprintLibrary.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
