@@ -183,6 +183,13 @@ public:
 		bShadowMapped = false;
 	}
 
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const 
+	{
+		LocalVolumeBounds = FBox(0);
+		OutBlockMin = FIntVector(-1, -1, -1);
+		OutBlockSize = FIntVector(0, 0, 0);
+	}
+
 	/**
 	 *	Called when the rendering thread adds the proxy to the scene.
 	 *	This function allows for generating renderer-side resources.
@@ -359,6 +366,11 @@ public:
 	{
 		checkf(false, TEXT("GetCustomOcclusionBounds> Should not be called on base scene proxy!"));
 		return GetBounds();
+	}
+
+	virtual bool HasDistanceFieldRepresentation() const
+	{
+		return false;
 	}
 
 	/** 

@@ -104,6 +104,15 @@ static const VectorRegister SSE_INFINITY = MakeVectorRegister( (uint32)0x7F80000
 #define VectorOne()						SSE_ONE
 
 /**
+ * Returns an component from a vector.
+ *
+ * @param Vec				Vector register
+ * @param ComponentIndex	Which component to get, X=0, Y=1, Z=2, W=3
+ * @return					The component as a float
+ */
+#define VectorGetComponent( Vec, ComponentIndex )	(((float*) &(Vec))[ComponentIndex])
+
+/**
  * Loads 4 FLOATs from unaligned memory.
  *
  * @param Ptr	Unaligned memory pointer to the 4 FLOATs
@@ -170,6 +179,15 @@ FORCEINLINE VectorRegister VectorLoadFloat3_W1( const void* Ptr )
  * @return		VectorRegister(X, Y, Z, undefined)
  */
 #define VectorSetFloat3( X, Y, Z )		MakeVectorRegister( X, Y, Z, 0.0f )
+
+/**
+ * Propagates passed in float to all registers
+ *
+ * @param F		Float to set
+ * @return		VectorRegister(F,F,F,F)
+ */
+#define VectorSetFloat1( F )	_mm_set1_ps( F )
+
 
 /**
  * Creates a vector out of four FLOATs.
@@ -778,6 +796,79 @@ FORCEINLINE VectorRegister VectorTransformVector(const VectorRegister&  VecP,  c
  * @return			The swizzled vector
  */
 #define VectorShuffle( Vec1, Vec2, X, Y, Z, W )	_mm_shuffle_ps( Vec1, Vec2, SHUFFLEMASK(X,Y,Z,W) )
+
+
+
+/**
+ * These functions return a vector mask to indicate which components pass the comparison.
+ * Each component is 0xffffffff if it passes, 0x00000000 if it fails.
+ *
+ * @param Vec1			1st source vector
+ * @param Vec2			2nd source vector
+ * @return				Vector with a mask for each component.
+ */
+#define VectorMask_LT( Vec1, Vec2 )			_mm_cmplt_ps(Vec1, Vec2)
+#define VectorMask_LE( Vec1, Vec2 )			_mm_cmple_ps(Vec1, Vec2)
+#define VectorMask_GT( Vec1, Vec2 )			_mm_cmpgt_ps(Vec1, Vec2)
+#define VectorMask_GE( Vec1, Vec2 )			_mm_cmpge_ps(Vec1, Vec2)
+#define VectorMask_EQ( Vec1, Vec2 )			_mm_cmpeq_ps(Vec1, Vec2)
+#define VectorMask_NE( Vec1, Vec2 )			_mm_cmpneq_ps(Vec1, Vec2)
+
+/**
+ * Returns an integer bit-mask (0x00 - 0x0f) based on the sign-bit for each component in a vector.
+ *
+ * @param VecMask		Vector
+ * @return				Bit 0 = sign(VecMask.x), Bit 1 = sign(VecMask.y), Bit 2 = sign(VecMask.z), Bit 3 = sign(VecMask.w)
+ */
+#define VectorMaskBits( VecMask )			_mm_movemask_ps( VecMask )
+
+/**
+ * Returns the bitwise AND.
+ *
+ * @param	Vec1	Vector to AND
+ * @param	Vec2	Vector to AND
+ * @return	bitwise per component AND operation.
+ */
+#define VectorBitwiseAND( Vec1, Vec2 )	_mm_and_ps( (Vec1), (Vec2) )
+
+/**
+ * Divides two vectors (component-wise) and returns the result.
+ *
+ * @param Vec1	1st vector
+ * @param Vec2	2nd vector
+ * @return		VectorRegister( Vec1.x/Vec2.x, Vec1.y/Vec2.y, Vec1.z/Vec2.z, Vec1.w/Vec2.w )
+ */
+#define VectorDivide( Vec1, Vec2 )		_mm_div_ps( Vec1, Vec2 )
+
+/**
+ * Counts the number of trailing zeros in the bit representation of the value,
+ * counting from least-significant bit to most.
+ *
+ * @param Value the value to determine the number of leading zeros for
+ * @return the number of zeros before the first "on" bit
+ */
+#if PLATFORM_WINDOWS
+#pragma intrinsic( _BitScanForward )
+FORCEINLINE uint32 appCountTrailingZeros(uint32 Value)
+{
+	if (Value == 0)
+	{
+		return 32;
+	}
+	uint32 BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
+	_BitScanForward( (::DWORD *)&BitIndex, Value );	// Scans from LSB to MSB
+	return BitIndex;
+}
+#else // PLATFORM_WINDOWS
+FORCEINLINE uint32 appCountTrailingZeros(uint32 Value)
+{
+	if (Value == 0)
+	{
+		return 32;
+	}
+	return __builtin_ffs(Value) - 1;
+}
+#endif // PLATFORM_WINDOWS
 
 
 /**

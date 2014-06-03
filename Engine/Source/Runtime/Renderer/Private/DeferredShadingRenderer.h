@@ -148,7 +148,7 @@ private:
 	void SetupInteractionShadows(
 		FLightPrimitiveInteraction* Interaction, 
 		FVisibleLightInfo& VisibleLightInfo, 
-		bool bReflectionCaptureScene,
+		bool bStaticSceneOnly,
 		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 		TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows);
 
@@ -175,6 +175,12 @@ private:
 
 	/** Renders reflections that can be done in a deferred pass. */
 	void RenderDeferredReflections();
+
+	/** Render dynamic sky lighting from Movable sky lights. */
+	void RenderDynamicSkyLighting();
+
+	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
+	bool RenderDistanceFieldAOSurfaceCache(FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor);
 
 	/** Whether tiled deferred is supported and can be used at all. */
 	bool CanUseTiledDeferred() const;

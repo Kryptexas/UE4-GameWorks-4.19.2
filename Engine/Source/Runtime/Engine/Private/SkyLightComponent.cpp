@@ -72,6 +72,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, ProcessedTexture(InLightComponent->ProcessedSkyTexture)
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
+	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
 	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
@@ -198,12 +199,6 @@ void USkyLightComponent::DestroyRenderState_Concurrent()
 void USkyLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
-
-	// Movable not supported yet
-	if (Mobility == EComponentMobility::Movable)
-	{
-		Mobility = EComponentMobility::Stationary;
-	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -365,6 +360,7 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
+					//@todo - defer this until shader compilation is finished, just like reflection captures, otherwise we will capture an incomplete scene.
 					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
 
 					CaptureComponent->MarkRenderStateDirty();

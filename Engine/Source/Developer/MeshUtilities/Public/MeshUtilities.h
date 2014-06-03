@@ -132,6 +132,7 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
+		const TArray<UMaterialInterface*>& Materials,
 		const class FStaticMeshLODGroup& LODGroup
 		) = 0;
 

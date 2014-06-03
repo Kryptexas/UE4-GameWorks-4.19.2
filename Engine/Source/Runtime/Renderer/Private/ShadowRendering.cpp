@@ -410,6 +410,10 @@ public:
 		TransmissionStrength.Bind(Initializer.ParameterMap,TEXT("TransmissionStrength"));
 		ReflectiveShadowMapTextureResolution.Bind(Initializer.ParameterMap,TEXT("ReflectiveShadowMapTextureResolution"));
 		ProjectionMatrixParameter.Bind(Initializer.ParameterMap,TEXT("ProjectionMatrix"));
+		GvListBuffer.Bind(Initializer.ParameterMap,TEXT("GvListBuffer"));
+		GvListHeadBuffer.Bind(Initializer.ParameterMap,TEXT("GvListHeadBuffer"));
+		VplListBuffer.Bind(Initializer.ParameterMap,TEXT("VplListBuffer"));
+		VplListHeadBuffer.Bind(Initializer.ParameterMap,TEXT("VplListHeadBuffer"));
 	}
 
 	TShadowDepthBasePS() {}
@@ -465,6 +469,10 @@ public:
 		Ar << TransmissionStrength;
 		Ar << ReflectiveShadowMapTextureResolution;
 		Ar << ProjectionMatrixParameter;
+		Ar << GvListBuffer;
+		Ar << GvListHeadBuffer;
+		Ar << VplListBuffer;
+		Ar << VplListHeadBuffer;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -476,6 +484,11 @@ private:
 	FShaderParameter TransmissionStrength;
 	FShaderParameter ReflectiveShadowMapTextureResolution;
 	FShaderParameter ProjectionMatrixParameter;
+
+	FRWShaderParameter GvListBuffer;
+	FRWShaderParameter GvListHeadBuffer;
+	FRWShaderParameter VplListBuffer;
+	FRWShaderParameter VplListHeadBuffer;
 };
 
 enum EShadowDepthPixelShaderMode
@@ -549,10 +562,13 @@ IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_OnePassPointLight, t
 IMPLEMENT_SHADOWDEPTHPASS_PIXELSHADER_TYPE(PixelShadowDepth_OnePassPointLight, false);
 
 /** The stencil sphere vertex buffer. */
-TGlobalResource<StencilingGeometry::FStencilSphereVertexBuffer> StencilingGeometry::GStencilSphereVertexBuffer;
+TGlobalResource<StencilingGeometry::TStencilSphereVertexBuffer<18, 12> > StencilingGeometry::GStencilSphereVertexBuffer;
 
 /** The stencil sphere index buffer. */
-TGlobalResource<StencilingGeometry::FStencilSphereIndexBuffer> StencilingGeometry::GStencilSphereIndexBuffer;
+TGlobalResource<StencilingGeometry::TStencilSphereIndexBuffer<18, 12> > StencilingGeometry::GStencilSphereIndexBuffer;
+
+TGlobalResource<StencilingGeometry::TStencilSphereVertexBuffer<4, 4> > StencilingGeometry::GLowPolyStencilSphereVertexBuffer;
+TGlobalResource<StencilingGeometry::TStencilSphereIndexBuffer<4, 4> > StencilingGeometry::GLowPolyStencilSphereIndexBuffer;
 
 /** The (dummy) stencil cone vertex buffer. */
 TGlobalResource<StencilingGeometry::FStencilConeVertexBuffer> StencilingGeometry::GStencilConeVertexBuffer;
@@ -1413,22 +1429,6 @@ void FProjectedShadowInfo::RenderDepth(FDeferredShadingSceneRenderer* SceneRende
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
 	FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
-}
-
-void StencilingGeometry::CalcTransform(FVector4& OutPosAndScale, const FSphere& Sphere, const FVector& PreViewTranslation, bool bConservativelyBoundSphere)
-{
-	float Radius = Sphere.W;
-	if (bConservativelyBoundSphere)
-	{
-		const int32 NumRings = StencilingGeometry::NUM_SPHERE_RINGS;
-		const float RadiansPerRingSegment = PI / (float)NumRings;
-
-		// Boost the effective radius so that the edges of the sphere approximation lie on the sphere, instead of the vertices
-		Radius /= FMath::Cos(RadiansPerRingSegment);
-	}
-
-	const FVector Translate(Sphere.Center + PreViewTranslation);
-	OutPosAndScale = FVector4(Translate, Radius);
 }
 
 void StencilingGeometry::DrawSphere()

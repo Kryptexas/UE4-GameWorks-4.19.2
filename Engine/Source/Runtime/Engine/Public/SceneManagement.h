@@ -705,6 +705,7 @@ public:
 	FTexture* ProcessedTexture;
 	float SkyDistanceThreshold;
 	bool bCastShadows;
+	bool bWantsStaticShadowing;
 	bool bPrecomputedLightingIsValid;
 	bool bHasStaticLighting;
 	FLinearColor LightColor;
@@ -1134,6 +1135,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,LocalToWorldDeterminantSign,EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,ActorWorldPosition)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,DecalReceiverMask,EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,HasDistanceFieldRepresentation,EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ObjectOrientation,EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,NonUniformScale,EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,InvNonUniformScale,EShaderPrecisionModifier::Half)
@@ -1149,6 +1151,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 	const FBoxSphereBounds& WorldBounds,
 	const FBoxSphereBounds& LocalBounds,
 	bool bReceivesDecals,
+	bool bHasDistanceFieldRepresentation,
 	float LpvBiasMultiplier = 1.0f
 )
 {
@@ -1182,6 +1185,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 
 	Result.LocalToWorldDeterminantSign = FMath::FloatSelect(LocalToWorld.RotDeterminant(),1,-1);
 	Result.DecalReceiverMask = bReceivesDecals ? 1 : 0;
+	Result.HasDistanceFieldRepresentation = bHasDistanceFieldRepresentation ? 1 : 0;
 	return Result;
 }
 
@@ -1195,7 +1199,7 @@ inline TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUnifo
 {
 	check(IsInRenderingThread());
 	return TUniformBufferRef<FPrimitiveUniformShaderParameters>::CreateUniformBufferImmediate(
-		GetPrimitiveUniformShaderParameters(LocalToWorld, WorldBounds.Origin, WorldBounds, LocalBounds, bReceivesDecals, LpvBiasMultiplier ),
+		GetPrimitiveUniformShaderParameters(LocalToWorld, WorldBounds.Origin, WorldBounds, LocalBounds, bReceivesDecals, false, LpvBiasMultiplier ),
 		UniformBuffer_MultiUse
 		);
 }
@@ -1221,6 +1225,7 @@ public:
 			FBoxSphereBounds(EForceInit::ForceInit),
 			FBoxSphereBounds(EForceInit::ForceInit),
 			true,
+			false,
 			1.0f		// LPV bias
 			));
 	}
@@ -2634,6 +2639,12 @@ public:
 
 	/** Whether this view is being used to render a reflection capture. */
 	bool bIsReflectionCapture;
+
+	/** 
+	 * Whether to only render static lights and objects.  
+	 * This is used when capturing the scene for reflection captures, which aren't updated at runtime. 
+	 */
+	bool bStaticSceneOnly;
 
 	/** 0 if valid (we are rendering a screen postprocess pass )*/
 	struct FRenderingCompositePassContext* RenderingCompositePassContext; 

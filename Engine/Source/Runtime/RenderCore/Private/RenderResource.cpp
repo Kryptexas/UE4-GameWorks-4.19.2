@@ -67,7 +67,7 @@ FRenderResource::~FRenderResource()
 	if (bInitialized && !GIsCriticalError)
 	{
 		// Deleting an initialized FRenderResource will result in a crash later since it is still linked
-		UE_LOG(LogRendererCore, Fatal,TEXT("An FRenderResource was deleted without being released first!"));
+		UE_LOG(LogRendererCore, Fatal,TEXT("A FRenderResource was deleted without being released first!"));
 	}
 }
 

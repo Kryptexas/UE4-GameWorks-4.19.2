@@ -286,6 +286,8 @@ struct FGBufferData
 	uint ShadingModelID;
 	// 0..1 decal receiver mask
 	uint DecalMask;
+	// 0..1
+	uint HasDistanceFieldRepresentation; 
 	// in world units
 	float CustomDepth;
 	// in unreal units (linear), can be used to reconstruct world position,
@@ -335,7 +337,8 @@ void EncodeGBuffer(
 	OutGBufferA.rgb = EncodeNormal( Data.WorldNormal );
 
 	// compress in 2 bits
-	OutGBufferA.a = Data.DecalMask * (1.0 / 3.0);
+	uint PackedAlpha = Data.DecalMask * 2 + (Data.HasDistanceFieldRepresentation);
+	OutGBufferA.a = PackedAlpha * (1.0 / 3.0);
 
 	if (Data.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
@@ -390,7 +393,9 @@ FGBufferData DecodeGBufferData(
 		ret.WorldNormal = normalize(ret.WorldNormal);
 	}
 
-	ret.DecalMask		= (uint)( InGBufferA.a * 3.999 );
+	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
+	ret.DecalMask = PackedAlpha & 2;
+	ret.HasDistanceFieldRepresentation = PackedAlpha & 1;
 	ret.ShadingModelID	= (uint)( InGBufferB.a * 255.999 );
 	
 	bool bSubsurface = (ret.ShadingModelID == SHADINGMODELID_SUBSURFACE || ret.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);

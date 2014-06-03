@@ -358,6 +358,25 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString() )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString())
+		]
+		.ValueContent()
+		[
+			SNew(SSpinBox<float>)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.MinValue(0.0f)
+			.MaxValue(100.0f)
+			.Value(this, &FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale)
+			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged)
+		];
+	}
 		
 	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
@@ -425,6 +444,11 @@ TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleZ() const
 	return BuildSettings.BuildScale3D.Z;
 }
 
+float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
+{
+	return BuildSettings.DistanceFieldResolutionScale;
+}
+
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
 {
 	BuildSettings.bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
@@ -467,6 +491,11 @@ void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommi
 	{
 		BuildSettings.BuildScale3D.Z = NewScaleZ;
 	}
+}
+
+void FMeshBuildSettingsLayout::OnDistanceFieldResolutionScaleChanged(float NewValue)
+{
+	BuildSettings.DistanceFieldResolutionScale = NewValue;
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )

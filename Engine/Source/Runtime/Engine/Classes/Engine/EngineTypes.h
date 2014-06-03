@@ -1672,6 +1672,8 @@ struct FMeshBuildSettings
 	/** The local scale applied when building the mesh */
 	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
 	FVector BuildScale3D;
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	float DistanceFieldResolutionScale;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1682,6 +1684,7 @@ struct FMeshBuildSettings
 		, BuildScale_DEPRECATED(1.0f)
 		, BuildScale3D(1.0f, 1.0f, 1.0f)
 	{
+		DistanceFieldResolutionScale = 1;
 	}
 
 	/** Equality operator. */
@@ -1691,7 +1694,8 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
-			&& BuildScale3D == Other.BuildScale3D;
+			&& BuildScale3D == Other.BuildScale3D
+			&& DistanceFieldResolutionScale == Other.DistanceFieldResolutionScale;
 	}
 
 	/** Inequality. */

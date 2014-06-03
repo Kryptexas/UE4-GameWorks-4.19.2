@@ -604,19 +604,15 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 						 BindDesc.Type == D3D11_SIT_UAV_RWBYTEADDRESS || BindDesc.Type == D3D11_SIT_UAV_RWSTRUCTURED_WITH_COUNTER ||
 						 BindDesc.Type == D3D11_SIT_UAV_APPEND_STRUCTURED)
 				{
-					// in D3D11 UAVs for PS are bound with the SetRenderTarget call, so we don't want error messages that the shader is not setting those
-					if(Input.Target.Frequency == SF_Compute)
-					{
-						TCHAR OfficialName[1024];
-						FCString::Strcpy(OfficialName, ANSI_TO_TCHAR(BindDesc.Name));
+					TCHAR OfficialName[1024];
+					FCString::Strcpy(OfficialName, ANSI_TO_TCHAR(BindDesc.Name));
 
-						Output.ParameterMap.AddParameterAllocation(
-							OfficialName,
-							0,
-							BindDesc.BindPoint,
-							1
-							);
-					}
+					Output.ParameterMap.AddParameterAllocation(
+						OfficialName,
+						0,
+						BindDesc.BindPoint,
+						1
+						);
 				}
 				else if (BindDesc.Type == D3D11_SIT_STRUCTURED || BindDesc.Type == D3D11_SIT_BYTEADDRESS)
 				{

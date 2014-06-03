@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "ShaderCompiler.h"
 #include "StaticMeshResources.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 
 
 // Enable this define to do slow checks for components being added to the wrong
@@ -22,6 +23,46 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDistanceCullFadeUniformShaderParameters,TEXT("P
 TGlobalResource< FGlobalDistanceCullFadeUniformBuffer > GDistanceCullFadedInUniformBuffer;
 
 SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
+
+/** Default constructor. */
+FSceneViewState::FSceneViewState()
+	: OcclusionQueryPool(RQT_Occlusion)
+{
+	LastRenderTime = -FLT_MAX;
+	LastRenderTimeDelta = 0.0f;
+	MotionBlurTimeScale = 1.0f;
+	PrevViewMatrixForOcclusionQuery.SetIdentity();
+	PrevViewOriginForOcclusionQuery = FVector::ZeroVector;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bIsFreezing = false;
+	bIsFrozen = false;
+#endif
+	// Register this object as a resource, so it will receive device reset notifications.
+	if ( IsInGameThread() )
+	{
+		BeginInitResource(this);
+	}
+	else
+	{
+		InitResource();
+	}
+	CachedVisibilityChunk = NULL;
+	CachedVisibilityHandlerId = INDEX_NONE;
+	CachedVisibilityBucketIndex = INDEX_NONE;
+	CachedVisibilityChunkIndex = INDEX_NONE;
+	MIDUsedCount = 0;
+	TemporalAASampleIndex = 0;
+	TemporalAASampleCount = 1;
+	AOTileIntersectionResources = NULL;
+	bBokehDOFHistory = true;
+
+	LightPropagationVolume = NULL; 
+
+	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
+	{
+		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
+	}
+}
 
 /**
  * Sets the FX system associated with the scene.
@@ -151,6 +192,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SimpleDirectionalLight(NULL)
 ,	SunLight(NULL)
 ,	IndirectLightingCache()
+,	SurfaceCacheResources(NULL)
 ,	PreshadowCacheLayout(0, 0, 0, 0, false, false)
 ,	AtmosphericFog(NULL)
 ,	PrecomputedVisibilityHandler(NULL)
@@ -191,6 +233,13 @@ FScene::~FScene()
 
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
+
+	if (SurfaceCacheResources)
+	{
+		SurfaceCacheResources->ReleaseResource();
+		delete SurfaceCacheResources;
+		SurfaceCacheResources = NULL;
+	}
 
 	if (AtmosphericFog)
 	{

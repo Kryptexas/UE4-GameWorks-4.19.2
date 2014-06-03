@@ -188,6 +188,7 @@ void MainPS(
 	Data.Opacity = Opacity;
 	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	Data.DecalMask = 1;
+	Data.HasDistanceFieldRepresentation = 1;
 
 	#if DECAL_RENDERSTAGE == 0
 	{

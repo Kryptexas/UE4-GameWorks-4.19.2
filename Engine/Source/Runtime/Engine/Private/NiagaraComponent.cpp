@@ -138,7 +138,8 @@ private:
 					GetActorPosition(),
 					GetBounds(),
 					GetLocalBounds(),
-					ReceivesDecals()
+					ReceivesDecals(),
+					false
 					);
 				WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 				WorldSpacePrimitiveUniformBuffer.InitResource();

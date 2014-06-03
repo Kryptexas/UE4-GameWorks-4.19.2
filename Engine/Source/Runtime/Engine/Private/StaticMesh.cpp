@@ -250,6 +250,146 @@ void FStaticMeshVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 	Stride = VertexData->GetStride();
 }
 
+TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
+
+FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
+	BlockAllocator(0, 0, 0, 512, 512, 512, false, false)
+{
+	Format = InFormat;
+}
+
+void FDistanceFieldVolumeTextureAtlas::AddAllocation(FDistanceFieldVolumeTexture* Texture)
+{
+	PendingAllocations.AddUnique(Texture);
+}
+
+void FDistanceFieldVolumeTextureAtlas::RemoveAllocation(FDistanceFieldVolumeTexture* Texture)
+{
+	PendingAllocations.Remove(Texture);
+
+	if (CurrentAllocations.Contains(Texture))
+	{
+		const FIntVector Min = Texture->GetAllocationMin();
+		const FIntVector Size = Texture->VolumeData.Size;
+		verify(BlockAllocator.RemoveElement(Min.X, Min.Y, Min.Z, Size.X, Size.Y, Size.Z));
+		CurrentAllocations.Remove(Texture);
+	}
+}
+
+void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
+{
+	if (PendingAllocations.Num() > 0)
+	{
+		//@todo - sort largest to smallest for best packing
+		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
+		{
+			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+			const FIntVector Size = Texture->VolumeData.Size;
+
+			if (!BlockAllocator.AddElement((uint32&)Texture->AtlasAllocationMin.X, (uint32&)Texture->AtlasAllocationMin.Y, (uint32&)Texture->AtlasAllocationMin.Z, Size.X, Size.Y, Size.Z))
+			{
+				UE_LOG(LogStaticMesh,Error,TEXT("Failed to allocate %ux%ux%u in distance field atlas"), Size.X, Size.Y, Size.Z);
+				PendingAllocations.RemoveAt(AllocationIndex);
+				AllocationIndex--;
+			}
+		}
+
+		if (!VolumeTextureRHI
+			|| BlockAllocator.GetSizeX() > VolumeTextureRHI->GetSizeX()
+			|| BlockAllocator.GetSizeY() > VolumeTextureRHI->GetSizeY()
+			|| BlockAllocator.GetSizeZ() > VolumeTextureRHI->GetSizeZ())
+		{
+			FRHIResourceCreateInfo CreateInfo;
+
+			VolumeTextureRHI = RHICreateTexture3D(
+				BlockAllocator.GetSizeX(), 
+				BlockAllocator.GetSizeY(), 
+				BlockAllocator.GetSizeZ(), 
+				Format,
+				1,
+				TexCreate_ShaderResource,
+				CreateInfo);
+
+			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+			float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
+			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
+
+			// Re-upload all textures since we had to reallocate
+			PendingAllocations.Append(CurrentAllocations);
+			CurrentAllocations.Empty();
+		}
+
+		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
+		{
+			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+			const FIntVector Size = Texture->VolumeData.Size;
+
+			const FUpdateTextureRegion3D UpdateRegion(
+				Texture->AtlasAllocationMin.X,
+				Texture->AtlasAllocationMin.Y,
+				Texture->AtlasAllocationMin.Z,
+				0,
+				0,
+				0,
+				Size.X,
+				Size.Y,
+				Size.Z);
+
+			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
+
+			// Update the volume texture atlas
+			RHIUpdateTexture3D(VolumeTextureRHI, 0, UpdateRegion, Size.X * FormatSize, Size.X * Size.Y * FormatSize, (const uint8*)Texture->VolumeData.DistanceFieldVolume.GetData());
+		}
+
+		CurrentAllocations.Append(PendingAllocations);
+		PendingAllocations.Empty();
+	}
+}
+
+void FDistanceFieldVolumeTexture::Initialize()
+{
+	if (IsValidDistanceFieldVolume())
+	{
+		bReferencedByAtlas = true;
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			AddAllocation,
+			FDistanceFieldVolumeTextureAtlas*, Atlas, Atlas,
+			FDistanceFieldVolumeTexture*, DistanceFieldVolumeTexture, this,
+			{
+				Atlas->AddAllocation(DistanceFieldVolumeTexture);
+			}
+		);
+	}
+}
+
+void FDistanceFieldVolumeTexture::Release()
+{
+	if (bReferencedByAtlas)
+	{
+		bReferencedByAtlas = false;
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			ReleaseAllocation,
+			FDistanceFieldVolumeTextureAtlas*, Atlas, Atlas,
+			FDistanceFieldVolumeTexture*, DistanceFieldVolumeTexture, this,
+			{
+				Atlas->RemoveAllocation(DistanceFieldVolumeTexture);
+			}
+		);
+	}
+}
+
+FIntVector FDistanceFieldVolumeTexture::GetAllocationSize() const
+{
+	return VolumeData.Size;
+}
+
+bool FDistanceFieldVolumeTexture::IsValidDistanceFieldVolume() const
+{
+	return VolumeData.Size.GetMax() > 0;
+}
+
 /*-----------------------------------------------------------------------------
 	FStaticMeshLODResources
 -----------------------------------------------------------------------------*/
@@ -289,14 +429,18 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	if( !StripFlags.IsDataStrippedForServer() )
 	{
 		PositionVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
-			VertexBuffer.Serialize( Ar, bNeedsCPUAccess );
-				ColorVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
+		VertexBuffer.Serialize( Ar, bNeedsCPUAccess );
+		ColorVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		IndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		DepthOnlyIndexBuffer.Serialize(Ar, bNeedsCPUAccess);
+		
+		Ar << DistanceFieldData;
+
 		if( !StripFlags.IsEditorDataStripped() )
 		{
 			WireframeIndexBuffer.Serialize(Ar, bNeedsCPUAccess);
 		}
+
 		if ( !StripFlags.IsClassDataStripped( AdjacencyDataStripFlag ) )
 		{
 			AdjacencyIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
@@ -499,6 +643,8 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 
 	InitVertexFactory(VertexFactory, Parent, NULL);
 	BeginInitResource(&VertexFactory);
+	
+	DistanceFieldData.VolumeTexture.Initialize();
 
 	const uint32 StaticMeshVertexMemory = 
 		VertexBuffer.GetStride() * VertexBuffer.GetNumVertices() + 
@@ -540,6 +686,8 @@ void FStaticMeshLODResources::ReleaseResources()
 	BeginReleaseResource(&PositionVertexBuffer);
 	BeginReleaseResource(&ColorVertexBuffer);
 	BeginReleaseResource(&DepthOnlyIndexBuffer);
+
+	DistanceFieldData.VolumeTexture.Release();
 
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
@@ -944,6 +1092,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 		Ar << BuildSettings.BuildScale3D;
 	}
 	
+	Ar << BuildSettings.DistanceFieldResolutionScale;
 	return Ar;
 }
 
@@ -951,18 +1100,22 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("9E3F518AAD424921BA8F9A1C5966F0B9")
+#define STATICMESH_DERIVEDDATA_VER TEXT("4668778561B445A9523C94440EA899D")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
 	static FString CachedVersionString;
 	if (CachedVersionString.IsEmpty())
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowMeshDistanceFieldRepresentations"));
+		FString DistanceFieldAllowed = (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("Dist") : TEXT("");
+
 		// Static mesh versioning is controlled by the version reported by the mesh utilities module.
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		CachedVersionString = FString::Printf(TEXT("%s_%s"),
+		CachedVersionString = FString::Printf(TEXT("%s_%s_%s"),
 			STATICMESH_DERIVEDDATA_VER,
-			*MeshUtilities.GetVersionString()
+			*MeshUtilities.GetVersionString(),
+			*DistanceFieldAllowed
 			);
 	}
 	return CachedVersionString;
@@ -1065,7 +1218,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 		FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
+		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, Owner->Materials, LODGroup);
 		bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
 		FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
 		Serialize(Ar, Owner, /*bCooked=*/ false);

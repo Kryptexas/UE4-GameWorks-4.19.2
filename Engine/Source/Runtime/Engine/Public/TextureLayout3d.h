@@ -166,6 +166,21 @@ public:
 
 	uint32 GetSizeZ() const { return SizeZ; }
 
+	uint32 GetMaxSizeX() const 
+	{
+		return Nodes[0].SizeX;
+	}
+
+	uint32 GetMaxSizeY() const 
+	{
+		return Nodes[0].SizeY;
+	}
+
+	uint32 GetMaxSizeZ() const 
+	{
+		return Nodes[0].SizeZ;
+	}
+
 private:
 
 	struct FTextureLayoutNode3d

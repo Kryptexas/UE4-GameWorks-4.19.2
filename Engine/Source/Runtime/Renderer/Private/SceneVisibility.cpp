@@ -1324,7 +1324,7 @@ void FSceneRenderer::ComputeViewVisibility()
 			}
 		}
 
-		if (View.bIsReflectionCapture)
+		if (View.bStaticSceneOnly)
 		{
 			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 			{

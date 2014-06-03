@@ -1,0 +1,713 @@
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+
+=============================================================================*/
+
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"
+#include "SHCommon.usf"
+#include "ReflectionEnvironmentShared.usf"
+#include "DistanceFieldLightingShared.usf"
+
+/** Min and Max depth for this tile. */
+groupshared uint IntegerTileMinZ;
+groupshared uint IntegerTileMaxZ;
+
+/** Inner Min and Max depth for this tile. */
+groupshared uint IntegerTileMinZ2;
+groupshared uint IntegerTileMaxZ2;
+
+/** View rect min in xy, max in zw. */
+uint4 ViewDimensions;
+float2 NumGroups;
+
+RWBuffer<float4> RWTileConeAxisAndCos;
+RWBuffer<float4> RWTileConeDepthRanges;
+RWBuffer<uint> RWTileHeadDataUnpacked;
+
+#ifndef MAX_OBJECTS_PER_TILE
+#define MAX_OBJECTS_PER_TILE 1
+#endif
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void BuildTileConesMain(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+    uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
+	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float SceneDepth = CalcSceneDepth(ScreenUV);
+
+	// Initialize per-tile variables
+    if (ThreadIndex == 0) 
+	{
+        IntegerTileMinZ = 0x7F7FFFFF;     
+        IntegerTileMaxZ = 0;
+		IntegerTileMinZ2 = 0x7F7FFFFF;  
+		IntegerTileMaxZ2 = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+    
+	// Use shared memory atomics to build the depth bounds for this tile
+	// Each thread is assigned to a pixel at this point
+    InterlockedMin(IntegerTileMinZ, asuint(SceneDepth));
+    InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
+
+    GroupMemoryBarrierWithGroupSync();
+
+    float MinTileZ = asfloat(IntegerTileMinZ);
+    float MaxTileZ = asfloat(IntegerTileMaxZ);
+
+	float HalfZ = .5f * (MinTileZ + MaxTileZ);
+
+	// Compute a second min and max Z, clipped by HalfZ, so that we get two depth bounds per tile
+	// This results in more conservative tile depth bounds and fewer intersections
+	if (SceneDepth >= HalfZ)
+	{
+		InterlockedMin(IntegerTileMinZ2, asuint(SceneDepth));
+	}
+
+	if (SceneDepth <= HalfZ)
+	{
+		InterlockedMax(IntegerTileMaxZ2, asuint(SceneDepth));
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+	
+	float MinTileZ2 = asfloat(IntegerTileMinZ2);
+	float MaxTileZ2 = asfloat(IntegerTileMaxZ2);
+
+	if (ThreadIndex == 0)
+	{
+		float3 TileConeVertex;
+		float3 TileConeAxis;
+		float TileConeAngleCos;
+		float TileConeAngleSin;
+		float4 ConeAxisDepthRanges;
+
+		{
+			float2 ViewSize = float2(1 / View.ViewToClip[0][0], 1 / View.ViewToClip[1][1]);
+			float3 TileCorner00 = normalize(float3((GroupId.x + 0) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 0) / NumGroups.y * ViewSize.y * 2, 1));
+			float3 TileCorner10 = normalize(float3((GroupId.x + 1) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 0) / NumGroups.y * ViewSize.y * 2, 1));
+			float3 TileCorner01 = normalize(float3((GroupId.x + 0) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 1) / NumGroups.y * ViewSize.y * 2, 1));
+			float3 TileCorner11 = normalize(float3((GroupId.x + 1) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 1) / NumGroups.y * ViewSize.y * 2, 1));
+
+			TileConeAxis = normalize(TileCorner00 + TileCorner10 + TileCorner01 + TileCorner11);
+			TileConeAngleCos = dot(TileConeAxis, TileCorner00);
+			TileConeAngleSin = sqrt(1 - TileConeAngleCos * TileConeAngleCos);
+			float TileConeAngleTan = TileConeAngleSin / TileConeAngleCos; 
+
+			float3 ViewSpaceSampleDirection = mul(float3(0, 0, 1), (float3x3)View.TranslatedWorldToView);
+			float ConeExpandDistance = 0;
+
+			float VertexPullbackLength = ConeExpandDistance / TileConeAngleTan;
+			float DistanceToNearPlane = length(TileConeAxis / TileConeAxis.z * View.NearPlane);
+			// 1 / cos(AngleBetweenTileCenterAndViewForward)
+			float InvCosTileAngle = 1.0f / TileConeAxis.z;
+			float ConeAxisDistanceMultiply = InvCosTileAngle;
+			float ConeAxisDistanceAdd = VertexPullbackLength + DistanceToNearPlane;
+			ConeAxisDepthRanges.x = ConeAxisDistanceMultiply * (MinTileZ - ConeExpandDistance) + ConeAxisDistanceAdd;
+			ConeAxisDepthRanges.y = ConeAxisDistanceMultiply * (MaxTileZ2 + ConeExpandDistance) + ConeAxisDistanceAdd;
+			ConeAxisDepthRanges.z = ConeAxisDistanceMultiply * (MinTileZ2 - ConeExpandDistance) + ConeAxisDistanceAdd;
+			ConeAxisDepthRanges.w = ConeAxisDistanceMultiply * (MaxTileZ + ConeExpandDistance) + ConeAxisDistanceAdd;
+
+			// Pull back cone vertex to contain potential samples
+			//@todo - only expand in sky direction
+			TileConeVertex = float3(0, 0, 0) - TileConeAxis * VertexPullbackLength;
+		}
+
+		uint TileIndex = GroupId.y * NumGroups.x + GroupId.x;
+		RWTileConeAxisAndCos[TileIndex] = float4(TileConeAxis, TileConeAngleCos);
+		RWTileConeDepthRanges[TileIndex] = ConeAxisDepthRanges;
+
+#if COHERENT_OBJECT_LIST_WRITES
+		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex;
+#else
+		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex * MAX_OBJECTS_PER_TILE;
+#endif
+		RWTileHeadDataUnpacked[TileIndex * 4 + 1] = 0;
+		RWTileHeadDataUnpacked[TileIndex * 4 + 2] = 0;
+		RWTileHeadDataUnpacked[TileIndex * 4 + 3] = 0;
+	}
+}
+
+groupshared uint SmallTileObjectIndices[MAX_OBJECTS_PER_TILE];
+groupshared uint MediumTileObjectIndices[MAX_OBJECTS_PER_TILE];
+groupshared uint LargeTileObjectIndices[MAX_OBJECTS_PER_TILE];
+
+groupshared uint SmallTileNumObjects;
+groupshared uint MediumTileNumObjects;
+groupshared uint LargeTileNumObjects;
+groupshared uint TileArrayDataStart;
+
+RWBuffer<uint> RWTileArrayData;
+RWBuffer<uint> RWTileArrayNextAllocation;
+RWBuffer<uint4> RWTileHeadData;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void DistanceFieldAOBuildTileListMain(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+    uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
+	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float SceneDepth = CalcSceneDepth(ScreenUV);
+
+	// Initialize per-tile variables
+    if (ThreadIndex == 0) 
+	{
+        IntegerTileMinZ = 0x7F7FFFFF;     
+        IntegerTileMaxZ = 0;
+		IntegerTileMinZ2 = 0x7F7FFFFF;  
+		IntegerTileMaxZ2 = 0;
+		SmallTileNumObjects = 0;
+		MediumTileNumObjects = 0;
+		LargeTileNumObjects = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+    
+	// Use shared memory atomics to build the depth bounds for this tile
+	// Each thread is assigned to a pixel at this point
+    InterlockedMin(IntegerTileMinZ, asuint(SceneDepth));
+    InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
+
+    GroupMemoryBarrierWithGroupSync();
+
+    float MinTileZ = asfloat(IntegerTileMinZ);
+    float MaxTileZ = asfloat(IntegerTileMaxZ);
+
+	float HalfZ = .5f * (MinTileZ + MaxTileZ);
+
+	// Compute a second min and max Z, clipped by HalfZ, so that we get two depth bounds per tile
+	// This results in more conservative tile depth bounds and fewer intersections
+	if (SceneDepth >= HalfZ)
+	{
+		InterlockedMin(IntegerTileMinZ2, asuint(SceneDepth));
+	}
+
+	if (SceneDepth <= HalfZ)
+	{
+		InterlockedMax(IntegerTileMaxZ2, asuint(SceneDepth));
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+	
+	float MinTileZ2 = asfloat(IntegerTileMinZ2);
+	float MaxTileZ2 = asfloat(IntegerTileMaxZ2);
+
+	float3 TileConeVertex;
+	float3 TileConeAxis;
+	float TileConeAngleCos;
+	float TileConeAngleSin;
+	float4 ConeAxisDepthRanges;
+
+	{
+		float2 ViewSize = float2(1 / View.ViewToClip[0][0], 1 / View.ViewToClip[1][1]);
+		float3 TileCorner00 = normalize(float3((GroupId.x + 0) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 0) / NumGroups.y * ViewSize.y * 2, 1));
+		float3 TileCorner10 = normalize(float3((GroupId.x + 1) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 0) / NumGroups.y * ViewSize.y * 2, 1));
+		float3 TileCorner01 = normalize(float3((GroupId.x + 0) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 1) / NumGroups.y * ViewSize.y * 2, 1));
+		float3 TileCorner11 = normalize(float3((GroupId.x + 1) / NumGroups.x * ViewSize.x * 2 - ViewSize.x, ViewSize.y - (GroupId.y + 1) / NumGroups.y * ViewSize.y * 2, 1));
+
+		TileConeAxis = normalize(TileCorner00 + TileCorner10 + TileCorner01 + TileCorner11);
+		TileConeAngleCos = dot(TileConeAxis, TileCorner00);
+		TileConeAngleSin = sqrt(1 - TileConeAngleCos * TileConeAngleCos);
+		float TileConeAngleTan = TileConeAngleSin / TileConeAngleCos; 
+
+		float3 ViewSpaceSampleDirection = mul(float3(0, 0, 1), (float3x3)View.TranslatedWorldToView);
+		float ConeExpandDistance = 0;
+
+		float VertexPullbackLength = ConeExpandDistance / TileConeAngleTan;
+		float DistanceToNearPlane = length(TileConeAxis / TileConeAxis.z * View.NearPlane);
+		// 1 / cos(AngleBetweenTileCenterAndViewForward)
+		float InvCosTileAngle = 1.0f / TileConeAxis.z;
+		float ConeAxisDistanceMultiply = InvCosTileAngle;
+		float ConeAxisDistanceAdd = VertexPullbackLength + DistanceToNearPlane;
+		ConeAxisDepthRanges.x = ConeAxisDistanceMultiply * (MinTileZ - ConeExpandDistance) + ConeAxisDistanceAdd;
+		ConeAxisDepthRanges.y = ConeAxisDistanceMultiply * (MaxTileZ2 + ConeExpandDistance) + ConeAxisDistanceAdd;
+		ConeAxisDepthRanges.z = ConeAxisDistanceMultiply * (MinTileZ2 - ConeExpandDistance) + ConeAxisDistanceAdd;
+		ConeAxisDepthRanges.w = ConeAxisDistanceMultiply * (MaxTileZ + ConeExpandDistance) + ConeAxisDistanceAdd;
+
+		// Pull back cone vertex to contain potential samples
+		//@todo - only expand in sky direction
+		TileConeVertex = float3(0, 0, 0) - TileConeAxis * VertexPullbackLength;
+	}
+	
+	// A value of 1 is conservative, but has huge impact on performance
+	float RadiusScale = .5f;
+	float SmallGroupMaxSampleRadius;
+	{
+		uint StartIndex;
+		uint EndIndex;
+		float StepScale = GetPhaseParameters(0, StartIndex, EndIndex);
+		SmallGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+	}
+
+	float MediumGroupMaxSampleRadius;
+	{
+		uint StartIndex;
+		uint EndIndex;
+		float StepScale = GetPhaseParameters(1, StartIndex, EndIndex);
+		MediumGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+	}
+
+	float LargeGroupMaxSampleRadius;
+	{
+		uint StartIndex;
+		uint EndIndex;
+		float StepScale = GetPhaseParameters(2, StartIndex, EndIndex);
+		LargeGroupMaxSampleRadius = GetStepOffset(EndIndex, StepScale) * 2 * RadiusScale;
+	}
+
+	// Compute per-tile lists of affecting objects through bounds culling
+	// Each thread now operates on a sample instead of a pixel
+	LOOP
+	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
+	{
+		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
+		float3 ViewSpaceSphereCenter = mul(float4(SphereCenterAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
+		
+		if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + SmallGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
+		{
+			uint ListIndex;
+			InterlockedAdd(SmallTileNumObjects, 1U, ListIndex);
+			SmallTileObjectIndices[ListIndex] = ObjectIndex; 
+		}
+		else if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + MediumGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
+		{
+			uint ListIndex;
+			InterlockedAdd(MediumTileNumObjects, 1U, ListIndex);
+			MediumTileObjectIndices[ListIndex] = ObjectIndex; 
+		}
+		else if (SphereIntersectConeWithDepthRanges(float4(ViewSpaceSphereCenter, SphereCenterAndRadius.w + LargeGroupMaxSampleRadius), TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges))
+		{
+			uint ListIndex;
+			InterlockedAdd(LargeTileNumObjects, 1U, ListIndex);
+			LargeTileObjectIndices[ListIndex] = ObjectIndex; 
+		}
+	}
+	
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex == 0) 
+	{
+		SmallTileNumObjects = min(SmallTileNumObjects, MAX_OBJECTS_PER_TILE);
+		MediumTileNumObjects = min(MediumTileNumObjects, MAX_OBJECTS_PER_TILE);
+		LargeTileNumObjects = min(LargeTileNumObjects, MAX_OBJECTS_PER_TILE);
+
+		uint ArrayStart;
+		uint NumObjectsIntersecting = SmallTileNumObjects + MediumTileNumObjects + LargeTileNumObjects;
+		InterlockedAdd(RWTileArrayNextAllocation[0], NumObjectsIntersecting, ArrayStart);
+		TileArrayDataStart = ArrayStart;
+		RWTileHeadData[GroupId.y * NumGroups.x + GroupId.x] = uint4(TileArrayDataStart, SmallTileNumObjects, MediumTileNumObjects, LargeTileNumObjects);
+	}
+	
+	GroupMemoryBarrierWithGroupSync();
+
+	uint ArrayDataStart = TileArrayDataStart;
+	
+	LOOP
+	for (uint SmallListIndex = ThreadIndex; SmallListIndex < SmallTileNumObjects; SmallListIndex += THREADGROUP_TOTALSIZE)
+	{
+		RWTileArrayData[ArrayDataStart + SmallListIndex] = SmallTileObjectIndices[SmallListIndex];
+	}
+
+	ArrayDataStart += SmallTileNumObjects;
+
+	LOOP
+	for (uint MediumListIndex = ThreadIndex; MediumListIndex < MediumTileNumObjects; MediumListIndex += THREADGROUP_TOTALSIZE)
+	{
+		RWTileArrayData[ArrayDataStart + MediumListIndex] = MediumTileObjectIndices[MediumListIndex];
+	}
+
+	ArrayDataStart += MediumTileNumObjects;
+
+	LOOP
+	for (uint LargeListIndex = ThreadIndex; LargeListIndex < LargeTileNumObjects; LargeListIndex += THREADGROUP_TOTALSIZE)
+	{
+		RWTileArrayData[ArrayDataStart + LargeListIndex] = LargeTileObjectIndices[LargeListIndex];
+	}
+}
+
+/** View rect min in xy, max in zw. */
+float2 ThreadToCulledTile;
+float ConeHalfAngle;
+float BentNormalNormalizeFactor;
+float RecordRadiusScale;
+
+RWBuffer<float4> RWIrradianceCachePositionRadius;
+RWBuffer<float4> RWIrradianceCacheNormal;
+RWBuffer<uint> RWScatterDrawParameters;
+RWBuffer<uint2> RWIrradianceCacheTileCoordinate;
+
+Texture2D IrradianceCacheSplatTexture;
+SamplerState IrradianceCacheSplatSampler;
+
+void FindBestAxisVectors2(float3 InZAxis, out float3 OutXAxis, out float3 OutYAxis )
+{
+	float3 UpVector = abs(InZAxis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	OutXAxis = normalize( cross( UpVector, InZAxis ) );
+	OutYAxis = cross( InZAxis, OutXAxis );
+}
+
+groupshared float4 CachedIrradianceCachePositionRadius[THREADGROUP_TOTALSIZE];
+groupshared float4 CachedIrradianceCacheNormal[THREADGROUP_TOTALSIZE];
+groupshared uint2 CachedIrradianceCacheTileCoordinate[THREADGROUP_TOTALSIZE];
+groupshared uint NumQueuedIrradianceCacheRecords;
+groupshared uint BaseRecordIndex;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void PopulateCacheCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
+
+	if (ThreadIndex == 0)
+	{
+		NumQueuedIrradianceCacheRecords = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	float2 ScreenUV = (DispatchThreadId.xy * CurrentLevelDownsampleFactor + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
+	float2 DownsampledScreenUV = (DispatchThreadId.xy + float2(.5f, .5f)) / AOBufferSize;
+
+	FGBufferData GBufferData = GetGBufferData(ScreenUV);
+
+	float4 IrradianceCacheSplat = Texture2DSampleLevel(IrradianceCacheSplatTexture, IrradianceCacheSplatSampler, DownsampledScreenUV, 0);
+
+	BRANCH
+	if (GBufferData.ShadingModelID > 0
+		&& GBufferData.HasDistanceFieldRepresentation > 0
+		&& IrradianceCacheSplat.w < .0001f 
+		&& all(DispatchThreadId.xy < AOBufferSize))
+	{
+		float SceneDepth = CalcSceneDepth(ScreenUV);
+
+		BRANCH
+		if (SceneDepth < AOMaxViewDistance)
+		{
+			uint2 TileCoordinate = DispatchThreadId.xy * DownsampleFactorToBaseLevel / uint2(THREADGROUP_SIZEX, THREADGROUP_SIZEY);
+
+			float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+			float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+
+			float2 BaseLevelScreenUV = (DispatchThreadId.xy * DownsampleFactorToBaseLevel + float2(.5f, .5f)) * BaseLevelTexelSize;
+			float3 WorldNormal = DecodeNormalForAO(Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, BaseLevelScreenUV, 0).xyz);
+
+			//@todo - offset shading position along normal to avoid incorrect self-occlusion?
+			float3 WorldShadingPosition = OpaqueWorldPosition;
+
+			//if (all(DispatchThreadId.xy == uint2(2,1)))
+			{
+				int NextSampleIndex;
+				InterlockedAdd(NumQueuedIrradianceCacheRecords, 1, NextSampleIndex);
+				CachedIrradianceCachePositionRadius[NextSampleIndex] = float4(WorldShadingPosition, SceneDepth * CurrentLevelDownsampleFactor * .005f);
+				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, .01f * CurrentLevelDownsampleFactor / 2);
+				CachedIrradianceCacheTileCoordinate[NextSampleIndex] = TileCoordinate;
+			}
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+	
+	if (ThreadIndex == 0)
+	{
+		InterlockedAdd(RWScatterDrawParameters[1], NumQueuedIrradianceCacheRecords, BaseRecordIndex);
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	LOOP
+	for (uint LocalRecordIndex = ThreadIndex; LocalRecordIndex < NumQueuedIrradianceCacheRecords; LocalRecordIndex += THREADGROUP_TOTALSIZE)
+	{
+		int SampleIndex = BaseRecordIndex + LocalRecordIndex;
+		RWIrradianceCachePositionRadius[SampleIndex] = CachedIrradianceCachePositionRadius[LocalRecordIndex];
+		RWIrradianceCacheNormal[SampleIndex] = float4(EncodeNormalForAO(CachedIrradianceCacheNormal[LocalRecordIndex].xyz), 0);
+		uint2 TileCoordinate = CachedIrradianceCacheTileCoordinate[LocalRecordIndex];
+		RWIrradianceCacheTileCoordinate[SampleIndex] = TileCoordinate;
+	}
+
+	if (all(DispatchThreadId == 0))
+	{
+		// VertexCountPerInstance
+		RWScatterDrawParameters[0] = 8 * 3;
+		// StartVertexLocation
+		RWScatterDrawParameters[2] = 0;
+		// StartInstanceLocation
+		RWScatterDrawParameters[3] = 0;
+	}
+}
+
+Buffer<float4> IrradianceCachePositionRadius;
+Buffer<uint2> IrradianceCacheTileCoordinate;
+Buffer<float4> IrradianceCacheNormal;
+Buffer<uint> ScatterDrawParameters;
+Buffer<uint> SavedStartIndex;
+
+RWBuffer<float> RWOccluderRadius;
+RWBuffer<float4> RWIrradianceCacheBentNormal;
+
+#define FINAL_GATHER_THREADGROUP_SIZE 64
+#define SIMULTANEOUSLY_TRACED_OBJECTS 4
+#define THREADS_PER_OBJECT (FINAL_GATHER_THREADGROUP_SIZE / SIMULTANEOUSLY_TRACED_OBJECTS)
+
+groupshared uint SharedConeVisibility[NUM_SAMPLES];
+groupshared uint SharedMinOcclusionDistance;
+
+[numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
+void FinalGatherCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint ThreadIndex = GroupThreadId.x;
+	uint ObjectOffsetIndex = ThreadIndex / THREADS_PER_OBJECT;
+
+	float ShadingConeAngleScale = 1;
+	float ShadingConeTanTheta = tan(ShadingConeAngleScale * ConeHalfAngle);
+
+	if (ThreadIndex == 0)
+	{
+		for (uint ConeIndex = 0; ConeIndex < NUM_SAMPLES; ConeIndex++) 
+		{
+			SharedConeVisibility[ConeIndex] = asuint(1.0f);
+		}
+
+		SharedMinOcclusionDistance = asuint(AOMaxDistance);
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	uint StartIndex = SavedStartIndex[0];
+	uint NumRecords = ScatterDrawParameters[1];
+
+	uint RecordIndex = StartIndex + GroupId.x;
+
+	float3 TangentX;
+	float3 TangentY;
+	float3 WorldNormal;
+
+	{
+		WorldNormal = DecodeNormalForAO(IrradianceCacheNormal[RecordIndex].xyz);
+		float3 WorldShadingPosition = IrradianceCachePositionRadius[RecordIndex].xyz;
+		uint2 TileCoordinate = IrradianceCacheTileCoordinate[RecordIndex];
+
+		uint4 TileHead = GetTileHead(TileCoordinate);
+		uint NumObjectsAffectingTile = TileHead.y + TileHead.z + TileHead.w;
+
+		FindBestAxisVectors2(WorldNormal, TangentX, TangentY);
+
+		LOOP 
+		for (uint ListObjectIndex = 0; ListObjectIndex < NumObjectsAffectingTile; ListObjectIndex += SIMULTANEOUSLY_TRACED_OBJECTS)
+		{
+			uint EffectiveListObjectIndex = ListObjectIndex + ObjectOffsetIndex;
+
+			if (EffectiveListObjectIndex < NumObjectsAffectingTile)
+			{
+#if COHERENT_OBJECT_LIST_WRITES
+
+				uint ListIndex = 0;
+				uint ArrayIndex = EffectiveListObjectIndex;
+
+				FLATTEN
+				if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
+				{
+					ListIndex = 2;
+					ArrayIndex = EffectiveListObjectIndex - TileHead.y - TileHead.z;
+				}
+				else if (EffectiveListObjectIndex >= TileHead.y)
+				{
+					ListIndex = 1;
+					ArrayIndex = EffectiveListObjectIndex - TileHead.y;
+				}
+
+				uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
+#else
+				uint ObjectIndex = TileArrayData.Load(TileHead.x + EffectiveListObjectIndex);
+#endif
+
+				float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
+				float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
+				float4 UVScaleAndVolumeScale = LoadObjectUVScale(ObjectIndex);
+				float3 VolumeShadingPosition = mul(float4(WorldShadingPosition, 1), WorldToVolume).xyz;
+
+				float ObjectOccluderRadius = length(LocalPositionExtent) * .5f;
+				float BoxDistance = ComputeDistanceFromBoxToPoint(-LocalPositionExtent, LocalPositionExtent, VolumeShadingPosition) * UVScaleAndVolumeScale.w;
+
+				BRANCH
+				if (BoxDistance < AOMaxDistance)
+				{
+					float3 UVAdd = LoadObjectUVAdd(ObjectIndex);
+
+					uint StartStepIndex = 0;
+			
+					FLATTEN
+					if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
+					{
+						StartStepIndex = 8;
+					}
+					else if (EffectiveListObjectIndex >= TileHead.y)
+					{
+						StartStepIndex = 5;
+					}
+
+					uint NumConeSteps = NUM_CONE_STEPS - StartStepIndex;
+
+					LOOP
+					for (uint SampleIndex = ThreadIndex % THREADS_PER_OBJECT; SampleIndex < NUM_SAMPLES * NumConeSteps; SampleIndex += THREADS_PER_OBJECT)
+					{
+						// Avoid uint divide
+						uint ConeIndex = (uint)(SampleIndex / (float)NumConeSteps);
+						uint StepIndex = StartStepIndex + SampleIndex - ConeIndex * NumConeSteps;
+
+						float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+						float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
+
+						float WorldStepOffset = AOStepScale * exp2(AOStepExponentScale * StepIndex);
+						float3 WorldSamplePosition = WorldShadingPosition + RotatedConeDirection * WorldStepOffset;
+						float3 StepSamplePosition = mul(float4(WorldSamplePosition, 1), WorldToVolume).xyz;
+						float3 ClampedSamplePosition = clamp(StepSamplePosition, -LocalPositionExtent, LocalPositionExtent);
+						float DistanceToClamped = length(StepSamplePosition - ClampedSamplePosition);
+
+						float LocalStepOffset = length(StepSamplePosition - VolumeShadingPosition);
+
+						float3 StepVolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+						float DistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped;
+
+						float EffectiveDistanceToOccluder = DistanceToOccluder;
+						float SphereRadius = LocalStepOffset * ShadingConeTanTheta;
+						// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
+						float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
+						float Visibility = saturate((EffectiveDistanceToOccluder / SphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
+
+						// Don't allow small objects to fully occlude a cone step
+						Visibility = max(Visibility, 1 - saturate(ObjectOccluderRadius / SphereRadius));
+
+						InterlockedMin(SharedConeVisibility[ConeIndex], asuint(Visibility));
+
+						if (EffectiveDistanceToOccluder < .9f * SphereRadius)
+						{
+							// Assuming occluder is straight forward along the cone
+							float WorldDistanceToOccluder = (LocalStepOffset + DistanceToOccluder) * UVScaleAndVolumeScale.w;
+							InterlockedMin(SharedMinOcclusionDistance, asuint(WorldDistanceToOccluder));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex == 0)
+	{
+		float3 UnoccludedDirection = 0;
+		float Visibility = 0;
+
+		for (uint ConeIndex = 0; ConeIndex < NUM_SAMPLES; ConeIndex++)
+		{
+			float3 ConeDirection = AOSamples2.SampleDirections[ConeIndex].xyz;
+			float3 RotatedConeDirection = ConeDirection.x * TangentX + ConeDirection.y * TangentY + ConeDirection.z * WorldNormal;
+
+			float ConeVisibility = asfloat(SharedConeVisibility[ConeIndex]);
+			UnoccludedDirection += ConeVisibility * RotatedConeDirection;
+			Visibility += ConeVisibility;
+		}
+
+		UnoccludedDirection = UnoccludedDirection * BentNormalNormalizeFactor / (float)NUM_SAMPLES;
+		Visibility = Visibility / (float)NUM_SAMPLES;
+
+		RWOccluderRadius[RecordIndex] = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
+		RWIrradianceCacheBentNormal[RecordIndex] = float4(EncodeNormalForAO(Visibility.xxx), 0);
+	}
+}
+
+#define COMPACT_THREADGROUP_SIZEX 64
+
+Buffer<uint> DrawParameters;
+RWBuffer<uint> RWDispatchParameters;
+
+RWBuffer<uint> RWSavedStartIndex;
+
+[numthreads(1, 1, 1)]
+void SaveStartIndexCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	RWSavedStartIndex[0] = DrawParameters[1];
+}
+
+[numthreads(1, 1, 1)]
+void SetupFinalGatherIndirectArgumentsCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint StartIndex = SavedStartIndex[0];
+	uint NumRecords = DrawParameters[1];
+	uint WorkRange = NumRecords - StartIndex;
+
+	RWDispatchParameters[0] = WorkRange;
+	RWDispatchParameters[1] = 1;
+	RWDispatchParameters[2] = 1;
+}
+
+#define COPY_THREADGROUP_SIZE 256
+float TrimFraction;
+
+[numthreads(1, 1, 1)]
+void SetupCopyIndirectArgumentsCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint NumRecords = (1 - TrimFraction) * DrawParameters[1];
+
+	RWDispatchParameters[0] = (NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE;
+	RWDispatchParameters[1] = 1;
+	RWDispatchParameters[2] = 1;
+}
+
+RWBuffer<float4> RWCopyIrradianceCachePositionRadius;
+RWBuffer<float4> RWCopyIrradianceCacheNormal;
+RWBuffer<float> RWCopyOccluderRadius;
+RWBuffer<float4> RWCopyIrradianceCacheBentNormal;
+RWBuffer<uint2> RWCopyIrradianceCacheTileCoordinate;
+
+Buffer<float> OccluderRadius;
+Buffer<float4> IrradianceCacheBentNormal;
+
+[numthreads(COPY_THREADGROUP_SIZE, 1, 1)]
+void CopyIrradianceCacheSamplesCS(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+    uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint NumRecords = DrawParameters[1];
+	uint StartIndex = NumRecords * TrimFraction;
+	uint SourceIndex = StartIndex + DispatchThreadId.x;
+	uint DestIndex = DispatchThreadId.x;
+
+	if (SourceIndex < NumRecords)
+	{
+		RWCopyIrradianceCachePositionRadius[DestIndex] = IrradianceCachePositionRadius[SourceIndex];
+		RWCopyIrradianceCacheNormal[DestIndex] = IrradianceCacheNormal[SourceIndex];
+		RWCopyOccluderRadius[DestIndex] = OccluderRadius[SourceIndex];
+		RWCopyIrradianceCacheBentNormal[DestIndex] = IrradianceCacheBentNormal[SourceIndex];
+		RWCopyIrradianceCacheTileCoordinate[DestIndex] = IrradianceCacheTileCoordinate[SourceIndex];
+	}
+
+	if (DispatchThreadId.x == 0)
+	{
+		RWScatterDrawParameters[1] = NumRecords - StartIndex;
+	}
+}

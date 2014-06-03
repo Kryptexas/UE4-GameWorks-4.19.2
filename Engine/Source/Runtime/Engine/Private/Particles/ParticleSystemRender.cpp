@@ -7219,6 +7219,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer()
 			GetBounds(),
 			GetLocalBounds(),
 			ReceivesDecals(),
+			false,
 			1.0f			// LPV bias
 			);
 		WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);

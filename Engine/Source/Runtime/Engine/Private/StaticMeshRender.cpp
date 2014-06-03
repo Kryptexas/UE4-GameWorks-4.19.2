@@ -880,6 +880,20 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize) const
+{
+	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
+	LocalVolumeBounds = DistanceField.LocalBoundingBox;
+	OutBlockMin = DistanceField.VolumeTexture.GetAllocationMin();
+	OutBlockSize = DistanceField.VolumeTexture.GetAllocationSize();
+}
+
+bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
+{
+	const FDistanceFieldVolumeData& DistanceField = RenderData->LODResources[0].DistanceFieldData;
+	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceField.VolumeTexture.IsValidDistanceFieldVolume();
+}
+
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex):
 	OverrideColorVertexBuffer(0),

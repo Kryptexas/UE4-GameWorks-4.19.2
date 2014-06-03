@@ -1810,7 +1810,7 @@ void FStaticLightingSystem::GatherScene()
 		ULightComponentBase* LightBase = Lights[LightIndex];
 		USkyLightComponent* SkyLight = Cast<USkyLightComponent>(LightBase);
 
-		if (SkyLight)
+		if (SkyLight && (SkyLight->Mobility == EComponentMobility::Static || SkyLight->Mobility == EComponentMobility::Stationary))
 		{
 			LightmassExporter->AddLight(SkyLight);
 		}

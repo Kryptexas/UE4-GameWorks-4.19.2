@@ -1026,7 +1026,7 @@ bool FDeferredShadingSceneRenderer::ShouldCreateObjectShadowForStationaryLight(c
 void FDeferredShadingSceneRenderer::SetupInteractionShadows(
 	FLightPrimitiveInteraction* Interaction, 
 	FVisibleLightInfo& VisibleLightInfo, 
-	bool bReflectionCaptureScene,
+	bool bStaticSceneOnly,
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows)
 {
@@ -1051,7 +1051,7 @@ void FDeferredShadingSceneRenderer::SetupInteractionShadows(
 
 		if (Interaction->HasShadow() 
 			// Only render shadows from objects that use static lighting during a reflection capture, since the reflection capture doesn't update at runtime
-			&& (!bReflectionCaptureScene || PrimitiveSceneInfo->Proxy->HasStaticLighting())
+			&& (!bStaticSceneOnly || PrimitiveSceneInfo->Proxy->HasStaticLighting())
 			&& (bCreateTranslucentObjectShadow || bCreateInsetObjectShadow || bCreateObjectShadowForStationaryLight))
 		{
 			// Create projected shadow infos
@@ -1424,7 +1424,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 		uint32 MaxUnclampedResolution	= 0;
 		TArray<float, TInlineAllocator<2> > FadeAlphas;
 		float MaxFadeAlpha = 0;
-		bool bReflectionCaptureScene = false;
+		bool bStaticSceneOnly = false;
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
@@ -1455,7 +1455,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 					)
 				);
 
-			bReflectionCaptureScene = bReflectionCaptureScene || View.bIsReflectionCapture;
+			bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 
 			const float FadeAlpha = CalculateShadowFadeAlpha( MaxUnclampedResolution, ShadowFadeResolution, MinShadowResolution );
 			MaxFadeAlpha = FMath::Max(MaxFadeAlpha, FadeAlpha);
@@ -1539,7 +1539,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 					Interaction = Interaction->GetNextPrimitive())
 				{
 					if (Interaction->HasShadow() 
-						&& (!bReflectionCaptureScene || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
+						&& (!bStaticSceneOnly || Interaction->GetPrimitiveSceneInfo()->Proxy->HasStaticLighting()))
 					{
 						ProjectedShadowInfo->AddSubjectPrimitive(Interaction->GetPrimitiveSceneInfo(), &Views);
 					}
@@ -1687,7 +1687,7 @@ inline void FDeferredShadingSceneRenderer::GatherShadowsForPrimitiveInner(
 	const FPrimitiveSceneInfoCompact& PrimitiveSceneInfoCompact, 
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-	bool bReflectionCaptureScene)
+	bool bStaticSceneOnly)
 {
 	if(PrimitiveSceneInfoCompact.bCastDynamicShadow)
 	{
@@ -1776,7 +1776,7 @@ inline void FDeferredShadingSceneRenderer::GatherShadowsForPrimitiveInner(
 							// Exclude primitives that will create a per-object shadow from a stationary light
 							&& !ShouldCreateObjectShadowForStationaryLight(ProjectedShadowInfo->LightSceneInfo, PrimitiveSceneInfo->Proxy, true)
 							// Only render shadows from objects that use static lighting during a reflection capture, since the reflection capture doesn't update at runtime
-							&& (!bReflectionCaptureScene || PrimitiveProxy->HasStaticLighting()) 
+							&& (!bStaticSceneOnly || PrimitiveProxy->HasStaticLighting()) 
 							&& !bScreenSpaceSizeCulled )
 						{
 							// Add this primitive to the shadow.
@@ -1792,7 +1792,7 @@ inline void FDeferredShadingSceneRenderer::GatherShadowsForPrimitiveInner(
 void FDeferredShadingSceneRenderer::GatherShadowPrimitives(
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& PreShadows,
 	const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-	bool bReflectionCaptureScene
+	bool bStaticSceneOnly
 	)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GatherShadowPrimitivesTime);
@@ -1878,7 +1878,7 @@ void FDeferredShadingSceneRenderer::GatherShadowPrimitives(
 			for(FScenePrimitiveOctree::ElementConstIt NodePrimitiveIt(PrimitiveOctreeNode.GetElementIt());NodePrimitiveIt;++NodePrimitiveIt)
 			{
 				// gather the shadows for this one primitive
-				GatherShadowsForPrimitiveInner(*NodePrimitiveIt, PreShadows, ViewDependentWholeSceneShadows, bReflectionCaptureScene);
+				GatherShadowsForPrimitiveInner(*NodePrimitiveIt, PreShadows, ViewDependentWholeSceneShadows, bStaticSceneOnly);
 			}
 		}
 
@@ -1896,12 +1896,12 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows()
 {
 	SCOPE_CYCLE_COUNTER(STAT_DynamicShadowSetupTime);
 
-	bool bReflectionCaptureScene = false;
+	bool bStaticSceneOnly = false;
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
-		bReflectionCaptureScene = bReflectionCaptureScene || View.bIsReflectionCapture;
+		bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 	}
 
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> PreShadows;
@@ -2053,7 +2053,7 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows()
 							Interaction = Interaction->GetNextPrimitive()
 							)
 						{
-							SetupInteractionShadows(Interaction, VisibleLightInfo, bReflectionCaptureScene, ViewDependentWholeSceneShadows, PreShadows);
+							SetupInteractionShadows(Interaction, VisibleLightInfo, bStaticSceneOnly, ViewDependentWholeSceneShadows, PreShadows);
 						}
 					}
 				}
@@ -2068,5 +2068,5 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows()
 	UpdatePreshadowCache();
 
 	// Gathers the list of primitives used to draw various shadow types
-	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadows, bReflectionCaptureScene);
+	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadows, bStaticSceneOnly);
 }

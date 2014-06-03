@@ -208,6 +208,7 @@ struct FEngineShowFlags
 		SetVolumeLightingSamples(false);
 		// we enable it manually on the editor view ports
 		SetSnap(false);
+		SetVisualizeDistanceFieldAO(false);
 	}
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)
@@ -247,6 +248,7 @@ struct FEngineShowFlags
 		SetHighResScreenshotMask(false);
 		SetHMDDistortion(false);
 		SetStereoRendering(false);
+		SetDistanceFieldAO(false);
 	}
 
 	// ---------------------------------------------------------

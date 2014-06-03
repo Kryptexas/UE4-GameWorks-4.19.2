@@ -260,6 +260,12 @@ struct FMath : public FPlatformMath
 		return (Dividend + Divisor - 1) / Divisor;
 	}
 
+	template <class T>
+	static FORCEINLINE T DivideAndRoundDown(T Dividend,T Divisor)
+	{
+		return Dividend / Divisor;
+	}
+
 	/**
 	 * Computes the base 2 logarithm of the specified value
 	 *

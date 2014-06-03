@@ -475,6 +475,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusionHistoryRT;
 	// Temporal AA result for light shafts of last frame
 	TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> > LightShaftBloomHistoryRTs;
+	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOHistoryRT;
 	// Mobile temporal AA surfaces.
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette0;
 	TRefCountPtr<IPooledRenderTarget> MobileAaBloomSunVignette1;
@@ -484,6 +485,9 @@ public:
 	// cache for selection outline to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
+
+	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
+	class FTileIntersectionResources* AOTileIntersectionResources;
 
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
@@ -532,44 +536,9 @@ public:
 	FLightPropagationVolume* GetLightPropagationVolume() const { return LightPropagationVolume; }
 
 	/** Default constructor. */
-    FSceneViewState()
-		: OcclusionQueryPool(RQT_Occlusion)
-    {
-		LastRenderTime = -FLT_MAX;
-		LastRenderTimeDelta = 0.0f;
-		MotionBlurTimeScale = 1.0f;
-		PrevViewMatrixForOcclusionQuery.SetIdentity();
-		PrevViewOriginForOcclusionQuery = FVector::ZeroVector;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		bIsFreezing = false;
-		bIsFrozen = false;
-#endif
-		// Register this object as a resource, so it will receive device reset notifications.
-		if ( IsInGameThread() )
-		{
-			BeginInitResource(this);
-		}
-		else
-		{
-			InitResource();
-		}
-		CachedVisibilityChunk = NULL;
-		CachedVisibilityHandlerId = INDEX_NONE;
-		CachedVisibilityBucketIndex = INDEX_NONE;
-		CachedVisibilityChunkIndex = INDEX_NONE;
-		MIDUsedCount = 0;
-		TemporalAASampleIndex = 0;
-		TemporalAASampleCount = 1;
-		bBokehDOFHistory = true;
+    FSceneViewState();
 
-		LightPropagationVolume = NULL; 
-
-		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
-		{
-			TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
-		}
-    }
-
+	void DestroyAOTileResources();
 	void DestroyLightPropagationVolume();
 
 	virtual ~FSceneViewState()
@@ -581,6 +550,7 @@ public:
 			delete TranslucencyLightingCacheAllocations[CascadeIndex];
 		}
 
+		DestroyAOTileResources();
 		DestroyLightPropagationVolume();
 	}
 
@@ -656,6 +626,7 @@ public:
 		SSRHistoryRT.SafeRelease();
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();
+		DistanceFieldAOHistoryRT.SafeRelease();
 		MobileAaBloomSunVignette0.SafeRelease();
 		MobileAaBloomSunVignette1.SafeRelease();
 		MobileAaColor0.SafeRelease();
@@ -1229,6 +1200,9 @@ public:
 
 	/** Interpolates and caches indirect lighting for dynamic objects. */
 	FIndirectLightingCache IndirectLightingCache;
+
+	/** Scene state of distance field AO.  NULL if the scene doesn't use the feature. */
+	class FSurfaceCacheResources* SurfaceCacheResources;
 
 	/** Preshadows that are currently cached in the PreshadowCache render target. */
 	TArray<TRefCountPtr<FProjectedShadowInfo> > CachedPreshadows;

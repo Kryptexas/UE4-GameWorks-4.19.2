@@ -140,6 +140,7 @@ private:
 	TOptional<float> GetBuildScaleX() const;
 	TOptional<float> GetBuildScaleY() const;
 	TOptional<float> GetBuildScaleZ() const;
+	float GetDistanceFieldResolutionScale() const;
 
 	void OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
@@ -149,6 +150,7 @@ private:
 	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
 	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );
 
+	void OnDistanceFieldResolutionScaleChanged(float NewValue);
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;
 	FMeshBuildSettings BuildSettings;

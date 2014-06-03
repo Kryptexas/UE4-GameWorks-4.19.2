@@ -224,6 +224,7 @@ public:
 	 * @return A new divided int point.
 	 */
 	static FIntPoint DivideAndRoundUp( FIntPoint lhs, int32 Divisor );
+	static FIntPoint DivideAndRoundDown( FIntPoint lhs, int32 Divisor );
 
 	/**
 	 * Gets number of components point has.
@@ -366,6 +367,10 @@ FORCEINLINE FIntPoint FIntPoint::DivideAndRoundUp( FIntPoint lhs, int32 Divisor 
 	return FIntPoint(FMath::DivideAndRoundUp(lhs.X, Divisor), FMath::DivideAndRoundUp(lhs.Y, Divisor));
 }	
 
+FORCEINLINE FIntPoint FIntPoint::DivideAndRoundDown( FIntPoint lhs, int32 Divisor )
+{
+	return FIntPoint(FMath::DivideAndRoundDown(lhs.X, Divisor), FMath::DivideAndRoundDown(lhs.Y, Divisor));
+}	
 
 FORCEINLINE FIntPoint FIntPoint::operator+( const FIntPoint& Other ) const
 {

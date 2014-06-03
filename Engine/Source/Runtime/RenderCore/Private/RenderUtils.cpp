@@ -41,8 +41,6 @@ FArchive& operator<<(FArchive& Ar,FPackedNormal& N)
 //	Pixel format information.
 //
 
-// NOTE: If you add a new basic texture format (ie a format that could be cooked - currently PF_A32B32G32R32F through
-// PF_UYVY) you MUST also update XeTools.cpp and PS3Tools.cpp to match up!
 FPixelFormatInfo	GPixelFormats[PF_MAX] =
 {
 	// Name						BlockSizeX	BlockSizeY	BlockSizeZ	BlockBytes	NumComponents	PlatformFormat	Supported		UnrealFormat
@@ -99,6 +97,8 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("ETC1"),				4,			4,			1,			8,			3,				0,				0,				PF_ETC1				},
 	{ TEXT("ETC2_RGB"),			4,			4,			1,			8,			3,				0,				0,				PF_ETC2_RGB			},
 	{ TEXT("ETC2_RGBA"),		4,			4,			1,			16,			4,				0,				0,				PF_ETC2_RGBA		},
+	{ TEXT("PF_R32G32B32A32_UINT"),1,		1,			1,			16,			4,				0,				1,				PF_R32G32B32A32_UINT},
+	{ TEXT("PF_R16G16_UINT"),	1,			1,			1,			4,			4,				0,				1,				PF_R16G16_UINT},
 };
 
 static struct FValidatePixelFormats

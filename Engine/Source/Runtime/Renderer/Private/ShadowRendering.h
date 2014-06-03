@@ -13,19 +13,6 @@ class FProjectedShadowInfo;
 /** Utility functions for drawing a sphere */
 namespace StencilingGeometry
 {
-	const int32 NUM_SPHERE_SIDES = 18;
-	const int32 NUM_SPHERE_RINGS = 12;
-
-	/** 
-	* Calculates the world transform for a sphere.
-	* @param OutTransform - The output world transform.
-	* @param Sphere - The sphere to generate the transform for.
-	* @param PreViewTranslation - The pre-view translation to apply to the transform.
-	* @param bConservativelyBoundSphere - when true, the sphere that is drawn will contain all positions in the analytical sphere,
-	*		 Otherwise the sphere vertices will lie on the analytical sphere and the positions on the faces will lie inside the sphere.
-	*/
-	extern void CalcTransform(FVector4& OutPosAndScale, const FSphere& Sphere, const FVector& PreViewTranslation, bool bConservativelyBoundSphere = true);
-
 	/**
 	* Draws a sphere using RHIDrawIndexedPrimitive, useful as approximate bounding geometry for deferred passes.
 	* Note: The sphere will be of unit size unless transformed by the shader. 
@@ -37,16 +24,23 @@ namespace StencilingGeometry
 	/** 
 	* Vertex buffer for a sphere of unit size. Used for drawing a sphere as approximate bounding geometry for deferred passes.
 	*/
-	class FStencilSphereVertexBuffer : public FVertexBuffer
+	template<int32 NumSphereSides, int32 NumSphereRings>
+	class TStencilSphereVertexBuffer : public FVertexBuffer
 	{
 	public:
+
+		int32 GetNumRings() const
+		{
+			return NumSphereRings;
+		}
+
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
 		void InitRHI() OVERRIDE
 		{
-			const int32 NumSides = StencilingGeometry::NUM_SPHERE_SIDES;
-			const int32 NumRings = StencilingGeometry::NUM_SPHERE_RINGS;
+			const int32 NumSides = NumSphereSides;
+			const int32 NumRings = NumSphereRings;
 			const int32 NumVerts = (NumSides + 1) * (NumRings + 1);
 
 			const float RadiansPerRingSegment = PI / (float)NumRings;
@@ -87,6 +81,30 @@ namespace StencilingGeometry
 
 		int32 GetVertexCount() const { return NumSphereVerts; }
 
+	/** 
+	* Calculates the world transform for a sphere.
+	* @param OutTransform - The output world transform.
+	* @param Sphere - The sphere to generate the transform for.
+	* @param PreViewTranslation - The pre-view translation to apply to the transform.
+	* @param bConservativelyBoundSphere - when true, the sphere that is drawn will contain all positions in the analytical sphere,
+	*		 Otherwise the sphere vertices will lie on the analytical sphere and the positions on the faces will lie inside the sphere.
+	*/
+	void CalcTransform(FVector4& OutPosAndScale, const FSphere& Sphere, const FVector& PreViewTranslation, bool bConservativelyBoundSphere = true)
+	{
+		float Radius = Sphere.W;
+		if (bConservativelyBoundSphere)
+		{
+			const int32 NumRings = NumSphereRings;
+			const float RadiansPerRingSegment = PI / (float)NumRings;
+
+			// Boost the effective radius so that the edges of the sphere approximation lie on the sphere, instead of the vertices
+			Radius /= FMath::Cos(RadiansPerRingSegment);
+		}
+
+		const FVector Translate(Sphere.Center + PreViewTranslation);
+		OutPosAndScale = FVector4(Translate, Radius);
+	}
+
 	private:
 		int32 NumSphereVerts;
 	};
@@ -94,7 +112,8 @@ namespace StencilingGeometry
 	/** 
 	* Stenciling sphere index buffer
 	*/
-	class FStencilSphereIndexBuffer : public FIndexBuffer
+	template<int32 NumSphereSides, int32 NumSphereRings>
+	class TStencilSphereIndexBuffer : public FIndexBuffer
 	{
 	public:
 		/** 
@@ -102,8 +121,8 @@ namespace StencilingGeometry
 		*/
 		void InitRHI() OVERRIDE
 		{
-			const int32 NumSides = StencilingGeometry::NUM_SPHERE_SIDES;
-			const int32 NumRings = StencilingGeometry::NUM_SPHERE_RINGS;
+			const int32 NumSides = NumSphereSides;
+			const int32 NumRings = NumSphereRings;
 			TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 
 			// Add triangles for all the vertices generated
@@ -239,8 +258,10 @@ namespace StencilingGeometry
 		int32 GetVertexCount() const { return NumVerts; }
 	};
 
-	extern TGlobalResource<FStencilSphereVertexBuffer> GStencilSphereVertexBuffer;
-	extern TGlobalResource<FStencilSphereIndexBuffer> GStencilSphereIndexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12> > GStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereIndexBuffer<18, 12> > GStencilSphereIndexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4> > GLowPolyStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereIndexBuffer<4, 4> > GLowPolyStencilSphereIndexBuffer;
 	extern TGlobalResource<FStencilConeVertexBuffer> GStencilConeVertexBuffer;
 	extern TGlobalResource<FStencilConeIndexBuffer> GStencilConeIndexBuffer;
 
@@ -800,7 +821,7 @@ public:
 		FVector4 GeometryPosAndScale;
 		if(LightSceneInfo->Proxy->GetLightType() == LightType_Point)
 		{
-			StencilingGeometry::CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
+			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
 			SetShaderValue(Shader->GetVertexShader(), StencilGeometryPosAndScale, GeometryPosAndScale);
 			SetShaderValue(Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
 		}

@@ -470,6 +470,11 @@ public:
 
 		LinearTextureSampler.Bind(	Initializer.ParameterMap, TEXT("LinearSampler") );
 		PointTextureSampler.Bind(	Initializer.ParameterMap, TEXT("PointSampler") );
+
+		GvListBuffer.Bind(Initializer.ParameterMap,TEXT("GvListBuffer"));
+		GvListHeadBuffer.Bind(Initializer.ParameterMap,TEXT("GvListHeadBuffer"));
+		VplListBuffer.Bind(Initializer.ParameterMap,TEXT("VplListBuffer"));
+		VplListHeadBuffer.Bind(Initializer.ParameterMap,TEXT("VplListHeadBuffer"));
 	}
 
 	void SetParameters(
@@ -505,6 +510,10 @@ public:
 		Ar << RsmDepthTexture;
 		Ar << LinearTextureSampler;
 		Ar << PointTextureSampler;
+		Ar << GvListBuffer;
+		Ar << GvListHeadBuffer;
+		Ar << VplListBuffer;
+		Ar << VplListHeadBuffer;
 		return rv;
 	}
 protected:
@@ -514,6 +523,11 @@ protected:
 
 	FShaderResourceParameter LinearTextureSampler;
 	FShaderResourceParameter PointTextureSampler;
+
+	FRWShaderParameter GvListBuffer;
+	FRWShaderParameter GvListHeadBuffer;
+	FRWShaderParameter VplListBuffer;
+	FRWShaderParameter VplListHeadBuffer;
 };
 IMPLEMENT_SHADER_TYPE(,FLpvInject_GenerateVplListsCS,TEXT("LPVInject_GenerateVplLists"),TEXT("CSGenerateVplLists_LightDirectional"),SF_Compute);
 

@@ -33,7 +33,7 @@ public:
 		FGlobalShader::SetParameters(GetVertexShader(), View);
 
 		FVector4 StencilingSpherePosAndScale;
-		StencilingGeometry::CalcTransform(StencilingSpherePosAndScale, BoundingSphere, View.ViewMatrices.PreViewTranslation);
+		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, BoundingSphere, View.ViewMatrices.PreViewTranslation);
 		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
 	}
 

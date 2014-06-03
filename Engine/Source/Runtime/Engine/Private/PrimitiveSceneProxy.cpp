@@ -185,7 +185,7 @@ void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
 			PrimitiveSceneProxy->ActorPosition = InActorPosition;
 			// Update the uniform shader parameters.
 			const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters =
-			GetPrimitiveUniformShaderParameters(PrimitiveSceneProxy->LocalToWorld, InActorPosition, PrimitiveSceneProxy->Bounds,PrimitiveSceneProxy->LocalBounds, PrimitiveSceneProxy->bReceivesDecals, PrimitiveSceneProxy->GetLpvBiasMultiplier() );
+			GetPrimitiveUniformShaderParameters(PrimitiveSceneProxy->LocalToWorld, InActorPosition, PrimitiveSceneProxy->Bounds,PrimitiveSceneProxy->LocalBounds, PrimitiveSceneProxy->bReceivesDecals, PrimitiveSceneProxy->HasDistanceFieldRepresentation(), PrimitiveSceneProxy->GetLpvBiasMultiplier() );
 
 			PrimitiveSceneProxy->UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 			PrimitiveSceneProxy->OnActorPositionChanged();
@@ -207,7 +207,7 @@ void FPrimitiveSceneProxy::SetTransform(const FMatrix& InLocalToWorld, const FBo
 	ActorPosition = InActorPosition;
 	
 	// Update the uniform shader parameters.
-	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(LocalToWorld, ActorPosition, Bounds, LocalBounds, bReceivesDecals, LpvBiasMultiplier );
+	const FPrimitiveUniformShaderParameters PrimitiveUniformShaderParameters = GetPrimitiveUniformShaderParameters(LocalToWorld, ActorPosition, Bounds, LocalBounds, bReceivesDecals, HasDistanceFieldRepresentation(), LpvBiasMultiplier );
 	UniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 	
 	// Notify the proxy's implementation of the change.

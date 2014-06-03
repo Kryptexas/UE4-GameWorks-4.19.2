@@ -411,6 +411,11 @@ public:
 		return SRVParameter.IsBound() || UAVParameter.IsBound();
 	}
 
+	uint32 GetUAVIndex() const
+	{
+		return UAVParameter.GetBaseIndex();
+	}
+
 	friend FArchive& operator<<(FArchive& Ar,FRWShaderParameter& Parameter)
 	{
 		return Ar << Parameter.SRVParameter << Parameter.UAVParameter;

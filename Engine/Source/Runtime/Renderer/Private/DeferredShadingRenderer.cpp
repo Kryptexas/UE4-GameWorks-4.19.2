@@ -638,7 +638,9 @@ void FDeferredShadingSceneRenderer::Render()
 			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView,Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 			GCompositionLighting.ProcessAfterBasePass(Views[ViewIndex]);
 		}
-		
+
+		RenderDynamicSkyLighting();
+
 		// Clear the translucent lighting volumes before we accumulate
 		ClearTranslucentVolumeLighting();
 
@@ -737,6 +739,12 @@ void FDeferredShadingSceneRenderer::Render()
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
 		RenderLightShaftBloom();
+	}
+
+	if (ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO)
+	{
+		FSceneRenderTargetItem DummyOutput(NULL, NULL, NULL);
+		RenderDistanceFieldAOSurfaceCache(DummyOutput, true);
 	}
 
 	// Resolve the scene color for post processing.
