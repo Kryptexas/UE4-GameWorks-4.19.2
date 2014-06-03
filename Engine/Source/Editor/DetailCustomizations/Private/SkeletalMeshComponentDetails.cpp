@@ -135,14 +135,35 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 		]
 	.ValueContent()
 		[
-			SAssignNew(ClassPickerComboButton, SComboButton)
-			.OnGetMenuContent(this, &FSkeletalMeshComponentDetails::GetClassPickerMenuContent)
-			.ContentPadding(0)
-			.ButtonContent()
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
 			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text(this, &FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName)
+				SAssignNew(ClassPickerComboButton, SComboButton)
+				.OnGetMenuContent(this, &FSkeletalMeshComponentDetails::GetClassPickerMenuContent)
+				.ContentPadding(0)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.Text(this, &FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName)
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(2.0f, 1.0f)
+			[
+				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FSkeletalMeshComponentDetails::OnBrowseToAnimBlueprint))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Padding(2.0f, 1.0f)
+			[
+				PropertyCustomizationHelpers::MakeUseSelectedButton(FSimpleDelegate::CreateSP(this, &FSkeletalMeshComponentDetails::UseSelectedAnimBlueprint))
 			]
 		];
 
@@ -340,4 +361,37 @@ void FSkeletalMeshComponentDetails::OnClassPicked( UClass* PickedClass )
 	}
 }
 
+void FSkeletalMeshComponentDetails::OnBrowseToAnimBlueprint()
+{
+	check(AnimationBlueprintHandle->IsValidHandle());
+
+	UObject* Object = NULL;
+	AnimationBlueprintHandle->GetValue(Object);
+
+	TArray<UObject*> Objects;
+	Objects.Add(Object);
+	GEditor->SyncBrowserToObjects(Objects);
+}
+
+void FSkeletalMeshComponentDetails::UseSelectedAnimBlueprint()
+{
+	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+
+	USelection* AssetSelection = GEditor->GetSelectedObjects();
+	if (AssetSelection && AssetSelection->Num() == 1)
+	{
+		UAnimBlueprint* AnimBlueprintToAssign = AssetSelection->GetTop<UAnimBlueprint>();
+		if (AnimBlueprintToAssign)
+		{
+			if(USkeleton* AnimBlueprintSkeleton = AnimBlueprintToAssign->TargetSkeleton)
+			{
+				FString BlueprintSkeletonName = FString::Printf(TEXT("%s'%s'"), *AnimBlueprintSkeleton->GetClass()->GetName(), *AnimBlueprintSkeleton->GetPathName());
+				if (BlueprintSkeletonName == SelectedSkeletonName)
+				{
+					OnClassPicked(AnimBlueprintToAssign->GetAnimBlueprintGeneratedClass());
+				}
+			}
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE
