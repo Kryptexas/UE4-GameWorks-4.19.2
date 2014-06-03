@@ -337,6 +337,11 @@ void UObject::PostEditUndo()
 	}
 }
 
+void UObject::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	UObject::PostEditUndo();
+}
+
 #endif // WITH_EDITOR
 
 bool UObject::CanCreateInCurrentContext(UObject* Template)

@@ -217,11 +217,19 @@ public:
 	 */
 	virtual void PostEditChangeChainProperty( struct FPropertyChangedChainEvent& PropertyChangedEvent );
 
+	/** Gathers external data required for applying an undo transaction */
+	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const { return NULL; }
+
 	/** Called before applying a transaction to the object.  Default implementation simply calls PreEditChange. */
 	virtual void PreEditUndo();
 
 	/** Called after applying a transaction to the object.  Default implementation simply calls PostEditChange. */
 	virtual void PostEditUndo();
+
+	/** Called after applying a transaction to the object in cases where transaction annotation was provided. Default implementation simply calls PostEditChange. */
+	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation);
+
+
 #endif // WITH_EDITOR
 
 	// @todo document

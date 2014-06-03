@@ -73,6 +73,8 @@ protected:
 		TArray<FName>		ReferencedNames;
 		/** The object to track */
 		UObject*			Object;
+		/** Annotation data for the object stored externally */
+		TSharedPtr<ITransactionObjectAnnotation> ObjectAnnotation;
 		/** Array: If an array object, reference to script array */
 		FScriptArray*		Array;
 		/** Array: Offset into the array */
@@ -98,27 +100,7 @@ protected:
 		// Constructors.
 		FObjectRecord()
 		{}
-		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_DC InDefaultConstructor, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor )
-			:	Object						( InObject )
-			,	Array						( InArray )
-			,	Index						( InIndex )
-			,	Count						( InCount )
-			,	Oper						( InOper )
-			,	ElementSize					( InElementSize )
-			,	DefaultConstructor			( InDefaultConstructor )
-			,	Serializer					( InSerializer )
-			,	Destructor					( InDestructor )
-			,	bRestored					( false )
-			,	bWantsBinarySerialization	( true )
-		{
-			// Blueprint compile-in-place can alter class layout so use tagged serialization for objects relying on a UBlueprint's Class
-			if (UBlueprintGeneratedClass* Class = Cast<UBlueprintGeneratedClass>(InObject->GetClass()))
-			{
-				bWantsBinarySerialization = false; 
-			}
-			FWriter Writer( Data, ReferencedObjects, ReferencedNames, bWantsBinarySerialization );
-			SerializeContents( Writer, Oper );
-		}
+		FObjectRecord( FTransaction* Owner, UObject* InObject, FScriptArray* InArray, int32 InIndex, int32 InCount, int32 InOper, int32 InElementSize, STRUCT_DC InDefaultConstructor, STRUCT_AR InSerializer, STRUCT_DTOR InDestructor );
 
 		// Functions.
 		void SerializeContents( FArchive& Ar, int32 InOper );

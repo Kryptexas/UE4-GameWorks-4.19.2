@@ -11,6 +11,14 @@ typedef void( *STRUCT_DC )( void* TPtr );						// default construct
 typedef void( *STRUCT_AR )( class FArchive& Ar, void* TPtr );	// serialize
 typedef void( *STRUCT_DTOR )( void* TPtr );						// destruct
 
+
+/**
+ * Abstract base class for transaction object annotations
+ */
+class ITransactionObjectAnnotation
+{
+};
+
 /**
  * Interface for transactions.
  */
