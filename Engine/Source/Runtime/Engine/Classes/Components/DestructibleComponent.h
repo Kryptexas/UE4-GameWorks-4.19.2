@@ -12,6 +12,7 @@ namespace physx
 	{
 		class  NxDestructibleActor;
 		struct NxApexDamageEventReportData;
+		struct NxApexChunkStateEventData;
 	}
 #endif
 	class PxRigidDynamic;
@@ -123,7 +124,6 @@ public:
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) OVERRIDE;
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) OVERRIDE;
 	virtual void ReceiveComponentDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) OVERRIDE;
-	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) OVERRIDE;
 
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
@@ -174,6 +174,9 @@ public:
 
 	/** Callback from physics system to notify the actor that it has been damaged */
 	void OnDamageEvent(const physx::apex::NxApexDamageEventReportData& InDamageEvent);
+
+	/** Callback from physics system to notify the actor that a chunk's visibilty has changed */
+	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
 	// End DestructibleComponent interface.

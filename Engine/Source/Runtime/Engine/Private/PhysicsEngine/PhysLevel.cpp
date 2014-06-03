@@ -345,6 +345,8 @@ void InitGamePhys()
 	static const auto CVarSortDynamicChunksByBenefit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.bAPEXSortDynamicChunksByBenefit"));
 	GApexModuleDestructible->setSortByBenefit(CVarSortDynamicChunksByBenefit->GetValueOnGameThread()!=0);
 
+	GApexModuleDestructible->setChunkReportSendChunkStateEvents(true);
+
 	// APEX 1.3 to preserve 1.2 behavior
 	GApexModuleDestructible->setUseLegacyDamageRadiusSpread(true); 
 	GApexModuleDestructible->setUseLegacyChunkBoundsTesting(true);

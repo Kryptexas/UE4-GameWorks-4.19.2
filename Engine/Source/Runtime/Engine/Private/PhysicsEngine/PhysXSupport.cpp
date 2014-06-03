@@ -708,22 +708,20 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 		return;
 	}
 
-	#if WITH_SUBSTEPPING
-	if (UPhysicsSettings::Get()->bSubstepping)
-
-	{
-		DestructibleComponent->GetWorld()->GetPhysicsScene()->DeferredDestructibleDamageNotify(damageEvent);
-	}
-	else
-#endif
-	{
-		DestructibleComponent->OnDamageEvent(damageEvent);
-	}
+	DestructibleComponent->OnDamageEvent(damageEvent);
 }
 
 void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent)
 {
+	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(visibilityEvent.destructible->userData));
+	check(DestructibleComponent);
 
+	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
+	{
+		return;
+	}
+
+	DestructibleComponent->OnVisibilityEvent(visibilityEvent);
 }
 
 ///////// FApexPhysX3Interface //////////////////////////////////
