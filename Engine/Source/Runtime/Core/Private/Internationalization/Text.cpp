@@ -236,8 +236,8 @@ FText::FText()
 
 FText::FText( const FText& Source )
 	: DisplayString( Source.DisplayString )
-	, Flags( Source.Flags )
 	, History( Source.History )
+	, Flags( Source.Flags )
 	, Revision( Source.Revision )
 {
 }
