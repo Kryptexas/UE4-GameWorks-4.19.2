@@ -4,6 +4,7 @@
 
 #if UE_ENABLE_ICU
 #include "Text.h"
+#include "TextHistory.h"
 #include "ICUCulture.h"
 #include <unicode/coll.h>
 #include <unicode/sortkey.h>
@@ -29,7 +30,10 @@ FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type Dat
 	FString NativeString;
 	ICUUtilities::Convert(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(NativeString);
+	ResultText.History = MakeShareable(new FTextHistory_AsDate(Date, DateStyle, TargetCulture));
+
+	return ResultText;
 }
 
 FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
@@ -50,7 +54,10 @@ FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type Tim
 	FString NativeString;
 	ICUUtilities::Convert(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(NativeString);
+	ResultText.History = MakeShareable(new FTextHistory_AsTime(Time, TimeStyle, TimeZone, TargetCulture));
+
+	return ResultText;
 }
 
 FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
@@ -94,7 +101,10 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	FString NativeString;
 	ICUUtilities::Convert(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(NativeString);
+	ResultText.History = MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture));
+
+	return ResultText;
 }
 
 FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture)
@@ -250,7 +260,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 	}
 }
 
-FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
+FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -295,6 +305,12 @@ FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments
 			break;
 		case EFormatArgumentType::Text:
 			{
+				// When doing a rebuild, all FText arguments need to be rebuilt during the Format
+				if(bInRebuildText)
+				{
+					ArgumentValue.TextValue->Rebuild();
+				}
+
 				FString NativeStringValue = ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
@@ -326,16 +342,19 @@ FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments
 	FString NativeResultString;
 	ICUUtilities::Convert(ICUResultString, NativeResultString);
 
-	return FText(NativeResultString);
+	FText ResultText(NativeResultString);
+	ResultText.History = MakeShareable(new FTextHistory_NamedFormat(Pattern, Arguments));
+
+	return ResultText;
 }
 
-FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
-	
+
 	TArray<icu::Formattable> ArgumentValues;
 	ArgumentValues.Reserve(Arguments.Num());
 
@@ -366,6 +385,12 @@ FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Argumen
 			break;
 		case EFormatArgumentType::Text:
 			{
+				// When doing a rebuild, all FText arguments need to be rebuilt during the Format
+				if(bInRebuildText)
+				{
+					ArgumentValue.TextValue->Rebuild();
+				}
+
 				FString NativeStringValue = ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
@@ -404,10 +429,11 @@ FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Argumen
 		ResultText.Flags = ResultText.Flags | ETextFlag::Transient;
 	}
 
+	ResultText.History = MakeShareable(new FTextHistory_OrderedFormat(Pattern, Arguments));
 	return ResultText;
 }
 
-FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
+FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentData > InArguments, bool bInRebuildText)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -452,6 +478,12 @@ FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > In
 			break;
 		case EFormatArgumentType::Text:
 			{
+				// When doing a rebuild, all FText arguments need to be rebuilt during the Format
+				if(bInRebuildText)
+				{
+					ArgumentValue.TextValue->Rebuild();
+				}
+
 				FString StringValue = ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(StringValue, ICUStringValue, false);
@@ -490,7 +522,23 @@ FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > In
 		ResultText.Flags = ResultText.Flags | ETextFlag::Transient;
 	}
 
+	ResultText.History = MakeShareable(new FTextHistory_ArgumentDataFormat(Pattern, InArguments));
 	return ResultText;
+}
+
+FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
+{
+	return FormatInternal(Pattern, Arguments, false);
+}
+
+FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+{
+	return FormatInternal(Pattern, Arguments, false);
+}
+
+FText FText::Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments)
+{
+	return FormatInternal(Pattern, InArguments, false);
 }
 
 #endif

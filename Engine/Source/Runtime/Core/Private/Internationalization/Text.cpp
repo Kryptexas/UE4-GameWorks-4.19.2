@@ -8,25 +8,40 @@
 #include "LegacyText.h"
 #endif
 
+#include "TextHistory.h"
+
 //DEFINE_LOG_CATEGORY(LogText);
 
 //DEFINE_STAT(STAT_TextFormat);
 
 #define LOCTEXT_NAMESPACE "Core.Text"
 
+FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
+{
+	Ar << Value.ArgumentName;
+	Ar << Value.ArgumentValue;
+	return Ar;
+}
+
 const FString* FTextInspector::GetNamespace(const FText& Text)
 {
-	return Text.Namespace.Get();
+	TSharedPtr< FString > Namespace;
+	TSharedPtr< FString > Key;
+	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
+	return Namespace.Get();
 }
 
 const FString* FTextInspector::GetKey(const FText& Text)
 {
-	return Text.Key.Get();
+	TSharedPtr< FString > Namespace;
+	TSharedPtr< FString > Key;
+	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
+	return Key.Get();
 }
 
 const FString* FTextInspector::GetSourceString(const FText& Text)
 {
-	return Text.SourceString.Get();
+	return Text.GetSourceString().Get();
 }
 
 const FString& FTextInspector::GetDisplayString(const FText& Text)
@@ -39,6 +54,13 @@ int32 FTextInspector::GetFlags(const FText& Text)
 	return Text.Flags;
 }
 
+FFormatArgumentValue::FFormatArgumentValue()
+	: Type(EFormatArgumentType::Int)
+{
+	IntValue = 0;
+};
+
+
 FFormatArgumentValue::FFormatArgumentValue(const int Value)
 	: Type(EFormatArgumentType::Int)
 {
@@ -46,6 +68,18 @@ FFormatArgumentValue::FFormatArgumentValue(const int Value)
 }
 
 FFormatArgumentValue::FFormatArgumentValue(const unsigned int Value)
+	: Type(EFormatArgumentType::UInt)
+{
+	UIntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const int64 Value)
+	: Type(EFormatArgumentType::Int)
+{
+	IntValue = Value;
+}
+
+FFormatArgumentValue::FFormatArgumentValue(const uint64 Value)
 	: Type(EFormatArgumentType::UInt)
 {
 	UIntValue = Value;
@@ -109,6 +143,48 @@ FFormatArgumentValue::~FFormatArgumentValue()
 	}
 }
 
+FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value )
+{
+	int8 TypeAsInt8 = Value.Type;
+	Ar << TypeAsInt8;
+	Value.Type = (EFormatArgumentType::Type)TypeAsInt8;
+
+	switch(Value.Type)
+	{
+	case EFormatArgumentType::Double:
+		{
+			Ar << Value.DoubleValue;
+			break;
+		}
+	case EFormatArgumentType::Float:
+		{
+			Ar << Value.FloatValue;
+			break;
+		}
+	case EFormatArgumentType::Int:
+		{
+			Ar << Value.IntValue;
+			break;
+		}
+	case EFormatArgumentType::UInt:
+		{
+			Ar << Value.UIntValue;
+			break;
+		}
+	case EFormatArgumentType::Text:
+		{
+			if(Ar.IsLoading())
+			{
+				Value.TextValue = new FText;
+			}
+			Ar << *Value.TextValue;
+			break;
+		}
+	}
+	
+	return Ar;
+}
+
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
 FNumberFormattingOptions::FNumberFormattingOptions()
 	:   UseGrouping(true),
@@ -119,6 +195,22 @@ FNumberFormattingOptions::FNumberFormattingOptions()
 		MaximumFractionalDigits(3)
 {
 
+}
+
+FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value)
+{
+	Ar << Value.UseGrouping;
+
+	int8 RoundingModeInt8 = (int8)Value.RoundingMode;
+	Ar << RoundingModeInt8;
+	Value.RoundingMode = (ERoundingMode)RoundingModeInt8;
+
+	Ar << Value.MinimumIntegralDigits;
+	Ar << Value.MaximumIntegralDigits;
+	Ar << Value.MinimumFractionalDigits;
+	Ar << Value.MaximumFractionalDigits;
+
+	return Ar;
 }
 
 bool FText::bEnableErrorCheckingResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS;
@@ -136,43 +228,34 @@ const FText FText::UnEscapedCloseBraceOutsideOfArgumentBlock = LOCTEXT("Error_Un
 const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailure", "ERR: Transient text cannot be serialized \"{0}\".");
 
 FText::FText()
-	:
-	SourceString( NULL ) ,
-	DisplayString( new FString() ) ,
-	Flags(0)
+	: DisplayString( new FString() )
+	, Flags(0)
+	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
 }
 
 FText::FText( const FText& Source )
-	:
-	SourceString( Source.SourceString )
-	, DisplayString( Source.DisplayString )
-	, Namespace( Source.Namespace )
-	, Key( Source.Key )
+	: DisplayString( Source.DisplayString )
 	, Flags( Source.Flags )
+	, History( Source.History )
+	, Revision( Source.Revision )
 {
-
 }
 
 FText::FText( FString InSourceString )
-	:
-	SourceString( new FString( MoveTemp( InSourceString ) ) ) ,
-	DisplayString( SourceString.ToSharedRef() ) ,
-	Flags(0)
+	: DisplayString( new FString( MoveTemp(InSourceString) ))
+	, Flags(0)
+	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
-	if (GIsEditor)
-	{
-		Key = MakeShareable( new FString(FGuid::NewGuid().ToString()) );
-	}
+	History = MakeShareable(new FTextHistory_Base(DisplayString));
 }
 
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
-	: SourceString( new FString( MoveTemp( InSourceString ) ) )
-	, DisplayString( FTextLocalizationManager::Get().GetString(InNamespace, InKey, SourceString.Get()) )
-	, Namespace( new FString( MoveTemp( InNamespace) ) )
-	, Key( new FString( MoveTemp( InKey ) ) )
+	: DisplayString( FTextLocalizationManager::Get().GetString(InNamespace, InKey, &InSourceString) )
 	, Flags(InFlags)
+	, Revision(FTextLocalizationManager::Get().GetHeadCultureRevision())
 {
+	History = MakeShareable(new FTextHistory_Base(InSourceString));
 }
 
 FText FText::TrimPreceding( const FText& InText )
@@ -344,81 +427,129 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
 	//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
-	if(Ar.IsLoading())
+
+	// Older FText's stored their "SourceString", that is now stored in a history class so move it there
+	if(Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FTEXT_HISTORY)
 	{
-		Value.SourceString = MakeShareable( new FString() );
-		Ar << *(Value.SourceString);
-		if( Value.SourceString->IsEmpty() )
+		FString SourceStringToImplantIntoHistory;
+		Ar << SourceStringToImplantIntoHistory;
+
+		Value.History = MakeShareable(new FTextHistory_Base(SourceStringToImplantIntoHistory));
+
+		// Namespaces and keys are no longer stored in the FText, we need to read them in and discard
+		if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
 		{
-			Value.SourceString.Reset();
+			TSharedPtr< FString > Namespace;
+			TSharedPtr< FString > Key;
+
+			Namespace = MakeShareable( new FString() );
+			Ar << *Namespace;
+
+			Key = MakeShareable( new FString() );
+			Ar << *Key;
+
+			// Get the DisplayString using the namespace, key, and source string.
+			const FString& NamespaceStr = Namespace.Get() ? *Namespace : TEXT("");
+			const FString& KeyStr = Key.Get() ? *Key : TEXT("");
+			Value.DisplayString = FTextLocalizationManager::Get().GetString(NamespaceStr, KeyStr, &SourceStringToImplantIntoHistory);
 		}
 	}
-	else if( Ar.IsSaving() )
+
+	if(Ar.IsPersistent())
 	{
-		if( Value.SourceString.IsValid() )
+		Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
+	}
+	Ar << Value.Flags;
+
+	if( Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY )
+	{
+		if(Ar.IsSaving())
 		{
-			Ar << *(Value.SourceString);
+			// If there is no history, mark it, otherwise the history will serialize it's type
+			if(!Value.History.IsValid())
+			{
+				int8 NoHistory = INDEX_NONE;
+				Ar << NoHistory;
+			}
 		}
 		else
 		{
-			FString EmptySourceString;
-			Ar << EmptySourceString;
-		}
-	}
+			// The type is serialized during the serialization of the history, during deserialization we need to deserialize it and create the correct history
+			int8 HistoryType = INDEX_NONE;
+			Ar << HistoryType;
 
-	if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
-	{
-		if(Ar.IsLoading())
+			// Create the history class based on the serialized type
+			switch((ETextHistoryType)HistoryType)
+			{
+			case ETextHistoryType::Base:
+				{
+					Value.History = MakeShareable(new FTextHistory_Base);
+					break;
+				}
+			case ETextHistoryType::NamedFormat:
+				{
+					Value.History = MakeShareable(new FTextHistory_NamedFormat);
+					break;
+				}
+			case ETextHistoryType::OrderedFormat:
+				{
+					Value.History = MakeShareable(new FTextHistory_OrderedFormat);
+					break;
+				}
+			case ETextHistoryType::ArgumentFormat:
+				{
+					Value.History = MakeShareable(new FTextHistory_ArgumentDataFormat);
+					break;
+				}
+			case ETextHistoryType::AsNumber:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsNumber);
+					break;
+				}
+			case ETextHistoryType::AsPercent:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsPercent);
+					break;
+				}
+			case ETextHistoryType::AsCurrency:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsCurrency);
+					break;
+				}
+			case ETextHistoryType::AsDate:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsDate);
+					break;
+				}
+			case ETextHistoryType::AsTime:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsTime);
+					break;
+				}
+			case ETextHistoryType::AsDateTime:
+				{
+					Value.History = MakeShareable(new FTextHistory_AsDateTime);
+					break;
+				}
+			default:
+				{
+					Value.History.Reset();
+				}
+			}
+		}
+
+		if(Value.History.IsValid())
 		{
-			Value.Namespace = MakeShareable( new FString() );
-			Ar << *Value.Namespace;
-			if( Value.Namespace->IsEmpty() )
-			{
-				Value.Namespace.Reset();
-			}
-
-			Value.Key = MakeShareable( new FString() );
-			Ar << *Value.Key;
-			if( Value.Key->IsEmpty() )
-			{
-				Value.Key.Reset();
-			}
+			Value.History->Serialize(Ar);
+			Value.History->SerializeForDisplayString(Ar, Value.DisplayString);
 		}
-		else if(Ar.IsSaving())
-		{
-			if( Value.Namespace.IsValid() )
-			{
-				Ar << *(Value.Namespace);
-			}
-			else
-			{
-				FString Empty;
-				Ar << Empty;
-			}
-
-			if( Value.Key.IsValid() )
-			{
-				Ar << *(Value.Key);
-			}
-			else
-			{
-				FString Empty;
-				Ar << Empty;
-			}
-		}
-
-		if(Ar.IsPersistent())
-		{
-			Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
-		}
-		Ar << Value.Flags;
 	}
 
 	if(Ar.IsLoading())
 	{
-		const FString& Namespace = Value.Namespace.Get() ? *(Value.Namespace) : TEXT("");
-		const FString& Key = Value.Key.Get() ? *(Value.Key) : TEXT("");
-		Value.DisplayString = FTextLocalizationManager::Get().GetString(Namespace, Key, Value.SourceString.Get());
+		// Keeps the revision up-to-date
+		Value.Revision = INDEX_NONE;
+		Value.Rebuild();
 	}
 
 	// Validate
@@ -433,7 +564,7 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 #if WITH_EDITOR
 FText FText::ChangeKey( FString Namespace, FString Key, const FText& Text )
 {
-	return FText( *Text.SourceString, MoveTemp( Namespace ), MoveTemp( Key ) );
+	return FText( *Text.History->GetSourceString().Get(), MoveTemp( Namespace ), MoveTemp( Key ) );
 }
 #endif
 
@@ -484,9 +615,34 @@ FText FText::FromString( FString String )
 
 const FString& FText::ToString() const
 {
+	Rebuild();
+
 	return DisplayString.Get();
 }
 
+void FText::Rebuild() const
+{
+	if(History.IsValid() && History->IsOutOfDate(Revision))
+	{
+		int32& RevisionNonCast = (int32)Revision;
+		RevisionNonCast = FTextLocalizationManager::Get().GetHeadCultureRevision();
+		
+		DisplayString.Get() = History->ToText().DisplayString.Get();
+	}
+}
 
+TSharedPtr<FString> FText::GetSourceString() const
+{
+	if(History.IsValid())
+	{
+		TSharedPtr<FString> SourceString = History->GetSourceString();
+		if(SourceString.IsValid())
+		{
+			return History->GetSourceString();
+		}
+	}
+
+	return DisplayString;
+}
 
 #undef LOCTEXT_NAMESPACE

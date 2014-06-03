@@ -97,6 +97,8 @@ public:
 		 * Holds the date's year.
 		 */
 		int32 Year;
+
+		friend FArchive& operator<<(FArchive& Ar, FDate& Value);
 	};
 
 
@@ -124,6 +126,8 @@ public:
 		 * Holds the time of day's millisecond.
 		 */
 		int32 Millisecond;
+
+		friend FArchive& operator<<(FArchive& Ar, FTime& Value);
 	};
 
 public:

@@ -6,6 +6,24 @@
 
 #include "CorePrivate.h"
 
+FArchive& operator<<(FArchive& Ar, FDateTime::FDate& Value)
+{
+	Ar << Value.Day;
+	Ar << Value.Month;
+	Ar << Value.Year;
+
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FDateTime::FTime& Value)
+{
+	Ar << Value.Hour;
+	Ar << Value.Minute;
+	Ar << Value.Second;
+	Ar << Value.Millisecond;
+
+	return Ar;
+}
 
 /* FDateTime constants
  *****************************************************************************/

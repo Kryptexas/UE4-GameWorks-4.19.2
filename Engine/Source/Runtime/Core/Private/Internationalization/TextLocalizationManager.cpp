@@ -249,6 +249,9 @@ void FTextLocalizationManager::FLocalizationEntryTracker::ReadFromArchive(FArchi
 
 void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const bool ShouldLoadGame)
 {
+	// Add one to the revision index, so all FText's refresh.
+	++HeadCultureRevisionIndex;
+
 	FInternationalization& I18N = FInternationalization::Get();
 
 	const FString& CultureName = I18N.GetCurrentCulture()->GetName();
@@ -408,6 +411,8 @@ void FTextLocalizationManager::UpdateLiveTable(const TArray<FLocalizationEntryTr
 						MakeShareable( new FString(NewEntry.LocalizedString) )	/*String*/
 						);
 					LiveKeyTable.Add( Key, NewLiveEntry );
+
+					ReverseLiveTable.Add(NewLiveEntry.String, FNamespaceKeyEntry( NamespaceName.IsEmpty()? nullptr : MakeShareable( new FString( NamespaceName ) ), Key.IsEmpty()? nullptr : MakeShareable( new FString( Key ) )));
 				}
 			}
 		}
@@ -544,9 +549,23 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 			}
 
 			LiveKeyTable->Add( Key, NewEntry );
+
+			ReverseLiveTable.Add(NewEntry.String, FNamespaceKeyEntry( Namespace.IsEmpty()? nullptr : MakeShareable( new FString( Namespace ) ), Key.IsEmpty()? nullptr : MakeShareable( new FString( Key ) )));
+
 		}
 
 		return UnlocalizedString;
+	}
+}
+
+void FTextLocalizationManager::FindKeyNamespaceFromDisplayString(TSharedRef<FString> InDisplayString, TSharedPtr<FString>& OutNamespace, TSharedPtr<FString>& OutKey)
+{
+	FNamespaceKeyEntry* NamespaceKeyEntry = ReverseLiveTable.Find(InDisplayString);
+
+	if(NamespaceKeyEntry)
+	{
+		OutNamespace = NamespaceKeyEntry->Namespace;
+		OutKey = NamespaceKeyEntry->Key;
 	}
 }
 

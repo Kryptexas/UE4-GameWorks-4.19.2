@@ -41,6 +41,7 @@ namespace EDateTimeStyle
 		Medium,
 		Long,
 		Full
+		// Add new enum types at the end only! They are serialized by index.
 	};
 }
 
@@ -53,6 +54,7 @@ namespace EFormatArgumentType
 		Float,
 		Double,
 		Text
+		// Add new enum types at the end only! They are serialized by index.
 	};
 }
 
@@ -78,6 +80,9 @@ enum ERoundingMode
 	ToNegativeInfinity,
 	/** Rounds to the value which is more positive: 0.1 becomes 1, -0.1 becomes 0 */
 	ToPositiveInfinity,
+
+
+	// Add new enum types at the end only! They are serialized by index.
 };
 
 struct CORE_API FNumberFormattingOptions
@@ -90,6 +95,8 @@ struct CORE_API FNumberFormattingOptions
 	int32 MaximumIntegralDigits;
 	int32 MinimumFractionalDigits;
 	int32 MaximumFractionalDigits;
+
+	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
 };
 
 class FCulture;
@@ -222,6 +229,7 @@ public:
 	static FText TrimPrecedingAndTrailing( const FText& );
 
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
+
 	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
 	static FText Format(const FText& Pattern, const FFormatOrderedArguments& Arguments);
 	static FText Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments);
@@ -265,6 +273,16 @@ private:
 	 */
 	static FText CreateChronologicalText(FString InSourceString);
 
+	/** Returns the source string of the FText */
+	TSharedPtr<FString> GetSourceString() const;
+
+	/** Rebuilds the FText under the current culture if needed */
+	void Rebuild() const;
+
+	static FText FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText);
+	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText);
+	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText);
+
 private:
 	template<typename T1, typename T2>
 	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
@@ -274,12 +292,17 @@ private:
 	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture>& TargetCulture = NULL);
 
 private:
-
-	TSharedPtr<FString> SourceString;
+	/** The visible display string for this FText */
 	TSharedRef<FString> DisplayString;
-	TSharedPtr<FString> Namespace;
-	TSharedPtr<FString> Key;
+
+	/** The FText's history, to allow it to rebuild under a new culture */
+	TSharedPtr<class FTextHistory> History;
+
+	/** Flags with various information on what sort of FText this is */
 	int32 Flags;
+
+	/** Revision index of this FText, rebuilds when it is out of sync with the FTextLocalizationManager */
+	int32 Revision;
 
 	static bool bEnableErrorCheckingResults;
 	static bool bSuppressWarnings;
@@ -302,6 +325,9 @@ public:
 	friend class UGatherTextFromAssetsCommandlet;
 	friend class UEdGraphSchema;
 	friend class UEdGraphSchema_K2;
+	friend class FTextHistory_NamedFormat;
+	friend class FTextHistory_ArgumentDataFormat;
+	friend class FTextHistory_OrderedFormat;
 
 #if !UE_ENABLE_ICU
 	friend class FLegacyTextHelper;
@@ -324,29 +350,37 @@ public:
 
 struct CORE_API FFormatArgumentValue
 {
-	const EFormatArgumentType::Type Type;
+	EFormatArgumentType::Type Type;
 	union
 	{
-		int IntValue;
-		unsigned int UIntValue;
+		int64 IntValue;
+		uint64 UIntValue;
 		float FloatValue;
 		double DoubleValue;
 		FText* TextValue;
 	};
 
+	FFormatArgumentValue();
+
 	FFormatArgumentValue(const int Value);
 	FFormatArgumentValue(const unsigned int Value);
+	FFormatArgumentValue(const int64 Value);
+	FFormatArgumentValue(const uint64 Value);
 	FFormatArgumentValue(const float Value);
 	FFormatArgumentValue(const double Value);
 	FFormatArgumentValue(const FText& Value);
 	FFormatArgumentValue(const FFormatArgumentValue& Source);
 	~FFormatArgumentValue();
+
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value );
 };
 
 struct FFormatArgumentData
 {
 	FText ArgumentName;
 	FText ArgumentValue;
+
+	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value );
 };
 
 class CORE_API FTextBuilder

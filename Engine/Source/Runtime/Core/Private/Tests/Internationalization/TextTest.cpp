@@ -395,6 +395,177 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 		}
 	}
+
+	{
+		I18N.SetCurrentCulture(OriginalCulture);
+
+		TArray<uint8> FormattedHistoryAsEnglish;
+		TArray<uint8> FormattedHistoryAsFrenchCanadian;
+		TArray<uint8> InvariantFTextData;
+
+		FString InvariantString = TEXT("This is a culture invariant string.");
+
+		// Scoping to allow all locals to leave scope after we serialize at the end
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("String1"), LOCTEXT("RebuildFTextTest1_Lorem", "Lorem"));
+			Args.Add(TEXT("String2"), LOCTEXT("RebuildFTextTest1_Ipsum", "Ipsum"));
+			FText FormattedTest1 = FText::Format(LOCTEXT("RebuildNamedText1", "{String1} \"Lorem Ipsum\" {String2}"), Args);
+
+			FFormatOrderedArguments ArgsOrdered;
+			ArgsOrdered.Add(LOCTEXT("RebuildFTextTest1_Lorem", "Lorem"));
+			ArgsOrdered.Add(LOCTEXT("RebuildFTextTest1_Ipsum", "Ipsum"));
+			FText FormattedTestOrdered1 = FText::Format(LOCTEXT("RebuildOrderedText1", "{0} \"Lorem Ipsum\" {1}"), ArgsOrdered);
+
+			// Will change to 5.542 due to default settings for numbers
+			FText AsNumberTest1 = FText::AsNumber(5.5421);
+
+			FText AsPercentTest1 = FText::AsPercent(0.925);
+			FText AsCurrencyTest1 = FText::AsCurrency(100.25);
+
+			FDateTime::FDate DateInfo;
+			DateInfo.Day = 20;
+			DateInfo.Month = 5;
+			DateInfo.Year = 2080;
+			FText AsDateTest1 = FText::AsDate(DateInfo);
+
+			FDateTime::FTime TimeInfo;
+			TimeInfo.Hour = 8;
+			TimeInfo.Minute = 25;
+			TimeInfo.Second = 44;
+			TimeInfo.Millisecond = 5;
+			FText AsTimeTest1 = FText::AsTime(TimeInfo);
+
+			FDateTime DateTimeInfo(2080, 8, 20, 9, 33, 22);
+			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo);
+
+			FFormatNamedArguments ArgsLayer2;
+			ArgsLayer2.Add("NamedLayer1", FormattedTest1);
+			ArgsLayer2.Add("OrderedLayer1", FormattedTestOrdered1);
+			ArgsLayer2.Add("FTextNumber", AsNumberTest1);
+			ArgsLayer2.Add("Number", 5010.89221);
+			ArgsLayer2.Add("Date", AsDateTest1);
+			ArgsLayer2.Add("Time", AsTimeTest1);
+			ArgsLayer2.Add("DateTime", AsDateTimeTest1);
+			ArgsLayer2.Add("Percent", AsPercentTest1);
+			ArgsLayer2.Add("Currency", AsCurrencyTest1);
+			FText FormattedTestLayer2 = FText::Format(LOCTEXT("RebuildTextLayer2", "{NamedLayer1} | {OrderedLayer1} | {FTextNumber} | {Number} | {Date} | {Time} | {DateTime} | {Percent} | {Currency}"), ArgsLayer2);
+
+			{
+				// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
+				FMemoryWriter Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				Ar << FormattedTestLayer2;
+				Ar.Close();
+			}
+
+			FString FormattedTestLayer2_Baked = FormattedTestLayer2.ToString();
+
+			{
+				// Swap to "LEET" culture to check if rebuilding works (verify the whole)
+				I18N.SetCurrentCulture("LEET");
+
+				// Convert the baked string into an FText, which will be leetified, then compare it to the rebuilt FText
+				if(FormattedTestLayer2.ToString() != TEXT("‡««L0r3m» \"L0r3m 1p$um\" «Ip$um»» | ««L0r3m» \"L0r3m 1p$um\" «Ip$um»» | «5.5421» | «5010.89221» | «1944 Month4 13» | «02:25:44» | «1944 Month7 14 22:05:06» | «92%» | «¤ 100.25»‡"))
+				{
+					AddError( TEXT("FormattedTestLayer2 did not rebuild to correctly in LEET!") );
+				}
+			}
+
+			// Swap to French-Canadian to check if rebuilding works (verify each numerical component)
+			{
+				I18N.SetCurrentCulture("fr-CA");
+
+				// Need the FText to be rebuilt in fr-CA.
+				FormattedTestLayer2.ToString();
+
+				if(AsNumberTest1.CompareTo(FText::AsNumber(5.5421)) != 0)
+				{
+					AddError( TEXT("AsNumberTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				if(AsPercentTest1.CompareTo(FText::AsPercent(0.925)) != 0)
+				{
+					AddError( TEXT("AsPercentTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				if(AsCurrencyTest1.CompareTo(FText::AsCurrency(100.25)) != 0)
+				{
+					AddError( TEXT("AsCurrencyTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				if(AsDateTest1.CompareTo(FText::AsDate(DateInfo)) != 0)
+				{
+					AddError( TEXT("AsDateTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				if(AsTimeTest1.CompareTo(FText::AsTime(TimeInfo)) != 0)
+				{
+					AddError( TEXT("AsTimeTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				if(AsDateTimeTest1.CompareTo(FText::AsDateTime(DateTimeInfo)) != 0)
+				{
+					AddError( TEXT("AsDateTimeTest1 did not rebuild correctly in French-Canadian") );
+				}
+
+				{
+					// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
+					// We don't care how this may be translated, we will be serializing this in as LEET.
+					FMemoryWriter Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+					Ar << FormattedTestLayer2;
+					Ar.Close();
+				}
+
+				{
+					FText InvariantFText = FText::FromString(InvariantString);
+
+					// Serialize an invariant FText
+					FMemoryWriter Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+					Ar << InvariantFText;
+					Ar.Close();
+				}
+			}
+		}
+
+		{
+			I18N.SetCurrentCulture("LEET");
+
+			FText FormattedEnglishTextHistoryAsLeet;
+			FText FormattedFrenchCanadianTextHistoryAsLeet;
+
+			{
+				FMemoryReader Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				Ar << FormattedEnglishTextHistoryAsLeet;
+				Ar.Close();
+			}
+			{
+				FMemoryReader Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+				Ar << FormattedFrenchCanadianTextHistoryAsLeet;
+				Ar.Close();
+			}
+
+			// Confirm the two FText's serialize in and get translated into the current (LEET) translation. One originated in English, the other in French-Canadian locales.
+			if(FormattedEnglishTextHistoryAsLeet.CompareTo(FormattedFrenchCanadianTextHistoryAsLeet) != 0)
+			{
+				AddError( TEXT("Serialization of text histories from source English and source French-Canadian to LEET did not produce the same results!") );
+			}
+
+			{
+				I18N.SetCurrentCulture(OriginalCulture);
+
+				FText InvariantFText;
+
+				FMemoryReader Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+				Ar << InvariantFText;
+				Ar.Close();
+
+				if(InvariantFText.ToString() != InvariantString)
+				{
+					AddError( TEXT("Invariant FText did not match the original FString after serialization!") );
+				}
+			}
+		}
+	}
 #else
 	AddWarning("ICU is disabled thus locale-aware string collation is disabled.");
 #endif

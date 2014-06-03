@@ -515,22 +515,26 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 	{
 		FConflictTracker::FEntry NewEntry;
 		NewEntry.ObjectPath = Object->GetPathName();
-		NewEntry.SourceString = Data->SourceString;
+		NewEntry.SourceString = Data->GetSourceString();
 		NewEntry.Status = EAssetTextGatherStatus::None;
 
 		// Fix missing key if broken and allowed.
-		if( !( Data->Key.IsValid() ) || Data->Key->IsEmpty() )
+		TSharedPtr< FString > Namespace;
+		TSharedPtr< FString > Key;
+		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Data->DisplayString, Namespace, Key);
+
+		if( !( Key.IsValid() ) || Key->IsEmpty() )
 		{
 			// Key fix.
 			if (bFixBroken)
 			{
 				// Create key if needed.
-				if( !( Data->Key.IsValid() ) )
+				if( !( Key.IsValid() ) )
 				{
-					Data->Key = MakeShareable( new FString() );
+					Key = MakeShareable( new FString() );
 				}
 				// Generate new GUID for key.
-				*(Data->Key) = FGuid::NewGuid().ToString();
+				*(Key) = FGuid::NewGuid().ToString();
 
 				// Fixed.
 				NewEntry.Status = EAssetTextGatherStatus::MissingKey_Resolved;
@@ -543,29 +547,29 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 		}
 
 		// Must have valid key.
-		if( Data->Key.IsValid() && !( Data->Key->IsEmpty() ) )
+		if( Key.IsValid() && !( Key->IsEmpty() ) )
 		{
 			FContext SearchContext;
-			SearchContext.Key = Data->Key.IsValid() ? *Data->Key : TEXT("");
+			SearchContext.Key = Key.IsValid() ? *Key : TEXT("");
 
 			// Find existing entry from manifest or manifest dependencies.
-			TSharedPtr< FManifestEntry > ExistingEntry = ManifestInfo->GetManifest()->FindEntryByContext( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT(""), SearchContext );
+			TSharedPtr< FManifestEntry > ExistingEntry = ManifestInfo->GetManifest()->FindEntryByContext( Namespace.IsValid() ? *Namespace : TEXT(""), SearchContext );
 			if( !ExistingEntry.IsValid() )
 			{
 				FString FileInfo;
-				ExistingEntry = ManifestInfo->FindDependencyEntrybyContext( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT(""), SearchContext, FileInfo );
+				ExistingEntry = ManifestInfo->FindDependencyEntrybyContext( Namespace.IsValid() ? *Namespace : TEXT(""), SearchContext, FileInfo );
 			}
 
 			// Entry already exists, check for conflict.
 			if( ExistingEntry.IsValid() )
 			{
 				// Fix conflict if present and allowed.
-				if( ExistingEntry->Source.Text != ( Data->SourceString.IsValid() ? **(Data->SourceString) : TEXT("") ) )
+				if( ExistingEntry->Source.Text != ( Data->GetSourceString().IsValid() ? **(Data->GetSourceString()) : TEXT("") ) )
 				{
 					if (bFixBroken)
 					{
 						// Generate new GUID for key.
-						*(Data->Key) = FGuid::NewGuid().ToString();
+						*(Key) = FGuid::NewGuid().ToString();
 
 						// Fixed.
 						NewEntry.Status = EAssetTextGatherStatus::IdentityConflict_Resolved;
@@ -585,7 +589,7 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 			if( !( ExistingEntry.IsValid() ) )
 			{
 				// Check for valid string.
-				if( Data->SourceString.IsValid() && !( Data->SourceString->IsEmpty() ) )
+				if( Data->GetSourceString().IsValid() && !( Data->GetSourceString()->IsEmpty() ) )
 				{
 					FString SrcLocation = Object->GetPathName() + TEXT(".") + InTextProp->GetName();
 
@@ -600,8 +604,11 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 							{
 								UTextProperty* TextProp	=  Cast<UTextProperty>( *(PropIt) );
 								FText* DataCDO = TextProp->ContainerPtrToValuePtr<FText>( CDO );
+								TSharedPtr< FString > NamespaceCDO;
+								TSharedPtr< FString > KeyCDO;
+								FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DataCDO->DisplayString, NamespaceCDO, KeyCDO);
 
-								if( DataCDO->Key == Data->Key || ( DataCDO->Key.Get() && Data->Key.Get() && ( *(DataCDO->Key) == *(Data->Key) ) ) )
+								if( KeyCDO == Key || ( KeyCDO.Get() && Key.Get() && ( *KeyCDO == *Key ) ) )
 								{
 									SrcLocation = CDO->GetPathName() + TEXT(".") + TextProp->GetName();
 									break;
@@ -611,18 +618,18 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 					}
 
 					FContext Context;
-					Context.Key = Data->Key.IsValid() ? *Data->Key : TEXT("");
+					Context.Key = Key.IsValid() ? *Key : TEXT("");
 					Context.SourceLocation = SrcLocation;
 
 					FString EntryDescription = FString::Printf( TEXT("In %s"), *Object->GetFullName());
-					ManifestInfo->AddEntry(EntryDescription, Data->Namespace.Get() ? *Data->Namespace : TEXT(""), Data->SourceString.Get() ? *(Data->SourceString) : TEXT(""), Context );
+					ManifestInfo->AddEntry(EntryDescription, Namespace.Get() ? *Namespace : TEXT(""), Data->GetSourceString().Get() ? *(Data->GetSourceString()) : TEXT(""), Context );
 				}
 			}
 		}
 
 		// Add to conflict tracker.
-		FConflictTracker::FKeyTable& KeyTable = ConflictTracker.Namespaces.FindOrAdd( Data->Namespace.IsValid() ? *(Data->Namespace) : TEXT("") );
-		FConflictTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd( Data->Key.IsValid() ? *(Data->Key) : TEXT("") );
+		FConflictTracker::FKeyTable& KeyTable = ConflictTracker.Namespaces.FindOrAdd( Namespace.IsValid() ? *Namespace : TEXT("") );
+		FConflictTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd( Key.IsValid() ? *Key : TEXT("") );
 		EntryArray.Add(NewEntry);
 
 		OutFixed = (NewEntry.Status == EAssetTextGatherStatus::MissingKey_Resolved || NewEntry.Status == EAssetTextGatherStatus::IdentityConflict_Resolved);
