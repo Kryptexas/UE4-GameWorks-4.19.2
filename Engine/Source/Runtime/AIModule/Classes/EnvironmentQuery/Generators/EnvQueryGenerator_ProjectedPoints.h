@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/Navigation/RecastNavMesh.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryGenerator_ProjectedPoints.generated.h"

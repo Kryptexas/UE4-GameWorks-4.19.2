@@ -124,6 +124,30 @@ struct FNavigationDirtyElement
 //////////////////////////////////////////////////////////////////////////
 // Path
 
+struct FNavigationPortalEdge
+{
+	FVector Left;
+	FVector Right;
+	NavNodeRef ToRef;
+
+	FNavigationPortalEdge() : Left(0.f), Right(0.f)
+	{}
+
+	FNavigationPortalEdge(const FVector& InLeft, const FVector& InRight, NavNodeRef InToRef)
+		: Left(InLeft), Right(InRight), ToRef(InToRef)
+	{}
+
+	FORCEINLINE FVector GetPoint(const int32 Index) const
+	{
+		check(Index >= 0 && Index < 2);
+		return ((FVector*)&Left)[Index];
+	}
+
+	FORCEINLINE float GetLength() const { return FVector::Dist(Left, Right); }
+
+	FORCEINLINE FVector GetMiddlePoint() const { return Left + (Right - Left) / 2; }
+};
+
 /** Describes a point in navigation data */
 struct FNavLocation
 {
@@ -507,4 +531,133 @@ class UNavigationTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UNavigationTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+};
+
+//////////////////////////////////////////////////////////////////////////
+// Memory stating
+
+namespace NavMeshMemory
+{
+#if STATS
+	// @todo could be made a more generic solution
+	class FNavigationMemoryStat : public FDefaultAllocator
+	{
+	public:
+		typedef FDefaultAllocator Super;
+
+		class ForAnyElementType : public FDefaultAllocator::ForAnyElementType
+		{
+		public:
+			typedef FDefaultAllocator::ForAnyElementType Super;
+		private:
+			int32 AllocatedSize;
+		public:
+
+			ForAnyElementType()
+				: AllocatedSize(0)
+			{
+
+			}
+
+			/** Destructor. */
+			~ForAnyElementType()
+			{
+				if (AllocatedSize)
+				{
+					DEC_DWORD_STAT_BY(STAT_NavigationMemory, AllocatedSize);
+				}
+			}
+
+			void ResizeAllocation(int32 PreviousNumElements, int32 NumElements, int32 NumBytesPerElement)
+			{
+				const int32 NewSize = NumElements * NumBytesPerElement;
+				INC_DWORD_STAT_BY(STAT_NavigationMemory, NewSize - AllocatedSize);
+				AllocatedSize = NewSize;
+
+				Super::ResizeAllocation(PreviousNumElements, NumElements, NumBytesPerElement);
+			}
+
+		private:
+			ForAnyElementType(const ForAnyElementType&);
+			ForAnyElementType& operator=(const ForAnyElementType&);
+		};
+	};
+
+	typedef FNavigationMemoryStat FNavAllocator;
+#else
+	typedef FDefaultAllocator FNavAllocator;
+#endif
+}
+
+#if STATS
+
+template <>
+struct TAllocatorTraits<NavMeshMemory::FNavigationMemoryStat> : TAllocatorTraits<NavMeshMemory::FNavigationMemoryStat::Super>
+{
+};
+
+#endif
+
+template<typename InElementType>
+class TNavStatArray : public TArray<InElementType, NavMeshMemory::FNavAllocator>
+{
+public:
+	typedef TArray<InElementType, NavMeshMemory::FNavAllocator> Super;
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+
+	TNavStatArray() = default;
+	TNavStatArray(const TNavStatArray&) = default;
+	TNavStatArray& operator=(const TNavStatArray&) = default;
+
+#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
+
+	TNavStatArray(TNavStatArray&&) = default;
+	TNavStatArray& operator=(TNavStatArray&&) = default;
+
+#endif
+
+#else
+
+	FORCEINLINE TNavStatArray()
+	{
+	}
+
+	FORCEINLINE TNavStatArray(const TNavStatArray& Other)
+		: Super((const Super&)Other)
+	{
+	}
+
+	FORCEINLINE TNavStatArray& operator=(const TNavStatArray& Other)
+	{
+		(Super&)*this = (const Super&)Other;
+		return *this;
+	}
+
+#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
+
+	FORCEINLINE TNavStatArray(TNavStatArray&& Other)
+		: Super((Super&&)Other)
+	{
+	}
+
+	FORCEINLINE TNavStatArray& operator=(TNavStatArray&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		return *this;
+	}
+
+#endif
+
+#endif
+};
+
+template<typename InElementType>
+struct TContainerTraits<TNavStatArray<InElementType> > : public TContainerTraitsBase<TNavStatArray<InElementType> >
+{
+	enum {
+		MoveWillEmptyContainer =
+		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
+		TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer
+	};
 };

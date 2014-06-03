@@ -3,6 +3,7 @@
 #include "AIModulePrivate.h"
 #include "VisualLog.h"
 #include "AI/Navigation/SmartNavLinkComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Navigation/NavigationComponent.h"
 
 //----------------------------------------------------------------------//

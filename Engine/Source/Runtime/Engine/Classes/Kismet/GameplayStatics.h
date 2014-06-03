@@ -10,6 +10,8 @@
 //
 class USaveGame;
 struct FDialogueContext;
+class UParticleSystemComponent;
+class UParticleSystem;
 
 UENUM()
 namespace ESuggestProjVelocityTraceOption

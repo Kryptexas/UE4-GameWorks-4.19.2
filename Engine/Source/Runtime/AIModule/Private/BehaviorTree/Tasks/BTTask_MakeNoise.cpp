@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/ReverbVolume.h"
 #include "BehaviorTree/Tasks/BTTask_MakeNoise.h"
 
 UBTTask_MakeNoise::UBTTask_MakeNoise(const class FPostConstructInitializeProperties& PCIP) 

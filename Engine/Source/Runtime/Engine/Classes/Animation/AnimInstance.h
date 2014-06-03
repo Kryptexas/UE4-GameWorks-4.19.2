@@ -5,6 +5,7 @@
 #include "AnimMontage.h"
 #include "AnimSequence.h"
 #include "AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimInstance.generated.h"
 
 struct FBoneContainer;

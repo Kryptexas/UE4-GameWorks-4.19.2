@@ -2,15 +2,36 @@
 
 #pragma once
 
-//#include "CoreUObject.h"
-//#include "Engine/EngineBaseTypes.h"
-//#include "Engine/EngineTypes.h"
-//// @todo consider making this non-shippable
-//#include "DisplayDebugHelpers.h"
-//#include "InputCoreTypes.h"
-//#include "GameFramework/Actor.h"
-#include "Engine.h"
+//----------------------------------------------------------------------//
+// Engine headers
+//----------------------------------------------------------------------//
 
+#include "Core.h"
+#include "CoreUObject.h"
+#include "InputCore.h"
+#include "EngineDefines.h"
+#include "EngineSettings.h"
+#include "EngineStats.h"
+#include "EngineLogs.h"
+#include "EngineGlobals.h"
+
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "GameFramework/Pawn.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/Engine.h"
+#include "TimerManager.h"					// Game play timers
+
+//----------------------------------------------------------------------//
+// AIModule headers
+//----------------------------------------------------------------------//
 #include "AIModule.h"
 
 #include "AITypes.h"

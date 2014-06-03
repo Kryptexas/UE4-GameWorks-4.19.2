@@ -282,6 +282,10 @@ float APawn::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APla
 	return NetPriority * Time;
 }
 
+bool APawn::ShouldTickIfViewportsOnly() const 
+{ 
+	return IsLocallyControlled() && Cast<APlayerController>(GetController()); 
+}
 
 FVector APawn::GetPawnViewLocation() const
 {

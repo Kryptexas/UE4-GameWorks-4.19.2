@@ -11,7 +11,6 @@ namespace UnrealBuildTool.Rules
 			PublicIncludePaths.AddRange(
 				new string[] {
                     "Runtime/AIModule/Public",
-					// ... add public include paths required here ...
 				}
 				);
 
@@ -19,7 +18,6 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"Runtime/AIModule/Private",
                     "Runtime/Engine/Private",
-					// ... add other private include paths required here ...
 				}
 				);
 
@@ -28,15 +26,14 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-					"Engine"                    
-					// ... add other public dependencies that you statically link with here ...
+					"Engine",
 				}
 				);
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					// ... add private dependencies that you statically link with here ...
+					"RHI",
 				}
 				);
 

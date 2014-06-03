@@ -13,6 +13,8 @@
 #include "Navigation/CrowdAgentInterface.h"
 #include "VisualLog.h"
 
+#include "DrawDebugHelpers.h"
+
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_AICrowd, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT(TEXT("Simulation Time"), STAT_AI_Crowd_Tick, STATGROUP_AICrowd);

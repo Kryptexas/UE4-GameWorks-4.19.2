@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#if WITH_RECAST
+#include "AI/Navigation/RecastNavMesh.h"
+#endif // WITH_RECAST
 #include "Navigation/NavigationComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_DoesPathExist.h"

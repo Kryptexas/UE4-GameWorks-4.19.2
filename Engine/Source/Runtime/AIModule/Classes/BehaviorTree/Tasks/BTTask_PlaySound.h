@@ -3,6 +3,9 @@
 #pragma once
 #include "BTTask_PlaySound.generated.h"
 
+class UBehaviorTreeComponent;
+class USoundCue;
+
 UCLASS()
 class UBTTask_PlaySound : public UBTTaskNode
 {
@@ -10,7 +13,7 @@ class UBTTask_PlaySound : public UBTTaskNode
 
 	/** CUE to play */
 	UPROPERTY(Category=Node, EditAnywhere)
-	class USoundCue* SoundToPlay;
+	USoundCue* SoundToPlay;
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;

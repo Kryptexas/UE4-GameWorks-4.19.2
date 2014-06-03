@@ -2,10 +2,11 @@
 
 #pragma once
 #include "Misc/CoreMisc.h"
+#include "EngineDefines.h"
+#include "Engine/World.h"
 #include "AI/AISystemBase.h"
 #include "AISystem.generated.h"
 
-class UWorld;
 class UBehaviorTreeManager;
 class UEnvQueryManager;
 

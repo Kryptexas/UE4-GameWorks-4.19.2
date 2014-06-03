@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavAreas/NavArea.h"
 #include "Tickable.h"
 #include "AI/Navigation/NavigationData.h"

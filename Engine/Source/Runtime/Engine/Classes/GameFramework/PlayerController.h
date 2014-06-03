@@ -10,6 +10,7 @@
 #include "SceneManagement.h"
 #include "ForceFeedbackEffect.h"
 #include "OnlineReplStructs.h"
+#include "GameFramework/Controller.h"
 #include "PlayerController.generated.h"
 
 /** delegate used to override default viewport audio listener position calculated from camera */

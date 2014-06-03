@@ -5,9 +5,11 @@
 //
 
 #pragma once
-#include "Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h"
-
+#include "PhysicsEngine/BodyInstance.h"
+#include "Engine/LevelBase.h"
 #include "Level.generated.h"
+
+class ALevelBounds;
 
 /**
  * Structure containing all information needed for determining the screen space

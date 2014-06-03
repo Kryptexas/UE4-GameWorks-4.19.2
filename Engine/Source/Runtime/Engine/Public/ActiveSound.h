@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Sound/ReverbVolume.h"
+
 struct ENGINE_API FActiveSound
 {
 public:

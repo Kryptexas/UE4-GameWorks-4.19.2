@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "Engine/Blueprint.h"
 #include "Blueprint/AIAsyncTaskBlueprintProxy.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Animation/AnimInstance.h"
+#include "TimerManager.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 
 //----------------------------------------------------------------------//
 // UAIAsyncTaskBlueprintProxy

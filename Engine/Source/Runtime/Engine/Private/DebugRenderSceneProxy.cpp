@@ -63,7 +63,7 @@ void FDebugRenderSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*
 		if (PointInView(It->Location, View))
 		{
 			const FVector ScreenLoc = Canvas->Project(It->Location);
-			const FFontRenderInfo& FontInfo = TextWithoutShadowDistance >= 0 ? (PointWithinCorrectDistance(It->Location, View, TextWithoutShadowDistance) ? FontRenderInfoWithShadow : FontRenderInfo) : FontRenderInfo;
+			const FFontRenderInfo& FontInfo = TextWithoutShadowDistance >= 0 ? (PointInRange(It->Location, View, TextWithoutShadowDistance) ? FontRenderInfoWithShadow : FontRenderInfo) : FontRenderInfo;
 			Canvas->DrawText(RenderFont, It->Text, ScreenLoc.X, ScreenLoc.Y, 1, 1, FontInfo);
 		}
 	}

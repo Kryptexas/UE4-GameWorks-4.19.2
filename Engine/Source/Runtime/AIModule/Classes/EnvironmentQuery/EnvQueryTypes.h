@@ -20,6 +20,8 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGROUP_AI_EQS, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, AIMODULE_API);
 
+class ARecastNavMesh;
+
 UENUM()
 namespace EEnvTestPurpose
 {
@@ -913,7 +915,7 @@ public:
 namespace FEQSHelpers
 {
 #if WITH_RECAST
-	const class ARecastNavMesh* FindNavMeshForQuery(struct FEnvQueryInstance& QueryInstance);
+	const ARecastNavMesh* FindNavMeshForQuery(struct FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
 

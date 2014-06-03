@@ -6,6 +6,7 @@
 
 #pragma once
 #include "Model.h"
+#include "Engine/Level.h"
 #include "Brush.generated.h"
 
 //-----------------------------------------------------------------------------

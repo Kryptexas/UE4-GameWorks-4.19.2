@@ -9,10 +9,9 @@
 
 #include "SkeletalMeshTypes.h"
 #include "AnimInterpFilter.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 #include "AnimationAsset.generated.h"
-
-class USkeleton;
-class USkeletalMesh;
 
 /** Transform definition */
 USTRUCT(BlueprintType)

@@ -4,8 +4,13 @@
 #if WITH_RECAST
 #	include "Detour/DetourNavMeshQuery.h"
 #endif
+#include "AI/Navigation/RecastNavMesh.h"
 #include "Navigation/NavigationComponent.h"
+#include "GameFramework/NavMovementComponent.h"
 #include "AI/Navigation/SmartNavLinkComponent.h"
+#include "GameFramework/Character.h"
+#include "Engine/Canvas.h"
+#include "TimerManager.h"
 #include "VisualLog.h"
 #include "Navigation/PathFollowingComponent.h"
 

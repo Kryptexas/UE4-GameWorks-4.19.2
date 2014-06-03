@@ -8,6 +8,7 @@
  */
 
 #include "AnimationAsset.h"
+#include "Curves/CurveBase.h"
 #include "AnimSequenceBase.generated.h"
 
 #define DEFAULT_SAMPLERATE			30.f

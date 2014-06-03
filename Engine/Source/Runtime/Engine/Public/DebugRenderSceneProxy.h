@@ -46,21 +46,14 @@ public:
 	/** called to clean up debug drawing delegate in UDebugDrawService */
 	ENGINE_API virtual void UnregisterDebugDrawDelgate();
 
-	FORCEINLINE bool PointInView(const FVector& Location, const FSceneView* View)
+	FORCEINLINE bool PointInView(const FVector& Location, const FSceneView* View) const
 	{
 		return View ? View->ViewFrustum.IntersectBox(Location, FVector::ZeroVector) : false;
 	}
 
-	FORCEINLINE bool PointWithinCorrectDistance(const FVector& Start, const FSceneView* View, float CorrectDistance = -1)
+	FORCEINLINE bool PointInRange(const FVector& Start, const FSceneView* View, float Range) const
 	{
-		const float MaxDistance = CorrectDistance > 0 ? (CorrectDistance*CorrectDistance) : ARecastNavMesh::GetDrawDistanceSq();
-
-		if (FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) > MaxDistance)
-		{
-			return false;
-		}
-
-		return true;
+		return FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) <= FMath::Square(Range);
 	}
 
 	/** Struct to hold info about lines to render. */

@@ -11,6 +11,8 @@
 #include "PreviewAssetAttachComponent.h"
 #include "Skeleton.generated.h"
 
+class UAnimSequence;
+class USkeletalMesh;
 
 /** This is a mapping table between bone in a particular skeletal mesh and bone of this skeleton set. */
 USTRUCT()

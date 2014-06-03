@@ -3,6 +3,7 @@
 #pragma once
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/NavDataGenerator.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationData.generated.h"
 
 class FNavDataGenerator; 

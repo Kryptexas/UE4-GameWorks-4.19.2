@@ -5,7 +5,7 @@
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_PathingGrid.h"
 #include "AI/Navigation/NavFilters/RecastFilter_UseDefaultArea.h"
-
+#include "AI/Navigation/RecastNavMesh.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 

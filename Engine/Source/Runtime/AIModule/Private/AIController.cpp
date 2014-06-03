@@ -11,6 +11,8 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "AIController.h"
 
 // mz@todo these need to be removed, legacy code
@@ -72,7 +74,7 @@ void AAIController::Reset()
 	}
 }
 
-void AAIController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
+void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 

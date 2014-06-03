@@ -13,6 +13,7 @@
 #include "DetourCommon.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 

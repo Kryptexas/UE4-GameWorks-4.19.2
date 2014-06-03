@@ -5,6 +5,7 @@
 #include "Navigation/CrowdManager.h"
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/SmartNavLinkComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "VisualLog.h"
 
 DEFINE_LOG_CATEGORY(LogCrowdFollowing);

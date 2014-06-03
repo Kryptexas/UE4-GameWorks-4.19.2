@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_AssetUserData.h"
 

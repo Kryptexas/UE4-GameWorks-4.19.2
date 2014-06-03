@@ -178,7 +178,7 @@ public:
 	virtual void Reset() OVERRIDE;
 	virtual FString GetHumanReadableName() const OVERRIDE;
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
-	virtual bool ShouldTickIfViewportsOnly() const OVERRIDE { return IsLocallyControlled() && Cast<APlayerController>(GetController()); }
+	virtual bool ShouldTickIfViewportsOnly() const OVERRIDE;
 	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) OVERRIDE;
 	virtual void PostNetReceiveLocation() OVERRIDE;
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) OVERRIDE;

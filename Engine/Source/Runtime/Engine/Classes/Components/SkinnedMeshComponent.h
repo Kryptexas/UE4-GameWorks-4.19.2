@@ -9,6 +9,7 @@
 
 #pragma once
 #include "SkeletalMeshTypes.h"
+#include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
 
 //

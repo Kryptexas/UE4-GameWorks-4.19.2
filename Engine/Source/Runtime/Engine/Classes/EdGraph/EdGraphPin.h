@@ -2,16 +2,8 @@
 
 #pragma once
 
+#include "EdGraph/EdGraphNode.h"
 #include "EdGraphPin.generated.h"
-
-/** Enum used to define which way data flows into or out of this pin */
-UENUM()
-enum EEdGraphPinDirection
-{
-	EGPD_Input,
-	EGPD_Output,
-	EGPD_MAX,
-};
 
 USTRUCT()
 struct FSimpleMemberReference

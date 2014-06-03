@@ -4,6 +4,7 @@
 
 #include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
 #include "Runtime/Engine/Classes/Camera/CameraTypes.h"
+#include "Components/SceneComponent.h"
 #include "RenderingThread.h"
 
 UENUM(BlueprintType)

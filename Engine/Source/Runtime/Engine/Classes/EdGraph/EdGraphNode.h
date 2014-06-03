@@ -10,6 +10,15 @@ class UEdGraphNode;
 class UEdGraphPin;
 class SGraphNode;
 
+/** Enum used to define which way data flows into or out of this pin */
+UENUM()
+enum EEdGraphPinDirection
+{
+	EGPD_Input,
+	EGPD_Output,
+	EGPD_MAX,
+};
+
 /** Enum to indicate what sort of title we want */
 UENUM()
 namespace ENodeTitleType

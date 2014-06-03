@@ -7,6 +7,9 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 
+#include "Engine/Selection.h"
+#include "Components/BillboardComponent.h"
+
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif

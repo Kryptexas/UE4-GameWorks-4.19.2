@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Interfaces/NetworkPredictionInterface.h"
 #include "CharacterMovementComponent.generated.h"
 
 /** Movement modes for Characters.  */

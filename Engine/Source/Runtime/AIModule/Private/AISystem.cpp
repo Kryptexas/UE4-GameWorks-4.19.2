@@ -3,6 +3,8 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
+#include "GameFramework/PlayerController.h"
+#include "Debug/GameplayDebuggingControllerComponent.h"
 #include "AISystem.h"
 
 UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)

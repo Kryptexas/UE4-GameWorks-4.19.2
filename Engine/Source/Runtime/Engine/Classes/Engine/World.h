@@ -9,7 +9,7 @@
 #include "CollisionQueryParams.h"
 #include "WorldCollision.h"
 #include "PendingNetGame.h"
-#include "../GameFramework/MusicTrackDataStructures.h"
+#include "GameFramework/MusicTrackDataStructures.h"
 #include "World.generated.h"
 
 class FPhysScene;
@@ -19,6 +19,8 @@ class ULocalPlayer;
 class UGameViewportClient;
 class ABrush;
 class UModel;
+class APhysicsVolume;
+class UTexture2D;
 
 template<typename,typename> class TOctree;
 

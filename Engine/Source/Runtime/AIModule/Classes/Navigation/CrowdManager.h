@@ -4,6 +4,8 @@
 #include "Tickable.h"
 #include "CrowdManager.generated.h"
 
+struct FNavMeshPath;
+class UCrowdFollowingComponent;
 /**
  *  Crowd manager is responsible for handling crowds using Detour (Recast library)
  *
@@ -125,22 +127,22 @@ class AIMODULE_API UCrowdManager : public UObject
 	void UpdateAgentState(const class ICrowdAgentInterface* Agent) const;
 
 	/** sets move target for crowd agent (only for fully simulated) */
-	bool SetAgentMoveTarget(const class UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
+	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
 
 	/** sets move direction for crowd agent (only for fully simulated) */
-	bool SetAgentMoveDirection(const class UCrowdFollowingComponent* AgentComponent, const FVector& MoveDirection) const;
+	bool SetAgentMoveDirection(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveDirection) const;
 
 	/** sets move target using path (only for fully simulated) */
-	bool SetAgentMovePath(const class UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32 PathSectionStart, int32 PathSectionEnd) const;
+	bool SetAgentMovePath(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32 PathSectionStart, int32 PathSectionEnd) const;
 
 	/** clears move target for crowd agent (only for fully simulated) */
-	void ClearAgentMoveTarget(const class UCrowdFollowingComponent* AgentComponent) const;
+	void ClearAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent) const;
 
 	/** switch agent to waiting state */
-	void PauseAgent(const class UCrowdFollowingComponent* AgentComponent) const;
+	void PauseAgent(const UCrowdFollowingComponent* AgentComponent) const;
 
 	/** resumes agent movement */
-	void ResumeAgent(const class UCrowdFollowingComponent* AgentComponent, bool bForceReplanPath = true) const;
+	void ResumeAgent(const UCrowdFollowingComponent* AgentComponent, bool bForceReplanPath = true) const;
 
 	/** returns number of nearby agents */
 	int32 GetNumNearbyAgents(const class ICrowdAgentInterface* Agent) const;
@@ -158,7 +160,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	void SetSingleAreaVisibilityOptimization(bool bEnable);
 
 	/** adjust current position in path's corridor, starting test from PathStartIdx */
-	void AdjustAgentPathStart(const class UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32& PathStartIdx) const;
+	void AdjustAgentPathStart(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32& PathStartIdx) const;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
@@ -232,7 +234,7 @@ protected:
 	void UpdateSpatialData(const class ICrowdAgentInterface* Agent, const FCrowdAgentData& AgentData) const;
 
 	/** pass new velocity to movement components */
-	void ApplyVelocity(const class UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
+	void ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
 
 	/** check changes in crowd simulation and adjust UE specific properties (smart links, poly updates) */
 	void UpdateAgentPaths();
