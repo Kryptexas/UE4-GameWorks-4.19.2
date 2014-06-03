@@ -36,6 +36,7 @@ protected:
 
 public:
 	FAnimationViewportClient( FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr );
+	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
 	virtual FLinearColor GetBackgroundColor() const OVERRIDE;

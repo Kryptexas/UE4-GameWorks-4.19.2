@@ -187,6 +187,24 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	}
 }
 
+FAnimationViewportClient::~FAnimationViewportClient()
+{
+	if (PersonaPtr.IsValid())
+	{
+		if (EditorFloorComp)
+		{
+			PreviewScene->RemoveComponent(EditorFloorComp);
+			EditorFloorComp = NULL;
+		}
+
+		if (EditorSkyComp)
+		{
+			PreviewScene->RemoveComponent(EditorSkyComp);
+			EditorSkyComp = NULL;
+		}
+	}
+}
+
 FLinearColor FAnimationViewportClient::GetBackgroundColor() const
 {
 	return SelectedHSVColor.HSVToLinearRGB();
