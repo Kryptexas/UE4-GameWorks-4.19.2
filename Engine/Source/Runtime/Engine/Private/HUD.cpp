@@ -159,7 +159,7 @@ void AHUD::PostRender()
 			{
 				for (FVector2D& ContactPoint : ContactPoints)
 				{
-					ContactPoint -= ContactPointOffset;
+					ContactPoint += ContactPointOffset;
 				}
 			}
 			UpdateHitBoxCandidates( ContactPoints );
@@ -802,7 +802,7 @@ const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
 
 bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bDispatchOverOutEvent)
 {
-	ClickLocation -= GetCoordinateOffset();
+	ClickLocation += GetCoordinateOffset();
 
 	bool bHit = false;
 	for (FHUDHitBox* HitBoxHit : HitBoxHits)
