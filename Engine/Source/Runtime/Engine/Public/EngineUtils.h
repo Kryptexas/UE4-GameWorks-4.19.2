@@ -407,8 +407,8 @@ public:
 	/**
 	 * Constructor, inits the starting position for iteration
 	 */
-	TActorIterator( UWorld* InWorld )
-		: TActorIteratorBase< FActorFilter >( InWorld, ActorType::StaticClass() )
+	TActorIterator( UWorld* InWorld, TSubclassOf<ActorType> InClass = ActorType::StaticClass() )
+		: TActorIteratorBase< FActorFilter >( InWorld, InClass )
 	{
 		++(*this);
 	}
