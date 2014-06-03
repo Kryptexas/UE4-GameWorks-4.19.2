@@ -38,6 +38,11 @@ namespace UK2Node_LiveEditObjectStatics
 			RemainingTokens = FString(TEXT(""));
 		}
 
+		if ( FirstToken.FindChar( '[', SplitIndex ) )
+		{
+			FirstToken = FirstToken.LeftChop( FirstToken.Len()-SplitIndex );
+		}
+
 		for (TFieldIterator<UProperty> PropertyIt(InStruct, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
