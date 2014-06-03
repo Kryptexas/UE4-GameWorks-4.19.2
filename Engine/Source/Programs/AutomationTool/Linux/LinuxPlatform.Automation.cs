@@ -32,7 +32,7 @@ public abstract class BaseLinuxPlatform : Platform
 
         // assume that we always have to deploy Steam (FIXME: should be automatic)
 		{
-			string SteamVersion = "Steamv129";
+			string SteamVersion = "Steamv129a";
 
 			// Check if the Steam directory exists. We need it for Steam controller support, so we include it whenever we can.
 			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))

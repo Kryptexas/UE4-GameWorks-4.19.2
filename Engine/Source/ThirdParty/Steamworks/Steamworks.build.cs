@@ -7,7 +7,7 @@ public class Steamworks : ModuleRules
 	public Steamworks(TargetInfo Target)
 	{
 		/** Mark the current version of the Steam SDK */
-		string SteamVersion = "v129";
+		string SteamVersion = "v129a";
 		Type = ModuleType.External;
 
 		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/public");
