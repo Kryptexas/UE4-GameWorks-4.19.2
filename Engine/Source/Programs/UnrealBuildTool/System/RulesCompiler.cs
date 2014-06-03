@@ -634,10 +634,33 @@ namespace UnrealBuildTool
         /// Return a list of configs for target platforms for formal builds
         /// </summary>
         /// <returns>a list of configs for a target platforms for the monolithic</returns>        
+        [Obsolete]
         public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
         {
             return new List<UnrealTargetConfiguration>();
         }
+
+        public class GUBPFormalBuild
+        {
+            public UnrealTargetPlatform TargetPlatform = UnrealTargetPlatform.Unknown;
+            public UnrealTargetConfiguration TargetConfig = UnrealTargetConfiguration.Unknown;
+            public bool bTest = false;
+            public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false)
+            {
+                TargetPlatform = InTargetPlatform;
+                TargetConfig = InTargetConfig;
+                bTest = bInTest;
+            }
+        }
+        /// <summary>
+        /// Return a list of formal builds
+        /// </summary>
+        /// <returns>a list of formal builds</returns>        
+        public virtual List<GUBPFormalBuild> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+        {
+            return new List<GUBPFormalBuild>();
+        }
+
 
         /// <summary>
         /// Return true if this target should be included in a promotion and indicate shared or not
@@ -673,10 +696,20 @@ namespace UnrealBuildTool
         /// Return a list of the non-code projects to make formal builds for
         /// </summary>
         /// <returns>a list of the non-code projects to build cook and test</returns>
+        [Obsolete]
         public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
         {
             return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
         }
+        /// <summary>
+        /// Return a list of the non-code projects to make formal builds for
+        /// </summary>
+        /// <returns>a list of the non-code projects to build cook and test</returns>
+        public virtual Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
+        {
+            return new Dictionary<string, List<GUBPFormalBuild>>();
+        }
+
         /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing the editor
         /// </summary>
