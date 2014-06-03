@@ -125,7 +125,84 @@ FPhysicsScene2D::~FPhysicsScene2D()
 
 bool FPhysicsScene2D::ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB)
 {
-	return b2ContactFilter::ShouldCollide(FixtureA, FixtureB);
+	//@TODO: BOX2D: May need to extend Box2D to be able to indicate that we don't want them to collide now but keep tracking the interaction, not sure!
+	const bool KillInteraction = false;
+	const bool SupressInteraction = false;
+	const bool NormalInteraction = true;
+
+	const b2Filter& FilterDataA = FixtureA->GetFilterData();
+	const b2Filter& FilterDataB = FixtureB->GetFilterData();
+
+	const ECollisionChannel ChannelA = static_cast<ECollisionChannel>(FilterDataA.ObjectTypeAndFlags >> 24);
+	const ECollisionChannel ChannelB = static_cast<ECollisionChannel>(FilterDataB.ObjectTypeAndFlags >> 24);
+	const b2BodyType BodyTypeA = FixtureA->GetBody()->GetType();
+	const b2BodyType BodyTypeB = FixtureB->GetBody()->GetType();
+
+	// ignore kinematic-kinematic interactions which don't involve a destructible
+	const bool bIsKinematicA = BodyTypeA == b2_kinematicBody;
+	const bool bIsKinematicB = BodyTypeB == b2_kinematicBody;
+	if (bIsKinematicA && bIsKinematicB && (ChannelA != ECC_Destructible) && (ChannelB != ECC_Destructible))
+	{
+		return KillInteraction;
+	}
+
+	// ignore static-kinematic interactions
+	const bool bIsStaticA = BodyTypeA == b2_staticBody;
+	const bool bIsStaticB = BodyTypeB == b2_staticBody;
+	if ((bIsKinematicA || bIsKinematicB) && (bIsStaticA || bIsStaticB))
+	{
+		// should return eSUPPRESS here instead eKILL so that kinematics vs statics will still be considered once kinematics become dynamic (dying ragdoll case)
+		return SupressInteraction;
+	}
+
+	//@TODO: BOX2D: Skeletal collision filtering
+#if 0
+	// if these bodies are from the same skeletal mesh component, use the disable table to see if we should disable collision
+	if ((FilterDataA.UniqueComponentID != 0) && (FilterDataA.UniqueComponentID == FilterDataB.UniqueComponentID))
+	{
+		FPhysScene* PhysScene = *magic*;
+		check(PhysScene);
+
+		const TMap<uint32, TMap<FRigidBodyIndexPair, bool> *> & CollisionDisableTableLookup = PhysScene->GetCollisionDisableTableLookup();
+		TMap<FRigidBodyIndexPair, bool>* const * DisableTablePtrPtr = CollisionDisableTableLookup.FindChecked(FilterDataA.UniqueComponentID);
+		TMap<FRigidBodyIndexPair, bool>* DisableTablePtr = *DisableTablePtrPtr;
+		FRigidBodyIndexPair BodyPair(FilterDataA.BodyIndex, FilterDataB.BodyIndex);
+		if (DisableTablePtr->Find(BodyPair))
+		{
+			return KillInteraction;
+		}
+	}
+#endif
+
+	// See if either one would like to block the other
+	const uint32 BlockFlagToB = ECC_TO_BITFIELD(ChannelB) & FilterDataA.BlockingChannels;
+	const uint32 BlockFlagToA = ECC_TO_BITFIELD(ChannelA) & FilterDataB.BlockingChannels;
+	const bool bDoesWantToBlock = BlockFlagToB && BlockFlagToA;
+	if (!bDoesWantToBlock)
+	{
+		return SupressInteraction;
+	}
+
+	//@TODO: BOX2D: CCD / contact notification flags
+#if 0
+	const uint32 FilterFlags0 = FilterDataA.ObjectTypeAndFlags & 0xFFFFFF;
+	const uint32 FilterFlags1 = FilterDataB.ObjectTypeAndFlags & 0xFFFFFF;
+
+	bool bResult = NormalInteraction;
+
+	//todo enabling CCD objects against everything else for now
+	if (!(bIsKinematicA && bIsKinematicB) && ((FilterFlagsA & EPDF_CCD) || (FilterFlagsB & EPDF_CCD)))
+	{
+		pairFlags |= PxPairFlag::eCCD_LINEAR;
+	}
+
+	if ((FilterFlagsA & EPDF_ContactNotify) || (FilterFlagsB & EPDF_ContactNotify))
+	{
+		pairFlags |= (PxPairFlag::eNOTIFY_TOUCH_FOUND | PxPairFlag::eNOTIFY_TOUCH_PERSISTS | PxPairFlag::eNOTIFY_CONTACT_POINTS);
+	}
+#endif
+
+	return NormalInteraction;
 }
 
 //////////////////////////////////////////////////////////////////////////

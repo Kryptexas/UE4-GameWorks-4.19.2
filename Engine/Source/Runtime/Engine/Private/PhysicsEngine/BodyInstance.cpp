@@ -565,13 +565,13 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	if (PxRigidActor* PActor = GetPxRigidActor())
 	{
 		// Create the filterdata structs
-		PxFilterData PQueryFilterData, PSimFilterData;
-		PxFilterData PSimpleQueryData, PComplexQueryData;
+		PxFilterData PSimFilterData;
+		PxFilterData PSimpleQueryData;
+		PxFilterData PComplexQueryData;
 		if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 		{
-			CreateShapeFilterData(ObjectType, OwnerID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PQueryFilterData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotifyRBCollision, bPhysicsStatic);
-			PSimpleQueryData = PQueryFilterData;
-			PComplexQueryData = PQueryFilterData;
+			CreateShapeFilterData(ObjectType, OwnerID, UseResponse, SkelMeshCompID, InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotifyRBCollision, bPhysicsStatic);
+			PComplexQueryData = PSimpleQueryData;
 
 			// Build filterdata variations for complex and simple
 			PSimpleQueryData.word3 |= EPDF_SimpleCollision;
@@ -607,7 +607,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 			PShape->setSimulationFilterData(PSimFilterData);
 
 			// If query collision is enabled..
-			if (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics || UseCollisionEnabled == ECollisionEnabled::QueryOnly)
+			if ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly))
 			{
 				// Only perform scene queries in the synchronous scene for static shapes
 				if (bPhysicsStatic)
@@ -695,16 +695,37 @@ void FBodyInstance::UpdatePhysicsFilterData()
 #endif
 
 #if WITH_BOX2D
-
 	if (BodyInstancePtr != nullptr)
 	{
-		//@TODO: BOX2D: Implement UpdatePhysicsFilterData
-
-		bool bUpdateMassProperties = false;
-
-		if (bUpdateMassProperties)
+		if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 		{
-			UpdateMassProperties();
+			// Create the simulation/query filter data
+			FPhysicsFilterBuilder FilterBuilder(ObjectType, UseResponse);
+ 			FilterBuilder.ConditionalSetFlags(EPDF_CCD, bUseCCD && !bPhysicsStatic);
+			FilterBuilder.ConditionalSetFlags(EPDF_ContactNotify, bUseNotifyRBCollision);
+ 			FilterBuilder.ConditionalSetFlags(EPDF_StaticShape, bPhysicsStatic);
+
+			b2Filter BoxSimFilterData;
+			FilterBuilder.GetCombinedData(/*out*/ BoxSimFilterData.BlockingChannels, /*out*/ BoxSimFilterData.TouchingChannels, /*out*/ BoxSimFilterData.ObjectTypeAndFlags);
+			BoxSimFilterData.UniqueComponentID = SkelMeshCompID;
+			BoxSimFilterData.BodyIndex = InstanceBodyIndex;
+
+			// Update the body data
+			const bool bSimCollision = (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+			BodyInstancePtr->SetBullet(bSimCollision && !bPhysicsStatic && bUseCCD);
+			BodyInstancePtr->SetActive(true);
+
+			// Copy the filter data to each fixture in the body
+			for (b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
+			{
+				Fixture->SetFilterData(BoxSimFilterData);
+				Fixture->SetSensor(UseCollisionEnabled == ECollisionEnabled::QueryOnly);
+			}
+		}
+		else
+		{
+			// No collision
+			BodyInstancePtr->SetActive(false);
 		}
 	}
 #endif
@@ -2551,7 +2572,7 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
 		const PxScene* PScene = PRigidDynamic->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
@@ -2567,7 +2588,7 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
 		const PxScene* PScene = PRigidDynamic->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
@@ -2582,7 +2603,7 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
 		const PxScene* PScene = PRigidDynamic->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
@@ -2597,7 +2618,7 @@ void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
 		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
 		PRigidDynamic->addForce(U2PVector(Impulse), Mode, true);
@@ -2611,7 +2632,7 @@ void FBodyInstance::AddImpulseAtPosition(const FVector& Impulse, const FVector& 
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidDynamicNonKinematic(PRigidDynamic))
 	{
 		PxForceMode::Enum Mode = PxForceMode::eIMPULSE; // does not support eVELOCITY_CHANGE
 		PxRigidBodyExt::addForceAtPos(*PRigidDynamic, U2PVector(Impulse), U2PVector(Position), Mode, true);

@@ -147,22 +147,6 @@ const bool bGlobalCCD = true;
 
 /////// UTILS
 
-/** 
- * Set of flags stored in the PhysX FilterData
- *
- * When this flag is saved in CreateShapeFilterData or CreateQueryFilterData, we only use 24 bits
- * If you plan to use more than 24 bits, you'll also need to change the format of ShapeFilterData,QueryFilterData
- * Make sure you also change preFilter/SimFilterShader where it's used
- */
-enum EPhysXFilterDataFlags
-{
-	EPDF_SimpleCollision	=	0x0001,
-	EPDF_ComplexCollision	=	0x0002,
-	EPDF_CCD				=	0x0004,
-	EPDF_ContactNotify		=	0x0008,
-	EPDF_StaticShape		=	0x0010
-};
-
 /** Get a pointer to the PxScene from an SceneIndex (will be NULL if scene already shut down) */
 PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
 
@@ -637,3 +621,6 @@ public:
  **/
 ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection);
 #endif // WITH_PHYSX
+
+
+#include "../Collision/PhysicsFiltering.h"
