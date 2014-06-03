@@ -1684,36 +1684,14 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 	TrackingTransactionState = ETransactionState::Active;
 
-	TSet<AActor*> RelatedActors;
+	TSet<AGroupActor*> GroupActors;
 
 	// Modify selected actors to record their state at the start of the transaction
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
-		AActor* Actor = CastChecked<AActor>( *It );
+		AActor* Actor = CastChecked<AActor>(*It);
 
 		Actor->Modify();
-
-		if (Actor->GetRootComponent())
-		{
-			TArray<USceneComponent*> RootComponents;
-			RootComponents.Add(Actor->GetRootComponent());
-			while (RootComponents.Num() > 0)
-			{
-				USceneComponent* RootComponent = RootComponents.Pop();
-				for (USceneComponent* AttachedComponent : RootComponent->AttachChildren)
-				{
-					if (AttachedComponent)
-					{
-						AActor* AttachedActor = AttachedComponent->GetOwner();
-						if (AttachedComponent == AttachedActor->GetRootComponent())
-						{
-							RelatedActors.Add(AttachedActor);
-							RootComponents.Add(AttachedComponent);
-						}
-					}
-				}
-			}
-		}
 
 		if (GEditor->bGroupingActive)
 		{
@@ -1721,15 +1699,15 @@ void FTrackingTransaction::Begin(const FText& Description)
 			AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
 			if (ActorLockedRootGroup != nullptr)
 			{
-				RelatedActors.Add(ActorLockedRootGroup);
+				GroupActors.Add(ActorLockedRootGroup);
 			}
 		}
 	}
 
 	// Modify unique group actors
-	for (AActor* RelatedActor : RelatedActors)
+	for (auto* GroupActor : GroupActors)
 	{
-		RelatedActor->Modify();
+		GroupActor->Modify();
 	}
 }
 

@@ -139,61 +139,102 @@ void AActor::RerunConstructionScripts()
 		GUndo = NULL;
 		
 		// Create cache to store component data across rerunning construction scripts
-		FComponentInstanceDataCache InstanceDataCache(this);
-
-		// If there are attached objects detach them and store the socket names
-		TArray<AActor*> AttachedActors;
-		GetAttachedActors(AttachedActors);
+		FActorTransactionAnnotation* ActorTransactionAnnotation = CurrentTransactionAnnotation.Get();
+		FComponentInstanceDataCache* InstanceDataCache;
+		
+		FTransform OldTransform = FTransform::Identity;
+		FName  SocketName;
+		AActor* Parent = NULL;
 
 		// Struct to store info about attached actors
 		struct FAttachedActorInfo
 		{
 			AActor* AttachedActor;
 			FName AttachedToSocket;
+			bool bSetRelativeTransform;
+			FTransform RelativeTransform;
 		};
 
 		// Save info about attached actors
 		TArray<FAttachedActorInfo> AttachedActorInfos;
-		for( AActor* AttachedActor : AttachedActors)
-		{
-			USceneComponent* EachRoot = AttachedActor->GetRootComponent();
-			// If the component we are attached to is about to go away...
-			if( EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->bCreatedByConstructionScript )
-			{
-				// Save info about actor to reattach
-				FAttachedActorInfo Info;
-				Info.AttachedActor = AttachedActor;
-				Info.AttachedToSocket = EachRoot->AttachSocketName;
-				AttachedActorInfos.Add(Info);
 
-				// Now detach it
-				AttachedActor->Modify();
-				EachRoot->DetachFromParent(true);					
-			}
-		}
-
-		// Save off original pose of the actor
-		FTransform OldTransform = FTransform::Identity;
-		FName  SocketName;
-		AActor* Parent = NULL;
-		if (RootComponent != NULL)
+		if (ActorTransactionAnnotation)
 		{
-			// Do not need to detach if root component is not going away
-			if(RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
+			InstanceDataCache = &ActorTransactionAnnotation->ComponentInstanceData;
+
+			if (ActorTransactionAnnotation->bRootComponentDataCached)
 			{
-				Parent = RootComponent->AttachParent->GetOwner();
-				// Root component should never be attached to another component in the same actor!
-				if(Parent == this)
+				OldTransform = ActorTransactionAnnotation->RootComponentData.Transform;
+				Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
+				if (Parent)
 				{
-					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
-					Parent = NULL;
+					DetachRootComponentFromParent();
+					SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
 				}
 
-				SocketName = RootComponent->AttachSocketName;
-				//detach it to remove any scaling 
-				RootComponent->DetachFromParent(true);
+				for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
+				{
+					AActor* AttachedActor = CachedAttachInfo.Actor.Get();
+					if (AttachedActor)
+					{
+						FAttachedActorInfo Info;
+						Info.AttachedActor = AttachedActor;
+						Info.AttachedToSocket = CachedAttachInfo.SocketName;
+						Info.bSetRelativeTransform = true;
+						Info.RelativeTransform = CachedAttachInfo.RelativeTransform;
+						AttachedActorInfos.Add(Info);
+
+						AttachedActor->DetachRootComponentFromParent();
+					}
+				}
 			}
-			OldTransform = RootComponent->ComponentToWorld;
+		}
+		else
+		{
+			InstanceDataCache = new FComponentInstanceDataCache(this);
+
+			// If there are attached objects detach them and store the socket names
+			TArray<AActor*> AttachedActors;
+			GetAttachedActors(AttachedActors);
+
+			for (AActor* AttachedActor : AttachedActors)
+			{
+				USceneComponent* EachRoot = AttachedActor->GetRootComponent();
+				// If the component we are attached to is about to go away...
+				if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->bCreatedByConstructionScript)
+				{
+					// Save info about actor to reattach
+					FAttachedActorInfo Info;
+					Info.AttachedActor = AttachedActor;
+					Info.AttachedToSocket = EachRoot->AttachSocketName;
+					Info.bSetRelativeTransform = false;
+					AttachedActorInfos.Add(Info);
+
+					// Now detach it
+					AttachedActor->Modify();
+					EachRoot->DetachFromParent(true);
+				}
+			}
+
+			if (RootComponent != NULL)
+			{
+				// Do not need to detach if root component is not going away
+				if (RootComponent->AttachParent != NULL && RootComponent->bCreatedByConstructionScript)
+				{
+					Parent = RootComponent->AttachParent->GetOwner();
+					// Root component should never be attached to another component in the same actor!
+					if (Parent == this)
+					{
+						UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
+						Parent = NULL;
+					}
+
+					SocketName = RootComponent->AttachSocketName;
+					//detach it to remove any scaling 
+					RootComponent->DetachFromParent(true);
+				}
+				OldTransform = RootComponent->ComponentToWorld;
+			}
 		}
 
 		// Destroy existing components
@@ -210,7 +251,7 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		ExecuteConstruction(OldTransform, &InstanceDataCache);
+		ExecuteConstruction(OldTransform, InstanceDataCache);
 
 		if(Parent)
 		{
@@ -232,6 +273,10 @@ void AActor::RerunConstructionScripts()
 				if (ChildRoot && ChildRoot->AttachParent != RootComponent)
 				{
 					ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
+					if (Info.bSetRelativeTransform)
+					{
+						ChildRoot->SetRelativeTransform(Info.RelativeTransform);
+					}
 					ChildRoot->UpdateComponentToWorld();
 				}
 			}
@@ -239,6 +284,16 @@ void AActor::RerunConstructionScripts()
 
 		// Restore the undo buffer
 		GUndo = CurrentTransaction;
+
+		if (ActorTransactionAnnotation)
+		{
+			CurrentTransactionAnnotation = NULL;
+		}
+		else
+		{
+			delete InstanceDataCache;
+		}
+
 	}
 }
 

@@ -55,7 +55,6 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
 			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
-				NewSceneComp->SetFlags(RF_Transactional);
 				NewSceneComp->SetWorldTransform(*RootTransform);
 				Actor->SetRootComponent(NewSceneComp);
 			}

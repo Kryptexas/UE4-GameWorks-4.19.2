@@ -67,7 +67,7 @@ bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Compone
 	return bMatches;
 }
 
-FComponentInstanceDataCache::FComponentInstanceDataCache(AActor* Actor)
+FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
 	if(Actor != NULL)
 	{

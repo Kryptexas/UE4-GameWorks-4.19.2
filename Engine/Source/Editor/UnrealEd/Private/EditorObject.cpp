@@ -437,7 +437,7 @@ static const TCHAR* ImportProperties(
 				}
 
 				// Propagate object flags to the sub object.
-				const EObjectFlags NewFlags = SubobjectOuter->GetMaskedFlags( RF_PropagateToSubObjects );
+				EObjectFlags NewFlags = SubobjectOuter->GetMaskedFlags( RF_PropagateToSubObjects );
 
 				if (!Archetype) // no override and we didn't find one from the class table, so go with the base
 				{
@@ -476,6 +476,16 @@ static const TCHAR* ImportProperties(
 				}
 				else
 				{
+					// We do not want to set RF_Transactional for construction script created components, so we have to monkey with things here
+					if (NewFlags & RF_Transactional)
+					{
+						UActorComponent* Component = Cast<UActorComponent>(ComponentTemplate);
+						if (Component && Component->bCreatedByConstructionScript)
+						{
+							NewFlags &= ~RF_Transactional;
+						}
+					}
+
 					// Make sure desired flags are set - existing object could be pending kill
 					ComponentTemplate->ClearFlags(RF_AllFlags);
 					ComponentTemplate->SetFlags(NewFlags);

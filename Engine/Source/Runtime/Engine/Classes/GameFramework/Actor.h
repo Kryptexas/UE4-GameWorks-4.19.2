@@ -6,6 +6,7 @@
 #include "Runtime/Engine/Classes/Camera/CameraTypes.h"
 #include "Components/SceneComponent.h"
 #include "RenderingThread.h"
+#include "ComponentInstanceDataCache.h"
 
 UENUM(BlueprintType)
 namespace EEndPlayReason
@@ -1043,7 +1044,48 @@ public:
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditUndo() OVERRIDE;
 	virtual void PostEditUndo() OVERRIDE;
+
+	struct FActorRootComponentReconstructionData
+	{
+		// Struct to store info about attached actors
+		struct FAttachedActorInfo
+		{
+			TWeakObjectPtr<AActor> Actor;
+			FName SocketName;
+			FTransform RelativeTransform;
+		};
+
+		// The RootComponent's transform
+		FTransform Transform;
+
+		// The Actor the RootComponent is attached to
+		FAttachedActorInfo AttachedParentInfo;
+
+		// Actors that are attached to this RootComponent
+		TArray<FAttachedActorInfo> AttachedToInfo;
+	};
+
+	class FActorTransactionAnnotation : public ITransactionObjectAnnotation
+	{
+	public:
+		FActorTransactionAnnotation(const AActor* Actor);
+
+		bool HasInstanceData() const;
+
+		FComponentInstanceDataCache ComponentInstanceData;
+
+		// Root component reconstruction data
+		bool bRootComponentDataCached;
+		FActorRootComponentReconstructionData RootComponentData;
+	};
+
+	/* Cached pointer to the transaction annotation data from PostEditUndo to be used in the next RerunConstructionScript */
+	TSharedPtr<FActorTransactionAnnotation> CurrentTransactionAnnotation;
+
+	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const OVERRIDE;
+	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation) OVERRIDE;
 #endif // WITH_EDITOR
 	// End UObject Interface
 

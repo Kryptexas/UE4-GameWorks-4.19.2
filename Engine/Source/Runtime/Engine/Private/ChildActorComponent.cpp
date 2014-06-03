@@ -97,6 +97,7 @@ void UChildActorComponent::CreateChildActor()
 			Params.bAllowDuringConstructionScript = true;
 			Params.OverrideLevel = GetOwner()->GetLevel();
 			Params.Name = ChildActorName;
+			Params.ObjectFlags &= ~RF_Transactional;
 
 			// Spawn actor of desired class
 			FVector Location = GetComponentLocation();
@@ -108,10 +109,8 @@ void UChildActorComponent::CreateChildActor()
 			{
 				ChildActorName = ChildActor->GetFName();
 
-#if WITH_EDITOR
 				// Remember which actor spawned it (for selection in editor etc)
 				ChildActor->ParentComponentActor = GetOwner();
-#endif
 
 				// Parts that we deferred from SpawnActor
 				ChildActor->ExecuteConstruction(ComponentToWorld, NULL);

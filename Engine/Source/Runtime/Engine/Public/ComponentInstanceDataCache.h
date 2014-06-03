@@ -2,6 +2,9 @@
 
 #pragma once
 
+class UActorComponent;
+class AActor;
+
 /** Base class for component instance cached data of a particular type. */
 class FComponentInstanceDataBase
 {
@@ -36,13 +39,15 @@ public:
 	FComponentInstanceDataCache() {}
 
 	/** Constructor that also populatees cache from Actor */
-	FComponentInstanceDataCache(AActor* InActor);
+	FComponentInstanceDataCache(const AActor* InActor);
 
 	/** Add some new instance data to the cache */
 	void AddInstanceData(TSharedPtr<FComponentInstanceDataBase> NewData);
 
 	/** Util to iterate over components and apply data to each */
 	void ApplyToActor(AActor* Actor) const;
+
+	bool HasInstanceData() const { return TypeToDataMap.Num() > 0; }
 
 private:
 	/** Map of data type name to data of that type */

@@ -217,6 +217,73 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	}
 }
 
+AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor)
+	: ComponentInstanceData(Actor)
+{
+	USceneComponent* RootComponent = Actor->GetRootComponent();
+	if (RootComponent && RootComponent->bCreatedByConstructionScript)
+	{
+		bRootComponentDataCached = true;
+		RootComponentData.Transform = RootComponent->ComponentToWorld;
+
+		if (RootComponent->AttachParent)
+		{
+			RootComponentData.AttachedParentInfo.Actor = RootComponent->AttachParent->GetOwner();
+			RootComponentData.AttachedParentInfo.SocketName = RootComponent->AttachSocketName;
+			RootComponentData.AttachedParentInfo.RelativeTransform = RootComponent->GetRelativeTransform();
+		}
+
+		for (USceneComponent* AttachChild : RootComponent->AttachChildren)
+		{
+			if (AttachChild)
+			{
+				// Save info about actor to reattach
+				FActorRootComponentReconstructionData::FAttachedActorInfo Info;
+				Info.Actor = AttachChild->GetOwner();
+				Info.SocketName = AttachChild->AttachSocketName;
+				Info.RelativeTransform = AttachChild->GetRelativeTransform();
+				RootComponentData.AttachedToInfo.Add(Info);
+			}
+		}
+	}
+	else
+	{
+		bRootComponentDataCached = false;
+	}
+}
+
+bool AActor::FActorTransactionAnnotation::HasInstanceData() const
+{
+	return (bRootComponentDataCached || ComponentInstanceData.HasInstanceData());
+}
+
+TSharedPtr<ITransactionObjectAnnotation> AActor::GetTransactionAnnotation() const
+{
+	TSharedPtr<FActorTransactionAnnotation> TransactionAnnotation = MakeShareable(new FActorTransactionAnnotation(this));
+
+	if (!TransactionAnnotation->HasInstanceData())
+	{
+		// If there is nothing in the annotation don't bother storing it.
+		TransactionAnnotation = NULL;
+	}
+
+	return TransactionAnnotation;
+}
+
+void AActor::PreEditUndo()
+{
+	// Since child actor components will rebuild themselves get rid of the Actor before we make changes
+	TArray<UChildActorComponent*> ChildActorComponents;
+	GetComponents(ChildActorComponents);
+
+	for (UChildActorComponent* ChildActorComponent : ChildActorComponents)
+	{
+		ChildActorComponent->DestroyChildActor();
+	}
+
+	Super::PreEditUndo();
+}
+
 void AActor::PostEditUndo()
 {
 	// Notify LevelBounds actor that level bounding box might be changed
@@ -226,6 +293,19 @@ void AActor::PostEditUndo()
 	}
 
 	Super::PostEditUndo();
+}
+
+void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation)
+{
+	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
+
+	// Notify LevelBounds actor that level bounding box might be changed
+	if (!IsTemplate() && GetLevel()->LevelBoundsActor.IsValid())
+	{
+		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
+	}
+
+	Super::PostEditUndo(TransactionAnnotation);
 }
 
 // @todo: Remove this hack once we have decided on the scaling method to use.
