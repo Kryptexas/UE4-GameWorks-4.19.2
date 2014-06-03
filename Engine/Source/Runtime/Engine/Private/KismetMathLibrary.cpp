@@ -1402,6 +1402,11 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	}
 }
 
+bool UKismetMathLibrary::PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance)
+{
+	return FMath::PointsAreCoplanar(Points, Tolerance);
+}
+
 bool UKismetMathLibrary::LinePlaneIntersection(const FVector& LineStart, const FVector& LineEnd, const FPlane& APlane, float& T, FVector& Intersection)
 {
 	FVector RayDir = LineEnd - LineStart;

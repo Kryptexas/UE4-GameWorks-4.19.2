@@ -1779,6 +1779,30 @@ bool FMath::GetDistanceWithinConeSegment(FVector Point, FVector ConeStartPoint, 
 	return true;
 }
 
+bool FMath::PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance)
+{
+	//less than 4 points = coplanar
+	if (Points.Num() < 4)
+	{
+		return true;
+	}
+
+	//Get the Normal for plane determined by first 3 points
+	const FVector Normal = FVector::CrossProduct(Points[2] - Points[0], Points[1] - Points[0]).SafeNormal();
+
+	const int32 Total = Points.Num();
+	for (int32 v = 3; v < Total; v++)
+	{
+		//Abs of PointPlaneDist, dist should be 0
+		if (FMath::Abs(FVector::PointPlaneDist(Points[v], Points[0], Normal)) > Tolerance)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool FMath::GetDotDistance
 ( 
 			FVector2D	&OutDotDist, 

@@ -819,6 +819,15 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool GetDistanceWithinConeSegment(FVector Point, FVector ConeStartPoint, FVector ConeLine, float RadiusAtStart, float RadiusAtEnd, float &PercentageOut);
 
+	/**
+	 * Determines whether a given set of points are coplanar, with a tolerance. Any three points or less are always coplanar.
+	 *
+	 * @param Points - The set of points to determine coplanarity for.
+	 * @param Tolerance - Larger numbers means more variance is allowed.
+	 *
+	 * @return Whether the points are relatively coplanar, based on the tolerance
+	 */
+	static CORE_API bool PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance = 0.1f);
 
 	// Formatting functions
 

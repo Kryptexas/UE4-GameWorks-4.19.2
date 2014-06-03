@@ -1012,6 +1012,17 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
 
+	/**
+	 * Determines whether a given set of points are coplanar, with a tolerance. Any three points or less are always coplanar.
+	 *
+	 * @param Points - The set of points to determine coplanarity for.
+	 * @param Tolerance - Larger numbers means more variance is allowed.
+	 *
+	 * @return Whether the points are relatively coplanar, based on the tolerance
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Geometry")
+	static bool PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance = 0.1f);
+
 	//
 	// Intersection
 	//
