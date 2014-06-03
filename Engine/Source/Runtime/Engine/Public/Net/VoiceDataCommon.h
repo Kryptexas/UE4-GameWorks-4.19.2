@@ -52,6 +52,9 @@ public:
 	/** @return the sender of this voice packet */
 	virtual TSharedPtr<class FUniqueNetId> GetSender() = 0;
 
+	/** @return true if this packet should be sent reliably */
+	virtual bool IsReliable() OVERRIDE = 0;
+
 	/** 
 	 * Serialize the voice packet data to a buffer 
 	 *

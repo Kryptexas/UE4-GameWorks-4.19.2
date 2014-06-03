@@ -49,6 +49,8 @@ public:
 	/** @return the sender of this voice packet */
 	virtual TSharedPtr<class FUniqueNetId> GetSender() OVERRIDE;
 
+	virtual bool IsReliable() OVERRIDE { return false; }
+
 	/** 
 	 * Serialize the voice packet data to a buffer 
 	 *
