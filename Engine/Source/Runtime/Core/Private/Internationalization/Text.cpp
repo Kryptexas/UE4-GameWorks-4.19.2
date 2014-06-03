@@ -624,8 +624,7 @@ void FText::Rebuild() const
 {
 	if(History.IsValid() && History->IsOutOfDate(Revision))
 	{
-		int32& RevisionNonCast = (int32)Revision;
-		RevisionNonCast = FTextLocalizationManager::Get().GetHeadCultureRevision();
+		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
 		
 		DisplayString.Get() = History->ToText().DisplayString.Get();
 	}

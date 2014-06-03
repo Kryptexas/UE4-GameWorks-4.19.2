@@ -302,7 +302,7 @@ private:
 	int32 Flags;
 
 	/** Revision index of this FText, rebuilds when it is out of sync with the FTextLocalizationManager */
-	int32 Revision;
+	mutable int32 Revision;
 
 	static bool bEnableErrorCheckingResults;
 	static bool bSuppressWarnings;
