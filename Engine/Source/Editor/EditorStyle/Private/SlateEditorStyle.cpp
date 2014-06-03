@@ -1982,6 +1982,23 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "UserFeedback.NegativeIcon", new IMAGE_BRUSH( "UserFeedback/Feedback_Negative", Icon16x16) );
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
+
+#if WITH_EDITOR
+	// Gameplay Tags
+	{
+		Set("GameplayTagTreeView", FTableRowStyle()
+			.SetEvenRowBackgroundBrush(FSlateNoResource())
+			.SetEvenRowBackgroundHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+			.SetOddRowBackgroundBrush(FSlateNoResource())
+			.SetOddRowBackgroundHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+			.SetSelectorFocusedBrush(FSlateNoResource())
+			.SetActiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+			.SetActiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor))
+			.SetInactiveBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+			.SetInactiveHoveredBrush(IMAGE_BRUSH("Common/Selection", Icon8x8, SelectionColor_Inactive))
+			);
+	}
+#endif
 }
 
 void FSlateEditorStyle::FStyle::SetupWindowStyles()
