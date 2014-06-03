@@ -8435,6 +8435,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	}
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
+	
+	// Note that AI system will be created only if ai-system-creation conditions are met
+	WorldContext.World()->CreateAISystem();
 
 	// Initialize gameplay for the level.
 	WorldContext.World()->InitializeActorsForPlay(URL);
