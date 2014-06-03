@@ -602,6 +602,7 @@ public:
 	// NxUserChunkReport interface.
 
 	virtual void	onDamageNotify(const NxApexDamageEventReportData& damageEvent) OVERRIDE;
+	virtual void	onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent) OVERRIDE;
 };
 extern FApexChunkReport GApexChunkReport;
 #endif // #if WITH_APEX

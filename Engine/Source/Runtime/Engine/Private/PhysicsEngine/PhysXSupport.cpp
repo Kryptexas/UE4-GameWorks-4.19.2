@@ -708,8 +708,9 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 		return;
 	}
 
-#if WITH_SUBSTEPPING
+	#if WITH_SUBSTEPPING
 	if (UPhysicsSettings::Get()->bSubstepping)
+
 	{
 		DestructibleComponent->GetWorld()->GetPhysicsScene()->DeferredDestructibleDamageNotify(damageEvent);
 	}
@@ -718,6 +719,11 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 	{
 		DestructibleComponent->OnDamageEvent(damageEvent);
 	}
+}
+
+void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent)
+{
+
 }
 
 ///////// FApexPhysX3Interface //////////////////////////////////
