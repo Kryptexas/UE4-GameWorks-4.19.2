@@ -460,11 +460,12 @@ void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> A
 		UEditorLoadingSavingSettings& Settings = *GetMutableDefault<UEditorLoadingSavingSettings>();
 		Settings.bRestoreOpenAssetTabsOnRestart = bSuppressNotification;
 		Settings.PostEditChange();
-	}
 
-	for( const FString& AssetName : AssetsToOpen )
-	{
-		OpenEditorForAsset(AssetName);
+		// we do this inside the condition so that it can only be done once. 
+		for (const FString& AssetName : AssetsToOpen)
+		{
+			OpenEditorForAsset(AssetName);
+		}
 	}
 }
 
