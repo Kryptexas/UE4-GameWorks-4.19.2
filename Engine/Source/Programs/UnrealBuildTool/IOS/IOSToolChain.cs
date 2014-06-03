@@ -162,11 +162,13 @@ namespace UnrealBuildTool
 
 		static public void AddStubToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
-			if (BuildConfiguration.bCreateStubIPA)
+			// Daniel DON'T INTEGRATE TO MAIN removed this because the stub file isn't needed and causes errors when we try and check for it's existance due to the manifest including it
+			//  	Recommended by peter sauerbrie don't 
+			/*if (BuildConfiguration.bCreateStubIPA)
 			{
 				string StubFile = Path.Combine (Path.GetDirectoryName (Binary.Config.OutputFilePath), Path.GetFileNameWithoutExtension (Binary.Config.OutputFilePath) + ".stub");
 				Manifest.AddFileName (StubFile);
-			}
+			}*/
 		}
 
 		static bool bHasPrinted = false;
