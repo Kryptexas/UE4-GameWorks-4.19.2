@@ -13,6 +13,7 @@ struct ENGINE_API FConvexElement2D
 
 	// Vertices that lie on the convex hull
 	UPROPERTY()
+
 	TArray<FVector2D> VertexData;
 
 	FConvexElement2D()
