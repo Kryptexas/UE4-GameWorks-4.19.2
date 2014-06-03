@@ -2,6 +2,8 @@
 
 #pragma once
 
+//#define DO_LOCAL_TESTING 1
+
 struct FPDBCacheEntry;
 typedef TSharedRef<FPDBCacheEntry> FPDBCacheEntryRef;
 typedef TSharedPtr<FPDBCacheEntry> FPDBCacheEntryPtr;

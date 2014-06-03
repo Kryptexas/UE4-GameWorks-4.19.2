@@ -7,7 +7,12 @@
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
-const TCHAR* GServerIP = TEXT("http://crashreporter.epicgames.com:57005");
+#if	DO_LOCAL_TESTING
+	const TCHAR* GServerIP = TEXT( "http://localhost:57005" );
+#else
+	const TCHAR* GServerIP = TEXT( "http://crashreporter.epicgames.com:57005" );
+#endif // DO_LOCAL_TESTING
+
 // Must match filename specified in RunMinidumpDiagnostics
 const TCHAR* GDiagnosticsFilename = TEXT("Diagnostics.txt");
 FString GCrashUserId;

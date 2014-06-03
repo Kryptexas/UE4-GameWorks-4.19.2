@@ -210,7 +210,6 @@ void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules( FCrashInfo* CrashI
 		const bool bUseNewSetPath = true;
 		if( bUseNewSetPath )
 		{
-//#define DO_LOCAL_TESTING 1
 #if	DO_LOCAL_TESTING
 			const FString RootDir = TEXT( "U:/P4EPIC/UE4-Releases/4.1/" );
 #else
