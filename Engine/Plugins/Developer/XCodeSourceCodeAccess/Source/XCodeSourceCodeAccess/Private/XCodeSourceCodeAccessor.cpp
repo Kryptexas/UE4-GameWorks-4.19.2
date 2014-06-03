@@ -81,12 +81,6 @@ bool FXCodeSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 Lin
 	{
 		ColumnNumber++;
 	}
-
-	if (!FPaths::FileExists(FullPath))
-	{
-		SourceCodeAccessModule.OnOpenFileFailed().Broadcast(FullPath);
-		return false;
-	}
 		 
 	if ( FModuleManager::Get().IsSolutionFilePresent() )
 	{
