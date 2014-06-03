@@ -304,7 +304,7 @@ void ADirectionalLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 void APointLight::SetRadius(float NewRadius)
 {
-	PointLightComponent->SetRadius(NewRadius);
+	PointLightComponent->SetAttenuationRadius(NewRadius);
 }
 
 void APointLight::SetLightFalloffExponent(float NewLightFalloffExponent)

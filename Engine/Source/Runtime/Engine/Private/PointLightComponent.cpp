@@ -126,7 +126,7 @@ FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 	return new FPointLightSceneProxy(this);
 }
 
-void UPointLightComponent::SetRadius(float NewRadius)
+void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 {
 	// Only movable lights can change their radius at runtime
 	if (!(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary))

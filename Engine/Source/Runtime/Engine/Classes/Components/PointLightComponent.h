@@ -58,7 +58,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	struct FLightmassPointLightSettings LightmassSettings;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
-	void SetRadius(float NewRadius);
+	void SetAttenuationRadius(float NewRadius);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
 	void SetLightFalloffExponent(float NewLightFalloffExponent);
