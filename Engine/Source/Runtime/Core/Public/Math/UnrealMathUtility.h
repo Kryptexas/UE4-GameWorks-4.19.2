@@ -127,6 +127,8 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API FVector VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad);
 
+	/** Returns a random point within the passed in bounding box */
+	static CORE_API FVector RandPointInBox(const FBox& Box);
 
 	// Predicates
 

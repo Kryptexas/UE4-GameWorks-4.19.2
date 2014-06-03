@@ -659,6 +659,11 @@ FVector UKismetMathLibrary::RandomUnitVector()
 	return FMath::VRand();
 }
 
+FVector UKismetMathLibrary::RandomPointInBoundingBox(FBox BoundingBox)
+{
+	return FMath::RandPointInBox(BoundingBox);
+}
+
 FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
 {
 	return FMath::VRandCone(ConeDir, ConeHalfAngle);

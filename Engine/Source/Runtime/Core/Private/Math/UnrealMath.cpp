@@ -2207,6 +2207,13 @@ FVector FMath::VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, f
 	}
 }
 
+FVector FMath::RandPointInBox(const FBox& Box)
+{
+	return FVector(	FRandRange(Box.Min.X, Box.Max.X),
+					FRandRange(Box.Min.Y, Box.Max.Y),
+					FRandRange(Box.Min.Z, Box.Max.Z) );
+}
+
 struct FClusterMovedHereToMakeCompile
 {
 	FVector ClusterPosAccum;

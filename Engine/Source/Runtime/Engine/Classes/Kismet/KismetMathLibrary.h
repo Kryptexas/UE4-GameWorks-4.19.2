@@ -470,6 +470,9 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static FVector RandomUnitVector();
 
+	/** Returns a random point within the specified bounding box */
+	UFUNCTION(BlueprintPure, Category = "Math|Random")
+	static FVector RandomPointInBoundingBox(FBox BoundingBox);
 	/* 
 	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
 	 * @param ConeDir	The base "center" direction of the cone.
