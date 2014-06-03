@@ -225,7 +225,7 @@ private:
 	void OnSectionCollisionChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
 	ESlateCheckBoxState::Type IsSectionSelected(int32 SectionIndex) const;
 	void OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
-	void CallPostEditChange();
+	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
 	
 	IStaticMeshEditor& StaticMeshEditor;
 	int32 LODIndex;

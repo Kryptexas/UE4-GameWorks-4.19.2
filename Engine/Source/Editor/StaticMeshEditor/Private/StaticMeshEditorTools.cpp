@@ -803,6 +803,13 @@ void FMeshSectionSettingsLayout::GetMaterials(IMaterialListBuilder& ListBuilder)
 void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
+
+	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
+	UProperty* ChangedProperty = NULL;
+	ChangedProperty = FindField<UProperty>( UStaticMesh::StaticClass(), "Materials" );
+	check(ChangedProperty);
+	StaticMesh.PreEditChange(ChangedProperty);
+	
 	check(StaticMesh.RenderData);
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SlotIndex);
 	if (LODIndex == 0)
@@ -826,7 +833,7 @@ void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMateri
 			StaticMesh.Materials[Info.MaterialIndex] = NewMaterial;
 		}
 	}
-	CallPostEditChange();
+	CallPostEditChange(ChangedProperty);
 }
 
 TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
@@ -952,11 +959,19 @@ void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshSectionSettingsLayout::CallPostEditChange()
+void FMeshSectionSettingsLayout::CallPostEditChange(UProperty* PropertyChanged/*=nullptr*/)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
-	StaticMesh.Modify();
-	StaticMesh.PostEditChange();
+	if( PropertyChanged )
+	{
+		FPropertyChangedEvent PropertyUpdateStruct(PropertyChanged);
+		StaticMesh.PostEditChangeProperty(PropertyUpdateStruct);
+	}
+	else
+	{
+		StaticMesh.Modify();
+		StaticMesh.PostEditChange();
+	}
 	if(StaticMesh.BodySetup)
 	{
 		StaticMesh.BodySetup->CreatePhysicsMeshes();
