@@ -1,16 +1,16 @@
 {
-    "FileVersion" : 3,
+	"FileVersion" : 3,
 	
 	"FriendlyName" : "Script Editor Plugin",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"EngineVersion" : 1579795,
+	"EngineVersion" : "4.2.0",
 	"Description" : "An example of a script plugin for the editor. This can be used as a starting point when creating your own plugin.",
 	"Category" : "Examples",
 	
-    "Modules" :
+	"Modules" :
 	[
 		{
 			"Name" : "ScriptEditorPlugin",

@@ -1,16 +1,16 @@
 {
-    "FileVersion" : 1,
+	"FileVersion" : 3,
 	
 	"FriendlyName" : "Live Editor",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"MinEngineVersion" : 1579795,
+	"EngineVersion" : "4.2.0",
 	"Description" : "Allows just about anything in the Unreal Editor/Engine to be adjusted in real-time with off the shelf MIDI/OCS hardware",
-	"CategoryPath" : "Editor Productivity",
+	"Category" : "Devices.Input",
 	
-    "Modules" :
+	"Modules" :
 	[
 		{
 			"Name" : "LiveEditor",

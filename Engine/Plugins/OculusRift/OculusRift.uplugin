@@ -1,16 +1,16 @@
 {
-    "PluginFileVersion" : 1,
+	"FileVersion" : 3,
 	
 	"FriendlyName" : "Oculus Rift Plugin",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"MinEngineVersion" : 1579795,
+	"EngineVersion" : "4.2.0",
 	"Description" : "Support for the Oculus Rift head mounted display",
-	"CategoryPath" : "Virtual Reality.Head Mounted Displays",
+	"Category" : "Head Mounted Displays.Devices",
 	
-    "Modules" :
+	"Modules" :
 	[
 		{
 			"Name" : "OculusRift",

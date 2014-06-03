@@ -6,7 +6,7 @@
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"EngineVersion" : 1579795,
+	"EngineVersion" : "4.2.0",
 	"Description" : "Provides a visual debugger for the messaging sub-system.",
 	"Category" : "Visual Debugging.Messaging",
 

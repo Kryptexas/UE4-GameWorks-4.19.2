@@ -1,16 +1,16 @@
 {
-    "PluginFileVersion" : 1,
+	"FileVersion" : 3,
 	
 	"FriendlyName" : "CableComponent Plugin",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
 	"CreatedByURL" : "http://epicgames.com",
-	"MinEngineVersion" : 1579795,
+	"EngineVersion" : "4.2.0",
 	"Description" : "A simulated cable component.",
-	"CategoryPath" : "Programming Rendering.Plugins",
+	"Category" : "Rendering.Components",
 	
-    "Modules" :
+	"Modules" :
 	[
 		{
 			"Name" : "CableComponent",
