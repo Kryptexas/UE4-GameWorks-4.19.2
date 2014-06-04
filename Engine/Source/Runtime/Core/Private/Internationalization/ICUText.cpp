@@ -12,13 +12,12 @@
 #include <unicode/msgfmt.h>
 #include "ICUUtilities.h"
 
-FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	FDateTime DateTime(Date.Year, Date.Month, Date.Day);
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
 
@@ -31,18 +30,17 @@ FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type Dat
 	ICUUtilities::Convert(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
-	ResultText.History = MakeShareable(new FTextHistory_AsDate(Date, DateStyle, TargetCulture));
+	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TargetCulture));
 
 	return ResultText;
 }
 
-FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	FDateTime DateTime(1970, 1, 1, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
 
@@ -55,12 +53,12 @@ FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type Tim
 	ICUUtilities::Convert(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
-	ResultText.History = MakeShareable(new FTextHistory_AsTime(Time, TimeStyle, TimeZone, TargetCulture));
+	ResultText.History = MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture));
 
 	return ResultText;
 }
 
-FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTimespan(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));

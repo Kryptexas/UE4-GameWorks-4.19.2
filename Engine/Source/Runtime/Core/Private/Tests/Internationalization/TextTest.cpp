@@ -425,19 +425,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 			FText AsPercentTest1 = FText::AsPercent(0.925);
 			FText AsCurrencyTest1 = FText::AsCurrency(100.25);
 
-			FDateTime::FDate DateInfo;
-			DateInfo.Day = 20;
-			DateInfo.Month = 5;
-			DateInfo.Year = 2080;
-			FText AsDateTest1 = FText::AsDate(DateInfo);
-
-			FDateTime::FTime TimeInfo;
-			TimeInfo.Hour = 8;
-			TimeInfo.Minute = 25;
-			TimeInfo.Second = 44;
-			TimeInfo.Millisecond = 5;
-			FText AsTimeTest1 = FText::AsTime(TimeInfo);
-
 			FDateTime DateTimeInfo(2080, 8, 20, 9, 33, 22);
 			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo);
 
@@ -446,8 +433,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 			ArgsLayer2.Add("OrderedLayer1", FormattedTestOrdered1);
 			ArgsLayer2.Add("FTextNumber", AsNumberTest1);
 			ArgsLayer2.Add("Number", 5010.89221);
-			ArgsLayer2.Add("Date", AsDateTest1);
-			ArgsLayer2.Add("Time", AsTimeTest1);
 			ArgsLayer2.Add("DateTime", AsDateTimeTest1);
 			ArgsLayer2.Add("Percent", AsPercentTest1);
 			ArgsLayer2.Add("Currency", AsCurrencyTest1);
@@ -493,16 +478,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 				if(AsCurrencyTest1.CompareTo(FText::AsCurrency(100.25)) != 0)
 				{
 					AddError( TEXT("AsCurrencyTest1 did not rebuild correctly in French-Canadian") );
-				}
-
-				if(AsDateTest1.CompareTo(FText::AsDate(DateInfo)) != 0)
-				{
-					AddError( TEXT("AsDateTest1 did not rebuild correctly in French-Canadian") );
-				}
-
-				if(AsTimeTest1.CompareTo(FText::AsTime(TimeInfo)) != 0)
-				{
-					AddError( TEXT("AsTimeTest1 did not rebuild correctly in French-Canadian") );
 				}
 
 				if(AsDateTimeTest1.CompareTo(FText::AsDateTime(DateTimeInfo)) != 0)

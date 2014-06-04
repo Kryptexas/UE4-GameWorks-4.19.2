@@ -22,9 +22,7 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	const FDateTime UnixOnes = FDateTime::FromUnixTimestamp(UnixOnesTimestamp);
 	const FDateTime UnixDecimalSequence = FDateTime::FromUnixTimestamp(UnixDecimalSequenceTimestamp);
 
-	const FDateTime::FDate TestDate = { 14, 8, 2013 };
-	const FDateTime::FTime TestTime = { 12, 34, 56, 789 };
-	const FDateTime TestDateTime( TestDate.Year, TestDate.Month, TestDate.Day, TestTime.Hour, TestTime.Minute, TestTime.Second, TestTime.Millisecond );
+	const FDateTime TestDateTime(2013, 8, 14, 12, 34, 56, 789);
 	
 #define TestUnixEquivalent( Desc, A, B ) if( (A).ToUnixTimestamp() != (B) ) AddError(FString::Printf(TEXT("%s - A=%d B=%d"),Desc,(A).ToUnixTimestamp(),(B)));
 
@@ -75,13 +73,13 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	TestSecond( TEXT("Testing Unix Decimal Sequence Second"), UnixDecimalSequence, 30 );
 	TestMillisecond( TEXT("Testing Unix Decimal Sequence Millisecond"), UnixDecimalSequence, 0 );
 
-	TestYear( TEXT("Testing Test Date Time Year"), TestDateTime, TestDate.Year );
-	TestMonth( TEXT("Testing Test Date Time Month"), TestDateTime, TestDate.Month );
-	TestDay( TEXT("Testing Test Date Time Day"), TestDateTime, TestDate.Day );
-	TestHour( TEXT("Testing Test Date Time Hour"), TestDateTime, TestTime.Hour );
-	TestMinute( TEXT("Testing Test Date Time Minute"), TestDateTime, TestTime.Minute );
-	TestSecond( TEXT("Testing Test Date Time Second"), TestDateTime, TestTime.Second );
-	TestMillisecond( TEXT("Testing Test Date Time Millisecond"), TestDateTime, TestTime.Millisecond );
+	TestYear( TEXT("Testing Test Date Time Year"), TestDateTime, 2013 );
+	TestMonth( TEXT("Testing Test Date Time Month"), TestDateTime, 8 );
+	TestDay( TEXT("Testing Test Date Time Day"), TestDateTime, 14 );
+	TestHour( TEXT("Testing Test Date Time Hour"), TestDateTime, 12 );
+	TestMinute( TEXT("Testing Test Date Time Minute"), TestDateTime, 34 );
+	TestSecond( TEXT("Testing Test Date Time Second"), TestDateTime, 56 );
+	TestMillisecond( TEXT("Testing Test Date Time Millisecond"), TestDateTime, 789 );
 
 #undef TestYear
 #undef TestMonth

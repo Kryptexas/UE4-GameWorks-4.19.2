@@ -405,8 +405,8 @@ void FTextHistory_AsCurrency::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsDate
 
-FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime::FDate& InSourceDate, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture)
-	: SourceDate(InSourceDate)
+FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture)
+	: SourceDateTime(InSourceDateTime)
 	, DateStyle(InDateStyle)
 	, TargetCulture(InTargetCulture)
 {
@@ -420,7 +420,7 @@ void FTextHistory_AsDate::Serialize(FArchive& Ar)
 		Ar << HistoryType;
 	}
 
-	Ar << SourceDate;
+	Ar << SourceDateTime;
 
 	int8 DateStyleInt8 = (int8)DateStyle;
 	Ar << DateStyleInt8;
@@ -445,14 +445,14 @@ void FTextHistory_AsDate::Serialize(FArchive& Ar)
 
 FText FTextHistory_AsDate::ToText() const
 {
-	return FText::AsDate(SourceDate, DateStyle, TargetCulture);
+	return FText::AsDate(SourceDateTime, DateStyle, TargetCulture);
 }
 
 ///////////////////////////////////////
 // FTextHistory_AsTime
 
-FTextHistory_AsTime::FTextHistory_AsTime(const FDateTime::FTime& InSourceTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture)
-	: SourceTime(InSourceTime)
+FTextHistory_AsTime::FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture)
+	: SourceDateTime(InSourceDateTime)
 	, TimeStyle(InTimeStyle)
 	, TimeZone(InTimeZone)
 	, TargetCulture(InTargetCulture)
@@ -467,7 +467,7 @@ void FTextHistory_AsTime::Serialize(FArchive& Ar)
 		Ar << HistoryType;
 	}
 
-	Ar << SourceTime;
+	Ar << SourceDateTime;
 
 	int8 TimeStyleInt8 = (int8)TimeStyle;
 	Ar << TimeStyleInt8;
@@ -494,7 +494,7 @@ void FTextHistory_AsTime::Serialize(FArchive& Ar)
 
 FText FTextHistory_AsTime::ToText() const
 {
-	return FText::AsTime(SourceTime, TimeStyle, TimeZone, TargetCulture);
+	return FText::AsTime(SourceDateTime, TimeStyle, TimeZone, TargetCulture);
 }
 
 ///////////////////////////////////////

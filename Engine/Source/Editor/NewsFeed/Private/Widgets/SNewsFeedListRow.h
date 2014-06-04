@@ -97,7 +97,7 @@ public:
 							SNew(STextBlock)
 								.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
-								.Text(FText::AsDate(NewsFeedItem->Issued.ToDate()))
+								.Text(FText::AsDate(NewsFeedItem->Issued))
 						]
 				]
 				

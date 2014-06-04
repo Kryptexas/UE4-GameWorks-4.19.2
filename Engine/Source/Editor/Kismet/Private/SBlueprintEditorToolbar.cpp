@@ -348,7 +348,7 @@ class SBlueprintDiffMenu : public SCompoundWidget
 						FFormatNamedArguments Args;
 						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, I18N.GetInvariantCulture() ) );
 						Args.Add( TEXT("UserName"), FText::FromString( Revision->GetUserName() ) );
-						Args.Add( TEXT("DateTime"), FText::AsDate( Revision->GetDate().ToDate() ) );
+						Args.Add( TEXT("DateTime"), FText::AsDate( Revision->GetDate() ) );
 						Args.Add( TEXT("ChanglistDescription"), FText::FromString( Revision->GetDescription() ) );
 						const FText ToolTip = FText::Format( LOCTEXT("RevisionToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args );
 						

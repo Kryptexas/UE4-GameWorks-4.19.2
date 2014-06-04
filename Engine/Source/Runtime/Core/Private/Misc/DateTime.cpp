@@ -6,24 +6,6 @@
 
 #include "CorePrivate.h"
 
-FArchive& operator<<(FArchive& Ar, FDateTime::FDate& Value)
-{
-	Ar << Value.Day;
-	Ar << Value.Month;
-	Ar << Value.Year;
-
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, FDateTime::FTime& Value)
-{
-	Ar << Value.Hour;
-	Ar << Value.Minute;
-	Ar << Value.Second;
-	Ar << Value.Millisecond;
-
-	return Ar;
-}
 
 /* FDateTime constants
  *****************************************************************************/
@@ -82,6 +64,40 @@ FArchive& operator<<( FArchive& Ar, FDateTime& DateTime )
 /* FDateTime interface
  *****************************************************************************/
 
+void FDateTime::GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const
+{
+	// Based on FORTRAN code in:
+	// Fliegel, H. F. and van Flandern, T. C.,
+	// Communications of the ACM, Vol. 11, No. 10 (October 1968).
+
+	int32 i, j, k, l, n;
+
+	l = FMath::FloorToInt(GetJulianDay() + 0.5) + 68569;
+	n = 4 * l / 146097;
+	l = l - (146097 * n + 3) / 4;
+	i = 4000 * (l + 1) / 1461001;
+	l = l - 1461 * i / 4 + 31;
+	j = 80 * l / 2447;
+	k = l - 2447 * j / 80;
+	l = j / 11;
+	j = j + 2 - 12 * l;
+	i = 100 * (n - 49) + i + l;
+
+	OutYear = i;
+	OutMonth = j;
+	OutDay = k;
+}
+
+
+int32 FDateTime::GetDay( ) const
+{
+	int32 Year, Month, Day;
+	GetDate(Year, Month, Day);
+
+	return Day;
+}
+
+
 EDayOfWeek::Type FDateTime::GetDayOfWeek( ) const
 {
 	// January 1, 0001 was a Monday
@@ -91,12 +107,12 @@ EDayOfWeek::Type FDateTime::GetDayOfWeek( ) const
 
 int32 FDateTime::GetDayOfYear( ) const
 {
-	FDate Date = ToDate();
-	int32 Day = Date.Day;
+	int32 Year, Month, Day;
+	GetDate(Year, Month, Day);
 
-	for (int32 Month = 1; Month < Date.Month; Month++)
+	for (int32 CurrentMonth = 1; CurrentMonth < Month; ++CurrentMonth)
 	{
-		Day += DaysInMonth(Date.Year, Month);
+		Day += DaysInMonth(Year, CurrentMonth);
 	}
 
 	return Day;
@@ -121,32 +137,21 @@ int32 FDateTime::GetHour12( ) const
 }
 
 
-FDateTime::FDate FDateTime::ToDate( ) const
+int32 FDateTime::GetMonth( ) const
 {
-	FDate Result;
+	int32 Year, Month, Day;
+	GetDate(Year, Month, Day);
 
-	// Based on FORTRAN code in:
-	// Fliegel, H. F. and van Flandern, T. C.,
-	// Communications of the ACM, Vol. 11, No. 10 (October 1968).
+	return Month;
+}
 
-	int32 i, j, k, l, n;
 
-	l = FMath::FloorToInt(GetJulianDay() + 0.5) + 68569;
-	n = 4 * l / 146097;
-	l = l - (146097 * n + 3) / 4;
-	i = 4000 * (l + 1) / 1461001;
-	l = l - 1461 * i / 4 + 31;
-	j = 80 * l / 2447;
-	k = l - 2447 * j / 80;
-	l = j / 11;
-	j = j + 2 - 12 * l;
-	i = 100 * (n - 49) + i + l;
+int32 FDateTime::GetYear( ) const
+{
+	int32 Year, Month, Day;
+	GetDate(Year, Month, Day);
 
-	Result.Year = i;
-	Result.Month = j;
-	Result.Day = k;
-
-	return Result;
+	return Year;
 }
 
 
@@ -203,18 +208,6 @@ FString FDateTime::ToString( const TCHAR* Format ) const
 }
 
 
-FDateTime::FTime FDateTime::ToTime( ) const
-{
-	FTime Result;
-
-	Result.Hour = GetHour();
-	Result.Minute = GetMinute();
-	Result.Second = GetSecond();
-	Result.Millisecond = GetMillisecond();
-
-	return Result;
-}
-
 /* FDateTime static interface
  *****************************************************************************/
 
@@ -255,13 +248,12 @@ bool FDateTime::IsLeapYear( int32 Year )
 
 FDateTime FDateTime::Now( )
 {
-	FDate Date;
-	int32 DayOfWeek;
-	FTime Time;
+	int32 Year, Month, Day, DayOfWeek;
+	int32 Hour, Minute, Second, Millisecond;
 
-	FPlatformTime::SystemTime(Date.Year, Date.Month, DayOfWeek, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
+	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Minute, Second, Millisecond);
 
-	return FDateTime(Date.Year, Date.Month, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
+	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
 }
 
 
@@ -428,13 +420,12 @@ bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTim
 
 FDateTime FDateTime::UtcNow( )
 {
-	FDate Date;
-	int32 DayOfWeek;
-	FTime Time;
+	int32 Year, Month, Day, DayOfWeek;
+	int32 Hour, Minute, Second, Millisecond;
 
-	FPlatformTime::UtcTime(Date.Year, Date.Month, DayOfWeek, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
+	FPlatformTime::UtcTime(Year, Month, DayOfWeek, Day, Hour, Minute, Second, Millisecond);
 
-	return FDateTime(Date.Year, Date.Month, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
+	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
 }
 
 

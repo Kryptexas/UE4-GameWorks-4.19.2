@@ -183,7 +183,7 @@ class CORE_API FTextHistory_AsDate : public FTextHistory
 {
 public:
 	FTextHistory_AsDate() {};
-	FTextHistory_AsDate(const FDateTime::FDate& InSourceDate, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture);
+	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText() const OVERRIDE;
@@ -192,7 +192,7 @@ public:
 
 private:
 	/** The source date structure to format */
-	FDateTime::FDate SourceDate;
+	FDateTime SourceDateTime;
 	/** Style to format the date using */
 	EDateTimeStyle::Type DateStyle;
 	/** Culture to format the date in */
@@ -204,7 +204,7 @@ class CORE_API FTextHistory_AsTime : public FTextHistory
 {
 public:
 	FTextHistory_AsTime() {};
-	FTextHistory_AsTime(const FDateTime::FTime& InSourceTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture);
+	FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
 	virtual FText ToText() const OVERRIDE;
@@ -213,7 +213,7 @@ public:
 
 private:
 	/** The source time structure to format */
-	FDateTime::FTime SourceTime;
+	FDateTime SourceDateTime;
 	/** Style to format the time using */
 	EDateTimeStyle::Type TimeStyle;
 	/** Timezone to put the time in */

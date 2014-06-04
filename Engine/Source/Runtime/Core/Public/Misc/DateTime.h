@@ -79,68 +79,14 @@ class FDateTime
 public:
 
 	/**
-	 * Holds the components of a Gregorian date.
-	 */
-	struct FDate
-	{
-		/**
-		 * Holds the date's day.
-		 */
-		int32 Day;
-
-		/**
-		 * Holds the date's month.
-		 */
-		int32 Month;
-
-		/**
-		 * Holds the date's year.
-		 */
-		int32 Year;
-
-		friend FArchive& operator<<(FArchive& Ar, FDate& Value);
-	};
-
-
-	/**
-	 * Holds the components of a time of day.
-	 */
-	struct FTime
-	{
-		/**
-		 * Holds the time of day's hour.
-		 */
-		int32 Hour;
-
-		/**
-		 * Holds the time of day's minute.
-		 */
-		int32 Minute;
-
-		/**
-		 * Holds the time of day's second.
-		 */
-		int32 Second;
-
-		/**
-		 * Holds the time of day's millisecond.
-		 */
-		int32 Millisecond;
-
-		friend FArchive& operator<<(FArchive& Ar, FTime& Value);
-	};
-
-public:
-
-	/**
-	 * Default constructor.
+	 * Default constructor (no initialization).
 	 */
 	FDateTime( ) { }
 
 	/**
 	 * Creates and initializes a new instance with the specified number of ticks.
 	 *
-	 * @param Ticks - The ticks representing the date and time.
+	 * @param Ticks The ticks representing the date and time.
 	 */
 	FDateTime( int64 InTicks )
 		: Ticks(InTicks)
@@ -149,13 +95,13 @@ public:
 	/**
 	 * Creates and initializes a new instance with the specified year, month, day, hour, minute, second and millisecond.
 	 *
-	 * @param Year - The year.
-	 * @param Month - The month.
-	 * @param Day - The day.
-	 * @param Hour - The hour (optional).
-	 * @param Minute - The minute (optional).
-	 * @param Second - The second (optional).
-	 * @param Millisecond - The millisecond (optional).
+	 * @param Year The year.
+	 * @param Month The month.
+	 * @param Day The day.
+	 * @param Hour The hour (optional).
+	 * @param Minute The minute (optional).
+	 * @param Second The second (optional).
+	 * @param Millisecond The millisecond (optional).
 	 */
 	CORE_API FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0 );
 
@@ -177,7 +123,6 @@ public:
 	 * Adds the given time span to this date.
 	 *
 	 * @return This date.
-	 *
 	 * @see FTimespan
 	 */
 	FDateTime& operator+=( const FTimespan& Other )
@@ -191,7 +136,6 @@ public:
 	 * Returns time span between this date and the given date.
 	 *
 	 * @return A time span whose value is the difference of this date and the given date.
-	 *
 	 * @see FTimespan
 	 */
 	FTimespan operator-( const FDateTime& Other ) const
@@ -203,7 +147,6 @@ public:
 	 * Returns result of subtracting the given time span from this date.
 	 *
 	 * @return A date whose value is the difference of this date and the given time span.
-	 *
 	 * @see FTimespan
 	 */
 	FDateTime operator-( const FTimespan& Other ) const
@@ -215,7 +158,6 @@ public:
 	 * Subtracts the given time span from this date.
 	 *
 	 * @return This date.
-	 *
 	 * @see FTimespan
 	 */
 	FDateTime& operator-=( const FTimespan& Other )
@@ -228,8 +170,7 @@ public:
 	/**
 	 * Compares this date with the given date for equality.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if the dates are equal, false otherwise.
 	 */
 	bool operator==( const FDateTime& Other ) const
@@ -240,8 +181,7 @@ public:
 	/**
 	 * Compares this date with the given date for inequality.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if the dates are not equal, false otherwise.
 	 */
 	bool operator!=( const FDateTime& Other ) const
@@ -252,8 +192,7 @@ public:
 	/**
 	 * Checks whether this date is greater than the given date.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if this date is greater, false otherwise.
 	 */
 	bool operator>( const FDateTime& Other ) const
@@ -264,8 +203,7 @@ public:
 	/**
 	 * Checks whether this date is greater than or equal to the date span.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if this date is greater or equal, false otherwise.
 	 */
 	bool operator>=( const FDateTime& Other ) const
@@ -276,8 +214,7 @@ public:
 	/**
 	 * Checks whether this date is less than the given date.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if this date is less, false otherwise.
 	 */
 	bool operator<( const FDateTime& Other ) const
@@ -288,8 +225,7 @@ public:
 	/**
 	 * Checks whether this date is less than or equal to the given date.
 	 *
-	 * @param other - The date to compare with.
-	 *
+	 * @param other The date to compare with.
 	 * @return true if this date is less or equal, false otherwise.
 	 */
 	bool operator<=( const FDateTime& Other ) const
@@ -305,28 +241,34 @@ public:
 	 * The time part is truncated and becomes 00:00:00.000.
 	 *
 	 * @return A FDateTime object containing the date.
-	 *
-	 * @see FTimespan
 	 */
-	FDateTime GetDate( )
+	FDateTime GetDate( ) const
 	{
 		return FDateTime(Ticks - (Ticks % ETimespan::TicksPerDay));
 	}
 
 	/**
+	 * Gets the date components of this date.
+	 *
+	 * @param OutYear Will contain the year.
+	 * @param OutMonth Will contain the number of the month (1-12).
+	 * @param OutDay Will contain the number of the day (1-31).
+	 */
+	CORE_API void GetDate( int32& OutYear, int32& OutMonth, int32& OutDay ) const;
+
+	/**
 	 * Gets this date's day part (1 to 31).
 	 *
 	 * @return Day of the month.
+	 * @see GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
-	int32 GetDay( ) const
-	{
-		return ToDate().Day;
-	}
+	CORE_API int32 GetDay( ) const;
 
 	/**
 	 * Calculates this date's day of the week (Sunday - Saturday).
 	 *
 	 * @return The week day.
+	 * @see GetDayOfYear, GetMonthOfYear, GetTimeOfDay
 	 */
 	CORE_API EDayOfWeek::Type GetDayOfWeek( ) const;
 
@@ -334,6 +276,7 @@ public:
 	 * Gets this date's day of the year.
 	 *
 	 * @return The day of year.
+	 * @see GetDayOfWeek, GetMonthOfYear, GetTimeOfDay
 	 */
 	CORE_API int32 GetDayOfYear( ) const;
 
@@ -341,6 +284,7 @@ public:
 	 * Gets this date's hour part in 24-hour clock format (0 to 23).
 	 *
 	 * @return The hour.
+	 * @see GetDay, GetDayOfWeek, GetDayOfYear, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
 	int32 GetHour( ) const
 	{
@@ -351,6 +295,7 @@ public:
 	 * Gets this date's hour part in 12-hour clock format (1 to 12).
 	 *
 	 * @return The hour in AM/PM format.
+	 * @see GetDay, GetHour, GetMillisecond, GetMinute, GetMonth, GetSecond, GetYear
 	 */
 	CORE_API int32 GetHour12( ) const;
 
@@ -362,8 +307,7 @@ public:
 	 * 1721425.5, which corresponds to Monday, January 1, 0001 in the Gregorian calendar.
 	 *
 	 * @return Julian Day.
-	 *
-	 * @see GetModifiedJulianDay
+	 * @see FromJulianDay, GetModifiedJulianDay
 	 */
 	double GetJulianDay( ) const
 	{
@@ -377,7 +321,6 @@ public:
 	 * November 17, 1858 in the Gregorian calendar.
 	 *
 	 * @return Modified Julian Day
-	 *
 	 * @see GetJulianDay
 	 */
 	double GetModifiedJulianDay( ) const
@@ -389,6 +332,7 @@ public:
 	 * Gets this date's millisecond part (0 to 999).
 	 *
 	 * @return The millisecond.
+	 * @see GetDay, GetHour, GetHour12, GetMinute, GetMonth, GetSecond, GetYear
 	 */
 	int32 GetMillisecond( ) const
 	{
@@ -399,6 +343,7 @@ public:
 	 * Gets this date's minute part (0 to 59).
 	 *
 	 * @return The minute.
+	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMonth, GetSecond, GetYear
 	 */
 	int32 GetMinute( ) const
 	{
@@ -409,16 +354,15 @@ public:
 	 * Gets this date's the month part (1 to 12).
 	 *
 	 * @return The month.
+	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetSecond, GetYear
 	 */
-	int32 GetMonth( ) const
-	{
-		return ToDate().Month;
-	}
+	CORE_API int32 GetMonth( ) const;
 
 	/**
 	 * Gets the date's month of the year (January to December).
 	 *
 	 * @return Month of year.
+	 * @see GetDayOfWeek, GetDayOfYear, GetTimeOfDay
 	 */
 	EMonthOfYear::Type GetMonthOfYear( ) const
 	{
@@ -429,6 +373,7 @@ public:
 	 * Gets this date's second part.
 	 *
 	 * @return The second.
+	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetYear
 	 */
 	int32 GetSecond( ) const
 	{
@@ -449,6 +394,7 @@ public:
 	 * Gets the time elapsed since midnight of this date.
 	 *
 	 * @param Time of day since midnight.
+	 * @see GetDayOfWeek, GetDayOfYear, GetMonthOfYear
 	 */
 	FTimespan GetTimeOfDay( ) const
 	{
@@ -459,16 +405,15 @@ public:
 	 * Gets this date's year part.
 	 *
 	 * @return The year.
+	 * @see GetDay, GetHour, GetHour12, GetMillisecond, GetMinute, GetMonth, GetSecond
 	 */
-	int32 GetYear( ) const
-	{
-		return ToDate().Year;
-	}
+	CORE_API int32 GetYear( ) const;
 
 	/**
 	 * Gets whether this date's time is in the afternoon.
 	 *
 	 * @param true if it is in the afternoon, false otherwise.
+	 * @see IsMorning
 	 */
 	bool IsAfternoon( ) const
 	{
@@ -479,6 +424,7 @@ public:
 	 * Gets whether this date's time is in the morning.
 	 *
 	 * @param true if it is in the morning, false otherwise.
+	 * @see IsAfternoon
 	 */
 	bool IsMorning( ) const
 	{
@@ -486,18 +432,12 @@ public:
 	}
 
 	/**
-	 * Returns this date as a Gregorian date structure.
-	 */
-	CORE_API FDate ToDate( ) const;
-
-	/**
 	 * Returns the ISO-8601 string representation of the FDateTime.
 	 *
 	 * The resulting string assumes that the FDateTime is in UTC.
 	 * 
 	 * @return String representation.
-	 *
-	 * @see FromIso8601
+	 * @see ParseIso8601, ToString
 	 */
 	CORE_API FString ToIso8601( ) const;
 
@@ -508,29 +448,24 @@ public:
 	 *		yyyy.mm.dd-hh.mm.ss
 	 *
 	 * @return String representation.
+	 * @see Parse, ToIso8601
 	 */
 	CORE_API FString ToString( ) const;
 
 	/**
 	 * Returns the string representation of this date.
 	 *
-	 * @param Format - The format of the returned string.
-	 *
+	 * @param Format The format of the returned string.
 	 * @return String representation.
+	 * @see Parse, ToIso8601
 	 */
 	CORE_API FString ToString( const TCHAR* Format ) const;
-
-	/**
-	 * Returns this date's time part as a time of day structure.
-	 *
-	 * @return Time of day.
-	 */
-	CORE_API FTime ToTime( ) const;
 
 	/**
 	 * Returns this date as the number of seconds since the Unix Epoch (January 1st of 1970).
 	 *
 	 * @return Time of day.
+	 * @see FromUnixTimestamp
 	 */
 	CORE_API int32 ToUnixTimestamp( ) const
 	{
@@ -542,28 +477,28 @@ public:
 	/**
 	 * Gets the number of days in the year and month.
 	 *
-	 * @param Year - The year.
-	 * @param Month - The month.
-	 *
+	 * @param Year The year.
+	 * @param Month The month.
 	 * @return The number of days
+	 * @see DaysInYear
 	 */
 	static CORE_API int32 DaysInMonth( int32 Year, int32 Month );
 
 	/**
 	 * Gets the number of days in the given year.
 	 *
-	 * @param Year - The year.
-	 *
+	 * @param Year The year.
 	 * @return The number of days.
+	 * @see DaysInMonth
 	 */
 	static CORE_API int32 DaysInYear( int32 Year );
 
 	/**
 	 * Returns the proleptic Gregorian date for the given Julian Day.
 	 *
-	 * @param JulianDay - The Julian Day.
-	 *
+	 * @param JulianDay The Julian Day.
 	 * @return Gregorian date and time.
+	 * @see GetJulianDay
 	 */
 	static FDateTime FromJulianDay( double JulianDay )
 	{
@@ -573,10 +508,8 @@ public:
 	/**
 	 * Returns the date from Unix time (seconds from midnight 1970-01-01)
 	 *
-	 * @param UnixTime - Unix time (seconds from midnight 1970-01-01)
-	 *
+	 * @param UnixTime Unix time (seconds from midnight 1970-01-01)
 	 * @return Gregorian date and time.
-	 *
 	 * @see ToUnixTimestamp
 	 */
 	static FDateTime FromUnixTimestamp( int32 UnixTime )
@@ -591,8 +524,7 @@ public:
 	 * with the astronomical year. All years divisible by 4, but not divisible by 100 - except if they
 	 * are also divisible by 400 - are leap years.
 	 *
-	 * @param Year - The year to check.
-	 *
+	 * @param Year The year to check.
 	 * @return true if the year is a leap year, false otherwise.
 	 */
 	static CORE_API bool IsLeapYear( int32 Year );
@@ -632,6 +564,7 @@ public:
 	 * Gets the local date and time on this computer.
 	 *
 	 * @return Current date and time.
+	 * @see Today
 	 */
 	static CORE_API FDateTime Now( );
 
@@ -641,9 +574,8 @@ public:
 	 * Currently, the string must be in the format written by either FDateTime.ToString() or
 	 * FTimeStamp.TimestampToFString(). Other formats are not supported at this time.
 	 *
-	 * @param DateTimeString - The string to convert.
-	 * @param OutDateTime - Will contain the parsed date and time.
-	 *
+	 * @param DateTimeString The string to convert.
+	 * @param OutDateTime Will contain the parsed date and time.
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
 	static CORE_API bool Parse( const FString& DateTimeString, FDateTime& OutDateTime );
@@ -653,10 +585,8 @@ public:
 	 * 
 	 * @param DateTimeString The string to be parsed
 	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
-	 *
 	 * @return true if the string was converted successfully, false otherwise.
-	 *
-	 * @see ToIso8601
+	 * @see Parse, ToIso8601
 	 */
 	static CORE_API bool ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime );
 
@@ -666,6 +596,7 @@ public:
 	 * The time component is set to 00:00:00
 	 *
 	 * @return Current date.
+	 * @see Now
 	 */
 	static FDateTime Today( )
 	{
@@ -684,9 +615,8 @@ public:
 	/**
 	 * Serializes the given date and time from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param DateTime - The date and time value to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param DateTime The date and time value to serialize.
 	 * @return The archive.
 	 *
 	 * @todo gmp: Figure out better include order in Core.h so this can be inlined.
@@ -696,8 +626,7 @@ public:
 	/**
 	 * Gets the hash for the specified date and time.
 	 *
-	 * @param DateTime - The date and time to get the hash for.
-	 *
+	 * @param DateTime The date and time to get the hash for.
 	 * @return Hash value.
 	 */
 	friend uint32 GetTypeHash( const FDateTime& DateTime )
@@ -708,25 +637,25 @@ public:
 	/**
 	 * Exports the DateTime value to a string.
 	 *
-	 * @param ValueStr - Will hold the string value.
-	 * @param DefaultValue - The default value.
-	 * @param Parent - Not used.
-	 * @param PortFlags - Not used.
-	 * @param ExportRootScope - Not used.
-	 *
+	 * @param ValueStr Will hold the string value.
+	 * @param DefaultValue The default value.
+	 * @param Parent Not used.
+	 * @param PortFlags Not used.
+	 * @param ExportRootScope Not used.
 	 * @return true on success, false otherwise.
+	 * @see ImportTextItem
 	 */
 	CORE_API bool ExportTextItem( FString& ValueStr, FDateTime const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const;
 
 	/**
 	 * Imports the DateTime value from a text buffer.
 	 *
-	 * @param Buffer - The text buffer to import from.
-	 * @param PortFlags - Not used.
-	 * @param Parent - Not used.
-	 * @param ErrorText - The output device for error logging.
-	 *
+	 * @param Buffer The text buffer to import from.
+	 * @param PortFlags Not used.
+	 * @param Parent Not used.
+	 * @param ErrorText The output device for error logging.
 	 * @return true on success, false otherwise.
+	 * @see ExportTextItem
 	 */
 	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 

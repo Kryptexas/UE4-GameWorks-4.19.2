@@ -163,7 +163,7 @@ void SBuildProgressWidget::SetBuildType(EBuildType InBuildType)
 FText SBuildProgressWidget::BuildElapsedTimeText() const
 {
 	// Display elapsed build time.
-	return FText::AsTime( FDateTime::Now() - BuildStartTime );
+	return FText::AsTimespan( FDateTime::Now() - BuildStartTime );
 }
 
 void SBuildProgressWidget::UpdateTime()
