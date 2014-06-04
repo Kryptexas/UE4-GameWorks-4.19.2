@@ -12,6 +12,8 @@
 
 #include "Slate.h"
 #include "SNotificationList.h"
+#include "Engine/PostProcessVolume.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 

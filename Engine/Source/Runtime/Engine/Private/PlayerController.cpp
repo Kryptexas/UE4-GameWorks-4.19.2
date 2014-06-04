@@ -5,6 +5,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/WorldComposition.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "GameFramework/Character.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
@@ -16,6 +17,8 @@
 #include "Matinee/InterpTrackInstDirector.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/SpectatorPawn.h"
+#include "GameFramework/HUD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 

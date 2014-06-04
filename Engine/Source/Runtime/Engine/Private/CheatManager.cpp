@@ -7,6 +7,7 @@
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLog.h"
+#include "GameFramework/Character.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
