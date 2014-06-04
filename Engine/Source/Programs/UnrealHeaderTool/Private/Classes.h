@@ -108,6 +108,12 @@ private:
 	FClass*     UObjectClass;
 	FClassTree  ClassTree;
 
+	/**
+	* Determines whether the class hierarchy rooted at Suspect is dependent on the hierarchy rooted at Source.
+	* Used by the public overload of IsDependentOn to recursively track dependencies and handle circular references
+	*/
+	bool IsDependentOn(const FClass* Suspect, const FClass* Source, TSet<const FClass*>& VisitedDpendencies) const;
+
 	friend auto begin(const FClasses& Classes) -> decltype(begin(TObjectRange<FClass>())) { return begin(TObjectRange<FClass>()); }
 	friend auto end  (const FClasses& Classes) -> decltype(end  (TObjectRange<FClass>())) { return end  (TObjectRange<FClass>()); }
 };
