@@ -25,43 +25,43 @@ struct FSplineMeshParams
 	GENERATED_USTRUCT_BODY()
 
 	/** Start location of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartPos;
 
 	/** Start tangent of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartTangent;
 
 	/** X and Y scale applied to mesh at start of spline */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D StartScale;
 
 	/** Roll around spline applied at start */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float StartRoll;
 
 	/** Starting offset of the mesh from the spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector2D StartOffset;
 
 	/** End location of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndPos;
 
 	/** End tangent of spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndTangent;
 
 	/** X and Y scale applied to mesh at end of spline */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndScale;
 
 	/** Roll around spline applied at end */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float EndRoll;
 
 	/** Ending offset of the mesh from the spline, in component space */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndOffset;
 
 
@@ -81,29 +81,29 @@ struct FSplineMeshParams
 
 };
 
-UCLASS(MinimalAPI)
-class USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
+UCLASS(ClassGroup=Rendering, hidecategories=(Physics), meta=(BlueprintSpawnableComponent))
+class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Spline that is used to deform mesh */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, meta=(ShowOnlyInnerProperties))
 	struct FSplineMeshParams SplineParams;
 
 	/** Axis (in component space) that is used to determine X axis for co-ordinates along spline */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector SplineXDir;
 
 	/** If true, will use smooth interpolation (ease in/out) for Scale, Roll, and Offset along this section of spline. If false, uses linear */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	uint32 bSmoothInterpRollScale:1;
 
 	/** Chooses the forward axis for the spline mesh orientation */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	TEnumAsByte<ESplineMeshAxis::Type> ForwardAxis;
 
 	// Physics data.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, editinline, Category=Physics)
+	UPROPERTY()
 	class UBodySetup* BodySetup;
 
 #if WITH_EDITORONLY_DATA
@@ -147,6 +147,21 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	virtual bool WantsNegXTriMesh() OVERRIDE { return false; }
 	// End Interface_CollisionDataProvider Interface
 
+	/** Called when spline params are changed, to notify render thread and possibly collision */
+	void MarkSplineParamsDirty();
+
+	UFUNCTION(BlueprintCallable, Category=SplineMesh)
+	void SetStartPosition(FVector StartPos);
+
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetStartTangent(FVector StartTangent);
+
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndPosition(FVector EndPos);
+
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetEndTangent(FVector EndTangent);
+
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();
 #if WITH_EDITOR
@@ -158,7 +173,11 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	 * Calculates the spline transform, including roll, scale, and offset along the spline at a specified distance
 	 * @Note:  This is mirrored to Lightmass::CalcSliceTransform() and LocalVertexShader.usf.  If you update one of these, please update them all! 
 	 */
-	ENGINE_API FTransform CalcSliceTransform(const float DistanceAlong) const;
+	FTransform CalcSliceTransform(const float DistanceAlong) const;
+
+	static const float& GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis);
+	static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis);
+
 };
 
 
