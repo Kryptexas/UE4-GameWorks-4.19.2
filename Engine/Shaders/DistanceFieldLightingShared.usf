@@ -99,9 +99,9 @@ uint4 GetTileHead(uint2 TileCoordinate)
 #if UNPACKED_TILE_HEAD
 	return uint4(
 		TileHeadDataUnpacked[TileIndex * 4 + 0], 
-		min(TileHeadDataUnpacked[TileIndex * 4 + 1], MAX_OBJECTS_PER_TILE), 
-		min(TileHeadDataUnpacked[TileIndex * 4 + 2], MAX_OBJECTS_PER_TILE), 
-		min(TileHeadDataUnpacked[TileIndex * 4 + 3], MAX_OBJECTS_PER_TILE));
+		min(TileHeadDataUnpacked[TileIndex * 4 + 1], (uint)MAX_OBJECTS_PER_TILE),
+		min(TileHeadDataUnpacked[TileIndex * 4 + 2], (uint)MAX_OBJECTS_PER_TILE),
+		min(TileHeadDataUnpacked[TileIndex * 4 + 3], (uint)MAX_OBJECTS_PER_TILE));
 #else
 	return TileHeadData[TileIndex];
 #endif

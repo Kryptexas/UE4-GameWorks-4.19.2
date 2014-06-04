@@ -36,6 +36,7 @@ void ObjectCullVS(
 	Output.ObjectIndex = ObjectIndex;
 } 
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 RWBuffer<uint> RWTileHeadDataUnpacked;
 RWBuffer<uint> RWTileArrayData;
 
@@ -100,6 +101,7 @@ void ObjectCullPS(
 		}
 	}
 }
+#endif
 
 
 float2 UVToTileHead;
@@ -194,6 +196,8 @@ void ComputeDistanceFieldNormalPS(
 	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
 	OutColor = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
 }
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 
 #define THREADS_PER_PIXEL 1
 
@@ -335,6 +339,7 @@ void ComputeDistanceFieldNormalCS(
 		RWDistanceFieldNormal[PixelCoordinate] = OutValue;
 	}
 }
+#endif
 
 // For some reason gives innaccurate results at lower resolutions
 #define USE_SCREENVECTOR_WORLD_POSITION FINAL_INTERPOLATION_PASS
