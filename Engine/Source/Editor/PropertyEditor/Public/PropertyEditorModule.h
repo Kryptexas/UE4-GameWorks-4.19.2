@@ -162,6 +162,9 @@ public:
 	 * @param ClassName	The name of the class that the custom detail layout is for
 	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
 	 */
+	virtual void RegisterCustomClassLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
+
+	DEPRECATED(4.3, "RegisterCustomPropertyLayout is deprecated use RegisterCustomClassLayout instead.")
 	virtual void RegisterCustomPropertyLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 
 	/**
@@ -169,6 +172,9 @@ public:
 	 *
 	 * @param ClassName	The class name with the custom detail layout delegate to remove
 	 */
+	virtual void UnregisterCustomClassLayout( FName ClassName );
+
+	DEPRECATED(4.3, "UnregisterCustomPropertyLayout is deprecated use UnregisterCustomClassLayout instead.")
 	virtual void UnregisterCustomPropertyLayout( FName ClassName );
 
 	/**

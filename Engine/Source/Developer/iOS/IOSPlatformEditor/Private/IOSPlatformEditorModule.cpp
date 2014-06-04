@@ -16,7 +16,7 @@ class FIOSPlatformEditorModule : public IModuleInterface
 	{
 		// Register the settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout(
+		PropertyModule.RegisterCustomClassLayout(
 			"IOSRuntimeSettings",
 			FOnGetDetailCustomizationInstance::CreateStatic(&FIOSTargetSettingsCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();

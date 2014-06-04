@@ -367,26 +367,35 @@ TSharedRef<IPropertyChangeListener> FPropertyEditorModule::CreatePropertyChangeL
 	return MakeShareable( new FPropertyChangeListener );
 }
 
-
-void FPropertyEditorModule::RegisterCustomPropertyLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
+void FPropertyEditorModule::RegisterCustomClassLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
-	if( ClassName != NAME_None )
+	if (ClassName != NAME_None)
 	{
 		FDetailLayoutCallback Callback;
 		Callback.DetailLayoutDelegate = DetailLayoutDelegate;
 		// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
 		Callback.Order = ClassNameToDetailLayoutNameMap.Num();
 
-		ClassNameToDetailLayoutNameMap.Add( ClassName, Callback );
+		ClassNameToDetailLayoutNameMap.Add(ClassName, Callback);
 	}
 }
 
-void FPropertyEditorModule::UnregisterCustomPropertyLayout(FName ClassName)
+void FPropertyEditorModule::RegisterCustomPropertyLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
+{
+	RegisterCustomClassLayout( ClassName, DetailLayoutDelegate );
+}
+
+void FPropertyEditorModule::UnregisterCustomClassLayout( FName ClassName )
 {
 	if (ClassName != NAME_None)
 	{
 		ClassNameToDetailLayoutNameMap.Remove(ClassName);
 	}
+}
+
+void FPropertyEditorModule::UnregisterCustomPropertyLayout( FName ClassName )
+{
+	UnregisterCustomClassLayout(ClassName);
 }
 
 void FPropertyEditorModule::RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate )

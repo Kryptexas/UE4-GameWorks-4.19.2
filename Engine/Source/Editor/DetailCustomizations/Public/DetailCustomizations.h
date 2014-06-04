@@ -37,7 +37,7 @@ private:
 	 * @param ClassName				The class name to register for property customization
 	 * @param DetailLayoutDelegate	The delegate to call to get the custom detail layout instance
 	 */
-	void RegisterCustomPropertyLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
+	void RegisterCustomClassLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 
 	/**
 	* Registers a custom struct

@@ -51,7 +51,7 @@ void FEnvironmentQueryEditorModule::StartupModule()
 	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvBoolParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvDirection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvDirectionCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvTraceData", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvTraceDataCustomization::MakeInstance ) );
-	PropertyModule.RegisterCustomPropertyLayout( "EnvQueryTest", FOnGetDetailCustomizationInstance::CreateStatic( &FEnvQueryTestDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomClassLayout( "EnvQueryTest", FOnGetDetailCustomizationInstance::CreateStatic( &FEnvQueryTestDetails::MakeInstance ) );
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -92,7 +92,7 @@ void FEnvironmentQueryEditorModule::ShutdownModule()
 		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvDirection" );
 		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvTraceData" );
 
-		PropertyModule.UnregisterCustomPropertyLayout( "EnvQueryTest" );
+		PropertyModule.UnregisterCustomClassLayout( "EnvQueryTest" );
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}
 }
