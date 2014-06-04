@@ -2554,8 +2554,15 @@ private:
 
 protected:
 
-	// @todo gmp: temp hack for Rocket demo
-	void PlayOnLocalPc(FString MapNameOverride=FString(), FString URLParms=FString(), FString CmdLineParms=FString(), int32 ResX=0, int32 ResY=0);
+	/**
+	 * Launch a standalone instance on this PC.
+	 *
+	 * @param	MapNameOverride		Map name override
+	 * @param	WindowPos			Postion we want to put the window we create.
+	 * @param	PIENum				PIE instance count
+	 * @param	bIsServer			Is this instance a server.
+	 */
+	void PlayStandaloneLocalPc(FString MapNameOverride = FString(), FIntPoint* WindowPos = NULL, int32 PIENum = 0, bool bIsServer = false);
 
 	void PlayUsingLauncher();
 
