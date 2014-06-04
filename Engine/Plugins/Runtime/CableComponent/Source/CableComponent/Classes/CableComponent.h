@@ -22,7 +22,7 @@ struct FCableParticle
 };
 
 /** Component that allows you to specify custom triangle mesh geometry */
-UCLASS(hidecategories=(Object, LOD, Physics, Collision, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
+UCLASS(hidecategories=(Object, Physics, Collision, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
 class UCableComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()

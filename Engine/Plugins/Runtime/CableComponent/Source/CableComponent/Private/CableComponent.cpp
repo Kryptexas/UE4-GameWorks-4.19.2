@@ -279,6 +279,11 @@ public:
 		Mesh.Type = PT_TriangleList;
 		Mesh.DepthPriorityGroup = SDPG_World;
 		PDI->DrawMesh(Mesh);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Render bounds
+		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
+#endif
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
@@ -538,8 +543,6 @@ FBoxSphereBounds UCableComponent::CalcBounds(const FTransform & LocalToWorld) co
 	}
 
 	// Expand by cable width
-	CableBox.ExpandBy(CableWidth);
-
-	return FBoxSphereBounds(CableBox);
+	return FBoxSphereBounds(CableBox.ExpandBy(CableWidth));
 }
 
