@@ -3369,6 +3369,9 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3402,6 +3405,9 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3455,6 +3461,9 @@ bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Tes
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3483,6 +3492,9 @@ bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Tes
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3536,6 +3548,9 @@ bool GameplayEffectsTest_StackingUnlimited(UWorld *World, FAutomationTestBase * 
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -3552,6 +3567,9 @@ bool GameplayEffectsTest_StackingUnlimited(UWorld *World, FAutomationTestBase * 
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3605,6 +3623,9 @@ bool GameplayEffectsTest_StackingRemoval(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -3621,6 +3642,9 @@ bool GameplayEffectsTest_StackingRemoval(UWorld *World, FAutomationTestBase * Te
 		BaseStackedEffect->Duration.Value = 1.f;// UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3681,6 +3705,9 @@ bool GameplayEffectsTest_StackingNoStack(UWorld *World, FAutomationTestBase * Te
 		UnstackableEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		UnstackableEffect->Period.Value = 1.f;
 		UnstackableEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		UnstackableEffect->StackedAttribName = FName(*NoStackProperty->GetName());
+
+		UnstackableEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(UnstackableEffect, DestComponent);
 	}
@@ -3697,6 +3724,9 @@ bool GameplayEffectsTest_StackingNoStack(UWorld *World, FAutomationTestBase * Te
 		UnstackableEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		UnstackableEffect->Period.Value = 1.f;
 		UnstackableEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		UnstackableEffect->StackedAttribName = FName(*NoStackProperty->GetName());
+
+		UnstackableEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(UnstackableEffect, DestComponent);
 
@@ -3752,6 +3782,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -3770,6 +3803,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -3788,6 +3824,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3818,6 +3857,9 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3891,6 +3933,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3921,6 +3966,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3951,6 +3999,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -3981,6 +4032,9 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4034,6 +4088,9 @@ bool GameplayEffectsTest_StackingDifferentRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4050,6 +4107,9 @@ bool GameplayEffectsTest_StackingDifferentRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4104,6 +4164,9 @@ bool GameplayEffectsTest_StackingDifferentAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty1->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4120,6 +4183,9 @@ bool GameplayEffectsTest_StackingDifferentAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty2->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4178,6 +4244,9 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4196,6 +4265,9 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4214,6 +4286,9 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4270,6 +4345,9 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty1->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4288,6 +4366,9 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty1->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4306,6 +4387,9 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
 		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty2->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4382,6 +4466,9 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 		BaseStackedEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4398,6 +4485,9 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 
@@ -4460,6 +4550,9 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
 		BaseStackedEffect->GameplayEffectTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Stack"))));
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 	}
@@ -4476,6 +4569,9 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		BaseStackedEffect->Period.Value = 1.f;
 		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->StackedAttribName = FName(*StackingProperty->GetName());
+
+		BaseStackedEffect->ValidateGameplayEffect();
 
 		SourceComponent->ApplyGameplayEffectToTarget(BaseStackedEffect, DestComponent);
 

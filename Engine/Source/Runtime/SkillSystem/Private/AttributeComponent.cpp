@@ -273,7 +273,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
 			// recalculating stacking needs to come before creating the new effect
-			if (Spec.StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
+			if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
 			{
 				ActiveGameplayEffects.StacksNeedToRecalculate();
 			}

@@ -413,10 +413,7 @@ public:
 	/** Get the "clear tags" for the effect */
 	virtual void GetClearGameplayTags(FGameplayTagContainer& TagContainer) const;
 
-	void ValidateGameplayEffect()
-	{
-		// Instant modifiers cannot have incoming/outgoing combat effect modifiers
-	}
+	void ValidateGameplayEffect();
 
 	/** Container of "owned" gameplay tags that are applied to actor with this effect applied to them */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
@@ -431,6 +428,8 @@ public:
 	{
 		return false;
 	}
+
+	virtual void PostLoad() OVERRIDE;
 
 	// -----------------------------------------------
 	
@@ -451,8 +450,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
 	TEnumAsByte<EGameplayEffectStackingPolicy::Type>	StackingPolicy;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
+	FName StackedAttribName;
+
 	UPROPERTY(EditDefaultsOnly, Category = Stacking)
 	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
+
+protected:
+	void ValidateStacking();
 };
 
 /**
@@ -1138,7 +1143,7 @@ struct FGameplayEffectSpec
 		: ModifierLevel( TSharedPtr< FGameplayEffectLevelSpec >( new FGameplayEffectLevelSpec() ) )
 		, Duration(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Duration"))))
 		, Period(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Period"))))
-		, StackedAttribName(NAME_None)
+		, bTopOfStack(false)
 	{
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
@@ -1177,9 +1182,9 @@ struct FGameplayEffectSpec
 	UPROPERTY()
 	FAggregatorRef	ChanceToExecuteOnGameplayEffect;
 
-	// How this combines with other gameplay effects
-	EGameplayEffectStackingPolicy::Type StackingPolicy;
-	FName StackedAttribName;
+	// This should only be true if this is a stacking effect and at the top of its stack
+	UPROPERTY()
+	bool bTopOfStack;
 
 	// The spec needs to own these FModifierSpecs so that other people can keep TSharedPtr to it.
 	// The stuff in this array is OWNED by this spec

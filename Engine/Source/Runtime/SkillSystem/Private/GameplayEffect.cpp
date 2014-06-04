@@ -27,6 +27,8 @@ UGameplayEffect::UGameplayEffect(const class FPostConstructInitializeProperties&
 {
 	ChanceToApplyToTarget.SetValue(1.f);
 	ChanceToExecuteOnGameplayEffect.SetValue(1.f);
+	StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+	StackedAttribName = NAME_None;
 }
 
 void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
@@ -44,6 +46,77 @@ bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const FGameplayTagC
 	return (InstigatorTags.MatchesAll(ApplicationRequiredInstigatorTags, true) && TargetTags.MatchesAll(ApplicationRequiredTargetTags, true));
 }
 
+void UGameplayEffect::PostLoad()
+{
+	Super::PostLoad();
+
+	ValidateGameplayEffect();
+}
+
+void UGameplayEffect::ValidateGameplayEffect()
+{
+	ValidateStacking();
+
+	// todo: add a check here for instant effects that modify incoming/outgoing GEs
+}
+
+void UGameplayEffect::ValidateStacking()
+{
+	if (StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
+	{
+		StackingPolicy = StackingPolicy;
+
+		if (StackedAttribName == NAME_None)
+		{
+			SKILL_LOG(Warning, TEXT("%s has a stacking rule but does not have an attribute to apply it to. Removing stacking rule."), *GetPathName());
+			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+		}
+
+		UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
+
+		if (DataTable && DataTable->RowMap.Contains(StackedAttribName))
+		{
+			FAttributeMetaData* Row = (FAttributeMetaData*)DataTable->RowMap[StackedAttribName];
+			if (Row && Row->bCanStack == false)
+			{
+				SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s is not allowed to stack. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
+				StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+			}
+		}
+		else
+		{
+			SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s was not found in the global attribute data table. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
+			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+		}
+
+		if (Modifiers.Num() == 0)
+		{
+			SKILL_LOG(Warning, TEXT("%s has a stacking rule but does not have any modifiers to apply it to. Removing stacking rule."), *GetPathName());
+			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+		}
+		else
+		{
+			// look for modifiers to attributes that are not the stacking attribute and warn that they may not apply in a predictable fashion
+			for (int32 Idx = 0; Idx < Modifiers.Num(); ++Idx)
+			{
+				if (Modifiers[Idx].ModifierType == EGameplayMod::Attribute)
+				{
+					FName AttributeName(*Modifiers[Idx].Attribute.GetName());
+
+					if (AttributeName != StackedAttribName)
+					{
+						SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of the modifiers modifies attribute %s. Changes to %s may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString(), *AttributeName.ToString(), *AttributeName.ToString());
+					}
+				}
+				else if (Modifiers[Idx].ModifierType == EGameplayMod::ActiveGE || Modifiers[Idx].ModifierType == EGameplayMod::IncomingGE || Modifiers[Idx].ModifierType == EGameplayMod::OutgoingGE)
+				{
+					SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of its modifiers modifies gameplay effects. Changes to other gameplay effects may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString());
+				}
+			}
+		}
+	}
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	FGameplayEffectSpec
@@ -57,92 +130,11 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor * 
 , Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
 , ChanceToApplyToTarget(new FAggregator(InDef->ChanceToApplyToTarget.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToApplyToTarget"), *InDef->GetName())))
 , ChanceToExecuteOnGameplayEffect(new FAggregator(InDef->ChanceToExecuteOnGameplayEffect.MakeFinalizedCopy(CurveData), ModifierLevel, SKILL_AGG_DEBUG(TEXT("%s ChanceToExecuteOnGameplayEffect"), *InDef->GetName())))
-, StackingPolicy(EGameplayEffectStackingPolicy::Unlimited)
-, StackedAttribName(NAME_None)
 {
 	Duration.Get()->RegisterLevelDependancies();
 	Period.Get()->RegisterLevelDependancies();
 	ChanceToApplyToTarget.Get()->RegisterLevelDependancies();
 	ChanceToExecuteOnGameplayEffect.Get()->RegisterLevelDependancies();
-
-	// check the stacking policy for this gameplay effect and warn if it's set up badly
-	// FIXME: this check should be done in the UGameplayEffect PostEdit or PostLoad - not in the spec startup
-	if (Def->StackingPolicy != EGameplayEffectStackingPolicy::Unlimited)
-	{
-		StackingPolicy = Def->StackingPolicy;
-
-		if (Def->Modifiers.Num() < 1)
-		{
-			SKILL_LOG(Warning, TEXT("%s has a stacking rule but does not have any modifiers to apply it to."), *Def->GetPathName());
-			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
-		}
-		else
-		{
-			UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
-
-			if (Def->Modifiers[0].ModifierType != EGameplayMod::Attribute)
-			{
-				SKILL_LOG(Warning, TEXT("%s has a stacking rule but its first modifier does not modify an attribute."), *Def->GetPathName());
-				StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
-			}
-			else
-			{
-				FName AttributeName(*Def->Modifiers[0].Attribute.GetName());
-				
-				if (DataTable && DataTable->RowMap.Contains(AttributeName))
-				{
-					FAttributeMetaData* Row = (FAttributeMetaData*)DataTable->RowMap[AttributeName];
-					if (Row && Row->bCanStack == false)
-					{
-						SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s is not allowed to stack."), *Def->GetPathName(), *Def->Modifiers[0].Attribute.GetName(), *Def->Modifiers[0].Attribute.GetName());
-						StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
-					}
-				}
-				else
-				{
-					SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s was not found in the global attribute data table."), *Def->GetPathName(), *Def->Modifiers[0].Attribute.GetName(), *Def->Modifiers[0].Attribute.GetName());
-					StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
-				}
-			}
-
-			// look for other stacking attributes and warn that they will be ignored
-			for (int32 Idx = 1; Idx < Def->Modifiers.Num(); ++Idx)
-			{
-				if (Def->Modifiers[Idx].ModifierType == EGameplayMod::Attribute)
-				{
-					FName AttributeName(*Def->Modifiers[0].Attribute.GetName());
-
-					if (DataTable && DataTable->RowMap.Contains(AttributeName))
-					{
-						FAttributeMetaData* Row = (FAttributeMetaData*)DataTable->RowMap[AttributeName];
-						if (Row && Row->bCanStack)
-						{
-							SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but %s is not the modified by the first modifier. Stacking is based on the first modifier."), *Def->GetPathName(), *Def->Modifiers[0].Attribute.GetName(), *Def->Modifiers[0].Attribute.GetName());
-						}
-					}
-				}
-			}
-		}
-		
-		UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
-
-		// check for other attributes that may allow stacking and warn that they will be ignored
-		for (int32 Idx = 1; Idx < Def->Modifiers.Num(); ++Idx)
-		{
-			if (Def->Modifiers[Idx].ModifierType == EGameplayMod::Attribute)
-			{
-				FName AttributeName(*Def->Modifiers[Idx].Attribute.GetName());
-				if (DataTable && DataTable->RowMap.Contains(AttributeName))
-				{
-					FAttributeMetaData* Row = (FAttributeMetaData*)DataTable->RowMap[AttributeName];
-					if (Row && Row->bCanStack == true)
-					{
-						SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies more than one stackable attribute. Stacking will  not apply to attribute %s"), *Def->GetPathName(), *Def->Modifiers[Idx].Attribute.GetName());
-					}
-				}
-			}
-		}
-	}
 
 	InitModifiers(CurveData, Instigator, Level);
 
@@ -377,7 +369,7 @@ bool FGameplayEffectSpec::ShouldApplyAsSnapshot(const FModifierQualifier &Qualif
 
 EGameplayEffectStackingPolicy::Type FGameplayEffectSpec::GetStackingType() const
 {
-	return StackingPolicy;
+	return Def->StackingPolicy;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1230,11 +1222,10 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 	bool InvokeGameplayCueExecute = false;
 
 	// check if this is a stacking effect and if it is the active stacking effect.
-	// todo: move this into the loop if we end up applying stacking to different modifiers on the same effect
 	if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
 	{
 		// we're a stacking attribute but not active
-		if (Spec.StackedAttribName == NAME_None)
+		if (Spec.bTopOfStack == false)
 		{
 			return;
 		}
@@ -1475,7 +1466,7 @@ bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffe
 		{
 			// stacking effects may return false
 			if (Effect.Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited &&
-				Effect.Spec.StackedAttribName == NAME_None)
+				Effect.Spec.bTopOfStack == false)
 			{
 				return false;
 			}
@@ -1740,7 +1731,7 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 		{
 			if (Effect.Spec.Def->Modifiers.Num() > 0)
 			{
-				Effect.Spec.StackedAttribName = NAME_None;
+				Effect.Spec.bTopOfStack = false;
 				bool bFoundStack = false;
 
 				// group all of the custom stacking effects and deal with them after
@@ -1825,7 +1816,7 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 	// we've found all of the best stacking effects, mark them so that they updated properly
 	for (FActiveGameplayEffect* const StackedEffect : StackedEffects)
 	{
-		StackedEffect->Spec.StackedAttribName = FName(*StackedEffect->Spec.Def->Modifiers[0].Attribute.GetName());
+		StackedEffect->Spec.bTopOfStack = true;
 	}
 }
 
