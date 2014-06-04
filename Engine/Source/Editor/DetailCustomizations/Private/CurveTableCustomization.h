@@ -5,16 +5,16 @@
 /**
  * Customizes a DataTable asset to use a dropdown
  */
-class FCurveTableCustomizationLayout : public IStructCustomization
+class FCurveTableCustomizationLayout : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance() 
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
 		return MakeShareable( new FCurveTableCustomizationLayout );
 	}
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE
 	{
 		this->StructPropertyHandle = InStructPropertyHandle;
 
@@ -25,7 +25,7 @@ public:
 			];
 	}
 
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE
 	{
 		/** Get all the existing property handles */
 		CurveTablePropertyHandle = InStructPropertyHandle->GetChildHandle( "CurveTable" );

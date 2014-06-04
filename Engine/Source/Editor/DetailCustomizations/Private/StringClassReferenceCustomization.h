@@ -5,17 +5,17 @@
 /**
  * Customizes a string class reference to look like a UClass property
  */
-class FStringClassReferenceCustomization : public IStructCustomization
+class FStringClassReferenceCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance() 
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
 		return MakeShareable(new FStringClassReferenceCustomization);
 	}
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
-	virtual void CustomizeStructChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
 
 private:
 	/** @return The class currently set on this reference */

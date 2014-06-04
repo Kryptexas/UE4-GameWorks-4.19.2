@@ -6,13 +6,13 @@
 
 #define LOCTEXT_NAMESPACE "EnvTraceDataCustomization"
 
-TSharedRef<IStructCustomization> FEnvTraceDataCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FEnvTraceDataCustomization::MakeInstance()
 {
 	return MakeShareable( new FEnvTraceDataCustomization );
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FEnvTraceDataCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvTraceDataCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow.NameContent()
 	[
@@ -31,7 +31,7 @@ void FEnvTraceDataCustomization::CustomizeStructHeader( TSharedRef<class IProper
 	CacheTraceModes(StructPropertyHandle);
 }
 
-void FEnvTraceDataCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	if (TraceModes.Num() > 1)
 	{

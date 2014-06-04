@@ -10,23 +10,23 @@
  * Implements a details panel customization for FKey structures.
  */
 class FKeyStructCustomization
-	: public IStructCustomization
+	: public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IStructCustomization interface
+	// Begin IPropertyTypeCustomization interface
 
-	virtual void CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
-	virtual void CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE {};
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE {};
 
-	// End IStructCustomization interface
+	// End IPropertyTypeCustomization interface
 
 	/**
 	 * Creates a new instance.
 	 *
 	 * @return A new struct customization for Keys.
 	 */
-	static TSharedRef<IStructCustomization> MakeInstance( );
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 
 private:
 

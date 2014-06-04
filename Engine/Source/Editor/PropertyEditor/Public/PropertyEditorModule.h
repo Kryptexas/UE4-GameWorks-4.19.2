@@ -212,10 +212,13 @@ class IPropertyTypeIdentifier
 public:
 	virtual ~IPropertyTypeIdentifier() {}
 
-	virtual bool IsPropertyTypeCustomized( const UProperty& InProperty ) const = 0;
+	/**
+	 * Called to identify if a property type is customized
+	 * 
+	 * @param IPropertyHandle	Handle to the property being tested
+	 */
+	virtual bool IsPropertyTypeCustomized( const IPropertyHandle& PropertyHandle ) const = 0;
 };
-
-
 
 /**
  * Callback executed to query the custom layout of details
@@ -240,7 +243,7 @@ struct FPropertyTypeLayoutCallback
 
 	TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
 	{
-		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : static_cast<TSharedRef<IPropertyTypeCustomization>>(DeprecatedLayoutDelegate.Execute());
+		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : StaticCastSharedRef<IPropertyTypeCustomization>(DeprecatedLayoutDelegate.Execute());
 	}
 };
 
@@ -257,7 +260,7 @@ struct FPropertyTypeLayoutCallbackList
 	
 	void Remove( const TSharedPtr<IPropertyTypeIdentifier>& InIdentifier );
 
-	const FPropertyTypeLayoutCallback& Find( const UProperty& Property );
+	const FPropertyTypeLayoutCallback& Find( const IPropertyHandle& PropertyHandle );
 };
 
 typedef TMap< TWeakObjectPtr<UStruct>, FDetailLayoutCallback > FCustomDetailLayoutMap;
@@ -347,6 +350,7 @@ public:
 	 * @param Class	The class the custom detail layout is for
 	 * @param StructLayoutDelegate	The delegate to call when querying for custom detail layouts for the struct properties
 	 */
+	DEPRECATED(4.3, "RegisterCustomPropertyTypeLayout is deprecated.  Use RegisterCustomPropertyTypeLayout instead.")
 	virtual void RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 
 	/**
@@ -354,6 +358,7 @@ public:
 	 *
 	 * @param StructTypeName	The structure with the custom detail layout delegate to remove
 	 */
+	DEPRECATED(4.3, "UnregisterStructPropertyLayout is deprecated.  Use UnregisterCustomPropertyTypeLayout instead.")
 	virtual void UnregisterStructPropertyLayout( FName StructTypeName );
 
 	/**
@@ -422,7 +427,7 @@ public:
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< UObject* >& ObjectsToEdit );
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< TWeakObjectPtr< UObject > >& ObjectsToEdit );
 
-	FPropertyTypeLayoutCallback GetPropertyTypeCustomization(const UProperty* InProperty);
+	FPropertyTypeLayoutCallback GetPropertyTypeCustomization(const UProperty* InProperty,const IPropertyHandle& PropertyHandle);
 	bool IsCustomizedStruct(const UStruct* Struct) const;
 
 private:

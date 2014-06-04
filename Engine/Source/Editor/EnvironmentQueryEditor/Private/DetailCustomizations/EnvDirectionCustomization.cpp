@@ -6,12 +6,12 @@
 
 #define LOCTEXT_NAMESPACE "FEnvQueryCustomization"
 
-TSharedRef<IStructCustomization> FEnvDirectionCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FEnvDirectionCustomization::MakeInstance( )
 {
 	return MakeShareable(new FEnvDirectionCustomization);
 }
 
-void FEnvDirectionCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvDirectionCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	// create struct header
 	HeaderRow.NameContent()
@@ -36,7 +36,7 @@ void FEnvDirectionCustomization::CustomizeStructHeader( TSharedRef<class IProper
 	OnModeChanged();
 }
 
-void FEnvDirectionCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvDirectionCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	StructBuilder.AddChildProperty(ModeProp.ToSharedRef());
 

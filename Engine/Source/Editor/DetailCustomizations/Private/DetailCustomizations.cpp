@@ -124,47 +124,47 @@ void FDetailCustomizationsModule::ShutdownModule()
 void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 {
 	// Structs
-	RegisterStructPropertyLayout("StringAssetReference", FOnGetStructCustomizationInstance::CreateStatic(&FStringAssetReferenceCustomization::MakeInstance));
-	RegisterStructPropertyLayout("StringClassReference", FOnGetStructCustomizationInstance::CreateStatic(&FStringClassReferenceCustomization::MakeInstance));
-	RegisterStructPropertyLayout("DataTableRowHandle", FOnGetStructCustomizationInstance::CreateStatic(&FDataTableCustomizationLayout::MakeInstance));
-	RegisterStructPropertyLayout("DataTableCategoryHandle", FOnGetStructCustomizationInstance::CreateStatic(&FDataTableCategoryCustomizationLayout::MakeInstance));
-	RegisterStructPropertyLayout("CurveTableRowHandle", FOnGetStructCustomizationInstance::CreateStatic(&FCurveTableCustomizationLayout::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Vector, FOnGetStructCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Vector4, FOnGetStructCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Vector2D, FOnGetStructCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_IntPoint, FOnGetStructCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Rotator, FOnGetStructCustomizationInstance::CreateStatic(&FRotatorStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_LinearColor, FOnGetStructCustomizationInstance::CreateStatic(&FColorStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Color, FOnGetStructCustomizationInstance::CreateStatic(&FColorStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Matrix, FOnGetStructCustomizationInstance::CreateStatic(&FMatrixStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout(NAME_Transform, FOnGetStructCustomizationInstance::CreateStatic(&FTransformStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("SlateColor", FOnGetStructCustomizationInstance::CreateStatic(&FSlateColorCustomization::MakeInstance));
-	RegisterStructPropertyLayout("AttenuationSettings", FOnGetStructCustomizationInstance::CreateStatic(&FAttenuationSettingsCustomization::MakeInstance));
-	RegisterStructPropertyLayout("DialogueContext", FOnGetStructCustomizationInstance::CreateStatic(&FDialogueContextStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("DialogueWaveParameter", FOnGetStructCustomizationInstance::CreateStatic(&FDialogueWaveParameterStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("BodyInstance", FOnGetStructCustomizationInstance::CreateStatic(&FBodyInstanceCustomization::MakeInstance));
-	RegisterStructPropertyLayout("VehicleTransmissionData", FOnGetStructCustomizationInstance::CreateStatic(&FVehicleTransmissionDataCustomization::MakeInstance));
-	RegisterStructPropertyLayout("SlateBrush", FOnGetStructCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("SlateSound", FOnGetStructCustomizationInstance::CreateStatic(&FSlateSoundStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("Guid", FOnGetStructCustomizationInstance::CreateStatic(&FGuidStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("Key", FOnGetStructCustomizationInstance::CreateStatic(&FKeyStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("FloatRange", FOnGetStructCustomizationInstance::CreateStatic(&FRangeStructCustomization<float>::MakeInstance));
-	RegisterStructPropertyLayout("Int32Range", FOnGetStructCustomizationInstance::CreateStatic(&FRangeStructCustomization<int32>::MakeInstance));
+	RegisterCustomPropertyTypeLayout("StringAssetReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringAssetReferenceCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("StringClassReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStringClassReferenceCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("DataTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCustomizationLayout::MakeInstance));
+	RegisterCustomPropertyTypeLayout("DataTableCategoryHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDataTableCategoryCustomizationLayout::MakeInstance));
+	RegisterCustomPropertyTypeLayout("CurveTableRowHandle", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCurveTableCustomizationLayout::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Vector, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Vector4, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Vector2D, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_IntPoint, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Rotator, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FRotatorStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_LinearColor, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FColorStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Color, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FColorStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Matrix, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMatrixStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout(NAME_Transform, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTransformStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SlateColor", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateColorCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("AttenuationSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAttenuationSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("DialogueContext", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDialogueContextStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("DialogueWaveParameter", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDialogueWaveParameterStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("BodyInstance", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FBodyInstanceCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("VehicleTransmissionData", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FVehicleTransmissionDataCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SlateBrush", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateBrushStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("SlateSound", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSlateSoundStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("Guid", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FGuidStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("Key", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FKeyStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("FloatRange", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FRangeStructCustomization<float>::MakeInstance));
+	RegisterCustomPropertyTypeLayout("Int32Range", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FRangeStructCustomization<int32>::MakeInstance));
 
-	RegisterStructPropertyLayout("BlackboardEntry", FOnGetStructCustomizationInstance::CreateStatic(&FBlackboardEntryDetails::MakeInstance));
-	RegisterStructPropertyLayout("RuntimeFloatCurve", FOnGetStructCustomizationInstance::CreateStatic(&FCurveStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("EnvNamedValue", FOnGetStructCustomizationInstance::CreateStatic(&FEnvQueryParamInstanceCustomization::MakeInstance));
-	RegisterStructPropertyLayout("NavigationLink", FOnGetStructCustomizationInstance::CreateStatic(&FNavLinkStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("NavigationSegmentLink", FOnGetStructCustomizationInstance::CreateStatic(&FNavLinkStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("BlackboardEntry", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FBlackboardEntryDetails::MakeInstance));
+	RegisterCustomPropertyTypeLayout("RuntimeFloatCurve", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCurveStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("EnvNamedValue", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FEnvQueryParamInstanceCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("NavigationLink", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FNavLinkStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("NavigationSegmentLink", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FNavLinkStructCustomization::MakeInstance));
 
-	RegisterStructPropertyLayout("Margin", FOnGetStructCustomizationInstance::CreateStatic(&FMarginStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("Margin", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMarginStructCustomization::MakeInstance));
 
-	RegisterStructPropertyLayout("DirectoryPath", FOnGetStructCustomizationInstance::CreateStatic(&FDirectoryPathStructCustomization::MakeInstance));
-	RegisterStructPropertyLayout("FilePath", FOnGetStructCustomizationInstance::CreateStatic(&FFilePathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("DirectoryPath", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FDirectoryPathStructCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("FilePath", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFilePathStructCustomization::MakeInstance));
 
-	RegisterStructPropertyLayout("InputAxisConfigEntry", FOnGetStructCustomizationInstance::CreateStatic(&FInputAxisConfigCustomization::MakeInstance));
-	RegisterStructPropertyLayout("InputActionKeyMapping", FOnGetStructCustomizationInstance::CreateStatic(&FInputActionMappingCustomization::MakeInstance));
-	RegisterStructPropertyLayout("InputAxisKeyMapping", FOnGetStructCustomizationInstance::CreateStatic(&FInputAxisMappingCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("InputAxisConfigEntry", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInputAxisConfigCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("InputActionKeyMapping", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInputActionMappingCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("InputAxisKeyMapping", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInputAxisMappingCustomization::MakeInstance));
 }
 
 void FDetailCustomizationsModule::RegisterObjectCustomizations()
@@ -265,17 +265,4 @@ void FDetailCustomizationsModule::RegisterCustomPropertyTypeLayout(FName Propert
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
 
 	PropertyModule.RegisterCustomPropertyTypeLayout(PropertyTypeName, PropertyTypeLayoutDelegate);
-}
-
-void FDetailCustomizationsModule::RegisterStructPropertyLayout(FName StructPropertyName, FOnGetStructCustomizationInstance StructLayoutDelegate)
-{
-	check(StructPropertyName != NAME_None);
-
-	static FName PropertyEditor("PropertyEditor");
-
-	RegisteredPropertyTypes.Add(StructPropertyName);
-
-	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-
-	PropertyModule.RegisterStructPropertyLayout(StructPropertyName, StructLayoutDelegate);
 }

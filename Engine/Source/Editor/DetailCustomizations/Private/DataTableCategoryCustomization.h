@@ -7,16 +7,16 @@
 /**
  * Customizes a DataTable asset to use a dropdown
  */
-class FDataTableCategoryCustomizationLayout : public IStructCustomization
+class FDataTableCategoryCustomizationLayout : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance() 
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
 		return MakeShareable(new FDataTableCategoryCustomizationLayout);
 	}
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE
 	{
 		this->StructPropertyHandle = InStructPropertyHandle;
 
@@ -27,7 +27,7 @@ public:
 			];
 	}
 
-	virtual void CustomizeStructChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE
 	{
 		/** Get all the existing property handles */
 		DataTablePropertyHandle		= InStructPropertyHandle->GetChildHandle("DataTable");

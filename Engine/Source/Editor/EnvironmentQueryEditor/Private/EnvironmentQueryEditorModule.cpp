@@ -46,11 +46,11 @@ void FEnvironmentQueryEditorModule::StartupModule()
 
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterStructPropertyLayout( "EnvFloatParam", FOnGetStructCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "EnvIntParam", FOnGetStructCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "EnvBoolParam", FOnGetStructCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "EnvDirection", FOnGetStructCustomizationInstance::CreateStatic( &FEnvDirectionCustomization::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "EnvTraceData", FOnGetStructCustomizationInstance::CreateStatic( &FEnvTraceDataCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvFloatParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvIntParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvBoolParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvDirection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvDirectionCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvTraceData", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvTraceDataCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyLayout( "EnvQueryTest", FOnGetDetailCustomizationInstance::CreateStatic( &FEnvQueryTestDetails::MakeInstance ) );
 	PropertyModule.NotifyCustomizationModuleChanged();
 }

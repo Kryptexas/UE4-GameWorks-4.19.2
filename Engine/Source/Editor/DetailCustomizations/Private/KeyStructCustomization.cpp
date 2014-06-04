@@ -14,16 +14,16 @@
 /* FKeyStructCustomization static interface
  *****************************************************************************/
 
-TSharedRef<IStructCustomization> FKeyStructCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FKeyStructCustomization::MakeInstance( )
 {
 	return MakeShareable(new FKeyStructCustomization);
 }
 
 
-/* IStructCustomization interface
+/* IPropertyTypeCustomization interface
  *****************************************************************************/
 
-void FKeyStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FKeyStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 

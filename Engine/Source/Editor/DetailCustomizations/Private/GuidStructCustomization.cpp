@@ -14,16 +14,16 @@
 /* FGuidStructCustomization static interface
  *****************************************************************************/
 
-TSharedRef<IStructCustomization> FGuidStructCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FGuidStructCustomization::MakeInstance( )
 {
 	return MakeShareable(new FGuidStructCustomization);
 }
 
 
-/* IStructCustomization interface
+/* IPropertyTypeCustomization interface
  *****************************************************************************/
 
-void FGuidStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 	InputValid = true;
@@ -90,7 +90,7 @@ void FGuidStructCustomization::CustomizeStructHeader( TSharedRef<class IProperty
 }
 
 
-void FGuidStructCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	// do nothing
 }

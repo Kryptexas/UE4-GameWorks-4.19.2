@@ -8,12 +8,12 @@
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 
-TSharedRef<IStructCustomization> FDialogueContextStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FDialogueContextStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FDialogueContextStructCustomization );
 }
 
-void FDialogueContextStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueContextStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{
@@ -39,7 +39,7 @@ void FDialogueContextStructCustomization::CustomizeStructHeader( TSharedRef<IPro
 	}
 }
 
-void FDialogueContextStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueContextStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{
@@ -1004,16 +1004,16 @@ EVisibility SValidatedDialogueContextHeaderWidget::GetTargetsErrorVisibility() c
 	return TargetsErrorText.IsValid() && TargetsErrorText->HasError() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-TSharedRef<IStructCustomization> FDialogueWaveParameterStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FDialogueWaveParameterStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FDialogueWaveParameterStructCustomization );
 }
 
-void FDialogueWaveParameterStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueWaveParameterStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 }
 
-void FDialogueWaveParameterStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FDialogueWaveParameterStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	if( StructPropertyHandle->IsValidHandle() )
 	{

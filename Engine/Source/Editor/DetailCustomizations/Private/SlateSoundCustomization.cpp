@@ -3,12 +3,12 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateSoundCustomization.h"
 
-TSharedRef<IStructCustomization> FSlateSoundStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FSlateSoundStructCustomization::MakeInstance() 
 {
 	return MakeShareable(new FSlateSoundStructCustomization());
 }
 
-void FSlateSoundStructCustomization::CustomizeStructHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
+void FSlateSoundStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
 {
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty = StructPropertyHandle->GetChildHandle(TEXT("ResourceObject"));
 	check(ResourceObjectProperty.IsValid());
@@ -36,7 +36,7 @@ void FSlateSoundStructCustomization::CustomizeStructHeader(TSharedRef<IPropertyH
 	];
 }
 
-void FSlateSoundStructCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
+void FSlateSoundStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
 {
 }
 

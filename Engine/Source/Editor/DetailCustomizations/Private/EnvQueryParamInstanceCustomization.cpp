@@ -5,12 +5,12 @@
 
 #define LOCTEXT_NAMESPACE "FEnvQueryCustomization"
 
-TSharedRef<IStructCustomization> FEnvQueryParamInstanceCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FEnvQueryParamInstanceCustomization::MakeInstance( )
 {
 	return MakeShareable(new FEnvQueryParamInstanceCustomization);
 }
 
-void FEnvQueryParamInstanceCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamInstanceCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	NameProp = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvNamedValue,ParamName));
 	TypeProp = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FEnvNamedValue,ParamType));
@@ -34,7 +34,7 @@ void FEnvQueryParamInstanceCustomization::CustomizeStructHeader( TSharedRef<clas
 	];
 }
 
-void FEnvQueryParamInstanceCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	StructBuilder.AddChildProperty(NameProp.ToSharedRef());
 	StructBuilder.AddChildProperty(TypeProp.ToSharedRef());

@@ -6,16 +6,16 @@
 //////////////////////////////////////////////////////////////////////////
 // FSpritePolygonCollectionCustomization
 
-TSharedRef<IStructCustomization> FSpritePolygonCollectionCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FSpritePolygonCollectionCustomization::MakeInstance()
 {
 	return MakeShareable(new FSpritePolygonCollectionCustomization);
 }
 
-void FSpritePolygonCollectionCustomization::CustomizeStructHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
+void FSpritePolygonCollectionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
 {
 }
 
-void FSpritePolygonCollectionCustomization::CustomizeStructChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
+void FSpritePolygonCollectionCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
 {
 }
 #if 0

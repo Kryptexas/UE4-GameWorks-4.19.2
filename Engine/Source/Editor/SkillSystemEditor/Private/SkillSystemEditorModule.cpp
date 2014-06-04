@@ -19,8 +19,8 @@ void FSkillSystemEditorModule::StartupModule()
 {
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterStructPropertyLayout( "GameplayAttribute", FOnGetStructCustomizationInstance::CreateStatic( &FAttributePropertyDetails::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "ScalableFloat", FOnGetStructCustomizationInstance::CreateStatic( &FScalableFloatDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayAttribute", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FAttributePropertyDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "ScalableFloat", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FScalableFloatDetails::MakeInstance ) );
 
 	PropertyModule.RegisterCustomPropertyLayout( "AttributeSet", FOnGetDetailCustomizationInstance::CreateStatic( &FAttributeDetails::MakeInstance ) );
 }

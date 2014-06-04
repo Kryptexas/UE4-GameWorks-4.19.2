@@ -17,13 +17,13 @@
 
 DEFINE_LOG_CATEGORY(LogAttributeDetails);
 
-TSharedRef<IStructCustomization> FAttributePropertyDetails::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FAttributePropertyDetails::MakeInstance()
 {
 	return MakeShareable(new FAttributePropertyDetails());
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	MyProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayAttribute,Attribute));
 
@@ -78,7 +78,7 @@ void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandl
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FAttributePropertyDetails::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FAttributePropertyDetails::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 
 
@@ -232,13 +232,13 @@ void FAttributeDetails::OnChangeProperty(TSharedPtr<FString> ItemSelected, ESele
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
 
-TSharedRef<IStructCustomization> FScalableFloatDetails::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FScalableFloatDetails::MakeInstance()
 {
 	return MakeShareable(new FScalableFloatDetails());
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FScalableFloatDetails::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
@@ -471,7 +471,7 @@ bool FScalableFloatDetails::IsEditable( ) const
 	return true;
 }
 
-void FScalableFloatDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FScalableFloatDetails::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	
 }

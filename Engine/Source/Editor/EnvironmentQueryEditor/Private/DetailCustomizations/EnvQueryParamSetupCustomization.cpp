@@ -5,12 +5,12 @@
 
 #define LOCTEXT_NAMESPACE "FEnvQueryCustomization"
 
-TSharedRef<IStructCustomization> FEnvQueryParamSetupCustomization::MakeInstance( )
+TSharedRef<IPropertyTypeCustomization> FEnvQueryParamSetupCustomization::MakeInstance( )
 {
 	return MakeShareable(new FEnvQueryParamSetupCustomization);
 }
 
-void FEnvQueryParamSetupCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamSetupCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 	CacheMyValues();
@@ -69,7 +69,7 @@ void FEnvQueryParamSetupCustomization::CustomizeStructHeader( TSharedRef<class I
 	OnModeChanged();
 }
 
-void FEnvQueryParamSetupCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamSetupCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	// do nothing
 }

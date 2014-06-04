@@ -12,19 +12,19 @@ struct FCollisionChannelInfo
 /**
  * Customizes a DataTable asset to use a dropdown
  */
-class FBodyInstanceCustomization : public IStructCustomization
+class FBodyInstanceCustomization : public IPropertyTypeCustomization
 {
 public:
 	FBodyInstanceCustomization();
 
-	static TSharedRef<IStructCustomization> MakeInstance() 
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
 	{
 		return MakeShareable( new FBodyInstanceCustomization );
 	}
 
-	/** IStructCustomization interface */
-	virtual void CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE {};
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE {};
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
 
 private:
 	// Profile combo related

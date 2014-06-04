@@ -49,16 +49,16 @@ void FPropertyTypeLayoutCallbackList::Remove( const TSharedPtr<IPropertyTypeIden
 	}
 }
 
-const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const UProperty& Property )
+const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const IPropertyHandle& PropertyHandle )
 {
 	if( IdentifierList.Num() > 0 )
 	{
 		FPropertyTypeLayoutCallback* Callback =
 			IdentifierList.FindByPredicate
 			(
-				[&Property]( const FPropertyTypeLayoutCallback& Callback )
+				[&]( const FPropertyTypeLayoutCallback& Callback )
 				{
-					return Callback.PropertyTypeIdentifier->IsPropertyTypeCustomized( Property );
+					return Callback.PropertyTypeIdentifier->IsPropertyTypeCustomized( PropertyHandle );
 				}
 			);
 
@@ -571,7 +571,7 @@ bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct) const
 	return false;
 }
 
-FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(const UProperty* Property)
+FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(const UProperty* Property, const IPropertyHandle& PropertyHandle)
 {
 	if( Property )
 	{
@@ -610,7 +610,7 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 			FPropertyTypeLayoutCallbackList* LayoutCallbacks = PropertyTypeToLayoutMap.Find(PropertyTypeName);
 			if (LayoutCallbacks)
 			{
-				const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(*Property);
+				const FPropertyTypeLayoutCallback& Callback = LayoutCallbacks->Find(PropertyHandle);
 				return Callback;
 			}
 		}

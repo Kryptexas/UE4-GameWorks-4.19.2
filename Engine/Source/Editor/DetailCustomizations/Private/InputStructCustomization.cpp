@@ -10,12 +10,12 @@
 // FInputAxisConfigCustomization //
 ///////////////////////////////////
 
-TSharedRef<IStructCustomization> FInputAxisConfigCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FInputAxisConfigCustomization::MakeInstance() 
 {
 	return MakeShareable( new FInputAxisConfigCustomization );
 }
 
-void FInputAxisConfigCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputAxisConfigCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	FString AxisKeyName;
 	InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisConfigEntry, AxisKeyName))->GetValue(AxisKeyName);
@@ -26,7 +26,7 @@ void FInputAxisConfigCustomization::CustomizeStructHeader( TSharedRef<class IPro
 	];
 }
 
-void FInputAxisConfigCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputAxisConfigCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> AxisProperties = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisConfigEntry, AxisProperties));
 
@@ -43,17 +43,17 @@ void FInputAxisConfigCustomization::CustomizeStructChildren( TSharedRef<class IP
 // FInputActionMappingCustomization //
 //////////////////////////////////////
 
-TSharedRef<IStructCustomization> FInputActionMappingCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FInputActionMappingCustomization::MakeInstance() 
 {
 	return MakeShareable( new FInputActionMappingCustomization );
 }
 
-void FInputActionMappingCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputActionMappingCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	ActionMappingHandle = InStructPropertyHandle;
 }
 
-void FInputActionMappingCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputActionMappingCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> KeyHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, Key));
 	TSharedPtr<IPropertyHandle> ShiftHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, bShift));
@@ -150,17 +150,17 @@ void FInputActionMappingCustomization::RemoveActionMappingButton_OnClick()
 // FInputAxisMappingCustomization //
 //////////////////////////////////////
 
-TSharedRef<IStructCustomization> FInputAxisMappingCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FInputAxisMappingCustomization::MakeInstance() 
 {
 	return MakeShareable( new FInputAxisMappingCustomization );
 }
 
-void FInputAxisMappingCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputAxisMappingCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	AxisMappingHandle = InStructPropertyHandle;
 }
 
-void FInputAxisMappingCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FInputAxisMappingCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> KeyHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisKeyMapping, Key));
 	TSharedPtr<IPropertyHandle> ScaleHandle = InStructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisKeyMapping, Scale));

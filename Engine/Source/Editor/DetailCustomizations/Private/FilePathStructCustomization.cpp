@@ -100,12 +100,12 @@ private:
 	FString FileFilterExtension;
 };
 
-TSharedRef<IStructCustomization> FFilePathStructCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FFilePathStructCustomization::MakeInstance()
 {
 	return MakeShareable(new FFilePathStructCustomization());
 }
 
-void FFilePathStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FFilePathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	const UProperty* Property = StructPropertyHandle->GetProperty();
 	checkSlow(Property);
@@ -140,7 +140,7 @@ TSharedPtr<SWidget> FFilePathStructCustomization::CreatePickerWidget(TSharedRef<
 	return TSharedPtr<SWidget>();
 }
 
-void FFilePathStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FFilePathStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 }
 

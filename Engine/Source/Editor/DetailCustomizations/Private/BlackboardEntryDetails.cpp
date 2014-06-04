@@ -6,13 +6,13 @@
 
 #define LOCTEXT_NAMESPACE "BlackboardEntryDetails"
 
-TSharedRef<IStructCustomization> FBlackboardEntryDetails::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FBlackboardEntryDetails::MakeInstance()
 {
 	return MakeShareable( new FBlackboardEntryDetails );
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FBlackboardEntryDetails::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FBlackboardEntryDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	MyStructProperty = StructPropertyHandle;
 	MyNameProperty = MyStructProperty->GetChildHandle(TEXT("EntryName"));
@@ -32,7 +32,7 @@ void FBlackboardEntryDetails::CustomizeStructHeader( TSharedRef<class IPropertyH
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FBlackboardEntryDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FBlackboardEntryDetails::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	if (StructPropertyHandle->IsValidHandle())
 	{

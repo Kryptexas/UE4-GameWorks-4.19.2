@@ -60,8 +60,8 @@ void FPersonaModule::StartupModule()
 		PropertyModule.RegisterCustomPropertyLayout( "AnimNotifyState", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
 		PropertyModule.RegisterCustomPropertyLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
 
-		PropertyModule.RegisterStructPropertyLayout( "InputScaleBias", FOnGetStructCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
-		PropertyModule.RegisterStructPropertyLayout( "BoneReference", FOnGetStructCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyTypeLayout( "InputScaleBias", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyTypeLayout( "BoneReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );
 	}
 }
 

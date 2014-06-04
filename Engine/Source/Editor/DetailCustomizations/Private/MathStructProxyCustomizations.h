@@ -137,8 +137,8 @@ private:
 class FMathStructProxyCustomization : public FMathStructCustomization
 {
 public:
-	/** IStructCustomization interface */
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
 
 	/** FMathStructCustomization interface */
 	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
@@ -213,7 +213,7 @@ private:
 class FMatrixStructCustomization : public FMathStructProxyCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 public:
 	FMatrixStructCustomization()
@@ -266,7 +266,7 @@ protected:
 class FTransformStructCustomization : public FMatrixStructCustomization
 {
 public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 protected:
 	/** FMathStructProxyCustomization interface */

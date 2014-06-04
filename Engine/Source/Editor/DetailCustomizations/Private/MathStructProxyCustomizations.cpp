@@ -3,7 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "MathStructProxyCustomizations.h"
 
-void FMathStructProxyCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FMathStructProxyCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 
 }
@@ -85,7 +85,7 @@ void FMathStructProxyCustomization::OnEndSliderMovement( NumericType NewValue )
 }
 
 
-TSharedRef<IStructCustomization> FMatrixStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FMatrixStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FMatrixStructCustomization );
 }
@@ -248,7 +248,7 @@ bool FMatrixStructCustomization::FlushValues( TWeakPtr<IPropertyHandle> WeakHand
 	return true;
 }
 
-TSharedRef<IStructCustomization> FTransformStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FTransformStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FTransformStructCustomization );
 }

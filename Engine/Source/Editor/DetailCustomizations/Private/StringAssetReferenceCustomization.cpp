@@ -4,7 +4,7 @@
 #include "StringAssetReferenceCustomization.h"
 #include "AssetData.h"
 
-void FStringAssetReferenceCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FStringAssetReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	StructPropertyHandle = InStructPropertyHandle;
 
@@ -70,7 +70,7 @@ void FStringAssetReferenceCustomization::CustomizeStructHeader( TSharedRef<IProp
 	];
 }
 
-void FStringAssetReferenceCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
+void FStringAssetReferenceCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
 {
 }
 

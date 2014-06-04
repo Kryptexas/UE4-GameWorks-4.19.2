@@ -46,8 +46,6 @@ private:
 	* @param StructLayoutDelegate	The delegate to call to get the custom detail layout instance
 	*/
 	void RegisterCustomPropertyTypeLayout(FName PropertyTypeName, FOnGetPropertyTypeCustomizationInstance PropertyTypeLayoutDelegate );
-
-	void RegisterStructPropertyLayout(FName StructPropertyName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 private:
 	/** List of registered class that we must unregister when the module shuts down */
 	TSet< FName > RegisteredClassNames;

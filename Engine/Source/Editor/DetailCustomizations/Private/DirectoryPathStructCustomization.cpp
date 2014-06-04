@@ -7,12 +7,12 @@
 
 #define LOCTEXT_NAMESPACE "DirectoryPathStructCustomization"
 
-TSharedRef<IStructCustomization> FDirectoryPathStructCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FDirectoryPathStructCustomization::MakeInstance()
 {
 	return MakeShareable(new FDirectoryPathStructCustomization());
 }
 
-void FDirectoryPathStructCustomization::CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FDirectoryPathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> PathProperty = StructPropertyHandle->GetChildHandle("Path");
 
@@ -60,7 +60,7 @@ void FDirectoryPathStructCustomization::CustomizeStructHeader( TSharedRef<IPrope
 	}
 }
 
-void FDirectoryPathStructCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FDirectoryPathStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 }
 

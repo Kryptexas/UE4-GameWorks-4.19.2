@@ -10,20 +10,20 @@
 * Implements a details panel customization for FFloatRange structures.
 */
 template <typename NumericType>
-class FRangeStructCustomization : public IStructCustomization
+class FRangeStructCustomization : public IPropertyTypeCustomization
 {
 public:
 
 	FRangeStructCustomization()
 		: bIsUsingSlider(false) {}
 
-	// Begin IStructCustomization interface
+	// Begin IPropertyTypeCustomization interface
 
-	virtual void CustomizeStructHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
 
-	virtual void CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils) OVERRIDE;
 
-	// End IStructCustomization interface
+	// End IPropertyTypeCustomization interface
 
 public:
 
@@ -32,7 +32,7 @@ public:
 	*
 	* @return A new struct customization for Guids.
 	*/
-	static TSharedRef<IStructCustomization> MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 protected:
 

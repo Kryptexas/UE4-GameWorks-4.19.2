@@ -171,14 +171,14 @@ bool FWorldTileDetailsCustomization::OnShouldFilterParentPackage(const FString& 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // FStreamingLevelDetailsCustomization
-TSharedRef<IStructCustomization> FStreamingLevelDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
+TSharedRef<IPropertyTypeCustomization> FStreamingLevelDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
 {
 	TSharedRef<FStreamingLevelDetailsCustomization> Instance = MakeShareable(new FStreamingLevelDetailsCustomization());
 	Instance->WorldModel = InWorldData;
 	return Instance;
 }
 
-void FStreamingLevelDetailsCustomization::CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
+void FStreamingLevelDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
 																IStructCustomizationUtils& StructCustomizationUtils )
 {
@@ -189,7 +189,7 @@ void FStreamingLevelDetailsCustomization::CustomizeStructHeader(TSharedRef<class
 		];
 }
 
-void FStreamingLevelDetailsCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
+void FStreamingLevelDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
 																	IStructCustomizationUtils& StructCustomizationUtils )
 {
@@ -229,14 +229,14 @@ bool FStreamingLevelDetailsCustomization::OnShouldFilterStreamingPackage(const F
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // FTileLODEntryDetailsCustomization
-TSharedRef<IStructCustomization> FTileLODEntryDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
+TSharedRef<IPropertyTypeCustomization> FTileLODEntryDetailsCustomization::MakeInstance(TSharedRef<FWorldTileCollectionModel> InWorldData) 
 {
 	TSharedRef<FTileLODEntryDetailsCustomization> Instance = MakeShareable(new FTileLODEntryDetailsCustomization());
 	Instance->WorldModel = InWorldData;
 	return Instance;
 }
 
-void FTileLODEntryDetailsCustomization::CustomizeStructHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
+void FTileLODEntryDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
 																IStructCustomizationUtils& StructCustomizationUtils )
 {
@@ -258,7 +258,7 @@ void FTileLODEntryDetailsCustomization::CustomizeStructHeader(TSharedRef<class I
 		];
 }
 
-void FTileLODEntryDetailsCustomization::CustomizeStructChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
+void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
 																	IStructCustomizationUtils& StructCustomizationUtils )
 {

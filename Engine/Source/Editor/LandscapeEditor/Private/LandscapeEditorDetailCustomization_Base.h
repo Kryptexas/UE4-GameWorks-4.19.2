@@ -94,7 +94,7 @@ void FLandscapeEditorDetailCustomization_Base::SetPropertyValue(type NewValue, E
 	ensure(PropertyHandle->SetValue(NewValue) == FPropertyAccess::Success);
 }
 
-class FLandscapeEditorStructCustomization_Base : public IStructCustomization
+class FLandscapeEditorStructCustomization_Base : public IPropertyTypeCustomization
 {
 protected:
 	static class FEdModeLandscape* GetEditorMode();

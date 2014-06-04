@@ -4,16 +4,16 @@
 
 #include "EnvironmentQuery/EnvQueryTypes.h"
 
-class FEnvQueryParamInstanceCustomization : public IStructCustomization
+class FEnvQueryParamInstanceCustomization : public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IStructCustomization interface
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	// End IStructCustomization interface
+	// Begin IPropertyTypeCustomization interface
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	// End IPropertyTypeCustomization interface
 
-	static TSharedRef<IStructCustomization> MakeInstance( );
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 
 protected:
 

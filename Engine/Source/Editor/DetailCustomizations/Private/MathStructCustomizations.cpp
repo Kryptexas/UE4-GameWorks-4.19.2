@@ -6,19 +6,19 @@
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"
 
-TSharedRef<IStructCustomization> FMathStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FMathStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FMathStructCustomization );
 }
 
-void FMathStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FMathStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	GetSortedChildren( StructPropertyHandle, SortedChildHandles );
 
 	MakeHeaderRow( StructPropertyHandle, HeaderRow );
 }
 
-void FMathStructCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FMathStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	for( int32 ChildIndex = 0; ChildIndex < SortedChildHandles.Num(); ++ChildIndex )
 	{
@@ -288,7 +288,7 @@ void FMathStructCustomization::OnEndSliderMovement( NumericType NewValue )
 	GEditor->EndTransaction();
 }
 
-TSharedRef<IStructCustomization> FRotatorStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FRotatorStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FRotatorStructCustomization );
 }
@@ -330,12 +330,12 @@ void FRotatorStructCustomization::GetSortedChildren( TSharedRef<IPropertyHandle>
 }
 
 
-TSharedRef<IStructCustomization> FColorStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FColorStructCustomization::MakeInstance() 
 {
 	return MakeShareable( new FColorStructCustomization );
 }
 
-void FColorStructCustomization::CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& InHeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FColorStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& InHeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<FAssetThumbnailPool> Pool = StructCustomizationUtils.GetThumbnailPool();
 
@@ -344,7 +344,7 @@ void FColorStructCustomization::CustomizeStructHeader( TSharedRef<class IPropert
 	bIsLinearColor = CastChecked<UStructProperty>( StructPropertyHandle->GetProperty() )->Struct->GetFName() == NAME_LinearColor;
 	bIgnoreAlpha = StructPropertyHandle->GetProperty()->HasMetaData(TEXT("HideAlphaChannel"));
 
-	FMathStructCustomization::CustomizeStructHeader( InStructPropertyHandle, InHeaderRow, StructCustomizationUtils );
+	FMathStructCustomization::CustomizeHeader( InStructPropertyHandle, InHeaderRow, StructCustomizationUtils );
 }
 
 void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row )

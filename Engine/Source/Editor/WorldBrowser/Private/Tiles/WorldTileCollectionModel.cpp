@@ -559,12 +559,12 @@ void FWorldTileCollectionModel::RegisterDetailsCustomization(FPropertyEditorModu
 	TSharedRef<FWorldTileCollectionModel> WorldModel = StaticCastSharedRef<FWorldTileCollectionModel>(this->AsShared());
 	
 	// Register our struct customizations
-	InPropertyModule.RegisterStructPropertyLayout("TileStreamingLevelDetails", 
-		FOnGetStructCustomizationInstance::CreateStatic(&FStreamingLevelDetailsCustomization::MakeInstance, WorldModel)
+	InPropertyModule.RegisterCustomPropertyTypeLayout("TileStreamingLevelDetails", 
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FStreamingLevelDetailsCustomization::MakeInstance, WorldModel)
 		);
 
-	InPropertyModule.RegisterStructPropertyLayout("TileLODEntryDetails", 
-		FOnGetStructCustomizationInstance::CreateStatic(&FTileLODEntryDetailsCustomization::MakeInstance,  WorldModel)
+	InPropertyModule.RegisterCustomPropertyTypeLayout("TileLODEntryDetails", 
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FTileLODEntryDetailsCustomization::MakeInstance,  WorldModel)
 		);
 
 	InDetailsView->RegisterInstancedCustomPropertyLayout(UWorldTileDetails::StaticClass(), 

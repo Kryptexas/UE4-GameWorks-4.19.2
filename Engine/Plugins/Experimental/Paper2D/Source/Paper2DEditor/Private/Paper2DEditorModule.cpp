@@ -99,7 +99,7 @@ public:
 			PropertyModule.RegisterCustomPropertyLayout("PaperSprite", FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
 
 			//@TODO: Struct registration should happen using ::StaticStruct, not by string!!!
-			//PropertyModule.RegisterStructPropertyLayout( "SpritePolygonCollection", FOnGetStructCustomizationInstance::CreateStatic( &FSpritePolygonCollectionCustomization::MakeInstance ) );
+			//PropertyModule.RegisterCustomPropertyTypeLayout( "SpritePolygonCollection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FSpritePolygonCollectionCustomization::MakeInstance ) );
 
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
