@@ -1,49 +1,49 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 
-DEFINE_LOG_CATEGORY(LogSkillSystem);
+DEFINE_LOG_CATEGORY(LogAbilitySystem);
 
-SkillSystemLogScope::~SkillSystemLogScope()
+AbilitySystemLogScope::~AbilitySystemLogScope()
 {
-	SkillSystemLog::PopScope();
+	AbilitySystemLog::PopScope();
 }
 
-void SkillSystemLogScope::Init()
+void AbilitySystemLogScope::Init()
 {
 	PrintedInThisScope = false;
-	SkillSystemLog::PushScope(this);
+	AbilitySystemLog::PushScope(this);
 }
 
 // ----------------------------------------------
 
-SkillSystemLog * GetInstance()
+AbilitySystemLog * GetInstance()
 {
-	static SkillSystemLog Instance;
+	static AbilitySystemLog Instance;
 	return &Instance;
 }
 
-FString SkillSystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
+FString AbilitySystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
 {
-	SkillSystemLog * Instance = GetInstance();
+	AbilitySystemLog * Instance = GetInstance();
 
 #if !NO_LOGGING
-	if (!LogSkillSystem.IsSuppressed(Verbosity))
+	if (!LogAbilitySystem.IsSuppressed(Verbosity))
 	{
 		for (int32 idx=0; idx < Instance->ScopeStack.Num(); ++idx)
 		{
-			SkillSystemLogScope *Scope = Instance->ScopeStack[idx];
+			AbilitySystemLogScope *Scope = Instance->ScopeStack[idx];
 			if (!Scope->PrintedInThisScope && !Scope->ScopeName.IsEmpty())
 			{
 				if (Instance->NeedNewLine)
 				{
-					UE_LOG(LogSkillSystem, Log, TEXT(""));
+					UE_LOG(LogAbilitySystem, Log, TEXT(""));
 					Instance->NeedNewLine = false;
 				}
 
 				Scope->PrintedInThisScope = true;
 				int32 ident = (2 * idx);
 				FString IndentStrX = FString::Printf(TEXT("%*s"), ident, TEXT(""));
-				UE_LOG(LogSkillSystem, Log, TEXT("%s<%s>"), *IndentStrX, *Scope->ScopeName);
+				UE_LOG(LogAbilitySystem, Log, TEXT("%s<%s>"), *IndentStrX, *Scope->ScopeName);
 			}
 		}
 	}
@@ -54,17 +54,17 @@ FString SkillSystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
 	return IndentStr + Log;
 }
 
-void SkillSystemLog::PushScope(SkillSystemLogScope * Scope)
+void AbilitySystemLog::PushScope(AbilitySystemLogScope * Scope)
 {
-	SkillSystemLog * Instance = GetInstance();
+	AbilitySystemLog * Instance = GetInstance();
 
 	Instance->Indent += 2;
 	Instance->ScopeStack.Push(Scope);
 }
 
-void SkillSystemLog::PopScope()
+void AbilitySystemLog::PopScope()
 {
-	SkillSystemLog * Instance = GetInstance();
+	AbilitySystemLog * Instance = GetInstance();
 
 	Instance->NeedNewLine = true;
 	Instance->Indent -= 2;
@@ -75,7 +75,7 @@ void SkillSystemLog::PopScope()
 		if (!Instance->ScopeStack.Top()->ScopeName.IsEmpty())
 		{
 			FString IndentStrX = FString::Printf(TEXT("%*s"), Instance->Indent, TEXT(""));
-			UE_LOG(LogSkillSystem, Log, TEXT("%s</%s>"), *IndentStrX, *Instance->ScopeStack.Top()->ScopeName);
+			UE_LOG(LogAbilitySystem, Log, TEXT("%s</%s>"), *IndentStrX, *Instance->ScopeStack.Top()->ScopeName);
 		}
 	}
 	

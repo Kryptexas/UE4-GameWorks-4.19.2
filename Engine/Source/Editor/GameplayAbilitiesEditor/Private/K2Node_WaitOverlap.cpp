@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SkillSystemEditorModulePrivatePCH.h"
+#include "AbilitySystemEditorPrivatePCH.h"
 #include "K2Node_WaitOverlap.h"
-#include "SkillSystemBlueprintLibrary.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
 #include "CompilerResultsLog.h"
 
@@ -13,8 +13,8 @@ UK2Node_WaitOverlap::UK2Node_WaitOverlap(const class FPostConstructInitializePro
 	: Super(PCIP)
 {
 	
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(USkillSystemBlueprintLibrary, CreateWaitOverlap);
-	ProxyFactoryClass = USkillSystemBlueprintLibrary::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilitySystemBlueprintLibrary, CreateWaitOverlap);
+	ProxyFactoryClass = UAbilitySystemBlueprintLibrary::StaticClass();
 	ProxyClass = UAbilityTask_WaitOverlap::StaticClass();
 }
 

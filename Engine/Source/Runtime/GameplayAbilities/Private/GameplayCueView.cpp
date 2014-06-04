@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffect.h"
 #include "GameplayCueView.h"
 #include "ParticleDefinitions.h"
@@ -199,7 +199,7 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule &&
 					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule->EmitterLoops == 0)
 				{
-					SKILL_LOG(Warning, TEXT("%s - particle system has a looping emitter. This should not be used in a executed GameplayCue!"), *SpawnedEffects->ParticleSystemComponent->GetName());
+					ABILITY_LOG(Warning, TEXT("%s - particle system has a looping emitter. This should not be used in a executed GameplayCue!"), *SpawnedEffects->ParticleSystemComponent->GetName());
 					break;
 				}
 			}

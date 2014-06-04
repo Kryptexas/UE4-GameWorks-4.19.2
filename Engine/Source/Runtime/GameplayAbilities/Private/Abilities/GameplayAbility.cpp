@@ -1,10 +1,10 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
 #include "AttributeComponent.h"
-#include "SkillSystemBlueprintLibrary.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -207,7 +207,7 @@ void UGameplayAbility::InputPressed(int32 InputID, const FGameplayAbilityActorIn
 
 void UGameplayAbility::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
 {
-	SKILL_LOG(Log, TEXT("InputReleased: %d"), InputID);
+	ABILITY_LOG(Log, TEXT("InputReleased: %d"), InputID);
 }
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -289,7 +289,7 @@ void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 Predict
 
 void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey)
 {
-	SKILL_LOG(Fatal, TEXT("ClientActivateAbilitySucceed_Internal called on base class ability %s"), *GetName());
+	ABILITY_LOG(Fatal, TEXT("ClientActivateAbilitySucceed_Internal called on base class ability %s"), *GetName());
 }
 
 //----------------------------------------------------------------------
@@ -353,7 +353,7 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 	{
 		check(TargetActor);
 		
-		UAttributeComponent * TargetComponent = USkillSystemBlueprintLibrary::GetAttributeComponent(TargetActor);
+		UAttributeComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAttributeComponent(TargetActor);
 		if (TargetComponent)
 		{
 			InstigatorInfo.AttributeComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);

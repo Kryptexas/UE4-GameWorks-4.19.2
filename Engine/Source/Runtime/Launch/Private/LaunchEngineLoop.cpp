@@ -1704,13 +1704,13 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 	// -----------------------------------------------------
 
-	// HACK: load SkillSystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
+	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
 	// cooking needs this module too
-	bool bSkillSystemEditorEnabled = false;
-	GConfig->GetBool(TEXT("SkillSystemEd"), TEXT("SKillSystemEditorEnabled"), bSkillSystemEditorEnabled, GEngineIni);
-	if (bSkillSystemEditorEnabled)
+	bool bGameplayAbilitiesEnabled = false;
+	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+	if (bGameplayAbilitiesEnabled)
 	{
-		FModuleManager::Get().LoadModule(TEXT("SkillSystemEditor"));
+		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 	}
 
 	// -----------------------------------------------------

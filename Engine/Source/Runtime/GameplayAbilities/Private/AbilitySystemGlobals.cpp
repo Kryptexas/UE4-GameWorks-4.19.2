@@ -1,16 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "AttributeComponent.h"
-#include "SkillSystemTypes.h"
+#include "AbilitySystemTypes.h"
 
-USkillSystemGlobals::USkillSystemGlobals(const class FPostConstructInitializeProperties& PCIP)
+UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 
 }
 
-UCurveTable * USkillSystemGlobals::GetGlobalCurveTable()
+UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
 {
 	if (!GlobalCurveTable && !GlobalCurveTableName.IsEmpty())
 	{
@@ -19,7 +19,7 @@ UCurveTable * USkillSystemGlobals::GetGlobalCurveTable()
 		// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
 		if (GIsEditor && GlobalCurveTable)
 		{
-			GEditor->OnObjectReimported().AddUObject(this, &USkillSystemGlobals::OnCurveTableReimported);
+			GEditor->OnObjectReimported().AddUObject(this, &UAbilitySystemGlobals::OnCurveTableReimported);
 		}
 #endif
 	}
@@ -27,7 +27,7 @@ UCurveTable * USkillSystemGlobals::GetGlobalCurveTable()
 	return GlobalCurveTable;
 }
 
-UDataTable * USkillSystemGlobals::GetGlobalAttributeDataTable()
+UDataTable * UAbilitySystemGlobals::GetGlobalAttributeDataTable()
 {
 	if (!GlobalAttributeDataTable && !GlobalAttributeDataTableName.IsEmpty())
 	{
@@ -36,7 +36,7 @@ UDataTable * USkillSystemGlobals::GetGlobalAttributeDataTable()
 		// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
 		if (GIsEditor && GlobalAttributeDataTable)
 		{
-			GEditor->OnObjectReimported().AddUObject(this, &USkillSystemGlobals::OnDataTableReimported);
+			GEditor->OnObjectReimported().AddUObject(this, &UAbilitySystemGlobals::OnDataTableReimported);
 		}
 #endif
 	}
@@ -46,14 +46,14 @@ UDataTable * USkillSystemGlobals::GetGlobalAttributeDataTable()
 
 #if WITH_EDITOR
 
-void USkillSystemGlobals::OnCurveTableReimported(UObject* InObject)
+void UAbilitySystemGlobals::OnCurveTableReimported(UObject* InObject)
 {
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalCurveTable)
 	{
 	}
 }
 
-void USkillSystemGlobals::OnDataTableReimported(UObject* InObject)
+void UAbilitySystemGlobals::OnDataTableReimported(UObject* InObject)
 {
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeDataTable)
 	{
@@ -63,7 +63,7 @@ void USkillSystemGlobals::OnDataTableReimported(UObject* InObject)
 #endif
 
 
-UAttributeComponent * USkillSystemGlobals::GetAttributeComponentFromActor(AActor *Actor) const
+UAttributeComponent * UAbilitySystemGlobals::GetAttributeComponentFromActor(AActor *Actor) const
 {
 	if (Actor)
 	{
@@ -75,7 +75,7 @@ UAttributeComponent * USkillSystemGlobals::GetAttributeComponentFromActor(AActor
 	return NULL;
 }
 
-FGameplayAbilityActorInfo * USkillSystemGlobals::AllocAbilityActorInfo(AActor *Actor) const
+FGameplayAbilityActorInfo * UAbilitySystemGlobals::AllocAbilityActorInfo(AActor *Actor) const
 {
 	FGameplayAbilityActorInfo * Info = new FGameplayAbilityActorInfo();
 	Info->InitFromActor(Actor);
@@ -83,10 +83,10 @@ FGameplayAbilityActorInfo * USkillSystemGlobals::AllocAbilityActorInfo(AActor *A
 }
 
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
-USkillSystemGlobals& USkillSystemGlobals::Get()
+UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 {
-	static USkillSystemGlobals * GlobalPtr = IGameplayAbilitiesModule::Get().GetSkillSystemGlobals();
-	check(GlobalPtr == IGameplayAbilitiesModule::Get().GetSkillSystemGlobals());
+	static UAbilitySystemGlobals * GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
+	check(GlobalPtr == IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals());
 	check(GlobalPtr);
 
 	return *GlobalPtr;

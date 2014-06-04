@@ -564,11 +564,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
-		bool bSkillSystemEditorEnabled = false;
-		GConfig->GetBool(TEXT("SkillSystemEd"), TEXT("SKillSystemEditorEnabled"), bSkillSystemEditorEnabled, GEngineIni);
-		if (bSkillSystemEditorEnabled)
+		bool bGameplayAbilitiesEnabled = false;
+		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiedEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
+		if (bGameplayAbilitiesEnabled)
 		{
-			FModuleManager::Get().LoadModule(TEXT("SkillSystemEditor"));
+			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 		}
 	}
 

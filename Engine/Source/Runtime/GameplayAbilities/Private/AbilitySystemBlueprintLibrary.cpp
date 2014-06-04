@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
-#include "SkillSystemBlueprintLibrary.h"
+#include "AbilitySystemPrivatePCH.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbility_Instanced.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
@@ -9,12 +9,12 @@
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
 #include "LatentActions.h"
 
-USkillSystemBlueprintLibrary::USkillSystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
+UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 }
 
-UAbilityTask_PlayMontageAndWait* USkillSystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
+UAbilityTask_PlayMontageAndWait* UAbilitySystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
 {
 	check(WorldContextObject);
 	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
@@ -41,7 +41,7 @@ UAbilityTask_PlayMontageAndWait* USkillSystemBlueprintLibrary::CreatePlayMontage
 }
 
 
-UAbilityTask_WaitMovementModeChange* USkillSystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
+UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
 	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
@@ -73,7 +73,7 @@ UAbilityTask_WaitMovementModeChange* USkillSystemBlueprintLibrary::CreateWaitMov
  *	-Easy way to specify which types of actors/collision overlaps that we care about/want to block on
  */
 
-UAbilityTask_WaitOverlap* USkillSystemBlueprintLibrary::CreateWaitOverlap(class UObject* WorldContextObject, EMovementMode NewMode)
+UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
 	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
@@ -107,12 +107,12 @@ UAbilityTask_WaitOverlap* USkillSystemBlueprintLibrary::CreateWaitOverlap(class 
  *		-think of a better way to have a global, overridable per project function. Thats it!
  */
 
-UAttributeComponent* USkillSystemBlueprintLibrary::GetAttributeComponent(AActor *Actor)
+UAttributeComponent* UAbilitySystemBlueprintLibrary::GetAttributeComponent(AActor *Actor)
 {
-	return USkillSystemGlobals::Get().GetAttributeComponentFromActor(Actor);
+	return UAbilitySystemGlobals::Get().GetAttributeComponentFromActor(Actor);
 }
 
-void USkillSystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
 	if (Target.Data.IsValid())
 	{

@@ -1,13 +1,13 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemEditorModulePrivatePCH.h"
+#include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
 #include "BlueprintUtilities.h"
 #include "KismetEditorUtilities.h"
-#include "SkillSystemGlobals.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayAbilitiesModule.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
@@ -362,7 +362,7 @@ UCurveTable * FScalableFloatDetails::GetCurveTable()
 
 	if (CurveTable == NULL)
 	{
-		CurveTable = IGameplayAbilitiesModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
+		CurveTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
 	}
 
 	return CurveTable;

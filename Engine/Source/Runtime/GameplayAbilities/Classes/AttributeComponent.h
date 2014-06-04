@@ -2,7 +2,7 @@
 #pragma once
 
 #include "GameplayEffect.h"
-#include "SkillSystemTypes.h"
+#include "AbilitySystemTypes.h"
 #include "AttributeComponent.generated.h"
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAttributeComponent, Log, All);
@@ -24,13 +24,13 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 /** 
  * 
  */
-UCLASS(ClassGroup=SkillSystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	friend FGameplayEffectSpec;
-	friend class ASkillSystemDebugHUD;
+	friend class AAbilitySystemDebugHUD;
 
 	virtual ~UAttributeComponent();
 

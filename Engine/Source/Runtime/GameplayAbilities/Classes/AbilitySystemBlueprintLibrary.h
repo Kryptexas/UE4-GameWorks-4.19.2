@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
-#include "SkillSystemTypes.h"
-#include "SkillSystemBlueprintLibrary.generated.h"
+#include "AbilitySystemTypes.h"
+#include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
 class UAbilityTask_PlayMontageAndWait;
@@ -12,7 +12,7 @@ class UAbilityTask_WaitMovementModeChange;
 class UAbilityTask_WaitOverlap;
 
 UCLASS(MinimalAPI)
-class USkillSystemBlueprintLibrary : public UBlueprintFunctionLibrary
+class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

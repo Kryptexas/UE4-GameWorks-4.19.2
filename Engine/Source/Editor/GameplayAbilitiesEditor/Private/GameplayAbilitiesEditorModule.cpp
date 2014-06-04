@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemEditorModulePrivatePCH.h"
+#include "AbilitySystemEditorPrivatePCH.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AttributeDetails.h"
 #include "AttributeSet.h"

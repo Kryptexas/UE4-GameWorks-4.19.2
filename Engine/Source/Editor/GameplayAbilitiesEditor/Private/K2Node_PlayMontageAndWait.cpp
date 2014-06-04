@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SkillSystemEditorModulePrivatePCH.h"
+#include "AbilitySystemEditorPrivatePCH.h"
 #include "K2Node_PlayMontageAndWait.h"
-#include "SkillSystemBlueprintLibrary.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "CompilerResultsLog.h"
 
@@ -13,8 +13,8 @@ UK2Node_PlayMontageAndWait::UK2Node_PlayMontageAndWait(const class FPostConstruc
 	: Super(PCIP)
 {
 	
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(USkillSystemBlueprintLibrary, CreatePlayMontageAndWaitProxy);
-	ProxyFactoryClass = USkillSystemBlueprintLibrary::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilitySystemBlueprintLibrary, CreatePlayMontageAndWaitProxy);
+	ProxyFactoryClass = UAbilitySystemBlueprintLibrary::StaticClass();
 	ProxyClass = UAbilityTask_PlayMontageAndWait::StaticClass();
 }
 

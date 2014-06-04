@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_Montage.h"
 #include "GameplayEffect.h"
 #include "AttributeComponent.h"

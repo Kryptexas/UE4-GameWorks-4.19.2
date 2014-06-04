@@ -1,10 +1,10 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExtension_ShieldTest.h"
 #include "GameplayTagsModule.h"
 #include "AttributeComponent.h"
-#include "SkillSystemTestAttributeSet.h"
+#include "AbilitySystemTestAttributeSet.h"
 
 UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -50,7 +50,7 @@ void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGamepl
 
 		if (!LocalShieldRemoval)
 		{
-			UProperty *HealthProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Health));
+			UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
 			// Since this is a test class and we don't want to tie it any actual content assets, just construct a GameplayEffect here.
 			LocalShieldRemoval = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ShieldAbsorbRemoval"))));

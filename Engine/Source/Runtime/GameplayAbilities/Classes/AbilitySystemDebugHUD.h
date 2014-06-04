@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SkillSystemDebugHUD.generated.h"
+#include "AbilitySystemDebugHUD.generated.h"
 
 namespace EAlignHorizontal
 {
@@ -25,7 +25,7 @@ namespace EAlignVertical
 }
 
 UCLASS()
-class ASkillSystemDebugHUD : public AHUD
+class AAbilitySystemDebugHUD : public AHUD
 {
 	GENERATED_UCLASS_BODY()
 

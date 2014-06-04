@@ -3,10 +3,10 @@
 #pragma once
 #include "GameplayCueInterface.h"
 #include "GameplayCueView.h"
-#include "SkillSystemTestPawn.generated.h"
+#include "AbilitySystemTestPawn.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
-class GAMEPLAYABILITIES_API ASkillSystemTestPawn : public ADefaultPawn, public IGameplayCueInterface
+class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public IGameplayCueInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,7 +26,7 @@ class GAMEPLAYABILITIES_API ASkillSystemTestPawn : public ADefaultPawn, public I
 
 
 	/** DefaultPawn collision component */
-	UPROPERTY(Category = SkillSystem, VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UAttributeComponent> AttributeComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)

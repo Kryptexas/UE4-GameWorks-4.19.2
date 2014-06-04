@@ -14,8 +14,8 @@
 #include "Engine.h"
 #include "Engine/DataTable.h"
 
-#include "SkillSystemTypes.h"
+#include "AbilitySystemTypes.h"
 
-#include "SkillSystem.h"
+#include "AbilitySystemStats.h"
 #include "GameplayAbilitiesModule.h"
-#include "SkillSystemLog.h"
+#include "AbilitySystemLog.h"

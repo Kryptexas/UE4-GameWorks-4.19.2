@@ -1,21 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "AttributeComponent.h"
-#include "SkillSystemDebugHUD.h"
+#include "AbilitySystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
 
-ASkillSystemDebugHUD::ASkillSystemDebugHUD(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 
 }
 
-void ASkillSystemDebugHUD::DrawHUD()
+void AAbilitySystemDebugHUD::DrawHUD()
 {
 	Super::DrawHUD();
 }
 
-void ASkillSystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Text, const FColor& TextColor, EAlignHorizontal::Type HAlign, float& OffsetX, EAlignVertical::Type VAlign, float& OffsetY, float Alpha)
+void AAbilitySystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Text, const FColor& TextColor, EAlignHorizontal::Type HAlign, float& OffsetX, EAlignVertical::Type VAlign, float& OffsetY, float Alpha)
 {
 	float SizeX, SizeY;
 	Canvas->StrLen(InFont, Text, SizeX, SizeY);
@@ -44,7 +44,7 @@ void ASkillSystemDebugHUD::DrawWithBackground(UFont* InFont, const FString& Text
 	OffsetY += 25;
 }
 
-void ASkillSystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* PC)
+void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* PC)
 {
 	Canvas = InCanvas;
 	if (!Canvas)
@@ -70,7 +70,7 @@ void ASkillSystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* PC
 	}
 }
 
-void ASkillSystemDebugHUD::DrawDebugAttributeComponent(UAttributeComponent *Component)
+void AAbilitySystemDebugHUD::DrawDebugAttributeComponent(UAttributeComponent *Component)
 {
 	UWorld *World = GetWorld();
 	float GameWorldTime = World->GetTimeSeconds();
@@ -133,33 +133,33 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 	if (!InWorld)
 		return;
 
-	ASkillSystemDebugHUD *HUD = NULL;
+	AAbilitySystemDebugHUD *HUD = NULL;
 
 	for (FActorIterator It(InWorld); It; ++It)
 	{
 		AActor *Actor = *It;
-		HUD = Cast<ASkillSystemDebugHUD>(Actor);
+		HUD = Cast<AAbilitySystemDebugHUD>(Actor);
 		if (HUD)
 			break;
 	}
 
 	if (!HUD)
 	{
-		HUD = InWorld->SpawnActor<ASkillSystemDebugHUD>();
+		HUD = InWorld->SpawnActor<AAbilitySystemDebugHUD>();
 		
-		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &ASkillSystemDebugHUD::DrawDebugHUD);
+		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &AAbilitySystemDebugHUD::DrawDebugHUD);
 		UDebugDrawService::Register(TEXT("GameplayDebug"), DrawDebugDelegate);
 	}
 	else
 	{
-		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &ASkillSystemDebugHUD::DrawDebugHUD);
+		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &AAbilitySystemDebugHUD::DrawDebugHUD);
 		UDebugDrawService::Unregister(DrawDebugDelegate);
 		HUD->Destroy();
 	}
 }
 
-FAutoConsoleCommandWithWorldAndArgs SkillSystemToggleDebugHUDCommand(
-	TEXT("SkillSystem.ToggleDebugHUD"),
+FAutoConsoleCommandWithWorldAndArgs AbilitySystemToggleDebugHUDCommand(
+	TEXT("AbilitySystem.ToggleDebugHUD"),
 	TEXT("ToggleDebugHUD Drawing"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(ToggleDebugHUD)
 	);

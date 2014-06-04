@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SkillSystemGlobals.generated.h"
+#include "AbilitySystemGlobals.generated.h"
 
 class AActor;
 class UAttributeComponent;
@@ -10,7 +10,7 @@ struct FGameplayAbilityActorInfo;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
 UCLASS(config=Game)
-class GAMEPLAYABILITIES_API USkillSystemGlobals : public UObject
+class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -36,10 +36,10 @@ class GAMEPLAYABILITIES_API USkillSystemGlobals : public UObject
 		GlobalAttributeDataTable = InTable;
 	}
 
-	static USkillSystemGlobals&	Get();
+	static UAbilitySystemGlobals&	Get();
 
 	/**
-	 *	Games may want to override this in a UMyProjectSkillSystemsGlobals class and provide
+	 *	Games may want to override this in a UMyProjectAbilitySystemsGlobals class and provide
 	 *	a faster lookup for attribute compnents (E.g. Cast<MyProjPawn>(Actor)->AttributeComponent; etc)
 	 */
 	virtual UAttributeComponent * GetAttributeComponentFromActor(AActor *Actor) const;

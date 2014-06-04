@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "AttributeComponent.h"
 #include "Abilities/GameplayAbility.h"
 
@@ -45,7 +45,7 @@ void UAttributeComponent::InitAbilityActorInfo()
 	if (!AbilityActorInfo.IsValid())
 	{
 		// Alloc (and init) a new actor info
-		AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(USkillSystemGlobals::Get().AllocAbilityActorInfo(GetOwner()));
+		AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo(GetOwner()));
 	}
 	else
 	{
@@ -134,7 +134,7 @@ void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Ta
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 DenyClientActivation = 0;
 static FAutoConsoleVariableRef CVarDenyClientActivation(
-	TEXT("SkillSystem.DenyClientActivations"),
+	TEXT("AbilitySystem.DenyClientActivations"),
 	DenyClientActivation,
 	TEXT("Make server deny the next X ability activations from clients. For testing misprediction."),
 	ECVF_Default
@@ -200,7 +200,7 @@ void UAttributeComponent::ClientActivateAbilityFailed_Implementation(UGameplayAb
 			int32 Key = PredictionDelegates[idx].Key;
 			if (Key == PredictionKey)
 			{
-				SKILL_LOG(Warning, TEXT("Failed ActivateAbility, clearing prediction data %d"), PredictionKey);
+				ABILITY_LOG(Warning, TEXT("Failed ActivateAbility, clearing prediction data %d"), PredictionKey);
 
 				PredictionDelegates[idx].Value.Broadcast();
 				PredictionDelegates.RemoveAt(idx);

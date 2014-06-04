@@ -2,10 +2,10 @@
 
 #pragma once
 #include "AttributeSet.h"
-#include "SkillSystemTestAttributeSet.generated.h"
+#include "AbilitySystemTestAttributeSet.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
-class GAMEPLAYABILITIES_API USkillSystemTestAttributeSet : public UAttributeSet
+class GAMEPLAYABILITIES_API UAbilitySystemTestAttributeSet : public UAttributeSet
 {
 	GENERATED_UCLASS_BODY()
 

@@ -31,7 +31,7 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "SkillSystemEditor" );
+		return FModuleManager::Get().IsModuleLoaded( "GameplayAbilitiesEditor" );
 	}
 };
 

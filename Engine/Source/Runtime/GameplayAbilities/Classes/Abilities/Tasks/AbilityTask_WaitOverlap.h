@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
-#include "SkillSystemTypes.h"
+#include "AbilitySystemTypes.h"
 #include "AbilityTask_WaitOverlap.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitOverlapDelegate, FGameplayAbilityTargetDataHandle, TargetData);

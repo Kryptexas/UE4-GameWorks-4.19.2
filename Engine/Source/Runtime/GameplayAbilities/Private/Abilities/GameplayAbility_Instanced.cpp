@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_Instanced.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -34,7 +34,7 @@ bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorI
 		&& CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass())
 		&& K2_CanActivateAbility() == false)
 	{
-		SKILL_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
+		ABILITY_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
 		return false;
 	}
 

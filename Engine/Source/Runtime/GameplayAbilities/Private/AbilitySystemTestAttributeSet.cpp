@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
-#include "SkillSystemTestAttributeSet.h"
+#include "AbilitySystemPrivatePCH.h"
+#include "AbilitySystemTestAttributeSet.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectExtension.h"
 #include "AttributeComponent.h"
 
 
-USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
+UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 	Health = MaxHealth = 100.f;
@@ -23,10 +23,10 @@ USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostCons
 	NoStackAttribute = 0.f;
 }
 
-void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModCallbackData &Data)
+void UAbilitySystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModCallbackData &Data)
 {
-	static UProperty *HealthProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Health));
-	static UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+	static UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
+	static UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
 	// In this function, our GameplayEffect mod has been evaluated. We have a magnitude and a Tags collection that we can still modify before it is applied.
 	// We also still have the Aggregation data that calculated Data.EvaluatedData. If we really needed to, we could look at this, remove or change things at the aggregator level, and reevaluate ourselves.
@@ -56,7 +56,7 @@ void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModC
 		if (Data.EvaluatedData.Magnitude > 0.f)
 		{
 			// Check the source - does he have Crit?
-			USkillSystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent()->GetSet<USkillSystemTestAttributeSet>();
+			UAbilitySystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent()->GetSet<UAbilitySystemTestAttributeSet>();
 			if (SourceAttributes && SourceAttributes->CritChance > 0.f)
 			{
 				if (FMath::FRand() <= SourceAttributes->CritChance)
@@ -77,14 +77,14 @@ void USkillSystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectModC
 			}
 		}
 
-		// At this point, the Magnitude of the applied damage may have been modified by us. We still do the translation to Health in USkillSystemTestAttributeSet::PostAttributeModify.
+		// At this point, the Magnitude of the applied damage may have been modified by us. We still do the translation to Health in UAbilitySystemTestAttributeSet::PostAttributeModify.
 	}
 }
 
-void USkillSystemTestAttributeSet::PostAttributeModify(const struct FGameplayEffectModCallbackData &Data)
+void UAbilitySystemTestAttributeSet::PostAttributeModify(const struct FGameplayEffectModCallbackData &Data)
 {
-	static UProperty *HealthProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Health));
-	static UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+	static UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
+	static UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
 	UProperty *ModifiedProperty = Data.ModifierSpec.Info.Attribute.GetUProperty();
 
@@ -108,24 +108,24 @@ void USkillSystemTestAttributeSet::PostAttributeModify(const struct FGameplayEff
 }
 
 
-void USkillSystemTestAttributeSet::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+void UAbilitySystemTestAttributeSet::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	/*
-	DOREPLIFETIME( USkillSystemTestAttributeSet, MaxHealth);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, Health);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, Mana);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, MaxMana);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, MaxHealth);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, Health);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, Mana);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, MaxMana);
 
-	DOREPLIFETIME( USkillSystemTestAttributeSet, SpellDamage);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, PhysicalDamage);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, SpellDamage);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, PhysicalDamage);
 
-	DOREPLIFETIME( USkillSystemTestAttributeSet, CritChance);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, CritMultiplier);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, ArmorDamageReduction);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, CritChance);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, CritMultiplier);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, ArmorDamageReduction);
 
-	DOREPLIFETIME( USkillSystemTestAttributeSet, DodgeChance);
-	DOREPLIFETIME( USkillSystemTestAttributeSet, LifeSteal);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, DodgeChance);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, LifeSteal);
 
-	DOREPLIFETIME( USkillSystemTestAttributeSet, Strength);
+	DOREPLIFETIME( UAbilitySystemTestAttributeSet, Strength);
 	*/
 }

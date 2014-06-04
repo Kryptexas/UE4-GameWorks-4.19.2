@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 
 DEFINE_STAT(STAT_GameplayEffectsHasAllTags);
 DEFINE_STAT(STAT_GameplayEffectsHasAnyTag);

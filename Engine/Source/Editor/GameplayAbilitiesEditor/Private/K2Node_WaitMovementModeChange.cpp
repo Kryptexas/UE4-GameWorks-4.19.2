@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SkillSystemEditorModulePrivatePCH.h"
+#include "AbilitySystemEditorPrivatePCH.h"
 #include "K2Node_WaitMovementModeChange.h"
-#include "SkillSystemBlueprintLibrary.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "CompilerResultsLog.h"
 
@@ -13,8 +13,8 @@ UK2Node_WaitMovementModeChange::UK2Node_WaitMovementModeChange(const class FPost
 	: Super(PCIP)
 {
 	
-	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(USkillSystemBlueprintLibrary, CreateWaitMovementModeChange);
-	ProxyFactoryClass = USkillSystemBlueprintLibrary::StaticClass();
+	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilitySystemBlueprintLibrary, CreateWaitMovementModeChange);
+	ProxyFactoryClass = UAbilitySystemBlueprintLibrary::StaticClass();
 	ProxyClass = UAbilityTask_WaitMovementModeChange::StaticClass();
 }
 

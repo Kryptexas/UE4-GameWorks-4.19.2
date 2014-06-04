@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
 
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
@@ -199,7 +199,7 @@ void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOve
 	}
 
 	// Look at global defaults
-	const UCurveTable * GlobalTable = IGameplayAbilitiesModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
+	const UCurveTable * GlobalTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
 	if (GlobalTable)
 	{
 		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);
@@ -207,7 +207,7 @@ void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOve
 
 	if (!FinalCurve)
 	{
-		SKILL_LOG(Warning, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
+		ABILITY_LOG(Warning, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
 	}
 }
 

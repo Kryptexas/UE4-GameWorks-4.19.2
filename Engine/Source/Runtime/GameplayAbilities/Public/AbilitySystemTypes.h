@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SkillSystemTypes.generated.h"
+#include "AbilitySystemTypes.generated.h"
 
 class UAttributeComponent;
 class UGameplayEffect;
@@ -27,7 +27,7 @@ namespace EGameplayAbilityActivationMode
  *		-Initialized from an AActor* in InitFromActor
  *		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
  *		-These are generally passed around as pointers to support polymorphism.
- *		-Projects can override USkillSystemGlobals::AllocAbilityActorInfo to override the default struct type that is created. 
+ *		-Projects can override UAbilitySystemGlobals::AllocAbilityActorInfo to override the default struct type that is created. 
  *			
  */
 USTRUCT(BlueprintType)

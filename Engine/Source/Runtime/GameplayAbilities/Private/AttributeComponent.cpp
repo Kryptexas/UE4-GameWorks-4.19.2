@@ -1,7 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "AttributeComponent.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbility.h"
@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogAttributeComponent);
 
 int32 DebugGameplayCues = 0;
 static FAutoConsoleVariableRef CVarDebugGameplayCues(
-	TEXT("SkillSystem.DebugGameplayCues"),
+	TEXT("AbilitySystem.DebugGameplayCues"),
 	DebugGameplayCues,
 	TEXT("Enables Debugging for GameplayCue events"),
 	ECVF_Default
@@ -231,7 +231,7 @@ void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
 
 		ExecuteGameplayEffect(ActiveEffect.Spec, FModifierQualifier().IgnoreHandle(ActiveEffect.Handle));
 
-		SKILL_LOG(Log, TEXT("ActiveEffect[%d] %s - Duration: %.2f]"), idx, *ActiveEffect.Spec.ToSimpleString(), ActiveEffect.Spec.GetDuration());
+		ABILITY_LOG(Log, TEXT("ActiveEffect[%d] %s - Duration: %.2f]"), idx, *ActiveEffect.Spec.ToSimpleString(), ActiveEffect.Spec.GetDuration());
 	}
 }
 
@@ -338,7 +338,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 
 	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
 	{
-		SKILL_LOG(Warning, TEXT("%s is periodic but also applies GameplayEffects to its target. GameplayEffects will only be applied once, not every period."), *Spec.Def->GetPathName());
+		ABILITY_LOG(Warning, TEXT("%s is periodic but also applies GameplayEffects to its target. GameplayEffects will only be applied once, not every period."), *Spec.Def->GetPathName());
 	}
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
 	for (const TSharedRef<FGameplayEffectSpec> TargetSpec : Spec.TargetEffectSpecs)
@@ -387,7 +387,7 @@ void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Sp
 {
 	if (DebugGameplayCues)
 	{
-		SKILL_LOG(Warning, TEXT("InvokeGameplayCueExecute: %s"), *Spec.ToSimpleString());
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueExecute: %s"), *Spec.ToSimpleString());
 	}
 
 
@@ -408,7 +408,7 @@ void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Sp
 		if (DebugGameplayCues)
 		{
 			DrawDebugSphere(GetWorld(), Spec.InstigatorContext.HitResult->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
-			SKILL_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
+			ABILITY_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
 		}
 	}
 }
@@ -601,14 +601,14 @@ int32 UAttributeComponent::GetNextPredictionKey()
 
 void UAttributeComponent::PrintAllGameplayEffects() const
 {
-	SKILL_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
-	SKILL_LOG(Log, TEXT("Owner: %s"), *GetOwner()->GetName());
+	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
+	ABILITY_LOG(Log, TEXT("Owner: %s"), *GetOwner()->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 {
-	SKILL_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GameplayEffects.Num());
+	ABILITY_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GameplayEffects.Num());
 	for (const FActiveGameplayEffect& Effect : GameplayEffects)
 	{
 		Effect.PrintAll();
@@ -617,23 +617,23 @@ void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 
 void FActiveGameplayEffect::PrintAll() const
 {
-	SKILL_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
-	SKILL_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
+	ABILITY_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
 	Spec.PrintAll();
 }
 
 void FGameplayEffectSpec::PrintAll() const
 {
-	SKILL_LOG_SCOPE(TEXT("GameplayEffectSpec"));
-	SKILL_LOG(Log, TEXT("Def: %s"), *Def->GetName());
+	ABILITY_LOG_SCOPE(TEXT("GameplayEffectSpec"));
+	ABILITY_LOG(Log, TEXT("Def: %s"), *Def->GetName());
 	
-	SKILL_LOG(Log, TEXT("Duration: "));
+	ABILITY_LOG(Log, TEXT("Duration: "));
 	Duration.PrintAll();
 
-	SKILL_LOG(Log, TEXT("Period:"));
+	ABILITY_LOG(Log, TEXT("Period:"));
 	Period.PrintAll();
 
-	SKILL_LOG(Log, TEXT("Modifiers:"));
+	ABILITY_LOG(Log, TEXT("Modifiers:"));
 	for (const FModifierSpec &Mod : Modifiers)
 	{
 		Mod.PrintAll();
@@ -642,14 +642,14 @@ void FGameplayEffectSpec::PrintAll() const
 
 void FModifierSpec::PrintAll() const
 {
-	SKILL_LOG_SCOPE(TEXT("ModifierSpec"));
-	SKILL_LOG(Log, TEXT("Attribute: %s"), *Info.Attribute.GetName());
-	SKILL_LOG(Log, TEXT("ModifierType: %s"), *EGameplayModToString(Info.ModifierType));
-	SKILL_LOG(Log, TEXT("ModifierOp: %s"), *EGameplayModOpToString(Info.ModifierOp));
-	SKILL_LOG(Log, TEXT("EffectType: %s"), *EGameplayModEffectToString(Info.EffectType));
-	SKILL_LOG(Log, TEXT("RequiredTags: %s"), *Info.RequiredTags.ToString());
-	SKILL_LOG(Log, TEXT("OwnedTags: %s"), *Info.OwnedTags.ToString());
-	SKILL_LOG(Log, TEXT("(Base) Magnitude: %s"), *Info.Magnitude.ToSimpleString());
+	ABILITY_LOG_SCOPE(TEXT("ModifierSpec"));
+	ABILITY_LOG(Log, TEXT("Attribute: %s"), *Info.Attribute.GetName());
+	ABILITY_LOG(Log, TEXT("ModifierType: %s"), *EGameplayModToString(Info.ModifierType));
+	ABILITY_LOG(Log, TEXT("ModifierOp: %s"), *EGameplayModOpToString(Info.ModifierOp));
+	ABILITY_LOG(Log, TEXT("EffectType: %s"), *EGameplayModEffectToString(Info.EffectType));
+	ABILITY_LOG(Log, TEXT("RequiredTags: %s"), *Info.RequiredTags.ToString());
+	ABILITY_LOG(Log, TEXT("OwnedTags: %s"), *Info.OwnedTags.ToString());
+	ABILITY_LOG(Log, TEXT("(Base) Magnitude: %s"), *Info.Magnitude.ToSimpleString());
 
 	Aggregator.PrintAll();
 }
@@ -658,17 +658,17 @@ void FAggregatorRef::PrintAll() const
 {
 	if (!WeakPtr.IsValid())
 	{
-		SKILL_LOG(Log, TEXT("Invalid AggregatorRef"));
+		ABILITY_LOG(Log, TEXT("Invalid AggregatorRef"));
 		return;
 	}
 
 	if (SharedPtr.IsValid())
 	{
-		SKILL_LOG(Log, TEXT("HardRef AggregatorRef"));
+		ABILITY_LOG(Log, TEXT("HardRef AggregatorRef"));
 	}
 	else
 	{
-		SKILL_LOG(Log, TEXT("SoftRef AggregatorRef"));
+		ABILITY_LOG(Log, TEXT("SoftRef AggregatorRef"));
 
 	}
 	
@@ -677,30 +677,30 @@ void FAggregatorRef::PrintAll() const
 
 void FAggregator::PrintAll() const
 {
-	SKILL_LOG_SCOPE(TEXT("FAggregator 0x%X"), this);
+	ABILITY_LOG_SCOPE(TEXT("FAggregator 0x%X"), this);
 
 #if SKILL_SYSTEM_AGGREGATOR_DEBUG
-	SKILL_LOG(Log, TEXT("DebugStr: %s"), *DebugString);
-	SKILL_LOG(Log, TEXT("Copies (of me): %d"), CopiesMade);
+	ABILITY_LOG(Log, TEXT("DebugStr: %s"), *DebugString);
+	ABILITY_LOG(Log, TEXT("Copies (of me): %d"), CopiesMade);
 #endif
 
 	if (Level.IsValid())
 	{
-		SKILL_LOG_SCOPE(TEXT("LevelInfo"));
+		ABILITY_LOG_SCOPE(TEXT("LevelInfo"));
 		Level->PrintAll();
 	}
 	else
 	{
-		SKILL_LOG(Log, TEXT("No Level Data"));
+		ABILITY_LOG(Log, TEXT("No Level Data"));
 	}
 
 	{
-		SKILL_LOG_SCOPE(TEXT("BaseData"));
+		ABILITY_LOG_SCOPE(TEXT("BaseData"));
 		BaseData.PrintAll();
 	}
 
 	{
-		SKILL_LOG_SCOPE(TEXT("CachedData"));
+		ABILITY_LOG_SCOPE(TEXT("CachedData"));
 		CachedData.PrintAll();
 	}
 	
@@ -708,7 +708,7 @@ void FAggregator::PrintAll() const
 	{
 		if (Mods[i].Num() > 0)
 		{
-			SKILL_LOG_SCOPE(TEXT("%s Mods"), *EGameplayModOpToString(i));
+			ABILITY_LOG_SCOPE(TEXT("%s Mods"), *EGameplayModOpToString(i));
 			for (const FAggregatorRef &Ref : Mods[i])
 			{
 				Ref.PrintAll();
@@ -719,20 +719,20 @@ void FAggregator::PrintAll() const
 
 void FGameplayModifierData::PrintAll() const
 {
-	SKILL_LOG(Log, TEXT("Magnitude: %s"), *Magnitude.ToSimpleString());
-	SKILL_LOG(Log, TEXT("Tags: %s"), *Tags.ToString());
+	ABILITY_LOG(Log, TEXT("Magnitude: %s"), *Magnitude.ToSimpleString());
+	ABILITY_LOG(Log, TEXT("Tags: %s"), *Tags.ToString());
 }
 
 void FGameplayModifierEvaluatedData::PrintAll() const
 {
-	SKILL_LOG(Log, TEXT("IsValid: %d"), IsValid); 
-	SKILL_LOG(Log, TEXT("Magnitude: %.2f"), Magnitude);
-	SKILL_LOG(Log, TEXT("Tags: %s"), *Tags.ToString());
+	ABILITY_LOG(Log, TEXT("IsValid: %d"), IsValid); 
+	ABILITY_LOG(Log, TEXT("Magnitude: %.2f"), Magnitude);
+	ABILITY_LOG(Log, TEXT("Tags: %s"), *Tags.ToString());
 }
 
 void FGameplayEffectLevelSpec::PrintAll() const
 {
-	SKILL_LOG(Log, TEXT("ConstantLevel: %.2f"), ConstantLevel);
+	ABILITY_LOG(Log, TEXT("ConstantLevel: %.2f"), ConstantLevel);
 }
 
 #undef LOCTEXT_NAMESPACE

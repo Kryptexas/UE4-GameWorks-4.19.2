@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemModulePrivatePCH.h"
+#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayEffectStackingExtension.h"
@@ -68,30 +68,30 @@ void UGameplayEffect::ValidateStacking()
 
 		if (StackedAttribName == NAME_None)
 		{
-			SKILL_LOG(Warning, TEXT("%s has a stacking rule but does not have an attribute to apply it to. Removing stacking rule."), *GetPathName());
+			ABILITY_LOG(Warning, TEXT("%s has a stacking rule but does not have an attribute to apply it to. Removing stacking rule."), *GetPathName());
 			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 		}
 
-		UDataTable* DataTable = IGameplayAbilitiesModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
+		UDataTable* DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeDataTable();
 
 		if (DataTable && DataTable->RowMap.Contains(StackedAttribName))
 		{
 			FAttributeMetaData* Row = (FAttributeMetaData*)DataTable->RowMap[StackedAttribName];
 			if (Row && Row->bCanStack == false)
 			{
-				SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s is not allowed to stack. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
+				ABILITY_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s is not allowed to stack. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
 				StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 			}
 		}
 		else
 		{
-			SKILL_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s was not found in the global attribute data table. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
+			ABILITY_LOG(Warning, TEXT("%s has a stacking rule but modifies attribute %s. %s was not found in the global attribute data table. Removing stacking rule."), *GetPathName(), *Modifiers[0].Attribute.GetName(), *Modifiers[0].Attribute.GetName());
 			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 		}
 
 		if (Modifiers.Num() == 0)
 		{
-			SKILL_LOG(Warning, TEXT("%s has a stacking rule but does not have any modifiers to apply it to. Removing stacking rule."), *GetPathName());
+			ABILITY_LOG(Warning, TEXT("%s has a stacking rule but does not have any modifiers to apply it to. Removing stacking rule."), *GetPathName());
 			StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 		}
 		else
@@ -105,12 +105,12 @@ void UGameplayEffect::ValidateStacking()
 
 					if (AttributeName != StackedAttribName)
 					{
-						SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of the modifiers modifies attribute %s. Changes to %s may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString(), *AttributeName.ToString(), *AttributeName.ToString());
+						ABILITY_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of the modifiers modifies attribute %s. Changes to %s may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString(), *AttributeName.ToString(), *AttributeName.ToString());
 					}
 				}
 				else if (Modifiers[Idx].ModifierType == EGameplayMod::ActiveGE || Modifiers[Idx].ModifierType == EGameplayMod::IncomingGE || Modifiers[Idx].ModifierType == EGameplayMod::OutgoingGE)
 				{
-					SKILL_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of its modifiers modifies gameplay effects. Changes to other gameplay effects may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString());
+					ABILITY_LOG(Warning, TEXT("%s has a stacking rule and modifies attribute %s but one of its modifiers modifies gameplay effects. Changes to other gameplay effects may not behave in a predictable fashion."), *GetPathName(), *StackedAttribName.ToString());
 				}
 			}
 		}
@@ -180,7 +180,7 @@ void FGameplayEffectSpec::MakeUnique()
 
 int32 FGameplayEffectSpec::ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext)
 {
-	SKILL_LOG_SCOPE(TEXT("FGameplayEffectSpec::ApplyModifiersFrom %s. InSpec: %s"), *this->ToSimpleString(), *InSpec.ToSimpleString());
+	ABILITY_LOG_SCOPE(TEXT("FGameplayEffectSpec::ApplyModifiersFrom %s. InSpec: %s"), *this->ToSimpleString(), *InSpec.ToSimpleString());
 
 	int32 NumApplied = 0;
 	bool ShouldSnapshot = InSpec.ShouldApplyAsSnapshot(QualifierContext);
@@ -421,7 +421,7 @@ void FModifierSpec::ApplyModTo(FModifierSpec &Other, bool TakeSnapshot) const
 
 void FModifierSpec::ExecuteModOn(FModifierSpec &Other) const
 {
-	SKILL_LOG_SCOPE(TEXT("Executing %s on %s"), *ToSimpleString(), *Other.ToSimpleString() );
+	ABILITY_LOG_SCOPE(TEXT("Executing %s on %s"), *ToSimpleString(), *Other.ToSimpleString() );
 	Other.Aggregator.Get()->ExecuteModAggr(this->Info.ModifierOp, this->Aggregator);
 }
 
@@ -506,7 +506,7 @@ bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackage
 
 void FAggregatorRef::MakeUnique()
 {
-	SKILL_LOG(Log, TEXT("MakeUnique %s"), *ToString());
+	ABILITY_LOG(Log, TEXT("MakeUnique %s"), *ToString());
 
 	// Make a hard ref copy of our FAggregator
 	MakeHardRef();
@@ -519,7 +519,7 @@ void FAggregatorRef::MakeUnique()
 
 void FAggregatorRef::MakeUniqueDeep()
 {
-	SKILL_LOG_SCOPE(TEXT("MakeUniqueDeep %s"), *ToString());
+	ABILITY_LOG_SCOPE(TEXT("MakeUniqueDeep %s"), *ToString());
 
 	// Make a hard ref copy of our FAggregator
 	MakeHardRef();
@@ -651,7 +651,7 @@ FAggregator::~FAggregator()
 	{
 		if (WeakPtr.IsValid())
 		{
-			SKILL_LOG(Log, TEXT("%s Marking Dependant %s Dirty on Destroy"), *ToSimpleString(), *WeakPtr.Pin()->ToSimpleString());
+			ABILITY_LOG(Log, TEXT("%s Marking Dependant %s Dirty on Destroy"), *ToSimpleString(), *WeakPtr.Pin()->ToSimpleString());
 
 			WeakPtr.Pin()->MarkDirty();
 #if SKILL_SYSTEM_AGGREGATOR_DEBUG
@@ -713,7 +713,7 @@ void FAggregator::ExecuteMod(EGameplayModOp::Type ModType, const FGameplayModifi
 	// Am I allowed to even be executed on? If my base data scales then all I can do is apply this to myself
 	if (!BaseData.Magnitude.IsStatic())
 	{
-		SKILL_LOG(Log, TEXT("Treating Execute as an Apply since our Level is not static!"));
+		ABILITY_LOG(Log, TEXT("Treating Execute as an Apply since our Level is not static!"));
 		FAggregatorRef NewAggregator(new FAggregator(EvaluatedData, SKILL_AGG_DEBUG(TEXT("ExecutedMod"))));
 		ApplyMod(ModType, NewAggregator, false);
 		return;
@@ -753,7 +753,7 @@ void FAggregator::ExecuteMod(EGameplayModOp::Type ModType, const FGameplayModifi
 		}
 	}
 
-	SKILL_LOG(Log, TEXT("ExecuteMod: %s new BaseData.Magnitude: %s"), *ToSimpleString(), *BaseData.Magnitude.ToSimpleString());
+	ABILITY_LOG(Log, TEXT("ExecuteMod: %s new BaseData.Magnitude: %s"), *ToSimpleString(), *BaseData.Magnitude.ToSimpleString());
 	MarkDirty();
 }
 
@@ -762,7 +762,7 @@ void FAggregator::AddDependantAggregator(TWeakPtr<FAggregator> InDependant)
 	check(InDependant.IsValid());
 	check(!Dependants.Contains(InDependant));
 
-	SKILL_LOG(Log, TEXT("AddDependantAggregator: %s is a dependant of %s"), *InDependant.Pin()->ToSimpleString(), *ToSimpleString());
+	ABILITY_LOG(Log, TEXT("AddDependantAggregator: %s is a dependant of %s"), *InDependant.Pin()->ToSimpleString(), *ToSimpleString());
 	Dependants.Add(InDependant);
 }
 
@@ -787,7 +787,7 @@ void FAggregator::RegisterLevelDependancies()
 
 const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 {
-	SKILL_LOG_SCOPE(TEXT("Aggregator Evaluate %s"), *ToSimpleString());
+	ABILITY_LOG_SCOPE(TEXT("Aggregator Evaluate %s"), *ToSimpleString());
 
 	if (!CachedData.IsValid)
 	{
@@ -796,7 +796,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 		// ------------------------------------------------------------------------
 		for (const FAggregatorRef &Agg : Mods[EGameplayModOp::Override])
 		{
-			SKILL_LOG_SCOPE(TEXT("EGameplayModOp::Override"));
+			ABILITY_LOG_SCOPE(TEXT("EGameplayModOp::Override"));
 			if (Agg.IsValid())
 			{
 				CachedData = Agg.Get()->Evaluate();
@@ -826,7 +826,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 		// We need to calculate num of mods anyways to do ModLIst.Reserve.
 		if (TotalModCount <= 0)
 		{
-			SKILL_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
+			ABILITY_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
 			return CachedData;
 		}
 
@@ -927,11 +927,11 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				if (ModIgnoreTags.Num() > 0 && NewGiveTags.Num() > 0 && ModIgnoreTags.MatchesAny(NewGiveTags, false))
 				{
 					// Pass problem!
-					SKILL_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
-					SKILL_LOG(Warning, TEXT("   While Evaluating: %s"), *ToSimpleString());
-					SKILL_LOG(Warning, TEXT("   Applying Mod: %s"), *Agg->ToSimpleString());
-					SKILL_LOG(Warning, TEXT("   ModIgnoreTags: %s"), *ModIgnoreTags.ToString() );
-					SKILL_LOG(Warning, TEXT("   NewGiveTags: %s"), *NewGiveTags.ToString());
+					ABILITY_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
+					ABILITY_LOG(Warning, TEXT("   While Evaluating: %s"), *ToSimpleString());
+					ABILITY_LOG(Warning, TEXT("   Applying Mod: %s"), *Agg->ToSimpleString());
+					ABILITY_LOG(Warning, TEXT("   ModIgnoreTags: %s"), *ModIgnoreTags.ToString() );
+					ABILITY_LOG(Warning, TEXT("   NewGiveTags: %s"), *NewGiveTags.ToString());
 					continue;
 				}
 
@@ -947,11 +947,11 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 				if (NewIgnoreTags.Num() > 0 && ModEvaluatedData.Tags.Num() > 0 && NewIgnoreTags.MatchesAny(ModEvaluatedData.Tags, false))
 				{
 					// Pass problem!
-					SKILL_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
-					SKILL_LOG(Warning, TEXT("   While Evaluating: %s"), *ToSimpleString());
-					SKILL_LOG(Warning, TEXT("   Applying Mod: %s"), *Agg->ToSimpleString());
-					SKILL_LOG(Warning, TEXT("   Mod Tags: %s"), *ModEvaluatedData.Tags.ToString());
-					SKILL_LOG(Warning, TEXT("   NewIgnoreTags: %s"), *NewIgnoreTags.ToString());
+					ABILITY_LOG(Warning, TEXT("Tagging conflicts during Aggregate! Use Stacking rules to avoid this"));
+					ABILITY_LOG(Warning, TEXT("   While Evaluating: %s"), *ToSimpleString());
+					ABILITY_LOG(Warning, TEXT("   Applying Mod: %s"), *Agg->ToSimpleString());
+					ABILITY_LOG(Warning, TEXT("   Mod Tags: %s"), *ModEvaluatedData.Tags.ToString());
+					ABILITY_LOG(Warning, TEXT("   NewIgnoreTags: %s"), *NewIgnoreTags.ToString());
 					continue;
 				}
 
@@ -974,12 +974,12 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 
 		CachedData.Magnitude = ((CachedData.Magnitude + OpAggregation[EGameplayModOp::Additive]) * OpAggregation[EGameplayModOp::Multiplicitive]) / Division;
 
-		SKILL_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
+		ABILITY_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
 		
 	}
 	else
 	{
-		SKILL_LOG(Log, TEXT("CachedData was valid. Magnitude: %.2f"), CachedData.Magnitude);
+		ABILITY_LOG(Log, TEXT("CachedData was valid. Magnitude: %.2f"), CachedData.Magnitude);
 	}
 	return CachedData;
 }
@@ -1021,7 +1021,7 @@ FAggregator & FAggregator::MarkDirty()
 		TWeakPtr<FAggregator> WeakPtr = Dependants[i];
 		if (WeakPtr.IsValid())
 		{
-			SKILL_LOG(Log, TEXT("%s Marking Dependant %s Dirty (from ::MarkDirty())"), *ToSimpleString(), *WeakPtr.Pin()->ToSimpleString());
+			ABILITY_LOG(Log, TEXT("%s Marking Dependant %s Dirty (from ::MarkDirty())"), *ToSimpleString(), *WeakPtr.Pin()->ToSimpleString());
 #if SKILL_SYSTEM_AGGREGATOR_DEBUG
 			FAggregator::AllocationStats.DependantsUpdated++;
 #endif
@@ -1146,7 +1146,7 @@ bool FActiveGameplayEffectsContainer::ApplyActiveEffectsTo(OUT FGameplayEffectSp
 {
 	FActiveGameplayEffectHandle().IsValid();
 
-	SKILL_LOG_SCOPE(TEXT("ApplyActiveEffectsTo: %s %s"), *Spec.ToSimpleString(), *QualifierContext.ToString());
+	ABILITY_LOG_SCOPE(TEXT("ApplyActiveEffectsTo: %s %s"), *Spec.ToSimpleString(), *QualifierContext.ToString());
 	for (FActiveGameplayEffect & ActiveEffect : GameplayEffects)
 	{
 		// We dont want to use FModifierQualifier::TestTarget here, since we aren't the 'target'. We are applying stuff to Spec which will be applied to a target.
@@ -1179,7 +1179,7 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 		{
 			// Todo: Tag/application checks here
 
-			SKILL_LOG_SCOPE(TEXT("Applying Attribute Mod %s to property"), *Mod.ToSimpleString());
+			ABILITY_LOG_SCOPE(TEXT("Applying Attribute Mod %s to property"), *Mod.ToSimpleString());
 
 			FAggregator * Aggregator = FindOrCreateAttributeAggregator(Mod.Info.Attribute).Get();
 
@@ -1190,7 +1190,7 @@ void FActiveGameplayEffectsContainer::ApplySpecToActiveEffectsAndAttributes(FGam
 
 		if (Mod.Info.ModifierType == EGameplayMod::ActiveGE)
 		{
-			SKILL_LOG_SCOPE(TEXT("Applying Mod %s to ActiveEffects"),  *Mod.ToSimpleString());
+			ABILITY_LOG_SCOPE(TEXT("Applying Mod %s to ActiveEffects"),  *Mod.ToSimpleString());
 
 			bool bUpdateStackedEffects = false;
 
@@ -1274,14 +1274,14 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			if (AttributeSet == NULL)
 			{
 				// Our owner doesn't have this attribute, so we can't do anything
-				SKILL_LOG(Log, TEXT("%s does not have attribute %s. Skipping modifier"), *Owner->GetPathName(), *Mod.Info.Attribute.GetName());
+				ABILITY_LOG(Log, TEXT("%s does not have attribute %s. Skipping modifier"), *Owner->GetPathName(), *Mod.Info.Attribute.GetName());
 				continue;
 			}
 
 			// Todo: Tags/application checks here - make sure we can still apply
 			InvokeGameplayCueExecute = true;
 
-			SKILL_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *Mod.ToSimpleString());
+			ABILITY_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *Mod.ToSimpleString());
 
 			// First, evaluate all of our data 
 
@@ -1299,7 +1299,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 			FAggregatorRef *RefPtr = OngoingPropertyEffects.Find(Mod.Info.Attribute);
 			if (RefPtr)
 			{
-				SKILL_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Mod.Info.Attribute.GetName());
+				ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Mod.Info.Attribute.GetName());
 				RefPtr->Get()->ExecuteMod(Mod.Info.ModifierOp, EvaluatedData);
 			}
 			else
@@ -1312,7 +1312,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 				
 				const float NewPropertyValue = Aggregator.Evaluate().Magnitude;
 
-				SKILL_LOG(Log, TEXT("Property %s new value is: %.2f [was: %.2f]"), *Mod.Info.Attribute.GetName(), NewPropertyValue, CurrentValueOfProperty);
+				ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f [was: %.2f]"), *Mod.Info.Attribute.GetName(), NewPropertyValue, CurrentValueOfProperty);
 				Owner->SetNumericAttribute(Mod.Info.Attribute, NewPropertyValue);
 			}
 
@@ -1358,7 +1358,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 	{
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
-		SKILL_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
+		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
 		Owner->NetMulticast_InvokeGameplayCueExecuted(Spec);
 	}
 
@@ -1395,7 +1395,7 @@ FAggregatorRef & FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregato
 
 	// Create a new aggregator for this attribute.
 	float CurrentValueOfProperty = Owner->GetNumericAttribute(Attribute);
-	SKILL_LOG(Log, TEXT("Creating new entry in OngoingPropertyEffect map for AddDependancyToAttribute. CurrentValue: %.2f"), CurrentValueOfProperty);
+	ABILITY_LOG(Log, TEXT("Creating new entry in OngoingPropertyEffect map for AddDependancyToAttribute. CurrentValue: %.2f"), CurrentValueOfProperty);
 
 	FAggregator *NewPropertyAggregator = new FAggregator(FGameplayModifierEvaluatedData(CurrentValueOfProperty), SKILL_AGG_DEBUG(TEXT("Attribute %s Aggregator"), *Attribute.GetName()));
 
@@ -1415,7 +1415,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplay
 		}
 	}
 	
-	SKILL_LOG(Warning, TEXT("GetGameplayEffectDuration called with invalid Handle: %s"), *Handle.ToString() );
+	ABILITY_LOG(Warning, TEXT("GetGameplayEffectDuration called with invalid Handle: %s"), *Handle.ToString() );
 	return UGameplayEffect::INFINITE_DURATION;
 }
 
@@ -1453,7 +1453,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGamepla
 		}
 	}
 
-	SKILL_LOG(Warning, TEXT("GetGameplayEffectMagnitude called with invalid Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Warning, TEXT("GetGameplayEffectMagnitude called with invalid Handle: %s"), *Handle.ToString());
 	return -1.f;
 }
 
@@ -1494,7 +1494,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitudeByTag(FActiveGa
 		}
 	}
 
-	SKILL_LOG(Warning, TEXT("GetGameplayEffectMagnitude called with invalid Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Warning, TEXT("GetGameplayEffectMagnitude called with invalid Handle: %s"), *Handle.ToString());
 	return -1.f;
 }
 
@@ -1502,12 +1502,12 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 {
 	check(OngoingPropertyEffects.FindChecked(Attribute).Get() == Aggregator);
 
-	SKILL_LOG_SCOPE(TEXT("FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty"));
+	ABILITY_LOG_SCOPE(TEXT("FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty"));
 
 	// Immediately calculate the newest value of the property			
 	float NewPropertyValue = Aggregator->Evaluate().Magnitude;
 
-	SKILL_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewPropertyValue);
+	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewPropertyValue);
 	
 	Owner->SetNumericAttribute(Attribute, NewPropertyValue);
 }
@@ -1597,7 +1597,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 		}
 	}
 
-	SKILL_LOG(Warning, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Warning, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
 	return false;
 }
 
@@ -1630,7 +1630,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		return true;
 	}
 
-	SKILL_LOG(Warning, TEXT("InternalRemoveActiveGameplayEffect called with invalid index: %d"), Idx);
+	ABILITY_LOG(Warning, TEXT("InternalRemoveActiveGameplayEffect called with invalid index: %d"), Idx);
 	return false;
 }
 
@@ -1769,7 +1769,7 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 						}
 						default:
 							// we shouldn't ever be here
-							SKILL_LOG(Warning, TEXT("%s uses unhandled stacking rule %s."), *Effect.Spec.Def->GetPathName(), *EGameplayEffectStackingPolicyToString(Effect.Spec.GetStackingType()));
+							ABILITY_LOG(Warning, TEXT("%s uses unhandled stacking rule %s."), *Effect.Spec.Def->GetPathName(), *EGameplayEffectStackingPolicyToString(Effect.Spec.GetStackingType()));
 							break;
 						};
 
