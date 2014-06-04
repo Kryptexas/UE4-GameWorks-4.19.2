@@ -182,7 +182,9 @@ void UChildActorComponent::DestroyChildActor()
 			// World may be NULL during shutdown
 			if(World != NULL)
 			{
-				ChildActor->Rename(*MakeUniqueObjectName(GetOuter(), ChildActor->GetClass(), TEXT("DESTROYED_CHILDACTOR")).ToString(), NULL, REN_DoNotDirty);
+				UClass* ChildActorClass = ChildActor->GetClass();
+				const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildActorClass->GetName());
+				ChildActor->Rename(*MakeUniqueObjectName(GetOuter(), ChildActorClass, *ObjectBaseName).ToString(), NULL, REN_DoNotDirty);
 				World->DestroyActor(ChildActor);
 			}
 		}
