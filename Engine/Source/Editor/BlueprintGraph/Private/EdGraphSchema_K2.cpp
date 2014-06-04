@@ -3940,12 +3940,14 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			FBlueprintEditorUtils::GetFunctionNameList(Blueprint, ExistingNamesInUse);
 			FBlueprintEditorUtils::GetClassVariableList(Blueprint, ExistingNamesInUse);
 
+			const ERenameFlags RenameFlags = (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0);
+
 			// Allow the old object name to be used in the graph
 			FName ObjName = EventNode->GetFName();
 			UObject* Found = FindObject<UObject>(EventNode->GetOuter(), *ObjName.ToString());
 			if(Found)
 			{
-				Found->Rename(NULL, NULL, REN_None);
+				Found->Rename(NULL, NULL, REN_DontCreateRedirectors | RenameFlags);
 			}
 
 			// Create a custom event node to replace the original event node imported from text
@@ -4030,7 +4032,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				check(Pin);
 
 				// Reparent the pin to the new custom event node
-				Pin->Rename(*Pin->GetName(), CustomEventNode);
+				Pin->Rename(*Pin->GetName(), CustomEventNode, RenameFlags);
 
 				// Don't include execution or delegate output pins as user-defined pins
 				if(!IsExecPin(*Pin) && !IsDelegateCategory(Pin->PinType.PinCategory))

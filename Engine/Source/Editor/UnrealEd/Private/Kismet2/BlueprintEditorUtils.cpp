@@ -340,7 +340,11 @@ void FBlueprintEditorUtils::PreloadMembers(UObject* InObject)
 		UObject* CurrentObject = *it;
 		if( CurrentObject->HasAnyFlags(RF_NeedLoad) )
 		{
-			CurrentObject->GetLinker()->Preload(CurrentObject);
+			auto Linker = CurrentObject->GetLinker();
+			if (Linker)
+			{
+				Linker->Preload(CurrentObject);
+			}
 			PreloadMembers(CurrentObject);
 		}
 	}
@@ -937,6 +941,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
 	bool bNeedsSkelRefRemoval = false;
+
+	FBlueprintEditorUtils::PreloadMembers(Blueprint);
 
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
 	{
