@@ -7,8 +7,6 @@
 #ifndef __SCENEPRIVATE_H__
 #define __SCENEPRIVATE_H__
 
-#include "RendererPrivate.h"
-
 class SceneRenderingBitArrayAllocator
 	: public TInlineAllocator<4,SceneRenderingAllocator>
 {
