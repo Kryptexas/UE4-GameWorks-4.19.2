@@ -975,14 +975,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 			RefreshNextPrevSections();
 		}
 #endif
-		// If this Montage has no weight, it should be terminated.
-		if( (Weight <= ZERO_ANIMWEIGHT_THRESH) && (DesiredWeight <= ZERO_ANIMWEIGHT_THRESH) )
-		{
-			// nothing else to do
-			Terminate();
-			return;
-		}
-		
+
 		// if no weight, no reason to update, and if not playing, we don't need to advance
 		// this portion is to advance position
 		// If we just reached zero weight, still tick this frame to fire end of animation events.
@@ -1101,6 +1094,14 @@ void FAnimMontageInstance::Advance(float DeltaTime, FRootMotionMovementParams & 
 				}
 			}
 		}
+	}
+
+	// If this Montage has no weight, it should be terminated.
+	if ((Weight <= ZERO_ANIMWEIGHT_THRESH) && (DesiredWeight <= ZERO_ANIMWEIGHT_THRESH))
+	{
+		// nothing else to do
+		Terminate();
+		return;
 	}
 
 	// Update curves based on final position.
