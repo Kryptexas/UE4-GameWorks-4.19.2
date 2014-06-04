@@ -63,7 +63,6 @@
 
 #include "Spacer.h"
 
-#include "SpinningImageComponent.h"
 #include "ThrobberComponent.h"
 #include "CircularThrobberComponent.h"
 
