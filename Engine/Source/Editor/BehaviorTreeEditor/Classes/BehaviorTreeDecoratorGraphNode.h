@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/BTCompositeNode.h"
+#include "EdGraph/EdGraphNode.h"
 #include "BehaviorTreeDecoratorGraphNode.generated.h"
 
 
