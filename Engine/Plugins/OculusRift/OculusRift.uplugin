@@ -15,7 +15,7 @@
 		{
 			"Name" : "OculusRift",
 			"Type" : "Runtime",
-			"WhitelistPlatforms" : [ "Win64", "Win32", "Mac" ]
+			"WhitelistPlatforms" : [ "Win64", "Win32" ]
 		}
 	]
 }

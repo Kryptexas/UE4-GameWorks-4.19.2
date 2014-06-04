@@ -34,14 +34,14 @@ public class LibOVR : ModuleRules
             //PublicAdditionalLibraries.Add(LibraryName + "d.lib");
 			//PublicDelayLoadDLLs.Add(LibraryName + ".dll");
 		}
-		else if ((Target.Platform == UnrealTargetPlatform.Mac))
-		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
-
-            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
-			string LibraryName = "libovr";
-			PublicLibraryPaths.Add(LibraryPath);
-			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");
-		}
+//		else if ((Target.Platform == UnrealTargetPlatform.Mac))
+//		{
+//            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
+//
+//          string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
+//			string LibraryName = "libovr";
+//			PublicLibraryPaths.Add(LibraryPath);
+//			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");
+//		}
 	}
 }
