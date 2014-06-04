@@ -14,6 +14,36 @@ FDesktopPlatformBase::FDesktopPlatformBase()
 	LauncherInstallationTimestamp = FDateTime::MinValue();
 }
 
+FString FDesktopPlatformBase::GetEngineDescription(const FString& Identifier)
+{
+	// Official release versions just have a version number
+	if(IsStockEngineRelease(Identifier))
+	{
+		return Identifier;
+	}
+
+	// Otherwise get the path
+	FString RootDir;
+	if(!GetEngineRootDirFromIdentifier(Identifier, RootDir))
+	{
+		return FString();
+	}
+
+	// Convert it to a platform directory
+	FString PlatformRootDir = RootDir;
+	FPaths::MakePlatformFilename(PlatformRootDir);
+
+	// Perforce build
+	if (IsSourceDistribution(RootDir))
+	{
+		return FString::Printf(TEXT("Source build at %s"), *PlatformRootDir);
+	}
+	else
+	{
+		return FString::Printf(TEXT("Binary build at %s"), *PlatformRootDir);
+	}
+}
+
 FString FDesktopPlatformBase::GetCurrentEngineIdentifier()
 {
 	if(CurrentEngineIdentifier.Len() == 0 && !GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), CurrentEngineIdentifier))

@@ -118,6 +118,13 @@ public:
 	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) = 0;
 
 	/**
+	* Returns a description for the engine with the given identifier.
+	*
+	* @return	Description for the engine identifier. Empty string if it's unknown.
+	*/
+	virtual FString GetEngineDescription(const FString& Identifier) = 0;
+
+	/**
 	* Gets the identifier for the currently executing engine installation
 	*
 	* @return	Identifier for the current engine installation. Empty string if it isn't registered.

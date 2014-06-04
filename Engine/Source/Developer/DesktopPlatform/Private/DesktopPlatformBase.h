@@ -12,6 +12,7 @@ public:
 	FDesktopPlatformBase();
 
 	// IDesktopPlatform Implementation
+	virtual FString GetEngineDescription(const FString& Identifier) OVERRIDE;
 	virtual FString GetCurrentEngineIdentifier() OVERRIDE;
 
 	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
