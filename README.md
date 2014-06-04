@@ -1,4 +1,4 @@
-Welcome to the Unreal Engine 4.2.0 source code!
+Welcome to the UE 4.2.0 source code!
 ==============================================
 
 This is the source code page for the **Unreal Engine on GitHub**.  With the UE4 source code, you can modify the
@@ -17,7 +17,7 @@ Have fun - we can't wait to see what you create!
 Source releases
 ---------------
 
-This branch contains source code for the 4.2.0 release.  You'll need to download dependency files per the instructions below in order to build and run the engine.
+This branch contains source code for the **4.2.0 release**.  You'll need to download dependency files per the instructions below in order to build and run the engine.
 
 We're also publishing bleeding edge changes from our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) on GitHub.  Here you can 
 see [live commits](https://github.com/EpicGames/UnrealEngine/commits/master) from Epic programmers along with integrated code submissions from the community.  This branch is 
