@@ -303,8 +303,12 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(co
 	if( View.VisibleEditorPrimitives.Num() > 0 )
 	{
 		// Draw the dynamic non-occluded primitives using a base pass drawing policy.
-		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
+		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> DepthTestDrawer(
 			&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures),true,false,false,bDepthTest);
+
+		TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> NoDepthTestDrawer(
+			&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(!bDepthTest, ESceneRenderTargetsMode::SetTextures),true,false,false,!bDepthTest);
+
 		for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleEditorPrimitives.Num();PrimitiveIndex++)
 		{
 			const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleEditorPrimitives[PrimitiveIndex];
@@ -316,13 +320,25 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(co
 			// Only draw the primitive if it's visible
 			if( bVisible && 
 				// only draw opaque and masked primitives if wireframe is disabled
-				(PrimitiveViewRelevance.bOpaqueRelevance || View.Family->EngineShowFlags.Wireframe) )
+				(PrimitiveViewRelevance.bOpaqueRelevance || View.Family->EngineShowFlags.Wireframe))
 			{
-				Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-				PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-					&Drawer,
-					&View			
-					);
+				// Distinguish between depth tested & non-depth tested primitives
+				if(PrimitiveViewRelevance.bEditorNoDepthTestPrimitiveRelevance)
+				{
+					NoDepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+						&NoDepthTestDrawer,
+						&View			
+						);
+				}
+				else
+				{
+					DepthTestDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
+					PrimitiveSceneInfo->Proxy->DrawDynamicElements(
+						&DepthTestDrawer,
+						&View			
+						);
+				}
 			}
 		}
 	}

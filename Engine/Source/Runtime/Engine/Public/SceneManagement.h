@@ -1523,6 +1523,8 @@ struct FPrimitiveViewRelevance
 	uint32 bRenderInMainPass : 1;
 	/** The primitive is drawn only in the editor and composited onto the scene after post processing */
 	uint32 bEditorPrimitiveRelevance : 1;
+	/** The primitive is drawn only in the editor and composited onto the scene after post processing using no depth testing */
+	uint32 bEditorNoDepthTestPrimitiveRelevance : 1;
 	/** The primitive needs PreRenderView to be called before rendering. */
 	uint32 bNeedsPreRenderView : 1;
 	/** The primitive should have GatherSimpleLights called on the proxy when gathering simple lights. */
@@ -1562,6 +1564,7 @@ struct FPrimitiveViewRelevance
 		bRenderCustomDepth(false),
 		bRenderInMainPass(true),
 		bEditorPrimitiveRelevance(false),
+		bEditorNoDepthTestPrimitiveRelevance(false),
 		bNeedsPreRenderView(false),
 		bHasSimpleLights(false),
 		bOpaqueRelevance(true),
@@ -1585,6 +1588,8 @@ struct FPrimitiveViewRelevance
 		bDistortionRelevance |= B.bDistortionRelevance != 0;
 		bRenderCustomDepth |= B.bRenderCustomDepth != 0;
 		bRenderInMainPass |= B.bRenderInMainPass !=0;
+		bEditorPrimitiveRelevance |= B.bEditorPrimitiveRelevance !=0;
+		bEditorNoDepthTestPrimitiveRelevance |= B.bEditorNoDepthTestPrimitiveRelevance !=0;
 		bSceneColorRelevance |= B.bSceneColorRelevance != 0;
 		bNeedsPreRenderView |= B.bNeedsPreRenderView != 0;
 		bHasSimpleLights |= B.bHasSimpleLights != 0;

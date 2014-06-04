@@ -133,6 +133,7 @@ public:
 		bVolume(false),
 		bBuilder(false),
 		bSolidWhenSelected(false),
+		bInManipulation(false),
 		BrushColor(GEngine->C_BrushWire),
 		LevelColor(255,255,255),
 		PropertyColor(255,255,255),
@@ -154,6 +155,7 @@ public:
 			bBuilder = FActorEditorUtils::IsABuilderBrush( Owner );
 			BrushColor = Owner->GetWireColor();
 			bSolidWhenSelected = Owner->bSolidWhenSelected;
+			bInManipulation = Owner->bInManipulation;
 
 			// Builder brushes should be unaffected by level coloration, so if this is a builder brush, use
 			// the brush color as the level color.
@@ -385,6 +387,10 @@ public:
 		Result.bDrawRelevance = bVisible;
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);
+		if(bInManipulation)
+		{
+			Result.bEditorNoDepthTestPrimitiveRelevance = true;
+		}
 
 		// Don't render on top in 'collision view' modes
 		if(!bInCollisionView)
@@ -418,6 +424,7 @@ private:
 	uint32 bVolume : 1;
 	uint32 bBuilder : 1;	
 	uint32 bSolidWhenSelected : 1;
+	uint32 bInManipulation : 1;
 
 	FColor BrushColor;
 	FColor LevelColor;

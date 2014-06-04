@@ -34,6 +34,18 @@ ABrush::ABrush(const class FPostConstructInitializeProperties& PCIP)
 }
 
 #if WITH_EDITOR
+void ABrush::PostEditMove(bool bFinished)
+{
+	bInManipulation = !bFinished;
+
+	if( BrushComponent.IsValid() )
+	{
+		BrushComponent->ReregisterComponent();
+	}
+
+	Super::PostEditMove(bFinished);
+}
+
 void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(Brush)

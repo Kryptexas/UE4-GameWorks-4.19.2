@@ -116,6 +116,10 @@ class ABrush : public AActor
 	class UBrushBuilder* BrushBuilder;
 #endif
 
+	/** Flag set when we are in a manipulation (scaling, translation, brush builder param change etc.) */
+	UPROPERTY()
+	uint32 bInManipulation:1;
+
 	/**
 	 * Stores selection information from geometry mode.  This is the only information that we can't
 	 * regenerate by looking at the source brushes following an undo operation.
@@ -137,6 +141,7 @@ class ABrush : public AActor
 	// Begin UObject interface.
 	ENGINE_API virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
+	ENGINE_API virtual void PostEditMove(bool bFinished) OVERRIDE;
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
 	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) OVERRIDE;
