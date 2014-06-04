@@ -369,14 +369,14 @@ private:
 	}
 
 	// Callback for FTargetDeviceServicePing messages.
-	void HandlePingMessage( const FTargetDeviceServicePing& Message, const IMessageContextRef& Context )
+	void HandlePingMessage( const FTargetDeviceServicePing& InMessage, const IMessageContextRef& Context )
 	{
 		if (!Running)
 		{
 			return;
 		}
 
-		if (Shared || (Message.HostUser == FPlatformProcess::UserName(false)))
+		if (Shared || (InMessage.HostUser == FPlatformProcess::UserName(false)))
 		{
 			ITargetDevicePtr TargetDevice = AcquireDevice();
 

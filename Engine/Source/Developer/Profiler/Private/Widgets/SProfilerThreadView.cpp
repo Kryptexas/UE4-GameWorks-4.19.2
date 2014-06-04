@@ -455,9 +455,9 @@ void SProfilerThreadView::DrawUIStackNodes_Recursively( const FProfilerUIStackNo
 		DrawText( UIStackNode.StatName.GetPlainNameString(), PaintState->SummaryFont8, Position, FColorList::White, FColorList::Black, FVector2D( 1.0f, 1.0f ) );
 	}
 
-	for( const auto& UIStackNode : UIStackNode.Children )
+	for( const auto& UIStackNodeChild : UIStackNode.Children )
 	{
-		DrawUIStackNodes_Recursively( UIStackNode );
+		DrawUIStackNodes_Recursively( UIStackNodeChild );
 	}
 }
 
@@ -564,9 +564,9 @@ FReply SProfilerThreadView::OnMouseMove( const FGeometry& MyGeometry, const FPoi
 
 	if( IsReady() )
 	{
-		const FVector2D MousePosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
+		const FVector2D LocalMousePosition = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 		
-		HoveredPositionX = 0.0;//PositionToFrameIndex( MousePosition.X );
+		HoveredPositionX = 0.0;//PositionToFrameIndex( LocalMousePosition.X );
 		HoveredPositionY = 0.0;
 
 		const float CursorPosXDelta = -MouseEvent.GetCursorDelta().X;

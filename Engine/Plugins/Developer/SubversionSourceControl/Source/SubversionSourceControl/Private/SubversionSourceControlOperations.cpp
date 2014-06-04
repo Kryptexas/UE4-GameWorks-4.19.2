@@ -68,8 +68,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 					if(Pattern != INDEX_NONE)
 					{
 						check(InCommand.Operation->GetName() == "Connect");
-						TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
-						Operation->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of an SVN working copy."));
+						StaticCastSharedRef<FConnect>(InCommand.Operation)->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of an SVN working copy."));
 						InCommand.ErrorMessages.Add(LOCTEXT("NotAWorkingCopyErrorHelp", "You should check out a working copy into your project directory.").ToString());
 						InCommand.bCommandSuccessful = false;
 						break;
@@ -266,8 +265,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				if(InCommand.bCommandSuccessful)
 				{
 					check(InCommand.Operation->GetName() == "CheckIn");
-					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
-					Operation->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
+					StaticCastSharedRef<FCheckIn>(InCommand.Operation)->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
 				}
 			}
 		}

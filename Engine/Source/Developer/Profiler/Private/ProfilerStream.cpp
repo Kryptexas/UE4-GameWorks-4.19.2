@@ -17,8 +17,7 @@ void FProfilerUIStream::GenerateUIStream( const FProfilerStream& ProfilerStream,
 	const double WindowWidth = NumMillisecondsPerWindow*NumPixelsPerMillisecond;
 
 	// Preallocate nodes for threads.
-	const int32 NumThreads = ProfilerStream.GetNumThreads();
-	ThreadNodes.Reset( NumThreads );
+	ThreadNodes.Reset(ProfilerStream.GetNumThreads());
 
 	if( true || NumMillisecondsPerWindow >= FrameTimeRangeMS )
 	{

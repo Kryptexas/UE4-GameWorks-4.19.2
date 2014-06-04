@@ -219,7 +219,6 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 	FName SubsystemName, InstanceName;
 	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
 
-	IOnlineSubsystemPtr* OnlineSubsystem = NULL;
 	if (SubsystemName != NAME_None)
 	{
 		FName KeyName = FName(*FString::Printf(TEXT("%s:%s"), *SubsystemName.ToString(), *InstanceName.ToString()));

@@ -736,9 +736,7 @@ void FPerforceConnection::EstablishConnection(const FPerforceConnectionInfo& InC
 
 			// Gather the client root
 			UE_LOG(LogSourceControl, Verbose, TEXT(" ... getting info" ));
-			bool bConnectionDropped = false;
-			const bool bStandardDebugOutput = false;
-			const bool bAllowRetry = true;
+			bConnectionDropped = false;
 			if (RunCommand(TEXT("info"), Params, Records, ErrorMessages, FOnIsCancelled(), bConnectionDropped, bStandardDebugOutput, bAllowRetry))
 			{
 				UE_LOG(LogSourceControl, Verbose, TEXT(" ... getting clientroot" ));

@@ -531,9 +531,9 @@ protected:
 			LinearRowsOfNodes[UIStackNode->GlobalNodeDepth].Add( UIStackNode );
 		}
 
-		for( const auto& UIStackNode : UIStackNode->Children )
+		for( const auto& UIStackNodeChild : UIStackNode->Children )
 		{
-			LinearizeStream_Recursively( &UIStackNode );
+			LinearizeStream_Recursively(&UIStackNodeChild);
 		}
 	}
 };

@@ -760,11 +760,11 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 		if( GroupName == FStatConstants::NAME_ThreadGroup )
 		{
 			uint32 ThreadID = 0;
-			for( auto It = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
+			for( auto ThreadsIt = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
 			{
-				if( It.Value() == StatName )
+				if (ThreadsIt.Value() == StatName)
 				{
-					ThreadID = It.Key();
+					ThreadID = ThreadsIt.Key();
 				}
 			}
 			ThreadIDtoStatID.Add( ThreadID, StatID );

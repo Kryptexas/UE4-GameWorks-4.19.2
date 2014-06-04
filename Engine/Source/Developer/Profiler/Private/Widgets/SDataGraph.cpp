@@ -1310,9 +1310,8 @@ void SDataGraph::ShowContextMenu( const FVector2D& ScreenSpacePosition )
 			// @TODO: Add to FProfilerMenuBuilder
 			struct FProfilerSessionMenu
 			{
-				static void Build( FMenuBuilder& InMenuBuilder, const FGuid SessionInstanceID, const FEventGraphDataHandlerRef EventGraphDataHandler )
+				static void Build( FMenuBuilder& InMenuBuilder, const FGuid SessionInstanceID, const FEventGraphDataHandlerRef InEventGraphDataHandler )
 				{
-					TSharedPtr<FUICommandList> ProfilerCommandList = FProfilerManager::Get()->GetCommandList();
 					const FProfilerCommands& Commands = FProfilerManager::GetCommands();
 					const FProfilerActionManager& ProfilerActionMgr = FProfilerManager::GetActionManager();
 

@@ -270,9 +270,9 @@ void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= 
 	Filepos += Ar.Tell() - PrevArPos;
 }
 
-void FStatsWriteFile::Finalize( FArchive* File )
+void FStatsWriteFile::Finalize( FArchive* InFile )
 {
-	FArchive& Ar = *File;
+	FArchive& Ar = *InFile;
 
 	// Write special marker message.
 	static FStatNameAndInfo Adv(NAME_None, "", "", TEXT(""), EStatDataType::ST_int64, true, false);

@@ -329,8 +329,7 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 				if (InCommand.bCommandSuccessful)
 				{
 					check(InCommand.Operation->GetName() == "CheckIn");
-					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
-					Operation->SetSuccessMessage(ParseSubmitResults(Records));
+					StaticCastSharedRef<FCheckIn>(InCommand.Operation)->SetSuccessMessage(ParseSubmitResults(Records));
 
 					for(auto Iter(InCommand.Files.CreateIterator()); Iter; Iter++)
 					{

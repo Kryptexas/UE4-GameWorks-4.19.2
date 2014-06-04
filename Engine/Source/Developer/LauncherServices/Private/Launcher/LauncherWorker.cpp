@@ -61,7 +61,7 @@ uint32 FLauncherWorker::Run( )
 		{
 			Status = ELauncherWorkerStatus::Completed;
 
-			FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+			NewLine = FPlatformProcess::ReadPipe(ReadPipe);
 			while (NewLine.Len() > 0)
 			{
 				// process the string to break it up in to lines
