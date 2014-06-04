@@ -156,7 +156,6 @@ struct FUserDefinedStructureCompilerInner
 				NewProperty->SetMetaData(FEdMode::MD_MakeEditWidget, TEXT("true"));
 			}
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
-			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
 			NewProperty->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc.ToolTip);
 			NewProperty->RepNotifyFunc = NAME_None;
 
