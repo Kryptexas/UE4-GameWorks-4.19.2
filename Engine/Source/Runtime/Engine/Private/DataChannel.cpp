@@ -1344,7 +1344,7 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	// Set stuff.
 	Actor                      = InActor;
 	ActorClass                 = Actor->GetClass();
-	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( ActorClass );
+	FClassNetCache* ClassCache = Connection->Driver->NetCache->GetClassNetCache( ActorClass );
 
 	UE_LOG(LogNetTraffic, VeryVerbose, TEXT("SetChannelActor[%d]: Actor: %s ActorClass: %s. %s"), ChIndex, Actor ? *Actor->GetPathName() : TEXT("NULL"), ActorClass ? *ActorClass->GetName() : TEXT("NULL"), *GetName() );
 
@@ -1872,7 +1872,7 @@ void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCa
 	check(Obj);
 	if (!ClassCache)
 	{
-		ClassCache = Connection->PackageMap->GetClassNetCache( Obj->GetClass() );
+		ClassCache = Connection->Driver->NetCache->GetClassNetCache( Obj->GetClass() );
 	}
 
 	// Write max int to signify done

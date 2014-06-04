@@ -13,7 +13,7 @@ DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
 //
 // Information about a field.
 //
-class FFieldNetCache
+class COREUOBJECT_API FFieldNetCache
 {
 public:
 	UField* Field;
@@ -28,9 +28,9 @@ public:
 //
 // Information about a class, cached for network coordination.
 //
-class FClassNetCache
+class COREUOBJECT_API FClassNetCache
 {
-	friend class UPackageMap;
+	friend class FClassNetCacheMgr;
 public:
 	FClassNetCache();
 	FClassNetCache( UClass* Class );
@@ -62,11 +62,22 @@ public:
 		return NULL;
 	}
 private:
-	int32 FieldsBase;
-	FClassNetCache* Super;
-	UClass* Class;
-	TArray<FFieldNetCache> Fields;
-	TMap<UObject*,FFieldNetCache*> FieldMap;
+	int32								FieldsBase;
+	FClassNetCache *					Super;
+	TWeakObjectPtr< UClass >			Class;
+	TArray< FFieldNetCache >			Fields;
+	TMap< UObject *, FFieldNetCache * > FieldMap;
+};
+
+class COREUOBJECT_API FClassNetCacheMgr
+{
+public:
+	/** get the cached field to index mappings for the given class */
+	FClassNetCache *	GetClassNetCache( UClass * Class );
+	void				ClearClassNetCache();
+
+private:
+	TMap< TWeakObjectPtr< UClass >, FClassNetCache * > ClassFieldIndices;
 };
 
 //
@@ -121,10 +132,6 @@ class COREUOBJECT_API UPackageMap : public UObject
 	// @todo document
 	virtual bool SerializeName( FArchive& Ar, FName& Name );
 
-	/** get the cached field to index mappings for the given class */
-	FClassNetCache *	GetClassNetCache(UClass* Class);
-	void				ClearClassNetCache();
-
 	virtual void ResetPackageMap();
 
 	virtual void SetLocked(bool L) { }
@@ -163,11 +170,6 @@ class COREUOBJECT_API UPackageMap : public UObject
 	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID );
 
 protected:
-
-	virtual bool IsNetGUIDAuthority() { return true; }
-
-	// @todo document
-	TMap<TWeakObjectPtr<UClass>, FClassNetCache*> ClassFieldIndices;
 
 	bool			bSuppressLogs;
 	bool			bShouldSerializeUnAckedObjects;

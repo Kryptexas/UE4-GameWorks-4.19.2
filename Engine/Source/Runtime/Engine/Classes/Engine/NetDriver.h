@@ -166,7 +166,9 @@ public:
 	class UWorld* World;
 
 	/** @todo document */
-	TSharedPtr< class FNetGUIDCache > GuidCache;
+	TSharedPtr< class FNetGUIDCache >		GuidCache;
+
+	TSharedPtr< class FClassNetCacheMgr >	NetCache;
 
 	/** The loaded UClass of the net connection type to use */
 	UPROPERTY()

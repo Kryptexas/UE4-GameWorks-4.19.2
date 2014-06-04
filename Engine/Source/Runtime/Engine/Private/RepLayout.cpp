@@ -947,7 +947,7 @@ void FRepLayout::WritePropertyHeader(
 	UNetConnection * Connection = OwningChannel->Connection;
 
 	// Get class network info cache.
-	FClassNetCache * ClassCache = Connection->PackageMap->GetClassNetCache( ObjectClass );
+	FClassNetCache * ClassCache = Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
 	check( ClassCache );
 
 	if ( !bContentBlockWritten )

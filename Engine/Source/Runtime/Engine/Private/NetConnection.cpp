@@ -1654,11 +1654,6 @@ bool UNetConnection::ActorIsAvailableOnClient(const AActor* ThisActor)
 void UNetConnection::ResetGameWorldState()
 {
 	//Clear out references and do whatever else so that nothing holds onto references that it doesn't need to.
-	if (PackageMap)
-	{
-		PackageMap->ClearClassNetCache();	// Clear the cache net: it will recreate itself after seamless travel
-	}
-
 	DestroyedStartupOrDormantActors.Empty();
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();

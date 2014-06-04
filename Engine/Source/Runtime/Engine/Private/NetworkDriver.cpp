@@ -103,6 +103,7 @@ void UNetDriver::PostInitProperties()
 		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
 		GuidCache			= TSharedPtr< FNetGUIDCache >( new FNetGUIDCache( this ) );
+		NetCache			= TSharedPtr< FClassNetCacheMgr >( new FClassNetCacheMgr() );
 
 		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
 	}
@@ -616,7 +617,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	UObject * TargetObj = SubObject ? SubObject : Actor;
 
 	// Make sure this function exists for both parties.
-	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( TargetObj->GetClass() );
+	FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
 	if (!ClassCache)
 	{
 		DEBUG_REMOTEFUNCTION(TEXT("ClassNetCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
@@ -1145,8 +1146,6 @@ bool UNetDriver::HandleNetDisconnectCommand( const TCHAR* Cmd, FOutputDevice& Ar
 bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if WITH_SERVER_CODE
-	UPackageMap * PackageMap = new( this )UPackageMap( FPostConstructInitializeProperties() );
-
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		bool bHasNetFields = false;
@@ -1175,7 +1174,7 @@ bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice&
 
 			if ( Function != NULL && Function->FunctionFlags & FUNC_NetServer )
 			{
-				FClassNetCache * ClassCache = PackageMap->GetClassNetCache( *ClassIt );
+				FClassNetCache * ClassCache = NetCache->GetClassNetCache( *ClassIt );
 
 				FFieldNetCache * FieldCache = ClassCache->GetFromField( Function );
 
@@ -2889,6 +2888,12 @@ void UNetDriver::SetWorld(class UWorld* InWorld)
 void UNetDriver::ResetGameWorldState()
 {
 	DestroyedStartupOrDormantActors.Empty();
+
+	if ( NetCache.IsValid() )
+	{
+		NetCache->ClearClassNetCache();	// Clear the cache net: it will recreate itself after seamless travel
+	}
+
 	if (ServerConnection)
 	{
 		ServerConnection->ResetGameWorldState();

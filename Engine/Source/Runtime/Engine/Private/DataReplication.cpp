@@ -361,7 +361,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 	const bool bIsServer = ( OwningChannel->Connection->Driver->ServerConnection == NULL );
 
-	FClassNetCache * ClassCache = PackageMap->GetClassNetCache( ObjectClass );
+	FClassNetCache * ClassCache = OwningChannel->Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
 
 	if ( ClassCache == NULL )
 	{
@@ -977,7 +977,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	if ( WroteImportantData )
 	{
-		OwningChannel->EndContentBlock( Object, Bunch, OwningChannelConnection->PackageMap->GetClassNetCache( ObjectClass ) );
+		OwningChannel->EndContentBlock( Object, Bunch, OwningChannelConnection->Driver->NetCache->GetClassNetCache( ObjectClass ) );
 	}
 
 	return WroteImportantData;

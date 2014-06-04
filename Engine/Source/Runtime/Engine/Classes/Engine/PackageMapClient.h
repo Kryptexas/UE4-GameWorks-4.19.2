@@ -143,7 +143,7 @@ protected:
 
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 	
-	virtual bool IsNetGUIDAuthority() OVERRIDE;
+	bool	IsNetGUIDAuthority();
 
 	bool Locked;
 	bool IsExportingNetGUIDBunch;
