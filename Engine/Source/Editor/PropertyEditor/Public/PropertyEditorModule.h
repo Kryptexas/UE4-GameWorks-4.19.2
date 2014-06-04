@@ -240,7 +240,7 @@ struct FPropertyTypeLayoutCallback
 
 	TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
 	{
-		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : DeprecatedLayoutDelegate.Execute();
+		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : static_cast<TSharedRef<IPropertyTypeCustomization>>(DeprecatedLayoutDelegate.Execute());
 	}
 };
 
