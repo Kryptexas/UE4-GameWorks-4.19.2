@@ -25,7 +25,7 @@
 #include "ComponentsTree.h"
 #include "IPropertyUtilities.h"
 #include "IDocumentation.h"
-
+#include "Runtime/Engine/Classes/Engine/BrushShape.h"
 #include "ActorDetailsDelegates.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
@@ -248,7 +248,16 @@ void FActorDetails::CreateClassPickerConvertActorFilter(const TWeakObjectPtr<AAc
 
 	// Never convert to the same class
 	Filter->DisallowedClasses.Add(ConvertClass);
+
+	if( ConvertActor->IsA<AVolume>() )
+	{
+		// Volumes cannot be converted to brushes or brush shapes or the abstract type
+		Filter->DisallowedClasses.Add(ABrush::StaticClass());
+		Filter->DisallowedClasses.Add(ABrushShape::StaticClass());
+		Filter->DisallowedClasses.Add(AVolume::StaticClass());
+	}
 }
+
 
 TSharedRef<SWidget> FActorDetails::OnGetConvertContent()
 {
@@ -295,31 +304,19 @@ EVisibility FActorDetails::GetConvertMenuVisibility() const
 
 TSharedRef<SWidget> FActorDetails::MakeConvertMenu( const FSelectedActorInfo& SelectedActorInfo )
 {
-	if( SelectedActorInfo.HasConvertableAsset() )
-	{
-		UClass* RootConversionClass = GetConversionRoot(SelectedActorInfo.SelectionClass);
-		const FSlateFontInfo& FontInfo = FEditorStyle::GetFontStyle( TEXT("ExpandableArea.NormalFont") );
-		return
-			SNew( SBox )
-			.HAlign( HAlign_Left )
-			[
-				SNew( SComboButton )
-					.IsEnabled(RootConversionClass != NULL)
-					.Visibility( this, &FActorDetails::GetConvertMenuVisibility )
-					.OnGetMenuContent( this, &FActorDetails::OnGetConvertContent )
-					.ButtonContent()
-				[
-					SNew( STextBlock )
-					.Text( LOCTEXT("ConvertButton", "Convert") ) 
-					.ToolTipText( LOCTEXT("ConvertButton_ToolTip", "Convert actors to different types") )
-					.Font( FontInfo )
-				]
-			];
-
-	}
-
-	// Nothing to convert
-	return SNullWidget::NullWidget;
+	UClass* RootConversionClass = GetConversionRoot(SelectedActorInfo.SelectionClass);
+	return
+		SNew(SComboButton)
+		.ContentPadding(2)
+		.IsEnabled(RootConversionClass != NULL)
+		.Visibility(this, &FActorDetails::GetConvertMenuVisibility)
+		.OnGetMenuContent(this, &FActorDetails::OnGetConvertContent)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ConvertButton", "Select a Type"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
 
 }
 
@@ -480,11 +477,18 @@ void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const
 
 	}
 
-	// WorldSettings should never convert to another class type.
-	if(SelectedActorInfo.SelectionClass != AWorldSettings::StaticClass())
+	// WorldSettings should never convert to another class type
+	if( SelectedActorInfo.SelectionClass != AWorldSettings::StaticClass() && SelectedActorInfo.HasConvertableAsset() )
 	{
-		ActorCategory.AddCustomRow(  LOCTEXT("SelectionFilter", "Selected").ToString() )
+		ActorCategory.AddCustomRow( LOCTEXT("ConvertMenu", "Convert").ToString() )
 		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ConvertButton", "Convert Actor"))
+			.ToolTipText(LOCTEXT("ConvertButton_ToolTip", "Convert actors to different types"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
 		[
 			MakeConvertMenu( SelectedActorInfo )
 		];

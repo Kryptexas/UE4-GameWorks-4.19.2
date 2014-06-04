@@ -82,6 +82,8 @@ struct FSelectedActorInfo
 	uint32 bAllSelectedStaticMeshesHaveCollisionModels:1;
 	/** true if a brush is in the selection */
 	uint32 bHaveBrush:1;
+	/** true if a volume brush is in the selection */
+	uint32 bHaveVolume:1;
 	/** true if a builder brush is in the selection */
 	uint32 bHaveBuilderBrush:1;
 	/** true if an actor in the selection has a static mesh component */
@@ -122,6 +124,7 @@ struct FSelectedActorInfo
 		, bAllSelectedActorsBelongToSameWorld(true)
 		, bAllSelectedStaticMeshesHaveCollisionModels(true)
 		, bHaveBrush(false)
+		, bHaveVolume(false)
 		, bHaveBuilderBrush(false)
 		, bHaveStaticMeshComponent(false)
 		, bHaveStaticMesh(false)
@@ -140,7 +143,7 @@ struct FSelectedActorInfo
 	 */
 	bool HasConvertableAsset() const
 	{
-		return NumSelected && !bHaveBuilderBrush && !bHaveBrush;
+		return NumSelected && !bHaveBuilderBrush && (!bHaveBrush || bHaveVolume);
 	}
 
 };

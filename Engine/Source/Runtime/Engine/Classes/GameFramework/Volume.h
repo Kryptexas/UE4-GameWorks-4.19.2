@@ -8,7 +8,7 @@
 #include "Engine/Brush.h"
 #include "Volume.generated.h"
 
-UCLASS(MinimalAPI, showcategories=Collision, hidecategories=(Brush, Physics), abstract)
+UCLASS(MinimalAPI, showcategories=Collision, hidecategories=(Brush, Physics), abstract, ConversionRoot)
 class AVolume : public ABrush
 {
 	GENERATED_UCLASS_BODY()

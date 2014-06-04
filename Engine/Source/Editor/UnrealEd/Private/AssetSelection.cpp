@@ -81,6 +81,7 @@ namespace AssetSelectionUtils
 							ActorInfo.bHaveBuilderBrush = FActorEditorUtils::IsABuilderBrush(Brush);
 						}
 						ActorInfo.bHaveBrush |= true;
+						ActorInfo.bHaveVolume |= Brush->IsVolumeBrush();
 					}
 
 					UClass* CurrentClass = CurrentActor->GetClass();
