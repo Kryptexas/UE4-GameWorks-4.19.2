@@ -37,6 +37,7 @@ FText FTextHistory_Base::ToText() const
 {
 	// This should never be called
 	check(0);
+
 	return FText::GetEmpty();
 }
 

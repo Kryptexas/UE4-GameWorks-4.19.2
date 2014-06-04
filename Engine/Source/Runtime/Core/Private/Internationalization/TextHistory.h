@@ -47,6 +47,7 @@ public:
 	FTextHistory_Base(FString InSourceString);
 	FTextHistory_Base(TSharedPtr< FString > InSourceString);
 
+
 	// Begin FTextHistory interface
 	virtual FText ToText() const OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;

@@ -27,5 +27,6 @@ FPhysicsFilterBuilder::FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel>
 	}
 
 	uint8 MyChannel = InObjectType;
+
 	Word3 = (MyChannel << 24);
 }

@@ -13,6 +13,7 @@
  */
 enum EPhysXFilterDataFlags
 {
+
 	EPDF_SimpleCollision	=	0x0001,
 	EPDF_ComplexCollision	=	0x0002,
 	EPDF_CCD				=	0x0004,
