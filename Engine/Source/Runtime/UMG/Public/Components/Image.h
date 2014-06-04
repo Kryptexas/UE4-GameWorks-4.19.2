@@ -4,6 +4,7 @@
 
 #include "Image.generated.h"
 
+
 class USlateBrushAsset;
 
 /** Image widget */
