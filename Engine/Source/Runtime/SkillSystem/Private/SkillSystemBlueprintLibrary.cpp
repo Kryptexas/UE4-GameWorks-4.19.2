@@ -109,13 +109,13 @@ UAbilityTask_WaitOverlap* USkillSystemBlueprintLibrary::CreateWaitOverlap(class 
 
 UAttributeComponent* USkillSystemBlueprintLibrary::GetAttributeComponent(AActor *Actor)
 {
-	return ISkillSystemModule::Get().GetSkillSystemGlobals().GetAttributeComponentFromActor(Actor);
+	return USkillSystemGlobals::Get().GetAttributeComponentFromActor(Actor);
 }
 
 void USkillSystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
 	if (Target.Data.IsValid())
 	{
-		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);	
+		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
 	}
 }

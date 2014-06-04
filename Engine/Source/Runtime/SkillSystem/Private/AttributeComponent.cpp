@@ -26,8 +26,6 @@ static FAutoConsoleVariableRef CVarDebugGameplayCues(
 	ECVF_Default
 	);
 
-#pragma optimize( "", off )
-
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 

@@ -7,3 +7,4 @@ DEFINE_STAT(STAT_GameplayEffectsHasAnyTag);
 DEFINE_STAT(STAT_GameplayEffectsTick);
 DEFINE_STAT(STAT_GameplayEffectsCanApplyAttributeModifiers);
 DEFINE_STAT(STAT_GameplayEffectsGetActiveEffectsData);
+DEFINE_STAT(STAT_GameplayAbilityGetCooldownTimeRemaining);

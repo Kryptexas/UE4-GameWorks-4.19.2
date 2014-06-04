@@ -105,6 +105,10 @@ private:
 	int32 Handle;
 };
 
+/**
+ *	Not implemented yet, but we will need something like this to track ability + levels if we choose to support ability leveling in the base classes.
+ */
+
 USTRUCT()
 struct FGameplayAbilitySpec
 {
@@ -133,7 +137,9 @@ class SKILLSYSTEM_API UGameplayAbility : public UDataAsset
 public:
 
 	UFUNCTION(Client, Reliable)
-	void ClientActivateAbilitySucceed(AActor *Actor);
+	void ClientActivateAbilitySucceed(int32 PredictionKey);
+
+	virtual void ClientActivateAbilitySucceed_Internal(int32 PredictionKey);
 
 	bool IsSupportedForNetworking() const OVERRIDE;
 	
@@ -165,22 +171,20 @@ public:
 	 *	-This function handles networking and prediction
 	 *	-If all goes well, CallActivateAbility is called next.
 	 */
-	bool TryActivateAbility(const FGameplayAbilityActorInfo ActorInfo, UGameplayAbility ** OutInstancedAbility = NULL);
+	bool TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, int32 PredictionKey = 0, UGameplayAbility ** OutInstancedAbility = NULL);
 	
-	/** Returns true if this ability can be activated right now. Has no side effects! */
-	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const;		
+	/** Returns true if this ability can be activated right now. Has no side effects */
+	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	// -----------------------------------------------
 
 	/** Input binding. Base implementation calls TryActivateAbility */
-	virtual void InputPressed(int32 InputID, const FGameplayAbilityActorInfo ActorInfo);
+	virtual void InputPressed(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo);
 
 	/** Input binding. Base implementation does nothing */
-	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo ActorInfo);
-
-	UFUNCTION(BlueprintCallable, Category=Ability)
-	virtual void EndAbility(const FGameplayAbilityActorInfo ActorInfo);
-
+	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo);
+	
+	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo);
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -188,7 +192,7 @@ public:
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 
-	float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo ActorInfo) const;
+	float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -227,17 +231,17 @@ public:
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 
-	void MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo ActorInfo) const;
+	void MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const;
 
-	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo ActorInfo) const;
+	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	// ----------------------------------------------------------------------------------------------------------------
 
-	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	virtual void ServerTryActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	virtual void ClientActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -266,23 +270,21 @@ protected:
 	 *  -This function must call CommitAbility()
 	 */
 
-	// FIXME: Making this blueprintcallable is danagerous!
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	virtual void ActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void ActivateAbility(const FGameplayAbilityActorInfo * ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** 
 	 * Attempts to commit the ability (spend resources, etc). This our last chance to fail.
 	 *	-Child classes that override ActivateAbility must call this themselves!
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Ability")
-	virtual bool CommitAbility(const FGameplayAbilityActorInfo ActorInfo);
+
+	virtual bool CommitAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 	
 	/** Do boilerplate init stuff and then call ActivateAbility */
-	void PreActivate(const FGameplayAbilityActorInfo ActorInfo);
+	void PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	void CallActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	void CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	void CallPredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	void CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	bool Prediction;
@@ -291,13 +293,13 @@ protected:
 	 * The last chance to fail before commiting
 	 *	-This will usually be the same as CanActivateAbility. Some abilities may need to do extra checks here if they are consuming extra stuff in CommitExecute
 	 */
-	virtual bool CommitCheck(const FGameplayAbilityActorInfo ActorInfo);
+	virtual bool CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Does the commmit atomically (consume resources, do cooldowns, etc) */
-	virtual void CommitExecute(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
-	virtual void CancelAbility(const FGameplayAbilityActorInfo ActorInfo) { }
+	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) { }
 
 	// --------------------------------------------------------------------------------
 
@@ -305,14 +307,14 @@ protected:
 	// --------------------------------------------------------------------------------
 
 	/** Checks cooldown. returns true if we can be used again. False if not */
-	bool	CheckCooldown(const FGameplayAbilityActorInfo ActorInfo) const;
+	bool	CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	/** Applies CooldownGameplayEffect to the target */
-	void	ApplyCooldown(const FGameplayAbilityActorInfo ActorInfo);
+	void	ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	bool	CheckCost(const FGameplayAbilityActorInfo ActorInfo) const;
+	bool	CheckCost(const FGameplayAbilityActorInfo* ActorInfo) const;
 
-	void	ApplyCost(const FGameplayAbilityActorInfo ActorInfo);
+	void	ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
 	friend class UAttributeComponent;
 };

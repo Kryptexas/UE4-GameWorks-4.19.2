@@ -2323,13 +2323,13 @@ UCurveTable * SetGlobalCurveTable()
 		check(Value == 5.f);
 	}
 
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalCurveTable(CurveTable);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(CurveTable);
 	return CurveTable;
 }
 
 void ClearGlobalCurveTable()
 {
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalCurveTable(NULL);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(NULL);
 }
 
 UCurveTable * GetStandardDamageOverrideCurveTable(float Factor)
@@ -2369,13 +2369,13 @@ UDataTable * SetGlobalDataTable()
 		check(!Row->bCanStack);
 	}
 
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
 	return DataTable;
 }
 
 void ClearGlobalDataTable()
 {
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(NULL);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(NULL);
 }
 
 bool GameplayEffectsTest_InstantDamage_ScalingExplicit(UWorld *World, FAutomationTestBase * Test)
@@ -5908,8 +5908,8 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 
 bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 {
-	UCurveTable *CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
-	UDataTable *DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalAttributeDataTable();
+	UCurveTable *CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
+	UDataTable *DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
 
 	UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
 	FWorldContext &WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
@@ -6036,8 +6036,8 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	GEngine->DestroyWorldContext(World);
 	World->DestroyWorld(false);
 
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalCurveTable(CurveTable);
-	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(CurveTable);
+	ISkillSystemModule::Get().GetSkillSystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
 	return true;
 }
 

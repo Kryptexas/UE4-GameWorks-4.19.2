@@ -20,24 +20,20 @@ namespace EGameplayAbilityActivationMode
 	};
 }
 
+/**
+ *	FGameplayAbilityActorInfo 
+ *	
+ *	Cached data associated with an Actor using an Ability.
+ *		-Initialized from an AActor* in InitFromActor
+ *		-Abilities use this to know what to actor upon. E.g., instead of being coupled to a specific actor class.
+ *		-These are generally passed around as pointers to support polymorphism.
+ *		-Projects can override USkillSystemGlobals::AllocAbilityActorInfo to override the default struct type that is created. 
+ *			
+ */
 USTRUCT(BlueprintType)
 struct SKILLSYSTEM_API FGameplayAbilityActorInfo
 {
 	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityActorInfo()
-		: ActivationMode(EGameplayAbilityActivationMode::Authority)
-		, PredictionKey(0)
-	{
-
-	}
-
-	FGameplayAbilityActorInfo(EGameplayAbilityActivationMode::Type InType)
-		: ActivationMode(InType)
-		, PredictionKey(0)
-	{
-	}
-
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<AActor>	Actor;
@@ -51,19 +47,57 @@ struct SKILLSYSTEM_API FGameplayAbilityActorInfo
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;
 
+	virtual void InitFromActor(AActor *Actor);
+};
+
+/**
+ *	FGameplayAbilityActivationInfo
+ *	
+ *	Data tied to a specific activation of an ability. 
+ *		-Tell us whether we are the authority, if we are predicting, confirmed, etc.
+ *		-Holds PredictionKey
+ *		-Generally not meant to be subclassed in projects.
+ *		-Passed around by value since the struct is small.
+ */
+
+USTRUCT(BlueprintType)
+struct SKILLSYSTEM_API FGameplayAbilityActivationInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityActivationInfo()
+		: PredictionKey(0)
+		, ActivationMode(EGameplayAbilityActivationMode::Authority)
+	{
+
+	}
+
+	FGameplayAbilityActivationInfo(AActor * InActor, int32 InPredictionKey)
+		: PredictionKey(InPredictionKey)
+	{
+		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
+		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
+		ActivationMode = (InActor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
+	}
+
+	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, int32 InPredictionKey)
+		: ActivationMode(InType)
+		, PredictionKey(InPredictionKey)
+	{
+	}
+
+
+	void GeneratePredictionKey(UAttributeComponent * Component) const;
+
+	void SetPredictionKey(int32 InPredictionKey);
+
+	void SetActivationConfirmed();
+
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
 
 	UPROPERTY()
 	mutable int32 PredictionKey;
-
-	void InitFromActor(AActor *Actor);
-
-	void GeneratePredictionKey() const;
-
-	void SetPredictionKey(int32 InPredictionKey);
-
-	void SetActivationConfirmed();
 };
 
 

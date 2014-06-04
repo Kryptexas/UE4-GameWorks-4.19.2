@@ -15,7 +15,7 @@ class SKILLSYSTEM_API UGameplayAbility_Montage : public UGameplayAbility
 
 public:
 	
-	virtual void ActivateAbility(const FGameplayAbilityActorInfo OwnerInfo) OVERRIDE;
+	virtual void ActivateAbility(const FGameplayAbilityActorInfo* OwnerInfo, const FGameplayAbilityActivationInfo ActivationInfo) OVERRIDE;
 
 	UPROPERTY(EditDefaultsOnly, Category = MontageAbility)
 	UAnimMontage *	MontageToPlay;
@@ -30,5 +30,5 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = MontageAbility)
 	TArray<const UGameplayEffect*>	GameplayEffectsWhileAnimating;
 
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, const FGameplayAbilityActorInfo OwnerInfo, TArray<struct FActiveGameplayEffectHandle>	AppliedEffects);
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, const FGameplayAbilityActorInfo* OwnerInfo, TArray<struct FActiveGameplayEffectHandle>	AppliedEffects);
 };

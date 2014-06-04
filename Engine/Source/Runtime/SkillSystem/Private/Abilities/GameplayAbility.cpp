@@ -38,7 +38,7 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 	return Supported;
 }
 
-bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const
+bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	// Check cooldowns and resource consumption immediately
 	if (!CheckCooldown(ActorInfo))
@@ -54,37 +54,39 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo ActorI
 	return true;
 }
 
-bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo ActorInfo)
+bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!CommitCheck(ActorInfo))
+	if (!CommitCheck(ActorInfo, ActivationInfo))
 	{
 		return false;
 	}
 
-	CommitExecute(ActorInfo);
+	CommitExecute(ActorInfo, ActivationInfo);
 	return true;
 }
 
-bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo ActorInfo)
+bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	return CanActivateAbility(ActorInfo);
 }
 
-void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!ActorInfo.AttributeComponent->IsNetSimulating() || ActorInfo.PredictionKey != 0)
+	if (!ActorInfo->AttributeComponent->IsNetSimulating() || ActivationInfo.PredictionKey != 0)
 	{
-		ApplyCooldown(ActorInfo);
+		ApplyCooldown(ActorInfo, ActivationInfo);
 
-		ApplyCost(ActorInfo);
+		ApplyCost(ActorInfo, ActivationInfo);
 	}
 }
 
-bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorInfo, UGameplayAbility ** OutInstancedAbility)
+bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, int32 PredictionKey, UGameplayAbility ** OutInstancedAbility)
 {	
 	// This should only come from button presses/local instigation
-	ENetRole NetMode = ActorInfo.Actor->Role;
+	ENetRole NetMode = ActorInfo->Actor->Role;
 	ensure(NetMode != ROLE_SimulatedProxy);
+	
+	FGameplayAbilityActivationInfo	ActivationInfo(ActorInfo->Actor.Get(), PredictionKey);
 
 	// Always do a non instanced CanActivate check
 	if (!CanActivateAbility(ActorInfo))
@@ -99,8 +101,8 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorI
 		
 		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
-			UGameplayAbility * Ability = ActorInfo.AttributeComponent->CreateNewInstanceOfAbility(this);
-			Ability->CallActivateAbility(ActorInfo);
+			UGameplayAbility * Ability = ActorInfo->AttributeComponent->CreateNewInstanceOfAbility(this);
+			Ability->CallActivateAbility(ActorInfo, ActivationInfo);
 			if (OutInstancedAbility)
 			{
 				*OutInstancedAbility = Ability;
@@ -108,17 +110,17 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorI
 		}
 		else
 		{
-			CallActivateAbility(ActorInfo);
+			CallActivateAbility(ActorInfo, ActivationInfo);
 		}
 	}
 	else if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Server)
 	{
-		ServerTryActivateAbility(ActorInfo);
+		ServerTryActivateAbility(ActorInfo, ActivationInfo);
 	}
 	else if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
-		ActorInfo.GeneratePredictionKey();
+		ActivationInfo.GeneratePredictionKey(ActorInfo->AttributeComponent.Get());
 
 		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -128,8 +130,8 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorI
 			
 			if(GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
 			{
-				UGameplayAbility * Ability = ActorInfo.AttributeComponent->CreateNewInstanceOfAbility(this);
-				Ability->CallPredictiveActivateAbility(ActorInfo);
+				UGameplayAbility * Ability = ActorInfo->AttributeComponent->CreateNewInstanceOfAbility(this);
+				Ability->CallPredictiveActivateAbility(ActorInfo, ActivationInfo);
 				if (OutInstancedAbility)
 				{
 					*OutInstancedAbility = Ability;
@@ -142,78 +144,78 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo ActorI
 		}
 		else
 		{
-			CallPredictiveActivateAbility(ActorInfo);
+			CallPredictiveActivateAbility(ActorInfo, ActivationInfo);
 		}
 		
-		ServerTryActivateAbility(ActorInfo);
+		ServerTryActivateAbility(ActorInfo, ActivationInfo);
 	}
 
 	return true;	
 }
 
-void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
 
 }
 
-void UGameplayAbility::ActivateAbility(FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	// Child classes may want to do stuff here...
 
-	if (CommitAbility(ActorInfo))		// ..then commit the ability...
+	if (CommitAbility(ActorInfo, ActivationInfo))		// ..then commit the ability...
 	{
 		//	Then do more stuff...
 	}
 }
 
-void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo.AttributeComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, this);
+	ActorInfo->AttributeComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
 }
 
-void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	PreActivate(ActorInfo);
-	ActivateAbility(ActorInfo);
+	PreActivate(ActorInfo, ActivationInfo);
+	ActivateAbility(ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::CallPredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	PreActivate(ActorInfo);
-	PredictiveActivateAbility(ActorInfo);
+	PreActivate(ActorInfo, ActivationInfo);
+	PredictiveActivateAbility(ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	
 }
 
-void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo.AttributeComponent->ServerTryActivateAbility(this, ActorInfo.PredictionKey);
+	ActorInfo->AttributeComponent->ServerTryActivateAbility(this, ActivationInfo.PredictionKey);
 }
 
-void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
-{
-	CallActivateAbility(ActorInfo);
+void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{ 
+	CallActivateAbility(ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::InputPressed(int32 InputID, const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::InputPressed(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
 {
 	TryActivateAbility(ActorInfo);
 }
 
-void UGameplayAbility::InputReleased(int32 InputID, const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
 {
 	SKILL_LOG(Log, TEXT("InputReleased: %d"), InputID);
 }
 
-bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo ActorInfo) const
+bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo.AttributeComponent.IsValid());
-		if (ActorInfo.AttributeComponent->HasAnyTags(CooldownGameplayEffect->OwnedTagsContainer))
+		check(ActorInfo->AttributeComponent.IsValid());
+		if (ActorInfo->AttributeComponent->HasAnyTags(CooldownGameplayEffect->OwnedTagsContainer))
 		{
 			return false;
 		}
@@ -221,40 +223,42 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo ActorInfo) 
 	return true;
 }
 
-void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo.AttributeComponent.IsValid());
-		ActorInfo.AttributeComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo.Actor.Get(), FModifierQualifier().PredictionKey(ActorInfo.PredictionKey));
+		check(ActorInfo->AttributeComponent.IsValid());
+		ActorInfo->AttributeComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
 	}
 }
 
-bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo ActorInfo) const
+bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	if (CostGameplayEffect)
 	{
-		check(ActorInfo.AttributeComponent.IsValid());
-		return ActorInfo.AttributeComponent->CanApplyAttributeModifiers(CostGameplayEffect, 1.f, ActorInfo.Actor.Get());
+		check(ActorInfo->AttributeComponent.IsValid());
+		return ActorInfo->AttributeComponent->CanApplyAttributeModifiers(CostGameplayEffect, 1.f, ActorInfo->Actor.Get());
 	}
 	return true;
 }
 
-void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	check(ActorInfo.AttributeComponent.IsValid());
+	check(ActorInfo->AttributeComponent.IsValid());
 	if (CostGameplayEffect)
 	{
-		ActorInfo.AttributeComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo.Actor.Get(), FModifierQualifier().PredictionKey(ActorInfo.PredictionKey));
+		ActorInfo->AttributeComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
 	}
 }
 
-float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo ActorInfo) const
+float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	check(ActorInfo.AttributeComponent.IsValid());
+	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemaining);
+
+	check(ActorInfo->AttributeComponent.IsValid());
 	if (CooldownGameplayEffect)
 	{
-		TArray< float > Durations = ActorInfo.AttributeComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
+		TArray< float > Durations = ActorInfo->AttributeComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
 		if (Durations.Num() > 0)
 		{
 			Durations.Sort();
@@ -267,29 +271,25 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 
 // --------------------------------------------------------------------
 
-void UGameplayAbility::MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo ActorInfo) const
+void UGameplayAbility::MontageBranchPoint_AbilityDecisionStop(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 
 }
 
-void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo ActorInfo) const
+void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const
 {
 
 }
 
-void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(AActor *Actor)
+void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 PredictionKey)
 {
-	if (Actor)
-	{
-		FGameplayAbilityActorInfo	ActorInfo;
-		ActorInfo.InitFromActor(Actor);
+	// Child classes can't override ClientActivateAbilitySucceed_Implementation, so just call ClientActivateAbilitySucceed_Internal
+	ClientActivateAbilitySucceed_Internal(PredictionKey);
+}
 
-		CallActivateAbility(ActorInfo);
-	}
-	else
-	{
-		SKILL_LOG(Warning, TEXT("ClientActivateAbilitySucceed called on %s with no valid Actor"), *GetName());
-	}
+void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey)
+{
+	SKILL_LOG(Fatal, TEXT("ClientActivateAbilitySucceed_Internal called on base class ability %s"), *GetName());
 }
 
 //----------------------------------------------------------------------
@@ -297,12 +297,6 @@ void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(AActor *Actor
 void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 {
 	Actor = InActor;
-
-	// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
-	// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
-	// 
-	ActivationMode = (Actor->Role == ROLE_Authority ? EGameplayAbilityActivationMode::Authority : EGameplayAbilityActivationMode::NonAuthority);
-	PredictionKey = 0;
 
 	// Grab Components that we care about
 	USkeletalMeshComponent * SkelMeshComponent = InActor->FindComponentByClass<USkeletalMeshComponent>();
@@ -316,30 +310,30 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
 }
 
-void FGameplayAbilityActorInfo::GeneratePredictionKey() const
+void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAttributeComponent * Component) const
 {
-	check(AttributeComponent.IsValid());
+	check(Component);
 	check(PredictionKey == 0);
 	check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
 
-	PredictionKey = AttributeComponent->GetNextPredictionKey();
+	PredictionKey = Component->GetNextPredictionKey();
 	ActivationMode = EGameplayAbilityActivationMode::Predicting;
 }
 
-void FGameplayAbilityActorInfo::SetPredictionKey(int32 InPredictionKey)
+void FGameplayAbilityActivationInfo::SetPredictionKey(int32 InPredictionKey)
 {
 	PredictionKey = InPredictionKey;
 }
 
-void FGameplayAbilityActorInfo::SetActivationConfirmed()
+void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 {
-	check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
+	//check(ActivationMode == EGameplayAbilityActivationMode::NonAuthority);
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
 }
 
 //----------------------------------------------------------------------
 
-void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
 {
 	// Improve relationship between InstigatorContext and 
 	

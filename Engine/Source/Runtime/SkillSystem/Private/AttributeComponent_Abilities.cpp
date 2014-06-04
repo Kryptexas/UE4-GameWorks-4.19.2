@@ -18,6 +18,8 @@
 void UAttributeComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
+
+	InitAbilityActorInfo();
 	
 	// Look for DSO AttributeSets
 	AActor *Owner = GetOwner();
@@ -35,6 +37,20 @@ void UAttributeComponent::InitializeComponent()
 			//ensure(Set->IsDefaultSubobject());
 			SpawnedAttributes.Add(Set);
 		}
+	}
+}
+
+void UAttributeComponent::InitAbilityActorInfo()
+{
+	if (!AbilityActorInfo.IsValid())
+	{
+		// Alloc (and init) a new actor info
+		AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(USkillSystemGlobals::Get().AllocAbilityActorInfo(GetOwner()));
+	}
+	else
+	{
+		// We already have a valid actor info, just reinit it.
+		AbilityActorInfo->InitFromActor(GetOwner());
 	}
 }
 
@@ -64,24 +80,24 @@ UGameplayAbility * UAttributeComponent::CreateNewInstanceOfAbility(UGameplayAbil
 
 bool UAttributeComponent::ActivateAbility(int32 AbilityIdx)
 {
+	check(AbilityActorInfo.IsValid());
+
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	FGameplayAbilityActorInfo	ActorInfo;
-	ActorInfo.InitFromActor(OwnerActor);
-
 	if (ActivatableAbilities.IsValidIndex(AbilityIdx))
 	{
-		// Fixme
-		ActivatableAbilities[AbilityIdx]->InputPressed(0, ActorInfo);
+		ActivatableAbilities[AbilityIdx]->InputPressed(0, AbilityActorInfo.Get());
 	}
 
 	return false;
 }
 
-void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo & ActorInfo, UGameplayAbility * Ignore)
+void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
 {
 	/**
+	 *	FIXME
+	 *
 	 *	Right now we are cancelling all activatable abilites that match Tags. This includes abilities that might not have been activated in the first place!
 	 *	For instanced-per-actor abilities this is fine. They could check if they were activated/still activating.
 	 *	For non-instanced abilities it is ambigous. We have no way to know 'how many' non-instanced abilities are in flight.
@@ -90,14 +106,14 @@ void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Ta
 
 	struct local
 	{
-		static void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo ActorInfo, UGameplayAbility * Ignore)
+		static void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility * Ignore)
 		{
 			for (int32 idx=0; idx < Abilities.Num(); ++idx)
 			{
 				UGameplayAbility *Ability = Abilities[idx];
 				if (Ability && (Ability != Ignore) && Ability->AbilityTags.MatchesAny(Tags, false))
 				{
-					Ability->CancelAbility(ActorInfo);
+					Ability->CancelAbility(ActorInfo, ActivationInfo);
 					if (!Ability->HasAnyFlags(RF_ClassDefaultObject) && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 					{
 						Ability->MarkPendingKill();
@@ -112,7 +128,7 @@ void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Ta
 	//local::CancelAbilitiesWithTags(Tags, ReplicatedInstancedAbilities, ActorInfo, Ignore);
 	//local::CancelAbilitiesWithTags(Tags, NonReplicatedInstancedAbilities, ActorInfo, Ignore);
 
-	local::CancelAbilitiesWithTags(Tags, ActivatableAbilities, ActorInfo, Ignore);
+	local::CancelAbilitiesWithTags(Tags, ActivatableAbilities, ActorInfo, ActivationInfo, Ignore);
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -125,7 +141,7 @@ static FAutoConsoleVariableRef CVarDenyClientActivation(
 	);
 #endif
 
-void UAttributeComponent::ServerTryActivateAbility_Implementation(class UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAttributeComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
@@ -137,21 +153,18 @@ void UAttributeComponent::ServerTryActivateAbility_Implementation(class UGamepla
 #endif
 
 	ensure(AbilityToActivate);
+	ensure(AbilityActorInfo.IsValid());
 
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	FGameplayAbilityActorInfo	ActorInfo;
-	ActorInfo.InitFromActor(OwnerActor);
-	ActorInfo.SetPredictionKey(PredictionKey);	// Set the prediction key in case anyone else needs it. But we are still Authority and not Predicting.
-
 	UGameplayAbility *InstancedAbility = NULL;
 
-	if (AbilityToActivate->TryActivateAbility(ActorInfo, &InstancedAbility))
+	if (AbilityToActivate->TryActivateAbility(AbilityActorInfo.Get(), PredictionKey, &InstancedAbility))
 	{
 		if (InstancedAbility && InstancedAbility->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
 		{
-			InstancedAbility->ClientActivateAbilitySucceed(OwnerActor);
+			InstancedAbility->ClientActivateAbilitySucceed(PredictionKey);
 		}
 		else
 		{
@@ -173,12 +186,12 @@ void UAttributeComponent::ServerTryActivateAbility_Implementation(class UGamepla
 	}
 }
 
-bool UAttributeComponent::ServerTryActivateAbility_Validate(class UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+bool UAttributeComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 	return true;
 }
 
-void UAttributeComponent::ClientActivateAbilityFailed_Implementation(class UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAttributeComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 	if (PredictionKey > 0)
 	{
@@ -201,19 +214,17 @@ void UAttributeComponent::ClientActivateAbilityFailed_Implementation(class UGame
 	}
 }
 
-void UAttributeComponent::ClientActivateAbilitySucceed_Implementation(class UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAttributeComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, int32 PredictionKey)
 {
 	ensure(AbilityToActivate);
+	ensure(AbilityActorInfo.IsValid());
 
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	FGameplayAbilityActorInfo	ActorInfo;
-	ActorInfo.InitFromActor(OwnerActor);
-	ActorInfo.SetPredictionKey(PredictionKey);
-	ActorInfo.SetActivationConfirmed();
+	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
 
-	AbilityToActivate->CallActivateAbility(ActorInfo);
+	AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
 }
 
 void UAttributeComponent::MontageBranchPoint_AbilityDecisionStop()
@@ -226,7 +237,7 @@ void UAttributeComponent::MontageBranchPoint_AbilityDecisionStop()
 		FGameplayAbilityActorInfo	ActorInfo;
 		ActorInfo.InitFromActor(OwnerActor);
 
-		AnimatingAbility->MontageBranchPoint_AbilityDecisionStop(ActorInfo);
+		AnimatingAbility->MontageBranchPoint_AbilityDecisionStop(AbilityActorInfo.Get());
 	}
 }
 
@@ -237,10 +248,7 @@ void UAttributeComponent::MontageBranchPoint_AbilityDecisionStart()
 		AActor * OwnerActor = GetOwner();
 		check(OwnerActor);
 
-		FGameplayAbilityActorInfo	ActorInfo;
-		ActorInfo.InitFromActor(OwnerActor);
-
-		AnimatingAbility->MontageBranchPoint_AbilityDecisionStart(ActorInfo);
+		AnimatingAbility->MontageBranchPoint_AbilityDecisionStart(AbilityActorInfo.Get());
 	}
 }
 

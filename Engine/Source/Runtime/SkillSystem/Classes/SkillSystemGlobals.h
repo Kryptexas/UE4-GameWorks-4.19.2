@@ -6,6 +6,7 @@
 
 class AActor;
 class UAttributeComponent;
+struct FGameplayAbilityActorInfo;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
 UCLASS(config=Game)
@@ -35,11 +36,15 @@ class SKILLSYSTEM_API USkillSystemGlobals : public UObject
 		GlobalAttributeDataTable = InTable;
 	}
 
+	static USkillSystemGlobals&	Get();
+
 	/**
 	 *	Games may want to override this in a UMyProjectSkillSystemsGlobals class and provide
 	 *	a faster lookup for attribute compnents (E.g. Cast<MyProjPawn>(Actor)->AttributeComponent; etc)
 	 */
 	virtual UAttributeComponent * GetAttributeComponentFromActor(AActor *Actor) const;
+
+	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo(AActor *Actor) const;
 
 private:
 

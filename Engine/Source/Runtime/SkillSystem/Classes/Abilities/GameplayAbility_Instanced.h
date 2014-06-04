@@ -17,38 +17,55 @@ class SKILLSYSTEM_API UGameplayAbility_Instanced : public UGameplayAbility
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	virtual void ClientActivateAbilitySucceed_Internal(int32 PredictionKey) OVERRIDE;
 	
-	virtual void EndAbility(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo) OVERRIDE;
 	
 	// -------------------------------------------------
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
-	virtual bool K2_CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const;
+	virtual bool K2_CanActivateAbility() const;
 
-	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const OVERRIDE;
-
-	// -------------------------------------------------
-
-	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
-	virtual void K2_CommitExecute(const FGameplayAbilityActorInfo ActorInfo);
-
-	virtual void CommitExecute(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+	virtual bool CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const OVERRIDE;
 
 	// -------------------------------------------------
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
-	virtual void K2_ActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void K2_CommitExecute();
 
-	virtual void ActivateAbility(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+	virtual void CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) OVERRIDE;
 
 	// -------------------------------------------------
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
-	virtual void K2_PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo);
+	virtual void K2_ActivateAbility();
 
-	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo) OVERRIDE;
+	virtual void ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) OVERRIDE;
 
 	// -------------------------------------------------
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
+	virtual void K2_PredictiveActivateAbility();
+
+	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) OVERRIDE;
+
+	// -------------------------------------------------
+
+	UFUNCTION(BlueprintPure, Category = Ability)
+	FGameplayAbilityActorInfo GetActorInfo();
+
+	// -------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	virtual bool K2_CommitAbility();
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	virtual void K2_EndAbility();
+	
+
+	// -------------------------------------------------
+
 
 	virtual EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const OVERRIDE
 	{
@@ -70,6 +87,19 @@ public:
 
 	bool CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack);
 
-private:
-	
+
+	// -------------------------------------------------
+
+
+	/** This is shared, cached information about the thing using us
+	 *		E.g, Actor*, MovementComponent*, AnimInstance, etc.
+	 *		This is hopefully allocated once per actor and shared by many abilities.
+	 *		The actual struct may be overridden per game to include game specific data.
+	 *		(E.g, child classes may want to cast to FMyGameAbilityActorInfo)
+	 */
+	mutable const FGameplayAbilityActorInfo * CurrentActorInfo;
+
+	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authorting, confirmed, etc. */
+	UPROPERTY(BlueprintReadOnly, Category=Ability)
+	FGameplayAbilityActivationInfo	CurrentActivationInfo;
 };

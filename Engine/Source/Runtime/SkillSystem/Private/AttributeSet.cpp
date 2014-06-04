@@ -199,7 +199,7 @@ void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOve
 	}
 
 	// Look at global defaults
-	const UCurveTable * GlobalTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
+	const UCurveTable * GlobalTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
 	if (GlobalTable)
 	{
 		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);

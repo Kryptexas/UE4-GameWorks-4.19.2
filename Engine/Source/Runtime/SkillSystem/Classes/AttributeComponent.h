@@ -234,7 +234,7 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	 *	GameplayAbilities
 	 *	
 	 *	The role of the AttributeComponent wrt Abilities is to provide:
-	 *		-Management of abiltiy instances (whether per actor or per instance).
+	 *		-Management of abiltiy instances (whether per actor or per execution instance).
 	 *			-Someone *has* to keep track of these instances.
 	 *			-Non instanced abilities *could* be executed without any ability stuff in attribute component.
 	 *				They should be able to operate on an GameplayAbilityActorInfo + GameplayAbility.
@@ -245,9 +245,9 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	 *	
 	 */
 
-	class UGameplayAbility * CreateNewInstanceOfAbility(UGameplayAbility *Ability);
+	class UGameplayAbility * CreateNewInstanceOfAbility(UGameplayAbility* Ability);
 
-	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo & ActorInfo, UGameplayAbility * Ignore);
+	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
 	
 	/** References to non-replicating abilities that we instanced. We need to keep these refernces to avoid GC */
 	UPROPERTY()
@@ -271,13 +271,13 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void	ServerTryActivateAbility(class UGameplayAbility * AbilityToActivate, int32 PredictionKey);
+	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilityFailed(class UGameplayAbility * AbilityToActivate, int32 PredictionKey);
+	void	ClientActivateAbilityFailed(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
-	void	ClientActivateAbilitySucceed(class UGameplayAbility * AbilityToActivate, int32 PredictionKey);
+	void	ClientActivateAbilitySucceed(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -296,8 +296,11 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	
 
 	// -----------------------------------------------------------------------------
-	
-	
+
+	/** Cached off data about the owning actor that abilities will need to frequently access (movement component, mesh component, anim instance, etc) */
+	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
+
+	void InitAbilityActorInfo();
 
 private:
 

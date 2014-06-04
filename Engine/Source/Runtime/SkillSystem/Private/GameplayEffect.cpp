@@ -11,8 +11,6 @@ const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
 const float UGameplayEffect::NO_PERIOD = 0.f;
 const float FGameplayEffectLevelSpec::INVALID_LEVEL = -1.f;
 
-#pragma optimize( "", off )
-
 #if SKILL_SYSTEM_AGGREGATOR_DEBUG
 FAggregator::FAllocationStats FAggregator::AllocationStats;
 #endif
@@ -80,7 +78,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor * 
 		}
 		else
 		{
-			UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalAttributeDataTable();
+			UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
 
 			if (Def->Modifiers[0].ModifierType != EGameplayMod::Attribute)
 			{
@@ -126,7 +124,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect *InDef, AActor * 
 			}
 		}
 		
-		UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalAttributeDataTable();
+		UDataTable* DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalAttributeDataTable();
 
 		// check for other attributes that may allow stacking and warn that they will be ignored
 		for (int32 Idx = 1; Idx < Def->Modifiers.Num(); ++Idx)

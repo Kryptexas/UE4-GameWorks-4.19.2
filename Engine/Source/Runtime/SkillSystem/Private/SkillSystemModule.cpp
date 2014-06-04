@@ -11,10 +11,10 @@ class FSkillSystemModule : public ISkillSystemModule
 	virtual void ShutdownModule() OVERRIDE;
 	// End IModuleInterface
 
-	virtual USkillSystemGlobals& GetSkillSystemGlobals()
+	virtual USkillSystemGlobals* GetSkillSystemGlobals()
 	{
 		check(SkillSystemGlobals);
-		return *SkillSystemGlobals;
+		return SkillSystemGlobals;
 	}
 
 	USkillSystemGlobals *SkillSystemGlobals;
@@ -26,7 +26,7 @@ private:
 IMPLEMENT_MODULE( FSkillSystemModule, SkillSystem )
 
 void FSkillSystemModule::StartupModule()
-{
+{	
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
 	SkillSystemGlobals = ConstructObject<USkillSystemGlobals>(USkillSystemGlobals::StaticClass(), GetTransientPackage(), NAME_None, RF_RootSet);
 }

@@ -362,7 +362,7 @@ UCurveTable * FScalableFloatDetails::GetCurveTable()
 
 	if (CurveTable == NULL)
 	{
-		CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
+		CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
 	}
 
 	return CurveTable;

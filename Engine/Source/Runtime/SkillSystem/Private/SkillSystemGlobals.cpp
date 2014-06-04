@@ -2,6 +2,7 @@
 
 #include "SkillSystemModulePrivatePCH.h"
 #include "AttributeComponent.h"
+#include "SkillSystemTypes.h"
 
 USkillSystemGlobals::USkillSystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -72,4 +73,21 @@ UAttributeComponent * USkillSystemGlobals::GetAttributeComponentFromActor(AActor
 	// Caller should check this
 	ensure(false);
 	return NULL;
+}
+
+FGameplayAbilityActorInfo * USkillSystemGlobals::AllocAbilityActorInfo(AActor *Actor) const
+{
+	FGameplayAbilityActorInfo * Info = new FGameplayAbilityActorInfo();
+	Info->InitFromActor(Actor);
+	return Info;
+}
+
+/** This is just some syntax sugar to avoid calling gode to have to ISkillSystemModule::Get() */
+USkillSystemGlobals& USkillSystemGlobals::Get()
+{
+	static USkillSystemGlobals * GlobalPtr = ISkillSystemModule::Get().GetSkillSystemGlobals();
+	check(GlobalPtr == ISkillSystemModule::Get().GetSkillSystemGlobals());
+	check(GlobalPtr);
+
+	return *GlobalPtr;
 }

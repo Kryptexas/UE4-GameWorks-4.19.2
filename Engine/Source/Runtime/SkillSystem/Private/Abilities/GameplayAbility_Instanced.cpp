@@ -17,8 +17,10 @@ UGameplayAbility_Instanced::UGameplayAbility_Instanced(const class FPostConstruc
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateOwner;
 }
 
-bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorInfo ActorInfo) const
+bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
 {
+	CurrentActorInfo = ActorInfo;
+
 	if (!Super::CanActivateAbility(ActorInfo))
 	{
 		return false;
@@ -30,7 +32,7 @@ bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorI
 
 	if (CanActivateFunction
 		&& CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass())
-		&& K2_CanActivateAbility(ActorInfo) == false)
+		&& K2_CanActivateAbility() == false)
 	{
 		SKILL_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
 		return false;
@@ -39,9 +41,12 @@ bool UGameplayAbility_Instanced::CanActivateAbility(const FGameplayAbilityActorI
 	return true;
 }
 
-void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	Super::CommitExecute(ActorInfo);
+	CurrentActorInfo = ActorInfo;
+	CurrentActivationInfo = ActivationInfo;
+
+	Super::CommitExecute(ActorInfo, ActivationInfo);
 
 	check(!HasAnyFlags(RF_ClassDefaultObject));
 
@@ -51,25 +56,33 @@ void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo A
 
 	if (CanActivateFunction	&& CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
 	{
-		K2_CommitExecute(ActorInfo);
+		K2_CommitExecute();
 	}
 }
 
-void UGameplayAbility_Instanced::ActivateAbility(FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility_Instanced::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	CurrentActorInfo = ActorInfo;
+	CurrentActivationInfo = ActivationInfo;
+
 	// Call into blueprint (fixme: cache this)
 	static FName FuncName = FName(TEXT("K2_ActivateAbility"));
 	UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
 
 	if (CanActivateFunction	&& CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
 	{
-		K2_ActivateAbility(ActorInfo);
+		K2_ActivateAbility();
 	}
 }
 
-void UGameplayAbility_Instanced::PredictiveActivateAbility(const FGameplayAbilityActorInfo ActorInfo)
+void UGameplayAbility_Instanced::PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	Super::PredictiveActivateAbility(ActorInfo);
+	check(ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting);
+
+	CurrentActorInfo = ActorInfo;
+	CurrentActivationInfo = ActivationInfo;
+
+	Super::PredictiveActivateAbility(ActorInfo, ActivationInfo);
 
 	// FIXME
 	if(!HasAnyFlags(RF_ClassDefaultObject))
@@ -80,14 +93,68 @@ void UGameplayAbility_Instanced::PredictiveActivateAbility(const FGameplayAbilit
 
 		if (PredictiveActivateFunction&& PredictiveActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()))
 		{
-			K2_PredictiveActivateAbility(ActorInfo);
+			K2_PredictiveActivateAbility();
 		}
 	}
 }
 
+void UGameplayAbility_Instanced::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
+{
+	CurrentActorInfo = ActorInfo;
+
+	Super::EndAbility(ActorInfo);
+
+	if (InstancedPerExecution)
+	{
+		MarkPendingKill();
+	}
+
+	// Remove from owning attributecomponent?
+	// generic way of releasing all callbacks!
+}
+
+FGameplayAbilityActorInfo UGameplayAbility_Instanced::GetActorInfo()
+{
+	check(CurrentActorInfo);
+	return *CurrentActorInfo;
+}
+
+/**
+* Attempts to commit the ability (spend resources, etc). This our last chance to fail.
+*	-Child classes that override ActivateAbility must call this themselves!
+*/
+
+
+bool UGameplayAbility_Instanced::K2_CommitAbility()
+{
+	check(CurrentActorInfo);
+	return CommitAbility(CurrentActorInfo, CurrentActivationInfo);
+}
+
+void UGameplayAbility_Instanced::K2_EndAbility()
+{
+	check(CurrentActorInfo);
+	EndAbility(CurrentActorInfo);
+}
+
+void UGameplayAbility_Instanced::ClientActivateAbilitySucceed_Internal(int32 PredictionKey)
+{
+	check(CurrentActorInfo);
+	CurrentActivationInfo.SetActivationConfirmed();
+
+	CallActivateAbility(CurrentActorInfo, CurrentActivationInfo);
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	Replication boilerplate
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 int32 UGameplayAbility_Instanced::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
 {
-	if(HasAnyFlags(RF_ClassDefaultObject))
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		return FunctionCallspace::Local;
 	}
@@ -111,15 +178,6 @@ bool UGameplayAbility_Instanced::CallRemoteFunction(UFunction* Function, void* P
 	return false;
 }
 
-void UGameplayAbility_Instanced::EndAbility(const FGameplayAbilityActorInfo ActorInfo)
-{
-	Super::EndAbility(ActorInfo);
 
-	if (InstancedPerExecution)
-	{
-		MarkPendingKill();
-	}
 
-	// Remove from owning attributecomponent?
-	// generic way of releasing all callbacks!
-}
+

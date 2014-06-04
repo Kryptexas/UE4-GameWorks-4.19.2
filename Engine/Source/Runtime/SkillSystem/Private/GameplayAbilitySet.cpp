@@ -24,7 +24,7 @@ void InputPressed(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> ActorO
 			UGameplayAbility * Ability = AttributeComponent->ActivatableAbilities[AbilityIdx];
 			if (Ability)
 			{
-				Ability->InputPressed(InputID, ActorInfo);
+				Ability->InputPressed(InputID, AttributeComponent->AbilityActorInfo.Get());
 			}
 		}
 	}
@@ -43,7 +43,7 @@ void InputReleased(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> Actor
 			UGameplayAbility * Ability = AttributeComponent->ActivatableAbilities[AbilityIdx];
 			if (Ability)
 			{
-				Ability->InputReleased(InputID, ActorInfo);
+				Ability->InputReleased(InputID, AttributeComponent->AbilityActorInfo.Get());
 			}
 		}
 	}
@@ -64,12 +64,6 @@ UGameplayAbilitySet::UGameplayAbilitySet(const class FPostConstructInitializePro
 
 void UGameplayAbilitySet::InitializeAbilities(UAttributeComponent *AttributeComponent) const
 {
-	AActor * OwnerActor = AttributeComponent->GetOwner();
-	check(OwnerActor);
-
-	FGameplayAbilityActorInfo	ActorInfo;
-	ActorInfo.InitFromActor(OwnerActor);
-
 	for (const FGameplayAbilityBindInfo &BindInfo : this->Abilities)
 	{
 		UGameplayAbility * Ability = BindInfo.GameplayAbilityClass ? BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>() : BindInfo.GameplayAbilityInstance;
@@ -89,9 +83,6 @@ void UGameplayAbilitySet::BindInputComponentToAbilities(UInputComponent *InputCo
 {
 	AActor * OwnerActor = AttributeComponent->GetOwner();
 	check(OwnerActor);
-
-	FGameplayAbilityActorInfo	ActorInfo;
-	ActorInfo.InitFromActor(OwnerActor);
 
 	for (int32 idx = 0; idx < this->Abilities.Num(); ++idx)
 	{
