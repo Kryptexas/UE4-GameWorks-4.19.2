@@ -1,0 +1,77 @@
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+
+=============================================================================*/
+
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"
+#include "ReflectionEnvironmentShared.usf"
+
+float BentNormalUVScale;
+float ApplyShadowing;
+Texture2D BentNormalAOTexture;
+SamplerState BentNormalAOSampler;
+
+void SkyLightDiffusePS(
+	in float4 UVAndScreenPos : TEXCOORD0, 
+	out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+	uint ShadingModelId = GetShadingModelId(UV);
+	float3 Lighting = 0; 
+
+	BRANCH
+	// Only light pixels marked as lit
+	if (ShadingModelId > 0)
+	{
+		FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+		FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
+
+		float SkyVisibility = 1;
+		float DotProductFactor = 1;
+		float3 SkyLightingNormal = InGBufferData.WorldNormal;
+
+		BRANCH
+		if (ApplyShadowing > 0)
+		{
+			float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV * BentNormalUVScale, 0).xyz;
+			SkyVisibility = BentNormal.x;
+
+			// Disabled for now as it needs tweaking
+			#define USE_DYNAMIC_OCCLUSION_BENT_NORMAL 0
+			#if USE_DYNAMIC_OCCLUSION_BENT_NORMAL
+				SkyVisibility = length(BentNormal);
+				float3 NormalizedBentNormal = BentNormal / (max(SkyVisibility, .00001f));
+
+				// Weight toward the material normal to increase directionality
+				float BentNormalWeightFactor = 1 - (1 - SkyVisibility) * (1 - SkyVisibility);
+
+				// We are lerping between the inputs of two lighting scenarios based on occlusion
+				// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
+				// In the mostly occluded case, evaluate sky lighting with the bent normal, because it is a better representation of the incoming lighting
+				// Then treat the lighting evaluated along the bent normal as an area light, so we must apply the lambert term
+				SkyLightingNormal = lerp(NormalizedBentNormal, InGBufferData.WorldNormal, BentNormalWeightFactor);
+				DotProductFactor = lerp(dot(NormalizedBentNormal, InGBufferData.WorldNormal), 1, BentNormalWeightFactor);
+			#endif
+
+			if (InGBufferData.HasDistanceFieldRepresentation == 0)
+			{
+				SkyVisibility = .5f;
+			}
+		}
+			
+		// Compute the preconvolved incoming lighting with the bent normal direction
+		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
+
+		float ScalarFactors = SkyVisibility * DotProductFactor * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+
+		// Apply AO to the sky diffuse and account for darkening due to the geometry term
+		Lighting = ScalarFactors * DiffuseLookup * InGBufferData.DiffuseColor;
+
+		// For debugging
+		//Lighting = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV * BentNormalUVScale, 0).xyz;
+	}
+
+	OutColor = float4(Lighting, 0);
+}

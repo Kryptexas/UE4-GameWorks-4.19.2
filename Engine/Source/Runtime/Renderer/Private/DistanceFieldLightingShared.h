@@ -22,34 +22,7 @@ const int32 NumConeSampleDirections = 9;
 /** Generates unit length, stratified and uniformly distributed direction samples in a hemisphere. */
 extern void GenerateStratifiedUniformHemisphereSamples2(int32 NumThetaSteps, int32 NumPhiSteps, FRandomStream& RandomStream, TArray<FVector4>& Samples);
 
-// Optimized with GA, Best =  -2.764536 after 117591 Steps
-const FVector RandomVectors9[] = 
-{
-	FVector(-0.134453, 0.570145, 0.810467),
-	FVector(0.600695, 0.732059, 0.321333),
-	FVector(0.591856, -0.692181, 0.413028),
-	FVector(0.065080, -0.293309, 0.953800),
-	FVector(-0.952426, -0.251775, 0.171737),
-	FVector(0.047865, -0.998847, 0.003783),
-	FVector(-0.476063, -0.743138, 0.470224),
-	FVector(-0.837584, 0.480720, 0.259541),
-	FVector(0.780739, 0.035320, 0.623858)
-};
-
-// Sample set restricted to not self-intersect a surface based on cone angle .475882232
-// Coverage of hemisphere = 0.755312979
-const FVector SpacedVectors9[] = 
-{
-	FVector(-0.573257625, 0.625250816, 0.529563010),
-	FVector(0.253354192, -0.840093017, 0.479640961),
-	FVector(-0.421664953, -0.718063235, 0.553700149),
-	FVector(0.249163717, 0.796005428, 0.551627457),
-	FVector(0.375082791, 0.295851320, 0.878512800),
-	FVector(-0.217619032, 0.00193520682, 0.976031899),
-	FVector(-0.852834642, 0.0111727007, 0.522061586),
-	FVector(0.745701790, 0.239393353, 0.621787369),
-	FVector(-0.151036426, -0.465937436, 0.871831656)
-};
+extern void GetSpacedVectors(TArray<TInlineAllocator<9> >& OutVectors);
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FAOSampleData2,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SampleDirections,[NumConeSampleDirections])

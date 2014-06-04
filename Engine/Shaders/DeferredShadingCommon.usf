@@ -248,6 +248,11 @@ float Decode71(float Scalar, out int Mask)
 	return (Scalar - 0.5f * Mask) * 2.0f;
 }
 
+uint DecodeShadingModelId(float InPackedChannel)
+{
+	return (uint)( InPackedChannel * 255.999 );
+}
+
 #define SHADINGMODELID_UNLIT				0
 #define SHADINGMODELID_DEFAULT_LIT			1
 #define SHADINGMODELID_SUBSURFACE			2
@@ -396,7 +401,7 @@ FGBufferData DecodeGBufferData(
 	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
 	ret.DecalMask = PackedAlpha & 2;
 	ret.HasDistanceFieldRepresentation = PackedAlpha & 1;
-	ret.ShadingModelID	= (uint)( InGBufferB.a * 255.999 );
+	ret.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
 	bool bSubsurface = (ret.ShadingModelID == SHADINGMODELID_SUBSURFACE || ret.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
 
@@ -634,6 +639,13 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	float SceneDepth = CalcSceneDepth(UV);
 	
 	return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+}
+
+// Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
+uint GetShadingModelId(float2 UV)
+{
+	float4 GBufferB = Texture2DSampleLevel(GBufferBTexture, GBufferBTextureSampler, UV, 0);
+	return DecodeShadingModelId(GBufferB.a);
 }
 
 // @param UV - UV space in the DBuffer textures (BufferSize resolution)

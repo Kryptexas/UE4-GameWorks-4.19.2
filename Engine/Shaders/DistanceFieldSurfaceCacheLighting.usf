@@ -36,7 +36,6 @@ void ObjectCullVS(
 	Output.ObjectIndex = ObjectIndex;
 } 
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 RWBuffer<uint> RWTileHeadDataUnpacked;
 RWBuffer<uint> RWTileArrayData;
 
@@ -101,7 +100,6 @@ void ObjectCullPS(
 		}
 	}
 }
-#endif
 
 
 float2 UVToTileHead;
@@ -196,8 +194,6 @@ void ComputeDistanceFieldNormalPS(
 	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
 	OutColor = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
 }
-
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 
 #define THREADS_PER_PIXEL 1
 
@@ -339,7 +335,6 @@ void ComputeDistanceFieldNormalCS(
 		RWDistanceFieldNormal[PixelCoordinate] = OutValue;
 	}
 }
-#endif
 
 // For some reason gives innaccurate results at lower resolutions
 #define USE_SCREENVECTOR_WORLD_POSITION FINAL_INTERPOLATION_PASS
@@ -478,9 +473,10 @@ void IrradianceCacheSplatPS(
 		OutColor.a = Weight;
 	}
 
-	#if FINAL_INTERPOLATION_PASS
+	#define VISUALIZE_RECORD_POINTS 0
+	#if VISUALIZE_RECORD_POINTS && FINAL_INTERPOLATION_PASS
 		// Visualize cache record points
-		//OutColor.a = (DistanceError < .05f) * .1f;
+		OutColor.a = (DistanceError < .05f) * .1f;
 	#endif
 }
 
@@ -495,7 +491,13 @@ void AOCombinePS2(
 	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + .5f) * View.ViewSizeAndSceneTexelSize.zw);
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 
-#if 1
+#define VISUALIZE_ACCUMULATED_WEIGHTS 0
+#if VISUALIZE_ACCUMULATED_WEIGHTS
+
+	float3 BentNormalAO = Texture2DSampleLevel(BentNormalAOTexture3, BentNormalAOSampler3, UVAndScreenPos.xy, 0).aaa;
+	OutColor = float4(BentNormalAO, SceneDepth); 
+
+#else
 
 	float4 IrradianceCacheAccumulation = Texture2DSampleLevel(BentNormalAOTexture3, BentNormalAOSampler3, UVAndScreenPos.xy, 0);
 	float3 BentNormalAO = float3(0, 0, 0);
@@ -522,9 +524,6 @@ void AOCombinePS2(
 		OutColor.a = abs(OutColor.a);
 	}
 
-#else
-	float3 BentNormalAO = Texture2DSampleLevel(BentNormalAOTexture3, BentNormalAOSampler3, UVAndScreenPos.xy, 0).aaa;
-	OutColor = float4(BentNormalAO, SceneDepth); 
 #endif
 }
 
@@ -651,70 +650,4 @@ void AOUpsamplePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 #endif
 
 	OutColor = float4(BentNormal, 1);
-}
-
-float BentNormalUVScale;
-float ApplyShadowing;
-
-void SkyLightDiffusePS(
-	in float4 UVAndScreenPos : TEXCOORD0, 
-	out float4 OutColor : SV_Target0)
-{
-	float2 UV = UVAndScreenPos.xy;
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
-	
-	float3 Lighting = 0; 
-
-	BRANCH
-	// Only light pixels marked as lit
-	if (InGBufferData.ShadingModelID > 0)
-	{
-		float SkyVisibility = 1;
-		float DotProductFactor = 1;
-		float3 SkyLightingNormal = InGBufferData.WorldNormal;
-
-		BRANCH
-		if (ApplyShadowing > 0)
-		{
-			float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV * BentNormalUVScale, 0).xyz;
-			SkyVisibility = BentNormal.x;
-
-			// Disabled for now as it needs tweaking
-			#define USE_DYNAMIC_OCCLUSION_BENT_NORMAL 0
-			#if USE_DYNAMIC_OCCLUSION_BENT_NORMAL
-				SkyVisibility = length(BentNormal);
-				float3 NormalizedBentNormal = BentNormal / (max(SkyVisibility, .00001f));
-
-				// Weight toward the material normal to increase directionality
-				float BentNormalWeightFactor = 1 - (1 - SkyVisibility) * (1 - SkyVisibility);
-
-				// We are lerping between the inputs of two lighting scenarios based on occlusion
-				// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
-				// In the mostly occluded case, evaluate sky lighting with the bent normal, because it is a better representation of the incoming lighting
-				// Then treat the lighting evaluated along the bent normal as an area light, so we must apply the lambert term
-				SkyLightingNormal = lerp(NormalizedBentNormal, InGBufferData.WorldNormal, BentNormalWeightFactor);
-				DotProductFactor = lerp(dot(NormalizedBentNormal, InGBufferData.WorldNormal), 1, BentNormalWeightFactor);
-			#endif
-
-			if (InGBufferData.HasDistanceFieldRepresentation == 0)
-			{
-				SkyVisibility = .5f;
-			}
-		}
-			
-		// Compute the preconvolved incoming lighting with the bent normal direction
-		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
-
-		float ScalarFactors = SkyVisibility * DotProductFactor * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
-
-		// Apply AO to the sky diffuse and account for darkening due to the geometry term
-		Lighting = ScalarFactors * DiffuseLookup * InGBufferData.DiffuseColor;
-
-		// For debugging
-		//Lighting = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV * BentNormalUVScale, 0).xyz;
-	}
-
-	OutColor = float4(Lighting, 0);
 }

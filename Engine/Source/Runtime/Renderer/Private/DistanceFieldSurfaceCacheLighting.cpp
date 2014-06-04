@@ -173,6 +173,14 @@ FAutoConsoleVariableRef CVarAOComputeShaderNormalCalculation(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
+int32 GAOSampleSet = 1;
+FAutoConsoleVariableRef CVarAOSampleSet(
+	TEXT("r.AOSampleSet"),
+	GAOSampleSet,
+	TEXT("0 = Original set, 1 = Relaxed set"),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAOSampleData2,TEXT("AOSamples2"));
 
 FIntPoint GetBufferSizeForAO()
@@ -185,6 +193,55 @@ FIntPoint GetBufferSizeForAO()
 bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
 {
 	return Platform == SP_PCD3D_SM5;
+}
+
+// Sample set restricted to not self-intersect a surface based on cone angle .475882232
+// Coverage of hemisphere = 0.755312979
+const FVector SpacedVectors9[] = 
+{
+	FVector(-0.573257625, 0.625250816, 0.529563010),
+	FVector(0.253354192, -0.840093017, 0.479640961),
+	FVector(-0.421664953, -0.718063235, 0.553700149),
+	FVector(0.249163717, 0.796005428, 0.551627457),
+	FVector(0.375082791, 0.295851320, 0.878512800),
+	FVector(-0.217619032, 0.00193520682, 0.976031899),
+	FVector(-0.852834642, 0.0111727007, 0.522061586),
+	FVector(0.745701790, 0.239393353, 0.621787369),
+	FVector(-0.151036426, -0.465937436, 0.871831656)
+};
+
+// Generated from SpacedVectors9 by applying repulsion forces until convergence
+const FVector RelaxedSpacedVectors9[] = 
+{
+	FVector(-0.467612, 0.739424, 0.484347),
+	FVector(0.517459, -0.705440, 0.484346),
+	FVector(-0.419848, -0.767551, 0.484347),
+	FVector(0.343077, 0.804802, 0.484347),
+	FVector(0.364239, 0.244290, 0.898695),
+	FVector(-0.381547, 0.185815, 0.905481),
+	FVector(-0.870176, -0.090559, 0.484347),
+	FVector(0.874448, 0.027390, 0.484346),
+	FVector(0.032967, -0.435625, 0.899524)
+};
+
+void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors)
+{
+	OutVectors.Empty(ARRAY_COUNT(SpacedVectors9));
+
+	if (GAOSampleSet == 0)
+	{
+		for (int32 i = 0; i < ARRAY_COUNT(SpacedVectors9); i++)
+		{
+			OutVectors.Add(SpacedVectors9[i]);
+		}
+	}
+	else
+	{
+		for (int32 i = 0; i < ARRAY_COUNT(RelaxedSpacedVectors9); i++)
+		{
+			OutVectors.Add(RelaxedSpacedVectors9[i]);
+		}
+	}
 }
 
 // Cone half angle derived from each cone covering an equal solid angle
@@ -1273,18 +1330,15 @@ public:
 
 		SetShaderValue(ShaderRHI, ViewDimensionsParameter, View.ViewRect);
 
-		static bool bInitialized = false;
-		static FAOSampleData2 AOSampleData;
+		FAOSampleData2 AOSampleData;
 
-		if (!bInitialized)
+		TArray<FVector, TInlineAllocator<9> > SampleDirections;
+		GetSpacedVectors(SampleDirections);
+
+		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
-			for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-			{
-				AOSampleData.SampleDirections[SampleIndex] = FVector4(SpacedVectors9[SampleIndex]);
-			}
-
-			bInitialized = true;
-		} 
+			AOSampleData.SampleDirections[SampleIndex] = FVector4(SampleDirections[SampleIndex]);
+		}
 
 		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FAOSampleData2>(), AOSampleData);
 
@@ -1299,7 +1353,7 @@ public:
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
-			UnoccludedVector += SpacedVectors9[SampleIndex];
+			UnoccludedVector += SampleDirections[SampleIndex];
 		}
 
 		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
@@ -1530,18 +1584,15 @@ public:
 
 		SetShaderValue(ShaderRHI, ViewDimensionsParameter, View.ViewRect);
 
-		static bool bInitialized = false;
-		static FAOSampleData2 AOSampleData;
+		FAOSampleData2 AOSampleData;
 
-		if (!bInitialized)
+		TArray<FVector, TInlineAllocator<9> > SampleDirections;
+		GetSpacedVectors(SampleDirections);
+
+		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
-			for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-			{
-				AOSampleData.SampleDirections[SampleIndex] = FVector4(SpacedVectors9[SampleIndex]);
-			}
-
-			bInitialized = true;
-		} 
+			AOSampleData.SampleDirections[SampleIndex] = FVector4(SampleDirections[SampleIndex]);
+		}
 
 		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FAOSampleData2>(), AOSampleData);
 
@@ -1563,7 +1614,7 @@ public:
 
 		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
 		{
-			UnoccludedVector += SpacedVectors9[SampleIndex];
+			UnoccludedVector += SampleDirections[SampleIndex];
 		}
 
 		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
@@ -2325,7 +2376,66 @@ FVector GetUnitVector2(FRandomStream& RandomStream)
 
 void GenerateBestSpacedVectors()
 {
-	if (false)
+	static bool bGenerated = false;
+	bool bApplyRepulsion = false;
+
+	if (bApplyRepulsion && !bGenerated)
+	{
+		bGenerated = true;
+
+		FVector OriginalSpacedVectors9[ARRAY_COUNT(SpacedVectors9)];
+
+		for (int32 i = 0; i < ARRAY_COUNT(OriginalSpacedVectors9); i++)
+		{
+			OriginalSpacedVectors9[i] = SpacedVectors9[i];
+		}
+
+		float CosHalfAngle = 1 - 1.0f / (float)ARRAY_COUNT(OriginalSpacedVectors9);
+		// Used to prevent self-shadowing on a plane
+		float AngleBias = .03f;
+		float MinAngle = FMath::Acos(CosHalfAngle) + AngleBias;
+		float MinZ = FMath::Sin(MinAngle);
+
+		// Relaxation iterations by repulsion
+		for (int32 Iteration = 0; Iteration < 10000; Iteration++)
+		{
+			for (int32 i = 0; i < ARRAY_COUNT(OriginalSpacedVectors9); i++)
+			{
+				FVector Force(0.0f, 0.0f, 0.0f);
+
+				for (int32 j = 0; j < ARRAY_COUNT(OriginalSpacedVectors9); j++)
+				{
+					if (i != j)
+					{
+						FVector Distance = OriginalSpacedVectors9[i] - OriginalSpacedVectors9[j];
+						float Dot = OriginalSpacedVectors9[i] | OriginalSpacedVectors9[j];
+
+						if (Dot > 0)
+						{
+							// Repulsion force
+							Force += .001f * Distance.SafeNormal() * Dot * Dot * Dot * Dot;
+						}
+					}
+				}
+
+				FVector NewPosition = OriginalSpacedVectors9[i] + Force;
+				NewPosition.Z = FMath::Max(NewPosition.Z, MinZ);
+				NewPosition = NewPosition.SafeNormal();
+				OriginalSpacedVectors9[i] = NewPosition;
+			}
+		}
+
+		for (int32 i = 0; i < ARRAY_COUNT(OriginalSpacedVectors9); i++)
+		{
+			UE_LOG(LogTemp, Log, TEXT("FVector(%f, %f, %f),"), OriginalSpacedVectors9[i].X, OriginalSpacedVectors9[i].Y, OriginalSpacedVectors9[i].Z);
+		}
+
+		int32 temp = 0;
+	}
+
+	bool bBruteForceGenerateConeDirections = false;
+
+	if (bBruteForceGenerateConeDirections)
 	{
 		FVector BestSpacedVectors9[9];
 		float BestCoverage = 0;
@@ -2337,7 +2447,7 @@ void GenerateBestSpacedVectors()
 		// Prevent self-intersection in sample set
 		float MinAngle = FMath::Acos(CosHalfAngle);
 		float MinZ = FMath::Sin(MinAngle);
-		FRandomStream RandomStream(1234567);
+		FRandomStream RandomStream(123567);
 
 		// Super slow random brute force search
 		for (int i = 0; i < 1000000; i++)
@@ -3023,7 +3133,7 @@ private:
 	FShaderParameter ApplyShadowing;
 };
 
-IMPLEMENT_SHADER_TYPE(,FDynamicSkyLightDiffusePS,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(,FDynamicSkyLightDiffusePS,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting()
 {
