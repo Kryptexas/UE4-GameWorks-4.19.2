@@ -38,16 +38,18 @@ running the editor yourself on Windows or Mac.  Oh, and you might want to watch 
 first.  Okay, here we go!
 
 1. We recommend using Git in order to participate in the community, but you can **download the source** as a zip file if you prefer. See instructions for 
-   [setting up Git](http://help.github.com/articles/set-up-git), then (fork our repository)(https://help.github.com/articles/fork-a-repo), clone it to your local 
+   [setting up Git](http://help.github.com/articles/set-up-git), then [fork our repository](https://help.github.com/articles/fork-a-repo), clone it to your local 
    machine, and switch to the 4.2 branch:
    
-    git checkout 4.2
+```
+git checkout 4.2
+```	
    
 1. You should now have an _UnrealEngine_ folder on your computer.  All of the source and dependencies will go into this folder.  The folder name might 
    have a branch suffix (such as _UnrealEngine-4.2_), but that's fine.
 
-1. Download the **required dependencies** zips:
-   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Required_1of2.zip), 
+1. Download the **required dependencies**:
+   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Required_1of2.zip) and
    [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Required_2of2.zip).
 
 1. Unzip the dependencies into the _UnrealEngine_ folder alongside the source.  Be careful to make sure the folders are merged together 
@@ -95,15 +97,15 @@ first.  Okay, here we go!
 
 ### Additional target platforms
 
-_Android_ development currently works best from a PC. See the (Android getting started guide)[https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/].
+**Android** development currently works best from a PC. See the [Android getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/).
 
-_iOS_ programming requires a Mac. Instructions are in the (iOS getting started guide)[https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html].
+**iOS** programming requires a Mac. Instructions are in the [iOS getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html).
 
-_HTML5_ is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
+**HTML5** is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
 
-_Linux_ support requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder, and the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v3_clang-3.3_ld-2.24_glibc-2.12.2.zip) to be installed. See the (Linux cross-compiling page on the wiki)[https://wiki.unrealengine.com/Compiling_For_Linux].
+**Linux** support requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip) to be unzipped into your _UnrealEngine_ folder, and the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v3_clang-3.3_ld-2.24_glibc-2.12.2.zip) to be installed. See the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux).
 
-_Playstation 4_ or _XboxOne_ development require additional files that can only be provided after your registered developer status is confirmed by Sony or Microsoft. See (the announcement blog post)[https://www.unrealengine.com/blog/playstation-4-and-xbox-one-now-supported] for more information.
+**Playstation 4** or **XboxOne** development require additional files that can only be provided after your registered developer status is confirmed by Sony or Microsoft. See [the announcement blog post](https://www.unrealengine.com/blog/playstation-4-and-xbox-one-now-supported) for more information.
 
 
 
