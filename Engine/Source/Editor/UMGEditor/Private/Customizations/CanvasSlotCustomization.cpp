@@ -10,16 +10,66 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-void FCanvasSlotCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
+void FCanvasSlotCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	// Build the layout category
-	IDetailCategoryBuilder& LayoutCategory = DetailLayout.EditCategory("Layout");
+	//IDetailCategoryBuilder& LayoutCategory = DetailLayout.EditCategory("Layout");
+}
 
-	TSharedRef<IPropertyHandle> AnchorsHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UCanvasPanelSlot, Anchors));
-	IDetailPropertyRow& AnchorsPropertyRow = LayoutCategory.AddProperty(AnchorsHandle);
+void FCanvasSlotCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
+{
+	CustomizeAnchors(PropertyHandle, ChildBuilder, CustomizationUtils);
+
+	FillOutChildren(PropertyHandle, ChildBuilder, CustomizationUtils);
+}
+
+void FCanvasSlotCustomization::FillOutChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
+{
+	// Generate all the other children
+	uint32 NumChildren;
+	PropertyHandle->GetNumChildren(NumChildren);
+
+	for ( uint32 ChildIndex = 0; ChildIndex < NumChildren; ChildIndex++ )
+	{
+		TSharedRef<IPropertyHandle> ChildHandle = PropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
+		if ( ChildHandle->IsCustomized() )
+		{
+			continue;
+		}
+
+		if ( ChildHandle->GetProperty() == NULL )
+		{
+			FillOutChildren(ChildHandle, ChildBuilder, CustomizationUtils);
+		}
+		else
+		{
+			ChildBuilder.AddChildProperty(ChildHandle);
+		}
+	}
+}
+
+void FCanvasSlotCustomization::CustomizeAnchors(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
+{
+	TSharedPtr<IPropertyHandle> Slot = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UCanvasPanelSlot, Anchors));
+
+	if ( !Slot.IsValid() )
+	{
+		return;
+	}
+
+	Slot->MarkHiddenByCustomization();
+
+	TSharedRef<IPropertyHandle> AnchorsHandle = Slot.ToSharedRef();
+
+	IDetailPropertyRow& AnchorsPropertyRow = ChildBuilder.AddChildProperty(AnchorsHandle);
 
 	const bool bShowChildren = true;
 	AnchorsPropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Anchors", "Anchors"))
+		]
 		.ValueContent()
 		[
 			SNew(SHorizontalBox)
@@ -194,7 +244,7 @@ void FCanvasSlotCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLay
 					+ SUniformGridPanel::Slot(3, 3)
 					[
 						SNew(SButton)
-						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(1, 1, 1, 1))
+						.OnClicked(this, &FCanvasSlotCustomization::OnAnchorClicked, AnchorsHandle, FAnchors(0, 0, 1, 1))
 						[
 							SNew(SImage)
 							.Image(FEditorStyle::Get().GetBrush("UMGEditor.FillFill"))
@@ -207,8 +257,14 @@ void FCanvasSlotCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLay
 
 FReply FCanvasSlotCustomization::OnAnchorClicked(TSharedRef<IPropertyHandle> AnchorsHandle, FAnchors Anchors)
 {
+	//TODO UMG Group under single undo transaction.
+
 	FString Value = FString::Printf(TEXT("(Minimum=(X=%f,Y=%f),Maximum=(X=%f,Y=%f))"), Anchors.Minimum.X, Anchors.Minimum.Y, Anchors.Maximum.X, Anchors.Maximum.Y);
 	AnchorsHandle->SetValueFromFormattedString(Value);
+
+	//TODO UMG Reset position, pivot.
+	//TODO UMG Moving the anchors shouldn't change the position of the widget, unless stretched.  But maybe that too should be based off current position and size.
+	//         Either way need access to cached geometry of the slot in the preview world...
 	
 	FSlateApplication::Get().DismissAllMenus();
 

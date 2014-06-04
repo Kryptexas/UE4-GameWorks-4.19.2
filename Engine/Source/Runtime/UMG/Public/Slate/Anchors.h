@@ -49,4 +49,10 @@ public:
 		: Minimum(InLeft, InTop)
 		, Maximum(InRight, InBottom)
 	{ }
+
+	/** Returns true if the anchors represent a stretch along the vertical axis */
+	bool IsStretchedVertical() const { return Minimum.Y != Maximum.Y; }
+
+	/** Returns true if the anchors represent a stretch along the horizontal axis */
+	bool IsStretchedHorizontal() const { return Minimum.X != Maximum.X; }
 };

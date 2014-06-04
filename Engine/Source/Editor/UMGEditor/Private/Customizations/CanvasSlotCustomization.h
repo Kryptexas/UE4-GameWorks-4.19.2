@@ -2,11 +2,11 @@
 
 #pragma once
 
-class FCanvasSlotCustomization : public IDetailCustomization
+class FCanvasSlotCustomization : public IPropertyTypeCustomization
 {
 public:
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<class IDetailCustomization> MakeInstance(UBlueprint* Blueprint)
+	static TSharedRef<class IPropertyTypeCustomization> MakeInstance(UBlueprint* Blueprint)
 	{
 		return MakeShareable(new FCanvasSlotCustomization(Blueprint));
 	}
@@ -16,10 +16,14 @@ public:
 	{
 	}
 	
-	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils) OVERRIDE;
+
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils) OVERRIDE;
 	
 private:
+
+	void CustomizeAnchors(TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils);
+	void FillOutChildren(TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils);
 	
 	FReply OnAnchorClicked(TSharedRef<IPropertyHandle> AnchorsHandle, FAnchors Anchors);
 

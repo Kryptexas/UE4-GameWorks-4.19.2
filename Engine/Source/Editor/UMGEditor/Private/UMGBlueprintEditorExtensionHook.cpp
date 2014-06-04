@@ -215,6 +215,10 @@ public:
 		FBlueprintDefaultsApplicationMode::PreDeactivateMode();
 
 		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
+
+		static FName PropertyEditor("PropertyEditor");
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("CanvasPanelSlot"));
 	}
 
 	virtual void PostActivateMode() OVERRIDE
@@ -226,9 +230,12 @@ public:
 		TSharedRef<class SKismetInspector> Inspector = MyBlueprintEditor.Pin()->GetInspector();
 		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
 		Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), LayoutDelegateDetails);
+
+		FOnGetPropertyTypeCustomizationInstance CanvasSlotCustomization = FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
 		
-		FOnGetDetailCustomizationInstance CanvasSlotCustomization = FOnGetDetailCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
-		Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UCanvasPanelSlot::StaticClass(), CanvasSlotCustomization);
+		static FName PropertyEditor("PropertyEditor");
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+		PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("PanelSlot"), CanvasSlotCustomization);
 	}
 
 	UWidgetBlueprint* GetBlueprint() const

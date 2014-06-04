@@ -18,11 +18,6 @@ public:
 	virtual void GetChildren(TArray< TSharedPtr<FWidgetViewModel> >& OutChildren)
 	{
 	}
-
-	virtual bool IsExpanded() const
-	{
-		return false;
-	}
 };
 
 /**  */
@@ -46,6 +41,9 @@ private:
 	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
+	void LoadItemExpanssion();
+	void SaveItemExpansion();
+
 	void AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template);
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;

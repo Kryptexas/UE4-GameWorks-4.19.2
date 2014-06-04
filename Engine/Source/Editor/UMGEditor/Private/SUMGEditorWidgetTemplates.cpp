@@ -95,12 +95,7 @@ public:
 	{
 		return GroupName;
 	}
-
-	virtual bool IsExpanded() const
-	{
-		return true;
-	}
-
+	
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) OVERRIDE
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
@@ -149,19 +144,36 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 		]
 	];
 
+	LoadItemExpanssion();
+}
+
+SUMGEditorWidgetTemplates::~SUMGEditorWidgetTemplates()
+{
+	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	SaveItemExpansion();
+}
+
+void SUMGEditorWidgetTemplates::LoadItemExpanssion()
+{
 	// Restore the expansion state of the widget groups.
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
 	{
-		if ( ViewModel->IsExpanded() )
+		bool IsExpanded;
+		if ( GConfig->GetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorUserSettingsIni) && IsExpanded )
 		{
 			WidgetTemplatesView->SetItemExpansion(ViewModel, true);
 		}
 	}
 }
 
-SUMGEditorWidgetTemplates::~SUMGEditorWidgetTemplates()
+void SUMGEditorWidgetTemplates::SaveItemExpansion()
 {
-	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	// Restore the expansion state of the widget groups.
+	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
+	{
+		const bool IsExpanded = WidgetTemplatesView->IsItemExpanded(ViewModel);
+		GConfig->SetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorUserSettingsIni);
+	}
 }
 
 UWidgetBlueprint* SUMGEditorWidgetTemplates::GetBlueprint() const

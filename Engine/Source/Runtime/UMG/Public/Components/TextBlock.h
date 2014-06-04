@@ -5,7 +5,7 @@
 #include "TextBlock.generated.h"
 
 /** A simple static text widget */
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( BlueprintSpawnableComponent, DisplayName="Text", Category="Common" ), ClassGroup=UserInterface )
 class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()
