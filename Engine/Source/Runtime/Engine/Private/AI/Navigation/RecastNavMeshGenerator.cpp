@@ -1717,6 +1717,7 @@ void FRecastTileGenerator::Init(class FRecastNavMeshGenerator* ParentGenerator, 
 	TileY = Y;
 	FMemory::Memcpy( BMin, TileBmin, sizeof( BMin ) );
 	FMemory::Memcpy( BMax, TileBmax, sizeof( BMin ) );
+	TileBB = Recast2UnrealBox(BMin, BMax);
 
 	// from passed in boxes pick the ones overlapping with tile bounds
 	InclusionBounds.Reset();
@@ -1726,8 +1727,7 @@ void FRecastTileGenerator::Init(class FRecastNavMeshGenerator* ParentGenerator, 
 	if (BoundingBoxes.Num() > 0)
 	{
 		bFullyEncapsulatedByInclusionBounds = false;
-			
-		TileBB = Recast2UnrealBox(BMin, BMax);
+
 		InclusionBounds.Reserve(BoundingBoxes.Num());
 
 		const FBox* Bounds = BoundingBoxes.GetTypedData();	
