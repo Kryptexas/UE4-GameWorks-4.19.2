@@ -23,7 +23,7 @@ TSharedRef<IPropertyTypeCustomization> FGuidStructCustomization::MakeInstance( )
 /* IPropertyTypeCustomization interface
  *****************************************************************************/
 
-void FGuidStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 	InputValid = true;
@@ -90,7 +90,7 @@ void FGuidStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle
 }
 
 
-void FGuidStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FGuidStructCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// do nothing
 }

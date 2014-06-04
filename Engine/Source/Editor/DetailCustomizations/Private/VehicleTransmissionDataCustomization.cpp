@@ -166,7 +166,7 @@ void FVehicleTransmissionDataCustomization::CreateGearUIDelegate(TSharedRef<IPro
 	CreateGearUIHelper(ChildrenBuilder.AddChildContent(Label.ToString()), Label, GearProperty, ForwardGear);
 }
 
-void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
+void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	// copy all transmision instances I'm accessing right now
 	TArray<void*> StructPtrs;
@@ -268,7 +268,7 @@ void FVehicleTransmissionDataCustomization::RemoveGear(TSharedRef<IPropertyHandl
 }
 
 
-void FVehicleTransmissionDataCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
+void FVehicleTransmissionDataCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	HeaderRow.
 	NameContent()

@@ -180,7 +180,7 @@ TSharedRef<IPropertyTypeCustomization> FStreamingLevelDetailsCustomization::Make
 
 void FStreamingLevelDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
-																IStructCustomizationUtils& StructCustomizationUtils )
+																IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow
 		.NameContent()
@@ -191,7 +191,7 @@ void FStreamingLevelDetailsCustomization::CustomizeHeader(TSharedRef<class IProp
 
 void FStreamingLevelDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
-																	IStructCustomizationUtils& StructCustomizationUtils )
+																	IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	TSharedPtr<IPropertyHandle> StreamingModeProperty = StructPropertyHandle->GetChildHandle(TEXT("StreamingMode"));
 	TSharedPtr<IPropertyHandle> PackageNameProperty = StructPropertyHandle->GetChildHandle(TEXT("PackageName"));
@@ -238,7 +238,7 @@ TSharedRef<IPropertyTypeCustomization> FTileLODEntryDetailsCustomization::MakeIn
 
 void FTileLODEntryDetailsCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, 
 																class FDetailWidgetRow& HeaderRow, 
-																IStructCustomizationUtils& StructCustomizationUtils )
+																IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow
 		.NameContent()
@@ -260,7 +260,7 @@ void FTileLODEntryDetailsCustomization::CustomizeHeader(TSharedRef<class IProper
 
 void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, 
 																	class IDetailChildrenBuilder& ChildBuilder, 
-																	IStructCustomizationUtils& StructCustomizationUtils )
+																	IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	LODIndexHandle = StructPropertyHandle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, LODIndex)

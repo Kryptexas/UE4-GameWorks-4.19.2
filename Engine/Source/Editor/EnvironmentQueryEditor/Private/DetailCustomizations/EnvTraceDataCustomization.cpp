@@ -12,7 +12,7 @@ TSharedRef<IPropertyTypeCustomization> FEnvTraceDataCustomization::MakeInstance(
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FEnvTraceDataCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvTraceDataCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	HeaderRow.NameContent()
 	[
@@ -31,7 +31,7 @@ void FEnvTraceDataCustomization::CustomizeHeader( TSharedRef<class IPropertyHand
 	CacheTraceModes(StructPropertyHandle);
 }
 
-void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvTraceDataCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	if (TraceModes.Num() > 1)
 	{

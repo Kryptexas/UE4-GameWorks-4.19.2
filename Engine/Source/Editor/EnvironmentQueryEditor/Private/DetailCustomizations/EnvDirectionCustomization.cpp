@@ -11,7 +11,7 @@ TSharedRef<IPropertyTypeCustomization> FEnvDirectionCustomization::MakeInstance(
 	return MakeShareable(new FEnvDirectionCustomization);
 }
 
-void FEnvDirectionCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvDirectionCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// create struct header
 	HeaderRow.NameContent()
@@ -36,7 +36,7 @@ void FEnvDirectionCustomization::CustomizeHeader( TSharedRef<class IPropertyHand
 	OnModeChanged();
 }
 
-void FEnvDirectionCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvDirectionCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	StructBuilder.AddChildProperty(ModeProp.ToSharedRef());
 

@@ -8,7 +8,7 @@ TSharedRef<IPropertyTypeCustomization> FSlateColorCustomization::MakeInstance()
 	return MakeShareable( new FSlateColorCustomization() );
 }
 
-void FSlateColorCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FSlateColorCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren;
 	StructPropertyHandle->GetNumChildren( NumChildren );
@@ -31,7 +31,7 @@ void FSlateColorCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle
 	check( SpecifiedColorHandle.IsValid() );
 }
 
-void FSlateColorCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FSlateColorCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	SpecifiedColorHandle->SetOnPropertyValueChanged( FSimpleDelegate::CreateSP( SharedThis( this ), &FSlateColorCustomization::OnValueChanged ) );
 	StructBuilder.AddChildProperty( SpecifiedColorHandle.ToSharedRef() )

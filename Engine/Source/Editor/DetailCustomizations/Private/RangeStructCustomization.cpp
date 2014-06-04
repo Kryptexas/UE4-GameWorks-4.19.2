@@ -53,7 +53,7 @@ TSharedRef<IPropertyTypeCustomization> FRangeStructCustomization<NumericType>::M
  *****************************************************************************/
 
 template <typename NumericType>
-void FRangeStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
+void FRangeStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	// Get handles to the properties we're interested in
 	LowerBoundStructHandle = StructPropertyHandle->GetChildHandle(TEXT("LowerBound"));
@@ -221,7 +221,7 @@ void FRangeStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IPropert
 
 
 template <typename NumericType>
-void FRangeStructCustomization<NumericType>::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils)
+void FRangeStructCustomization<NumericType>::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	// Don't display children, as editing them directly can break the constraints
 }

@@ -10,7 +10,7 @@ TSharedRef<IPropertyTypeCustomization> FEnvQueryParamSetupCustomization::MakeIns
 	return MakeShareable(new FEnvQueryParamSetupCustomization);
 }
 
-void FEnvQueryParamSetupCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamSetupCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	PropertyHandle = StructPropertyHandle;
 	CacheMyValues();
@@ -69,7 +69,7 @@ void FEnvQueryParamSetupCustomization::CustomizeHeader( TSharedRef<class IProper
 	OnModeChanged();
 }
 
-void FEnvQueryParamSetupCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FEnvQueryParamSetupCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// do nothing
 }
