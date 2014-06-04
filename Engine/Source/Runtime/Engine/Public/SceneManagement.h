@@ -29,6 +29,7 @@ class FVertexFactory;
 class FAtmosphericFogSceneInfo;
 class ISceneViewExtension;
 class HHitProxy;
+struct FDynamicMeshVertex;
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
@@ -3000,6 +3001,11 @@ extern ENGINE_API void DrawFrustumWireframe(
 	FColor Color,
 	uint8 DepthPriority
 	);
+
+void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int32 NumSides, TArray<FDynamicMeshVertex>& OutVerts, TArray<int32>& OutIndices);
+
+void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, float Radius, float HalfHeight, int32 Sides, TArray<FDynamicMeshVertex>& OutVerts, TArray<int32>& OutIndices);
+
 
 /**
  * Given a base color and a selection state, returns a color which accounts for the selection state.

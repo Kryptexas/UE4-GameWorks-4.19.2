@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "DynamicMeshBuilder.h"
 
 #define DEFAULT_SCREEN_SIZE	(0.0025f)
 #define ARROW_SCALE			(80.0f)
@@ -11,6 +12,75 @@
 #if WITH_EDITORONLY_DATA
 float UArrowComponent::EditorScale = 1.0f;
 #endif
+
+/** Vertex Buffer */
+class FArrowVertexBuffer : public FVertexBuffer
+{
+public:
+	TArray<FDynamicMeshVertex> Vertices;
+
+	virtual void InitRHI()
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex), BUF_Static, CreateInfo);
+
+		// Copy the vertex data into the vertex buffer.
+		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicMeshVertex));
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+
+};
+
+/** Index Buffer */
+class FArrowIndexBuffer : public FIndexBuffer
+{
+public:
+	TArray<int32> Indices;
+
+	virtual void InitRHI()
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo);
+
+		// Write the indices to the index buffer.
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
+		FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(int32));
+		RHIUnlockIndexBuffer(IndexBufferRHI);
+	}
+};
+
+/** Vertex Factory */
+class FArrowVertexFactory : public FLocalVertexFactory
+{
+public:
+
+	FArrowVertexFactory()
+	{}
+
+
+	/** Initialization */
+	void Init(const FArrowVertexBuffer* VertexBuffer)
+	{
+		check(!IsInRenderingThread());
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			InitArrowVertexFactory,
+			FArrowVertexFactory*, VertexFactory, this,
+			const FArrowVertexBuffer*, VertexBuffer, VertexBuffer,
+			{
+			// Initialize the vertex factory's stream components.
+			DataType NewData;
+			NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Position, VET_Float3);
+			NewData.TextureCoordinates.Add(
+				FVertexStreamComponent(VertexBuffer, STRUCT_OFFSET(FDynamicMeshVertex, TextureCoordinate), sizeof(FDynamicMeshVertex), VET_Float2)
+				);
+			NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentX, VET_PackedNormal);
+			NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, TangentZ, VET_PackedNormal);
+			VertexFactory->SetData(NewData);
+		});
+	}
+};
 
 /** Represents a UArrowComponent to the scene manager. */
 class FArrowSceneProxy : public FPrimitiveSceneProxy
@@ -38,6 +108,32 @@ public:
 			SpriteCategoryIndex = GEngine->GetSpriteCategoryIndex( Component->SpriteInfo.Category );
 		}
 #endif	//WITH_EDITOR
+
+		const float HeadAngle = FMath::DegreesToRadians(ARROW_HEAD_ANGLE);
+		const float TotalLength = ArrowSize * ARROW_SCALE;
+		const float HeadLength = TotalLength * ARROW_HEAD_FACTOR;
+		const float ShaftRadius = TotalLength * ARROW_RADIUS_FACTOR;
+		const float ShaftLength = (TotalLength - HeadLength) * 1.1f; // 10% overlap between shaft and head
+		const FVector ShaftCenter = FVector(0.5f * ShaftLength, 0, 0);
+
+		BuildConeVerts(HeadAngle, HeadAngle, -HeadLength, TotalLength, 32, VertexBuffer.Vertices, IndexBuffer.Indices);
+		BuildCylinderVerts(ShaftCenter, FVector(0,0,1), FVector(0,1,0), FVector(1,0,0), ShaftRadius, 0.5f * ShaftLength, 16, VertexBuffer.Vertices, IndexBuffer.Indices);
+
+
+		// Init vertex factory
+		VertexFactory.Init(&VertexBuffer);
+
+		// Enqueue initialization of render resource
+		BeginInitResource(&VertexBuffer);
+		BeginInitResource(&IndexBuffer);
+		BeginInitResource(&VertexFactory);
+	}
+
+	virtual ~FArrowSceneProxy()
+	{
+		VertexBuffer.ReleaseResource();
+		IndexBuffer.ReleaseResource();
+		VertexFactory.ReleaseResource();
 	}
 
 	// FPrimitiveSceneProxy interface.
@@ -64,27 +160,21 @@ public:
 			EffectiveLocalToWorld = GetLocalToWorld();
 		}
 
-		const FColoredMaterialRenderProxy CollisionMaterialInstance(
+		const FColoredMaterialRenderProxy ArrowMaterialRenderProxy(
 			GEngine->ArrowMaterial->GetRenderProxy(IsSelected(), IsHovered()),
 			ArrowColor,
 			"GizmoColor"
 			);
 
-		const float TotalLength = ArrowSize * ARROW_SCALE;
-		const float HeadLength = TotalLength * ARROW_HEAD_FACTOR;
-		const float ShaftRadius = TotalLength * ARROW_RADIUS_FACTOR;
-		const float ShaftLength = (TotalLength - HeadLength) * 1.1f; // 10% overlap between shaft and head
-		const FVector Offset(0, 0, 0.5f * ShaftLength);
-		const float HeadAngle = FMath::DegreesToRadians(ARROW_HEAD_ANGLE);
 
 		// Calculate the view-dependent scaling factor.
 		float ViewScale = 1.0f;
 		if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
 		{
-			const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
-			if(ZoomFactor != 0.0f)
+			const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+			if (ZoomFactor != 0.0f)
 			{
-				const float Radius		= View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
+				const float Radius = View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
 				if (Radius < 1.0f)
 				{
 					ViewScale *= Radius;
@@ -96,11 +186,33 @@ public:
 		ViewScale *= EditorScale;
 #endif
 
-		const FMatrix CylinderTransform = FScaleMatrix(ViewScale) * FRotationMatrix( FRotator(-90,0.f,0) ) * FTranslationMatrix(FVector(ViewScale, 0.0f, 0.0f)) * EffectiveLocalToWorld;
-		DrawCylinder(PDI, CylinderTransform, Offset, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), ShaftRadius, 0.5f * ShaftLength, 16, &CollisionMaterialInstance, SDPG_World);
+
+		// Draw the mesh.
+		FMeshBatch Mesh;
+		FMeshBatchElement& BatchElement = Mesh.Elements[0];
+		BatchElement.IndexBuffer = &IndexBuffer;
+		Mesh.bWireframe = false;
+		Mesh.VertexFactory = &VertexFactory;
+		Mesh.MaterialRenderProxy = &ArrowMaterialRenderProxy;
+		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(FScaleMatrix(ViewScale) * EffectiveLocalToWorld, GetBounds(), GetLocalBounds(), true);
+		BatchElement.FirstIndex = 0;
+		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+		BatchElement.MinVertexIndex = 0;
+		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+		Mesh.Type = PT_TriangleList;
+		Mesh.DepthPriorityGroup = SDPG_World;
+		PDI->DrawMesh(Mesh);
+
+
+
+
+
+		//const FMatrix CylinderTransform = FScaleMatrix(ViewScale) * FRotationMatrix( FRotator(-90,0.f,0) ) * FTranslationMatrix(FVector(ViewScale, 0.0f, 0.0f)) * EffectiveLocalToWorld;
+		//DrawCylinder(PDI, CylinderTransform, Offset, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), ShaftRadius, 0.5f * ShaftLength, 16, &ArrowMaterialRenderProxy, SDPG_World);
 		
-		const FMatrix ConeTransform = FScaleMatrix(ViewScale * -HeadLength) * FTranslationMatrix(FVector(ViewScale * TotalLength,0,0)) * EffectiveLocalToWorld;
-		DrawCone(PDI, ConeTransform, HeadAngle, HeadAngle, 32, false, FColor::White, &CollisionMaterialInstance, SDPG_World);
+		//const FMatrix ConeTransform = FScaleMatrix(ViewScale * -HeadLength) * FTranslationMatrix(FVector(ViewScale * TotalLength,0,0)) * EffectiveLocalToWorld;
+		//DrawCone(PDI, ConeTransform, HeadAngle, HeadAngle, 32, false, FColor::White, &CollisionMaterialInstance, SDPG_World);
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
@@ -121,14 +233,20 @@ public:
 		Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
 		return Result;
 	}
+
 	virtual void OnTransformChanged() OVERRIDE
 	{
 		Origin = GetLocalToWorld().GetOrigin();
 	}
+
 	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 
 private:
+	FArrowVertexBuffer VertexBuffer;
+	FArrowIndexBuffer IndexBuffer;
+	FArrowVertexFactory VertexFactory;
+
 	FVector Origin;
 	FColor ArrowColor;
 	float ArrowSize;
