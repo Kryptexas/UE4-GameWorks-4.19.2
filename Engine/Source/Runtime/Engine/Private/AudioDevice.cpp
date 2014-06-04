@@ -2498,21 +2498,23 @@ bool FAudioDevice::HandleListSoundsCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 }
 #endif // !UE_BUILD_SHIPPING
 
-#if WITH_EDITOR
-void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart)
+void FAudioDevice::StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioComponent*>& StoppedComponents)
 {
+	bool bStoppedSounds = false;
+
 	for (int32 ActiveSoundIndex = ActiveSounds.Num() - 1; ActiveSoundIndex >= 0; --ActiveSoundIndex)
 	{
 		FActiveSound* ActiveSound = ActiveSounds[ActiveSoundIndex];
 		if (ActiveSound->Sound->IsA(USoundWave::StaticClass()))
 		{
-			if (ActiveSound->Sound == ReimportedSoundWave)
+			if (ActiveSound->Sound == SoundWave)
 			{
 				if (ActiveSound->AudioComponent.IsValid())
 				{
-					ComponentsToRestart.Add(ActiveSound->AudioComponent.Get());
+					StoppedComponents.Add(ActiveSound->AudioComponent.Get());
 				}
 				ActiveSound->Stop(this);
+				bStoppedSounds = true;
 			}
 		}
 		else
@@ -2521,22 +2523,29 @@ void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray
 
 			for (auto WaveInstanceIt(ActiveSound->WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
 			{
-				// If anything in the SoundCue uses the wave we're going to restart the whole thing for simplicity
+				// If anything in the SoundCue uses the wave we're going to stop the whole thing for simplicity
 				FWaveInstance* WaveInstance = WaveInstanceIt.Value();
-				if (WaveInstance->WaveData == ReimportedSoundWave)
+				if (WaveInstance->WaveData == SoundWave)
 				{
 					if (ActiveSound->AudioComponent.IsValid())
 					{
-						ComponentsToRestart.Add(ActiveSound->AudioComponent.Get());
+						StoppedComponents.Add(ActiveSound->AudioComponent.Get());
 					}
 					ActiveSound->Stop(this);
+					bStoppedSounds = true;
 					break;
 				}
 			}
 		}
 	}
+
+	if (!GIsEditor && bStoppedSounds)
+	{
+		UE_LOG(LogAudio, Warning, TEXT( "All Sounds using SoundWave '%s' have been stopped" ), *SoundWave->GetName() );
+	}
 }
 
+#if WITH_EDITOR
 void FAudioDevice::OnBeginPIE(const bool bIsSimulating)
 {
 	for (TObjectIterator<USoundNode> It; It; ++It)

@@ -1633,7 +1633,7 @@ UObject* USoundFactory::FactoryCreateBinary
 		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
 		if (AudioDevice && ExistingSound)
 		{
-			AudioDevice->StopSoundsForReimport(ExistingSound, ComponentsToRestart);
+			AudioDevice->StopSoundsUsingResource(ExistingSound, ComponentsToRestart);
 		}
 
 		bool bUseExistingSettings = bSoundFactorySuppressImportOverwriteDialog;
@@ -1717,9 +1717,6 @@ UObject* USoundFactory::FactoryCreateBinary
 		{
 			// Clear resources so that if it's already been played, it will reload the wave data
 			Sound->FreeResources();
-			Sound->DecompressionType = DTYPE_Setup;
-			Sound->bDecompressedFromOgg = 0;
-			Sound->RawPCMDataSize = 0;
 		}
 		
 		// Store the current file path and timestamp for re-import purposes

@@ -314,12 +314,17 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 
 	static FName CompressionQualityFName = FName( TEXT( "CompressionQuality" ) );
 
-	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	// Regenerate on save any compressed sound formats
-	if ( PropertyThatChanged && PropertyThatChanged->GetFName() == CompressionQualityFName )
+	// Prevent constant re-compression of SoundWave while properties are being changed interactively
+	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
-		InvalidateCompressedData();
-		MarkPackageDirty();
+		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+		// Regenerate on save any compressed sound formats
+		if ( PropertyThatChanged && PropertyThatChanged->GetFName() == CompressionQualityFName )
+		{
+			InvalidateCompressedData();
+			FreeResources();
+			MarkPackageDirty();
+		}
 	}
 }
 #endif // WITH_EDITOR
@@ -338,6 +343,8 @@ void USoundWave::FreeResources()
 		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
 		if (AudioDevice != NULL)
 		{
+			TArray<UAudioComponent*> StoppedComponents;
+			AudioDevice->StopSoundsUsingResource(this, StoppedComponents);
 			AudioDevice->FreeResource( this );
 		}
 	}
@@ -347,6 +354,9 @@ void USoundWave::FreeResources()
 	Duration = 0.0f;
 	ResourceID = 0;
 	bDynamicResource = false;
+	DecompressionType = DTYPE_Setup;
+	bDecompressedFromOgg = 0;
+	RawPCMDataSize = 0;
 }
 
 FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT WaveInstanceHash )

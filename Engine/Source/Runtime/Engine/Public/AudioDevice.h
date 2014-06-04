@@ -261,10 +261,15 @@ public:
 	 */
 	void Flush( class UWorld* WorldToFlush, bool bClearActivatedReverb = true );
 
-#if WITH_EDITOR
-	/* Stop any playing sounds so that we can reimport a specific sound wave */
-	void StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart);
+	/**
+	 * Stop any playing sounds that are using a particular SoundWave
+	 *
+	 * @param SoundWave					Resource to stop any sounds that are using it
+	 * @param[out] StoppedComponents	List of Audio Components that were stopped
+	 */
+	void StopSoundsUsingResource(USoundWave* SoundWave, TArray<UAudioComponent*>& StoppedComponents);
 
+#if WITH_EDITOR
 	/** Deals with anything audio related that should happen when PIE starts */
 	void OnBeginPIE(const bool bIsSimulating);
 
