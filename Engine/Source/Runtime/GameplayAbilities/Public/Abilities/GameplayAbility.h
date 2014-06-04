@@ -5,7 +5,6 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
-#include "AbilitySystemTypes.h"
 #include "GameplayAbilityTypes.h"
 #include "GameplayAbility.generated.h"
 

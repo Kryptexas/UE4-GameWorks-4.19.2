@@ -14,7 +14,7 @@
 #include "Engine.h"
 #include "Engine/DataTable.h"
 
-#include "AbilitySystemTypes.h"
+#include "GameplayAbilityTypes.h"
 
 #include "AbilitySystemStats.h"
 #include "GameplayAbilitiesModule.h"

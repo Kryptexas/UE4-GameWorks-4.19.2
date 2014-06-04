@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
-#include "AbilitySystemTypes.h"
+#include "GameplayAbilityTypes.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
