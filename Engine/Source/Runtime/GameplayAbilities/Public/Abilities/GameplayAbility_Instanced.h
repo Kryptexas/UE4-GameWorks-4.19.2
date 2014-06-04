@@ -20,8 +20,6 @@ public:
 
 	virtual void ClientActivateAbilitySucceed_Internal(int32 PredictionKey) OVERRIDE;
 	
-	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo) OVERRIDE;
-	
 	// -------------------------------------------------
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability)
@@ -102,4 +100,8 @@ public:
 	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authorting, confirmed, etc. */
 	UPROPERTY(BlueprintReadOnly, Category=Ability)
 	FGameplayAbilityActivationInfo	CurrentActivationInfo;
+
+protected:
+
+	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo) OVERRIDE;
 };

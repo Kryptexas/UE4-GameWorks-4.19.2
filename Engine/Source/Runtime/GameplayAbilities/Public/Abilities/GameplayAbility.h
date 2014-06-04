@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,123 +6,9 @@
 #include "GameplayTagAssetInterface.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
 #include "AbilitySystemTypes.h"
+#include "GameplayAbilityTypes.h"
 #include "GameplayAbility.generated.h"
 
-class UAnimInstance;
-class UAbilitySystemComponent;
-
-UENUM(BlueprintType)
-namespace EGameplayAbilityInstancingPolicy
-{
-	/**
-	 *	How the ability is instanced when executed. This limits what an ability can do in its implementation. For example, a NonInstanced
-	 *	Ability cannot have state. It is probably unsafe for an InstancedPerActor ability to have latent actions, etc.	
-	 */
-
-	enum Type
-	{
-		NonInstanced,			// This ability is never instanced. Anything that executes the ability is operating on the CDO.
-		InstancedPerActor,		// Each actor gets their own instance of this ability. State can be saved, replication is possible.
-		InstancedPerExecution,	// We instance this ability each time it is executed. Replication possible but not recommended.
-	};
-}
-
-UENUM(BlueprintType)
-namespace EGameplayAbilityNetExecutionPolicy
-{
-	/**
-	 *	How does an ability execute on the network. Does a client "ask and predict", "ask and wait", "don't ask" 
-	 */
-
-	enum Type
-	{
-		Predictive		UMETA(DisplayName = "Predictive"),	// Part of this ability runs predictively on the client.
-		Server			UMETA(DisplayName = "Server"),		// This ability must be OK'd by the server before doing anything on a client.
-		Client			UMETA(DisplayName = "Client"),		// This ability runs as long the client says it does.
-	};
-}
-
-UENUM(BlueprintType)
-namespace EGameplayAbilityReplicationPolicy
-{
-	/**
-	 *	How an ability replicates state/events to everyone on the network.
-	 */
-
-	enum Type
-	{
-		ReplicateNone		UMETA(DisplayName = "Replicate None"),	// We don't replicate the instance of the ability to anyone.
-		ReplicateAll		UMETA(DisplayName = "Replicate All"),	// We replicate the instance of the ability to everyone (even simulating clients).
-		ReplicateOwner		UMETA(DisplayName = "Replicate Owner"),	// Only replicate the instance of the ability to the owner.
-	};
-}
-
-USTRUCT(BlueprintType)
-struct FGameplayAbilityHandle
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayAbilityHandle()
-	: Handle(INDEX_NONE)
-	{
-
-	}
-
-	FGameplayAbilityHandle(int32 InHandle)
-		: Handle(InHandle)
-	{
-
-	}
-
-	bool IsValid() const
-	{
-		return Handle != INDEX_NONE;
-	}
-
-	FGameplayAbilityHandle GetNextHandle()
-	{
-		return FGameplayAbilityHandle(Handle + 1);
-	}
-
-	bool operator==(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle == Other.Handle;
-	}
-
-	bool operator!=(const FGameplayAbilityHandle& Other) const
-	{
-		return Handle != Other.Handle;
-	}
-
-	FString ToString() const
-	{
-		return FString::Printf(TEXT("%d"), Handle);
-	}
-
-private:
-
-	UPROPERTY()
-	int32 Handle;
-};
-
-/**
- *	Not implemented yet, but we will need something like this to track ability + levels if we choose to support ability leveling in the base classes.
- */
-
-USTRUCT()
-struct FGameplayAbilitySpec
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	int32	Level;
-
-	UPROPERTY()
-	class UGameplayAbility * Ability;
-
-	UPROPERTY()
-	FGameplayAbilityHandle	Handle;
-};
 
 /**
 * UGameplayAbility
@@ -158,9 +44,10 @@ public:
 	//	
 	//		Commit()				- Commits reources/cooldowns etc. Activate() must call this!
 	//		
-	//		CancelAbility()			- 
+	//		CancelAbility()			- Interrupts the ability (from an outside source).
+	//									-We may want to add some info on what/who cancelled.
 	//
-	//		EndAbility()			- 
+	//		EndAbility()			- The ability has ended. This is intended to be called by the ability to end itself.
 	//	
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -183,8 +70,6 @@ public:
 
 	/** Input binding. Base implementation does nothing */
 	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo);
-	
-	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo);
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -286,8 +171,7 @@ protected:
 
 	void CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	UPROPERTY(EditDefaultsOnly, Category = Tags)
-	bool Prediction;
+	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo);
 
 	/** 
 	 * The last chance to fail before commiting
@@ -315,6 +199,11 @@ protected:
 	bool	CheckCost(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	void	ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+
+	// --------------------------------------------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	bool Prediction;
 
 	friend class UAbilitySystemComponent;
 };
