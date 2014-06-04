@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Engine.h"
 #include "MaterialShader.h"
 #include "MeshMaterialShader.h"
 #include "AtmosphereRendering.h"

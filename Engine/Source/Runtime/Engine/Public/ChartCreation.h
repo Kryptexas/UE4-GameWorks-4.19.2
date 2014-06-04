@@ -8,6 +8,9 @@
 #ifndef _CHART_CREATION_INC_
 #define _CHART_CREATION_INC_
 
+
+#include "Engine.h"
+
 #define DO_CHARTING 1
 #if DO_CHARTING
 

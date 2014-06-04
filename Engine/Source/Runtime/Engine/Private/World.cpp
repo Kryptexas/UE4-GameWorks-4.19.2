@@ -8,7 +8,6 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/CullDistanceVolume.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Console.h"
 #include "Engine/WorldComposition.h"
 #include "Matinee/MatineeActor.h"

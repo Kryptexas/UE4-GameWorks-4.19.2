@@ -1129,17 +1129,8 @@ namespace UnrealBuildTool
 
 				// Determine what potential precompiled header is used by each source file.
 				double SharedPCHTotalTime = 0.0;
-				if (this.Name == "Engine")
-				{
-					Log.TraceVerbose("ActorConstruction.cpp");
-				}
 				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 				{
-					
-					if (CPPFile.AbsolutePath.IndexOf("ActorConstruction.cpp", StringComparison.InvariantCultureIgnoreCase) >= 0)
-					{
-						Log.TraceVerbose("ActorConstruction.cpp");
-					}
 					if (bUseSharedPCHFiles)
 					{
 						var SharedPCHStartTime = DateTime.UtcNow;

@@ -42,10 +42,6 @@
 #include "ActiveSound.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "GameFramework/HUD.h"
-#include "GameFramework/Character.h"
-#include "Engine/LevelStreamingVolume.h"
-#include "Vehicles/TireType.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -69,7 +65,6 @@
 #endif
 
 #include "HardwareInfo.h"
-#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

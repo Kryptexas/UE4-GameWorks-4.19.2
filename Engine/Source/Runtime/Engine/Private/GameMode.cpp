@@ -8,9 +8,6 @@
 #include "GameFramework/GameNetworkManager.h"
 #include "Matinee/MatineeActor.h"
 #include "OnlineSubsystemUtils.h"
-#include "GameFramework/HUD.h"
-#include "GameFramework/DefaultPawn.h"
-#include "GameFramework/SpectatorPawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 

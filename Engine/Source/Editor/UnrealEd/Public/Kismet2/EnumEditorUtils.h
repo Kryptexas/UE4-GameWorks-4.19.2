@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "Engine.h"
 #include "ListenerManager.h"
 
 class UNREALED_API FEnumEditorUtils
