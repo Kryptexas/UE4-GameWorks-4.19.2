@@ -2,7 +2,7 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 
 #include "Net/UnrealNetwork.h"
@@ -10,12 +10,12 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
-#define LOCTEXT_NAMESPACE "AttributeComponent"
+#define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
-void UAttributeComponent::InitializeComponent()
+void UAbilitySystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
@@ -40,7 +40,7 @@ void UAttributeComponent::InitializeComponent()
 	}
 }
 
-void UAttributeComponent::InitAbilityActorInfo()
+void UAbilitySystemComponent::InitAbilityActorInfo()
 {
 	if (!AbilityActorInfo.IsValid())
 	{
@@ -54,7 +54,7 @@ void UAttributeComponent::InitAbilityActorInfo()
 	}
 }
 
-UGameplayAbility * UAttributeComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
+UGameplayAbility * UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplayAbility *Ability)
 {
 	check(Ability);
 	check(Ability->HasAllFlags(RF_ClassDefaultObject));
@@ -78,7 +78,7 @@ UGameplayAbility * UAttributeComponent::CreateNewInstanceOfAbility(UGameplayAbil
 	return AbilityInstance;
 }
 
-bool UAttributeComponent::ActivateAbility(int32 AbilityIdx)
+bool UAbilitySystemComponent::ActivateAbility(int32 AbilityIdx)
 {
 	check(AbilityActorInfo.IsValid());
 
@@ -93,7 +93,7 @@ bool UAttributeComponent::ActivateAbility(int32 AbilityIdx)
 	return false;
 }
 
-void UAttributeComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
+void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore)
 {
 	/**
 	 *	FIXME
@@ -141,7 +141,7 @@ static FAutoConsoleVariableRef CVarDenyClientActivation(
 	);
 #endif
 
-void UAttributeComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
@@ -186,12 +186,12 @@ void UAttributeComponent::ServerTryActivateAbility_Implementation(UGameplayAbili
 	}
 }
 
-bool UAttributeComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 	return true;
 }
 
-void UAttributeComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilityFailed_Implementation(UGameplayAbility * AbilityToActivate, int32 PredictionKey)
 {
 	if (PredictionKey > 0)
 	{
@@ -214,7 +214,7 @@ void UAttributeComponent::ClientActivateAbilityFailed_Implementation(UGameplayAb
 	}
 }
 
-void UAttributeComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, int32 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGameplayAbility* AbilityToActivate, int32 PredictionKey)
 {
 	ensure(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
@@ -227,7 +227,7 @@ void UAttributeComponent::ClientActivateAbilitySucceed_Implementation(UGameplayA
 	AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
 }
 
-void UAttributeComponent::MontageBranchPoint_AbilityDecisionStop()
+void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStop()
 {
 	if (AnimatingAbility)
 	{
@@ -241,7 +241,7 @@ void UAttributeComponent::MontageBranchPoint_AbilityDecisionStop()
 	}
 }
 
-void UAttributeComponent::MontageBranchPoint_AbilityDecisionStart()
+void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStart()
 {
 	if (AnimatingAbility)
 	{

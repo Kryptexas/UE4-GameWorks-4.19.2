@@ -35,8 +35,8 @@ struct FGameplayAbilityBindInfo
 /**
 * UGameplayAbilitySet
 *	This contains a list of abilities along with key bindings. This will be very game specific, so it is expected for games to override this class.
-*	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the attribute component (rather than attribute component processing the ability set).
-*	Ideally this avoids games having to implement their own UAttributeComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
+*	Functions like InitializeAbilities and BindInputComponentToAbilities are setup to act on the AbilitySystemComponent (rather than AbilitySystemComponent processing the ability set).
+*	Ideally this avoids games having to implement their own UAbilitySystemComponent and UGameplayAbilitySet, and they can just implement thei own UGameplayAbilitySet.
 */
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API UGameplayAbilitySet : public UDataAsset
@@ -48,9 +48,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=AbilitySet)
 	TArray<FGameplayAbilityBindInfo>	Abilities;
 
-	/** Give all of the abilities in this set to given AttributeComponent */
-	virtual void InitializeAbilities(UAttributeComponent *AttributeComponent) const;
+	/** Give all of the abilities in this set to given AbilitySystemComponent */
+	virtual void InitializeAbilities(UAbilitySystemComponent *AbilitySystemComponent) const;
 
-	/** Binds the ability set directly to this inputcomponent and attributecomponent. This is a convenience method, not all games will want to bind input directly to abilities. */
-	virtual void BindInputComponentToAbilities(UInputComponent *InputComponent, UAttributeComponent *AttributeComponent) const;
+	/** Binds the ability set directly to this inputcomponent and AbilitySystemComponent. This is a convenience method, not all games will want to bind input directly to abilities. */
+	virtual void BindInputComponentToAbilities(UInputComponent *InputComponent, UAbilitySystemComponent *AbilitySystemComponent) const;
 };

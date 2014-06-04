@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExtension_ShieldTest.h"
 #include "GameplayTagsModule.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemTestAttributeSet.h"
 
 UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const class FPostConstructInitializeProperties& PCIP)
@@ -16,7 +16,7 @@ UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const c
 void UGameplayEffectExtension_ShieldTest::PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	UAttributeComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent();
+	UAbilitySystemComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent();
 
 	// FIXME: some annoyances here: Damage about to be applied = Data.EvaluatedData.Magnitude = negative. Do some sign flipping here that would make more sense if we were dealing with
 	// 'damage' (positive) instead of 'health' (negative)

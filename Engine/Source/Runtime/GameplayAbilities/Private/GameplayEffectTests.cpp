@@ -6,7 +6,7 @@
 #include "GameplayEffect.h"
 #include "AttributeSet.h"
 #include "GameplayTagsModule.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "GameplayEffectExtension_ShieldTest.h"
 #include "GameplayEffectStackingExtension_CappedNumberTest.h"
@@ -110,8 +110,8 @@ bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -152,8 +152,8 @@ bool GameplayEffectsTest_InstantDamageRemap(UWorld *World, FAutomationTestBase *
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -203,8 +203,8 @@ bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -267,8 +267,8 @@ bool GameplayEffectsTest_TemporaryDamage(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -326,8 +326,8 @@ bool GameplayEffectsTest_TemporaryDamageBuffed(UWorld *World, FAutomationTestBas
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -416,8 +416,8 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -525,8 +525,8 @@ bool GameplayEffectsTest_LinkedBuffDestroy(UWorld *World, FAutomationTestBase * 
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -612,8 +612,8 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -704,8 +704,8 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -959,8 +959,8 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1100,8 +1100,8 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1238,8 +1238,8 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1376,8 +1376,8 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1510,8 +1510,8 @@ bool GameplayEffectsTest_DamageAppliesBuff(UWorld *World, FAutomationTestBase * 
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1587,8 +1587,8 @@ bool GameplayEffectsTest_BuffAppliesBuff(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1718,8 +1718,8 @@ bool GameplayEffectsTest_BuffIndirection(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -1836,8 +1836,8 @@ bool GameplayEffectsTest_DurationDamage(UWorld *World, FAutomationTestBase * Tes
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -1913,8 +1913,8 @@ bool GameplayEffectsTest_PeriodicDamage(UWorld *World, FAutomationTestBase * Tes
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -1988,8 +1988,8 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -2063,8 +2063,8 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -2178,8 +2178,8 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -2397,8 +2397,8 @@ bool GameplayEffectsTest_InstantDamage_ScalingExplicit(UWorld *World, FAutomatio
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2446,8 +2446,8 @@ bool GameplayEffectsTest_InstantDamage_ScalingGlobal(UWorld *World, FAutomationT
 	
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2495,8 +2495,8 @@ bool GameplayEffectsTest_InstantDamage_OverrideScaling(UWorld *World, FAutomatio
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2541,8 +2541,8 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2631,8 +2631,8 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2722,8 +2722,8 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2804,8 +2804,8 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2890,8 +2890,8 @@ bool GameplayEffectsTest_InstantDamage_ScalingProperty(UWorld *World, FAutomatio
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 	UProperty *PhysicalDamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, PhysicalDamage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -2946,8 +2946,8 @@ bool GameplayEffectsTest_InstantDamage_ScalingPropertyNested(UWorld *World, FAut
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 	UProperty *PhysicalDamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, PhysicalDamage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -3003,8 +3003,8 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 	UProperty *SpellDamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, SpellDamage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -3089,8 +3089,8 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 	UProperty *SpellDamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, SpellDamage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -3188,7 +3188,7 @@ bool GameplayEffectsTest_MetaAttributes(UWorld *World, FAutomationTestBase * Tes
 	UProperty *MaxHealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, MaxHealth));
 	UProperty *StrengthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Strength));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->MaxHealth = StartHealth;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Strength = 0.f;
 
@@ -3265,8 +3265,8 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -3354,8 +3354,8 @@ bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3446,8 +3446,8 @@ bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Tes
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3533,8 +3533,8 @@ bool GameplayEffectsTest_StackingUnlimited(UWorld *World, FAutomationTestBase * 
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3608,8 +3608,8 @@ bool GameplayEffectsTest_StackingRemoval(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3690,8 +3690,8 @@ bool GameplayEffectsTest_StackingNoStack(UWorld *World, FAutomationTestBase * Te
 
 	UProperty *NoStackProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, NoStackAttribute));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3765,8 +3765,8 @@ bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -3916,8 +3916,8 @@ bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutoma
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4073,8 +4073,8 @@ bool GameplayEffectsTest_StackingDifferentRules(UWorld *World, FAutomationTestBa
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4149,8 +4149,8 @@ bool GameplayEffectsTest_StackingDifferentAttributes(UWorld *World, FAutomationT
 	UProperty *StackingProperty1 = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 	UProperty *StackingProperty2 = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute2));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4227,8 +4227,8 @@ bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBa
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4328,8 +4328,8 @@ bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationT
 	UProperty *StackingProperty1 = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 	UProperty *StackingProperty2 = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute2));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4432,8 +4432,8 @@ bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTes
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	// Setup a GE to modify IncomingGEs
 	{
@@ -4534,8 +4534,8 @@ bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestB
 
 	UProperty *StackingProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, StackingAttribute1));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply StackingEffect"));
@@ -4639,8 +4639,8 @@ bool GameplayEffectsTest_ImmunityIncoming(UWorld *World, FAutomationTestBase * T
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -4697,8 +4697,8 @@ bool GameplayEffectsTest_ImmunityOutgoing(UWorld *World, FAutomationTestBase * T
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -4758,8 +4758,8 @@ bool GameplayEffectsTest_ImmunityMod(UWorld *World, FAutomationTestBase * Test)
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -4834,8 +4834,8 @@ bool GameplayEffectsTest_ImmunityBlockedBuff(UWorld *World, FAutomationTestBase 
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -4903,8 +4903,8 @@ bool GameplayEffectsTest_ImmunityBlockedBaseAndBuff(UWorld *World, FAutomationTe
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -4972,8 +4972,8 @@ bool GameplayEffectsTest_ImmunityActiveGE(UWorld *World, FAutomationTestBase * T
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5069,8 +5069,8 @@ bool GameplayEffectsTest_ImmunityActiveMod(UWorld *World, FAutomationTestBase * 
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5165,8 +5165,8 @@ bool GameplayEffectsTest_ChanceToApplyToTarget(UWorld *World, FAutomationTestBas
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -5234,8 +5234,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnActiveGEMod(UWorld *World, FAutomation
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -5351,8 +5351,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnActiveGEImmunity(UWorld *World, FAutom
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
@@ -5462,8 +5462,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEMod(UWorld *World, FAutomati
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 	
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5565,8 +5565,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnOutgoingGEImmunity(UWorld *World, FAut
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5658,8 +5658,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEMod(UWorld *World, FAutomati
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5761,8 +5761,8 @@ bool GameplayEffectsTest_ChanceToExecuteOnIncomingGEImmunity(UWorld *World, FAut
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5853,8 +5853,8 @@ bool GameplayEffectsTest_ModifyChanceToApplyToTarget(UWorld *World, FAutomationT
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 
@@ -5911,8 +5911,8 @@ bool GameplayEffectsTest_ModifyChanceToExecuteOnGE(UWorld *World, FAutomationTes
 
 	UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
-	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	UAbilitySystemComponent * SourceComponent = SourceActor->AbilitySystemComponent;
+	UAbilitySystemComponent * DestComponent = DestActor->AbilitySystemComponent;
 	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
 

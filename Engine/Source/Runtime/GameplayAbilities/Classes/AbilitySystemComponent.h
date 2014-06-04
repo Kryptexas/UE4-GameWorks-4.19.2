@@ -3,11 +3,11 @@
 
 #include "GameplayEffect.h"
 #include "AbilitySystemTypes.h"
-#include "AttributeComponent.generated.h"
+#include "AbilitySystemComponent.generated.h"
 
-GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAttributeComponent, Log, All);
+GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
-DECLARE_MULTICAST_DELEGATE(FAttributeComponentPredictionKeyClear);
+DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
 
 USTRUCT()
 struct GAMEPLAYABILITIES_API FAttributeDefaults
@@ -25,14 +25,14 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
  * 
  */
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
-class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
+class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	friend FGameplayEffectSpec;
 	friend class AAbilitySystemDebugHUD;
 
-	virtual ~UAttributeComponent();
+	virtual ~UAbilitySystemComponent();
 
 	virtual void InitializeComponent() OVERRIDE;
 
@@ -129,10 +129,10 @@ class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
-	TArray<TPair<int32, FAttributeComponentPredictionKeyClear> >	PredictionDelegates;
+	TArray<TPair<int32, FAbilitySystemComponentPredictionKeyClear> >	PredictionDelegates;
 	
 
-	FAttributeComponentPredictionKeyClear &	GetPredictionKeyDelegate(int32 PredictionKey);
+	FAbilitySystemComponentPredictionKeyClear &	GetPredictionKeyDelegate(int32 PredictionKey);
 
 	/*
 	virtual void OnSubobjectCreatedFromReplication(UObject *NewSubobject) OVERRIDE;
@@ -149,7 +149,7 @@ class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAttributeComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
@@ -188,7 +188,7 @@ class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 	// Possibly useful but not primary API functions:
 	// --------------------------------------------
 
-	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
@@ -233,10 +233,10 @@ class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 	/**
 	 *	GameplayAbilities
 	 *	
-	 *	The role of the AttributeComponent wrt Abilities is to provide:
+	 *	The role of the AbilitySystemComponent wrt Abilities is to provide:
 	 *		-Management of abiltiy instances (whether per actor or per execution instance).
 	 *			-Someone *has* to keep track of these instances.
-	 *			-Non instanced abilities *could* be executed without any ability stuff in attribute component.
+	 *			-Non instanced abilities *could* be executed without any ability stuff in AbilitySystemComponent.
 	 *				They should be able to operate on an GameplayAbilityActorInfo + GameplayAbility.
 	 *		
 	 *	As convenience it may provide some other features:
@@ -263,8 +263,8 @@ class GAMEPLAYABILITIES_API UAttributeComponent : public UActorComponent
 	 *		-Actor-instanced abilities will be the actual instance (not CDO)
 	 *		
 	 *	This array is not vital for things to work. It is a convenience thing for 'giving abilties to the actor'. But abilities could also work on things
-	 *	without an attribute component. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
-	 *	instancing or anything else that the AttributeComponent would provide, then it doesn't need the component to function.
+	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
+	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */ 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Abilities")
 	TArray<class UGameplayAbility *>	ActivatableAbilities;

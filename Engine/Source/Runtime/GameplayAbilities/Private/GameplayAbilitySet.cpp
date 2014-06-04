@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilitySet.h"
 
@@ -16,15 +16,15 @@ void InputPressed(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> ActorO
 	FGameplayAbilityActorInfo	ActorInfo;
 	ActorInfo.InitFromActor(ActorOwner.Get());
 
-	UAttributeComponent * AttributeComponent = ActorInfo.AttributeComponent.Get();
-	if (AttributeComponent)
+	UAbilitySystemComponent * AbilitySystemComponent = ActorInfo.AbilitySystemComponent.Get();
+	if (AbilitySystemComponent)
 	{
-		if (AttributeComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
+		if (AbilitySystemComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
 		{
-			UGameplayAbility * Ability = AttributeComponent->ActivatableAbilities[AbilityIdx];
+			UGameplayAbility * Ability = AbilitySystemComponent->ActivatableAbilities[AbilityIdx];
 			if (Ability)
 			{
-				Ability->InputPressed(InputID, AttributeComponent->AbilityActorInfo.Get());
+				Ability->InputPressed(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
 			}
 		}
 	}
@@ -35,15 +35,15 @@ void InputReleased(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> Actor
 	FGameplayAbilityActorInfo	ActorInfo;
 	ActorInfo.InitFromActor(ActorOwner.Get());
 
-	UAttributeComponent * AttributeComponent = ActorInfo.AttributeComponent.Get();
-	if (AttributeComponent)
+	UAbilitySystemComponent * AbilitySystemComponent = ActorInfo.AbilitySystemComponent.Get();
+	if (AbilitySystemComponent)
 	{
-		if (AttributeComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
+		if (AbilitySystemComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
 		{
-			UGameplayAbility * Ability = AttributeComponent->ActivatableAbilities[AbilityIdx];
+			UGameplayAbility * Ability = AbilitySystemComponent->ActivatableAbilities[AbilityIdx];
 			if (Ability)
 			{
-				Ability->InputReleased(InputID, AttributeComponent->AbilityActorInfo.Get());
+				Ability->InputReleased(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
 			}
 		}
 	}
@@ -62,7 +62,7 @@ UGameplayAbilitySet::UGameplayAbilitySet(const class FPostConstructInitializePro
 
 }
 
-void UGameplayAbilitySet::InitializeAbilities(UAttributeComponent *AttributeComponent) const
+void UGameplayAbilitySet::InitializeAbilities(UAbilitySystemComponent *AbilitySystemComponent) const
 {
 	for (const FGameplayAbilityBindInfo &BindInfo : this->Abilities)
 	{
@@ -71,23 +71,23 @@ void UGameplayAbilitySet::InitializeAbilities(UAttributeComponent *AttributeComp
 		{
 			if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)
 			{
-				Ability = AttributeComponent->CreateNewInstanceOfAbility(Ability);
+				Ability = AbilitySystemComponent->CreateNewInstanceOfAbility(Ability);
 			}
 
-			AttributeComponent->ActivatableAbilities.Add(Ability);
+			AbilitySystemComponent->ActivatableAbilities.Add(Ability);
 		}
 	}
 }
 
-void UGameplayAbilitySet::BindInputComponentToAbilities(UInputComponent *InputComponent, UAttributeComponent *AttributeComponent) const
+void UGameplayAbilitySet::BindInputComponentToAbilities(UInputComponent *InputComponent, UAbilitySystemComponent *AbilitySystemComponent) const
 {
-	AActor * OwnerActor = AttributeComponent->GetOwner();
+	AActor * OwnerActor = AbilitySystemComponent->GetOwner();
 	check(OwnerActor);
 
 	for (int32 idx = 0; idx < this->Abilities.Num(); ++idx)
 	{
 		const FGameplayAbilityBindInfo & BindInfo = this->Abilities[idx];
-		UGameplayAbility * Ability = AttributeComponent->ActivatableAbilities[idx];	
+		UGameplayAbility * Ability = AbilitySystemComponent->ActivatableAbilities[idx];	
 		
 		for (const FGameplayAbilityBindInfoCommandIDPair &CommandPair : BindInfo.CommandBindings)
 		{

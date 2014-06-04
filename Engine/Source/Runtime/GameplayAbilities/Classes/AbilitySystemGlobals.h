@@ -5,7 +5,7 @@
 #include "AbilitySystemGlobals.generated.h"
 
 class AActor;
-class UAttributeComponent;
+class UAbilitySystemComponent;
 struct FGameplayAbilityActorInfo;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
@@ -40,9 +40,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	/**
 	 *	Games may want to override this in a UMyProjectAbilitySystemsGlobals class and provide
-	 *	a faster lookup for attribute compnents (E.g. Cast<MyProjPawn>(Actor)->AttributeComponent; etc)
+	 *	a faster lookup for attribute compnents (E.g. Cast<MyProjPawn>(Actor)->AbilitySystemComponent; etc)
 	 */
-	virtual UAttributeComponent * GetAttributeComponentFromActor(AActor *Actor) const;
+	virtual UAbilitySystemComponent * GetAbilitySystemComponentFromActor(AActor *Actor) const;
 
 	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo(AActor *Actor) const;
 

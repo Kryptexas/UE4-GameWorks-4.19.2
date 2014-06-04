@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
 
@@ -62,15 +62,15 @@ void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* 
 
 	if (PC->GetPawn())
 	{
-		UAttributeComponent * AttributeComponent = PC->GetPawn()->FindComponentByClass<UAttributeComponent>();
-		if (AttributeComponent)
+		UAbilitySystemComponent * AbilitySystemComponent = PC->GetPawn()->FindComponentByClass<UAbilitySystemComponent>();
+		if (AbilitySystemComponent)
 		{
-			DrawDebugAttributeComponent(AttributeComponent);
+			DrawDebugAbilitySystemComponent(AbilitySystemComponent);
 		}
 	}
 }
 
-void AAbilitySystemDebugHUD::DrawDebugAttributeComponent(UAttributeComponent *Component)
+void AAbilitySystemDebugHUD::DrawDebugAbilitySystemComponent(UAbilitySystemComponent *Component)
 {
 	UWorld *World = GetWorld();
 	float GameWorldTime = World->GetTimeSeconds();

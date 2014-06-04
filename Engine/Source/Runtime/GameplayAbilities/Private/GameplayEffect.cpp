@@ -4,7 +4,7 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayEffectStackingExtension.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 
 const float UGameplayEffect::INFINITE_DURATION = -1.f;
 const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
@@ -444,9 +444,9 @@ bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToB
 void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 {
 	Instigator = InInstigator;
-	InstigatorAttributeComponent = NULL;
+	InstigatorAbilitySystemComponent = NULL;
 
-	// Cache off his attribute component.
+	// Cache off his AbilitySystemComponent.
 	if (Instigator)
 	{
 		TArray<UObject*> ChildObjects;
@@ -454,9 +454,9 @@ void FGameplayEffectInstigatorContext::AddInstigator(class AActor *InInstigator)
 
 		for (UObject * Obj : ChildObjects)
 		{
-			if (Obj && Obj->GetClass()->IsChildOf(UAttributeComponent::StaticClass()))
+			if (Obj && Obj->GetClass()->IsChildOf(UAbilitySystemComponent::StaticClass()))
 			{
-				InstigatorAttributeComponent = Cast<UAttributeComponent>(Obj);
+				InstigatorAbilitySystemComponent = Cast<UAbilitySystemComponent>(Obj);
 				break;
 			}
 		}
@@ -483,7 +483,7 @@ bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackage
 			{
 				HitResult = TSharedPtr<FHitResult>(new FHitResult());
 			}
-			AddInstigator(Instigator); // Just to initialize InstigatorAttributeComponent
+			AddInstigator(Instigator); // Just to initialize InstigatorAbilitySystemComponent
 		}
 	}
 
@@ -1419,7 +1419,7 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplay
 	return UGameplayEffect::INFINITE_DURATION;
 }
 
-void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Aggregator, UAttributeComponent* Owner, FActiveGameplayEffectHandle Handle)
+void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* Owner, FActiveGameplayEffectHandle Handle)
 {
 	for (FActiveGameplayEffect& Effect : GameplayEffects)
 	{
@@ -1428,7 +1428,7 @@ void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Agg
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
 			float CurrDuration = Effect.GetDuration();
 			float TimeRemaining = CurrDuration - TimerManager.GetTimerElapsed(Effect.DurationHandle);
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, Handle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Handle);
 			TimerManager.SetTimer(Effect.DurationHandle, Delegate, CurrDuration, false, FMath::Max(TimeRemaining, 0.f));
 
 			return;
@@ -1518,7 +1518,7 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 	{
 		bNeedToRecalculateStacks = true;
 		FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
-		FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::OnRestackGameplayEffects);
+		FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::OnRestackGameplayEffects);
 
 		TimerManager.SetTimerForNextTick(Delegate);
 	}
@@ -1535,7 +1535,7 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		if (Spec.GetDuration() > 0.f)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, LastAssignedHandle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, LastAssignedHandle);
 			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, Spec.GetDuration(), false, Spec.GetDuration());
 		}
 
@@ -1543,7 +1543,7 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::ExecutePeriodicEffect, LastAssignedHandle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::ExecutePeriodicEffect, LastAssignedHandle);
 
 			// If this is a periodic stacking effect, make sure that it's in sync with the others.
 			float FirstDelay = -1.f;
@@ -1581,7 +1581,7 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 		// Clients predicting should call MarkArrayDirty to force the internal replication map to be rebuilt.
 		MarkArrayDirty();
 
-		Owner->GetPredictionKeyDelegate(InPredictionKey).AddUObject(Owner, &UAttributeComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
+		Owner->GetPredictionKeyDelegate(InPredictionKey).AddUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
 	}
 	return NewEffect;
 }
@@ -1704,7 +1704,7 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 				float TimeRemaining = TimerManager.GetTimerRemaining(Effect.DurationHandle);
 				if (TimeRemaining <= 0.f)
 				{
-					FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAttributeComponent::CheckDurationExpired, Effect.Handle);
+					FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Effect.Handle);
 					TimerManager.SetTimer(Effect.DurationHandle, Delegate, (Effect.StartWorldTime + Duration) - CurrentTime, false);
 				}
 			}
@@ -1963,7 +1963,7 @@ void FGameplayEffectLevelSpec::RegisterLevelDependancy(TWeakPtr<FAggregator> Own
 {
 	if (Source.IsValid() && Attribute.GetUProperty() != NULL)
 	{
-		UAttributeComponent * SourceComponent = Source->FindComponentByClass<UAttributeComponent>();
+		UAbilitySystemComponent * SourceComponent = Source->FindComponentByClass<UAbilitySystemComponent>();
 		if (SourceComponent)
 		{
 			SourceComponent->AddDependancyToAttribute(Attribute, OwningAggregator);

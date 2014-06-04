@@ -5,7 +5,7 @@
 #include "GameplayAbility_Instanced.generated.h"
 
 class UAnimInstance;
-class UAttributeComponent;
+class UAbilitySystemComponent;
 
 /**
 * UGameplayEffect

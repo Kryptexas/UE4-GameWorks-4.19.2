@@ -27,7 +27,7 @@ class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public
 
 	/** DefaultPawn collision component */
 	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UAttributeComponent> AttributeComponent;
+	TSubobjectPtr<class UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
 	FGameplayCueHandler	GameplayCueHandler;
@@ -35,5 +35,5 @@ class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public
 	//UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
 	//UGameplayAbilitySet * DefaultAbilitySet;
 
-	static FName AttributeComponentName;
+	static FName AbilitySystemComponentName;
 };

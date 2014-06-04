@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, c
 
 void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (!ActorInfo->AttributeComponent->IsNetSimulating() || ActivationInfo.PredictionKey != 0)
+	if (!ActorInfo->AbilitySystemComponent->IsNetSimulating() || ActivationInfo.PredictionKey != 0)
 	{
 		ApplyCooldown(ActorInfo, ActivationInfo);
 
@@ -101,7 +101,7 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 		
 		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
-			UGameplayAbility * Ability = ActorInfo->AttributeComponent->CreateNewInstanceOfAbility(this);
+			UGameplayAbility * Ability = ActorInfo->AbilitySystemComponent->CreateNewInstanceOfAbility(this);
 			Ability->CallActivateAbility(ActorInfo, ActivationInfo);
 			if (OutInstancedAbility)
 			{
@@ -120,7 +120,7 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 	else if (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
 		// This execution is now officially EGameplayAbilityActivationMode:Predicting and has a PredictionKey
-		ActivationInfo.GeneratePredictionKey(ActorInfo->AttributeComponent.Get());
+		ActivationInfo.GeneratePredictionKey(ActorInfo->AbilitySystemComponent.Get());
 
 		if (GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -130,7 +130,7 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 			
 			if(GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
 			{
-				UGameplayAbility * Ability = ActorInfo->AttributeComponent->CreateNewInstanceOfAbility(this);
+				UGameplayAbility * Ability = ActorInfo->AbilitySystemComponent->CreateNewInstanceOfAbility(this);
 				Ability->CallPredictiveActivateAbility(ActorInfo, ActivationInfo);
 				if (OutInstancedAbility)
 				{
@@ -170,7 +170,7 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInf
 
 void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AttributeComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
+	ActorInfo->AbilitySystemComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
 }
 
 void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -192,7 +192,7 @@ void UGameplayAbility::PredictiveActivateAbility(const FGameplayAbilityActorInfo
 
 void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AttributeComponent->ServerTryActivateAbility(this, ActivationInfo.PredictionKey);
+	ActorInfo->AbilitySystemComponent->ServerTryActivateAbility(this, ActivationInfo.PredictionKey);
 }
 
 void UGameplayAbility::ClientActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -214,8 +214,8 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo)
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo->AttributeComponent.IsValid());
-		if (ActorInfo->AttributeComponent->HasAnyTags(CooldownGameplayEffect->OwnedTagsContainer))
+		check(ActorInfo->AbilitySystemComponent.IsValid());
+		if (ActorInfo->AbilitySystemComponent->HasAnyTags(CooldownGameplayEffect->OwnedTagsContainer))
 		{
 			return false;
 		}
@@ -227,8 +227,8 @@ void UGameplayAbility::ApplyCooldown(const FGameplayAbilityActorInfo* ActorInfo,
 {
 	if (CooldownGameplayEffect)
 	{
-		check(ActorInfo->AttributeComponent.IsValid());
-		ActorInfo->AttributeComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		check(ActorInfo->AbilitySystemComponent.IsValid());
+		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CooldownGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
 	}
 }
 
@@ -236,18 +236,18 @@ bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo* ActorInfo) con
 {
 	if (CostGameplayEffect)
 	{
-		check(ActorInfo->AttributeComponent.IsValid());
-		return ActorInfo->AttributeComponent->CanApplyAttributeModifiers(CostGameplayEffect, 1.f, ActorInfo->Actor.Get());
+		check(ActorInfo->AbilitySystemComponent.IsValid());
+		return ActorInfo->AbilitySystemComponent->CanApplyAttributeModifiers(CostGameplayEffect, 1.f, ActorInfo->Actor.Get());
 	}
 	return true;
 }
 
 void UGameplayAbility::ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	check(ActorInfo->AttributeComponent.IsValid());
+	check(ActorInfo->AbilitySystemComponent.IsValid());
 	if (CostGameplayEffect)
 	{
-		ActorInfo->AttributeComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
+		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(CostGameplayEffect, 1.f, ActorInfo->Actor.Get(), FModifierQualifier().PredictionKey(ActivationInfo.PredictionKey));
 	}
 }
 
@@ -255,10 +255,10 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemaining);
 
-	check(ActorInfo->AttributeComponent.IsValid());
+	check(ActorInfo->AbilitySystemComponent.IsValid());
 	if (CooldownGameplayEffect)
 	{
-		TArray< float > Durations = ActorInfo->AttributeComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
+		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGameplayEffect->OwnedTagsContainer));
 		if (Durations.Num() > 0)
 		{
 			Durations.Sort();
@@ -305,12 +305,12 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 		this->AnimInstance = SkelMeshComponent->GetAnimInstance();
 	}
 
-	AttributeComponent = InActor->FindComponentByClass<UAttributeComponent>();
+	AbilitySystemComponent = InActor->FindComponentByClass<UAbilitySystemComponent>();
 
 	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
 }
 
-void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAttributeComponent * Component) const
+void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAbilitySystemComponent * Component) const
 {
 	check(Component);
 	check(PredictionKey == 0);
@@ -353,10 +353,10 @@ void FGameplayAbilityTargetData::ApplyGameplayEffect(UGameplayEffect* GameplayEf
 	{
 		check(TargetActor);
 		
-		UAttributeComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAttributeComponent(TargetActor);
+		UAbilitySystemComponent * TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 		if (TargetComponent)
 		{
-			InstigatorInfo.AttributeComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
+			InstigatorInfo.AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent);
 		}
 	}
 }

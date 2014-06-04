@@ -3,15 +3,15 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemTestPawn.h"
 #include "AbilitySystemTestAttributeSet.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 
-FName  AAbilitySystemTestPawn::AttributeComponentName(TEXT("AttributeComponent0"));
+FName  AAbilitySystemTestPawn::AbilitySystemComponentName(TEXT("AbilitySystemComponent0"));
 
 AAbilitySystemTestPawn::AAbilitySystemTestPawn(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
-	AttributeComponent = PCIP.CreateDefaultSubobject<UAttributeComponent>(this, AAbilitySystemTestPawn::AttributeComponentName);
-	AttributeComponent->SetIsReplicated(true);
+	AbilitySystemComponent = PCIP.CreateDefaultSubobject<UAbilitySystemComponent>(this, AAbilitySystemTestPawn::AbilitySystemComponentName);
+	AbilitySystemComponent->SetIsReplicated(true);
 
 	//DefaultAbilitySet = NULL;
 }
@@ -22,12 +22,12 @@ void AAbilitySystemTestPawn::PostInitializeComponents()
 
 	Super::PostInitializeComponents();
 	GameplayCueHandler.Owner = this;
-	AttributeComponent->InitStats(UAbilitySystemTestAttributeSet::StaticClass(), NULL);
+	AbilitySystemComponent->InitStats(UAbilitySystemTestAttributeSet::StaticClass(), NULL);
 
 	/*
 	if (DefaultAbilitySet != NULL)
 	{
-		AttributeComponent->InitializeAbilities(DefaultAbilitySet);
+		AbilitySystemComponent->InitializeAbilities(DefaultAbilitySet);
 	}
 	*/
 }

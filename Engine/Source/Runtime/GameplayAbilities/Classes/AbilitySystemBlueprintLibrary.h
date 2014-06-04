@@ -17,7 +17,7 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintPure, Category = Ability)
-	static UAttributeComponent* GetAttributeComponent(AActor *Actor);
+	static UAbilitySystemComponent* GetAbilitySystemComponent(AActor *Actor);
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);

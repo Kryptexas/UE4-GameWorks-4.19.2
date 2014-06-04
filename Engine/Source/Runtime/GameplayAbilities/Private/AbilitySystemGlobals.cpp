@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemTypes.h"
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
@@ -63,11 +63,11 @@ void UAbilitySystemGlobals::OnDataTableReimported(UObject* InObject)
 #endif
 
 
-UAttributeComponent * UAbilitySystemGlobals::GetAttributeComponentFromActor(AActor *Actor) const
+UAbilitySystemComponent * UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(AActor *Actor) const
 {
 	if (Actor)
 	{
-		return Actor->FindComponentByClass<UAttributeComponent>();
+		return Actor->FindComponentByClass<UAbilitySystemComponent>();
 	}
 
 	// Caller should check this

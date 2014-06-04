@@ -10,7 +10,7 @@
 
 struct FGameplayEffectModCallbackData
 {
-	FGameplayEffectModCallbackData(const FGameplayEffectSpec & InEffectSpec, const FModifierSpec & InModifierSpec, FGameplayModifierEvaluatedData & InEvaluatedData, UAttributeComponent & InTarget)
+	FGameplayEffectModCallbackData(const FGameplayEffectSpec & InEffectSpec, const FModifierSpec & InModifierSpec, FGameplayModifierEvaluatedData & InEvaluatedData, UAbilitySystemComponent & InTarget)
 		: EffectSpec(InEffectSpec)
 		, ModifierSpec(InModifierSpec)
 		, EvaluatedData(InEvaluatedData)
@@ -23,7 +23,7 @@ struct FGameplayEffectModCallbackData
 	const struct FModifierSpec &			ModifierSpec;	// The mod we are going to apply
 	struct FGameplayModifierEvaluatedData & EvaluatedData;	// The 'flat'/computed data to be applied to the target
 
-	class UAttributeComponent &Target;		// Target we intend to apply to
+	class UAbilitySystemComponent &Target;		// Target we intend to apply to
 };
 
 UCLASS(BlueprintType)

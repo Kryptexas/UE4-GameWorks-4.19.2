@@ -107,9 +107,9 @@ UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(clas
  *		-think of a better way to have a global, overridable per project function. Thats it!
  */
 
-UAttributeComponent* UAbilitySystemBlueprintLibrary::GetAttributeComponent(AActor *Actor)
+UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AActor *Actor)
 {
-	return UAbilitySystemGlobals::Get().GetAttributeComponentFromActor(Actor);
+	return UAbilitySystemGlobals::Get().GetAbilitySystemComponentFromActor(Actor);
 }
 
 void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)

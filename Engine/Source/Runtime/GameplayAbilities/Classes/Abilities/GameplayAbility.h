@@ -9,7 +9,7 @@
 #include "GameplayAbility.generated.h"
 
 class UAnimInstance;
-class UAttributeComponent;
+class UAbilitySystemComponent;
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
@@ -316,5 +316,5 @@ protected:
 
 	void	ApplyCost(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 
-	friend class UAttributeComponent;
+	friend class UAbilitySystemComponent;
 };

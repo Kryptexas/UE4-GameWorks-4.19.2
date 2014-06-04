@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_Montage.h"
 #include "GameplayEffect.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -32,7 +32,7 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo* 
 		// Apply GameplayEffects
 		for (const UGameplayEffect * Effect : GameplayEffectsWhileAnimating)
 		{
-			FActiveGameplayEffectHandle Handle = ActorInfo->AttributeComponent->ApplyGameplayEffectToSelf(Effect, 1.f, ActorInfo->Actor.Get());
+			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, ActorInfo->Actor.Get());
 			if (Handle.IsValid())
 			{
 				AppliedEffects.Add(Handle);
@@ -55,7 +55,7 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo* 
 void UGameplayAbility_Montage::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, const FGameplayAbilityActorInfo* ActorInfo, TArray<FActiveGameplayEffectHandle> AppliedEffects)
 {
 	// Remove any GameplayEffects that we applied
-	UAttributeComponent *OwnerComponent = ActorInfo->AttributeComponent.Get();
+	UAbilitySystemComponent *OwnerComponent = ActorInfo->AbilitySystemComponent.Get();
 	if (OwnerComponent)
 	{
 		for (FActiveGameplayEffectHandle Handle : AppliedEffects)

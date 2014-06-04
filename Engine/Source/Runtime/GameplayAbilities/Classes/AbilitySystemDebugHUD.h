@@ -38,6 +38,6 @@ class AAbilitySystemDebugHUD : public AHUD
 
 private:
 
-	void DrawDebugAttributeComponent(UAttributeComponent *Component);
+	void DrawDebugAbilitySystemComponent(UAbilitySystemComponent *Component);
 
 };

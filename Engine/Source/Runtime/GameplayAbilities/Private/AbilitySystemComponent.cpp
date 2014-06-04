@@ -2,7 +2,7 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbility.h"
 
@@ -13,9 +13,9 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
-DEFINE_LOG_CATEGORY(LogAttributeComponent);
+DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
-#define LOCTEXT_NAMESPACE "AttributeComponent"
+#define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 
 int32 DebugGameplayCues = 0;
@@ -29,7 +29,7 @@ static FAutoConsoleVariableRef CVarDebugGameplayCues(
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
-UAttributeComponent::UAttributeComponent(const class FPostConstructInitializeProperties& PCIP)
+UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bWantsInitializeComponent = true;
@@ -45,12 +45,12 @@ UAttributeComponent::UAttributeComponent(const class FPostConstructInitializePro
 	LocalPredictionKey = 0;
 }
 
-UAttributeComponent::~UAttributeComponent()
+UAbilitySystemComponent::~UAbilitySystemComponent()
 {
 	ActiveGameplayEffects.PreDestroy();
 }
 
-UAttributeSet* UAttributeComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
+UAttributeSet* UAbilitySystemComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
 {
 	UAttributeSet* AttributeObj = NULL;
 	if (Attributes)
@@ -64,7 +64,7 @@ UAttributeSet* UAttributeComponent::InitStats(TSubclassOf<class UAttributeSet> A
 	return AttributeObj;
 }
 
-void UAttributeComponent::ModifyStats(TSubclassOf<class UAttributeSet> AttributeClass, FDataTableRowHandle ModifierHandle)
+void UAbilitySystemComponent::ModifyStats(TSubclassOf<class UAttributeSet> AttributeClass, FDataTableRowHandle ModifierHandle)
 {
 	UAttributeSet *Attributes = Cast<UAttributeSet>(GetAttributeSubobject(AttributeClass));
 	if (Attributes)
@@ -77,7 +77,7 @@ void UAttributeComponent::ModifyStats(TSubclassOf<class UAttributeSet> Attribute
 	}
 }
 
-UAttributeSet*	UAttributeComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
+UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
 	UAttributeSet *MyAttributes  = NULL;
@@ -94,14 +94,14 @@ UAttributeSet*	UAttributeComponent::GetOrCreateAttributeSubobject(const TSubclas
 	return MyAttributes;
 }
 
-UAttributeSet* UAttributeComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
+UAttributeSet* UAbilitySystemComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
 	UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
 	check(Set);
 	return Set;
 }
 
-UAttributeSet* UAttributeComponent::GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const
+UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
 	for (UAttributeSet * Set : SpawnedAttributes)
 	{
@@ -113,7 +113,7 @@ UAttributeSet* UAttributeComponent::GetAttributeSubobject(const TSubclassOf<UAtt
 	return NULL;
 }
 
-void UAttributeComponent::OnRegister()
+void UAbilitySystemComponent::OnRegister()
 {
 	Super::OnRegister();
 
@@ -130,7 +130,7 @@ void UAttributeComponent::OnRegister()
 
 // ---------------------------------------------------------
 
-bool UAttributeComponent::AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const
+bool UAbilitySystemComponent::AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const
 {
 	bool bReqsSatisfied = false;
 	if (EffectToAdd)
@@ -154,25 +154,25 @@ bool UAttributeComponent::AreGameplayEffectApplicationRequirementsSatisfied(cons
 
 // ---------------------------------------------------------
 
-bool UAttributeComponent::IsOwnerActorAuthoritative() const
+bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 {
 	return !IsNetSimulating();
 }
 
-void UAttributeComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
+void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
 {
 	UAttributeSet * AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
 	Attribute.SetNumericValueChecked(NewFloatValue, AttributeSet);
 }
 
-float UAttributeComponent::GetNumericAttribute(const FGameplayAttribute &Attribute)
+float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute)
 {
 	UAttributeSet * AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
 /** This is a helper function used in automated testing, I'm not sure how useful it will be to gamecode or blueprints */
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
 
@@ -182,13 +182,13 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToTarget(UGa
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
-FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
 {
 	return ApplyGameplayEffectToSelf(GameplayEffect, Level, Instigator);
 }
 
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
 
@@ -197,33 +197,33 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const
 	return ApplyGameplayEffectSpecToSelf(Spec, BaseQualifier);
 }
 
-float UAttributeComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const
+float UAbilitySystemComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectMagnitudeByTag(InHandle, InTag);
 }
 
-int32 UAttributeComponent::GetNumActiveGameplayEffect() const
+int32 UAbilitySystemComponent::GetNumActiveGameplayEffect() const
 {
 	return ActiveGameplayEffects.GetNumGameplayEffects();
 }
 
-bool UAttributeComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
+bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
 {
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
 }
 
-bool UAttributeComponent::HasAnyTags(FGameplayTagContainer &Tags)
+bool UAbilitySystemComponent::HasAnyTags(FGameplayTagContainer &Tags)
 {
 	// Fixme: we could aggregate our current tags into a map to avoid this type of iteration
 	return ActiveGameplayEffects.HasAnyTags(Tags);
 }
 
-bool UAttributeComponent::HasAllTags(FGameplayTagContainer &Tags)
+bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
 {
 	return ActiveGameplayEffects.HasAllTags(Tags);
 }
 
-void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
+void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 {
 	for (int32 idx=0; idx < ActiveGameplayEffects.GameplayEffects.Num(); ++idx)
 	{
@@ -235,7 +235,7 @@ void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
 	}
 }
 
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAttributeComponent *Target, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier)
 {
 	// Apply outgoing Effects to the Spec.
 	// Outgoing immunity may stop the outgoing effect from being applied to the target
@@ -247,7 +247,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 	return FActiveGameplayEffectHandle();
 }
 
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &Spec, FModifierQualifier BaseQualifier)
 {
 	// Temp, only non instant, non periodic GEs can be predictive
 	// Effects with other effects may be a mix so go with non-predictive
@@ -349,12 +349,12 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	return MyHandle;
 }
 
-void UAttributeComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)
+void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)
 {
 	ActiveGameplayEffects.ExecutePeriodicGameplayEffect(Handle);
 }
 
-void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
+void UAbilitySystemComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
 	// Should only ever execute effects that are instant application or periodic application
 	// Effects with no period and that aren't instant application should never be executed
@@ -363,27 +363,27 @@ void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec,
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, QualifierContext);
 }
 
-void UAttributeComponent::CheckDurationExpired(FActiveGameplayEffectHandle Handle)
+void UAbilitySystemComponent::CheckDurationExpired(FActiveGameplayEffectHandle Handle)
 {
 	ActiveGameplayEffects.CheckDuration(Handle);
 }
 
-bool UAttributeComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
+bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
 	return ActiveGameplayEffects.RemoveActiveGameplayEffect(Handle);
 }
 
-float UAttributeComponent::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
+float UAbilitySystemComponent::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectDuration(Handle);
 }
 
-float UAttributeComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
+float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectMagnitude(Handle, Attribute);
 }
 
-void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
+void UAbilitySystemComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
 {
 	if (DebugGameplayCues)
 	{
@@ -413,7 +413,7 @@ void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Sp
 	}
 }
 
-void UAttributeComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &Spec)
+void UAbilitySystemComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &Spec)
 {
 	AActor *ActorOwner = GetOwner();
 	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
@@ -431,12 +431,12 @@ void UAttributeComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &
 	}
 }
 
-void UAttributeComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
 {
 	InvokeGameplayCueExecute(Spec);
 }
 
-void UAttributeComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec)
+void UAbilitySystemComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec)
 {
 	AActor *ActorOwner = GetOwner();
 	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
@@ -454,7 +454,7 @@ void UAttributeComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec
 	}
 }
 
-void UAttributeComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Spec)
+void UAbilitySystemComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Spec)
 {
 	AActor *ActorOwner = GetOwner();
 	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
@@ -472,42 +472,42 @@ void UAttributeComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Sp
 	}
 }
 
-void UAttributeComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
+void UAbilitySystemComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
 {
 	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
 }
 
-bool UAttributeComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
 {
 	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, Instigator);
 }
 
-TArray<float> UAttributeComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
+TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
 }
 
-void UAttributeComponent::OnRestackGameplayEffects()
+void UAbilitySystemComponent::OnRestackGameplayEffects()
 {
 	ActiveGameplayEffects.RecalculateStacking();
 }
 
 // ---------------------------------------------------------------------------------------
 
-void UAttributeComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UAttributeComponent, SpawnedAttributes);
-	DOREPLIFETIME(UAttributeComponent, ActiveGameplayEffects);
+	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
 
-	DOREPLIFETIME(UAttributeComponent, ReplicatedInstancedAbilities);
-	DOREPLIFETIME(UAttributeComponent, ActivatableAbilities);
+	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedInstancedAbilities);
+	DOREPLIFETIME(UAbilitySystemComponent, ActivatableAbilities);
 
-	DOREPLIFETIME(UAttributeComponent, ReplicatedPredictionKey);
+	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 }
 
-bool UAttributeComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
@@ -530,7 +530,7 @@ bool UAttributeComponent::ReplicateSubobjects(class UActorChannel *Channel, clas
 	return WroteSomething;
 }
 
-void UAttributeComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs)
+void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs)
 {
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
@@ -541,17 +541,17 @@ void UAttributeComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObje
 	}
 }
 
-void UAttributeComponent::PostNetReceive()
+void UAbilitySystemComponent::PostNetReceive()
 {
 	Super::PostNetReceive();
 }
 
-void UAttributeComponent::OnRep_GameplayEffects()
+void UAbilitySystemComponent::OnRep_GameplayEffects()
 {
 
 }
 
-void UAttributeComponent::OnRep_PredictionKey()
+void UAbilitySystemComponent::OnRep_PredictionKey()
 {
 	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
 	int32 idx = 0;
@@ -573,10 +573,10 @@ void UAttributeComponent::OnRep_PredictionKey()
 	}
 }
 
-FAttributeComponentPredictionKeyClear& UAttributeComponent::GetPredictionKeyDelegate(int32 PredictionKey)
+FAbilitySystemComponentPredictionKeyClear& UAbilitySystemComponent::GetPredictionKeyDelegate(int32 PredictionKey)
 {
 	// See if we already have one for this key
-	for (TPair<int32, FAttributeComponentPredictionKeyClear> & Item : PredictionDelegates)
+	for (TPair<int32, FAbilitySystemComponentPredictionKeyClear> & Item : PredictionDelegates)
 	{
 		if (Item.Key == PredictionKey)
 		{
@@ -585,21 +585,21 @@ FAttributeComponentPredictionKeyClear& UAttributeComponent::GetPredictionKeyDele
 	}
 
 	// Create a new one
-	TPair<int32, FAttributeComponentPredictionKeyClear> NewPair;
+	TPair<int32, FAbilitySystemComponentPredictionKeyClear> NewPair;
 	NewPair.Key = PredictionKey;
 	
 	PredictionDelegates.Add(NewPair);
 	return PredictionDelegates.Last().Value;
 }
 
-int32 UAttributeComponent::GetNextPredictionKey()
+int32 UAbilitySystemComponent::GetNextPredictionKey()
 {
 	return ++LocalPredictionKey;
 }
 
 // ---------------------------------------------------------------------------------------
 
-void UAttributeComponent::PrintAllGameplayEffects() const
+void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
 	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
 	ABILITY_LOG(Log, TEXT("Owner: %s"), *GetOwner()->GetName());

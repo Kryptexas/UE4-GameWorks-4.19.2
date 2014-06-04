@@ -4,7 +4,7 @@
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "AbilitySystemTestAttributeSet.h"
 #include "GameplayTagsModule.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 
 UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -28,7 +28,7 @@ void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGa
 	float HealthToRestore = -DamageDone * LifestealPCT;
 	if (HealthToRestore > 0.f)
 	{
-		UAttributeComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent();
+		UAbilitySystemComponent *Source = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent();
 
 		UGameplayEffect * LocalHealthRestore = HealthRestoreGameplayEffect;
 		if (!LocalHealthRestore)

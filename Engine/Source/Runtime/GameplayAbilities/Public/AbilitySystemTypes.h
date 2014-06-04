@@ -4,7 +4,7 @@
 
 #include "AbilitySystemTypes.generated.h"
 
-class UAttributeComponent;
+class UAbilitySystemComponent;
 class UGameplayEffect;
 
 UENUM(BlueprintType)
@@ -44,7 +44,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 	TWeakObjectPtr<UAnimInstance>	AnimInstance;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
-	TWeakObjectPtr<UAttributeComponent>	AttributeComponent;
+	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;
@@ -89,7 +89,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	}
 
 
-	void GeneratePredictionKey(UAttributeComponent * Component) const;
+	void GeneratePredictionKey(UAbilitySystemComponent * Component) const;
 
 	void SetPredictionKey(int32 InPredictionKey);
 

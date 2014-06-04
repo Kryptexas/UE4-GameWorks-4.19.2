@@ -4,7 +4,7 @@
 #include "AbilitySystemTestAttributeSet.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectExtension.h"
-#include "AttributeComponent.h"
+#include "AbilitySystemComponent.h"
 
 
 UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
@@ -56,7 +56,7 @@ void UAbilitySystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectMo
 		if (Data.EvaluatedData.Magnitude > 0.f)
 		{
 			// Check the source - does he have Crit?
-			UAbilitySystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAttributeComponent()->GetSet<UAbilitySystemTestAttributeSet>();
+			UAbilitySystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent()->GetSet<UAbilitySystemTestAttributeSet>();
 			if (SourceAttributes && SourceAttributes->CritChance > 0.f)
 			{
 				if (FMath::FRand() <= SourceAttributes->CritChance)

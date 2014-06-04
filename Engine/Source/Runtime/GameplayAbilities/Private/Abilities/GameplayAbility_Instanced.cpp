@@ -109,7 +109,7 @@ void UGameplayAbility_Instanced::EndAbility(const FGameplayAbilityActorInfo* Act
 		MarkPendingKill();
 	}
 
-	// Remove from owning attributecomponent?
+	// Remove from owning AbilitySystemComponent?
 	// generic way of releasing all callbacks!
 }
 

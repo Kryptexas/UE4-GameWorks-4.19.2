@@ -23,7 +23,7 @@ struct FActiveGameplayEffect;
 #endif
 
 class UGameplayEffect;
-class UAttributeComponent;
+class UAbilitySystemComponent;
 
 UENUM(BlueprintType)
 namespace EGameplayModOp
@@ -607,7 +607,7 @@ struct FGameplayEffectInstigatorContext
 
 	FGameplayEffectInstigatorContext()
 		: Instigator(NULL)
-		, InstigatorAttributeComponent(NULL)
+		, InstigatorAbilitySystemComponent(NULL)
 	{
 	}
 
@@ -635,9 +635,9 @@ struct FGameplayEffectInstigatorContext
 		return Instigator;
 	}
 
-	UAttributeComponent * GetOriginalInstigatorAttributeComponent() const
+	UAbilitySystemComponent * GetOriginalInstigatorAbilitySystemComponent() const
 	{
-		return InstigatorAttributeComponent;
+		return InstigatorAbilitySystemComponent;
 	}
 	
 	/** Instigator controller */
@@ -645,7 +645,7 @@ struct FGameplayEffectInstigatorContext
 	class AActor* Instigator;
 
 	UPROPERTY(NotReplicated)
-	UAttributeComponent *InstigatorAttributeComponent;
+	UAbilitySystemComponent *InstigatorAbilitySystemComponent;
 
 	/** Trace information - may be NULL in many cases */
 	TSharedPtr<FHitResult>	HitResult;
@@ -1322,7 +1322,7 @@ struct FActiveGameplayEffectQuery
  *	-Bucket of ActiveGameplayEffects
  *	-Needed for FFastArraySerialization
  *  
- * This should only be used by UAttributeComponent. All of this could just live in UAttributeComponent except that we need a distinct USTRUCT to implement FFastArraySerializer.
+ * This should only be used by UAbilitySystemComponent. All of this could just live in UAbilitySystemComponent except that we need a distinct USTRUCT to implement FFastArraySerializer.
  *
  */
 USTRUCT()
@@ -1345,7 +1345,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 		
 	void ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 	
-	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning attribute component
+	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning AbilitySystemComponent
 
 	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
 
@@ -1370,7 +1370,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void OnPropertyAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
 
-	UAttributeComponent *Owner;
+	UAbilitySystemComponent *Owner;
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
 
@@ -1399,7 +1399,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	int32 GetGameStateTime() const;
 	float GetWorldTime() const;
 
-	void OnDurationAggregatorDirty(FAggregator* Aggregator, UAttributeComponent* Owner, FActiveGameplayEffectHandle Handle);
+	void OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* Owner, FActiveGameplayEffectHandle Handle);
 
 private:
 
