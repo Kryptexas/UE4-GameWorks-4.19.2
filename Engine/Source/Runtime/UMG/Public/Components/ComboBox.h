@@ -33,6 +33,7 @@ protected:
 	TSharedRef<SWidget> HandleGenerateWidget(UObject* Item) const;
 
 	// UWidget interface
+
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
 };
