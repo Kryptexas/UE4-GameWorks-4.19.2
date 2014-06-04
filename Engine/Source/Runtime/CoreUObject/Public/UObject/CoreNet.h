@@ -131,7 +131,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	// Variables.
 
-	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
+	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
 
 	void ResetUnAckedObject() { bSerializedUnAckedObject = false; }
 	bool SerializedUnAckedObject() { return bSerializedUnAckedObject; }

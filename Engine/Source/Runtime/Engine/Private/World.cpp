@@ -3388,7 +3388,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path);
 
 				UE_LOG(LogNet, Verbose, TEXT("NMT_NetGUIDAssign  NetGUID %s. Path: %s. "), *NetGUID.ToString(), *Path );
-				Connection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path, NULL);
+				Connection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path, TEXT(""), NULL);
 				break;
 			}
 		}
