@@ -575,8 +575,8 @@ void FWorldTileCollectionModel::RegisterDetailsCustomization(FPropertyEditorModu
 void FWorldTileCollectionModel::UnregisterDetailsCustomization(FPropertyEditorModule& InPropertyModule,
 															   TSharedPtr<IDetailsView> InDetailsView)
 {
-	InPropertyModule.UnregisterStructPropertyLayout("TileStreamingLevelDetails");
-	InPropertyModule.UnregisterStructPropertyLayout("TileLODEntryDetails");
+	InPropertyModule.UnregisterCustomPropertyTypeLayout("TileStreamingLevelDetails");
+	InPropertyModule.UnregisterCustomPropertyTypeLayout("TileLODEntryDetails");
 	InDetailsView->UnregisterInstancedCustomPropertyLayout(UWorldTileDetails::StaticClass());
 }
 

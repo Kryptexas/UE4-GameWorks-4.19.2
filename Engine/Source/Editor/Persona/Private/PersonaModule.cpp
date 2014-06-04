@@ -78,8 +78,8 @@ void FPersonaModule::ShutdownModule()
 		PropertyModule.UnregisterCustomPropertyLayout("AnimNotifyState");
 		PropertyModule.UnregisterCustomPropertyLayout("AnimGraphNode_Base");
 
-		PropertyModule.UnregisterStructPropertyLayout("InputScaleBias");
-		PropertyModule.UnregisterStructPropertyLayout("BoneReference");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("InputScaleBias");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("BoneReference");
 	}
 }
 

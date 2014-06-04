@@ -2,6 +2,9 @@
 
 #pragma once
 
+class IDetailChildrenBuilder;
+class FDetailWidgetRow;
+
 /**
  * A custom node that can be given to a details panel category to customize widgets
  */

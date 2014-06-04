@@ -5,6 +5,9 @@
 #include "Toolkits/IToolkit.h"
 
 #include "PropertyEditorDelegates.h"
+#include "IDetailCustomization.h"
+#include "IPropertyTypeCustomization.h"
+#include "IDetailChildrenBuilder.h"
 
 /**
  * The location of a property name relative to its editor widget                   
@@ -42,167 +45,12 @@ namespace FPropertyAccess
 }
 
 
-/** 
- * Interface for any class that lays out details for a specific class
- */
-class IDetailCustomization : public TSharedFromThis<IDetailCustomization>
-{
-public:
-	virtual ~IDetailCustomization() {}
-
-	/** Called when details should be customized */
-	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) = 0;
-};
 
 class IPropertyHandle;
 class SPropertyTreeViewImpl;
 class SWindow;
 class IPropertyTableCellPresenter;
-
-
-/**
- * Utilities for property type customization
- */
-class IPropertyTypeCustomizationUtils
-{
-public:
-	virtual ~IPropertyTypeCustomizationUtils(){};
-
-	/**
-	 * @return the font used for properties and details
-	 */ 
-	static FSlateFontInfo GetRegularFont() { return FEditorStyle::GetFontStyle( TEXT("PropertyWindow.NormalFont") ); }
-
-	/**
-	 * @return the bold font used for properties and details
-	 */ 
-	static FSlateFontInfo GetBoldFont() { return FEditorStyle::GetFontStyle( TEXT("PropertyWindow.BoldFont") ); }
-	
-	/**
-	 * Gets the thumbnail pool that should be used for rendering thumbnails in the struct                  
-	 */
-	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const = 0;
-
-	/**
-	*	@return the utilities various widgets need access to certain features of PropertyDetails
-	*/
-	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const { return NULL; }
-};
-
-/** Deprecated IStructCustomizationUtils interface */
-typedef IPropertyTypeCustomizationUtils IStructCustomizationUtils;
-
-/**
- * Builder for adding children to a detail customization
- */
-class IDetailChildrenBuilder
-{
-public:
-	virtual ~IDetailChildrenBuilder(){}
-
-	/**
-	 * Adds a custom builder as a child
-	 *
-	 * @param InCustomBuilder		The custom builder to add
-	 */
-	virtual IDetailChildrenBuilder& AddChildCustomBuilder( TSharedRef<class IDetailCustomNodeBuilder> InCustomBuilder ) = 0;
-
-	/**
-	 * Adds a group to the category
-	 *
-	 * @param GroupName	The name of the group 
-	 * @param LocalizedDisplayName	The display name of the group
-	 * @param true if the group should appear in the advanced section of the category
-	 */
-	virtual class IDetailGroup& AddChildGroup( FName GroupName, const FString& LocalizedDisplayName ) = 0;
-
-	/**
-	 * Adds new custom content as a child to the struct
-	 *
-	 * @param SearchString	Search string that will be matched when users search in the details panel.  If the search string doesnt match what the user types, this row will be hidden
-	 * @return A row that accepts widgets
-	 */
-	virtual class FDetailWidgetRow& AddChildContent( const FString& SearchString ) = 0;
-
-	/**
-	 * Adds a property to the struct
-	 * 
-	 * @param PropertyHandle	The handle to the property to add
-	 * @return An interface to the property row that can be used to customize the appearance of the property
-	 */
-	virtual class IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) = 0;
-
-	/**
-	 * Generates a value widget from a customized struct
-	 * If the customized struct has no value widget an empty widget will be returned
-	 *
-	 * @param StructPropertyHandle	The handle to the struct property to generate the value widget from
-	 */
-	virtual TSharedRef<SWidget> GenerateStructValueWidget(TSharedRef<IPropertyHandle> StructPropertyHandle) = 0;
-
-};
-
-/**
- * Base class for property type customizations
- */
-class IPropertyTypeCustomization : public TSharedFromThis<IPropertyTypeCustomization>
-{
-public:
-	virtual ~IPropertyTypeCustomization() {}
-
-	/**
-	 * Called when the header of the property (the row in the details panel where the property is shown)
-	 * If nothing is added to the row, the header is not displayed
-	 *
-	 * @param PropertyHandle			Handle to the property being customized
-	 * @param HeaderRow					A row that widgets can be added to
-	 * @param StructCustomizationUtils	Utilities for customization
-	 */
-	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils ) = 0;
-
-	/**
-	 * Called when the children of the property should be customized or extra rows added
-	 *
-	 * @param PropertyHandle			Handle to the property being customized
-	 * @param StructBuilder				A builder for adding children
-	 * @param StructCustomizationUtils	Utilities for customization
-	 */
-	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils ) = 0;
-};
-
-/** Deprecated IStructCustomization interface */
-class IStructCustomization : public IPropertyTypeCustomization
-{
-public:
-	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> PropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils )
-	{
-		CustomizeStructHeader( PropertyHandle, HeaderRow, CustomizationUtils );
-	}
-
-	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> PropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils ) 
-	{
-		CustomizeStructChildren( PropertyHandle, ChildBuilder, CustomizationUtils );
-	}
-
-	/**
-	 * Called when the header of the struct (usually where the name of the struct and information about the struct as a whole is added)
-	 * If nothing is added to the row, the header is not displayed
-	 *
-	 * @param StructPropertyHandle		Handle to the struct property
-	 * @param HeaderRow					A row that widgets can be added to
-	 * @param StructCustomizationUtils	Utilities for struct customization
-	 */
-	virtual void CustomizeStructHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) = 0;
-
-	/**
-	 * Called when the children of the struct should be customized
-	 *
-	 * @param StructPropertyHandle		Handle to the struct property
-	 * @param StructBuilder				A builder for customizing the struct children
-	 * @param StructCustomizationUtils	Utilities for struct customization
-	 */
-	virtual void CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils ) = 0;
-};
+class IPropertyTypeCustomization;
 
 /** 
  * Base class for adding an extra data to identify a custom property type
@@ -241,10 +89,7 @@ struct FPropertyTypeLayoutCallback
 
 	bool IsValid() { return PropertyTypeLayoutDelegate.IsBound() || DeprecatedLayoutDelegate.IsBound(); }
 
-	TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const
-	{
-		return PropertyTypeLayoutDelegate.IsBound() ? PropertyTypeLayoutDelegate.Execute() : StaticCastSharedRef<IPropertyTypeCustomization>(DeprecatedLayoutDelegate.Execute());
-	}
+	TSharedRef<IPropertyTypeCustomization> GetCustomizationInstance() const;
 };
 
 

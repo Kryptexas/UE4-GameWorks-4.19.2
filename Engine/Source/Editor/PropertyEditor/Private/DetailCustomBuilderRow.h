@@ -2,6 +2,9 @@
 
 #pragma once
 
+class IDetailCustomNodeBuilder;
+class FDetailItemNode;
+class FDetailCategoryImpl;
 
 class FDetailCustomBuilderRow : public TSharedFromThis<FDetailCustomBuilderRow>
 {
@@ -12,7 +15,7 @@ public:
 	bool RequiresTick() const;
 	bool HasColumns() const;
 	bool ShowOnlyChildren() const;
-	void OnItemNodeInitialized( TSharedRef<class FDetailItemNode> InTreeNode, TSharedRef<class FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled );
+	void OnItemNodeInitialized( TSharedRef<FDetailItemNode> InTreeNode, TSharedRef<FDetailCategoryImpl> InParentCategory, const TAttribute<bool>& InIsParentEnabled );
 	FName GetCustomBuilderName() const;
 	void OnGenerateChildren( FDetailNodeList& OutChildren );
 	bool IsInitiallyCollapsed() const;

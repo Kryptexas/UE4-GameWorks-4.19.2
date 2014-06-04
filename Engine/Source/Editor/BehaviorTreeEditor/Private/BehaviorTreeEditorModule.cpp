@@ -88,7 +88,7 @@ void FBehaviorTreeEditorModule::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.UnregisterStructPropertyLayout( "BlackboardKeySelector" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "BlackboardKeySelector" );
 		PropertyModule.UnregisterCustomPropertyLayout( "BTDecorator_Blackboard" );
 		PropertyModule.UnregisterCustomPropertyLayout( "BTDecorator" );
 		PropertyModule.NotifyCustomizationModuleChanged();

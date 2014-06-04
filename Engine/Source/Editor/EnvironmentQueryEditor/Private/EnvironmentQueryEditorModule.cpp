@@ -86,11 +86,12 @@ void FEnvironmentQueryEditorModule::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.UnregisterStructPropertyLayout( "EnvFloatParam" );
-		PropertyModule.UnregisterStructPropertyLayout( "EnvIntParam" );
-		PropertyModule.UnregisterStructPropertyLayout( "EnvBoolParam" );
-		PropertyModule.UnregisterStructPropertyLayout( "EnvDirection" );
-		PropertyModule.UnregisterStructPropertyLayout( "EnvTraceData" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvFloatParam" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvIntParam" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvBoolParam" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvDirection" );
+		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvTraceData" );
+
 		PropertyModule.UnregisterCustomPropertyLayout( "EnvQueryTest" );
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}

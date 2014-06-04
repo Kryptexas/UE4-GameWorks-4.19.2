@@ -2,6 +2,10 @@
 
 #pragma once
 
+class IDetailPropertyRow;
+class FDetailWidgetRow;
+class IPropertyHandle;
+
 /**
  * A group in the details panel that can have children                                                              
  */
