@@ -1151,7 +1151,7 @@ protected:
 	 * @param RampHit:				Hit result of sweep that found the ramp below the capsule
 	 * @param bHitFromLineTrace:	Whether the floor trace came from a line trace
 	 *
-	 * @return If on a walkable surface, this returns a vector that moves parallel to the surface while maintaining horizontal velocity.
+	 * @return If on a walkable surface, this returns a vector that moves parallel to the surface. The magnitude may be scaled if bMaintainHorizontalGroundVelocity is true.
 	 * If a ramp vector can't be computed, this will just return Delta.
 	 */
 	virtual FVector ComputeGroundMovementDelta(const FVector& Delta, const FHitResult& RampHit, const bool bHitFromLineTrace) const;

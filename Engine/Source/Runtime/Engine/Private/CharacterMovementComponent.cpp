@@ -2870,6 +2870,7 @@ FVector UCharacterMovementComponent::ComputeGroundMovementDelta(const FVector& D
 
 	if (FloorNormal.Z < (1.f - KINDA_SMALL_NUMBER) && FloorNormal.Z > KINDA_SMALL_NUMBER && ContactNormal.Z > KINDA_SMALL_NUMBER && !bHitFromLineTrace && IsWalkable(RampHit))
 	{
+		// Compute a vector that moves parallel to the surface, by projecting the horizontal movement direction onto the ramp.
 		const float FloorDotDelta = (FloorNormal | Delta);
 		FVector RampMovement(Delta.X, Delta.Y, -FloorDotDelta / FloorNormal.Z);
 		
@@ -2896,6 +2897,7 @@ void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, cons
 		return;
 	}
 
+	// Move along the current floor
 	FHitResult Hit(1.f);
 	FVector RampVector = ComputeGroundMovementDelta(Delta, CurrentFloor.HitResult, CurrentFloor.bLineTrace);
 	SafeMoveUpdatedComponent(RampVector, CharacterOwner->GetActorRotation(), true, Hit);
@@ -2909,15 +2911,16 @@ void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, cons
 
 	if (Hit.IsValidBlockingHit())
 	{
-		// See if we impacted something (most likely another ramp, but possibly a barrier). Try to slide along it as well.
+		// We impacted something (most likely another ramp, but possibly a barrier).
 		float TimeApplied = Hit.Time;
 		if ((Hit.Time > 0.f) && (Hit.Normal.Z > KINDA_SMALL_NUMBER) && IsWalkable(Hit))
 		{
-			const float PreSlideTimeRemaining = 1.f - Hit.Time;
-			RampVector = ComputeGroundMovementDelta(Delta * PreSlideTimeRemaining, Hit, false);
+			// Another walkable ramp.
+			const float InitialTimeRemaining = 1.f - TimeApplied;
+			RampVector = ComputeGroundMovementDelta(Delta * InitialTimeRemaining, Hit, false);
 			SafeMoveUpdatedComponent(RampVector, CharacterOwner->GetActorRotation(), true, Hit);
 
-			const float SecondHitPercent = Hit.Time * (1.f - TimeApplied);
+			const float SecondHitPercent = Hit.Time * InitialTimeRemaining;
 			TimeApplied = FMath::Clamp(TimeApplied + SecondHitPercent, 0.f, 1.f);
 		}
 
