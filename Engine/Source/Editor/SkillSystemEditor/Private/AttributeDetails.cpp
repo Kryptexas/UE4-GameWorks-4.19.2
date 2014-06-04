@@ -8,7 +8,7 @@
 #include "BlueprintUtilities.h"
 #include "KismetEditorUtilities.h"
 #include "SkillSystemGlobals.h"
-#include "SkillSystemModule.h"
+#include "GameplayAbilitiesModule.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
 
@@ -362,7 +362,7 @@ UCurveTable * FScalableFloatDetails::GetCurveTable()
 
 	if (CurveTable == NULL)
 	{
-		CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
+		CurveTable = IGameplayAbilitiesModule::Get().GetSkillSystemGlobals()->GetGlobalCurveTable();
 	}
 
 	return CurveTable;

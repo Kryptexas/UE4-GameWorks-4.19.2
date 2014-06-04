@@ -1,0 +1,39 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+#include "GameplayCueInterface.h"
+#include "GameplayCueView.h"
+#include "SkillSystemTestPawn.generated.h"
+
+UCLASS(Blueprintable, BlueprintType)
+class GAMEPLAYABILITIES_API ASkillSystemTestPawn : public ADefaultPawn, public IGameplayCueInterface
+{
+	GENERATED_UCLASS_BODY()
+
+	virtual void PostInitializeComponents() OVERRIDE;
+
+	UFUNCTION()
+	virtual void GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) OVERRIDE;
+
+	UFUNCTION()
+	virtual void GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) OVERRIDE;
+
+	UFUNCTION()
+	virtual void GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) OVERRIDE;
+
+	UFUNCTION()
+	virtual void GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) OVERRIDE;
+
+
+	/** DefaultPawn collision component */
+	UPROPERTY(Category = SkillSystem, VisibleAnywhere, BlueprintReadOnly)
+	TSubobjectPtr<class UAttributeComponent> AttributeComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
+	FGameplayCueHandler	GameplayCueHandler;
+
+	//UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
+	//UGameplayAbilitySet * DefaultAbilitySet;
+
+	static FName AttributeComponentName;
+};

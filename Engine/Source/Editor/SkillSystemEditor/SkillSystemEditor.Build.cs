@@ -20,7 +20,7 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
 					"Engine",
 					"AssetTools",
-					"SkillSystem",
+					"GameplayAbilities",
                     "InputCore",
 					"Slate",
 					"SlateCore",
