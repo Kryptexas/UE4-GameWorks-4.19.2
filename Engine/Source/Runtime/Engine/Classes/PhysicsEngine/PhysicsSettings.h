@@ -61,6 +61,10 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultGravityZ;
 
+	/**Default Terminal Velocity. */
+	UPROPERTY(config, EditAnywhere, Category = Constants)
+	float DefaultTerminalVelocity;
+
 	/**Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;

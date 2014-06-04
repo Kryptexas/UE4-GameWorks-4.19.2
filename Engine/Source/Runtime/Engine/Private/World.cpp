@@ -770,6 +770,9 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		DefaultPhysicsVolume->Priority = -1000000;
 	}
 
+	// update terminal velocity when world is restarted
+	DefaultPhysicsVolume->TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
+
 	// Find gravity
 	if (GetPhysicsScene())
 	{
