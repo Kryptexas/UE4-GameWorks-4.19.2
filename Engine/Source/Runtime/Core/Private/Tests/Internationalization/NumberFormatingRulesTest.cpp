@@ -10,7 +10,7 @@
 // Disable optimization for NumberFormatingRulesTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNumberFormattingRulesTest, "Core.Misc.Number Formatting Rules", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNumberFormattingRulesTest, "Core.Misc.Number Formatting Rules", EAutomationTestFlags::ATF_ApplicationMask)
 
 namespace
 {

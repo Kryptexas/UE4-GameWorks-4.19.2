@@ -9,7 +9,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 
 #define LOCTEXT_NAMESPACE "Core.Tests.TextFormatTest"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_ApplicationMask)
 
 namespace
 {
@@ -49,6 +49,8 @@ namespace
 
 bool FTextTest::RunTest (const FString& Parameters)
 {
+	AddLogItem(TEXT("This test is destructive to existing culture invariant text! All culture invariant text will appear in LEET afterwards!"));
+
 	FInternationalization& I18N = FInternationalization::Get();
 	const bool OriginalEnableErrorCheckingValue = FText::GetEnableErrorCheckingResults();
 	const bool OriginalSuppressWarningsValue = FText::GetSuppressWarnings();
