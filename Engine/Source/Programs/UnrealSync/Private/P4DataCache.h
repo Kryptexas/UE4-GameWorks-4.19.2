@@ -2,16 +2,39 @@
 
 #pragma once
 
+/**
+ * Class that stores P4 label information.
+ */
 class FP4Label
 {
 public:
+	/**
+	 * Constructor
+	 *
+	 * @param Name Name of the label.
+	 * @param Date Date and time of label last modification.
+	 */
 	FP4Label(const FString& Name, const FDateTime& Date);
 
+	/**
+	 * Gets label name.
+	 *
+	 * @returns Label name.
+	 */
 	const FString& GetName() const;
+
+	/**
+	 * Gets label last modification date.
+	 *
+	 * @returns Label last modification date.
+	 */
 	const FDateTime& GetDate() const;
 
 private:
+	/* Label name. */
 	FString Name;
+
+	/* Label last modification date. */
 	FDateTime Date;
 };
 
@@ -46,7 +69,7 @@ private:
 class FP4DataLoader : public FRunnable
 {
 public:
-	/* Delagate for loading finished event. */
+	/* Delegate for loading finished event. */
 	DECLARE_DELEGATE_OneParam(FOnLoadingFinished, TSharedPtr<FP4DataCache>);
 
 	/**
@@ -54,7 +77,7 @@ public:
 	 *
 	 * @param OnLoadingFinished Delegate to run when loading finished.
 	 */
-	FP4DataLoader(FOnLoadingFinished OnLoadingFinished);
+	FP4DataLoader(const FOnLoadingFinished& OnLoadingFinished);
 
 	virtual ~FP4DataLoader();
 

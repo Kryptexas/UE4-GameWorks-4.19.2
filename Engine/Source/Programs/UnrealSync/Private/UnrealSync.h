@@ -12,13 +12,92 @@
 void RunUnrealSync(const TCHAR* CommandLine);
 
 /**
+ * Class to store date needed for sync monitoring thread.
+ */
+class FSyncingThread;
+
+/**
+* Interface of sync command line provider widget.
+*/
+class ILabelNameProvider
+{
+public:
+	/**
+	 * Gets label name from current options picked by user.
+	 *
+	 * @returns Label name.
+	 */
+	virtual FString GetLabelName() const = 0;
+
+	/**
+	 * Gets message to display when sync task has started.
+	 */
+	virtual FString GetStartedMessage() const
+	{
+		return "Sync started.";
+	}
+
+	/**
+	 * Gets message to display when sync task has finished.
+	 */
+	virtual FString GetFinishedMessage() const
+	{
+		return "Sync finished.";
+	}
+
+	/**
+	* Gets game name from current options picked by user.
+	*
+	* @returns Game name.
+	*/
+	virtual FString GetGameName() const
+	{
+		return CurrentGameName;
+	}
+
+	/**
+	 * Reset data.
+	 *
+	 * @param GameName Current game name.
+	 */
+	virtual void ResetData(const FString& GameName)
+	{
+		CurrentGameName = GameName;
+	}
+
+	/**
+	 * Refresh data.
+	 *
+	 * @param GameName Current game name.
+	 */
+	virtual void RefreshData(const FString& GameName)
+	{
+		CurrentGameName = GameName;
+	}
+
+	/**
+	 * Tells if this particular widget has data ready for sync.
+	 *
+	 * @returns True if ready. False otherwise.
+	 */
+	virtual bool IsReadyForSync() const = 0;
+
+private:
+	/* Current game name. */
+	FString CurrentGameName;
+};
+
+/**
  * Helper class with functions used to sync engine.
  */
 class FUnrealSync
 {
 public:
-	/* On data refresh event delegate. */
-	DECLARE_DELEGATE(FOnDataRefresh);
+	/* On data loaded event delegate. */
+	DECLARE_DELEGATE(FOnDataLoaded);
+
+	/* On data reset event delegate. */
+	DECLARE_DELEGATE(FOnDataReset);
 
 	/* On sync finished event delegate. */
 	DECLARE_DELEGATE_OneParam(FOnSyncFinished, bool);
@@ -74,11 +153,18 @@ public:
 	static const FString& GetSharedPromotableDisplayName();
 
 	/**
-	 * Registers event that will be trigger when data is refreshed.
+	 * Registers event that will be trigger when data is loaded.
 	 *
-	 * @param OnDataRefresh Delegate to call when event happens.
+	 * @param OnDataLoaded Delegate to call when event happens.
 	 */
-	static void RegisterOnDataRefresh(FOnDataRefresh OnDataRefresh);
+	static void RegisterOnDataLoaded(const FOnDataLoaded& OnDataLoaded);
+
+	/**
+	 * Registers event that will be trigger when data is reset.
+	 *
+	 * @param OnDataReset Delegate to call when event happens.
+	 */
+	static void RegisterOnDataReset(const FOnDataReset& OnDataReset);
 
 	/**
 	 * Start async loading of the P4 label data in case user wants it.
@@ -133,22 +219,38 @@ public:
 	 *
 	 * @param bArtist Perform artist sync?
 	 * @param bPreview Perform preview sync?
-	 * @param CommandLine Command line to run.
+	 * @param LabelNameProvider Object that will provide label name to syncing thread.
 	 * @param OnSyncFinished Delegate to run when syncing is finished.
 	 * @param OnSyncProgress Delegate to run when syncing has made progress.
 	 */
-	static void LaunchSync(bool bArtist, bool bPreview, const FString& CommandLine, FOnSyncFinished OnSyncFinished, FOnSyncProgress OnSyncProgress);
+	static void LaunchSync(bool bArtist, bool bPreview, ILabelNameProvider& LabelNameProvider, const FOnSyncFinished& OnSyncFinished, const FOnSyncProgress& OnSyncProgress);
 
+	/**
+	 * Performs the actual sync with given params.
+	 *
+	 * @param bArtist Perform artist sync?
+	 * @param bPreview Perform preview sync?
+	 * @param Label Chosen label name.
+	 * @param Game Chosen game.
+	 * @param OnSyncProgress Delegate to run when syncing has made progress. 
+	 */
+	static bool Sync(bool bArtist, bool bPreview, const FString& Label, const FString& Game, const FOnSyncProgress& OnSyncProgress);
 private:
 	/* Tells if loading has finished. */
 	static bool bLoadingFinished;
 
-	/* Data refresh event. */
-	static FOnDataRefresh OnDataRefresh;
+	/* Data loaded event. */
+	static FOnDataLoaded OnDataLoaded;
+
+	/* Data reset event. */
+	static FOnDataReset OnDataReset;
 
 	/* Cached data ptr. */
 	static TSharedPtr<FP4DataCache> Data;
 
 	/* Background loading process monitoring thread. */
 	static TSharedPtr<FP4DataLoader> LoaderThread;
+
+	/* Background syncing process monitoring thread. */
+	static TSharedPtr<FSyncingThread> SyncingThread;
 };

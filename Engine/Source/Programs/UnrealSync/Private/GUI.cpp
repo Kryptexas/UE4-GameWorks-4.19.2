@@ -6,6 +6,10 @@
 #include "StandaloneRenderer.h"
 #include "LaunchEngineLoop.h"
 
+#include "P4Env.h"
+
+#include "ProcessHelper.h"
+
 /**
  * Simple text combo box widget.
  */
@@ -366,37 +370,9 @@ private:
 };
 
 /**
- * Interface of sync command line provider widget.
- */
-class ISyncCommandLineProvider
-{
-public:
-	/**
-	 * Gets command line from current options picked by user.
-	 *
-	 * @returns UAT UnrealSync command line.
-	 */
-	virtual FString GetCommandLine() const = 0;
-
-	/**
-	 * Refresh widget method.
-	 *
-	 * @param GameName Game name to refresh for.
-	 */
-	virtual void RefreshWidget(const FString& GameName) = 0;
-
-	/**
-	 * Tells if this particular widget has data ready for sync.
-	 *
-	 * @returns True if ready. False otherwise.
-	 */
-	virtual bool IsReadyForSync() const = 0;
-};
-
-/**
  * Sync latest promoted widget.
  */
-class SLatestPromoted : public SCompoundWidget, public ISyncCommandLineProvider
+class SLatestPromoted : public SCompoundWidget, public ILabelNameProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SLatestPromoted) {}
@@ -405,6 +381,8 @@ public:
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct(const FArguments& InArgs)
 	{
+		DataReady = MakeShareable(FPlatformProcess::CreateSynchEvent(true));
+
 		this->ChildSlot
 			[
 				SNew(STextBlock).Text(FText::FromString("This option will sync to the latest promoted label for given game."))
@@ -417,21 +395,64 @@ public:
 	 *
 	 * @returns UAT UnrealSync command line.
 	 */
-	FString GetCommandLine() const OVERRIDE
+	FString GetLabelName() const OVERRIDE
 	{
-		return !CurrentGameName.IsEmpty()
-			? ("game=" + CurrentGameName)
-			: "";
+		DataReady->Wait();
+
+		return CurrentLabelName;
 	}
 
 	/**
-	 * Refresh widget method.
-	 *
-	 * @param GameName Game name to refresh for.
+	 * Gets message to display when sync task has started.
 	 */
-	void RefreshWidget(const FString& GameName) OVERRIDE
+	virtual FString GetStartedMessage() const
 	{
-		CurrentGameName = GameName;
+			return "Sync to latest started. Pending label data. Please wait.";
+	}
+
+	/**
+	 * Gets message to display when sync task has finished.
+	 */
+	virtual FString GetFinishedMessage() const
+	{
+		return "Sync to latest finished.";
+	}
+
+	FString GetGameName() const OVERRIDE
+	{
+		DataReady->Wait();
+
+		return ILabelNameProvider::GetGameName();
+	}
+
+	/**
+	 * Refresh data.
+	 *
+	 * @param GameName Current game name.
+	 */
+	void RefreshData(const FString& GameName) OVERRIDE
+	{
+		ILabelNameProvider::RefreshData(GameName);
+
+		auto Labels = FUnrealSync::GetPromotedLabelsForGame(GameName);
+		if (Labels->Num() != 0)
+		{
+			CurrentLabelName = (*Labels)[0];
+		}
+
+		DataReady->Trigger();
+	}
+
+	/**
+	 * Reset data.
+	 *
+	 * @param GameName Current game name.
+	 */
+	void ResetData(const FString& GameName) OVERRIDE
+	{
+		ILabelNameProvider::ResetData(GameName);
+
+		DataReady->Reset();
 	}
 
 	/**
@@ -447,12 +468,18 @@ public:
 private:
 	/* Currently picked game name. */
 	FString CurrentGameName;
+
+	/* Current label name. */
+	FString CurrentLabelName;
+
+	/* Event that will trigger when data is ready. */
+	TSharedPtr<FEvent> DataReady;
 };
 
 /**
  * Base class for pick label widgets.
  */
-class SPickLabel : public SCompoundWidget, public ISyncCommandLineProvider
+class SPickLabel : public SCompoundWidget, public ILabelNameProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SPickLabel) {}
@@ -485,7 +512,7 @@ public:
 	 *
 	 * @returns UAT UnrealSync command line.
 	 */
-	FString GetCommandLine() const OVERRIDE
+	FString GetLabelName() const OVERRIDE
 	{
 		return "-label=" + LabelsCombo->GetCurrentOption();
 	}
@@ -498,6 +525,20 @@ public:
 	bool IsReadyForSync() const OVERRIDE
 	{
 		return FUnrealSync::HasValidData() && !LabelsCombo->IsEmpty();
+	}
+
+	/**
+	 * Reset data.
+	 *
+	 * @param GameName Current game name.
+	 */
+	void ResetData(const FString& GameName) OVERRIDE
+	{
+		ILabelNameProvider::ResetData(GameName);
+
+		LabelsCombo->Clear();
+		LabelsCombo->Add("Loading P4 labels data...");
+		LabelsCombo->SetEnabled(false);
 	}
 
 protected:
@@ -521,7 +562,7 @@ protected:
 		}
 		else
 		{
-			LabelsCombo->Add(!FUnrealSync::LoadingFinished() ? "Loading P4 labels data..." : "P4 data loading failed.");
+			LabelsCombo->Add("P4 data loading failed.");
 			LabelsCombo->SetEnabled(false);
 		}
 	}
@@ -542,9 +583,11 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshWidget(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) OVERRIDE
 	{
 		SetLabelOptions(*FUnrealSync::GetPromotedLabelsForGame(GameName));
+
+		SPickLabel::RefreshData(GameName);
 	}
 };
 
@@ -559,9 +602,11 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshWidget(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) OVERRIDE
 	{
 		SetLabelOptions(*FUnrealSync::GetPromotableLabelsForGame(GameName));
+
+		SPickLabel::RefreshData(GameName);
 	}
 };
 
@@ -576,9 +621,11 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshWidget(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) OVERRIDE
 	{
 		SetLabelOptions(*FUnrealSync::GetAllLabels());
+
+		SPickLabel::RefreshData(GameName);
 	}
 };
 
@@ -640,7 +687,7 @@ public:
 private:
 	/**
 	 * Function is called when combo box selection is changed.
-	 * It calles OnGamePicked event.
+	 * It called OnGamePicked event.
 	 */
 	void OnComboBoxSelectionChanged(int32 SelectionId, ESelectInfo::Type SelectionInfo)
 	{
@@ -654,6 +701,117 @@ private:
 };
 
 /**
+ * Creates Slate page to show error and close app.
+ *
+ * @param ErrorMsg Error message to display.
+ *
+ * @returns Created widget.
+ */
+TSharedRef<SWidget> CreateErrorPage(const FString& ErrorMsg)
+{
+	/**
+	 * Embedded class to enclose closing button functionality.
+	 */
+	class CloseButtonHandler
+	{
+	public:
+		/**
+		 * Function that is called on when Close button is clicked.
+		 * It tells the app to close.
+		 *
+		 * @returns Tells that this event was handled.
+		 */
+		static FReply OnCloseButtonClick()
+		{
+			FPlatformMisc::RequestExit(false);
+
+			return FReply::Handled();
+		}
+	};
+
+	return
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+		[
+			SNew(STextBlock).Text(FText::FromString(*ErrorMsg))
+		]
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SButton)
+				.OnClicked_Static(&CloseButtonHandler::OnCloseButtonClick)
+				[
+					SNew(STextBlock).Text(FText::FromString("Close"))
+				]
+			]
+		];
+}
+
+/**
+ * Tries to update original UnrealSync at given location.
+ *
+ * @param Location of original UnrealSync.
+ *
+ * @returns False on failure. True otherwise.
+ */
+bool UpdateOriginalUS(const FString& OriginalUSPath)
+{
+	FString Output;
+	return FP4Env::RunP4Output(TEXT("sync ") + OriginalUSPath, Output);
+}
+
+/**
+ * Runs detached UnrealSync process and passes given parameters in command line.
+ *
+ * @param USPath UnrealSync executable path.
+ * @param bDoNotRunFromCopy Should UnrealSync be called with -DoNotRunFromCopy flag?
+ * @param bDoNotUpdateOnStartUp Should UnrealSync be called with -DoNotUpdateOnStartUp flag?
+ * @param bPassP4Env Pass P4 environment parameters to UnrealSync?
+ *
+ * @returns True if succeeded. False otherwise. Notice that this says of
+ *			success of launching procedure not launched process, cause
+ *			its detached.
+ */
+bool RunDetachedUS(const FString& USPath, bool bDoNotRunFromCopy, bool bDoNotUpdateOnStartUp, bool bPassP4Env)
+{
+	FString CommandLine = FString()
+		+ (bDoNotRunFromCopy ? TEXT("-DoNotRunFromCopy ") : TEXT(""))
+		+ (bDoNotUpdateOnStartUp ? TEXT("-DoNotUpdateOnStartUp ") : TEXT(""))
+		+ (bPassP4Env
+		? FString::Printf(TEXT("-P4PORT=%s -P4USER=%s -US_FOUND_P4CLIENT=%s"),
+		*FP4Env::Get().GetPort(),
+		*FP4Env::Get().GetUser(),
+		*FP4Env::Get().GetClient())
+		: TEXT(""));
+
+	return RunProcess(USPath, CommandLine);
+}
+
+/**
+ * This function copies file from From to To location and deletes
+ * if To exists.
+ *
+ * @param To Location to which copy the file.
+ * @param From Location from which copy the file.
+ *
+ * @returns True if succeeded. False otherwise.
+ */
+bool DeleteIfExistsAndCopyFile(const FString& To, const FString& From)
+{
+	auto& PlatformPhysical = IPlatformFile::GetPlatformPhysical();
+
+	if (PlatformPhysical.FileExists(*To) && !PlatformPhysical.DeleteFile(*To))
+	{
+		return false;
+	}
+
+	return PlatformPhysical.CopyFile(*To, *From);
+}
+
+/**
  * Main tab widget.
  */
 class SMainTabWidget : public SCompoundWidget
@@ -665,6 +823,22 @@ public:
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct(const FArguments& InArgs)
 	{
+		FString ErrorMsg;
+		if (DoInitialTasks(ErrorMsg))
+		{
+			FPlatformMisc::RequestExit(false);
+			return;
+		}
+
+		if (!ErrorMsg.IsEmpty())
+		{
+			this->ChildSlot
+				[
+					CreateErrorPage(ErrorMsg)
+				];
+			return;
+		}
+
 		RadioSelection = SNew(SRadioContentSelection);
 
 		AddToRadioSelection("Sync to the latest promoted", SNew(SLatestPromoted));
@@ -772,13 +946,91 @@ public:
 				Switcher.ToSharedRef()
 			];
 
-		FUnrealSync::RegisterOnDataRefresh(FUnrealSync::FOnDataRefresh::CreateRaw(this, &SMainTabWidget::DataRefresh));
+		FUnrealSync::RegisterOnDataReset(FUnrealSync::FOnDataReset::CreateRaw(this, &SMainTabWidget::DataReset));
+		FUnrealSync::RegisterOnDataLoaded(FUnrealSync::FOnDataLoaded::CreateRaw(this, &SMainTabWidget::DataLoaded));
 
 		OnReloadLabels();
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+	/**
+	 * Destructor.
+	 */
+	virtual ~SMainTabWidget()
+	{
+		FUnrealSync::TerminateLoadingProcess();
+	}
+
 private:
+	/**
+	 * This method does some initial task:
+	 * - initializes P4
+	 * - updates UnrealSync (to do this it has to copy itself to remote location and run from there)
+	 *
+	 * @param ErrorMsg Out parameter to output error message if happened.
+	 *
+	 * @returns True if application should stop building GUI and exit. False otherwise.
+	 */
+	bool DoInitialTasks(FString& ErrorMsg)
+	{
+		bool bDoNotUpdateOnStartUp = FParse::Param(FCommandLine::Get(), TEXT("DoNotUpdateOnStartUp"));
+		bool bDoNotRunFromCopy = FParse::Param(FCommandLine::Get(), TEXT("DoNotRunFromCopy"));
+
+		if (!FP4Env::Init(FCommandLine::Get()))
+		{
+			ErrorMsg = TEXT("P4 environment failed.");
+			return false;
+		}
+
+		FString CommonExecutablePath =
+			FPaths::ConvertRelativePathToFull(
+			FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"),
+#if !UE_BUILD_DEBUG
+				TEXT("UnrealSync")
+#else
+				TEXT("UnrealSync-Win64-Debug")
+#endif
+			));
+
+		FString OriginalExecutablePath = CommonExecutablePath + TEXT(".exe");
+		FString TemporaryExecutablePath = CommonExecutablePath + TEXT(".Temporary.exe");
+
+		if (!bDoNotRunFromCopy)
+		{
+			if (!DeleteIfExistsAndCopyFile(*TemporaryExecutablePath, *OriginalExecutablePath))
+			{
+				ErrorMsg = TEXT("Copying UnrealSync to temp location failed.");
+				return false;
+			}
+
+			if (!RunDetachedUS(TemporaryExecutablePath, true, bDoNotUpdateOnStartUp, true))
+			{
+				ErrorMsg = TEXT("Running remote UnrealSync failed.");
+				return false;
+			}
+
+			return true;
+		}
+
+		if (!bDoNotUpdateOnStartUp)
+		{
+			if (!UpdateOriginalUS(OriginalExecutablePath))
+			{
+				ErrorMsg = TEXT("UnrealSync update failed.");
+				return false;
+			}
+			if (!RunDetachedUS(OriginalExecutablePath, false, true, true))
+			{
+				ErrorMsg = TEXT("Running UnrealSync failed.");
+				return false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
 	 * Generates list view item from FString.
 	 *
@@ -800,7 +1052,7 @@ private:
 	 *
 	 * @returns Current sync cmd line provider.
 	 */
-	ISyncCommandLineProvider& GetCurrentSyncCmdLineProvider()
+	ILabelNameProvider& GetCurrentSyncCmdLineProvider()
 	{
 		return *SyncCommandLineProviders[RadioSelection->GetChosen()];
 	}
@@ -810,7 +1062,7 @@ private:
 	 *
 	 * @returns Current sync cmd line provider.
 	 */
-	const ISyncCommandLineProvider& GetCurrentSyncCmdLineProvider() const
+	const ILabelNameProvider& GetCurrentSyncCmdLineProvider() const
 	{
 		return *SyncCommandLineProviders[RadioSelection->GetChosen()];
 	}
@@ -874,17 +1126,13 @@ private:
 	{
 		auto bArtist = ArtistSyncCheckBox->IsChecked();
 		auto bPreview = PreviewSyncCheckBox->IsChecked();
-		auto CommandLine = GetCurrentSyncCmdLineProvider().GetCommandLine();
-
-		if (!FUnrealSync::LoadingFinished())
-		{
-			FUnrealSync::TerminateLoadingProcess();
-		}
 
 		Switcher->SetActiveWidgetIndex(1);
-		FUnrealSync::LaunchSync(bArtist, bPreview, CommandLine,
+		FUnrealSync::LaunchSync(bArtist, bPreview, GetCurrentSyncCmdLineProvider(),
 			FUnrealSync::FOnSyncFinished::CreateRaw(this, &SMainTabWidget::SyncingFinished),
 			FUnrealSync::FOnSyncProgress::CreateRaw(this, &SMainTabWidget::SyncingProgress));
+
+		GoBackButton->SetEnabled(false);
 
 		return FReply::Handled();
 	}
@@ -937,27 +1185,52 @@ private:
 	 * Function to call when current game changed. Is refreshing
 	 * label lists in the widget.
 	 *
-	 * @param CurrentGameName Game name choosen.
+	 * @param CurrentGameName Game name chosen.
 	 */
 	void OnCurrentGameChanged(const FString& CurrentGameName)
 	{
+		if (!FUnrealSync::HasValidData())
+		{
+			return;
+		}
+
 		for (auto SyncCommandLineProvider : SyncCommandLineProviders)
 		{
-			SyncCommandLineProvider->RefreshWidget(CurrentGameName);
+			SyncCommandLineProvider->RefreshData(
+				CurrentGameName.Equals(FUnrealSync::GetSharedPromotableDisplayName())
+				? ""
+				: CurrentGameName);
 		}
 	}
 
 	/**
-	 * Function to call when P4 cached data is refreshed.
-	 * This function is refreshing whole widget data.
+	 * Function to call when P4 cached data is reset.
 	 */
-	void DataRefresh()
+	void DataReset()
+	{
+		for (auto SyncCommandLineProvider : SyncCommandLineProviders)
+		{
+			SyncCommandLineProvider->ResetData(
+				PickGameWidget->GetCurrentGame().Equals(FUnrealSync::GetSharedPromotableDisplayName())
+				? ""
+				: PickGameWidget->GetCurrentGame());
+		}
+	}
+
+	/**
+	 * Function to call when P4 cached data is loaded.
+	 */
+	void DataLoaded()
 	{
 		const FString& GameName = PickGameWidget->GetCurrentGame();
-		OnCurrentGameChanged(
-			GameName.Equals(FUnrealSync::GetSharedPromotableDisplayName())
-			? ""
-			: GameName);
+
+		for (auto SyncCommandLineProvider : SyncCommandLineProviders)
+		{
+			SyncCommandLineProvider->RefreshData(
+				GameName.Equals(FUnrealSync::GetSharedPromotableDisplayName())
+				? ""
+				: GameName);
+		}
 	}
 
 	/**
@@ -994,7 +1267,7 @@ private:
 	TSharedPtr<SButton> GoBackButton;
 
 	/* Array of sync command line providers. */
-	TArray<TSharedRef<ISyncCommandLineProvider> > SyncCommandLineProviders;
+	TArray<TSharedRef<ILabelNameProvider> > SyncCommandLineProviders;
 };
 
 /**
@@ -1019,10 +1292,15 @@ TSharedRef<SDockTab> GetMainTab(const FSpawnTabArgs& Args)
 	return MainTab;
 }
 
-void InitGUI()
+/**
+ * Initializes and starts GUI.
+ *
+ * @param CommandLine Command line passed to the program.
+ */
+void InitGUI(const TCHAR* CommandLine)
 {
 	// start up the main loop
-	GEngineLoop.PreInit(GetCommandLineW());
+	GEngineLoop.PreInit(CommandLine);
 
 	// crank up a normal Slate application using the platform's standalone renderer
 	FSlateApplication::InitializeAsStandaloneApplication(GetStandardStandaloneRenderer());

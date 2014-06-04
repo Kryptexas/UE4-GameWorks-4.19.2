@@ -4,41 +4,42 @@
 
 #include "P4DataCache.h"
 
-#include "UATHelper.h"
+#include "P4Env.h"
+#include "Internationalization/Regex.h"
+
+/**
+ * Helper function to get capture group value.
+ * Missing in FRegexMatcher implementation (maybe it should go there?).
+ *
+ * @param Source Source text that was used to match.
+ * @param Matcher Current matcher state.
+ * @param Id Capture group ID to retrieve.
+ *
+ * @returns Captured group text.
+ */
+FString GetGroupText(const FString& Source, FRegexMatcher& Matcher, int32 Id)
+{
+	return Source.Mid(Matcher.GetCaptureGroupBeginning(Id), Matcher.GetCaptureGroupEnding(Id) - Matcher.GetCaptureGroupBeginning(Id));
+}
 
 bool FP4DataCache::LoadFromLog(const FString& UnrealSyncListLog)
 {
-	const FString Prefix = "UnrealSyncList.Print: ";
+	const FRegexPattern Pattern(TEXT("Label ([^ ]+) (\\d{4})/(\\d{2})/(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})")); // '.+\\n
 
-	FString Log = UnrealSyncListLog;
-	FString CurrentLine;
-	FString Rest;
+	FRegexMatcher Matcher(Pattern, UnrealSyncListLog);
 
-	TArray<FString> LabelDescs;
-
-	while (Log.Split("\n", &CurrentLine, &Rest, ESearchCase::CaseSensitive))
+	while (Matcher.FindNext())
 	{
-		if (CurrentLine.StartsWith(Prefix))
-		{
-			LabelDescs.Add(CurrentLine.Mid(Prefix.Len()).TrimTrailing());
-		}
-
-		Log = Rest;
-	}
-
-	for (auto LabelDesc : LabelDescs)
-	{
-		FString Name;
-		FString TicksStr;
-
-		if (!LabelDesc.Split(" ", &Name, &TicksStr, ESearchCase::CaseSensitive))
-		{
-			return false;
-		}
-
-		int64 Ticks = FCString::Atoi64(*TicksStr);
-
-		Labels.Add(FP4Label(Name, Ticks));
+		Labels.Add(FP4Label(
+			GetGroupText(UnrealSyncListLog, Matcher, 1),
+			FDateTime(
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 2)),
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 3)),
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 4)),
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 5)),
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 6)),
+				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 7))
+			)));
 	}
 
 	Labels.Sort(
@@ -71,7 +72,7 @@ const FDateTime& FP4Label::GetDate() const
 	return Date;
 }
 
-FP4DataLoader::FP4DataLoader(FOnLoadingFinished OnLoadingFinished)
+FP4DataLoader::FP4DataLoader(const FOnLoadingFinished& OnLoadingFinished)
 	: OnLoadingFinished(OnLoadingFinished), bTerminate(false)
 {
 	Thread = FRunnableThread::Create(this, TEXT("P4 Data Loading"));
@@ -81,10 +82,10 @@ uint32 FP4DataLoader::Run()
 {
 	TSharedPtr<FP4DataCache> Data = MakeShareable(new FP4DataCache());
 
-	class UATProgress
+	class P4Progress
 	{
 	public:
-		UATProgress(const bool& bTerminate)
+		P4Progress(const bool& bTerminate)
 			: bTerminate(bTerminate)
 		{
 		}
@@ -102,9 +103,9 @@ uint32 FP4DataLoader::Run()
 		const bool &bTerminate;
 	};
 
-	UATProgress Progress(bTerminate);
-	if (!RunUATProgress("UnrealSyncList -type=all -ticks",
-		FOnUATMadeProgress::CreateRaw(&Progress, &UATProgress::OnProgress)))
+	P4Progress Progress(bTerminate);
+	if (!FP4Env::RunP4Progress(FString::Printf(TEXT("labels -t -e%s/*"), *FP4Env::Get().GetBranch()),
+		FP4Env::FOnP4MadeProgress::CreateRaw(&Progress, &P4Progress::OnProgress)))
 	{
 		OnLoadingFinished.ExecuteIfBound(nullptr);
 		return 0;

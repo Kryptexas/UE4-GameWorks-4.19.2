@@ -18,6 +18,7 @@ public class UnrealSync : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"StandaloneRenderer",
+				"XmlParser"
 			}
 		);
 		

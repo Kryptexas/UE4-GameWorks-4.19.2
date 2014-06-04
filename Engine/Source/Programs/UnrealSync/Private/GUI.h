@@ -4,5 +4,7 @@
 
 /**
  * Function that is initializing and constructing the whole GUI.
+ *
+ * @param CommandLine Command line that has been passed to the process.
  */
-void InitGUI();
+void InitGUI(const TCHAR* CommandLine);
