@@ -237,14 +237,14 @@ FText::FText()
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	FText::FText(const FText& Other) = default;
 	FText::FText(FText&& Other) = default;
-	FText& operator=(const FText& Other) = default;
-	FText& operator=(FText&& Other) = default;
+	FText& FText::operator=(const FText& Other) = default;
+	FText& FText::operator=(FText&& Other) = default;
 #else
-FText::FText( const FText& Source )
-	: DisplayString( Source.DisplayString )
-	, History( Source.History )
-	, Flags( Source.Flags )
-	, Revision( Source.Revision )
+FText::FText(const FText& Source)
+	: DisplayString(Source.DisplayString)
+	, History(Source.History)
+	, Flags(Source.Flags)
+	, Revision(Source.Revision)
 {
 }
 
