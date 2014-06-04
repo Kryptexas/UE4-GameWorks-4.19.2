@@ -11,6 +11,22 @@
 struct FBoneContainer;
 class  USkeletalMesh;
 
+/**
+* Delegate for when Montage is completed, whether interrupted or finished
+* Weight of this montage is 0.f, so it stops contributing to output pose
+*
+* bInterrupted = true if it was not property finished
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
+
+/**
+* Delegate for when Montage started to blend out, whether interrupted or finished
+* DesiredWeight of this montage becomes 0.f, but this still contributes to the output pose
+*
+* bInterrupted = true if it was not property finished
+*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageBlendingOutStartedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
+
 /** Enum for controlling which reference frame a controller is applied in. */
 UENUM()
 enum EBoneControlSpace
@@ -521,6 +537,15 @@ public:
 	void Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded);
 	void Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut);
 	FOnMontageBlendingOutStarted* Montage_GetBlendingOutDelegate();
+
+
+	/** Called when a montage starts blending out, whether interrupted or finished */
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageBlendingOutStartedMCDelegate OnMontageBlendingOut;
+	
+	/** Called when a montage has ended, whether interrupted or finished*/
+	UPROPERTY(BlueprintAssignable)
+	FOnMontageEndedMCDelegate OnMontageEnded;
 
 public:
 	/** Get Current Montage Position */

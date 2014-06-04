@@ -705,10 +705,11 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 		// check where this function gets called and see how we calculate BlendTime
 		BlendTime = BlendOut;
 
-		if (OnMontageBlendingOutStarted.IsBound())
+		if (UAnimInstance* Inst = AnimInstance.Get())
 		{
-			OnMontageBlendingOutStarted.Execute(Montage, bInterrupted);
+			Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
 		}
+		OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
 	}
 
 	if (BlendTime == 0.0f)
@@ -780,10 +781,11 @@ void FAnimMontageInstance::Terminate()
 	Montage = NULL;
 
 	// terminating, trigger end
-	if (OnMontageEnded.IsBound())
+	if (UAnimInstance* Inst = AnimInstance.Get())
 	{
-		OnMontageEnded.Execute(OldMontage, bInterrupted);
+		Inst->OnMontageEnded.Broadcast(Montage, bInterrupted);
 	}
+	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
 
 bool FAnimMontageInstance::ChangeNextSection(FName SectionName, FName NextSectionName)
