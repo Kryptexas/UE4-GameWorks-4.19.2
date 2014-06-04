@@ -5,7 +5,7 @@
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
 
-class FSkillSystemEditorModule : public ISkillSystemEditorModule
+class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {
 	// Begin IModuleInterface
 	virtual void StartupModule() OVERRIDE;
@@ -13,9 +13,9 @@ class FSkillSystemEditorModule : public ISkillSystemEditorModule
 	// End IModuleInterface
 };
 
-IMPLEMENT_MODULE( FSkillSystemEditorModule, SkillSystemEditor )
+IMPLEMENT_MODULE(FGameplayAbilitiesEditorModule, GameplayAbilitiesEditor)
 
-void FSkillSystemEditorModule::StartupModule()
+void FGameplayAbilitiesEditorModule::StartupModule()
 {
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -25,7 +25,7 @@ void FSkillSystemEditorModule::StartupModule()
 	PropertyModule.RegisterCustomPropertyLayout( "AttributeSet", FOnGetDetailCustomizationInstance::CreateStatic( &FAttributeDetails::MakeInstance ) );
 }
 
-void FSkillSystemEditorModule::ShutdownModule()
+void FGameplayAbilitiesEditorModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.

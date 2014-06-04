@@ -8,7 +8,7 @@
 /**
  * The public interface to this module
  */
-class ISkillSystemEditorModule : public IModuleInterface
+class IGameplayAbilitiesEditorModule : public IModuleInterface
 {
 
 public:
@@ -19,9 +19,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline ISkillSystemEditorModule& Get()
+	static inline IGameplayAbilitiesEditorModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< ISkillSystemEditorModule >( "SkillSystemEditor" );
+		return FModuleManager::LoadModuleChecked< IGameplayAbilitiesEditorModule >("GameplayAbilitiesEditor");
 	}
 
 	/**

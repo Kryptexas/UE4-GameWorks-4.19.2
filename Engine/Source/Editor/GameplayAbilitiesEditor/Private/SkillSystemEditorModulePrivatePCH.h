@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "SkillSystemEditorModule.h"
+#include "GameplayAbilitiesEditorModule.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

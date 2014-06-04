@@ -2,13 +2,13 @@
 
 namespace UnrealBuildTool.Rules
 {
-	public class SkillSystemEditor : ModuleRules
+	public class GameplayAbilitiesEditor : ModuleRules
 	{
-        public SkillSystemEditor(TargetInfo Target)
+        public GameplayAbilitiesEditor(TargetInfo Target)
 		{
             PrivateIncludePaths.AddRange(
                 new string[] {
-					"Editor/SkillSystemTagsEditor/Private",
+					"Editor/GameplayAbilitiesEditor/Private",
 				}
 			);
 
