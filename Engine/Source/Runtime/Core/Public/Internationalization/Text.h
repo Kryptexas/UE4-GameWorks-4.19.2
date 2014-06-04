@@ -115,6 +115,10 @@ public:
 
 	FText();
 	FText( const FText& Source );
+	FText(FText&& Source);
+
+	FText& operator=(const FText& Source);
+	FText& operator=(FText&& Source);
 
 	/**
 	 * Generate an FText that represents the passed number in the current culture

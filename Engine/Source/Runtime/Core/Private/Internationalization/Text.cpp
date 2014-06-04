@@ -234,6 +234,12 @@ FText::FText()
 {
 }
 
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FText::FText(const FText& Other) = default;
+	FText::FText(FText&& Other) = default;
+	FText& operator=(const FText& Other) = default;
+	FText& operator=(FText&& Other) = default;
+#else
 FText::FText( const FText& Source )
 	: DisplayString( Source.DisplayString )
 	, History( Source.History )
@@ -241,6 +247,35 @@ FText::FText( const FText& Source )
 	, Revision( Source.Revision )
 {
 }
+
+FText::FText(FText&& Source)
+	: DisplayString(MoveTemp(Source.DisplayString))
+	, History(MoveTemp(Source.History))
+	, Flags(MoveTemp(Source.Flags))
+	, Revision(MoveTemp(Source.Revision))
+{
+}
+
+FText& FText::operator=(const FText& Source)
+{
+	DisplayString = Source.DisplayString;
+	History = Source.History;
+	Flags = Source.Flags;
+	Revision = Source.Revision;
+
+	return *this;
+}
+
+FText& FText::operator=(FText&& Source)
+{
+	DisplayString = MoveTemp(Source.DisplayString);
+	History = MoveTemp(Source.History);
+	Flags = MoveTemp(Source.Flags);
+	Revision = MoveTemp(Source.Revision);
+
+	return *this;
+}
+#endif
 
 FText::FText( FString InSourceString )
 	: DisplayString( new FString( MoveTemp(InSourceString) ))
