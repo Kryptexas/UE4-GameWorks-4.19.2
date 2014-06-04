@@ -18,6 +18,7 @@
 #include "K2Node_CallParentFunction.h"
 #include "K2Node_ClearDelegate.h"
 #include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "K2Node_DoOnceMultiInput.h"
 #include "K2Node_ComponentBoundEvent.h"
 #include "K2Node_Composite.h"
 #include "K2Node_CreateDelegate.h"

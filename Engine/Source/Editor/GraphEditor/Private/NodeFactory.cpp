@@ -157,6 +157,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeK2Sequence, OperatorNode);
 		}
+		else if (UK2Node_DoOnceMultiInput* DoOnceMultiInputNode = Cast<UK2Node_DoOnceMultiInput>(InNode))
+		{
+			return SNew(SGraphNodeK2Sequence, DoOnceMultiInputNode);
+		}
 		else if (UK2Node_Timeline* TimelineNode = Cast<UK2Node_Timeline>(InNode))
 		{
 			return SNew(SGraphNodeK2Timeline, TimelineNode);
