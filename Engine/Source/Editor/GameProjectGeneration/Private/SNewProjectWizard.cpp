@@ -997,7 +997,7 @@ void SNewProjectWizard::SetDefaultProjectLocation( )
 	if ( DefaultProjectFilePath.IsEmpty() )
 	{
 		// No previously used path, decide a default path.
-		DefaultProjectFilePath = GameProjectUtils::GetDefaultProjectCreationPath();
+		DefaultProjectFilePath = FDesktopPlatformModule::Get()->GetDefaultProjectCreationPath();
 		IFileManager::Get().MakeDirectory(*DefaultProjectFilePath, true);
 	}
 

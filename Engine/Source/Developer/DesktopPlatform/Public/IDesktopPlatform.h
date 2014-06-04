@@ -156,6 +156,13 @@ public:
 	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) = 0;
 
 	/**
+	* Enumerates all the sample projects installed by the launcher.
+	*
+	* @param	OutFileNames		Array of sample project filenames.
+	*/
+	virtual void EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames) = 0;
+
+	/**
 	* Returns the identifier for the engine with the given root directory.
 	*
 	* @param	RootDirName			Root directory for the engine.
@@ -302,4 +309,20 @@ public:
 	* @return FFeedbackContext for the native GUI.
 	*/
 	virtual FFeedbackContext* GetNativeFeedbackContext() = 0;
+
+	/**
+	* Finds all the projects which the engine (given by an identifier) has a record of. This includes all the recently opened projects, projects in the default project directory, and so on.
+	* 
+	* @param Identifier		Identifier for the engine 
+	* @param bIncludeNat
+	* @return Path to the folder
+	*/
+	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) = 0;
+
+	/**
+	* Gets the default folder for creating new projects.
+	* 
+	* @return Path to the folder
+	*/
+	virtual FString GetDefaultProjectCreationPath() = 0;
 };

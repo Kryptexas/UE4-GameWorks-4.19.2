@@ -847,13 +847,6 @@ UTemplateProjectDefs* GameProjectUtils::LoadTemplateDefs(const FString& ProjectD
 	return TemplateDefs;
 }
 
-FString GameProjectUtils::GetDefaultProjectCreationPath()
-{
-	// My Documents
-	const FString DefaultProjectSubFolder = TEXT("Unreal Projects");
-	return FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder;
-}
-
 bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason)
 {
 	const FString NewProjectFolder = FPaths::GetPath(NewProjectFile);

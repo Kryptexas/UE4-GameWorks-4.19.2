@@ -656,80 +656,42 @@ FReply SProjectBrowser::FindProjects()
 	const FText SamplesCategoryName = LOCTEXT("SamplesCategoryName", "Samples");
 
 	// Create a map of parent project folders to their category
-	TMap<FString, FText> ParentProjectFoldersToCategory;
-
-	// Add the default creation path, in case you've never created a project before or want to include this path anyway
-	ParentProjectFoldersToCategory.Add(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName);
-
-	// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders
-	const TArray<FString> &CreatedProjectPaths = GEditor->GetGameAgnosticSettings().CreatedProjectPaths;
-	for(int32 Idx = 0; Idx < CreatedProjectPaths.Num(); Idx++)
-	{
-		FString CreatedProjectPath = CreatedProjectPaths[Idx];
-		FPaths::NormalizeDirectoryName(CreatedProjectPath);
-		ParentProjectFoldersToCategory.Add(CreatedProjectPath, MyProjectsCategoryName);
-	}
-
-	// Create a map of project folders to their category
-	TMap<FString, FText> ProjectFoldersToCategory;
-
-	// Find all the subdirectories of all the parent folders
-	for(TMap<FString, FText>::TConstIterator Iter(ParentProjectFoldersToCategory); Iter; ++Iter)
-	{
-		const FString &ParentProjectFolder = Iter.Key();
-
-		TArray<FString> ProjectFolders;
-		IFileManager::Get().FindFiles(ProjectFolders, *(ParentProjectFolder / TEXT("*")), false, true);
-
-		for(int32 Idx = 0; Idx < ProjectFolders.Num(); Idx++)
-		{
-			ProjectFoldersToCategory.Add(ParentProjectFolder / ProjectFolders[Idx], Iter.Value());
-		}
-	}
-
-	// Add all the launcher installed sample folders
-	TArray<FString> LauncherSampleDirectories;
-	FDesktopPlatformModule::Get()->EnumerateLauncherSampleInstallations(LauncherSampleDirectories);
-	for(int32 Idx = 0; Idx < LauncherSampleDirectories.Num(); Idx++)
-	{
-		ProjectFoldersToCategory.Add(LauncherSampleDirectories[Idx], SamplesCategoryName);
-	}
-
-	// Create a map of all the project files to their category
 	TMap<FString, FText> ProjectFilesToCategory;
 
-	// Add all the folders that the user has opened recently
-	const TArray<FString> &RecentlyOpenedProjectFiles = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles;
-	for (int32 Idx = 0; Idx < RecentlyOpenedProjectFiles.Num(); Idx++)
-	{
-		FString RecentlyOpenedProjectFile = RecentlyOpenedProjectFiles[Idx];
-		FPaths::NormalizeFilename(RecentlyOpenedProjectFile);
-		ProjectFilesToCategory.Add(RecentlyOpenedProjectFile, MyProjectsCategoryName);
-	}
+	// Find all the engine installations
+	TMap<FString, FString> EngineInstallations;
+	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(EngineInstallations);
 
-	// Scan the project folders for project files
-	FString ProjectWildcard = FString::Printf(TEXT("*.%s"), *IProjectManager::GetProjectFileExtension());
-	for(TMap<FString, FText>::TConstIterator Iter(ProjectFoldersToCategory); Iter; ++Iter)
+	// Add projects from every branch that we know about
+	FString CurrentEngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	for(TMap<FString, FString>::TConstIterator Iter(EngineInstallations); Iter; ++Iter)
 	{
-		const FString &ProjectFolder = Iter.Key();
-
 		TArray<FString> ProjectFiles;
-		IFileManager::Get().FindFiles(ProjectFiles, *(ProjectFolder / ProjectWildcard), true, false);
-
-		for(int32 Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+		if(FDesktopPlatformModule::Get()->EnumerateProjectsKnownByEngine(Iter.Key(), false, ProjectFiles))
 		{
-			ProjectFilesToCategory.Add(ProjectFolder / ProjectFiles[Idx], Iter.Value());
+			for(int Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+			{
+				ProjectFilesToCategory.Add(ProjectFiles[Idx], MyProjectsCategoryName);
+			}
 		}
 	}
 
-	// Add all the discovered non-foreign project files
-	const TArray<FString> &NonForeignProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
-	for(int32 Idx = 0; Idx < NonForeignProjectFiles.Num(); Idx++)
+	// Add all the samples from the launcher
+	TArray<FString> LauncherSampleProjects;
+	FDesktopPlatformModule::Get()->EnumerateLauncherSampleProjects(LauncherSampleProjects);
+	for(int32 Idx = 0; Idx < LauncherSampleProjects.Num(); Idx++)
 	{
-		if(!NonForeignProjectFiles[Idx].Contains(TEXT("/Templates/")))
+		ProjectFilesToCategory.Add(LauncherSampleProjects[Idx], SamplesCategoryName);
+	}
+
+	// Add all the native project files we can find, and automatically filter them depending on their directory
+	const TArray<FString> &NativeProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
+	for(int32 Idx = 0; Idx < NativeProjectFiles.Num(); Idx++)
+	{
+		if(!NativeProjectFiles[Idx].Contains(TEXT("/Templates/")))
 		{
-			const FText &CategoryName = NonForeignProjectFiles[Idx].Contains(TEXT("/Samples/"))? SamplesCategoryName : MyProjectsCategoryName;
-			ProjectFilesToCategory.Add(NonForeignProjectFiles[Idx], CategoryName);
+			const FText &CategoryName = NativeProjectFiles[Idx].Contains(TEXT("/Samples/"))? SamplesCategoryName : MyProjectsCategoryName;
+			ProjectFilesToCategory.Add(NativeProjectFiles[Idx], CategoryName);
 		}
 	}
 

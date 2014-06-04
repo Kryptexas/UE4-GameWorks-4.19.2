@@ -5,6 +5,7 @@
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
 #include "ModuleManager.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 
@@ -51,6 +52,21 @@ void FDesktopPlatformBase::EnumerateLauncherSampleInstallations(TArray<FString> 
 		{
 			OutInstallations.Add(Iter.Value());
 		}
+	}
+}
+
+void FDesktopPlatformBase::EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames)
+{
+	// Enumerate all the sample installation directories
+	TArray<FString> LauncherSampleDirectories;
+	EnumerateLauncherSampleInstallations(LauncherSampleDirectories);
+
+	// Find all the project files within them
+	for(int32 Idx = 0; Idx < LauncherSampleDirectories.Num(); Idx++)
+	{
+		TArray<FString> FileNames;
+		IFileManager::Get().FindFiles(FileNames, *(LauncherSampleDirectories[Idx] / TEXT("*.uproject")), true, false);
+		OutFileNames.Append(FileNames);
 	}
 }
 
@@ -356,6 +372,13 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	return bRes;
 }
 
+FString FDesktopPlatformBase::GetDefaultProjectCreationPath()
+{
+	// My Documents
+	const FString DefaultProjectSubFolder = TEXT("Unreal Projects");
+	return FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder;
+}
+
 void FDesktopPlatformBase::ReadLauncherInstallationList()
 {
 	FString InstalledListFile = FString(FPlatformProcess::ApplicationSettingsDir()) / TEXT("UnrealEngineLauncher/LauncherInstalled.dat");
@@ -521,6 +544,103 @@ void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TA
 	{
 		IFileManager::Get().FindFilesRecursive(OutFileNames, *OutDirectoryNames[Idx], TEXT("*"), true, false, false);
 	}
+}
+
+bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames)
+{
+	// Get the engine root directory
+	FString RootDir;
+	if(!GetEngineRootDirFromIdentifier(Identifier, RootDir))
+	{
+		return false;
+	}
+
+	// Get the path to the game agnostic settings
+	FString UserDir;
+	if(IsStockEngineRelease(Identifier))
+	{
+		UserDir = FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString(EPIC_PRODUCT_IDENTIFIER), *Identifier);
+	}
+	else
+	{
+		UserDir = FPaths::Combine(*RootDir, TEXT("Engine"));
+	}
+
+	// Get the game agnostic config dir
+	FString GameAgnosticConfigDir = UserDir / TEXT("Saved/Config") / ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
+
+	// Find all the created project directories. Start with the default project creation path.
+	TArray<FString> SearchDirectories;
+	SearchDirectories.AddUnique(GetDefaultProjectCreationPath());
+
+	// Load the config file
+	FConfigFile GameAgnosticConfig;
+	FConfigCacheIni::LoadExternalIniFile(GameAgnosticConfig, TEXT("EditorGameAgnostic"), NULL, *GameAgnosticConfigDir, false);
+
+	// Find the editor game-agnostic settings
+	FConfigSection* Section = GameAgnosticConfig.Find(TEXT("/Script/UnrealEd.EditorGameAgnosticSettings"));
+	if(Section != NULL)
+	{
+		// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders
+		TArray<FString> AdditionalDirectories;
+		Section->MultiFind(TEXT("CreatedProjectPaths"), AdditionalDirectories);
+		for(int Idx = 0; Idx < AdditionalDirectories.Num(); Idx++)
+		{
+			FPaths::NormalizeDirectoryName(AdditionalDirectories[Idx]);
+			SearchDirectories.AddUnique(AdditionalDirectories[Idx]);
+		}
+
+		// Also add in all the recently opened projects
+		TArray<FString> RecentlyOpenedFiles;
+		Section->MultiFind(TEXT("RecentlyOpenedProjectFiles"), RecentlyOpenedFiles);
+		for(int Idx = 0; Idx < RecentlyOpenedFiles.Num(); Idx++)
+		{
+			FPaths::NormalizeFilename(RecentlyOpenedFiles[Idx]);
+			OutProjectFileNames.AddUnique(RecentlyOpenedFiles[Idx]);
+		}		
+	}
+
+	// Find all the other projects that are in the search directories
+	for(int Idx = 0; Idx < SearchDirectories.Num(); Idx++)
+	{
+		TArray<FString> ProjectFolders;
+		IFileManager::Get().FindFiles(ProjectFolders, *(SearchDirectories[Idx] / TEXT("*")), false, true);
+
+		for(int32 FolderIdx = 0; FolderIdx < ProjectFolders.Num(); FolderIdx++)
+		{
+			TArray<FString> ProjectFiles;
+			IFileManager::Get().FindFiles(ProjectFiles, *(ProjectFolders[FolderIdx] / TEXT("*.uproject")), true, false);
+
+			for(int32 FileIdx = 0; FileIdx < ProjectFiles.Num(); FileIdx++)
+			{
+				OutProjectFileNames.AddUnique(ProjectFiles[FileIdx]);
+			}
+		}
+	}
+
+	// Find all the native projects, and either add or remove them from the list depending on whether we want native projects
+	const FUProjectDictionary &Dictionary = GetCachedProjectDictionary(RootDir);
+	if(bIncludeNativeProjects)
+	{
+		TArray<FString> NativeProjectPaths = Dictionary.GetProjectPaths();
+		for(int Idx = 0; Idx < NativeProjectPaths.Num(); Idx++)
+		{
+			if(!NativeProjectPaths[Idx].Contains(TEXT("/Templates/")))
+			{
+				OutProjectFileNames.AddUnique(NativeProjectPaths[Idx]);
+			}
+		}
+	}
+	else
+	{
+		TArray<FString> NativeProjectPaths = Dictionary.GetProjectPaths();
+		for(int Idx = 0; Idx < NativeProjectPaths.Num(); Idx++)
+		{
+			OutProjectFileNames.Remove(NativeProjectPaths[Idx]);
+		}
+	}
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

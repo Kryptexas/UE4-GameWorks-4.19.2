@@ -156,9 +156,6 @@ public:
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
 
-	/** Returns the default base folder to create a new project */
-	static FString GetDefaultProjectCreationPath();
-
 	/** Returns number of code files in the currently loaded project */
 	static int32 GetProjectCodeFileCount();
 
