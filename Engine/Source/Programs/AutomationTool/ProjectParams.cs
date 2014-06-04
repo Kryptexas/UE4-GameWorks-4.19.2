@@ -192,6 +192,8 @@ namespace AutomationTool
 			this.CookFlavor = InParams.CookFlavor;
 			this.SkipCook = InParams.SkipCook;
 			this.SkipCookOnTheFly = InParams.SkipCookOnTheFly;
+            this.Prebuilt = InParams.Prebuilt;
+            this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 			this.Clean = InParams.Clean;
 			this.Pak = InParams.Pak;
 			this.SignPak = InParams.SignPak;
@@ -249,6 +251,8 @@ namespace AutomationTool
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
             this.OBBinAPK = InParams.OBBinAPK;
+            this.Prebuilt = InParams.Prebuilt;
+            this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 		}
 
 		/// <summary>
@@ -323,7 +327,9 @@ namespace AutomationTool
 			string ArchiveDirectoryParam = null,
 			ParamList<string> ProgramTargets = null,
 			bool? Distribution = null,
-            bool? OBBinAPK = null
+            bool? OBBinAPK = null,
+            bool? Prebuilt = null,
+            int? RunTimeoutSeconds = null
 			)
 		{
 			//
@@ -407,7 +413,20 @@ namespace AutomationTool
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
             this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
-			this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
+            this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
+            if (this.Prebuilt)
+            {
+                this.SkipCook = true;
+                this.SkipPak = true;
+                this.SkipStage = true;
+                this.Cook = true;
+                this.Stage = true;
+                this.Pak = true;
+                this.Deploy = true;
+                this.Run = true;
+                //this.StageDirectoryParam = this.PrebuiltDir;
+            }
+            this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
 			this.AdditionalServerMapParams = ParseParamValueIfNotSpecified(Command, AdditionalServerMapParams, "AdditionalServerMapParams", String.Empty);
@@ -488,6 +507,14 @@ namespace AutomationTool
             else if (Command != null)
             {
                 this.CrashIndex = Command.ParseParamInt("CrashIndex");
+            }
+            if (RunTimeoutSeconds.HasValue)
+            {
+                this.RunTimeoutSeconds = RunTimeoutSeconds.Value;
+            }
+            else if (Command != null)
+            {
+                this.RunTimeoutSeconds = Command.ParseParamInt("runtimeoutseconds");
             }
 
 			AutodetectSettings(false);
@@ -990,6 +1017,13 @@ namespace AutomationTool
         [Help("obbinapk", "package with OBB data in APK assets directory")]
         public bool OBBinAPK {get; set; }
 
+        [Help("Prebuilt", "this is a prebuilt cooked and packaged build")]
+        public bool Prebuilt { get; private set; }
+
+        [Help("RunTimeoutSeconds", "timeout to wait after we lunch the game")]
+        public int RunTimeoutSeconds;
+
+
 		#endregion
 
 		#region Deploy
@@ -1195,7 +1229,7 @@ namespace AutomationTool
 				}
 			}
 
-            if (ClientCookedTargetsList == null && !NoClient && (Cook || CookOnTheFly))
+            if (ClientCookedTargetsList == null && !NoClient && (Cook || CookOnTheFly || Prebuilt))
 			{
                 if (String.IsNullOrEmpty(GameTarget))
 				{
@@ -1548,6 +1582,7 @@ namespace AutomationTool
                 CommandUtils.Log("EditorTest={0}", EditorTest);
                 CommandUtils.Log("RunAutomationTests={0}", RunAutomationTests); 
                 CommandUtils.Log("RunAutomationTest={0}", RunAutomationTest);
+                CommandUtils.Log("RunTimeoutSeconds={0}", RunTimeoutSeconds);
                 CommandUtils.Log("CrashIndex={0}", CrashIndex);
 				CommandUtils.Log("ProgramTargets={0}", ProgramTargets.ToString());
                 CommandUtils.Log("ProjectBinariesFolder={0}", ProjectBinariesFolder);
@@ -1556,6 +1591,7 @@ namespace AutomationTool
 				CommandUtils.Log("ProjectGameExePath={0}", ProjectGameExePath);
 				CommandUtils.Log("Distribution={0}", Distribution);
                 CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
+                CommandUtils.Log("Prebuilt={0}", Prebuilt);
 				CommandUtils.Log("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.Log("Rocket={0}", Rocket);
 				CommandUtils.Log("Run={0}", Run);
