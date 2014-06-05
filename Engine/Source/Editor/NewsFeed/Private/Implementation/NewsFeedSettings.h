@@ -15,19 +15,13 @@
 UENUM()
 enum ENewsFeedSource
 {
-	/**
-	 * Fetch the news feed from the CDN.
-	 */
+	/** Fetch the news feed from the CDN. */
 	NEWSFEED_Cdn,
 
-	/**
-	 * Fetch the news feed from the local file system (for testing purposes only).
-	 */
+	/** Fetch the news feed from the local file system (for testing purposes only). */
 	NEWSFEED_Local,
 
-	/**
-	 * Fetch the news feed with MCP (not implemented yet).
-	 */
+	/** Fetch the news feed with MCP (not implemented yet). */
 	NEWSFEED_Mcp,
 };
 

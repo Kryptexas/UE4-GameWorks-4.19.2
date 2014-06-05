@@ -27,7 +27,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The arguments.
+	 * @param InArgs The arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, const FNewsFeedCacheRef& InNewsFeedCache )
 	{
@@ -44,8 +44,7 @@ public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

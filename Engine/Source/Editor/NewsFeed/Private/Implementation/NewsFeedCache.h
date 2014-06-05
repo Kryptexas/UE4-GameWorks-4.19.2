@@ -1,6 +1,8 @@
 #pragma once
 
 
+/**
+ */
 enum class ENewsFeedCultureSpec
 {
 	Full = 0,
@@ -9,29 +11,38 @@ enum class ENewsFeedCultureSpec
 };
 
 
+/**
+ * Enumerates valid news feed cache states.
+ */
 namespace ENewsFeedState
 {
 	enum Type
 	{
+		/** Download of news feed has not started yet. */
 		NotStarted = 0,
+
+		/** News feed is being fetched from data source. */
 		Loading = 1,
+
+		/** News feed finished loading successfully. */
 		Success = 2,
+
+		/** News feed failed to load. */
 		Failure = 3
 	};
 }
 
 
-/**
- * Type definition for shared pointers to instances of FNewsFeedCache.
- */
+/** Type definition for shared pointers to instances of FNewsFeedCache. */
 typedef TSharedPtr<class FNewsFeedCache> FNewsFeedCachePtr;
 
-/**
- * Type definition for shared references to instances of FNewsFeedCache.
- */
+/** Type definition for shared references to instances of FNewsFeedCache. */
 typedef TSharedRef<class FNewsFeedCache> FNewsFeedCacheRef;
 
 
+/**
+ * Implements a cache of news feed items that were fetched from the data source.
+ */
 class FNewsFeedCache
 {
 public:
@@ -55,7 +66,6 @@ public:
 	 * If the icon failed to load, an error icon will be returned.
 	 *
 	 * @param IconName The name of the icon to get.
-	 *
 	 * @return The icon brush.
 	 */
 	const FSlateBrush* GetIcon( const FString& IconName ) const;
@@ -74,7 +84,6 @@ public:
 	 * Checks whether the last attempt to load a feed has finished.
 	 *
 	 * @return true if feed loading finished, false otherwise.
-	 *
 	 * @see IsLoading
 	 */
 	bool IsFinished( ) const
@@ -86,7 +95,6 @@ public:
 	 * Checks whether this loader is currently loading a news feed.
 	 *
 	 * @return true if loading, false otherwise.
-	 *
 	 * @see IsFinished
 	 */
 	bool IsLoading( ) const
@@ -98,7 +106,6 @@ public:
 	 * Loads the news feed from the given title file.
 	 *
 	 * @param InTitleFile The title file to read the news feed from.
-	 *
 	 * @return true if the news feed is being loaded, false otherwise.
 	 */
 	//bool LoadFeed( IOnlineTitleFilePtr InTitleFile );
@@ -157,7 +164,6 @@ protected:
 	 *
 	 * @param ResourceName 
 	 * @param RawData The raw binary data to convert.
-	 *
 	 * @return The Slate brush.
 	 */
 	TSharedPtr<FSlateDynamicImageBrush> RawDataToBrush( FName ResourceName, const TArray< uint8 >& RawData ) const;
