@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FMessagingDebuggerModel.
- */
+/** Type definition for shared pointers to instances of FMessagingDebuggerModel. */
 typedef TSharedPtr<class FMessagingDebuggerModel> FMessagingDebuggerModelPtr;
 
-/**
- * Type definition for shared references to instances of FMessagingDebuggerTypeFilter.
- */
+/** Type definition for shared references to instances of FMessagingDebuggerTypeFilter. */
 typedef TSharedRef<class FMessagingDebuggerModel> FMessagingDebuggerModelRef;
 
 
@@ -59,8 +55,7 @@ public:
 	/** 
 	 * Checks whether messages of the given message endpoint should be visible.
 	 *
-	 * @param Endpoint - The information of the endpoint to check.
-	 *
+	 * @param Endpoint The information of the endpoint to check.
 	 * @return true if the endpoint's messages should be visible, false otherwise.
 	 */
 	bool IsEndpointVisible( const FMessageTracerEndpointInfoRef& EndpointInfo ) const
@@ -71,8 +66,7 @@ public:
 	/**
 	 * Checks whether the given message should be visible.
 	 *
-	 * @param MessageInfo - The information of the message to check.
-	 *
+	 * @param MessageInfo The information of the message to check.
 	 * @return true if the message should be visible, false otherwise.
 	 */
 	bool IsMessageVisible( const FMessageTracerMessageInfoRef& MessageInfo ) const
@@ -102,8 +96,7 @@ public:
 	/**
 	 * Checks whether messages of the given type should be visible.
 	 *
-	 * @param TypeInfo - The information of the message type to check.
-	 *
+	 * @param TypeInfo The information of the message type to check.
 	 * @return true if messages of the given type should be visible, false otherwise.
 	 */
 	bool IsTypeVisible( const FMessageTracerTypeInfoRef& TypeInfo ) const
@@ -114,7 +107,7 @@ public:
 	/**
 	 * Selects the specified endpoint (or none if nullptr).
 	 *
-	 * @param EndpointInfo - The information of the endpoint to select.
+	 * @param EndpointInfo The information of the endpoint to select.
 	 */
 	void SelectEndpoint( const FMessageTracerEndpointInfoPtr& EndpointInfo )
 	{
@@ -128,7 +121,7 @@ public:
 	/**
 	 * Selects the specified message (or none if nullptr).
 	 *
-	 * @param MessageInfo - The information of the message to select.
+	 * @param MessageInfo The information of the message to select.
 	 */
 	void SelectMessage( const FMessageTracerMessageInfoPtr& MessageInfo )
 	{
@@ -142,8 +135,8 @@ public:
 	/**
 	 * Sets whether messages for the given endpoint should be visible.
 	 *
-	 * @param Endpoint - The information for the endpoint.
-	 * @param Visible - Whether the endpoint's messages should be visible or not.
+	 * @param Endpoint The information for the endpoint.
+	 * @param Visible Whether the endpoint's messages should be visible or not.
 	 */
 	void SetEndpointVisibility( const FMessageTracerEndpointInfoRef& EndpointInfo, bool Visible )
 	{
@@ -162,8 +155,8 @@ public:
 	/**
 	 * Sets whether messages for the given message type should be visible.
 	 *
-	 * @param Endpoint - The information for the message type.
-	 * @param Visible - Whether messages of the given type should be visible or not.
+	 * @param Endpoint The information for the message type.
+	 * @param Visible Whether messages of the given type should be visible or not.
 	 */
 	void SetTypeVisibility( const FMessageTracerTypeInfoRef& TypeInfo, bool Visible )
 	{

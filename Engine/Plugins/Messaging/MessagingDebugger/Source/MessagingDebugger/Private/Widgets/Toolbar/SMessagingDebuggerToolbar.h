@@ -23,9 +23,9 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InStyle - The visual style to use for this widget.
-	 * @param InCommandList - The command list to bind to.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InStyle The visual style to use for this widget.
+	 * @param InCommandList The command list to bind to.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const TSharedRef<FUICommandList>& InCommandList );
 
@@ -34,8 +34,7 @@ protected:
 	/**
 	 * Creates the toolbar widget.
 	 *
-	 * @param CommandList - The command list to use for the toolbar buttons.
-	 *
+	 * @param CommandList The command list to use for the toolbar buttons.
 	 * @return The toolbar widget.
 	 */
 	TSharedRef<SWidget> MakeToolbar( const TSharedRef<FUICommandList>& CommandList );

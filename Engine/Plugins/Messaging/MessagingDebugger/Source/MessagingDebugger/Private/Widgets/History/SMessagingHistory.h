@@ -30,10 +30,10 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InModel - The view model to use.
-	 * @param InStyle - The visual style to use for this widget.
-	 * @param InTracer - The message tracer.
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
+	 * @param InStyle The visual style to use for this widget.
+	 * @param InTracer The message tracer.
 	 */
 	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
 
@@ -42,7 +42,7 @@ protected:
 	/**
 	 * Adds the given message to the history.
 	 *
-	 * @param MessageInfo - The information about the message to add.
+	 * @param MessageInfo The information about the message to add.
 	 */
 	void AddMessage( const FMessageTracerMessageInfoRef& MessageInfo );
 
@@ -98,7 +98,7 @@ private:
 	TArray<FMessageTracerMessageInfoPtr> MessageList;
 
 	// Holds the message list view.
-	TSharedPtr<SListView<FMessageTracerMessageInfoPtr> > MessageListView;
+	TSharedPtr<SListView<FMessageTracerMessageInfoPtr>> MessageListView;
 
 	// Holds a pointer to the view model.
 	FMessagingDebuggerModelPtr Model;

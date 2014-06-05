@@ -29,8 +29,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InOwnerTableView - The table view that owns this row.
+	 * @param InArgs The construction arguments.
+	 * @param InOwnerTableView The table view that owns this row.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -259,8 +259,7 @@ protected:
 	/**
 	 * Converts the given time span in seconds to a human readable string.
 	 *
-	 * @param Seconds - The time span to convert.
-	 *
+	 * @param Seconds The time span to convert.
 	 * @return The string representation.
 	 *
 	 * @todo gmp: refactor this into FText::AsTimespan or something like that

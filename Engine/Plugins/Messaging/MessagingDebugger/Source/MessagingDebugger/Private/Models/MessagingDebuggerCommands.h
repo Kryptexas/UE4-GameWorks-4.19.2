@@ -40,34 +40,22 @@ public:
 
 public:
 
-	/**
-	 * Holds a command that breaks at the next message.
-	 */
+	/** Holds a command that breaks at the next message. */
 	TSharedPtr<FUICommandInfo> BreakDebugger;
 
-	/**
-	 * Holds a command that clears the message history.
-	 */
+	/** Holds a command that clears the message history. */
 	TSharedPtr<FUICommandInfo> ClearHistory;
 
-	/**
-	 * Holds a command that continues debugging.
-	 */
+	/** Holds a command that continues debugging. */
 	TSharedPtr<FUICommandInfo> ContinueDebugger;
 
-	/**
-	 * Holds a command that starts debugging.
-	 */
+	/** Holds a command that starts debugging. */
 	TSharedPtr<FUICommandInfo> StartDebugger;
 
-	/**
-	 * Holds a command that continues debugging for one step.
-	 */
+	/** Holds a command that continues debugging for one step. */
 	TSharedPtr<FUICommandInfo> StepDebugger;
 
-	/**
-	 * Holds a command that stops debugging.
-	 */
+	/** Holds a command that stops debugging. */
 	TSharedPtr<FUICommandInfo> StopDebugger;
 };
 

@@ -23,8 +23,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InStyle - The visual style to use for this widget.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InStyle The visual style to use for this widget.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle );
 

@@ -23,9 +23,9 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InModel - The view model to use.
-	 * @param InStyle - The visual style to use for this widget.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InModel The view model to use.
+	 * @param InStyle The visual style to use for this widget.
 	 */
 	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle );
 

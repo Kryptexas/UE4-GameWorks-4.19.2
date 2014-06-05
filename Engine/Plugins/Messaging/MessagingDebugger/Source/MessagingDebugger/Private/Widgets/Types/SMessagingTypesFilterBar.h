@@ -20,9 +20,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SMessagingTypesFilterBar) { }
 
-		/**
-		 * Called when the filter settings have changed.
-		 */
+		/** Called when the filter settings have changed. */
 		SLATE_EVENT(FSimpleDelegate, OnFilterChanged)
 
 	SLATE_END_ARGS()
@@ -41,8 +39,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InFilter - The filter model.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InFilter The filter model.
 	 */
 	void Construct( const FArguments& InArgs, FMessagingDebuggerTypeFilterRef InFilter )
 	{
