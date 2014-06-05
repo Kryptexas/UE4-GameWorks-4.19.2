@@ -575,6 +575,11 @@ namespace UnrealBuildTool
 		/// <param name="EngineProject">Engine project to add files to.</param>
 		private void AddUBTConfigFilesToEngineProject(ProjectFile EngineProject)
 		{
+			EngineProject.AddAliasedFileToProject(new AliasedFile(
+					XmlConfigLoader.GetXSDPath(),
+					Path.Combine("Config", "UnrealBuildTool", "Schema")
+				));
+
 			foreach(var BuildConfigurationPath in XmlConfigLoader.ConfigLocationHierarchy)
 			{
 				if(!BuildConfigurationPath.bExists)

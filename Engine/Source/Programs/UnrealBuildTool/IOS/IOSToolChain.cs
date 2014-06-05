@@ -15,6 +15,7 @@ using Ionic.Zlib;
 
 namespace UnrealBuildTool
 {
+	[XmlConfig(true)]
 	class IOSToolChain : RemoteToolChain
 	{
 		public override void RegisterToolChain()
@@ -70,12 +71,10 @@ namespace UnrealBuildTool
 		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
 		/// <summary>
-		/// Function to call to reset default data.
+		/// Function to call to after reset default data.
 		/// </summary>
-		public static void Reset()
+		public static void PostReset()
 		{
-			XmlConfigLoader.Load(typeof(IOSToolChain));
-
 			/** Location of the SDKs */
 			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";

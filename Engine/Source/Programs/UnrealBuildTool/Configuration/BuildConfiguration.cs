@@ -8,6 +8,7 @@ using System.Reflection;
 
 namespace UnrealBuildTool
 {
+	[XmlConfigAttribute(true)]
 	public class BuildConfiguration
 	{
 		/// <summary>
@@ -295,11 +296,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
-		public static void Reset()
+		public static void LoadDefaults()
 		{
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
-            bAllowXGE = true;
+			bAllowXGE = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
 			bCheckExternalHeadersForModification = false;
@@ -343,7 +344,7 @@ namespace UnrealBuildTool
 			// these private PCHs do yield fastest incremental compiles for single files, it causes full rebuilds to
 			// take an inordinate amount of time, and intermediates will use up many gigabytes of disk space.
 			bUseSharedPCHs = true;
-	
+
 			WriteTargetInfoPath = null;
 
 			// Using unity build to coalesce source files allows for much faster full rebuild times.  For fastest iteration times on single-file
@@ -351,7 +352,7 @@ namespace UnrealBuildTool
 			// the synthesized file names for unity code files may change between builds.
 			bUseUnityBuild = true;
 
-            bForceUnityBuild = false;
+			bForceUnityBuild = false;
 
 			// For programmers working on gameplay code, it's convenient to have fast iteration times when changing only single source
 			// files.  We've set this default such that smaller gameplay modules will not use the unity build feature, allowing them
@@ -379,7 +380,7 @@ namespace UnrealBuildTool
 			bTestIncludeDependencyResolveCache = false;
 			// if we are testing the resolve cache, we require UBT to use it.
 			bUseIncludeDependencyResolveCache = true;
-            
+
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
@@ -394,9 +395,6 @@ namespace UnrealBuildTool
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
-
-			// Load eventual XML configuration files if they exist to override default values.
-			XmlConfigLoader.Load(typeof(BuildConfiguration));
 		}
 
 		/// <summary>

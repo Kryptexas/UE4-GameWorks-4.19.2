@@ -601,8 +601,8 @@ namespace UnrealBuildTool
 			ECompilationResult Result = ECompilationResult.Succeeded;
 
 			// Reset early so we can access BuildConfiguration even before RunUBT() is called
-			BuildConfiguration.Reset();
-			UEBuildConfiguration.Reset();
+			XmlConfigLoader.Reset<BuildConfiguration>();
+			XmlConfigLoader.Reset<UEBuildConfiguration>();
 
 			Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
 			Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
@@ -1018,9 +1018,9 @@ namespace UnrealBuildTool
 
 			// Reset global configurations
 			ResetAllActions();
-			CPPEnvironment.Reset();
-			BuildConfiguration.Reset();
-			UEBuildConfiguration.Reset();
+			XmlConfigLoader.Reset<CPPEnvironment>();
+			XmlConfigLoader.Reset<BuildConfiguration>();
+			XmlConfigLoader.Reset<UEBuildConfiguration>();
 
 			ParseBuildConfigurationFlags(Arguments);
 

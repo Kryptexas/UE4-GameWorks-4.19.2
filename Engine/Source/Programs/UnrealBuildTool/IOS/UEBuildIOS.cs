@@ -9,9 +9,11 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
+	[XmlConfig]
 	class IOSPlatform : UEBuildPlatform
 	{
 		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		[XmlConfigField]
 		public static string IOSArchitecture = "";
 
 		// The current architecture - affects everything about how UBT operates on IOS

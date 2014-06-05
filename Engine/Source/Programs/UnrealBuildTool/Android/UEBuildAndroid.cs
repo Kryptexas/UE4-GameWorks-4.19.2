@@ -9,13 +9,17 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
+	[XmlConfig]
 	class AndroidPlatform : UEBuildPlatform
 	{
 		/// <summary>
 		/// Android settings.
 		/// </summary>
+		[XmlConfigField]
 		public static string AndroidArchitecture = "-armv7";
+		[XmlConfigField]
 		public static string AndroidNdkApiTarget = "latest";
+		[XmlConfigField]
 		public static string AndroidSdkApiTarget = "latest";
 
 		// The current architecture - affects everything about how UBT operates on Android

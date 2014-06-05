@@ -5,6 +5,7 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
+	[XmlConfig(true)]
 	public class UEBuildConfiguration
 	{
 		/** Whether to include PhysX support */
@@ -121,8 +122,10 @@ namespace UnrealBuildTool
 		/** True if we want to favor optimizing size over speed */
 		public static bool bCompileForSize;
 
-		/** Sets the configuration back to defaults. */
-		public static void Reset()
+		/// <summary>
+		/// Sets the configuration back to defaults.
+		/// </summary>
+		public static void LoadDefaults()
 		{
 			//@todo. Allow disabling PhysX/APEX via these values...
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
@@ -147,16 +150,20 @@ namespace UnrealBuildTool
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-            bUseLoggingInShipping = false;
+			bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
-            bOBBinAPK = false;
+			bOBBinAPK = false;
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
+		}
 
-			XmlConfigLoader.Load(typeof(UEBuildConfiguration));
-
+		/// <summary>
+		/// Function to call to after reset default data.
+		/// </summary>
+		public static void PostReset()
+		{
 			// Configuration overrides.
 			string SteamVersion = "Steamv129a";
 			bCompileSteamOSS = bCompileSteamOSS
@@ -168,13 +175,13 @@ namespace UnrealBuildTool
 
 			bCompileSimplygon = bCompileSimplygon
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true
-                && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon") == true
 				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 
 			bCompileSpeedTree = bCompileSpeedTree
-                && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true
-                && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 		}
 
