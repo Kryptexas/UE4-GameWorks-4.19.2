@@ -14,9 +14,7 @@ namespace ETargetPlatformBuildArtifacts
 	 */
 	enum Type
 	{
-		/**
-		 * Include content files.
-		 */
+		/** Include content files. */
 		Content = 0x1,
 
 		/**
@@ -26,14 +24,10 @@ namespace ETargetPlatformBuildArtifacts
 		 */
 		DebugSymbols = 0x2,
 
-		/**
-		 * Include Engine binaries and DLLs.
-		 */
+		/** Include Engine binaries and DLLs. */
 		Engine = 0x4,
 
-		/**
-		 * Include tools.
-		 */
+		/** Include tools. */
 		Tools = 0x8,
 	};
 }
@@ -46,59 +40,37 @@ namespace ETargetPlatformFeatures
 	 */
 	enum Type
 	{
-		/**
-		 * Distance field shadows.
-		 */
+		/** Distance field shadows. */
 		DistanceFieldShadows,
 
-		/**
-		 * Gray scale SRGB texture formats support.
-		 */
+		/** Gray scale SRGB texture formats support. */
 		GrayscaleSRGB,
 
-		/**
-		 * High quality light maps.
-		 */
+		/** High quality light maps. */
 		HighQualityLightmaps,
 
-		/**
-		 * Low quality light maps.
-		 */
+		/** Low quality light maps. */
 		LowQualityLightmaps,
 
-		/**
-		 * Run multiple game instances on a single device.
-		 */
+		/** Run multiple game instances on a single device. */
 		MultipleGameInstances,
 
-		/**
-		 * Builds can be packaged for this platform.
-		 */
+		/** Builds can be packaged for this platform. */
 		Packaging,
 
-		/**
-		 * Connect and disconnect devices through the SDK.
-		 */
+		/** Connect and disconnect devices through the SDK. */
 		SdkConnectDisconnect,
 
-		/**
-		 * GPU tesselation.
-		 */
+		/** GPU tesselation. */
 		Tessellation,
 
-		/**
-		 * Texture streaming.
-		 */
+		/** Texture streaming. */
 		TextureStreaming,
 
-		/**
-		 * User credentials are required to use the device.
-		 */
+		/** User credentials are required to use the device. */
 		UserCredentials,
 
-		/**
-		 * Vertex Shader Texture Sampling.
-		 */
+		/** Vertex Shader Texture Sampling. */
 		VertexShaderTextureSampling,
 	};
 };
@@ -111,19 +83,13 @@ namespace ETargetPlatformIcons
 	 */
 	enum IconType
 	{
-		/**
-		 * Normal sized icon.
-		 */
+		/** Normal sized icon. */
 		Normal,
 
-		/**
-		 * Large icon.
-		 */
+		/** Large icon. */
 		Large,
 
-		/**
-		 * Extra large icon.
-		 */
+		/** Extra large icon. */
 		XLarge
 	};
 }
@@ -139,9 +105,8 @@ public:
 	/**
 	 * Add a target device by name.
 	 *
-	 * @param DeviceName - The name of the device to add.
-	 * @param bDefault - Whether the added device should be the default.
-	 *
+	 * @param DeviceName The name of the device to add.
+	 * @param bDefault Whether the added device should be the default.
 	 * @return true if the device was added, false otherwise.
 	 */
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) = 0;
@@ -168,7 +133,7 @@ public:
 	/**
 	 * Returns all discoverable physical devices.
 	 *
-	 * @param OutDevices - Will contain a list of discovered devices.
+	 * @param OutDevices Will contain a list of discovered devices.
 	 */
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const = 0;
 
@@ -182,9 +147,8 @@ public:
 	/** 
 	 * Generates a platform specific asset manifest given an array of FAssetData.
 	 *
-	 * @param ChunkMap - A map of asset path to ChunkIDs for all of the assets
-	 * @param ChunkIDsInUse - A set of all ChunkIDs used by this set of assets
-	 *
+	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets
+	 * @param ChunkIDsInUse A set of all ChunkIDs used by this set of assets
 	 * @return true if the manifest was successfully generated, or if the platform doesn't need a manifest 
 	 */
 	virtual bool GenerateStreamingInstallManifest( const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse ) const = 0;
@@ -201,17 +165,15 @@ public:
 	/** 
 	 * Gets an interface to the specified device.
 	 *
-	 * @param DeviceId - The identifier of the device to get.
-	 *
-	 * @return The target device (can be NULL). 
+	 * @param DeviceId The identifier of the device to get.
+	 * @return The target device (can be nullptr). 
 	 */
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) = 0;
 
 	/**
 	 * Gets the path to the platform's icon.
 	 *
-	 * @param IconType - The type of icon to get (i.e. Small or Large).
-	 *
+	 * @param IconType The type of icon to get (i.e. Small or Large).
 	 * @return The path to the icon.
 	 */
 	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const = 0;
@@ -265,7 +227,6 @@ public:
 	 * Returns the name of this platform
 	 *
 	 * @return Platform name.
-	 *
 	 * @see DisplayName
 	 */
 	virtual FString PlatformName( ) const = 0;
@@ -288,7 +249,6 @@ public:
 	 * Checks whether this platform supports the specified build target, i.e. Game or Editor.
 	 *
 	 * @param BuildTarget - The build target to check.
-	 *
 	 * @return true if the build target is supported, false otherwise.
 	 */
 	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
@@ -297,7 +257,6 @@ public:
 	 * Checks whether the target platform supports the specified feature.
 	 *
 	 * @param Feature - The feature to check.
-	 *
 	 * @return true if the feature is supported, false otherwise.
 	 */
 	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const = 0;
@@ -307,9 +266,8 @@ public:
 	 * Checks whether the platform's SDK requirements are met so that we can do things like
 	 * package for the platform
 	 *
-	 * @param bProjectHasCode - true if the project has code, and therefore any compilation based SDK requirements should be checked
-	 * @param OutDocumentationPath - Let's the platform tell the editor a path to show some documentation about how to set up the SDK
-	 *
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some documentation about how to set up the SDK
 	 * @return true if the platform is ready for use
 	 */
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
@@ -325,37 +283,36 @@ public:
 	/**
 	 * Gets the reflection capture formats this platform needs.
 	 *
-	 * @param OutFormats - Will contain the collection of formats.
+	 * @param OutFormats Will contain the collection of formats.
 	 */
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	 * Gets the shader formats this platform can use.
 	 *
-	 * @param OutFormats - Will contain the shader formats.
+	 * @param OutFormats Will contain the shader formats.
 	 */
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	* Gets the shader formats that have been selected for this target platform
 	*
-	* @param OutFormats - Will contain the shader formats.
+	* @param OutFormats Will contain the shader formats.
 	*/
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const = 0;
 
 	/**
 	 * Gets the format to use for a particular texture.
 	 *
-	 * @param Texture - The texture to get the format for.
-	 * @param OutFormats - Will contain the list of supported formats.
+	 * @param Texture The texture to get the format for.
+	 * @param OutFormats Will contain the list of supported formats.
 	 */
 	virtual void GetTextureFormats( const class UTexture* Texture, TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	 * Gets the format to use for a particular piece of audio.
 	 *
-	 * @param Wave - The sound node wave to get the format for.
-	 *
+	 * @param Wave The sound node wave to get the format for.
 	 * @return Name of the wave format.
 	 */
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const = 0;
@@ -378,9 +335,8 @@ public:
 	/** 
 	 * Package a build for the given platform 
 	 * 
-	 * @param InPackgeDirectory The directory that contains what needs to be packaged 
-	 * 
-	 * @return bool True if successful, false if failed 
+	 * @param InPackgeDirectory The directory that contains what needs to be packaged.
+	 * @return bool true on success, false otherwise.
 	 */ 
 	virtual bool PackageBuild(const FString& InPackgeDirectory) = 0;
 

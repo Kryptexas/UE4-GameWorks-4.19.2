@@ -6,14 +6,19 @@
 
 #pragma once
 
+
+/**
+ * Structure for texture format compressor capabilities.
+ */
 struct FTextureFormatCompressorCaps
 {
-	FTextureFormatCompressorCaps() : MaxTextureDimension(TNumericLimits<uint32>::Max())
-	{
-	}
+	FTextureFormatCompressorCaps( )
+		: MaxTextureDimension(TNumericLimits<uint32>::Max())
+	{ }
 
 	uint32 MaxTextureDimension;
 };
+
 
 /**
  * Interface for texture compression modules.
@@ -27,7 +32,7 @@ public:
 	 *
 	 * @return true if parallel compression is supported, false otherwise.
 	 */
-	virtual bool AllowParallelBuild() const
+	virtual bool AllowParallelBuild( ) const
 	{
 		return false;
 	}
@@ -35,21 +40,19 @@ public:
 	/**
 	 * Gets the current version of the specified texture format.
 	 *
-	 * @param Format - The format to get the version for.
-	 *
+	 * @param Format The format to get the version for.
 	 * @return Version number.
 	 */
-	virtual uint16 GetVersion(FName Format) const = 0;
+	virtual uint16 GetVersion( FName Format ) const = 0;
 
 	/**
 	 * Gets an optional derived data key string, so that the compressor can
 	 * rely upon the number of mips, size of texture, etc, when compressing the image
 	 *
-	 * @param Texture - Reference to the texture we are compressing
-	 *
+	 * @param Texture Reference to the texture we are compressing.
 	 * @return A string that will be used with the DDC, the string should be in the format "<DATA>_"
 	 */
-	virtual FString GetDerivedDataKeyString(const class UTexture& Texture) const
+	virtual FString GetDerivedDataKeyString( const class UTexture& Texture ) const
 	{
 		return TEXT("");
 	}
@@ -59,16 +62,14 @@ public:
 	 *
 	 * @param OutFormats - Will hold the list of formats.
 	 */
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const = 0;
-
-
+	virtual void GetSupportedFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	* Gets the capabilities of the texture compressor.
 	*
 	* @param OutCaps - filled with capability properties of texture format compressor.
 	*/
-	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const = 0;
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities( ) const = 0;
 
 	/**
 	 * Compresses a single image.
@@ -93,5 +94,5 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~ITextureFormat() { }
+	virtual ~ITextureFormat( ) { }
 };

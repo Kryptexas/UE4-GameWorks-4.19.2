@@ -18,10 +18,12 @@ public:
 	/**
 	 * Gets the target platform for this module.
 	 */
-	virtual ITargetPlatform* GetTargetPlatform() = 0;
+	virtual ITargetPlatform* GetTargetPlatform( ) = 0;
 
+public:
 
-protected:
-
-	ITargetPlatformModule() { }
+	/**
+	 * Virtual destructor.
+	 */
+	~ITargetPlatformModule( ) { }
 };

@@ -29,50 +29,46 @@ public:
 	/**
 	 * Cooks the source convex data for the platform and stores the cooked data internally.
 	 *
-	 * @param Format - The desired format
-	 * @param SrcBuffer - The source buffer
-	 * @param OutBuffer - The resulting cooked data
-	 *
-	 * @return	true if succeeded, false otherwise.
+	 * @param Format The desired format
+	 * @param SrcBuffer The source buffer
+	 * @param OutBuffer The resulting cooked data
+	 * @return true on success, false otherwise.
 	 */
 	virtual bool CookConvex( FName Format, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
 	 * Cooks the source Tri-Mesh data for the platform and stores the cooked data internally.
 	 *
-	 * @param Format - The desired format.
-	 * @param SrcBuffer - The source buffer.
-	 * @param OutBuffer - The resulting cooked data.
-	 *
-	 * @return	true if succeeded, false otherwise.
+	 * @param Format The desired format.
+	 * @param SrcBuffer The source buffer.
+	 * @param OutBuffer The resulting cooked data.
+	 * @return true on success, false otherwise.
 	 */
 	virtual bool CookTriMesh( FName Format, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer ) const = 0;
 		
 	/**
 	 * Cooks the source height field data for the platform and stores the cooked data internally.
 	 *
-	 * @param Format - The desired format
-	 * @param HFSize - Size of height field [NumColumns, NumRows]
-	 * @param Thickness - Sets how thick the height field surface is
-	 * @param SrcBuffer - The source buffer
-	 * @param OutBuffer - The resulting cooked data
-	 *
-	 * @return	true if succeeded, false otherwise.
+	 * @param Format The desired format
+	 * @param HFSize Size of height field [NumColumns, NumRows]
+	 * @param Thickness Sets how thick the height field surface is
+	 * @param SrcBuffer The source buffer
+	 * @param OutBuffer The resulting cooked data
+	 * @return true on success, false otherwise.
 	 */
 	virtual bool CookHeightField( FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
 	 * Gets the list of supported formats.
 	 *
-	 * @param OutFormats - Will hold the list of formats.
+	 * @param OutFormats Will hold the list of formats.
 	 */
 	virtual void GetSupportedFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
 	 * Gets the current version of the specified PhysX format.
 	 *
-	 * @param Format - The format to get the version for.
-	 *
+	 * @param Format The format to get the version for.
 	 * @return Version number.
 	 */
 	virtual uint16 GetVersion( FName Format ) const = 0;
