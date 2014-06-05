@@ -262,4 +262,12 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, meta=(Delimiter=" "), Category="Utilities|String")
 	static TArray<FString> ParseIntoArray(const FString& SourceString, const FString& Delimiter, const bool CullEmptyStrings = true);
+
+	/**
+	 * Returns an array that contains one entry for each character in SourceString
+	 * @param	SourceString	The string to break apart into characters
+	 * @return	An array containing one entry for each character in SourceString
+	 */
+	UFUNCTION(BlueprintPure, Category="Utilities|String")
+	static TArray<FString> GetCharacterArrayFromString(const FString& SourceString);
 };

@@ -283,3 +283,19 @@ TArray<FString> UKismetStringLibrary::ParseIntoArray(const FString& SourceString
 	const int32 nArraySize = SourceString.ParseIntoArray(&SeparatedStrings, *Delimiter, CullEmptyStrings);
 	return SeparatedStrings;
 }
+
+TArray<FString> UKismetStringLibrary::GetCharacterArrayFromString(const FString& SourceString)
+{
+	TArray<FString> SeparatedChars;
+
+	for (auto CharIt(SourceString.CreateConstIterator()); CharIt; ++CharIt)
+	{
+		TCHAR Char = *CharIt;
+		SeparatedChars.Add(FString(1, &Char));
+	}
+
+	// Remove the null terminator on the end
+	SeparatedChars.RemoveAt(SeparatedChars.Num() - 1, 1);
+
+	return SeparatedChars;
+}
