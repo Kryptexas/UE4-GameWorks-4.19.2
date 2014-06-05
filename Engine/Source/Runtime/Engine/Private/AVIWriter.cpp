@@ -593,7 +593,11 @@ public:
 		{
 			SCOPED_AUTORELEASE_POOL;
 			[AVFWriterInputRef markAsFinished];
+			// @TODO: Remove usage of deprecated finishWriting selector
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 			BOOL OK = [AVFWriterRef finishWriting];
+#pragma clang diagnostic pop
 			check(OK);
 			[AVFWriterInputRef release];
 			[AVFWriterRef release];
