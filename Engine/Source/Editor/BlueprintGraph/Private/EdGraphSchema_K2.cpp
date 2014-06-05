@@ -1849,9 +1849,13 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 			DVSV_RETURN_MSG( TEXT("Invalid text literal, text is transient!") );
 		}
 
-		if( InNewDefaultText.IsCultureInvariant() )
+		// It should not be possible to get a culture invariant text in editor
+		if(GIsEditor)
 		{
-			DVSV_RETURN_MSG( TEXT("Invalid text literal, text is culture invariant!") );
+			if( InNewDefaultText.IsCultureInvariant() )
+			{
+				DVSV_RETURN_MSG( TEXT("Invalid text literal, text is culture invariant!") );
+			}
 		}
 	}
 	else if (PinCategory == PC_Struct)
