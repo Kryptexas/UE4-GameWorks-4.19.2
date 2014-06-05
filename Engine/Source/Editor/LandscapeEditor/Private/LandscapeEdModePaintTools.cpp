@@ -430,7 +430,7 @@ public:
 		if (InEdMode->UISettings->bUseFlattenTarget && bTargetIsHeightmap)
 		{
 			FTransform LocalToWorld = InTarget.LandscapeInfo->GetLandscapeProxy()->ActorToWorld();
-			float Height = InEdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z;
+			float Height = (InEdMode->UISettings->FlattenTarget - LocalToWorld.GetTranslation().Z) / LocalToWorld.GetScale3D().Z;
 			FlattenHeight = LandscapeDataAccess::GetTexHeight(Height);
 			bInitializedFlattenHeight = true;
 		}
@@ -572,12 +572,17 @@ public:
 	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Flatten"); }
 	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Flatten", "Flatten"); };
 
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+	{
+		bool bShowGrid = EdMode->UISettings->bUseFlattenTarget && EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap && EdMode->UISettings->bShowFlattenTargetPreview;
+		MeshComponent->SetVisibility(bShowGrid);
+	}
+
 	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE
 	{
 		bool bResult = FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::MouseMove(ViewportClient, Viewport, x, y);
 
-		if (ViewportClient->IsLevelEditorClient() && MeshComponent != NULL &&
-			this->EdMode->UISettings->bUseFlattenTarget && this->EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap)
+		if (ViewportClient->IsLevelEditorClient() && MeshComponent != NULL)
 		{
 			this->EdMode->LandscapeMouseTrace((FLevelEditorViewportClient*)ViewportClient, x, y, LastMousePosition);
 
@@ -585,7 +590,7 @@ public:
 			FVector Origin;
 			Origin.X = FMath::RoundToFloat(LastMousePosition.X);
 			Origin.Y = FMath::RoundToFloat(LastMousePosition.Y);
-			Origin.Z = (FMath::RoundToFloat((this->EdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z) * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
+			Origin.Z = (FMath::RoundToFloat((EdMode->UISettings->FlattenTarget - LocalToWorld.GetTranslation().Z) / LocalToWorld.GetScale3D().Z * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
 			MeshComponent->SetRelativeLocation(Origin, false);
 		}
 
@@ -601,6 +606,15 @@ public:
 		MeshComponent->StaticMesh = PlaneMesh;
 		MeshComponent->AttachTo(LandscapeProxy->GetRootComponent());
 		MeshComponent->RegisterComponent();
+
+		bool bShowGrid = EdMode->UISettings->bUseFlattenTarget && EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap && EdMode->UISettings->bShowFlattenTargetPreview;
+		MeshComponent->SetVisibility(bShowGrid);
+
+		// Try to set a sane initial location for the preview grid
+		const FTransform LocalToWorld = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy()->GetRootComponent()->GetComponentToWorld();
+		FVector Origin = FVector::ZeroVector;
+		Origin.Z = (FMath::RoundToFloat((EdMode->UISettings->FlattenTarget - LocalToWorld.GetTranslation().Z) / LocalToWorld.GetScale3D().Z * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
+		MeshComponent->SetRelativeLocation(Origin, false);
 	}
 
 	virtual void ExitTool()

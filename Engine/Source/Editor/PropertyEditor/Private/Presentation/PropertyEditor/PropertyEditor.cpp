@@ -539,22 +539,26 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 
 bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty ) 
 {
-	bool bIsConditionalPropertyVisible = false;
+	bool bShowEditConditionToggle = false;
+
+	if (!InProperty->HasMetaData(TEXT("HideEditConditionToggle")))
 	{
 		bool bNegateValue = false;
-		UBoolProperty* ConditionalProperty = GetEditConditionProperty( InProperty, bNegateValue );
-		if( ConditionalProperty != NULL )
+		UBoolProperty* ConditionalProperty = GetEditConditionProperty(InProperty, bNegateValue);
+		if (ConditionalProperty != NULL)
 		{
-			if( ConditionalProperty->HasAllPropertyFlags( CPF_Edit ) )
+			bShowEditConditionToggle = true;
+
+			if (ConditionalProperty->HasAllPropertyFlags(CPF_Edit))
 			{
 				// Conditionally-dependent property is already exposed for editing, so no need to draw another
 				// check box next to this property's label
-				bIsConditionalPropertyVisible = true;
+				bShowEditConditionToggle = false;
 			}
 		}
 	}
 
-	return !bIsConditionalPropertyVisible;
+	return bShowEditConditionToggle;
 }
 
 UBoolProperty* FPropertyEditor::GetEditConditionProperty( const UProperty* InProperty, bool& bNegate ) 

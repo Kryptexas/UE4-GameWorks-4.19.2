@@ -21,6 +21,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitial
 	, bPickValuePerApply(false)
 	, bUseFlattenTarget(false)
 	, FlattenTarget(0)
+	, bShowFlattenTargetPreview(true)
 
 	, RampWidth(2000)
 	, RampSideFalloff(0.4f)
