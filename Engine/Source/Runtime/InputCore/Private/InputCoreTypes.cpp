@@ -432,6 +432,9 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Global_Pause, LOCTEXT("Global_Pause", "Global Pause"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Global_Play, LOCTEXT("Global_Play", "Global Play"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Global_Back, LOCTEXT("Global_Back", "Global Back"), FKeyDetails::GamepadKey));
+
+	// Initialize the input key manager.  This will cause any additional OEM keys to get added
+	FInputKeyManager::Get();
 }
 
 void EKeys::AddKey(const FKeyDetails& KeyDetails)
@@ -767,12 +770,14 @@ void FInputKeyManager::InitKeyMappings()
 
 	for (uint32 Idx=0; Idx<KeyMapSize; ++Idx)
 	{
-		const FKey Key(*KeyNames[Idx]);
+		FKey Key(*KeyNames[Idx]);
 		
-		if (ensureMsgf(Key.IsValid(), TEXT("Failed to get key for name %s"), *KeyNames[Idx]))
+		if (!Key.IsValid())
 		{
-			KeyMapVirtualToEnum.Add(KeyCodes[Idx], Key);
+			EKeys::AddKey(FKeyDetails(Key, Key.GetDisplayName()));
 		}
+
+		KeyMapVirtualToEnum.Add(KeyCodes[Idx], Key);
 	}
 	for (uint32 Idx=0; Idx<CharKeyMapSize; ++Idx)
 	{
