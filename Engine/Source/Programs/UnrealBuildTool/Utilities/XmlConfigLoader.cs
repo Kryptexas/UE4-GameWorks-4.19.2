@@ -241,6 +241,7 @@ namespace UnrealBuildTool
 					}
 				}
 
+				Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
 				File.WriteAllText(FilePath, Content);
 
 				if(bReadOnlyFile)
