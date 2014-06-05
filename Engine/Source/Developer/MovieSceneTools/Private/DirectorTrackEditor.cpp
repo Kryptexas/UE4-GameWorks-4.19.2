@@ -271,7 +271,10 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 
 void FShotSection::Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if (!Camera.IsValid()) {return;}
+	if (!Camera.IsValid())
+	{
+		return;
+	}
 
 	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section->GetStartTime(), Section->GetEndTime() ) );
 

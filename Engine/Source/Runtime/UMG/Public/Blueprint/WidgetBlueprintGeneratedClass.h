@@ -25,6 +25,7 @@ struct FDelegateRuntimeBinding
 	}*/
 };
 
+class UMovieScene;
 
 UCLASS()
 class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
@@ -37,6 +38,9 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 
 	UPROPERTY()
 	TArray< FDelegateRuntimeBinding > Bindings;
+
+	UPROPERTY()
+	TArray< UMovieScene* > AnimationData;
 
 	/** This is transient data calculated at link time. */
 	TArray<UStructProperty*> WidgetNodeProperties;

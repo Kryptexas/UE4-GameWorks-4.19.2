@@ -4,29 +4,6 @@
 #include "MovieScene.h"
 
 
-bool FMovieSceneSpawnable::Serialize(FArchive& Ar)
-{
-	Ar << Guid;
-	Ar << Name;
-
-#if WITH_EDITOR
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS)
-	{
-		UBlueprint* ObsoleteBlueprint = NULL;
-		Ar << ObsoleteBlueprint;
-		if(ObsoleteBlueprint)
-		{
-			GeneratedClass = ObsoleteBlueprint->GeneratedClass;
-		}
-	}
-	else
-#endif //WITH_EDITOR
-	{
-		Ar << GeneratedClass;
-	}
-	return true;
-}
-
 FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
 {
 	Guid = FGuid::NewGuid();

@@ -12,19 +12,15 @@ public class UMG : ModuleRules
             })
 		;
 
-		PublicDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
                 "Engine",
                 "InputCore",
 				"Slate",
-				"SlateCore",
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
+				"SlateCore",	
+				"MovieSceneCore",
 			}
 		);
 	}

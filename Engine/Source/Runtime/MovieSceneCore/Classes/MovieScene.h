@@ -44,15 +44,6 @@ public:
 		return CounterpartGamePreviewObject;
 	}
 
-	/** ICPPStructOps implementation */
-	bool Serialize(FArchive& Ar);
-
-	friend FArchive& operator<<(FArchive& Ar,FMovieSceneSpawnable& P)
-	{
-		P.Serialize(Ar);
-		return Ar;
-	}
-
 private:
 
 	/** Guid */
@@ -76,16 +67,6 @@ private:
 	// @todo sequencer data: Should be editor only
 	FWeakObjectPtr CounterpartGamePreviewObject;
 };
-
-template<>
-struct TStructOpsTypeTraits< FMovieSceneSpawnable > : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithSerializer = true,
-	};
-};
-
 
 /**
  * MovieScenePossessable is a "typed slot" used to allow the MovieScene to control an already-existing object

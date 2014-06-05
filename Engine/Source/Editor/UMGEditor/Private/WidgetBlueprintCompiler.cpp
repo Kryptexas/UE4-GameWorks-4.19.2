@@ -624,7 +624,11 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
 	BPGClass->WidgetTree = NULL;
+
+	// @todo UMG Possibly need duplication here 
 	BPGClass->WidgetTree = Blueprint->WidgetTree;
+	BPGClass->AnimationData = Blueprint->AnimationData;
+
 	BPGClass->Bindings.Reset();
 
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )

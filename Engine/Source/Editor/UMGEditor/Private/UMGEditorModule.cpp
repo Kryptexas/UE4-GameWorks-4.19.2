@@ -96,9 +96,6 @@ private:
 
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
-
-	/** List of open UMGEditor toolkits */
-	TArray<FUMGEditor*> UMGEditorToolkits;
 };
 
 IMPLEMENT_MODULE(FUMGEditorModule, UMGEditor);

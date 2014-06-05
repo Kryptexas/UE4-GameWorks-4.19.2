@@ -2,33 +2,28 @@
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"	// For EMapChangeType::Type
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "SelectedKey.h"
 
 class UMovieScene;
+class IToolkitHost;
 
 /**
  * Sequencer is the editing tool for MovieScene assets
  */
-class FSequencer : public ISequencer, FGCObject, public FEditorUndoClient
+class FSequencer : public ISequencer, public FGCObject, public FEditorUndoClient
 { 
 
 public:
-
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-
 	/**
-	 * Edits the specified object
+	 * Initializes sequencer
 	 *
-	 * @param	Mode							Asset editing mode for this editor (standalone or world-centric)
-	 * @param	InitToolkitHost					When Mode is WorldCentric, this is the level editor instance to spawn this editor within
-	 * @param	ObjectToEdit					The object to edit
-	 * @param	TrackEditorDelegates		Delegates to call to create auto-key handlers for this sequencer
+	 * @param	RootMovieScene					The root movie scene being edited
+	 * @param	InAssetEditor					The asset editor created for this (if any) 
+	 * @param	TrackEditorDelegates			Delegates to call to create auto-key handlers for this sequencer
+	 * @param	bEditWithinLevelEditor			Whether or not sequencer should be edited within the level editor
 	 */
-	void InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
+	void InitSequencer( UMovieScene* InRootMovieScene, TSharedPtr<IToolkitHost> InToolKitHost, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
 
 	/** Constructor */
 	FSequencer();
@@ -39,14 +34,9 @@ public:
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
 
-	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
 
 	/** ISequencer interface */
-	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
+	virtual TSharedRef<SWidget> GetSequencerWidget() const OVERRIDE { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const;
 	virtual UMovieScene* GetFocusedMovieScene() const OVERRIDE;
 	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const OVERRIDE;
@@ -68,18 +58,12 @@ public:
 	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) OVERRIDE;
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) OVERRIDE;
 
+	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
+
 	/**
 	 * Pops the current focused movie scene from the stack.  The parent of this movie scene will be come the focused one
 	 */
 	void PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance );
-
-	/**
-	 * Starts editing details for the specified list of UObjects.  This is used to edit CDO's for blueprints
-	 * that are stored with the MovieScene asset
-	 *
-	 * @param	ObjectsToEdit	The objects to edit in the details view
-	 */
-	void EditDetailsForObjects( TArray< UObject* > ObjectsToEdit );
 
 	/**
 	 * Spawn (or destroy) puppet objects as needed to match the spawnables array in the MovieScene we're editing
@@ -102,16 +86,6 @@ public:
 	 * Deletes the currently selected in keys
 	 */
 	void DeleteSelectedKeys();
-
-	/**
-	 * Binds to a 'PlayMovieScene' node in level script that is associated with the MovieScene we're editing.  If
-	 * requested, can also create a new node.  Only valid to call when in world-centric mode.
-	 *
-	 * @param	bCreateIfNotFound	True to create a node if we can't find one
-	 *
-	 * @return	The LevelScript node we found or created, or NULL if nothing is still bound
-	 */
-	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound );
 
 	/**
 	 * @return Movie scene tools used by the sequencer
@@ -266,21 +240,36 @@ public:
 
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 
+	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
 
+	/**
+	 * Binds to a 'PlayMovieScene' node in level script that is associated with the MovieScene we're editing.  If
+	 * requested, can also create a new node.  Only valid to call when in world-centric mode.
+	 *
+	 * @param	bCreateIfNotFound	True to create a node if we can't find one
+	 *
+	 * @return	The LevelScript node we found or created, or NULL if nothing is still bound
+	 */
+	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound );
 
-	// @todo remove when world-centric mode is added
-	TSharedRef<class SSequencer> GetMainSequencer();
+	/** Called by LevelEditor when the map changes */
+	void OnMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType);
 
-private:
-	TSharedRef<SDockTab> SpawnTab_SequencerMain(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);	
+	/** Functions to push on to the transport controls we use */
+	FReply OnPlay();
+	FReply OnRecord();
+	FReply OnStepForward();
+	FReply OnStepBackward();
+	FReply OnStepToEnd();
+	FReply OnStepToBeginning();
+	FReply OnToggleLooping();
+	bool IsLooping() const;
+	EPlaybackMode::Type GetPlaybackMode() const;
+
+	/** @return The toolkit that this sequencer is hosted in (if any) */
+	TSharedPtr<IToolkitHost> GetToolkitHost() const { return ToolkitHost.Pin(); }
+
 protected:
-
-	/** Generates and attaches transport control widgets to the main level editor viewports */
-	void AttachTransportControlsToViewports();
-	/** Purges all transport control widgets from the main level editor viewports */
-	void DetachTransportControlsFromViewports();
-	
 	/**
 	 * Reset data about a movie scene when pushing or popping a movie scene
 	 */
@@ -294,22 +283,9 @@ protected:
 	 */
 	void DestroySpawnablesForAllMovieScenes();
 
-	/** Gets the visibility of a transport control based on the viewport it's attached to */
-	EVisibility GetTransportControlVisibility(TSharedPtr<ILevelViewport> LevelViewport) const;
-
 	/** Sets the actor CDO such that it is placed in front of the active perspective viewport camera, if we have one */
 	static void PlaceActorInFrontOfCamera( AActor* ActorCDO );
 
-	/** Functions to push on to the transport controls we use */
-	FReply OnPlay();
-	FReply OnRecord();
-	FReply OnStepForward();
-	FReply OnStepBackward();
-	FReply OnStepToEnd();
-	FReply OnStepToBeginning();
-	FReply OnToggleLooping();
-	bool IsLooping() const;
-	EPlaybackMode::Type GetPlaybackMode() const;
 
 	/**
 	 * Gets the far time boundaries of the currently edited movie scene
@@ -346,8 +322,6 @@ protected:
 	 */
 	class UK2Node_PlayMovieScene* CreateNewPlayMovieSceneNode( UMovieScene* MovieScene );
 
-	/** Called by LevelEditor when the map changes */
-	void OnMapChanged( class UWorld* NewWorld, EMapChangeType::Type MapChangeType );
 
 	/** Called by UK2Node_PlayMovieScene when the bindings for that node are changed through Kismet */
 	void OnPlayMovieSceneBindingsChanged();
@@ -411,11 +385,10 @@ protected:
 	// End of FEditorUndoClient
 
 private:
+	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
+
 	/** Command list for seququencer commands */
 	TSharedRef<FUICommandList> SequencerCommandBindings;
-
-	/** A map of all the transport controls to viewports that this sequencer has made */
-	TMap< TSharedPtr<class ILevelViewport>, TSharedPtr<class SWidget> > TransportControls;
 
 	/** List of tools we own */
 	TArray< TSharedPtr<FMovieSceneTrackEditor> > TrackEditors;
@@ -423,9 +396,6 @@ private:
 	/** The editors we keep track of for special behaviors */
 	TWeakPtr<FMovieSceneTrackEditor> DirectorTrackEditor;
 	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
-
-	/** Details view */
-	TSharedPtr< class IDetailsView > DetailsView;
 
 	/** Object spawner */
 	TSharedPtr< class ISequencerObjectSpawner > ObjectSpawner;
@@ -436,13 +406,14 @@ private:
 	/** The runtime instance for the root movie scene */
 	TSharedPtr< class FMovieSceneInstance > RootMovieSceneInstance;
 
-	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
-
 	/** Main sequencer widget */
 	TSharedPtr< class SSequencer > SequencerWidget;
 	
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;
+
+	/** The asset editor that created this Sequencer if any */
+	TWeakPtr<IToolkitHost> ToolkitHost;
 
 	/** 'PlayMovieScene' node in level script that we're currently associating with the active MovieScene.  This node contains the bindings
 	    information that we need to be able to preview possessed actors in the level */
@@ -493,13 +464,7 @@ private:
 	/** Whether or not we are allowing autokey */
 	bool bAllowAutoKey;
 
-	/** Whether or not we allow perspective viewports to be hijacked by this sequencer */
 	bool bPerspectiveViewportPossessionEnabled;
-
-
-	/**	The tab ids for all the tabs used */
-	static const FName SequencerMainTabId;
-	static const FName SequencerDetailsTabId;
 
 	/** Stores a dirty bit for whether the sequencer tree (and other UI bits) may need to be refreshed.  We
 	    do this simply to avoid refreshing the UI more than once per frame. (e.g. during live recording where

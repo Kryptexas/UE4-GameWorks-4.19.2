@@ -20,7 +20,15 @@ class ISequencerModule : public IModuleInterface
 public:
 
 	/**
-	 * Creates a new instance of a Sequencer, the editor for MovieScene assets
+	 * Creates a new instance of a standalone sequencer that can be added to other UIs
+	 *
+	 * @param 	InRootMovieScene	The movie scene to edit
+	 * @return	Interface to the new editor
+	 */
+	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* InRootMovieScene ) = 0;
+
+	/**
+	 * Creates a new instance of a Sequencer, the editor for MovieScene assets in an asset editor
 	 *
 	 * @param	Mode					Mode that this editor should operate in
 	 * @param	InitToolkitHost			When Mode is WorldCentric, this is the level editor instance to spawn this editor within
@@ -28,7 +36,7 @@ public:
 	 *
 	 * @return	Interface to the new editor
 	 */
-	virtual TSharedPtr<ISequencer> CreateSequencer( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit ) = 0;
+	virtual TSharedPtr<ISequencer> CreateSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, bool bEditWithinLevelEditor ) = 0;
 
 	/** 
 	 * Registers a delegate that will create an editor for a track in each sequencer 

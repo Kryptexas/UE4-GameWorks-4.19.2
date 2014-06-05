@@ -8,8 +8,6 @@
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
 #include "BlueprintEditorTabs.h"
-#include "SEditorViewport.h"
-#include "SSCSEditorViewport.h"
 
 #include "SUMGEditorTree.h"
 #include "SUMGDesigner.h"
@@ -22,6 +20,9 @@
 
 #include "WidgetBlueprintEditor.h"
 
+#include "MovieScene.h"
+#include "ISequencerModule.h"
+
 #define LOCTEXT_NAMESPACE "UMG_EXTENSION"
 
 /////////////////////////////////////////////////////
@@ -32,9 +33,9 @@ static const FName SlatePreviewTabID(TEXT("SlatePreview"));
 struct FSlatePreviewSummoner : public FWorkflowTabFactory
 {
 protected:
-	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 public:
-	FSlatePreviewSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
+	FSlatePreviewSummoner(TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor)
 		: FWorkflowTabFactory(SlatePreviewTabID, InBlueprintEditor)
 		, BlueprintEditor(InBlueprintEditor)
 	{
@@ -49,8 +50,6 @@ public:
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
 	{
-		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
-
 		//TSharedPtr<SWidget> Result;
 		//if ( BlueprintEditorPtr->CanAccessComponentsMode() )
 		//{
@@ -61,7 +60,7 @@ public:
 			+ SHorizontalBox::Slot()
 			.FillWidth(1)
 			[
-				SNew(SUMGDesigner, BlueprintEditorPtr)
+				SNew(SUMGDesigner, BlueprintEditor.Pin())
 			];
 	}
 };
@@ -74,9 +73,9 @@ static const FName SlateHierarchyTabID(TEXT("SlateHierarchy"));
 struct FSlateTreeSummoner : public FWorkflowTabFactory
 {
 protected:
-	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 public:
-	FSlateTreeSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
+	FSlateTreeSummoner(TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor)
 		: FWorkflowTabFactory(SlateHierarchyTabID, InBlueprintEditor)
 		, BlueprintEditor(InBlueprintEditor)
 	{
@@ -104,9 +103,9 @@ static const FName UMGWidgetTemplatesTabID(TEXT("WidgetTemplates"));
 struct FWidgetTemplatesSummoner : public FWorkflowTabFactory
 {
 protected:
-	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 public:
-	FWidgetTemplatesSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
+	FWidgetTemplatesSummoner(TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor)
 		: FWorkflowTabFactory(UMGWidgetTemplatesTabID, InBlueprintEditor)
 		, BlueprintEditor(InBlueprintEditor)
 	{
@@ -122,6 +121,36 @@ public:
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
 	{
 		return SNew(SUMGEditorWidgetTemplates, BlueprintEditor.Pin(), BlueprintEditor.Pin()->GetBlueprintObj()->SimpleConstructionScript);
+	}
+};
+
+/////////////////////////////////////////////////////
+// FSequencerSummoner
+
+static const FName FSequencerSummonerTabID(TEXT("Sequencer"));
+
+struct FSequencerSummoner : public FWorkflowTabFactory
+{
+protected:
+	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
+public:
+	FSequencerSummoner(TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor)
+		: FWorkflowTabFactory(FSequencerSummonerTabID, InBlueprintEditor)
+		, BlueprintEditor(InBlueprintEditor)
+	{
+		TabLabel = LOCTEXT("SequencerLabel", "Timeline");
+
+		bIsSingleton = true;
+
+		ViewMenuDescription = LOCTEXT("Sequencer_ViewMenu_Desc", "Timeline");
+		ViewMenuTooltip = LOCTEXT("Sequencer_ViewMenu_ToolTip", "Show the Animation editor");
+	}
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	{
+		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPinned = BlueprintEditor.Pin();
+
+		return BlueprintEditorPinned->GetSequencer()->GetSequencerWidget();
 	}
 };
 
@@ -143,10 +172,15 @@ public:
 
 		//BlueprintComponentsTabFactories.UnregisterFactory(FBlueprintEditorTabs::ConstructionScriptEditorID);
 		//BlueprintDefaultsTabFactories.UnregisterFactory(FBlueprintEditorTabs::SCSViewportID);
-		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InBlueprintEditor)));
-		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlatePreviewSummoner(InBlueprintEditor)));
-		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlateTreeSummoner(InBlueprintEditor)));
-		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FWidgetTemplatesSummoner(InBlueprintEditor)));
+
+		TSharedPtr<FWidgetBlueprintEditor> WidgetBlueprintEditor = StaticCastSharedPtr<FWidgetBlueprintEditor>(InBlueprintEditor);
+
+
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(WidgetBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlatePreviewSummoner(WidgetBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSlateTreeSummoner(WidgetBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FWidgetTemplatesSummoner(WidgetBlueprintEditor)));
+		BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FSequencerSummoner(WidgetBlueprintEditor)));
 
 		TabLayout = FTabManager::NewLayout( "Standalone_UMGEditor_Layout_v2" )
 		->AddArea
@@ -206,6 +240,13 @@ public:
 						->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )
 					)
 				)
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.2f)
+				->SetHideTabWell(true)
+				->AddTab( FSequencerSummonerTabID, ETabState::OpenedTab )
 			)
 		);
 	}

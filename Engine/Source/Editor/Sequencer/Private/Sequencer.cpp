@@ -3,7 +3,6 @@
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
 #include "SequencerObjectSpawner.h"
-#include "Toolkits/IToolkitHost.h"
 #include "MovieScene.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -25,7 +24,6 @@
 #include "MovieSceneAudioTrack.h"
 #include "MovieSceneAnimationTrack.h"
 #include "MovieSceneTrackEditor.h"
-#include "Toolkits/IToolkitHost.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_PlayMovieScene.h"
@@ -42,67 +40,27 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogSequencer, Log, All );
 
-const FName FSequencer::SequencerMainTabId( TEXT( "Sequencer_SequencerMain" ) );
-const FName FSequencer::SequencerDetailsTabId( TEXT( "Sequencer_Details" ) );
-
-namespace SequencerDefs
+static bool IsSequencerEnabled()
 {
-	static const FName SequencerAppIdentifier( TEXT( "SequencerApp" ) );
-}
-void FSequencer::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
-{
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) && !IsWorldCentricAssetEditor() )
-	{
-		TabManager->RegisterTabSpawner( SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FSequencer::SpawnTab_SequencerMain) )
-			.SetDisplayName( LOCTEXT("SequencerMainTab", "Sequencer") )
-			.SetGroup( MenuStructure.GetAssetEditorCategory() );
-	}
-
+	return FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) || FParse::Param( FCommandLine::Get(), TEXT( "umg" ) );
 }
 
-void FSequencer::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+
+void FSequencer::InitSequencer( UMovieScene* InRootMovieScene, TSharedPtr<IToolkitHost> InToolKitHost, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor )
 {
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) && !IsWorldCentricAssetEditor() )
+	if( IsSequencerEnabled() )
 	{
-		TabManager->UnregisterTabSpawner( SequencerMainTabId );
-	}
-	
-	// @todo remove when world-centric mode is added
-	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.AttachSequencer( SNullWidget::NullWidget, nullptr );
-}
-
-void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates )
-{
-	if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
-	{
-		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_Sequencer_Layout" )
-			->AddArea
-			(
-				FTabManager::NewPrimaryArea()
-				->Split
-				(
-					FTabManager::NewStack()
-					->AddTab(SequencerMainTabId, ETabState::OpenedTab)
-					->AddTab(SequencerDetailsTabId, ETabState::OpenedTab)
-				)
-			);
-
-		const bool bCreateDefaultStandaloneMenu = true;
-		const bool bCreateDefaultToolbar = false;
-		FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu,bCreateDefaultToolbar, ObjectToEdit );
-
+		ToolkitHost = InToolKitHost;
 		// Create an object change listener for various systems that need to be notified when objects change
 		ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( SharedThis( this ) ) );
 		// If this is a world-centric editor, then setup our puppet spawner
-		if( IsWorldCentricAssetEditor() )
+		if( bEditWithinLevelEditor )
 		{
 			ObjectSpawner = MakeShareable( new FSequencerActorObjectSpawner( *this ) );
 		}
 
-		UMovieScene& RootMovieScene = *CastChecked<UMovieScene>( GetEditingObject() );
+		UMovieScene& RootMovieScene = *InRootMovieScene;
+
 		// Focusing the initial movie scene needs to be done before the first time GetFocusedMovieSceneInstane or GetRootMovieSceneInstance is used
 		RootMovieSceneInstance = MakeShareable( new FMovieSceneInstance( RootMovieScene ) );
 		MovieSceneStack.Add( RootMovieSceneInstance.ToSharedRef() );
@@ -119,27 +77,20 @@ void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr<
 			.OnToggleCleanView( this, &FSequencer::OnToggleCleanView );
 
 
-		// @todo remove when world-centric mode is added
-		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.AttachSequencer(SequencerWidget, SharedThis( this ) );
+		if( bEditWithinLevelEditor )
+		{
+			// @todo remove when world-centric mode is added
+			// Hook into the editor's mechanism for checking whether we need live capture of PIE/SIE actor state
+			GEditor->GetActorRecordingState().AddSP(this, &FSequencer::GetActorRecordingState);
 
-		// Hook into the editor's mechanism for checking whether we need live capture of PIE/SIE actor state
-		GEditor->GetActorRecordingState().AddSP( this, &FSequencer::GetActorRecordingState );
+			// When undo occurs, get a notification so we can make sure our view is up to date
+			GEditor->RegisterForUndo(this);
 
-		// When undo occurs, get a notification so we can make sure our view is up to date
-		GEditor->RegisterForUndo(this);
-
-
-		// We need to find out when the user loads a new map, because we might need to re-create puppet actors
-		// when previewing a MovieScene
-		//auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().AddSP( this, &FSequencer::OnMapChanged );
-
-
-		// Start listening for important changes on this MovieScene
-		// @todo sequencer: We need to correctly register for any new moviescenes that are dropped in!
-		const bool bCreateIfNotFound = false;
-		BindToPlayMovieSceneNode( bCreateIfNotFound );
+			// Start listening for important changes on this MovieScene
+			// @todo sequencer: We need to correctly register for any new moviescenes that are dropped in!
+			const bool bCreateIfNotFound = false;
+			BindToPlayMovieSceneNode(bCreateIfNotFound);
+		}
 
 		// Create tools and bind them to this sequencer
 		for( int32 DelegateIndex = 0; DelegateIndex < TrackEditorDelegates.Num(); ++DelegateIndex )
@@ -161,7 +112,7 @@ void FSequencer::InitSequencer( const EToolkitMode::Type Mode, const TSharedPtr<
 			TrackEditors.Add( TrackEditor );
 		}
 
-		AttachTransportControlsToViewports();
+
 
 		ZoomAnimation = FCurveSequence();
 		ZoomCurve = ZoomAnimation.AddCurve(0.f, 0.35f, ECurveEaseFunction::QuadIn);
@@ -195,16 +146,6 @@ FSequencer::FSequencer()
 
 FSequencer::~FSequencer()
 {
-	DetachTransportControlsFromViewports();
-
-
-	// Unregister delegates
-	if( FModuleManager::Get().IsModuleLoaded( TEXT( "LevelEditor" ) ) )
-	{
-		auto& LevelEditorModule = FModuleManager::LoadModuleChecked< FLevelEditorModule >( TEXT( "LevelEditor" ) );
-		LevelEditorModule.OnMapChanged().RemoveAll( this );
-	}
-
 	if( PlayMovieSceneNode.IsValid() )
 	{
 		PlayMovieSceneNode->OnBindingsChanged().RemoveAll( this );
@@ -225,88 +166,7 @@ FSequencer::~FSequencer()
 
 	TrackEditors.Empty();
 
-	DetailsView.Reset();
-
-	/*if( SequencerMainTab.IsValid() )
-	{
-		// Kill the tab!
-		// NOTE: It's possible that the user already closed the tab manually, but that's OK.
-		SequencerMainTab->RemoveTabFromParent();
-		SequencerMainTab.Reset();
-	}
-
-	if( DetailsTab.IsValid() )
-	{
-		// Kill the tab!
-		// NOTE: It's possible that the user already closed the tab manually, but that's OK.
-		DetailsTab->RemoveTabFromParent();
-		DetailsTab.Reset();
-	}*/
-
 	SequencerWidget.Reset();
-}
-
-
-TSharedRef<SDockTab> FSequencer::SpawnTab_SequencerMain(const FSpawnTabArgs& Args)
-{
-	check(Args.GetTabId() == SequencerMainTabId);
-
-	return SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.SequencerMain") )
-		.Label( LOCTEXT("SequencerMainTitle", "Sequencer") )
-		.TabColorScale( GetTabColorScale() )
-		[
-			SequencerWidget.ToSharedRef()
-		];
-}
-
-TSharedRef<SDockTab> FSequencer::SpawnTab_Details(const FSpawnTabArgs& Args)
-{
-	check(Args.GetTabId() == SequencerDetailsTabId);
-
-	const bool bIsUpdatable = false;
-	const bool bAllowFavorites = true;
-	const bool bIsLockable = false;
-
-	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
-	const FDetailsViewArgs DetailsViewArgs( bIsUpdatable, bIsLockable, true, false, false );
-	DetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
-
-	return SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.Details") )	// @todo sequencer: Missing icon
-		.Label( LOCTEXT("SequencerDetailsTitle", "Details") )
-		.TabColorScale( GetTabColorScale() )
-		[
-			SNew(SBorder)
-			.Padding(4)
-			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
-			[
-				DetailsView.ToSharedRef()
-			]
-		]
-	;
-}
-
-FName FSequencer::GetToolkitFName() const
-{
-	return FName("Sequencer");
-}
-
-FText FSequencer::GetBaseToolkitName() const
-{
-	return LOCTEXT("AppLabel", "Sequencer");
-}
-
-
-FLinearColor FSequencer::GetWorldCentricTabColorScale() const
-{
-	return FLinearColor( 0.7, 0.0f, 0.0f, 0.5f );
-}
-
-
-FString FSequencer::GetWorldCentricTabPrefix() const
-{
-	return LOCTEXT("WorldCentricTabPrefix", "Sequencer ").ToString();
 }
 
 
@@ -388,15 +248,12 @@ void FSequencer::PopToMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneI
 	}
 }
 
-void FSequencer::EditDetailsForObjects( TArray< UObject* > ObjectsToEdit )
-{
-	// @todo re-enable when world centric is back up
-	//DetailsView->SetObjects( ObjectsToEdit );
-}
-
 void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance )
 {
-	ObjectSpawner->SpawnOrDestroyPuppetObjects( MovieSceneInstance );
+	if(ObjectSpawner.IsValid())
+	{
+		ObjectSpawner->SpawnOrDestroyPuppetObjects( MovieSceneInstance );
+	}
 }
 
 
@@ -784,6 +641,50 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 	}
 }
 
+void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
+{
+	if(!IsPerspectiveViewportPosessionEnabled())
+	{
+		return;
+	}
+
+	for(FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
+	{
+		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
+		{
+			if(ActorToViewThrough)
+			{
+				LevelVC->SetViewLocation(ActorToViewThrough->GetActorLocation());
+				LevelVC->SetViewRotation(ActorToViewThrough->GetActorRotation());
+			}
+			else
+			{
+				LevelVC->ViewFOV = LevelVC->FOVAngle;
+			}
+
+			ACameraActor* Camera = Cast<ACameraActor>(ActorToViewThrough);
+
+			// If viewing through a camera - PP settings of camera.
+			LevelVC->SetPostprocessCameraActor(Camera);
+
+			if(Camera)
+			{
+				LevelVC->ViewFOV = LevelVC->FOVAngle = Camera->CameraComponent->FieldOfView;
+				// If the Camera's aspect ratio is zero, put a more reasonable default here - this at least stops it from crashing
+				// nb. the AspectRatio will be reported as a Map Check Warning
+				if(Camera->CameraComponent->AspectRatio == 0)
+				{
+					LevelVC->AspectRatio = 1.7f;
+				}
+				else
+				{
+					LevelVC->AspectRatio = Camera->CameraComponent->AspectRatio;
+				}
+			}
+		}
+	}
+}
+
 EMovieScenePlayerStatus::Type FSequencer::GetPlaybackStatus() const
 {
 	return PlaybackState;
@@ -850,132 +751,12 @@ void FSequencer::Tick(const float InDeltaTime)
 	}
 }
 
-
-void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
-{
-	if (!bPerspectiveViewportPossessionEnabled) {return;}
-
-	for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); ++i)
-	{
-		FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
-		{
-			if (ActorToViewThrough)
-			{
-				LevelVC->SetViewLocation( ActorToViewThrough->GetActorLocation() );
-				LevelVC->SetViewRotation( ActorToViewThrough->GetActorRotation() );
-			}
-			else
-			{
-				LevelVC->ViewFOV = LevelVC->FOVAngle;
-			}
-
-			ACameraActor* Camera = Cast<ACameraActor>(ActorToViewThrough);
-			
-			// If viewing through a camera - PP settings of camera.
-			LevelVC->SetPostprocessCameraActor(Camera);
-
-			if (Camera)
-			{
-				LevelVC->ViewFOV = LevelVC->FOVAngle = Camera->CameraComponent->FieldOfView;
-				// If the Camera's aspect ratio is zero, put a more reasonable default here - this at least stops it from crashing
-				// nb. the AspectRatio will be reported as a Map Check Warning
-				if( Camera->CameraComponent->AspectRatio == 0 )
-				{
-					LevelVC->AspectRatio = 1.7f;
-				}
-				else
-				{
-					LevelVC->AspectRatio = Camera->CameraComponent->AspectRatio;
-				}
-			}
-		}
-	}
-}
-
 void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	for( int32 MovieSceneIndex = 0; MovieSceneIndex < MovieSceneStack.Num(); ++MovieSceneIndex )
 	{
 		UMovieScene* Scene = MovieSceneStack[MovieSceneIndex]->GetMovieScene();
 		Collector.AddReferencedObject( Scene );
-	}
-}
-
-void FSequencer::AttachTransportControlsToViewports()
-{
-	FLevelEditorModule* Module = FModuleManager::Get().LoadModulePtr<FLevelEditorModule>("LevelEditor");
-	if (Module)
-	{
-		TSharedPtr<ILevelEditor> LevelEditor = Module->GetFirstLevelEditor();
-		const TArray< TSharedPtr<ILevelViewport> >& LevelViewports = LevelEditor->GetViewports();
-		
-		FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::Get().LoadModuleChecked<FEditorWidgetsModule>( "EditorWidgets" );
-
-		FTransportControlArgs TransportControlArgs;
-		TransportControlArgs.OnForwardPlay.BindSP(this, &FSequencer::OnPlay);
-		TransportControlArgs.OnRecord.BindSP(this, &FSequencer::OnRecord);
-		TransportControlArgs.OnForwardStep.BindSP(this, &FSequencer::OnStepForward);
-		TransportControlArgs.OnBackwardStep.BindSP(this, &FSequencer::OnStepBackward);
-		TransportControlArgs.OnForwardEnd.BindSP(this, &FSequencer::OnStepToEnd);
-		TransportControlArgs.OnBackwardEnd.BindSP(this, &FSequencer::OnStepToBeginning);
-		TransportControlArgs.OnToggleLooping.BindSP(this, &FSequencer::OnToggleLooping);
-		TransportControlArgs.OnGetLooping.BindSP(this, &FSequencer::IsLooping);
-		TransportControlArgs.OnGetPlaybackMode.BindSP(this, &FSequencer::GetPlaybackMode);
-
-		for (int32 i = 0; i < LevelViewports.Num(); ++i)
-		{
-			const TSharedPtr<ILevelViewport>& LevelViewport = LevelViewports[i];
-			
-			TSharedPtr<SWidget> TransportControl =
-				SNew(SHorizontalBox)
-				.Visibility(EVisibility::SelfHitTestInvisible)
-				+SHorizontalBox::Slot()
-				.FillWidth(1)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Bottom)
-				.Padding(4.f)
-				[
-					SNew(SBorder)
-					.Padding(4.f)
-					.Cursor( EMouseCursor::Default )
-					.BorderImage( FEditorStyle::GetBrush( "FilledBorder" ) )
-					.Visibility(this, &FSequencer::GetTransportControlVisibility, LevelViewport)
-					.Content()
-					[
-						EditorWidgetsModule.CreateTransportControl(TransportControlArgs)
-					]
-				];
-
-			LevelViewport->AddOverlayWidget(TransportControl.ToSharedRef());
-
-			TransportControls.Add(LevelViewport, TransportControl);
-		}
-	}
-}
-
-
-void FSequencer::DetachTransportControlsFromViewports()
-{
-	FLevelEditorModule* Module = FModuleManager::Get().LoadModulePtr<FLevelEditorModule>("LevelEditor");
-	if (Module)
-	{
-		TSharedPtr<ILevelEditor> LevelEditor = Module->GetFirstLevelEditor();
-		if (LevelEditor.IsValid())
-		{
-			const TArray< TSharedPtr<ILevelViewport> >& LevelViewports = LevelEditor->GetViewports();
-		
-			for (int32 i = 0; i < LevelViewports.Num(); ++i)
-			{
-				const TSharedPtr<ILevelViewport>& LevelViewport = LevelViewports[i];
-
-				TSharedPtr<SWidget>* TransportControl = TransportControls.Find(LevelViewport);
-				if (TransportControl && TransportControl->IsValid())
-				{
-					LevelViewport->RemoveOverlayWidget(TransportControl->ToSharedRef());
-				}
-			}
-		}
 	}
 }
 
@@ -1005,11 +786,6 @@ void FSequencer::DestroySpawnablesForAllMovieScenes()
 	ObjectSpawner->DestroyAllPuppetObjects();
 }
 
-EVisibility FSequencer::GetTransportControlVisibility(TSharedPtr<ILevelViewport> LevelViewport) const
-{
-	FLevelEditorViewportClient& ViewportClient = LevelViewport->GetLevelViewportClient();
-	return (ViewportClient.IsPerspective() && ViewportClient.AllowMatineePreview()) ? EVisibility::Visible : EVisibility::Collapsed;
-}
 
 FReply FSequencer::OnPlay()
 {
@@ -1158,8 +934,7 @@ UK2Node_PlayMovieScene* FSequencer::FindPlayMovieSceneNodeInLevelScript( const U
 {
 	// Grab the world object for this editor
 	check( MovieScene != NULL );
-	check( IsWorldCentricAssetEditor() );
-	UWorld* World = GetToolkitHost()->GetWorld();
+	UWorld* World = ToolkitHost.Pin()->GetWorld();
 	check( World != NULL );
 
 	// Search all levels in the specified world
@@ -1196,8 +971,7 @@ UK2Node_PlayMovieScene* FSequencer::CreateNewPlayMovieSceneNode( UMovieScene* Mo
 {
 	// Grab the world object for this editor
 	check( MovieScene != NULL );
-	check( IsWorldCentricAssetEditor() );
-	UWorld* World = GetToolkitHost()->GetWorld();
+	UWorld* World = ToolkitHost.Pin()->GetWorld();
 	check( World != NULL );
 
 	ULevel* Level = World->GetCurrentLevel();
@@ -1277,11 +1051,6 @@ void FSequencer::OnToggleCleanView( bool bInCleanViewEnabled )
 	bCleanViewEnabled = bInCleanViewEnabled;
 }
 
-// @todo remove when world-centric mode is added
-TSharedRef<class SSequencer> FSequencer::GetMainSequencer()
-{
-	return SequencerWidget.ToSharedRef();
-}
 
 
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* CounterpartGamePreviewObject )

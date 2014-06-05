@@ -12,10 +12,13 @@ class UMovieScene;
 /**
  * Sequencer public interface
  */
-class ISequencer : public FAssetEditorToolkit, public IMovieScenePlayer
+class ISequencer : public IMovieScenePlayer, public TSharedFromThis<ISequencer>
 {
 
 public:
+	/** @return Widget used to display the sequencer */
+	virtual TSharedRef<SWidget> GetSequencerWidget() const = 0;
+
 	/** @return Returns the MovieScene that is currently focused for editing by the sequencer.  This can change at any time. */
 	virtual UMovieScene* GetFocusedMovieScene() const = 0;
 

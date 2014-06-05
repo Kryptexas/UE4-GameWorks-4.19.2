@@ -4,11 +4,14 @@
 
 #include "WidgetBlueprintEditor.h"
 
+#include "Editor/Sequencer/Public/ISequencerModule.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(NULL)
+	, DefaultMovieScene(NULL)
 {
 }
 
@@ -66,6 +69,15 @@ void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& Prope
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 }
 
+void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	FBlueprintEditor::AddReferencedObjects( Collector );
+	if( DefaultMovieScene != nullptr )
+	{
+		Collector.AddReferencedObject( DefaultMovieScene );
+	}
+}
+
 UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 {
 	return Cast<UWidgetBlueprint>(GetBlueprintObj());
@@ -90,6 +102,19 @@ UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 	//}
 
 	return PreviewWidgetActorPtr.Get();
+}
+
+TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
+{
+	if(!Sequencer.IsValid())
+	{
+		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+		UMovieScene* MovieScene = Blueprint->AnimationData.Num() ? Blueprint->AnimationData[0] : GetDefaultMovieScene();
+		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer(MovieScene);
+	}
+
+	return Sequencer;
 }
 
 void FWidgetBlueprintEditor::DestroyPreview()
@@ -143,6 +168,16 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 		PreviewWidgetActorPtr = PreviewActor;
 	}
+}
+
+UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()
+{
+	if( !DefaultMovieScene )
+	{
+		DefaultMovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), GetTransientPackage(), "DefaultAnimationData" );
+	}
+
+	return DefaultMovieScene;
 }
 
 #undef LOCTEXT_NAMESPACE

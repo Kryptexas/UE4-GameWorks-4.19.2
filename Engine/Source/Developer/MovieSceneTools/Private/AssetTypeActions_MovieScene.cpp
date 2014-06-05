@@ -38,13 +38,13 @@ void FAssetTypeActions_MovieScene::OpenAssetEditor( const TArray<UObject*>& InOb
 
 	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		auto MovieScene = Cast<UMovieScene>(*ObjIt);
+		UMovieScene* MovieScene = Cast<UMovieScene>(*ObjIt);
 		if (MovieScene != NULL)
 		{
 			// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.
 			if( FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) )
 			{
-				auto NewSequencer = FModuleManager::LoadModuleChecked< ISequencerModule >( "Sequencer" ).CreateSequencer( Mode, EditWithinLevelEditor, MovieScene );
+				FModuleManager::LoadModuleChecked< ISequencerModule >( "Sequencer" ).CreateSequencerAssetEditor( Mode, EditWithinLevelEditor, MovieScene, true );
 			}
 		}
 	}

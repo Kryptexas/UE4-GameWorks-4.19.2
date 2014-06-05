@@ -33,6 +33,8 @@ struct UMG_API FDelegateEditorBinding
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };
 
+class UMovieScene;
+
 /**
  * The widget blueprint enables extending UUserWidget the user extensible UWidget.
  */
@@ -49,6 +51,9 @@ public:
 	UPROPERTY()
 	TArray< FDelegateEditorBinding > Bindings;
 
+	UPROPERTY()
+	TArray< UMovieScene* > AnimationData;
+	 
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
 	

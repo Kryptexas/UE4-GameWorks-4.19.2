@@ -6,6 +6,8 @@
 
 #include "PreviewScene.h"
 
+class ISequencer;
+
 /**
  * widget blueprint editor (extends Blueprint editor)
  */
@@ -21,9 +23,15 @@ public:
 	virtual void Tick(float DeltaTime) OVERRIDE;
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) OVERRIDE;
 
+	/** FGCObjectInterface */
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+
 	class UWidgetBlueprint* GetWidgetBlueprintObj() const;
 
 	UUserWidget* GetPreview() const;
+
+	/** @return The sequencer used to create widget animations */
+	TSharedPtr<ISequencer>& GetSequencer();
 
 private:
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
@@ -31,11 +39,23 @@ private:
 	void DestroyPreview();
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
 
+	/**
+	 * Gets the default movie scene which is used when there is no 
+	 * animation data present on the widget blueprint
+	 */
+	UMovieScene* GetDefaultMovieScene();
+
 private:
 	FPreviewScene PreviewScene;
 
+	/** Sequencer for creating and previewing widget animations */
+	TSharedPtr<ISequencer> Sequencer;
+
 	/** The Blueprint associated with the current preview */
 	UBlueprint* PreviewBlueprint;
+
+	/** Default movie scene for new animations */
+	UMovieScene* DefaultMovieScene;
 
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
 };
