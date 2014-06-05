@@ -52,6 +52,7 @@ FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
 FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialsThatNeedCoordinateCheck;
+FUObjectAnnotationSparseBool GMaterialsThatNeedCommentFix;
 
 #endif // #if WITH_EDITOR
 
@@ -1636,6 +1637,10 @@ void UMaterial::Serialize(FArchive& Ar)
 	{
 		GMaterialsThatNeedCoordinateCheck.Set(this);
 	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COMMENTS)
+	{
+		GMaterialsThatNeedCommentFix.Set(this);
+	}
 #endif // #if WITH_EDITOR
 
 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
@@ -2022,6 +2027,12 @@ void UMaterial::PostLoad()
 		{
 			FlipExpressionPositions(Expressions, EditorComments, false, this);
 		}
+		FixCommentPositions(EditorComments);
+	}
+	else if (GMaterialsThatNeedCommentFix.Get(this))
+	{
+		GMaterialsThatNeedCommentFix.Clear(this);
+		FixCommentPositions(EditorComments);
 	}
 #endif // #if WITH_EDITOR
 }
@@ -3548,10 +3559,22 @@ void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expr
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
 	{
 		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
-		Comment->MaterialExpressionEditorX = -Comment->MaterialExpressionEditorX * PosScaling - Comment->SizeX;
+		Comment->MaterialExpressionEditorX = (-Comment->MaterialExpressionEditorX - Comment->SizeX) * PosScaling;
 		Comment->MaterialExpressionEditorY *= PosScaling;
 		Comment->SizeX *= PosScaling;
 		Comment->SizeY *= PosScaling;
+	}
+}
+
+void UMaterial::FixCommentPositions(const TArray<UMaterialExpressionComment*>& Comments)
+{
+	// equivalent to 1/1.25 * 0.25 to get the amount that should have been used when first flipping
+	const float SizeScaling = 0.2f;
+
+	for (int32 Index = 0; Index < Comments.Num(); Index++)
+	{
+		UMaterialExpressionComment* Comment = Comments[Index];
+		Comment->MaterialExpressionEditorX -= Comment->SizeX * SizeScaling;
 	}
 }
 

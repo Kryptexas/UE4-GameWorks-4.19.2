@@ -154,6 +154,7 @@ if( ExpressionInput.Expression == ToBeRemovedExpression )										\
 #if WITH_EDITOR
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCoordinateCheck;
+FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCommentFix;
 #endif // #if WITH_EDITOR
 
 /** Returns whether the given expression class is allowed. */
@@ -6151,6 +6152,10 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 	{
 		GMaterialFunctionsThatNeedCoordinateCheck.Set(this);
 	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COMMENTS)
+	{
+		GMaterialFunctionsThatNeedCommentFix.Set(this);
+	}
 #endif // #if WITH_EDITOR
 }
 
@@ -6203,6 +6208,12 @@ void UMaterialFunction::PostLoad()
 		{
 			UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments, false);
 		}
+		UMaterial::FixCommentPositions(FunctionEditorComments);
+	}
+	else if (GMaterialFunctionsThatNeedCommentFix.Get(this))
+	{
+		GMaterialFunctionsThatNeedCommentFix.Clear(this);
+		UMaterial::FixCommentPositions(FunctionEditorComments);
 	}
 #endif // #if WITH_EDITOR
 }

@@ -1159,6 +1159,13 @@ public:
 	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* Material = NULL);
 
 	/**
+	 * Shifts the positions of comments so that they are aligned correctly with other expressions
+	 *
+	 * @param	Comments	Array of comments to fix
+	 */
+	static void FixCommentPositions(const TArray<UMaterialExpressionComment*>& Comments);
+
+	/**
 	 * Checks whether a Material is arranged in the old style, with inputs flowing from right to left
 	 */
 	bool HasFlippedCoordinates();

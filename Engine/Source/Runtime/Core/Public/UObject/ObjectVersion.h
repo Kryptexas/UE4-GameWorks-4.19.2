@@ -550,6 +550,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MOVE_LANDSCAPE_MICS_AND_TEXTURES_WITHIN_LEVEL,
 	// FTexts have creation history data, removed Key, Namespaces, and SourceString
 	VER_UE4_FTEXT_HISTORY,
+	// Shift comments to the left to contain expressions properly
+	VER_UE4_FIX_MATERIAL_COMMENTS,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
