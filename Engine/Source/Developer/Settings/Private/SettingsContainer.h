@@ -31,13 +31,12 @@ public:
 	 *
 	 * If a section with the specified settings objects already exists, the existing section will be replaced.
 	 *
-	 * @param CategoryName - The name of the category to add the section to.
-	 * @param SectionName - The name of the settings section to add.
-	 * @param DisplayName - The section's localized display name.
-	 * @param Description - The section's localized description text.
-	 * @param SettingsObject - The object that holds the section's settings.
-	 * @param Delegates - The section's optional callback delegates.
-	 *
+	 * @param CategoryName The name of the category to add the section to.
+	 * @param SectionName The name of the settings section to add.
+	 * @param DisplayName The section's localized display name.
+	 * @param Description The section's localized description text.
+	 * @param SettingsObject The object that holds the section's settings.
+	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
 	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates )
@@ -60,13 +59,12 @@ public:
 	 *
 	 * If a section with the specified settings objects already exists, the existing section will be replaced.
 	 *
-	 * @param CategoryName - The name of the category to add the section to.
-	 * @param SectionName - The name of the settings section to add.
-	 * @param DisplayName - The section's localized display name.
-	 * @param Description - The section's localized description text.
-	 * @param CustomWidget - A custom settings widget.
-	 * @param Delegates - The section's optional callback delegates.
-	 *
+	 * @param CategoryName The name of the category to add the section to.
+	 * @param SectionName The name of the settings section to add.
+	 * @param DisplayName The section's localized display name.
+	 * @param Description The section's localized description text.
+	 * @param CustomWidget A custom settings widget.
+	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
 	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates )
@@ -87,8 +85,8 @@ public:
 	/**
 	 * Removes a settings section.
 	 *
-	 * @param CategoryName - The name of the category that contains the section.
-	 * @param SectionName - The name of the section to remove.
+	 * @param CategoryName The name of the category that contains the section.
+	 * @param SectionName The name of the section to remove.
 	 */
 	void RemoveSection( const FName& CategoryName, const FName& SectionName )
 	{
@@ -183,7 +181,7 @@ public:
 private:
 
 	// Holds the collection of setting categories
-	TMap<FName, TSharedPtr<FSettingsCategory> > Categories;
+	TMap<FName, TSharedPtr<FSettingsCategory>> Categories;
 
 	// Holds the container's description text.
 	FText Description;

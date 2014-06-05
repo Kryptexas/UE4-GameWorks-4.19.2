@@ -18,12 +18,12 @@ public:
 	/**
 	 * Creates and initializes a new settings section from the given settings object.
 	 *
-	 * @param InCategory - The settings category that owns this section.
-	 * @param InName - The setting section's name.
-	 * @param InDisplayName - The section's localized display name.
-	 * @param InDescription - The section's localized description text.
-	 * @param InDelegates - The section's optional callback delegates.
-	 * @param InSettingsObject - The object that holds the settings for this section.
+	 * @param InCategory The settings category that owns this section.
+	 * @param InName The setting section's name.
+	 * @param InDisplayName The section's localized display name.
+	 * @param InDescription The section's localized description text.
+	 * @param InDelegates The section's optional callback delegates.
+	 * @param InSettingsObject The object that holds the settings for this section.
 	 */
 	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const FSettingsSectionDelegates& InDelegates, const TWeakObjectPtr<UObject>& InSettingsObject )
 		: Category(InCategory)
@@ -44,12 +44,12 @@ public:
 	/**
 	 * Creates and initializes a new settings section from the given custom settings widget.
 	 *
-	 * @param InCategory - The settings category that owns this section.
-	 * @param InName - The setting section's name.
-	 * @param InDisplayName - The section's localized display name.
-	 * @param InDescription - The section's localized description text.
-	 * @param InDelegates - The section's optional callback delegates.
-	 * @param InCustomWidget - A custom settings widget.
+	 * @param InCategory The settings category that owns this section.
+	 * @param InName The setting section's name.
+	 * @param InDisplayName The section's localized display name.
+	 * @param InDescription The section's localized description text.
+	 * @param InDelegates The section's optional callback delegates.
+	 * @param InCustomWidget A custom settings widget.
 	 */
 	FSettingsSection( const ISettingsCategoryRef& InCategory, const FName& InName, const FText& InDisplayName, const FText& InDescription, const FSettingsSectionDelegates& InDelegates, const TSharedRef<SWidget>& InCustomWidget )
 		: Category(InCategory)

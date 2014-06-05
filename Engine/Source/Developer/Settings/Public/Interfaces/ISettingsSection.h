@@ -113,19 +113,13 @@ struct FSettingsSectionDelegates
 };
 
 
-/**
- * Type definition for weak pointers to instances of ISettingsCategory.
- */
+/** Type definition for weak pointers to instances of ISettingsCategory. */
 typedef TWeakPtr<class ISettingsCategory> ISettingsCategoryWeakPtr;
 
-/**
- * Type definition for shared pointers to instances of ISettingsSection.
- */
+/** Type definition for shared pointers to instances of ISettingsSection. */
 typedef TSharedPtr<class ISettingsSection> ISettingsSectionPtr;
 
-/**
- * Type definition for shared references to instances of ISettingsSection.
- */
+/** Type definition for shared references to instances of ISettingsSection. */
 typedef TSharedRef<class ISettingsSection> ISettingsSectionRef;
 
 
@@ -189,8 +183,7 @@ public:
 	/**
 	 * Exports the settings in this section to the specified file.
 	 *
-	 * @param Filename - The path to the file.
-	 *
+	 * @param Filename The path to the file.
 	 * @return true if the settings were exported, false otherwise.
 	 */
 	virtual bool Export( const FString& Filename ) = 0;
@@ -254,8 +247,7 @@ public:
 	/**
 	 * Imports the settings in this section from the specified file.
 	 *
-	 * @param Filename - The path to the file.
-	 *
+	 * @param Filename The path to the file.
 	 * @return true if the settings were imported, false otherwise.
 	 */
 	virtual bool Import( const FString& Filename ) = 0;

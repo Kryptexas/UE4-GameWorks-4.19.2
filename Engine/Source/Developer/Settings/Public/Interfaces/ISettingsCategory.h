@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISettingsCategory.
- */
+/** Type definition for shared pointers to instances of ISettingsCategory. */
 typedef TSharedPtr<class ISettingsCategory> ISettingsCategoryPtr;
 
-/**
- * Type definition for shared references to instances of ISettingsCategory.
- */
+/** Type definition for shared references to instances of ISettingsCategory. */
 typedef TSharedRef<class ISettingsCategory> ISettingsCategoryRef;
 
 
@@ -46,8 +42,7 @@ public:
 	/**
 	 * Gets the settings section with the specified name.
 	 *
-	 * @param SectionName - The name of the section to get.
-	 *
+	 * @param SectionName The name of the section to get.
 	 * @return The settings section, or nullptr if it doesn't exist.
 	 */
 	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const = 0;
@@ -55,8 +50,7 @@ public:
 	/**
 	 * Gets the setting sections contained in this category.
 	 *
-	 * @param OutSections - Will hold the collection of sections.
-	 *
+	 * @param OutSections Will hold the collection of sections.
 	 * @return The number of sections returned.
 	 */
 	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const = 0;
