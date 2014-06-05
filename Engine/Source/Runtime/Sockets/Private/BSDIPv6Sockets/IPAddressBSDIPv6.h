@@ -244,6 +244,12 @@ public:
 		FString Result("[");
 		Result += IPStr;
 		Result += "]";
+		
+		if (bAppendPort)
+		{
+			Result += ":";
+			Result += FString::Printf(TEXT("%d"), GetPort());
+		}
 
 		return Result;
 	}

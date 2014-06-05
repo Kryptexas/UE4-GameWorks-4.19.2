@@ -54,7 +54,7 @@ public:
 	 */
 	virtual ~FSocketBSDIPv6()
 	{
-		Close();
+		FSocketBSDIPv6::Close();
 	}
 
 
