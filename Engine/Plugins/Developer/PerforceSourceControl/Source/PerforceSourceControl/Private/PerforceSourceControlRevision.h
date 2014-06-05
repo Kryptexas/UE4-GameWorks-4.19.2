@@ -11,6 +11,7 @@ public:
 		: RevisionNumber(0)
 		, ChangelistNumber(0)
 		, FileSize(0)
+		, Date(0)
 	{
 	}
 
@@ -24,6 +25,7 @@ public:
 	virtual const FString& GetUserName() const OVERRIDE;
 	virtual const FString& GetClientSpec() const OVERRIDE;
 	virtual const FString& GetAction() const OVERRIDE;
+	virtual TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> GetBranchSource() const OVERRIDE;
 	virtual const FDateTime& GetDate() const OVERRIDE;
 	virtual int32 GetCheckInIdentifier() const OVERRIDE;
 	virtual int32 GetFileSize() const OVERRIDE;
@@ -41,11 +43,14 @@ public:
 	/** THe user that made the change for this revision */
 	FString UserName;
 
-	/** THe workspace the change was made form */
+	/** The workspace the change was made from */
 	FString ClientSpec;
 
 	/** The action (edit, add etc.) that was performed for at this revision */
 	FString Action;
+
+	/** Source of branch, if any */
+	TSharedPtr<FPerforceSourceControlRevision, ESPMode::ThreadSafe> BranchSource;
 
 	/** The date of this revision */
 	FDateTime Date;

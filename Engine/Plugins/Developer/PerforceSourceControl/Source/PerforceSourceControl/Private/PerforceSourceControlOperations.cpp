@@ -125,6 +125,10 @@ static void ParseRecordSetForState(const FP4RecordSet& InRecords, TMap<FString, 
 					OutResults.Add(FullPath, EPerforceState::ReadOnly);
 				}
 			}
+			else if(Action == TEXT("branch"))
+			{
+				OutResults.Add(FullPath, EPerforceState::Branched);
+			}
 		}
 	}
 }
@@ -210,7 +214,7 @@ bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 			InCommand.bCommandSuccessful = CheckWorkspaceRecordSet(Records, InCommand.ErrorMessages, Notification);
 			if(!InCommand.bCommandSuccessful)
 			{
-				check(InCommand.Operation->GetName() == "Connect");
+				check(InCommand.Operation->GetName() == GetName());
 				TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
 				Operation->SetErrorText(Notification);
 			}
@@ -226,7 +230,7 @@ bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 
 bool FPerforceConnectWorker::UpdateStates() const
 {
-	return false;
+	return true;
 }
 
 FName FPerforceCheckOutWorker::GetName() const
@@ -283,7 +287,7 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 	{	
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 
-		check(InCommand.Operation->GetName() == "CheckIn");
+		check(InCommand.Operation->GetName() == GetName());
 		TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
 
 		int32 ChangeList = Connection.CreatePendingChangelist(Operation->GetDescription(), FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.ErrorMessages);
@@ -328,7 +332,6 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 
 				if (InCommand.bCommandSuccessful)
 				{
-					check(InCommand.Operation->GetName() == "CheckIn");
 					StaticCastSharedRef<FCheckIn>(InCommand.Operation)->SetSuccessMessage(ParseSubmitResults(Records));
 
 					for(auto Iter(InCommand.Files.CreateIterator()); Iter; Iter++)
@@ -560,7 +563,14 @@ static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray
 		}
 		else if (OpenType.Len() > 0)
 		{
-			State.State = EPerforceState::CheckedOut;
+			if(Action.Len() > 0 && Action == TEXT("branch")) 
+			{
+				State.State = EPerforceState::Branched;
+			}
+			else
+			{
+				State.State = EPerforceState::CheckedOut;
+			}
 		}
 		else if (OtherOpen.Len() > 0)
 		{
@@ -771,6 +781,22 @@ static void ParseHistoryResults(const FP4RecordSet& InRecords, const TArray<FPer
 				check(ClientRecord.Contains(*VarName));
 				FString ClientSpec = ClientRecord(*VarName);
 
+				// check for branch
+				TSharedPtr<FPerforceSourceControlRevision, ESPMode::ThreadSafe> BranchSource;
+				VarName = FString::Printf(TEXT("how%d,0"), RevisionNumbers);
+				if(ClientRecord.Contains(*VarName))
+				{
+					BranchSource = MakeShareable( new FPerforceSourceControlRevision() );
+
+					VarName = FString::Printf(TEXT("file%d,0"), RevisionNumbers);
+					FString BranchSourceFileName = ClientRecord(*VarName);
+					BranchSource->FileName = FindWorkspaceFile(InStates, BranchSourceFileName);
+
+					VarName = FString::Printf(TEXT("erev%d,0"), RevisionNumbers);
+					FString BranchSourceRevision = ClientRecord(*VarName);
+					BranchSource->RevisionNumber = FCString::Atoi(*BranchSourceRevision);
+				}
+
 				TSharedRef<FPerforceSourceControlRevision, ESPMode::ThreadSafe> Revision = MakeShareable( new FPerforceSourceControlRevision() );
 				Revision->FileName = LocalFileName;
 				Revision->RevisionNumber = FCString::Atoi(*RevisionNumber);
@@ -779,6 +805,7 @@ static void ParseHistoryResults(const FP4RecordSet& InRecords, const TArray<FPer
 				Revision->UserName = UserName;
 				Revision->ClientSpec = ClientSpec;
 				Revision->Action = Action;
+				Revision->BranchSource = BranchSource;
 				Revision->Date = FDateTime(1970, 1, 1, 0, 0, 0, 0) + FTimespan(0, 0, FCString::Atoi(*Date));
 				Revision->FileSize = FCString::Atoi(*FileSize);
 
@@ -837,7 +864,7 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 		}
 
 		// update using any special hints passed in via the operation
-		check(InCommand.Operation->GetName() == "UpdateStatus");
+		check(InCommand.Operation->GetName() == GetName());
 		TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FUpdateStatus>(InCommand.Operation);
 
 		if(Operation->ShouldUpdateHistory())
@@ -914,7 +941,8 @@ bool FPerforceUpdateStatusWorker::UpdateStates() const
 	for(FHistoryMap::TConstIterator It(OutHistory); It; ++It)
 	{
 		TSharedRef<FPerforceSourceControlState, ESPMode::ThreadSafe> State = PerforceSourceControl.GetProvider().GetStateInternal(It.Key());
-		State->History = It.Value();
+		const TArray< TSharedRef<FPerforceSourceControlRevision, ESPMode::ThreadSafe> >& History = It.Value();
+		State->History = History;
 		State->TimeStamp = FDateTime::Now();
 		bUpdated = true;
 	}
@@ -946,7 +974,7 @@ bool FPerforceGetWorkspacesWorker::Execute(FPerforceSourceControlCommand& InComm
 		TArray<FString> ClientSpecList;
 		InCommand.bCommandSuccessful = Connection.GetWorkspaceList(InCommand.ConnectionInfo, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), ClientSpecList, InCommand.ErrorMessages);
 
-		check(InCommand.Operation->GetName() == "GetWorkspaces");
+		check(InCommand.Operation->GetName() == GetName());
 		TSharedRef<FGetWorkspaces, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FGetWorkspaces>(InCommand.Operation);
 		Operation->Results = ClientSpecList;
 	}
@@ -956,6 +984,49 @@ bool FPerforceGetWorkspacesWorker::Execute(FPerforceSourceControlCommand& InComm
 bool FPerforceGetWorkspacesWorker::UpdateStates() const
 {
 	return false;
+}
+
+
+FName FPerforceCopyWorker::GetName() const
+{
+	return "Copy";
+}
+
+bool FPerforceCopyWorker::Execute(class FPerforceSourceControlCommand& InCommand)
+{
+	FScopedPerforceConnection ScopedConnection(InCommand);
+	if(ScopedConnection.IsValid())
+	{
+		FPerforceConnection& Connection = ScopedConnection.GetConnection();
+
+		check(InCommand.Operation->GetName() == GetName());
+		TSharedRef<FCopy, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCopy>(InCommand.Operation);
+
+		FString DestinationPath = FPaths::ConvertRelativePathToFull(Operation->GetDestination());
+
+		TArray<FString> Parameters;
+		Parameters.Append(InCommand.Files);
+		Parameters.Add(DestinationPath);
+		
+		FP4RecordSet Records;
+		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("integrate"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
+
+		// we now need to do a p4 edit as the editor will be assuming the file is writable, and p4 integrate does not do this
+		if(InCommand.bCommandSuccessful)
+		{
+			TArray<FString> EditParameters;
+			EditParameters.Add(DestinationPath);
+
+			InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("edit"), EditParameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
+			ParseRecordSetForState(Records, OutResults);
+		}
+	}
+	return InCommand.bCommandSuccessful;
+}
+
+bool FPerforceCopyWorker::UpdateStates() const
+{
+	return UpdateCachedStates(OutResults);
 }
 
 #undef LOCTEXT_NAMESPACE

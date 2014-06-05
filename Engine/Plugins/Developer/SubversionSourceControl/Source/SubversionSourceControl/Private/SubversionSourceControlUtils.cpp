@@ -287,6 +287,8 @@ static FString GetRepoName(const FString& InFilename, const FString& UserName)
 	TArray<FString> Files;
 	Files.Add(InFilename);
 
+	QuoteFilenames(Files);
+
 	if(RunCommand(TEXT("info"), Files, TArray<FString>(), ResultsXml, ErrorMessages, UserName))
 	{
 		static const FString Info(TEXT("info"));
@@ -355,6 +357,8 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 	static const FString Kind(TEXT("kind"));
 	static const FString File(TEXT("file"));
 	static const FString Action(TEXT("action"));
+	static const FString CopyFrom_Path(TEXT("copyfrom-path"));
+	static const FString CopyFrom_Rev(TEXT("copyfrom-rev"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -415,10 +419,22 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 						if(PathNode->GetAttribute(Kind) == File)
 						{
 							// check if this path matches our file
-							FString RelativeFilename = PathNode->GetContent();
-							if(RelativeFilename == RepoName)
+							SourceControlRevision->RepoFilename = PathNode->GetContent();
+							if(SourceControlRevision->RepoFilename == RepoName)
 							{
 								SourceControlRevision->Action = TranslateAction(PathNode->GetAttribute(Action));
+
+								const FString CopyFromPath = PathNode->GetAttribute(CopyFrom_Path);
+								const FString CopyFromRev = PathNode->GetAttribute(CopyFrom_Rev);
+								if(CopyFromPath.Len() > 0 && CopyFromRev.Len() > 0)
+								{
+									TSharedRef<FSubversionSourceControlRevision, ESPMode::ThreadSafe> CopyFromRevision = MakeShareable(new FSubversionSourceControlRevision);
+									CopyFromRevision->Filename = CopyFromPath;
+									CopyFromRevision->RevisionNumber = FCString::Atoi(*CopyFromRev);
+
+									SourceControlRevision->BranchSource = CopyFromRevision;
+								}
+
 								break;
 							}
 						}
@@ -434,12 +450,14 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 	}
 }
 
-void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
+void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutWorkingCopyRoot, FString& OutRepoRoot)
 {
 	static const FString Info(TEXT("info"));
 	static const FString Entry(TEXT("entry"));
 	static const FString Wc_Info(TEXT("wc-info"));
 	static const FString WcRoot_AbsPath(TEXT("wcroot-abspath"));
+	static const FString Repository(TEXT("repository"));
+	static const FString Root(TEXT("root"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -455,6 +473,20 @@ void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
 			continue;
 		}
 
+		const FXmlNode* RepositoryNode = EntryNode->FindChildNode(Repository);
+		if(RepositoryNode == NULL)
+		{
+			continue;
+		}
+
+		const FXmlNode* RootNode = RepositoryNode->FindChildNode(Root);
+		if(RootNode == NULL)
+		{
+			continue;
+		}
+
+		OutRepoRoot = RootNode->GetContent();
+
 		const FXmlNode* WcInfoNode = EntryNode->FindChildNode(Wc_Info);
 		if(WcInfoNode == NULL)
 		{
@@ -469,7 +501,7 @@ void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
 
 		FString WcRootAbsPath = WcRootAbsPathNode->GetContent();
 		FPaths::NormalizeDirectoryName(WcRootAbsPath);
-		OutRepoRoot = WcRootAbsPath;
+		OutWorkingCopyRoot = WcRootAbsPath;
 		break;
 	}
 }
@@ -486,6 +518,7 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 	static const FString Owner(TEXT("owner"));
 	static const FString Repos_Status(TEXT("repos-status"));
 	static const FString None(TEXT("none"));
+	static const FString Copied(TEXT("copied"));
 
 	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
 	{
@@ -530,6 +563,14 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 						if(PathAttrib.StartsWith(InWorkingCopyRoot))
 						{
 							State.WorkingCopyState = GetWorkingCopyState(WcStatusNode->GetAttribute(Item));
+							if(State.WorkingCopyState == EWorkingCopyState::Added)
+							{
+								const FString CopiedAttrib = WcStatusNode->GetAttribute(Copied);
+								if(CopiedAttrib == TEXT("true"))
+								{
+									State.bCopied = true;
+								}
+							}
 						}
 						else
 						{
@@ -619,6 +660,7 @@ bool UpdateCachedStates(const TArray<FSubversionSourceControlState>& InStates)
 		State->LockState = InState.LockState;
 		State->LockUser = InState.LockUser;
 		State->TimeStamp = FDateTime::Now();
+		State->bCopied = InState.bCopied;
 	}
 
 	return InStates.Num() > 0;

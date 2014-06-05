@@ -23,6 +23,9 @@ public:
 	/** File action for this revision (branch, delete, edit, etc.) */
 	FString Action;
 
+	/** Source path of branch, if any */
+	FString BranchSource;
+
 	/** Date of this revision */
 	FDateTime Date;
 
@@ -46,6 +49,7 @@ public:
 		UserName = InRevision->GetUserName();
 		ClientSpec = InRevision->GetClientSpec();
 		Action = InRevision->GetAction();
+		BranchSource = InRevision->GetBranchSource().IsValid() ? InRevision->GetBranchSource()->GetFilename() : TEXT("");
 		Date = InRevision->GetDate();
 		RevisionNumber = InRevision->GetRevisionNumber();
 		ChangelistNumber = InRevision->GetCheckInIdentifier();
@@ -69,11 +73,11 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param	InState		Source control state info to populate this managed mirror with
+	 * @param	InFileName		File name of the list item
 	 */
-	FHistoryFileListViewItem( const FSourceControlStateRef& InState )
+	FHistoryFileListViewItem( const FString& InFileName )
+		: FileName(InFileName)
 	{
-		FileName = InState->GetFilename();
 	}
 };
 
@@ -438,6 +442,9 @@ public:
 
 		SLATE_ARGUMENT( TSharedPtr<FHistoryRevisionListViewItem>, RevisionListItem )
 
+		/** Whether we should display the expander for this item as it has children */
+		SLATE_ARGUMENT( bool, HasChildren )
+
 	SLATE_END_ARGS()	
 
 	/**
@@ -449,6 +456,8 @@ public:
 	{
 		RevisionListItem = InArgs._RevisionListItem;
 		check(RevisionListItem.IsValid());
+
+		bHasChildren = InArgs._HasChildren;
 
 		SMultiColumnTableRow< TSharedPtr<FHistoryTreeItem> >::Construct( 
 			FSuperRowType::FArguments()
@@ -499,6 +508,14 @@ public:
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.HAlign(HAlign_Right) 
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SExpanderArrow, SharedThis(this) )
+					.Visibility(this, &SHistoryRevisionListRowContent::GetExpanderVisibility)
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
 				.Padding(10,0,10,0)
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
@@ -523,7 +540,7 @@ public:
 		{
 			return
 				SNew(STextBlock)
-				.Text( FText::AsDateTime( RevisionListItem->Date ) );
+				.Text( RevisionListItem->Date.Ticks == 0 ? FText() : FText::AsDateTime( RevisionListItem->Date ) );
 		}
 		else if (ColumnName == TEXT("UserName"))
 		{
@@ -553,8 +570,16 @@ public:
 		}
 	}
 	
+	EVisibility GetExpanderVisibility() const
+	{
+		return bHasChildren ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 private:
 	TSharedPtr<FHistoryRevisionListViewItem> RevisionListItem;
+
+	/** Whether we should display the expander for this item as it has children */
+	bool bHasChildren;
 };
 
 /** Panel designed to display the revision history of a package */
@@ -754,7 +779,14 @@ private:
 					[
 						SNew(STextBlock)
 						.Text(NSLOCTEXT("SourceControl.HistoryPanel.Info", "FileSize", "File Size:").ToString())
-					]			
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(0.25f)
+					.Padding(Padding)
+					[
+						SNew(STextBlock)
+						.Text(NSLOCTEXT("SourceControl.HistoryPanel.Info", "BranchedFrom", "Branched From:").ToString())
+					]
 				]
 				+SHorizontalBox::Slot()
 				.FillWidth(0.25f)
@@ -789,6 +821,13 @@ private:
 					[
 						SNew(STextBlock)
 						.Text(this, &SSourceControlHistoryWidget::GetFileSize)	
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(0.25f)
+					.Padding(Padding)
+					[
+						SNew(STextBlock)
+						.Text(this, &SSourceControlHistoryWidget::GetBranchedFrom)	
 					]
 				]
 			]
@@ -831,9 +870,9 @@ private:
 	/** Get the last selected revision's date */
 	FString GetDate() const
 	{
-		if(LastSelectedRevisionItem.IsValid())
+		if(LastSelectedRevisionItem.IsValid() && LastSelectedRevisionItem.Pin()->Date != 0)
 		{
-			return LastSelectedRevisionItem.Pin()->Date.ToString(TEXT("%m/%d/%Y %h:%M:%S %A"));
+			return FText::AsDateTime( LastSelectedRevisionItem.Pin()->Date ).ToString();
 		}
 		return FString("");
 	}
@@ -898,6 +937,16 @@ private:
 		return FString("");
 	}
 
+	/** Get the last selected revision's description */
+	FString GetBranchedFrom() const
+	{
+		if(LastSelectedRevisionItem.IsValid())
+		{
+			return LastSelectedRevisionItem.Pin()->BranchSource;
+		}
+		return FString("");
+	}
+
 	/**
 	 * Generates the content of each row, displaying a the File or Revision data for its corresponding type
 	 */
@@ -936,7 +985,8 @@ private:
 				.OnDragDetected(this, &SSourceControlHistoryWidget::OnRowDragDetected)
 				.OnDragEnter(this, &SSourceControlHistoryWidget::OnRowDragEnter, TreeItemPtr)
 				.OnDragLeave(this, &SSourceControlHistoryWidget::OnRowDragLeave)
-				.OnDrop(this, &SSourceControlHistoryWidget::OnRowDrop, TreeItemPtr);
+				.OnDrop(this, &SSourceControlHistoryWidget::OnRowDrop, TreeItemPtr)
+				.HasChildren(TreeItemPtr->Children.Num() > 0);
 		}
 		
 		//we should never get here...
@@ -958,7 +1008,7 @@ private:
 		{
 			FSourceControlStateRef SourceControlState = *Iter;
 			TSharedPtr<FHistoryTreeItem> FileItem = MakeShareable(new FHistoryTreeItem());
-			FileItem->FileListItem = MakeShareable(new FHistoryFileListViewItem( SourceControlState ));
+			FileItem->FileListItem = MakeShareable(new FHistoryFileListViewItem( SourceControlState->GetFilename() ));
 
 			// Add each file revision
 			for ( int HistoryIndex = 0; HistoryIndex < SourceControlState->GetHistorySize(); HistoryIndex++ )
@@ -969,6 +1019,17 @@ private:
 				RevisionItem->RevisionListItem = MakeShareable(new FHistoryRevisionListViewItem( Revision.ToSharedRef() ));
 				FileItem->Children.Add(RevisionItem);
 				RevisionItem->Parent = FileItem;
+
+				// add branch items if we have one
+				if(Revision->GetBranchSource().IsValid())
+				{
+					TSharedPtr<FHistoryTreeItem> BranchFileItem = MakeShareable(new FHistoryTreeItem());
+
+					const FString BranchRevisionName = FString::Printf(TEXT("%s #%d"), *Revision->GetBranchSource()->GetFilename(), Revision->GetBranchSource()->GetRevisionNumber());
+					BranchFileItem->FileListItem = MakeShareable(new FHistoryFileListViewItem( BranchRevisionName ));
+					RevisionItem->Children.Add(BranchFileItem);
+					BranchFileItem->Parent = RevisionItem;
+				}
 			}
 
 			HistoryCollection.Add(FileItem);

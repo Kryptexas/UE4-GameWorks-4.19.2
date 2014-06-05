@@ -52,6 +52,8 @@ FName FPerforceSourceControlState::GetIconName() const
 		return FName("Perforce.OpenForAdd");
 	case EPerforceState::MarkedForDelete:
 		return NAME_None;
+	case EPerforceState::Branched:
+		return FName("Perforce.Branched");
 	}
 }
 
@@ -78,6 +80,8 @@ FName FPerforceSourceControlState::GetSmallIconName() const
 		return FName("Perforce.OpenForAdd_Small");
 	case EPerforceState::MarkedForDelete:
 		return NAME_None;
+	case EPerforceState::Branched:
+		return FName("Perforce.Branched_Small");
 	}
 }
 
@@ -104,6 +108,8 @@ FText FPerforceSourceControlState::GetDisplayName() const
 		return LOCTEXT("OpenedForAdd", "Opened for add");
 	case EPerforceState::MarkedForDelete:
 		return LOCTEXT("MarkedForDelete", "Marked for delete");
+	case EPerforceState::Branched:
+		return LOCTEXT("Branched", "Branched");
 	}
 }
 
@@ -130,6 +136,8 @@ FText FPerforceSourceControlState::GetDisplayTooltip() const
 		return LOCTEXT("OpenedForAdd_Tooltip", "The file(s) are opened for add");
 	case EPerforceState::MarkedForDelete:
 		return LOCTEXT("MarkedForDelete_Tooltip", "The file(s) are marked for delete");
+	case EPerforceState::Branched:
+		return LOCTEXT("Branched_Tooltip", "The file(s) are opened for branching");
 	}
 }
 
@@ -145,7 +153,7 @@ const FDateTime& FPerforceSourceControlState::GetTimeStamp() const
 
 bool FPerforceSourceControlState::CanCheckIn() const
 {
-	return (State == EPerforceState::CheckedOut) || (State == EPerforceState::OpenForAdd);
+	return (State == EPerforceState::CheckedOut) || (State == EPerforceState::OpenForAdd) || (State == EPerforceState::Branched);
 }
 
 bool FPerforceSourceControlState::CanCheckout() const
@@ -207,7 +215,7 @@ bool FPerforceSourceControlState::IsIgnored() const
 
 bool FPerforceSourceControlState::CanEdit() const
 {
-	return State == EPerforceState::CheckedOut || State == EPerforceState::OpenForAdd;
+	return State == EPerforceState::CheckedOut || State == EPerforceState::OpenForAdd || State == EPerforceState::Branched;
 }
 
 bool FPerforceSourceControlState::IsUnknown() const

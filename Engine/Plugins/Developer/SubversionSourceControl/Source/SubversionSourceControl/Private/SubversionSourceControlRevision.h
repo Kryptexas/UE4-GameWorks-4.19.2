@@ -9,6 +9,7 @@ class FSubversionSourceControlRevision : public ISourceControlRevision, public T
 public:
 	FSubversionSourceControlRevision()
 		: RevisionNumber(0)
+		, Date(0)
 	{
 	}
 
@@ -22,6 +23,7 @@ public:
 	virtual const FString& GetUserName() const OVERRIDE;
 	virtual const FString& GetClientSpec() const OVERRIDE;
 	virtual const FString& GetAction() const OVERRIDE;
+	virtual TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> GetBranchSource() const OVERRIDE;
 	virtual const FDateTime& GetDate() const OVERRIDE;
 	virtual int32 GetCheckInIdentifier() const OVERRIDE;
 	virtual int32 GetFileSize() const OVERRIDE;
@@ -43,6 +45,12 @@ public:
 	/** The action (add, edit etc.) performed at this revision */
 	FString Action;
 
+	/** Source of branch, if any */
+	TSharedPtr<FSubversionSourceControlRevision, ESPMode::ThreadSafe> BranchSource;
+
 	/** The date this revision was made */
 	FDateTime Date;
+
+	/** The repo URL */
+	FString RepoFilename;
 };

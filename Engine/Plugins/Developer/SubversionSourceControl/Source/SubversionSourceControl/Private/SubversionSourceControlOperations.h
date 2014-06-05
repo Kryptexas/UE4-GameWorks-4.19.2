@@ -16,6 +16,9 @@ public:
 private:
 	/** The root of our working copy */
 	FString WorkingCopyRoot;
+
+	/** The root of our repository */
+	FString RepositoryRoot;
 };
 
 class FSubversionCheckOutWorker : public ISubversionSourceControlWorker
@@ -110,4 +113,17 @@ public:
 
 	/** Map of filenames to history */
 	SubversionSourceControlUtils::FHistoryOutput OutHistory;
+};
+
+class FSubversionCopyWorker : public ISubversionSourceControlWorker
+{
+public:
+	// ISubversionSourceControlWorker interface
+	virtual FName GetName() const OVERRIDE;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
+	virtual bool UpdateStates() const OVERRIDE;
+
+public:
+	/** Map of filenames to Subversion state */
+	TArray<FSubversionSourceControlState> OutStates;
 };

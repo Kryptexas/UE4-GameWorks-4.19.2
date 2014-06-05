@@ -47,6 +47,7 @@ public:
 		, WorkingCopyState(EWorkingCopyState::Unknown)
 		, LockState(ELockState::Unknown)
 		, TimeStamp(0)
+		, bCopied(false)
 	{
 	}
 
@@ -95,4 +96,7 @@ public:
 
 	/** The timestamp of the last update */
 	FDateTime TimeStamp;
+
+	/** Flagged as a copy/branch */
+	bool bCopied;
 };

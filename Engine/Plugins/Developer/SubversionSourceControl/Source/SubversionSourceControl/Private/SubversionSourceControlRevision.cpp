@@ -208,6 +208,11 @@ const FString& FSubversionSourceControlRevision::GetAction() const
 	return Action;
 }
 
+TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceControlRevision::GetBranchSource() const
+{
+	return BranchSource;
+}
+
 const FDateTime& FSubversionSourceControlRevision::GetDate() const
 {
 	return Date;

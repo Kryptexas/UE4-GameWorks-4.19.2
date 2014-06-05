@@ -37,6 +37,7 @@ public:
 	FString UserName;
 	FString Password;
 	FString WorkingCopyRoot;
+	FString RepositoryRoot;
 
 	/** Operation we want to perform - contains outward-facing parameters & results */
 	TSharedRef<class ISourceControlOperation, ESPMode::ThreadSafe> Operation;

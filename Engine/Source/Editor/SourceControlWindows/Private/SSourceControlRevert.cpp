@@ -378,7 +378,7 @@ bool FSourceControlWindows::PromptForRevert( const TArray<FString>& InPackageNam
 	for ( TArray<FString>::TConstIterator PackageIter( InPackageNames ); PackageIter; ++PackageIter )
 	{
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(*PackageIter), EStateCacheUsage::Use);
-		if( SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()) )
+		if( SourceControlState.IsValid() && SourceControlState->CanCheckIn() )
 		{
 			CheckedOutPackages.Add( *PackageIter );
 		}

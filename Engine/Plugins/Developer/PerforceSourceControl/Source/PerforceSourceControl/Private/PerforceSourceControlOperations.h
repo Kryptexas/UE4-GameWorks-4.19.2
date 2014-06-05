@@ -126,3 +126,16 @@ public:
 	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) OVERRIDE;
 	virtual bool UpdateStates() const OVERRIDE;
 };
+
+class FPerforceCopyWorker : public IPerforceSourceControlWorker
+{
+public:
+	// IPerforceSourceControlWorker interface
+	virtual FName GetName() const OVERRIDE;
+	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) OVERRIDE;
+	virtual bool UpdateStates() const OVERRIDE;
+
+public:
+	/** Map of filenames to perforce state */
+	TMap<FString, EPerforceState::Type> OutResults;
+};

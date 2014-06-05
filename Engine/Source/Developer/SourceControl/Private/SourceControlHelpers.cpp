@@ -336,6 +336,28 @@ bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSou
 	return CheckoutOrMarkForAdd(InDestFile, InFileDescription, FOnPostCheckOut::CreateStatic(&Local::CopyFile, InSourceFile), OutFailReason);
 }
 
+bool BranchFile( const FString& DestFilename, const FString& SourceFilename )
+{
+	if(ISourceControlModule::Get().IsEnabled())
+	{
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceFilename, EStateCacheUsage::ForceUpdate);
+		if(SourceControlState.IsValid() && SourceControlState->IsSourceControlled())
+		{
+			TSharedRef<FCopy, ESPMode::ThreadSafe> CopyOperation = ISourceControlOperation::Create<FCopy>();
+			CopyOperation->SetDestination(DestFilename);
+			
+			if(SourceControlProvider.Execute(CopyOperation, SourceFilename) != ECommandResult::Succeeded)
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 }
 
 FScopedSourceControl::FScopedSourceControl()

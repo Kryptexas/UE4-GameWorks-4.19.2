@@ -149,6 +149,9 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
 	SCCStateBrush = nullptr;
 
+	// refresh SCC state icon
+	HandleSourceControlStateChanged();
+
 	SourceControlStateDelay = 0.0f;
 	bSourceControlStateRequested = false;
 

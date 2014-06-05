@@ -1373,7 +1373,7 @@ void FAssetContextMenu::CacheCanExecuteVars()
 					bCanExecuteSCCSync = true;
 				}
 
-				if ( SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+				if ( SourceControlState->CanCheckIn() )
 				{
 					bCanExecuteSCCCheckIn = true;
 					bCanExecuteSCCRevert = true;

@@ -456,6 +456,9 @@ static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<F
 {
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
+	TArray<FSourceControlStateRef> States;
+	SourceControlProvider.GetState(SourceControlHelpers::PackageFilenames(InPackagesNames), States, EStateCacheUsage::ForceUpdate);
+
 	for( int32 PackageIndex = 0 ; PackageIndex < InPackagesNames.Num() ; ++PackageIndex )
 	{
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(InPackagesNames[PackageIndex]), EStateCacheUsage::Use);

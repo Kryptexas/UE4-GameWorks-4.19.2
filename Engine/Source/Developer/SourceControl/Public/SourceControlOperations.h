@@ -260,4 +260,36 @@ protected:
 	bool bUpdateModifiedState;
 };
 
+/**
+ * Operation used to copy a file or directory from one location to another
+ */
+class FCopy : public ISourceControlOperation
+{
+public:
+	// ISourceControlOperation interface
+	virtual FName GetName() const OVERRIDE
+	{
+		return "Copy";
+	}
+
+	virtual FText GetInProgressString() const OVERRIDE
+	{ 
+		return LOCTEXT("SourceControl_Copy", "Copying file(s) in Source Control..."); 
+	}	
+
+	void SetDestination(const FString& InDestination)
+	{
+		Destination = InDestination;
+	}
+
+	const FString& GetDestination() const
+	{
+		return Destination;
+	}
+
+protected:
+	/** Destination path of the copy operation */
+	FString Destination;
+};
+
 #undef LOCTEXT_NAMESPACE

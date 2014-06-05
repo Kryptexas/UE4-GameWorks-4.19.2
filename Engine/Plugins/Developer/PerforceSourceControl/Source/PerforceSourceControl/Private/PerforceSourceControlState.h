@@ -38,6 +38,9 @@ namespace EPerforceState
 
 		/** Not under client root */
 		NotUnderClientRoot	= 9,
+
+		/** Opened for branch */
+		Branched = 10,
 	};
 }
 

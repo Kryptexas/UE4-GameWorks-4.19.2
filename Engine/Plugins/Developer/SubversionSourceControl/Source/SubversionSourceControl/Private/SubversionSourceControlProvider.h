@@ -49,6 +49,12 @@ public:
 	/** Set the root of our working copy */
 	void SetWorkingCopyRoot(const FString& InWorkingCopyRoot);
 
+	/** Get the root of our repository */
+	const FString& GetRepositoryRoot() const;
+
+	/** Set the root of our repository */
+	void SetRepositoryRoot(const FString& InRepositoryRoot);
+
 	/** Helper function used to update state cache */
 	TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> GetStateInternal(const FString& Filename);
 
@@ -106,6 +112,9 @@ private:
 
 	/** Cached working copy root */
 	FString WorkingCopyRoot;
+
+	/** Cached repository root */
+	FString RepositoryRoot;
 
 	/** Flag for working offline - i.e. we haven't been able to connect to a server yet */
 	bool bWorkingOffline;

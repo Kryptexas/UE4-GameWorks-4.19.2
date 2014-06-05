@@ -251,6 +251,16 @@ void FSubversionSourceControlProvider::SetWorkingCopyRoot(const FString& InWorki
 	WorkingCopyRoot = InWorkingCopyRoot;
 }
 
+const FString& FSubversionSourceControlProvider::GetRepositoryRoot() const
+{
+	return RepositoryRoot;
+}
+
+void FSubversionSourceControlProvider::SetRepositoryRoot(const FString& InRepositoryRoot)
+{
+	RepositoryRoot = InRepositoryRoot;
+}
+
 bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryName, const FString& UserName, const FString& Password)
 {
 	FMessageLog SourceControlLog("SourceControl");
@@ -265,7 +275,7 @@ bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryN
 	bool bResult = SubversionSourceControlUtils::RunCommand(TEXT("info"), Files, TArray<FString>(), ResultsXml, Errors, UserName, Password);
 	if(bResult)
 	{
-		SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot);
+		SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot, RepositoryRoot);
 	}
 
 	// output any errors/results

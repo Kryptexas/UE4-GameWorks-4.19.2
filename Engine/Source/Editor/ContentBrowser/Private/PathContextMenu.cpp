@@ -749,7 +749,7 @@ void FPathContextMenu::CacheCanExecuteVars()
 				{
 					bCanExecuteSCCOpenForAdd = true;
 				}
-				else if ( SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+				else if ( SourceControlState->CanCheckIn() )
 				{
 					bCanExecuteSCCCheckIn = true;
 				}
