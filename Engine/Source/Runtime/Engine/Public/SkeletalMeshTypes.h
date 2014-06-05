@@ -113,31 +113,19 @@ struct FMeshBoneInfo
 {
 	// Bone's name.
 	FName Name;			
-
-#if WITH_EDITORONLY_DATA
-	// Name used for export (this should be exact as FName may mess with case) 
-	FString ExportName;
-#endif
-
-	// 0/NULL if this is the root bone. 
+	// 0/NULL if this is the root bone.  
 	int32 ParentIndex;	
 
 	FMeshBoneInfo() : Name(NAME_None), ParentIndex(INDEX_NONE) {}
 
-	FMeshBoneInfo(const FName & InName, const FString& InExportName, int32 InParentIndex)
+	FMeshBoneInfo(const FName & InName, int32 InParentIndex)
 	:	Name(InName)
 	,	ParentIndex(InParentIndex)
-#if WITH_EDITORONLY_DATA
-	, ExportName(InExportName)
-#endif
 	{}
 
 	FMeshBoneInfo(const FMeshBoneInfo & Other)
 		:	Name(Other.Name)
 		,	ParentIndex(Other.ParentIndex)
-#if WITH_EDITORONLY_DATA
-		, ExportName(Other.ExportName)
-#endif
 	{}
 
 	bool operator==( const FMeshBoneInfo& B ) const

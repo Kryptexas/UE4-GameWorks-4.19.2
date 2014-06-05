@@ -672,20 +672,6 @@ FArchive &operator<<( FArchive& Ar, FMeshBoneInfo& F)
 		Ar << DummyColor;
 	}
 
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() >= VER_UE4_STORE_BONE_EXPORT_NAMES)
-	{
-		if(!Ar.IsCooking())
-		{
-			Ar << F.ExportName;
-		}
-	}
-	else
-	{
-		F.ExportName = F.Name.ToString();
-	}
-#endif
-
 	return Ar;
 }
 
