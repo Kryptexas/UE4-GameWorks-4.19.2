@@ -65,6 +65,8 @@ public class UnrealSyncTarget : TargetRules
 			return true;
 		}
 
+		bInternalToolOnly = false;
+		SeparateNode = false;
 		return false;
 	}
 }
