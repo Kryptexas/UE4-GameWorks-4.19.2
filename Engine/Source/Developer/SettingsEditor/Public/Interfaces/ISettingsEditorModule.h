@@ -19,9 +19,7 @@ public:
 	 * Creates a settings editor widget.
 	 *
 	 * @param Model The view model.
-	 *
 	 * @return The new widget.
-	 *
 	 * @see CreateController
 	 */
 	virtual TSharedRef<SWidget> CreateEditor( const ISettingsEditorModelRef& Model ) = 0;
@@ -30,9 +28,7 @@ public:
 	 * Creates a view model for the settings editor widget.
 	 *
 	 * @param SettingsContainer The settings container.
-	 *
 	 * @return The controller.
-	 *
 	 * @see CreateEditor
 	 */
 	virtual ISettingsEditorModelRef CreateModel( const ISettingsContainerRef& SettingsContainer ) = 0;

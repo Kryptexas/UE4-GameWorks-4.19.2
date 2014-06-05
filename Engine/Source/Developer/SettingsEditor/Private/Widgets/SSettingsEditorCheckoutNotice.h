@@ -4,6 +4,9 @@
 	SSettingsEditorCheckoutNotice.h: Declares the SSettingsEditorCheckoutNotice class.
 =============================================================================*/
 
+#pragma once
+
+
 /**
  * Implements a widget that provides a notice for files that need to be checked out.
  */

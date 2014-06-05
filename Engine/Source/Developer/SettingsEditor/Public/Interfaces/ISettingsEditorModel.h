@@ -7,19 +7,20 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISettingsEditorModel.
- */
+/** Type definition for shared pointers to instances of ISettingsEditorModel. */
 typedef TSharedPtr<class ISettingsEditorModel> ISettingsEditorModelPtr;
 
-/**
- * Type definition for shared references to instances of ISettingsEditorModel.
- */
+/** Type definition for shared references to instances of ISettingsEditorModel. */
 typedef TSharedRef<class ISettingsEditorModel> ISettingsEditorModelRef;
 
 
 /**
  * Interface for settings editor view models.
+ *
+ * The settings editor view model stores the view state for the Settings Editor UI.
+ * Instances of this interface can be passed to Settings Editors in order to provide
+ * access to the settings container being added and to perform various user actions,
+ * such as setting the currently selected settings section.
  */
 class ISettingsEditorModel
 {
