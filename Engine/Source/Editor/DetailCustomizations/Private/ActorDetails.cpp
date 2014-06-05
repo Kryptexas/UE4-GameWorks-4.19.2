@@ -249,7 +249,7 @@ void FActorDetails::CreateClassPickerConvertActorFilter(const TWeakObjectPtr<AAc
 	// Never convert to the same class
 	Filter->DisallowedClasses.Add(ConvertClass);
 
-	if( ConvertActor->IsA<AVolume>() )
+	if( ConvertActor->IsA<ABrush>() )
 	{
 		// Volumes cannot be converted to brushes or brush shapes or the abstract type
 		Filter->DisallowedClasses.Add(ABrush::StaticClass());

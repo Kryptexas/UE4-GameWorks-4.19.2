@@ -143,7 +143,7 @@ struct FSelectedActorInfo
 	 */
 	bool HasConvertableAsset() const
 	{
-		return NumSelected && !bHaveBuilderBrush && (!bHaveBrush || bHaveVolume);
+		return NumSelected && !bHaveBuilderBrush;
 	}
 
 };
