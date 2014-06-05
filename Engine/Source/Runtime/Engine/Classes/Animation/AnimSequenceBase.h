@@ -111,6 +111,11 @@ struct FAnimNotifyEvent
 	{
 		return Notify != NULL || NotifyStateClass != NULL;
 	}
+
+	bool operator ==(const FAnimNotifyEvent& Other)
+	{
+		return((Notify && Notify == Other.Notify) || (NotifyStateClass && NotifyStateClass == Other.NotifyStateClass));
+	}
 };
 
 /**

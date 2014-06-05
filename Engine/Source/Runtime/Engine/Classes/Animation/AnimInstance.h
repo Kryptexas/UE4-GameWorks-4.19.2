@@ -472,8 +472,10 @@ public:
 	/** Animation Notifies that has been triggered in the latest tick **/
 	TArray<const struct FAnimNotifyEvent *> AnimNotifies;
 
-	/** Currently Active AnimNotifyState */
-	TArray<const struct FAnimNotifyEvent *> ActiveAnimNotifyState;
+	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
+		call NotifyEnd on the event after a deletion in the editor. After this the event
+		is removed correctly. */
+	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
 	/** AnimMontage instances that are running currently 
 	 * - only one is primarily active, but the other ones are blending out 
