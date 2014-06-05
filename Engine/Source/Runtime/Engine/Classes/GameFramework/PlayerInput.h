@@ -313,8 +313,7 @@ public:
 
 protected:
 	/** Internal structure for storing axis config data. */
-	static TMap<FKey,FInputAxisProperties> AxisProperties;
-
+	TMap<FKey,FInputAxisProperties> AxisProperties;
 	TMap<FName,FActionKeyDetails> ActionKeyMap;
 	TMap<FName,FAxisKeyDetails> AxisKeyMap;
 

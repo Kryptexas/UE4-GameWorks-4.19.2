@@ -21,8 +21,6 @@ const TArray<FInputActionKeyMapping> UPlayerInput::NoKeyMappings;
 TArray<FInputActionKeyMapping> UPlayerInput::EngineDefinedActionMappings;
 TArray<FInputAxisKeyMapping> UPlayerInput::EngineDefinedAxisMappings;
 
-TMap<FKey,FInputAxisProperties> UPlayerInput::AxisProperties;
-
 UPlayerInput::UPlayerInput(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
