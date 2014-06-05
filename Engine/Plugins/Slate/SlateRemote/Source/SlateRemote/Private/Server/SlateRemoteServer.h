@@ -33,7 +33,6 @@ public:
 	 * Starts the server.
 	 *
 	 * @param ServerEndpoint The network endpoint to listen on.
-	 *
 	 * @return true if the server was started, false otherwise.
 	 */
 	bool StartServer( const FIPv4Endpoint& ServerEndpoint );
