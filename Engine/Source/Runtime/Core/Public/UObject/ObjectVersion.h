@@ -552,6 +552,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FTEXT_HISTORY,
 	// Shift comments to the left to contain expressions properly
 	VER_UE4_FIX_MATERIAL_COMMENTS,
+	// Bone names stored as FName mean that we cant guarrentee the correct case on export, now we store a separate string for export purposes only
+	VER_UE4_STORE_BONE_EXPORT_NAMES,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
