@@ -89,7 +89,6 @@ namespace UnrealBuildTool
 			Result += " -Wno-switch-enum";
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 			Result += " -Wno-null-arithmetic";			// needed for external headers we can't change
-			Result += " -Wno-deprecated-declarations";	// needed for wxWidgets
 			Result += " -Wno-return-type-c-linkage";	// needed for PhysX
 			Result += " -Wno-ignored-attributes";		// needed for nvtesslib
 			Result += " -Wno-uninitialized";
