@@ -3030,7 +3030,7 @@ namespace SceneOutliner
 							auto* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get();
 							if (Actor)
 							{
-								GEditor->SelectActor(Actor, true, true);
+								GEditor->SelectActor(Actor, true, false);
 							}
 						}
 					}
