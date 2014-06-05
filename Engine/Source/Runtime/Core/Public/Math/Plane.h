@@ -1,10 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	Plane.h: Declares the FPlane class.
+=============================================================================*/
+
 #pragma once
 
 
 /**
- * FPlane.
+ * Structure for three dimensional planes.
+ *
  * Stores the coeffecients as Ax+By+Cz=D.
  * Note that this is different than many other Plane classes that use Ax+By+Cz+D=0.
  */
@@ -13,13 +18,14 @@ MS_ALIGN(16) class FPlane
 {
 public:
 
-	// Variables.
 	float W;
 
 public:
 
-	/** Constructor.*/
-	FORCEINLINE FPlane();
+	/**
+	 * Default constructor (no initialization).
+	 */
+	FORCEINLINE FPlane( );
 
 	/**
 	 * Copy Constructor.
@@ -83,8 +89,8 @@ public:
 	 * Calculates distance between plane and a point.
 	 *
 	 * @param P The other point.
-	 *
-	 * @return >0: point is in front of the plane, <0: behind, =0: on the plane */
+	 * @return >0: point is in front of the plane, <0: behind, =0: on the plane.
+	 */
 	FORCEINLINE float PlaneDot( const FVector &P ) const;
 
 	/**
@@ -98,7 +104,6 @@ public:
 	 * Get the result of transforming the plane by a Matrix.
 	 *
 	 * @param M The matrix to transform plane with.
-	 *
 	 * @return The result of transform.
 	 */
 	FPlane TransformBy( const FMatrix& M ) const;
@@ -111,7 +116,6 @@ public:
 	 * @param M The Matrix to transform plane with.
 	 * @param DetM Determinant of Matrix.
 	 * @param TA Transpose-adjoint of Matrix.
-	 *
 	 * @return The result of transform.
 	 */
 	FPlane TransformByUsingAdjointT( const FMatrix& M, float DetM, const FMatrix& TA ) const;
@@ -120,7 +124,6 @@ public:
 	 * Check if two planes are identical.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return true if planes are identical, otherwise false.
 	 */
 	bool operator==( const FPlane& V ) const;
@@ -129,7 +132,6 @@ public:
 	 * Check if two planes are different.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return true if planes are different, otherwise false.
 	 */
 	bool operator!=( const FPlane& V ) const;
@@ -139,7 +141,6 @@ public:
 	 *
 	 * @param V The other plane.
 	 * @param Tolerance Error Tolerance.
-	 *
 	 * @return true if the two planes are equal within specified tolerance, otherwise false.
 	 */
 	bool Equals(const FPlane& V, float Tolerance=KINDA_SMALL_NUMBER) const;
@@ -148,7 +149,6 @@ public:
 	 * Calculates dot product of two planes.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return The dot product.
 	 */
 	FORCEINLINE float operator|( const FPlane& V ) const;
@@ -157,7 +157,6 @@ public:
 	 * Gets result of adding a plane to this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return The result of adding a plane to this.
 	 */
 	FPlane operator+( const FPlane& V ) const;
@@ -166,7 +165,6 @@ public:
 	 * Gets result of subtracting a plane from this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return The result of subtracting a plane from this.
 	 */
 	FPlane operator-( const FPlane& V ) const;
@@ -175,7 +173,6 @@ public:
 	 * Gets result of dividing a plane.
 	 *
 	 * @param Scale What to divide by.
-	 *
 	 * @return The result of division.
 	 */
 	FPlane operator/( float Scale ) const;
@@ -184,7 +181,6 @@ public:
 	 * Gets result of scaling a plane.
 	 *
 	 * @param Scale The scaling factor.
-	 *
 	 * @return The result of scaling.
 	 */
 	FPlane operator*( float Scale ) const;
@@ -193,7 +189,6 @@ public:
 	 * Gets result of multiplying a plane with this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return The result of multiplying a plane with this.
 	 */
 	FPlane operator*( const FPlane& V );
@@ -202,7 +197,6 @@ public:
 	 * Add another plane to this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return Copy of plane after addition.
 	 */
 	FPlane operator+=( const FPlane& V );
@@ -211,7 +205,6 @@ public:
 	 * Subtract another plane from this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return Copy of plane after subtraction.
 	 */
 	FPlane operator-=( const FPlane& V );
@@ -220,7 +213,6 @@ public:
 	 * Scale this plane.
 	 *
 	 * @param Scale The scaling factor.
-	 *
 	 * @return Copy of plane after scaling.
 	 */
 	FPlane operator*=( float Scale );
@@ -229,7 +221,6 @@ public:
 	 * Multiply another plane with this.
 	 *
 	 * @param V The other plane.
-	 *
 	 * @return Copy of plane after multiplication.
 	 */
 	FPlane operator*=( const FPlane& V );
@@ -238,7 +229,6 @@ public:
 	 * Divide this plane.
 	 *
 	 * @param V What to divide by.
-	 *
 	 * @return Copy of plane after division.
 	 */
 	FPlane operator/=( float V );
@@ -248,7 +238,6 @@ public:
 	 *
 	 * @param Ar Serialization Archive.
 	 * @param P Plane to serialize.
-	 *
 	 * @return Reference to Archive after serialization.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FPlane &P )
@@ -258,8 +247,8 @@ public:
 
 	/**
 	 * Serializes the vector compressed for e.g. network transmission.
-	 * @param	Ar	Archive to serialize to/ from
-	 * @return false to allow the ordinary struct code to run (this never happens)
+	 * @param Ar Archive to serialize to/ from.
+	 * @return false to allow the ordinary struct code to run (this never happens).
 	 */
 	bool NetSerialize(FArchive& Ar, class UPackageMap*, bool& bOutSuccess)
 	{
@@ -285,6 +274,9 @@ public:
 	}
 } GCC_ALIGN(16);
 
+
+/* FPlane inline functions
+ *****************************************************************************/
 
 FORCEINLINE FPlane::FPlane()
 {}

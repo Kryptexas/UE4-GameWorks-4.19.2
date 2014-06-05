@@ -21,7 +21,7 @@ public:
 	/**
 	 * Creates and initializes a new instance of the TCircularBuffer class.
 	 *
-	 * @param Capacity - The number of elements that the buffer can store (will be rounded up to the next power of 2).
+	 * @param Capacity The number of elements that the buffer can store (will be rounded up to the next power of 2).
 	 */
 	TCircularBuffer( uint32 Capacity )
 	{
@@ -36,8 +36,8 @@ public:
 	/**
 	 * Creates and initializes a new instance of the TCircularBuffer class.
 	 *
-	 * @param Capacity -The number of elements that the buffer can store (will be rounded up to the next power of 2).
-	 * @param InitialValue - The initial value for the buffer's elements.
+	 * @param Capacity The number of elements that the buffer can store (will be rounded up to the next power of 2).
+	 * @param InitialValue The initial value for the buffer's elements.
 	 */
 	TCircularBuffer( uint32 Capacity, const ElementType& InitialValue )
 	{
@@ -53,7 +53,7 @@ public:
 	/**
 	 * Returns the mutable element at the specified index.
 	 *
-	 * @param Index - The index of the element to return.
+	 * @param Index The index of the element to return.
 	 */
 	FORCEINLINE ElementType& operator[]( uint32 Index )
 	{
@@ -63,7 +63,7 @@ public:
 	/**
 	 * Returns the immutable element at the specified index.
 	 *
-	 * @param Index - The index of the element to return.
+	 * @param Index The index of the element to return.
 	 */
 	FORCEINLINE const ElementType& operator[]( uint32 Index ) const
 	{
@@ -85,8 +85,7 @@ public:
 	/**
 	 * Calculates the index that follows the given index.
 	 *
-	 * @param CurrentIndex - The current index.
-	 *
+	 * @param CurrentIndex The current index.
 	 * @return The next index.
 	 */
 	FORCEINLINE uint32 GetNextIndex( uint32 CurrentIndex ) const

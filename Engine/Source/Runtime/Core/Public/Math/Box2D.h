@@ -12,8 +12,6 @@
  */
 class FBox2D
 {
-public:
-
 	/** Holds the box's minimum point. */
 	FVector2D Min;
 
@@ -23,13 +21,18 @@ public:
 	/** Holds a flag indicating whether this box is valid. */
 	bool bIsValid;
 
-
 public:
 
-	/** Default constructor. */
+	/**
+	 * Default constructor (no initialization).
+	 */
 	FBox2D( ) { }
 
-	/** Creates and initializes a new box. */
+	/**
+	 * Creates and initializes a new box.
+	 *
+	 * The box extents are initialized to zero and the box is marked as invalid.
+	 */
 	FBox2D( int32 )
 	{
 		Init();
@@ -38,7 +41,9 @@ public:
 	/**
 	 * Creates and initializes a new box.
 	 *
-	 * @param EForceInit - Force Init Enum.
+	 * The box extents are initialized to zero and the box is marked as invalid.
+	 *
+	 * @param EForceInit Force Init Enum.
 	 */
 	explicit FBox2D( EForceInit )
 	{
@@ -48,8 +53,8 @@ public:
 	/**
 	 * Creates and initializes a new box from the specified parameters.
 	 *
-	 * @param InMin - The box's minimum point.
-	 * @param InMax - The box's maximum point.
+	 * @param InMin The box's minimum point.
+	 * @param InMax The box's maximum point.
 	 */
 	FBox2D( const FVector2D& InMin, const FVector2D& InMax )
 		: Min(InMin)
@@ -57,31 +62,38 @@ public:
 		, bIsValid(true)
 	{ }
 
-	
-	 
 	/**
 	 * Creates and initializes a new box from the given set of points.
 	 *
-	 * @param Points - Array of Points to create for the bounding volume.
-	 * @param Count - The number of points.
+	 * @param Points Array of Points to create for the bounding volume.
+	 * @param Count The number of points.
 	 */
 	CORE_API FBox2D( const FVector2D* Points, const int32 Count );
 
 	/**
 	 * Creates and initializes a new box from an array of points.
 	 *
-	 * @param Points - Array of Points to create for the bounding volume.
+	 * @param Points Array of Points to create for the bounding volume.
 	 */
 	CORE_API FBox2D( const TArray<FVector2D>& Points );
-
 
 public:
 
 	/**
+	 * Compares two boxes for equality.
+	 *
+	 * @param Other The other box to compare with.
+	 * @return true if the boxes are equal, false otherwise.
+	 */
+	bool operator==( const FBox2D& Other ) const
+	{
+		return (Min == Other.Min) && (Max == Other.Max);
+	}
+
+	/**
 	 * Adds to this bounding box to include a given point.
 	 *
-	 * @param Other the point to increase the bounding volume to.
-	 *
+	 * @param Other The point to increase the bounding volume to.
 	 * @return Reference to this bounding box after resizing to include the other point.
 	 */
 	FORCEINLINE FBox2D& operator+=( const FVector2D &Other );
@@ -90,7 +102,6 @@ public:
 	 * Gets the result of addition to this bounding volume.
 	 *
 	 * @param Other The other point to add to this.
-	 *
 	 * @return A new bounding volume.
 	 */
 	FBox2D operator+( const FVector2D& Other ) const
@@ -101,8 +112,7 @@ public:
 	/**
 	 * Adds to this bounding box to include a new bounding volume.
 	 *
-	 * @param Other the bounding volume to increase the bounding volume to.
-	 *
+	 * @param Other The bounding volume to increase the bounding volume to.
 	 * @return Reference to this bounding volume after resizing to include the other bounding volume.
 	 */
 	FORCEINLINE FBox2D& operator+=( const FBox2D& Other );
@@ -111,7 +121,6 @@ public:
 	 * Gets the result of addition to this bounding volume.
 	 *
 	 * @param Other The other volume to add to this.
-	 *
 	 * @return A new bounding volume.
 	 */
 	FBox2D operator+( const FBox2D& Other ) const
@@ -122,9 +131,8 @@ public:
 	/**
 	 * Gets reference to the min or max of this bounding volume.
 	 *
-	 * @param Index the index into points of the bounding volume.
-	 *
-	 * @return a reference to a point of the bounding volume.
+	 * @param Index The index into points of the bounding volume.
+	 * @return A reference to a point of the bounding volume.
 	 */
    FVector2D& operator[]( int32 Index )
 	{
@@ -137,21 +145,13 @@ public:
 
 		return Max;
 	}
-	bool operator==( const FBox2D& Other ) const
-	{
-		return ( Min == Other.Min ) && ( Max == Other.Max );
-	}
-
 
 public:
-
-
 
 	/** 
 	 * Calculates the distance of a point to this box.
 	 *
-	 * @param Point - The point.
-	 *
+	 * @param Point The point.
 	 * @return The distance.
 	 */
 	FORCEINLINE float ComputeSquaredDistanceToPoint( const FVector2D& Point ) const
@@ -181,32 +181,32 @@ public:
 	}
 
 	/** 
-	 * Increase the bounding box volume
+	 * Increase the bounding box volume.
 	 *
-	 * @param	W size to increase volume by
-	 * @return	new bounding box increased in size
+	 * @param W The size to increase volume by.
+	 * @return A new bounding box increased in size.
 	 */
 	FBox2D ExpandBy( const float W ) const
 	{
 		return FBox2D(Min - FVector2D(W, W), Max + FVector2D(W, W));
 	}
 
-	/** 
-	 * Shift bounding box position
+	/**
+	 * Gets the box area.
 	 *
-	 * @param	Offset vector to shift by
-	 * @return	new shifted bounding box 
+	 * @return Box area.
+	 * @see GetCenter, GetCenterAndExtents, GetExtent, GetSize
 	 */
-	FBox2D ShiftBy( const FVector2D& Offset ) const
+	float GetArea( ) const
 	{
-		return FBox2D(Min + Offset, Max + Offset);
+		return (Max.X - Min.X) * (Max.Y - Min.Y);
 	}
-
 
 	/**
 	 * Gets the box's center point.
 	 *
-	 * @return Center point.
+	 * @return Th center point.
+	 * @see GetArea, GetCenterAndExtents, GetExtent, GetSize
 	 */
 	FVector2D GetCenter( ) const
 	{
@@ -218,6 +218,7 @@ public:
 	 *
 	 * @param center[out] reference to center point
 	 * @param Extents[out] reference to the extent around the center
+	 * @see GetArea, GetCenter, GetExtent, GetSize
 	 */
 	void GetCenterAndExtents( FVector2D & center, FVector2D & Extents ) const
 	{
@@ -238,6 +239,7 @@ public:
 	 * Gets the box extents around the center.
 	 *
 	 * @return Box extents.
+	 * @see GetArea, GetCenter, GetCenterAndExtents, GetSize
 	 */
 	FVector2D GetExtent( ) const
 	{
@@ -249,20 +251,11 @@ public:
 	 * Gets the box size.
 	 *
 	 * @return Box size.
+	 * @see GetArea, GetCenter, GetCenterAndExtents, GetExtent
 	 */
 	FVector2D GetSize( ) const
 	{
 		return (Max - Min);
-	}
-
-	/**
-	 * Gets the box area.
-	 *
-	 * @return Box area.
-	 */
-	float GetArea( ) const
-	{
-		return (Max.X - Min.X) * (Max.Y - Min.Y);
 	}
 
 	/**
@@ -274,38 +267,46 @@ public:
 		bIsValid = false;
 	}
 
-	
 	/**
-	 * Test for intersection of bounding box and this bounding box
+	 * Checks whether the given box intersects this box.
 	 *
 	 * @param other bounding box to test intersection
-	 * @return true if the other box intersects this box, otherwise false
+	 * @return true if boxes intersect, false otherwise.
 	 */
 	FORCEINLINE bool Intersect( const FBox2D & other ) const;
 
 	/**
-	 * Test if point is inside this box
+	 * Checks whether the given point is inside this box.
 	 *
-	 * @param Point to test
-	 * @return true if the point is inside this box, otherwise false
+	 * @param Point The point to test.
+	 * @return true if the point is inside this box, otherwise false.
 	 */
 	bool IsInside( const FVector2D & TestPoint ) const
 	{
 		return ((TestPoint.X > Min.X) && (TestPoint.X < Max.X) && (TestPoint.Y > Min.Y) && (TestPoint.Y < Max.Y));
 	}
 
-
 	/** 
-	 * Checks to see if given box is fully encapsulated by this box
+	 * Checks whether the given box is fully encapsulated by this box.
 	 * 
-	 * @param Other box to test for encapsulation within the bounding volume
-	 * @return true if box is inside this volume
+	 * @param Other The box to test for encapsulation within the bounding volume.
+	 * @return true if box is inside this volume, false otherwise.
 	 */
 	bool IsInside( const FBox2D& Other ) const
 	{
 		return (IsInside(Other.Min) && IsInside(Other.Max));
 	}
 
+	/** 
+	 * Shift bounding box position.
+	 *
+	 * @param The offset vector to shift by.
+	 * @return A new shifted bounding box.
+	 */
+	FBox2D ShiftBy( const FVector2D& Offset ) const
+	{
+		return FBox2D(Min + Offset, Max + Offset);
+	}
 
 	/**
 	 * Get a textual representation of this box.
@@ -329,7 +330,6 @@ public:
 		return Ar << Box.Min << Box.Max << Box.bIsValid;
 	}
 };
-
 
 
 /* FBox2D inline functions

@@ -8,37 +8,33 @@
 
 
 /**
- * Implements a rectangular box.
+ * Implements an axis-aligned box.
+ *
+ * Boxes describe an axis-aligned extent in three dimensions. They are used for many different things in the
+ * Engine and in games, such as bounding volumes, collision detection and visibility calculation.
  */
 class FBox
 {
 public:
 
-	/**
-	 * Holds the box's minimum point.
-	 */
+	/** Holds the box's minimum point. */
 	FVector Min;
 
-	/**
-	 * Holds the box's maximum point.
-	 */
+	/** Holds the box's maximum point. */
 	FVector Max;
 
-	/**
-	 * Holds a flag indicating whether this box is valid.
-	 */
+	/** Holds a flag indicating whether this box is valid. */
 	uint8 IsValid;
-
 
 public:
 
 	/**
-	 * Default constructor.
+	 * Default constructor (no initialization).
 	 */
 	FBox( ) { }
 
 	/**
-	 * Creates and initializes a new box.
+	 * Creates and initializes a new box with zero extent and marks it as invalid.
 	 */
 	FBox( int32 )
 	{
@@ -46,9 +42,9 @@ public:
 	}
 
 	/**
-	 * Creates and initializes a new box.
+	 * Creates and initializes a new box with zero extent and marks it as invalid.
 	 *
-	 * @param EForceInit - Force Init Enum.
+	 * @param EForceInit Force Init Enum.
 	 */
 	explicit FBox( EForceInit )
 	{
@@ -56,10 +52,10 @@ public:
 	}
 
 	/**
-	 * Creates and initializes a new box from the specified parameters.
+	 * Creates and initializes a new box from the specified extents.
 	 *
-	 * @param InMin - The box's minimum point.
-	 * @param InMax - The box's maximum point.
+	 * @param InMin The box's minimum point.
+	 * @param InMax The box's maximum point.
 	 */
 	FBox( const FVector& InMin, const FVector& InMax )
 		: Min(InMin)
@@ -70,26 +66,34 @@ public:
 	/**
 	 * Creates and initializes a new box from the given set of points.
 	 *
-	 * @param Points - Array of Points to create for the bounding volume.
-	 * @param Count - The number of points.
+	 * @param Points Array of Points to create for the bounding volume.
+	 * @param Count The number of points.
 	 */
 	CORE_API FBox( const FVector* Points, int32 Count );
 
 	/**
 	 * Creates and initializes a new box from an array of points.
 	 *
-	 * @param Points - Array of Points to create for the bounding volume.
+	 * @param Points Array of Points to create for the bounding volume.
 	 */
 	CORE_API FBox( const TArray<FVector>& Points );
 
-
 public:
+
+	/**
+	 * Compares two boxes for equality.
+	 *
+	 * @return true if the boxes are equal, false otherwise.
+	 */
+	bool operator==( const FBox& Other ) const
+	{
+		return (Min == Other.Min) && (Max == Other.Max);
+	}
 
 	/**
 	 * Adds to this bounding box to include a given point.
 	 *
 	 * @param Other the point to increase the bounding volume to.
-	 *
 	 * @return Reference to this bounding box after resizing to include the other point.
 	 */
 	FORCEINLINE FBox& operator+=( const FVector &Other );
@@ -98,7 +102,6 @@ public:
 	 * Gets the result of addition to this bounding volume.
 	 *
 	 * @param Other The other point to add to this.
-	 *
 	 * @return A new bounding volume.
 	 */
 	FBox operator+( const FVector& Other ) const
@@ -110,7 +113,6 @@ public:
 	 * Adds to this bounding box to include a new bounding volume.
 	 *
 	 * @param Other the bounding volume to increase the bounding volume to.
-	 *
 	 * @return Reference to this bounding volume after resizing to include the other bounding volume.
 	 */
 	FORCEINLINE FBox& operator+=( const FBox& Other );
@@ -119,7 +121,6 @@ public:
 	 * Gets the result of addition to this bounding volume.
 	 *
 	 * @param Other The other volume to add to this.
-	 *
 	 * @return A new bounding volume.
 	 */
 	FBox operator+( const FBox& Other ) const
@@ -131,7 +132,6 @@ public:
 	 * Gets reference to the min or max of this bounding volume.
 	 *
 	 * @param Index the index into points of the bounding volume.
-	 *
 	 * @return a reference to a point of the bounding volume.
 	 */
     FVector& operator[]( int32 Index )
@@ -145,21 +145,13 @@ public:
 
 		return Max;
 	}
-	bool operator==( const FBox& Other ) const
-	{
-		return ( Min == Other.Min ) && ( Max == Other.Max );
-	}
-
 
 public:
-
-
 
 	/** 
 	 * Calculates the distance of a point to this box.
 	 *
-	 * @param Point - The point.
-	 *
+	 * @param Point The point.
 	 * @return The distance.
 	 */
 	FORCEINLINE float ComputeSquaredDistanceToPoint( const FVector& Point ) const
@@ -168,10 +160,10 @@ public:
 	}
 
 	/** 
-	 * Increase the bounding box volume
+	 * Increases the box size.
 	 *
-	 * @param	W size to increase volume by
-	 * @return	new bounding box increased in size
+	 * @param W The size to increase the volume by.
+	 * @return A new bounding box.
 	 */
 	FBox ExpandBy( float W ) const
 	{
@@ -179,10 +171,10 @@ public:
 	}
 
 	/** 
-	 * Shift bounding box position
+	 * Shifts the bounding box position.
 	 *
-	 * @param	Offset vector to shift by
-	 * @return	new shifted bounding box 
+	 * @param Offset The vector to shift the box by.
+	 * @return A new bounding box.
 	 */
 	FBox ShiftBy( const FVector& Offset ) const
 	{
@@ -190,10 +182,10 @@ public:
 	}
 
 	/** 
-	 * Moves center of bounding box to new destination
+	 * Moves the center of bounding box to new destination.
 	 *
-	 * @param   Destination point to move center of box to
-	 * @return  new moved bounding box 
+	 * @param The destination point to move center of box to.
+	 * @return A new bounding box.
 	 */
 	FBox MoveTo( const FVector& Destination ) const
 	{
@@ -202,9 +194,10 @@ public:
 	}
 
 	/**
-	 * Gets the box's center point.
+	 * Gets the center point of this box.
 	 *
-	 * @return Center point.
+	 * @return The center point.
+	 * @see GetCenterAndExtents, GetExtent, GetSize, GetVolume
 	 */
 	FVector GetCenter( ) const
 	{
@@ -212,10 +205,11 @@ public:
 	}
 
 	/**
-	 * Get the center and extents
+	 * Gets the center and extents of this box.
 	 *
-	 * @param center[out] reference to center point
-	 * @param Extents[out] reference to the extent around the center
+	 * @param center[out] Will contain the box center point.
+	 * @param Extents[out] Will contain the extent around the center.
+	 * @see GetCenter, GetExtent, GetSize, GetVolume
 	 */
 	void GetCenterAndExtents( FVector & center, FVector & Extents ) const
 	{
@@ -226,16 +220,16 @@ public:
 	/**
 	 * Calculates the closest point on or inside the box to a given point in space.
 	 *
-	 * @param Point - The point in space.
-	 *
+	 * @param Point The point in space.
 	 * @return The closest point on or inside the box.
 	 */
 	FORCEINLINE FVector GetClosestPointTo( const FVector& Point ) const;
 
 	/**
-	 * Gets the box extents around the center.
+	 * Gets the extents of this box.
 	 *
-	 * @return Box extents.
+	 * @return The box extents.
+	 * @see GetCenter, GetCenterAndExtents, GetSize, GetVolume
 	 */
 	FVector GetExtent( ) const
 	{
@@ -245,8 +239,7 @@ public:
 	/**
 	 * Gets a reference to the specified point of the bounding box.
 	 *
-	 * @param PointIndex - Index of point
-	 *
+	 * @param PointIndex The index of the extrema point to return.
 	 * @return A reference to the point.
 	 */
 	FVector& GetExtrema( int PointIndex )
@@ -257,8 +250,7 @@ public:
 	/**
 	 * Gets a read-only reference to the specified point of the bounding box.
 	 *
-	 * @param PointIndex - Index of point
-	 *
+	 * @param PointIndex The index of extrema point to return.
 	 * @return A read-only reference to the point.
 	 */
 	const FVector& GetExtrema( int PointIndex ) const
@@ -267,9 +259,10 @@ public:
 	}
 
 	/**
-	 * Gets the box size.
+	 * Gets the size of this box.
 	 *
-	 * @return Box size.
+	 * @return The box size.
+	 * @see GetCenter, GetCenterAndExtents, GetExtent, GetVolume
 	 */
 	FVector GetSize( ) const
 	{
@@ -277,9 +270,10 @@ public:
 	}
 
 	/**
-	 * Gets the box volume.
+	 * Gets the volume of this box.
 	 *
-	 * @return Box volume.
+	 * @return The box volume.
+	 * @see GetCenter, GetCenterAndExtents, GetExtent, GetSize
 	 */
 	float GetVolume( ) const
 	{
@@ -296,59 +290,35 @@ public:
 	}
 
 	/**
-	 * Test for intersection of bounding box and this bounding box
+	 * Checks whether the given bounding box intersects this bounding box.
 	 *
-	 * @param other bounding box to test intersection
-	 * @return true if the other box intersects this box, otherwise false
+	 * @param Other The bounding box to intersect with.
+	 * @return true if the boxes intersect, false otherwise.
 	 */
 	FORCEINLINE bool Intersect( const FBox & other ) const;
 
 	/**
-	 * Test for intersection of bounding box and this bounding box in the XY plane
+	 * Checks whether the given bounding box intersects this bounding box in the XY plane.
 	 *
-	 * @param other bounding box to test intersection
-	 * @return true if the other box intersects this box in the XY Plane, otherwise false
+	 * @param Other The bounding box to test intersection.
+	 * @return true if the boxes intersect in the XY Plane, false otherwise.
 	 */
-	FORCEINLINE bool IntersectXY( const FBox& other ) const;
+	FORCEINLINE bool IntersectXY( const FBox& Other ) const;
 
 	/**
 	  * Gets a bounding volume transformed by an inverted FTransform object.
 	  *
-	  * @param M the FTransform object which translation will be inverted.
-	  * @return	transformed box
+	  * @param M The transformation object to perform the inversely transform this box with.
+	  * @return	The transformed box.
 	  */
 	CORE_API FBox InverseTransformBy( const FTransform & M ) const;
 
-	/**
-	 * Gets a bounding volume transformed by a matrix.
-	 *
-	 * @param M the matrix .
-	 * @return	transformed box
-	 */
-	CORE_API FBox TransformBy( const FMatrix& M ) const;
-
-	/**
-	 * Gets a bounding volume transformed by a FTransform object.
-	 *
-	 * @param M the FTransform object.
-	 * @return	transformed box
-	 */
-	CORE_API FBox TransformBy( const FTransform & M ) const;
-
 	/** 
-	 * Transforms and projects a world bounding box to screen space
-	 *
-	 * @param	ProjM - projection matrix
-	 * @return	transformed box
-	 */
-	CORE_API FBox TransformProjectBy( const FMatrix& ProjM ) const;
-	
-	/** 
-	 * Checks to see if the location is inside this box
+	 * Checks whether the given location is inside this box.
 	 * 
-	 * @param In - The location to test for inside the bounding volume
-	 *
-	 * @return true if location is inside this volume
+	 * @param In The location to test for inside the bounding volume.
+	 * @return true if location is inside this volume.
+	 * @see IsInsideXY
 	 */
 	bool IsInside( const FVector& In ) const
 	{
@@ -356,23 +326,10 @@ public:
 	}
 
 	/** 
-	 * Checks to see if the location is inside this box in the XY plane
+	 * Checks whether a given box is fully encapsulated by this box.
 	 * 
-	 * @param In - The location to test for inside the bounding box
-	 *
-	 * @return true if location is inside this box in the XY plane
-	 */
-	bool IsInsideXY( const FVector& In ) const
-	{
-		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y));
-	}
-	
-
-	/** 
-	 * Checks to see if given box is fully encapsulated by this box
-	 * 
-	 * @param Other box to test for encapsulation within the bounding volume
-	 * @return true if box is inside this volume
+	 * @param Other The box to test for encapsulation within the bounding volume.
+	 * @return true if box is inside this volume.
 	 */
 	bool IsInside( const FBox& Other ) const
 	{
@@ -380,15 +337,54 @@ public:
 	}
 
 	/** 
-	 * Checks to see if given box is fully encapsulated by this box in the XY plane
+	 * Checks whether the given location is inside this box in the XY plane.
 	 * 
-	 * @param Other box to test for encapsulation within the bounding box
-	 * @return true if box is inside this box in the XY plane
+	 * @param In The location to test for inside the bounding box.
+	 * @return true if location is inside this box in the XY plane.
+	 * @see IsInside
+	 */
+	bool IsInsideXY( const FVector& In ) const
+	{
+		return ((In.X > Min.X) && (In.X < Max.X) && (In.Y > Min.Y) && (In.Y < Max.Y));
+	}
+
+	/** 
+	 * Checks whether the given box is fully encapsulated by this box in the XY plane.
+	 * 
+	 * @param Other The box to test for encapsulation within the bounding box.
+	 * @return true if box is inside this box in the XY plane.
 	 */
 	bool IsInsideXY( const FBox& Other ) const
 	{
 		return (IsInsideXY(Other.Min) && IsInsideXY(Other.Max));
 	}
+
+	/**
+	 * Gets a bounding volume transformed by a matrix.
+	 *
+	 * @param M The matrix to transform by.
+	 * @return The transformed box.
+	 * @see TransformProjectBy
+	 */
+	CORE_API FBox TransformBy( const FMatrix& M ) const;
+
+	/**
+	 * Gets a bounding volume transformed by a FTransform object.
+	 *
+	 * @param M The transformation object.
+	 * @return The transformed box.
+	 * @see TransformProjectBy
+	 */
+	CORE_API FBox TransformBy( const FTransform & M ) const;
+
+	/** 
+	 * Transforms and projects a world bounding box to screen space
+	 *
+	 * @param ProjM The projection matrix.
+	 * @return The transformed box.
+	 * @see TransformBy
+	 */
+	CORE_API FBox TransformProjectBy( const FMatrix& ProjM ) const;
 
 	/**
 	 * Get a textual representation of this box.
@@ -397,16 +393,14 @@ public:
 	 */
 	FString ToString( ) const;
 
-
 public:
 
 	/** 
 	 * Utility function to build an AABB from Origin and Extent 
 	 *
-	 * @param Origin the location of the bounding box
-	 * @param Extent half size of the bounding box
-	 *
-	 * @return a new AABB
+	 * @param Origin The location of the bounding box.
+	 * @param Extent Half size of the bounding box.
+	 * @return A new axis-aligned bounding box.
 	 */
 	static FBox BuildAABB( const FVector& Origin, const FVector& Extent )
 	{
@@ -415,15 +409,13 @@ public:
 		return NewBox;
 	}
 
-
 public:
 
 	/**
 	 * Serializes the bounding box.
 	 *
-	 * @param Ar - The archive to serialize into.
-	 * @param Box - The box to serialize.
-	 *
+	 * @param Ar The archive to serialize into.
+	 * @param Box The box to serialize.
 	 * @return Reference to the Archive after serialization.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FBox& Box )

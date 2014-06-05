@@ -60,7 +60,7 @@ public:
 	 *
 	 * The created range is of the form [A, A].
 	 *
-	 * @param A - The element in the range.
+	 * @param A The element in the range.
 	 */
 	explicit TRange( const ElementType& A )
 		: LowerBound(BoundsType::Inclusive(A))
@@ -72,8 +72,8 @@ public:
 	 *
 	 * The created range is of the form [A, B).
 	 *
-	 * @param A - The range's lower bound value (inclusive).
-	 * @param B - The range's upper bound value (exclusive).
+	 * @param A The range's lower bound value (inclusive).
+	 * @param B The range's upper bound value (exclusive).
 	 */
 	explicit TRange( const ElementType& A, const ElementType& B )
 		: LowerBound(BoundsType::Inclusive(A))
@@ -83,8 +83,8 @@ public:
 	/**
 	 * Creates and initializes a new range with the given lower and upper bounds.
 	 *
-	 * @param InLowerBound - The range's lower bound.
-	 * @param InUpperBound - The range's upper bound.
+	 * @param InLowerBound The range's lower bound.
+	 * @param InUpperBound The range's upper bound.
 	 */
 	TRange( const BoundsType& InLowerBound, const BoundsType& InUpperBound )
 		: LowerBound(InLowerBound)
@@ -96,8 +96,7 @@ public:
 	/**
 	 * Compares this range with the specified range for equality.
 	 *
-	 * @param Other - The range to compare with.
-	 *
+	 * @param Other The range to compare with.
 	 * @return true if the ranges are equal, false otherwise.
 	 */
 	bool operator==( const TRange& Other ) const
@@ -113,8 +112,7 @@ public:
 	/**
 	 * Compares this range with the specified range for inequality.
 	 *
-	 * @param Other - The range to compare with.
-	 *
+	 * @param Other The range to compare with.
 	 * @return true if the ranges are not equal, false otherwise.
 	 */
 	bool operator!=( const TRange& Other ) const
@@ -136,8 +134,7 @@ public:
 	 *		[A, B) and [C, C) or
 	 *		[A, B] and (B, C)
 	 *
-	 * @param Other - The other range.
-	 *
+	 * @param Other The other range.
 	 * @return true if this range adjoins the other, false otherwise.
 	 */
 	bool Adjoins( const TRange& Other ) const
@@ -167,9 +164,8 @@ public:
 	 * A range conjoins two non-overlapping ranges if it adjoins both of them, i.e.
 	 *		[B, C) conjoins the two ranges [A, B) and [C, D).
 	 *
-	 * @param X - The first range.
-	 * @param Y - The second range.
-	 *
+	 * @param X The first range.
+	 * @param Y The second range.
 	 * @return true if this range conjoins the two ranges, false otherwise.
 	 */
 	bool Conjoins( const TRange& X, const TRange& Y ) const
@@ -185,8 +181,7 @@ public:
 	/**
 	 * Checks whether this range contains the specified element.
 	 *
-	 * @param Element - The element to check.
-	 *
+	 * @param Element The element to check.
 	 * @return true if the range contains the element, false otherwise.
 	 */
 	bool Contains( const ElementType& Element ) const
@@ -198,8 +193,7 @@ public:
 	/**
 	 * Checks whether this range contains another range.
 	 *
-	 * @param Other - The range to check.
-	 *
+	 * @param Other The range to check.
 	 * @return true if the range contains the other range, false otherwise.
 	 */
 	bool Contains( const TRange& Other ) const
@@ -213,8 +207,7 @@ public:
 	 *
 	 * Two ranges are contiguous if they are adjoint or overlapping.
 	 *
-	 * @param Other - The other range.
-	 *
+	 * @param Other The other range.
 	 * @return true if the ranges are contiguous, false otherwise.
 	 */
 	bool Contiguous( const TRange& Other ) const
@@ -238,9 +231,7 @@ public:
 	 * Use HasLowerBound() to ensure that this range actually has a lower bound.
 	 *
 	 * @return Bound value.
-	 *
-	 * @see GetUpperBoundValue
-	 * @see HasLowerBound
+	 * @see GetUpperBoundValue, HasLowerBound
 	 */
 	const ElementType& GetLowerBoundValue( ) const
 	{
@@ -263,9 +254,7 @@ public:
 	 * Use HasUpperBound() to ensure that this range actually has an upper bound.
 	 *
 	 * @return Bound value.
-	 *
-	 * @see GetLowerBoundValue
-	 * @see HasUpperBound
+	 * @see GetLowerBoundValue, HasUpperBound
 	 */
 	const ElementType& GetUpperBoundValue( ) const
 	{
@@ -333,8 +322,7 @@ public:
 	/**
 	 * Checks whether this range overlaps with another.
 	 *
-	 * @param Other - The other range.
-	 *
+	 * @param Other The other range.
 	 * @return true if the ranges overlap, false otherwise.
 	 */
 	bool Overlaps( const TRange& Other ) const
@@ -394,7 +382,7 @@ public:
 	 * If a range [A, C) does not contain the element B, the original range is returned.
 	 * Otherwise the range is split into two ranges [A, B) and [B, C), each of which may be empty.
 	 *
-	 * @param Element - The element at which to split the range.
+	 * @param Element The element at which to split the range.
 	 */
 	TArray<TRange> Split( const ElementType& Element ) const
 	{
@@ -418,14 +406,10 @@ public:
 	/**
 	 * Calculates the difference between two ranges, i.e. X - Y.
 	 *
-	 * @param X - The first range to subtract from.
-	 * @param Y - The second range to subtract with.
-	 *
-	 * @return Between 0 and 2 remaining ranges
-	 *
-	 * @see Hull
-	 * @see Intersection
-	 * @see Union
+	 * @param X The first range to subtract from.
+	 * @param Y The second range to subtract with.
+	 * @return Between 0 and 2 remaining ranges.
+	 * @see Hull, Intersection, Union
 	 */
 	static FORCEINLINE TArray<TRange> Difference( const TRange& X, const TRange& Y )
 	{
@@ -469,14 +453,10 @@ public:
 	 *
 	 * The hull is the smallest range that contains both ranges.
 	 *
-	 * @param X - The first range.
-	 * @param Y - The second range.
-	 *
+	 * @param X The first range.
+	 * @param Y The second range.
 	 * @return The hull.
-	 *
-	 * @see Difference
-	 * @see Intersection
-	 * @see Union
+	 * @see Difference, Intersection, Union
 	 */
 	static FORCEINLINE TRange Hull( const TRange& X, const TRange& Y )
 	{
@@ -496,13 +476,9 @@ public:
 	/**
 	 * Computes the hull of many ranges.
 	 *
-	 * @param Ranges - The ranges to hull.
-	 *
+	 * @param Ranges The ranges to hull.
 	 * @return The hull.
-	 *
-	 * @see Difference
-	 * @see Intersection
-	 * @see Union
+	 * @see Difference, Intersection, Union
 	 */
 	static FORCEINLINE TRange Hull( const TArray<TRange>& Ranges )
 	{
@@ -526,14 +502,10 @@ public:
 	 *
 	 * The intersection of two ranges is the largest range that is contained by both ranges.
 	 *
-	 * @param X - The first range.
-	 * @param Y - The second range.
-	 *
+	 * @param X The first range.
+	 * @param Y The second range.
 	 * @return The intersection, or an empty range if the ranges do not overlap.
-	 *
-	 * @see Difference
-	 * @see Hull
-	 * @see Union
+	 * @see Difference, Hull, Union
 	 */
 	static FORCEINLINE TRange Intersection( const TRange& X, const TRange& Y )
 	{
@@ -553,13 +525,9 @@ public:
 	/**
 	 * Computes the intersection of many ranges.
 	 *
-	 * @param Ranges - The ranges to intersect.
-	 *
+	 * @param Ranges The ranges to intersect.
 	 * @return The intersection.
-	 *
-	 * @see Difference
-	 * @see Hull
-	 * @see Union
+	 * @see Difference, Hull, Union
 	 */
 	static FORCEINLINE TRange Intersection( const TArray<TRange>& Ranges )
 	{
@@ -583,14 +551,10 @@ public:
 	 *
 	 * A union is a range or series of ranges that contains both ranges.
 	 *
-	 * @param X - The first range.
-	 * @param Y - The second range.
-	 *
+	 * @param X The first range.
+	 * @param Y The second range.
 	 * @return The union, or both ranges if the two ranges are not contiguous, or no ranges if both ranges are empty.
-	 *
-	 * @see Difference
-	 * @see Hull
-	 * @see Intersection
+	 * @see Difference, Hull, Intersection
 	 */
 	static FORCEINLINE TArray<TRange> Union( const TRange& X, const TRange& Y )
 	{
@@ -631,8 +595,7 @@ public:
 	/**
 	 * Creates a left-bounded range that contains all elements greater than or equal to the specified value.
 	 *
-	 * @param Value - The value.
-	 *
+	 * @param Value The value.
 	 * @return A new range.
 	 */
 	static FORCEINLINE TRange AtLeast( const ElementType& Value )
@@ -643,8 +606,7 @@ public:
 	/**
 	 * Creates a right-bounded range that contains all elements less than or equal to the specified value.
 	 *
-	 * @param Value - The value.
-	 *
+	 * @param Value The value.
 	 * @return A new range.
 	 */
 	static FORCEINLINE TRange AtMost( const ElementType& Value )
@@ -655,8 +617,7 @@ public:
 	/**
 	 * Creates a left-bounded range that contains all elements greater than the specified value.
 	 *
-	 * @param Value - The value.
-	 *
+	 * @param Value The value.
 	 * @return A new range.
 	 */
 	static FORCEINLINE TRange GreaterThan( const ElementType& Value )
@@ -667,8 +628,7 @@ public:
 	/**
 	 * Creates a right-bounded range that contains all elements less than the specified value.
 	 *
-	 * @param Value - The value.
-	 *
+	 * @param Value The value.
 	 * @return A new range.
 	 */
 	static FORCEINLINE TRange LessThan( const ElementType& Value )
@@ -681,9 +641,8 @@ public:
 	/**
 	 * Serializes the given range from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param Range - The range to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param Range The range to serialize.
 	 * @return The archive.
 	 */
 	friend class FArchive& operator<<( class FArchive& Ar, TRange& Range )
@@ -694,8 +653,7 @@ public:
 	/**
 	 * Gets the hash for the specified range.
 	 *
-	 * @param Range - The range to get the hash for.
-	 *
+	 * @param Range The range to get the hash for.
 	 * @return Hash value.
 	 */
 	friend uint32 GetTypeHash( const TRange& Range )

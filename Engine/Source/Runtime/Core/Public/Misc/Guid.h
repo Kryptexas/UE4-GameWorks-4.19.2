@@ -79,10 +79,10 @@ public:
 	/**
 	 * Creates and initializes a new GUID from the specified components.
 	 *
-	 * @param InA - The first component.
-	 * @param InB - The second component.
-	 * @param InC - The third component.
-	 * @param InD - The fourth component.
+	 * @param InA The first component.
+	 * @param InB The second component.
+	 * @param InC The third component.
+	 * @param InD The fourth component.
 	 */
 	FGuid( uint32 InA, uint32 InB, uint32 InC, uint32 InD )
 		: A(InA), B(InB), C(InC), D(InD)
@@ -93,9 +93,8 @@ public:
 	/**
 	 * Compares two GUIDs for equality.
 	 *
-	 * @param X - The first GUID to compare.
-	 * @param Y - The second GUID to compare.
-	 *
+	 * @param X The first GUID to compare.
+	 * @param Y The second GUID to compare.
 	 * @return true if the GUIDs are equal, false otherwise.
 	 */
 	friend bool operator==( const FGuid& X, const FGuid& Y )
@@ -106,9 +105,8 @@ public:
 	/**
 	 * Compares two GUIDs for inequality.
 	 *
-	 * @param X - The first GUID to compare.
-	 * @param Y - The second GUID to compare.
-	 *
+	 * @param X The first GUID to compare.
+	 * @param Y The second GUID to compare.
 	 * @return true if the GUIDs are not equal, false otherwise.
 	 */
 	friend bool operator!=( const FGuid& X, const FGuid& Y )
@@ -119,9 +117,8 @@ public:
 	/**
 	 * Compares two GUIDs.
 	 *
-	 * @param X - The first GUID to compare.
-	 * @param Y - The second GUID to compare.
-	 *
+	 * @param X The first GUID to compare.
+	 * @param Y The second GUID to compare.
 	 * @return true if the first GUID is less than the second one.
 	 */
 	friend bool operator<( const FGuid& X, const FGuid& Y )
@@ -135,8 +132,7 @@ public:
 	/**
 	 * Provides access to the GUIDs components.
 	 *
-	 * @param Index - The index of the component to return (0...3).
-	 *
+	 * @param Index The index of the component to return (0...3).
 	 * @return The component.
 	 */
 	uint32& operator[]( int32 Index )
@@ -158,8 +154,7 @@ public:
 	/**
 	 * Provides read-only access to the GUIDs components.
 	 *
-	 * @param Index - The index of the component to return (0...3).
-	 *
+	 * @param Index The index of the component to return (0...3).
 	 * @return The component.
 	 */
 	const uint32& operator[]( int32 Index ) const
@@ -181,8 +176,8 @@ public:
 	/**
 	 * Serializes a GUID from or into an archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param G - The GUID to serialize.
+	 * @param Ar The archive to serialize from or into.
+	 * @param G The GUID to serialize.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FGuid& G )
 	{
@@ -194,13 +189,13 @@ public:
 	/**
 	 * Exports the GUIDs value to a string.
 	 *
-	 * @param ValueStr - Will hold the string value.
-	 * @param DefaultValue - The default value.
-	 * @param Parent - Not used.
-	 * @param PortFlags - Not used.
-	 * @param ExportRootScope - Not used.
-	 *
+	 * @param ValueStr Will hold the string value.
+	 * @param DefaultValue The default value.
+	 * @param Parent Not used.
+	 * @param PortFlags Not used.
+	 * @param ExportRootScope Not used.
 	 * @return true on success, false otherwise.
+	 * @see ImportTextItem
 	 */
 	bool ExportTextItem( FString& ValueStr, FGuid const& DefaultValue, UObject* Parent, int32 PortFlags, class UObject* ExportRootScope ) const
 	{
@@ -212,12 +207,12 @@ public:
 	/**
 	 * Imports the GUIDs value from a text buffer.
 	 *
-	 * @param Buffer - The text buffer to import from.
-	 * @param PortFlags - Not used.
-	 * @param Parent - Not used.
-	 * @param ErrorText - The output device for error logging.
-	 *
+	 * @param Buffer The text buffer to import from.
+	 * @param PortFlags Not used.
+	 * @param Parent Not used.
+	 * @param ErrorText The output device for error logging.
 	 * @return true on success, false otherwise.
+	 * @see ExportTextItem
 	 */
 	bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText )
 	{
@@ -242,7 +237,6 @@ public:
 	 * A GUID that has all its components set to zero is considered invalid.
 	 *
 	 * @return true if valid, false otherwise
-	 *
 	 * @see Invalidate
 	 */
 	bool IsValid( ) const
@@ -273,8 +267,7 @@ public:
 	/**
 	 * Converts this GUID to its string representation using the specified format.
 	 *
-	 * @param Format - The string format to use.
-	 *
+	 * @param Format The string format to use.
 	 * @return The string representation.
 	 */
 	CORE_API FString ToString( EGuidFormats::Type Format ) const;
@@ -284,8 +277,7 @@ public:
 	/**
 	 * Calculates the hash for a GUID.
 	 *
-	 * @param Guid - The GUID to calculate the hash for.
-	 *
+	 * @param Guid The GUID to calculate the hash for.
 	 * @return The hash.
 	 */
 	friend uint32 GetTypeHash( const FGuid& Guid )
@@ -305,21 +297,21 @@ public:
 	/**
 	 * Converts a string to a GUID.
 	 *
-	 * @param GuidString - The string to convert.
-	 * @param OutGuid - Will contain the parsed GUID.
-	 *
+	 * @param GuidString The string to convert.
+	 * @param OutGuid Will contain the parsed GUID.
 	 * @return true if the string was converted successfully, false otherwise.
+	 * @see ParseExact, ToString
 	 */
 	static CORE_API bool Parse( const FString& GuidString, FGuid& OutGuid );
 
 	/**
 	 * Converts a string with the specified format to a GUID.
 	 *
-	 * @param GuidString - The string to convert.
-	 * @param Format - The string format to parse.
-	 * @param OutGuid - Will contain the parsed GUID.
-	 *
+	 * @param GuidString The string to convert.
+	 * @param Format The string format to parse.
+	 * @param OutGuid Will contain the parsed GUID.
 	 * @return true if the string was converted successfully, false otherwise.
+	 * @see Parse, ToString
 	 */
 	static CORE_API bool ParseExact( const FString& GuidString, EGuidFormats::Type Format, FGuid& OutGuid );
 

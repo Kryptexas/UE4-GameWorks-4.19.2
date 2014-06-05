@@ -14,19 +14,13 @@ namespace ERangeBoundTypes
 	 */
 	enum Type
 	{
-		/**
-		 * The range excludes the bound.
-		 */
+		/** The range excludes the bound. */
 		Exclusive,
 
-		/**
-		 * The range includes the bound.
-		 */
+		/** The range includes the bound. */
 		Inclusive,
 
-		/**
-		 * The bound is open.
-		 */
+		/** The bound is open. */
 		Open
 	};
 }
@@ -42,9 +36,7 @@ public:
 	/**
 	 * Default constructor.
 	 *
-	 * @see Exclusive
-	 * @see Inclusive
-	 * @see Open
+	 * @see Exclusive, Inclusive, Open
 	 */
 	TRangeBound( )
 		: Type(ERangeBoundTypes::Open)
@@ -54,11 +46,8 @@ public:
 	/**
 	 * Creates a closed bound that includes the specified value.
 	 *
-	 * @param InValue - The bound's value.
-	 *
-	 * @see Exclusive
-	 * @see Inclusive
-	 * @see Open
+	 * @param InValue The bound's value.
+	 * @see Exclusive, Inclusive, Open
 	 */
 	TRangeBound( const ElementType& InValue )
 		: Type(ERangeBoundTypes::Inclusive)
@@ -70,8 +59,7 @@ public:
 	/**
 	 * Compares this bound with the specified bound for equality.
 	 *
-	 * @param Other - The bound to compare with.
-	 *
+	 * @param Other The bound to compare with.
 	 * @return true if the bounds are equal, false otherwise.
 	 */
 	bool operator==( const TRangeBound& Other ) const
@@ -82,8 +70,7 @@ public:
 	/**
 	 * Compares this range with the specified bound for inequality.
 	 *
-	 * @param Other - The bound to compare with.
-	 *
+	 * @param Other The bound to compare with.
 	 * @return true if the bounds are not equal, false otherwise.
 	 */
 	bool operator!=( const TRangeBound& Other ) const
@@ -99,7 +86,6 @@ public:
 	 * Use IsClosed() to verify that this bound is closed before calling this method.
 	 *
 	 * @return Bound value.
-	 *
 	 * @see IsOpen
 	 */
 	const ElementType& GetValue( ) const
@@ -154,9 +140,8 @@ public:
 	/**
 	 * Serializes the given bound from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param Bound - The bound to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param Bound The bound to serialize.
 	 * @return The archive.
 	 */
 	friend class FArchive& operator<<( class FArchive& Ar, TRangeBound& Bound )
@@ -167,8 +152,7 @@ public:
 	/**
 	 * Gets the hash for the specified bound.
 	 *
-	 * @param Bound - The bound to get the hash for.
-	 *
+	 * @param Bound The bound to get the hash for.
 	 * @return Hash value.
 	 */
 	friend uint32 GetTypeHash( const TRangeBound& Bound )
@@ -181,8 +165,7 @@ public:
 	/**
 	 * Returns a closed bound that excludes the specified value.
 	 *
-	 * @param Value - The bound value.
-	 *
+	 * @param Value The bound value.
 	 * @return An exclusive closed bound.
 	 */
 	static FORCEINLINE TRangeBound Exclusive( const ElementType& Value )
@@ -198,8 +181,7 @@ public:
 	/**
 	 * Returns a closed bound that includes the specified value.
 	 *
-	 * @param Value - The bound value.
-	 *
+	 * @param Value The bound value.
 	 * @return An inclusive closed bound.
 	 */
 	static FORCEINLINE TRangeBound Inclusive( const ElementType& Value )
@@ -253,9 +235,8 @@ public:
 	/**
 	 * Returns the greater of two lower bounds.
 	 *
-	 * @param A - The first lower bound.
-	 * @param B - The second lower bound.
-	 *
+	 * @param A The first lower bound.
+	 * @param B The second lower bound.
 	 * @return The greater lower bound.
 	 */
 	static FORCEINLINE const TRangeBound& MaxLower( const TRangeBound& A, const TRangeBound& B )
@@ -272,9 +253,8 @@ public:
 	/**
 	 * Returns the greater of two upper bounds.
 	 *
-	 * @param A - The first upper bound.
-	 * @param B - The second upper bound.
-	 *
+	 * @param A The first upper bound.
+	 * @param B The second upper bound.
 	 * @return The greater upper bound.
 	 */
 	static FORCEINLINE const TRangeBound& MaxUpper( const TRangeBound& A, const TRangeBound& B )
@@ -291,9 +271,8 @@ public:
 	/**
 	 * Returns the lesser of two lower bounds.
 	 *
-	 * @param A - The first lower bound.
-	 * @param B - The second lower bound.
-	 *
+	 * @param A The first lower bound.
+	 * @param B The second lower bound.
 	 * @return The lesser lower bound.
 	 */
 	static FORCEINLINE const TRangeBound& MinLower( const TRangeBound& A, const TRangeBound& B )
@@ -310,9 +289,8 @@ public:
 	/**
 	 * Returns the lesser of two upper bounds.
 	 *
-	 * @param A - The first upper bound.
-	 * @param B - The second upper bound.
-	 *
+	 * @param A The first upper bound.
+	 * @param B The second upper bound.
 	 * @return The lesser upper bound.
 	 */
 	static FORCEINLINE const TRangeBound& MinUpper( const TRangeBound& A, const TRangeBound& B )

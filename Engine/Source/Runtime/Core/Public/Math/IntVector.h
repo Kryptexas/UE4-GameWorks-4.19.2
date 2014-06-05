@@ -1,5 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	IntVector.h: Declares the FIntVector structure.
+=============================================================================*/
+
 #pragma once
 
 
@@ -8,21 +12,14 @@
  */
 struct FIntVector
 {
-	/**
-	 * Holds the point's x-coordinate.
-	 */
+	/** Holds the point's x-coordinate. */
 	int32 X;
 	
-	/**
-	 * Holds the point's y-coordinate.
-	 */
+	/** Holds the point's y-coordinate. */
 	int32 Y;
 
-	/**
-	 * Holds the point's z-coordinate.
-	 */
+	/**  Holds the point's z-coordinate. */
 	int32 Z;
-
 
 public:
 
@@ -32,20 +29,19 @@ public:
 	/** An int point with INDEX_NONE values. */
 	CORE_API static const FIntVector NoneValue;
 
-
 public:
 
 	/**
-	 * Default constructor.
+	 * Default constructor (no initialization).
 	 */
-	FIntVector();
+	FIntVector( );
 
 	/**
 	 * Creates and initializes a new instance with the specified coordinates.
 	 *
-	 * @param InX - The x-coordinate.
-	 * @param InY - The y-coordinate.
-	 * @param InZ - The z-coordinate.
+	 * @param InX The x-coordinate.
+	 * @param InY The y-coordinate.
+	 * @param InZ The z-coordinate.
 	 */
 	FIntVector( int32 InX, int32 InY, int32 InZ );
 
@@ -63,33 +59,29 @@ public:
 	 */
 	explicit FORCEINLINE FIntVector( EForceInit );
 
-
 public:
 
 	/**
 	 * Gets specific component of a point.
 	 *
-	 * @param i Index of point component
-	 *
+	 * @param ComponentIndex Index of point component.
 	 * @return const reference to component.
 	 */
-	const int32& operator()( int32 i ) const;
+	const int32& operator()( int32 ComponentIndex ) const;
 
 	/**
 	 * Gets specific component of a point.
 	 *
-	 * @param i Index of point component
-	 *
+	 * @param ComponentIndex Index of point component.
 	 * @return reference to component.
 	 */
-	int32& operator()( int32 i );
+	int32& operator()( int32 ComponentIndex );
 
 	/**
 	 * Compares points for equality.
 	 *
 	 * @param Other The other int point being compared.
-	 *
-	 * @return true if the points are equal otherwise false.
+	 * @return true if the points are equal, false otherwise..
 	 */
 	bool operator==( const FIntVector& Other ) const;
 
@@ -97,8 +89,7 @@ public:
 	 * Compares points for inequality.
 	 *
 	 * @param Other The other int point being compared.
-	 *
-	 * @return true if the points are not equal otherwise false.
+	 * @return true if the points are not equal, false otherwise..
 	 */
 	bool operator!=( const FIntVector& Other ) const;
 
@@ -106,7 +97,6 @@ public:
 	 * Scales this point.
 	 *
 	 * @param Scale What to multiply the point by.
-	 *
 	 * @return Reference to this point after multiplication.
 	 */
 	FIntVector& operator*=( int32 Scale );
@@ -115,7 +105,6 @@ public:
 	 * Divides this point.
 	 *
 	 * @param Divisor What to divide the point by.
-	 *
 	 * @return Reference to this point after division.
 	 */
 	FIntVector& operator/=( int32 Divisor );
@@ -124,7 +113,6 @@ public:
 	 * Adds to this point.
 	 *
 	 * @param Other The point to add to this point.
-	 *
 	 * @return Reference to this point after addition.
 	 */
 	FIntVector& operator+=( const FIntVector& Other );
@@ -133,7 +121,6 @@ public:
 	 * Subtracts from this point.
 	 *
 	 * @param Other The point to subtract from this point.
-	 *
 	 * @return Reference to this point after subtraction.
 	 */
 	FIntVector& operator-=( const FIntVector& Other );
@@ -142,7 +129,6 @@ public:
 	 * Assigns another point to this one.
 	 *
 	 * @param Other The point to assign this point from.
-	 *
 	 * @return Reference to this point after assignment.
 	 */
 	FIntVector& operator=( const FIntVector& Other );
@@ -151,7 +137,6 @@ public:
 	 * Gets the result of scaling on this point.
 	 *
 	 * @param Scale What to multiply the point by.
-	 *
 	 * @return A new scaled int point.
 	 */
 	FIntVector operator*( int32 Scale ) const;
@@ -160,7 +145,6 @@ public:
 	 * Gets the result of division on this point.
 	 *
 	 * @param Divisor What to divide the point by.
-	 *
 	 * @return A new divided int point.
 	 */
 	FIntVector operator/( int32 Divisor ) const;
@@ -169,7 +153,6 @@ public:
 	 * Gets the result of addition on this point.
 	 *
 	 * @param Other The other point to add to this.
-	 *
 	 * @return A new combined int point.
 	 */
 	FIntVector operator+( const FIntVector& Other ) const;
@@ -178,11 +161,9 @@ public:
 	 * Gets the result of subtraction from this point.
 	 *
 	 * @param Other The other point to subtract from this.
-	 *
 	 * @return A new subtracted int point.
 	 */
 	FIntVector operator-( const FIntVector& Other ) const;
-
 
 public:
 
@@ -214,7 +195,6 @@ public:
 	 */
 	FString ToString( ) const;
 
-
 public:
 
 	/**
@@ -222,7 +202,6 @@ public:
 	 *
 	 * @param lhs The int point being divided.
 	 * @param Divisor What to divide the int point by.
-	 *
 	 * @return A new divided int point.
 	 */
 	static FIntVector DivideAndRoundUp( FIntVector lhs, int32 Divisor );
@@ -234,15 +213,13 @@ public:
 	 */
 	static int32 Num( );
 
-
 public:
 
 	/**
 	 * Serializes the Rectangle.
 	 *
-	 * @param Ar - The archive to serialize into.
-	 * @param Vector - The vector to serialize.
-	 *
+	 * @param Ar The archive to serialize into.
+	 * @param Vector The vector to serialize.
 	 * @return Reference to the Archive after serialization.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FIntVector& Vector )
@@ -251,6 +228,9 @@ public:
 	}
 };
 
+
+/* FIntVector inline functions
+ *****************************************************************************/
 
 FORCEINLINE FIntVector::FIntVector( )
 { }
@@ -277,15 +257,15 @@ FORCEINLINE FIntVector::FIntVector( EForceInit )
 { }
 
 
-FORCEINLINE const int32& FIntVector::operator()( int32 i ) const
+FORCEINLINE const int32& FIntVector::operator()( int32 ComponentIndex ) const
 {
-	return (&X)[i];
+	return (&X)[ComponentIndex];
 }
 
 
-FORCEINLINE int32& FIntVector::operator()( int32 i )
+FORCEINLINE int32& FIntVector::operator()( int32 ComponentIndex )
 {
-	return (&X)[i];
+	return (&X)[ComponentIndex];
 }
 
 

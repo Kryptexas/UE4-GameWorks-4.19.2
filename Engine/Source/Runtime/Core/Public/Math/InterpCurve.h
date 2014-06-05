@@ -1,22 +1,59 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	InterpCurve.h: Declares the FInterpCurve class.
+=============================================================================*/
+
 #pragma once
 
-template< class T > class FInterpCurve
+
+/**
+ * Template for interpolation curves.
+ *
+ * @see FInterpCurvePoint
+ * @todo Docs: FInterpCurve needs template and function documentation
+ */
+template<class T>
+class FInterpCurve
 {
 public:
-	TArray< FInterpCurvePoint<T> >	Points;
 
-	/** Constructor */
-	FInterpCurve();
+	/** Holds the collection of interpolation points. */
+	TArray<FInterpCurvePoint<T>> Points;
 
-	/** Add a new keypoint to the InterpCurve with the supplied In and Out value. Returns the index of the new key.*/
+public:
+
+	/**
+	 * Default constructor (no initialization).
+	 */
+	FInterpCurve( ) { }
+
+public:
+
+	/**
+	 * Adds a new keypoint to the InterpCurve with the supplied In and Out value.
+	 *
+	 * @param InVal
+	 * @param OutVal
+	 *
+	 * @return The index of the new key.
+	 */
 	int32 AddPoint( const float InVal, const T &OutVal );
 
-	/** Move a keypoint to a new In value. This may change the index of the keypoint, so the new key index is returned. */
+	/**
+	 * Moves a keypoint to a new In value.
+	 *
+	 * This may change the index of the keypoint, so the new key index is returned.
+	 *
+	 * @param PointIndex
+	 * @param NewInVal
+	 * @return
+	 */
 	int32 MovePoint( int32 PointIndex, float NewInVal );
 
-	/** Clear all keypoints from InterpCurve. */
+	/**
+	 * Clears all keypoints from InterpCurve.
+	 */
 	void Reset();
 
 	/** 
@@ -58,6 +95,7 @@ public:
 	/** Calculate the min/max out value that can be returned by this InterpCurve. */
 	void CalcBounds(T& OutMin, T& OutMax, const T& Default) const;
 
+public:
 
 	/**
 	 * Serializes the interp curve.
@@ -78,12 +116,16 @@ public:
 	}
 
 private:
-	/** Find the lower index of the two points whose input values bound the supplied input value */
+
+	/**
+	 * Finds the lower index of the two points whose input values bound the supplied input value.
+	 */
 	int32 GetPointIndexForInputValue(const float InValue) const;
 };
 
-template< class T > 
-FORCEINLINE FInterpCurve<T>::FInterpCurve() {}
+
+/* FInterpCurve inline functions
+ *****************************************************************************/
 
 template< class T > 
 FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal )
@@ -93,6 +135,7 @@ FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal 
 	Points[i] = FInterpCurvePoint< T >(InVal, OutVal);
 	return i;
 }
+
 
 template< class T > 
 FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
@@ -115,11 +158,13 @@ FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
 	return NewPointIndex;
 }
 
+
 template< class T > 
 FORCEINLINE void FInterpCurve<T>::Reset()
 {
 	Points.Empty();
 }
+
 
 template< class T >
 int32 FInterpCurve<T>::GetPointIndexForInputValue(const float InValue) const
@@ -157,6 +202,7 @@ int32 FInterpCurve<T>::GetPointIndexForInputValue(const float InValue) const
 
 	return MinIndex;
 }
+
 
 template< class T > 
 T FInterpCurve<T>::Eval( const float InVal, const T& Default ) const
@@ -209,6 +255,7 @@ T FInterpCurve<T>::Eval( const float InVal, const T& Default ) const
 	}
 }
 
+
 template< class T > 
 T FInterpCurve<T>::EvalDerivative( const float InVal, const T& Default ) const
 {
@@ -259,6 +306,7 @@ T FInterpCurve<T>::EvalDerivative( const float InVal, const T& Default ) const
 		return Points[Index].OutVal;
 	}
 }
+
 
 template< class T > 
 T FInterpCurve<T>::EvalSecondDerivative( const float InVal, const T& Default ) const
@@ -312,6 +360,7 @@ T FInterpCurve<T>::EvalSecondDerivative( const float InVal, const T& Default ) c
 	}
 }
 
+
 template< class T > 
 float FInterpCurve<T>::InaccurateFindNearest( const T &PointInSpace, float& OutDistanceSq ) const
 {
@@ -340,6 +389,7 @@ float FInterpCurve<T>::InaccurateFindNearest( const T &PointInSpace, float& OutD
 	}
 	return 0.0f;
 }
+
 
 template< class T > 
 float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &PointInSpace, int32 PtIdx, float& OutSquaredDistance ) const
@@ -423,6 +473,7 @@ float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &PointInSpace, in
 	}
 }
 
+
 template< class T > 
 void FInterpCurve<T>::AutoSetTangents(float Tension)
 {
@@ -493,6 +544,7 @@ void FInterpCurve<T>::AutoSetTangents(float Tension)
 	}
 }
 
+
 template< class T > 
 void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Default) const
 {
@@ -519,9 +571,23 @@ void FInterpCurve<T>::CalcBounds(T& OutMin, T& OutMax, const T& Default) const
 }
 
 
-typedef FInterpCurve<float>				FInterpCurveFloat;
-typedef FInterpCurve<FVector2D>			FInterpCurveVector2D;
-typedef FInterpCurve<FVector>			FInterpCurveVector;
-typedef FInterpCurve<FQuat>				FInterpCurveQuat;
-typedef FInterpCurve<FTwoVectors>		FInterpCurveTwoVectors;
-typedef FInterpCurve<FLinearColor>		FInterpCurveLinearColor;
+/* Common type definitions
+ *****************************************************************************/
+
+/** Type definition for floating point interpolation curves. */
+typedef FInterpCurve<float> FInterpCurveFloat;
+
+/** Type definition for 2D vector interpolation curves. */
+typedef FInterpCurve<FVector2D> FInterpCurveVector2D;
+
+/** Type definition for 3D vector interpolation curves. */
+typedef FInterpCurve<FVector> FInterpCurveVector;
+
+/** Type definition for quaternion interpolation curves. */
+typedef FInterpCurve<FQuat> FInterpCurveQuat;
+
+/** Type definition for vector pair interpolation curves. */
+typedef FInterpCurve<FTwoVectors> FInterpCurveTwoVectors;
+
+/** Type definition for color interpolation curves. */
+typedef FInterpCurve<FLinearColor> FInterpCurveLinearColor;

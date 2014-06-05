@@ -6,6 +6,7 @@
 
 #pragma once
 
+
 /**
  * Implements a thread-safe SRand based RNG.
  *
@@ -27,7 +28,7 @@ public:
 	 *
 	 * The seed should be set prior to use.
 	 */
-	FRandomStream()
+	FRandomStream( )
 		: InitialSeed(0)
 		, Seed(0)
 	{ }
@@ -35,22 +36,21 @@ public:
 	/**
 	 * Creates and initializes a new random stream from the specified seed value.
 	 *
-	 * @param InSeed - The seed value.
+	 * @param InSeed The seed value.
 	 */
-	FRandomStream(int32 InSeed)
+	FRandomStream( int32 InSeed )
 		: InitialSeed(InSeed)
 		, Seed(InSeed)
 	{ }
-
 
 public:
 
 	/**
 	 * Initializes this random stream with the specified seed value.
 	 *
-	 * @param InSeed - The seed value.
+	 * @param InSeed The seed value.
 	 */
-	void Initialize(int32 InSeed)
+	void Initialize( int32 InSeed )
 	{
 		InitialSeed = InSeed;
 		Seed = InSeed;
@@ -59,7 +59,7 @@ public:
 	/**
 	 * Resets this random stream to the initial seed value.
 	 */
-	void Reset() const
+	void Reset( ) const
 	{
 		Seed = InitialSeed;
 	}
@@ -67,7 +67,7 @@ public:
 	/**
 	 * Generates a new random seed.
 	 */
-	void GenerateNewSeed()
+	void GenerateNewSeed( )
 	{
 		Initialize(FMath::Rand());
 	}
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @return Random number.
 	 */
-	float GetFraction() const
+	float GetFraction( ) const
 	{
 		MutateSeed();
 
@@ -94,7 +94,7 @@ public:
 	 *
 	 * @return Random number.
 	 */
-	uint32 GetUnsignedInt() const
+	uint32 GetUnsignedInt( ) const
 	{
 		MutateSeed();
 
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @return Random unit vector.
 	 */
-	FVector GetUnitVector() const
+	FVector GetUnitVector( ) const
 	{
 		FVector Result;
 
@@ -116,7 +116,8 @@ public:
 			Result.X = GetFraction() * 2 - 1;
 			Result.Y = GetFraction() * 2 - 1;
 			Result.Z = GetFraction() * 2 - 1;
-		} while(Result.SizeSquared() > 1.f);
+		}
+		while(Result.SizeSquared() > 1.f);
 
 		return Result.UnsafeNormal();
 	}
@@ -126,7 +127,7 @@ public:
 	 *
 	 * @return Current seed.
 	 */
-	int32 GetCurrentSeed() const
+	int32 GetCurrentSeed( ) const
 	{
 		return Seed;
 	}
@@ -136,7 +137,7 @@ public:
 	 *
 	 * @return Random number.
 	 */
-	FORCEINLINE float FRand() const
+	FORCEINLINE float FRand( ) const
 	{
 		return GetFraction();
 	}
@@ -146,7 +147,7 @@ public:
 	 *
 	 * @return A random number in [0..A)
 	 */
-	FORCEINLINE int32 RandHelper(int32 A) const
+	FORCEINLINE int32 RandHelper( int32 A ) const
 	{
 		// Can't just multiply GetFraction by A, as GetFraction could be == 1.0f
 		return ((A > 0) ? FMath::TruncToInt(GetFraction() * ((float)A - DELTA)) : 0);
@@ -157,7 +158,7 @@ public:
 	 *
 	 * @return A random number >= Min and <= Max
 	 */
-	FORCEINLINE int32 RandRange(int32 Min, int32 Max) const
+	FORCEINLINE int32 RandRange( int32 Min, int32 Max ) const
 	{
 		const int32 Range = (Max - Min) + 1;
 
@@ -169,7 +170,7 @@ public:
 	 *
 	 * @return A random number >= Min and <= Max
 	 */
-	FORCEINLINE float FRandRange(float InMin, float InMax) const
+	FORCEINLINE float FRandRange( float InMin, float InMax ) const
 	{
 		return InMin + (InMax - InMin) * FRand();
 	}
@@ -179,7 +180,7 @@ public:
 	 *
 	 * @return Random unit vector.
 	 */
-	FORCEINLINE FVector VRand() const
+	FORCEINLINE FVector VRand( ) const
 	{
 		return GetUnitVector();
 	}
@@ -191,7 +192,7 @@ public:
 	 * @param ConeHalfAngleRad Half-angle of cone, in radians.
 	 * @return Normalized vector within the specified cone.
 	 */
-	FORCEINLINE FVector VRandCone(FVector const& Dir, float ConeHalfAngleRad)
+	FORCEINLINE FVector VRandCone( FVector const& Dir, float ConeHalfAngleRad )
 	{
 		if (ConeHalfAngleRad > 0.f)
 		{
@@ -236,7 +237,7 @@ public:
 	 * @param VerticalConeHalfAngleRad Vertical half-angle of cone, in radians.
 	 * @return Normalized vector within the specified cone.
 	 */
-	FORCEINLINE FVector VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad)
+	FORCEINLINE FVector VRandCone( FVector const& Dir, float HorizontalConeHalfAngleRad, float VerticalConeHalfAngleRad )
 	{
 		if ( (VerticalConeHalfAngleRad > 0.f) && (HorizontalConeHalfAngleRad > 0.f) )
 		{
@@ -283,11 +284,10 @@ protected:
 	/**
 	 * Mutates the current seed into the next seed.
 	 */
-	void MutateSeed() const
+	void MutateSeed( ) const
 	{
 		Seed = (Seed * 196314165) + 907633515; 
 	}
-
 
 private:
 

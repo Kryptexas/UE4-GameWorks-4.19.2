@@ -9,11 +9,12 @@
 
 /**
  * Template for range sets.
+ *
+ * @todo gmp: TRangeSet needs an overhaul
  */
 template<typename ElementType> class TRangeSet
 {
 	typedef TRange<ElementType> RangeType;
-
 
 public:
 
@@ -35,7 +36,7 @@ public:
 	 * This method merges overlapping ranges into a single range (i.e. {[1, 4], [4, 6]} becomes [1, 6]).
 	 * Adjacent ranges (i.e. {[1, 3], [4, 6]}) are not merged.
 	 *
-	 * @param Range - The range to add.
+	 * @param Range The range to add.
 	 *//*
 	void Add( RangeType Range )
 	{
@@ -59,7 +60,7 @@ public:
 	/**
 	 * Merges another range set into this set.
 	 *
-	 * @param Other - The range set to merge.
+	 * @param Other The range set to merge.
 	 */
 /*	void Merge( const TRangeSet& Other )
 	{
@@ -74,7 +75,7 @@ public:
 	 *
 	 * Ranges that overlap with the removed range will be split.
 	 *
-	 * @param Range - The range to remove.
+	 * @param Range The range to remove.
 	 */
 /*	void Remove( const RangeType& Range )
 	{
@@ -114,8 +115,7 @@ public:
 	/**
 	 * Checks whether this set contains the specified element.
 	 *
-	 * @param Element - The element to check.
-	 *
+	 * @param Element The element to check.
 	 * @return true if the element is in the set, false otherwise.
 	 */
 	bool Contains( const ElementType& Element ) const
@@ -134,8 +134,7 @@ public:
 	/**
 	 * Checks whether this set contains the specified range.
 	 *
-	 * @param Range - The range to check.
-	 *
+	 * @param Range The range to check.
 	 * @return true if the set contains the range, false otherwise.
 	 */
 	bool Contains( const RangeType& Range ) const
@@ -174,8 +173,7 @@ public:
 	/**
 	 * Checks whether this range set overlaps with the specified range.
 	 *
-	 * @param Range - The range to check.
-	 *
+	 * @param Range The range to check.
 	 * @return true if this set overlaps with the range, false otherwise.
 	 */
 	bool Overlaps( const RangeType& Range ) const
@@ -194,11 +192,10 @@ public:
 	/**
 	 * Checks whether this range set overlaps with another.
 	 *
-	 * @param Other - The other range set.
-	 *
+	 * @param Other The other range set.
 	 * @return true if the range sets overlap, false otherwise.
 	 *
-	 * @todo This could be optimized to O(n*logn) using a line sweep on a pre-sorted array of bounds.
+	 * @todo gmp: This could be optimized to O(n*logn) using a line sweep on a pre-sorted array of bounds.
 	 */
 	bool Overlaps( const TRangeSet& Other ) const
 	{
@@ -218,9 +215,8 @@ public:
 	/**
 	 * Serializes the given range set from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param RangeSet - The range set to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param RangeSet The range set to serialize.
 	 * @return The archive.
 	 */
 	friend class FArchive& operator<<( class FArchive& Ar, TRangeSet& RangeSet )

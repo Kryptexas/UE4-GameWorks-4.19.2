@@ -1,39 +1,51 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	Quat.h: Declares the FQuat class.
+=============================================================================*/
+
 #pragma once
+
 
 /**
  * Floating point quaternion.
+ *
+ * The X, Y, Z, W components also double as the Axis/Angle format.
  */
 MS_ALIGN(16) class FQuat 
 {
 public:
 
+	/** Holds the quaternion's X-component. */
+	float X;
+
+	/** Holds the quaternion's Y-component. */
+	float Y;
+
+	/** Holds the quaternion's Z-component. */
+	float Z;
+
+	/** Holds the quaternion's W-component. */
+	float W;
+
+public:
+
 	//Identity quaternion
 	static CORE_API const FQuat Identity;
 
-	// Variables.
-	float X,Y,Z,W;
-	// X,Y,Z, W also doubles as the Axis/Angle format.
+public:
 
-#if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
-	{
-		checkf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
-	}
-#else
-	FORCEINLINE void DiagnosticCheckNaN() const {}
-#endif
-
-	// Constructors.
-	FORCEINLINE FQuat();
+	/*
+	 * Default constructor (no initialization).
+	 */
+	FORCEINLINE FQuat( ) { }
 
 	/**
-	 * Constructor.
+	 * Creates and initializes a new quaternion to zero.
 	 *
 	 * @param EForceInit Force Init Enum.
 	 */
-	explicit FORCEINLINE FQuat(EForceInit);
+	explicit FORCEINLINE FQuat( EForceInit );
 
 	/**
 	 * Constructor.
@@ -46,33 +58,35 @@ public:
 	FORCEINLINE FQuat( float InX, float InY, float InZ, float InA );
 
 	/**
-	 * Constructor.
+	 * Copy constructor.
 	 *
-	 * @param Q a FQuat object to use to create new quaternion from
+	 * @param Q A FQuat object to use to create new quaternion from.
 	 */
 	FORCEINLINE FQuat( const FQuat& Q );
-
 	
 	/**
-	 * Constructor.
+	 * Creates and initializes a new quaternion from the given matrix.
 	 *
-	 * @param M a rotation matrix
+	 * @param M The rotation matrix to initialize from.
 	 */
 	explicit FQuat( const FMatrix& M );	
 
 	/**
-	 * Constructor.
+	 * Creates and initializes a new quaternion from the given rotator.
 	 *
-	 * @param R a rotator
+	 * @param R The rotator to initialize from.
 	 */
 	explicit FQuat( const FRotator& R);
 
 	/**
-	 * Get a textual representation of the vector.
+	 * Creates and initializes a new quaternion from the a rotation around the given axis.
 	 *
-	 * @return Text describing the vector.
+	 * @param Axis assumed to be a normalized vector
+	 * @param Angle angle to rotate above the given axis (in radians)
 	 */
-	FString ToString() const;
+	FQuat( FVector Axis, float AngleRad );
+
+public:
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 	/**
@@ -82,30 +96,11 @@ public:
 	 */
 	FORCEINLINE FQuat& operator=(const FQuat& Other);
 #endif
-	/**
-	 * Constructor.
-	 *
-	 * @param Axis assumed to be a normalized vector
-	 * @param Angle angle to rotate above the given axis (in radians)
-	 */
-	FQuat( FVector Axis, float AngleRad );
-
-	/**
-	 * Convert a vector of floating-point Euler angles (in degrees) into a Quaternion.
-	 * 
-	 * @param Euler the Euler angles
-	 * @return constructed FQuat
-	 */
-	static CORE_API FQuat MakeFromEuler(const FVector& Euler);
-
-	/** Convert a Quaternion into floating-point Euler angles (in degrees). */
-	CORE_API FVector Euler() const;
 
 	/**
 	 * Gets the result of adding a Quaternion to this.
 	 *
 	 * @param Q The Quaternion to add.
-	 *
 	 * @return The result of addition.
 	 */
 	FORCEINLINE FQuat operator+( const FQuat& Q ) const;
@@ -114,7 +109,6 @@ public:
 	 * Adds to this quaternion.
 	 *
 	 * @param Other The quaternion to add to this.
-	 *
 	 * @return Reference to this after addition.
 	 */
 	FORCEINLINE FQuat operator+=(const FQuat& Q);
@@ -123,7 +117,6 @@ public:
 	 * Gets the result of subtracting a Quaternion to this.
 	 *
 	 * @param Q The Quaternion to subtract.
-	 *
 	 * @return The result of subtraction.
 	 */
 	FORCEINLINE FQuat operator-( const FQuat& Q ) const;
@@ -133,7 +126,6 @@ public:
 	 *
 	 * @param Q The other Quaternion.
 	 * @param Tolerance Error Tolerance.
-	 *
 	 * @return true if two Quaternion are equal, within specified tolerance, otherwise false.
 	 */
 	FORCEINLINE bool Equals(const FQuat& Q, float Tolerance=KINDA_SMALL_NUMBER) const;
@@ -142,7 +134,6 @@ public:
 	 * Subtracts another quaternion from this.
 	 *
 	 * @param Q The other quaternion.
-	 *
 	 * @return reference to this after subtraction.
 	 */
 	FORCEINLINE FQuat operator-=(const FQuat& Q);
@@ -151,7 +142,6 @@ public:
 	 * Gets the result of multiplying a Quaternion to this.
 	 *
 	 * @param Q The Quaternion to multiply this by.
-	 *
 	 * @return The result of multiplication.
 	 */
 	FORCEINLINE FQuat operator*( const FQuat& Q ) const;
@@ -160,19 +150,23 @@ public:
 	 * Multiply this by a quaternion.
 	 *
 	 * @param Q the quaternion to multiply by this.
-	 *
 	 * @return reference to this after multiply.
 	 */
 	FORCEINLINE FQuat operator*=(const FQuat& Q);
 
 	/*
 	 * This transforms vector, not dot product
+	 *
+	 * @param V
 	 */
 	FVector operator*( const FVector& V ) const;
+
 	/* 
-	 * This matrix conversion came from 
+	 * This matrix conversion came from
 	 * http://www.m-hikari.com/ija/ija-password-2008/ija-password17-20-2008/aristidouIJA17-20-2008.pdf
-	 * used for non-uniform scaling transform
+	 * used for non-uniform scaling transform.
+	 *
+	 * @param M
 	 */	
 	FMatrix operator*( const FMatrix & M ) const;
 	
@@ -180,7 +174,6 @@ public:
 	 * Multiply this quaternion by a scaling factor.
 	 *
 	 * @param Scale The scaling factor.
-	 *
 	 * @return a reference to this after scaling.
 	 */
 	FORCEINLINE FQuat operator*=( const float Scale );
@@ -189,7 +182,6 @@ public:
 	 * Get the result of scaling this rotator.
 	 *
 	 * @param Scale The scaling factor.
-	 *
 	 * @return The result of scaling.
 	 */
 	FORCEINLINE FQuat operator*( const float Scale ) const;
@@ -198,7 +190,6 @@ public:
 	 * Divide this quaternion by scale.
 	 *
 	 * @param Scale What to divide by.
-	 *
 	 * @return new Quaternion of this after division by scale.
 	 */
 	FORCEINLINE FQuat operator/( const float Scale ) const;
@@ -207,7 +198,6 @@ public:
 	 * Checks whether two quaternions are identical.
 	 *
 	 * @param Q The other quaternion.
-	 *
 	 * @return true if two quaternion are identical, otherwise false.
 	 */
 	bool operator==( const FQuat& Q ) const;
@@ -216,7 +206,6 @@ public:
 	 * Checks whether two quaternions are not identical.
 	 *
 	 * @param Q The other quaternion.
-	 *
 	 * @return true if two quaternion are not identical, otherwise false.
 	 */
 	bool operator!=( const FQuat& Q ) const;
@@ -225,47 +214,46 @@ public:
 	 * Calculates dot product of two quaternions.
 	 *
 	 * @param Q The other quaternions.
-	 *
 	 * @return The dot product.
 	 */
 	float operator|( const FQuat& Q ) const;
+
+public:
+
+	/**
+	 * Convert a vector of floating-point Euler angles (in degrees) into a Quaternion.
+	 * 
+	 * @param Euler the Euler angles
+	 * @return constructed FQuat
+	 */
+	static CORE_API FQuat MakeFromEuler( const FVector& Euler );
+
+	/** Convert a Quaternion into floating-point Euler angles (in degrees). */
+	CORE_API FVector Euler( ) const;
 
 	/**
 	 * Normalize this quaternion if it is large enough.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 */
-	FORCEINLINE void Normalize(float Tolerance=SMALL_NUMBER);
+	FORCEINLINE void Normalize( float Tolerance=SMALL_NUMBER );
 
 	// Return true if this quaternion is normalized
-	bool IsNormalized() const;
+	bool IsNormalized( ) const;
 
 	/**
 	 * Get the length of this quaternion.
 	 *
 	 * @return The length of this quaternion.
 	 */
-	FORCEINLINE float Size() const;
+	FORCEINLINE float Size( ) const;
 
 	/**
 	 * Get the length squared of this quaternion.
 	 *
 	 * @return The length of this quaternion.
 	 */
-	FORCEINLINE float SizeSquared() const;
-
-	/**
-	 * Serializes the quaternion.
-	 *
-	 * @param Ar Reference to the serialization archive.
-	 * @param F Reference to the quaternion being serialized.
-	 *
-	 * @return Reference to the Archive after serialization.
-	 */
-	friend FArchive& operator<<( FArchive& Ar, FQuat& F )
-	{
-		return Ar << F.X << F.Y << F.Z << F.W;
-	}
+	FORCEINLINE float SizeSquared( ) const;
 
 	/** 
 	 * get the axis and angle of rotation of this quaternion
@@ -274,100 +262,126 @@ public:
 	 * @param Angle{out] angle of the quaternion
 	 * @warning : assumes normalized quaternions.
 	 */
-	void ToAxisAndAngle(FVector& Axis, float& Angle) const;
+	void ToAxisAndAngle( FVector& Axis, float& Angle ) const;
 
 	/**
 	 * Return vector rotated by this quaternion
 	 *
-	 * @param v the vector to be rotated
+	 * @param V the vector to be rotated
 	 * @return vector after rotation
 	 */
-	FVector RotateVector(FVector v) const;
+	FVector RotateVector( FVector V ) const;
 
 	/**
 	 * @return quaternion with W=0 and V=theta*v.
 	 */
-	CORE_API FQuat Log() const;
+	CORE_API FQuat Log( ) const;
 
 	/**
 	 * @note Exp should really only be used after Log.
 	 * Assumes a quaternion with W=0 and V=theta*v (where |v| = 1).
 	 * Exp(q) = (sin(theta)*v, cos(theta))
 	 */
-	CORE_API FQuat Exp() const;
+	CORE_API FQuat Exp( ) const;
 
-	FORCEINLINE FQuat Inverse() const;
+	FORCEINLINE FQuat Inverse( ) const;
 
 	/**
 	 * Enforce that the delta between this Quaternion and another one represents
 	 * the shortest possible rotation angle
 	 */
-	void EnforceShortestArcWith(const FQuat& OtherQuat);
+	void EnforceShortestArcWith( const FQuat& OtherQuat );
 	
 	/** Get X Rotation Axis. */
-	FORCEINLINE FVector GetAxisX() const;
+	FORCEINLINE FVector GetAxisX( ) const;
 
 	/** Get Y Rotation Axis. */
-	FORCEINLINE FVector GetAxisY() const;
+	FORCEINLINE FVector GetAxisY( ) const;
 
 	/** Get Z Rotation Axis. */
-	FORCEINLINE FVector GetAxisZ() const;
+	FORCEINLINE FVector GetAxisZ( ) const;
 
 	/** @return rotator representation of this quaternion */
-	FRotator Rotator() const;
-
+	FRotator Rotator( ) const;
 
 	/** @return Vector of the axis of the quaternion */
-	FORCEINLINE FVector GetRotationAxis() const;
+	FORCEINLINE FVector GetRotationAxis( ) const;
 
 	/**
 	 * Serializes the vector compressed for e.g. network transmission.
-	 * @param	Ar	Archive to serialize to/ from
-	 * @return false to allow the ordinary struct code to run (this never happens)
+	 * @param Ar Archive to serialize to/ from.
+	 * @return false to allow the ordinary struct code to run (this never happens).
 	 */
-	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	CORE_API bool NetSerialize( FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess );
+
+	/**
+	 * Utility to check if there are any NaNs in this Quaternion.
+	 *
+	 * @return true if there are any NaNs in this Quaternion, otherwise false.
+	 */
+	bool ContainsNaN( ) const;
+
+	/**
+	 * Get a textual representation of the vector.
+	 *
+	 * @return Text describing the vector.
+	 */
+	FString ToString( ) const;
+
+public:
+
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN( ) const
+	{
+		checkf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
+public:
 
 	/**
 	 * Generates the 'smallest' (geodesic) rotation between these two vectors.
 	 */
-	static CORE_API FQuat FindBetween(const FVector& vec1, const FVector& vec2);
+	static CORE_API FQuat FindBetween( const FVector& vec1, const FVector& vec2 );
 
 	/**
 	 * Error measure (angle) between two quaternions, ranged [0..1].
 	 * Returns the hypersphere-angle between two quaternions; alignment shouldn't matter, though 
 	 * @note normalized input is expected.
 	 */
-	static FORCEINLINE float Error(const FQuat& Q1, const FQuat& Q2);
+	static FORCEINLINE float Error( const FQuat& Q1, const FQuat& Q2 );
 
 	/**
 	 * FQuat::Error with auto-normalization.
 	 */
-	static FORCEINLINE float ErrorAutoNormalize(const FQuat& A, const FQuat& B);
+	static FORCEINLINE float ErrorAutoNormalize( const FQuat& A, const FQuat& B );
 
 	/** 
 	 * Fast Linear Quaternion Interpolation.
 	 * Result is NOT normalized.
 	 */
-	static FORCEINLINE FQuat FastLerp(const FQuat& A, const FQuat& B, const float Alpha);
+	static FORCEINLINE FQuat FastLerp( const FQuat& A, const FQuat& B, const float Alpha );
 
 	/** 
 	 * Bi-Linear Quaternion interpolation.
 	 * Result is NOT normalized.
 	 */
-	static FORCEINLINE FQuat FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY);
+	static FORCEINLINE FQuat FastBilerp( const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY );
 
 
 	/** Spherical interpolation. Will correct alignment. Output is not normalized. */
-	static CORE_API FQuat Slerp(const FQuat &Quat1,const FQuat &Quat2, float Slerp);
+	static CORE_API FQuat Slerp( const FQuat &Quat1,const FQuat &Quat2, float Slerp );
 
 	/**
 	 * Simpler Slerp that doesn't do any checks for 'shortest distance' etc.
 	 * We need this for the cubic interpolation stuff so that the multiple Slerps dont go in different directions.
 	 */
-	static CORE_API FQuat SlerpFullPath(const FQuat &quat1, const FQuat &quat2, float Alpha);
+	static CORE_API FQuat SlerpFullPath( const FQuat &quat1, const FQuat &quat2, float Alpha );
 	
 	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. */
-	static CORE_API FQuat Squad(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha);
+	static CORE_API FQuat Squad( const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha );
 
 	/** 
 	 * Calculate tangents between given points
@@ -380,15 +394,25 @@ public:
 	 */
 	static CORE_API void CalcTangents( const FQuat& PrevP, const FQuat& P, const FQuat& NextP, float Tension, FQuat& OutTan );
 
+public:
+
 	/**
-	 * Utility to check if there are any NaNs in this Quaternion.
+	 * Serializes the quaternion.
 	 *
-	 * @return true if there are any NaNs in this Quaternion, otherwise false.
+	 * @param Ar Reference to the serialization archive.
+	 * @param F Reference to the quaternion being serialized.
+	 * @return Reference to the Archive after serialization.
 	 */
-	bool ContainsNaN() const;
+	friend FArchive& operator<<( FArchive& Ar, FQuat& F )
+	{
+		return Ar << F.X << F.Y << F.Z << F.W;
+	}
 
 } GCC_ALIGN(16);
 
+
+/* FQuat inline functions
+ *****************************************************************************/
 
 inline FQuat::FQuat( const FMatrix& M )
 {
@@ -587,39 +611,40 @@ inline FRotator FQuat::Rotator() const
 }
 
 
-FORCEINLINE FQuat::FQuat()
-{}
+/* FQuat inline functions
+ *****************************************************************************/
 
-
-FORCEINLINE FQuat::FQuat(EForceInit ZeroOrNot)
+FORCEINLINE FQuat::FQuat( EForceInit ZeroOrNot )
 	:	X(0), Y(0), Z(0), W(ZeroOrNot == ForceInitToZero ? 0.0f : 1.0f)
-{}
+{ }
 
 
 FORCEINLINE FQuat::FQuat( float InX, float InY, float InZ, float InA )
-:	X(InX), Y(InY), Z(InZ), W(InA)
+	: X(InX)
+	, Y(InY)
+	, Z(InZ)
+	, W(InA)
 {
 	DiagnosticCheckNaN();
 }
 
 
-FORCEINLINE FQuat::FQuat( const FQuat& Q ) :
-	X(Q.X),
-	Y(Q.Y),
-	Z(Q.Z),
-	W(Q.W)
-{
-}
+FORCEINLINE FQuat::FQuat( const FQuat& Q )
+	: X(Q.X)
+	, Y(Q.Y)
+	, Z(Q.Z)
+	, W(Q.W)
+{ }
 
 
-FORCEINLINE FString FQuat::ToString() const
+FORCEINLINE FString FQuat::ToString( ) const
 {
 	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f W=%3.3f"), X, Y, Z, W);
 }
 
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
-FORCEINLINE FQuat& FQuat::operator=(const FQuat& Other)
+FORCEINLINE FQuat& FQuat::operator=( const FQuat& Other )
 {
 	this->X = Other.X;
 	this->Y = Other.Y;
@@ -673,8 +698,8 @@ FORCEINLINE FQuat FQuat::operator-( const FQuat& Q ) const
 
 FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 {
-	return (FMath::Abs(X-Q.X) < Tolerance && FMath::Abs(Y-Q.Y) < Tolerance && FMath::Abs(Z-Q.Z) < Tolerance && FMath::Abs(W-Q.W) < Tolerance)
-		|| (FMath::Abs(X+Q.X) < Tolerance && FMath::Abs(Y+Q.Y) < Tolerance && FMath::Abs(Z+Q.Z) < Tolerance && FMath::Abs(W+Q.W) < Tolerance);
+	return (FMath::Abs(X - Q.X) < Tolerance && FMath::Abs(Y - Q.Y) < Tolerance && FMath::Abs(Z - Q.Z) < Tolerance && FMath::Abs(W - Q.W) < Tolerance)
+		|| (FMath::Abs(X + Q.X) < Tolerance && FMath::Abs(Y + Q.Y) < Tolerance && FMath::Abs(Z + Q.Z) < Tolerance && FMath::Abs(W + Q.W) < Tolerance);
 }
 
 
@@ -702,7 +727,7 @@ FORCEINLINE FQuat FQuat::operator*( const FQuat& Q ) const
 }
 
 
-FORCEINLINE FQuat FQuat::operator*=(const FQuat& Q)
+FORCEINLINE FQuat FQuat::operator*=( const FQuat& Q )
 {
 	/**
 	 * Now this uses VectorQuaternionMultiply that is optimized per platform.
@@ -734,40 +759,42 @@ FORCEINLINE FQuat FQuat::operator*=( const float Scale )
 
 FORCEINLINE FQuat FQuat::operator*( const float Scale ) const
 {
-	return FQuat( Scale*X, Scale*Y, Scale*Z, Scale*W);			
+	return FQuat(Scale * X, Scale * Y, Scale * Z, Scale * W);
 }
 
 
 FORCEINLINE FQuat FQuat::operator/( const float Scale ) const
 {
-	return FQuat( X/Scale, Y/Scale, Z/Scale, W/Scale);			
+	return FQuat(X / Scale, Y / Scale, Z / Scale, W / Scale);
 }
 
 
 FORCEINLINE bool FQuat::operator==( const FQuat& Q ) const
 {
-	return X==Q.X && Y==Q.Y && Z==Q.Z &&  W==Q.W;
+	return X == Q.X && Y == Q.Y && Z == Q.Z && W == Q.W;
 }
 
 
 FORCEINLINE bool FQuat::operator!=( const FQuat& Q ) const
 {
-	return X!=Q.X || Y!=Q.Y || Z!=Q.Z || W!=Q.W;
+	return X != Q.X || Y != Q.Y || Z != Q.Z || W != Q.W;
 }
 
 
 FORCEINLINE float FQuat::operator|( const FQuat& Q ) const
 {
-	return X*Q.X + Y*Q.Y + Z*Q.Z + W*Q.W;
+	return X * Q.X + Y * Q.Y + Z * Q.Z + W * Q.W;
 }
 
 
 FORCEINLINE void FQuat::Normalize(float Tolerance)
 {
-	const float SquareSum = X*X + Y*Y + Z*Z + W*W;
-	if( SquareSum > Tolerance )
+	const float SquareSum = X * X + Y * Y + Z * Z + W * W;
+
+	if (SquareSum > Tolerance)
 	{
 		const float Scale = FMath::InvSqrt(SquareSum);
+
 		X *= Scale; 
 		Y *= Scale; 
 		Z *= Scale;
@@ -780,58 +807,59 @@ FORCEINLINE void FQuat::Normalize(float Tolerance)
 }
 
 
-FORCEINLINE bool FQuat::IsNormalized() const
+FORCEINLINE bool FQuat::IsNormalized( ) const
 {
 	return (FMath::Abs(1.f - SizeSquared()) <= KINDA_SMALL_NUMBER);
 }
 
 
-FORCEINLINE float FQuat::Size() const
+FORCEINLINE float FQuat::Size( ) const
 {
-	return FMath::Sqrt(X*X+Y*Y+Z*Z+W*W);
+	return FMath::Sqrt(X * X + Y * Y + Z * Z + W * W);
 }
 
 
-FORCEINLINE float FQuat::SizeSquared() const
+FORCEINLINE float FQuat::SizeSquared( ) const
 {
-	return (X*X+Y*Y+Z*Z+W*W);
+	return (X * X + Y * Y + Z * Z + W * W);
 }
 
 
-FORCEINLINE void FQuat::ToAxisAndAngle(FVector& Axis, float& Angle) const
+FORCEINLINE void FQuat::ToAxisAndAngle( FVector& Axis, float& Angle ) const
 {
 	Angle = 2.f * FMath::Acos(W);
 	Axis = GetRotationAxis();
 }
 
 
-FORCEINLINE FVector FQuat::GetRotationAxis() const
+FORCEINLINE FVector FQuat::GetRotationAxis( ) const
 {
 	// Ensure we never try to sqrt a neg number
-	const float S = FMath::Sqrt( FMath::Max(1.f-(W*W), 0.f) );
-	if( S >= 0.0001f ) 
+	const float S = FMath::Sqrt(FMath::Max(1.f - (W * W), 0.f));
+
+	if (S >= 0.0001f) 
 	{ 
-		return FVector(X/S, Y/S, Z/S);
+		return FVector(X / S, Y / S, Z / S);
 	} 
 
 	return FVector(1.f, 0.f, 0.f);
 }
 
 
-FORCEINLINE FVector FQuat::RotateVector(FVector v) const
+FORCEINLINE FVector FQuat::RotateVector( FVector V ) const
 {	
 	// (q.W*q.W-qv.qv)v + 2(qv.v)qv + 2 q.W (qv x v)
 
 	const FVector qv(X, Y, Z);
-	FVector vOut = 2.f * W * (qv ^ v);
-	vOut += ((W * W) - (qv | qv)) * v;
-	vOut += (2.f * (qv | v)) * qv;
+	FVector vOut = 2.f * W * (qv ^ V);
+	vOut += ((W * W) - (qv | qv)) * V;
+	vOut += (2.f * (qv | V)) * qv;
 
 	return vOut;
 }
 
 
-FORCEINLINE FQuat FQuat::Inverse() const
+FORCEINLINE FQuat FQuat::Inverse( ) const
 {
 	checkSlow(IsNormalized());
 
@@ -839,10 +867,11 @@ FORCEINLINE FQuat FQuat::Inverse() const
 }
 
 
-FORCEINLINE void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
+FORCEINLINE void FQuat::EnforceShortestArcWith( const FQuat& OtherQuat )
 {
 	const float DotResult = (OtherQuat | *this);
 	const float Bias = FMath::FloatSelect(DotResult, 1.0f, -1.0f);
+
 	X *= Bias;
 	Y *= Bias;
 	Z *= Bias;
@@ -850,42 +879,44 @@ FORCEINLINE void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
 }
 
 	
-FORCEINLINE FVector FQuat::GetAxisX() const
+FORCEINLINE FVector FQuat::GetAxisX( ) const
 {
-	return RotateVector( FVector(1.f,0.f,0.f) );
+	return RotateVector(FVector(1.f, 0.f, 0.f));
 }
 
 
-FORCEINLINE FVector FQuat::GetAxisY() const
+FORCEINLINE FVector FQuat::GetAxisY( ) const
 {
-	return RotateVector( FVector(0.f,1.f,0.f) );
+	return RotateVector(FVector(0.f, 1.f, 0.f));
 }
 
 
-FORCEINLINE FVector FQuat::GetAxisZ() const
+FORCEINLINE FVector FQuat::GetAxisZ( ) const
 {
-	return RotateVector( FVector(0.f,0.f,1.f) );
+	return RotateVector(FVector(0.f, 0.f, 1.f));
 }
 
 
-FORCEINLINE float FQuat::Error(const FQuat& Q1, const FQuat& Q2)
+FORCEINLINE float FQuat::Error( const FQuat& Q1, const FQuat& Q2 )
 {
-	const float cosom = FMath::Abs(Q1.X*Q2.X + Q1.Y*Q2.Y + Q1.Z*Q2.Z + Q1.W*Q2.W);
-	return (FMath::Abs(cosom) < 0.9999999f) ? FMath::Acos(cosom)*(1.f/PI) : 0.0f;
+	const float cosom = FMath::Abs(Q1.X * Q2.X + Q1.Y * Q2.Y + Q1.Z * Q2.Z + Q1.W * Q2.W);
+	return (FMath::Abs(cosom) < 0.9999999f) ? FMath::Acos(cosom)*(1.f / PI) : 0.0f;
 }
 
 
-FORCEINLINE float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
+FORCEINLINE float FQuat::ErrorAutoNormalize( const FQuat& A, const FQuat& B )
 {
 	FQuat Q1 = A;
 	Q1.Normalize();
+
 	FQuat Q2 = B;
 	Q2.Normalize();
+
 	return FQuat::Error(Q1, Q2);
 }
 
 
-FORCEINLINE FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Alpha)
+FORCEINLINE FQuat FQuat::FastLerp( const FQuat& A, const FQuat& B, const float Alpha )
 {
 	// To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.
 	const float DotResult = (A | B);
@@ -894,23 +925,24 @@ FORCEINLINE FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Al
 }
 
 
-FORCEINLINE FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
+FORCEINLINE FQuat FQuat::FastBilerp( const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY )
 {
 	return FQuat::FastLerp(
-					FQuat::FastLerp(P00,P10,FracX),
-					FQuat::FastLerp(P01,P11,FracX),
-					FracY
-					);
+		FQuat::FastLerp(P00,P10,FracX),
+		FQuat::FastLerp(P01,P11,FracX),
+		FracY
+	);
 }
 
 
-FORCEINLINE bool FQuat::ContainsNaN() const
+FORCEINLINE bool FQuat::ContainsNaN( ) const
 {
-	return    (FMath::IsNaN(X) || !FMath::IsFinite(X) 
-			|| FMath::IsNaN(Y) || !FMath::IsFinite(Y) 
-			|| FMath::IsNaN(Z) || !FMath::IsFinite(Z) 
-			|| FMath::IsNaN(W) || !FMath::IsFinite(W));
+	return (FMath::IsNaN(X) || !FMath::IsFinite(X) ||
+			FMath::IsNaN(Y) || !FMath::IsFinite(Y) ||
+			FMath::IsNaN(Z) || !FMath::IsFinite(Z) ||
+			FMath::IsNaN(W) || !FMath::IsFinite(W)
+	);
 }
 
 
-template <> struct TIsPODType<FQuat> { enum { Value = true }; };
+template<> struct TIsPODType<FQuat> { enum { Value = true }; };

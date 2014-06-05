@@ -14,14 +14,10 @@ namespace EQueueMode
 	 */
 	enum Type
 	{
-		/**
-		 * Multiple-producers, single-consumer queue.
-		 */
+		/** Multiple-producers, single-consumer queue. */
 		Mpsc,
 
-		/**
-		 * Single-producer, single-consumer queue.
-		 */
+		/** Single-producer, single-consumer queue. */
 		Spsc
 	};
 }
@@ -75,8 +71,7 @@ public:
 	/**
 	 * Removes and returns the item from the tail of the queue.
 	 *
-	 * @param OutValue - Will hold the returned value.
-	 *
+	 * @param OutValue Will hold the returned value.
 	 * @return true if a value was returned, false if the queue was empty.
 	 */
 	bool Dequeue( ItemType& OutItem )
@@ -103,8 +98,7 @@ public:
 	/**
 	 * Adds an item to the head of the queue.
 	 *
-	 * @param Item - The item to add.
-	 *
+	 * @param Item The item to add.
 	 * @return true if the item was added, false otherwise.
 	 */
 	bool Enqueue( const ItemType& Item )
@@ -146,8 +140,7 @@ public:
 	/**
 	 * Peeks at the queue's tail item without removing it.
 	 *
-	 * @param OutItem - Will hold the peeked at item.
-	 *
+	 * @param OutItem Will hold the peeked at item.
 	 * @return true if an item was returned, false if the queue was empty.
 	 */
 	bool Peek( ItemType& OutItem )

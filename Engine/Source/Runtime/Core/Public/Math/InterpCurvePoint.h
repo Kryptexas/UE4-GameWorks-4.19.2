@@ -1,5 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	InterpCurvePoint.h: Declares the FInterpCurvePoint class and related types.
+=============================================================================*/
+
 #pragma once
 
 enum EInterpCurveMode
@@ -28,26 +32,40 @@ enum EInterpCurveMode
 	CIM_Unknown
 };
 
+
+/**
+ * Template for interpolation points.
+ *
+ * Interpolation points are used for describing the shape of interpolation curves.
+ *
+ * @see FInterpCurve
+ * @todo Docs: FInterpCurvePoint needs better function documentation.
+ */
 template< class T > class FInterpCurvePoint
 {
 public:
+
 	/** Float input value that corresponds to this key (eg. time). */
-	float		InVal;
+	float InVal;
 
 	/** Output value of templated type when input is equal to InVal. */
-	T			OutVal;
+	T OutVal;
 
 	/** Tangent of curve arrive this point. */
-	T			ArriveTangent; 
+	T ArriveTangent; 
 
 	/** Tangent of curve leaving this point. */
-	T			LeaveTangent; 
+	T LeaveTangent; 
 
 	/** Interpolation mode between this point and the next one. @see EInterpCurveMode */
 	TEnumAsByte<EInterpCurveMode> InterpMode; 
 
-	/** Constructor */
-	FInterpCurvePoint();
+public:
+
+	/**
+	 * Default constructor (no initialization).
+	 */
+	FInterpCurvePoint( ) { };
 
 	/** 
 	 * Constructor 
@@ -56,7 +74,7 @@ public:
 	 * @param Out Output value of templated type
 	 * @note uses linear interpolation
 	 */
-	FInterpCurvePoint(const float In, const T &Out);
+	FInterpCurvePoint( const float In, const T &Out );
 
 	/** 
 	 * Constructor 
@@ -67,11 +85,14 @@ public:
 	 * @param InLeaveTangent Tangent of curve leaving from this point.
 	 * @param InInterpMode interpolation mode to use
 	 */
-	FInterpCurvePoint(const float In, const T &Out, const T &InArriveTangent, const T &InLeaveTangent, const EInterpCurveMode InInterpMode);
+	FInterpCurvePoint( const float In, const T &Out, const T &InArriveTangent, const T &InLeaveTangent, const EInterpCurveMode InInterpMode );
+
+public:
 
 	/** @return true if the key value is using a curve interp mode, otherwise false */
-	FORCEINLINE bool IsCurveKey() const;
+	FORCEINLINE bool IsCurveKey( ) const;
 
+public:
 
 	/**
 	 * Serializes the Curve Point.
@@ -90,13 +111,14 @@ public:
 	}
 };
 
-template< class T > 
-FORCEINLINE FInterpCurvePoint<T>::FInterpCurvePoint() {}
+
+/* FInterpCurvePoint inline functions
+ *****************************************************************************/
 
 template< class T > 
-FORCEINLINE FInterpCurvePoint<T>::FInterpCurvePoint(const float In, const T &Out) : 
-InVal(In), 
-	OutVal(Out)
+FORCEINLINE FInterpCurvePoint<T>::FInterpCurvePoint( const float In, const T &Out )
+	: InVal(In)
+	, OutVal(Out)
 {
 	FMemory::Memset( &ArriveTangent, 0, sizeof(T) );	
 	FMemory::Memset( &LeaveTangent, 0, sizeof(T) );
@@ -104,18 +126,19 @@ InVal(In),
 	InterpMode = CIM_Linear;
 }
 
-template< class T > 
-FORCEINLINE FInterpCurvePoint<T>::FInterpCurvePoint(const float In, const T &Out, const T &InArriveTangent, const T &InLeaveTangent, const EInterpCurveMode InInterpMode) : 
-InVal(In), 
-	OutVal(Out), 
-	ArriveTangent(InArriveTangent),
-	LeaveTangent(InLeaveTangent),
-	InterpMode(InInterpMode)
-{
-}
 
 template< class T > 
-FORCEINLINE bool FInterpCurvePoint<T>::IsCurveKey() const
+FORCEINLINE FInterpCurvePoint<T>::FInterpCurvePoint( const float In, const T &Out, const T &InArriveTangent, const T &InLeaveTangent, const EInterpCurveMode InInterpMode)
+	: InVal(In)
+	, OutVal(Out)
+	, ArriveTangent(InArriveTangent)
+	, LeaveTangent(InLeaveTangent)
+	, InterpMode(InInterpMode)
+{ }
+
+
+template< class T > 
+FORCEINLINE bool FInterpCurvePoint<T>::IsCurveKey( ) const
 {
 	return ((InterpMode == CIM_CurveAuto) || (InterpMode == CIM_CurveAutoClamped) || (InterpMode == CIM_CurveUser) || (InterpMode == CIM_CurveBreak));
 }
@@ -125,12 +148,14 @@ FORCEINLINE bool FInterpCurvePoint<T>::IsCurveKey() const
  */
 CORE_API float ClampFloatTangent( float PrevPointVal, float PrevTime, float CurPointVal, float CurTime, float NextPointVal, float NextTime );
 
+
 /** Computes Tangent for a curve segment */
 template< class T, class U > 
 inline void AutoCalcTangent( const T& PrevP, const T& P, const T& NextP, const U& Tension, T& OutTan )
 {
 	OutTan = (1.f - Tension) * ( (P - PrevP) + (NextP - P) );
 }
+
 
 /**
  * This actually returns the control point not a tangent. This is expected by the CubicInterp function for Quaternions
@@ -140,6 +165,7 @@ inline void AutoCalcTangent( const FQuat& PrevP, const FQuat& P, const FQuat& Ne
 {
 	FQuat::CalcTangents(PrevP, P, NextP, Tension, OutTan);
 }
+
 
 /** Computes a tangent for the specified control point.  General case, doesn't support clamping. */
 template< class T >
@@ -158,7 +184,6 @@ inline void ComputeCurveTangent( float PrevTime, const T& PrevPoint,
 
 	OutTangent /= PrevToNextTimeDiff;
 }
-
 
 
 /**
@@ -286,6 +311,7 @@ inline void ComputeCurveTangent( float PrevTime, const FTwoVectors& PrevPoint,
  */
 void CORE_API CurveFloatFindIntervalBounds( const FInterpCurvePoint<float>& Start, const FInterpCurvePoint<float>& End, float& CurrentMin, float& CurrentMax );
 
+
 /**
  * Calculate bounds of 2D vector intervals
  *
@@ -295,6 +321,7 @@ void CORE_API CurveFloatFindIntervalBounds( const FInterpCurvePoint<float>& Star
  * @param CurrentMax  Input and Output could be updated if needs new interval maximmum bound
  */
 void CORE_API CurveVector2DFindIntervalBounds( const FInterpCurvePoint<FVector2D>& Start, const FInterpCurvePoint<FVector2D>& End, FVector2D& CurrentMin, FVector2D& CurrentMax );
+
 
 /**
  * Calculate bounds of vector intervals
@@ -306,6 +333,7 @@ void CORE_API CurveVector2DFindIntervalBounds( const FInterpCurvePoint<FVector2D
  */
 void CORE_API CurveVectorFindIntervalBounds( const FInterpCurvePoint<FVector>& Start, const FInterpCurvePoint<FVector>& End, FVector& CurrentMin, FVector& CurrentMax );
 
+
 /**
  * Calculate bounds of twovector intervals
  *
@@ -315,6 +343,7 @@ void CORE_API CurveVectorFindIntervalBounds( const FInterpCurvePoint<FVector>& S
  * @param CurrentMax  Input and Output could be updated if needs new interval maximmum bound
  */
 void CORE_API CurveTwoVectorsFindIntervalBounds(const FInterpCurvePoint<FTwoVectors>& Start, const FInterpCurvePoint<FTwoVectors>& End, FTwoVectors& CurrentMin, FTwoVectors& CurrentMax);
+
 
 /**
  * Calculate bounds of color intervals
@@ -326,9 +355,11 @@ void CORE_API CurveTwoVectorsFindIntervalBounds(const FInterpCurvePoint<FTwoVect
  */
 void CORE_API CurveLinearColorFindIntervalBounds( const FInterpCurvePoint<FLinearColor>& Start, const FInterpCurvePoint<FLinearColor>& End, FLinearColor& CurrentMin, FLinearColor& CurrentMax );
 
+
 template< class T, class U > 
 inline void CurveFindIntervalBounds( const FInterpCurvePoint<T>& Start, const FInterpCurvePoint<T>& End, T& CurrentMin, T& CurrentMax, const U& Dummy )
 { }
+
 
 template< class U > 
 inline void CurveFindIntervalBounds( const FInterpCurvePoint<float>& Start, const FInterpCurvePoint<float>& End, float& CurrentMin, float& CurrentMax, const U& Dummy )
@@ -336,11 +367,13 @@ inline void CurveFindIntervalBounds( const FInterpCurvePoint<float>& Start, cons
 	CurveFloatFindIntervalBounds(Start, End, CurrentMin, CurrentMax);
 }
 
+
 template< class U > 
 void CurveFindIntervalBounds( const FInterpCurvePoint<FVector2D>& Start, const FInterpCurvePoint<FVector2D>& End, FVector2D& CurrentMin, FVector2D& CurrentMax, const U& Dummy )
 {
 	CurveVector2DFindIntervalBounds(Start, End, CurrentMin, CurrentMax);
 }
+
 
 template< class U > 
 inline void CurveFindIntervalBounds( const FInterpCurvePoint<FVector>& Start, const FInterpCurvePoint<FVector>& End, FVector& CurrentMin, FVector& CurrentMax, const U& Dummy )
@@ -348,11 +381,13 @@ inline void CurveFindIntervalBounds( const FInterpCurvePoint<FVector>& Start, co
 	CurveVectorFindIntervalBounds(Start, End, CurrentMin, CurrentMax);
 }
 
+
 template< class U > 
 inline void CurveFindIntervalBounds( const FInterpCurvePoint<FTwoVectors>& Start, const FInterpCurvePoint<FTwoVectors>& End, FTwoVectors& CurrentMin, FTwoVectors& CurrentMax, const U& Dummy )
 {
 	CurveTwoVectorsFindIntervalBounds(Start, End, CurrentMin, CurrentMax);
 }
+
 
 template< class U > 
 inline void CurveFindIntervalBounds( const FInterpCurvePoint<FLinearColor>& Start, const FInterpCurvePoint<FLinearColor>& End, FLinearColor& CurrentMin, FLinearColor& CurrentMax, const U& Dummy )

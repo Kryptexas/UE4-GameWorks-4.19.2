@@ -27,7 +27,7 @@ public:
 	/**
 	 * Default constructor.
 	 *
-	 * @param Size - The number of elements that the queue can hold (will be rounded up to the next power of 2).
+	 * @param Size The number of elements that the queue can hold (will be rounded up to the next power of 2).
 	 */
 	TCircularQueue( uint32 Size)
 		: Buffer(Size)
@@ -62,9 +62,8 @@ public:
 	/**
 	 * Removes an item from the front of the queue.
 	 *
-	 * @param OutElement - Will contain the element if the queue is not empty.
-	 *
-	 * @return TRUE if an element has been returned, FALSE if the queue was empty.
+	 * @param OutElement Will contain the element if the queue is not empty.
+	 * @return true if an element has been returned, false if the queue was empty.
 	 */
 	bool Dequeue( ElementType& OutElement )
 	{
@@ -92,9 +91,8 @@ public:
 	/**
 	 * Adds an item to the end of the queue.
 	 *
-	 * @param Element - The element to add.
-	 *
-	 * @return TRUE if the item was added, FALSE if the queue was full.
+	 * @param Element The element to add.
+	 * @return true if the item was added, false if the queue was full.
 	 */
 	bool Enqueue( const ElementType& Element )
 	{
@@ -114,10 +112,8 @@ public:
 	/**
 	 * Checks whether the queue is empty.
 	 *
-	 * @return TRUE if the queue is empty, FALSE otherwise.
-	 *
-	 * @see Empty
-	 * @see IsFull
+	 * @return true if the queue is empty, false otherwise.
+	 * @see Empty, IsFull
 	 */
 	FORCEINLINE bool IsEmpty( ) const
 	{
@@ -127,8 +123,7 @@ public:
 	/**
 	 * Checks whether the queue is full.
 	 *
-	 * @return TRUE if the queue is full, FALSE otherwise.
-	 *
+	 * @return true if the queue is full, false otherwise.
 	 * @see IsEmpty
 	 */
 	bool IsFull( ) const
@@ -139,9 +134,8 @@ public:
 	/**
 	 * Returns the oldest item in the queue without removing it.
 	 *
-	 * @param OutItem - Will contain the item if the queue is not empty.
-	 *
-	 * @return TRUE if an item has been returned, FALSE if the queue was empty.
+	 * @param OutItem Will contain the item if the queue is not empty.
+	 * @return true if an item has been returned, false if the queue was empty.
 	 */
 	bool Peek( ElementType& OutItem )
 	{

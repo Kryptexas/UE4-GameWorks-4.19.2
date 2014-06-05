@@ -1,22 +1,24 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	IntRect.h: Declares the FIntRect structure.
+=============================================================================*/
+
 #pragma once
+
 
 /**
  * Structure for integer rectangles in 2-d space.
+ *
+ * @todo Docs: The operators need better documentation, i.e. what does it mean to divide a rectangle?
  */
 struct FIntRect
 {
-	/**
-	 * Holds the first pixel line/row (like in Win32 RECT).
-	 */
+	/** Holds the first pixel line/row (like in Win32 RECT). */
 	FIntPoint Min;
 
-	/**
-	 * Holds the last pixel line/row (like in Win32 RECT).
-	 */
+	/** Holds the last pixel line/row (like in Win32 RECT). */
 	FIntPoint Max;
-
 
 public:
 
@@ -41,14 +43,12 @@ public:
 	 */
 	FIntRect( FIntPoint InMin, FIntPoint InMax );
 
-
 public:
 
 	/**
 	 * Gets a specific point in this rectangle.
 	 *
-	 * @param PointIndex - Index of Point in rectangle.
-	 *
+	 * @param PointIndex Index of Point in rectangle.
 	 * @return Const reference to point in rectangle.
 	 */
 	const FIntPoint& operator()( int32 PointIndex ) const;
@@ -56,8 +56,7 @@ public:
 	/**
 	 * Gets a specific point in this rectangle.
 	 *
-	 * @param PointIndex - Index of Point in rectangle.
-	 *
+	 * @param PointIndex Index of Point in rectangle.
 	 * @return Reference to point in rectangle.
 	 */
 	FIntPoint& operator()( int32 PointIndex );
@@ -66,8 +65,7 @@ public:
 	 * Compares Rectangles for equality.
 	 *
 	 * @param Other The Other Rectangle for comparison.
-	 *
-	 * @return true if the rectangles are equal otherwise false.
+	 * @return true if the rectangles are equal, false otherwise..
 	 */
 	bool operator==( const FIntRect& Other ) const;
 
@@ -75,8 +73,7 @@ public:
 	 * Compares Rectangles for inequality.
 	 *
 	 * @param Other The Other Rectangle for comparison.
-	 *
-	 * @return true if the rectangles are not equal otherwise false.
+	 * @return true if the rectangles are not equal, false otherwise..
 	 */
 	bool operator!=( const FIntRect& Other ) const;
 
@@ -84,7 +81,6 @@ public:
 	 * Applies scaling to this rectangle.
 	 *
 	 * @param Scale What to multiply the rectangle by.
-	 *
 	 * @return Reference to this rectangle after scaling.
 	 */
 	FIntRect& operator*=( int32 Scale );
@@ -92,8 +88,7 @@ public:
 	/**
 	 * Adds a point to this rectangle.
 	 *
-	 * @param Point - The point to add onto both points in the rectangle.
-	 *
+	 * @param Point The point to add onto both points in the rectangle.
 	 * @return Reference to this rectangle after addition.
 	 */
 	FIntRect& operator+=( const FIntPoint& Point );
@@ -101,8 +96,7 @@ public:
 	/**
 	 * Subtracts a point from this rectangle.
 	 *
-	 * @param Point - The point to subtract from both points in the rectangle.
-	 *
+	 * @param Point The point to subtract from both points in the rectangle.
 	 * @return Reference to this rectangle after subtraction.
 	 */
 	FIntRect& operator-=( const FIntPoint& Point );
@@ -111,7 +105,6 @@ public:
 	 * Gets the result of scaling on this rectangle.
 	 *
 	 * @param Scale What to multiply this rectangle by.
-	 *
 	 * @return New scaled rectangle.
 	 */
 	FIntRect operator*( int32 Scale ) const;
@@ -120,7 +113,6 @@ public:
 	 * Gets the result of division on this rectangle.
 	 *
 	 * @param Div What to divide this rectangle by.
-	 *
 	 * @return New divided rectangle.
 	 */
 	FIntRect operator/( int32 Div ) const;
@@ -128,19 +120,23 @@ public:
 	/**
 	 * Gets the result of adding a point to this rectangle.
 	 *
-	 * @param Point - The point to add to both points in the rectangle.
-	 *
+	 * @param Point The point to add to both points in the rectangle.
 	 * @return New rectangle with point added to it.
 	 */
 	FIntRect operator+( const FIntPoint& Point ) const;
 
+	/**
+	 * Gets the result of dividing a point with this rectangle.
+	 *
+	 * @param Point The point to divide with.
+	 * @return New rectangle with point divided.
+	 */
 	FIntRect operator/( const FIntPoint& Point ) const;
 
 	/**
 	 * Gets the result of subtracting a point from this rectangle.
 	 *
-	 * @param Point - The point to subtract from both points in the rectangle.
-	 *
+	 * @param Point The point to subtract from both points in the rectangle.
 	 * @return New rectangle with point subtracted from it.
 	 */
 	FIntRect operator-( const FIntPoint& Point ) const;
@@ -148,8 +144,7 @@ public:
 	/**
 	 * Gets the result of adding two rectangles together.
 	 *
-	 * @param Other - The other rectangle to add to this.
-	 *
+	 * @param Other The other rectangle to add to this.
 	 * @return New rectangle after both are added together.
 	 */
 	FIntRect operator+( const FIntRect& Other ) const;
@@ -157,12 +152,10 @@ public:
 	/**
 	 * Gets the result of subtracting a rectangle from this one.
 	 *
-	 * @param Other - The other rectangle to subtract from this.
-	 *
+	 * @param Other The other rectangle to subtract from this.
 	 * @return New rectangle after one is subtracted from this.
 	 */
 	FIntRect operator-( const FIntRect& Other ) const;
-
 
 public:
 
@@ -177,32 +170,29 @@ public:
 	 * Creates a rectangle from the bottom part of this rectangle.
 	 *
 	 * @param InHeight Height of the new rectangle (<= rectangles original height).
-	 *
 	 * @return The new rectangle.
 	 */
 	FIntRect Bottom( int32 InHeight ) const;
 
 	/**
 	 * Clip a rectangle using the bounds of another rectangle.
-	 *
-	 * @param Other - The other rectangle to clip against.
+	 * @param Other The other rectangle to clip against.
 	 */
 	void Clip( const FIntRect& Other );
 
 	/**
 	 * Test whether this rectangle contains a point.
 	 *
-	 * @param Point - The point to test against.
-	 *
-	 * @return true if the rectangle contains the specified point, otherwise false.
+	 * @param Point The point to test against.
+	 * @return true if the rectangle contains the specified point,, false otherwise..
 	 */
 	bool Contains( FIntPoint Point ) const;
 
 	/**
 	 * Gets the Center and Extents of this rectangle.
-
-	 * @param OutCenter - Will contain the center point.
-	 * @param OutExtent - Will contain the extent.
+	 *
+	 * @param OutCenter Will contain the center point.
+	 * @param OutExtent Will contain the extent.
 	 */
 	void GetCenterAndExtents( FIntPoint& OutCenter, FIntPoint& OutExtent ) const;
 
@@ -216,22 +206,21 @@ public:
 	/**
 	 * Inflates or deflates the rectangle.
 	 *
-	 * @param Amount - The amount to inflate or deflate the rectangle on each side.
+	 * @param Amount The amount to inflate or deflate the rectangle on each side.
 	 */
 	void InflateRect( int32 Amount );
 
 	/**
 	 * Adds to this rectangle to include a given point.
 	 *
-	 * @param Point the point to increase the rectangle to.
+	 * @param Point The point to increase the rectangle to.
 	 */
 	void Include( FIntPoint Point );
 
 	/**
 	 * Gets a new rectangle from the inner of this one.
 	 *
-	 * @param Shrink - How much to remove from each point of this rectangle.
-	 *
+	 * @param Shrink How much to remove from each point of this rectangle.
 	 * @return New inner Rectangle.
 	 */
 	FIntRect Inner( FIntPoint Shrink ) const;
@@ -240,7 +229,6 @@ public:
 	 * Creates a rectangle from the right hand side of this rectangle.
 	 *
 	 * @param InWidth Width of the new rectangle (<= rectangles original width).
-	 *
 	 * @return The new rectangle.
 	 */
 	FIntRect Right( int32 InWidth ) const;
@@ -249,7 +237,6 @@ public:
 	 * Scales a rectangle using a floating point number.
 	 *
 	 * @param Fraction What to scale the rectangle by
-	 *
 	 * @return New scaled rectangle.
 	 */
 	FIntRect Scale( float Fraction ) const;
@@ -289,7 +276,6 @@ public:
 	 *
 	 * @param lhs The Rectangle to divide.
 	 * @param Div What to divide by.
-	 *
 	 * @return New divided rectangle.
 	 */
 	static FIntRect DivideAndRoundUp( FIntRect lhs, int32 Div );
@@ -300,7 +286,6 @@ public:
 	 * @return Number of points in the Rectangle.
 	 */
 	static int32 Num( );
-
 
 public:
 
@@ -327,6 +312,9 @@ FORCEINLINE FIntRect FIntRect::Scale( float Fraction ) const
 	return FIntRect(FMath::FloorToInt(Min2D.X), FMath::FloorToInt(Min2D.Y), FMath::CeilToInt(Max2D.X), FMath::CeilToInt(Max2D.Y));
 }
 
+
+/* FIntRect inline functions
+ *****************************************************************************/
 
 FORCEINLINE FIntRect::FIntRect( )
 	: Min(ForceInit)

@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	Vector.h: Declares the FVector class.
+=============================================================================*/
+
 #pragma once
+
 
 /**
  * A 3x1 of FLOATs.
@@ -8,8 +13,28 @@
 class FVector 
 {
 public:
-	// Variables.
-	float X,Y,Z;
+
+	/** Holds the vector's X-component. */
+	float X;
+
+	/** Holds the vector's Y-component. */
+	float Y;
+
+	/** Holds the vector's Z-component. */
+	float Z;
+
+public:
+
+	/** A zero vector (0,0,0) */
+	static CORE_API const FVector ZeroVector;
+
+	/** World up vector (0,0,1) */
+	static CORE_API const FVector UpVector;
+
+	/** Local Unreal forward vector (1,0,0) */
+	static CORE_API const FVector ForwardVector;
+
+public:
 
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
@@ -97,7 +122,6 @@ public:
 	 * Calculate Cross product between this and another vector.
 	 *
 	 * @param V The other vector.
-	 *
 	 * @return The Cross product.
 	 */
 	FORCEINLINE FVector operator^( const FVector& V ) const;
@@ -107,7 +131,6 @@ public:
 	 *
 	 * @param A The first vector.
 	 * @param B The second vector.
-	 *
 	 * @return The Cross product.
 	 */
 	FORCEINLINE static FVector CrossProduct( const FVector& A, const FVector& B );
@@ -116,7 +139,6 @@ public:
 	 * Calculate the Dot Product between this and another vector.
 	 *
 	 * @param V The other vector.
-	 *
 	 * @return The Dot Product.
 	 */
 	FORCEINLINE float operator|( const FVector& V ) const;
@@ -126,7 +148,6 @@ public:
 	 *
 	 * @param A The first vector.
 	 * @param B The second vector.
-	 *
 	 * @return The Dot product.
 	 */
 	FORCEINLINE static float DotProduct( const FVector& A, const FVector& B );
@@ -135,7 +156,6 @@ public:
 	 * Gets the result of adding a vector to this.
 	 *
 	 * @param V The vector to add.
-	 *
 	 * @return The result of vector addition.
 	 */
 	FORCEINLINE FVector operator+( const FVector& V ) const;
@@ -144,7 +164,6 @@ public:
 	 * Gets the result of subtracting a vector from this.
 	 *
 	 * @param V The vector to subtract.
-	 *
 	 * @return The result of vector subtraction.
 	 */
 	FORCEINLINE FVector operator-( const FVector& V ) const;
@@ -153,7 +172,6 @@ public:
 	 * Gets the result of subtracting from each component of the vector.
 	 *
 	 * @param Bias What to subtract.
-	 *
 	 * @return The result of subtraction.
 	 */
 	FORCEINLINE FVector operator-( float Bias ) const;
@@ -162,7 +180,6 @@ public:
 	 * Gets the result of adding to each component of the vector.
 	 *
 	 * @param Bias What to add.
-	 *
 	 * @return The result of addition.
 	 */
 	FORCEINLINE FVector operator+( float Bias ) const;
@@ -171,7 +188,6 @@ public:
 	 * Gets the result of multiplying each component of the vector.
 	 *
 	 * @param Scale What to multiply by.
-	 *
 	 * @return The result of multiplication.
 	 */
 	FORCEINLINE FVector operator*( float Scale ) const;
@@ -180,7 +196,6 @@ public:
 	 * Gets the result of dividing each component of the vector.
 	 *
 	 * @param Scale What to divide by.
-	 *
 	 * @return The result of division.
 	 */
 	FVector operator/( float Scale ) const;
@@ -189,7 +204,6 @@ public:
 	 * Gets the result of multiplying vector with this.
 	 *
 	 * @param V The vector to multiply with.
-	 *
 	 * @return The result of multiplication.
 	 */
 	FORCEINLINE FVector operator*( const FVector& V ) const;
@@ -198,7 +212,6 @@ public:
 	 * Gets the result of dividing this vector by another.
 	 *
 	 * @param V The vector to divide by.
-	 *
 	 * @return The result of division.
 	 */
 	FORCEINLINE FVector operator/( const FVector& V ) const;
@@ -209,8 +222,7 @@ public:
 	 * Check against another vector for equality.
 	 *
 	 * @param V The vector to check against.
-	 *
-	 * @return true if the vectors are equal, otherwise false.
+	 * @return true if the vectors are equal, false otherwise..
 	 */
 	bool operator==( const FVector& V ) const;
 
@@ -218,8 +230,7 @@ public:
 	 * Check against another vector for inequality.
 	 *
 	 * @param V The vector to check against.
-	 *
-	 * @return true if the vectors are not equal, otherwise false.
+	 * @return true if the vectors are not equal, false otherwise..
 	 */
 	bool operator!=( const FVector& V ) const;
 
@@ -228,8 +239,7 @@ public:
 	 *
 	 * @param V The vector to check against.
 	 * @param Tolerance Error tolerance.
-	 *
-	 * @return true if the vectors are equal within tolerance limits, otherwise false.
+	 * @return true if the vectors are equal within tolerance limits, false otherwise..
 	 */
 	bool Equals(const FVector& V, float Tolerance=KINDA_SMALL_NUMBER) const;
 
@@ -237,11 +247,9 @@ public:
 	 * Checks whether all components of the vector are the same, within a tolerance.
 	 *
 	 * @param Tolerance Error Tolerance.
-	 *
-	 * @return true if the vectors are equal within tolerance limits, otherwise false.
+	 * @return true if the vectors are equal within tolerance limits, false otherwise..
 	 */
 	bool AllComponentsEqual(float Tolerance=KINDA_SMALL_NUMBER) const;
-
 
 	/**
 	 * Get a negated copy of the vector.
@@ -250,12 +258,10 @@ public:
 	 */
 	FORCEINLINE FVector operator-() const;
 
-
 	/**
 	 * Adds another vector to this.
 	 *
 	 * @param V Vector to add.
-	 *
 	 * @return Copy of the vector after addition.
 	 */
 	FORCEINLINE FVector operator+=( const FVector& V );
@@ -264,7 +270,6 @@ public:
 	 * Subtracts another vector from this.
 	 *
 	 * @param V Vector to subtract.
-	 *
 	 * @return Copy of the vector after subtraction.
 	 */
 	FORCEINLINE FVector operator-=( const FVector& V );
@@ -273,7 +278,6 @@ public:
 	 * Scales the vector.
 	 *
 	 * @param Scale What to scale vector by.
-	 *
 	 * @return Copy of the vector after scaling.
 	 */
 	FORCEINLINE FVector operator*=( float Scale );
@@ -282,7 +286,6 @@ public:
 	 * Divides the vector by a number.
 	 *
 	 * @param V What to divide the vector by.
-	 *
 	 * @return Copy of the vector after division.
 	 */
 	FVector operator/=( float V );
@@ -291,7 +294,6 @@ public:
 	 * Multiplies the vector with another vector.
 	 *
 	 * @param V What to multiply vector with.
-	 *
 	 * @return Copy of the vector after multiplication.
 	 */
 	FVector operator*=( const FVector& V );
@@ -300,7 +302,6 @@ public:
 	 * Divides the vector by another vector.
 	 *
 	 * @param V What to divide vector by.
-	 *
 	 * @return Copy of the vector after division.
 	 */
 	FVector operator/=( const FVector& V );
@@ -309,7 +310,6 @@ public:
 	 * Gets specific component of the vector.
 	 *
 	 * @param Index the index of vector component
-	 *
 	 * @return reference to component.
 	 */
 	float& operator[]( int32 Index );
@@ -318,7 +318,6 @@ public:
 	 * Gets specific component of the vector.
 	 *
 	 * @param Index the index of vector component
-	 *
 	 * @return Copy of the component.
 	 */
 	float operator[]( int32 Index )const;
@@ -407,15 +406,14 @@ public:
 	 * Checks whether vector is near to zero within a specified tolerance.
 	 *
 	 * @param Tolerance Error tolerance.
-	 *
-	 * @return true if the vector is near to zero, otherwise false.
+	 * @return true if the vector is near to zero, false otherwise..
 	 */
 	bool IsNearlyZero(float Tolerance=KINDA_SMALL_NUMBER) const;
 
 	/**
 	 * Checks whether vector is exactly zero.
 	 *
-	 * @return true if the vector is exactly zero, otherwise false.
+	 * @return true if the vector is exactly zero, false otherwise..
 	 */
 	bool IsZero() const;
 
@@ -423,8 +421,7 @@ public:
 	 * Normalize this vector if it is large enough.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
-	 *
-	 * @return true if the vector was normalized correctly, otherwise false.
+	 * @return true if the vector was normalized correctly, false otherwise..
 	 */
 	bool Normalize(float Tolerance=SMALL_NUMBER);
 
@@ -468,7 +465,6 @@ public:
 	 * Gets a copy of this vector snapped to a grid.
 	 *
 	 * @param GridSz Grid dimension.
-	 *
 	 * @return A copy of this vector snapped to a grid.
 	 */
 	FVector GridSnap( const float& GridSz ) const;
@@ -477,7 +473,6 @@ public:
 	 * Get a copy of this vector, clamped inside of a cube.
 	 *
 	 * @param Radius Half size of the cube.
-	 *
 	 * @return A copy of this vector, bound by cube.
 	 */
 	FVector BoundToCube( float Radius ) const;
@@ -493,7 +488,6 @@ public:
 
 	/** Create a copy of this vector, with the 2D magnitude clamped to MaxSize. Z is unchanged. */
 	FVector ClampMaxSize2D(float MaxSize) const;
-
 
 	/**
 	 * Add a vector to this and clamp the result in a cube.
@@ -516,7 +510,6 @@ public:
 	 * Gets a specific component of the vector.
 	 *
 	 * @param Index The index of the component required.
-	 *
 	 * @return Copy of the specified component.
 	 */
 	float Component( int32 Index ) const;
@@ -533,7 +526,6 @@ public:
 	 * Check whether X, Y and Z are nearly equal.
 	 *
 	 * @param Tolerance Specified Tolerance.
-	 *
 	 * @return true if X == Y == Z within the specified tolerance.
 	 */
 	bool IsUniform(float Tolerance=KINDA_SMALL_NUMBER) const;
@@ -542,7 +534,6 @@ public:
 	 * Mirror a vector about a normal vector.
 	 *
 	 * @param MirrorNormal Normal vector to mirror about.
-	 *
 	 * @return Mirrored vector.
 	 */
 	FVector MirrorByVector( const FVector& MirrorNormal ) const;
@@ -551,7 +542,6 @@ public:
 	 * Mirrors a vector about a plane.
 	 *
 	 * @param Plane Plane to mirror about.
-	 *
 	 * @return Mirrored vector.
 	 */
 	FVector MirrorByPlane( const FPlane& Plane ) const;
@@ -561,7 +551,6 @@ public:
 	 *
 	 * @param Angle Angle to rotate (in degrees).
 	 * @param Axis Axis to rotate around.
-	 *
 	 * @return Rotated Vector.
 	 */
 	FVector RotateAngleAxis( const float AngleDeg, const FVector& Axis ) const;
@@ -570,7 +559,6 @@ public:
 	 * Gets a normalized copy of the vector, checking it is safe to do so.
 	 *
 	 * @param Tolerance Minimum squared vector length.
-	 *
 	 * @return Normalized copy if safe, otherwise returns zero vector.
 	 */
 	FVector SafeNormal(float Tolerance=SMALL_NUMBER) const;
@@ -579,7 +567,6 @@ public:
 	 * Gets a normalized copy of the 2D components of the vector, checking it is safe to do so.
 	 *
 	 * @param Tolerance Minimum squared vector length.
-	 *
 	 * @return Normalized copy if safe, otherwise returns zero vector.
 	 */
 	FVector SafeNormal2D(float Tolerance=SMALL_NUMBER) const;
@@ -588,7 +575,6 @@ public:
 	 * Returns the cosine of the angle between this vector and another projected onto the XY plane (no z)
 	 *
 	 * @param B the other vector to find the 2D cosine of the angle with.
-	 *
 	 * @return The cosine.
 	 */
 	FORCEINLINE float CosineAngle2D(FVector B) const;
@@ -597,7 +583,6 @@ public:
 	 * Projects this vector onto the input vector.
 	 *
 	 * @param A Vector to project onto, does not assume it is unnormalized.
-	 *
 	 * @return Projected vector.
 	 */
 	FORCEINLINE FVector ProjectOnTo( const FVector& A ) const ;
@@ -626,7 +611,7 @@ public:
 	/**
 	 * Utility to check if there are any NaNs in this vector.
 	 *
-	 * @return true if there are any NaNs in this vector, otherwise false.
+	 * @return true if there are any NaNs in this vector, false otherwise..
 	 */
 	bool ContainsNaN() const;
 
@@ -634,7 +619,6 @@ public:
 	 * Check if the vector is of unit length, with specified tolerance.
 	 *
 	 * @param LengthSquaredTolerance Tolerance against squared length.
-	 *
 	 * @return true if the vector is a unit vector within the specified tolerance.
 	 */
 	FORCEINLINE bool IsUnit(float LengthSquaredTolerance = KINDA_SMALL_NUMBER ) const;
@@ -664,7 +648,6 @@ public:
 	 * The FVector will be bogus when InitFromString returns false.
 	 *
 	 * @param	InSourceString	FString containing the vector values.
-	 *
 	 * @return true if the X,Y,Z values were read successfully; false otherwise.
 	 */
 	bool InitFromString( const FString & InSourceString );
@@ -699,7 +682,6 @@ public:
 	 *
 	 * @param P First vector.
 	 * @param Q Second vector.
-	 *
 	 * @return 1=yes, 0=no.  Uses fast distance approximation.
 	 */
 	static bool PointsAreSame( const FVector &P, const FVector &Q );
@@ -710,7 +692,6 @@ public:
 	 * @param Point1 First vector.
 	 * @param Point2 Second vector.
 	 * @param Dist Specified distance.
-	 *
 	 * @return 1=yes, 0=no.  Uses fast distance approximation.
 	 */
 	static bool PointsAreNear( const FVector &Point1, const FVector &Point2, float Dist );
@@ -722,7 +703,6 @@ public:
 	 * @param Point The Point we are checking.
 	 * @param PlaneBase The Base Point in the plane.
 	 * @param PlaneNormal The Normal of the plane.
-	 *
 	 * @return Signed distance  between point and plane.
 	 */
 	static float PointPlaneDist( const FVector &Point, const FVector &PlaneBase, const FVector &PlaneNormal );
@@ -732,7 +712,6 @@ public:
 	 *
 	 * @param Point - the point to project onto the plane
 	 * @param Plane - the plane
-	 *
 	 * @return Projection of Point onto Plane
 	 */
 	static FVector PointPlaneProject(const FVector& Point, const FPlane& Plane);
@@ -742,7 +721,6 @@ public:
 	 *
 	 * @param Point - the point to project onto the plane
 	 * @param A,B,C - three points in CCW order defining the plane 
-	 *
 	 * @return Projection of Point onto plane ABC
 	 */
 	static FVector PointPlaneProject(const FVector& Point, const FVector& A, const FVector& B, const FVector& C);
@@ -753,7 +731,6 @@ public:
 	* @param Point - the point to project onto the plane
 	* @param PlaneBase - point on the plane
 	* @param PlaneNorm - normal of the plane
-	*
 	* @return Projection of Point onto plane ABC
 	*/
 	static FVector PointPlaneProject(const FVector& Point, const FVector& PlaneBase, const FVector& PlaneNorm);
@@ -763,7 +740,6 @@ public:
 	 *
 	 * @param V1 The first point.
 	 * @param V2 The second point.
-	 *
 	 * @return The distance between two points.
 	 */
 	static FORCEINLINE float Dist( const FVector &V1, const FVector &V2 );
@@ -773,7 +749,6 @@ public:
 	 *
 	 * @param V1 The first point.
 	 * @param V2 The second point.
-	 *
 	 * @return The squared distance between two points.
 	 */
 	static FORCEINLINE float DistSquared( const FVector &V1, const FVector &V2 );
@@ -783,7 +758,6 @@ public:
 	 *
 	 * @param Normal The plane normal.
 	 * @param Size The size of the box.
-	 *
 	 * @return Pushout required.
 	 */
 	static FORCEINLINE float BoxPushOut( const FVector & Normal, const FVector & Size );
@@ -793,8 +767,7 @@ public:
 	 *
 	 * @param Normal1 First normalized vector.
 	 * @param Normal1 Second normalized vector.
-	 *
-	 * @return true if vectors are parallel, otherwise false.
+	 * @return true if vectors are parallel, false otherwise..
 	 */
 	static bool Parallel( const FVector &Normal1, const FVector &Normal2 );
 
@@ -805,8 +778,7 @@ public:
 	 * @param Normal1 The normal of the first plane.
 	 * @param Base2 The base point in the second plane.
 	 * @param Normal2 The normal of the second plane.
-	 *
-	 * @return true if the planes are coplanar, otherwise false.
+	 * @return true if the planes are coplanar, false otherwise..
 	 */
 	static bool Coplanar( const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2 );
 
@@ -816,7 +788,6 @@ public:
 	 * @param X The first vector.
 	 * @param Y The second vector.
 	 * @param Z The third vector.
-	 *
 	 * @return The triple product.
 	 */
 	static float Triple( const FVector& X, const FVector& Y, const FVector& Z );
@@ -824,11 +795,10 @@ public:
 	/**
 	 * Generates a list of sample points on a Bezier curve defined by 2 points.
 	 *
-	 * @param	ControlPoints	Array of 4 FVectors (vert1, controlpoint1, controlpoint2, vert2).
-	 * @param	NumPoints		Number of samples.
-	 * @param	OutPoints		Receives the output samples.
-	 *
-	 * @return					Path length.
+	 * @param ControlPoints	Array of 4 FVectors (vert1, controlpoint1, controlpoint2, vert2).
+	 * @param NumPoints Number of samples.
+	 * @param OutPoints Receives the output samples.
+	 * @return The path length.
 	 */
 	static CORE_API float EvaluateBezier(const FVector* ControlPoints, int32 NumPoints, TArray<FVector>& OutPoints);
 
@@ -848,7 +818,6 @@ public:
 	 *
 	 * @param Ar Serialization Archive.
 	 * @param V Vector to serialize.
-	 *
 	 * @return Reference to Archive after serialization.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FVector& V )
@@ -859,14 +828,11 @@ public:
 	}
 
 	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	/** A zero vector (0,0,0) */
-	static CORE_API const FVector ZeroVector;
-	/** World up vector (0,0,1) */
-	static CORE_API const FVector UpVector;
-	/** Local Unreal forward vector (1,0,0) */
-	static CORE_API const FVector ForwardVector;
 };
+
+
+/* FVector inline functions
+ *****************************************************************************/
 
 /**
  * Multiplies a vector by a scaling factor.

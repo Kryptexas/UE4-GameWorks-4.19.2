@@ -137,7 +137,7 @@ public:
 	/**
 	 * Creates and initializes a new instance from a TCHAR string.
 	 *
-	 * @param InString - The initial value.
+	 * @param InString The initial value.
 	 */
 	FVariant( const TCHAR* InString )
 	{
@@ -149,8 +149,7 @@ public:
 	/**
 	 * Copy assignment operator.
 	 *
-	 * @param Other - The value to assign.
-	 *
+	 * @param Other The value to assign.
 	 * @return This instance.
 	 */
 	FVariant& operator=( const FVariant& Other )
@@ -167,9 +166,8 @@ public:
 	/**
 	 * Assignment operator.
 	 *
-	 * @param T - The type of the value to assign.
-	 * @param InValue - The value to assign.
-	 *
+	 * @param T The type of the value to assign.
+	 * @param InValue The value to assign.
 	 * @return This instance.
 	 */
 	template<typename T>
@@ -190,8 +188,7 @@ public:
 	 * serialize any complex types into arrays and then store them in FVariant, you will be
 	 * responsible for ensuring byte ordering if the FVariant gets sent over the network.
 	 *
-	 * @param InArray - The byte array to assign.
-	 *
+	 * @param InArray The byte array to assign.
 	 * @return This instance.
 	 */
 	FVariant& operator=( const TArray<uint8> InArray )
@@ -205,8 +202,7 @@ public:
 	/**
 	 * Assignment operator for TCHAR strings.
 	 *
-	 * @param InString - The value to assign.
-	 *
+	 * @param InString The value to assign.
 	 * @return This instance.
 	 */
 	FVariant& operator=( const TCHAR* InString )
@@ -220,8 +216,7 @@ public:
 	/**
 	 * Implicit conversion operator.
 	 *
-	 * @param T - The type to convert the value to.
-	 *
+	 * @param T The type to convert the value to.
 	 * @return The value converted to the specified type.
 	 */
 	template<typename T>
@@ -235,8 +230,7 @@ public:
 	/**
 	 * Comparison operator for equality.
 	 *
-	 * @param Other - The variant to compare with.
-	 *
+	 * @param Other The variant to compare with.
 	 * @return true if the values are equal, false otherwise.
 	 */
 	bool operator==( const FVariant& Other ) const
@@ -247,8 +241,7 @@ public:
 	/**
 	 * Comparison operator for inequality.
 	 *
-	 * @param Other - The variant to compare with.
-	 *
+	 * @param Other The variant to compare with.
 	 * @return true if the values are not equal, false otherwise.
 	 */
 	bool operator!=( const FVariant& Other ) const
@@ -290,7 +283,6 @@ public:
 	 * GetValue<TArray<uint8>>() instead.
 	 *
 	 * @return Byte array.
-	 *
 	 * @see GetValue
 	 */
 	const TArray<uint8>& GetBytes( ) const
@@ -302,9 +294,7 @@ public:
 	 * Gets the stored value's size (in bytes).
 	 *
 	 * @return Size of the value.
-	 *
-	 * @see GetType
-	 * @see GetValue
+	 * @see GetType, GetValue
 	 */
 	int32 GetSize( ) const
 	{
@@ -315,9 +305,7 @@ public:
 	 * Gets the stored value's type.
 	 *
 	 * @return Type of the value.
-	 *
-	 * @see GetSize
-	 * @see GetValue
+	 * @see GetSize, GetValue
 	 */
 	int32 GetType( ) const
 	{
@@ -331,9 +319,7 @@ public:
 	 * convertible types. The exact type of the value to be extracted must be known.
 	 *
 	 * @return The value.
-	 *
-	 * @see GetSize
-	 * @see GetType
+	 * @see GetSize, GetType
 	 */
 	template<typename T>
 	T GetValue( ) const
@@ -353,9 +339,8 @@ public:
 	/**
 	 * Serializes the given variant type from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param Variant - The value to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param Variant The value to serialize.
 	 * @return The archive.
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FVariant& Variant )
@@ -383,7 +368,6 @@ private:
  * To retrieve any value as an array of serialized bytes, use GetBytes() instead.
  *
  * @return The byte array.
- *
  * @see GetBytes
  */
 template<>

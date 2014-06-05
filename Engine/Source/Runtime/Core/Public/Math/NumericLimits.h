@@ -4,10 +4,12 @@
 	NumericLimits.h: Unreal numeric limits
 =============================================================================*/
 
-/*-----------------------------------------------------------------------------
-	Numeric constants.
------------------------------------------------------------------------------*/
 #pragma once
+
+
+/* Numeric constants
+ *****************************************************************************/
+
 #define MIN_uint8		((uint8)	0x00)
 #define	MIN_uint16		((uint16)	0x0000)
 #define	MIN_uint32		((uint32)	0x00000000)
@@ -30,6 +32,10 @@
 #define MAX_flt			(3.402823466e+38F)
 #define MIN_dbl			(2.2250738585072014e-308)	/* min positive value */
 #define MAX_dbl			(1.7976931348623158e+308)	
+
+
+/* Numeric type traits
+ *****************************************************************************/
 
 /**
  * Helper class to maps numeric type to it's limits
@@ -65,14 +71,15 @@ struct TNumericLimits
 	}
 };
 
+
 /**
  * Numeric limits for const types
  */
 template <typename NumericType>
 struct TNumericLimits<const NumericType> 
 	: public TNumericLimits<NumericType>
-{
-};
+{ };
+
 
 /**
  * Numeric limits for volatile types
@@ -80,8 +87,8 @@ struct TNumericLimits<const NumericType>
 template <typename NumericType>
 struct TNumericLimits<volatile NumericType> 
 	: public TNumericLimits<NumericType>
-{
-};
+{ };
+
 
 /**
  * Numeric limits for const volatile types
@@ -89,10 +96,10 @@ struct TNumericLimits<volatile NumericType>
 template <typename NumericType>
 struct TNumericLimits<const volatile NumericType> 
 	: public TNumericLimits<NumericType>
-{
-};
+{ };
 
-template <>
+
+template<>
 struct TNumericLimits<uint8> 
 {
 	typedef uint8 NumericType;
@@ -113,7 +120,8 @@ struct TNumericLimits<uint8>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<uint16> 
 {
 	typedef uint16 NumericType;
@@ -134,7 +142,8 @@ struct TNumericLimits<uint16>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<uint32> 
 {
 	typedef uint32 NumericType;
@@ -155,7 +164,8 @@ struct TNumericLimits<uint32>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<uint64> 
 {
 	typedef uint64 NumericType;
@@ -176,7 +186,8 @@ struct TNumericLimits<uint64>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<int8> 
 {
 	typedef int8 NumericType;
@@ -197,7 +208,8 @@ struct TNumericLimits<int8>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<int16> 
 {
 	typedef int16 NumericType;
@@ -218,7 +230,8 @@ struct TNumericLimits<int16>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<int32> 
 {
 	typedef int32 NumericType;
@@ -239,7 +252,8 @@ struct TNumericLimits<int32>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<int64> 
 {
 	typedef int64 NumericType;
@@ -260,7 +274,8 @@ struct TNumericLimits<int64>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<float> 
 {
 	typedef float NumericType;
@@ -281,7 +296,8 @@ struct TNumericLimits<float>
 	}
 };
 
-template <>
+
+template<>
 struct TNumericLimits<double> 
 {
 	typedef double NumericType;

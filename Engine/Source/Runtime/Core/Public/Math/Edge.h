@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	Edge.h: Declares the FEdge class.
+	Edge.h: Declares the FEdge structure.
 =============================================================================*/
 
 #pragma once
@@ -10,20 +10,26 @@
 /**
  * Implements an edge consisting of two vertices.
  */
-class FEdge
+struct FEdge
 {
+	/** Holds the edge vertices. */
+	FVector Vertex[2];
+
+	/** Holds a temporary variable used when creating arrays of unique edges. */
+	int32 Count;
+
 public:
 
 	/**
-	 * Default constructor.
+	 * Default constructor (no initialization).
 	 */
 	FEdge () { }
 
 	/**
 	 * Creates and initializes a new edge from two vertices.
 	 *
-	 * @param V1 - The first vertex.
-	 * @param V2 - The second vertex.
+	 * @param V1 The first vertex.
+	 * @param V2 The second vertex.
 	 */
 	FEdge (FVector V1, FVector V2)
 	{
@@ -32,31 +38,16 @@ public:
 		Count = 0;
 	}
 
-
 public:
 
 	/**
 	 * Compares this edge with another.
 	 *
-	 * @param E - The other edge.
-	 *
+	 * @param E The other edge.
 	 * @return true if the two edges are identical, false otherwise.
 	 */
 	bool operator== (const FEdge& E) const
 	{
 		return (((E.Vertex[0] == Vertex[0]) && (E.Vertex[1] == Vertex[1])) || ((E.Vertex[0] == Vertex[1]) && (E.Vertex[1] == Vertex[0])));
 	}
-
-
-public:
-
-	/**
-	 * Holds the edge  vertices.
-	 */
-	FVector Vertex[2];
-
-	/**
-	 * Holds a temporary variable used when creating arrays of unique edges.
-	 */
-	int32 Count;
 };
