@@ -334,23 +334,133 @@ int32 USkeletalMesh::GetClothAssetIndex(int32 SectionIndex)
 }
 #endif//#if WITH_APEX_CLOTHING
 
+void USkeletalMeshComponent::CreateBodySetup()
+{
+	if (BodySetup == NULL)
+	{
+		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
+	}
+}
+
+bool USkeletalMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
+{
+#if WITH_EDITORONLY_DATA
+
+	// Fail if no mesh or not per poly collision
+	if (!SkeletalMesh || !MeshObject || !bEnablePerPolyCollision)
+	{
+		return false;
+	}
+
+	const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+
+	{
+		// Copy all verts into collision vertex buffer.
+		CollisionData->Vertices.Empty();
+		CollisionData->Vertices.AddUninitialized(Model.NumVertices);
+		const uint32 NumChunks = Model.Chunks.Num();
+
+		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+		{
+			const FSkelMeshChunk & Chunk = Model.Chunks[ChunkIdx];
+			{
+				//rigid
+				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
+				const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
+				for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
+				{
+					CollisionData->Vertices[RigidIdx + RigidOffset] = Chunk.RigidVertices[RigidIdx].Position;
+				}
+			}
+			{
+				//soft
+				const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
+				const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
+				for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+				{
+					CollisionData->Vertices[SoftIdx + SoftOffset] = Chunk.SoftVertices[SoftIdx].Position;
+				}
+			}
+			
+		}
+	}
+	
+	{
+		// Copy indices into collision index buffer
+		const FMultiSizeIndexContainer & IndexBufferContainer = Model.MultiSizeIndexContainer;
+
+		TArray<uint32> Indices;
+		IndexBufferContainer.GetIndexBuffer(Indices);
+
+		const uint32 NumTris = Indices.Num() / 3;
+		CollisionData->Indices.Empty();
+		CollisionData->Indices.Reserve(NumTris);
+
+		FTriIndices TriIndex;
+		for (int32 SectionIndex = 0; SectionIndex < Model.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+
+			const uint32 OnePastLastIndex = Section.BaseIndex + Section.NumTriangles * 3;
+
+			for (uint32 i = Section.BaseIndex; i < OnePastLastIndex; i += 3)
+			{
+				TriIndex.v0 = Indices[i];
+				TriIndex.v1 = Indices[i + 1];
+				TriIndex.v2 = Indices[i + 2];
+
+				CollisionData->Indices.Add(TriIndex);
+				CollisionData->MaterialIndices.Add(Section.MaterialIndex);
+			}
+		}
+	}
+
+	CollisionData->bFlipNormals = true;
+
+	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
+	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
+	return CollisionData->Vertices.Num() > 0 && CollisionData->Indices.Num() > 0;
+#else // #if WITH_EDITORONLY_DATA
+	return false;
+#endif // #if WITH_EDITORONLY_DATA
+}
+
+bool USkeletalMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
+{
+	return bEnablePerPolyCollision;
+}
+
 //
 //	USkeletalMeshComponent
 //
 UBodySetup* USkeletalMeshComponent::GetBodySetup()
 {
-	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
-	if(SkeletalMesh && PhysicsAsset)
+	if (bEnablePerPolyCollision == false)
 	{
-		for(int32 i=0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
+		UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+		if (SkeletalMesh && PhysicsAsset)
 		{
-			int32 BodyIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(i) );
-			if(BodyIndex != INDEX_NONE)
+			for (int32 i = 0; i < SkeletalMesh->RefSkeleton.GetNum(); i++)
 			{
-				return PhysicsAsset->BodySetup[BodyIndex];
+				int32 BodyIndex = PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(i));
+				if (BodyIndex != INDEX_NONE)
+				{
+					return PhysicsAsset->BodySetup[BodyIndex];
+				}
 			}
 		}
-	}	
+	}
+	else
+	{
+		if (BodySetup == NULL)
+		{
+			CreateBodySetup();
+		}
+
+		return BodySetup;
+	}
+
 
 	return NULL;
 }
@@ -907,7 +1017,7 @@ void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBo
 	for(int32 i=0; i<BodyIndices.Num(); i++)
 	{
 		//UE_LOG(LogSkeletalMesh, Warning, TEXT( "ForceAllBodiesBelowUnfixed %s" ), *InAsset->BodySetup(BodyIndices(i))->BoneName.ToString() );
-		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics( bNewSimulate );
+		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics(bNewSimulate);
 	}
 }
 
@@ -1197,15 +1307,27 @@ void USkeletalMeshComponent::CreatePhysicsState()
 {
 	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
 	// Init physics
-	InitArticulated(World->GetPhysicsScene());
+	if (bEnablePerPolyCollision == false)
+	{
+		InitArticulated(World->GetPhysicsScene());
+		USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+	}
+	else
+	{
+		CreateBodySetup();
+		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
+	}
 
-	USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+	
 }
 
 
 void USkeletalMeshComponent::DestroyPhysicsState()
 {
-	TermArticulated();
+	if (bEnablePerPolyCollision == false)
+	{
+		TermArticulated();
+	}
 
 	Super::DestroyPhysicsState();
 }
@@ -2976,6 +3098,8 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	{
 		BlendInPhysics();
 	}
+
+	//TODO: move this into pre physics tick
 
 #if WITH_APEX_CLOTHING
 	// if skeletal mesh has clothing assets, call TickClothing

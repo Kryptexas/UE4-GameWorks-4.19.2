@@ -278,75 +278,84 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 		UE_LOG(LogPhysics, Log, TEXT("USkeletalMeshComponent::UpdateKinematicBonesToPhysics : Non-uniform scale factor (%s) can cause physics to mismatch for %s  SkelMesh: %s"), *MeshScale3D.ToString(), *GetFullName(), SkeletalMesh ? *SkeletalMesh->GetFullName() : TEXT("NULL"));
 	}
 #endif
-	const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
-	if(PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
+
+	if (bEnablePerPolyCollision == false)
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if ( !ensure( PhysicsAsset->BodySetup.Num() == Bodies.Num()) )
+		const UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+		if (PhysicsAsset && SkeletalMesh && Bodies.Num() > 0)
 		{
-			// related to TTP 280315
-			UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"), 
-				*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->BodySetup.Num(), Bodies.Num());
-			return;
-		}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (!ensure(PhysicsAsset->BodySetup.Num() == Bodies.Num()))
+			{
+				// related to TTP 280315
+				UE_LOG(LogPhysics, Warning, TEXT("Mesh (%s) has PhysicsAsset(%s), and BodySetup(%d) and Bodies(%d) don't match"),
+					*SkeletalMesh->GetName(), *PhysicsAsset->GetName(), PhysicsAsset->BodySetup.Num(), Bodies.Num());
+				return;
+			}
 #endif
 
-		// Iterate over each body
-		for(int32 i = 0; i < Bodies.Num(); i++)
-		{
-			// If we have a physics body, and its kinematic...
-			FBodyInstance* BodyInst = Bodies[i];
-			check(BodyInst);
-
-			if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
+			// Iterate over each body
+			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				// Find the graphics bone index that corresponds to this physics body.
-				FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;
-				int32 const BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BodyName);
+				// If we have a physics body, and its kinematic...
+				FBodyInstance* BodyInst = Bodies[i];
+				check(BodyInst);
 
-				// If we could not find it - warn.
-				if( BoneIndex == INDEX_NONE || BoneIndex >= SpaceBases.Num() )
+				if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
 				{
-					UE_LOG(LogPhysics, Log,  TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName() );
-				}
-				else
-				{
-					// update bone transform to world
-					FTransform BoneTransform = SpaceBases[BoneIndex] * CurrentLocalToWorld;
-						
-					// move body
-					BodyInst->SetBodyTransform(BoneTransform, bTeleport);
-						
-					// now update scale
-					// if uniform, we'll use BoneTranform
-					if ( MeshScale3D.IsUniform() )
+					// Find the graphics bone index that corresponds to this physics body.
+					FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;
+					int32 const BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BodyName);
+
+					// If we could not find it - warn.
+					if (BoneIndex == INDEX_NONE || BoneIndex >= SpaceBases.Num())
 					{
-						// @todo UE4 should we update scale when it's simulated?
-						BodyInst->UpdateBodyScale(BoneTransform.GetScale3D());						
+						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
 					}
 					else
 					{
-						// @note When you have non-uniform scale on mesh base,
-						// hierarchical bone transform can update scale too often causing performance issue
-						// So we just use mesh scale for all bodies when non-uniform
-						// This means physics representation won't be accurate, but
-						// it is performance friendly by preventing too frequent physics update
-						BodyInst->UpdateBodyScale(MeshScale3D);
+						// update bone transform to world
+						FTransform BoneTransform = SpaceBases[BoneIndex] * CurrentLocalToWorld;
+
+						// move body
+						BodyInst->SetBodyTransform(BoneTransform, bTeleport);
+
+						// now update scale
+						// if uniform, we'll use BoneTranform
+						if (MeshScale3D.IsUniform())
+						{
+							// @todo UE4 should we update scale when it's simulated?
+							BodyInst->UpdateBodyScale(BoneTransform.GetScale3D());
+						}
+						else
+						{
+							// @note When you have non-uniform scale on mesh base,
+							// hierarchical bone transform can update scale too often causing performance issue
+							// So we just use mesh scale for all bodies when non-uniform
+							// This means physics representation won't be accurate, but
+							// it is performance friendly by preventing too frequent physics update
+							BodyInst->UpdateBodyScale(MeshScale3D);
+						}
 					}
 				}
-			}
-			else
-			{
-				//make sure you have physics weight or blendphysics on, otherwise, you'll have inconsistent representation of bodies
-				// @todo make this to be kismet log? But can be too intrusive
-				if (!bBlendPhysics && BodyInst->PhysicsBlendWeight <= 0.f && BodyInst->BodySetup.IsValid())
+				else
 				{
-					UE_LOG(LogPhysics, Warning, TEXT("%s(Mesh %s, PhysicsAsset %s, Bone %s) is simulating, but no blending. "), 
-						*GetName(), *GetNameSafe(SkeletalMesh), *GetNameSafe(PhysicsAsset), *BodyInst->BodySetup.Get()->BoneName.ToString());
+					//make sure you have physics weight or blendphysics on, otherwise, you'll have inconsistent representation of bodies
+					// @todo make this to be kismet log? But can be too intrusive
+					if (!bBlendPhysics && BodyInst->PhysicsBlendWeight <= 0.f && BodyInst->BodySetup.IsValid())
+					{
+						UE_LOG(LogPhysics, Warning, TEXT("%s(Mesh %s, PhysicsAsset %s, Bone %s) is simulating, but no blending. "),
+							*GetName(), *GetNameSafe(SkeletalMesh), *GetNameSafe(PhysicsAsset), *BodyInst->BodySetup.Get()->BoneName.ToString());
+					}
 				}
 			}
 		}
 	}
+	else
+	{
+		//per poly update requires us to update all vertex positions
+	}
+
 
 }
 

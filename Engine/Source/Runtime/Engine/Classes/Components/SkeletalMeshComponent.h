@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshComponent.generated.h"
@@ -208,7 +210,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
  * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
  */
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
-class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent
+class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
 	
@@ -381,6 +383,30 @@ public:
 	/** pauses this component's animations (doesn't tick them, but still refreshes bones) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	uint32 bPauseAnims:1;
+
+	/**
+	* Uses skinned data for collision data.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
+	uint32 bEnablePerPolyCollision:1;
+
+	/**
+	* Used for per poly collision. In 99% of cases you will be better off using a Physics Asset.
+	* This BodySetup is per instance because all modification of vertices is done in place */
+	UPROPERTY(transient)
+	class UBodySetup * BodySetup;
+
+	void CreateBodySetup();
+
+	// Begin Interface_CollisionDataProvider Interface
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
+	virtual bool WantsNegXTriMesh() OVERRIDE
+	{
+		return true;
+	}
+	// End Interface_CollisionDataProvider Interface
+
 
 	/**
 	 * Misc 

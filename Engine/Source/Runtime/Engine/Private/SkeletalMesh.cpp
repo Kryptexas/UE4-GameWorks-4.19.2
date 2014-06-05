@@ -4583,6 +4583,11 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 
+	if (bEnablePerPolyCollision)
+	{
+		Ar << BodySetup;
+	}
+
 	// Since we separated simulation vs blending
 	// if simulation is on when loaded, just set blendphysics to be true
 	if (BodyInstance.bSimulatePhysics)
