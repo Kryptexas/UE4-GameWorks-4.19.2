@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISessionManager.
- */
+/** Type definition for shared pointers to instances of ISessionManager. */
 typedef TSharedPtr<class ISessionManager> ISessionManagerPtr;
 
-/**
- * Type definition for shared references to instances of ISessionManager.
- */
+/** Type definition for shared references to instances of ISessionManager. */
 typedef TSharedRef<class ISessionManager> ISessionManagerRef;
 
 
@@ -51,28 +47,28 @@ public:
 	/**
 	 * Adds an owner whose sessions we are interested in
 	 *
-	 * @param InOwner - Session owner we want to view sessions from
+	 * @param InOwner Session owner we want to view sessions from
 	 */
 	virtual void AddOwner( const FString& InOwner ) = 0;
 
 	/**
 	  * Gets the collection of currently selected engine instances.
 	  *
-	  * @param OutInstances - Will hold the selected instances.
+	  * @param OutInstances Will hold the selected instances.
 	  */
 	virtual void GetSelectedInstances( TArray<ISessionInstanceInfoPtr>& OutInstances) const = 0;
 
 	/**
 	 * Get the selected session - as chosen in the session browser
 	 *
-	 * @Return	The session ID selected
+	 * @return The session ID selected
 	 */
 	virtual const ISessionInfoPtr& GetSelectedSession( ) const = 0;
 
 	/**
 	 * Gets the list of all discovered sessions.
 	 *
-	 * @param OutSessions - Will hold the collection of sessions.
+	 * @param OutSessions Will hold the collection of sessions.
 	 */
 	virtual void GetSessions( TArray<ISessionInfoPtr>& OutSessions ) const = 0;
 
@@ -86,15 +82,14 @@ public:
 	/**
 	 * Removes an owner whose sessions we are no longer interested in
 	 *
-	 * @param InOwner - Session owner we want to remove
+	 * @param InOwner Session owner we want to remove
 	 */
 	virtual void RemoveOwner( const FString& InOwner ) = 0;
 
 	/**
 	 * Selects the specified session.
 	 *
-	 * @param Session - The session to the select (can be NULL to select none).
-	 *
+	 * @param Session The session to the select (can be NULL to select none).
 	 * @return true if the session was selected, false otherwise.
 	 */
 	virtual bool SelectSession( const ISessionInfoPtr& Session ) = 0;
@@ -102,9 +97,8 @@ public:
 	/**
 	 * Marks the specified item as selected or unselected.
 	 *
-	 * @param Instance - The instance to mark.
-	 * @param Selected - Whether the instance should be selected (true) or unselected (false).
-	 *
+	 * @param Instance The instance to mark.
+	 * @param Selected Whether the instance should be selected (true) or unselected (false).
 	 * @return true if the instance was selected, false otherwise.
 	 */
 	virtual bool SetInstanceSelected( const ISessionInstanceInfoPtr& Instance, bool Selected ) = 0;

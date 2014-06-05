@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISessionInfo.
- */
+/** Type definition for shared pointers to instances of ISessionInfo. */
 typedef TSharedPtr<class ISessionInfo> ISessionInfoPtr;
 
-/**
- * Type definition for shared references to instances of ISessionInfo.
- */
+/** Type definition for shared references to instances of ISessionInfo. */
 typedef TSharedRef<class ISessionInfo> ISessionInfoRef;
 
 
@@ -46,7 +42,7 @@ public:
 	/**
 	 * Gets a read-only collection of all instances that belong to this session.
 	 *
-	 * @param OutInstances - Will hold the collection of instances.
+	 * @param OutInstances Will hold the collection of instances.
 	 */
 	virtual void GetInstances( TArray<ISessionInstanceInfoPtr>& OutInstances ) const = 0;
 
@@ -90,7 +86,7 @@ public:
 	 *
 	 * A session is standalone if has not been created from the Launcher.
 	 *
-	 * @return True if this is a standalone session, false otherwise.
+	 * @return true if this is a standalone session, false otherwise.
 	 */
 	virtual const bool IsStandalone( ) const = 0;
 

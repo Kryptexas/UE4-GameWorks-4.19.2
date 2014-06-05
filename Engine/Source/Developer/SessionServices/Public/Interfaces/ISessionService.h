@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISessionService.
- */
+/** Type definition for shared pointers to instances of ISessionService. */
 typedef TSharedPtr<class ISessionService> ISessionServicePtr;
 
-/**
- * Type definition for shared references to instances of ISessionService.
- */
+/** Type definition for shared references to instances of ISessionService. */
 typedef TSharedRef<class ISessionService> ISessionServiceRef;
 
 
@@ -36,14 +32,12 @@ public:
 	 * Starts the service.
 	 *
 	 * @return true if the service was started, false otherwise.
-	 *
 	 * @see Stop
 	 */
 	virtual bool Start( ) = 0;
 
 	/**
 	 * Stops the service.
-	 *
 	 * @see Start
 	 */
 	virtual void Stop( ) = 0;

@@ -24,9 +24,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InInstanceId - The instance's identifier.
-	 * @param InOwner - The session that owns this instance.
-	 * @param InMessageBus - The message bus to use.
+	 * @param InInstanceId The instance's identifier.
+	 * @param InOwner The session that owns this instance.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FSessionInstanceInfo( const FGuid& InInstanceId, const ISessionInfoRef& InOwner, const IMessageBusRef& InMessageBus )
 		: EngineVersion(0)
@@ -42,8 +42,8 @@ public:
 	/**
 	 * Updates this instance info with the data in the specified message.
 	 *
-	 * @param Message - The message containing engine information.
-	 * @param Context - The message context.
+	 * @param Message The message containing engine information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FEngineServicePong& Message, const IMessageContextRef& Context )
 	{
@@ -63,8 +63,8 @@ public:
 	/**
 	 * Updates this instance info with the data in the specified message.
 	 *
-	 * @param Message - The message containing instance information.
-	 * @param Context - The message context.
+	 * @param Message The message containing instance information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FSessionServicePong& Message, const IMessageContextRef& Context )
 	{

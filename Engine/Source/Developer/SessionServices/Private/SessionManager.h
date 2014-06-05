@@ -19,7 +19,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InMessageBus - The message bus to use.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FSessionManager( const IMessageBusRef& InMessageBus );
 	
@@ -91,7 +91,7 @@ protected:
 	/**
 	 * Finds and removes sessions that haven't been updated in a while.
 	 *
-	 * @param Now - The current time.
+	 * @param Now The current time.
 	 */
 	void FindExpiredSessions( const FDateTime& Now );
 
@@ -114,7 +114,7 @@ protected:
 
 private:
 
-	// Handles FSessionServicePong messages.
+	// Callback for handling FSessionServicePong messages.
 	void HandleEnginePongMessage( const FEngineServicePong& Message, const IMessageContextRef& Context );
 
 	// Callback for newly discovered instances.
@@ -123,7 +123,7 @@ private:
 	// Callback received log entries.
 	void HandleLogReceived( const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message );
 
-	// Handles FSessionServicePong messages.
+	// Callback for handling FSessionServicePong messages.
 	void HandleSessionPongMessage( const FSessionServicePong& Message, const IMessageContextRef& Context );
 
 	// Callback for ticks from the ticker.

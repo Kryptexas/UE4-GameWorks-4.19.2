@@ -19,8 +19,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSessionId - The session's identifier.
-	 * @param InMessageBus - The message bus to use.
+	 * @param InSessionId The session's identifier.
+	 * @param InMessageBus The message bus to use.
 	 */
 	FSessionInfo( const FGuid& InSessionId, const IMessageBusRef& InMessageBus )
 		: MessageBusPtr(InMessageBus)
@@ -32,8 +32,8 @@ public:
 	/**
 	 * Updates this session info with the data in the specified message.
 	 *
-	 * @param Message - The message containing engine information.
-	 * @param Context - The message context.
+	 * @param Message The message containing engine information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FEngineServicePong& Message, const IMessageContextRef& Context )
 	{
@@ -63,8 +63,8 @@ public:
 	/**
 	 * Updates this session info with the data in the specified message.
 	 *
-	 * @param Message - The message containing session information.
-	 * @param Context - The message context.
+	 * @param Message The message containing session information.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FSessionServicePong& Message, const IMessageContextRef& Context )
 	{
@@ -181,7 +181,7 @@ private:
 private:
 
 	// Holds the list of engine instances that belong to this session.
-	TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo> > Instances;
+	TMap<FMessageAddress, TSharedPtr<FSessionInstanceInfo>> Instances;
 
 	// Holds the time at which the last pong was received.
 	FDateTime LastUpdateTime;
