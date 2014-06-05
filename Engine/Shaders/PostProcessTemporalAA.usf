@@ -20,6 +20,86 @@ float2 RandomOffset;
 // TODO: This can be removed.
 float ClampFeebackMix;
 
+
+
+// Faster but less accurate luma computation. 
+// Luma includes a scaling by 4.
+float Luma4(float3 Color)
+{
+	return (Color.g * 2.0) + (Color.r + Color.b);
+}
+
+// Optimized HDR weighting function.
+float HdrWeight4(float3 Color, float Exposure) 
+{
+	return rcp(Luma4(Color) * Exposure + 4.0);
+}
+
+float HdrWeightG(float3 Color, float Exposure) 
+{
+	return rcp(Color.g * Exposure + 1.0);
+}
+
+float HdrWeightG_(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 1.0);
+}
+
+
+// Optimized HDR weighting function.
+float HdrWeight4_(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 4.0);
+}
+
+// Optimized HDR weighting inverse.
+float HdrWeightInv4(float3 Color, float Exposure) 
+{
+	return 4.0 * rcp(Luma4(Color) * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvG(float3 Color, float Exposure) 
+{
+	return rcp(Color.g * (-Exposure) + 1.0);
+}
+
+float HdrWeightInv4_(float Color, float Exposure) 
+{
+	return 4.0 * rcp(Color * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvG_(float Color, float Exposure) 
+{
+	return rcp(Color * (-Exposure) + 1.0);
+}
+
+
+// This returns exposure normalized linear luma from a PerceptualLuma4().
+float LinearLuma4(float Channel, float Exposure) 
+{
+	return Channel * HdrWeightInv4_(Channel, Exposure);
+}
+
+// This returns exposure normalized linear luma from a PerceptualLuma4().
+float LinearLumaG(float Channel, float Exposure) 
+{
+	return Channel * HdrWeightInvG_(Channel, Exposure);
+}
+
+
+float PerceptualLuma4(float3 Color, float Exposure) 
+{
+	float L = Luma4(Color);
+	return L * HdrWeight4_(L, Exposure);
+}
+
+float PerceptualLumaG(float3 Color, float Exposure) 
+{
+	return Color.g * HdrWeightG_(Color.g, Exposure);
+}
+
+
+
 float Luma(float3 Color) 
 {
 	#if 1
@@ -60,9 +140,9 @@ float LinearLuma(float Channel)
 // Returns distance on line segment.
 float IntersectAABB(float3 Dir, float3 Org, float3 Box)
 {
-	#if 1 // PS4_PROFILE
-	    // Turning this on for all platforms in case of bad AABB test.
-		if(min(min(abs(Dir.x), abs(Dir.y)), abs(Dir.z)) < (1.0/16384.0)) return 1.0;
+	#if PS4_PROFILE
+	    // This causes flicker, it should only be used on PS4 until proper fix is in.
+		if(min(min(abs(Dir.x), abs(Dir.y)), abs(Dir.z)) < (1.0/65536.0)) return 1.0;
 	#endif
 	float3 RcpDir = rcp(Dir);
 	float3 TNeg = (  Box  - Org) * RcpDir;
@@ -70,7 +150,7 @@ float IntersectAABB(float3 Dir, float3 Org, float3 Box)
 	return max(max(min(TNeg.x, TPos.x), min(TNeg.y, TPos.y)), min(TNeg.z, TPos.z));
 }
 
-float HistoryClamp(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax, float Exposure)
+float HistoryClamp(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax)
 {
 	float3 Min = min(Filtered, min(NeighborMin, NeighborMax));
 	float3 Max = max(Filtered, max(NeighborMin, NeighborMax));	
@@ -102,6 +182,7 @@ void SSRTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 0
 	#define AA_DYNAMIC 0
@@ -118,6 +199,7 @@ void DOFTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 4
 	#define AA_DYNAMIC 0
@@ -134,6 +216,7 @@ void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposur
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_NEW 1
 	#define AA_ALPHA 0
 	#define AA_CROSS 0
 	#define AA_DYNAMIC 0
@@ -149,8 +232,21 @@ void MainTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScale
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_BORDER 1
-	#define AA_GRAIN 1
+	#if 1
+		#define AA_NEW 1
+		#define AA_FILTERED 1
+		#define AA_BORDER 1
+		#define AA_CROSS 2
+		#define AA_GREEN_AS_LUMA 0
+		#define AA_AABB 1
+		#define AA_LOWPASS 1
+		#define AA_ONE_DYNAMIC_SAMPLE 1
+		#define AA_DEBUG 0
+	#else
+		#define AA_NEW 0
+		#define AA_BORDER 1
+		#define AA_GRAIN 1
+	#endif
 	#include "PostProcessTemporalCommon.usf"
 #else 
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
@@ -161,12 +257,25 @@ void MainFastTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureS
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
-	#define AA_BORDER 1
-	#define AA_GRAIN 1
-	#define AA_HDR 0
-	#define AA_HDR_HISTORY 0
-	#define AA_LOWPASS 0
-	#define AA_ONE_DYNAMIC_SAMPLE 1
+	#if 1
+		#define AA_NEW 1
+		#define AA_FILTERED 1
+		#define AA_BORDER 1
+		#define AA_CROSS 2
+		#define AA_GREEN_AS_LUMA 1
+		#define AA_AABB 1
+		#define AA_LOWPASS 0
+		#define AA_ONE_DYNAMIC_SAMPLE 1
+		#define AA_DEBUG 0
+	#else
+		#define AA_NEW 0
+		#define AA_BORDER 1
+		#define AA_GRAIN 1
+		#define AA_HDR 0
+		#define AA_HDR_HISTORY 0
+		#define AA_LOWPASS 0
+		#define AA_ONE_DYNAMIC_SAMPLE 1
+	#endif
 	#include "PostProcessTemporalCommon.usf"
 #else 
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
