@@ -3,7 +3,7 @@
 #pragma once
 
 #define ENGINE_MAJOR_VERSION	4
-#define ENGINE_MINOR_VERSION	2
+#define ENGINE_MINOR_VERSION	3
 #define ENGINE_PATCH_VERSION	0
 
 #define ENGINE_VERSION 0
