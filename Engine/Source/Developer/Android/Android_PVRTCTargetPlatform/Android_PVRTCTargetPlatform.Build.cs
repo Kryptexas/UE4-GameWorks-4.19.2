@@ -13,7 +13,6 @@ public class Android_PVRTCTargetPlatform : ModuleRules
 			{
 				"Core",
 				"TargetPlatform",
-				"DesktopPlatform",
 				"AndroidDeviceDetection",
 			}
 		);

@@ -14,7 +14,6 @@ public class AndroidTargetPlatform : ModuleRules
 				"Core",
 				"CoreUObject",
 				"TargetPlatform",
-				"DesktopPlatform",
 				"AndroidDeviceDetection",
 			}
 		);

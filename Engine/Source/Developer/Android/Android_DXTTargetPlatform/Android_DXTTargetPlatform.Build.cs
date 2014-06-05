@@ -13,7 +13,6 @@ public class Android_DXTTargetPlatform : ModuleRules
 			{
 				"Core",
 				"TargetPlatform",
-				"DesktopPlatform",
 				"AndroidDeviceDetection",
 			}
 		);
