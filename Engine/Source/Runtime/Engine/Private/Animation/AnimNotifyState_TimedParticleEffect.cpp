@@ -46,7 +46,7 @@ void UAnimNotifyState_TimedParticleEffect::NotifyEnd(USkeletalMeshComponent * Me
 			bTemplateMatch |= PreviousPSTemplates.Contains(ParticleComponent->Template);
 #endif
 
-			if(bSocketMatch && bTemplateMatch)
+			if(bSocketMatch && bTemplateMatch && !ParticleComponent->bWasDeactivated)
 			{
 				// Either destroy the component or deactivate it to have it's active particles finish.
 				// The component will auto destroy once all particle are gone.
