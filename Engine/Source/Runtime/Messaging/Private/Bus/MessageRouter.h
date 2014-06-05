@@ -139,7 +139,6 @@ protected:
 	 * Queues up a router command.
 	 *
 	 * @param Command The command to queue up.
-	 *
 	 * @return true if the command was enqueued, false otherwise.
 	 */
 	FORCEINLINE bool EnqueueCommand( TBaseDelegate_NoParams<void> Command )
@@ -237,13 +236,13 @@ private:
 private:
 
 	// Maps message types to interceptors.
-	TMap<FName, TArray<IInterceptMessagesPtr> > ActiveInterceptors;
+	TMap<FName, TArray<IInterceptMessagesPtr>> ActiveInterceptors;
 
 	// Maps message addresses to recipients.
 	TMap<FMessageAddress, IReceiveMessagesWeakPtr> ActiveRecipients;
 
 	// Maps message types to subscriptions.
-	TMap<FName, TArray<IMessageSubscriptionPtr> > ActiveSubscriptions;
+	TMap<FName, TArray<IMessageSubscriptionPtr>> ActiveSubscriptions;
 
 	// Holds the router command queue.
 	TQueue<TBaseDelegate_NoParams<void>, EQueueMode::Mpsc> Commands;

@@ -7,19 +7,13 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMessageBus.
- */
+/** Type definition for shared pointers to instances of IMessageBus. */
 typedef TSharedPtr<class IMessageBus, ESPMode::ThreadSafe> IMessageBusPtr;
 
-/**
- * Type definition for shared references to instances of IMessageBus.
- */
+/** Type definition for shared references to instances of IMessageBus. */
 typedef TSharedRef<class IMessageBus, ESPMode::ThreadSafe> IMessageBusRef;
 
-/**
- * Type definition for weak pointers to instances of IMessageBus.
- */
+/** Type definition for weak pointers to instances of IMessageBus. */
 typedef TWeakPtr<class IMessageBus, ESPMode::ThreadSafe> IMessageBusWeakPtr;
 
 
@@ -115,9 +109,7 @@ public:
 	 * @param Subscriber The subscriber wishing to receive the messages.
 	 * @param MessageType The type of messages to subscribe to (NAME_All = subscribe to all message types).
 	 * @param ScopeRange The range of message scopes to include in the subscription.
-	 *
 	 * @return The added subscription, or NULL if the subscription failed.
-	 *
 	 * @see Unsubscribe
 	 */
 	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) = 0;
@@ -142,7 +134,6 @@ public:
 	 *
 	 * @param Subscriber The subscriber wishing to stop receiving the messages.
 	 * @param MessageType The type of messages to unsubscribe from (NAME_All = all types).
-	 *
 	 * @see Subscribe
 	 */
 	virtual void Unsubscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType ) = 0;
@@ -153,7 +144,6 @@ public:
 	 * Returns a delegate that is executed when the message bus is shutting down.
 	 *
 	 * @return The delegate.
-	 *
 	 * @see Shutdown
 	 */
 	virtual FOnMessageBusShutdown& OnShutdown( ) = 0;

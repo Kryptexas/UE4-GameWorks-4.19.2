@@ -18,6 +18,7 @@ public:
 	 * Creates and initializes a new instance.
 	 *
 	 * InMessageTypeInfo The message's type information (may be nullptr if the type information hasn't been discovered yet).
+	 *
 	 * @param InSerializer The serializer to use.
 	 * @param InThread The name of the thread to deserialize the message on.
 	 */

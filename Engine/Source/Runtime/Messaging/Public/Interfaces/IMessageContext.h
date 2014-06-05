@@ -26,19 +26,13 @@ namespace EMessageScope
 	 */
 	enum Type
 	{
-		/**
-		 * Deliver to subscribers in the same thread.
-		 */
+		/** Deliver to subscribers in the same thread. */
 		Thread,
 
-		/**
-		 * Deliver to subscribers in the same process.
-		 */
+		/** Deliver to subscribers in the same process. */
 		Process,
 
-		/**
-		 * Deliver to subscribers on the network.
-		 */
+		/** Deliver to subscribers on the network. */
 		Network,
 
 		/**
@@ -51,29 +45,19 @@ namespace EMessageScope
 }
 
 
-/**
- * Type definition for message endpoint identifiers.
- */
+/** Type definition for message endpoint identifiers. */
 typedef FGuid FMessageAddress;
 
-/**
- * Type definition for shared pointers to instances of IMessageContext.
- */
+/** Type definition for shared pointers to instances of IMessageContext. */
 typedef TSharedPtr<class IMessageContext, ESPMode::ThreadSafe> IMessageContextPtr;
 
-/**
- * Type definition for shared references to instances of IMessageContext.
- */
+/** Type definition for shared references to instances of IMessageContext. */
 typedef TSharedRef<class IMessageContext, ESPMode::ThreadSafe> IMessageContextRef;
 
-/**
- * Type definition for message scope ranges.
- */
+/** Type definition for message scope ranges. */
 typedef TRange<EMessageScope::Type> FMessageScopeRange;
 
-/**
- * Type definition for message scope range bounds.
- */
+/** Type definition for message scope range bounds. */
 typedef TRangeBound<EMessageScope::Type> FMessageScopeRangeBound;
 
 
@@ -102,7 +86,6 @@ public:
 	 * Gets the message address of the endpoint that forwarded this message.
 	 *
 	 * @return The forwarder's address.
-	 *
 	 * @see IsForwarded
 	 */
 	virtual const FMessageAddress& GetForwarder( ) const = 0;
@@ -188,7 +171,6 @@ public:
 	 * Checks whether this is a forwarded message.
 	 *
 	 * @return true if the message was forwarded, false otherwise.
-	 *
 	 * @see GetForwarder
 	 */
 	virtual bool IsForwarded( ) const = 0;

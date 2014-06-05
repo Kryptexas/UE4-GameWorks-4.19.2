@@ -59,7 +59,6 @@ public:
 	 * Checks whether this address book contains the given address.
 	 *
 	 * @param Address The address to check.
-	 *
 	 * @return true if the address is known, false otherwise.
 	 */
 	bool Contains( const FMessageAddress& Address )
@@ -73,7 +72,6 @@ public:
 	 * Gets the transport node identifiers for the specified list of message addresses.
 	 *
 	 * @param Addresses The address list to retrieve the node identifiers for.
-	 *
 	 * @return The list of node identifiers.
 	 */
 	TArray<FGuid> GetNodesFor( const TArray<FMessageAddress>& Addresses )
@@ -102,9 +100,7 @@ public:
 	 * If you are not interested in the removed addresses, use Clear().
 	 *
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
-	 *
-	 * @see Clear
-	 * @see RemoveNode
+	 * @see Clear, RemoveNode
 	 */
 	void RemoveAllNodes( TArray<FMessageAddress>& OutRemovedAddresses )
 	{
@@ -121,9 +117,7 @@ public:
 	 *
 	 * @param NodeId The identifier of the transport node to remove.
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
-	 *
-	 * @see Clear
-	 * @see RemoveAllNodes
+	 * @see Clear, RemoveAllNodes
 	 */
 	void RemoveNode( const FGuid& NodeId, TArray<FMessageAddress>& OutRemovedAddresses )
 	{

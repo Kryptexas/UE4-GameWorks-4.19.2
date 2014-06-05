@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMutableMessageContext.
- */
+/** Type definition for shared pointers to instances of IMutableMessageContext. */
 typedef TSharedPtr<class IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextPtr;
 
-/**
- * Type definition for shared references to instances of IMutableMessageContext.
- */
+/** Type definition for shared references to instances of IMutableMessageContext. */
 typedef TSharedRef<class IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextRef;
 
 

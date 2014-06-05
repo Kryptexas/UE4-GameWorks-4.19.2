@@ -7,19 +7,13 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IReceiveMessages.
- */
+/** Type definition for shared pointers to instances of IReceiveMessages. */
 typedef TSharedPtr<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesPtr;
 
-/**
- * Type definition for shared references to instances of IReceiveMessages.
- */
+/** Type definition for shared references to instances of IReceiveMessages. */
 typedef TSharedRef<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesRef;
 
-/**
- * Type definition for shared pointers to instances of IReceiveMessages.
- */
+/** Type definition for shared pointers to instances of IReceiveMessages. */
 typedef TWeakPtr<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesWeakPtr;
 
 
@@ -39,7 +33,6 @@ public:
 	 * Gets the recipient's name (for debugging purposes).
 	 *
 	 * @return The debug name.
-	 *
 	 * @see GetRecipientId
 	 */
 	virtual FName GetDebugName( ) const = 0;
@@ -48,7 +41,6 @@ public:
 	 * Gets the recipient's unique identifier (for debugging purposes).
 	 *
 	 * @return The recipient's identifier.
-	 *
 	 * @see GetRecipientName
 	 */
 	virtual const FGuid& GetRecipientId( ) const = 0;

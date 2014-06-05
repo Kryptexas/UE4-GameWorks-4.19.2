@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FMessageEndpoint.
- */
+/** Type definition for shared pointers to instances of FMessageEndpoint. */
 typedef TSharedPtr<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointPtr;
 
-/**
- * Type definition for shared references to instances of FMessageEndpoint.
- */
+/** Type definition for shared references to instances of FMessageEndpoint. */
 typedef TSharedRef<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointRef;
 
 
@@ -275,7 +271,6 @@ public:
 	 * Unsubscribes this endpoint from the specified message type.
 	 *
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
-	 *
 	 * @see Subscribe
 	 */
 	void Unsubscribe( const FName& TopicPattern )
@@ -361,8 +356,7 @@ public:
 	 * been enabled and no matching message handler handled it. The inbox is disabled by default and
 	 * must be enabled using the EnableInbox() method.
 	 *
-	 * @see IsInboxEmpty
-	 * @see ReceiveFromInbox
+	 * @see IsInboxEmpty, ReceiveFromInbox
 	 */
 	void ProcessInbox( )
 	{
@@ -385,10 +379,7 @@ public:
 	 *
 	 * @return true if a message was received, false if the inbox was empty.
 	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox
 	 */
 	bool ReceiveFromInbox( IMessageContextPtr& OutContext )
 	{
@@ -757,7 +748,6 @@ public:
 	 * Template method to unsubscribe the endpoint from the specified message type.
 	 *
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
-	 *
 	 * @see Subscribe
 	 */
 	template<class MessageType>

@@ -54,7 +54,6 @@ public:
 	 * Configures the bridge to use a custom message serializer.\
 	 *
 	 * @param CustomSerializer The custom serializer.
-	 *
 	 * @return This instance (for method chaining).
 	 */
 	FMessageBridgeBuilder& UsingCustomSerializer( const ISerializeMessagesRef& CustomSerializer )
@@ -68,7 +67,6 @@ public:
 	 * Configures the bridge to use a specific message transport technology.
 	 *
 	 * @param InTransport The transport technology to use.
-	 *
 	 * @return This instance (for method chaining).
 	 */
 	FMessageBridgeBuilder& UsingTransport( const ITransportMessagesRef& InTransport )
@@ -96,7 +94,6 @@ public:
 	 * If no address is specified, one will be generated automatically.
 	 *
 	 * @param InAddress The address to set.
-	 *
 	 * @return This instance (for method chaining).
 	 */
 	FMessageBridgeBuilder& WithAddress( const FMessageAddress& InAddress )

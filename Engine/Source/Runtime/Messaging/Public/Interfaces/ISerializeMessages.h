@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISerializeMessages.
- */
+/** Type definition for shared pointers to instances of ISerializeMessages. */
 typedef TSharedPtr<class ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesPtr;
 
-/**
- * Type definition for shared references to instances of ISerializeMessages.
- */
+/** Type definition for shared references to instances of ISerializeMessages. */
 typedef TSharedRef<class ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesRef;
 
 
@@ -33,7 +29,6 @@ public:
 	 *
 	 * @param Data The archive to serialize from.
 	 * @param OutContext Will hold the context of the deserialized message.
-	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
 	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) = 0;
@@ -43,7 +38,6 @@ public:
 	 *
 	 * @param Context The context of the message to serialize.
 	 * @param Archive The archive to serialize into.
-	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
 	virtual bool SerializeMessage( const IMessageContextRef& Context, FArchive& Archive ) = 0;

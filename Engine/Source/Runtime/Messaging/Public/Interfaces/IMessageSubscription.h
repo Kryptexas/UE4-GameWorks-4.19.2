@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMessageSubscription.
- */
+/** Type definition for shared pointers to instances of IMessageSubscription. */
 typedef TSharedPtr<class IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionPtr;
 
-/**
- * Type definition for shared references to instances of IMessageSubscription.
- */
+/** Type definition for shared references to instances of IMessageSubscription. */
 typedef TSharedRef<class IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionRef;
 
 

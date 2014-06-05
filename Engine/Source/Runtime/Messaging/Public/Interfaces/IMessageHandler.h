@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IMessageHandler.
- */
+/** Type definition for shared pointers to instances of IMessageHandler. */
 typedef TSharedPtr<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerPtr;
 
-/**
- * Type definition for shared references to instances of IMessageHandler.
- */
+/** Type definition for shared references to instances of IMessageHandler. */
 typedef TSharedRef<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerRef;
 
 

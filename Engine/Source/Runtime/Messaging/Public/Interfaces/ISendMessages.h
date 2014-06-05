@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ISendMessages.
- */
+/** Type definition for shared pointers to instances of ISendMessages. */
 typedef TSharedPtr<class ISendMessages, ESPMode::ThreadSafe> ISendMessagesPtr;
 
-/**
- * Type definition for shared references to instances of ISendMessages.
- */
+/** Type definition for shared references to instances of ISendMessages. */
 typedef TSharedRef<class ISendMessages, ESPMode::ThreadSafe> ISendMessagesRef;
 
 
