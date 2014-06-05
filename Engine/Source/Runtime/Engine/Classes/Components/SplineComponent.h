@@ -44,6 +44,22 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	void SetSplineWorldPoints(const TArray<FVector>& Points);
 
+	/** Move an existing point to a new world location */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void SetWorldLocationAtSplinePoint(int32 PointIndex, const FVector& InLocation);
+
+	/** Get the number of points that make up this spline */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	int32 GetNumSplinePoints() const;
+
+	/** Get the world location at spline point */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector GetWorldLocationAtSplinePoint(int32 PointIndex) const;
+
+	/** Get local location and tangent at a spline point */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	void GetLocalLocationAndTangentAtSplinePoint(int32 PointIndex, FVector& LocalLocation, FVector& LocalTangent) const;
+
 	/** Returns total length along this spline */
 	UFUNCTION(BlueprintCallable, Category=Spline) 
 	float GetSplineLength() const;
@@ -75,6 +91,9 @@ class ENGINE_API USplineComponent : public USceneComponent
 	/** Given a time from 0 to the spline duration, return a rotation corresponding to the spline's position and direction there. */
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FRotator GetWorldRotationAtTime(float Time, bool bUseConstantVelocity = false) const;
+
+
+
 
 	/** Walk through keys and set time for each one */
 	void RefreshSplineInputs();

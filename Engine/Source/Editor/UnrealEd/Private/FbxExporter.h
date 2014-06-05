@@ -36,6 +36,7 @@
 
 class ALandscapeProxy;
 struct FAnimControlTrackKey;
+class USplineMeshComponent;
 
 namespace UnFbx
 {

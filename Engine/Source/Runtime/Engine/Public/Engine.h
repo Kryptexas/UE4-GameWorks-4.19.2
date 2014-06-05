@@ -173,7 +173,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
-#include "Components/SplineMeshComponent.h"
 #include "Components/ModelComponent.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "AI/Navigation/NavMeshRenderingComponent.h"

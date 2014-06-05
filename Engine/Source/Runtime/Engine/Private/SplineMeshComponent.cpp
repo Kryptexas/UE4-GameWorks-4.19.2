@@ -53,7 +53,7 @@ void FSplineMeshVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FV
 		SetShaderValue(Shader->GetVertexShader(), SplineEndScaleParam, SplineParams.EndScale);
 		SetShaderValue(Shader->GetVertexShader(), SplineEndOffsetParam, SplineParams.EndOffset);
 
-		SetShaderValue(Shader->GetVertexShader(), SplineUpDirParam, SplineProxy->SplineXDir);
+		SetShaderValue(Shader->GetVertexShader(), SplineUpDirParam, SplineProxy->SplineUpDir);
 		SetShaderValue(Shader->GetVertexShader(), SmoothInterpRollScaleParam, SplineProxy->bSmoothInterpRollScale);
 
 		SetShaderValue(Shader->GetVertexShader(), SplineMeshMinZParam, SplineProxy->SplineMeshMinZ);
@@ -200,7 +200,7 @@ USplineMeshComponent::USplineMeshComponent(const class FPostConstructInitializeP
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
-	SplineXDir.Z = 1.0f;
+	SplineUpDir.Z = 1.0f;
 
 	// Default to useful length and scale
 	SplineParams.StartTangent = FVector(100.f, 0.f, 0.f);
@@ -232,6 +232,51 @@ void USplineMeshComponent::SetEndPosition(FVector EndPos)
 void USplineMeshComponent::SetEndTangent(FVector EndTangent)
 {
 	SplineParams.EndTangent = EndTangent;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent)
+{
+	SplineParams.StartPos = StartPos;
+	SplineParams.StartTangent = StartTangent;
+	SplineParams.EndPos = EndPos;
+	SplineParams.EndTangent = EndTangent;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetStartScale(FVector2D StartScale)
+{
+	SplineParams.StartScale = StartScale;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetStartRoll(float StartRoll)
+{
+	SplineParams.StartRoll = StartRoll;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetStartOffset(FVector2D StartOffset)
+{
+	SplineParams.StartOffset = StartOffset;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetEndScale(FVector2D EndScale)
+{
+	SplineParams.EndScale = EndScale;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetEndRoll(float EndRoll)
+{
+	SplineParams.EndRoll = EndRoll;
+	MarkSplineParamsDirty();
+}
+
+void USplineMeshComponent::SetEndOffset(FVector2D EndOffset)
+{
+	SplineParams.EndOffset = EndOffset;
 	MarkSplineParamsDirty();
 }
 
@@ -387,7 +432,7 @@ FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) c
 	const FVector SplineDir = SplineEvalDir( SplineParams.StartPos, SplineParams.StartTangent, SplineParams.EndPos, SplineParams.EndTangent, Alpha );
 
 	// Find base frenet frame
-	const FVector BaseXVec = (SplineXDir ^ SplineDir).SafeNormal();
+	const FVector BaseXVec = (SplineUpDir ^ SplineDir).SafeNormal();
 	const FVector BaseYVec = (SplineDir ^ BaseXVec).SafeNormal();
 
 	// Offset the spline by the desired amount

@@ -210,6 +210,42 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 	UpdateSplineReparamTable();
 }
 
+void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVector& InLocation)
+{
+	if((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		SplineInfo.Points[PointIndex].OutVal = InLocation;
+
+		SplineInfo.AutoSetTangents();
+		UpdateSplineReparamTable();
+	}
+}
+
+int32 USplineComponent::GetNumSplinePoints() const
+{
+	return SplineInfo.Points.Num();
+}
+
+FVector USplineComponent::GetWorldLocationAtSplinePoint(int32 PointIndex) const
+{
+	FVector LocalLocation(0,0,0);
+	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		LocalLocation = SplineInfo.Points[PointIndex].OutVal;
+	}
+	return ComponentToWorld.TransformPosition(LocalLocation);
+}
+
+void USplineComponent::GetLocalLocationAndTangentAtSplinePoint(int32 PointIndex, FVector& LocalLocation, FVector& LocalTangent) const
+{
+	LocalTangent = FVector(0, 0, 0);
+	LocalLocation = FVector(0, 0, 0);
+	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		LocalTangent = SplineInfo.Points[PointIndex].LeaveTangent;
+		LocalLocation = SplineInfo.Points[PointIndex].OutVal;
+	}
+}
 
 float USplineComponent::GetSplineLength() const
 {

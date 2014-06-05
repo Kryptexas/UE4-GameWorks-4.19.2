@@ -50,6 +50,7 @@
 #include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
 #include "Landscape/LandscapeProxy.h"
+#include "Components/SplineMeshComponent.h"
 
 #include "FbxExporter.h"
 #include "RawMesh.h"

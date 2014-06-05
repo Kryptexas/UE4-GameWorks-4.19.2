@@ -14,6 +14,7 @@
 #include "Runtime/Engine/Classes/Matinee/InterpGroupInst.h"
 #include "Runtime/Engine/Classes/Matinee/InterpTrackMove.h"
 #include "Runtime/Engine/Classes/Matinee/InterpTrackInstMove.h"
+#include "Runtime/Engine/Classes/Components/SplineMeshComponent.h"
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 
@@ -1468,7 +1469,7 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 			const USplineMeshComponent* SplineComponent = CastChecked<USplineMeshComponent>(SMLightingMesh->Component);
 			SMInstanceMeshData.bIsSplineMesh = true;
 			Copy(*SplineParams, SMInstanceMeshData.SplineParameters);
-			SMInstanceMeshData.SplineParameters.SplineUpDir = SplineComponent->SplineXDir;
+			SMInstanceMeshData.SplineParameters.SplineUpDir = SplineComponent->SplineUpDir;
 			SMInstanceMeshData.SplineParameters.bSmoothInterpRollScale = SplineComponent->bSmoothInterpRollScale;
 			SMInstanceMeshData.SplineParameters.MeshMinZ = MeshBounds.Origin[SplineComponent->ForwardAxis] - MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
 			SMInstanceMeshData.SplineParameters.MeshRangeZ = 2.f * MeshBounds.BoxExtent[SplineComponent->ForwardAxis];

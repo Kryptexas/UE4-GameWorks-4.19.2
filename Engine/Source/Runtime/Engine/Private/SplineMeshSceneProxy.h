@@ -161,7 +161,7 @@ public:
 
 		// Copy spline params from component
 		SplineParams = InComponent->SplineParams;
-		SplineXDir = InComponent->SplineXDir;
+		SplineUpDir = InComponent->SplineUpDir;
 		bSmoothInterpRollScale = InComponent->bSmoothInterpRollScale;
 		ForwardAxis = InComponent->ForwardAxis;
 
@@ -249,7 +249,7 @@ public:
 	/** Parameters that define the spline, used to deform mesh */
 	FSplineMeshParams SplineParams;
 	/** Axis (in component space) that is used to determine X axis for co-ordinates along spline */
-	FVector SplineXDir;
+	FVector SplineUpDir;
 	/** Smoothly (cubic) interpolate the Roll and Scale params over spline. */
 	bool bSmoothInterpRollScale;
 	/** Chooses the forward axis for the spline mesh orientation */
