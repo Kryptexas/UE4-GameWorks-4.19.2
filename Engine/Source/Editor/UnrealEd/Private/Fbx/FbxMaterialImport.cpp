@@ -275,7 +275,7 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 							MyCoordExpression->UTiling = ScaleU;
 							MyCoordExpression->VTiling = ScaleV;
 							UnrealTextureExpression->Coordinates.Expression = MyCoordExpression;
-							MyCoordExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X+175);
+							MyCoordExpression->MaterialExpressionEditorX = FMath::TruncToInt(Location.X-175);
 							MyCoordExpression->MaterialExpressionEditorY = FMath::TruncToInt(Location.Y);
 
 						}

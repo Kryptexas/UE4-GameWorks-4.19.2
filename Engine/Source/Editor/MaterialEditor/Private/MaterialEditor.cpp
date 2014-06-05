@@ -2565,12 +2565,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			check(!NewExpression->bIsParameterExpression);
 		}
 
-		// If the new expression is created connected to an input tab, offset it by this amount.
-		int32 NewConnectionOffset = 0;
-
 		// Set the expression location.
-		NewExpression->MaterialExpressionEditorX = NodePos.X + NewConnectionOffset;
-		NewExpression->MaterialExpressionEditorY = NodePos.Y + NewConnectionOffset;
+		NewExpression->MaterialExpressionEditorX = NodePos.X;
+		NewExpression->MaterialExpressionEditorY = NodePos.Y;
 
 		if (bAutoAssignResource)
 		{
@@ -2647,7 +2644,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			Material->Expressions.Add( WorldPositionExpression );
 			WorldPositionExpression->Material = Material;
 			RotateAboutAxisExpression->Position.Expression = WorldPositionExpression;
-			WorldPositionExpression->MaterialExpressionEditorX = RotateAboutAxisExpression->MaterialExpressionEditorX + 250;
+			WorldPositionExpression->MaterialExpressionEditorX = RotateAboutAxisExpression->MaterialExpressionEditorX - 250;
 			WorldPositionExpression->MaterialExpressionEditorY = RotateAboutAxisExpression->MaterialExpressionEditorY + 73;
 			Material->MaterialGraph->AddExpression(WorldPositionExpression);
 			if ( bAutoSelect )

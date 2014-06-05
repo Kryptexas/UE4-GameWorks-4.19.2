@@ -422,7 +422,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 	Material->EditorY = 0;
 
 	const int32 Height = 200;
-	const int32 Width = 250;
+	const int32 Width = -250;
 
 	// layout X to make sure each input is 1 step further than output connection
 	bool bContinue = true;
@@ -433,7 +433,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 		for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ++ExpressionIndex)
 		{
 			UMaterialExpression* Expression = Material->Expressions[ExpressionIndex];
-			Expression->MaterialExpressionEditorX = FMath::Max(Expression->MaterialExpressionEditorX, Width);
+			Expression->MaterialExpressionEditorX = FMath::Min(Expression->MaterialExpressionEditorX, Width);
 
 			TArray<FExpressionInput*> Inputs = Expression->GetInputs();
 			for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
@@ -441,9 +441,9 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 				UMaterialExpression* Input = Inputs[InputIndex]->Expression;
 				if (Input != NULL)
 				{
-					if (Input->MaterialExpressionEditorX < Expression->MaterialExpressionEditorX + Width)
+					if (Input->MaterialExpressionEditorX > Expression->MaterialExpressionEditorX + Width)
 					{
-						Input->MaterialExpressionEditorX = FMath::Max(Input->MaterialExpressionEditorX, Expression->MaterialExpressionEditorX + Width);
+						Input->MaterialExpressionEditorX = FMath::Min(Input->MaterialExpressionEditorX, Expression->MaterialExpressionEditorX + Width);
 						bContinue = true;
 					}
 				}

@@ -459,11 +459,13 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );
 
+	const int HSpace = -300;
+
 	// If we were able to figure out the material kind, we need to try and build a complex material
 	// involving multiple textures.  If not, just try and connect what we found to the base map.
 	if ( MaterialKind == EMaterialKind::Unknown )
 	{
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, UnrealTexture, UnrealMaterial->DiffuseColor, 300, 0 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, UnrealTexture, UnrealMaterial->DiffuseColor, HSpace, 0 );
 	}
 	else
 	{
@@ -504,10 +506,10 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 
 		// Connect and layout any textures we find into their respective inputs in the material.
 		const int VSpace = 170;
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, BaseTexture, UnrealMaterial->DiffuseColor, 300, VSpace * -1 );
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Specular, SpecularTexture, UnrealMaterial->Specular, 300, VSpace * 0 );
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Emissive, EmissiveTexture, UnrealMaterial->EmissiveColor, 300, VSpace * 1 );
-		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Normal, NormalTexture, UnrealMaterial->Normal, 300, VSpace * 2 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Base, BaseTexture, UnrealMaterial->DiffuseColor, HSpace, VSpace * -1 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Specular, SpecularTexture, UnrealMaterial->Specular, HSpace, VSpace * 0 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Emissive, EmissiveTexture, UnrealMaterial->EmissiveColor, HSpace, VSpace * 1 );
+		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Normal, NormalTexture, UnrealMaterial->Normal, HSpace, VSpace * 2 );
 	}
 
 	if ( UnrealMaterial != NULL )
