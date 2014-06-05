@@ -1018,9 +1018,6 @@ namespace UnrealBuildTool
 
 			// Reset global configurations
 			ResetAllActions();
-			XmlConfigLoader.Reset<CPPEnvironment>();
-			XmlConfigLoader.Reset<BuildConfiguration>();
-			XmlConfigLoader.Reset<UEBuildConfiguration>();
 
 			ParseBuildConfigurationFlags(Arguments);
 
