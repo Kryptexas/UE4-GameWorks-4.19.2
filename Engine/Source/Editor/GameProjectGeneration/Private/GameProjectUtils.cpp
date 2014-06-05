@@ -2005,6 +2005,28 @@ void GameProjectUtils::UpdateSupportedTargetPlatforms(const FName& InPlatformNam
 	}
 }
 
+void GameProjectUtils::ClearSupportedTargetPlatforms()
+{
+	const FString& ProjectFilename = FPaths::GetProjectFilePath();
+	if(!ProjectFilename.IsEmpty())
+	{
+		// First attempt to check out the file if SCC is enabled
+		if(ISourceControlModule::Get().IsEnabled())
+		{
+			FText UnusedFailReason;
+			CheckoutGameProjectFile(ProjectFilename, UnusedFailReason);
+		}
+
+		// Second make sure the file is writable
+		if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFilename))
+		{
+			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFilename, false);
+		}
+
+		IProjectManager::Get().ClearSupportedTargetPlatformsForCurrentProject();
+	}
+}
+
 bool GameProjectUtils::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)
 {
 	const FString FullFileName = FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Templates") / TemplateFileName;

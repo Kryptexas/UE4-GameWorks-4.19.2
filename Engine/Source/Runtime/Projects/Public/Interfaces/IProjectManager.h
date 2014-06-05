@@ -51,6 +51,14 @@ public:
 		// An empty list is considered the same as supporting all platforms
 		return (bAllowSupportedIfEmptyList && TargetPlatforms.Num() == 0) || TargetPlatforms.Contains(InPlatformName);
 	}
+
+	/**
+	 * Check to see if the given the current project supports all platforms
+	 */
+	bool SupportsAllPlatforms() const
+	{
+		return TargetPlatforms.Num() == 0;
+	}
 };
 
 /**
@@ -193,6 +201,12 @@ public:
 	 * @param	bIsSupported		true if the platform should be supported by this project, false if it should not
 	 */
 	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) = 0;
+
+	/** Clear the list of supported target platforms for the target project */
+	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) = 0;
+
+	/** Clear the list of supported target platforms for the current project */
+	virtual void ClearSupportedTargetPlatformsForCurrentProject() = 0;
 
 	/** Called when the target platforms for the current project are changed */
 	DECLARE_MULTICAST_DELEGATE(FOnTargetPlatformsForCurrentProjectChangedEvent);

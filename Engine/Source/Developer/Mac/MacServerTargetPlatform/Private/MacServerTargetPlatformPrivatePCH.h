@@ -20,6 +20,7 @@
 #endif
 
 #include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 #include "LocalMacTargetDevice.h"
 #include "GenericMacTargetPlatform.h"
 

@@ -19,26 +19,6 @@ template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 struct FLinuxPlatformProperties
 	: public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		if (IS_DEDICATED_SERVER)
-		{
-			return "Linux (Dedicated Server)";
-		}
-
-		if (HAS_EDITOR_DATA)
-		{
-			return "Linux (Editor)";
-		}
-
-		if (IS_CLIENT_ONLY)
-		{
-			return "Linux (Client-only)";
-		}
-
-		return "Linux";
-	}
-
 	static FORCEINLINE bool HasEditorOnlyData( )
 	{
 		return HAS_EDITOR_DATA;

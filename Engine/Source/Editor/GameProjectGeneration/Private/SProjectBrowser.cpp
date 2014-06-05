@@ -8,6 +8,7 @@
 #include "UProjectInfo.h"
 #include "SourceCodeNavigation.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -25,8 +26,9 @@ struct FProjectItem
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
 	TArray<FName> TargetPlatforms;
+	bool bSupportsAllPlatforms;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem, TArray<FName> InTargetPlatforms)
+	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem, TArray<FName> InTargetPlatforms, bool InSupportsAllPlatforms)
 		: Name(InName)
 		, Description(InDescription)
 		, EngineIdentifier(InEngineIdentifier)
@@ -35,6 +37,7 @@ struct FProjectItem
 		, ProjectThumbnail(InProjectThumbnail)
 		, bIsNewProjectItem(InIsNewProjectItem)
 		, TargetPlatforms(InTargetPlatforms)
+		, bSupportsAllPlatforms(InSupportsAllPlatforms)
 	{ }
 
 	/** Check if this project is up to date */
@@ -300,7 +303,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
 		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)
-		.OnSelectionChanged(TSlateDelegates<TSharedPtr<FProjectItem>>::FOnSelectionChanged::CreateSP(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName))
+		.OnSelectionChanged(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName)
 		.ItemHeight(ThumbnailSize + ThumbnailBorderPadding + 32)
 		.ItemWidth(ThumbnailSize + ThumbnailBorderPadding)
 	];
@@ -457,6 +460,9 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 	TSharedRef<SHorizontalBox> TargetPlatformIconsBox = SNew(SHorizontalBox);
 	for(const FName& PlatformName : ProjectItem->TargetPlatforms)
 	{
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(PlatformName);
+		check(PlatformInfo);
+
 		TargetPlatformIconsBox->AddSlot()
 		.AutoWidth()
 		.HAlign(HAlign_Center)
@@ -468,7 +474,7 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 			.HeightOverride(20)
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *PlatformName.ToString())))
+				.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
 			]
 		];
 	}
@@ -497,24 +503,17 @@ TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectIte
 					.AutoHeight()
 					.VAlign(VAlign_Center)
 					[
-						SNew(SHorizontalBox)
+						SNew(STextBlock)
+						.Text( ProjectItem->Name )
+						.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+					]
 
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.HAlign(HAlign_Left)
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-							.Text( ProjectItem->Name )
-							.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
-						]
-
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Center)
-						[
-							TargetPlatformIconsBox
-						]
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					.Padding(0, 2, 0, 0)
+					[
+						TargetPlatformIconsBox
 					]
 				]
 			]
@@ -705,7 +704,6 @@ FReply SProjectBrowser::FindProjects()
 
 	// Add all the discovered projects to the list
 	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
-	TArray<ITargetPlatform*> AllPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
 	for(TMap<FString, FText>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
 	{
 		const FString& ProjectFilename = *Iter.Key();
@@ -751,24 +749,22 @@ FReply SProjectBrowser::FindProjects()
 				FString ProjectEngineIdentifier;
 				bool bIsUpToDate = FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFilename, ProjectEngineIdentifier) && ProjectEngineIdentifier == EngineIdentifier;
 
-				// Work out which platforms this project is targeting (it only shows the ones we have support for locally)
+				// Work out which platforms this project is targeting
 				TArray<FName> TargetPlatforms;
-				for ( ITargetPlatform* Platform : AllPlatforms )
+				for(const PlatformInfo::FPlatformInfo& PlatformInfo : PlatformInfo::EnumeratePlatformInfoArray())
 				{
-					// We are only interested in standalone games
-					const bool bIsGamePlatform = !Platform->IsClientOnly() && !Platform->IsServerOnly() && !Platform->HasEditorOnlyData();
-					if ( bIsGamePlatform )
+					if(PlatformInfo.IsVanilla() && PlatformInfo.PlatformType == PlatformInfo::EPlatformType::Game && ProjectStatus.IsTargetPlatformSupported(PlatformInfo.PlatformInfoName))
 					{
-						const FName PlatformName = *Platform->PlatformName();
-						if ( ProjectStatus.IsTargetPlatformSupported(PlatformName) )
-						{
-							TargetPlatforms.Add(PlatformName);
-						}
+						TargetPlatforms.Add(PlatformInfo.PlatformInfoName);
 					}
 				}
+				TargetPlatforms.Sort([](const FName& One, const FName& Two) -> bool
+				{
+					return One < Two;
+				});
 
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem, TargetPlatforms ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem, TargetPlatforms, ProjectStatus.SupportsAllPlatforms() ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}

@@ -34,9 +34,3 @@
 
 #include "ITextureFormat.h"
 #include "ITextureFormatModule.h"
-
-
-/* Common
- *****************************************************************************/
-
-#include "TargetPlatformBase.h"

@@ -19,6 +19,7 @@
 #include "ModuleManager.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 #include "TextFilter.h"
 
 

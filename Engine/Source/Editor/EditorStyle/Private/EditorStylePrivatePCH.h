@@ -17,7 +17,7 @@
 #include "Settings.h"
 #include "Slate.h"
 #include "SlateStyle.h"
-#include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 
 /* Private includes

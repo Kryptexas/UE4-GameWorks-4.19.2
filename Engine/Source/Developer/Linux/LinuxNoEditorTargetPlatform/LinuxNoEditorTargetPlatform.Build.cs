@@ -11,7 +11,8 @@ public class LinuxNoEditorTargetPlatform : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[] {
 				"Core",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
         );
 

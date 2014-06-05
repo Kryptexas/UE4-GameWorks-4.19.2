@@ -29,6 +29,7 @@ public class MainFrame : ModuleRules
 				"SourceControl",
 				"SourceControlWindows",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"UnrealEd",
 				"WorkspaceMenuStructure",
 				"MessageLog",

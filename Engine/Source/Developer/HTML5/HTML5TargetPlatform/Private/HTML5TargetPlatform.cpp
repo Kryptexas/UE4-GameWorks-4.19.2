@@ -61,22 +61,6 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 }
 
 
-FString FHTML5TargetPlatform::GetIconPath( ETargetPlatformIcons::IconType IconType ) const
-{
-	switch (IconType)
-	{
-	case ETargetPlatformIcons::Normal:
-		return FString(TEXT("Launcher/HTML5/Platform_HTML5_24x"));
-
-	case ETargetPlatformIcons::Large:
-	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/HTML5/Platform_HTML5_128x"));
-	}
-
-	return FString();
-}
-
-
 bool FHTML5TargetPlatform::IsRunningPlatform( ) const
 {
 	return false; // but this will never be called because this platform doesn't run the target platform framework

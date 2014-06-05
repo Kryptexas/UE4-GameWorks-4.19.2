@@ -98,6 +98,9 @@ public:
 		}
 		else if (ColumnName == "Platform")
 		{
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*InstanceInfo->GetPlatformName());
+			check(PlatformInfo);
+
 			return SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
@@ -105,7 +108,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *InstanceInfo->GetPlatformName())))
+						.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
 				]
 
 			+ SHorizontalBox::Slot()

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "PlatformInfo.h"
 
 /**
  * Base class for target platforms.
@@ -20,6 +21,16 @@ public:
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) OVERRIDE
 	{
 		return false;
+	}
+
+	virtual FText DisplayName( ) const OVERRIDE
+	{
+		return PlatformInfo->DisplayName;
+	}
+
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const OVERRIDE
+	{
+		return *PlatformInfo;
 	}
 
 #if WITH_ENGINE
@@ -156,6 +167,16 @@ public:
 	}
 
 	// End ITargetPlatform interface
+
+protected:
+	FTargetPlatformBase(const PlatformInfo::FPlatformInfo *const InPlatformInfo)
+		: PlatformInfo(InPlatformInfo)
+	{
+		check(PlatformInfo);
+	}
+
+	/** Information about this platform */
+	const PlatformInfo::FPlatformInfo *PlatformInfo;
 };
 
 
@@ -174,6 +195,7 @@ public:
 	 * Default constructor.
 	 */
 	TTargetPlatformBase( )
+		: FTargetPlatformBase( PlatformInfo::FindPlatformInfo(TPlatformProperties::PlatformName()) )
 	{
 		// HasEditorOnlyData and RequiresCookedData are mutually exclusive.
 		check(TPlatformProperties::HasEditorOnlyData() != TPlatformProperties::RequiresCookedData());
@@ -182,11 +204,6 @@ public:
 public:
 
 	// Begin ITargetPlatform interface
-
-	virtual FText DisplayName( ) const OVERRIDE
-	{
-		return FText::FromString(TPlatformProperties::DisplayName());
-	}
 
 	virtual bool HasEditorOnlyData( ) const OVERRIDE
 	{

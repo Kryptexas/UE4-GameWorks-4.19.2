@@ -20,6 +20,7 @@
 #include "Slate.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 // @todo gmp: remove these dependencies by making the session front-end extensible
 #include "AutomationWindow.h"

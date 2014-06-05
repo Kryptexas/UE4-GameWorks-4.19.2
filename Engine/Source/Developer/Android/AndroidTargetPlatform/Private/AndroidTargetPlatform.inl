@@ -75,22 +75,6 @@ inline ITargetDevicePtr FAndroidTargetPlatform::GetDevice( const FTargetDeviceId
 }
 
 
-inline FString FAndroidTargetPlatform::GetIconPath( ETargetPlatformIcons::IconType IconType ) const
-{
-	switch (IconType)
-	{
-	case ETargetPlatformIcons::Normal:
-		return FString::Printf(TEXT("Launcher/Android/Platform_%s_24x"), *PlatformName());
-
-	case ETargetPlatformIcons::Large:
-	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/Android/Platform_Android_128x"));
-	}
-
-	return FString();
-}
-
-
 inline bool FAndroidTargetPlatform::IsRunningPlatform( ) const
 {
 	return false; // This platform never runs the target platform framework

@@ -149,10 +149,10 @@ public:
 	static void AddCodeToProject();
 
 	/** Cooks the project's content for the specified platform. */
-	static void CookContent( const FString PlatformName, const FText PlatformDisplayName );
+	static void CookContent( const FName InPlatformInfoName );
 
 	/** Checks whether a menu action for cooking the project's content can execute. */
-	static bool CookContentCanExecute( const FString PlatformName );
+	static bool CookContentCanExecute( const FName PlatformInfoName );
 
 	/** Sets the project packaging build configuration. */
 	static void PackageBuildConfiguration( EProjectPackagingBuildConfigurations BuildConfiguration );
@@ -161,10 +161,10 @@ public:
 	static bool PackageBuildConfigurationIsChecked( EProjectPackagingBuildConfigurations BuildConfiguration );
 
 	/** Packages the project for the specified platform. */
-	static void PackageProject( const FString PlatformName, const FText PlatformDisplayName, const FString AdditionalFlags );
+	static void PackageProject( const FName InPlatformInfoName );
 
 	/** Checks whether a menu action for packaging the project can execute. */
-	static bool PackageProjectCanExecute( const FString PlatformName, bool IsImplemented );
+	static bool PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented );
 
 	/** Refresh the project in the current IDE */
 	static void RefreshCodeProject();

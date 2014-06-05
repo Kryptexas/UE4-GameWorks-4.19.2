@@ -2,6 +2,12 @@
 
 #pragma once
 
+namespace PlatformInfo
+{
+	// Forward declare type from DesktopPlatform rather than add an include dependency to everything using IProjectTargetPlatformEditorModule
+	struct FPlatformInfo;
+}
+
 /**
  * Interface for the platform target platform editor module
  */
@@ -33,11 +39,11 @@ public:
 	/**
 	 * Creates the widget to use for a platform entry within a FMenuBuilder.
 	 *
-	 * @param Platform - The target platform to build the widget for
+	 * @param PlatformInfo - The target platform info to build the widget for
 	 * @param bForCheckBox - true if the widget is for a checkbox menu item, false if it's for any other menu item (this affects the padding)
 	 * @param DisplayNameOverride - An alternate name to use for the platform, otherwise Platform->DisplayName() will be used
 	 */
-	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const ITargetPlatform* const Platform, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const = 0;
+	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const PlatformInfo::FPlatformInfo& PlatformInfo, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const = 0;
 
 	/**
 	 * Check to see if the given platform is on the list of supported targets, and show a warning message if it's not, allowing the user to continue or cancel

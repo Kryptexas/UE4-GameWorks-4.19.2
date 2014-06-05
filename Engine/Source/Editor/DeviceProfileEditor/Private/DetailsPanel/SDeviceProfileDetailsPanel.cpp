@@ -89,12 +89,11 @@ void SDeviceProfileDetailsPanel::RefreshUI()
 
 	if( ViewingProfile.IsValid() )
 	{
-		FString DeviceProfileTypeIcon;
+		const FSlateBrush* DeviceProfileTypeIcon = FEditorStyle::GetDefaultBrush();
 		TArray<ITargetPlatform*> TargetPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
-		for (int32 TargetPlatformIndex = 0; TargetPlatformIndex < TargetPlatforms.Num(); ++TargetPlatformIndex)
+		if (TargetPlatforms.Num())
 		{
-			DeviceProfileTypeIcon = FString::Printf(TEXT("Launcher.Platform_%s"), *TargetPlatforms[TargetPlatformIndex]->PlatformName());
-			break;
+			DeviceProfileTypeIcon = FEditorStyle::GetBrush(TargetPlatforms[0]->GetPlatformInfo().GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal));
 		}
 
 		SettingsView->SetObject(&*ViewingProfile);
@@ -115,7 +114,7 @@ void SDeviceProfileDetailsPanel::RefreshUI()
 					.Padding(4.0f, 0.0f, 2.0f, 0.0f)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*DeviceProfileTypeIcon))
+						.Image(DeviceProfileTypeIcon)
 					]
 
 					+SHorizontalBox::Slot()

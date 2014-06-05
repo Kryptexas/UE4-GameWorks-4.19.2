@@ -398,30 +398,35 @@ void FMainFrameActionCallbacks::AddCodeToProject()
 	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog();
 }
 
-void FMainFrameActionCallbacks::CookContent( const FString InPlatformName, const FText PlatformDisplayName )
+void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 {
-	FString PlatformName = InPlatformName;
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
+	check(PlatformInfo);
+
 	FString OptionalParams;
 
-	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(*PlatformName))
+	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(PlatformInfo->VanillaPlatformName))
 	{
 		return;
 	}
 
-	if (PlatformName == "MacNoEditor")
+	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
 	}
+	else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
+	{
+		OptionalParams += TEXT(" -targetplatform=Linux");
+	}
+
+	// Append any extra UAT flags specified for this platform flavor
+	if (!PlatformInfo->UATCommandLine.IsEmpty())
+	{
+		OptionalParams += TEXT(" ");
+		OptionalParams += PlatformInfo->UATCommandLine;
+	}
 
 	FString ExecutableName = FPlatformProcess::ExecutableName(false);
-
-	// for things like Android_ATC, pull it apart to be Android, with cook flavor ATC
-	int32 UnderscoreLoc;
-	if (PlatformName.FindChar(TEXT('_'), UnderscoreLoc))
-	{
-		OptionalParams += FString(TEXT(" -cookflavor=")) + PlatformName.Mid(UnderscoreLoc + 1);
-		PlatformName = PlatformName.Mid(0, UnderscoreLoc);
-	}
 
 #if PLATFORM_WINDOWS
 	// turn UE4editor into UE4editor-cmd
@@ -446,15 +451,15 @@ void FMainFrameActionCallbacks::CookContent( const FString InPlatformName, const
 		FRocketSupport::IsRocket() ? TEXT("-rocket -nocompile") : TEXT("-nocompileeditor"),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
-		*PlatformName,
+		*PlatformInfo->TargetPlatformName.ToString(),
 		*ExecutableName,
 		*OptionalParams
 	);
 
-	CreateUatTask(CommandLine, PlatformDisplayName, LOCTEXT("CookingContentTaskName", "Cooking content"), LOCTEXT("CookingTaskName", "Cooking"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
+	CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("CookingContentTaskName", "Cooking content"), LOCTEXT("CookingTaskName", "Cooking"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
 }
 
-bool FMainFrameActionCallbacks::CookContentCanExecute( const FString PlatformName )
+bool FMainFrameActionCallbacks::CookContentCanExecute( const FName PlatformInfoName )
 {
 	return true;
 }
@@ -470,36 +475,39 @@ bool FMainFrameActionCallbacks::PackageBuildConfigurationIsChecked( EProjectPack
 	return (GetDefault<UProjectPackagingSettings>()->BuildConfiguration == BuildConfiguration);
 }
 
-void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, const FText PlatformDisplayName, const FString AdditionalFlags )
+void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 {
-	FString PlatformName = InPlatformName;
-
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 	bool bProjectHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
-	const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
-	if (Platform)
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
+	check(PlatformInfo);
+
 	{
-		FString NotInstalledDocLink;
-		if (!Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo->TargetPlatformName.ToString());
+		if (Platform)
 		{
-			// broadcast this, and assume someone will pick it up
-			IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformName, NotInstalledDocLink);
-			return;
+			FString NotInstalledDocLink;
+			if (!Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+			{
+				// broadcast this, and assume someone will pick it up
+				IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+				MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
+				return;
+			}
 		}
 	}
 
 #if PLATFORM_WINDOWS
-	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformName == TEXT("IOS"))
+	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS"))
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
 		return;
 	}
 #endif
 
-	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(*PlatformName))
+	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(PlatformInfo->VanillaPlatformName))
 	{
 		return;
 	}
@@ -553,34 +561,26 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		OptionalParams += TEXT(" -distribution");
 	}
 
-	if (PlatformName == "WindowsNoEditor")
-	{
-		FString TargetPlatform;
-		FParse::Value(*AdditionalFlags, TEXT("-targetplatform="), TargetPlatform);
-
-		OptionalParams += FString::Printf(TEXT(" -targetplatform=%s"), *TargetPlatform);
-	}
-	else if (PlatformName == "MacNoEditor")
+	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
 	}
-	else if (PlatformName == "LinuxNoEditor")
+	else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
 	{
 		OptionalParams += TEXT(" -targetplatform=Linux");
+	}
+
+	// Append any extra UAT flags specified for this platform flavor
+	if (!PlatformInfo->UATCommandLine.IsEmpty())
+	{
+		OptionalParams += TEXT(" ");
+		OptionalParams += PlatformInfo->UATCommandLine;
 	}
 
 	// only build if the project has code that might need to be built
 	if (bProjectHasCode && FSourceCodeNavigation::IsCompilerAvailable())
 	{
 		OptionalParams += TEXT(" -build");
-	}
-
-	// for things like Android_ATC, pull it apart to be Android, with cook flavor ATC
-	int32 UnderscoreLoc;
-	if (PlatformName.FindChar(TEXT('_'), UnderscoreLoc))
-	{
-		OptionalParams += FString(TEXT(" -cookflavor=")) + PlatformName.Mid(UnderscoreLoc + 1);
-		PlatformName = PlatformName.Mid(0, UnderscoreLoc);
 	}
 
 	FString ExecutableName = FPlatformProcess::ExecutableName(false);
@@ -612,16 +612,16 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
-		*PlatformName,
+		*PlatformInfo->TargetPlatformName.ToString(),
 		*Configuration,
 		*ExecutableName,
 		*OptionalParams
 	);
 
-	CreateUatTask(CommandLine, PlatformDisplayName, LOCTEXT("PackagingProjectTaskName", "Packaging project"), LOCTEXT("PackagingTaskName", "Packaging"), FEditorStyle::GetBrush(TEXT("MainFrame.PackageProject")));
+	CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("PackagingProjectTaskName", "Packaging project"), LOCTEXT("PackagingTaskName", "Packaging"), FEditorStyle::GetBrush(TEXT("MainFrame.PackageProject")));
 }
 
-bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FString PlatformName, bool IsImplemented )
+bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented )
 {
 	return IsImplemented;
 }

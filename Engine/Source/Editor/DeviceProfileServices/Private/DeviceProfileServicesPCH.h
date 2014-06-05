@@ -15,6 +15,7 @@
 #include "Engine.h"
 #include "ModuleManager.h"
 #include "TargetDeviceServices.h"
+#include "PlatformInfo.h"
 
 
 /* Private includes

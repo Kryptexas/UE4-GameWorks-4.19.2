@@ -2,25 +2,6 @@
 
 #pragma once
 
-struct FProjectTargetPlatform
-{
-	FProjectTargetPlatform(FText InDisplayName, FName InPlatformName, const FSlateBrush* InIcon)
-		: DisplayName(InDisplayName)
-		, PlatformName(InPlatformName)
-		, Icon(InIcon)
-	{
-	}
-
-	/** Localized display name to show in the UI, eg, Windows */
-	FText DisplayName;
-
-	/** Internal platform name to use as a key, eg, WindowsNoEditor */
-	FName PlatformName;
-
-	/** Icon representing this platform */
-	const FSlateBrush* Icon;
-};
-
 class SProjectTargetPlatformSettings : public SCompoundWidget
 {
 public:
@@ -32,9 +13,17 @@ public:
 	void Construct(const FArguments& InArgs);
 
 private:
-	/** Generate a row for the available platforms list */
-	TSharedRef<ITableRow> HandlePlatformsListViewGenerateRow(TSharedPtr<FProjectTargetPlatform> TargetPlatform, const TSharedRef<STableViewBase>& OwnerTable);
+	/** Generate an entry for the given platform information */
+	TSharedRef<SWidget> MakePlatformRow(const FText& DisplayName, const FName PlatformName, const FSlateBrush* Icon) const;
 
-	/** List of available target platforms */
-	TArray<TSharedPtr<FProjectTargetPlatform>> AvailablePlatforms;
+	/** Check to see if the "enabled" checkbox should be checked for this platform */
+	ESlateCheckBoxState::Type HandlePlatformCheckBoxIsChecked(const FName PlatformName) const;
+
+	/** Check to see if the "enabled" checkbox should be enabled for this platform */
+	bool HandlePlatformCheckBoxIsEnabled(const FName PlatformName) const;
+
+	/** Handle the "enabled" checkbox state being changed for this platform */
+	void HandlePlatformCheckBoxStateChanged(ESlateCheckBoxState::Type InState, const FName PlatformName) const;
+
+	TArray<const PlatformInfo::FPlatformInfo*> AvailablePlatforms;
 };

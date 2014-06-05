@@ -19,26 +19,6 @@ template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 struct FMacPlatformProperties
 	: public FGenericPlatformProperties
 {
-	static FORCEINLINE const char* DisplayName()
-	{
-		if (IS_DEDICATED_SERVER)
-		{
-			return "Mac (Dedicated Server)";
-		}
-		
-		if (HAS_EDITOR_DATA)
-		{
-			return "Mac (Editor)";
-		}
-
-		if (IS_CLIENT_ONLY)
-		{
-			return "Mac (Client-only)";
-		}
-
-		return "Mac";
-	}
-
 	static FORCEINLINE bool HasEditorOnlyData( )
 	{
 		return HAS_EDITOR_DATA;

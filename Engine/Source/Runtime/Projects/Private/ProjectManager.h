@@ -65,6 +65,9 @@ public:
 	 */
 	void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
 
+	/** Clear the list of supported target platforms */
+	void ClearSupportedTargetPlatforms();
+
 	const FProjectInfo& GetProjectInfo() const
 	{
 		return ProjectInfo;
@@ -105,6 +108,8 @@ public:
 	virtual bool QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const OVERRIDE;
 	virtual void UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
 	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
+	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) OVERRIDE;
+	virtual void ClearSupportedTargetPlatformsForCurrentProject() OVERRIDE;
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() OVERRIDE { return OnTargetPlatformsForCurrentProjectChangedEvent; }
 
 private:

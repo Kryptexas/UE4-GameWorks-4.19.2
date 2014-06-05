@@ -88,48 +88,6 @@ public:
 		return NULL;
 	}
 
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE
-	{
-		if (IS_DEDICATED_SERVER)
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-				return FString(TEXT("Launcher/Windows/Platform_WindowsServer_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-				return FString(TEXT("Launcher/Windows/Platform_WindowsServer_128x"));
-			}
-		}
-		else if (UE_GAME)
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-				return FString(TEXT("Launcher/Windows/Platform_WindowsNoEditor_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-				return FString(TEXT("Launcher/Windows/Platform_WindowsNoEditor_128x"));
-			}
-		}
-		else
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-				return FString(TEXT("Launcher/Windows/Platform_Windows_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-				return FString(TEXT("Launcher/Windows/Platform_Windows_128x"));
-			}
-		}
-
-		return FString();
-	}
-
 	virtual bool IsRunningPlatform( ) const OVERRIDE
 	{
 		// Must be Windows platform as editor for this to be considered a running platform

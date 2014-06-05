@@ -5033,25 +5033,15 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "Launcher.Platform.Warning", new IMAGE_BRUSH( "Icons/alert", Icon24x24) );
 
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
-		const TArray<ITargetPlatform*>& TargetPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
-		for (int32 PlatformIdx = 0; PlatformIdx < TargetPlatforms.Num(); PlatformIdx++)
+		Set( "Launcher.Platform.AllPlatforms", new IMAGE_BRUSH( "Launcher/All_Platforms_24x", Icon24x24) );
+		Set( "Launcher.Platform.AllPlatforms.Large", new IMAGE_BRUSH( "Launcher/All_Platforms_128x", Icon64x64) );
+		Set( "Launcher.Platform.AllPlatforms.XLarge", new IMAGE_BRUSH( "Launcher/All_Platforms_128x", Icon128x128) );
+
+		for(const PlatformInfo::FPlatformInfo& PlatformInfo : PlatformInfo::EnumeratePlatformInfoArray())
 		{
-			ITargetPlatform* TargetPlatform = TargetPlatforms[PlatformIdx];
-			if (TargetPlatform)
-			{
-				// Grab each icon name
-				FString PropertyName = FString::Printf(TEXT("Launcher.Platform_%s"), *(TargetPlatform->PlatformName()));
-				FString IconPath = TargetPlatform->GetIconPath(ETargetPlatformIcons::Normal);
-				Set( *PropertyName, new IMAGE_BRUSH( *IconPath, Icon24x24 ) );
-
-				PropertyName = FString::Printf(TEXT("Launcher.Platform_%s.Large"), *(TargetPlatform->PlatformName()));
-				IconPath = TargetPlatform->GetIconPath(ETargetPlatformIcons::Large);
-				Set( *PropertyName, new IMAGE_BRUSH( *IconPath, Icon64x64 ) );
-
-				PropertyName = FString::Printf(TEXT("Launcher.Platform_%s.XLarge"), *(TargetPlatform->PlatformName()));
-				IconPath = TargetPlatform->GetIconPath(ETargetPlatformIcons::XLarge);
-				Set( *PropertyName, new IMAGE_BRUSH( *IconPath, Icon128x128 ) );
-			}
+			Set( PlatformInfo.GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal), new IMAGE_BRUSH( *PlatformInfo.GetIconPath(PlatformInfo::EPlatformIconSize::Normal), Icon24x24 ) );
+			Set( PlatformInfo.GetIconStyleName(PlatformInfo::EPlatformIconSize::Large),  new IMAGE_BRUSH( *PlatformInfo.GetIconPath(PlatformInfo::EPlatformIconSize::Large),  Icon64x64 ) );
+			Set( PlatformInfo.GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge), new IMAGE_BRUSH( *PlatformInfo.GetIconPath(PlatformInfo::EPlatformIconSize::XLarge), Icon128x128 ) );
 		}
 #endif
 	}

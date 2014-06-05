@@ -13,6 +13,7 @@
 #include "ModuleManager.h"
 #include "EditorStyle.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 #include "GameProjectGenerationModule.h"
 
 

@@ -74,6 +74,9 @@ public:
 	 */
 	virtual void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
 
+	/** Clear the list of supported target platforms */
+	virtual void ClearSupportedTargetPlatforms();
+
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;
 

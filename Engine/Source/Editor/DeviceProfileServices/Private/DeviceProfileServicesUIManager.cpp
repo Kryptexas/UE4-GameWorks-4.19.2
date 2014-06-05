@@ -84,8 +84,7 @@ void FDeviceProfileServicesUIManager::CreatePlatformMap()
 	for (int32 Index = 0; Index < Platforms.Num(); ++Index)
 	{
 		PlatformList.Add(MakeShareable(new FString(Platforms[Index]->PlatformName())));
-		FName PlatformIcon = *FString::Printf(TEXT("Launcher.Platform_%s"), *Platforms[Index]->PlatformName());
-		DeviceTypeToIconMap.Add( Platforms[Index]->PlatformName(), PlatformIcon );
+		DeviceTypeToIconMap.Add( Platforms[Index]->PlatformName(), Platforms[Index]->GetPlatformInfo().GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal) );
 	}
 }
 

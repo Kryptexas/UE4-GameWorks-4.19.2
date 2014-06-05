@@ -245,7 +245,10 @@ private:
 	{
 		if (DeviceService.IsValid())
 		{
-			return FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s.XLarge"), *DeviceService->GetDeviceId().GetPlatformName()));
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+			check(PlatformInfo);
+
+			return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge));
 		}
 
 		return NULL;

@@ -33,6 +33,7 @@
 #include "SourceControlWindows.h"
 #include "Settings.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 #include "UnrealEd.h"
 
 #include "../../LevelEditor/Public/LevelEditor.h"

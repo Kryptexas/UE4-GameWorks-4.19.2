@@ -237,6 +237,9 @@ public:
 	 */
 	static void UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported);
 
+	/** Clear the list of supported target platforms */
+	static void ClearSupportedTargetPlatforms();
+
 private:
 	/** Generates a new project without using a template project */
 	static bool GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);

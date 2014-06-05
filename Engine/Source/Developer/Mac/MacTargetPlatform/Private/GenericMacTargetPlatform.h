@@ -72,52 +72,6 @@ public:
 		return NULL;
 	}
 
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE
-	{
-		if (IS_DEDICATED_SERVER)
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-//				return FString(TEXT("Launcher/Mac/Platform_MacServer_24x"));
-				return FString(TEXT("Launcher/Mac/Platform_Mac_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-//				return FString(TEXT("Launcher/Mac/Platform_MacServer_128x"));
-				return FString(TEXT("Launcher/Mac/Platform_Mac_128x"));
-			}
-		}
-		else if (UE_GAME)
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-//				return FString(TEXT("Launcher/Mac/Platform_MacNoEditor_24x"));
-				return FString(TEXT("Launcher/Mac/Platform_Mac_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-//				return FString(TEXT("Launcher/Mac/Platform_MacNoEditor_128x"));
-				return FString(TEXT("Launcher/Mac/Platform_Mac_128x"));
-			}
-		}
-		else
-		{
-			switch (IconType)
-			{
-			case ETargetPlatformIcons::Normal:
-				return FString(TEXT("Launcher/Mac/Platform_Mac_24x"));
-
-			case ETargetPlatformIcons::Large:
-			case ETargetPlatformIcons::XLarge:
-				return FString(TEXT("Launcher/Mac/Platform_Mac_128x"));
-			}
-		}
-
-		return FString(TEXT(""));
-	}
-
 	virtual bool IsRunningPlatform( ) const OVERRIDE
 	{
 		// Must be Mac platform as editor for this to be considered a running platform

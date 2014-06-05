@@ -76,21 +76,6 @@ ITargetDevicePtr FIOSTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId 
 }
 
 
-FString FIOSTargetPlatform::GetIconPath( ETargetPlatformIcons::IconType InType ) const
-{
-	switch (InType)
-	{
-	case ETargetPlatformIcons::Normal:
-		return FString(TEXT("Launcher/iOS/Platform_iOS_24x"));
-
-	case ETargetPlatformIcons::Large:
-	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/iOS/Platform_iOS_128x"));
-	}
-
-	return FString();
-}
-
 bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
 	bool biOSSDKInstalled = true; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?

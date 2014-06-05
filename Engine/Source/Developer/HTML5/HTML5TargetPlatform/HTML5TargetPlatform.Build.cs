@@ -11,13 +11,13 @@ public class HTML5TargetPlatform : ModuleRules
 	{
 		BinariesSubFolder = "HTML5";
 
-		PrivateIncludePathModuleNames.Add("TargetPlatform");
-
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"Sockets"
+				"Sockets",
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
 		);
 

@@ -237,9 +237,6 @@ private:
 	/** Spawn the main level editor tab */
 	TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs );
 
-	/** Update the target platform icons shown in the titlebar */
-	void UpdateTargetPlatformIcons();
-
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
@@ -285,9 +282,6 @@ private:
 
 	/* Holds the Editor's tab manager */
 	TSharedPtr<FTabManager> LevelEditorTabManager;
-
-	/* Container for the target platform icons for this project; updated whenever the project is updated via IProjectManager::OnTargetPlatformsForCurrentProjectChanged */
-	TSharedPtr<SHorizontalBox> TargetPlatformIconsBox;
 
 	/* Whether we have source for the level editor, and it can be recompiled. */
 	bool bCanBeRecompiled;

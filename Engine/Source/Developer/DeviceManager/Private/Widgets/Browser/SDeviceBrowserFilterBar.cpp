@@ -113,6 +113,9 @@ FString SDeviceBrowserFilterBar::HandlePlatformListRowText( TSharedPtr<FString> 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable )
 {
+	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**PlatformName);
+	check(PlatformInfo);
+
 	return SNew(STableRow<TSharedPtr<FString> >, OwnerTable)
 		.Content()
 		[
@@ -128,7 +131,7 @@ TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow
 						.AutoWidth()
 						[
 							SNew(SImage)
-								.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), **PlatformName)))
+								.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
 						]
 
 					+ SHorizontalBox::Slot()

@@ -18,7 +18,8 @@ public class LinuxTargetPlatform : ModuleRules
             new string[] {
 				"Core",
 				"CoreUObject",
-				"TargetPlatform"
+				"TargetPlatform",
+				"DesktopPlatform",
 			}
         );
 

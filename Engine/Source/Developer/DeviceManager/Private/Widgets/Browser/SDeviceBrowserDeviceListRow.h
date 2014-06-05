@@ -65,11 +65,14 @@ public:
 		}
 		else if (ColumnName == TEXT("Icon"))
 		{
+			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
+			check(PlatformInfo);
+
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
 				[
 					SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *DeviceService->GetDeviceId().GetPlatformName())))
+						.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
 				];
 		}
 		else if (ColumnName == TEXT("Name"))

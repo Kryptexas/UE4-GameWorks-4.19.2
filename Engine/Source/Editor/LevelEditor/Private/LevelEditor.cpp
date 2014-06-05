@@ -86,11 +86,6 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContent", "{Branch}{GameName}"), Args);
 		}
 
-		// Create the target platform icons, and register our interest so we can update them if they're changed later on
-		TargetPlatformIconsBox = SNew(SHorizontalBox);
-		UpdateTargetPlatformIcons();
-		IProjectManager::Get().OnTargetPlatformsForCurrentProjectChanged().AddRaw(this, &FLevelEditorModule::UpdateTargetPlatformIcons);
-
 		RightContent =
 				SNew( SHorizontalBox )
 
@@ -105,14 +100,6 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14 ) )
 						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.3f ) )
 					]
-				]
-
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					TargetPlatformIconsBox.ToSharedRef()
 				]
 
 				+SHorizontalBox::Slot()
@@ -489,49 +476,6 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
 	return LevelEditorInstanceTabPtr.Pin().ToSharedRef();
-}
-
-void FLevelEditorModule::UpdateTargetPlatformIcons()
-{
-	TargetPlatformIconsBox->ClearChildren();
-
-	FProjectStatus ProjectStatus;
-	if(IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus))
-	{
-		TArray<ITargetPlatform*> AllPlatforms = GetTargetPlatformManager()->GetTargetPlatforms();
-		TArray<FName> TargetPlatforms;
-		for( ITargetPlatform* Platform : AllPlatforms)
-		{
-			// We are only interested in standalone games
-			const bool bIsGamePlatform = !Platform->IsClientOnly() && !Platform->IsServerOnly() && !Platform->HasEditorOnlyData();
-			if(bIsGamePlatform)
-			{
-				const FName PlatformName = *Platform->PlatformName();
-				if(ProjectStatus.IsTargetPlatformSupported(PlatformName))
-				{
-					TargetPlatforms.Add(PlatformName);
-				}
-			}
-		}
-
-		for(const FName& PlatformName : TargetPlatforms)
-		{
-			TargetPlatformIconsBox->AddSlot()
-			.AutoWidth()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.Padding(FMargin(2, 0, 2, 0))
-			[
-				SNew(SBox)
-				.WidthOverride(20)
-				.HeightOverride(20)
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *PlatformName.ToString())))
-				]
-			];
-		}
-	}
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()

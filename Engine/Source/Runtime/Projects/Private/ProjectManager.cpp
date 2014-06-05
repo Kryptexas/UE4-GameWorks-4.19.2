@@ -40,6 +40,11 @@ void FProject::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const
 	}
 }
 
+void FProject::ClearSupportedTargetPlatforms()
+{
+	ProjectInfo.TargetPlatforms.Empty();
+}
+
 bool FProject::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject)
 {
 	ReadNumberFromJSON(FileObject, TEXT("EpicSampleNameHash"), ProjectInfo.EpicSampleNameHash);
@@ -355,6 +360,44 @@ void FProjectManager::UpdateSupportedTargetPlatformsForCurrentProject(const FNam
 	}
 
 	CurrentlyLoadedProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+
+	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
+	FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath());
+
+	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+}
+
+void FProjectManager::ClearSupportedTargetPlatformsForProject(const FString& FilePath)
+{
+	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
+	FText FailReason;
+	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	{
+		return;
+	}
+
+	NewProject->ClearSupportedTargetPlatforms();
+
+	const FString& FileContents = NewProject->SerializeToJSON();
+	FFileHelper::SaveStringToFile(FileContents, *FilePath);
+
+	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
+	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
+	const FString InProjectPath = FPaths::ConvertRelativePathToFull(FilePath);
+	if ( CurrentProjectPath == InProjectPath )
+	{
+		OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+	}
+}
+
+void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
+{
+	if ( !CurrentlyLoadedProject.IsValid() )
+	{
+		return;
+	}
+
+	CurrentlyLoadedProject->ClearSupportedTargetPlatforms();
 
 	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
 	FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath());

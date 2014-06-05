@@ -86,21 +86,6 @@ public:
 		return MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceId.GetDeviceName()));
 	}
 
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE
-	{
-		switch (IconType)
-		{
-		case ETargetPlatformIcons::Normal:
-			return FString(TEXT("Launcher/Linux/Platform_Linux_24x"));
-
-		case ETargetPlatformIcons::Large:
-		case ETargetPlatformIcons::XLarge:
-			return FString(TEXT("Launcher/Linux/Platform_Linux_128x"));
-		}
-
-		return FString();
-	}
-
 	virtual bool IsRunningPlatform( ) const OVERRIDE
 	{
 		return false;

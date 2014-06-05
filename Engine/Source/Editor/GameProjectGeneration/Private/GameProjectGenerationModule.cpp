@@ -89,4 +89,9 @@ void FGameProjectGenerationModule::UpdateSupportedTargetPlatforms(const FName& I
 	GameProjectUtils::UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
 }
 
+void FGameProjectGenerationModule::ClearSupportedTargetPlatforms()
+{
+	GameProjectUtils::ClearSupportedTargetPlatforms();
+}
+
 #undef LOCTEXT_NAMESPACE

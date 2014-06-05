@@ -23,6 +23,7 @@ public class ProjectTargetPlatformEditor : ModuleRules
 				"EditorStyle",
 				"TargetPlatform",
 				"GameProjectGeneration",
+				"DesktopPlatform",
 				"Settings",
 				"UnrealEd",
 				"Projects",

@@ -63,8 +63,6 @@ public:
 
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) OVERRIDE;
 
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const OVERRIDE;
-
 	virtual bool IsRunningPlatform( ) const OVERRIDE
 	{
 		#if PLATFORM_IOS && WITH_EDITOR

@@ -45,7 +45,7 @@ public:
 			);
 	}
 
-	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const ITargetPlatform* const Platform, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const OVERRIDE
+	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const PlatformInfo::FPlatformInfo& PlatformInfo, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const OVERRIDE
 	{
 		struct Local
 		{
@@ -74,7 +74,7 @@ public:
 					.HeightOverride(MultiBoxConstants::MenuIconSize)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName())))
+						.Image(FEditorStyle::GetBrush(PlatformInfo.GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
 					]
 				]
 				+SOverlay::Slot()
@@ -87,7 +87,7 @@ public:
 					.HeightOverride(MultiBoxConstants::MenuIconSize * 0.9f)
 					[
 						SNew(SImage)
-						.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&Local::IsUnsupportedPlatformWarningVisible, FName(*Platform->PlatformName()))))
+						.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&Local::IsUnsupportedPlatformWarningVisible, PlatformInfo.VanillaPlatformName)))
 						.Image(FEditorStyle::GetBrush("Launcher.Platform.Warning"))
 					]
 				]
@@ -99,21 +99,21 @@ public:
 			[
 				SNew(STextBlock)
 				.TextStyle(FEditorStyle::Get(), "Menu.Label")
-				.Text((DisplayNameOverride.IsEmpty()) ? Platform->DisplayName() : DisplayNameOverride)
+				.Text((DisplayNameOverride.IsEmpty()) ? PlatformInfo.DisplayName : DisplayNameOverride)
 			];
 	}
 
 	virtual bool ShowUnsupportedTargetWarning(const FName PlatformName) const OVERRIDE
 	{
+		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(PlatformName);
+		check(PlatformInfo);
+
 		// Don't show the warning during automation testing; the dlg is modal and blocks
 		FProjectStatus ProjectStatus;
-		if(!GIsAutomationTesting && IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(PlatformName))
+		if(!GIsAutomationTesting && IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(PlatformInfo->VanillaPlatformName))
 		{
-			ITargetPlatform *const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName.ToString());
-			check(Platform);
-
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("DisplayName"), Platform->DisplayName());
+			Args.Add(TEXT("DisplayName"), PlatformInfo->DisplayName);
 			FText WarningText = FText::Format(LOCTEXT("ShowUnsupportedPlatformWarning_Message", "{DisplayName} is not listed as a supported platform for this project, so may not run as expected.\n\nDo you wish to continue?"), Args);
 
 			FSuppressableWarningDialog::FSetupInfo Info(

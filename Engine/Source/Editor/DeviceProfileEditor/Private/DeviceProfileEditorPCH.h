@@ -15,6 +15,7 @@
 #include "UnrealEd.h"
 #include "IPropertyTable.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 /* Private includes
 *****************************************************************************/

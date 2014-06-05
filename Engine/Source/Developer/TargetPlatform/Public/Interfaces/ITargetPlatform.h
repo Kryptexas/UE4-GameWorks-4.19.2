@@ -7,6 +7,13 @@
 #pragma once
 
 
+namespace PlatformInfo
+{
+	// Forward declare type from DesktopPlatform rather than add an include dependency to everything using ITargetPlatform
+	struct FPlatformInfo;
+}
+
+
 namespace ETargetPlatformBuildArtifacts
 {
 	/**
@@ -76,25 +83,6 @@ namespace ETargetPlatformFeatures
 };
 
 
-namespace ETargetPlatformIcons
-{
-	/**
-	 * Enumerates platform icon types.
-	 */
-	enum IconType
-	{
-		/** Normal sized icon. */
-		Normal,
-
-		/** Large icon. */
-		Large,
-
-		/** Extra large icon. */
-		XLarge
-	};
-}
-
-
 /**
  * ITargetPlatform, abstraction for cooking platforms and enumerating actual target devices
 **/
@@ -117,6 +105,11 @@ public:
 	 * @see PlatformName
 	 */
 	virtual FText DisplayName( ) const = 0;
+
+	/**
+	 * Returns the information about this platform
+	 */
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const = 0;
 
 	/**
 	 * Gets the platform's ini name (so an offline tool can load the ini for the given target platform)
@@ -169,14 +162,6 @@ public:
 	 * @return The target device (can be nullptr). 
 	 */
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) = 0;
-
-	/**
-	 * Gets the path to the platform's icon.
-	 *
-	 * @param IconType The type of icon to get (i.e. Small or Large).
-	 * @return The path to the icon.
-	 */
-	virtual FString GetIconPath( ETargetPlatformIcons::IconType IconType ) const = 0;
 
 	/**
 	 * Checks whether this platform has only editor data (typically desktop platforms).

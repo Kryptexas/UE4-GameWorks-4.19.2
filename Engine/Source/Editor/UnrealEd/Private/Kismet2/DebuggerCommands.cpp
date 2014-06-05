@@ -18,6 +18,7 @@
 
 #include "GameProjectGenerationModule.h"
 #include "ProjectTargetPlatformEditor.h"
+#include "PlatformInfo.h"
 
 //@TODO: Remove this dependency
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -554,9 +555,16 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, InCommandList);
 
+	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
+
+	// Sort the platforms by display name so that they appear in the same order as the other menus (like "Package Project" and "Cook Project")
+	Platforms.Sort([](ITargetPlatform& One, ITargetPlatform& Two) -> bool
+	{
+		return One.DisplayName().CompareTo(Two.DisplayName()) < 0;
+	});
+
 	// shared devices section
 	TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
-	TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 	IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
 
 	TArray<FString> PlatformsToMaybeInstallLinksFor;
@@ -565,12 +573,12 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 
 	MenuBuilder.BeginSection("LevelEditorLaunchDevices", LOCTEXT("LaunchButtonDevicesSection", "Devices"));
 	{
-		for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
+		for(ITargetPlatform* Platform : Platforms)
 		{
-			ITargetPlatform* Platform = Platforms[PlatformIndex];
+			const PlatformInfo::FPlatformInfo& PlatformInfo = Platform->GetPlatformInfo();
 
 			// for the Editor we are only interested in launching standalone games
-			if (Platform->IsClientOnly() || Platform->IsServerOnly() || Platform->HasEditorOnlyData())
+			if (PlatformInfo.PlatformType != PlatformInfo::EPlatformType::Game)
 			{
 				continue;
 			}
@@ -584,15 +592,13 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 			{
 				FString NotInstalledDocLink;
 				// if the platform wasn't installed, we'll add a menu item later (we never care about code in this case, since we don't compile)
-				if (!Platform->IsSdkInstalled(false, NotInstalledDocLink) && PlatformsToMaybeInstallLinksFor.Find(Platform->DisplayName().ToString()) != INDEX_NONE)
+				if (!Platform->IsSdkInstalled(false, NotInstalledDocLink) && PlatformsToMaybeInstallLinksFor.Find(PlatformInfo.DisplayName.ToString()) != INDEX_NONE)
 				{
 					PlatformsToAddInstallLinksFor.Add(Platform);
 				}
 			}
 			else
 			{
-				FString IconName = FString::Printf(TEXT("Launcher.Platform_%s"), *Platform->PlatformName());
-
 				// for each proxy...
 				for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
 				{
@@ -627,11 +633,11 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 					// ... generate tooltip text
 					FFormatNamedArguments TooltipArguments;
 					TooltipArguments.Add(TEXT("DeviceID"), FText::FromString(DeviceProxy->GetName()));
-					TooltipArguments.Add(TEXT("DisplayName"), Platform->DisplayName());
+					TooltipArguments.Add(TEXT("DisplayName"), PlatformInfo.DisplayName);
 					FText Tooltip = FText::Format(LOCTEXT("LaunchDeviceToolTipText", "Launch the game on this {DisplayName} device ({DeviceID})"), TooltipArguments);
 
 					FProjectStatus ProjectStatus;
-					if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(*Platform->PlatformName())) 
+					if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && !ProjectStatus.IsTargetPlatformSupported(PlatformInfo.VanillaPlatformName)) 
 					{
 						FText TooltipLine2 = FText::Format(LOCTEXT("LaunchDevicePlatformWarning", "{DisplayName} is not listed as a target platform for this project, so may not run as expected."), TooltipArguments);
 						Tooltip = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Tooltip, TooltipLine2);
@@ -640,7 +646,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 					// ... and add a menu entry
 					MenuBuilder.AddMenuEntry(
 						LaunchDeviceAction, 
-						ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(Platform, true, Label), 
+						ProjectTargetPlatformEditorModule.MakePlatformMenuItemWidget(PlatformInfo, true, Label), 
 						NAME_None, 
 						Tooltip, 
 						EUserInterfaceActionType::Check

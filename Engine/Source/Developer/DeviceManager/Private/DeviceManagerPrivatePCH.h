@@ -14,6 +14,7 @@
 
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
+#include "PlatformInfo.h"
 
 
 /* Private includes
