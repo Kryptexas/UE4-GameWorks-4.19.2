@@ -20,6 +20,7 @@ public class Android_ETC1TargetPlatform : ModuleRules
 			{
 				"Core",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"AndroidDeviceDetection",
 			}
 		);

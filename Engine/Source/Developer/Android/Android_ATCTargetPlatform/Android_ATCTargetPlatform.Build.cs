@@ -13,6 +13,7 @@ public class Android_ATCTargetPlatform : ModuleRules
 			{
 				"Core",
 				"TargetPlatform",
+				"DesktopPlatform",
 				"AndroidDeviceDetection",
 			}
 		);

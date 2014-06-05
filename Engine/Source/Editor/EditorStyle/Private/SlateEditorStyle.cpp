@@ -6,6 +6,9 @@
 
 #include "EditorStylePrivatePCH.h"
 
+#if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
+	#include "PlatformInfo.h"
+#endif
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
