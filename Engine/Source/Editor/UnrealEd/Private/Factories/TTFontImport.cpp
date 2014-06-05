@@ -136,7 +136,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 	UObject* Context,
 	FFeedbackContext*	Warn )
 {
-#if !PLATFORM_WINDOWS && !PLATFORM_MAC
+#if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
 	STUBBED("Windows/Mac TTF code");
 	return NULL;
 #else
@@ -1408,7 +1408,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 #endif // PLATFORM_WINDOWS
 
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 
 #if USE_FREETYPE
 
@@ -1565,7 +1565,7 @@ void* UTrueTypeFontFactory::LoadFontFace( void* FTLibrary, int32 Height, FFeedba
 	return Face;
 }
 
-#else
+#elif PLATFORM_MAC
 
 void* UTrueTypeFontFactory::LoadFontFace( void* FTLibrary, int32 Height, FFeedbackContext* Warn, void** OutFontData )
 {
@@ -1633,7 +1633,10 @@ void* UTrueTypeFontFactory::LoadFontFace( void* FTLibrary, int32 Height, FFeedba
 	return Face;
 }
 
-#endif // PLATFORM_WINDOWS
+#elif PLATFORM_LINUX
+#else 
+#error "Unknown platform"
+#endif
 
 UTexture2D* UTrueTypeFontFactory::CreateTextureFromBitmap( UFont* Font, uint8* BitmapData, int32 Height, int32 TextureNum )
 {

@@ -55,15 +55,18 @@
 	                            checkf( RecursionCounter##__LINE__ == 0, TEXT("Enclosing block was entered recursively") );  \
 	                            const FRecursionScopeMarker ScopeMarker##__LINE__( RecursionCounter##__LINE__ )
 
+	#define unimplemented()       { FDebug::AssertFailed( "Unimplemented function called", __FILE__, __LINE__ ); }
+
 #else
 	#define checkCode(...)
 	#define check(...)
 	#define checkf(...)
-	#define checkNoEntry(...)
-	#define checkNoReentry(...)
-	#define checkNoRecursion(...)
+	#define checkNoEntry()
+	#define checkNoReentry()
+	#define checkNoRecursion()
 	#define verify(expr)				{ if(!(expr)){} }
 	#define verifyf(expr, ...)			{ if(!(expr)){} }
+	#define unimplemented()
 #endif
 
 //

@@ -44,6 +44,8 @@ struct FSlateOpenGLContext
 	SDL_Window* WindowHandle;
 	SDL_GLContext Context;
 	bool bReleaseWindowOnDestroy;
+#else
+#error "Unknown platform"
 #endif
 
 	FSlateOpenGLContext();

@@ -2,7 +2,11 @@
 
 #pragma once
 
-#define USE_LOCAL_SWARM_INTERFACE PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
+#define USE_LOCAL_SWARM_INTERFACE 1
+#else
+#define USE_LOCAL_SWARM_INTERFACE 0
+#endif
 
 #include "SwarmDefines.h"
 

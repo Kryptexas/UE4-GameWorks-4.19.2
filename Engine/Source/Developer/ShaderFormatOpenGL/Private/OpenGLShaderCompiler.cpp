@@ -23,6 +23,10 @@
 	#include <GL/glext.h>
 	#include <GL/wglext.h>
 #include "HideWindowsPlatformTypes.h"
+#elif PLATFORM_LINUX
+	#define GL_GLEXT_PROTOTYPES
+	#include <GL/gl.h>
+	#include <GL/glext.h>
 #elif PLATFORM_MAC
 	#include <OpenGL/OpenGL.h>
 	#include <OpenGL/gl3.h>
@@ -254,6 +258,15 @@ static void PlatformInitOpenGL(void*& ContextPtr, void*& PrevContextPtr, int InM
 static void PlatformReleaseOpenGL(void* ContextPtr, void* PrevContextPtr)
 {
 	wglMakeCurrent((HDC)ContextPtr, (HGLRC)PrevContextPtr);
+}
+#elif PLATFORM_LINUX
+static void PlatformInitOpenGL(void*& ContextPtr, void*& PrevContextPtr, int InMajorVersion, int InMinorVersion)
+{
+  unimplemented();
+}
+static void PlatformReleaseOpenGL(void* ContextPtr, void* PrevContextPtr)
+{
+  unimplemented();
 }
 #elif PLATFORM_MAC
 static void PlatformInitOpenGL(void*& ContextPtr, void*& PrevContextPtr, int InMajorVersion, int InMinorVersion)

@@ -129,11 +129,15 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void* GetDllHandle( const TCHAR* Filename );
 	static void FreeDllHandle( void* DllHandle );
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
+	static FBinaryFileVersion GetBinaryFileVersion( const TCHAR* Filename );
 	static const TCHAR* ComputerName();
 	static const TCHAR* BaseDir();
 	static FString GetApplicationName( uint32 ProcessId );
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
+	static const TCHAR* GetModulePrefix();
+	static const TCHAR* GetModuleExtension();
+	static const TCHAR* GetBinariesSubdirectory();
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );

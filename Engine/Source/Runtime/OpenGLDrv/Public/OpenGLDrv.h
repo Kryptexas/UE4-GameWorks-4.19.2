@@ -18,6 +18,8 @@
 #include "Windows/OpenGLWindows.h"
 #elif PLATFORM_MAC
 #include "Mac/OpenGLMac.h"
+#elif PLATFORM_LINUX
+#include "Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
 #elif PLATFORM_ANDROIDGL4

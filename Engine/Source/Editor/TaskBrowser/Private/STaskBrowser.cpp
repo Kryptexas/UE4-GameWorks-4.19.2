@@ -99,7 +99,7 @@ static bool EncryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		UE_LOG(LogTaskBrowser, Log, TEXT("CCCrypt failed w/ 0x%08x"), Status);
 	}
 	FMemory::Free(OutBuffer);
-#else // !PLATFORM_MAC
+#elif PLATFORM_WINDOWS
 	DATA_BLOB SourceBlob, EntropyBlob, FinalBlob;
 	// Set up the datablob to encrypt
 	SourceBlob.cbData = SrcLen;
@@ -139,7 +139,9 @@ static bool EncryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		uint32 Error = GetLastError();
 		UE_LOG(LogTaskBrowser, Log, TEXT("CryptProtectData failed w/ 0x%08x"), Error);
 	}
-#endif // !PLATFORM_MAC
+#else
+	unimplemented();
+#endif
 	return bEncryptedOk;
 }
 
@@ -187,7 +189,7 @@ static bool DecryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		UE_LOG(LogTaskBrowser, Log, TEXT("CCCrypt failed w/ 0x%08x"), Status);
 	}
 	FMemory::Free(OutBuffer);
-#else // !PLATFORM_MAC
+#elif PLATFORM_WINDOWS
 	DATA_BLOB SourceBlob, EntropyBlob, FinalBlob;
 	// Set up the datablob to encrypt
 	SourceBlob.cbData = SrcLen;
@@ -222,7 +224,9 @@ static bool DecryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		// Free the decryption buffer
 		LocalFree(FinalBlob.pbData);
 	}
-#endif // !PLATFORM_MAC
+#else
+	unimplemented();
+#endif
 	return bDecryptedOk;
 }
 

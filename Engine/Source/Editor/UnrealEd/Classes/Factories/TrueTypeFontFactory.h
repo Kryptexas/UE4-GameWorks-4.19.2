@@ -56,7 +56,7 @@ class UTrueTypeFontFactory : public UFontFactory, public FReimportHandler
 	UTexture2D* CreateTextureFromDC( UFont* Font, HDC dc, int32 RowHeight, int32 TextureNum );
 #endif
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 	void* LoadFontFace( void* FTLibrary, int32 Height, FFeedbackContext* Warn, void** OutFontData );
 	UTexture2D* CreateTextureFromBitmap( UFont* Font, uint8* BitmapData, int32 Height, int32 TextureNum );
 	bool CreateFontTexture( UFont* Font, FFeedbackContext* Warn, const int32 NumResolutions, const int32 CharsPerPage,

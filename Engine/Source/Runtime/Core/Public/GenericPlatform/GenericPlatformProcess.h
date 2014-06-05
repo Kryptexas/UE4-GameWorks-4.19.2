@@ -272,6 +272,11 @@ struct CORE_API FGenericPlatformProcess
 	static FString GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration);
 
 	/**
+	 * Return the prefix of dynamic library (e.g. lib)
+	 */
+	static const TCHAR* GetModulePrefix();
+
+	/**
 	 * Return the extension of dynamic library
 	 *
 	 * @return Extension of dynamic library

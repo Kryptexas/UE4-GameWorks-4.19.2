@@ -127,9 +127,15 @@ FString FGenericPlatformProcess::GenerateApplicationPath( const FString& AppName
 	return FString();
 }
 
+const TCHAR* FGenericPlatformProcess::GetModulePrefix()
+{
+	return TEXT("");
+}
+
 const TCHAR* FGenericPlatformProcess::GetModuleExtension()
 {
-	return TEXT("dll");
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::GetModuleExtension not implemented on this platform"));
+	return TEXT("");
 }
 
 const TCHAR* FGenericPlatformProcess::GetBinariesSubdirectory()

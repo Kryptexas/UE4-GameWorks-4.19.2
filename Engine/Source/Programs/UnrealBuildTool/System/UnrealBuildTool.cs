@@ -343,21 +343,17 @@ namespace UnrealBuildTool
 		/// <returns>true if valid, false if not</returns>
 		static public bool IsValidDesktopPlatform(UnrealTargetPlatform InPlatform)
 		{
-			if (Utils.IsRunningOnMono)
+			switch (ExternalExecution.GetRuntimePlatform())
 			{
-                return InPlatform == UnrealTargetPlatform.Mac || InPlatform == UnrealTargetPlatform.Linux;
+			case UnrealTargetPlatform.Linux:
+				return InPlatform == UnrealTargetPlatform.Linux;
+			case UnrealTargetPlatform.Mac:
+				return InPlatform == UnrealTargetPlatform.Mac;
+			case UnrealTargetPlatform.Win64:
+				return ((InPlatform == UnrealTargetPlatform.Win32) || (InPlatform == UnrealTargetPlatform.Win64));
+			default:
+				throw new BuildException("Invalid RuntimePlatform:" + ExternalExecution.GetRuntimePlatform());
 			}
-			else
-			{
-				if (
-					(InPlatform != UnrealTargetPlatform.Win32) &&
-					(InPlatform != UnrealTargetPlatform.Win64)
-					)
-				{
-					return false;
-				}
-			}
-			return true;
 		}
 
 		/// <summary>

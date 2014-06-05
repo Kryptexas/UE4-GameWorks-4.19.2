@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ICursor.h"
+#include "LinuxWindow.h"
 
 #include <SDL.h>
 

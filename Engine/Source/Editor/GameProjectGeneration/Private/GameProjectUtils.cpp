@@ -492,13 +492,13 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 #elif PLATFORM_MAC
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcodeproj");
 #else
-	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." ).ToString();
+	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." );
 	return false;
 #endif
 
 	const FString FullPath = FPaths::Combine(*SolutionFolder, *CodeSolutionFile);
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 	if ( IFileManager::Get().DirectoryExists(*FullPath) )
 #else
 	if ( FPaths::FileExists(FullPath) )

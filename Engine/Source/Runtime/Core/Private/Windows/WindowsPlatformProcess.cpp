@@ -777,6 +777,11 @@ const TCHAR* FWindowsPlatformProcess::ExecutableName(bool bRemoveExtension)
 	return (bRemoveExtension ? Result : ResultWithExt);
 }
 
+const TCHAR* FWindowsPlatformProcess::GetModuleExtension()
+{
+	return TEXT("dll");
+}
+
 const TCHAR* FWindowsPlatformProcess::GetBinariesSubdirectory()
 {
 	if (PLATFORM_64BITS)

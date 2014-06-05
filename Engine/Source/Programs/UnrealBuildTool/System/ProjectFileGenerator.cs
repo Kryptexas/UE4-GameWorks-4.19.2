@@ -1561,9 +1561,9 @@ namespace UnrealBuildTool
 				if (WantProjectFileForTarget)
 				{
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
-					// Just use Win64 or Mac as we only need to recover the target type and both should be supported for all targets...
+					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
-					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
+					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(ExternalExecution.GetRuntimePlatform(), UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))

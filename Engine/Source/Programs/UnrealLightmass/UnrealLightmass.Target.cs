@@ -60,9 +60,9 @@ public class UnrealLightmassTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		//UEBuildConfiguration.bCompileAgainstCoreUObject = false;
 
-		if (Target.Platform == UnrealTargetPlatform.Mac)
+		if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			// On Mac UnrealLightmass is executed locally and communicates with the editor using Messaging module instead of SwarmAgent
+			// On Mac/Linux UnrealLightmass is executed locally and communicates with the editor using Messaging module instead of SwarmAgent
 			// Plugins and developer tools are needed for that
 			UEBuildConfiguration.bCompileWithPluginSupport = true;
 			UEBuildConfiguration.bBuildDeveloperTools = true;

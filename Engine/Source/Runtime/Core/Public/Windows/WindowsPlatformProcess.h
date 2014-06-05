@@ -85,6 +85,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void SetCurrentWorkingDirectoryToBaseDir();
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
 	static FString GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration);
+	static const TCHAR* GetModuleExtension();
 	static const TCHAR* GetBinariesSubdirectory();
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );

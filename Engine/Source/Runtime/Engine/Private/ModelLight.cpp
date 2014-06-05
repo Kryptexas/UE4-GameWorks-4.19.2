@@ -27,7 +27,7 @@ TMap<UModelComponent*, TIndirectArray<FModelElement> > UModelComponent::TempBSPE
 #define SHADOWMAP_TEXTURE_WIDTH		512
 #define SHADOWMAP_TEXTURE_HEIGHT	512
 
-#if (_MSC_VER || PLATFORM_MAC) && WITH_EDITOR && !UE_BUILD_MINIMAL
+#if (_MSC_VER || PLATFORM_MAC || PLATFORM_LINUX) && WITH_EDITOR && !UE_BUILD_MINIMAL
 	/** Whether to allow cropping of unmapped borders in lightmaps and shadowmaps. Controlled by BaseLightmass.ini setting. */
 	extern ENGINE_API bool GAllowLightmapCropping;
 #endif
