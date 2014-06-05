@@ -31,6 +31,8 @@ public:
 
 	virtual bool CloseWindow() OVERRIDE;
 
+	virtual bool IsPrimaryEditor() const OVERRIDE{ return false; };
+
 public:
 
 	static TSharedRef<FPropertyEditorToolkit> CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit );
@@ -39,6 +41,7 @@ public:
 
 
 private:
+	static TSharedPtr<FPropertyEditorToolkit> FindExistingEditor( UObject* Object );
 
 	void Initialize( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit );
 
@@ -89,6 +92,8 @@ private:
 	FTimerDelegate TickPinColorDelegate;
 	FSlateColor PinColor;
 	TArray< TWeakPtr<IPropertyTreeRow> > PinRows;
+
+	static const FName ToolkitFName;
 
 	static const FName ApplicationId;
 	static const FName TreeTabId;

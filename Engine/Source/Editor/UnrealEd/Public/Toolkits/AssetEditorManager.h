@@ -19,6 +19,7 @@ public:
 	virtual FName GetEditorName() const = 0;
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) = 0;
 	virtual bool CloseWindow() = 0;
+	virtual bool IsPrimaryEditor() const = 0;
 };
 
 
@@ -43,9 +44,12 @@ public:
 	bool OpenEditorForAsset( UObject* Asset, const EToolkitMode::Type ToolkitMode = EToolkitMode::Standalone, TSharedPtr< class IToolkitHost > OpenedFromLevelEditor = TSharedPtr< IToolkitHost >() );
 	bool OpenEditorForAssets( const TArray< UObject* >& Asset, const EToolkitMode::Type ToolkitMode = EToolkitMode::Standalone, TSharedPtr< class IToolkitHost > OpenedFromLevelEditor = TSharedPtr< IToolkitHost >() );
 
-	// Returns the editor if there is already an editor open for the specified asset.
+	// Returns the primary editor if one is already open for the specified asset.
 	// If there is one open and bFocusIfOpen is true, that editor will be brought to the foreground and focused if possible.
 	IAssetEditorInstance* FindEditorForAsset(UObject* Asset, bool bFocusIfOpen);
+
+	// Returns all editors currently opened for the specified asset
+	TArray<IAssetEditorInstance*> FindEditorsForAsset(UObject* Asset);
 
 	// Close any editor which is not this one
 	void CloseOtherEditors(UObject* Asset, IAssetEditorInstance* OnlyEditor);

@@ -35,6 +35,7 @@ public:
 	virtual FText GetToolkitName() const OVERRIDE;
 	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
 	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual bool IsPrimaryEditor() const OVERRIDE { return false; }
 	
 	/** Used to show or hide certain properties */
 	void SetPropertyVisibilityDelegate(FIsPropertyVisible InVisibilityDelegate);
@@ -56,6 +57,9 @@ private:
 	static const FName PropertiesTabId;
 
 public:
+	/** The name given to all instances of this type of editor */
+	static const FName ToolkitFName;
+
 	static TSharedRef<FSimpleAssetEditor> CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit, FGetDetailsViewObjects GetDetailsViewObjects = FGetDetailsViewObjects() );
 
 	static TSharedRef<FSimpleAssetEditor> CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit, FGetDetailsViewObjects GetDetailsViewObjects = FGetDetailsViewObjects() );

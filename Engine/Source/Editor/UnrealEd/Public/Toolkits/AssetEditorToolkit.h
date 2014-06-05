@@ -54,6 +54,7 @@ public:
 	virtual FName GetEditorName() const OVERRIDE;
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
 	virtual bool CloseWindow() OVERRIDE;
+	virtual bool IsPrimaryEditor() const OVERRIDE { return true; };
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file

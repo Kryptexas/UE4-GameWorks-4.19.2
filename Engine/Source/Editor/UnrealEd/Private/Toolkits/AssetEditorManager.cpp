@@ -89,18 +89,27 @@ void FAssetEditorManager::AddReferencedObjects( FReferenceCollector& Collector )
 
 IAssetEditorInstance* FAssetEditorManager::FindEditorForAsset(UObject* Asset, bool bFocusIfOpen)
 {
-	IAssetEditorInstance** pAssetEditor = OpenedAssets.Find(Asset);
-	const bool bEditorOpen = pAssetEditor != NULL;
+	const TArray<IAssetEditorInstance*> AssetEditors = FindEditorsForAsset(Asset);
 
+	IAssetEditorInstance* const * PrimaryEditor = AssetEditors.FindByPredicate( [](IAssetEditorInstance* Editor){ return Editor->IsPrimaryEditor(); } );
+	
+	const bool bEditorOpen = PrimaryEditor != NULL;
 	if (bEditorOpen && bFocusIfOpen)
 	{
 		// @todo toolkit minor: We may need to handle this differently for world-centric vs standalone.  (multiple level editors, etc)
-		(*pAssetEditor)->FocusWindow(Asset);
+		(*PrimaryEditor)->FocusWindow(Asset);
 	}
 
-	return bEditorOpen ? *pAssetEditor : NULL;
+	return bEditorOpen ? *PrimaryEditor : NULL;
 }
 
+
+TArray<IAssetEditorInstance*> FAssetEditorManager::FindEditorsForAsset(UObject* Asset)
+{
+	TArray<IAssetEditorInstance*> AssetEditors;
+	OpenedAssets.MultiFind(Asset, AssetEditors);
+	return AssetEditors;
+}
 
 void FAssetEditorManager::CloseOtherEditors( UObject* Asset, IAssetEditorInstance* OnlyEditor)
 {
@@ -292,6 +301,22 @@ bool FAssetEditorManager::OpenEditorForAssets( const TArray< UObject* >& Assets,
 	{
 		// @todo toolkit minor: Kind of lame use of a static variable here to prime the new asset editor.  This was done to avoid refactoring a few dozen files for a very minor change.
 		FAssetEditorToolkit::SetPreviousWorldCentricToolkitHostForNewAssetEditor( OpenedFromLevelEditor.ToSharedRef() );
+	}
+
+	if( Assets.Num() == 1 )
+	{
+		// Find any existing simple editors for this asset
+		const TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset( Assets[0] );
+
+		IAssetEditorInstance* const * ExistingInstance = Editors.FindByPredicate( [&](IAssetEditorInstance* Editor){
+			return Editor->GetEditorName() == FSimpleAssetEditor::ToolkitFName;
+		} );
+
+		if( ExistingInstance )
+		{
+			(*ExistingInstance)->FocusWindow();
+			return true;
+		}
 	}
 
 	// No asset type actions for this asset. Just use a properties editor.
