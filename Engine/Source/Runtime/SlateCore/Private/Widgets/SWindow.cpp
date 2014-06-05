@@ -685,6 +685,7 @@ void SWindow::Resize( FVector2D NewSize )
 			InitialDesiredSize = NewSize;
 		}
 	}
+	SetCachedSize(NewSize); 
 }
 
 FSlateRect SWindow::GetFullScreenInfo() const

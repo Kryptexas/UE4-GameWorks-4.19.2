@@ -25,14 +25,11 @@ FHTML5Window::FHTML5Window()
 
 bool FHTML5Window::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const
 {
-	// fix me. 
-
 	FPlatformRect ScreenRect = GetScreenRect();
 	X = ScreenRect.Left;
 	Y = ScreenRect.Top;
 	Width = ScreenRect.Right - ScreenRect.Left;
 	Height = ScreenRect.Bottom - ScreenRect.Top;
-
 	return true;
 }
 
@@ -80,7 +77,7 @@ EWindowMode::Type FHTML5Window::GetWindowMode() const
 	return FullScreen ? EWindowMode::Fullscreen : EWindowMode::Windowed;
 #else
 	return EWindowMode::Windowed; 
-#endif
+#endif 
 
 }
 

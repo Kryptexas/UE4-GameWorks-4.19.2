@@ -164,10 +164,10 @@ void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)
 {
-	int Width = 768 , Height = 1024;
+	int Width = 800 , Height = 600;
 #if !PLATFORM_HTML5_WIN32
 	 int fs;
-	emscripten_get_canvas_size(&Width, &Height, &fs);
+     emscripten_get_canvas_size(&Width, &Height, &fs);
 #endif
 	Device->SharedContext->Context = SDL_SetVideoMode(Width,Height, 16, SDL_OPENGL| SDL_RESIZABLE | SDL_DOUBLEBUF);
 	return Device->SharedContext; 
@@ -217,8 +217,9 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 	// we can't resize with the win32 emu right now -- we have no way of resizing the window.
 #if !PLATFORM_HTML5_WIN32
 	emscripten_set_canvas_size(SizeX,SizeY);
-#endif
+#else
 	Device->SharedContext->Context = SDL_SetVideoMode(SizeX,SizeY, 16, SDL_OPENGL | SDL_RESIZABLE | SDL_DOUBLEBUF );
+#endif
 
 	glViewport(0, 0, SizeX, SizeY);
 	//@todo-mobile Do we need to clear here?

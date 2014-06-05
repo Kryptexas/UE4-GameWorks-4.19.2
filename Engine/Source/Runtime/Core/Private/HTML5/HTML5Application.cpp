@@ -50,12 +50,9 @@ FPlatformRect FHTML5Application::GetWorkArea( const FPlatformRect& CurrentWindow
 void FHTML5Application::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
 {
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FHTML5Window::GetScreenRect();
-
-	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-	// Total screen size of the primary monitor - or in HTML5's case- total size of the webpage. Make it arbitrary large. 
-	OutDisplayMetrics.PrimaryDisplayWidth = 4096;
-	OutDisplayMetrics.PrimaryDisplayHeight = 4096; 
-
+	OutDisplayMetrics.VirtualDisplayRect    =	OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
+	OutDisplayMetrics.PrimaryDisplayWidth   =	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right;
+	OutDisplayMetrics.PrimaryDisplayHeight  =	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom; 
 }
 
 TSharedRef< FGenericWindow > FHTML5Application::MakeWindow()
