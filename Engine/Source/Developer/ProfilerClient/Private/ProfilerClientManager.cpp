@@ -272,10 +272,28 @@ void FProfilerClientManager::LoadCapture( const FString& DataFilepath, const FGu
 	}
 
 	// This shouldn't happen.
-	if( LoadConnection->Stream.Header.bRawStatFile )
+	if( LoadConnection->Stream.Header.bRawStatsFile )
 	{
 		delete FileReader;
 		return;
+	}
+
+	const bool bIsFinalized = LoadConnection->Stream.Header.IsFinalized();
+	if( bIsFinalized )
+	{
+		// Read metadata.
+		TArray<FStatMessage> MetadataMessages;
+		LoadConnection->Stream.ReadFNamesAndMetadataMessages( *FileReader, MetadataMessages );
+		LoadConnection->CurrentThreadState.ProcessMetaDataOnly( MetadataMessages );
+
+		// Read frames offsets.
+		LoadConnection->Stream.ReadFramesOffsets( *FileReader );
+		FileReader->Seek( LoadConnection->Stream.FramesInfo[0].FrameFileOffset );
+	}
+
+	if( LoadConnection->Stream.Header.HasCompressedData() )
+	{
+		UE_CLOG( !bIsFinalized, LogProfile, Fatal, TEXT( "Compressed stats file has to be finalized" ) );
 	}
 
 #if PROFILER_THREADED_LOAD
@@ -1043,65 +1061,137 @@ void FServiceConnection::GenerateCycleGraphs(const FRawStatStackNode& Root, TMap
 	}
 }
 
-bool FServiceConnection::ReadAndConvertStatMessages( FArchive& FileReader, bool bUseInAsync )
+bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUseInAsync )
 {
 	uint64 ReadMessages = 0;
 
-	SCOPE_CYCLE_COUNTER( STAT_PC_ReadStatMessages );
-	while( FileReader.Tell() < FileReader.TotalSize() )
-	{
-		// read the message
-		FStatMessage Message( Stream.ReadMessage( FileReader ) );
-		ReadMessages++;
+	// Buffer used to store the compressed and decompressed data.
+	TArray<uint8> SrcData;
+	TArray<uint8> DestData;
 
-		if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
+	const bool bHasCompressedData = Stream.Header.HasCompressedData();
+	const bool bIsFinalized = Stream.Header.IsFinalized();
+
+	SCOPE_CYCLE_COUNTER( STAT_PC_ReadStatMessages );
+	if( bHasCompressedData )
+	{
+		while( Reader.Tell() < Reader.TotalSize() )
 		{
-			if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::SpecialMessageMarker )
+			// Read the compressed data.
+			FCompressedStatsData UncompressedData( SrcData, DestData );
+			Reader << UncompressedData;
+			if( UncompressedData.HasReachedEndOfCompressedData() )
 			{
-				// Simply break the loop.
-				// The profiler supports more advanced handling of this message.
 				return true;
 			}
-			else if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
+
+			FMemoryReader MemoryReader( DestData, true );
+
+			while( MemoryReader.Tell() < MemoryReader.TotalSize() )
 			{
-				AddCollectedStatMessages( Message );
+				// read the message
+				FStatMessage Message( Stream.ReadMessage( MemoryReader, bIsFinalized ) );
+				ReadMessages++;
 
-				// create an old format data frame from the data
-				GenerateProfilerDataFrame();
-
+				if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
 				{
-					// add the frame to the work list
-					FScopeLock ScopeLock( &CriticalSection );
-					DataFrames.Add( CurrentData );
-					DataLoadingProgress = (double)FileReader.Tell() / (double)FileReader.TotalSize();
+					if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
+					{
+						AddCollectedStatMessages( Message );
+
+						// create an old format data frame from the data
+						GenerateProfilerDataFrame();
+
+						{
+							// add the frame to the work list
+							FScopeLock ScopeLock( &CriticalSection );
+							DataFrames.Add( CurrentData );
+							DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize();
+						}
+
+						if( bUseInAsync )
+						{
+							if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
+							{
+								while( DataFrames.Num() )
+								{
+									FPlatformProcess::Sleep( 0.001f );
+								}
+							}
+						}
+					}
+
+					new (Messages)FStatMessage( Message );
+				}
+				else
+				{
+					break;
 				}
 
-				if( bUseInAsync )
+				if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
 				{
-					if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
+					return false;
+				}
+			}
+		}
+	}
+	else
+	{
+		while( Reader.Tell() < Reader.TotalSize() )
+		{
+			// read the message
+			FStatMessage Message( Stream.ReadMessage( Reader, bIsFinalized ) );
+			ReadMessages++;
+
+			if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
+			{
+				if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::SpecialMessageMarker )
+				{
+					// Simply break the loop.
+					// The profiler supports more advanced handling of this message.
+					return true;
+				}
+				else if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
+				{
+					AddCollectedStatMessages( Message );
+
+					// create an old format data frame from the data
+					GenerateProfilerDataFrame();
+
 					{
-						while( DataFrames.Num() )
+						// add the frame to the work list
+						FScopeLock ScopeLock( &CriticalSection );
+						DataFrames.Add( CurrentData );
+						DataLoadingProgress = (double)Reader.Tell() / (double)Reader.TotalSize();
+					}
+
+					if( bUseInAsync )
+					{
+						if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
 						{
-							FPlatformProcess::Sleep( 0.001f );
+							while( DataFrames.Num() )
+							{
+								FPlatformProcess::Sleep( 0.001f );
+							}
 						}
 					}
 				}
+
+				new (Messages)FStatMessage( Message );
+			}
+			else
+			{
+				break;
 			}
 
-			new (Messages) FStatMessage( Message );
-		}
-		else
-		{
-			break;
-		}
-
-		if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
-		{
-			return false;
+			if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
+			{
+				return false;
+			}
 		}
 	}
-
-	if( FileReader.Tell() >= FileReader.TotalSize() )
+	
+	if( Reader.Tell() >= Reader.TotalSize() )
 	{
 		return true;
 	}

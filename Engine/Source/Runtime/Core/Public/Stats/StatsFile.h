@@ -8,6 +8,8 @@
 
 #if	STATS
 
+class FAsyncWriteWorker;
+
 /**
 * Magic numbers for stats streams, this is for the first version.
 */
@@ -33,8 +35,150 @@ namespace EStatMagicWithHeader
 		MAGIC_SWAPPED = 0x47382910,
 		VERSION_2 = 2,
 		VERSION_3 = 3,
+
+		/**
+		 *	Added support for compressing the stats data, now each frame is compressed.
+		 */
+		VERSION_4 = 4,
+		HAS_COMPRESSED_DATA_VER = VERSION_4
 	};
 }
+
+struct EStatsFileConstants
+{
+	enum
+	{
+		/**
+		 *	Maximum size of the data that can be compressed.
+		 *	Should be ok for almost all cases, except the boot stats.
+		 */
+		MAX_COMPRESSED_SIZE = 1024 * 1024,
+
+		/** Header reserved for the compression internals. */
+		DUMMY_HEADER_SIZE = 1024,
+
+		/** Indicates the end of the compressed data. */
+		END_OF_COMPRESSED_DATA = 0xE0F0DA4A,
+
+		/** Indicates that the compression is disabled for the data. */
+		NO_COMPRESSION = 0,
+	};
+};
+
+/*-----------------------------------------------------------------------------
+	FCompressedStatsData
+-----------------------------------------------------------------------------*/
+
+/** Helper struct used to operate on the compressed data. */
+struct FCompressedStatsData
+{
+	/**
+	 * Initialization constructor 
+	 *	
+	 * @param SrcData - uncompressed data if saving, compressed data if loading
+	 * @param DestData - compressed data if saving, uncompressed data if loading
+	 *
+	 */
+	FCompressedStatsData( TArray<uint8>& InSrcData, TArray<uint8>& InDestData )
+		: SrcData( InSrcData )
+		, DestData( InDestData )
+		, bEndOfCompressedData( false )
+	{}
+
+	/**
+	 * Writes a special data to mark the end of the compressed data.
+	 */
+	static void WriteEndOfCompressedData( FArchive& Writer )
+	{
+		int32 Marker = EStatsFileConstants::END_OF_COMPRESSED_DATA;
+		check( Writer.IsSaving() );
+		Writer << Marker << Marker;
+	}
+
+protected:
+	/** Serialization operator. */
+	friend FArchive& operator << (FArchive& Ar, FCompressedStatsData& Data)
+	{
+		if( Ar.IsSaving() )
+		{
+			Data.WriteCompressed( Ar );
+		}
+		else if( Ar.IsLoading() )
+		{
+			Data.ReadCompressed( Ar );
+		}
+		else
+		{
+			check( 0 );
+		}
+		return Ar;
+	}
+
+	/** Compress the data and writes to the archive. */
+	void WriteCompressed( FArchive& Writer )
+	{
+		int32 UncompressedSize = SrcData.Num();
+		if( UncompressedSize > EStatsFileConstants::MAX_COMPRESSED_SIZE - EStatsFileConstants::DUMMY_HEADER_SIZE )
+		{
+			int32 DisabledCompressionSize = EStatsFileConstants::NO_COMPRESSION;
+			Writer << DisabledCompressionSize << UncompressedSize;
+			Writer.Serialize( SrcData.GetData(), UncompressedSize );
+		}
+		else
+		{
+			DestData.Reserve( EStatsFileConstants::MAX_COMPRESSED_SIZE );
+			int32 CompressedSize = DestData.GetAllocatedSize();
+
+			const bool bResult = FCompression::CompressMemory( COMPRESS_ZLIB, DestData.GetData(), CompressedSize, SrcData.GetData(), UncompressedSize );
+			check( bResult );
+			Writer << CompressedSize << UncompressedSize;
+			Writer.Serialize( DestData.GetData(), CompressedSize );
+		}
+	}
+
+	/** Reads the data and decompresses it. */
+	void ReadCompressed( FArchive& Reader )
+	{
+		int32 CompressedSize = 0;
+		int32 UncompressedSize = 0;
+		Reader << CompressedSize << UncompressedSize;
+
+		if( CompressedSize == EStatsFileConstants::END_OF_COMPRESSED_DATA && UncompressedSize == EStatsFileConstants::END_OF_COMPRESSED_DATA )
+		{
+			bEndOfCompressedData = true;
+		}
+		else
+		{
+			SrcData.Reset( CompressedSize );
+			DestData.Reset( UncompressedSize );
+			SrcData.AddUninitialized( CompressedSize );
+			DestData.AddUninitialized( UncompressedSize );
+
+			Reader.Serialize( SrcData.GetData(), CompressedSize );
+			const bool bResult = FCompression::UncompressMemory( COMPRESS_ZLIB, DestData.GetData(), UncompressedSize, SrcData.GetData(), CompressedSize );
+			check( bResult );
+		}
+	}
+
+public:
+	/**
+	 * @return true if we reached the end of the compressed data.
+	 */
+	const bool HasReachedEndOfCompressedData() const
+	{
+		return bEndOfCompressedData;
+	}
+	
+protected:
+	/** Reference to the source data. */
+	TArray<uint8>& SrcData;
+
+	/** Reference to the destination data. */
+	TArray<uint8>& DestData;
+
+	/** Set to true if we reached the end of the compressed data. */
+	bool bEndOfCompressedData;
+};
 
 /*-----------------------------------------------------------------------------
 	Stats file writing functionality
@@ -51,7 +195,7 @@ struct FStatsStreamHeader
 		, NumFNames( 0 )
 		, MetadataMessagesOffset( 0 )
 		, NumMetadataMessages( 0 )
-		, bRawStatFile( false )
+		, bRawStatsFile( false )
 	{}
 
 	/**
@@ -79,12 +223,18 @@ struct FStatsStreamHeader
 	uint64	NumMetadataMessages;
 
 	/** Whether this stats file uses raw data, required for thread view. */
-	bool bRawStatFile;
+	bool bRawStatsFile;
 
 	/** Whether this stats file has been finalized, so we have the whole data and can load file a unordered access. */
 	bool IsFinalized() const
 	{
 		return NumMetadataMessages > 0 && MetadataMessagesOffset > 0 && FrameTableOffset > 0;
+	}
+
+	/** Whether this stats file contains compressed data and needs the special serializer to read that data. */
+	bool HasCompressedData() const
+	{
+		return Version >= EStatMagicWithHeader::HAS_COMPRESSED_DATA_VER;
 	}
 
 	/** Serialization operator. */
@@ -109,7 +259,7 @@ struct FStatsStreamHeader
 		Ar << Header.MetadataMessagesOffset
 			<< Header.NumMetadataMessages;
 
-		Ar << Header.bRawStatFile;
+		Ar << Header.bRawStatsFile;
 
 		return Ar;
 	}
@@ -146,55 +296,11 @@ struct FStatsFrameInfo
 	TMap<uint32, int64> ThreadCycles;
 };
 
-/**
- *	Helper class used to save the capture stats data via the background thread.
- *	CAUTION!! Can exist only one instance at the same time.
- */
-class FAsyncWriteWorker : public FNonAbandonableTask
-{
-public:
-	/** File To write to **/
-	FArchive *File;
-	/** Data for the file **/
-	TArray<uint8> Data;
-	/** Offset of the data, -1 means append at the end of file. */
-	int64 DataOffset;
-
-	/** Constructor. */
-	FAsyncWriteWorker( FArchive *InFile, TArray<uint8>* InData, int64 InDataOffset = -1 )
-		: File( InFile )
-		, DataOffset( InDataOffset )
-	{
-		Exchange( Data, *InData );
-	}
-
-	/** Write the file  */
-	void DoWork()
-	{
-		check( Data.Num() );
-		if( DataOffset != -1 )
-		{
-			File->Seek( DataOffset );
-		}
-		else
-		{
-			// Seek to the end of the file.
-			File->Seek( File->TotalSize() );
-		}
-		File->Serialize( Data.GetTypedData(), Data.Num() );
-	}
-
-	/** 
-	* @return	the name to display in external event viewers
-	*/
-	static const TCHAR *Name()
-	{
-		return TEXT( "FAsyncStatsWriteWorker" );
-	}
-};
 
 struct CORE_API FStatsWriteFile : public TSharedFromThis<FStatsWriteFile, ESPMode::ThreadSafe>
 {
+	friend class FAsyncWriteWorker;
+
 protected:
 	/** Stats stream header. */
 	FStatsStreamHeader Header;
@@ -208,8 +314,8 @@ protected:
 	/** Data to write through the async task. **/
 	TArray<uint8> OutData;
 
-	/** Current position in the file, emulated to calculate the offsets. */
-	int64 Filepos;
+	/** Thread cycles for the last frame. */
+	TMap<uint32, int64> ThreadCycles;
 
 	/** Filename of the archive that we are writing to. */
 	FString ArchiveFilename;
@@ -220,6 +326,9 @@ protected:
 	/** Async task used to offload saving the capture data. */
 	FAsyncTask<FAsyncWriteWorker>* AsyncTask;
 
+	/** Buffer to store the compressed data, used by the FAsyncWriteWorker. */
+	TArray<uint8> CompressedData;
+
 public:
 	/** Constructor. **/
 	FStatsWriteFile();
@@ -229,7 +338,7 @@ public:
 	{}
 
 	/** Starts writing the stats data into the specified file. */
-	void Start( FString const& InFilename );
+	void Start( FString const& InFilename, bool bIsRawStatsFile );
 
 	/** Stops writing the stats data. */
 	void Stop();
@@ -246,23 +355,37 @@ public:
 		OutData.Reset();
 	}
 
-	/** Writes magic value, dummy header and initial metadata. */
-	virtual void WriteHeader();
+	/**
+	*	Writes magic value, dummy header and initial metadata.
+	*	Called from the stats thread.
+	*/
+	void WriteHeader( bool bIsRawStatsFile );
 
-	/** Grabs a frame from the local FStatsThreadState and adds it to the output **/
+	/**
+	 *	Grabs a frame from the local FStatsThreadState and adds it to the output.
+	 *	Called from the stats thread, but the data is saved using the the FAsyncWriteWorker. 
+	 */
 	virtual void WriteFrame( int64 TargetFrame, bool bNeedFullMetadata = false );
 
 protected:
-	/** Finalizes writing to the file, called directly form the same thread. */
-	void Finalize( FArchive* File );
+	/**
+	 *	Finalizes writing to the file.
+	 *	Called from the stats thread.
+	 */
+	void Finalize();
 
 	void NewFrame( int64 TargetFrame );
-	void SendTask( int64 InDataOffset = -1 );
+
+	/** Sends the data to the file via async task. */
+	void SendTask();
 
 	void AddNewFrameDelegate();
 	void RemoveNewFrameDelegate();
 
-	/** Writes metadata messages into the stream. */
+	/**
+	 *	Writes metadata messages into the stream. 
+	 *	Called from the stats thread.
+	 */
 	void WriteMetadata( FArchive& Ar )
 	{
 		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
@@ -328,10 +451,11 @@ public:
 	{}
 
 protected:
-	/** Writes magic value, dummy header and initial metadata. */
-	virtual void WriteHeader() OVERRIDE;
 
-	/** Grabs a frame of raw message from the local FStatsThreadState and adds it to the output. */
+	/**
+	*	Grabs a frame from the local FStatsThreadState and adds it to the output.
+	*	Called from the stats thread, but the data is saved using the the FAsyncWriteWorker.
+	*/
 	virtual void WriteFrame( int64 TargetFrame, bool bNeedFullMetadata = false ) OVERRIDE;
 
 	/** Write a stat packed into the specified archive. */
@@ -571,7 +695,7 @@ struct FCommandStatsFile
 	static int64 FirstFrame;
 
 	/** Stats file that is currently being saved. */
-	static TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> CurrentStatFile;
+	static TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> CurrentStatsFile;
 
 	/** Stat StartFile. */
 	static void Start( const TCHAR* Cmd );

@@ -360,10 +360,10 @@ void FProfilerServiceManager::StartCapture()
 	{
 		// @TODO yrx 2014-06-05 Needs to be done on the stats thread via the task graph task.
 		FString Filename = CreateProfileFilename( FStatConstants::StatsFileExtension, true );
-		LastStatFilename = FApp::GetInstanceName() + TEXT("_") + Filename;
+		LastStatsFilename = FApp::GetInstanceName() + TEXT("_") + Filename;
 		TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> ArchivePtr = MakeShareable(new FStatsWriteFile());
 		Archive = ArchivePtr;
-		Archive->Start(LastStatFilename);
+		Archive->Start( LastStatsFilename, false );
 		if (!Archive->IsValid())
 		{
 			Archive = nullptr;
@@ -655,10 +655,10 @@ void FProfilerServiceManager::HandleServiceRequestMessage( const FProfilerServic
 	}
 	else if( Message.Request == EProfilerRequestType::PRT_SendLastCapturedFile )
 	{
-		if( LastStatFilename.IsEmpty() == false )
+		if( LastStatsFilename.IsEmpty() == false )
 		{
-			FileTransferRunnable->EnqueueFileToSend( LastStatFilename, Context->GetSender(), InstanceId );
-			LastStatFilename.Empty();
+			FileTransferRunnable->EnqueueFileToSend( LastStatsFilename, Context->GetSender(), InstanceId );
+			LastStatsFilename.Empty();
 		}
 	}
 }
@@ -693,7 +693,7 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		FClientData Data;
 		Data.Active = true;
 		Data.Preview = false;
-		Data.StatsWriteFile.WriteHeader();
+		Data.StatsWriteFile.WriteHeader( false );
 
 		// add to the client list
 		ClientData.Add( MsgAddress, Data );

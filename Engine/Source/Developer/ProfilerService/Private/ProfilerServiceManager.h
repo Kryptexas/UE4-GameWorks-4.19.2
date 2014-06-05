@@ -163,7 +163,7 @@ private:
 	class FFileTransferRunnable* FileTransferRunnable;
 
 	/** Filename of last capture file. */
-	FString LastStatFilename;
+	FString LastStatsFilename;
 
 	/** Stat meta data */
 	FStatMetaData MetaData;

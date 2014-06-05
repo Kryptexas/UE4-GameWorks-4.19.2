@@ -103,7 +103,7 @@ struct FServiceConnection
 	 *
 	 * @return true if read a special marker that indicates end of file
 	 */
-	bool ReadAndConvertStatMessages( FArchive& FileReader, bool bUseInAsync );
+	bool ReadAndConvertStatMessages( FArchive& Reader, bool bUseInAsync );
 
 	/** Adds all collected stat messages to the current stats thread state. */
 	void AddCollectedStatMessages( FStatMessage Message );

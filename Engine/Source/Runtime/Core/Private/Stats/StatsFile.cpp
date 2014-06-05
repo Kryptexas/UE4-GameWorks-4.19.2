@@ -15,6 +15,65 @@ DECLARE_CYCLE_STAT( TEXT( "Stream File" ), STAT_StreamFile, STATGROUP_StatSystem
 DECLARE_CYCLE_STAT( TEXT( "Wait For Write" ), STAT_StreamFileWaitForWrite, STATGROUP_StatSystem );
 
 /*-----------------------------------------------------------------------------
+	FAsyncWriteWorker
+-----------------------------------------------------------------------------*/
+
+/**
+*	Helper class used to save the capture stats data via the background thread.
+*	CAUTION!! Can exist only one instance at the same time. Synchronized via EnsureCompletion.
+*/
+class FAsyncWriteWorker : public FNonAbandonableTask
+{
+public:
+	/**
+	 *	Pointer to the instance of the stats write file.
+	 *	Generally speaking accessing this pointer by a different thread is not thread-safe.
+	 *	But in this specific case it is.
+	 *	@see SendTask
+	 */
+	FStatsWriteFile* Outer;
+
+	/** Data for the file. Moved via Exchange. */
+	TArray<uint8> Data;
+
+	/** Thread cycles for the last frame. Moved via Exchange. */
+	TMap<uint32, int64> ThreadCycles;
+
+
+	/** Constructor. */
+	FAsyncWriteWorker( FStatsWriteFile* InStatsWriteFile )
+		: Outer( InStatsWriteFile )
+	{
+		Exchange( Data, InStatsWriteFile->OutData );
+		Exchange( ThreadCycles, InStatsWriteFile->ThreadCycles );
+	}
+
+	/** Write compressed data to the file. */
+	void DoWork()
+	{
+		check( Data.Num() );
+		FArchive& Ar = *Outer->File;
+
+		// Seek to the end of the file.
+		Ar.Seek( Ar.TotalSize() );
+		const int64 FrameFileOffset = Ar.Tell();
+
+		FCompressedStatsData CompressedData( Data, Outer->CompressedData );
+		Ar << CompressedData;
+
+		Outer->FramesInfo.Add( FStatsFrameInfo( FrameFileOffset, ThreadCycles ) );
+	}
+
+	/**
+	* @return	the name to display in external event viewers
+	*/
+	static const TCHAR *Name()
+	{
+		return TEXT( "FAsyncStatsWriteWorker" );
+	}
+};
+
+/*-----------------------------------------------------------------------------
 	FStatsThreadState
 -----------------------------------------------------------------------------*/
 
@@ -53,7 +112,7 @@ FStatsThreadState::FStatsThreadState( FString const& Filename )
 	check( bIsFinalized );
 	
 	TArray<FStatMessage> Messages;
-	if( Stream.Header.bRawStatFile )
+	if( Stream.Header.bRawStatsFile )
 	{
 		const int64 CurrentFilePos = FileReader->Tell();
 
@@ -168,13 +227,15 @@ void FStatsThreadState::AddMessages( TArray<FStatMessage>& InMessages )
 -----------------------------------------------------------------------------*/
 
 FStatsWriteFile::FStatsWriteFile()
-	: Filepos( 0 )
-	, File( nullptr )
+	: File( nullptr )
 	, AsyncTask( nullptr )
-{}
+{
+	// Reserve 1MB.
+	CompressedData.Reserve( EStatsFileConstants::MAX_COMPRESSED_SIZE );
+}
 
 
-void FStatsWriteFile::Start( FString const& InFilename )
+void FStatsWriteFile::Start( FString const& InFilename, bool bIsRawStatsFile )
 {
 	const FString PathName = *(FPaths::ProfilingDir() + TEXT( "UnrealStats/" ));
 
@@ -193,8 +254,7 @@ void FStatsWriteFile::Start( FString const& InFilename )
 	{
 		ArchiveFilename = Filename;
 		AddNewFrameDelegate();
-		WriteHeader();
-		SendTask();
+		WriteHeader( bIsRawStatsFile );
 		StatsMasterEnableAdd();
 	}
 }
@@ -207,7 +267,7 @@ void FStatsWriteFile::Stop()
 		RemoveNewFrameDelegate();
 		SendTask();
 		SendTask();
-		Finalize( File );
+		Finalize();
 
 		File->Close();
 		delete File;
@@ -218,24 +278,24 @@ void FStatsWriteFile::Stop()
 	}
 }
 
-void FStatsWriteFile::WriteHeader()
+void FStatsWriteFile::WriteHeader( bool bIsRawStatsFile )
 {
-	FMemoryWriter Ar( OutData, false, true );
+	FMemoryWriter MemoryWriter( OutData, false, true );
+	FArchive& Ar = File ? *File : MemoryWriter;
 
 	uint32 Magic = EStatMagicWithHeader::MAGIC;
 	// Serialize magic value.
 	Ar << Magic;
 
 	// Serialize dummy header, overwritten in Finalize.
-	Header.Version = EStatMagicWithHeader::VERSION_2;
+	Header.Version = EStatMagicWithHeader::VERSION_4;
 	Header.PlatformName = FPlatformProperties::PlatformName();
-	Header.bRawStatFile = false;
+	Header.bRawStatsFile = bIsRawStatsFile;
 	Ar << Header;
 
 	// Serialize metadata.
 	WriteMetadata( Ar );
-
-	Filepos += Ar.Tell();
+	Ar.Flush();
 }
 
 void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= false*/ )
@@ -256,7 +316,6 @@ void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= 
 	}
 
 	// Get cycles for all threads, so we can use that data to generate the mini-view.
-	TMap<uint32, int64> ThreadCycles;
 	for( auto It = Stats.Threads.CreateConstIterator(); It; ++It )
 	{
 		const int64 Cycles = Stats.GetFastThreadFrameTime( TargetFrame, It.Key() );
@@ -265,19 +324,14 @@ void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= 
 
 	// Serialize thread cycles. Disabled for now.
 	//Ar << ThreadCycles;
-
-	FramesInfo.Add( FStatsFrameInfo( Filepos, ThreadCycles ) );
-	Filepos += Ar.Tell() - PrevArPos;
 }
 
-void FStatsWriteFile::Finalize( FArchive* InFile )
+void FStatsWriteFile::Finalize()
 {
-	FArchive& Ar = *InFile;
+	FArchive& Ar = *File;
 
-	// Write special marker message.
-	static FStatNameAndInfo Adv(NAME_None, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
-	FStatMessage SpecialMessage( Adv.GetEncodedName(), EStatOperation::SpecialMessageMarker, 0LL, false );
-	WriteMessage( Ar, SpecialMessage );
+	// Write dummy compression size, so we can detect the end of the file.
+	FCompressedStatsData::WriteEndOfCompressedData( Ar );
 
 	// Real header, written at start of the file, but written out right before we close the file.
 
@@ -341,7 +395,7 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 	{
 		MAX_NUM_RAWFRAMES = 120,
 	};
-	if( Header.bRawStatFile )
+	if( Header.bRawStatsFile )
 	{
 		if( FCommandStatsFile::FirstFrame == -1 )
 		{
@@ -356,13 +410,10 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 	}
 
 	WriteFrame( TargetFrame );
-	if( OutData.Num() > 1024 * 1024 )
-	{
-		SendTask();
-	}
+	SendTask();
 }
 
-void FStatsWriteFile::SendTask( int64 InDataOffset /*= -1*/ )
+void FStatsWriteFile::SendTask()
 {
 	if( AsyncTask )
 	{
@@ -373,8 +424,9 @@ void FStatsWriteFile::SendTask( int64 InDataOffset /*= -1*/ )
 	}
 	if( OutData.Num() )
 	{
-		AsyncTask = new FAsyncTask<FAsyncWriteWorker>( File, &OutData, InDataOffset );
+		AsyncTask = new FAsyncTask<FAsyncWriteWorker>( this );
 		check( !OutData.Num() );
+		check( !ThreadCycles.Num() );
 		AsyncTask->StartBackgroundTask();
 	}
 }
@@ -400,33 +452,9 @@ void FStatsWriteFile::RemoveNewFrameDelegate()
 	FRawStatsWriteFile
 -----------------------------------------------------------------------------*/
 
-void FRawStatsWriteFile::WriteHeader()
-{
-	FMemoryWriter Ar( OutData, false, true );
-
-	uint32 Magic = EStatMagicWithHeader::MAGIC;
-	// Serialize magic value.
-	Ar << Magic;
-
-	// Serialize dummy header, overwritten in Finalize.
-	Header.Version = EStatMagicWithHeader::VERSION_2;
-	Header.PlatformName = FPlatformProperties::PlatformName();
-	Header.bRawStatFile = true;
-	Ar << Header;
-
-	// Serialize metadata messages.
-	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-	int32 NumMetadataMessages = Stats.ShortNameToLongName.Num();
-	Ar << NumMetadataMessages;
-	WriteMetadata( Ar );
-
-	Filepos += Ar.Tell();
-}
-
 void FRawStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= false */)
 {
 	FMemoryWriter Ar( OutData, false, true );
-	const int64 PrevArPos = Ar.Tell();
 	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 
 	check( Stats.IsFrameValid( TargetFrame ) );
@@ -444,7 +472,6 @@ void FRawStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /
 	}
 
 	// Get cycles for all threads, so we can use that data to generate the mini-view.
-	TMap<uint32, int64> ThreadCycles;
 	for( auto It = Stats.Threads.CreateConstIterator(); It; ++It )
 	{
 		const int64 Cycles = Stats.GetFastThreadFrameTime( TargetFrame, It.Key() );
@@ -453,9 +480,6 @@ void FRawStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /
 	
 	// Serialize thread cycles.
 	Ar << ThreadCycles;
-
-	FramesInfo.Add( FStatsFrameInfo( Filepos, ThreadCycles ) );
-	Filepos += Ar.Tell() - PrevArPos;
 }
 
 /*-----------------------------------------------------------------------------
@@ -464,43 +488,43 @@ void FRawStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /
 
 FString FCommandStatsFile::LastFileSaved;
 int64 FCommandStatsFile::FirstFrame = -1;
-TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> FCommandStatsFile::CurrentStatFile = nullptr;
+TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> FCommandStatsFile::CurrentStatsFile = nullptr;
 
 void FCommandStatsFile::Start( const TCHAR* Cmd )
 {
-	CurrentStatFile = NULL;
+	CurrentStatsFile = NULL;
 	FString File;
 	FParse::Token( Cmd, File, false );
 	TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> StatFile = MakeShareable( new FStatsWriteFile() );
-	CurrentStatFile = StatFile;
-	CurrentStatFile->Start( File );
-	if( !CurrentStatFile->IsValid() )
+	CurrentStatsFile = StatFile;
+	CurrentStatsFile->Start( File, false );
+	if( !CurrentStatsFile->IsValid() )
 	{
-		CurrentStatFile = nullptr;
+		CurrentStatsFile = nullptr;
 	}
 }
 
 void FCommandStatsFile::StartRaw( const TCHAR* Cmd )
 {
-	CurrentStatFile = NULL;
+	CurrentStatsFile = NULL;
 	FString File;
 	FParse::Token( Cmd, File, false );
 	TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> StatFile = MakeShareable( new FRawStatsWriteFile() );
-	CurrentStatFile = StatFile;
-	CurrentStatFile->Start( File );
-	if( !CurrentStatFile->IsValid() )
+	CurrentStatsFile = StatFile;
+	CurrentStatsFile->Start( File, true );
+	if( !CurrentStatsFile->IsValid() )
 	{
-		CurrentStatFile = nullptr;
+		CurrentStatsFile = nullptr;
 	}
 }
 
 void FCommandStatsFile::Stop()
 {
-	if( CurrentStatFile.IsValid() )
+	if( CurrentStatsFile.IsValid() )
 	{
-		CurrentStatFile->Stop();
+		CurrentStatsFile->Stop();
 	}
-	CurrentStatFile = nullptr;
+	CurrentStatsFile = nullptr;
 }
 
 #endif // STATS
