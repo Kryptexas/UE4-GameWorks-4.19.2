@@ -173,6 +173,10 @@ namespace UnrealBuildTool
 					return ".exe";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".lib";
+				case UEBuildBinaryType.Object:
+					return ".obj";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".pch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
@@ -210,8 +214,7 @@ namespace UnrealBuildTool
             switch (InBinaryType)
             {
                 case UEBuildBinaryType.DynamicLinkLibrary:
-                    return ".pdb";
-                case UEBuildBinaryType.Executable:
+				case UEBuildBinaryType.Executable:
                     return ".pdb";
             }
             return "";

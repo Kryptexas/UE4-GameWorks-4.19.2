@@ -95,11 +95,15 @@ namespace UnrealBuildTool
 					return ".so";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".a";
+				case UEBuildBinaryType.Object:
+					return ".o";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".gch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return "";
 		}

@@ -126,6 +126,10 @@ namespace UnrealBuildTool
 					return ".exe";
 				case UEBuildBinaryType.StaticLibrary:
 					return ".lib";
+				case UEBuildBinaryType.Object:
+					return ".obj";
+				case UEBuildBinaryType.PrecompiledHeader:
+					return ".pch";
 			}
 			return base.GetBinaryExtension(InBinaryType);
 		}
@@ -137,7 +141,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	string				The debug info extension (i.e. 'pdb')
 		 */
-		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			return ".pdb";
 		}

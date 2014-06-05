@@ -118,6 +118,10 @@ namespace UnrealBuildTool
 						return ".exe";
 					case UEBuildBinaryType.StaticLibrary:
 						return ".lib";
+					case UEBuildBinaryType.Object:
+						return ".o";
+					case UEBuildBinaryType.PrecompiledHeader:
+						return ".gch";
 				}
 				return base.GetBinaryExtension(InBinaryType);
 			}
