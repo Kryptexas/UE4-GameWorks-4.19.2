@@ -153,59 +153,6 @@ bool UPackageMap::SerializeName(FArchive& Ar, FName& Name)
 	return true;
 }
 
-bool UPackageMap::SerializeObject( FArchive& Ar, UClass* Class, UObject*& Object, FNetworkGUID *OutNetGUID )
-{
-	// For now this is unsupported, but we could implement this serialization in a way that is compatible with UPackageMapClient,
-	// it would just always serialize objects as <NetGUID, FullPath>.
-	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::SerializeObject"));
-	return true;
-}
-
-bool UPackageMap::WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName )
-{
-	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::WriteObject"));
-	return true;
-}
-
-void UPackageMap::LogDebugInfo( FOutputDevice & Ar)
-{
-	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::LogDebugInfo"));
-}
-
-UObject * UPackageMap::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
-{
-	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::GetObjectFromNetGUID"));
-	return NULL;
-}
-
-void UPackageMap::Serialize( FArchive& Ar )
-{
-	Super::Serialize( Ar );
-}
-
-void UPackageMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UPackageMap * This = CastChecked<UPackageMap>( InThis );
-	return Super::AddReferencedObjects( InThis, Collector );
-}
-
-void UPackageMap::FinishDestroy()
-{
-	Super::FinishDestroy();
-}
-
-void UPackageMap::ResetPackageMap()
-{
-	UE_LOG(LogCoreNet, Fatal,TEXT("Unexpected UPackageMap::ResetPackageMap"));
-}
-
-void UPackageMap::PostInitProperties()
-{
-	Super::PostInitProperties();
-	bShouldSerializeUnAckedObjects = true;
-	bSerializedUnAckedObject = false;
-}
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackageMap, UObject,
 	{
 	}

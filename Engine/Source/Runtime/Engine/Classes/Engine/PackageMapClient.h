@@ -9,9 +9,6 @@
  *	Once ACK'd, objects are just serialized as <NetGUID>. The result is higher bandwidth usage upfront for new clients, but minimal bandwidth once
  *	things gets going.
  *
- *	A further optimization is enabled by default with the SerializeOuter variable. When true, references will actualy be serialized via:
- *	<NetGUID, <(Outer *), Object Name> >. Where Outer * is a reference to the UObject's Outer.
- *
  *	The main advantages from this are:
  *		-Flexibility. No precomputed net indices or large package lists need to be exchanged for UObject serialization.
  *		-Cross version communication. The name is all that is needed to exchange references.
@@ -77,7 +74,6 @@ class UPackageMapClient : public UPackageMap
 	,	Connection(InConnection)
 	{
 		GuidCache = InNetGUIDCache;
-		SerializeOuter = true;
 		Locked = false;
 		ExportNetGUIDCount = 0;
 		IsExportingNetGUIDBunch = false;
@@ -105,7 +101,7 @@ class UPackageMapClient : public UPackageMap
 
 	// UPackageMapClient Connection specific methods
 
-	virtual bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID) OVERRIDE;
+	virtual bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID);
 
 	virtual void ReceivedNak( const int32 NakPacketId ) OVERRIDE;
 	virtual void ReceivedAck( const int32 AckPacketId ) OVERRIDE;
@@ -158,10 +154,6 @@ protected:
 	TArray< FNetworkGUID >			PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
 
 	// -----------------
-
-	
-	// Enables optimization to send <outer reference + Name> instead of <full path name> when serializing unackd objects
-	bool							SerializeOuter;
 
 	// Bunches of NetGUID/path tables to send with the current content bunch
 	TArray<FOutBunch* >				ExportBunches;

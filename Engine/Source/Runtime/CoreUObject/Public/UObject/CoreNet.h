@@ -105,81 +105,57 @@ public:
 	friend COREUOBJECT_API FArchive& operator<<( FArchive& Ar, FPackageInfo& I );
 };
 
-/** maximum index that may ever be used to serialize an object over the network
- * this affects the number of bits used to send object references
- */
-#define MAX_OBJECT_INDEX (uint32(1) << 31)
-
 //
 // Maps objects and names to and from indices for network communication.
 //
 class COREUOBJECT_API UPackageMap : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UPackageMap,UObject,CLASS_Transient|0,CoreUObject);
+	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
 
-	// Begin UObject interface.
-	virtual void	PostInitProperties();
-	virtual void	Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void	FinishDestroy() OVERRIDE;
-	static void		AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
-	
-	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName );
+	virtual bool		WriteObject( FArchive & Ar, UObject * Outer, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
 	// @todo document
-	virtual bool SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL );
+	virtual bool		SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) { return false; }
 
 	// @todo document
-	virtual bool SerializeName( FArchive& Ar, FName& Name );
+	virtual bool		SerializeName( FArchive& Ar, FName& Name );
 
-	virtual void ResetPackageMap();
+	virtual void		ResetPackageMap() { }
 
-	virtual void SetLocked(bool L) { }
+	virtual void		SetLocked( bool L ) { }
 
-	// Variables.
+	virtual UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
 
-	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
+	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }
 
-	void ResetUnAckedObject() { bSerializedUnAckedObject = false; }
-	bool SerializedUnAckedObject() { return bSerializedUnAckedObject; }
+	virtual void		ReceivedNak( const int32 NakPacketId ) { }
+	virtual void		ReceivedAck( const int32 AckPacketId ) { }
+	virtual void		NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
 
-	void ResetHasSerializedCDO() { bSerializedCDO = false; }
-	bool HasSerializedCDO() const { return bSerializedCDO; }
-	
-	virtual bool SerializeNewActor(FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor) { return false; }
+	virtual void		GetNetGUIDStats(int32 & AckCount, int32 & UnAckCount, int32 & PendingCount) { }
 
-	virtual bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID) { return false; }
-	virtual void ReceivedNak( const int32 NakPacketId ) { }
-	virtual void ReceivedAck( const int32 AckPacketId ) { }
-	virtual void NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
+	virtual void		NotifyStreamingLevelUnload( UObject * UnloadedLevel ) { }
 
-	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) { }
+	virtual bool		PrintExportBatch() { return false; }
 
-	virtual void NotifyStreamingLevelUnload(UObject* UnloadedLevel) { }
+	void				SetDebugContextString( const FString & Str ) { DebugContextString = Str; }
+	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	virtual bool PrintExportBatch() { return false; }
+	void				ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
+	bool				GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
+	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
 
-	void	SetDebugContextString(FString Str) { DebugContextString = Str; }
-	void	ClearDebugContextString() { DebugContextString.Empty(); }
-
-	void			ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
-	bool			GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
-	FNetworkGUID	GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
-
-	virtual void		LogDebugInfo( FOutputDevice & Ar);
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID );
+	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
+	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID ) { return NULL; }
 
 protected:
 
-	bool			bSuppressLogs;
-	bool			bShouldSerializeUnAckedObjects;
-	bool			bSerializedUnAckedObject;
-	bool			bSerializedCDO;
+	bool				bSuppressLogs;
 
-	bool			bLoadedUnmappedObject;
-	FNetworkGUID	LastUnmappedNetGUID;
+	bool				bLoadedUnmappedObject;
+	FNetworkGUID		LastUnmappedNetGUID;
 
-	FString			DebugContextString;
+	FString				DebugContextString;
 };
 
 /** Represents a range of PacketIDs, inclusive */

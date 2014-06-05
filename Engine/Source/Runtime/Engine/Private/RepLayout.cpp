@@ -903,8 +903,7 @@ uint16 FRepLayout::SendProperties_r(
 			const int32 NumStartBits = WriterState.Writer.GetNumBits();
 			
 			// This property changed, so send it
-			WriterState.Writer.PackageMap->ResetUnAckedObject();	// Set this to false so floats, ints, etc don't trigger it
-			bool bMapped = Cmd.Property->NetSerializeItem( WriterState.Writer, WriterState.Writer.PackageMap, (void*)( Data + Cmd.Offset ) );
+			Cmd.Property->NetSerializeItem( WriterState.Writer, WriterState.Writer.PackageMap, (void*)( Data + Cmd.Offset ) );
 
 			const int32 NumEndBits = WriterState.Writer.GetNumBits();
 
@@ -2300,8 +2299,6 @@ void FRepLayout::SerializeProperties_r(
 			continue;
 		}
 
-		Map->ResetHasSerializedCDO();
-		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (CVarDoReplicationContextString->GetInt() > 0)
 		{
@@ -2312,12 +2309,6 @@ void FRepLayout::SerializeProperties_r(
 		if ( !Cmd.Property->NetSerializeItem( Ar, Map, (void*)( (uint8*)Data + Cmd.Offset ) ) )
 		{
 			bHasUnmapped = true;
-		}
-
-		if ( Map->HasSerializedCDO() && Ar.IsLoading() )
-		{
-			UE_LOG( LogNetTraffic, Warning, TEXT( "CDO serialized. Parameter %s." ), *Cmd.Property->GetName() );
-			Ar.SetError();
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

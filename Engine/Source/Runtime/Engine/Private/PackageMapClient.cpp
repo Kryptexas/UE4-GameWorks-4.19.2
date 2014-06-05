@@ -59,7 +59,6 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 			return SerializeObject( Ar, Class, NullObj, OutNetGUID);
 		}
 
-		bSerializedUnAckedObject = false;
 		FNetworkGUID NetGUID = GuidCache->GetOrAssignNetGUID( Object );
 
 		// Write out NetGUID to caller if necessary
@@ -80,14 +79,6 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 				UE_LOG( LogNetPackageMap, Verbose, TEXT( "Failed to export in ::SerializeObject %s"), *Object->GetName() );
 			}
 		}
-
-#if 0
-		if ( Object != NULL && Object->HasAnyFlags( RF_ClassDefaultObject ) )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::SerializeObject: Sent CDO: %s, %s" ), *Object->GetFullName(), *Class->GetFullName() );
-			bSerializedCDO = true;
-		}
-#endif
 
 		return true;
 	}
@@ -129,14 +120,6 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		}
 
 		UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString() );
-
-#if 0
-		if ( Object != NULL && Object->HasAnyFlags( RF_ClassDefaultObject ) )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::SerializeObject: Received CDO: %s, %s" ), *Object->GetFullName(), *Class->GetFullName() );
-			bSerializedCDO = true;
-		}
-#endif
 
 		// reference is mapped if it was not NULL (or was explicitly null)
 		return (Object != NULL || !NetGUID.IsValid());
