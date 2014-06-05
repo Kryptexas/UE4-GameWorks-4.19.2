@@ -18,8 +18,7 @@ public:
 	/**
 	 * Creates a device manager widget.
 	 *
-	 * @param DeviceServiceManager - The target device manager to use.
-	 *
+	 * @param DeviceServiceManager The target device manager to use.
 	 * @return The new widget.
 	 */
 	virtual TSharedRef<class SWidget> CreateDeviceManager( const ITargetDeviceServiceManagerRef& DeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow ) = 0;

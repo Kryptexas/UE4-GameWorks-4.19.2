@@ -30,8 +30,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InModel - The view model to use.
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
 	 */
 	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel );
 
@@ -58,7 +58,7 @@ private:
 	TArray<TSharedPtr<FString> > AppList;
 
 	// Holds the application list view.
-	TSharedPtr<SListView<TSharedPtr<FString> > > AppListView;
+	TSharedPtr<SListView<TSharedPtr<FString>>> AppListView;
 
 	// Holds a pointer the device manager's view model.
 	FDeviceManagerModelPtr Model;

@@ -30,10 +30,10 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InDeviceServiceManager - The target device manager to use.
-	 * @param ConstructUnderMajorTab - The major tab which will contain the session front-end.
-	 * @param ConstructUnderWindow - The window in which this widget is being constructed.
+	 * @param InArgs The Slate argument list.
+	 * @param InDeviceServiceManager The target device manager to use.
+	 * @param ConstructUnderMajorTab The major tab which will contain the session front-end.
+	 * @param ConstructUnderWindow The window in which this widget is being constructed.
 	 */
 	void Construct( const FArguments& InArgs, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow );
 
@@ -47,18 +47,17 @@ protected:
 	/**
 	 * Fills the Window menu with menu items.
 	 *
-	 * @param MenuBuilder - The multi-box builder that should be filled with content for this pull-down menu.
-	 * @param RootMenuGroup - The root menu group.
-	 * @param AppMenuGroup - The application menu group.
-	 * @param TabManager - A Tab Manager from which to populate tab spawner menu items.
+	 * @param MenuBuilder The multi-box builder that should be filled with content for this pull-down menu.
+	 * @param RootMenuGroup The root menu group.
+	 * @param AppMenuGroup The application menu group.
+	 * @param TabManager A Tab Manager from which to populate tab spawner menu items.
 	 */
 	static void FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup, TSharedRef<FWorkspaceItem> AppMenuGroup, const TSharedPtr<FTabManager> TabManager );
 
 	/**
 	 * Validates actions on the specified device.
 	 *
-	 * @param Device - The device to perform an action on.
-	 *
+	 * @param Device The device to perform an action on.
 	 * @return true if actions on the device are permitted, false otherwise.
 	 */
 	bool ValidateDeviceAction( const ITargetDeviceRef& Device ) const;

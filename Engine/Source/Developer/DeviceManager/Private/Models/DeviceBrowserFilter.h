@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FDeviceBrowserFilter.
- */
+/** Type definition for shared pointers to instances of FDeviceBrowserFilter. */
 typedef TSharedPtr<class FDeviceBrowserFilter> FDeviceBrowserFilterPtr;
 
-/**
- * Type definition for shared references to instances of FDeviceBrowserFilter.
- */
+/** Type definition for shared references to instances of FDeviceBrowserFilter. */
 typedef TSharedRef<class FDeviceBrowserFilter> FDeviceBrowserFilterRef;
 
 
@@ -28,8 +24,7 @@ public:
 	/**
 	 * Filters the specified target device service based on the current filter settings.
 	 *
-	 * @param Device - The service to filter.
-	 *
+	 * @param Device The service to filter.
 	 * @return true if the service passed the filter, false otherwise.
 	 */
 	bool FilterDeviceService( const ITargetDeviceServicePtr& DeviceService )
@@ -55,8 +50,7 @@ public:
 	/**
 	 * Gets the number of target device services that have the specified platform.
 	 *
-	 * @param PlatformName - The name of the platform.
-	 *
+	 * @param PlatformName The name of the platform.
 	 * @return The number of matching services.
 	 */
 	int32 GetServiceCountPerPlatform( const FString& PlatformName ) const
@@ -87,8 +81,7 @@ public:
 	/**
 	 * Checks whether the specified platform is enabled in the filter.
 	 *
-	 * @param PlatformName - The name of the platform to check.
-	 *
+	 * @param PlatformName The name of the platform to check.
 	 * @return true if the platform is enabled, false otherwise.
 	 */
 	bool IsPlatformEnabled( const FString& PlatformName ) const
@@ -99,7 +92,7 @@ public:
 	/**
 	 * Populates the filter from the given list of target device proxies.
 	 *
-	 * @param DeviceProxies - The list of device proxies to populate the filter from.
+	 * @param DeviceProxies The list of device proxies to populate the filter from.
 	 */
 	void ResetFilter( const TArray<ITargetDeviceServicePtr>& DeviceServices )
 	{
@@ -128,7 +121,7 @@ public:
 	/**
 	 * Sets the current device search string.
 	 *
-	 * @param SearchText - The search string.
+	 * @param SearchText The search string.
 	 */
 	void SetDeviceSearchString( const FText& SearchText )
 	{
@@ -143,8 +136,8 @@ public:
 	/**
 	 * Sets the enabled state of the specified device proxy platform.
 	 *
-	 * @param PlatformName - The name of the platform to enable or disable in the filter.
-	 * @param Enabled - Whether the platform is enabled.
+	 * @param PlatformName The name of the platform to enable or disable in the filter.
+	 * @param Enabled Whether the platform is enabled.
 	 */
 	void SetPlatformEnabled( const FString& PlatformName, bool Enabled )
 	{
@@ -199,7 +192,7 @@ private:
 	TMap<FString, int32> PlatformCounters;
 
 	// Holds the list of platform filters.
-	TArray<TSharedPtr<FString> > PlatformList;
+	TArray<TSharedPtr<FString>> PlatformList;
 
 private:
 

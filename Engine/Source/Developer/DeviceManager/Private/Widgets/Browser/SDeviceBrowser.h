@@ -31,10 +31,10 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InModel - The view model to use.
-	 * @param InDeviceServiceManager - The target device service manager to use.
-	 * @param InUICommandList - The UI command list to use.
+	 * @param InArgs The construction arguments.
+	 * @param InModel The view model to use.
+	 * @param InDeviceServiceManager The target device service manager to use.
+	 * @param InUICommandList The UI command list to use.
 	 */
 	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList );
 
@@ -51,7 +51,7 @@ protected:
 	/**
 	 * Reloads the list of target device services.
 	 *
-	 * @param FullyReload - Whether to fully reload the service entries, or only re-apply filtering.
+	 * @param FullyReload Whether to fully reload the service entries, or only re-apply filtering.
 	 */
 	void ReloadDeviceServiceList( bool FullyReload );
 

@@ -30,9 +30,9 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceServiceManager - The target device service manager to use.
-	 * @param InDeviceManagerState - The optional device manager view state.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceServiceManager The target device service manager to use.
+	 * @param InDeviceManagerState The optional device manager view state.
 	 */
 	void Construct( const FArguments& InArgs )
 	{
@@ -165,7 +165,7 @@ public:
 	/**
 	 * Sets the device service whose information is being shown.
 	 *
-	 * @param InDeviceService - The device service to show.
+	 * @param InDeviceService The device service to show.
 	 */
 	void SetDeviceService( const ITargetDeviceServicePtr& InDeviceService )
 	{

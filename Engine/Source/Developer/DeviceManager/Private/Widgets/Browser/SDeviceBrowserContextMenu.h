@@ -26,8 +26,8 @@ public:
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InUICommandList - The UI command list to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InUICommandList The UI command list to use.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedPtr<FUICommandList>& InUICommandList )
 	{
