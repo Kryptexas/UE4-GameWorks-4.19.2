@@ -27,9 +27,9 @@ public:
 	}
 	FDownsampleGS() {}
 
-	void SetParameters(int32 CubeFaceValue)
+	void SetParameters(FRHICommandList* RHICmdList, int32 CubeFaceValue)
 	{
-		SetShaderValue(GetGeometryShader(), CubeFace, CubeFaceValue);
+		SetShaderValue(RHICmdList, GetGeometryShader(), CubeFace, CubeFaceValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar)

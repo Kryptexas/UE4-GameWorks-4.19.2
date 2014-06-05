@@ -468,7 +468,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	DrawingViewport = Viewport;
 
 	// Set the render target and viewport.
-	if( !IsValidRef( RenderTarget ) )
+	if( RenderTarget == NULL )
 	{
 		RenderTarget = Viewport->GetBackBuffer();
 	}
@@ -515,6 +515,20 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	StateCache.SetDomainShader(nullptr);
 	StateCache.SetGeometryShader(nullptr);
 	// Compute Shader is set to NULL after each Dispatch call, so no need to clear it here
+
+	FThreadStats::AddMessage(GET_STATFNAME(STAT_D3D11CommitResourceTables), EStatOperation::Set, int64(CommitResourceTableCycles), true);
+	FThreadStats::AddMessage(GET_STATFNAME(STAT_D3D11CacheResourceTables), EStatOperation::Set, int64(CacheResourceTableCycles), true);
+	FThreadStats::AddMessage(GET_STATFNAME(STAT_D3D11SetShaderTextureTime), EStatOperation::Set, int64(SetShaderTextureCycles), true);
+	INC_DWORD_STAT_BY(STAT_D3D11SetShaderTextureCalls, SetShaderTextureCalls);
+	INC_DWORD_STAT_BY(STAT_D3D11CacheResourceTableCalls, CacheResourceTableCalls);
+	INC_DWORD_STAT_BY(STAT_D3D11SetTextureInTableCalls, SetTextureInTableCalls);
+
+	CommitResourceTableCycles = 0;
+	CacheResourceTableCalls = 0;
+	CacheResourceTableCycles = 0;
+	SetShaderTextureCycles = 0;
+	SetShaderTextureCalls = 0;
+	SetTextureInTableCalls = 0;
 
 	if(bPresent)
 	{

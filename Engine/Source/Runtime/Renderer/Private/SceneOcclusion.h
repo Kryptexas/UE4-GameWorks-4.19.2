@@ -28,21 +28,21 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
-	void SetParametersWithBoundingSphere(const FSceneView& View, const FSphere& BoundingSphere)
+	void SetParametersWithBoundingSphere(FRHICommandList* RHICmdList, const FSceneView& View, const FSphere& BoundingSphere)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 
 		FVector4 StencilingSpherePosAndScale;
 		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, BoundingSphere, View.ViewMatrices.PreViewTranslation);
-		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
+		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 
 		// Don't transform if rendering frustum
-		StencilingGeometryParameters.Set(this, FVector4(0,0,0,1));
+		StencilingGeometryParameters.Set(RHICmdList, this, FVector4(0,0,0,1));
 	}
 
 	// Begin FShader interface

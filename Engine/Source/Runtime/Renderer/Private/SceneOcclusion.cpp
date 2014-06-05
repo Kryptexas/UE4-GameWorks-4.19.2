@@ -430,7 +430,9 @@ static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjected
 		// Allocate an occlusion query for the primitive from the occlusion query pool.
 		const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
 
-		VertexShader->SetParameters(View);
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+		VertexShader->SetParameters(RHICmdList, View);
 
 		// Draw the primitive's bounding box, using the occlusion query.
 		RHIBeginRenderQuery(ShadowOcclusionQuery);
@@ -640,19 +642,19 @@ public:
 		BoundsExtentSampler.Bind( Initializer.ParameterMap, TEXT("BoundsExtentSampler") );
 	}
 
-	void SetParameters( const FSceneView& View, const FHZB& HZB, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FHZB& HZB, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters( ShaderRHI, View );
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
 
 		const FVector2D InvSize( 1.0f / HZB.Size.X, 1.0f / HZB.Size.Y );
-		SetShaderValue( ShaderRHI, InvSizeParameter, InvSize );
+		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
 
-		SetTextureParameter( ShaderRHI, HZBTexture, HZBSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), HZB.Texture->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter(RHICmdList, ShaderRHI, HZBTexture, HZBSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), HZB.Texture->GetRenderTargetItem().ShaderResourceTexture );
 
-		SetTextureParameter( ShaderRHI, BoundsCenterTexture, BoundsCenterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsCenter );
-		SetTextureParameter( ShaderRHI, BoundsExtentTexture, BoundsExtentSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsExtent );
+		SetTextureParameter(RHICmdList, ShaderRHI, BoundsCenterTexture, BoundsCenterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsCenter );
+		SetTextureParameter(RHICmdList, ShaderRHI, BoundsExtentTexture, BoundsExtentSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), BoundsExtent );
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -752,7 +754,9 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
-		PixelShader->SetParameters( View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+		PixelShader->SetParameters(RHICmdList, View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
 
 		RHISetViewport( 0, 0, 0.0f, SizeX, SizeY, 1.0f );
 
@@ -808,31 +812,31 @@ public:
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("TextureSampler") );
 	}
 
-	void SetParameters( const FSceneView& View, const FIntPoint& Size )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FIntPoint& Size )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters( ShaderRHI, View );
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
 
 		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
-		SetShaderValue( ShaderRHI, InvSizeParameter, InvSize );
+		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
 		
-		SceneTextureParameters.Set( ShaderRHI, View );
+		SceneTextureParameters.Set(RHICmdList, ShaderRHI, View );
 	}
 
-	void SetParameters( const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters( ShaderRHI, View );
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
 
 		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
-		SetShaderValue( ShaderRHI, InvSizeParameter, InvSize );
+		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
 
 		//SetTextureParameter( ShaderRHI, TextureParameter, TextureParameterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Texture );
 
-		SetSRVParameter( ShaderRHI, TextureParameter, ShaderResourceView );
-		SetSamplerParameter( ShaderRHI, TextureParameterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI() );
+		SetSRVParameter(RHICmdList, ShaderRHI, TextureParameter, ShaderResourceView );
+		SetSamplerParameter(RHICmdList, ShaderRHI, TextureParameterSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI() );
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -882,6 +886,9 @@ void BuildHZB( const FViewInfo& View )
 	RHISetRasterizerState( TStaticRasterizerState<>::GetRHI() );
 	RHISetDepthStencilState( TStaticDepthStencilState< false, CF_Always >::GetRHI() );
 	
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Mip 0
 	{
 		SCOPED_DRAW_EVENTF(BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), 0);
@@ -895,7 +902,7 @@ void BuildHZB( const FViewInfo& View )
 		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
 		// Imperfect sampling, doesn't matter too much
-		PixelShader->SetParameters( View, GSceneRenderTargets.GetBufferSizeXY() );
+		PixelShader->SetParameters(RHICmdList, View, GSceneRenderTargets.GetBufferSizeXY() );
 
 		RHISetViewport( 0, 0, 0.0f, HZBSize.X, HZBSize.Y, 1.0f );
 
@@ -926,7 +933,7 @@ void BuildHZB( const FViewInfo& View )
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
-		PixelShader->SetParameters( View, SrcSize, ViewState->HZB.MipSRVs[ MipIndex - 1 ] );
+		PixelShader->SetParameters(RHICmdList, View, SrcSize, ViewState->HZB.MipSRVs[ MipIndex - 1 ] );
 
 		RHISetViewport( 0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f );
 
@@ -998,7 +1005,9 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 			// Lookup the vertex shader.
 			TShaderMapRef<FOcclusionQueryVS> VertexShader(GetGlobalShaderMap());
 			SetGlobalBoundShaderState(OcclusionTestBoundShaderState,GetVertexDeclarationFVector3(),*VertexShader,NULL);
-			VertexShader->SetParameters(View);
+			//@todo-rco: RHIPacketList
+			FRHICommandList* RHICmdList = nullptr;
+			VertexShader->SetParameters(RHICmdList, View);
 
 			// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
 			TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
@@ -1056,7 +1065,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 								ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
 
 								// Draw bounding sphere
-								VertexShader->SetParametersWithBoundingSphere(View, ProjectedShadowInfo.LightSceneInfo->Proxy->GetBoundingSphere());
+								VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, ProjectedShadowInfo.LightSceneInfo->Proxy->GetBoundingSphere());
 								StencilingGeometry::DrawSphere();
 
 								RHIEndRenderQuery(ShadowOcclusionQuery);
@@ -1084,7 +1093,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 		    if ( !ViewState->HasViewParent() && !ViewState->bIsFrozen )
     #endif
 		    {
-				VertexShader->SetParameters(View);
+				VertexShader->SetParameters(RHICmdList, View);
 
 				{
 					SCOPED_DRAW_EVENT(IndividualQueries, DEC_SCENE_ITEMS);

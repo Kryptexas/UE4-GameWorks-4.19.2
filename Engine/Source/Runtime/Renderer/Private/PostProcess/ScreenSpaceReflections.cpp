@@ -74,6 +74,7 @@ class FPostProcessScreenSpaceReflectionsPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("PREV_FRAME_COLOR"), PrevFrame );
 		OutEnvironment.SetDefine( TEXT("SSR_QUALITY"), SSRQuality );
 	}
@@ -95,15 +96,15 @@ public:
 		SSRParams.Bind(Initializer.ParameterMap, TEXT("SSRParams"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		{
 			float MaxRoughness = FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionMaxRoughness, 0.01f, 1.0f);
@@ -120,7 +121,7 @@ public:
 				0, 
 				0);
 
-			SetShaderValue(ShaderRHI, SSRParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, SSRParams, Value);
 		}
 	}
 
@@ -174,6 +175,9 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 {
 	SCOPED_DRAW_EVENT(ScreenSpaceReflections, DEC_SCENE_ITEMS);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	const FSceneView& View = Context.View;
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
@@ -199,8 +203,8 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(GetGlobalShaderMap()); \
 			static FGlobalBoundShaderState BoundShaderState; \
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
-			VertexShader->SetParameters(Context); \
-			PixelShader->SetParameters(Context); \
+			VertexShader->SetParameters(RHICmdList, Context); \
+			PixelShader->SetParameters(RHICmdList, Context); \
 		}; \
 		break
 

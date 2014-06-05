@@ -203,19 +203,19 @@ public:
 		EditorPrimitivesStencil.Bind(Initializer.ParameterMap,TEXT("EditorPrimitivesStencil"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		// PostprocessInput1MS and EditorPrimitivesStencil
 		{
@@ -233,11 +233,11 @@ public:
 
 			FTexture2DRHIRef& TargetableTexture = (FTexture2DRHIRef&)InputPooledElement->GetRenderTargetItem().TargetableTexture;
 
-			SetTextureParameter(ShaderRHI, PostprocessInput1MS, TargetableTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInput1MS, TargetableTexture);
 
 			if(EditorPrimitivesStencil.IsBound())
 			{
-				// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
+			// cache the stencil SRV to avoid create calls each frame (the cache element is stored in the state)
 				if(ViewState->SelectionOutlineCacheKey != TargetableTexture)
 				{
 					// release if not the right one (as the internally SRV stores a pointer to the texture we cannot get a false positive)
@@ -252,8 +252,8 @@ public:
 					ViewState->SelectionOutlineCacheValue = RHICreateShaderResourceView(TargetableTexture, 0, 1, PF_X24_G8);
 				}
 
-				SetSRVParameter(ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
-			}
+			SetSRVParameter(RHICmdList, ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
+		}
 		}
 
 #if WITH_EDITOR
@@ -262,8 +262,8 @@ public:
 
 			Value.A = GEngine->SelectionHighlightIntensity;
 
-			SetShaderValue(ShaderRHI, OutlineColor, Value );
-			SetShaderValue(ShaderRHI, BSPSelectionIntensity, GEngine->BSPSelectionHighlightIntensity);
+			SetShaderValue(RHICmdList, ShaderRHI, OutlineColor, Value );
+			SetShaderValue(RHICmdList, ShaderRHI, BSPSelectionIntensity, GEngine->BSPSelectionHighlightIntensity);
 		}
 #else
 		check(!"This shader is not used outside of the Editor.");
@@ -280,7 +280,7 @@ public:
 				Value.G = 0;
 			}
 
-			SetShaderValue(ShaderRHI, EditorRenderParams, Value );
+			SetShaderValue(RHICmdList, ShaderRHI, EditorRenderParams, Value );
 		}
 	}
 	
@@ -312,7 +312,7 @@ VARIATION1(1)			VARIATION1(2)			VARIATION1(4)			VARIATION1(8)
 
 
 template <uint32 MSAASampleCount>
-static void SetSelectionOutlineShaderTempl(const FRenderingCompositePassContext& Context)
+static void SetSelectionOutlineShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSelectionOutlinePS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
@@ -320,7 +320,7 @@ static void SetSelectionOutlineShaderTempl(const FRenderingCompositePassContext&
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 }
 
 void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext& Context)
@@ -334,6 +334,8 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 		// input is not hooked up correctly
 		return;
 	}
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	const FSceneView& View = Context.View;
 	FIntRect ViewRect = View.ViewRect;
@@ -355,19 +357,19 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 
 	if(MSAASampleCount == 1)
 	{
-		SetSelectionOutlineShaderTempl<1>(Context);
+		SetSelectionOutlineShaderTempl<1>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 2)
 	{
-		SetSelectionOutlineShaderTempl<2>(Context);
+		SetSelectionOutlineShaderTempl<2>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 4)
 	{
-		SetSelectionOutlineShaderTempl<4>(Context);
+		SetSelectionOutlineShaderTempl<4>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 8)
 	{
-		SetSelectionOutlineShaderTempl<8>(Context);
+		SetSelectionOutlineShaderTempl<8>(RHICmdList, Context);
 	}
 	else
 	{

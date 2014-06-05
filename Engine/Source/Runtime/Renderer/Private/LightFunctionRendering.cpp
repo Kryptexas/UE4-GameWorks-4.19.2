@@ -33,9 +33,9 @@ public:
 		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters( const FSceneView* View, const FLightSceneInfo* LightSceneInfo )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView* View, const FLightSceneInfo* LightSceneInfo )
 	{
-		FMaterialShader::SetParameters(GetVertexShader(), *View);
+		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), *View);
 		
 		// Light functions are projected using a bounding sphere.
 		// Calculate transform for bounding stencil sphere.
@@ -47,7 +47,7 @@ public:
 
 		FVector4 StencilingSpherePosAndScale;
 		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View->ViewMatrices.PreViewTranslation);
-		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
+		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
 	// Begin FShader interface
@@ -93,11 +93,11 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters( const FSceneView* View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView* View, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bRenderingPreviewShadowIndicator, float ShadowFadeFraction )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View->GetFeatureLevel()), *View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View->GetFeatureLevel()), *View, true, ESceneRenderTargetsMode::SetTextures);
 
 		// Set the transform from screen space to light space.
 		if ( ScreenToLight.IsBound() )
@@ -114,17 +114,17 @@ public:
 					FPlane(0,0,View->ViewMatrices.ProjMatrix.M[3][2],0))
 				* View->InvViewProjectionMatrix * WorldToLight;
 
-			SetShaderValue( ShaderRHI, ScreenToLight, ScreenToLightValue );
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenToLight, ScreenToLightValue );
 		}
 
-		LightFunctionParameters.Set(ShaderRHI, LightSceneInfo, ShadowFadeFraction);
+		LightFunctionParameters.Set(RHICmdList, ShaderRHI, LightSceneInfo, ShadowFadeFraction);
 
-		SetShaderValue(ShaderRHI, LightFunctionParameters2, FVector(
+		SetShaderValue(RHICmdList, ShaderRHI, LightFunctionParameters2, FVector(
 			LightSceneInfo->Proxy->GetLightFunctionFadeDistance(), 
 			LightSceneInfo->Proxy->GetLightFunctionDisabledBrightness(),
 			bRenderingPreviewShadowIndicator ? 1.0f : 0.0f));
 
-		DeferredParameters.Set(ShaderRHI, *View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, *View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -212,27 +212,27 @@ bool FDeferredShadingSceneRenderer::CheckForLightFunction( const FLightSceneInfo
  *
  * @param LightSceneInfo Represents the current light
  */
-bool FDeferredShadingSceneRenderer::RenderLightFunction(const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
+bool FDeferredShadingSceneRenderer::RenderLightFunction(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
 {
 	if (ViewFamily.EngineShowFlags.LightFunctions)
 	{
-		return RenderLightFunctionForMaterial(LightSceneInfo, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, false);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, false);
 	}
 	
 	return false;
 }
 
-bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
+bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
 {
 	if (GEngine->PreviewShadowsIndicatorMaterial)
 	{
-		return RenderLightFunctionForMaterial(LightSceneInfo, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, true);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, true);
 	}
 
 	return false;
 }
 
-bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator)
+bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator)
 {
 	bool bRenderedLightFunction = false;
 
@@ -248,6 +248,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(const FLightS
 		const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 		FLightFunctionVS* VertexShader = MaterialShaderMap->GetShader<FLightFunctionVS>();
 		FLightFunctionPS* PixelShader = MaterialShaderMap->GetShader<FLightFunctionPS>();
+		check(!RHICmdList);
 
 		// This was cached but when changing the material (e.g. editor) it wasn't updated.
 		// This will change with upcoming multi threaded rendering changes.
@@ -328,8 +329,8 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(const FLightS
 
 					// Render a bounding light sphere.
 					RHISetBoundShaderState(LightFunctionBoundShaderState);
-					VertexShader->SetParameters(&View, LightSceneInfo);
-					PixelShader->SetParameters(&View, LightSceneInfo, MaterialProxy, bRenderingPreviewShadowsIndicator, FadeAlpha);
+					VertexShader->SetParameters(RHICmdList, &View, LightSceneInfo);
+					PixelShader->SetParameters(RHICmdList, &View, LightSceneInfo, MaterialProxy, bRenderingPreviewShadowsIndicator, FadeAlpha);
 
 					// Project the light function using a sphere around the light
 					//@todo - could use a cone for spotlights

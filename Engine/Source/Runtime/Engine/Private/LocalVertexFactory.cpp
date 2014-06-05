@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "SpeedTreeWind.h"
+#include "ShaderParameterUtils.h"
 
 class FSpeedTreeVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
@@ -21,25 +22,24 @@ public:
 		Ar << LODParameter;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
 		if (View.Family != NULL && View.Family->Scene != NULL)
 		{
 			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
 			if (SpeedTreeUniformBuffer != NULL)
 			{
-				SetUniformBufferParameter(Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+				SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
 
 				if (LODParameter.IsBound())
 				{
 					//@todo - speedtree smooth LOD
 					FVector LODData(0, 0, 0);
-					SetShaderValue(Shader->GetVertexShader(), LODParameter, LODData);
+					SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
 				}
 			}
 		}
 	}
-
 	FShaderParameter LODParameter;
 };
 

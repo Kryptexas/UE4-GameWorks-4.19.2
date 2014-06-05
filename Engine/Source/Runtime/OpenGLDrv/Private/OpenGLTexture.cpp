@@ -1790,3 +1790,23 @@ void FOpenGLDynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamR
 void FOpenGLDynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)
 {
 }
+
+FTextureReferenceRHIRef FOpenGLDynamicRHI::RHICreateTextureReference()
+{
+	return new FOpenGLTextureReference();
+}
+
+void FOpenGLTextureReference::SetReferencedTexture(FRHITexture* InTexture)
+{
+	FRHITextureReference::SetReferencedTexture(InTexture);
+	TexturePtr = GetOpenGLTextureFromRHITexture(InTexture);
+}
+
+void FOpenGLDynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)
+{
+	auto* TextureRef = (FOpenGLTextureReference*)TextureRefRHI;
+	if (TextureRef)
+	{
+		TextureRef->SetReferencedTexture(NewTextureRHI);
+	}
+}

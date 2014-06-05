@@ -52,6 +52,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList* RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -143,11 +144,14 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList* RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
+		check(!RHICmdList);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// Treat masked materials as if they don't occlude in shader complexity, which is PVR behavior
 		if(Parameters.BlendMode == BLEND_Masked && View.Family->EngineShowFlags.ShaderComplexity)
@@ -169,6 +173,7 @@ public:
 			View.Family->EngineShowFlags.ShaderComplexity
 			);
 		DrawingPolicy.DrawShared(
+			RHICmdList, 
 			&View,
 			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
@@ -176,6 +181,7 @@ public:
 		for( int32 BatchElementIndex=0;BatchElementIndex<Parameters.Mesh.Elements.Num();BatchElementIndex++ )
 		{
 			DrawingPolicy.SetMeshRenderState(
+				RHICmdList, 
 				View,
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
@@ -183,7 +189,7 @@ public:
 				bBackFace,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
 				);
-			DrawingPolicy.DrawMesh(Parameters.Mesh, BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
 
 		// Restore
@@ -198,6 +204,7 @@ public:
 };
 
 bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
+	FRHICommandList* RHICmdList, 
 	const FSceneView& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -285,7 +292,7 @@ EBasePassSort::Type GetSortMode()
 	}
 }
 
-void FForwardShadingSceneRenderer::RenderForwardShadingBasePass()
+void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandList* RHICmdList)
 {
 	SCOPED_DRAW_EVENT(BasePass, DEC_SCENE_ITEMS);
 	SCOPE_CYCLE_COUNTER(STAT_BasePassDrawTime);
@@ -322,22 +329,44 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass()
 		RHISetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
-		// Render the base pass static data
-		if (SortMode == EBasePassSort::SortPerMesh)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			MaxDraws -= Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-		}
-		else
-		{
-			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Default].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Default].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Default].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Default].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
+			auto* PrevRHICmdList = RHICmdList;
+			if (!RHICmdList)
+			{
+				//@todo-rco: Very temp code!!!
+				static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
+				bool bUseRHICmdList = RHICmdListCVar->GetInt() != 0;
+				RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : nullptr;
+			}
+
+			// Render the base pass static data
+			if (SortMode == EBasePassSort::SortPerMesh)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
+				MaxDraws -= Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+				MaxDraws -= Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+				MaxDraws -= Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+				MaxDraws -= Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			}
+			else
+			{
+				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
+				Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+				Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+				Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+				Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			}
+
+			if (PrevRHICmdList != RHICmdList)
+			{
+				if (RHICmdList)
+				{
+					GRHICommandList.ExecuteAndFreeList(RHICmdList);
+				}
+
+				RHICmdList = PrevRHICmdList;
+			}
 		}
 
 		{
@@ -388,18 +417,18 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass()
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			MaxDraws -= Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
-			MaxDraws -= Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
 		}
 		else
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
-			Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Masked].DrawVisible(View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingNoLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingLowQualityLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 		}
 	}
 }

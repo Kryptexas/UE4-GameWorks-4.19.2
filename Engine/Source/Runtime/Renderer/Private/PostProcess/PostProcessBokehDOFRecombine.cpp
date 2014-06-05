@@ -30,6 +30,7 @@ class FPostProcessBokehDOFRecombinePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("RECOMBINE_METHOD"), Method);
 	}
 
@@ -58,20 +59,20 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FVector4 DepthOfFieldParamValues[2];
 
 			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
 
-			SetShaderValueArray(ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 	}
 
@@ -95,7 +96,7 @@ VARIATION1(1)			VARIATION1(2)			VARIATION1(3)
 
 
 template <uint32 Method>
-void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessBokehDOFRecombine::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBokehDOFRecombinePS<Method> > PixelShader(GetGlobalShaderMap());
@@ -104,8 +105,8 @@ void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePas
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context);
-	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context);
+	VertexShader->SetParameters(RHICmdList, Context);
 }
 
 void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext& Context)
@@ -143,6 +144,8 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 	FIntRect HalfResViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
@@ -158,10 +161,10 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	switch(Method)
-	{
-		case 1: SetShader<1>(Context); break;
-		case 2: SetShader<2>(Context); break;
-		case 3: SetShader<3>(Context); break;
+		{
+		case 1: SetShader<1>(RHICmdList, Context); break;
+		case 2: SetShader<2>(RHICmdList, Context); break;
+		case 3: SetShader<3>(RHICmdList, Context); break;
 		default:
 			check(0);
 	}

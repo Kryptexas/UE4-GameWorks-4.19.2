@@ -1326,18 +1326,6 @@ void CreateConsoleVariables()
 		TEXT(" 1: on (Note: this also disables occlusion queries)"),
 		ECVF_Cheat);
 
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("FreezeAtPosition"),
-		TEXT(""),	// default value is empty
-		TEXT("This console variable stores the position and rotation for the FreezeAt command which allows\n")
-		TEXT("to lock the camera in order to provide more deterministic render profiling.\n")
-		TEXT("The FreezeAtPosition can be set in the ConsoleVariables.ini (start the map with MAPNAME?bTourist=1).\n")
-		TEXT("Also see the FreezeAt command console command.\n")
-		TEXT("The number syntax if the same as the one used by the BugIt command:\n")
-		TEXT(" The first three values define the position, the next three define the rotation.\n")
-		TEXT("Example:\n")
-		TEXT(" FreezeAtPosition 2819.5520 416.2633 75.1500 65378 -25879 0"),
-		ECVF_Cheat);
-
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.VisualizeTexturePool"),
 		0,
 		TEXT("Allows to enable the visualize the texture pool (currently only on console).\n")

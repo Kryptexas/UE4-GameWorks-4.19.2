@@ -4,6 +4,8 @@
 
 #if WITH_ENGINE
 
+#include "Runtime/RHI/Public/RHIDefinitions.h"	// For TexCreate* flags
+
 /*-----------------------------------------------------------------------------
 	Linker file package summary texture allocation info
 -----------------------------------------------------------------------------*/
@@ -79,7 +81,7 @@ FTexture2DResourceMem* FTextureAllocations::FindAndRemove( int32 SizeX, int32 Si
 FTextureAllocations::FTextureType* FTextureAllocations::FindTextureType( int32 SizeX, int32 SizeY, int32 NumMips, uint32 Format, uint32 TexCreateFlags )
 {
 	FTexture2DResourceMem* ResourceMem = NULL;
-	const uint32 FlagMask = ~((1<<9) | (1<<10)); // TexCreate_AllowFailure | TexCreate_DisableAutoDefrag (from ETextureCreateFlags in RHI.h)
+	const uint32 FlagMask = ~(TexCreate_AllowFailure | TexCreate_DisableAutoDefrag); // TexCreate_AllowFailure | TexCreate_DisableAutoDefrag (from ETextureCreateFlags in RHI.h)
 	for ( int32 TypeIndex=0; TypeIndex < TextureTypes.Num(); ++TypeIndex )
 	{
 		FTextureType& TextureType = TextureTypes[ TypeIndex ];

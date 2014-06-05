@@ -18,6 +18,7 @@ float GetMaxShaderComplexityCount(ERHIFeatureLevel::Type InFeatureType)
 }
 
 void FShaderComplexityAccumulatePS::SetParameters(
+	FRHICommandList* RHICmdList, 
 	uint32 NumVertexInstructions, 
 	uint32 NumPixelInstructions,
 	ERHIFeatureLevel::Type InFeatureLevel)
@@ -25,7 +26,7 @@ void FShaderComplexityAccumulatePS::SetParameters(
 	//normalize the complexity so we can fit it in a low precision scene color which is necessary on some platforms
 	const float NormalizedComplexityValue = float(NumPixelInstructions) / GetMaxShaderComplexityCount(InFeatureLevel);
 
-	SetShaderValue( GetPixelShader(), NormalizedComplexity, NormalizedComplexityValue);
+	SetShaderValue(RHICmdList, GetPixelShader(), NormalizedComplexity, NormalizedComplexityValue);
 }
 
 IMPLEMENT_SHADER_TYPE(,FShaderComplexityAccumulatePS,TEXT("ShaderComplexityAccumulatePixelShader"),TEXT("Main"),SF_Pixel);
@@ -87,15 +88,16 @@ public:
 	}
 
 	virtual void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FRenderingCompositePassContext& Context,
 		const TArray<FLinearColor>& Colors
 		)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		//Make sure there are at least NumShaderComplexityColors colors specified in the ini.
 		//If there are more than NumShaderComplexityColors they will be ignored.
@@ -104,7 +106,7 @@ public:
 		//pass the complexity -> color mapping into the pixel shader
 		for(int32 ColorIndex = 0; ColorIndex < NumShaderComplexityColors; ColorIndex ++)
 		{
-			SetShaderValue(ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
+			SetShaderValue(RHICmdList, ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
 		}
 	}
 
@@ -166,6 +168,9 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 	Context.SetViewportAndCallRHI(DestRect);
@@ -184,7 +189,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	static FGlobalBoundShaderState ShaderComplexityBoundShaderState;
 	SetGlobalBoundShaderState(ShaderComplexityBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context, Colors);
+	PixelShader->SetParameters(RHICmdList, Context, Colors);
 	
 	DrawRectangle(
 		0, 0,

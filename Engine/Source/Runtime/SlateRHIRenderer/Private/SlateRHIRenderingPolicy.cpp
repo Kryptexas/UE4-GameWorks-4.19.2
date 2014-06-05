@@ -5,6 +5,7 @@
 #include "SlateRHIRenderingPolicy.h"
 #include "SlateShaders.h"
 #include "SlateRHIResourceManager.h"
+#include "RHIStaticStates.h"
 
 static EPrimitiveType GetRHIPrimitiveType( ESlateDrawPrimitive::Type SlateType )
 {
@@ -287,6 +288,9 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	const float DisplayGamma = GEngine ? GEngine->GetDisplayGamma() : 2.2f;
 
 	FSlateElementVertexBuffer& VertexBuffer = VertexBuffers[CurrentBufferIndex];
@@ -339,8 +343,8 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 				SetGlobalBoundShaderState( NormalShaderStates[ShaderType][bUseTextureAlpha], GSlateVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader );
 			}
 
-			VertexShader->SetViewProjection( ViewProjectionMatrix );
-			VertexShader->SetShaderParameters( ShaderParams.VertexParams );
+			VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix );
+			VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams );
 
 			RHISetBlendState(
 				(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
@@ -384,7 +388,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 #endif
 
 				// The lookup table used for splines should clamp when sampling otherwise the results are wrong
-				PixelShader->SetTexture( ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), BilinearClamp );
+				PixelShader->SetTexture(RHICmdList, ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), BilinearClamp );
 			}
 			else if( ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Texture && IsValidRef( ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource() ) )
 			{
@@ -406,17 +410,17 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 				{
 					SamplerState = BilinearClamp;
 				}
-				PixelShader->SetTexture( ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), SamplerState );
+				PixelShader->SetTexture(RHICmdList, ((FSlateTexture2DRHIRef*)ShaderResource)->GetTypedResource(), SamplerState );
 			}
 			else
 			{
-				PixelShader->SetTexture( GWhiteTexture->TextureRHI, BilinearClamp );
+				PixelShader->SetTexture(RHICmdList, GWhiteTexture->TextureRHI, BilinearClamp );
 			}
 
-			PixelShader->SetShaderParams( ShaderParams.PixelParams );
-			PixelShader->SetViewportSize( InViewportSize );
-			PixelShader->SetDrawEffects( DrawEffects );
-			PixelShader->SetDisplayGamma( ( DrawFlags & ESlateBatchDrawFlag::NoGamma ) ? 1.0f : DisplayGamma );
+			PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams );
+			PixelShader->SetViewportSize(RHICmdList, InViewportSize );
+			PixelShader->SetDrawEffects(RHICmdList, DrawEffects );
+			PixelShader->SetDisplayGamma(RHICmdList, ( DrawFlags & ESlateBatchDrawFlag::NoGamma ) ? 1.0f : DisplayGamma );
 
 			check( RenderBatch.NumIndices > 0 );
 

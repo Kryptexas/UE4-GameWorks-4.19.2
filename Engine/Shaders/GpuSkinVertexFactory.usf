@@ -245,8 +245,8 @@ float3 GetClothSimulPosition(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	#if GPUSKIN_USE_DATA_BUFFERS == 1
-	return ClothSimulVertsPositions[Index].xyz;
-#else
+		return ClothSimulVertsPositions[Index].xyz;
+	#else
 		return ClothSimulVertsPositions.Load(int3(Index % GPUSKIN_CLOTH_TEXTURE_STRIDE, Index / GPUSKIN_CLOTH_TEXTURE_STRIDE, 0));
 	#endif // GPUSKIN_USE_DATA_BUFFERS
 #else
@@ -258,8 +258,8 @@ float3 GetClothSimulNormal(int Index)
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	#if GPUSKIN_USE_DATA_BUFFERS == 1
-	return ClothSimulVertsNormals[Index].xyz;
-#else
+		return ClothSimulVertsNormals[Index].xyz;
+	#else
 		return ClothSimulVertsNormals.Load(int3(Index % GPUSKIN_CLOTH_TEXTURE_STRIDE, Index / GPUSKIN_CLOTH_TEXTURE_STRIDE, 0)).xyz;
 	#endif // GPUSKIN_USE_DATA_BUFFERS
 #else
@@ -284,8 +284,8 @@ float3 ClothingPosition( FVertexFactoryInput Input )
 */
 float3 UnpackedPosition( FVertexFactoryInput Input )
 {
-	return float3(Input.Position.xyz*MeshExtension + MeshOrigin);
-}
+		return float3(Input.Position.xyz*MeshExtension + MeshOrigin);
+	}
 
 #if GPUSKIN_MORPH_BLEND
 /** 
@@ -601,12 +601,12 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
 {
 #if GPUSKIN_PASS_THROUGH
-	uint StreamOffset = GPUSkinCacheStreamFloatOffset + (Intermediates.VertexID * GPUSkinCacheStreamStride);
-	return mul(float4(	GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 0],
-						GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 1],
-						GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 2],
-						1),
-				PreviousLocalToWorld);
+		uint StreamOffset = GPUSkinCacheStreamFloatOffset + (Intermediates.VertexID * GPUSkinCacheStreamStride);
+		return mul(float4(	GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 0],
+							GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 1],
+							GPUSkinCacheStreamBuffer[StreamOffset + GPUSKIN_VB_OFFSET_POSITION + 2],
+							1),
+					PreviousLocalToWorld);
 #else
 	float4 PrevSkinPosInWolrd = mul(float4(SkinPreviousPosition(Input, Intermediates),1), PreviousLocalToWorld);
 #if GPUSKIN_APEX_CLOTH
@@ -619,7 +619,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 
 	return PrevSkinPosInWolrd;
 #endif
-}
+	}
 
 
 #if USING_TESSELLATION

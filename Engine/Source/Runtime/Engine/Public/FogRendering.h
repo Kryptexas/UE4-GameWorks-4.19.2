@@ -18,14 +18,14 @@ public:
 	 * Sets exponential height fog shader parameters.
 	 */
 	template<typename ShaderRHIParamRef>
-	void Set(ShaderRHIParamRef Shader, const FSceneView* View) const
+	void Set(FRHICommandList* RHICmdList, ShaderRHIParamRef Shader, const FSceneView* View) const
 	{
 		const FViewInfo* ViewInfo = static_cast<const FViewInfo*>(View);
-		SetShaderValue(Shader, ExponentialFogParameters, ViewInfo->ExponentialFogParameters);
-		SetShaderValue(Shader, ExponentialFogColorParameter, FVector4(ViewInfo->ExponentialFogColor, 1.0f - ViewInfo->FogMaxOpacity));
-		SetShaderValue(Shader, InscatteringLightDirection, FVector4(ViewInfo->InscatteringLightDirection, ViewInfo->bUseDirectionalInscattering ? 1 : 0));
-		SetShaderValue(Shader, DirectionalInscatteringColor, FVector4(FVector(ViewInfo->DirectionalInscatteringColor), ViewInfo->DirectionalInscatteringExponent));
-		SetShaderValue(Shader, DirectionalInscatteringStartDistance, ViewInfo->DirectionalInscatteringStartDistance);
+		SetShaderValue(RHICmdList, Shader, ExponentialFogParameters, ViewInfo->ExponentialFogParameters);
+		SetShaderValue(RHICmdList, Shader, ExponentialFogColorParameter, FVector4(ViewInfo->ExponentialFogColor, 1.0f - ViewInfo->FogMaxOpacity));
+		SetShaderValue(RHICmdList, Shader, InscatteringLightDirection, FVector4(ViewInfo->InscatteringLightDirection, ViewInfo->bUseDirectionalInscattering ? 1 : 0));
+		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringColor, FVector4(FVector(ViewInfo->DirectionalInscatteringColor), ViewInfo->DirectionalInscatteringExponent));
+		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringStartDistance, ViewInfo->DirectionalInscatteringStartDistance);
 	}
 
 	/** Serializer. */
@@ -50,10 +50,10 @@ public:
 	 * Sets height fog shader parameters.
 	 */
 	template<typename ShaderRHIParamRef>
-	void Set(ShaderRHIParamRef Shader, const FSceneView* View) const
+	void Set(FRHICommandList* RHICmdList, ShaderRHIParamRef Shader, const FSceneView* View) const
 	{
 		// Set the fog constants.
-		ExponentialParameters.Set(Shader, View);
+		ExponentialParameters.Set(RHICmdList, Shader, View);
 	}
 
 	/** Serializer. */

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ScreenRendering.h: D3D render target implementation.
+	ScreenRendering.h: Screen rendering definitions.
 =============================================================================*/
 
 #pragma once
@@ -59,14 +59,14 @@ public:
 	}
 	FScreenPS() {}
 
-	void SetParameters(const FTexture* Texture)
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* Texture)
 	{
-		SetTextureParameter(GetPixelShader(),InTexture,InTextureSampler,Texture);
+		SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,Texture);
 	}
 
-	void SetParameters(FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
+	void SetParameters(FRHICommandList* RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef TextureRHI)
 	{
-		SetTextureParameter(GetPixelShader(),InTexture,InTextureSampler,SamplerStateRHI,TextureRHI);
+		SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,SamplerStateRHI,TextureRHI);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -99,9 +99,9 @@ public:
 	FScreenVS() {}
 
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 	}
 
 

@@ -5,6 +5,7 @@
 #include "BatchedElements.h"
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
+#include "RHIStaticStates.h"
 #include "SimpleElementShaders.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);
@@ -355,6 +356,9 @@ void FBatchedElements::PrepareShaders(
 	FTexture2DRHIRef DepthTexture
 	) const
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// used to mask individual channels and desaturate
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );
 	
@@ -422,7 +426,7 @@ void FBatchedElements::PrepareShaders(
 	if( BatchedElementParameters != NULL )
 	{
 		// Use the vertex/pixel shader that we were given
-		BatchedElementParameters->BindShaders_RenderThread( Transform, Gamma, ColorWeights, Texture );
+		BatchedElementParameters->BindShaders_RenderThread(RHICmdList, Transform, Gamma, ColorWeights, Texture );
 	}
 	else
 	{
@@ -434,7 +438,7 @@ void FBatchedElements::PrepareShaders(
 			SetGlobalBoundShaderState(HitTestingBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, 
 				*VertexShader, *HitTestingPixelShader);
 
-		    HitTestingPixelShader->SetParameters(Texture);
+			HitTestingPixelShader->SetParameters(RHICmdList, Texture);
 		    SetHitTestingBlendState( BlendMode);
 		    
 	    }
@@ -450,8 +454,8 @@ void FBatchedElements::PrepareShaders(
 				SetGlobalBoundShaderState( MaskedBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, 
 					*VertexShader, *MaskedPixelShader);
 
-				MaskedPixelShader->SetEditorCompositingParameters( View, DepthTexture );
-				MaskedPixelShader->SetParameters(Texture,Gamma,GBatchedElementAlphaRefVal / 255.0f,BlendMode);
+				MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture );
+				MaskedPixelShader->SetParameters(RHICmdList, Texture,Gamma,GBatchedElementAlphaRefVal / 255.0f,BlendMode);
 		    }
 		    // render distance field elements
 		    else if (
@@ -489,6 +493,7 @@ void FBatchedElements::PrepareShaders(
 				    );
 			    
 			    DistanceFieldPixelShader->SetParameters(
+					RHICmdList, 
 				    Texture,
 				    Gamma,
 				    AlphaRefVal / 255.0f,
@@ -507,7 +512,7 @@ void FBatchedElements::PrepareShaders(
 				SetGlobalBoundShaderState( ColorChannelMaskShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, 
 					*VertexShader, *ColorChannelMaskPixelShader );
 			
-				ColorChannelMaskPixelShader->SetParameters( Texture, ColorWeights, GammaToUse );
+				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
 			}
 			else
 		    {
@@ -519,8 +524,8 @@ void FBatchedElements::PrepareShaders(
 					SetGlobalBoundShaderState( SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, 
 						*VertexShader, *RegularPixelShader );
 
-					RegularPixelShader->SetEditorCompositingParameters(View, DepthTexture);
-				    RegularPixelShader->SetParameters(Texture);
+					RegularPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+				    RegularPixelShader->SetParameters(RHICmdList, Texture);
 			    }
 			    else
 			    {
@@ -528,14 +533,14 @@ void FBatchedElements::PrepareShaders(
 					SetGlobalBoundShaderState( RegularBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, 
 						*VertexShader, *RegularPixelShader );
 
-				    RegularPixelShader->SetParameters(Texture,Gamma,BlendMode);
-					RegularPixelShader->SetEditorCompositingParameters(View, DepthTexture);
+				    RegularPixelShader->SetParameters(RHICmdList, Texture,Gamma,BlendMode);
+					RegularPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 			    }
 		    }
 	    }
 
 		// Set the simple element vertex shader parameters
-		VertexShader->SetParameters(Transform, bSwitchVerticalAxis);
+		VertexShader->SetParameters(RHICmdList, Transform, bSwitchVerticalAxis);
 	}
 }
 

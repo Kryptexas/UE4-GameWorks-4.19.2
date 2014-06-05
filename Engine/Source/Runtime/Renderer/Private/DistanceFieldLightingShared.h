@@ -63,23 +63,24 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI)
+	void Set(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI)
 	{
 		float AOMaxDistanceValue = GetAOMaxDistance();
-		SetShaderValue(ShaderRHI, AOMaxDistance, AOMaxDistanceValue);
+		SetShaderValue(RHICmdList, ShaderRHI, AOMaxDistance, AOMaxDistanceValue);
 
 		extern float GAOLargestSampleOffset;
 		extern float GAOStepExponentScale;
 		extern uint32 GAONumConeSteps;
 		float AOStepScaleValue = GAOLargestSampleOffset / FMath::Pow(2.0f, GAOStepExponentScale * (GAONumConeSteps - 1));
-		SetShaderValue(ShaderRHI, AOStepScale, AOStepScaleValue);
+		SetShaderValue(RHICmdList, ShaderRHI, AOStepScale, AOStepScaleValue);
 
-		SetShaderValue(ShaderRHI, AOStepExponentScale, GAOStepExponentScale);
+		SetShaderValue(RHICmdList, ShaderRHI, AOStepExponentScale, GAOStepExponentScale);
 
 		extern float GAOMaxViewDistance;
-		SetShaderValue(ShaderRHI, AOMaxViewDistance, GAOMaxViewDistance);
+		SetShaderValue(RHICmdList, ShaderRHI, AOMaxViewDistance, GAOMaxViewDistance);
 
 		SetTextureParameter(
+			RHICmdList,
 			ShaderRHI,
 			DistanceFieldTexture,
 			DistanceFieldSampler,
@@ -91,7 +92,7 @@ public:
 		const int32 NumTexelsOneDimY = GDistanceFieldVolumeTextureAtlas.GetSizeY();
 		const int32 NumTexelsOneDimZ = GDistanceFieldVolumeTextureAtlas.GetSizeZ();
 		const FVector InvTextureDim(1.0f / NumTexelsOneDimX, 1.0f / NumTexelsOneDimY, 1.0f / NumTexelsOneDimZ);
-		SetShaderValue(ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
+		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
 	}
 
 private:

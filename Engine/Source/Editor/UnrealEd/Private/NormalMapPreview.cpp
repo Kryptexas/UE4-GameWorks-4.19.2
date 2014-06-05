@@ -9,6 +9,8 @@
 #include "SimpleElementShaders.h"
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 
 /*------------------------------------------------------------------------------
 	Batched element shaders for previewing normal maps.
@@ -46,10 +48,10 @@ public:
 	 * Set shader parameters.
 	 * @param NormalMapTexture - The normal map texture to sample.
 	 */
-	void SetParameters(const FTexture* NormalMapTexture)
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* NormalMapTexture)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
-		SetTextureParameter(PixelShaderRHI,Texture,TextureSampler,NormalMapTexture);
+		SetTextureParameter(RHICmdList, PixelShaderRHI,Texture,TextureSampler,NormalMapTexture);
 	}
 
 	/**
@@ -73,6 +75,7 @@ IMPLEMENT_SHADER_TYPE(,FSimpleElementNormalMapPS,TEXT("SimpleElementNormalMapPix
 
 /** Binds vertex and pixel shaders for this element */
 void FNormalMapBatchedElementParameters::BindShaders_RenderThread(
+	FRHICommandList* RHICmdList, 
 	const FMatrix& InTransform,
 	const float InGamma,
 	const FMatrix& ColorWeights,
@@ -81,11 +84,13 @@ void FNormalMapBatchedElementParameters::BindShaders_RenderThread(
 	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FSimpleElementNormalMapPS> PixelShader(GetGlobalShaderMap());
 
+	check(!RHICmdList);
+
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(InTransform);
-	PixelShader->SetParameters(Texture);
+	VertexShader->SetParameters(RHICmdList, InTransform);
+	PixelShader->SetParameters(RHICmdList, Texture);
 
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
 }

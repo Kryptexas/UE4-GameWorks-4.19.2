@@ -92,112 +92,134 @@ static bool IsPoolingEnabled()
 	return CVarValue != 0;
 };
 
-FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Contents,uint32 NumBytes,EUniformBufferUsage Usage)
+FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Contents,const FRHIUniformBufferLayout& Layout,EUniformBufferUsage Usage)
 {
 	check(IsInRenderingThread());
 
-	// Explicitly check that the size is nonzero before allowing CreateBuffer to opaquely fail.
-	check(NumBytes > 0);
-
-	// Constant buffers must also be 16-byte aligned.
-	check(Align(NumBytes,16) == NumBytes);
-	check(Align(Contents,16) == Contents);
-	check(NumBytes <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16);
-	check(NumBytes < (1 << NumPoolBuckets));
-
-	SCOPE_CYCLE_COUNTER(STAT_D3D11UpdateUniformBufferTime);
-
-	// @todo: Only pool single-use uniform buffers?
-	if(IsPoolingEnabled())
+	FD3D11UniformBuffer* NewUniformBuffer = nullptr;
+	const uint32 NumBytes = Layout.ConstantBufferSize;
+	if (NumBytes > 0)
 	{
-		TRefCountPtr<ID3D11Buffer> UniformBufferResource;
-		FRingAllocation RingAllocation;
+		// Constant buffers must also be 16-byte aligned.
+		check(Align(NumBytes,16) == NumBytes);
+		check(Align(Contents,16) == Contents);
+		check(NumBytes <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16);
+		check(NumBytes < (1 << NumPoolBuckets));
+
+		SCOPE_CYCLE_COUNTER(STAT_D3D11UpdateUniformBufferTime);
+		if (IsPoolingEnabled())
+		{
+			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
+			FRingAllocation RingAllocation;
 
 #if PLATFORM_XBOXONE
-		if (Usage == UniformBuffer_SingleUse)
-		{
-			RingAllocation = DynamicCB.MapAndFill(GetDeviceContext(),NumBytes,Contents);
-			check(RingAllocation.IsValid());
-		}
+			if (Usage == UniformBuffer_SingleFrame)
+			{
+				RingAllocation = DynamicCB.MapAndFill(GetDeviceContext(),NumBytes,Contents);
+				check(RingAllocation.IsValid());
+			}
 #endif
 
-		if (!RingAllocation.IsValid())
-		{
-			// Find the appropriate bucket based on size
-			const uint32 BucketIndex = GetPoolBucketIndex(NumBytes);
-			TArray<FPooledUniformBuffer>& PoolBucket = UniformBufferPool[BucketIndex];
-
-			if (PoolBucket.Num() > 0)
+			if (!RingAllocation.IsValid())
 			{
-				// Reuse the last entry in this size bucket
-				FPooledUniformBuffer FreeBufferEntry = PoolBucket.Pop();
-				check(IsValidRef(FreeBufferEntry.Buffer));
-				UniformBufferResource = FreeBufferEntry.Buffer;
-				checkf(FreeBufferEntry.CreatedSize >= NumBytes, TEXT("%u %u %u %u"), NumBytes, BucketIndex, FreeBufferEntry.CreatedSize, GetPoolBucketSize(NumBytes));
-				DEC_DWORD_STAT(STAT_D3D11NumFreeUniformBuffers);
-				DEC_MEMORY_STAT_BY(STAT_D3D11FreeUniformBufferMemory, FreeBufferEntry.CreatedSize);
+				// Find the appropriate bucket based on size
+				const uint32 BucketIndex = GetPoolBucketIndex(NumBytes);
+				TArray<FPooledUniformBuffer>& PoolBucket = UniformBufferPool[BucketIndex];
+
+				if (PoolBucket.Num() > 0)
+				{
+					// Reuse the last entry in this size bucket
+					FPooledUniformBuffer FreeBufferEntry = PoolBucket.Pop();
+					check(IsValidRef(FreeBufferEntry.Buffer));
+					UniformBufferResource = FreeBufferEntry.Buffer;
+					checkf(FreeBufferEntry.CreatedSize >= NumBytes, TEXT("%u %u %u %u"), NumBytes, BucketIndex, FreeBufferEntry.CreatedSize, GetPoolBucketSize(NumBytes));
+					DEC_DWORD_STAT(STAT_D3D11NumFreeUniformBuffers);
+					DEC_MEMORY_STAT_BY(STAT_D3D11FreeUniformBufferMemory, FreeBufferEntry.CreatedSize);
+				}
+
+				// Nothing usable was found in the free pool, create a new uniform buffer
+				if (!IsValidRef(UniformBufferResource))
+				{
+					D3D11_BUFFER_DESC Desc;
+					// Allocate based on the bucket size, since this uniform buffer will be reused later
+					Desc.ByteWidth = GetPoolBucketSize(NumBytes);
+					// Use D3D11_USAGE_DYNAMIC, which allows multiple CPU writes for pool reuses
+					// This is method of updating is vastly superior to creating a new constant buffer each time with D3D11_USAGE_IMMUTABLE, 
+					// Since that inserts the data into the command buffer which causes GPU flushes
+					Desc.Usage = D3D11_USAGE_DYNAMIC;
+					Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+					Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+					Desc.MiscFlags = 0;
+					Desc.StructureByteStride = 0;
+
+					VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc, NULL, UniformBufferResource.GetInitReference()));
+
+					UpdateBufferStats(UniformBufferResource, true);
+				}
+
+				check(IsValidRef(UniformBufferResource));
+
+				D3D11_MAPPED_SUBRESOURCE MappedSubresource;
+				// Discard previous results since we always do a full update
+				VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(UniformBufferResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedSubresource));
+				check(MappedSubresource.RowPitch >= NumBytes);
+				FMemory::Memcpy(MappedSubresource.pData, Contents, NumBytes);
+				Direct3DDeviceIMContext->Unmap(UniformBufferResource, 0);
 			}
 
-			// Nothing usable was found in the free pool, create a new uniform buffer
-			if (!IsValidRef(UniformBufferResource))
-			{
-				D3D11_BUFFER_DESC Desc;
-				// Allocate based on the bucket size, since this uniform buffer will be reused later
-				Desc.ByteWidth = GetPoolBucketSize(NumBytes);
-				// Use D3D11_USAGE_DYNAMIC, which allows multiple CPU writes for pool reuses
-				// This is method of updating is vastly superior to creating a new constant buffer each time with D3D11_USAGE_IMMUTABLE, 
-				// Since that inserts the data into the command buffer which causes GPU flushes
-				Desc.Usage = D3D11_USAGE_DYNAMIC;
-				Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-				Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-				Desc.MiscFlags = 0;
-				Desc.StructureByteStride = 0;
-
-				VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc, NULL, UniformBufferResource.GetInitReference()));
-
-				UpdateBufferStats(UniformBufferResource, true);
-			}
-
-			check(IsValidRef(UniformBufferResource));
-
-			D3D11_MAPPED_SUBRESOURCE MappedSubresource;
-			// Discard previous results since we always do a full update
-			VERIFYD3D11RESULT(Direct3DDeviceIMContext->Map(UniformBufferResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedSubresource));
-			check(MappedSubresource.RowPitch >= NumBytes);
-			FMemory::Memcpy(MappedSubresource.pData, Contents, NumBytes);
-			Direct3DDeviceIMContext->Unmap(UniformBufferResource, 0);
+			NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, UniformBufferResource, RingAllocation);
 		}
+		else
+		{
+			// No pooling
+			D3D11_BUFFER_DESC Desc;
+			Desc.ByteWidth = NumBytes;
+			Desc.Usage = D3D11_USAGE_IMMUTABLE;
+			Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			Desc.CPUAccessFlags = 0;
+			Desc.MiscFlags = 0;
+			Desc.StructureByteStride = 0;
 
-		return new FD3D11UniformBuffer(NumBytes,UniformBufferResource,RingAllocation);
+			D3D11_SUBRESOURCE_DATA ImmutableData;
+			ImmutableData.pSysMem = Contents;
+			ImmutableData.SysMemPitch = ImmutableData.SysMemSlicePitch = 0;
+
+			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
+			VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc,&ImmutableData,UniformBufferResource.GetInitReference()));
+
+			FRingAllocation RingAllocation;
+			NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, UniformBufferResource, RingAllocation);
+		}
 	}
 	else
 	{
-		D3D11_BUFFER_DESC Desc;
-		Desc.ByteWidth = NumBytes;
-		Desc.Usage = D3D11_USAGE_IMMUTABLE;
-		Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		Desc.CPUAccessFlags = 0;
-		Desc.MiscFlags = 0;
-		Desc.StructureByteStride = 0;
-
-		D3D11_SUBRESOURCE_DATA ImmutableData;
-		ImmutableData.pSysMem = Contents;
-		ImmutableData.SysMemPitch = ImmutableData.SysMemSlicePitch = 0;
-
-		TRefCountPtr<ID3D11Buffer> UniformBufferResource;
-		VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc,&ImmutableData,UniformBufferResource.GetInitReference()));
-
+		// This uniform buffer contains no constants, only a resource table.
 		FRingAllocation RingAllocation;
-		return new FD3D11UniformBuffer(NumBytes,UniformBufferResource,RingAllocation);
+		NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, nullptr, RingAllocation);
 	}
+
+	if (Layout.Resources.Num())
+	{
+		int32 NumResources = Layout.Resources.Num();
+		FRHIResource** InResources = (FRHIResource**)((uint8*)Contents + Layout.ResourceOffset);
+		NewUniformBuffer->ResourceTable.Empty(NumResources);
+		NewUniformBuffer->ResourceTable.AddZeroed(NumResources);
+		for (int32 i = 0; i < NumResources; ++i)
+		{
+			check(InResources[i]);
+			NewUniformBuffer->ResourceTable[i] = InResources[i];
+		}
+		NewUniformBuffer->RawResourceTable.Empty(NumResources);
+		NewUniformBuffer->RawResourceTable.AddZeroed(NumResources);
+	}
+
+	return NewUniformBuffer;
 }
 
 FD3D11UniformBuffer::~FD3D11UniformBuffer()
 {
-	check(IsInRenderingThread());
-
 	// Do not return the allocation to the pool if it is in the dynamic constant buffer!
-	if (!RingAllocation.IsValid())
+	if (!RingAllocation.IsValid() && Resource != nullptr)
 	{
 		D3D11_BUFFER_DESC Desc;
 		Resource->GetDesc(&Desc);
@@ -220,6 +242,64 @@ FD3D11UniformBuffer::~FD3D11UniformBuffer()
 			INC_MEMORY_STAT_BY(STAT_D3D11FreeUniformBufferMemory, Desc.ByteWidth);
 		}
 	}
+}
+
+void FD3D11UniformBuffer::CacheResourcesInternal()
+{
+	uint32 Start = FPlatformTime::Cycles();
+
+	const FRHIUniformBufferLayout& Layout = GetLayout();
+	int32 NumResources = Layout.Resources.Num();
+	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
+	const TRefCountPtr<FRHIResource>* RESTRICT Resources = ResourceTable.GetData();
+	FResourcePair* RESTRICT RawResources = RawResourceTable.GetData();
+	float CurrentTime = FApp::GetCurrentTime();
+
+	// todo: Immutable resources, i.e. not textures, can be safely cached across frames.
+	// Texture streaming makes textures complicated :)
+	for (int32 i = 0; i < NumResources; ++i)
+	{
+		switch (ResourceTypes[i])
+		{
+		case UBMT_SRV:
+			{
+				FD3D11ShaderResourceView* ShaderResourceViewRHI = (FD3D11ShaderResourceView*)Resources[i].GetReference();
+				RawResources[i].ShaderResource = ShaderResourceViewRHI->Resource.GetReference();
+				RawResources[i].D3D11Resource = ShaderResourceViewRHI->View.GetReference();
+			}
+			break;
+
+		case UBMT_TEXTURE:
+			{
+				// todo: this does multiple virtual function calls to find the right type to cast to
+				// this is due to multiple inheritance nastiness, NEEDS CLEANUP
+				FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
+				TextureRHI->SetLastCachedTime(CurrentTime);
+				FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
+				RawResources[i].ShaderResource = TextureD3D11->GetBaseShaderResource();
+				RawResources[i].D3D11Resource = TextureD3D11->GetShaderResourceView();
+			}
+			break;
+
+		case UBMT_UAV:
+			RawResources[i].ShaderResource = NULL;
+			RawResources[i].D3D11Resource = NULL;
+			check(0);
+			break;
+
+		case UBMT_SAMPLER:
+			RawResources[i].ShaderResource = NULL;
+			RawResources[i].D3D11Resource = ((FD3D11SamplerState*)Resources[i].GetReference())->Resource.GetReference();
+			break;
+
+		default:
+			check(0);
+			break;
+		}
+	}
+
+	D3D11RHI->CacheResourceTableCycles += (FPlatformTime::Cycles() - Start);
+	D3D11RHI->CacheResourceTableCalls++;
 }
 
 void FD3D11DynamicRHI::ReleasePooledUniformBuffers()

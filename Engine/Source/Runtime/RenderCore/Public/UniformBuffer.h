@@ -50,7 +50,7 @@ public:
 	// FRenderResource interface.
 	virtual void InitDynamicRHI()
 	{
-		UniformBufferRHI = RHICreateUniformBuffer(Contents,sizeof(TBufferStruct),UniformBuffer_MultiUse);
+		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),UniformBuffer_MultiFrame);
 	}
 	virtual void ReleaseDynamicRHI()
 	{
@@ -85,7 +85,7 @@ public:
 	static TUniformBufferRef<TBufferStruct> CreateUniformBufferImmediate(const TBufferStruct& Value, EUniformBufferUsage Usage)
 	{
 		check(IsInRenderingThread());
-		return TUniformBufferRef<TBufferStruct>(RHICreateUniformBuffer(&Value,sizeof(Value),Usage));
+		return TUniformBufferRef<TBufferStruct>(RHICreateUniformBuffer(&Value,TBufferStruct::StaticStruct.GetLayout(),Usage));
 	}
 
 private:
@@ -117,15 +117,15 @@ void BeginSetUniformBufferContents(
 		TBufferStruct,Struct);
 }
 
-/** The base type of a value in a uniform buffer. */
-enum EUniformBufferBaseType
+/** Each entry in a resource table is provided to the shader compiler for creating mappings. */
+struct FResourceTableEntry
 {
-	UBMT_INVALID,
-	UBMT_BOOL,
-	UBMT_INT32,
-	UBMT_UINT32,
-	UBMT_FLOAT32,
-	UBMT_STRUCT
+	/** The name of the uniform buffer in which this resource exists. */
+	FString UniformBufferName;
+	/** The type of the resource (EUniformBufferBaseType). */
+	uint16 Type;
+	/** The index of the resource in the table. */
+	uint16 ResourceIndex;
 };
 
 /** A uniform buffer struct. */
@@ -141,6 +141,7 @@ public:
 		/** Initialization constructor. */
 		FMember(
 			const TCHAR* InName,
+			const TCHAR* InShaderType,
 			uint32 InOffset,
 			EUniformBufferBaseType InBaseType,
 			EShaderPrecisionModifier::Type InPrecision,
@@ -150,6 +151,7 @@ public:
 			const FUniformBufferStruct* InStruct
 			)
 		:	Name(InName)
+		,	ShaderType(InShaderType)
 		,	Offset(InOffset)
 		,	BaseType(InBaseType)
 		,	Precision(InPrecision)
@@ -160,6 +162,7 @@ public:
 		{}
 	
 		const TCHAR* GetName() const { return Name; }
+		const TCHAR* GetShaderType() const { return ShaderType; }
 		uint32 GetOffset() const { return Offset; }
 		EUniformBufferBaseType GetBaseType() const { return BaseType; }
 		EShaderPrecisionModifier::Type GetPrecision() const { return Precision; }
@@ -171,6 +174,7 @@ public:
 	private:
 
 		const TCHAR* Name;
+		const TCHAR* ShaderType;
 		uint32 Offset;
 		EUniformBufferBaseType BaseType;
 		EShaderPrecisionModifier::Type Precision;
@@ -191,6 +195,25 @@ public:
 	,	Members(InMembers)
 	,	GlobalListLink(this)
 	{
+		bool bHasDeclaredResources = false;
+		Layout.ConstantBufferSize = InSize;
+		Layout.ResourceOffset = 0;
+		for (int32 i = 0; i < Members.Num(); ++i)
+		{
+			bool bIsResource = IsUniformBufferResourceType(Members[i].GetBaseType());
+			checkf(!bHasDeclaredResources || bIsResource, TEXT("Constructing invalid uniform buffer struct: member '%s' is not a resource but has been declared after a resource member."), Members[i].GetName());
+			if (bIsResource)
+			{
+				if (!bHasDeclaredResources)
+				{
+					Layout.ConstantBufferSize = (i == 0) ? 0 : Align(Members[i].GetOffset(),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+					Layout.ResourceOffset = Members[i].GetOffset();
+				}
+				Layout.Resources.Add(Members[i].GetBaseType());
+			}
+			bHasDeclaredResources |= bIsResource;
+		}
+
 		if (bRegisterForAutoBinding)
 		{
 			GlobalListLink.Link(GetStructList());
@@ -202,9 +225,30 @@ public:
 		GlobalListLink.Unlink();
 	}
 
+	void AddResourceTableEntries(TMap<FString,FResourceTableEntry>& ResourceTableMap, TMap<FString,uint32>& ResourceTableLayoutHashes) const
+	{
+		uint16 ResourceIndex = 0;
+		for (int32 MemberIndex = 0; MemberIndex < Members.Num(); ++MemberIndex)
+		{
+			const FMember& Member = Members[MemberIndex];
+			if (IsUniformBufferResourceType(Member.GetBaseType()))
+			{
+				FResourceTableEntry& Entry = ResourceTableMap.FindOrAdd(FString::Printf(TEXT("%s_%s"), ShaderVariableName, Member.GetName()));
+				if (Entry.UniformBufferName.IsEmpty())
+				{
+					Entry.UniformBufferName = ShaderVariableName;
+					Entry.Type = Member.GetBaseType();
+					Entry.ResourceIndex = ResourceIndex++;
+				}
+			}
+		}
+		ResourceTableLayoutHashes.Add(ShaderVariableName,GetLayout().GetHash());
+	}
+
 	const TCHAR* GetStructTypeName() const { return StructTypeName; }
 	const TCHAR* GetShaderVariableName() const { return ShaderVariableName; }
 	const uint32 GetSize() const { return Size; }
+	const FRHIUniformBufferLayout& GetLayout() const { return Layout; }
 	const TArray<FMember>& GetMembers() const { return Members; }
 	FShaderUniformBufferParameter* ConstructTypedParameter() const { return (*ConstructUniformBufferParameterRef)(); }
 
@@ -215,6 +259,7 @@ private:
 	const TCHAR* ShaderVariableName;
 	ConstructUniformBufferParameterType ConstructUniformBufferParameterRef;
 	uint32 Size;
+	FRHIUniformBufferLayout Layout;
 	TArray<FMember> Members;
 	TLinkedList<FUniformBufferStruct*> GlobalListLink;
 };
@@ -253,6 +298,7 @@ private:
 		enum { NumColumns = 0 };
 		enum { NumElements = 0 };
 		enum { Alignment = 1 };
+		enum { IsResource = 0 };
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
 
@@ -265,6 +311,7 @@ private:
 		enum { NumColumns = 1 };
 		enum { NumElements = 0 };
 		enum { Alignment = 4 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<bool,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -278,6 +325,7 @@ private:
 		enum { NumColumns = 1 };
 		enum { NumElements = 0 };
 		enum { Alignment = 4 };
+		enum { IsResource = 0 };
 		typedef uint32 TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -292,6 +340,7 @@ private:
 		enum { NumColumns = 1 };
 		enum { NumElements = 0 };
 		enum { Alignment = 4 };
+		enum { IsResource = 0 };
 		typedef int32 TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -305,6 +354,7 @@ private:
 		enum { NumColumns = 1 };
 		enum { NumElements = 0 };
 		enum { Alignment = 4 };
+		enum { IsResource = 0 };
 		typedef float TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -318,6 +368,7 @@ private:
 		enum { NumColumns = 2 };
 		enum { NumElements = 0 };
 		enum { Alignment = 8 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FVector2D,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -331,6 +382,7 @@ private:
 		enum { NumColumns = 3 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FVector,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -344,6 +396,7 @@ private:
 		enum { NumColumns = 4 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FVector4,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -357,6 +410,7 @@ private:
 		enum { NumColumns = 4 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FLinearColor,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -370,6 +424,7 @@ private:
 		enum { NumColumns = 2 };
 		enum { NumElements = 0 };
 		enum { Alignment = 8 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FIntPoint,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -383,6 +438,7 @@ private:
 		enum { NumColumns = 3 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FIntVector,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -396,6 +452,7 @@ private:
 		enum { NumColumns = 4 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FIntRect,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -409,6 +466,7 @@ private:
 		enum { NumColumns = 4 };
 		enum { NumElements = 0 };
 		enum { Alignment = 16 };
+		enum { IsResource = 0 };
 		typedef TAlignedTypedef<FMatrix,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
@@ -422,6 +480,7 @@ private:
 		enum { NumColumns = TUniformBufferTypeInfo<T>::NumColumns };
 		enum { NumElements = InNumElements };
 		enum { Alignment = TUniformBufferTypeInfo<T>::Alignment };
+		enum { IsResource = TUniformBufferTypeInfo<T>::IsResource };
 		typedef TStaticArray<T,InNumElements,16> TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return TUniformBufferTypeInfo<T>::GetStruct(); }
 	};
@@ -435,9 +494,74 @@ private:
 		enum { NumColumns = TUniformBufferTypeInfo<T>::NumColumns };
 		enum { NumElements = InNumElements };
 		enum { Alignment = TUniformBufferTypeInfo<T>::Alignment };
+		enum { IsResource = TUniformBufferTypeInfo<T>::IsResource };
 		typedef TStaticArray<T,InNumElements,16> TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return TUniformBufferTypeInfo<T>::GetStruct(); }
 	};
+
+	template<>
+	class TUniformBufferTypeInfo<FShaderResourceViewRHIParamRef>
+	{
+	public:
+		enum { BaseType = UBMT_SRV };
+		enum { NumRows = 1 };
+		enum { NumColumns = 1 };
+		enum { NumElements = 0 };
+		enum { Alignment = sizeof(void*) };
+		enum { IsResource = 1 };
+		typedef TAlignedTypedef<FShaderResourceViewRHIParamRef,Alignment>::TAlignedType TAlignedType;
+		static const FUniformBufferStruct* GetStruct() { return NULL; }
+	};
+	checkAtCompileTime(sizeof(FShaderResourceViewRHIParamRef) == sizeof(void*),SRVParamRef_NotPointerSized);
+	static_assert(sizeof(TUniformBufferTypeInfo<FShaderResourceViewRHIParamRef>::TAlignedType) == sizeof(void*), "SRV UniformBufferParam is not aligned to pointer type");
+
+	template<>
+	class TUniformBufferTypeInfo<FUnorderedAccessViewRHIParamRef>
+	{
+	public:
+		enum { BaseType = UBMT_UAV };
+		enum { NumRows = 1 };
+		enum { NumColumns = 1 };
+		enum { NumElements = 0 };
+		enum { Alignment = sizeof(void*) };
+		enum { IsResource = 1 };
+		typedef TAlignedTypedef<FUnorderedAccessViewRHIParamRef,Alignment>::TAlignedType TAlignedType;
+		static const FUniformBufferStruct* GetStruct() { return NULL; }
+	};
+	checkAtCompileTime(sizeof(FUnorderedAccessViewRHIParamRef) == sizeof(void*),UAVParamRef_NotPointerSized);
+	static_assert(sizeof(TUniformBufferTypeInfo<FUnorderedAccessViewRHIParamRef>::TAlignedType) == sizeof(void*), "UAV UniformBufferParam is not aligned to pointer type");
+
+	template<>
+	class TUniformBufferTypeInfo<FSamplerStateRHIParamRef>
+	{
+	public:
+		enum { BaseType = UBMT_SAMPLER };
+		enum { NumRows = 1 };
+		enum { NumColumns = 1 };
+		enum { NumElements = 0 };
+		enum { Alignment = sizeof(void*) };
+		enum { IsResource = 1 };
+		typedef TAlignedTypedef<FSamplerStateRHIParamRef,Alignment>::TAlignedType TAlignedType;
+		static const FUniformBufferStruct* GetStruct() { return NULL; }
+	};
+	checkAtCompileTime(sizeof(FSamplerStateRHIParamRef) == sizeof(void*),SamplerStateParamRef_NotPointerSized);
+	static_assert(sizeof(TUniformBufferTypeInfo<FSamplerStateRHIParamRef>::TAlignedType) == sizeof(void*), "SamplerState UniformBufferParam is not aligned to pointer type");
+
+	template<>
+	class TUniformBufferTypeInfo<FTextureRHIParamRef>
+	{
+	public:
+		enum { BaseType = UBMT_TEXTURE };
+		enum { NumRows = 1 };
+		enum { NumColumns = 1 };
+		enum { NumElements = 0 };
+		enum { Alignment = sizeof(void*) };
+		enum { IsResource = 1 };
+		typedef TAlignedTypedef<FTextureRHIParamRef,Alignment>::TAlignedType TAlignedType;
+		static const FUniformBufferStruct* GetStruct() { return NULL; }
+	};
+	checkAtCompileTime(sizeof(FTextureRHIParamRef) == sizeof(void*),TextureParamRef_NotPointerSized);
+	static_assert(sizeof(TUniformBufferTypeInfo<FTextureRHIParamRef>::TAlignedType) == sizeof(void*), "Texture UniformBufferParam is not aligned to pointer type");
 
 //
 // Macros for declaring uniform buffer structures.
@@ -459,9 +583,13 @@ private:
 	public: \
 		static FUniformBufferStruct StaticStruct; \
 		static FShaderUniformBufferParameter* ConstructUniformBufferParameter() { return new TShaderUniformBufferParameter<StructTypeName>(); } \
+		static FUniformBufferRHIRef CreateUniformBuffer(const StructTypeName& InContents, EUniformBufferUsage InUsage) \
+		{ \
+			return RHICreateUniformBuffer(&InContents,StaticStruct.GetLayout(),InUsage); \
+		} \
 	private: \
 		typedef StructTypeName zzTThisStruct; \
-		struct zzFirstMemberId {}; \
+		struct zzFirstMemberId { enum { HasDeclaredResource = 0 }; }; \
 		static TArray<FUniformBufferStruct::FMember> zzGetMembersBefore(zzFirstMemberId) \
 		{ \
 			return TArray<FUniformBufferStruct::FMember>(); \
@@ -469,22 +597,26 @@ private:
 		typedef zzFirstMemberId
 
 /** Declares a member of a uniform buffer struct. */
-#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY_EX(MemberType,MemberName,ArrayDecl,Precision) \
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(MemberType,MemberName,ArrayDecl,Precision,OptionalShaderType) \
 		zzMemberId##MemberName; \
 	public: \
 		typedef MemberType zzA##MemberName ArrayDecl; \
 		typedef TUniformBufferTypeInfo<zzA##MemberName>::TAlignedType zzT##MemberName; \
 		zzT##MemberName MemberName; \
-		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_INVALID,InvalidMemberType##MemberName); \
+		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_INVALID,InvalidMemberType_##MemberName_##MemberType); \
+		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_UAV,UAVsNotYetSupportedInResourceTables_##MemberName_##MemberType); \
 	private: \
-		struct zzNextMemberId##MemberName {}; \
+		struct zzNextMemberId##MemberName { enum { HasDeclaredResource = zzMemberId##MemberName::HasDeclaredResource || TUniformBufferTypeInfo<zzT##MemberName>::IsResource }; }; \
 		static TArray<FUniformBufferStruct::FMember> zzGetMembersBefore(zzNextMemberId##MemberName) \
 		{ \
+			checkAtCompileTime(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 1 || zzMemberId##MemberName::HasDeclaredResource == 0, AllResourcesMustBeDeclaredLast_##MemberName); \
+			checkAtCompileTime(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 0 || IS_TCHAR_ARRAY(OptionalShaderType), NoShaderTypeFor_##MemberName); \
 			/* Route the member enumeration on to the function for the member following this. */ \
 			TArray<FUniformBufferStruct::FMember> OutMembers = zzGetMembersBefore(zzMemberId##MemberName()); \
 			/* Add this member. */ \
 			OutMembers.Add(FUniformBufferStruct::FMember( \
 				TEXT(#MemberName), \
+				OptionalShaderType, \
 				STRUCT_OFFSET(zzTThisStruct,MemberName), \
 				(EUniformBufferBaseType)TUniformBufferTypeInfo<zzA##MemberName>::BaseType, \
 				Precision, \
@@ -501,11 +633,22 @@ private:
 		} \
 		typedef zzNextMemberId##MemberName
 
-#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(MemberType,MemberName,ArrayDecl) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY_EX(MemberType,MemberName,ArrayDecl,EShaderPrecisionModifier::Float)
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY_EX(MemberType,MemberName,ArrayDecl,Precision) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(MemberType,MemberName,ArrayDecl,Precision,TEXT(""))
 
-#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(MemberType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY_EX(MemberType,MemberName,,EShaderPrecisionModifier::Float)
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(MemberType,MemberName,ArrayDecl) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(MemberType,MemberName,ArrayDecl,EShaderPrecisionModifier::Float,TEXT(""))
 
-#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(MemberType,MemberName,Precision) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY_EX(MemberType,MemberName,,Precision)
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(MemberType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(MemberType,MemberName,,EShaderPrecisionModifier::Float,TEXT(""))
+
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(MemberType,MemberName,Precision) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(MemberType,MemberName,,Precision,TEXT(""))
+
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SRV(ShaderType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(FShaderResourceViewRHIParamRef,MemberName,,EShaderPrecisionModifier::Float,TEXT(#ShaderType))
+
+// NOT SUPPORTED YET
+//#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_UAV(ShaderType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(FUnorderedAccessViewRHIParamRef,MemberName,,EShaderPrecisionModifier::Float,TEXT(#ShaderType))
+
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(ShaderType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(FSamplerStateRHIParamRef,MemberName,,EShaderPrecisionModifier::Float,TEXT(#ShaderType))
+
+#define DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(ShaderType,MemberName) DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EXPLICIT(FTextureRHIParamRef,MemberName,,EShaderPrecisionModifier::Float,TEXT(#ShaderType))
 
 /** Ends a uniform buffer struct declaration. */
 #define END_UNIFORM_BUFFER_STRUCT(Name) \

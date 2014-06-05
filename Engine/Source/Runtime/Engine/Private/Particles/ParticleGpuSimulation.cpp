@@ -13,6 +13,8 @@
 #include "ParticleResources.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "ParticleDefinitions.h"
 #include "GlobalShader.h"
 #include "../VectorField.h"
@@ -495,7 +497,7 @@ public:
 		Ar << CurveTextureSampler;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE;
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE;
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
 
@@ -642,24 +644,26 @@ public:
 /**
  * Set vertex factory shader parameters.
  */
-void FGPUSpriteVertexFactoryShaderParameters::SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
+void FGPUSpriteVertexFactoryShaderParameters::SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
 {
 	FGPUSpriteVertexFactory* GPUVF = (FGPUSpriteVertexFactory*)VertexFactory;
 	FVertexShaderRHIParamRef VertexShader = Shader->GetVertexShader();
 	FSamplerStateRHIParamRef SamplerStatePoint = TStaticSamplerState<SF_Point>::GetRHI();
 	FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear>::GetRHI();
-	SetUniformBufferParameter( VertexShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterUniformParameters>(), GPUVF->EmitterUniformBuffer );
-	SetUniformBufferParameter( VertexShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterDynamicUniformParameters>(), GPUVF->EmitterDynamicUniformBuffer );
+	SetUniformBufferParameter(RHICmdList, VertexShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterUniformParameters>(), GPUVF->EmitterUniformBuffer );
+	SetUniformBufferParameter(RHICmdList, VertexShader, Shader->GetUniformBufferParameter<FGPUSpriteEmitterDynamicUniformParameters>(), GPUVF->EmitterDynamicUniformBuffer );
 	if (ParticleIndices.IsBound())
 	{
+		check(!RHICmdList);
+
 		RHISetShaderResourceViewParameter(VertexShader, ParticleIndices.GetBaseIndex(), GPUVF->ParticleIndicesBuffer->VertexBufferSRV);
 	}
-	SetShaderValue(VertexShader, ParticleIndicesOffset, GPUVF->ParticleIndicesOffset);
-	SetTextureParameter( VertexShader, PositionTexture, PositionTextureSampler, SamplerStatePoint, GPUVF->PositionTextureRHI );
-	SetTextureParameter( VertexShader, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, GPUVF->PositionZWTextureRHI );
-	SetTextureParameter( VertexShader, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, GPUVF->VelocityTextureRHI );
-	SetTextureParameter( VertexShader, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, GPUVF->AttributesTextureRHI );
-	SetTextureParameter( VertexShader, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture() );
+	SetShaderValue(RHICmdList, VertexShader, ParticleIndicesOffset, GPUVF->ParticleIndicesOffset);
+	SetTextureParameter(RHICmdList, VertexShader, PositionTexture, PositionTextureSampler, SamplerStatePoint, GPUVF->PositionTextureRHI );
+	SetTextureParameter(RHICmdList, VertexShader, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, GPUVF->PositionZWTextureRHI );
+	SetTextureParameter(RHICmdList, VertexShader, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, GPUVF->VelocityTextureRHI );
+	SetTextureParameter(RHICmdList, VertexShader, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, GPUVF->AttributesTextureRHI );
+	SetTextureParameter(RHICmdList, VertexShader, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture() );
 }
 
 IMPLEMENT_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory,"ParticleGPUSpriteVertexFactory",true,false,true,false,false);
@@ -801,8 +805,10 @@ public:
 	}
 
 	/** Set parameters. */
-	void SetParameters(FParticleShaderParamRef TileOffsetsRef)
+	void SetParameters(FRHICommandList* RHICmdList, FParticleShaderParamRef TileOffsetsRef)
 	{
+		check(!RHICmdList);
+
 		FVertexShaderRHIParamRef VertexShaderRHI = GetVertexShader();
 		if (TileOffsets.IsBound())
 		{
@@ -902,6 +908,7 @@ public:
 	 * Set parameters for this shader.
 	 */
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FParticleStateTextures& TextureResources,
 		const FParticleAttributesTexture& InAttributesTexture,
 		const FParticleAttributesTexture& InRenderAttributesTexture,
@@ -913,16 +920,17 @@ public:
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		FSamplerStateRHIParamRef SamplerStatePoint = TStaticSamplerState<SF_Point>::GetRHI();
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetTextureParameter(PixelShaderRHI, PositionTexture, PositionTextureSampler, SamplerStatePoint, TextureResources.PositionTextureRHI);
-		SetTextureParameter(PixelShaderRHI, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, TextureResources.PositionZWTextureRHI);
-		SetTextureParameter(PixelShaderRHI, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, TextureResources.VelocityTextureRHI);
-		SetTextureParameter(PixelShaderRHI, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, InAttributesTexture.TextureRHI);
-		SetTextureParameter(PixelShaderRHI, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture());
+		SetTextureParameter(RHICmdList, PixelShaderRHI, PositionTexture, PositionTextureSampler, SamplerStatePoint, TextureResources.PositionTextureRHI);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, TextureResources.PositionZWTextureRHI);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, TextureResources.VelocityTextureRHI);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, InAttributesTexture.TextureRHI);
+		SetTextureParameter(RHICmdList, PixelShaderRHI, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture());
 		if (bUseDepthBufferCollision)
 		{
 			check(CollisionView != NULL);
-			FGlobalShader::SetParameters(PixelShaderRHI,*CollisionView);
+			FGlobalShader::SetParameters(RHICmdList, PixelShaderRHI,*CollisionView);
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShaderRHI,
 				SceneDepthTextureParameter,
 				SceneDepthTextureParameterSampler,
@@ -930,6 +938,7 @@ public:
 				SceneDepthTexture
 				);
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShaderRHI,
 				GBufferATextureParameter,
 				GBufferATextureParameterSampler,
@@ -937,13 +946,14 @@ public:
 				GBufferATexture
 				);
 			SetTextureParameter(
+				RHICmdList, 
 				PixelShaderRHI,
 				RenderAttributesTexture,
 				RenderAttributesTextureSampler,
 				SamplerStatePoint,
 				InRenderAttributesTexture.TextureRHI
 				);
-			SetShaderValue(PixelShaderRHI, CollisionDepthBounds, FXConsoleVariables::GPUCollisionDepthBounds);
+			SetShaderValue(RHICmdList, PixelShaderRHI, CollisionDepthBounds, FXConsoleVariables::GPUCollisionDepthBounds);
 		}
 	}
 
@@ -951,26 +961,26 @@ public:
 	 * Set parameters for the vector fields sampled by this shader.
 	 * @param VectorFieldParameters -Parameters needed to sample local vector fields.
 	 */
-	void SetVectorFieldParameters(const FVectorFieldUniformBufferRef& UniformBuffer, const FTexture3DRHIParamRef VolumeTexturesRHI[])
+	void SetVectorFieldParameters(FRHICommandList* RHICmdList, const FVectorFieldUniformBufferRef& UniformBuffer, const FTexture3DRHIParamRef VolumeTexturesRHI[])
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetUniformBufferParameter(PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
 		for (int32 TextureIndex = 0; TextureIndex < MAX_VECTOR_FIELDS; ++TextureIndex)
 		{
- 			SetTextureParameter(PixelShaderRHI, VectorFieldTextures, VectorFieldTexturesSampler, SamplerStateLinear, VolumeTexturesRHI[TextureIndex], TextureIndex);
+			SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures, VectorFieldTexturesSampler, SamplerStateLinear, VolumeTexturesRHI[TextureIndex], TextureIndex);
 		}
 	}
 
 	/**
 	 * Set per-instance parameters for this shader.
 	 */
-	void SetInstanceParameters(float InDeltaSeconds, FUniformBufferRHIParamRef UniformBuffer, FUniformBufferRHIParamRef PerFrameUniformBuffer)
+	void SetInstanceParameters(FRHICommandList* RHICmdList, float InDeltaSeconds, FUniformBufferRHIParamRef UniformBuffer, FUniformBufferRHIParamRef PerFrameUniformBuffer)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
-		SetShaderValue(PixelShaderRHI, DeltaSeconds, InDeltaSeconds);
-		SetUniformBufferParameter(PixelShaderRHI, GetUniformBufferParameter<FParticleSimulationParameters>(), UniformBuffer);
-		SetUniformBufferParameter(PixelShaderRHI, GetUniformBufferParameter<FParticlePerFrameSimulationParameters>(), PerFrameUniformBuffer);
+		SetShaderValue(RHICmdList, PixelShaderRHI, DeltaSeconds, InDeltaSeconds);
+		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FParticleSimulationParameters>(), UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FParticlePerFrameSimulationParameters>(), PerFrameUniformBuffer);
 	}
 
 	/**
@@ -1202,6 +1212,7 @@ struct FSimulationCommandGPU
  */
 template <bool bUseDepthBufferCollision>
 void ExecuteSimulationCommands(
+	FRHICommandList* RHICmdList, 
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	const FParticleStateTextures& TextureResources,
 	const FParticleAttributesTexture& AttributeTexture,
@@ -1225,16 +1236,17 @@ void ExecuteSimulationCommands(
 		0
 		);
 
-	PixelShader->SetParameters(TextureResources, AttributeTexture, RenderAttributeTexture, CollisionView, SceneDepthTexture, GBufferATexture);
+	PixelShader->SetParameters(RHICmdList, TextureResources, AttributeTexture, RenderAttributeTexture, CollisionView, SceneDepthTexture, GBufferATexture);
 
 	// Draw tiles to perform the simulation step.
 	const int32 CommandCount = SimulationCommands.Num();
 	for (int32 CommandIndex = 0; CommandIndex < CommandCount; ++CommandIndex)
 	{
 		const FSimulationCommandGPU& Command = SimulationCommands[CommandIndex];
-		VertexShader->SetParameters(Command.TileOffsetsRef);
-		PixelShader->SetInstanceParameters(Command.DeltaSeconds, Command.UniformBuffer, Command.PerFrameUniformBuffer);
+		VertexShader->SetParameters(RHICmdList, Command.TileOffsetsRef);
+		PixelShader->SetInstanceParameters(RHICmdList, Command.DeltaSeconds, Command.UniformBuffer, Command.PerFrameUniformBuffer);
 		PixelShader->SetVectorFieldParameters(
+			RHICmdList, 
 			Command.VectorFieldsUniformBuffer,
 			Command.VectorFieldTexturesRHI
 			);
@@ -1284,7 +1296,8 @@ void ClearTiles(const TArray<uint32>& Tiles)
 		const int32 TilesThisDrawCall = FMath::Min<int32>( TileCount, MaxTilesPerDrawCall );
 		const uint32* TilesPtr = Tiles.GetTypedData() + FirstTile;
 		BuildTileVertexBuffer( BufferParam, TilesPtr, TilesThisDrawCall );
-		VertexShader->SetParameters(ShaderParam);
+		//@todo-rco: RHIPacketList
+		VertexShader->SetParameters(nullptr, ShaderParam);
 		DrawAlignedParticleTiles( ComputeAlignedTileCount(TilesThisDrawCall) );
 		TileCount -= TilesThisDrawCall;
 		FirstTile += TilesThisDrawCall;
@@ -1374,14 +1387,14 @@ public:
 	/**
 	 * Sets parameters for particle injection.
 	 */
-	void SetParameters()
+	void SetParameters(FRHICommandList* RHICmdList)
 	{
 		FParticleInjectionParameters Parameters;
 		Parameters.PixelScale.X = 1.0f / GParticleSimulationTextureSizeX;
 		Parameters.PixelScale.Y = 1.0f / GParticleSimulationTextureSizeY;
-		FParticleInjectionBufferRef UniformBuffer = FParticleInjectionBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleUse );
+		FParticleInjectionBufferRef UniformBuffer = FParticleInjectionBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleDraw );
 		FVertexShaderRHIParamRef VertexShader = GetVertexShader();
-		SetUniformBufferParameter( VertexShader, GetUniformBufferParameter<FParticleInjectionParameters>(), UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, VertexShader, GetUniformBufferParameter<FParticleInjectionParameters>(), UniformBuffer );
 	}
 };
 
@@ -1518,7 +1531,8 @@ void InjectNewParticles( const TArray<FNewParticle>& NewParticles )
 			0
 			);
 
-		VertexShader->SetParameters();
+		//@todo-rco: RHIPacketList
+		VertexShader->SetParameters(nullptr);
 
 		// Stream 0: New particles.
 		RHISetStreamSource(
@@ -1593,10 +1607,10 @@ public:
 	/**
 	 * Set parameters for this shader.
 	 */
-	void SetParameters( const FParticleSimVisualizeBufferRef& UniformBuffer )
+	void SetParameters(FRHICommandList* RHICmdList, const FParticleSimVisualizeBufferRef& UniformBuffer )
 	{
 		FVertexShaderRHIParamRef VertexShader = GetVertexShader();
-		SetUniformBufferParameter( VertexShader, GetUniformBufferParameter<FParticleSimVisualizeParameters>(), UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, VertexShader, GetUniformBufferParameter<FParticleSimVisualizeParameters>(), UniformBuffer );
 	}
 };
 
@@ -1649,14 +1663,14 @@ public:
 	/**
 	 * Set parameters for this shader.
 	 */
-	void SetParameters( int32 InVisualizationMode, FTexture2DRHIParamRef PositionTextureRHI, FTexture2DRHIParamRef PositionZWTextureRHI, FTexture2DRHIParamRef CurveTextureRHI )
+	void SetParameters(FRHICommandList* RHICmdList, int32 InVisualizationMode, FTexture2DRHIParamRef PositionTextureRHI, FTexture2DRHIParamRef PositionZWTextureRHI, FTexture2DRHIParamRef CurveTextureRHI )
 	{
 		FPixelShaderRHIParamRef PixelShader = GetPixelShader();
-		SetShaderValue( PixelShader, VisualizationMode, InVisualizationMode );
+		SetShaderValue(RHICmdList, PixelShader, VisualizationMode, InVisualizationMode );
 		FSamplerStateRHIParamRef SamplerStatePoint = TStaticSamplerState<SF_Point>::GetRHI();
-		SetTextureParameter( PixelShader, PositionTexture, PositionTextureSampler, SamplerStatePoint, PositionTextureRHI );
-		SetTextureParameter( PixelShader, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, PositionZWTextureRHI );
-		SetTextureParameter( PixelShader, CurveTexture, CurveTextureSampler, SamplerStatePoint, CurveTextureRHI );
+		SetTextureParameter(RHICmdList, PixelShader, PositionTexture, PositionTextureSampler, SamplerStatePoint, PositionTextureRHI );
+		SetTextureParameter(RHICmdList, PixelShader, PositionZWTexture, PositionZWTextureSampler, SamplerStatePoint, PositionZWTextureRHI );
+		SetTextureParameter(RHICmdList, PixelShader, CurveTexture, CurveTextureSampler, SamplerStatePoint, CurveTextureRHI );
 	}
 
 private:
@@ -1741,15 +1755,18 @@ static void VisualizeGPUSimulation(
 		*PixelShader
 		);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Parameters for the visualization.
 	FParticleSimVisualizeParameters Parameters;
 	Parameters.ScaleBias.X = 2.0f * DisplaySizeX / (float)TargetSize.X;
 	Parameters.ScaleBias.Y = 2.0f * DisplaySizeY / (float)TargetSize.Y;
 	Parameters.ScaleBias.Z = 2.0f * DisplayOffsetX / (float)TargetSize.X - 1.0f;
 	Parameters.ScaleBias.W = 2.0f * DisplayOffsetY / (float)TargetSize.Y - 1.0f;
-	FParticleSimVisualizeBufferRef UniformBuffer = FParticleSimVisualizeBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleUse );
-	VertexShader->SetParameters(UniformBuffer);
-	PixelShader->SetParameters(VisualizationMode, StateTextures.PositionTextureRHI, StateTextures.PositionZWTextureRHI, CurveTextureRHI);
+	FParticleSimVisualizeBufferRef UniformBuffer = FParticleSimVisualizeBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleDraw );
+	VertexShader->SetParameters(RHICmdList, UniformBuffer);
+	PixelShader->SetParameters(RHICmdList, VisualizationMode, StateTextures.PositionTextureRHI, StateTextures.PositionZWTextureRHI, CurveTextureRHI);
 
 	const int32 VertexStride = sizeof(FVector2D);
 	
@@ -1805,10 +1822,10 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 
 				// on some platforms, union and/or bitfield writes to Locked memory are really slow, so use a forced int write instead
 				// and in fact one 32-bit write is faster than two uint16 writes (i.e. using .Encoded)
-  				FParticleIndex Temp;
-  				Temp.X = IndexX;
-  				Temp.Y = IndexY;
-  				*(uint32*)ParticleIndices = *(uint32*)&Temp;
+				FParticleIndex Temp;
+				Temp.X = IndexX;
+				Temp.Y = IndexY;
+				*(uint32*)ParticleIndices = *(uint32*)&Temp;
 
 				// move to next particle
 				ParticleIndices += Stride;
@@ -1895,11 +1912,13 @@ public:
 	/**
 	 * Set output buffers for this shader.
 	 */
-	void SetOutput( FUnorderedAccessViewRHIParamRef OutBoundsUAV )
+	void SetOutput(FRHICommandList* RHICmdList, FUnorderedAccessViewRHIParamRef OutBoundsUAV )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( OutBounds.IsBound() )
 		{
+			check(!RHICmdList);
+
 			RHISetUAVParameter( ComputeShaderRHI, OutBounds.GetBaseIndex(), OutBoundsUAV );
 		}
 	}
@@ -1908,14 +1927,17 @@ public:
 	 * Set input parameters.
 	 */
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		FParticleBoundsUniformBufferRef& UniformBuffer,
 		FShaderResourceViewRHIParamRef InIndicesSRV,
 		FTexture2DRHIParamRef PositionTextureRHI,
 		FTexture2DRHIParamRef PositionZWTextureRHI
 		)
 	{
+		check(!RHICmdList);
+
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FParticleBoundsParameters>(), UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FParticleBoundsParameters>(), UniformBuffer );
 		if ( InParticleIndices.IsBound() )
 		{
 			RHISetShaderResourceViewParameter( ComputeShaderRHI, InParticleIndices.GetBaseIndex(), InIndicesSRV );
@@ -1933,8 +1955,10 @@ public:
 	/**
 	 * Unbinds any buffers that have been bound.
 	 */
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList* RHICmdList)
 	{
+		check(!RHICmdList);
+
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( InParticleIndices.IsBound() )
 		{
@@ -1976,6 +2000,7 @@ static bool AreBoundsValid( const FVector& Mins, const FVector& Maxs )
  * @param ParticleCount - The number of particles in the emitter.
  */
 static FBox ComputeParticleBounds(
+	FRHICommandList* RHICmdList, 
 	FShaderResourceViewRHIParamRef VertexBufferSRV,
 	FTexture2DRHIParamRef PositionTextureRHI,
 	FTexture2DRHIParamRef PositionZWTextureRHI,
@@ -1997,7 +2022,9 @@ static FBox ComputeParticleBounds(
 		Parameters.ChunksPerGroup = ChunkCount / GroupCount;
 		Parameters.ExtraChunkCount = ChunkCount % GroupCount;
 		Parameters.ParticleCount = ParticleCount;
-		UniformBuffer = FParticleBoundsUniformBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleUse );
+		UniformBuffer = FParticleBoundsUniformBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleFrame );
+
+		check(!RHICmdList);
 
 		// Create a buffer for storing bounds.
 		const int32 BufferSize = GroupCount * 2 * sizeof(FVector4);
@@ -2015,14 +2042,15 @@ static FBox ComputeParticleBounds(
 		RHISetComputeShader(ParticleBoundsCS->GetComputeShader());
 
 		// Dispatch shader to compute bounds.
-		ParticleBoundsCS->SetOutput( BoundsVertexBufferUAV );
-		ParticleBoundsCS->SetParameters( UniformBuffer, VertexBufferSRV, PositionTextureRHI, PositionZWTextureRHI );
+		ParticleBoundsCS->SetOutput(RHICmdList, BoundsVertexBufferUAV );
+		ParticleBoundsCS->SetParameters(RHICmdList, UniformBuffer, VertexBufferSRV, PositionTextureRHI, PositionZWTextureRHI );
 		DispatchComputeShader(
+			RHICmdList, 
 			*ParticleBoundsCS, 
 			GroupCount,
 			1,
 			1 );
-		ParticleBoundsCS->UnbindBuffers();
+		ParticleBoundsCS->UnbindBuffers(RHICmdList);
 
 		// Read back bounds.
 		FVector4* GroupBounds = (FVector4*)RHILockVertexBuffer( BoundsVertexBufferRHI, 0, BufferSize, RLM_ReadOnly );
@@ -2414,9 +2442,9 @@ public:
 	 */
 	virtual void InitRHI()
 	{
-		UniformBuffer = FGPUSpriteEmitterUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_MultiUse );
+		UniformBuffer = FGPUSpriteEmitterUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_MultiFrame );
 		EmitterSimulationResources.SimulationUniformBuffer =
-			FParticleSimulationBufferRef::CreateUniformBufferImmediate( SimulationParameters, UniformBuffer_MultiUse );
+			FParticleSimulationBufferRef::CreateUniformBufferImmediate( SimulationParameters, UniformBuffer_MultiFrame );
 	}
 
 	/**
@@ -2500,10 +2528,10 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 
 			// Create the per-frame uniform buffer.
 			Simulation->PerFrameSimulationUniformBuffer =
-				FParticlePerFrameSimulationBufferRef::CreateUniformBufferImmediate(PerFrameSimulationParameters, UniformBuffer_MultiUse);
+				FParticlePerFrameSimulationBufferRef::CreateUniformBufferImmediate(PerFrameSimulationParameters, UniformBuffer_SingleFrame);
 
 			// Create per-emitter uniform buffer for dynamic parameters
-			DynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_MultiUse);
+			DynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_SingleFrame);
 
 			// Local vector field parameters.
 			Simulation->LocalVectorField.Intensity = LocalVectorFieldIntensity;
@@ -3243,7 +3271,9 @@ public:
 			FComputeGPUSpriteBoundsCommand,
 			FGPUSpriteParticleEmitterInstance*, EmitterInstance, this,
 		{
+			//@todo-rco: RHIPacketList
 			EmitterInstance->ParticleBoundingBox = ComputeParticleBounds(
+				nullptr,
 				EmitterInstance->Simulation->VertexBuffer.VertexBufferSRV, 
 				EmitterInstance->FXSystem->GetParticleSimulationResources()->GetCurrentStateTextures().PositionTextureRHI,
 				EmitterInstance->FXSystem->GetParticleSimulationResources()->GetCurrentStateTextures().PositionZWTextureRHI,
@@ -4022,7 +4052,7 @@ void FFXSystem::SimulateGPUParticles(
 			VectorFieldParameters.IntensityAndTightness[Index] = FVector2D::ZeroVector;
 		}
 		VectorFieldParameters.Count = 0;
-		EmptyVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleUse);
+		EmptyVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
 	}
 
 	// Gather simulation commands from all active simulations.
@@ -4104,7 +4134,7 @@ void FFXSystem::SimulateGPUParticles(
 						VectorFieldParameters.IntensityAndTightness[Index] = FVector2D::ZeroVector;
 						SimulationCommand->VectorFieldTexturesRHI[Index] = BlackVolumeTextureRHI;
 					}
-					SimulationCommand->VectorFieldsUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleUse);
+					SimulationCommand->VectorFieldsUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
 				}
 			}
 		
@@ -4128,7 +4158,9 @@ void FFXSystem::SimulateGPUParticles(
 
 		if (Phase == EParticleSimulatePhase::Collision && CollisionView)
 		{
+			/// ?
 			ExecuteSimulationCommands<true>(
+				nullptr, 
 				SimulationCommands,
 				PrevStateTextures,
 				ParticleSimulationResources->SimulationAttributesTexture,
@@ -4140,7 +4172,9 @@ void FFXSystem::SimulateGPUParticles(
 		}
 		else
 		{
+			/// ?
 			ExecuteSimulationCommands<false>(
+				nullptr,
 				SimulationCommands,
 				PrevStateTextures,
 				ParticleSimulationResources->SimulationAttributesTexture,

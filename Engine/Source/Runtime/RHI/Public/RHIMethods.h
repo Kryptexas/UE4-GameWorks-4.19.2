@@ -228,9 +228,9 @@ DEFINE_RHIMETHOD_2(
 DEFINE_RHIMETHOD_3(
 	FUniformBufferRHIRef,RHICreateUniformBuffer,
 	const void*,Contents,
-	uint32,NumBytes,
+	const FRHIUniformBufferLayout&,Layout,
 	EUniformBufferUsage,Usage,
-	return,return new FRHIUniformBuffer(NumBytes);
+	return,return new FRHIUniformBuffer(Layout);
 	);
 
 
@@ -455,6 +455,18 @@ DEFINE_RHIMETHOD_5(
 	return,return false
 	);
 
+DEFINE_RHIMETHOD_0(
+	FTextureReferenceRHIRef,RHICreateTextureReference,
+	return, return new FRHITextureReferenceNullImpl();
+	);
+
+DEFINE_RHIMETHOD_2(
+	void,RHIUpdateTextureReference,
+	FTextureReferenceRHIParamRef,TextureRef,
+	FTextureRHIParamRef,NewTexture,
+	,if (TextureRef) { ((FRHITextureReferenceNullImpl*)TextureRef)->SetReferencedTexture(NewTexture); }
+	);
+
 /**
 * Creates a 2D RHI texture resource
 * @param SizeX - width of the texture to create
@@ -589,7 +601,7 @@ DEFINE_RHIMETHOD_4(
 	uint8, NumMipLevels,
 	uint8, Format,		
 	return,return new FRHIShaderResourceView();
-	);
+);
 
 /**
 * Generates mip maps for a texture.
@@ -794,24 +806,24 @@ DEFINE_RHIMETHOD_5(
 	);
 
 
-/**
-* Creates a Cube Array RHI texture resource
-* @param Size - width/height of the texture to create
-* @param ArraySize - number of array elements of the texture to create
-* @param Format - EPixelFormat texture format
-* @param NumMips - number of mips to generate or 0 for full mip pyramid
-* @param Flags - ETextureCreateFlags creation flags
-*/
-DEFINE_RHIMETHOD_6(
-	FTextureCubeRHIRef,RHICreateTextureCubeArray,
-	uint32,Size,
-	uint32,ArraySize,
-	uint8,Format,
-	uint32,NumMips,
-	uint32,Flags,
+	/**
+	* Creates a Cube Array RHI texture resource
+	* @param Size - width/height of the texture to create
+	* @param ArraySize - number of array elements of the texture to create
+	* @param Format - EPixelFormat texture format
+	* @param NumMips - number of mips to generate or 0 for full mip pyramid
+	* @param Flags - ETextureCreateFlags creation flags
+	*/
+	DEFINE_RHIMETHOD_6(
+		FTextureCubeRHIRef,RHICreateTextureCubeArray,
+		uint32,Size,
+		uint32,ArraySize,
+		uint8,Format,
+		uint32,NumMips,
+		uint32,Flags,
 	FRHIResourceCreateInfo&,CreateInfo,
-	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
-);
+		return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
+	);
 
 
 /**
@@ -992,10 +1004,19 @@ DEFINE_RHIMETHOD_0(
 	return,return;
 	);
 
+/**
+ * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
+ * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
+ * references.
+ */
 DEFINE_RHIMETHOD_0(
 	void,RHIBeginScene,
 	return,return;
 	);
+
+/**
+ * Signals the end of scene rendering. See RHIBeginScene.
+ */
 DEFINE_RHIMETHOD_0(
 	void,RHIEndScene,
 	return,return;
@@ -1678,6 +1699,12 @@ DEFINE_RHIMETHOD_2(
 	void,RHIVirtualTextureSetFirstMipVisible,
 	FTexture2DRHIParamRef,Texture,
 	uint32,FirstMip,
+	,
+	);
+
+DEFINE_RHIMETHOD_1(
+	void,RHIExecuteCommandList,
+	FRHICommandList*,RHICmdList,
 	,
 	);
 

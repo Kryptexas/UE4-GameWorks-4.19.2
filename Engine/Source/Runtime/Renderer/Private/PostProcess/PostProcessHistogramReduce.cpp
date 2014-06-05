@@ -45,15 +45,15 @@ public:
 		EyeAdapationTemporalParams.Bind(Initializer.ParameterMap, TEXT("EyeAdapationTemporalParams"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context, uint32 LoopSizeValue)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, uint32 LoopSizeValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(ShaderRHI, LoopSize, LoopSizeValue);
+		SetShaderValue(RHICmdList, ShaderRHI, LoopSize, LoopSizeValue);
 
 		if(EyeAdaptationTexture.IsBound())
 		{
@@ -61,18 +61,18 @@ public:
 
 			if(EyeAdaptationRT)
 			{
-				SetTextureParameter(ShaderRHI, EyeAdaptationTexture, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptationTexture, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
 			}
 			else
 			{
 				// some views don't have a state, thumbnail rendering?
-				SetTextureParameter(ShaderRHI, EyeAdaptationTexture, GWhiteTexture->TextureRHI);
+				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptationTexture, GWhiteTexture->TextureRHI);
 			}
 		}
 
 		// todo
 		FVector4 EyeAdapationTemporalParamsValue(0, 0, 0, 0);
-		SetShaderValue(ShaderRHI, EyeAdapationTemporalParams, EyeAdapationTemporalParamsValue);
+		SetShaderValue(RHICmdList, ShaderRHI, EyeAdapationTemporalParams, EyeAdapationTemporalParamsValue);
 	}
 	
 	// FShader interface.
@@ -125,7 +125,9 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 
 	uint32 LoopSizeValue = ComputeLoopSize(GatherExtent);
 
-	PixelShader->SetPS(Context, LoopSizeValue);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	PixelShader->SetPS(RHICmdList, Context, LoopSizeValue);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

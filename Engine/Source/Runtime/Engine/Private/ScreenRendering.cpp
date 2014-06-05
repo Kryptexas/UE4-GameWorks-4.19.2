@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	ScreenRendering.cpp: D3D render target implementation.
+	ScreenRendering.cpp: Screen rendering implementation.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -27,7 +27,8 @@ void DrawScreenQuad( float X0, float Y0, float U0, float V0, float X1, float Y1,
 	TShaderMapRef<FScreenPS> ScreenPixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
-	ScreenPixelShader->SetParameters(Texture);
+	//@todo-rco: RHIPacketList
+	ScreenPixelShader->SetParameters(nullptr, Texture);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];
@@ -62,7 +63,8 @@ void DrawNormalizedScreenQuad( float X, float Y, float U0, float V0, float SizeX
 	TShaderMapRef<FScreenPS> ScreenPixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
-	ScreenPixelShader->SetParameters(TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
+	/// ?
+	ScreenPixelShader->SetParameters(nullptr, TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];

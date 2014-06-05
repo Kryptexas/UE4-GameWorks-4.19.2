@@ -314,7 +314,7 @@ public:
 	void OnVertexBufferDeletion(GLuint VertexBufferResource);
 	void OnIndexBufferDeletion(GLuint IndexBufferResource);
 	void OnPixelBufferDeletion(GLuint PixelBufferResource);
-	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw,uint32 Offset,uint8* Pointer);
+	void OnUniformBufferDeletion(GLuint UniformBufferResource,uint32 AllocatedSize,bool bStreamDraw);
 	void OnProgramDeletion(GLint ProgramResource);
 	void InvalidateTextureResourceInCache(GLuint Resource);
 	void InvalidateUAVResourceInCache(GLuint Resource);
@@ -379,7 +379,15 @@ public:
 	/** Inform all queries about the need to recreate themselves after OpenGL context they're in gets deleted. */
 	void InvalidateQueries();
 
+	FOpenGLSamplerState* GetPointSamplerState() const { return (FOpenGLSamplerState*)PointSamplerState.GetReference(); }
+
 private:
+
+	/** Counter incremented each time RHIBeginScene is called. */
+	uint32 SceneFrameCounter;
+
+	/** Value used to detect when resource tables need to be recached. INDEX_NONE means always recache. */
+	uint32 ResourceTableFrameCounter;
 
 	/** RHI device state, independent of underlying OpenGL context used */
 	FOpenGLRHIState						PendingState;
@@ -445,6 +453,9 @@ private:
 	void UpdateScissorRectInOpenGLContext( FOpenGLContextState& ContextState );
 	void UpdateViewportInOpenGLContext( FOpenGLContextState& ContextState );
 	
+	template <class ShaderType> void SetResourcesFromTables(const ShaderType* RESTRICT);
+	void CommitGraphicsResourceTables();
+	void CommitComputeResourceTables(class FOpenGLComputeShader* ComputeShader);
 	void CommitNonComputeShaderConstants();
 	void CommitComputeShaderConstants(FComputeShaderRHIParamRef ComputeShaderRHI);
 	void SetPendingBlendStateForActiveRenderTargets( FOpenGLContextState& ContextState );
@@ -455,18 +466,18 @@ private:
 
 	void SetupUAVsForDraw(FOpenGLContextState& ContextState, const TRefCountPtr<FOpenGLComputeShader> &ComputeShader, int32 MaxUAVsNeeded);
 
+public:
 	/** Remember what RHI user wants set on a specific OpenGL texture stage, translating from Stage and TextureIndex for stage pair. */
 	void InternalSetShaderTexture(FOpenGLTextureBase* Texture, GLint TextureIndex, GLenum Target, GLuint Resource, int NumMips, int LimitMip);
 	void InternalSetShaderUAV(GLint UAVIndex, GLenum Format, GLuint Resource);
 	void InternalSetSamplerStates(GLint TextureIndex, FOpenGLSamplerState* SamplerState);
 
+private:
 	void ApplyTextureStage(FOpenGLContextState& ContextState, GLint TextureIndex, const FTextureStage& TextureStage, FOpenGLSamplerState* SamplerState);
 
 	void ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
-	void BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, const TArray< TRefCountPtr<FRHIUniformBuffer> >& BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate);
-
-	void ApplyUniformBuffersParametersToPacked(FOpenGLContextState& ContextState, int32 NumUniformBuffers, const TArray< TRefCountPtr<FRHIUniformBuffer> >& BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate, const TArray<FOpenGLUniformBufferCopyInfo>& UniformBufferCopyInfo, FOpenGLShaderParameterCache& ParameterCache);
+	void BindUniformBufferBase(FOpenGLContextState& ContextState, int32 NumUniformBuffers, FUniformBufferRHIRef* BoundUniformBuffers, uint32 FirstUniformBuffer, bool ForceUpdate);
 
 	void ClearCurrentFramebufferWithCurrentScissor(FOpenGLContextState& ContextState, int8 ClearType, int32 NumClearColors, const FLinearColor* ClearColorArray, float Depth, uint32 Stencil);
 

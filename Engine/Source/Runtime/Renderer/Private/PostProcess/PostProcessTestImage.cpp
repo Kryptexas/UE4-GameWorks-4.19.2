@@ -23,6 +23,12 @@ class FPostProcessTestImagePS : public FGlobalShader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	/** Default constructor. */
 	FPostProcessTestImagePS() {}
 
@@ -44,26 +50,26 @@ public:
 		FrameTime.Bind(Initializer.ParameterMap,TEXT("FrameTime"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		{
 			uint32 FrameNumberValue = Context.View.FrameNumber;
-			SetShaderValue(ShaderRHI, FrameNumber, FrameNumberValue);
+			SetShaderValue(RHICmdList, ShaderRHI, FrameNumber, FrameNumberValue);
 		}
 
 		{
 			float FrameTimeValue = Context.View.Family->CurrentRealTime;
-			SetShaderValue(ShaderRHI, FrameTime, FrameTimeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, FrameTime, FrameTimeValue);
 		}
 
-		ColorRemapShaderParameters.Set(ShaderRHI);
+		ColorRemapShaderParameters.Set(RHICmdList, ShaderRHI);
 	}
 	
 	// FShader interface.
@@ -93,6 +99,9 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 	Context.SetViewportAndCallRHI(DestRect);
@@ -109,7 +118,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

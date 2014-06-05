@@ -41,13 +41,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
 };
 
@@ -89,15 +89,15 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, FVector2D TexScaleValue)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FVector2D TexScaleValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(ShaderRHI, TexScale, TexScaleValue);
+		SetShaderValue(RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 	}
 };
 
@@ -154,7 +154,10 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	
+
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
 	{
 		TShaderMapRef<FPostProcessLensFlareBasePS> PixelShader(GetGlobalShaderMap());
@@ -163,8 +166,8 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 
 		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context);
+		VertexShader->SetParameters(RHICmdList, Context);
+		PixelShader->SetParameters(RHICmdList, Context);
 
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
@@ -191,8 +194,8 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 
 		FVector2D TexScaleValue = FVector2D(TexSize2) / ViewSize2;
 
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context, TexScaleValue);
+		VertexShader->SetParameters(RHICmdList, Context);
+		PixelShader->SetParameters(RHICmdList, Context, TexScaleValue);
 
 		// todo: expose
 		const uint32 Count = 8;
@@ -217,7 +220,9 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 			Alpha *= SizeScale;
 			
 			// set the individual flare color
-			SetShaderValue(PixelShader->GetPixelShader(), PixelShader->FlareColor, FlareColor * LensFlareHDRColor);
+			//@todo-rco: RHIPacketList
+			FRHICommandList* RHICmdList = nullptr;
+			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShader->FlareColor, FlareColor * LensFlareHDRColor);
 
 			// Draw a quad mapping scene color to the view's render target
 			DrawRectangle(

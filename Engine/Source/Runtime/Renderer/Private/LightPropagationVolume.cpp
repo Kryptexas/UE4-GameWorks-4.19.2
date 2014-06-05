@@ -177,10 +177,11 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters( const FLpvBaseWriteShaderParams& Params )
+	void SetParameters(FRHICommandList* RHICmdList, const FLpvBaseWriteShaderParams& Params )
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Params.UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Params.UniformBuffer );
+		check(!RHICmdList);
 #if LPV_VOLUME_TEXTURE
 		for(int i  =0; i < 7; i++)
 		{
@@ -193,7 +194,7 @@ public:
 				RHISetUAVParameter( ShaderRHI, LpvBufferUAVs[i].GetBaseIndex(), Params.LpvBufferUAVs[i] );
 			}
 
-			SetTextureParameter( ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.LpvBufferSRVs[i] );
+			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.LpvBufferSRVs[i] );
 		}
 #else
 		if ( LpvBufferSRV.IsBound() )
@@ -233,7 +234,7 @@ public:
 				RHISetUAVParameter( ShaderRHI, GvBufferUAVs[i].GetBaseIndex(), Params.GvBufferUAVs[i] );
 			}
 
-			SetTextureParameter( ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.GvBufferSRVs[i] );
+			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), Params.GvBufferSRVs[i] );
 		}
 #else
 		if ( GvBufferSRV.IsBound() )
@@ -264,8 +265,9 @@ public:
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList* RHICmdList)
 	{
+		check(!RHICmdList);
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 #if LPV_VOLUME_TEXTURE
 		for ( int i = 0; i < 7; i++ )
@@ -478,27 +480,28 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		FLpvBaseWriteShaderParams& BaseParams,
 		FTextureRHIParamRef RsmDiffuseTextureRHI,
 		FTextureRHIParamRef RsmNormalTextureRHI,
 		FTextureRHIParamRef RsmDepthTextureRHI )
 	{
 		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-		FLpvWriteShaderCSBase::SetParameters( BaseParams );
+		FLpvWriteShaderCSBase::SetParameters(RHICmdList, BaseParams );
 
 		FSamplerStateRHIParamRef SamplerStateLinear  = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		FSamplerStateRHIParamRef SamplerStatePoint   = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 		// FIXME: Why do we have to bind a samplerstate to a sampler here? Presumably this is for legacy reasons... 
-		SetTextureParameter( ShaderRHI, RsmDiffuseTexture, LinearTextureSampler, SamplerStateLinear, RsmDiffuseTextureRHI );
-		SetTextureParameter( ShaderRHI, RsmNormalTexture, LinearTextureSampler, SamplerStateLinear, RsmNormalTextureRHI );
-		SetTextureParameter( ShaderRHI, RsmDepthTexture, PointTextureSampler, SamplerStatePoint, RsmDepthTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmDiffuseTexture, LinearTextureSampler, SamplerStateLinear, RsmDiffuseTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmNormalTexture, LinearTextureSampler, SamplerStateLinear, RsmNormalTextureRHI );
+		SetTextureParameter(RHICmdList, ShaderRHI, RsmDepthTexture, PointTextureSampler, SamplerStatePoint, RsmDepthTextureRHI );
 	}
 
 	// Unbinds any buffers that have been bound.
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList* RHICmdList)
 	{
-		FLpvWriteShaderCSBase::UnbindBuffers();
+		FLpvWriteShaderCSBase::UnbindBuffers(RHICmdList);
 	}
 
 
@@ -655,13 +658,13 @@ class FLpvInjectShader_Base : public FLpvWriteShaderCSBase
 {
 public:
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		FLpvBaseWriteShaderParams& BaseParams,
 		FDirectLightInjectBufferRef& InjectUniformBuffer )
 	{
-		FLpvWriteShaderCSBase::SetParameters( BaseParams );
+		FLpvWriteShaderCSBase::SetParameters(RHICmdList, BaseParams );
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FLpvDirectLightInjectParameters>(), InjectUniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FLpvDirectLightInjectParameters>(), InjectUniformBuffer );
 	}
 
 	FLpvInjectShader_Base()	{	}
@@ -935,7 +938,7 @@ void FLightPropagationVolume::InitSettings( const FSceneView& View )
 /**
 * Clears the LPV
 */
-void FLightPropagationVolume::Clear()
+void FLightPropagationVolume::Clear(FRHICommandList* RHICmdList)
 {
 	if ( !bEnabled )
 	{
@@ -959,9 +962,9 @@ void FLightPropagationVolume::Clear()
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Clear the LPV (or fade, if REFINE_OVER_TIME is enabled)
@@ -971,9 +974,9 @@ void FLightPropagationVolume::Clear()
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-		Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Clear the geometry volume if necessary
@@ -984,13 +987,15 @@ void FLightPropagationVolume::Clear()
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
-	Shader->UnbindBuffers();
+		Shader->SetParameters(RHICmdList, ShaderParams );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		Shader->UnbindBuffers(RHICmdList);
 	}
 	//RHIBatchComputeShaderEnd();
 
 	// Clear the list UAV counters
+	check(!RHICmdList);
+
 	RHISetUAVParameter( FComputeShaderRHIRef(), 7, mVplListBuffer->UAV, 0 );
 	RHISetUAVParameter( FComputeShaderRHIRef(), 7, GvListBuffer->UAV, 0 );
 	RHISetUAVParameter( FComputeShaderRHIRef(), 7, FUnorderedAccessViewRHIParamRef(), 0 );
@@ -1046,6 +1051,7 @@ void FLightPropagationVolume::SetVplInjectionConstants(
 * Injects a Directional light into the LPV
 */
 void FLightPropagationVolume::InjectDirectionalLightRSM(
+	FRHICommandList* RHICmdList, 
 	const FTexture2DRHIRef&		RsmDiffuseTex, 
 	const FTexture2DRHIRef&		RsmNormalTex, 
 	const FTexture2DRHIRef&		RsmDepthTex, 
@@ -1056,7 +1062,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 	{
 		SCOPED_DRAW_EVENT(LpvInjectDirectionalLightRSM, DEC_LIGHT);
 
-		SetVplInjectionConstants( ProjectedShadowInfo, LightProxy );
+		SetVplInjectionConstants(ProjectedShadowInfo, LightProxy );
 
 		TShaderMapRef<FLpvInject_GenerateVplListsCS> Shader(GetGlobalShaderMap());
 		RHISetComputeShader(Shader->GetComputeShader());
@@ -1064,11 +1070,11 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		// Clear the list counter the first time this function is called in a frame
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
+		Shader->SetParameters(RHICmdList, ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
 
-		DispatchComputeShader(*Shader, 256/8, 256/8, 1 ); 
+		DispatchComputeShader(RHICmdList, *Shader, 256/8, 256/8, 1 ); 
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList); 
 	}
 
 	// If this is the first directional light, build the geometry volume with it
@@ -1090,11 +1096,11 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
+		Shader->SetParameters(RHICmdList, ShaderParams );
 
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	mInjectedLightCount++;
@@ -1103,7 +1109,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 /**
 * Propagates light in the LPV 
 */
-void FLightPropagationVolume::Propagate()
+void FLightPropagationVolume::Propagate(FRHICommandList* RHICmdList)
 {
 	if ( !bEnabled )
 	{
@@ -1123,11 +1129,11 @@ void FLightPropagationVolume::Propagate()
 
 		FLpvBaseWriteShaderParams ShaderParams;
 		GetShaderParams( ShaderParams );
-		Shader->SetParameters( ShaderParams );
+		Shader->SetParameters(RHICmdList, ShaderParams );
 
-		DispatchComputeShader(*Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+		DispatchComputeShader(RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-		Shader->UnbindBuffers(); 
+		Shader->UnbindBuffers(RHICmdList);
 	}
 
 	// Propagate lighting, ping-ponging between the two buffers
@@ -1152,11 +1158,11 @@ void FLightPropagationVolume::Propagate()
 
 			FLpvBaseWriteShaderParams ShaderParams;
 			GetShaderParams( ShaderParams );
-			Shader->SetParameters( ShaderParams );
+			Shader->SetParameters(RHICmdList, ShaderParams );
 
-			DispatchComputeShader( Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
+			DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 
-			Shader->UnbindBuffers(); 
+			Shader->UnbindBuffers(RHICmdList); 
 		}
 	}
 
@@ -1203,7 +1209,7 @@ void FLightPropagationVolume::GetShaderParams( FLpvBaseWriteShaderParams& OutPar
 	OutParams.UniformBuffer = LpvWriteUniformBuffer;
 }
 
-void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
+void FLightPropagationVolume::InjectLightDirect(FRHICommandList* RHICmdList, const FLightSceneProxy& Light )
 {
 	if(!bEnabled)
 	{
@@ -1246,7 +1252,7 @@ void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
 		}
 		RHISetComputeShader(Shader->GetComputeShader());
 
-		FDirectLightInjectBufferRef InjectUniformBuffer = FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleUse);
+		FDirectLightInjectBufferRef InjectUniformBuffer = FDirectLightInjectBufferRef::CreateUniformBufferImmediate(InjectUniformBufferParams, UniformBuffer_SingleDraw);
 
 		mWriteBufferIndex = 1 - mWriteBufferIndex; // Swap buffers with each iteration
 
@@ -1255,9 +1261,9 @@ void FLightPropagationVolume::InjectLightDirect( const FLightSceneProxy& Light )
 
 		LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 
-		Shader->SetParameters( ShaderParams, InjectUniformBuffer );
-		DispatchComputeShader(Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
-		Shader->UnbindBuffers(); 
+		Shader->SetParameters(RHICmdList, ShaderParams, InjectUniformBuffer );
+		DispatchComputeShader(RHICmdList, Shader, LPV_GRIDRES / 4, LPV_GRIDRES / 4, LPV_GRIDRES / 4 );
+		Shader->UnbindBuffers(RHICmdList); 
 	}
 
 }

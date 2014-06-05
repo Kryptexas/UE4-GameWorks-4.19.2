@@ -42,6 +42,14 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
+	CommitResourceTableCycles(0),
+	CacheResourceTableCalls(0),
+	CacheResourceTableCycles(0),
+	SetShaderTextureCycles(0),
+	SetShaderTextureCalls(0),
+	SetTextureInTableCalls(0),
+	SceneFrameCounter(0),
+	ResourceTableFrameCounter(INDEX_NONE),
 	CurrentDSVAccessType(DSAT_Writable),
 	bDiscardSharedConstants(false),
 	GPUProfilingData(this),
@@ -189,6 +197,11 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	DynamicVB = new FD3D11DynamicBuffer(this,D3D11_BIND_VERTEX_BUFFER,DynamicVBSizes);
 	uint32 DynamicIBSizes[] = {128,1024,64*1024,1024*1024,0};
 	DynamicIB = new FD3D11DynamicBuffer(this,D3D11_BIND_INDEX_BUFFER,DynamicIBSizes);
+
+	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+	{
+		DirtyUniformBuffers[Frequency] = 0;
+	}
 }
 
 void FD3D11DynamicRHI::Shutdown()
@@ -409,6 +422,15 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 
 		ReleasePooledUniformBuffers();
 		ReleasePooledTextures();
+
+		// Release references to bound uniform buffers.
+		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+		{
+			for (int32 BindIndex = 0; BindIndex < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; ++BindIndex)
+			{
+				BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
+			}
+		}
 
 		// Release the device and its IC
 		StateCache.SetContext(nullptr);

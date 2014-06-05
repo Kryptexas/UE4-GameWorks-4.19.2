@@ -121,7 +121,7 @@ public:
 	}
 
 	/** Set the material shader parameter values. */
-	void Set(FShader* PixelShader, float DisplayGamma, FLinearColor const& ColorScale, FLinearColor const& ColorOverlay)
+	void Set(FRHICommandList* RHICmdList, FShader* PixelShader, float DisplayGamma, FLinearColor const& ColorScale, FLinearColor const& ColorOverlay)
 	{
 		// GammaColorScaleAndInverse
 
@@ -136,6 +136,7 @@ public:
 		ColorScaleAndInverse.W = InvDisplayGamma;
 
 		SetShaderValue(
+			RHICmdList, 
 			PixelShader->GetPixelShader(),
 			GammaColorScaleAndInverse,
 			ColorScaleAndInverse
@@ -151,6 +152,7 @@ public:
 		OverlayColor.W = 0.f; // Unused
 
 		SetShaderValue(
+			RHICmdList, 
 			PixelShader->GetPixelShader(),
 			GammaOverlayColor,
 			OverlayColor
@@ -165,6 +167,7 @@ public:
 		const FVector4 vRenderTargetExtent(BufferSizeX, BufferSizeY,  InvBufferSizeX, InvBufferSizeY);
 
 		SetShaderValue(
+			RHICmdList, 
 			PixelShader->GetPixelShader(),
 			RenderTargetExtent, 
 			vRenderTargetExtent);

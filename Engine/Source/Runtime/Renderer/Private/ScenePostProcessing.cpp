@@ -134,17 +134,21 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(const FViewInfo* View, f
 
 	const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	SetShaderValue(
+		RHICmdList, 
 		ShaderRHI,
 		PixelShader->InverseGamma,
 		InvDisplayGamma
 		);
-	SetShaderValue(ShaderRHI,PixelShader->ColorScale,View->ColorScale);
-	SetShaderValue(ShaderRHI,PixelShader->OverlayColor,View->OverlayColor);
+	SetShaderValue(RHICmdList, ShaderRHI,PixelShader->ColorScale,View->ColorScale);
+	SetShaderValue(RHICmdList, ShaderRHI,PixelShader->OverlayColor,View->OverlayColor);
 
 	const FTextureRHIRef DesiredSceneColorTexture = GSceneRenderTargets.GetSceneColorTexture();
 
 	SetTextureParameter(
+		RHICmdList, 
 		ShaderRHI,
 		PixelShader->SceneTexture,
 		PixelShader->SceneTextureSampler,

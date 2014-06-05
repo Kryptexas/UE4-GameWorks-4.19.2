@@ -8,6 +8,8 @@
 
 IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "OneColorShader.h"
 
 #if !UE_BUILD_SHIPPING

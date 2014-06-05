@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "RHIStaticStates.h"
 
 #ifndef WITH_DX_PERF
 	#define WITH_DX_PERF	1
@@ -421,10 +422,26 @@ float FD3D11EventNode::GetTiming()
 }
 
 void FD3D11DynamicRHI::RHIBeginScene()
-{}
+{
+	// Increment the frame counter. INDEX_NONE is a special value meaning "uninitialized", so if
+	// we hit it just wrap around to zero.
+	SceneFrameCounter++;
+	if (SceneFrameCounter == INDEX_NONE)
+	{
+		SceneFrameCounter++;
+	}
+
+	static auto* ResourceTableCachingCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("rhi.ResourceTableCaching"));
+	if (ResourceTableCachingCvar == NULL || ResourceTableCachingCvar->GetValueOnAnyThread() == 1)
+	{
+		ResourceTableFrameCounter = SceneFrameCounter;
+	}
+}
 
 void FD3D11DynamicRHI::RHIEndScene()
-{}
+{
+	ResourceTableFrameCounter = INDEX_NONE;
+}
 
 void FD3DGPUProfiler::PushEvent(const TCHAR* Name)
 {

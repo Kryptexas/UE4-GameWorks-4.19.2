@@ -243,6 +243,12 @@ public:
 	/** Sets the minimum number of mips that must be resident in memory (cannot be streamed). */
 	static void SetMinTextureResidentMipCount(int32 InMinTextureResidentMipCount);
 
+	/** Retrieves the last render time used for streaming. */
+	float GetLastRenderTimeForStreaming();
+
+	/** Invalidates the last render time used for streaming. */
+	void InvalidateLastRenderTimeForStreaming();
+
 	/**
 	 * Get mip data starting with the specified mip index.
 	 * @param FirstMipToLoad - The first mip index to cache.

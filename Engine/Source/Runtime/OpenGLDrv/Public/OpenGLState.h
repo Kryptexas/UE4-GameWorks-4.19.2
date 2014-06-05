@@ -413,6 +413,15 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 	TRefCountPtr<FOpenGLBoundShaderState>	BoundShaderState;
 	FComputeShaderRHIRef					CurrentComputeShader;	
 
+	/** The RHI does not allow more than 14 constant buffers per shader stage due to D3D11 limits. */
+	enum { MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14 };
+
+	/** Track the currently bound uniform buffers. */
+	FUniformBufferRHIRef BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
+
+	/** Bit array to track which uniform buffers have changed since the last draw call. */
+	uint16 DirtyUniformBuffers[SF_NumFrequencies];
+
 	// Used for if(!FOpenGL::SupportsFastBufferData())
 	uint32 UpVertexBufferBytes;
 	uint32 UpIndexBufferBytes;
@@ -479,12 +488,25 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 			ShaderParameters[OGL_SHADER_STAGE_COMPUTE].InitializeResources(FOpenGL::GetMaxComputeUniformComponents() * sizeof(float));
 		}
 
+		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+		{
+			DirtyUniformBuffers[Frequency] = MAX_uint16;
+		}
 	}
 
 	virtual void CleanupResources() OVERRIDE
 	{
 		delete [] ShaderParameters;
 		ShaderParameters = NULL;
+
+		// Release references to bound uniform buffers.
+		for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+		{
+			for (int32 BindIndex = 0; BindIndex < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; ++BindIndex)
+			{
+				BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
+			}
+		}
 
 		FOpenGLCommonState::CleanupResources();
 	}

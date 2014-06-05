@@ -127,7 +127,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 
 				FDistanceCullFadeUniformShaderParameters Uniforms;
 				Uniforms.FadeTimeScaleBias = FadingState.FadeTimeScaleBias;
-				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiUse );
+				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiFrame );
 			}
 			else
 			{
@@ -151,7 +151,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 
 				FDistanceCullFadeUniformShaderParameters Uniforms;
 				Uniforms.FadeTimeScaleBias = FadingState.FadeTimeScaleBias;
-				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiUse );
+				FadingState.UniformBuffer = FDistanceCullFadeUniformBufferRef::CreateUniformBufferImmediate( Uniforms, UniformBuffer_MultiFrame );
 			}
 		}
 	}
@@ -910,6 +910,9 @@ float Halton( int32 Index, int32 Base )
 
 void FSceneRenderer::PreVisibilityFrameSetup()
 {
+	// Notify the RHI we are beginning to render a scene.
+	RHIBeginScene();
+
 	// Notify the FX system that the scene is about to perform visibility checks.
 	if (Scene->FXSystem)
 	{

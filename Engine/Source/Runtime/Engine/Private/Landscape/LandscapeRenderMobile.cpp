@@ -6,6 +6,7 @@ LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetc
 
 #include "EnginePrivate.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeRenderMobile.h"
 
@@ -60,7 +61,7 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
 		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
 
@@ -68,7 +69,7 @@ public:
 		check(BatchElementParams);
 
 		const FLandscapeComponentSceneProxy* SceneProxy = BatchElementParams->SceneProxy;
-		SetUniformBufferParameter(VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
+		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
 
 		FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.ViewOrigin); 
 		FVector2D CameraLocalPos = FVector2D(CameraLocalPos3D.X, CameraLocalPos3D.Y);
@@ -81,7 +82,7 @@ public:
 				CameraLocalPos3D.X + SceneProxy->SectionBase.X,
 				CameraLocalPos3D.Y + SceneProxy->SectionBase.Y 
 				);
-			SetShaderValue(VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), LodBiasParameter, LodBias);
 		}
 
 		// Calculate LOD params
@@ -108,12 +109,12 @@ public:
 
 		if( SectionLodsParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), SectionLodsParameter, fCurrentLODs);
 		}
 
 		if( NeighborSectionLodParameter.IsBound() )
 		{
-			SetShaderValue(VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), NeighborSectionLodParameter, CurrentNeighborLODs);
 		}
 
 		if( LodValuesParameter.IsBound() )
@@ -125,7 +126,7 @@ public:
 				(float)SceneProxy->SubsectionSizeQuads, 
 				1.f / (float)SceneProxy->SubsectionSizeQuads );
 
-			SetShaderValue(VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
 		}
 	}
 protected:

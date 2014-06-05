@@ -13,6 +13,8 @@
 // for LightPropagationVolume feature, could be exposed
 const int ReflectiveShadowMapResolution = 256;
 
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
+
 /*-----------------------------------------------------------------------------
 FSceneRenderTargets
 -----------------------------------------------------------------------------*/
@@ -351,6 +353,7 @@ void FSceneRenderTargets::AllocLightAttenuation()
 
 void FSceneRenderTargets::FreeGBufferTargets()
 {
+	GBufferResourcesUniformBuffer.SafeRelease();
 	GBufferA.SafeRelease();
 	GBufferB.SafeRelease();
 	GBufferC.SafeRelease();
@@ -425,6 +428,46 @@ void FSceneRenderTargets::AllocGBufferTargets()
 
 	// otherwise we have a severe problem
 	check(GBufferA);
+
+	// Create the required render targets if running Highend.
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+
+		// Allocate the Gbuffer resource uniform buffer.
+		const FSceneRenderTargetItem& GBufferA = this->GBufferA ? this->GBufferA->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferB = this->GBufferB ? this->GBufferB->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferC = this->GBufferC ? this->GBufferC->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferD = this->GBufferD ? this->GBufferD->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferE = this->GBufferE ? this->GBufferE->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+
+		FGBufferResourceStruct GBufferResourceStruct;
+
+		GBufferResourceStruct.GBufferATexture = GBufferA.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferBTexture = GBufferB.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferCTexture = GBufferC.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferDTexture = GBufferD.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferETexture = GBufferE.ShaderResourceTexture;
+
+		GBufferResourceStruct.GBufferATextureNonMS = GBufferA.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferBTextureNonMS = GBufferB.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferCTextureNonMS = GBufferC.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferDTextureNonMS = GBufferD.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferETextureNonMS = GBufferE.ShaderResourceTexture;
+
+		GBufferResourceStruct.GBufferATextureMS = GBufferA.TargetableTexture;
+		GBufferResourceStruct.GBufferBTextureMS = GBufferB.TargetableTexture;
+		GBufferResourceStruct.GBufferCTextureMS = GBufferC.TargetableTexture;
+		GBufferResourceStruct.GBufferDTextureMS = GBufferD.TargetableTexture;
+		GBufferResourceStruct.GBufferETextureMS = GBufferE.TargetableTexture;
+
+		GBufferResourceStruct.GBufferATextureSampler = TStaticSamplerState<>::GetRHI();
+		GBufferResourceStruct.GBufferBTextureSampler = TStaticSamplerState<>::GetRHI();
+		GBufferResourceStruct.GBufferCTextureSampler = TStaticSamplerState<>::GetRHI();
+		GBufferResourceStruct.GBufferDTextureSampler = TStaticSamplerState<>::GetRHI();
+		GBufferResourceStruct.GBufferETextureSampler = TStaticSamplerState<>::GetRHI();
+
+		GBufferResourcesUniformBuffer = FGBufferResourceStruct::CreateUniformBuffer(GBufferResourceStruct, UniformBuffer_SingleFrame);
+	}
 
 	// so that 
 	GBufferRefCount = 1;
@@ -1174,22 +1217,22 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 	}
 	else
 	{
-		switch(CurrentSceneColorFormat)
-		{
-			case 0:
-				SceneColorBufferFormat = PF_R8G8B8A8; break;
-			case 1:
-				SceneColorBufferFormat = PF_A2B10G10R10; break;
-			case 2:	
-				SceneColorBufferFormat = PF_FloatR11G11B10; break;
-			case 3:	
-				SceneColorBufferFormat = PF_FloatRGB; break;
-			case 4:
-				// default
-				break;
-			case 5:
-				SceneColorBufferFormat = PF_A32B32G32R32F; break;
-		}
+	switch(CurrentSceneColorFormat)
+	{
+		case 0:
+			SceneColorBufferFormat = PF_R8G8B8A8; break;
+		case 1:
+			SceneColorBufferFormat = PF_A2B10G10R10; break;
+		case 2:	
+			SceneColorBufferFormat = PF_FloatR11G11B10; break;
+		case 3:	
+			SceneColorBufferFormat = PF_FloatRGB; break;
+		case 4:
+			// default
+			break;
+		case 5:
+			SceneColorBufferFormat = PF_A32B32G32R32F; break;
+	}
 	}
 
 	return SceneColorBufferFormat;
@@ -1433,35 +1476,17 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
 	SceneTextureParameters.Bind(ParameterMap);
-	GBufferATextureMS.Bind(ParameterMap,TEXT("GBufferATextureMS"));
-	GBufferBTextureMS.Bind(ParameterMap,TEXT("GBufferBTextureMS"));
-	GBufferCTextureMS.Bind(ParameterMap,TEXT("GBufferCTextureMS"));
-	GBufferDTextureMS.Bind(ParameterMap,TEXT("GBufferDTextureMS"));
-	GBufferETextureMS.Bind(ParameterMap,TEXT("GBufferETextureMS"));
+	
+	GBufferResources.Bind(ParameterMap,TEXT("GBuffers"));
 	DBufferATextureMS.Bind(ParameterMap,TEXT("DBufferATextureMS"));
 	DBufferBTextureMS.Bind(ParameterMap,TEXT("DBufferBTextureMS"));
 	DBufferCTextureMS.Bind(ParameterMap,TEXT("DBufferCTextureMS"));
 	ScreenSpaceAOTextureMS.Bind(ParameterMap,TEXT("ScreenSpaceAOTextureMS"));
-	GBufferATextureNonMS.Bind(ParameterMap,TEXT("GBufferATextureNonMS"));
-	GBufferBTextureNonMS.Bind(ParameterMap,TEXT("GBufferBTextureNonMS"));
-	GBufferCTextureNonMS.Bind(ParameterMap,TEXT("GBufferCTextureNonMS"));
-	GBufferDTextureNonMS.Bind(ParameterMap,TEXT("GBufferDTextureNonMS"));
-	GBufferETextureNonMS.Bind(ParameterMap,TEXT("GBufferETextureNonMS"));
 	DBufferATextureNonMS.Bind(ParameterMap,TEXT("DBufferATextureNonMS"));
 	DBufferBTextureNonMS.Bind(ParameterMap,TEXT("DBufferBTextureNonMS"));
 	DBufferCTextureNonMS.Bind(ParameterMap,TEXT("DBufferCTextureNonMS"));
 	ScreenSpaceAOTextureNonMS.Bind(ParameterMap,TEXT("ScreenSpaceAOTextureNonMS"));
 	CustomDepthTextureNonMS.Bind(ParameterMap,TEXT("CustomDepthTextureNonMS"));
-	GBufferATexture.Bind(ParameterMap,TEXT("GBufferATexture"));
-	GBufferATextureSampler.Bind(ParameterMap,TEXT("GBufferATextureSampler"));
-	GBufferBTexture.Bind(ParameterMap,TEXT("GBufferBTexture"));
-	GBufferBTextureSampler.Bind(ParameterMap,TEXT("GBufferBTextureSampler"));
-	GBufferCTexture.Bind(ParameterMap,TEXT("GBufferCTexture"));
-	GBufferCTextureSampler.Bind(ParameterMap,TEXT("GBufferCTextureSampler"));
-	GBufferDTexture.Bind(ParameterMap,TEXT("GBufferDTexture"));
-	GBufferDTextureSampler.Bind(ParameterMap,TEXT("GBufferDTextureSampler"));
-	GBufferETexture.Bind(ParameterMap,TEXT("GBufferETexture"));
-	GBufferETextureSampler.Bind(ParameterMap,TEXT("GBufferETextureSampler"));
 	DBufferATexture.Bind(ParameterMap,TEXT("DBufferATexture"));
 	DBufferATextureSampler.Bind(ParameterMap,TEXT("DBufferATextureSampler"));
 	DBufferBTexture.Bind(ParameterMap,TEXT("DBufferBTexture"));
@@ -1477,35 +1502,17 @@ void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 FArchive& operator<<(FArchive& Ar,FDeferredPixelShaderParameters& Parameters)
 {
 	Ar << Parameters.SceneTextureParameters;
-	Ar << Parameters.GBufferATextureMS;
-	Ar << Parameters.GBufferBTextureMS;
-	Ar << Parameters.GBufferCTextureMS;
-	Ar << Parameters.GBufferDTextureMS;
-	Ar << Parameters.GBufferETextureMS;
+
+	Ar << Parameters.GBufferResources;
 	Ar << Parameters.DBufferATextureMS;
 	Ar << Parameters.DBufferBTextureMS;
 	Ar << Parameters.DBufferCTextureMS;
 	Ar << Parameters.ScreenSpaceAOTextureMS;
-	Ar << Parameters.GBufferATextureNonMS;
-	Ar << Parameters.GBufferBTextureNonMS;
-	Ar << Parameters.GBufferCTextureNonMS;
-	Ar << Parameters.GBufferDTextureNonMS;
-	Ar << Parameters.GBufferETextureNonMS;
 	Ar << Parameters.DBufferATextureNonMS;
 	Ar << Parameters.DBufferBTextureNonMS;
 	Ar << Parameters.DBufferCTextureNonMS;
 	Ar << Parameters.ScreenSpaceAOTextureNonMS;
 	Ar << Parameters.CustomDepthTextureNonMS;
-	Ar << Parameters.GBufferATexture;
-	Ar << Parameters.GBufferATextureSampler;
-	Ar << Parameters.GBufferBTexture;
-	Ar << Parameters.GBufferBTextureSampler;
-	Ar << Parameters.GBufferCTexture;
-	Ar << Parameters.GBufferCTextureSampler;
-	Ar << Parameters.GBufferDTexture;
-	Ar << Parameters.GBufferDTextureSampler;
-	Ar << Parameters.GBufferETexture;
-	Ar << Parameters.GBufferETextureSampler;
 	Ar << Parameters.DBufferATexture;
 	Ar << Parameters.DBufferATextureSampler;
 	Ar << Parameters.DBufferBTexture;

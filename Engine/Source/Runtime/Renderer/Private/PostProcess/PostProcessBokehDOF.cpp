@@ -78,7 +78,8 @@ class PostProcessVisualizeDOFPS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 	}
 
 	/** Default constructor. */
@@ -106,15 +107,15 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FVector4 DepthOfFieldParamValues[2];
@@ -124,7 +125,7 @@ public:
 
 			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
 
-			SetShaderValueArray(ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 	}
 
@@ -167,6 +168,9 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
@@ -192,8 +196,8 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 
 		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context);
+		VertexShader->SetParameters(RHICmdList, Context);
+		PixelShader->SetParameters(RHICmdList, Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -237,7 +241,8 @@ class PostProcessBokehDOFSetupPS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 	}
 
 	/** Default constructor. */
@@ -265,14 +270,14 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FVector4 DepthOfFieldParamValues[2];
@@ -282,7 +287,7 @@ public:
 
 			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
 
-			SetShaderValueArray(ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 	}
 
@@ -325,6 +330,9 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 	
@@ -349,8 +357,8 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 
 		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		VertexShader->SetParameters(Context);
-		PixelShader->SetParameters(Context);
+		VertexShader->SetParameters(RHICmdList, Context);
+		PixelShader->SetParameters(RHICmdList, Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -394,7 +402,8 @@ class FPostProcessBokehDOFVS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DOF_METHOD"), DOFMethod);
 		OutEnvironment.SetDefine(TEXT("DOF_INDEX_STYLE"), DOFIndexStyle);
 	}
@@ -431,25 +440,25 @@ public:
 	}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, FIntPoint LeftTop)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, FIntPoint LeftTop)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetVS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 //		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FIntRect TileCountAndSizeValue(TileCountValue, FIntPoint(TileSize, TileSize));
 
-			SetShaderValue(ShaderRHI, TileCountAndSize, TileCountAndSizeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TileCountAndSize, TileCountAndSizeValue);
 		}
 
 		{
 			FVector4 KernelSizeValue(PixelKernelSize, PixelKernelSize, LeftTop.X, LeftTop.Y);
 
-			SetShaderValue(ShaderRHI, KernelSize, KernelSizeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, KernelSize, KernelSizeValue);
 		}
 
 		{
@@ -457,7 +466,7 @@ public:
 				Context.View.FinalPostProcessSettings.DepthOfFieldColorThreshold,
 				Context.View.FinalPostProcessSettings.DepthOfFieldSizeThreshold,0);
 
-			SetShaderValue(ShaderRHI, DepthOfFieldThresholds, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, DepthOfFieldThresholds, Value);
 		}
 
 		{
@@ -465,7 +474,7 @@ public:
 
 			FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(Context, DepthOfFieldParamValues);
 
-			SetShaderValueArray(ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
+			SetShaderValueArray(RHICmdList, ShaderRHI, DepthOfFieldParams, DepthOfFieldParamValues, 2);
 		}
 	}
 
@@ -515,13 +524,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, float PixelKernelSize)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float PixelKernelSize)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 //		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 				
 		{
@@ -537,7 +546,7 @@ public:
 				TextureRHI = Context.View.FinalPostProcessSettings.DepthOfFieldBokehShape->Resource->TextureRHI;
 			}
 
-			SetTextureParameter(ShaderRHI, LensTexture, LensTextureSampler, TStaticSamplerState<SF_Trilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(), TextureRHI);
+			SetTextureParameter(RHICmdList, ShaderRHI, LensTexture, LensTextureSampler, TStaticSamplerState<SF_Trilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(), TextureRHI);
 		}
 	}
 };
@@ -553,7 +562,7 @@ VARIATION1(0,1)			VARIATION1(1,1)			VARIATION1(2,1)
 #undef VARIATION1
 
 template <uint32 DOFMethod, uint32 DOFIndexStyle>
-void FRCPassPostProcessBokehDOF::SetShaderTempl(const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize)
+void FRCPassPostProcessBokehDOF::SetShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize)
 {
 	TShaderMapRef<FPostProcessBokehDOFVS<DOFMethod, DOFIndexStyle> > VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBokehDOFPS> PixelShader(GetGlobalShaderMap());
@@ -562,8 +571,8 @@ void FRCPassPostProcessBokehDOF::SetShaderTempl(const FRenderingCompositePassCon
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(Context, TileCount, TileSize, PixelKernelSize, LeftTop);
-	PixelShader->SetParameters(Context, PixelKernelSize);
+	VertexShader->SetParameters(RHICmdList, Context, TileCount, TileSize, PixelKernelSize, LeftTop);
+	PixelShader->SetParameters(RHICmdList, Context, PixelKernelSize);
 }
 
 void FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(const FRenderingCompositePassContext& Context, FVector4 Out[2])
@@ -622,6 +631,9 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
@@ -667,11 +679,11 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 			// high quality, visualize in red and green where we spend more performance
 			if(IndexStyle == BIS_Fast)
 			{
-				SetShaderTempl<2, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+				SetShaderTempl<2, 0>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 			}
 			else
 			{
-				SetShaderTempl<2, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+				SetShaderTempl<2, 1>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 			}
 		}
 		else
@@ -679,11 +691,11 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 			// high quality
 			if(IndexStyle == BIS_Fast)
 			{
-				SetShaderTempl<1, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+				SetShaderTempl<1, 0>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 			}
 			else
 			{
-				SetShaderTempl<1, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+				SetShaderTempl<1, 1>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 			}
 		}
 	}
@@ -692,11 +704,11 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 		// low quality
 		if(IndexStyle == BIS_Fast)
 		{
-			SetShaderTempl<0, 0>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			SetShaderTempl<0, 0>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 		}
 		else
 		{
-			SetShaderTempl<0, 1>(Context, LeftTop, TileCount, TileSize, PixelKernelSize);
+			SetShaderTempl<0, 1>(RHICmdList, Context, LeftTop, TileCount, TileSize, PixelKernelSize);
 		}
 	}
 

@@ -7,6 +7,8 @@
 #ifndef __STATICMESHDRAWLIST_INL__
 #define __STATICMESHDRAWLIST_INL__
 
+#include "RHICommandList.h"
+
 // Expensive
 #define PER_MESH_DRAW_STATS 0
 
@@ -56,6 +58,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
+	FRHICommandList* RHICmdList,
 	const FViewInfo& View,
 	const FElement& Element,
 	uint64 BatchElementMask,
@@ -73,7 +76,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		{
 			DrawingPolicyLink->CreateBoundShaderState();
 		}
-		DrawingPolicyLink->DrawingPolicy.DrawShared(&View,DrawingPolicyLink->BoundShaderState);
+		DrawingPolicyLink->DrawingPolicy.DrawShared(RHICmdList, &View,DrawingPolicyLink->BoundShaderState);
 		bDrawnShared = true;
 	}
 	
@@ -89,6 +92,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
 
 				DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
+					RHICmdList, 
 					View,
 					Element.Mesh->PrimitiveSceneInfo->Proxy,
 					*Element.Mesh,
@@ -96,7 +100,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					!!BackFace,
 					Element.PolicyData
 					);
-				DrawingPolicyLink->DrawingPolicy.DrawMesh(*Element.Mesh,BatchElementIndex);
+				DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh,BatchElementIndex);
 			}
 		}
 
@@ -234,6 +238,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 template<typename DrawingPolicyType>
 bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
+	FRHICommandList* RHICmdList,
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray
@@ -256,7 +261,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
 				// Avoid the cache miss looking up batch visibility if there is only one element.
 				uint64 BatchElementMask = Element.Mesh->Elements.Num() == 1 ? 1 : BatchVisibilityArray[Element.Mesh->Id];
-				DrawElement(View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+				DrawElement(RHICmdList, View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				bDirty = true;
 			}
 		}
@@ -266,6 +271,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 template<typename DrawingPolicyType>
 int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
+	FRHICommandList* RHICmdList,
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray,
@@ -318,7 +324,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 		INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
 		// Avoid the cache miss looking up batch visibility if there is only one element.
 		uint64 BatchElementMask = Element.Mesh->Elements.Num() == 1 ? 1 : BatchVisibilityArray[Element.Mesh->Id];
-		DrawElement(View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+		DrawElement(RHICmdList, View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 		NumDraws++;
 	}
 

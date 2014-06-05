@@ -1498,3 +1498,30 @@ void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRe
 void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)
 {
 }
+
+FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference()
+{
+	return new FD3D11TextureReference(this);
+}
+
+void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)
+{
+	// Updating texture references is disallowed while the RHI could be caching them in referenced resource tables.
+	check(ResourceTableFrameCounter == INDEX_NONE);
+
+	FD3D11TextureReference* TextureRef = (FD3D11TextureReference*)TextureRefRHI;
+	if (TextureRef)
+	{
+		FD3D11TextureBase* NewTexture = NULL;
+		ID3D11ShaderResourceView* NewSRV = NULL;
+		if (NewTextureRHI)
+		{
+			NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
+			if (NewTexture)
+			{
+				NewSRV = NewTexture->GetShaderResourceView();
+			}
+		}
+		TextureRef->SetReferencedTexture(NewTextureRHI,NewTexture,NewSRV);
+	}
+}

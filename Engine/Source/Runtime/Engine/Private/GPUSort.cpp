@@ -9,6 +9,7 @@
 #include "RenderCore.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGPUSort, Log, All);
@@ -255,10 +256,10 @@ public:
 	/**
 	 * Set parameters for this shader.
 	 */
-	void SetParameters( const FRadixSortUniformBufferRef& UniformBuffer )
+	void SetParameters(FRHICommandList* RHICmdList, const FRadixSortUniformBufferRef& UniformBuffer )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), UniformBuffer );
 	}
 
 	/**
@@ -353,10 +354,11 @@ public:
 	/**
 	 * Set parameters for this shader.
 	 */
-	void SetParameters( FShaderResourceViewRHIParamRef InKeysSRV, FRadixSortUniformBufferRef& RadixSortUniformBuffer, FShaderResourceViewRHIParamRef RadixSortParameterBufferSRV )
+	void SetParameters(FRHICommandList* RHICmdList, FShaderResourceViewRHIParamRef InKeysSRV, FRadixSortUniformBufferRef& RadixSortUniformBuffer, FShaderResourceViewRHIParamRef RadixSortParameterBufferSRV )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), RadixSortUniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), RadixSortUniformBuffer );
+		check(!RHICmdList);
 		if ( InKeys.IsBound() )
 		{
 			RHISetShaderResourceViewParameter( ComputeShaderRHI, InKeys.GetBaseIndex(), InKeysSRV );
@@ -460,11 +462,13 @@ public:
 	/**
 	 * Set parameters for this shader.
 	 */
-	void SetParameters( FShaderResourceViewRHIParamRef InOffsetsSRV )
+	void SetParameters(FRHICommandList* RHICmdList, FShaderResourceViewRHIParamRef InOffsetsSRV )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( InOffsets.IsBound() )
 		{
+			check(!RHICmdList);
+
 			RHISetShaderResourceViewParameter( ComputeShaderRHI, InOffsets.GetBaseIndex(), InOffsetsSRV );
 		}
 	}
@@ -576,6 +580,7 @@ public:
 	 * Set parameters for this shader.
 	 */
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		FShaderResourceViewRHIParamRef InKeysSRV,
 		FShaderResourceViewRHIParamRef InValuesSRV,
 		FShaderResourceViewRHIParamRef InOffsetsSRV,
@@ -583,7 +588,8 @@ public:
 		FShaderResourceViewRHIParamRef RadixSortParameterBufferSRV )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), RadixSortUniformBuffer );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FRadixSortParameters>(), RadixSortUniformBuffer );
+		check(!RHICmdList);
 		if ( RadixSortParameterBuffer.IsBound() )
 		{
 			RHISetShaderResourceViewParameter( ComputeShaderRHI, RadixSortParameterBuffer.GetBaseIndex(), RadixSortParameterBufferSRV );
@@ -735,6 +741,9 @@ int32 SortGPUBuffers( FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 Key
 	check( UpsweepCS->RequiresConstantBufferWorkaround() == DownsweepCS->RequiresConstantBufferWorkaround() );
 	const bool bUseConstantBufferWorkaround = UpsweepCS->RequiresConstantBufferWorkaround();
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Execute each pass as needed.
 	uint32 PassBits = DIGIT_COUNT - 1;
 	for ( int32 PassIndex = 0; PassIndex < PassCount; ++PassIndex )
@@ -751,20 +760,20 @@ int32 SortGPUBuffers( FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 Key
 			}
 			else
 			{
-				SortUniformBufferRef = FRadixSortUniformBufferRef::CreateUniformBufferImmediate( SortParameters, UniformBuffer_SingleUse );
+				SortUniformBufferRef = FRadixSortUniformBufferRef::CreateUniformBufferImmediate( SortParameters, UniformBuffer_SingleDraw );
 			}
 
 			// Clear the offsets buffer.
 			RHISetComputeShader(ClearOffsetsCS->GetComputeShader());
 			ClearOffsetsCS->SetOutput( GSortOffsetBuffers.BufferUAVs[0] );
-			DispatchComputeShader( *ClearOffsetsCS, 1, 1 ,1 );
+			DispatchComputeShader(RHICmdList, *ClearOffsetsCS, 1, 1 ,1 );
 			ClearOffsetsCS->UnbindBuffers();
 
 			// Phase 1: Scan upsweep to compute per-digit totals.
 			RHISetComputeShader(UpsweepCS->GetComputeShader());
 			UpsweepCS->SetOutput( GSortOffsetBuffers.BufferUAVs[0] );
-			UpsweepCS->SetParameters( SortBuffers.RemoteKeySRVs[BufferIndex], SortUniformBufferRef, GRadixSortParametersBuffer.SortParametersBufferSRV );
-			DispatchComputeShader( *UpsweepCS, GroupCount, 1, 1 );
+			UpsweepCS->SetParameters(RHICmdList, SortBuffers.RemoteKeySRVs[BufferIndex], SortUniformBufferRef, GRadixSortParametersBuffer.SortParametersBufferSRV );
+			DispatchComputeShader(RHICmdList, *UpsweepCS, GroupCount, 1, 1 );
 			UpsweepCS->UnbindBuffers();
 
 			if (bDebugOffsets)
@@ -776,8 +785,8 @@ int32 SortGPUBuffers( FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 Key
 			// Phase 2: Parallel prefix scan on the offsets buffer.
 			RHISetComputeShader(SpineCS->GetComputeShader());
 			SpineCS->SetOutput( GSortOffsetBuffers.BufferUAVs[1] );
-			SpineCS->SetParameters( GSortOffsetBuffers.BufferSRVs[0] );
-			DispatchComputeShader( *SpineCS, 1, 1, 1 );
+			SpineCS->SetParameters(RHICmdList, GSortOffsetBuffers.BufferSRVs[0] );
+			DispatchComputeShader(RHICmdList, *SpineCS, 1, 1, 1 );
 			SpineCS->UnbindBuffers();
 
 			if (bDebugOffsets)
@@ -789,8 +798,8 @@ int32 SortGPUBuffers( FGPUSortBuffers SortBuffers, int32 BufferIndex, uint32 Key
 			// Phase 3: Downsweep to compute final offsets and scatter keys.
 			RHISetComputeShader(DownsweepCS->GetComputeShader());
 			DownsweepCS->SetOutput( SortBuffers.RemoteKeyUAVs[BufferIndex ^ 0x1], SortBuffers.RemoteValueUAVs[BufferIndex ^ 0x1] );
-			DownsweepCS->SetParameters( SortBuffers.RemoteKeySRVs[BufferIndex], SortBuffers.RemoteValueSRVs[BufferIndex], GSortOffsetBuffers.BufferSRVs[1], SortUniformBufferRef, GRadixSortParametersBuffer.SortParametersBufferSRV );
-			DispatchComputeShader( *DownsweepCS, GroupCount, 1, 1 );
+			DownsweepCS->SetParameters(RHICmdList, SortBuffers.RemoteKeySRVs[BufferIndex], SortBuffers.RemoteValueSRVs[BufferIndex], GSortOffsetBuffers.BufferSRVs[1], SortUniformBufferRef, GRadixSortParametersBuffer.SortParametersBufferSRV );
+			DispatchComputeShader(RHICmdList, *DownsweepCS, GroupCount, 1, 1 );
 			DownsweepCS->UnbindBuffers();
 
 			// Flip buffers.

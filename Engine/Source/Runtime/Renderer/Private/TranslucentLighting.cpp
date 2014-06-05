@@ -182,18 +182,19 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
-		ShadowParameters.SetVertexShader(this, View, ShadowInfo, MaterialRenderProxy);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
+		ShadowParameters.SetVertexShader(RHICmdList, this, View, ShadowInfo, MaterialRenderProxy);
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 
 private:
@@ -253,6 +254,7 @@ public:
 	FTranslucencyShadowDepthPS() {}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
@@ -264,19 +266,19 @@ public:
 		//@todo - scene depth can be bound by the material for use in depth fades
 		// This is incorrect when rendering a shadowmap as it's not from the camera's POV
 		// Set the scene depth texture to something safe when rendering shadow depths
-		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), View, ESceneRenderTargetsMode::NonSceneAlignedPass);
+		FMeshMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), View, ESceneRenderTargetsMode::NonSceneAlignedPass);
 
-		SetShaderValue(ShaderRHI, TranslInvMaxSubjectDepth, ShadowInfo->InvMaxSubjectDepth);
+		SetShaderValue(RHICmdList, ShaderRHI, TranslInvMaxSubjectDepth, ShadowInfo->InvMaxSubjectDepth);
 
 		const float LocalToWorldScale = ShadowInfo->ParentSceneInfo->Proxy->GetLocalToWorld().GetScaleVector().GetMax();
 		const float TranslucentShadowStartOffsetValue = MaterialRenderProxy->GetMaterial(FeatureLevel)->GetTranslucentShadowStartOffset() * LocalToWorldScale;
-		SetShaderValue(ShaderRHI,TranslucentShadowStartOffset, TranslucentShadowStartOffsetValue / (ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
-		TranslucencyProjectionParameters.Set(this);
+		SetShaderValue(RHICmdList, ShaderRHI,TranslucentShadowStartOffset, TranslucentShadowStartOffsetValue / (ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
+		TranslucencyProjectionParameters.Set(RHICmdList, this);
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -346,16 +348,18 @@ public:
 		}
 	}
 
-	void DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+	void DrawShared(FRHICommandList* RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
 	{
+		check(!RHICmdList);
+
 		// Set the shared mesh resources.
-		FMeshDrawingPolicy::DrawShared(View);
+		FMeshDrawingPolicy::DrawShared(RHICmdList, View);
 
 		// Set the actual shader & vertex declaration state
 		RHISetBoundShaderState(BoundShaderState);
 
-		VertexShader->SetParameters(MaterialRenderProxy, *View, PolicyShadowInfo);
-		PixelShader->SetParameters(MaterialRenderProxy, *View, PolicyShadowInfo);
+		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
 	}
 
 	/** 
@@ -375,6 +379,7 @@ public:
 	}
 
 	void SetMeshRenderState(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -384,10 +389,10 @@ public:
 		) const
 	{
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-		VertexShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-		PixelShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 
-		FMeshDrawingPolicy::SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,ElementData);
 	}
 
 	static const FProjectedShadowInfo* PolicyShadowInfo;
@@ -414,6 +419,7 @@ public:
 	};
 
 	static bool DrawDynamicMesh(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
@@ -435,12 +441,12 @@ public:
 			if (IsTranslucentBlendMode(BlendMode))
 			{
 				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), DrawingContext.bDirectionalLight);
-				DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState(FeatureLevel));
+				DrawingPolicy.DrawShared(RHICmdList, &View, DrawingPolicy.CreateBoundShaderState(FeatureLevel));
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
-					DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
-					DrawingPolicy.DrawMesh(Mesh,BatchElementIndex);
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+					DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
 				}
 				bDirty = true;
 			}
@@ -450,6 +456,7 @@ public:
 	}
 
 	static bool DrawStaticMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FStaticMesh& StaticMesh,
@@ -461,6 +468,7 @@ public:
 		bool bDirty = false;
 
 		bDirty |= DrawDynamicMesh(
+			RHICmdList, 
 			View,
 			DrawingContext,
 			StaticMesh,
@@ -482,6 +490,9 @@ public:
 /** Renders shadow maps for translucent primitives. */
 void FProjectedShadowInfo::RenderTranslucencyDepths(FDeferredShadingSceneRenderer* SceneRenderer)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	checkSlow(!bWholeSceneShadow);
 	SCOPE_CYCLE_COUNTER(STAT_RenderWholeSceneShadowDepthsTime);
 
@@ -587,6 +598,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FDeferredShadingSceneRendere
 					for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
 					{
 						FTranslucencyShadowDepthDrawingPolicyFactory::DrawStaticMesh(
+							RHICmdList, 
 							*FoundView,
 							FTranslucencyShadowDepthDrawingPolicyFactory::ContextType(bDirectionalLight),
 							PrimitiveSceneInfo->StaticMeshes[MeshIndex],
@@ -632,14 +644,15 @@ public:
 	}
 	FFilterTranslucentVolumePS() {}
 
-	void SetParameters(const FViewInfo& View, int32 VolumeCascadeIndex)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, int32 VolumeCascadeIndex)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		SetShaderValue(ShaderRHI, TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
+		SetShaderValue(RHICmdList, ShaderRHI, TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
 		SetTextureParameter(
+			RHICmdList,
 			ShaderRHI, 
 			TranslucencyLightingVolumeAmbient, 
 			TranslucencyLightingVolumeAmbientSampler, 
@@ -647,6 +660,7 @@ public:
 			GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
 
 		SetTextureParameter(
+			RHICmdList,
 			ShaderRHI, 
 			TranslucencyLightingVolumeDirectional, 
 			TranslucencyLightingVolumeDirectionalSampler, 
@@ -689,6 +703,7 @@ public:
 
 	template<typename ShaderRHIParamRef>
 	void Set(
+		FRHICommandList* RHICmdList, 
 		const ShaderRHIParamRef ShaderRHI, 
 		FShader* Shader, 
 		const FViewInfo& View, 
@@ -697,18 +712,18 @@ public:
 		int32 VolumeCascadeIndexValue, 
 		bool bShadowed) const
 	{
-		SetDeferredLightParameters(ShaderRHI, Shader->GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
+		SetDeferredLightParameters(RHICmdList, ShaderRHI, Shader->GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
 
 		if (bShadowed)
 		{
 			FVector4 ShadowmapMinMaxValue;
 			FMatrix WorldToShadowMatrixValue = ShadowMap->GetWorldToShadowMatrix(ShadowmapMinMaxValue);
 
-			SetShaderValue(ShaderRHI, WorldToShadowMatrix, WorldToShadowMatrixValue);
-			SetShaderValue(ShaderRHI, ShadowmapMinMax, ShadowmapMinMaxValue);
+			SetShaderValue(RHICmdList, ShaderRHI, WorldToShadowMatrix, WorldToShadowMatrixValue);
+			SetShaderValue(RHICmdList, ShaderRHI, ShadowmapMinMax, ShadowmapMinMaxValue);
 		}
 
-		SetShaderValue(ShaderRHI, VolumeCascadeIndex, VolumeCascadeIndexValue);
+		SetShaderValue(RHICmdList, ShaderRHI, VolumeCascadeIndex, VolumeCascadeIndexValue);
 	}
 
 	/** Serializer. */ 
@@ -752,11 +767,11 @@ public:
 	}
 	FTranslucentObjectShadowingPS() {}
 
-	void SetParameters(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FProjectedShadowInfo* ShadowMap, int32 VolumeCascadeIndexValue)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, const FProjectedShadowInfo* ShadowMap, int32 VolumeCascadeIndexValue)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
-		TranslucencyProjectionParameters.Set(this);
-		TranslucentInjectParameters.Set(GetPixelShader(), this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, true);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		TranslucencyProjectionParameters.Set(RHICmdList, this);
+		TranslucentInjectParameters.Set(RHICmdList, GetPixelShader(), this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, true);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -822,6 +837,7 @@ public:
 	// @param InnerSplitIndex which CSM shadow map level, INDEX_NONE if no directional light
 	// @param VolumeCascadeIndexValue which volume we render to
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View, 
 		const FLightSceneInfo* LightSceneInfo, 
 		const FMaterialRenderProxy* MaterialProxy, 
@@ -833,10 +849,10 @@ public:
 		
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, false, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, false, ESceneRenderTargetsMode::SetTextures);
 		
 		FSphere ShadowBounds = ShadowMap ? ShadowMap->ShadowBounds : FSphere(FVector(0,0,0), HALF_WORLD_MAX);
-		SetShaderValue(ShaderRHI, CascadeBounds, ShadowBounds);
+		SetShaderValue(RHICmdList, ShaderRHI, CascadeBounds, ShadowBounds);
 
 		FSphere InnerBounds(0);
 		// default to ignore the plane
@@ -873,20 +889,21 @@ public:
 			ShadowInjectParamValue.W = -FadeParams.X * FadeParams.Y;
 		}
 
-		SetShaderValue(ShaderRHI, ShadowInjectParams, ShadowInjectParamValue);
-		SetShaderValue(ShaderRHI, InnerCascadeBounds, InnerBounds);
+		SetShaderValue(RHICmdList, ShaderRHI, ShadowInjectParams, ShadowInjectParamValue);
+		SetShaderValue(RHICmdList, ShaderRHI, InnerCascadeBounds, InnerBounds);
 
-		SetShaderValueArray(ShaderRHI, ClippingPlanes, Planes, ARRAY_COUNT(Planes));
+		SetShaderValueArray(RHICmdList, ShaderRHI, ClippingPlanes, Planes, ARRAY_COUNT(Planes));
 	
 
 		//@todo - needs to be a permutation to reduce shadow filtering work
-		SetShaderValue(ShaderRHI, SpotlightMask, (LightSceneInfo->Proxy->GetLightType() == LightType_Spot ? 1.0f : 0.0f));
+		SetShaderValue(RHICmdList, ShaderRHI, SpotlightMask, (LightSceneInfo->Proxy->GetLightType() == LightType_Spot ? 1.0f : 0.0f));
 
 		if (bShadowed)
 		{
-			SetShaderValue(ShaderRHI, DepthBiasParameters, FVector2D(ShadowMap->GetShaderDepthBias(), 1.0f / (ShadowMap->MaxSubjectZ - ShadowMap->MinSubjectZ)));
+			SetShaderValue(RHICmdList, ShaderRHI, DepthBiasParameters, FVector2D(ShadowMap->GetShaderDepthBias(), 1.0f / (ShadowMap->MaxSubjectZ - ShadowMap->MinSubjectZ)));
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				ShadowDepthTexture,
 				ShadowDepthTextureSampler,
@@ -897,11 +914,11 @@ public:
 
 		if (bShadowed && InjectionType == LightType_Point)
 		{
-			OnePassShadowParameters.Set(ShaderRHI, ShadowMap);
+			OnePassShadowParameters.Set(RHICmdList, ShaderRHI, ShadowMap);
 		}
 
-		LightFunctionParameters.Set(ShaderRHI, LightSceneInfo, 1);
-		TranslucentInjectParameters.Set(ShaderRHI, this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, bShadowed);
+		LightFunctionParameters.Set(RHICmdList, ShaderRHI, LightSceneInfo, 1);
+		TranslucentInjectParameters.Set(RHICmdList, ShaderRHI, this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, bShadowed);
 
 		if (LightFunctionWorldToLight.IsBound())
 		{
@@ -910,7 +927,7 @@ public:
 			const FVector InverseScale = FVector( 1.f / Scale.Z, 1.f / Scale.Y, 1.f / Scale.X );
 			const FMatrix WorldToLight = LightSceneInfo->Proxy->GetWorldToLight() * FScaleMatrix(FVector(InverseScale));	
 
-			SetShaderValue(ShaderRHI, LightFunctionWorldToLight, WorldToLight);
+			SetShaderValue(RHICmdList, ShaderRHI, LightFunctionWorldToLight, WorldToLight);
 		}
 	}
 
@@ -1011,8 +1028,10 @@ void RasterizeToVolumeTexture(FVolumeBounds VolumeBounds)
 
 /** Helper function that clears the given volume texture render targets. */
 template<int32 NumRenderTargets>
-void ClearVolumeTextures(const FTextureRHIParamRef* RenderTargets, const FLinearColor* ClearColors)
+void ClearVolumeTextures(FRHICommandList* RHICmdList, const FTextureRHIParamRef* RenderTargets, const FLinearColor* ClearColors)
 {
+	check(!RHICmdList);
+
 	RHISetRenderTargets(NumRenderTargets, RenderTargets, FTextureRHIRef(), 0, NULL);
 
 	static FGlobalBoundShaderState VolumeClearBoundShaderState;
@@ -1035,8 +1054,8 @@ void ClearVolumeTextures(const FTextureRHIParamRef* RenderTargets, const FLinear
 		
 		SetGlobalBoundShaderState(VolumeClearBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-		VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-		GeometryShader->SetParameters(VolumeBounds);
+		VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+		GeometryShader->SetParameters(RHICmdList, VolumeBounds);
 
 		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 		FMemory::MemZero(ShaderClearColors);
@@ -1046,13 +1065,13 @@ void ClearVolumeTextures(const FTextureRHIParamRef* RenderTargets, const FLinear
 			ShaderClearColors[i] = ClearColors[i];
 		}
 
-		SetShaderValueArray(PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumRenderTargets);
+		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumRenderTargets);
 
 		RasterizeToVolumeTexture(VolumeBounds);
 	}
 }
 
-void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting()
+void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting(FRHICommandList* RHICmdList)
 {
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
@@ -1073,7 +1092,7 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting()
 		ClearColors[2] = FLinearColor(0, 0, 0, 0);
 		ClearColors[3] = FLinearColor(0, 0, 0, 0);
 
-		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RenderTargets, ClearColors);
+		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, RenderTargets, ClearColors);
 	}
 }
 
@@ -1109,11 +1128,11 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FViewInfo& View, const FFinalPostProcessSettings::FCubemapEntry& CubemapEntry)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FFinalPostProcessSettings::FCubemapEntry& CubemapEntry)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
 		CubemapShaderParameters.SetParameters(ShaderRHI, CubemapEntry);
 	}
@@ -1121,7 +1140,7 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FInjectAmbientCubemapPS,TEXT("TranslucentLightingShaders"),TEXT("InjectAmbientCubemapMainPS"),SF_Pixel);
 
-void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLighting()
+void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList* RHICmdList)
 {
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
@@ -1149,15 +1168,15 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 						
 			SetGlobalBoundShaderState(BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-			VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-			GeometryShader->SetParameters(VolumeBounds);
+			VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+			GeometryShader->SetParameters(RHICmdList, VolumeBounds);
 
 			uint32 Count = View.FinalPostProcessSettings.ContributingCubemaps.Num();
 			for(uint32 i = 0; i < Count; ++i)
 			{
 				const FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = View.FinalPostProcessSettings.ContributingCubemaps[i];
 
-				PixelShader->SetParameters(View, CubemapEntry);
+				PixelShader->SetParameters(RHICmdList, View, CubemapEntry);
 
 				RasterizeToVolumeTexture(VolumeBounds);
 			}
@@ -1195,20 +1214,20 @@ public:
 	}
 	FCompositeGIForTranslucencyPS() {}
 
-	void SetParameters(const FViewInfo& View, const FSceneViewState* ViewState, int32 VolumeCascadeIndexValue)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FSceneViewState* ViewState, int32 VolumeCascadeIndexValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		SetShaderValue(ShaderRHI, VolumeCascadeIndex, VolumeCascadeIndexValue);
+		SetShaderValue(RHICmdList, ShaderRHI, VolumeCascadeIndex, VolumeCascadeIndexValue);
 
 		const FIndirectLightingCacheAllocation* LightingAllocation = ViewState->TranslucencyLightingCacheAllocations[VolumeCascadeIndexValue];
 
 		if (LightingAllocation && LightingAllocation->IsValid())
 		{
-			SetShaderValue(ShaderRHI, IndirectlightingCacheAdd, LightingAllocation->Add);
-			SetShaderValue(ShaderRHI, IndirectlightingCacheScale, LightingAllocation->Scale);
+			SetShaderValue(RHICmdList, ShaderRHI, IndirectlightingCacheAdd, LightingAllocation->Add);
+			SetShaderValue(RHICmdList, ShaderRHI, IndirectlightingCacheScale, LightingAllocation->Scale);
 
 			FScene* Scene = (FScene*)View.Family->Scene;
 			FIndirectLightingCache& LightingCache = Scene->IndirectLightingCache;
@@ -1216,6 +1235,7 @@ public:
 			if (LightingCache.IsInitialized())
 			{
 				SetTextureParameter(
+					RHICmdList, 
 					ShaderRHI,
 					IndirectLightingCacheTexture,
 					IndirectLightingCacheTextureSampler,
@@ -1224,6 +1244,7 @@ public:
 					);
 
 				SetTextureParameter(
+					RHICmdList, 
 					ShaderRHI,
 					IndirectLightingCacheTexture1,
 					IndirectLightingCacheTexture1Sampler,
@@ -1232,6 +1253,7 @@ public:
 					);
 
 				SetTextureParameter(
+					RHICmdList, 
 					ShaderRHI,
 					IndirectLightingCacheTexture2,
 					IndirectLightingCacheTexture2Sampler,
@@ -1271,7 +1293,7 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FCompositeGIForTranslucencyPS,TEXT("TranslucentLightingShaders"),TEXT("CompositeGIMainPS"),SF_Pixel);
 
-void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting()
+void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting(FRHICommandList* RHICmdList)
 {
 	bool bAnyViewAllowsIndirectLightingCache = false;
 
@@ -1316,9 +1338,9 @@ void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting()
 				static FGlobalBoundShaderState BoundShaderState;
 				SetGlobalBoundShaderState(BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-				PixelShader->SetParameters(View, ViewState, VolumeCascadeIndex);
-				VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(VolumeBounds);
+				PixelShader->SetParameters(RHICmdList, View, ViewState, VolumeCascadeIndex);
+				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
 
 				RasterizeToVolumeTexture(VolumeBounds);
 
@@ -1346,7 +1368,9 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumePerObjectShadowing()
 		ClearColors[0] = FLinearColor(1, 1, 1, 1);
 		ClearColors[1] = FLinearColor(1, 1, 1, 1);
 
-		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RenderTargets, ClearColors);
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, RenderTargets, ClearColors);
 	}
 }
 
@@ -1388,6 +1412,8 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(c
 		ClearTranslucentVolumePerObjectShadowing();
 	}
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(AccumulateTranslucentVolumeShadowing, DEC_SCENE_ITEMS);
@@ -1426,9 +1452,9 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(c
 				TShaderMapRef<FTranslucentObjectShadowingPS> PixelShader(GetGlobalShaderMap());
 
 				SetGlobalBoundShaderState(ObjectShadowingBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
-				VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(VolumeBounds);
-				PixelShader->SetParameters(View, LightSceneInfo, InProjectedShadowInfo, VolumeCascadeIndex);
+				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, InProjectedShadowInfo, VolumeCascadeIndex);
 				
 				RasterizeToVolumeTexture(VolumeBounds);
 
@@ -1457,6 +1483,9 @@ void SetInjectionShader(
 	bool bApplyLightFunction,
 	bool bInverseSquared)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	check(ShadowMap || !bShadowed);
 
 	const FMaterialShaderMap* MaterialShaderMap = MaterialProxy->GetMaterial(View.GetFeatureLevel())->GetRenderingThreadShaderMap();
@@ -1519,13 +1548,13 @@ void SetInjectionShader(
 		{
 			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, true && !Directional> >();
 			check(InjectionPixelShader);
-			InjectionPixelShader->SetParameters(View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
+			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 		else
 		{
 			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, false> >();
 			check(InjectionPixelShader);
-			InjectionPixelShader->SetParameters(View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
+			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 	}
 	else
@@ -1534,13 +1563,13 @@ void SetInjectionShader(
 		{
 			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, true && !Directional> >();
 			check(InjectionPixelShader);
-			InjectionPixelShader->SetParameters(View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
+			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 		else
 		{
 			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, false> >();
 			check(InjectionPixelShader);
-			InjectionPixelShader->SetParameters(View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
+			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 	}
 }
@@ -1602,6 +1631,9 @@ static void AddLightForInjection(
 static void InjectTranslucentLightArray(const FViewInfo& View, const TArray<FTranslucentLightInjectionData, SceneRenderingAllocator>& LightInjectionData)
 {
 	INC_DWORD_STAT_BY(STAT_NumLightsInjectedIntoTranslucency, LightInjectionData.Num());
+
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	// Inject into each volume cascade
 	// Operate on one cascade at a time to reduce render target switches
@@ -1671,8 +1703,8 @@ static void InjectTranslucentLightArray(const FViewInfo& View, const TArray<FTra
 					}
 				}
 
-				VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(VolumeBounds);
+				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
 				RasterizeToVolumeTexture(VolumeBounds);
 			}
 		}
@@ -1743,14 +1775,14 @@ public:
 	}
 	FSimpleLightTranslucentLightingInjectPS() {}
 
-	void SetParameters(const FViewInfo& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData, int32 VolumeCascadeIndexValue)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FSimpleLightEntry& SimpleLight, const FSimpleLightPerViewEntry& SimpleLightPerViewData, int32 VolumeCascadeIndexValue)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 
 		FVector4 PositionAndRadius(SimpleLightPerViewData.Position, SimpleLight.Radius);
-		SetShaderValue(GetPixelShader(), VolumeCascadeIndex, VolumeCascadeIndexValue);
-		SetShaderValue(GetPixelShader(), SimpleLightPositionAndRadius, PositionAndRadius);
-		SetShaderValue(GetPixelShader(), SimpleLightColorAndExponent, FVector4(SimpleLight.Color, SimpleLight.Exponent));
+		SetShaderValue(RHICmdList, GetPixelShader(), VolumeCascadeIndex, VolumeCascadeIndexValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightPositionAndRadius, PositionAndRadius);
+		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightColorAndExponent, FVector4(SimpleLight.Color, SimpleLight.Exponent));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1774,6 +1806,9 @@ FGlobalBoundShaderState InjectSimpleLightBoundShaderState;
 
 void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(const FSimpleLightArray& SimpleLights)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	SCOPE_CYCLE_COUNTER(STAT_TranslucentInjectTime);
 
 	int32 NumLightsToInject = 0;
@@ -1788,7 +1823,7 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(c
 
 	if (NumLightsToInject > 0)
 	{
-		//@todo - support multiple views 
+		//@todo - support multiple views
 		const FViewInfo& View = Views[0];
 		const int32 ViewIndex = 0;
 
@@ -1831,9 +1866,9 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(c
 						TShaderMapRef<FSimpleLightTranslucentLightingInjectPS> PixelShader(GetGlobalShaderMap());
 						SetGlobalBoundShaderState(InjectSimpleLightBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-						VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-						GeometryShader->SetParameters(VolumeBounds);
-						PixelShader->SetParameters(View, SimpleLight, SimpleLightPerViewData, VolumeCascadeIndex);
+						VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+						GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+						PixelShader->SetParameters(RHICmdList, View, SimpleLight, SimpleLightPerViewData, VolumeCascadeIndex);
 
 						// Accumulate the contribution of multiple lights
 						RHISetBlendState(TStaticBlendState<
@@ -1859,6 +1894,9 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting()
 	{
 		if (GUseTranslucencyVolumeBlur)
 		{
+			//@todo-rco: RHIPacketList
+			FRHICommandList* RHICmdList = nullptr;
+
 			SCOPED_DRAW_EVENT(FilterTranslucentVolume, DEC_SCENE_ITEMS);
 
 			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
@@ -1889,9 +1927,9 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting()
 				TShaderMapRef<FFilterTranslucentVolumePS> PixelShader(GetGlobalShaderMap());
 				SetGlobalBoundShaderState(FilterBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-				VertexShader->SetParameters(VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(VolumeBounds);
-				PixelShader->SetParameters(View, VolumeCascadeIndex);
+				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
+				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				PixelShader->SetParameters(RHICmdList, View, VolumeCascadeIndex);
 
 				RasterizeToVolumeTexture(VolumeBounds);
 

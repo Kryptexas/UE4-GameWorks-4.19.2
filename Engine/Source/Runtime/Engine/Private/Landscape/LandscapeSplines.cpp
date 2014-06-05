@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
 #include "AI/Navigation/RecastHelpers.h"
 #include "Landscape/LandscapeSplineProxies.h"

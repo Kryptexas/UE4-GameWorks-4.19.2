@@ -25,7 +25,8 @@ class FPostProcessUpscalePS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
 	}
 
@@ -46,18 +47,18 @@ public:
 		UpscaleSoftness.Bind(Initializer.ParameterMap,TEXT("UpscaleSoftness"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
 		FSamplerStateRHIParamRef FilterTable[2];
 		FilterTable[0] = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		FilterTable[1] = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 			
-		PostprocessParameter.SetPS(ShaderRHI, Context, 0, false, FilterTable);
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, 0, false, FilterTable);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		// If the method needs softness value
 		if(Method == 2)
@@ -66,7 +67,7 @@ public:
 
 			float UpscaleSoftnessValue = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 1.0f);
 
-			SetShaderValue(ShaderRHI, UpscaleSoftness, UpscaleSoftnessValue);
+			SetShaderValue(RHICmdList, ShaderRHI, UpscaleSoftness, UpscaleSoftnessValue);
 		}
 	}
 	
@@ -107,7 +108,7 @@ FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(uint32 InUpscaleMethod)
 }
 
 template <uint32 Method>
-void FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessUpscale::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(GetGlobalShaderMap());
@@ -116,7 +117,7 @@ void FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& 
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 }
 
 void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
@@ -139,6 +140,9 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 	Context.SetViewportAndCallRHI(DestRect);
@@ -151,16 +155,16 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	switch (UpscaleMethod)
 	{
 		case 0:
-			SetShader<0>(Context);
+			SetShader<0>(RHICmdList, Context);
 		break;
 		case 1:
-			SetShader<1>(Context);
+			SetShader<1>(RHICmdList, Context);
 		break;
 		case 2:
-			SetShader<2>(Context);
+			SetShader<2>(RHICmdList, Context);
 		break;
 		case 3:
-			SetShader<3>(Context);
+			SetShader<3>(RHICmdList, Context);
 		break;
 		default:
 			checkNoEntry();

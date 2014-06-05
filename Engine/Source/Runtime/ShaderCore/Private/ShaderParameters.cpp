@@ -89,7 +89,9 @@ void FShaderUniformBufferParameter::ModifyCompilationEnvironment(const TCHAR* Pa
 		);
 
 	FString& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
-	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, ParameterName);
+	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, ParameterName);
+
+	Struct.AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
 }
 
 void FShaderUniformBufferParameter::Bind(const FShaderParameterMap& ParameterMap,const TCHAR* ParameterName,EShaderParameterFlags Flags)
@@ -125,17 +127,40 @@ void FShaderUniformBufferParameter::Bind(const FShaderParameterMap& ParameterMap
 	}
 }
 
-/** Generates a HLSL struct declaration for a uniform buffer struct. */
-static FString CreateHLSLUniformBufferStructMembersDeclaration(const FUniformBufferStruct& UniformBufferStruct, bool bIgnorePadding)
+/** The individual bits of a uniform buffer declaration. */
+struct FUniformBufferDecl
 {
-	FString Result;
-	uint32 HLSLBaseOffset = 0;
+	/** Members to place in the constant buffer. */
+	FString ConstantBufferMembers;
+	/** Members to place in the resource table. */
+	FString ResourceMembers;
+	/** Members in the struct HLSL shader code will access. */
+	FString StructMembers;
+	/** The HLSL initializer that will copy constants and resources in to the struct. */
+	FString Initializer;
+};
 
+/** Generates a HLSL struct declaration for a uniform buffer struct. */
+static void CreateHLSLUniformBufferStructMembersDeclaration(FUniformBufferDecl& Decl, const FUniformBufferStruct& UniformBufferStruct, const FString& NamePrefix, bool bExplicitPadding)
+{
+	uint32 HLSLBaseOffset = 0;
+	bool bFoundResourceMember = false;
+	int32 MemberIndex = 0;
 	const TArray<FUniformBufferStruct::FMember>& StructMembers = UniformBufferStruct.GetMembers();
-	for(int32 MemberIndex = 0;MemberIndex < StructMembers.Num();++MemberIndex)
+	
+	Decl.Initializer += TEXT("{");
+	int32 OpeningBraceLocPlusOne = Decl.Initializer.Len();
+
+	for(;MemberIndex < StructMembers.Num();++MemberIndex)
 	{
 		const FUniformBufferStruct::FMember& Member = StructMembers[MemberIndex];
 		
+		if (IsUniformBufferResourceType(Member.GetBaseType()))
+		{
+			bFoundResourceMember = true;
+			break;
+		}
+
 		FString ArrayDim;
 		if(Member.GetNumElements() > 0)
 		{
@@ -144,9 +169,10 @@ static FString CreateHLSLUniformBufferStructMembersDeclaration(const FUniformBuf
 
 		if(Member.GetBaseType() == UBMT_STRUCT)
 		{
-			Result += TEXT("struct {\r\n");
-			Result += CreateHLSLUniformBufferStructMembersDeclaration(*Member.GetStruct(), bIgnorePadding);
-			Result += FString::Printf(TEXT("} %s%s;\r\n"),Member.GetName(),*ArrayDim);
+			Decl.StructMembers += TEXT("struct {\r\n");
+			Decl.Initializer += TEXT(",");
+			CreateHLSLUniformBufferStructMembersDeclaration(Decl, *Member.GetStruct(), FString::Printf(TEXT("%s%s_"), *NamePrefix, Member.GetName()), bExplicitPadding);
+			Decl.StructMembers += FString::Printf(TEXT("} %s%s;\r\n"),Member.GetName(),*ArrayDim);
 			HLSLBaseOffset += Member.GetStruct()->GetSize() * Member.GetNumElements();
 		}
 		else
@@ -203,8 +229,10 @@ static FString CreateHLSLUniformBufferStructMembersDeclaration(const FUniformBuf
 				check(HLSLBaseOffset < Member.GetOffset());
 				while(HLSLBaseOffset < Member.GetOffset())
 				{
-					if(!bIgnorePadding)
-						Result += FString::Printf(TEXT("\tfloat1 _PrePadding%u;\r\n"),HLSLBaseOffset);
+					if(bExplicitPadding)
+					{
+						Decl.ConstantBufferMembers += FString::Printf(TEXT("\tfloat1 _%s_PrePadding%u;\r\n"), *NamePrefix, HLSLBaseOffset);
+					}
 					HLSLBaseOffset += 4;
 				};
 				check(HLSLBaseOffset == Member.GetOffset());
@@ -213,38 +241,74 @@ static FString CreateHLSLUniformBufferStructMembersDeclaration(const FUniformBuf
 			HLSLBaseOffset = Member.GetOffset() + HLSLMemberSize;
 
 			// Generate the member declaration.
-			Result += FString::Printf(TEXT("\t%s%s %s%s;\r\n"),*BaseTypeName,*TypeDim,Member.GetName(),*ArrayDim);
+			FString ParameterName = FString::Printf(TEXT("%s%s"),*NamePrefix,Member.GetName());
+			Decl.ConstantBufferMembers += FString::Printf(TEXT("\t%s%s %s%s;\r\n"),*BaseTypeName,*TypeDim,*ParameterName,*ArrayDim);
+			Decl.StructMembers += FString::Printf(TEXT("\t%s%s %s%s;\r\n"),*BaseTypeName,*TypeDim,Member.GetName(),*ArrayDim);
+			Decl.Initializer += FString::Printf(TEXT(",%s"),*ParameterName);
 		}
 	}
 
-	return Result;
+	for(;MemberIndex < StructMembers.Num();++MemberIndex)
+	{
+		const FUniformBufferStruct::FMember& Member = StructMembers[MemberIndex];
+
+		if (!IsUniformBufferResourceType(Member.GetBaseType()))
+		{
+			check(!bFoundResourceMember);
+			continue;
+		}
+		bFoundResourceMember = true;
+
+		// TODO: handle arrays?
+		FString ParameterName = FString::Printf(TEXT("%s%s"),*NamePrefix,Member.GetName());
+		Decl.ResourceMembers += FString::Printf(TEXT("%s %s;\r\n"), Member.GetShaderType(), *ParameterName);
+		Decl.StructMembers += FString::Printf(TEXT("\t%s %s;\r\n"), Member.GetShaderType(), Member.GetName());
+		Decl.Initializer += FString::Printf(TEXT(",%s"), *ParameterName);
+	}
+
+	Decl.Initializer += TEXT("}");
+	if (Decl.Initializer[OpeningBraceLocPlusOne] == TEXT(','))
+	{
+		Decl.Initializer[OpeningBraceLocPlusOne] = TEXT(' ');
+	}
 }
 
-/**
- * Creates a HLSL declaration of a uniform buffer with the given structure.
- * @param bIgnoreRowMajor on OpenGL this is the default so we suppress it (can be moved to the HLSL2GLSL converter)
- */
-static FString CreateHLSLSM5UniformBufferDeclaration(const TCHAR* Name,const FUniformBufferStruct& UniformBufferStruct, bool bIgnorePadding)
+/** Creates a HLSL declaration of a uniform buffer with the given structure. */
+static FString CreateHLSLUniformBufferDeclaration(const TCHAR* Name,const FUniformBufferStruct& UniformBufferStruct, bool bExplicitPadding)
 {
-	const FString StructMemberDeclaration = CreateHLSLUniformBufferStructMembersDeclaration(UniformBufferStruct, bIgnorePadding);
+	// If the uniform buffer has no members, we don't want to write out anything.  Shader compilers throw errors when faced with empty cbuffers and structs.
+	if (UniformBufferStruct.GetMembers().Num() > 0)
+{
+		FString NamePrefix(FString(Name) + FString(TEXT("_")));
+		FUniformBufferDecl Decl;
+		CreateHLSLUniformBufferStructMembersDeclaration(Decl, UniformBufferStruct, NamePrefix, bExplicitPadding);
 
 	return FString::Printf(
 		TEXT("#ifndef __UniformBuffer_%s_Definition__\r\n")
 		TEXT("#define __UniformBuffer_%s_Definition__\r\n")
 		TEXT("cbuffer %s\r\n")
 		TEXT("{\r\n")
-		TEXT("\tstruct\r\n")
-		TEXT("\t{\r\n")
 		TEXT("%s")
-		TEXT("\t} %s;\r\n")
 		TEXT("}\r\n")
+			TEXT("%s")
+			TEXT("static const struct\r\n")
+			TEXT("{\r\n")
+			TEXT("%s")
+			TEXT("} %s = %s;\r\n")
 		TEXT("#endif\r\n"),
 		Name,
 		Name,
 		Name,
-		*StructMemberDeclaration,
+			*Decl.ConstantBufferMembers,
+			*Decl.ResourceMembers,
+			*Decl.StructMembers,
+			Name,
+			*Decl.Initializer,
 		Name
 		);
+}
+
+	return FString(TEXT("\n"));
 }
 
 FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBufferStruct& UniformBufferStruct,EShaderPlatform Platform)
@@ -253,10 +317,10 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 	{
 	default:
 	case SP_PCD3D_SM5:
-		return CreateHLSLSM5UniformBufferDeclaration(Name,UniformBufferStruct, false);
+		return CreateHLSLUniformBufferDeclaration(Name,UniformBufferStruct, true);
 	case SP_OPENGL_SM4:
 	case SP_OPENGL_SM5:
-		return CreateHLSLSM5UniformBufferDeclaration(Name,UniformBufferStruct, true);
+		return CreateHLSLUniformBufferDeclaration(Name,UniformBufferStruct, false);
 	}
 }
 
@@ -289,14 +353,22 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 
 	FString UniformBufferIncludes;
 
-	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator StructIt(ReferencedUniformBufferStructsCache); StructIt; ++StructIt)
+	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
-		check(StructIt.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, StructIt.Key());
+		check(It.Value().Declaration[Platform].Len() > 0);
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, It.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
-			*FString::Printf(TEXT("UniformBuffers/%s.usf"),StructIt.Key()),
-			StructIt.Value().Declaration[Platform]
+			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
+			It.Value().Declaration[Platform]
 			);
+
+		for (TLinkedList<FUniformBufferStruct*>::TIterator StructIt(FUniformBufferStruct::GetStructList()); StructIt; StructIt.Next())
+		{
+			if (It.Key() == StructIt->GetShaderVariableName())
+			{
+				StructIt->AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
+			}
+		}
 	}
 
 	FString& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
@@ -314,14 +386,22 @@ void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvir
 
 	FString UniformBufferIncludes;
 
-	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator StructIt(ReferencedUniformBufferStructsCache); StructIt; ++StructIt)
+	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
-		check(StructIt.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, StructIt.Key());
+		check(It.Value().Declaration[Platform].Len() > 0);
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, It.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
-			*FString::Printf(TEXT("UniformBuffers/%s.usf"),StructIt.Key()),
-			StructIt.Value().Declaration[Platform]
+			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
+			It.Value().Declaration[Platform]
 		);
+
+		for (TLinkedList<FUniformBufferStruct*>::TIterator StructIt(FUniformBufferStruct::GetStructList()); StructIt; StructIt.Next())
+		{
+			if (It.Key() == StructIt->GetShaderVariableName())
+			{
+				StructIt->AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
+			}
+		}
 	}
 
 	FString& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");

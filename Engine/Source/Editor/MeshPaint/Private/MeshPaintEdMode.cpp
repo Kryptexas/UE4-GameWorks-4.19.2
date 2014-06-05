@@ -47,9 +47,9 @@ class FMeshPaintBatchedElementParameters : public FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
+	virtual void BindShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture ) OVERRIDE
 	{
-		MeshPaintRendering::SetMeshPaintShaders_RenderThread( InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -66,9 +66,9 @@ class FMeshPaintDilateBatchedElementParameters : public FBatchedElementParameter
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread( const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
+	virtual void BindShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture ) OVERRIDE
 	{
-		MeshPaintRendering::SetMeshPaintDilateShaders_RenderThread( InTransform, InGamma, ShaderParams );
+		MeshPaintRendering::SetMeshPaintDilateShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
 
 public:
@@ -302,26 +302,8 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 
 			bool bAnyPaintAbleActorsUnderCursor = false;
 
-			bool bIsTexturePaintMode = FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture;
-			if( bIsTexturePaintMode )
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					TexturePaintBeginSceneCommand,
-				{
-					RHIBeginScene();
-				});
-			}
-		
 			DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
 
-			if( bIsTexturePaintMode )
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					TexturePaintEndSceneCommand,
-				{
-					RHIEndScene();
-				});
-			}
 			return true;
 		}
 	}

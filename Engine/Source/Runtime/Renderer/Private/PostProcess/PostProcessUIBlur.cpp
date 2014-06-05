@@ -34,13 +34,13 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
 	
 	// FShader interface.
@@ -76,6 +76,9 @@ void FRCPassPostProcessUIBlur::Process(FRenderingCompositePassContext& Context)
 	TRefCountPtr<IPooledRenderTarget>& Dest = PassInputs[0].GetOutput()->PooledRenderTarget;
 	const FSceneRenderTargetItem& DestRenderTarget = Dest->GetRenderTargetItem();
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
@@ -91,7 +94,7 @@ void FRCPassPostProcessUIBlur::Process(FRenderingCompositePassContext& Context)
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 
 	// todo: we only expect few quads but ideally we have one one draw call for all quads
 	int32 RectCount = Context.View.UIBlurOverrideRectangles.Num();

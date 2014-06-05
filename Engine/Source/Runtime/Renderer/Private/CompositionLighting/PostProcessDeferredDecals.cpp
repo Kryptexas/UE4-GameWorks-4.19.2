@@ -314,6 +314,12 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	FStencilDecalMaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
 	{
@@ -321,12 +327,12 @@ public:
 	}
 	FStencilDecalMaskPS() {}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		DeferredParameters.Set(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -361,7 +367,9 @@ void StencilDecalMask(const FSceneView& View)
 	
 	SetGlobalBoundShaderState(StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	PixelShader->SetParameters(RHICmdList, View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -399,10 +407,10 @@ public:
 		FrustumComponentToClip.Bind(Initializer.ParameterMap, TEXT("FrustumComponentToClip"));
 	}
 
-	void SetParameters(const FSceneView& View, const FMatrix& InFrustumComponentToClip)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FMatrix& InFrustumComponentToClip)
 	{
-		FMaterialShader::SetParameters(GetVertexShader(), View);
-		SetShaderValue(GetVertexShader(), FrustumComponentToClip, InFrustumComponentToClip);
+		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), View);
+		SetShaderValue(RHICmdList, GetVertexShader(), FrustumComponentToClip, InFrustumComponentToClip);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -465,11 +473,11 @@ public:
 		DecalToWorld.Bind(Initializer.ParameterMap,TEXT("DecalToWorld"));
 	}
 
-	void SetParameters(const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialProxy, const FDeferredDecalProxy& DecalProxy)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
 
 		FTransform ComponentTrans = DecalProxy.ComponentTrans;
 
@@ -489,7 +497,7 @@ public:
 					FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)
 				) * View.InvViewProjectionMatrix * WorldToComponent;
 
-			SetShaderValue(ShaderRHI, ScreenToDecal, ScreenToDecalValue);
+			SetShaderValue(RHICmdList, ShaderRHI, ScreenToDecal, ScreenToDecalValue);
 		}
 
 		// Set the transform from light space to world space (only for normals)
@@ -500,7 +508,7 @@ public:
 			// 1,1,1 requires no scale
 			//			DecalToWorldValue = DecalToWorldValue.GetScaled(GDefaultDecalSize);
 
-			SetShaderValue(ShaderRHI, DecalToWorld, DecalToWorldValue);
+			SetShaderValue(RHICmdList, ShaderRHI, DecalToWorld, DecalToWorldValue);
 		}
 	}
 
@@ -596,12 +604,14 @@ private:
 static TGlobalResource<FUnitCubeVertexBuffer> GUnitCubeVertexBuffer;
 static TGlobalResource<FUnitCubeIndexBuffer> GUnitCubeIndexBuffer;
 
-void SetShader(const FRenderingCompositePassContext& Context, const FTransientDecalRenderData& DecalData, FShader* VertexShader)
+void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, const FTransientDecalRenderData& DecalData, FShader* VertexShader)
 {
 	const FSceneView& View = Context.View;
 	
 	const FMaterialShaderMap* MaterialShaderMap = DecalData.MaterialResource->GetRenderingThreadShaderMap();
 	FDeferredDecalPS* PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
+
+	check(!RHICmdList);
 
 	// This was cached but when changing the material (e.g. editor) it wasn't updated.
 	// This will change with upcoming multi threaded rendering changes.
@@ -616,10 +626,10 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 
 	RHISetBoundShaderState(BoundShaderState);
 
-	PixelShader->SetParameters(View, DecalData.MaterialProxy, *DecalData.DecalProxy);
+	PixelShader->SetParameters(RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy);
 }
 
-bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
+bool RenderPreStencil(FRHICommandList* RHICmdList, FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
 	SCOPED_DRAW_EVENT(RenderPreStencil, DEC_SCENE_ITEMS);
 
@@ -644,6 +654,8 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 
 	FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
 	
+	check(!RHICmdList);
+
 	// This was cached but when changing the material (e.g. editor) it wasn't updated.
 	// This will change with upcoming multi threaded rendering changes.
 	FBoundShaderStateRHIRef BoundShaderState;
@@ -653,7 +665,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 
 	RHISetBoundShaderState(BoundShaderState);
 
-	VertexShader->SetParameters(View, FrustumComponentToClip);
+	VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
 
 	// Set states, the state cache helps us avoiding redundant sets
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
@@ -696,6 +708,9 @@ FRCPassPostProcessDeferredDecals::FRCPassPostProcessDeferredDecals(uint32 InRend
 
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	bool bDBuffer = IsDBufferEnabled();
 	float bDecalPreStencil = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
@@ -897,7 +912,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			{
 				if(bDecalPreStencil)
 				{
-					bThisDecalUsesStencil = RenderPreStencil(Context, MaterialShaderMap, ComponentToWorldMatrix, FrustumComponentToClip);
+					bThisDecalUsesStencil = RenderPreStencil(RHICmdList, Context, MaterialShaderMap, ComponentToWorldMatrix, FrustumComponentToClip);
 					WasInsideDecal = -1;
 					LastDecalBlendMode = -1;
 				}
@@ -973,9 +988,9 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			{
 				FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
-				SetShader(Context, DecalData, VertexShader);
+				SetShader(RHICmdList, Context, DecalData, VertexShader);
 
-				VertexShader->SetParameters(View, FrustumComponentToClip);
+				VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
 
 				const int32 IsInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f) + ( bThisDecalUsesStencil ) ? 2 : 0;
 				if ( WasInsideDecal != IsInsideDecal )
@@ -1047,7 +1062,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					}
 				}
 
-				SetShader(Context, DecalData, VertexShader);
+				SetShader(RHICmdList, Context, DecalData, VertexShader);
 
 				RHIDrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
 			}

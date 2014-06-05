@@ -16,7 +16,7 @@
 	FCustomDepthPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FCustomDepthPrimSet::DrawPrims(const FViewInfo* ViewInfo,bool bInitializeOffsets)
+bool FCustomDepthPrimSet::DrawPrims(FRHICommandList* RHICmdList, const FViewInfo* ViewInfo,bool bInitializeOffsets)
 {
 	bool bDirty=false;
 
@@ -49,6 +49,7 @@ bool FCustomDepthPrimSet::DrawPrims(const FViewInfo* ViewInfo,bool bInitializeOf
 						if (ViewInfo->StaticMeshVisibilityMap[StaticMesh.Id])
 						{
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
+								RHICmdList, 
 								*ViewInfo,
 								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
 								StaticMesh,

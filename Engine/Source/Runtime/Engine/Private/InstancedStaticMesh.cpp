@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "ShaderParameters.h"
-#include "StaticLighting.h"
+#include "ShaderParameterUtils.h"
 
 #include "Components/InteractiveFoliageComponent.h"
 #include "Components/SplineMeshComponent.h"
@@ -512,12 +512,13 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 		InstancingFadeOutParamsParameter.Bind(ParameterMap,TEXT("InstancingFadeOutParams"));
 	}
 
-	virtual void SetMesh(FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
 		if( InstancedViewTranslationParameter.IsBound() )
 		{
 			FVector4 InstancedViewTranslation(View.ViewMatrices.PreViewTranslation, 0.f);
 			SetShaderValue(
+				RHICmdList, 
 				VertexShader->GetVertexShader(),
 				InstancedViewTranslationParameter,
 				InstancedViewTranslation
@@ -551,7 +552,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 				InstancingFadeOutParams.Z = InstancingUserData->bRenderSelected ? 1.f : 0.f;
 				InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
 			}
-			SetShaderValue( VertexShader->GetVertexShader(), InstancingFadeOutParamsParameter, InstancingFadeOutParams );
+			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), InstancingFadeOutParamsParameter, InstancingFadeOutParams );
 		}
 
 		// upload SpeedTree buffer, if available
@@ -560,7 +561,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 			FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
 			if (SpeedTreeUniformBuffer != NULL)
 			{
-				SetUniformBufferParameter(VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
+				SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FSpeedTreeUniformParameters>(), SpeedTreeUniformBuffer);
 			}
 		}
 	}
@@ -1235,7 +1236,7 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 	UBodySetup* BodySetup = GetBodySetup();
 	check(BodySetup);
-	
+
 	// Get transform of the instance
 	FTransform InstanceTransform = FTransform(PerInstanceSMData[InstanceIdx].Transform) * ComponentToWorld;
 	

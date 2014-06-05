@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "RHIStaticStates.h"
+
 struct FRenderingCompositePass;
 struct FRenderingCompositeOutputRef;
 struct FRenderingCompositeOutput;
@@ -519,13 +521,13 @@ struct FPostProcessPassParameters
 	void Bind(const FShaderParameterMap& ParameterMap);
 
 	/** Set the pixel shader parameter values. */
-	void SetPS(const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
+	void SetPS(FRHICommandList* RHICmdList, const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
 
 	/** Set the compute shader parameter values. */
-	void SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
+	void SetCS(FRHICommandList* RHICmdList, const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
 
 	/** Set the vertex shader parameter values. */
-	void SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
+	void SetVS(FRHICommandList* RHICmdList, const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter = TStaticSamplerState<>::GetRHI(), bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FPostProcessPassParameters& P);
@@ -548,7 +550,7 @@ public:
 	// @param Filter can be 0 if FilterOverrideArray is used
 	// @param FilterOverrideArray can be 0 if Filter is used
 	template <class T>
-	void Set(const T& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0)
+	void Set(FRHICommandList* RHICmdList, const T& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture = false, FSamplerStateRHIParamRef* FilterOverrideArray = 0)
 	{
 		// assuming all outputs have the same size
 		FRenderingCompositeOutput* Output = Context.Pass->GetOutput(ePId_Output0);
@@ -560,6 +562,8 @@ public:
 		check(FilterOverrideArray || Filter);
 		// but not both
 		check(!FilterOverrideArray || !Filter);
+
+		check(!RHICmdList);
 
 		if(BilinearTextureSampler0.IsBound())
 		{
@@ -589,13 +593,13 @@ public:
 			{
 				FVector4 Value(ViewportExtent.X, ViewportExtent.Y, 1.0f / ViewportExtent.X, 1.0f / ViewportExtent.Y);
 
-				SetShaderValue(ShaderRHI, ViewportSize, Value);
+				SetShaderValue(RHICmdList, ShaderRHI, ViewportSize, Value);
 			}
 
 			{
 				FVector4 Value(LocalViewport.Min.X, LocalViewport.Min.Y, LocalViewport.Max.X, LocalViewport.Max.Y);
 
-				SetShaderValue(ShaderRHI, ViewportRect, Value);
+				SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Value);
 			}
 
 			{
@@ -604,7 +608,7 @@ public:
 					-ViewportExtent.Y * 0.5f, 
 					ViewportExtent.X * 0.5f - 0.5f + ViewportOffset.X,
 					ViewportExtent.Y * 0.5f - 0.5f + ViewportOffset.Y);
-				SetShaderValue(ShaderRHI, ScreenPosToPixel, ScreenPosToPixelValue);
+				SetShaderValue(RHICmdList, ShaderRHI, ScreenPosToPixel, ScreenPosToPixelValue);
 			}
 		}
 
@@ -646,21 +650,21 @@ public:
 
 				const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 
-				SetTextureParameter(ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, SrcTexture);
-				SetTextureParameter(ShaderRHI, PostprocessInputNew[Id], InputPooledElement->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, SrcTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], InputPooledElement->GetRenderTargetItem().TargetableTexture);
 
 				{
 					float Width = InputPooledElement->GetDesc().Extent.X;
 					float Height = InputPooledElement->GetDesc().Extent.Y;
 					FVector4 TextureSize(Width, Height, 1.0f / Width, 1.0f / Height);
-					SetShaderValue(ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
+					SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], TextureSize);
 					
 					//We could use the main scene min max here if it weren't that we need to pull the max in by a pixel on a per input basis.
 					FVector2D OnePPInputPixelUVSize = FVector2D(1.0f / Width, 1.0f / Height);
 					FVector4 PPInputMinMax = BaseSceneTexMinMax;
 					PPInputMinMax.Z -= OnePPInputPixelUVSize.X;
 					PPInputMinMax.W -= OnePPInputPixelUVSize.Y;
-					SetShaderValue(ShaderRHI, PostProcessInputMinMaxParameter[Id], PPInputMinMax);
+					SetShaderValue(RHICmdList, ShaderRHI, PostProcessInputMinMaxParameter[Id], PPInputMinMax);
 				}
 			}
 			else
@@ -669,12 +673,12 @@ public:
 
 				// if the input is not there but the shader request it we give it at least some data to avoid d3ddebug errors and shader permutations
 				// to make features optional we use default black for additive passes without shader permutations
-				SetTextureParameter(ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, Texture->GetRenderTargetItem().TargetableTexture);
-				SetTextureParameter(ShaderRHI, PostprocessInputNew[Id], Texture->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, Texture->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputNew[Id], Texture->GetRenderTargetItem().TargetableTexture);
 
 				FVector4 Dummy(1, 1, 1, 1);
-				SetShaderValue(ShaderRHI, PostprocessInputSizeParameter[Id], Dummy);
-				SetShaderValue(ShaderRHI, PostProcessInputMinMaxParameter[Id], Dummy);
+				SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], Dummy);
+				SetShaderValue(RHICmdList, ShaderRHI, PostProcessInputMinMaxParameter[Id], Dummy);
 			}
 		}
 

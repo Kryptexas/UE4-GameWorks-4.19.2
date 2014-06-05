@@ -55,25 +55,25 @@ public:
 		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
 	}
 
-	void SetCS(const FRenderingCompositePassContext& Context, FIntPoint ThreadGroupCountValue, FIntPoint LeftTopOffsetValue, FIntPoint GatherExtent)
+	void SetCS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint ThreadGroupCountValue, FIntPoint LeftTopOffsetValue, FIntPoint GatherExtent)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetCS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
-		SetShaderValue(ShaderRHI, ThreadGroupCount, ThreadGroupCountValue);
-		SetShaderValue(ShaderRHI, LeftTopOffset, LeftTopOffsetValue);
+		SetShaderValue(RHICmdList, ShaderRHI, ThreadGroupCount, ThreadGroupCountValue);
+		SetShaderValue(RHICmdList, ShaderRHI, LeftTopOffset, LeftTopOffsetValue);
 
 		FVector4 HistogramParametersValue(GatherExtent.X, GatherExtent.Y, 0, 0);
-		SetShaderValue(ShaderRHI, HistogramParameters, HistogramParametersValue);
+		SetShaderValue(RHICmdList, ShaderRHI, HistogramParameters, HistogramParametersValue);
 
 		{
 			FVector4 Temp[3];
 
 			FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(Context.View, Temp);
-			SetShaderValueArray(ShaderRHI, EyeAdaptationParams, Temp, 3);
+			SetShaderValueArray(RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
 		}
 	}
 	
@@ -123,9 +123,11 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(GatherExtent);
 
 	
-	ComputeShader->SetCS(Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	ComputeShader->SetCS(RHICmdList, Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
 	
-	DispatchComputeShader(*ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
+	DispatchComputeShader(RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
 	// un-set destination
 	RHISetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), NULL);

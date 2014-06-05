@@ -59,11 +59,13 @@ void FTexture2DDynamicResource::InitRHI()
 	FRHIResourceCreateInfo CreateInfo;
 	Texture2DRHI = RHICreateTexture2D( Owner->SizeX, Owner->SizeY, Owner->Format, Owner->NumMips, 1, Flags, CreateInfo );
 	TextureRHI = Texture2DRHI;
+	RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 }
 
 /** Called when the resource is released. This is only called by the rendering thread. */
 void FTexture2DDynamicResource::ReleaseRHI()
 {
+	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();
 }

@@ -52,8 +52,10 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 
 			FRenderingCompositePassContext Context(SceneRenderer->Views[0]);
 
-			VertexShader->SetParameters(SceneRenderer->Views[0]);
-			PixelShader->SetParameters(TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
+			//@todo-rco: RHIPacketList
+			FRHICommandList* RHICmdList = nullptr;
+			VertexShader->SetParameters(RHICmdList, SceneRenderer->Views[0]);
+			PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
 
 			FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());
 

@@ -4,6 +4,7 @@
 #include "SlateRHIRendererPrivatePCH.h"
 #include "SlateRHIRenderingPolicy.h"
 #include "SlateShaders.h"
+#include "ShaderParameterUtils.h"
 
 /** Flag to determine if we are running with a color vision deficiency shader on */
 uint32 GSlateShaderColorVisionDeficiencyType = 0;
@@ -66,14 +67,14 @@ FSlateElementVS::FSlateElementVS( const ShaderMetaType::CompiledShaderInitialize
 	VertexShaderParams.Bind( Initializer.ParameterMap, TEXT("VertexShaderParams"));
 }
 
-void FSlateElementVS::SetViewProjection( const FMatrix& InViewProjection )
+void FSlateElementVS::SetViewProjection(FRHICommandList* RHICmdList, const FMatrix& InViewProjection )
 {
-	SetShaderValue( GetVertexShader(), ViewProjection, InViewProjection );
+	SetShaderValue(RHICmdList, GetVertexShader(), ViewProjection, InViewProjection );
 }
 
-void FSlateElementVS::SetShaderParameters( const FVector4& ShaderParams )
+void FSlateElementVS::SetShaderParameters(FRHICommandList* RHICmdList, const FVector4& ShaderParams )
 {
-	SetShaderValue( GetVertexShader(), VertexShaderParams, ShaderParams );
+	SetShaderValue(RHICmdList, GetVertexShader(), VertexShaderParams, ShaderParams );
 }
 
 /** Serializes the shader data */

@@ -118,11 +118,11 @@ public:
 	ENGINE_API FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	
 	template<typename ShaderRHIParamRef>
-	void SetParameters(const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
 	{
 		check(GetUniformBufferParameter<FViewUniformShaderParameters>().IsInitialized());
 		CheckShaderIsValid();
-		SetUniformBufferParameter(ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
 	}
 
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, FShaderCompilerEnvironment&);

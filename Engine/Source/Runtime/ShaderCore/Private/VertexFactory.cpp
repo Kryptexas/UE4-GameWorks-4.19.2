@@ -7,6 +7,7 @@
 #include "ShaderCore.h"
 #include "Shader.h"
 #include "VertexFactory.h"
+#include "RHICommandList.h"
 
 uint32 FVertexFactoryType::NextHashIndex = 0;
 bool FVertexFactoryType::bInitializedSerializationHistory = false;
@@ -166,26 +167,29 @@ FVertexFactoryType* FindVertexFactoryType(FName TypeName)
 	return NULL;
 }
 
-void FVertexFactory::Set() const
+void FVertexFactory::Set(FRHICommandList* RHICmdList) const
 {
 	check(IsInitialized());
 	for(int32 StreamIndex = 0;StreamIndex < Streams.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = Streams[StreamIndex];
 		checkf(Stream.VertexBuffer->IsInitialized(), TEXT("Vertex buffer was not initialized! Stream %u, Stride %u, Name %s"), StreamIndex, Stream.Stride, *Stream.VertexBuffer->GetFriendlyName());
-		RHISetStreamSource(StreamIndex,Stream.VertexBuffer->VertexBufferRHI,Stream.Stride,Stream.Offset);
+		FRHICommandList::SetStreamSource(RHICmdList, StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset);
 	}
 }
 
 void FVertexFactory::SetPositionStream() const
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	check(IsInitialized());
 	// Set the predefined vertex streams.
 	for(int32 StreamIndex = 0;StreamIndex < PositionStream.Num();StreamIndex++)
 	{
 		const FVertexStream& Stream = PositionStream[StreamIndex];
 		check(Stream.VertexBuffer->IsInitialized());
-		RHISetStreamSource(StreamIndex,Stream.VertexBuffer->VertexBufferRHI,Stream.Stride,Stream.Offset);
+		FRHICommandList::SetStreamSource(RHICmdList, StreamIndex, Stream.VertexBuffer->VertexBufferRHI, Stream.Stride, Stream.Offset);
 	}
 }
 

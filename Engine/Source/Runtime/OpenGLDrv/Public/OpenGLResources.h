@@ -442,66 +442,58 @@ struct FOpenGLEUniformBufferData : public FRefCountedObject
 };
 typedef TRefCountPtr<FOpenGLEUniformBufferData> FOpenGLEUniformBufferDataRef;
 
-extern FOpenGLEUniformBufferDataRef AllocateOpenGLEUniformBufferData(uint32 Size, GLuint& Resource);
-extern void FreeOpenGLEUniformBufferData(GLuint Resource);
-
-// Emulated Uniform Buffer
-class FOpenGLEUniformBuffer : public FRHIUniformBuffer
+class FOpenGLUniformBuffer : public FRHIUniformBuffer
 {
 public:
-	const uint32 UniqueID;
+	/** The GL resource for this uniform buffer. */
 	GLuint Resource;
+
+	/** The offset of the uniform buffer's contents in the resource. */
+	uint32 Offset;
+
+	/** When using a persistently mapped buffer this is a pointer to the CPU accessible data. */
+	uint8* PersistentlyMappedBuffer;
+
+	/** Unique ID for state shadowing purposes. */
+	const uint32 UniqueID;
+
+	/** Resource table containing RHI references. */
+	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
+
+	/** Raw resource table, cached once per frame. */
+	TArray<void*> RawResourceTable;
+
+	/** The frame in which RawResourceTable was last cached. */
+	uint32 LastCachedFrame;
+
+	/** Emulated uniform data for ES2. */
+	FOpenGLEUniformBufferDataRef EmulatedBufferData;
+
+	/** The size of the buffer allocated to hold the uniform buffer contents. May be larger than necessary. */
+	uint32 AllocatedSize;
+
+	/** True if the uniform buffer is not used across frames. */
 	bool bStreamDraw;
-	uint32 RealSize;
 
-	FOpenGLEUniformBuffer(uint32 InStride, uint32 InSize, uint32 InUsage,
-		const void *InData, bool bInStreamDraw, GLuint ResourceToUse, uint32 ResourceSize) :
-		FRHIUniformBuffer(InSize), UniqueID(UniqueIDCounter), Resource(ResourceToUse), bStreamDraw(bInStreamDraw)
+	/** Initialization constructor. */
+	FOpenGLUniformBuffer(const FRHIUniformBufferLayout& InLayout, GLuint InResource, uint32 InOffset, uint8* InPersistentlyMappedBuffer, uint32 InAllocatedSize, FOpenGLEUniformBufferDataRef& InEmulatedBuffer, bool bInStreamDraw);
+
+	/** Destructor. */
+	~FOpenGLUniformBuffer();
+
+	/** Cache resources if needed. */
+	inline void CacheResources(uint32 InFrameCounter)
 	{
-		RealSize = ResourceSize ? ResourceSize : InSize;
-		Buffer = AllocateOpenGLEUniformBufferData(InSize, Resource);
-		if (InData)
+		if (InFrameCounter == INDEX_NONE || LastCachedFrame != InFrameCounter)
 		{
-			FMemory::Memcpy(Buffer->Data.GetData(), InData, Buffer->Data.Num() * 4);
+			CacheResourcesInternal();
+			LastCachedFrame = InFrameCounter;
 		}
-
-		++UniqueIDCounter;
 	}
 
-	~FOpenGLEUniformBuffer()
-	{
-		OnUniformBufferDeletion(Resource, RealSize, bStreamDraw, 0, 0);
-	}
-
-	FOpenGLEUniformBufferDataRef Buffer;
-
-protected:
-	static uint32 UniqueIDCounter;
-};
-
-
-class FOpenGLBaseUniformBuffer : public FRHIUniformBuffer
-{
-public:
-	FOpenGLBaseUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage): FRHIUniformBuffer(InSize) {}
-	static bool OnDelete(GLuint Resource,uint32 Size,bool bStreamDraw,uint32 Offset,uint8* Pointer)
-	{
-		OnUniformBufferDeletion(Resource,Size,bStreamDraw,Offset,Pointer);
-		return false;
-	}
-	uint32 GetUsage() const { return 0; }
-
-	static FORCEINLINE bool GLSupportsType()
-	{
-		return FOpenGL::SupportsUniformBuffers();
-	}
-
-	static void CreateType(GLuint& Resource, const void* InData, uint32 InSize)
-	{
-		// @todo-mobile
-	}
-
-	static bool IsStructuredBuffer() { return false; }
+private:
+	/** Actually cache resources. */
+	void CacheResourcesInternal();
 };
 
 
@@ -555,85 +547,6 @@ typedef TOpenGLBuffer<FOpenGLBasePixelBuffer, GL_PIXEL_UNPACK_BUFFER, CachedBind
 typedef TOpenGLBuffer<FOpenGLBaseVertexBuffer, GL_ARRAY_BUFFER, CachedBindArrayBuffer> FOpenGLVertexBuffer;
 typedef TOpenGLBuffer<FOpenGLBaseIndexBuffer,GL_ELEMENT_ARRAY_BUFFER,CachedBindElementArrayBuffer> FOpenGLIndexBuffer;
 typedef TOpenGLBuffer<FOpenGLBaseStructuredBuffer,GL_ARRAY_BUFFER,CachedBindArrayBuffer> FOpenGLStructuredBuffer;
-
-#define SUBALLOCATED_CONSTANT_BUFFER 1
-
-#if !SUBALLOCATED_CONSTANT_BUFFER
-typedef TOpenGLBuffer<FOpenGLBaseUniformBuffer, GL_UNIFORM_BUFFER, CachedBindUniformBuffer> FOpenGLUniformBuffer;
-#else
-class FOpenGLUniformBuffer : public FOpenGLBaseUniformBuffer
-{
-public:
-	GLuint Resource;
-	bool bStreamDraw;
-	uint32 RealSize;
-	uint32 Offset;
-	uint8* Pointer;
-
-	FOpenGLUniformBuffer(uint32 InStride,uint32 InSize,uint32 InUsage,
-		const void *InData = NULL, bool bStreamedDraw = false, GLuint ResourceToUse = 0, uint32 ResourceSize = 0, uint32 InOffset = 0, uint8* InPointer = 0)
-	: FOpenGLBaseUniformBuffer(InStride,InSize,InUsage)
-	, Resource(0)
-	, bStreamDraw(bStreamedDraw)
-	, RealSize(InSize)
-	, Offset(InOffset)
-	, Pointer(InPointer)
-	{
-		VERIFY_GL_SCOPE();
-		RealSize = ResourceSize ? ResourceSize : InSize;
-		if( ResourceToUse )
-		{
-			Resource = ResourceToUse;
-			if ( Pointer)
-			{
-				//Want to just use memcpy, no need to bind, etc
-				FMemory::Memcpy( Pointer, InData, InSize);
-			}
-			else
-			{
-				CachedBindUniformBuffer(Resource);
-				glBufferSubData(GL_UNIFORM_BUFFER, Offset, InSize, InData);
-			}
-		}
-		else
-		{
-			check( Offset == 0);
-			check( Pointer == 0);
-			if (GLSupportsType())
-			{
-				FOpenGL::GenBuffers(1, &Resource);
-				CachedBindUniformBuffer(Resource);
-				if( InData == NULL || RealSize <= InSize )
-				{
-					glBufferData(GL_UNIFORM_BUFFER, RealSize, InData, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
-				}
-				else
-				{
-					glBufferData(GL_UNIFORM_BUFFER, RealSize, NULL, bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW));
-					glBufferSubData(GL_UNIFORM_BUFFER, 0, InSize, InData);
-				}
-				IncrementBufferMemory(GL_UNIFORM_BUFFER, IsStructuredBuffer(), RealSize);
-			}
-			else
-			{
-				CreateType(Resource, InData, InSize);
-			}
-		}
-	}
-
-	~FOpenGLUniformBuffer()
-	{
-		VERIFY_GL_SCOPE();
-		if (Resource != 0 && OnDelete(Resource,RealSize,bStreamDraw,Offset,Pointer))
-		{
-			glDeleteBuffers(1, &Resource);
-			DecrementBufferMemory(GL_UNIFORM_BUFFER, IsStructuredBuffer(), RealSize);
-		}
-	}
-
-	bool IsDynamic() const { return (this->GetUsage() & BUF_AnyDynamic) != 0; }
-};
-#endif
 
 #define MAX_STREAMED_BUFFERS_IN_ARRAY 2	// must be > 1!
 #define MIN_DRAWS_IN_SINGLE_BUFFER 16
@@ -837,6 +750,9 @@ public:
 	/** The OpenGL texture target. */
 	GLenum Target;
 
+	/** The number of mips in the texture. */
+	uint32 NumMips;
+
 	/** The OpenGL attachment point. This should always be GL_COLOR_ATTACHMENT0 in case of color buffer, but the actual texture may be attached on other color attachments. */
 	GLenum Attachment;
 
@@ -845,12 +761,14 @@ public:
 		FOpenGLDynamicRHI* InOpenGLRHI,
 		GLuint InResource,
 		GLenum InTarget,
+		uint32 InNumMips,
 		GLenum InAttachment
 		)
 	: OpenGLRHI(InOpenGLRHI)
 	, SamplerState(nullptr)
 	, Resource(InResource)
 	, Target(InTarget)
+	, NumMips(InNumMips)
 	, Attachment(InAttachment)
 	, MemorySize( 0 )
 	, bIsPowerOfTwo(false)
@@ -921,6 +839,7 @@ public:
 		InOpenGLRHI,
 		InResource,
 		InTarget,
+		InNumMips,
 		InAttachment
 		)
 	, BaseLevel(0)
@@ -1076,12 +995,29 @@ typedef TOpenGLTexture<FOpenGLBaseTexture2DArray>		FOpenGLTexture2DArray;
 typedef TOpenGLTexture<FOpenGLBaseTexture3D>			FOpenGLTexture3D;
 typedef TOpenGLTexture<FOpenGLBaseTextureCube>			FOpenGLTextureCube;
 
+class FOpenGLTextureReference : public FRHITextureReference
+{
+	FOpenGLTextureBase* TexturePtr;
+
+public:
+	FOpenGLTextureReference()
+		: TexturePtr(NULL)
+	{}
+
+	void SetReferencedTexture(FRHITexture* InTexture);
+	FOpenGLTextureBase* GetTexturePtr() const { return TexturePtr; }
+};
+
 /** Given a pointer to a RHI texture that was created by the OpenGL RHI, returns a pointer to the FOpenGLTextureBase it encapsulates. */
 inline FOpenGLTextureBase* GetOpenGLTextureFromRHITexture(FRHITexture* Texture)
 {
 	if(!Texture)
 	{
 		return NULL;
+	}
+	else if(Texture->GetTextureReference())
+	{
+		return ((FOpenGLTextureReference*)Texture)->GetTexturePtr();
 	}
 	else if(Texture->GetTexture2D())
 	{

@@ -34,51 +34,6 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 		ParameterCollectionUniformBuffers.Add(CollectionParameter);
 	}
 
-	// Bind uniform 2D texture parameters.
-	for(int32 ParameterIndex = 0;ParameterIndex < Initializer.UniformExpressionSet.Uniform2DTextureExpressions.Num();ParameterIndex++)
-	{
-		FShaderResourceParameter TextureShaderParameter;
-		FString TextureParameterName = FString::Printf(TEXT("MaterialTexture2D_%u"), ParameterIndex);
-		TextureShaderParameter.Bind(Initializer.ParameterMap,*TextureParameterName);
-
-		FShaderResourceParameter SamplerShaderParameter;
-		FString SamplerParameterName = FString::Printf(TEXT("MaterialTexture2D_%uSampler"), ParameterIndex);
-		SamplerShaderParameter.Bind(Initializer.ParameterMap,*SamplerParameterName);
-
-		if(TextureShaderParameter.IsBound() && SamplerShaderParameter.IsBound())
-		{
-			TUniformParameter<FShaderResourceParameter>* UniformParameter = new(Uniform2DTextureShaderResourceParameters) TUniformParameter<FShaderResourceParameter>();
-			UniformParameter->Index = ParameterIndex;
-			UniformParameter->ShaderParameter = TextureShaderParameter;
-
-			UniformParameter = new(Uniform2DTextureSamplerShaderResourceParameters) TUniformParameter<FShaderResourceParameter>();
-			UniformParameter->Index = ParameterIndex;
-			UniformParameter->ShaderParameter = SamplerShaderParameter;
-		}
-	}
-	// Bind uniform cube texture parameters.
-	for(int32 ParameterIndex = 0;ParameterIndex < Initializer.UniformExpressionSet.UniformCubeTextureExpressions.Num();ParameterIndex++)
-	{
-		FShaderResourceParameter TextureShaderParameter;
-		FString TextureParameterName = FString::Printf(TEXT("MaterialTextureCube_%u"), ParameterIndex);
-		TextureShaderParameter.Bind(Initializer.ParameterMap,*TextureParameterName);
-
-		FShaderResourceParameter SamplerShaderParameter;
-		FString SamplerParameterName = FString::Printf(TEXT("MaterialTextureCube_%uSampler"), ParameterIndex);
-		SamplerShaderParameter.Bind(Initializer.ParameterMap,*SamplerParameterName);
-
-		if(TextureShaderParameter.IsBound() && SamplerShaderParameter.IsBound())
-		{
-			TUniformParameter<FShaderResourceParameter>* UniformParameter = new(UniformCubeTextureShaderResourceParameters) TUniformParameter<FShaderResourceParameter>();
-			UniformParameter->Index = ParameterIndex;
-			UniformParameter->ShaderParameter = TextureShaderParameter;
-
-			UniformParameter = new(UniformCubeTextureSamplerShaderResourceParameters) TUniformParameter<FShaderResourceParameter>();
-			UniformParameter->Index = ParameterIndex;
-			UniformParameter->ShaderParameter = SamplerShaderParameter;
-		}
-	}
-
 	DeferredParameters.Bind(Initializer.ParameterMap);
 	LightAttenuation.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTexture"));
 	LightAttenuationSampler.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTextureSampler"));
@@ -104,10 +59,6 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	const bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 	Ar << MaterialUniformBuffer;
 	Ar << ParameterCollectionUniformBuffers;
-	Ar << Uniform2DTextureShaderResourceParameters;
-	Ar << Uniform2DTextureSamplerShaderResourceParameters;
-	Ar << UniformCubeTextureShaderResourceParameters;
-	Ar << UniformCubeTextureSamplerShaderResourceParameters;
 	Ar << DeferredParameters;
 	Ar << LightAttenuation;
 	Ar << LightAttenuationSampler;
@@ -155,10 +106,6 @@ uint32 FMaterialShader::GetAllocatedSize() const
 {
 	return FShader::GetAllocatedSize()
 		+ ParameterCollectionUniformBuffers.GetAllocatedSize()
-		+ Uniform2DTextureShaderResourceParameters.GetAllocatedSize()
-		+ Uniform2DTextureSamplerShaderResourceParameters.GetAllocatedSize()
-		+ UniformCubeTextureShaderResourceParameters.GetAllocatedSize()
-		+ UniformCubeTextureSamplerShaderResourceParameters.GetAllocatedSize()
 		+ DebugDescription.GetAllocatedSize();
 }
 

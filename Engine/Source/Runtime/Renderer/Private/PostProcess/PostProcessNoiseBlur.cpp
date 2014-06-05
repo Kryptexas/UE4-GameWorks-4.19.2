@@ -23,7 +23,8 @@ class FPostProcessNoiseBlurPS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
 	}
 
@@ -52,17 +53,17 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, float InRadius)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float InRadius)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
 
 		{
 			FVector4 ColorScale(InRadius, 0, 0, 0);
-			SetShaderValue(ShaderRHI, NoiseParams, ColorScale);
+			SetShaderValue(RHICmdList, ShaderRHI, NoiseParams, ColorScale);
 		}
 	}
 
@@ -94,7 +95,7 @@ FRCPassPostProcessNoiseBlur::FRCPassPostProcessNoiseBlur(float InRadius, EPixelF
 
 
 template <uint32 Method>
-void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InRadius)
+void SetNoiseBlurShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float InRadius)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessNoiseBlurPS<Method> > PixelShader(GetGlobalShaderMap());
@@ -103,8 +104,8 @@ void SetNoiseBlurShader(const FRenderingCompositePassContext& Context, float InR
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context, InRadius);
-	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context, InRadius);
+	VertexShader->SetParameters(RHICmdList, Context);
 }
 
 
@@ -147,17 +148,19 @@ void FRCPassPostProcessNoiseBlur::Process(FRenderingCompositePassContext& Contex
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	if(Quality == 0)
 	{
-		SetNoiseBlurShader<0>(Context, Radius);
+		SetNoiseBlurShader<0>(RHICmdList, Context, Radius);
 	}
 	else if(Quality == 1)
 	{
-		SetNoiseBlurShader<1>(Context, Radius);
+		SetNoiseBlurShader<1>(RHICmdList, Context, Radius);
 	}
 	else
 	{
-		SetNoiseBlurShader<2>(Context, Radius);
+		SetNoiseBlurShader<2>(RHICmdList, Context, Radius);
 	}
 
 	// Draw a quad mapping scene color to the view's render target

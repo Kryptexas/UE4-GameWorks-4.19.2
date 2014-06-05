@@ -323,7 +323,7 @@ protected:
  * Uniform buffer setup for SpeedTrees.
  */
 
-BEGIN_UNIFORM_BUFFER_STRUCT(FSpeedTreeUniformParameters, )
+BEGIN_UNIFORM_BUFFER_STRUCT(FSpeedTreeUniformParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindVector)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindGlobal)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WindBranch)

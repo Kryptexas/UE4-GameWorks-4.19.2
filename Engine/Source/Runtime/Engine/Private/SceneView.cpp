@@ -170,6 +170,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsViewInfo(false)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
+	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, RenderingCompositePassContext(0)
 #if WITH_EDITOR

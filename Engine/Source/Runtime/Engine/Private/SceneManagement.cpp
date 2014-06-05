@@ -16,7 +16,7 @@ TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUniformBuffe
 	check(IsInRenderingThread());
 	return TUniformBufferRef<FPrimitiveUniformShaderParameters>::CreateUniformBufferImmediate(
 		GetPrimitiveUniformShaderParameters(LocalToWorld, BoundsOrigin, BoundsOrigin, Bounds, BoundsRadius, bReceivesDecals),
-		UniformBuffer_MultiUse
+		UniformBuffer_MultiFrame
 		);
 }
 */

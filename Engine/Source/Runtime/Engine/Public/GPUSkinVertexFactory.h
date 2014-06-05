@@ -87,6 +87,7 @@ public:
 	enum { NumColumns = 4 };
 	enum { NumElements = 0 };
 	enum { Alignment = 16 };
+	enum { IsResource = 0 };
 	static const FUniformBufferStruct* GetStruct() { return NULL; }
 };
 

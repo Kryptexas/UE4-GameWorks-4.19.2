@@ -150,6 +150,11 @@ void FShaderParameterMap::AddParameterAllocation(const TCHAR* ParameterName,uint
 	ParameterMap.Add(ParameterName,Allocation);
 }
 
+void FShaderParameterMap::RemoveParameterAllocation(const TCHAR* ParameterName)
+{
+	ParameterMap.Remove(ParameterName);
+}
+
 void FShaderCompilerOutput::GenerateOutputHash()
 {
 	FSHA1 HashState;

@@ -58,6 +58,13 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"),STAT_D3D11TexturesA
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"),STAT_D3D11TexturesReleased,STATGROUP_D3D11RHI, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture object pool memory"),STAT_D3D11TexturePoolMemory,STATGROUP_D3D11RHI, );
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Commit resource tables"),STAT_D3D11CommitResourceTables,STATGROUP_D3D11RHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Cache resource tables"),STAT_D3D11CacheResourceTables,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num cached resource tables"),STAT_D3D11CacheResourceTableCalls,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num textures in tables"),STAT_D3D11SetTextureInTableCalls,STATGROUP_D3D11RHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("SetShaderTexture time"),STAT_D3D11SetShaderTextureTime,STATGROUP_D3D11RHI, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("SetShaderTexture calls"),STAT_D3D11SetShaderTextureCalls,STATGROUP_D3D11RHI, );
+
 // This class has multiple inheritance but really FGPUTiming is a static class
 class FD3D11BufferedGPUTiming : public FRenderResource, public FGPUTiming
 {
@@ -440,6 +447,32 @@ protected:
 	uint32 NumSimultaneousRenderTargets;
 	uint32 NumUAVs;
 
+	friend class FD3D11UniformBuffer;
+	uint32 CommitResourceTableCycles;
+	uint32 CacheResourceTableCalls;
+	uint32 CacheResourceTableCycles;
+	uint32 SetShaderTextureCycles;
+	uint32 SetShaderTextureCalls;
+	uint32 SetTextureInTableCalls;
+	
+	/** Internal frame counter, incremented on each call to RHIBeginScene. */
+	uint32 SceneFrameCounter;
+
+	/**
+	 * Internal counter used for resource table caching.
+	 * INDEX_NONE means caching is not allowed.
+	 */
+	uint32 ResourceTableFrameCounter;
+
+	/** D3D11 defines a maximum of 14 constant buffers per shader stage. */
+	enum { MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14 };
+
+	/** Track the currently bound uniform buffers. */
+	FUniformBufferRHIRef BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
+
+	/** Bit array to track which uniform buffers have changed since the last draw call. */
+	uint16 DirtyUniformBuffers[SF_NumFrequencies];
+
 	/** Tracks the current depth stencil access type. */
 	EDepthStencilAccessType CurrentDSVAccessType;
 
@@ -495,6 +528,10 @@ protected:
 
 	/** needs to be called before each dispatch call */
 	virtual void CommitComputeShaderConstants();
+
+	template <class ShaderType> void SetResourcesFromTables(const ShaderType* RESTRICT);
+	void CommitGraphicsResourceTables();
+	void CommitComputeResourceTables(FD3D11ComputeShader* ComputeShader);
 
 	/** 
 	 * Gets the best supported MSAA settings from the provided MSAA count to check against. 

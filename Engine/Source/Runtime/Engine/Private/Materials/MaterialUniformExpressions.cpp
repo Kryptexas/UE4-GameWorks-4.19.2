@@ -171,20 +171,6 @@ FString FUniformExpressionSet::GetSummaryString() const
 		);
 }
 
-void FUniformExpressionSet::GetResourcesString(EShaderPlatform ShaderPlatform,FString& InputsString) const
-{
-	for(int32 TextureIndex = 0;TextureIndex < Uniform2DTextureExpressions.Num();TextureIndex++)
-	{
-		InputsString += FString::Printf(TEXT("Texture2D MaterialTexture2D_%i;\r\n"), TextureIndex);
-		InputsString += FString::Printf(TEXT("SamplerState MaterialTexture2D_%iSampler;\r\n"), TextureIndex);
-	}
-	for(int32 TextureIndex = 0;TextureIndex < UniformCubeTextureExpressions.Num();TextureIndex++)
-	{
-		InputsString += FString::Printf(TEXT("TextureCube MaterialTextureCube_%i;\r\n"),TextureIndex);
-		InputsString += FString::Printf(TEXT("SamplerState MaterialTextureCube_%iSampler;\r\n"),TextureIndex);
-	}
-}
-
 void FUniformExpressionSet::SetParameterCollections(const TArray<UMaterialParameterCollection*>& InCollections)
 {
 	ParameterCollections.Empty(InCollections.Num());
@@ -204,16 +190,54 @@ void FUniformExpressionSet::CreateBufferStruct()
 
 	if(UniformVectorExpressions.Num())
 	{
-		new(Members) FUniformBufferStruct::FMember(TEXT("VectorExpressions"),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,UniformVectorExpressions.Num(),NULL);
+		new(Members) FUniformBufferStruct::FMember(TEXT("VectorExpressions"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,UniformVectorExpressions.Num(),NULL);
 		const uint32 VectorArraySize = UniformVectorExpressions.Num() * sizeof(FVector4);
 		NextMemberOffset += VectorArraySize;
 	}
 
 	if(UniformScalarExpressions.Num())
 	{
-		new(Members) FUniformBufferStruct::FMember(TEXT("ScalarExpressions"),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,(UniformScalarExpressions.Num() + 3) / 4,NULL);
+		new(Members) FUniformBufferStruct::FMember(TEXT("ScalarExpressions"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,(UniformScalarExpressions.Num() + 3) / 4,NULL);
 		const uint32 ScalarArraySize = (UniformScalarExpressions.Num() + 3) / 4 * sizeof(FVector4);
 		NextMemberOffset += ScalarArraySize;
+	}
+
+	static FString Texture2DNames[128];
+	static FString Texture2DSamplerNames[128];
+	static FString TextureCubeNames[128];
+	static FString TextureCubeSamplerNames[128];
+	static bool bInitializedTextureNames = false;
+	if (!bInitializedTextureNames)
+	{
+		bInitializedTextureNames = true;
+		for (int32 i = 0; i < 128; ++i)
+		{
+			Texture2DNames[i] = FString::Printf(TEXT("Texture2D_%d"),i);
+			Texture2DSamplerNames[i] = FString::Printf(TEXT("Texture2D_%dSampler"),i);
+			TextureCubeNames[i] = FString::Printf(TEXT("TextureCube_%d"),i);
+			TextureCubeSamplerNames[i] = FString::Printf(TEXT("TextureCube_%dSampler"),i);
+		}
+	}
+
+	check(Uniform2DTextureExpressions.Num() <= 128);
+	check(UniformCubeTextureExpressions.Num() <= 128);
+
+	for (int32 i = 0; i < Uniform2DTextureExpressions.Num(); ++i)
+	{
+		check((NextMemberOffset & 0x7) == 0);
+		new(Members) FUniformBufferStruct::FMember(*Texture2DNames[i],TEXT("Texture2D"),NextMemberOffset,UBMT_TEXTURE,EShaderPrecisionModifier::Float,1,1,1,NULL);
+		NextMemberOffset += 8;
+		new(Members) FUniformBufferStruct::FMember(*Texture2DSamplerNames[i],TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
+		NextMemberOffset += 8;
+	}
+
+	for (int32 i = 0; i < UniformCubeTextureExpressions.Num(); ++i)
+	{
+		check((NextMemberOffset & 0x7) == 0);
+		new(Members) FUniformBufferStruct::FMember(*TextureCubeNames[i],TEXT("TextureCube"),NextMemberOffset,UBMT_TEXTURE,EShaderPrecisionModifier::Float,1,1,1,NULL);
+		NextMemberOffset += 8;
+		new(Members) FUniformBufferStruct::FMember(*TextureCubeSamplerNames[i],TEXT("SamplerState"),NextMemberOffset,UBMT_SAMPLER,EShaderPrecisionModifier::Float,1,1,1,NULL);
+		NextMemberOffset += 8;
 	}
 
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
@@ -260,7 +284,44 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			TempScalarBuffer[ScalarIndex] = VectorValue.R;
 		}
 
-		UniformBuffer = RHICreateUniformBuffer(TempBuffer,UniformBufferStruct->GetSize(),UniformBuffer_MultiUse);
+		void** ResourceTable = (void**)((uint8*)TempBuffer + UniformBufferStruct->GetLayout().ResourceOffset);
+		check(((UPTRINT)ResourceTable & 0x7) == 0);
+
+		// Cache 2D texture uniform expressions.
+		for(int32 ExpressionIndex = 0;ExpressionIndex < Uniform2DTextureExpressions.Num();ExpressionIndex++)
+		{
+			const UTexture* Value;
+			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
+			if(Value && Value->Resource)
+			{
+				*ResourceTable++ = Value->TextureRefRHI;
+				*ResourceTable++ = Value->Resource->SamplerStateRHI;
+			}
+			else
+			{
+				*ResourceTable++ = GWhiteTexture->TextureRHI;
+				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
+			}
+		}
+
+		// Cache cube texture uniform expressions.
+		for(int32 ExpressionIndex = 0;ExpressionIndex < UniformCubeTextureExpressions.Num();ExpressionIndex++)
+		{
+			const UTexture* Value;
+			UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
+			if(Value && Value->Resource)
+			{
+				*ResourceTable++ = Value->TextureRefRHI;
+				*ResourceTable++ = Value->Resource->SamplerStateRHI;
+			}
+			else
+			{
+				*ResourceTable++ = GWhiteTexture->TextureRHI;
+				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
+			}
+		}
+
+		UniformBuffer = RHICreateUniformBuffer(TempBuffer,UniformBufferStruct->GetLayout(),UniformBuffer_MultiFrame);
 	}
 
 	return UniformBuffer;

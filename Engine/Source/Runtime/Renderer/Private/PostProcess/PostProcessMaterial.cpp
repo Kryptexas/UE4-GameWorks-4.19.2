@@ -31,9 +31,9 @@ public:
 	{
 	}
 
-	void SetParameters( const FRenderingCompositePassContext& Context )
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context )
 	{
-		FMaterialShader::SetParameters(GetVertexShader(), Context.View);
+		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), Context.View);
 	}
 
 	// Begin FShader interface
@@ -70,12 +70,12 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters( const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, Material, *Material->GetMaterial(Context.View.GetFeatureLevel()), Context.View, true, ESceneRenderTargetsMode::SetTextures);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Material, *Material->GetMaterial(Context.View.GetFeatureLevel()), Context.View, true, ESceneRenderTargetsMode::SetTextures);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -154,8 +154,10 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	FBoundShaderStateRHIRef BoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
 	RHISetBoundShaderState(BoundShaderState);
 
-	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context, MaterialInterface->GetRenderProxy(false));
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetParameters(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context, MaterialInterface->GetRenderProxy(false));
 
 	DrawRectangle(
 		0, 0,

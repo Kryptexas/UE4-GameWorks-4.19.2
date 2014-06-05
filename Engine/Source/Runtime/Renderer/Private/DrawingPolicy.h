@@ -7,6 +7,8 @@
 #ifndef __DRAWINGPOLICY_H__
 #define __DRAWINGPOLICY_H__
 
+#include "RHICommandList.h"
+
 /**
  * A macro to compare members of two drawing policies(A and B), and return based on the result.
  * If the members are the same, the macro continues execution rather than returning to the caller.
@@ -65,6 +67,7 @@ public:
 	 * @param PrimitiveSceneProxy - The primitive drawing the dynamic mesh.  If this is a view element, this will be NULL.
 	 */
 	void SetMeshRenderState(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -76,14 +79,14 @@ public:
 	/**
 	 * Executes the draw commands for a mesh.
 	 */
-	void DrawMesh(const FMeshBatch& Mesh, int32 BatchElementIndex) const;
+	void DrawMesh(FRHICommandList* RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const;
 
 	/**
 	 * Executes the draw commands which can be shared between any meshes using this drawer.
 	 * @param CI - The command interface to execute the draw commands on.
 	 * @param View - The view of the scene being drawn.
 	 */
-	void DrawShared(const FSceneView* View) const;
+	void DrawShared(FRHICommandList* RHICmdList, const FSceneView* View) const;
 
 	/**
 	* Get the decl for this mesh policy type and vertexfactory

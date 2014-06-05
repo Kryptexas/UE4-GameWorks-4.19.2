@@ -301,6 +301,32 @@ void UTexture2D::Serialize(FArchive& Ar)
 #endif // #if WITH_EDITORONLY_DATA
 }
 
+float UTexture2D::GetLastRenderTimeForStreaming()
+{
+	float LastRenderTime = -FLT_MAX;
+	if (Resource)
+	{
+		LastRenderTime = Resource->LastRenderTime;
+		if (TextureRefRHI)
+		{
+			LastRenderTime = FMath::Max(LastRenderTime,TextureRefRHI->GetLastCachedTime());
+		}
+	}
+	return LastRenderTime;
+}
+
+void UTexture2D::InvalidateLastRenderTimeForStreaming()
+{
+	if (Resource)
+	{
+		Resource->LastRenderTime = -FLT_MAX;
+	}
+	if (TextureRefRHI)
+	{
+		TextureRefRHI->SetLastCachedTime(-FLT_MAX);
+	}
+}
+
 #if WITH_EDITOR
 void UTexture2D::PostEditUndo()
 {
@@ -1299,6 +1325,7 @@ void FTexture2DResource::InitRHI()
 
 				TextureRHI = Texture2DRHI;
 				RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+				RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 				return;
 			}
@@ -1308,6 +1335,7 @@ void FTexture2DResource::InitRHI()
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo);
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 			check(Owner->RequestedMips == Texture2DRHI->GetNumMips());
 			check(Owner->PlatformData->Mips.Num() == CurrentFirstMip + Owner->RequestedMips);
@@ -1357,6 +1385,7 @@ void FTexture2DResource::InitRHI()
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 			for( int32 MipIndex=CurrentFirstMip; MipIndex<OwnerMips.Num(); MipIndex++ )
 			{
 				if( MipData[MipIndex] != NULL )
@@ -1397,6 +1426,7 @@ void FTexture2DResource::ReleaseRHI()
 	check( Owner->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests );	
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();
+	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
 }
 
 void FTexture2DResource::CreateSamplerStates(float MipMapBias)
@@ -1666,6 +1696,7 @@ void FTexture2DResource::UpdateMipCount()
 			}
 
 			TextureRHI = Texture2DRHI;
+			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 		}
 	}
 
@@ -1986,6 +2017,7 @@ void FCreateTextureTask::DoWork()
 	// NOTE: Leaving scope here to drop the reference held by AsyncTexture.
 	// The only remaining reference is now Texture2DResource->IntermediateTextureRHI.
 	// This is important otherwise two threads could be ref counting simultaneously!
+	FPlatformMisc::MemoryBarrier();
 
 	// Decrement the counter so the texture streamer knows that texture creation has completed.
 	Args.ThreadSafeCounter->Decrement();
@@ -2170,6 +2202,7 @@ void FTexture2DResource::FinalizeMipCount()
 			TextureRHI		= IntermediateTextureRHI;
 			Texture2DRHI	= IntermediateTextureRHI;
 			CurrentFirstMip = PendingFirstMip;
+			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 			// Update mip-level fading.
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
@@ -2269,6 +2302,7 @@ bool FTexture2DResource::TryReallocate( int32 OldMipCount, int32 NewMipCount )
 
 	Texture2DRHI = NewTextureRHI;
 	TextureRHI = NewTextureRHI;
+	RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 	PendingFirstMip = CurrentFirstMip = MipIndex;
 

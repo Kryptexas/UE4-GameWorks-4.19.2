@@ -346,6 +346,7 @@ void RefreshSamplerStatesCallback()
 			UTexture2D* Texture = *It;
 			Texture->RefreshSamplerStates();
 		}
+		UMaterialInterface::RecacheAllMaterialUniformExpressions();
 	}
 }
 
@@ -667,16 +668,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	{
-		// if the console variable FreezeAtPosition is set, we right away freeze at the given position
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("FreezeAtPosition")); 
-
-		if(!CVar->GetString().IsEmpty())
-		{
-			new(GEngine->DeferredCommands) FString(TEXT("FreezeAt"));
-		}
-	}
-
 	// Optionally Exec an exec file
 	FString Temp;
 	if( FParse::Value(FCommandLine::Get(), TEXT("EXEC="), Temp) )

@@ -65,13 +65,13 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, const FLinearColor* SampleWeightValues)
+	void SetParameters(FRHICommandList* RHICmdList, FSamplerStateRHIParamRef SamplerStateRHI, FTextureRHIParamRef FilterTextureRHI, FTextureRHIParamRef AdditiveTextureRHI, const FLinearColor* SampleWeightValues)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		SetTextureParameter(ShaderRHI, FilterTexture, FilterTextureSampler, SamplerStateRHI, FilterTextureRHI);
-		SetTextureParameter(ShaderRHI, AdditiveTexture, AdditiveTextureSampler, SamplerStateRHI, AdditiveTextureRHI);
-		SetShaderValueArray(ShaderRHI, SampleWeights, SampleWeightValues, NumSamples);
+		SetTextureParameter(RHICmdList, ShaderRHI, FilterTexture, FilterTextureSampler, SamplerStateRHI, FilterTextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, AdditiveTexture, AdditiveTextureSampler, SamplerStateRHI, AdditiveTextureRHI);
+		SetShaderValueArray(RHICmdList, ShaderRHI, SampleWeights, SampleWeightValues, NumSamples);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -158,6 +158,7 @@ protected:
  * @param OutVertexShader - The vertex shader used for the filter
  */
 void SetFilterShaders(
+	FRHICommandList* RHICmdList, 
 	FSamplerStateRHIParamRef SamplerStateRHI,
 	FTextureRHIParamRef FilterTextureRHI,
 	FTextureRHIParamRef AdditiveTextureRHI,
@@ -169,6 +170,7 @@ void SetFilterShaders(
 	)
 {
 	check(CombineMethodInt <= 2);
+	check(!RHICmdList);
 
 	// A macro to handle setting the filter shader for a specific number of samples.
 #define SET_FILTER_SHADER_TYPE(NumSamples) \
@@ -183,7 +185,7 @@ void SetFilterShaders(
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
 		else if(CombineMethodInt == 1) \
 		{ \
@@ -192,7 +194,7 @@ void SetFilterShaders(
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
 		else\
 		{ \
@@ -201,9 +203,9 @@ void SetFilterShaders(
 				static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
 			} \
-			PixelShader->SetParameters(SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
+			PixelShader->SetParameters(RHICmdList, SamplerStateRHI, FilterTextureRHI, AdditiveTextureRHI, SampleWeights); \
 		} \
-		VertexShader->SetParameters(SampleOffsets); \
+		VertexShader->SetParameters(RHICmdList, SampleOffsets); \
 		break; \
 	};
 
@@ -375,6 +377,9 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		BlurWeights[i] = TintValue * OffsetAndWeight[i].Y;
 	}
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
@@ -429,6 +434,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	FShader* VertexShader = nullptr;
 	SetFilterShaders(
+		RHICmdList, 
 		TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
 		FilterTexture,
 		AdditiveTexture,

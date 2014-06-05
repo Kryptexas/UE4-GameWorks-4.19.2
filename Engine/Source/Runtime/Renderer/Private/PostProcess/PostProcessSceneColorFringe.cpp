@@ -49,15 +49,15 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
 		const FSceneView& View = Context.View;
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		
-		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetVS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
 
@@ -73,7 +73,7 @@ public:
 			// we only get bigger to not leak in content from outside
 			FVector4 Value(1.0f, 1.0f - Offset * 0.5f, 1.0f - Offset, 0);
 
-			SetShaderValue(ShaderRHI, FringeUVParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, FringeUVParams, Value);
 		}
 	}
 };
@@ -114,15 +114,15 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		const FSceneView& View = Context.View;
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FVector4 Value[3];
@@ -133,7 +133,7 @@ public:
 			Value[0] = FMath::Lerp(FVector4(t, t, t, 0), FVector4(1, 0, 0, 0), Alpha);
 			Value[1] = FMath::Lerp(FVector4(t, t, t, 0), FVector4(0, 1, 0, 0), Alpha);
 			Value[2] = FMath::Lerp(FVector4(t, t, t, 0), FVector4(0, 0, 1, 0), Alpha);
-			SetShaderValueArray(ShaderRHI, FringeColorParams, Value, 3);
+			SetShaderValueArray(RHICmdList, ShaderRHI, FringeColorParams, Value, 3);
 		}
 	}
 };
@@ -173,8 +173,10 @@ void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext&
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context);
-	VertexShader->SetParameters(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	PixelShader->SetParameters(RHICmdList, Context);
+	VertexShader->SetParameters(RHICmdList, Context);
 	
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

@@ -98,3 +98,4 @@ void RHIExit()
 int32 DynamicRHILinkerHelper;
 
 #endif // USE_DYNAMIC_RHI
+

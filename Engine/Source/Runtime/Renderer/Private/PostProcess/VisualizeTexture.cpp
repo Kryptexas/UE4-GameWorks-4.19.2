@@ -73,7 +73,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FVisualizeTextureData& Data)
+	void SetParameters(FRHICommandList* RHICmdList, const FVisualizeTextureData& Data)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
@@ -93,22 +93,22 @@ public:
 			VisualizeParamValue[1] = FVector4(BlinkState, Data.bSaturateInsteadOfFrac ? 1.0f : 0.0f, Data.ArrayIndex, Data.CustomMip);
 			VisualizeParamValue[2] = FVector4(Data.InputValueMapping, 0, 0,0);
 
-			SetShaderValueArray(ShaderRHI, VisualizeParam, VisualizeParamValue, 3);
+			SetShaderValueArray(RHICmdList, ShaderRHI, VisualizeParam, VisualizeParamValue, 3);
 		}
 
 		{
 			FVector4 TextureExtentValue(Data.Desc.Extent.X, Data.Desc.Extent.Y, Data.Desc.Depth, 0);
 
-			SetShaderValue(ShaderRHI, TextureExtent, TextureExtentValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TextureExtent, TextureExtentValue);
 		}
 		
 		
-		SetSRVParameter( ShaderRHI, VisualizeDepthStencilTexture, Data.StencilSRV );		
-		SetTextureParameter(ShaderRHI, VisualizeTexture2D, VisualizeTexture2DSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
-		SetTextureParameter(ShaderRHI, VisualizeTexture2DMS, (FTextureRHIRef&)Data.RenderTargetItem.TargetableTexture);
-		SetTextureParameter(ShaderRHI, VisualizeTexture3D, VisualizeTexture3DSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
-		SetTextureParameter(ShaderRHI, VisualizeTextureCube, VisualizeTextureCubeSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
-		SetTextureParameter(ShaderRHI, VisualizeTextureCubeArray, VisualizeTextureCubeArraySampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
+		SetSRVParameter(RHICmdList, ShaderRHI, VisualizeDepthStencilTexture, Data.StencilSRV );		
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTexture2D, VisualizeTexture2DSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTexture2DMS, (FTextureRHIRef&)Data.RenderTargetItem.TargetableTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTexture3D, VisualizeTexture3DSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTextureCube, VisualizeTextureCubeSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTextureCubeArray, VisualizeTextureCubeArraySampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Data.RenderTargetItem.ShaderResourceTexture);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -178,12 +178,12 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FSceneView& View, const IPooledRenderTarget& Src)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const IPooledRenderTarget& Src)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		SetTextureParameter(ShaderRHI, VisualizeTexture2D, VisualizeTexture2DSampler, 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		SetTextureParameter(RHICmdList, ShaderRHI, VisualizeTexture2D, VisualizeTexture2DSampler, 
 			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), (FTextureRHIRef&)Src.GetRenderTargetItem().ShaderResourceTexture);
 	}
 };
@@ -193,12 +193,15 @@ IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT(
 
 template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualizeTextureData& Data)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-	PixelShader->SetParameters(Data);
+	PixelShader->SetParameters(RHICmdList, Data);
 
 	DrawRectangle(
 		// XY
@@ -489,6 +492,9 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 		return;
 	}
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	FPooledRenderTargetDesc Desc = VisualizeTextureDesc;
 
 	auto& RenderTarget = View.Family->RenderTarget->GetRenderTargetTexture();
@@ -506,8 +512,8 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(View);
-	PixelShader->SetParameters(View, *VisualizeTextureContent);
+	VertexShader->SetParameters(RHICmdList, View);
+	PixelShader->SetParameters(RHICmdList, View, *VisualizeTextureContent);
 
 	FIntRect DestRect = View.ViewRect;
 

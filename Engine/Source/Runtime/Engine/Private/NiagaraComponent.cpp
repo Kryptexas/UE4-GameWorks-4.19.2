@@ -126,7 +126,7 @@ private:
 				{
 					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
 					PerViewUniformParameters.MacroUVParameters = FVector4(0.0f,0.0f,1.0f,1.0f);
-					*SpriteViewUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleUse);
+					*SpriteViewUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 				}
 			}
 

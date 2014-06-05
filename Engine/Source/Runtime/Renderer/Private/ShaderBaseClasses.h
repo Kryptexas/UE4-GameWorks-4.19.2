@@ -119,16 +119,22 @@ public:
 	FUniformBufferRHIParamRef GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const;
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
 	{
 		check(GetUniformBufferParameter<FViewUniformShaderParameters>().IsInitialized());
 		CheckShaderIsValid();
-		SetUniformBufferParameter(ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 	}
 
 	/** Sets pixel parameters that are material specific but not FMeshBatch specific. */
 	template<typename ShaderRHIParamRef>
 	void SetParameters(
+		FRHICommandList* RHICmdList,
 		const ShaderRHIParamRef ShaderRHI, 
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& Material,
@@ -140,7 +146,7 @@ public:
 		FUniformExpressionCache TempUniformExpressionCache;
 		const FUniformExpressionCache* UniformExpressionCache = &MaterialRenderProxy->UniformExpressionCache[FeatureLevel];
 
-		SetParameters(ShaderRHI, View);
+		SetParameters(RHICmdList, ShaderRHI, View);
 
 		// If the material has cached uniform expressions for selection or hover
 		// and that is being overridden by show flags in the editor, recache
@@ -197,7 +203,7 @@ public:
 #endif
 
 		// Set the material uniform buffer.
-		SetUniformBufferParameter(ShaderRHI,MaterialUniformBuffer,UniformExpressionCache->UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI,MaterialUniformBuffer,UniformExpressionCache->UniformBuffer);
 
 		{
 			const TArray<FGuid>& ParameterCollections = UniformExpressionCache->ParameterCollections;
@@ -209,7 +215,7 @@ public:
 			for (int32 CollectionIndex = 0; CollectionIndex < ParameterCollectionsNum; CollectionIndex++)
 			{
 				FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(ParameterCollections[CollectionIndex], View.Family->Scene);
-				SetUniformBufferParameter(ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
+				SetUniformBufferParameter(RHICmdList, ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
 			}
 		}
 
@@ -234,6 +240,7 @@ public:
 				Value->LastRenderTime = FApp::GetCurrentTime();
 
 				SetTextureParameter(
+					RHICmdList, 
 					ShaderRHI, 
 					TextureResourceParameter.ShaderParameter, 
 					SamplerResourceParameter.ShaderParameter, 
@@ -263,6 +270,7 @@ public:
 				Value->LastRenderTime = FApp::GetCurrentTime();
 
 				SetTextureParameter(
+					RHICmdList, 
 					ShaderRHI,
 					TextureResourceParameter.ShaderParameter,
 					SamplerResourceParameter.ShaderParameter,
@@ -271,34 +279,35 @@ public:
 			}
 		}
 
-		DeferredParameters.Set(ShaderRHI, View, TextureMode);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View, TextureMode);
 
-		AtmosphericFogTextureParameters.Set(ShaderRHI, View);
+		AtmosphericFogTextureParameters.Set(RHICmdList, ShaderRHI, View);
 
 		if (FeatureLevel >= ERHIFeatureLevel::SM3)
 		{
 			if(LightAttenuation.IsBound())
-			{
-				SetTextureParameter(
-					ShaderRHI,
-					LightAttenuation,
-					LightAttenuationSampler,
-					TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-					GSceneRenderTargets.GetLightAttenuationTexture());
-			}
+		{
+			SetTextureParameter(
+				RHICmdList,
+				ShaderRHI,
+				LightAttenuation,
+				LightAttenuationSampler,
+				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				GSceneRenderTargets.GetLightAttenuationTexture());
+		}
 		}
 
 		// if we are in a postprocessing pass
 		if(View.RenderingCompositePassContext)
 		{
-			PostprocessParameter.Set(ShaderRHI, *View.RenderingCompositePassContext, TStaticSamplerState<>::GetRHI());
+			PostprocessParameter.Set(RHICmdList, ShaderRHI, *View.RenderingCompositePassContext, TStaticSamplerState<>::GetRHI());
 		}
 
 		//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 		if(EyeAdaptation.IsBound())
 		{
 			FTextureRHIRef& EyeAdaptationTex = GetEyeAdaptation(View);
-			SetTextureParameter(ShaderRHI, EyeAdaptation, EyeAdaptationTex);
+			SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationTex);
 		}
 
 		if (PerlinNoiseGradientTexture.IsBound() && IsValidRef(GSystemTextures.PerlinNoiseGradient))
@@ -306,6 +315,7 @@ public:
 			const FTexture2DRHIRef& Texture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
 			// Bind the PerlinNoiseGradientTexture as a texture
 			SetTextureParameter(
+				RHICmdList,
 				ShaderRHI,
 				PerlinNoiseGradientTexture,
 				PerlinNoiseGradientTextureSampler,
@@ -319,6 +329,7 @@ public:
 			const FTexture3DRHIRef& Texture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
 			// Bind the PerlinNoise3DTexture as a texture
 			SetTextureParameter(
+				RHICmdList,
 				ShaderRHI,
 				PerlinNoise3DTexture,
 				PerlinNoise3DTextureSampler,
@@ -381,36 +392,36 @@ public:
 	{}
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(const ShaderRHIParamRef ShaderRHI,const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& Material,const FSceneView& View,ESceneRenderTargetsMode::Type TextureMode)
+	void SetParameters(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI,const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& Material,const FSceneView& View,ESceneRenderTargetsMode::Type TextureMode)
 	{
-		FMaterialShader::SetParameters(ShaderRHI,MaterialRenderProxy,Material,View,false,TextureMode);
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI,MaterialRenderProxy,Material,View,false,TextureMode);
 	}
 
-	void SetVFParametersOnly(const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement)
+	void SetVFParametersOnly(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement)
 	{
-		VertexFactoryParameters.SetMesh(this,VertexFactory,View,BatchElement, 0);
+		VertexFactoryParameters.SetMesh(RHICmdList, this,VertexFactory,View,BatchElement, 0);
 	}
 
 	template<typename ShaderRHIParamRef>
-	void SetMesh(const ShaderRHIParamRef ShaderRHI,const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,uint32 DataFlags = 0)
+	void SetMesh(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI,const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,uint32 DataFlags = 0)
 	{
 		// Set the mesh for the vertex factory
-		VertexFactoryParameters.SetMesh(this,VertexFactory,View,BatchElement, DataFlags);
+		VertexFactoryParameters.SetMesh(RHICmdList, this,VertexFactory,View,BatchElement, DataFlags);
 		
 		if(IsValidRef(BatchElement.PrimitiveUniformBuffer))
 		{
-			SetUniformBufferParameter(ShaderRHI,GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(),BatchElement.PrimitiveUniformBuffer);
+			SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(),BatchElement.PrimitiveUniformBuffer);
 		}
 		else
 		{
 			check(BatchElement.PrimitiveUniformBufferResource);
-			SetUniformBufferParameter(ShaderRHI,GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(),*BatchElement.PrimitiveUniformBufferResource);
+			SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FPrimitiveUniformShaderParameters>(),*BatchElement.PrimitiveUniformBufferResource);
 		}
 
 		TShaderUniformBufferParameter<FDistanceCullFadeUniformShaderParameters> LODParameter = GetUniformBufferParameter<FDistanceCullFadeUniformShaderParameters>();
 		if( LODParameter.IsBound() )
 		{
-			SetUniformBufferParameter( ShaderRHI,LODParameter,GetPrimitiveFadeUniformBufferParameter(View, Proxy));
+			SetUniformBufferParameter(RHICmdList, ShaderRHI,LODParameter,GetPrimitiveFadeUniformBufferParameter(View, Proxy));
 		}
 	}
 
@@ -465,14 +476,14 @@ public:
 
 	FBaseHS() {}
 
-	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetHullShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetHullShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetHullShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetHullShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 };
 
@@ -511,14 +522,14 @@ public:
 
 	FBaseDS() {}
 
-	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetDomainShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetDomainShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetDomainShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetDomainShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 };
 

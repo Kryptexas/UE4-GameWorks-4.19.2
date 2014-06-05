@@ -14,6 +14,7 @@ public class ShaderFormatOpenGL : ModuleRules
 			new string[] {
 				"Core",
 				"ShaderCore",
+				"ShaderCompilerCommon",
 				"ShaderPreprocessor"
 			}
 			);

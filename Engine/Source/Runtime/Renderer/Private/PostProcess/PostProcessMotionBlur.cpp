@@ -47,13 +47,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			const float SizeX = Context.View.ViewRect.Width();
@@ -71,7 +71,7 @@ public:
 			float ObjectScaleX = ViewMotionBlurScale * InvMaxVelocity;
 			float ObjectScaleY = ViewMotionBlurScale * InvMaxVelocity * InvAspectRatio;
 
-			SetShaderValue( ShaderRHI, VelocityScale, FVector4( ObjectScaleX, -ObjectScaleY, 0, 0 ) );
+			SetShaderValue(RHICmdList, ShaderRHI, VelocityScale, FVector4( ObjectScaleX, -ObjectScaleY, 0, 0 ) );
 		}
 	}
 };
@@ -127,6 +127,9 @@ void FRCPassPostProcessMotionBlurSetup::Process(FRenderingCompositePassContext& 
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 	{		
@@ -135,8 +138,8 @@ void FRCPassPostProcessMotionBlurSetup::Process(FRenderingCompositePassContext& 
 
 		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		PixelShader->SetParameters(Context);
-		VertexShader->SetParameters(Context);
+		PixelShader->SetParameters(RHICmdList, Context);
+		VertexShader->SetParameters(RHICmdList, Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -217,7 +220,8 @@ class FPostProcessMotionBlurPS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("MOTION_BLUR_QUALITY"), Quality);
 	}
 
@@ -250,13 +254,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		{
 			bool bFiltered = false;
@@ -268,11 +272,11 @@ public:
 
 			if(bFiltered)
 			{
-				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+				PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI());
 			}
 			else
 			{
-				PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+				PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Border,AM_Border,AM_Clamp>::GetRHI());
 			}
 		}
 		
@@ -282,11 +286,11 @@ public:
 			// then translate by the difference between last frame's camera position and this frame's camera position,
 			// then apply the rest of the transforms.  This effectively avoids precision issues near the extents of large levels whose world space position is very large.
 			FVector ViewOriginDelta = Context.View.ViewMatrices.ViewOrigin - Context.View.PrevViewMatrices.ViewOrigin;
-			SetShaderValue(ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewRotationProjMatrix);
+			SetShaderValue(RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewRotationProjMatrix);
 		}
 		else
 		{
-			SetShaderValue( ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.GetViewRotationProjMatrix() );
+			SetShaderValue(RHICmdList, ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.GetViewRotationProjMatrix() );
 		}
 
 		TRefCountPtr<IPooledRenderTarget> InputPooledElement = Context.Pass->GetInput(ePId_Input0)->GetOutput()->RequestInput();
@@ -308,7 +312,7 @@ public:
 			FVector2D Mul(1.0f / SizeUV.X, 1.0f / SizeUV.Y);
 			FVector2D Add = - MinUV * Mul;
 			FVector4 TextureViewMadValue(Mul.X, Mul.Y, Add.X, Add.Y);
-			SetShaderValue(ShaderRHI, TextureViewMad, TextureViewMadValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TextureViewMad, TextureViewMadValue);
 		}
 
 		{
@@ -337,7 +341,7 @@ public:
 				- ObjectMotionBlurScale * InvMaxVelocity * InvAspectRatio,
 				MaxVelocity * 2,
 				- MaxVelocity * 2 * AspectRatio);
-			SetShaderValue(ShaderRHI, MotionBlurParameters, MotionBlurParametersValue);
+			SetShaderValue(RHICmdList, ShaderRHI, MotionBlurParameters, MotionBlurParametersValue);
 		}
 	}
 
@@ -363,7 +367,7 @@ VARIATION1(0)			VARIATION1(1)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)
 
 // @param Quality 0: visualize, 1:low, 2:medium, 3:high, 4:very high
 template <uint32 Quality>
-static void SetMotionBlurShaderTempl(const FRenderingCompositePassContext& Context)
+static void SetMotionBlurShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessMotionBlurPS<Quality> > PixelShader(GetGlobalShaderMap());
@@ -372,8 +376,8 @@ static void SetMotionBlurShaderTempl(const FRenderingCompositePassContext& Conte
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
+	VertexShader->SetParameters(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 }
 
 FRCPassPostProcessMotionBlur::FRCPassPostProcessMotionBlur(uint32 InQuality) 
@@ -425,22 +429,24 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	if(Quality == 1)
 	{
-		SetMotionBlurShaderTempl<1>(Context);
+		SetMotionBlurShaderTempl<1>(RHICmdList, Context);
 	}
 	else if(Quality == 2)
 	{
-		SetMotionBlurShaderTempl<2>(Context);
+		SetMotionBlurShaderTempl<2>(RHICmdList, Context);
 	}
 	else if(Quality == 3)
 	{
-		SetMotionBlurShaderTempl<3>(Context);
+		SetMotionBlurShaderTempl<3>(RHICmdList, Context);
 	}
 	else
 	{
 		check(Quality == 4);
-		SetMotionBlurShaderTempl<4>(Context);
+		SetMotionBlurShaderTempl<4>(RHICmdList, Context);
 	}
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
@@ -505,13 +511,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI());
 	}
 };
 
@@ -566,8 +572,10 @@ void FRCPassPostProcessMotionBlurRecombine::Process(FRenderingCompositePassConte
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetParameters(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -639,7 +647,9 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	// Quality 0: visualize
-	SetMotionBlurShaderTempl<0>(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	SetMotionBlurShaderTempl<0>(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());

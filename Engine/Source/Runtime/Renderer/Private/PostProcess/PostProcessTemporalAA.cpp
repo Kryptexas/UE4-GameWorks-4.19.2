@@ -52,6 +52,7 @@ class FPostProcessTemporalAAPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 
 		OutEnvironment.SetDefine( TEXT("RESPONSIVE"), Responsive );
 	}
@@ -87,11 +88,11 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		
 		FSamplerStateRHIParamRef FilterTable[4];
 		FilterTable[0] = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
@@ -99,9 +100,9 @@ public:
 		FilterTable[2] = FilterTable[0];
 		FilterTable[3] = FilterTable[0];
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, 0, false, FilterTable);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, 0, false, FilterTable);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
@@ -157,17 +158,17 @@ public:
 			
 			for( int32 i = 0; i < 9; i++ )
 			{
-				SetShaderValue( ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
-				SetShaderValue( ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
+				SetShaderValue(RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
+				SetShaderValue(RHICmdList, ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
 			}
 			
 			FVector2D RandomOffsetValue;
 			TemporalRandom(&RandomOffsetValue, Context.View.FrameNumber);
-			SetShaderValue(ShaderRHI, RandomOffset, RandomOffsetValue);
+			SetShaderValue(RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
 		}
 
-		CameraMotionParams.Set(Context.View, ShaderRHI);
+		CameraMotionParams.Set(RHICmdList, Context.View, ShaderRHI);
 	}
 };
 
@@ -230,8 +231,10 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetVS(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -305,8 +308,10 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetVS(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -383,8 +388,10 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(Context);
-	PixelShader->SetParameters(Context);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetVS(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -440,6 +447,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	//RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
 
@@ -468,8 +477,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
+			VertexShader->SetVS(RHICmdList, Context);
+			PixelShader->SetParameters(RHICmdList, Context);
 		}
 		else
 		{
@@ -479,8 +488,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
+			VertexShader->SetVS(RHICmdList, Context);
+			PixelShader->SetParameters(RHICmdList, Context);
 		}
 	
 		// Draw a quad mapping scene color to the view's render target
@@ -508,8 +517,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
+			VertexShader->SetVS(RHICmdList, Context);
+			PixelShader->SetParameters(RHICmdList, Context);
 		}
 		else
 		{
@@ -519,8 +528,8 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
+			VertexShader->SetVS(RHICmdList, Context);
+			PixelShader->SetParameters(RHICmdList, Context);
 		}
 
 		// Draw a quad mapping scene color to the view's render target

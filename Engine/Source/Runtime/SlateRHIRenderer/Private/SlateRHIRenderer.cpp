@@ -6,7 +6,9 @@
 #include "SlateRHIFontTexture.h"
 #include "SlateRHIResourceManager.h"
 #include "SlateCore.h"
+#include "RHIStaticStates.h"
 #include "SlateRHIRenderingPolicy.h"
+#include "ShaderParameterUtils.h"
 #include "Runtime/Engine/Public/ScreenRendering.h"
 #include "Runtime/Engine/Public/ShaderCompiler.h"
 #include "SlateShaders.h"
@@ -198,7 +200,7 @@ void FSlateRHIRenderer::Initialize()
 		const FIntPoint VirtualScreenOrigin = FIntPoint(DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top);
 		const FIntPoint VirtualScreenLowerRight = FIntPoint(DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
 		const FIntRect VirtualScreen = FIntRect(VirtualScreenOrigin, VirtualScreenLowerRight);
-
+	
 		CrashTrackerResource = new FSlateCrashReportResource(VirtualScreen);
 		BeginInitResource(CrashTrackerResource);
 	}

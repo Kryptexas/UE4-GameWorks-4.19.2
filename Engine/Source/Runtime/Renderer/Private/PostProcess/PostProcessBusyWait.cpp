@@ -35,13 +35,13 @@ public:
 		GPUBusyWait.Bind(Initializer.ParameterMap,TEXT("GPUBusyWait"));
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
@@ -56,7 +56,7 @@ public:
 			// divide by viewport pixel count
 			uint32 Value = (uint32)(CVarValue * 1000000000.0 / 6.12 / PixelCount);
 
-			SetShaderValue(ShaderRHI, GPUBusyWait, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, GPUBusyWait, Value);
 		}
 #endif
 	}
@@ -80,10 +80,13 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.UnscaledViewRect;
-
+	
 	GSceneRenderTargets.BeginRenderingLightAttenuation();
 	
 	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetLightAttenuation()->GetRenderTargetItem();
+
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
@@ -101,7 +104,7 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

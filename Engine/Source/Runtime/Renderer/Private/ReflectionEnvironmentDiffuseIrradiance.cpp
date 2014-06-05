@@ -55,12 +55,13 @@ public:
 	}
 	FCopyDiffuseIrradiancePS() {}
 
-	void SetParameters(int32 CubeFaceValue, int32 SourceMipIndexValue, int32 CoefficientIndex, int32 FaceResolution, FTextureRHIRef& SourceTextureValue)
+	void SetParameters(FRHICommandList* RHICmdList, int32 CubeFaceValue, int32 SourceMipIndexValue, int32 CoefficientIndex, int32 FaceResolution, FTextureRHIRef& SourceTextureValue)
 	{
-		SetShaderValue(GetPixelShader(), CubeFace, CubeFaceValue);
-		SetShaderValue(GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), CubeFace, CubeFaceValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
 
 		SetTextureParameter(
+			RHICmdList, 
 			GetPixelShader(), 
 			SourceTexture, 
 			SourceTextureSampler, 
@@ -70,11 +71,11 @@ public:
 		const FVector4 Mask0(CoefficientIndex == 0, CoefficientIndex == 1, CoefficientIndex == 2, CoefficientIndex == 3);
 		const FVector4 Mask1(CoefficientIndex == 4, CoefficientIndex == 5, CoefficientIndex == 6, CoefficientIndex == 7);
 		const float Mask2 = CoefficientIndex == 8;
-		SetShaderValue(GetPixelShader(), CoefficientMask0, Mask0);
-		SetShaderValue(GetPixelShader(), CoefficientMask1, Mask1);
-		SetShaderValue(GetPixelShader(), CoefficientMask2, Mask2);
+		SetShaderValue(RHICmdList, GetPixelShader(), CoefficientMask0, Mask0);
+		SetShaderValue(RHICmdList, GetPixelShader(), CoefficientMask1, Mask1);
+		SetShaderValue(RHICmdList, GetPixelShader(), CoefficientMask2, Mask2);
 
-		SetShaderValue(GetPixelShader(), NumSamples, FaceResolution * FaceResolution * 6);
+		SetShaderValue(RHICmdList, GetPixelShader(), NumSamples, FaceResolution * FaceResolution * 6);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -130,12 +131,19 @@ public:
 	}
 	FAccumulateDiffuseIrradiancePS() {}
 
-	void SetParameters(int32 CubeFaceValue, int32 NumMips, int32 SourceMipIndexValue, int32 CoefficientIndex, FTextureRHIRef& SourceTextureValue)
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		SetShaderValue(GetPixelShader(), CubeFace, CubeFaceValue);
-		SetShaderValue(GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
+	void SetParameters(FRHICommandList* RHICmdList, int32 CubeFaceValue, int32 NumMips, int32 SourceMipIndexValue, int32 CoefficientIndex, FTextureRHIRef& SourceTextureValue)
+	{
+		SetShaderValue(RHICmdList, GetPixelShader(), CubeFace, CubeFaceValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
 
 		SetTextureParameter(
+			RHICmdList, 
 			GetPixelShader(), 
 			SourceTexture, 
 			SourceTextureSampler, 
@@ -146,8 +154,8 @@ public:
 		const float HalfSourceTexelSize = .5f / MipSize;
 		const FVector4 Sample01Value(-HalfSourceTexelSize, -HalfSourceTexelSize, HalfSourceTexelSize, -HalfSourceTexelSize);
 		const FVector4 Sample23Value(-HalfSourceTexelSize, HalfSourceTexelSize, HalfSourceTexelSize, HalfSourceTexelSize);
-		SetShaderValue(GetPixelShader(), Sample01, Sample01Value);
-		SetShaderValue(GetPixelShader(), Sample23, Sample23Value);
+		SetShaderValue(RHICmdList, GetPixelShader(), Sample01, Sample01Value);
+		SetShaderValue(RHICmdList, GetPixelShader(), Sample23, Sample23Value);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -196,11 +204,12 @@ public:
 	}
 	FAccumulateCubeFacesPS() {}
 
-	void SetParameters(int32 SourceMipIndexValue, FTextureRHIRef& SourceTextureValue)
+	void SetParameters(FRHICommandList* RHICmdList, int32 SourceMipIndexValue, FTextureRHIRef& SourceTextureValue)
 	{
-		SetShaderValue(GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), SourceMipIndex, SourceMipIndexValue);
 
 		SetTextureParameter(
+			RHICmdList, 
 			GetPixelShader(), 
 			SourceTexture, 
 			SourceTextureSampler, 
@@ -229,6 +238,8 @@ FGlobalBoundShaderState AccumulateCubeFacesBoundShaderState;
 
 void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 	for (int32 CoefficientIndex = 0; CoefficientIndex < FSHVector3::MaxSHBasis; CoefficientIndex++)
 	{
 		// Copy the starting mip from the lighting texture, apply texel area weighting and appropriate SH coefficient
@@ -238,39 +249,39 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 			FSceneRenderTargetItem& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(MipIndex);
 			if (GSupportsGSRenderTargetLayerSwitchingToMips)
 			{
-				RHISetRenderTarget(EffectiveRT.TargetableTexture, 0, NULL);
+			RHISetRenderTarget(EffectiveRT.TargetableTexture, 0, NULL);
 
-				const FIntRect ViewRect(0, 0, MipSize, MipSize);
-				RHISetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
-				RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
+			const FIntRect ViewRect(0, 0, MipSize, MipSize);
+			RHISetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
+			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 
-				TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
-				TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
-				TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
+			TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
+			TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
+			TShaderMapRef<FCopyDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
 
-				SetGlobalBoundShaderState(CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+			SetGlobalBoundShaderState(CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-				// Draw each face with a geometry shader that routes to the correct render target slice
-				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-				{
-					GeometryShader->SetParameters(CubeFace);
+			// Draw each face with a geometry shader that routes to the correct render target slice
+			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+			{
+				GeometryShader->SetParameters(RHICmdList, CubeFace);
 
-					PixelShader->SetParameters(CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
+				PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
 
-					DrawRectangle( 
-						ViewRect.Min.X, ViewRect.Min.Y, 
-						ViewRect.Width(), ViewRect.Height(),
-						ViewRect.Min.X, ViewRect.Min.Y, 
-						ViewRect.Width(), ViewRect.Height(),
-						FIntPoint(ViewRect.Width(), ViewRect.Height()),
-						FIntPoint(MipSize, MipSize),
-						*VertexShader);
+				DrawRectangle( 
+					ViewRect.Min.X, ViewRect.Min.Y, 
+					ViewRect.Width(), ViewRect.Height(),
+					ViewRect.Min.X, ViewRect.Min.Y, 
+					ViewRect.Width(), ViewRect.Height(),
+					FIntPoint(ViewRect.Width(), ViewRect.Height()),
+					FIntPoint(MipSize, MipSize),
+					*VertexShader);
 
-					RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-				}
+				RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 			}
+		}
 			else
 			{
 				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -288,7 +299,7 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 					
 					SetGlobalBoundShaderState(CopyDiffuseIrradianceShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 					
-					PixelShader->SetParameters(CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
+					PixelShader->SetParameters(RHICmdList, CubeFace, LightingSourceMipIndex, CoefficientIndex, MipSize, LightingSource);
 					
 					DrawRectangle(
 						ViewRect.Min.X, ViewRect.Min.Y,
@@ -316,42 +327,42 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 				FSceneRenderTargetItem& EffectiveRT = GetEffectiveDiffuseIrradianceRenderTarget(MipIndex);
 				FSceneRenderTargetItem& EffectiveSource = GetEffectiveDiffuseIrradianceSourceTexture(MipIndex);
 				check(EffectiveRT.TargetableTexture != EffectiveSource.ShaderResourceTexture);
-				
+
 				if (GSupportsGSRenderTargetLayerSwitchingToMips)
 				{
-					RHISetRenderTarget(EffectiveRT.TargetableTexture, MipIndex, NULL);
-					
-					const FIntRect ViewRect(0, 0, MipSize, MipSize);
-					RHISetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
-					RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-					RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-					RHISetBlendState(TStaticBlendState<>::GetRHI());
-					
-					TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
-					TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
-					TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
-					
-					SetGlobalBoundShaderState(DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
-					
-					// Draw each face with a geometry shader that routes to the correct render target slice
-					for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
-					{
-						GeometryShader->SetParameters(CubeFace);
-						
-						PixelShader->SetParameters(CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
-						
-						DrawRectangle(
-							ViewRect.Min.X, ViewRect.Min.Y,
-							ViewRect.Width(), ViewRect.Height(),
-							ViewRect.Min.X, ViewRect.Min.Y,
-							ViewRect.Width(), ViewRect.Height(),
-							FIntPoint(ViewRect.Width(), ViewRect.Height()),
-							FIntPoint(MipSize, MipSize),
-							*VertexShader);
-						
-						RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
-					}
+				RHISetRenderTarget(EffectiveRT.TargetableTexture, MipIndex, NULL);
+
+				const FIntRect ViewRect(0, 0, MipSize, MipSize);
+				RHISetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
+				RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+				RHISetBlendState(TStaticBlendState<>::GetRHI());
+
+				TShaderMapRef<FScreenVSForGS> VertexShader(GetGlobalShaderMap());
+				TShaderMapRef<FDownsampleGS> GeometryShader(GetGlobalShaderMap());
+				TShaderMapRef<FAccumulateDiffuseIrradiancePS> PixelShader(GetGlobalShaderMap());
+
+				SetGlobalBoundShaderState(DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
+
+				// Draw each face with a geometry shader that routes to the correct render target slice
+				for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
+				{
+					GeometryShader->SetParameters(RHICmdList, CubeFace);
+
+					PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
+
+					DrawRectangle( 
+						ViewRect.Min.X, ViewRect.Min.Y, 
+						ViewRect.Width(), ViewRect.Height(),
+						ViewRect.Min.X, ViewRect.Min.Y, 
+						ViewRect.Width(), ViewRect.Height(),
+						FIntPoint(ViewRect.Width(), ViewRect.Height()),
+						FIntPoint(MipSize, MipSize),
+						*VertexShader);
+
+					RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 				}
+			}
 				else
 				{
 					for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
@@ -369,7 +380,7 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 						
 						SetGlobalBoundShaderState(DiffuseIrradianceAccumulateShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 						
-						PixelShader->SetParameters(CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
+						PixelShader->SetParameters(RHICmdList, CubeFace, NumMips, SourceMipIndex, CoefficientIndex, EffectiveSource.ShaderResourceTexture);
 						
 						DrawRectangle(
 							ViewRect.Min.X, ViewRect.Min.Y,
@@ -404,7 +415,7 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 			const int32 SourceMipIndex = NumMips - 1;
 			const int32 MipSize = 1;
 			FSceneRenderTargetItem& EffectiveSource = GetEffectiveDiffuseIrradianceRenderTarget(SourceMipIndex);
-			PixelShader->SetParameters(SourceMipIndex, EffectiveSource.ShaderResourceTexture);
+			PixelShader->SetParameters(RHICmdList, SourceMipIndex, EffectiveSource.ShaderResourceTexture);
 
 			DrawRectangle( 
 				ViewRect.Min.X, ViewRect.Min.Y, 

@@ -505,6 +505,12 @@ public:
 	/** The texture's resource, can be NULL */
 	class FTextureResource*	Resource;
 
+	/** Stable RHI texture reference that refers to the current RHI texture. Note this is manually refcounted! */
+	class FRHITextureReference* TextureRefRHI;
+
+	/** Release fence to know when resources have been freed on the rendering thread. */
+	FRenderCommandFence ReleaseFence;
+
 	/** delegate type for texture save events ( Params: UTexture* TextureToSave ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnTextureSaved, class UTexture*);
 	/** triggered before a texture is being saved */

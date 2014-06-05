@@ -49,31 +49,31 @@ public:
 	}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, float Threshold)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, float Threshold)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetVS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		{
 			FIntRect TileCountAndSizeValue(TileCountValue, FIntPoint(TileSize, TileSize));
 
-			SetShaderValue(ShaderRHI, TileCountAndSize, TileCountAndSizeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, TileCountAndSize, TileCountAndSizeValue);
 		}
 
 		{
 			// only approximate as the mip mapping doesn't produce accurate brightness scaling
 			FVector4 ColorScaleValue(1.0f / FMath::Max(1.0f, PixelKernelSize * PixelKernelSize), Threshold, 0, 0);
 
-			SetShaderValue(ShaderRHI, ColorScale, ColorScaleValue);
+			SetShaderValue(RHICmdList, ShaderRHI, ColorScale, ColorScaleValue);
 		}
 
 		{
 			FVector4 KernelSizeValue(PixelKernelSize, PixelKernelSize, 0, 0);
 
-			SetShaderValue(ShaderRHI, KernelSize, KernelSizeValue);
+			SetShaderValue(RHICmdList, ShaderRHI, KernelSize, KernelSizeValue);
 		}
 	}
 };
@@ -115,13 +115,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, float PixelKernelSize)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float PixelKernelSize)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 				
 		{
 			FTextureRHIParamRef TextureRHI = GWhiteTexture->TextureRHI;
@@ -146,7 +146,7 @@ public:
 				}
 			}
 
-			SetTextureParameter(ShaderRHI, LensTexture, LensTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(), TextureRHI);
+			SetTextureParameter(RHICmdList, ShaderRHI, LensTexture, LensTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(), TextureRHI);
 		}
 	}
 };
@@ -208,8 +208,10 @@ void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context
 
 	float PixelKernelSize = PercentKernelSize / 100.0f * ViewSize.X;
 
-	VertexShader->SetParameters(Context, TileCount, TileSize, PixelKernelSize, Threshold);
-	PixelShader->SetParameters(Context, PixelKernelSize);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	VertexShader->SetParameters(RHICmdList, Context, TileCount, TileSize, PixelKernelSize, Threshold);
+	PixelShader->SetParameters(RHICmdList, Context, PixelKernelSize);
 
 	RHISetStreamSource(0, NULL, 0, 0);
 

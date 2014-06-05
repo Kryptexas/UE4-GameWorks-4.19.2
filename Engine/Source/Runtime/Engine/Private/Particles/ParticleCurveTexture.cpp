@@ -10,6 +10,8 @@
 #include "ParticleResources.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
 
@@ -68,15 +70,15 @@ public:
 	/**
 	 * Sets parameters for particle injection.
 	 */
-	void SetParameters( const FVector2D& CurveOffset )
+	void SetParameters(FRHICommandList* RHICmdList, const FVector2D& CurveOffset )
 	{
 		FParticleCurveInjectionParameters Parameters;
 		Parameters.PixelScale.X = 1.0f / GParticleCurveTextureSizeX;
 		Parameters.PixelScale.Y = 1.0f / GParticleCurveTextureSizeY;
 		Parameters.CurveOffset = CurveOffset;
-		FParticleCurveInjectionBufferRef UniformBuffer = FParticleCurveInjectionBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleUse );
+		FParticleCurveInjectionBufferRef UniformBuffer = FParticleCurveInjectionBufferRef::CreateUniformBufferImmediate( Parameters, UniformBuffer_SingleDraw );
 		FVertexShaderRHIParamRef VertexShader = GetVertexShader();
-		SetUniformBufferParameter( VertexShader, GetUniformBufferParameter<FParticleCurveInjectionParameters>(), UniformBuffer );
+		SetUniformBufferParameter(RHICmdList, VertexShader, GetUniformBufferParameter<FParticleCurveInjectionParameters>(), UniformBuffer );
 	}
 };
 
@@ -172,6 +174,7 @@ TGlobalResource<FParticleCurveInjectionVertexDeclaration> GParticleCurveInjectio
  * @param InPendingCurves - Curves to be stored on the GPU.
  */
 static void InjectCurves(
+	FRHICommandList* RHICmdList, 
 	FTexture2DRHIParamRef CurveTextureRHI,
 	FTexture2DRHIParamRef CurveTextureTargetRHI,
 	TArray<FCurveSamples>& InPendingCurves )
@@ -183,6 +186,8 @@ static void InjectCurves(
 	SCOPED_DRAW_EVENT(InjectParticleCurves, DEC_PARTICLE);
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
+
+	check(!RHICmdList);
 
 	RHISetRenderTarget( CurveTextureTargetRHI, FTextureRHIParamRef() );
 	RHISetScissorRect( false, 0, 0, 0, 0 );
@@ -231,7 +236,7 @@ static void InjectCurves(
 			0
 			);
 
-		VertexShader->SetParameters( CurveOffset );
+		VertexShader->SetParameters(RHICmdList, CurveOffset );
 
 		// Stream 0: New particles.
 		RHISetStreamSource(
@@ -588,7 +593,9 @@ void FParticleCurveTexture::SubmitPendingCurves()
 			FParticleCurveTexture*, ParticleCurveTexture, this,
 			TArray<FCurveSamples>, PendingCurves, PendingCurves,
 		{
+			//@todo-rco: RHIPacketList
 			InjectCurves(
+				nullptr,
 				ParticleCurveTexture->CurveTextureRHI,
 				ParticleCurveTexture->CurveTextureTargetRHI,
 				PendingCurves

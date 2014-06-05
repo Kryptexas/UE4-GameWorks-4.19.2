@@ -10,6 +10,8 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 #include "GlobalShader.h"
 #include "FXSystem.h"
 
@@ -621,15 +623,16 @@ public:
 	 * @param NoiseVolumeTextureRHI - The volume texture to use to add noise to the vector field.
 	 */
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FCompositeAnimatedVectorFieldUniformBufferRef& UniformBuffer,
 		FTextureRHIParamRef AtlasTextureRHI,
 		FTextureRHIParamRef NoiseVolumeTextureRHI )
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetUniformBufferParameter( ComputeShaderRHI, GetUniformBufferParameter<FCompositeAnimatedVectorFieldUniformParameters>(), UniformBuffer );
-		SetTextureParameter( ComputeShaderRHI, AtlasTexture, AtlasTextureSampler, SamplerStateLinear, AtlasTextureRHI );
-		SetTextureParameter( ComputeShaderRHI, NoiseVolumeTexture, NoiseVolumeTextureSampler, SamplerStateLinear, NoiseVolumeTextureRHI );
+		SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<FCompositeAnimatedVectorFieldUniformParameters>(), UniformBuffer );
+		SetTextureParameter(RHICmdList, ComputeShaderRHI, AtlasTexture, AtlasTextureSampler, SamplerStateLinear, AtlasTextureRHI );
+		SetTextureParameter(RHICmdList, ComputeShaderRHI, NoiseVolumeTexture, NoiseVolumeTextureSampler, SamplerStateLinear, NoiseVolumeTextureRHI );
 	}
 
 	/**
@@ -799,7 +802,7 @@ public:
 			Parameters.Op = (uint32)AnimatedVectorField->ConstructionOp;
 
 			FCompositeAnimatedVectorFieldUniformBufferRef UniformBuffer = 
-				FCompositeAnimatedVectorFieldUniformBufferRef::CreateUniformBufferImmediate(Parameters, UniformBuffer_SingleUse);
+				FCompositeAnimatedVectorFieldUniformBufferRef::CreateUniformBufferImmediate(Parameters, UniformBuffer_SingleDraw);
 
 			TShaderMapRef<FCompositeAnimatedVectorFieldCS> CompositeCS(GetGlobalShaderMap());
 			FTextureRHIParamRef NoiseVolumeTextureRHI = GBlackVolumeTexture->TextureRHI;
@@ -810,11 +813,14 @@ public:
 
 			RHISetComputeShader(CompositeCS->GetComputeShader());
 			CompositeCS->SetOutput(VolumeTextureUAV);
+			/// ?
 			CompositeCS->SetParameters(
+				nullptr,
 				UniformBuffer,
 				AnimatedVectorField->Texture->Resource->TextureRHI,
 				NoiseVolumeTextureRHI );
 			DispatchComputeShader(
+				nullptr,
 				*CompositeCS,
 				SizeX / THREADS_PER_AXIS,
 				SizeY / THREADS_PER_AXIS,

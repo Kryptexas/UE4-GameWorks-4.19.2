@@ -20,6 +20,12 @@ class FPostProcessAmbientPS : public FGlobalShader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	/** Default constructor. */
 	FPostProcessAmbientPS() {}
 
@@ -41,15 +47,15 @@ public:
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 		CubemapShaderParameters.SetParameters(ShaderRHI, Entry);
-		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 	}
 	
 	// FShader interface.
@@ -107,7 +113,9 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		}
 
-		PixelShader->SetParameters(Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+		PixelShader->SetParameters(nullptr, Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
 
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle( 
@@ -159,6 +167,9 @@ void FCubemapShaderParameters::SetParameters(const FComputeShaderRHIParamRef Sha
 template<typename TShaderRHIRef>
 void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// floats to render the cubemap
 	{
 		float MipCount = 0;
@@ -172,7 +183,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 		{
 			FLinearColor AmbientCubemapTintMulScaleValue = Entry.AmbientCubemapTintMulScaleValue;
 
-			SetShaderValue(ShaderRHI, AmbientCubemapColor, AmbientCubemapTintMulScaleValue);
+			SetShaderValue(RHICmdList, ShaderRHI, AmbientCubemapColor, AmbientCubemapTintMulScaleValue);
 		}
 
 		{
@@ -183,7 +194,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 			AmbientCubemapMipAdjustValue.Z = MipCount - GDiffuseConvolveMipLevel;
 			AmbientCubemapMipAdjustValue.W = MipCount;
 
-			SetShaderValue(ShaderRHI, AmbientCubemapMipAdjust, AmbientCubemapMipAdjustValue);
+			SetShaderValue(RHICmdList, ShaderRHI, AmbientCubemapMipAdjust, AmbientCubemapMipAdjustValue);
 		}
 	}
 
@@ -191,7 +202,7 @@ void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& Shader
 	{
 		FTexture* InternalSpec = Entry.AmbientCubemap ? Entry.AmbientCubemap->Resource : GBlackTextureCube;
 
-		SetTextureParameter(ShaderRHI, AmbientCubemap, AmbientCubemapSampler, InternalSpec);
+		SetTextureParameter(RHICmdList, ShaderRHI, AmbientCubemap, AmbientCubemapSampler, InternalSpec);
 	}
 }
 

@@ -83,7 +83,9 @@ void FForwardShadingSceneRenderer::Render()
 	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
 	RHIClear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
-	RenderForwardShadingBasePass();
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	RenderForwardShadingBasePass(RHICmdList);
 
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
@@ -99,7 +101,7 @@ void FForwardShadingSceneRenderer::Render()
 		if (ViewFamily.EngineShowFlags.Refraction)
 		{
 			// to apply refraction effect by distorting the scene color
-			RenderDistortion();
+			RenderDistortion(RHICmdList);
 		}
 		RenderTranslucency();
 	}

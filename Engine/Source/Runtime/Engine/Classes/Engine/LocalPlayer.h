@@ -265,5 +265,8 @@ public:
 	 * @param InOffset		Offset applied to current world origin
 	 */
 	void ApplyWorldOffset(FVector InOffset);
+
+	/** Locked view state needs access to GetViewPoint. */
+	friend class FLockedViewState;
 };
 

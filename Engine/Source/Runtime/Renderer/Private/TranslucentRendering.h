@@ -28,6 +28,7 @@ public:
 	* @return true if the mesh rendered
 	*/
 	static bool DrawDynamicMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
@@ -42,6 +43,7 @@ public:
 	* @return true if the mesh rendered
 	*/
 	static bool DrawStaticMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FStaticMesh& StaticMesh,
@@ -93,6 +95,7 @@ public:
 	* @return true if the mesh rendered
 	*/
 	static bool DrawDynamicMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
@@ -107,6 +110,7 @@ public:
 	* @return true if the mesh rendered
 	*/
 	static bool DrawStaticMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FStaticMesh& StaticMesh,
@@ -171,10 +175,10 @@ public:
 
 	FWriteToSliceVS() {}
 
-	void SetParameters(const FVolumeBounds& VolumeBounds, uint32 VolumeResolution)
+	void SetParameters(FRHICommandList* RHICmdList, const FVolumeBounds& VolumeBounds, uint32 VolumeResolution)
 	{
 		const float InvVolumeResolution = 1.0f / VolumeResolution;
-		SetShaderValue(GetVertexShader(), UVScaleBias, FVector4(
+		SetShaderValue(RHICmdList, GetVertexShader(), UVScaleBias, FVector4(
 			(VolumeBounds.MaxX - VolumeBounds.MinX) * InvVolumeResolution, 
 			(VolumeBounds.MaxY - VolumeBounds.MinY) * InvVolumeResolution,
 			VolumeBounds.MinX * InvVolumeResolution,
@@ -210,9 +214,9 @@ public:
 	}
 	FWriteToSliceGS() {}
 
-	void SetParameters(const FVolumeBounds& VolumeBounds)
+	void SetParameters(FRHICommandList* RHICmdList, const FVolumeBounds& VolumeBounds)
 	{
-		SetShaderValue(GetGeometryShader(), MinZ, VolumeBounds.MinZ);
+		SetShaderValue(RHICmdList, GetGeometryShader(), MinZ, VolumeBounds.MinZ);
 	}
 
 	virtual bool Serialize(FArchive& Ar)

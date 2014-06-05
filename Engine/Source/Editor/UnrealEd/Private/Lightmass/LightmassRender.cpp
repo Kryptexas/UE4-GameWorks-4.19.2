@@ -931,7 +931,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 			{
 				// At this point, we can't just return false at failure since we have some clean-up to do...
 				Canvas->SetRenderTarget(RenderTarget->GameThread_GetRenderTargetResource());
-				RHIBeginScene();
+
 				// Clear the render target to black
 				// This is necessary because the below DrawTile doesn't write to the first column and first row
 				//@todo - figure out and fix DrawTile issues when rendering a full render target quad
@@ -943,7 +943,6 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 				FlushRenderingCommands();
 				Canvas->SetRenderTarget(NULL);
 				FlushRenderingCommands();
-				RHIEndScene();
 
 				// Read in the data
 				//@todo UE4. Check the format! RenderTarget->Format

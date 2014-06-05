@@ -40,6 +40,8 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 	View.InitRHIResources();
 
 	const auto FeatureLevel = View.GetFeatureLevel();
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
@@ -53,11 +55,11 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM3)
 			{
-				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 			else
 			{
-				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
@@ -69,17 +71,17 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 			// draw the mesh
 			if (bIsHitTesting)
 			{
-				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
 			}
 			else
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM3)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}
 				else
 				{
-					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
 				}
 			}
 		}	

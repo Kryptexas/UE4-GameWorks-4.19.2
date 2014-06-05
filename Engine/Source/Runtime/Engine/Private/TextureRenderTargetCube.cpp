@@ -224,6 +224,7 @@ void FTextureRenderTargetCubeResource::InitDynamicRHI()
 		}
 
 		TextureRHI = TextureCubeRHI;
+		RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 		// Create the RHI target surface used for rendering to
 		{
@@ -266,6 +267,7 @@ void FTextureRenderTargetCubeResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
+	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
 	CubeFaceSurfaceRHI.SafeRelease();
 	RenderTargetCubeRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	

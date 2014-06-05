@@ -42,7 +42,7 @@ private:
 
 	// @return VertexShader
 	template <bool bDrawTileTemplate>
-	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
+	FShader* SetShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
 
 	TArray<TileData> Tiles;
 };

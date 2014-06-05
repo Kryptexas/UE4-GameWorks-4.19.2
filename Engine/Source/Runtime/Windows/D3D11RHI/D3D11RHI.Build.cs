@@ -11,7 +11,6 @@ public class D3D11RHI : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject",
 				"Engine",
 				"RHI",
 				"RenderCore",

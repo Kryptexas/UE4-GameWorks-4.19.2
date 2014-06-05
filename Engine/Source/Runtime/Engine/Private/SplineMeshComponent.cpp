@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Components/SplineMeshComponent.h"
 #include "SplineMeshSceneProxy.h"
+#include "ShaderParameterUtils.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -33,7 +34,7 @@ void FSplineMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& P
 	SplineMeshYParam.Bind(ParameterMap, TEXT("SplineMeshY"), SPF_Mandatory);
 }
 
-void FSplineMeshVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
+void FSplineMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList* RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
 	if (Shader->GetVertexShader())
 	{
@@ -41,33 +42,33 @@ void FSplineMeshVertexFactoryShaderParameters::SetMesh(FShader* Shader, const FV
 		FSplineMeshSceneProxy* SplineProxy = SplineVertexFactory->SplineSceneProxy;
 		FSplineMeshParams& SplineParams = SplineProxy->SplineParams;
 
-		SetShaderValue(Shader->GetVertexShader(), SplineStartPosParam, SplineParams.StartPos);
-		SetShaderValue(Shader->GetVertexShader(), SplineStartTangentParam, SplineParams.StartTangent);
-		SetShaderValue(Shader->GetVertexShader(), SplineStartRollParam, SplineParams.StartRoll);
-		SetShaderValue(Shader->GetVertexShader(), SplineStartScaleParam, SplineParams.StartScale);
-		SetShaderValue(Shader->GetVertexShader(), SplineStartOffsetParam, SplineParams.StartOffset);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartPosParam, SplineParams.StartPos);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartTangentParam, SplineParams.StartTangent);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartRollParam, SplineParams.StartRoll);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartScaleParam, SplineParams.StartScale);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartOffsetParam, SplineParams.StartOffset);
 
-		SetShaderValue(Shader->GetVertexShader(), SplineEndPosParam, SplineParams.EndPos);
-		SetShaderValue(Shader->GetVertexShader(), SplineEndTangentParam, SplineParams.EndTangent);
-		SetShaderValue(Shader->GetVertexShader(), SplineEndRollParam, SplineParams.EndRoll);
-		SetShaderValue(Shader->GetVertexShader(), SplineEndScaleParam, SplineParams.EndScale);
-		SetShaderValue(Shader->GetVertexShader(), SplineEndOffsetParam, SplineParams.EndOffset);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndPosParam, SplineParams.EndPos);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndTangentParam, SplineParams.EndTangent);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndRollParam, SplineParams.EndRoll);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndScaleParam, SplineParams.EndScale);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineEndOffsetParam, SplineParams.EndOffset);
 
-		SetShaderValue(Shader->GetVertexShader(), SplineUpDirParam, SplineProxy->SplineUpDir);
-		SetShaderValue(Shader->GetVertexShader(), SmoothInterpRollScaleParam, SplineProxy->bSmoothInterpRollScale);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineUpDirParam, SplineProxy->SplineUpDir);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SmoothInterpRollScaleParam, SplineProxy->bSmoothInterpRollScale);
 
-		SetShaderValue(Shader->GetVertexShader(), SplineMeshMinZParam, SplineProxy->SplineMeshMinZ);
-		SetShaderValue(Shader->GetVertexShader(), SplineMeshScaleZParam, SplineProxy->SplineMeshScaleZ);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshMinZParam, SplineProxy->SplineMeshMinZ);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshScaleZParam, SplineProxy->SplineMeshScaleZ);
 
 		FVector DirMask(0, 0, 0);
 		DirMask[SplineProxy->ForwardAxis] = 1;
-		SetShaderValue(Shader->GetVertexShader(), SplineMeshDirParam, DirMask);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshDirParam, DirMask);
 		DirMask = FVector::ZeroVector;
 		DirMask[(SplineProxy->ForwardAxis + 1) % 3] = 1;
-		SetShaderValue(Shader->GetVertexShader(), SplineMeshXParam, DirMask);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshXParam, DirMask);
 		DirMask = FVector::ZeroVector;
 		DirMask[(SplineProxy->ForwardAxis + 2) % 3] = 1;
-		SetShaderValue(Shader->GetVertexShader(), SplineMeshYParam, DirMask);
+		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineMeshYParam, DirMask);
 	}
 }
 

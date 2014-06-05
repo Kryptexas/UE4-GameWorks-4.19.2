@@ -1201,7 +1201,7 @@ inline TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUnifo
 	check(IsInRenderingThread());
 	return TUniformBufferRef<FPrimitiveUniformShaderParameters>::CreateUniformBufferImmediate(
 		GetPrimitiveUniformShaderParameters(LocalToWorld, WorldBounds.Origin, WorldBounds, LocalBounds, bReceivesDecals, false, LpvBiasMultiplier ),
-		UniformBuffer_MultiUse
+		UniformBuffer_MultiFrame
 		);
 }
 
@@ -2645,6 +2645,9 @@ public:
 
 	/** Whether this view is being used to render a reflection capture. */
 	bool bIsReflectionCapture;
+	
+	/** Whether this view was created from a locked viewpoint. */
+	bool bIsLocked;
 
 	/** 
 	 * Whether to only render static lights and objects.  

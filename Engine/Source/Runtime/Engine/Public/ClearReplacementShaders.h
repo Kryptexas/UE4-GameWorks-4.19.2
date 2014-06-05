@@ -83,12 +83,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value)
-	{
-		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetShaderValue(ComputeShaderRHI, ClearColor, Value);
-		RHISetUAVParameter(ComputeShaderRHI, ClearTextureRW.GetBaseIndex(), TextureRW);
-	}
+	void SetParameters(FRHICommandList* RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -112,12 +107,7 @@ public:
 		ClearBufferRW.Bind(Initializer.ParameterMap, TEXT("ClearBufferRW"), SPF_Mandatory);
 	}
 
-	void SetParameters(FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword)
-	{
-		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetShaderValue(ComputeShaderRHI, ClearDword, Dword);
-		RHISetUAVParameter(ComputeShaderRHI, ClearBufferRW.GetBaseIndex(), BufferRW);
-	}
+	void SetParameters(FRHICommandList* RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)

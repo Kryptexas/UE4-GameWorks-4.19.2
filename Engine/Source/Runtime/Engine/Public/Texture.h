@@ -187,8 +187,6 @@ class FTextureResource : public FTexture
 {
 public:
 
-	FRenderCommandFence ReleaseFence;
-
 	FTextureResource()
 	{}
 	virtual ~FTextureResource() {}

@@ -3326,13 +3326,6 @@ namespace ThumbnailTools
 		}
 		check( RenderTargetResource != NULL );
 
-		// Manually call RHIBeginScene since we are issuing draw calls outside of the main rendering function
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			BeginCommand,
-		{
-			RHIBeginScene();
-		});
-
 		// Create a canvas for the render target and clear it to black
 		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime );
 		Canvas.Clear( FLinearColor::Black );
@@ -3450,12 +3443,6 @@ namespace ThumbnailTools
 				}
 			}
 		}
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND(
-			EndCommand,
-		{
-			RHIEndScene();
-		});
 	}
 
 

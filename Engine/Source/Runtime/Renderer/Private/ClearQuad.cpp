@@ -23,7 +23,10 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 			? TStaticBlendState<>::GetRHI()
 			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
 	}
-		
+	
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
 		(bClearDepth && bClearStencil)
 			? TStaticDepthStencilState<
@@ -104,7 +107,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 		ShaderClearColors[i] = ClearColorArray[i];
 	}
 
-	SetShaderValueArray(PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
+	SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
 		
 	{
 		// Draw a fullscreen quad

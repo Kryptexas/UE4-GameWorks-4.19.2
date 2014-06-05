@@ -44,14 +44,14 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FFinalPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 	}
 
 	// FShader interface.
@@ -83,7 +83,7 @@ public:
 
 
 template <uint32 SpecularCorrection>
-void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
+void SetSubsurfaceSetupShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSubsurfaceSetupPS<SpecularCorrection> > PixelShader(GetGlobalShaderMap());
@@ -92,8 +92,8 @@ void SetSubsurfaceSetupShader(const FRenderingCompositePassContext& Context)
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context);
-	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context);
+	VertexShader->SetParameters(RHICmdList, Context);
 }
 
 static TAutoConsoleVariable<int> CVarSubsurfaceQuality(
@@ -146,6 +146,9 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
@@ -162,12 +165,12 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	if(DoSpecularCorrection())
 	{
 		// with separate specular
-		SetSubsurfaceSetupShader<1>(Context);
+		SetSubsurfaceSetupShader<1>(RHICmdList, Context);
 	}
 	else
 	{
 		// no separate specular
-		SetSubsurfaceSetupShader<0>(Context);
+		SetSubsurfaceSetupShader<0>(RHICmdList, Context);
 	}
 
 	// Draw a quad mapping scene color to the view's render target
@@ -211,7 +214,8 @@ class FPostProcessSubsurfacePS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("METHOD"), Method);
 	}
 
@@ -240,17 +244,17 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context, float InRadius)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float InRadius)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Border>::GetRHI());
 
 		{
 			FVector4 ColorScale(InRadius, 0, 0, 0);
-			SetShaderValue(ShaderRHI, SSSParams, ColorScale);
+			SetShaderValue(RHICmdList, ShaderRHI, SSSParams, ColorScale);
 		}
 	}
 
@@ -281,7 +285,7 @@ FRCPassPostProcessSubsurface::FRCPassPostProcessSubsurface(uint32 InPass, float 
 
 
 template <uint32 Method>
-void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float InRadius)
+void SetSubsurfaceShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float InRadius)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSubsurfacePS<Method> > PixelShader(GetGlobalShaderMap());
@@ -290,8 +294,8 @@ void SetSubsurfaceShader(const FRenderingCompositePassContext& Context, float In
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(Context, InRadius);
-	VertexShader->SetParameters(Context);
+	PixelShader->SetParameters(RHICmdList, Context, InRadius);
+	VertexShader->SetParameters(RHICmdList, Context);
 }
 
 
@@ -331,6 +335,8 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
@@ -338,7 +344,7 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	{
 		SCOPED_DRAW_EVENT(SubsurfacePass0, DEC_SCENE_ITEMS);
 	
-		SetSubsurfaceShader<0>(Context, Radius);
+		SetSubsurfaceShader<0>(RHICmdList, Context, Radius);
 
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
@@ -361,11 +367,11 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 		if(DoSpecularCorrection())
 		{
 			// reconstruct specular and add it in final pass
-			SetSubsurfaceShader<2>(Context, Radius);
+			SetSubsurfaceShader<2>(RHICmdList, Context, Radius);
 		}
 		else
 		{
-			SetSubsurfaceShader<1>(Context, Radius);
+			SetSubsurfaceShader<1>(RHICmdList, Context, Radius);
 		}
 
 		// Draw a quad mapping scene color to the view's render target

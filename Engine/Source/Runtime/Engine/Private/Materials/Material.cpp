@@ -594,7 +594,7 @@ void UMaterial::OverrideTexture( const UTexture* InTextureToOverride, UTexture* 
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = {GRHIFeatureLevel,ERHIFeatureLevel::ES2};
 	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
@@ -1995,6 +1995,18 @@ void UMaterial::PostLoad()
 		//Don't compile shaders in post load for dev overhead materials.
 		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
+			// Before caching shader resources we have to make sure all referenced textures have been post loaded
+			// as we depend on their resources being valid.
+			RebuildExpressionTextureReferences();
+			for (int32 TextureIndex=0, NumTextures=ExpressionTextureReferences.Num(); TextureIndex < NumTextures; ++TextureIndex)
+			{
+				UTexture* Texture = ExpressionTextureReferences[TextureIndex];
+				if (Texture)
+				{
+					Texture->ConditionalPostLoad();
+				}
+			}
+
 			CacheResourceShadersForRendering(false);
 		}
 	}

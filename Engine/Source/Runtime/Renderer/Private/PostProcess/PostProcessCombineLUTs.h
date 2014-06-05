@@ -38,7 +38,7 @@ public:
 
 	FColorRemapShaderParameters(const FShaderParameterMap& ParameterMap);
 
-	void Set(const FPixelShaderRHIParamRef ShaderRHI);
+	void Set(FRHICommandList* RHICmdList, const FPixelShaderRHIParamRef ShaderRHI);
 
 	friend FArchive& operator<<(FArchive& Ar,FColorRemapShaderParameters& P);
 

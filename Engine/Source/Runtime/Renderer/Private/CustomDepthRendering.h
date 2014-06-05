@@ -18,7 +18,7 @@ public:
 	* @param ViewInfo - current view used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawPrims(const class FViewInfo* ViewInfo,bool bInitializeOffsets);
+	bool DrawPrims(FRHICommandList* RHICmdList, const class FViewInfo* ViewInfo,bool bInitializeOffsets);
 
 	/**
 	* Add a new primitive to the list of prims

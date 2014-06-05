@@ -47,5 +47,7 @@ private:
 	/** Uniform buffer containing the UMaterialParameterCollection default parameter values and UMaterialParameterCollectionInstance instance overrides. */
 	FUniformBufferRHIRef UniformBuffer;
 
+	FRHIUniformBufferLayout UniformBufferLayout;
+
 	void UpdateContents(const FGuid& InId, const TArray<FVector4>& Data);
 };

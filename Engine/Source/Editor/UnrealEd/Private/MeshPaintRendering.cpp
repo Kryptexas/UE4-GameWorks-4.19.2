@@ -8,7 +8,8 @@
 #include "MeshPaintRendering.h"
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
-
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 
 namespace MeshPaintRendering
 {
@@ -42,9 +43,9 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters( const FMatrix& InTransform )
+		void SetParameters(FRHICommandList* RHICmdList, const FMatrix& InTransform )
 		{
-			SetShaderValue( GetVertexShader(), TransformParameter, InTransform );
+			SetShaderValue(RHICmdList, GetVertexShader(), TransformParameter, InTransform );
 		}
 
 	private:
@@ -102,43 +103,44 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters( const float InGamma, const FMeshPaintShaderParameters& InShaderParams )
+		void SetParameters(FRHICommandList* RHICmdList, const float InGamma, const FMeshPaintShaderParameters& InShaderParams )
 		{
 			const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				CloneTextureParameter,
 				CloneTextureParameterSampler,
 				TStaticSamplerState< SF_Point, AM_Clamp, AM_Clamp, AM_Clamp >::GetRHI(),
 				InShaderParams.CloneTexture->GetRenderTargetResource()->TextureRHI );
 
-			SetShaderValue( ShaderRHI, WorldToBrushMatrixParameter, InShaderParams.WorldToBrushMatrix );
+			SetShaderValue(RHICmdList, ShaderRHI, WorldToBrushMatrixParameter, InShaderParams.WorldToBrushMatrix );
 
 			FVector4 BrushMetrics;
 			BrushMetrics.X = InShaderParams.BrushRadius;
 			BrushMetrics.Y = InShaderParams.BrushRadialFalloffRange;
 			BrushMetrics.Z = InShaderParams.BrushDepth;
 			BrushMetrics.W = InShaderParams.BrushDepthFalloffRange;
-			SetShaderValue( ShaderRHI, BrushMetricsParameter, BrushMetrics );
+			SetShaderValue(RHICmdList, ShaderRHI, BrushMetricsParameter, BrushMetrics );
 
 			FVector4 BrushStrength4( InShaderParams.BrushStrength, 0.0f, 0.0f, 0.0f );
-			SetShaderValue( ShaderRHI, BrushStrengthParameter, BrushStrength4 );
+			SetShaderValue(RHICmdList, ShaderRHI, BrushStrengthParameter, BrushStrength4 );
 
-			SetShaderValue( ShaderRHI, BrushColorParameter, InShaderParams.BrushColor );
+			SetShaderValue(RHICmdList, ShaderRHI, BrushColorParameter, InShaderParams.BrushColor );
 
 			FVector4 ChannelFlags;
 			ChannelFlags.X = InShaderParams.RedChannelFlag;
 			ChannelFlags.Y = InShaderParams.GreenChannelFlag;
 			ChannelFlags.Z = InShaderParams.BlueChannelFlag;
 			ChannelFlags.W = InShaderParams.AlphaChannelFlag;
-			SetShaderValue( ShaderRHI, ChannelFlagsParameter, ChannelFlags );
+			SetShaderValue(RHICmdList, ShaderRHI, ChannelFlagsParameter, ChannelFlags );
 			
 			float MaskVal = InShaderParams.GenerateMaskFlag ? 1.0f : 0.0f;
-			SetShaderValue( ShaderRHI, GenerateMaskFlagParameter, MaskVal );
+			SetShaderValue(RHICmdList, ShaderRHI, GenerateMaskFlagParameter, MaskVal );
 
 			// @todo MeshPaint
-			SetShaderValue( ShaderRHI, GammaParameter, InGamma );
+			SetShaderValue(RHICmdList, ShaderRHI, GammaParameter, InGamma );
 		}
 
 
@@ -204,9 +206,9 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters( const FMatrix& InTransform )
+		void SetParameters(FRHICommandList* RHICmdList, const FMatrix& InTransform )
 		{
-			SetShaderValue( GetVertexShader(), TransformParameter, InTransform );
+			SetShaderValue(RHICmdList, GetVertexShader(), TransformParameter, InTransform );
 		}
 
 	private:
@@ -264,11 +266,12 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters( const float InGamma, const FMeshPaintDilateShaderParameters& InShaderParams )
+		void SetParameters(FRHICommandList* RHICmdList, const float InGamma, const FMeshPaintDilateShaderParameters& InShaderParams )
 		{
 			const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				Texture0Parameter,
 				Texture0ParameterSampler,
@@ -276,6 +279,7 @@ namespace MeshPaintRendering
 				InShaderParams.Texture0->GetRenderTargetResource()->TextureRHI );
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				Texture1Parameter,
 				Texture1ParameterSampler,
@@ -283,15 +287,16 @@ namespace MeshPaintRendering
 				InShaderParams.Texture1->GetRenderTargetResource()->TextureRHI );
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				Texture2Parameter,
 				Texture2ParameterSampler,
 				TStaticSamplerState< SF_Point, AM_Clamp, AM_Clamp, AM_Clamp >::GetRHI(),
 				InShaderParams.Texture2->GetRenderTargetResource()->TextureRHI );
 
-			SetShaderValue(ShaderRHI, WidthPixelOffsetParameter, InShaderParams.WidthPixelOffset );
-			SetShaderValue(ShaderRHI, HeightPixelOffsetParameter, InShaderParams.HeightPixelOffset );
-			SetShaderValue(ShaderRHI, GammaParameter, InGamma );
+			SetShaderValue(RHICmdList, ShaderRHI, WidthPixelOffsetParameter, InShaderParams.WidthPixelOffset );
+			SetShaderValue(RHICmdList, ShaderRHI, HeightPixelOffsetParameter, InShaderParams.HeightPixelOffset );
+			SetShaderValue(RHICmdList, ShaderRHI, GammaParameter, InGamma );
 		}
 
 
@@ -343,7 +348,7 @@ namespace MeshPaintRendering
 
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintShaders_RenderThread( const FMatrix& InTransform,
+	void SetMeshPaintShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform,
 										   const float InGamma,
 										   const FMeshPaintShaderParameters& InShaderParams )
 	{
@@ -354,16 +359,16 @@ namespace MeshPaintRendering
 		SetGlobalBoundShaderState( BoundShaderState, GMeshPaintVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
 		// Set vertex shader parameters
-		VertexShader->SetParameters( InTransform );
+		VertexShader->SetParameters(RHICmdList, InTransform );
 		
 		// Set pixel shader parameters
-		PixelShader->SetParameters( InGamma, InShaderParams );
+		PixelShader->SetParameters(RHICmdList, InGamma, InShaderParams );
 
 		// @todo MeshPaint: Make sure blending/color writes are setup so we can write to ALPHA if needed!
 	}
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintDilateShaders_RenderThread( const FMatrix& InTransform,
+	void SetMeshPaintDilateShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform,
 												 const float InGamma,
 												 const FMeshPaintDilateShaderParameters& InShaderParams )
 	{
@@ -374,10 +379,10 @@ namespace MeshPaintRendering
 		SetGlobalBoundShaderState( BoundShaderState, GMeshPaintDilateVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
 		// Set vertex shader parameters
-		VertexShader->SetParameters( InTransform );
+		VertexShader->SetParameters(RHICmdList, InTransform );
 
 		// Set pixel shader parameters
-		PixelShader->SetParameters( InGamma, InShaderParams );
+		PixelShader->SetParameters(RHICmdList, InGamma, InShaderParams );
 	}
 
 }

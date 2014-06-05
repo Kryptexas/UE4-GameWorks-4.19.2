@@ -489,7 +489,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	checkSlow(sizeof(ViewUniformShaderParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4) * 7);
 	SetupSkyIrradianceEnvironmentMapConstants((FVector4*)&ViewUniformShaderParameters.SkyIrradianceEnvironmentMap);
 
-	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleUse);
+	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }
 
 void FViewInfo::InitRHIResources()
@@ -564,6 +564,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 	check(Scene != NULL);
 
 	// Copy the individual views.
+	bool bAnyViewIsLocked = false;
 	Views.Empty(InViewFamily->Views.Num());
 	for(int32 ViewIndex = 0;ViewIndex < InViewFamily->Views.Num();ViewIndex++)
 	{
@@ -581,6 +582,7 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 		FViewInfo* ViewInfo = new(Views) FViewInfo(InViewFamily->Views[ViewIndex]);
 		ViewFamily.Views[ViewIndex] = ViewInfo;
 		ViewInfo->Family = &ViewFamily;
+		bAnyViewIsLocked |= ViewInfo->bIsLocked;
 
 #if WITH_EDITOR
 		// Should we allow the user to select translucent primitives?
@@ -595,6 +597,14 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 			FViewElementPDI ViewElementPDI(ViewInfo,HitProxyConsumer);
 			ViewInfo->Drawer->Draw(ViewInfo,&ViewElementPDI);
 		}
+	}
+
+	// If any viewpoint has been locked, set time to zero to avoid time-based
+	// rendering differences in materials.
+	if (bAnyViewIsLocked)
+	{
+		ViewFamily.CurrentRealTime = 0.0f;
+		ViewFamily.CurrentWorldTime = 0.0f;
 	}
 	
 	if(HitProxyConsumer)
@@ -685,7 +695,8 @@ void FSceneRenderer::RenderFinish()
 			// display a message saying we're frozen
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
-			if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning)
+			bool bLocked = View.bIsLocked;
+			if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
 			{
 				// this is a helper class for FCanvas to be able to get screen size
 				class FRenderTargetTemp : public FRenderTarget
@@ -724,6 +735,12 @@ void FSceneRenderer::RenderFinish()
 				{
 					const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
 					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(1.0,0.05,0.05,1.0));
+					Y += 14;
+				}
+				if (bLocked)
+				{
+					const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
+					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(0.8,1.0,0.2,1.0));
 					Y += 14;
 				}
 				Canvas.Flush();
@@ -794,6 +811,9 @@ void FSceneRenderer::RenderFinish()
 	}
 
 #endif
+
+	// Notify the RHI we are done rendering a scene.
+	RHIEndScene();
 }
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
@@ -839,6 +859,9 @@ void FSceneRenderer::RenderCustomDepthPass()
 	{
 		SCOPED_DRAW_EVENT(CustomDepth, DEC_SCENE_ITEMS);
 
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
@@ -857,7 +880,7 @@ void FSceneRenderer::RenderCustomDepthPass()
 			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
 
-			View.CustomDepthSet.DrawPrims(&View, false);
+			View.CustomDepthSet.DrawPrims(RHICmdList, &View, false);
 		}
 
 		// resolve using the current ResolveParams 

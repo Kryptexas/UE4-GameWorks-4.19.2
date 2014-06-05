@@ -56,10 +56,11 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View )
 	{
 		FGeometryShaderRHIParamRef ShaderRHI = GetGeometryShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 	}
 };
 
@@ -77,10 +78,11 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View )
 	{
 		FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 	}
 };
 
@@ -120,11 +122,13 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FLightPropagationVolume* LPV,
 		const FSceneView& View )
 	{
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(ShaderRHI, View); 
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
+		check(!RHICmdList);
 
 #if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
@@ -134,7 +138,7 @@ public:
 			{
 				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), LpvBufferSrv );
 			}
-			SetTextureParameter( ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSrv );
+			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSrv );
 		}
 #else
 		if ( InLpvBuffer.IsBound() ) 
@@ -151,7 +155,7 @@ public:
 			{
 				RHISetShaderTexture( ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), GvBufferSrv );
 			}
-			SetTextureParameter( ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GvBufferSrv );
+			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GvBufferSrv );
 		}
 
 #else
@@ -257,11 +261,12 @@ void FLightPropagationVolume::Visualise( const FSceneView& View ) const
 	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
 	RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 
+	//@todo-rco: RHIPacketList
 	SetGlobalBoundShaderState(LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-	VertexShader->SetParameters( View );
-	GeometryShader->SetParameters( View );
-	PixelShader->SetParameters( this, View );
+	VertexShader->SetParameters(nullptr, View );
+	GeometryShader->SetParameters(nullptr, View );
+	PixelShader->SetParameters(nullptr, this, View );
 
 	RHISetStreamSource(0, NULL, 0, 0);
 	RHIDrawPrimitive( PT_PointList, 0, 1, 32*3 );

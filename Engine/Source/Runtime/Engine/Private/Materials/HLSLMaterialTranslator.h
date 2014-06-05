@@ -454,7 +454,6 @@ public:
 			}
 
 			ResourcesString = TEXT("");
-			MaterialCompilationOutput.UniformExpressionSet.GetResourcesString(Platform,ResourcesString);
 
 			// Output the implementation for any custom expressions we will call below.
 			for(int32 ExpressionIndex = 0;ExpressionIndex < CustomExpressionImplementations.Num();ExpressionIndex++)
@@ -1040,7 +1039,7 @@ protected:
 				break;
 			default: UE_LOG(LogMaterial, Fatal,TEXT("Unrecognized texture material value type: %u"),(int32)CodeChunk.Type);
 			};
-			FCString::Sprintf(FormattedCode, TEXT("Material%s_%u"), BaseName, TextureInputIndex);
+			FCString::Sprintf(FormattedCode, TEXT("Material.%s_%u"), BaseName, TextureInputIndex);
 		}
 		else
 		{

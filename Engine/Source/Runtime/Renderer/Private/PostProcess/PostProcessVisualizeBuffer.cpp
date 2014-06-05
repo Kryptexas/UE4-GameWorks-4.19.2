@@ -26,6 +26,7 @@ class FPostProcessVisualizeBufferPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DRAWING_TILE"), bDrawingTile ? TEXT("1") : TEXT("0"));
 	}
 
@@ -52,22 +53,23 @@ public:
 		}
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 	}
 
-	void SetSourceTexture(FTextureRHIRef Texture)
+	void SetSourceTexture(FRHICommandList* RHICmdList, FTextureRHIRef Texture)
 	{
 		if (bDrawingTile && SourceTexture.IsBound())
 		{
 			const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 			SetTextureParameter(
+				RHICmdList, 
 				ShaderRHI,
 				SourceTexture,
 				SourceTextureSampler,
@@ -109,7 +111,7 @@ IMPLEMENT_SHADER_TYPE2(FPostProcessVisualizeBufferPS<true>, SF_Pixel);
 IMPLEMENT_SHADER_TYPE2(FPostProcessVisualizeBufferPS<false>, SF_Pixel);
 
 template <bool bDrawingTile>
-FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(const FRenderingCompositePassContext& Context)
+FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessVisualizeBufferPS<bDrawingTile> > PixelShader(GetGlobalShaderMap());
@@ -118,7 +120,7 @@ FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(const FRenderingCompo
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 
 	return *VertexShader;
 }
@@ -143,6 +145,9 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 	Context.SetViewportAndCallRHI(DestRect);
@@ -153,18 +158,18 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	{
-		FShader* VertexShader = SetShaderTempl<false>(Context);
+		FShader* VertexShader = SetShaderTempl<false>(RHICmdList, Context);
 
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle(
-			0, 0,
-			DestRect.Width(), DestRect.Height(),
-			SrcRect.Min.X, SrcRect.Min.Y,
-			SrcRect.Width(), SrcRect.Height(),
-			DestRect.Size(),
-			SrcSize,
+	// Draw a quad mapping scene color to the view's render target
+	DrawRectangle(
+		0, 0,
+		DestRect.Width(), DestRect.Height(),
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
+		DestRect.Size(),
+		SrcSize,
 			VertexShader,
-			EDRF_UseTriangleOptimization);
+		EDRF_UseTriangleOptimization);
 	}
 
 	RHISetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
@@ -175,7 +180,7 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetPS(Context);
+	PixelShader->SetPS(RHICmdList, Context);
 
 	// Track the name and position of each tile we draw so we can write text labels over them
 	struct LabelRecord
@@ -204,7 +209,7 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 			int32 TileX = CurrentTileIndex % MaxTilesX;
 			int32 TileY = CurrentTileIndex / MaxTilesX;
 
-			PixelShader->SetSourceTexture(Texture);
+			PixelShader->SetSourceTexture(RHICmdList, Texture);
 
 			DrawRectangle(
 				TileX * TileWidth, TileY * TileHeight,

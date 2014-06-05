@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "RHI.h"
+#include "RHIDefinitions.h"
 #include "RefCounting.h"
+#include "Runtime/Engine/Public/PixelFormat.h" // for EPixelFormat
 
 /** The base type of RHI resources. */
 class RHI_API FRHIResource : public FRefCountedObject
@@ -44,20 +45,77 @@ class FRHIComputeShader : public FRHIResource {};
 // Buffers
 //
 
+/** The layout of a uniform buffer in memory. */
+struct FRHIUniformBufferLayout
+{
+	/** The size of the constant buffer in bytes. */
+	uint32 ConstantBufferSize;
+	/** The offset to the beginning of the resource table. */
+	uint32 ResourceOffset;
+	/** The type of each resource (EUniformBufferBaseType). */
+	TArray<uint8> Resources;
+
+	uint32 GetHash() const
+	{
+		if (!bComputedHash)
+		{
+			uint32 TmpHash = ConstantBufferSize;
+			TmpHash ^= ResourceOffset;
+			uint32 N = Resources.Num();
+			while (N >= 4)
+			{
+				TmpHash ^= (Resources[--N] << 0);
+				TmpHash ^= (Resources[--N] << 8);
+				TmpHash ^= (Resources[--N] << 16);
+				TmpHash ^= (Resources[--N] << 24);
+			}
+			while (N > 0)
+			{
+				TmpHash ^= Resources[--N];
+			}
+			Hash = TmpHash;
+			bComputedHash = true;
+		}
+		return Hash;
+	}
+
+	FRHIUniformBufferLayout() :
+		ConstantBufferSize(0),
+		ResourceOffset(0),
+		Hash(0),
+		bComputedHash(false)
+	{
+	}
+
+private:
+	mutable uint32 Hash;
+	mutable bool bComputedHash;
+};
+
+/** Compare two uniform buffer layouts. */
+inline bool operator==(const FRHIUniformBufferLayout& A, const FRHIUniformBufferLayout& B)
+{
+	return A.ConstantBufferSize == B.ConstantBufferSize
+		&& A.ResourceOffset == B.ResourceOffset
+		&& A.Resources == B.Resources;
+}
+
 class FRHIUniformBuffer : public FRHIResource
 {
 public:
 
 	/** Initialization constructor. */
-	FRHIUniformBuffer(uint32 InSize)
-	: Size(InSize)
+	FRHIUniformBuffer(const FRHIUniformBufferLayout& InLayout)
+	: Layout(&InLayout)
 	{}
 
 	/** @return The number of bytes in the uniform buffer. */
-	uint32 GetSize() const { return Size; }
+	uint32 GetSize() const { return Layout->ConstantBufferSize; }
+	const FRHIUniformBufferLayout& GetLayout() const { return *Layout; }
 
 private:
-	uint32 Size;
+	/** Layout of the uniform buffer. */
+	const FRHIUniformBufferLayout* Layout;
 };
 
 class FRHIIndexBuffer : public FRHIResource
@@ -146,6 +204,7 @@ public:
 	, NumSamples(InNumSamples)
 	, Format(InFormat)
 	, Flags(InFlags)
+	, LastCachedTime(-FLT_MAX)
 	{}
 
 	// Dynamic cast methods.
@@ -153,6 +212,7 @@ public:
 	virtual class FRHITexture2DArray* GetTexture2DArray() { return NULL; }
 	virtual class FRHITexture3D* GetTexture3D() { return NULL; }
 	virtual class FRHITextureCube* GetTextureCube() { return NULL; }
+	virtual class FRHITextureReference* GetTextureReference() { return NULL; }
 	
 	/**
 	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
@@ -179,15 +239,25 @@ public:
 	uint32 GetNumSamples() const { return NumSamples; }
 
 	/** @return Whether the texture is multi sampled. */
-	bool IsMultisampled() const { return NumSamples > 1; }
+	bool IsMultisampled() const { return NumSamples > 1; }		
 
 	FRHIResourceInfo ResourceInfo;
+
+	/** @return the last time this texture was cached in a resource table. */
+	inline float GetLastCachedTime() const { return LastCachedTime; }
+
+	/** sets the last time this texture was cached in a resource table. */
+	void SetLastCachedTime(float InLastCachedTime)
+	{
+		LastCachedTime = InLastCachedTime;
+	}
 
 private:
 	uint32 NumMips;
 	uint32 NumSamples;
 	EPixelFormat Format;
 	uint32 Flags;
+	float LastCachedTime;
 };
 
 class RHI_API FRHITexture2D : public FRHITexture
@@ -299,6 +369,39 @@ private:
 	uint32 Size;
 };
 
+class RHI_API FRHITextureReference : public FRHITexture
+{
+public:
+	explicit FRHITextureReference()
+		: FRHITexture(0,0,PF_Unknown,0)
+	{}
+
+	virtual FRHITextureReference* GetTextureReference() OVERRIDE { return this; }
+	inline FRHITexture* GetReferencedTexture() const { return ReferencedTexture.GetReference(); }
+
+protected:
+	void SetReferencedTexture(FRHITexture* InTexture)
+	{
+		ReferencedTexture = InTexture;
+	}
+
+private:
+	TRefCountPtr<FRHITexture> ReferencedTexture;
+};
+
+class RHI_API FRHITextureReferenceNullImpl : public FRHITextureReference
+{
+public:
+	FRHITextureReferenceNullImpl()
+		: FRHITextureReference()
+	{}
+
+	void SetReferencedTexture(FRHITexture* InTexture)
+	{
+		FRHITextureReference::SetReferencedTexture(InTexture);
+	}
+};
+
 //
 // Misc
 //
@@ -346,3 +449,24 @@ public:
 		ArraySliceIndex(InArraySliceIndex)
 	{}
 };
+
+// Template magic to convert an FRHI*Shader to its enum
+template<typename TRHIShader> struct TRHIShaderToEnum {};
+template<> struct TRHIShaderToEnum<FRHIVertexShader>	{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FRHIHullShader>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FRHIDomainShader>	{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FRHIPixelShader>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FRHIGeometryShader>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FRHIComputeShader>	{ enum { ShaderFrequency = SF_Compute }; };
+template<> struct TRHIShaderToEnum<FVertexShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FHullShaderRHIParamRef>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FDomainShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FPixelShaderRHIParamRef>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FGeometryShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FComputeShaderRHIParamRef>	{ enum { ShaderFrequency = SF_Compute }; };
+template<> struct TRHIShaderToEnum<FVertexShaderRHIRef>		{ enum { ShaderFrequency = SF_Vertex }; };
+template<> struct TRHIShaderToEnum<FHullShaderRHIRef>		{ enum { ShaderFrequency = SF_Hull }; };
+template<> struct TRHIShaderToEnum<FDomainShaderRHIRef>		{ enum { ShaderFrequency = SF_Domain }; };
+template<> struct TRHIShaderToEnum<FPixelShaderRHIRef>		{ enum { ShaderFrequency = SF_Pixel }; };
+template<> struct TRHIShaderToEnum<FGeometryShaderRHIRef>	{ enum { ShaderFrequency = SF_Geometry }; };
+template<> struct TRHIShaderToEnum<FComputeShaderRHIRef>	{ enum { ShaderFrequency = SF_Compute }; };

@@ -216,7 +216,6 @@ public:
 	bool IsEmpty() const;
 	bool operator==(const FUniformExpressionSet& ReferenceSet) const;
 	FString GetSummaryString() const;
-	void GetResourcesString(EShaderPlatform ShaderPlatform,FString& InputsString) const;
 
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();

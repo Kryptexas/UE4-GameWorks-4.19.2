@@ -228,6 +228,7 @@ public:
 		TextureCubeRHI = RHICreateTextureCube( Owner->GetSizeX(), Owner->GetPixelFormat(), Owner->GetNumMips(), TexCreateFlags, CreateInfo );
 		TextureRHI = TextureCubeRHI;
 		RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
+		RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
 
 		// Read the mip-levels into the RHI texture.
 		int32 NumMips = Owner->GetNumMips();
@@ -264,6 +265,7 @@ public:
 	{
 		DEC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 		DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
+		RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
 		TextureCubeRHI.SafeRelease();
 		FTextureResource::ReleaseRHI();
 	}

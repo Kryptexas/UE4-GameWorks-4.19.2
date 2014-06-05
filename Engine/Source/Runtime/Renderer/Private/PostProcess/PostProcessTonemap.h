@@ -100,17 +100,17 @@ public:
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
 	}
 
-	void SetVS(const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetVS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
 		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
-		SetShaderValue(ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+		SetShaderValue(RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 
 		if(EyeAdaptation.IsBound())
 		{
@@ -118,12 +118,12 @@ public:
 
 			if(EyeAdaptationRT)
 			{
-				SetTextureParameter(ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
+				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
 			}
 			else
 			{
 				// some views don't have a state, thumbnail rendering?
-				SetTextureParameter(ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
+				SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
 			}
 		}
 	}

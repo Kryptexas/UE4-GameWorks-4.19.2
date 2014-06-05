@@ -15,6 +15,7 @@
 #include "PostProcessTemporalAA.h"
 #include "PostProcessDownsample.h"
 #include "ReflectionEnvironment.h"
+#include "ShaderParameterUtils.h"
 #include "LightRendering.h"
 
 /** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
@@ -59,15 +60,15 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 		ReleaseCubeArray();
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::CreateCubemapDesc(
-			GReflectionCaptureSize,
-			//@todo - get rid of the alpha channel (currently stores brightness which is a constant), could use PF_FloatRGB for half memory, would need to implement RHIReadSurface support
-			PF_FloatRGBA, 
-			TexCreate_None,
-			TexCreate_None,
-			false, 
-			// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
-			FMath::Max<uint32>(MaxCubemaps, 2),
-			NumReflectionCaptureMips));
+		GReflectionCaptureSize,
+		//@todo - get rid of the alpha channel (currently stores brightness which is a constant), could use PF_FloatRGB for half memory, would need to implement RHIReadSurface support
+		PF_FloatRGBA, 
+		TexCreate_None,
+		TexCreate_None,
+		false, 
+		// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
+		FMath::Max<uint32>(MaxCubemaps, 2),
+		NumReflectionCaptureMips));
 	
 		// Allocate TextureCubeArray for the scene's reflection captures
 		GRenderTargetPool.FindFreeElement(Desc, ReflectionEnvs, TEXT("ReflectionEnvs"));
@@ -148,6 +149,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), GReflectionEnvironmentTileSizeX);
 		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), GReflectionEnvironmentTileSizeY);
 		OutEnvironment.SetDefine(TEXT("MAX_CAPTURES"), GMaxNumReflectionCaptures);
@@ -175,12 +177,12 @@ public:
 	{
 	}
 
-	void SetParameters(const FSceneView& View, FTextureRHIParamRef SSRTexture, FUnorderedAccessViewRHIParamRef OutSceneColorUAV)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, FTextureRHIParamRef SSRTexture, FUnorderedAccessViewRHIParamRef OutSceneColorUAV)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		DeferredParameters.Set(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 
 		FScene* Scene = (FScene*)View.Family->Scene;
 
@@ -190,18 +192,19 @@ public:
 		FSceneRenderTargetItem& CubemapArray = Scene->ReflectionSceneData.CubemapArray.GetRenderTarget();
 
 		SetTextureParameter(
+			RHICmdList, 
 			ShaderRHI, 
 			ReflectionEnvironmentColorTexture, 
 			ReflectionEnvironmentColorSampler, 
 			TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			CubemapArray.ShaderResourceTexture);
 
-		SetTextureParameter( ShaderRHI, ScreenSpaceReflections, SSRTexture );
+		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflections, SSRTexture );
 
-		SetTextureParameter( ShaderRHI, InSceneColor, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture );
-		OutSceneColor.SetTexture(ShaderRHI, NULL, OutSceneColorUAV);
+		SetTextureParameter(RHICmdList, ShaderRHI, InSceneColor, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture );
+		OutSceneColor.SetTexture(RHICmdList, ShaderRHI, NULL, OutSceneColorUAV);
 
-		SetShaderValue(ShaderRHI, ViewDimensionsParameter, View.ViewRect);
+		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensionsParameter, View.ViewRect);
 
 		static TArray<FReflectionCaptureSortData> SortData;
 		SortData.Reset(Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num());
@@ -260,19 +263,19 @@ public:
 			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
 		}
 
-		SetUniformBufferParameterImmediate(ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), SamplePositionsBuffer);
-		SetShaderValue(ShaderRHI, NumCaptures, SortData.Num());
+		SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, GetUniformBufferParameter<FReflectionCaptureData>(), SamplePositionsBuffer);
+		SetShaderValue(RHICmdList, ShaderRHI, NumCaptures, SortData.Num());
 
-		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
-		SkyLightParameters.SetParameters(ShaderRHI, Scene, View.Family->EngineShowFlags.SkyLighting);
+		SkyLightParameters.SetParameters(RHICmdList, ShaderRHI, Scene, View.Family->EngineShowFlags.SkyLighting);
 	}
 
 	void UnsetParameters()
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-
-		OutSceneColor.UnsetUAV(ShaderRHI);
+		//@todo-rco: RHIPacketList
+		OutSceneColor.UnsetUAV(nullptr, ShaderRHI);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -345,6 +348,7 @@ class FReflectionApplyPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("APPLY_SSR"), bSSR);
 		OutEnvironment.SetDefine(TEXT("APPLY_REFLECTION_ENV"), bReflectionEnv);
 		OutEnvironment.SetDefine(TEXT("APPLY_SKYLIGHT"), bSkylight);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 	}
 
 	/** Default constructor. */
@@ -374,17 +378,17 @@ public:
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 	}
 
-	void SetParameters( const FSceneView& View, FTextureRHIParamRef ReflectionEnv, FTextureRHIParamRef ScreenSpaceReflections )
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, FTextureRHIParamRef ReflectionEnv, FTextureRHIParamRef ScreenSpaceReflections )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-		DeferredParameters.Set(ShaderRHI, View);
-		SkyLightParameters.SetParameters(ShaderRHI, (FScene*)View.Family->Scene, true);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		SkyLightParameters.SetParameters(RHICmdList, ShaderRHI, (FScene*)View.Family->Scene, true);
 		
-		SetTextureParameter( ShaderRHI, ReflectionEnvTexture, ReflectionEnvSampler, TStaticSamplerState<SF_Point>::GetRHI(), ReflectionEnv );
-		SetTextureParameter( ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), ScreenSpaceReflections );
-		SetTextureParameter( ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvTexture, ReflectionEnvSampler, TStaticSamplerState<SF_Point>::GetRHI(), ReflectionEnv );
+		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), ScreenSpaceReflections );
+		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 	}
 
 	// FShader interface.
@@ -427,6 +431,12 @@ class FReflectionCaptureSpecularBouncePS : public FGlobalShader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
+	}
+
 	/** Default constructor. */
 	FReflectionCaptureSpecularBouncePS() {}
 
@@ -440,13 +450,13 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		DeferredParameters.Set(ShaderRHI, View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
 	}
 
 	// FShader interface.
@@ -494,18 +504,18 @@ public:
 		DeferredParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FSceneView& View, const FReflectionCaptureSortData& SortData)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FReflectionCaptureSortData& SortData)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		SetTextureParameter(ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SortData.SM4FullHDRCubemap->TextureRHI);
 
-		DeferredParameters.Set(ShaderRHI, View);
-		SetShaderValue(ShaderRHI, CapturePositionAndRadius, SortData.PositionAndRadius);
-		SetShaderValue(ShaderRHI, CaptureProperties, SortData.CaptureProperties);
-		SetShaderValue(ShaderRHI, CaptureBoxTransform, SortData.BoxTransform);
-		SetShaderValue(ShaderRHI, CaptureBoxScales, SortData.BoxScales);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+		SetShaderValue(RHICmdList, ShaderRHI, CapturePositionAndRadius, SortData.PositionAndRadius);
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureProperties, SortData.CaptureProperties);
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxTransform, SortData.BoxTransform);
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxScales, SortData.BoxScales);
 	}
 
 	// FShader interface.
@@ -537,9 +547,9 @@ IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<true>,TEXT("Refle
 IMPLEMENT_SHADER_TYPE(template<>,TStandardDeferredReflectionPS<false>,TEXT("ReflectionEnvironmentShaders"),TEXT("StandardDeferredReflectionPS"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllViews()
-{		
-	// We're currently capturing a reflection capture, output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections,
-	// Since we don't have multiple bounce specular reflections
+{
+				// We're currently capturing a reflection capture, output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections,
+				// Since we don't have multiple bounce specular reflections
 	GSceneRenderTargets.BeginRenderingSceneColor();
 	RHISetRasterizerState( TStaticRasterizerState< FM_Solid, CM_None >::GetRHI() );
 	RHISetDepthStencilState( TStaticDepthStencilState< false, CF_Always >::GetRHI() );
@@ -557,12 +567,13 @@ void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllV
 
 		RHISetViewport( View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f );
 
-		PixelShader->SetParameters( View );
+		//@todo-rco: RHIPacketList
+		PixelShader->SetParameters(nullptr, View );
 
 		DrawRectangle( 
-			0, 0, 
+			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
-			0, 0, 
+			0, 0,
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 			GSceneRenderTargets.GetBufferSizeXY(),
@@ -580,7 +591,7 @@ bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
 		&& ViewFamily.EngineShowFlags.ReflectionEnvironment;
 }
 
-void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews()
+void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews(FRHICommandList* RHICmdList)
 {
 	const uint32 bUseLightmaps = CVarDiffuseFromCaptures.GetValueOnRenderThread() == 0;
 
@@ -594,7 +605,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews()
 		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColorEnv") );
 	}
 
-	// If we are in SM5, use the compute shader gather method
+				// If we are in SM5, use the compute shader gather method
 	for (int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
@@ -626,12 +637,12 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews()
 
 			RHISetComputeShader(ComputeShader->GetComputeShader());
 
-			ComputeShader->SetParameters(View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, NewSceneColor->GetRenderTargetItem().UAV);
-			//ComputeShader->SetParameters(View, DestRenderTarget.UAV);
+			ComputeShader->SetParameters(RHICmdList, View, SSROutput->GetRenderTargetItem().ShaderResourceTexture, NewSceneColor->GetRenderTargetItem().UAV);
+			//ComputeShader->SetParameters(RHICmdList, View, DestRenderTarget.UAV);
 
 			uint32 GroupSizeX = (View.ViewRect.Size().X + GReflectionEnvironmentTileSizeX - 1) / GReflectionEnvironmentTileSizeX;
 			uint32 GroupSizeY = (View.ViewRect.Size().Y + GReflectionEnvironmentTileSizeY - 1) / GReflectionEnvironmentTileSizeY;
-			DispatchComputeShader(ComputeShader, GroupSizeX, GroupSizeY, 1);
+			DispatchComputeShader(RHICmdList, ComputeShader, GroupSizeX, GroupSizeY, 1);
 
 			ComputeShader->UnsetParameters();
 		}
@@ -641,7 +652,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews()
 	check(GSceneRenderTargets.GetSceneColor());
 }
 
-void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bool bReflectionEnv)
+void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FRHICommandList* RHICmdList, bool bReflectionEnv)
 {
 	const bool bSkyLight = Scene->SkyLight
 		&& Scene->SkyLight->ProcessedTexture
@@ -659,7 +670,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 
 	static TArray<FReflectionCaptureSortData> SortData;
 
-	if(bReflectionEnv)
+	if (bReflectionEnv)
 	{
 		// shared for multiple views
 
@@ -680,9 +691,9 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
 				NewSortEntry.BoxTransform = FMatrix(
-					FPlane(CurrentCapture->ReflectionPlane), 
-					FPlane(CurrentCapture->ReflectionXAxisAndYScale), 
-					FPlane(0, 0, 0, 0), 
+					FPlane(CurrentCapture->ReflectionPlane),
+					FPlane(CurrentCapture->ReflectionXAxisAndYScale),
+					FPlane(0, 0, 0, 0),
 					FPlane(0, 0, 0, 0));
 
 				NewSortEntry.BoxScales = FVector4(0);
@@ -710,14 +721,14 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 		const bool bSSR = DoScreenSpaceReflections(View);
 
 		TRefCountPtr<IPooledRenderTarget> SSROutput = GSystemTextures.BlackDummy;
-		if( bSSR )
+		if (bSSR)
 		{
 			bRequiresApply = true;
 
-			ScreenSpaceReflections( View, SSROutput );
+			ScreenSpaceReflections(View, SSROutput);
 		}
 
-		if( bReflectionEnv )
+		if (bReflectionEnv)
 		{
 			bRequiresApply = true;
 
@@ -751,28 +762,28 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-						PixelShader->SetParameters(View, ReflectionCapture);
+						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
-					else 
+					else
 					{
 						TShaderMapRef<TStandardDeferredReflectionPS<false> > PixelShader(GetGlobalShaderMap());
 
 						static FGlobalBoundShaderState BoundShaderState;
 						SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-						PixelShader->SetParameters(View, ReflectionCapture);
+						PixelShader->SetParameters(RHICmdList, View, ReflectionCapture);
 					}
 
 					SetBoundingGeometryRasterizerAndDepthState(View, LightBounds);
-					VertexShader->SetSimpleLightParameters(View, LightBounds);
+					VertexShader->SetSimpleLightParameters(RHICmdList, View, LightBounds);
 					StencilingGeometry::DrawSphere();
 				}
 			}
 
-			GRenderTargetPool.VisualizeTexture.SetCheckPoint( LightAccumulation );
+			GRenderTargetPool.VisualizeTexture.SetCheckPoint(LightAccumulation);
 		}
 
-		if( bRequiresApply )
+		if (bRequiresApply)
 		{
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(ReflectionApply, DEC_SCENE_ITEMS);
@@ -780,8 +791,8 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 			GSceneRenderTargets.BeginRenderingSceneColor();
 
 			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHISetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHISetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			if (GetReflectionEnvironmentCVar() == 2)
 			{
@@ -794,35 +805,35 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 				RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 			}
 
-			TShaderMapRef< FPostProcessVS > VertexShader( GetGlobalShaderMap() );
+			TShaderMapRef< FPostProcessVS >		VertexShader(GetGlobalShaderMap());
 
 #define CASE(A,B,C) \
-			case ( (A << 2) | (B << 1) | C ): \
+			case ((A << 2) | (B << 1) | C) : \
 			{ \
-			TShaderMapRef< FReflectionApplyPS<A,B,C> > PixelShader(GetGlobalShaderMap()); \
+			TShaderMapRef< FReflectionApplyPS<A, B, C> > PixelShader(GetGlobalShaderMap()); \
 			static FGlobalBoundShaderState BoundShaderState; \
 			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
-			PixelShader->SetParameters( View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, SSROutput->GetRenderTargetItem().ShaderResourceTexture ); \
+			PixelShader->SetParameters(nullptr, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, SSROutput->GetRenderTargetItem().ShaderResourceTexture); \
 			}; \
 			break
 
-			switch( ((uint32)bSSR << 2) | ((uint32)bReflectionEnv << 1) | (uint32)bSkyLight )
+			switch (((uint32)bSSR << 2) | ((uint32)bReflectionEnv << 1) | (uint32)bSkyLight)
 			{
-				CASE(0,0,0);
-				CASE(0,0,1);
-				CASE(0,1,0);
-				CASE(0,1,1);
-				CASE(1,0,0);
-				CASE(1,0,1);
-				CASE(1,1,0);
-				CASE(1,1,1);
+				CASE(0, 0, 0);
+				CASE(0, 0, 1);
+				CASE(0, 1, 0);
+				CASE(0, 1, 1);
+				CASE(1, 0, 0);
+				CASE(1, 0, 1);
+				CASE(1, 1, 0);
+				CASE(1, 1, 1);
 			}
 #undef CASE
 
-			DrawRectangle( 
-				0, 0, 
+			DrawRectangle(
+				0, 0,
 				View.ViewRect.Width(), View.ViewRect.Height(),
-				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+				View.ViewRect.Min.X, View.ViewRect.Min.Y,
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 				GSceneRenderTargets.GetBufferSizeXY(),
@@ -831,7 +842,7 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(bo
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderDeferredReflections()
+void FDeferredShadingSceneRenderer::RenderDeferredReflections(FRHICommandList* RHICmdList)
 {
 	if (IsSimpleDynamicLightingEnabled() || ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
@@ -860,12 +871,12 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 		if (bReflectionsWithCompute)
 		{
 			check(bReflectionEnv);
-			RenderImageBasedReflectionsSM5ForAllViews();
+			RenderImageBasedReflectionsSM5ForAllViews(RHICmdList);
 		}
 		else
 		{
 			// to test this code path run with -SM4
-			RenderImageBasedReflectionsSM4ForAllViews(bReflectionEnv);
+			RenderImageBasedReflectionsSM4ForAllViews(RHICmdList, bReflectionEnv);
 		}
 	}
 }

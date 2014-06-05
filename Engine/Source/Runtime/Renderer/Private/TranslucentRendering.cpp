@@ -146,9 +146,9 @@ public:
 	}
 	FCopySceneColorPS() {}
 
-	void SetParameters(const FViewInfo& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader(), View);
+		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -182,7 +182,8 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 	TShaderMapRef<FCopySceneColorPS> PixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View);
+	/// ?
+	PixelShader->SetParameters(nullptr, View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -247,6 +248,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList* RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -270,6 +272,7 @@ public:
 			Parameters.bAllowFog
 			);
 		DrawingPolicy.DrawShared(
+			RHICmdList, 
 			&View,
 			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
@@ -281,6 +284,7 @@ public:
 			if(BatchElementMask & 1)
 			{
 				DrawingPolicy.SetMeshRenderState(
+					RHICmdList, 
 					View,
 					Parameters.PrimitiveSceneProxy,
 					Parameters.Mesh,
@@ -288,7 +292,7 @@ public:
 					bBackFace,
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
 					);
-				DrawingPolicy.DrawMesh(Parameters.Mesh,BatchElementIndex);
+				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh,BatchElementIndex);
 			}
 
 			BatchElementMask >>= 1;
@@ -320,6 +324,9 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))
 	{
@@ -346,6 +353,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		}
 
 		ProcessBasePassMesh(
+			RHICmdList, 
 			FProcessBasePassMeshParameters(
 				Mesh,
 				BatchElementMask,
@@ -383,6 +391,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
+	FRHICommandList* RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -408,6 +417,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
+	FRHICommandList* RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FStaticMesh& StaticMesh,
@@ -513,6 +523,9 @@ void FTranslucentPrimSet::RenderPrimitive(
 				);
 		}
 
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )
 		{
@@ -526,6 +539,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 					&& (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
+						RHICmdList, 
 						View,
 						FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow),
 						StaticMesh,

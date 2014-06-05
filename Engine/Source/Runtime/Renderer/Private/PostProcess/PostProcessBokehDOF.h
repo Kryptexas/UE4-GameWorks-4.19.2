@@ -49,7 +49,7 @@ public:
 private:
 
 	template <uint32 HighQuality, uint32 IndexStyle>
-	void SetShaderTempl(const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize);
+	void SetShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint LeftTop, FIntPoint TileCount, uint32 TileSize, float PixelKernelSize);
 
 	// border between front and back layer as we don't use viewports (only possible with GS)
 	const static uint32 SafetyBorder = 40;

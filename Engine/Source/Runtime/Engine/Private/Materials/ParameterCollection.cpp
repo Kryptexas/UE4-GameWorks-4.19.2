@@ -325,7 +325,7 @@ void UMaterialParameterCollection::CreateBufferStruct()
 	uint32 NextMemberOffset = 0;
 
 	const uint32 NumVectors = FMath::DivideAndRoundUp(ScalarParameters.Num(), 4) + VectorParameters.Num();
-	new(Members) FUniformBufferStruct::FMember(TEXT("Vectors"),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,NumVectors,NULL);
+	new(Members) FUniformBufferStruct::FMember(TEXT("Vectors"),TEXT(""),NextMemberOffset,UBMT_FLOAT32,EShaderPrecisionModifier::Half,1,4,NumVectors,NULL);
 	const uint32 VectorArraySize = NumVectors * sizeof(FVector4);
 	NextMemberOffset += VectorArraySize;
 
@@ -550,6 +550,10 @@ void FMaterialParameterCollectionInstanceResource::UpdateContents(const FGuid& I
 
 	if (InId != FGuid() && Data.Num() > 0)
 	{
-		UniformBuffer = RHICreateUniformBuffer(Data.GetData(), Data.GetTypeSize() * Data.Num(), UniformBuffer_MultiUse);
+		UniformBuffer.SafeRelease();
+		UniformBufferLayout.ConstantBufferSize = Data.GetTypeSize() * Data.Num();
+		UniformBufferLayout.ResourceOffset = 0;
+		check(UniformBufferLayout.Resources.Num() == 0);
+		UniformBuffer = RHICreateUniformBuffer(Data.GetData(), UniformBufferLayout, UniformBuffer_MultiFrame);
 	}
 }

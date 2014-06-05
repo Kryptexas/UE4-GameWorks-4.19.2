@@ -162,6 +162,7 @@ public class Launch : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.Linux && !UEBuildConfiguration.bBuildDedicatedServer))
 		{
+            // TODO: re-enable after implementing resource tables for OpenGL.
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 		}
 

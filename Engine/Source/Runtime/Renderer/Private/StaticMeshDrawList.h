@@ -228,7 +228,7 @@ private:
 	* @param DrawingPolicyLink - the drawing policy link
 	* @param bDrawnShared - determines whether to draw shared 
 	*/
-	void DrawElement(const FViewInfo& View, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
+	void DrawElement(FRHICommandList* RHICmdList, const FViewInfo& View, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 
 public:
 
@@ -261,7 +261,7 @@ public:
 	 * @param BatchVisibilityArray - An array of batch element visibility bitmasks.
 	 * @return True if any static meshes were drawn.
 	 */
-	bool DrawVisible(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray);
+	bool DrawVisible(FRHICommandList* RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map, sorted front-to-back.
@@ -271,7 +271,7 @@ public:
 	 * @param MaxToDraw - The maximum number of meshes to be drawn.
 	 * @return The number of static meshes drawn.
 	 */
-	int32 DrawVisibleFrontToBack(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw);
+	int32 DrawVisibleFrontToBack(FRHICommandList* RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw);
 
 	/** Sorts OrderedDrawingPolicies front to back. */
 	void SortFrontToBack(FVector ViewPosition);

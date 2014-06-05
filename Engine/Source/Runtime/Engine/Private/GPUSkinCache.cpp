@@ -11,6 +11,7 @@
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderGPUSkin.h"
 #include "GPUSkinCache.h"
+#include "ShaderParameterUtils.h"
 
 #define GPUSKINCACHE_FRAMES	3
 
@@ -77,20 +78,22 @@ public:
 	{
 	}
 
-	void SetParameters(uint32 InputStreamStride, uint32 InputStreamFloatOffset, uint32 InputStreamVertexCount, uint32 OutputBufferFloatOffset, FBoneBufferTypeRef BoneBuffer, FUniformBufferRHIRef UniformBuffer, FShaderResourceViewRHIRef VertexBufferSRV, FRWBuffer& SkinBuffer, const FVector& MeshOrigin, const FVector& MeshExtension)
+	void SetParameters(FRHICommandList* RHICmdList, uint32 InputStreamStride, uint32 InputStreamFloatOffset, uint32 InputStreamVertexCount, uint32 OutputBufferFloatOffset, FBoneBufferTypeRef BoneBuffer, FUniformBufferRHIRef UniformBuffer, FShaderResourceViewRHIRef VertexBufferSRV, FRWBuffer& SkinBuffer, const FVector& MeshOrigin, const FVector& MeshExtension)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
-		SetShaderValue(ComputeShaderRHI, SkinMeshOriginParameter, MeshOrigin);
-		SetShaderValue(ComputeShaderRHI, SkinMeshExtensionParameter, MeshExtension);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinMeshOriginParameter, MeshOrigin);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinMeshExtensionParameter, MeshExtension);
 
-		SetShaderValue(ComputeShaderRHI, SkinInputStreamStride, InputStreamStride);
-		SetShaderValue(ComputeShaderRHI, SkinInputStreamVertexCount, InputStreamVertexCount);
-		SetShaderValue(ComputeShaderRHI, SkinInputStreamFloatOffset, InputStreamFloatOffset);
-		SetShaderValue(ComputeShaderRHI, SkinOutputBufferFloatOffset, OutputBufferFloatOffset);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinInputStreamStride, InputStreamStride);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinInputStreamVertexCount, InputStreamVertexCount);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinInputStreamFloatOffset, InputStreamFloatOffset);
+		SetShaderValue(RHICmdList, ComputeShaderRHI, SkinOutputBufferFloatOffset, OutputBufferFloatOffset);
+
+		check(!RHICmdList);
 
 		if (UniformBuffer)
 		{
-			SetUniformBufferParameter(ComputeShaderRHI, GetUniformBufferParameter<GPUSkinCacheBonesUniformShaderParameters>(), UniformBuffer);
+			SetUniformBufferParameter(RHICmdList, ComputeShaderRHI, GetUniformBufferParameter<GPUSkinCacheBonesUniformShaderParameters>(), UniformBuffer);
 		}
 		else
 		{
@@ -108,8 +111,10 @@ public:
 			);
 	}
 
-	void UnsetParameters()
+	void UnsetParameters(FRHICommandList* RHICmdList)
 	{
+		check(!RHICmdList);
+
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		FShaderResourceViewRHIParamRef NullSRV = FShaderResourceViewRHIParamRef();
 #if GPUSKIN_USE_DATA_BUFFERS
@@ -352,7 +357,9 @@ int32 FGPUSkinCache::StartCacheMesh(int32 Key, const FVertexFactory* VertexFacto
 	}
 
 	auto& ShaderData = GPUVertexFactory->GetShaderData();
-	DispatchSkinCacheProcess(InputStreamFloatOffset, ECSInfo->StreamOffset, ShaderData.GetBoneBuffer(), ShaderData.GetUniformBuffer(), VBInfo, StreamStrides[0], ElementVertexCount, ShaderData.MeshOrigin, ShaderData.MeshExtension, bExtraBoneInfluences);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	DispatchSkinCacheProcess(RHICmdList, InputStreamFloatOffset, ECSInfo->StreamOffset, ShaderData.GetBoneBuffer(), ShaderData.GetUniformBuffer(), VBInfo, StreamStrides[0], ElementVertexCount, ShaderData.MeshOrigin, ShaderData.MeshExtension, bExtraBoneInfluences);
 
 	CacheCurrentFloatOffset += ProcessedFloatCount;
 	CachedChunksThisFrameCount++;
@@ -380,7 +387,7 @@ bool FGPUSkinCache::IsElementProcessed(int32 Key)
 	return false;
 }
 
-bool FGPUSkinCache::SetVertexStreamFromCache(int32 Key, FShader* Shader, const FVertexFactory* VertexFactory, uint32 BaseVertexIndex, bool VelocityPass, FShaderParameter PreviousStreamFloatOffset, FShaderParameter PreviousStreamFloatStride, FShaderResourceParameter PreviousStreamBuffer)
+bool FGPUSkinCache::SetVertexStreamFromCache(FRHICommandList* RHICmdList, int32 Key, FShader* Shader, const FVertexFactory* VertexFactory, uint32 BaseVertexIndex, bool VelocityPass, FShaderParameter PreviousStreamFloatOffset, FShaderParameter PreviousStreamFloatStride, FShaderResourceParameter PreviousStreamBuffer)
 {
 	if (Key >= 0 && Key < CachedElements.Num())
 	{
@@ -395,6 +402,8 @@ bool FGPUSkinCache::SetVertexStreamFromCache(int32 Key, FShader* Shader, const F
 				return false;
 			}
 
+			check(!RHICmdList);
+
 			RHISetStreamSource(0, SkinCacheBufferRW.Buffer, CacheInfo.StreamStride, CompensatedOffset);
 
 			FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
@@ -408,12 +417,12 @@ bool FGPUSkinCache::SetVertexStreamFromCache(int32 Key, FShader* Shader, const F
 
 				if (PreviousStreamFloatOffset.IsBound())
 				{
-					SetShaderValue(VertexShaderRHI, PreviousStreamFloatOffset, PreviousCompensatedOffset/4);
+					SetShaderValue(RHICmdList, VertexShaderRHI, PreviousStreamFloatOffset, PreviousCompensatedOffset/4);
 				}
 
 				if (PreviousStreamFloatStride.IsBound())
 				{
-					SetShaderValue(VertexShaderRHI, PreviousStreamFloatStride, CacheInfo.StreamStride/4);
+					SetShaderValue(RHICmdList, VertexShaderRHI, PreviousStreamFloatStride, CacheInfo.StreamStride/4);
 				}
 
 				if (PreviousStreamBuffer.IsBound())
@@ -469,7 +478,7 @@ FGPUSkinCache::FElementCacheStatusInfo* FGPUSkinCache::FindEvictableCacheStatusI
 	}
 }
 
-void FGPUSkinCache::DispatchSkinCacheProcess(uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset, FBoneBufferTypeRef BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FVertexBufferInfo* VBInfo, uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences)
+void FGPUSkinCache::DispatchSkinCacheProcess(FRHICommandList* RHICmdList, uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset, FBoneBufferTypeRef BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FVertexBufferInfo* VBInfo, uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences)
 {
 	if (GRHIFeatureLevel < ERHIFeatureLevel::SM5)
 	{
@@ -483,20 +492,21 @@ void FGPUSkinCache::DispatchSkinCacheProcess(uint32 InputStreamFloatOffset, uint
 	if (bUseExtraBoneInfluences)
 	{
 		TShaderMapRef<FGPUSkinCacheCS<true> > SkinCacheCS(GetGlobalShaderMap());
+		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
+		check(!RHICmdList);
 
 		RHISetComputeShader(SkinCacheCS->GetComputeShader());		
-		SkinCacheCS->SetParameters(VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 		RHIDispatchComputeShader(VertexCountAlign64, 1, 1);
-		SkinCacheCS->UnsetParameters();
+		SkinCacheCS->UnsetParameters(RHICmdList);
 	}
 	else
 	{
 		TShaderMapRef<FGPUSkinCacheCS<false> > SkinCacheCS(GetGlobalShaderMap());
+		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 
 		RHISetComputeShader(SkinCacheCS->GetComputeShader());		
-		SkinCacheCS->SetParameters(VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 		RHIDispatchComputeShader(VertexCountAlign64, 1, 1);
-		SkinCacheCS->UnsetParameters();
+		SkinCacheCS->UnsetParameters(RHICmdList);
 	}
 }
 

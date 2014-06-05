@@ -31,7 +31,7 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
-	template <uint32 Method> static void SetShader(const FRenderingCompositePassContext& Context);
+	template <uint32 Method> static void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
 
 	EPixelFormat OverrideFormat;
 	// explained in constructor

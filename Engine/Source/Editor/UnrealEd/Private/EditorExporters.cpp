@@ -2556,7 +2556,6 @@ namespace MaterialExportUtils
 		check(InRenderTarget);
 		FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 
-		RHIBeginScene();
 		{
 			// Create a canvas for the render target and clear it to black
 			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
@@ -2569,7 +2568,6 @@ namespace MaterialExportUtils
 			Canvas.SetRenderTarget(NULL);
 			FlushRenderingCommands();
 		}
-		RHIEndScene();
 				
 		bool bNormalmap = (InMaterialProperty == MP_Normal);
 		FReadSurfaceDataFlags ReadPixelFlags(bNormalmap ? RCM_SNorm : RCM_UNorm);
@@ -2696,13 +2694,6 @@ namespace MaterialExportUtils
 			FTextureRenderTargetResource* RenderTargetResource = RenderTargetTexture->GameThread_GetRenderTargetResource();
 			FSceneInterface* Scene = InLandscape->GetWorld()->Scene;
 			{
-				// Manually call RHIBeginScene since we are issuing draw calls outside of the main rendering function
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					BeginCommand,
-				{
-					RHIBeginScene();
-				});
-
 				FSceneViewFamilyContext ViewFamily(
 					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
 						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
@@ -2782,12 +2773,6 @@ namespace MaterialExportUtils
 					FIntRect(0, 0, OutFlattenMaterial.DiffuseSize.X, OutFlattenMaterial.DiffuseSize.Y)
 					);
 			
-				ENQUEUE_UNIQUE_RENDER_COMMAND(
-					EndCommand,
-				{
-					RHIEndScene();
-				});
-
 				FlushRenderingCommands();
 			}
 

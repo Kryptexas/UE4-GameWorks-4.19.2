@@ -66,25 +66,25 @@ public:
 		FilteredSceneDepthTextureSampler.Bind(Initializer.ParameterMap,TEXT("FilteredSceneDepthTextureSampler"));
 	}
 
-	void SetParameters(const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 
 		FSamplerStateRHIRef SamplerStateRHIRef = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		PostProcessParameters.SetPS(ShaderRHI, Context, SamplerStateRHIRef);
+		PostProcessParameters.SetPS(RHICmdList, ShaderRHI, Context, SamplerStateRHIRef);
 		if(MSAASampleCount > 1)
 		{
-			SetTextureParameter( ShaderRHI, EditorPrimitivesColor, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture );
-			SetTextureParameter( ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture );
+			SetTextureParameter(RHICmdList, ShaderRHI, EditorPrimitivesColor, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture );
+			SetTextureParameter(RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture );
 		}
 		else
 		{
-			SetTextureParameter( ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture );
-			SetTextureParameter( ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture );
+			SetTextureParameter(RHICmdList, ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture );
+			SetTextureParameter(RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture );
 		}
 
 		{
@@ -104,13 +104,14 @@ public:
 				Value.G = 0;
 			}
 
-			SetShaderValue(ShaderRHI, EditorRenderParams, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, EditorRenderParams, Value);
 		}
 
 		if(FilteredSceneDepthTexture.IsBound())
 		{
 			const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
 			SetTextureParameter(
+				RHICmdList,
 				ShaderRHI,
 				FilteredSceneDepthTexture,
 				FilteredSceneDepthTextureSampler,
@@ -161,7 +162,7 @@ private:
 
 
 template <uint32 MSAASampleCount>
-static void SetCompositePrimitivesShaderTempl(const FRenderingCompositePassContext& Context)
+static void SetCompositePrimitivesShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessCompositeEditorPrimitivesPS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
@@ -170,8 +171,8 @@ static void SetCompositePrimitivesShaderTempl(const FRenderingCompositePassConte
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context);
+	VertexShader->SetParameters(RHICmdList, Context);
+	PixelShader->SetParameters(RHICmdList, Context);
 }
 
 void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePassContext& Context)
@@ -200,6 +201,9 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	FTexture2DRHIRef DepthTarget = GSceneRenderTargets.GetEditorPrimitivesDepth();
 
 	const uint32 MSAASampleCount = GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples;
+
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
 
 	{
 		RHISetRenderTarget( ColorTarget, DepthTarget );
@@ -239,19 +243,19 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 
 	if(MSAASampleCount == 1)
 	{
-		SetCompositePrimitivesShaderTempl<1>(Context);
+		SetCompositePrimitivesShaderTempl<1>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 2)
 	{
-		SetCompositePrimitivesShaderTempl<2>(Context);
+		SetCompositePrimitivesShaderTempl<2>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 4)
 	{
-		SetCompositePrimitivesShaderTempl<4>(Context);
+		SetCompositePrimitivesShaderTempl<4>(RHICmdList, Context);
 	}
 	else if(MSAASampleCount == 8)
 	{
-		SetCompositePrimitivesShaderTempl<8>(Context);
+		SetCompositePrimitivesShaderTempl<8>(RHICmdList, Context);
 	}
 	else
 	{

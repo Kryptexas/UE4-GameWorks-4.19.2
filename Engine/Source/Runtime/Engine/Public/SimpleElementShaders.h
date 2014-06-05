@@ -22,7 +22,7 @@ public:
 	FSimpleElementVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementVS() {}
 
-	/*ENGINE_API */void SetParameters(const FMatrix& TransformValue, bool bSwitchVerticalAxis = false);
+	/*ENGINE_API */void SetParameters(FRHICommandList* RHICmdList, const FMatrix& TransformValue, bool bSwitchVerticalAxis = false);
 
 	virtual bool Serialize(FArchive& Ar);
 
@@ -53,9 +53,9 @@ public:
 	 * @param View			SceneView for view constants when compositing
 	 * @param DepthTexture	Depth texture to read from when depth testing for compositing.  If not set no compositing will occur
 	 */
-	void SetEditorCompositingParameters( const FSceneView* View, FTexture2DRHIRef DepthTexture );
+	void SetEditorCompositingParameters(FRHICommandList* RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture );
 
-	void SetParameters(const FTexture* TextureValue );
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue );
 
 	virtual bool Serialize(FArchive& Ar);
 
@@ -82,7 +82,7 @@ public:
 	FSimpleElementGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementGammaPS() {}
 
-	void SetParameters(const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode);
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar);
 
@@ -103,7 +103,7 @@ public:
 	FSimpleElementMaskedGammaPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementMaskedGammaPS() {}
 
-	void SetParameters(const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode);
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar);
 
@@ -156,6 +156,7 @@ public:
 	* @param BlendMode - current batched element blend mode being rendered
 	*/
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FTexture* Texture,
 		float Gamma,
 		float ClipRef,
@@ -214,7 +215,7 @@ public:
 	FSimpleElementHitProxyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
 	FSimpleElementHitProxyPS() {}
 
-	void SetParameters(const FTexture* TextureValue);
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue);
 
 	virtual bool Serialize(FArchive& Ar);
 
@@ -250,7 +251,7 @@ public:
 	* @param ColorWeights - reference value to compare with alpha for killing pixels
 	* @param Gamma - if gamma != 1.0 then a pow(color,Gamma) is applied
 	*/
-	void SetParameters(const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue);
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue);
 
 	virtual bool Serialize(FArchive& Ar);
 

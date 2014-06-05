@@ -1200,7 +1200,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 				FVector2D ObjectMacroUVScales;
 				Proxy->GetObjectPositionAndScale(*View,ObjectNDCPosition, ObjectMacroUVScales);
 				PerViewUniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
-				*SpriteUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleUse);
+				*SpriteUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 			}
 		}
 	}
@@ -1691,7 +1691,7 @@ void FDynamicMeshEmitterData::CreateRenderThreadResources(const FParticleSystemS
 		const uint32 TexCoordWeight = (SourceData->SubUVDataOffset > 0) ? 1 : 0;
 		UniformParameters.TexCoordWeightA = TexCoordWeight;
 		UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
-		UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleUse );
+		UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleFrame );
 	}
 }
 
@@ -2633,7 +2633,7 @@ FParticleBeamTrailUniformBufferRef CreateBeamTrailUniformBuffer(
 	// Screen alignment.
 	UniformParameters.ScreenAlignment = FVector4( (float)SourceData->ScreenAlignment, 0.0f, 0.0f, 0.0f );
 
-	return FParticleBeamTrailUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleUse );
+	return FParticleBeamTrailUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleFrame );
 }
 
 int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View)

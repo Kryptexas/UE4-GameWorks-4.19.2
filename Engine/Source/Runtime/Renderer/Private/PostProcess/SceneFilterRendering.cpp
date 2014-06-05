@@ -136,7 +136,9 @@ void DrawRectangle(
 		1.0f / TargetSize.X, 1.0f / TargetSize.Y, 
 		1.0f / TextureSize.X, 1.0f / TextureSize.Y);
 
-	SetUniformBufferParameterImmediate(VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
 	RHISetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex),0);
 
 
@@ -173,19 +175,19 @@ void DrawRectangle(
 }
 
 void DrawTransformedRectangle(
-    float X,
-    float Y,
-    float SizeX,
-    float SizeY,
-    const FMatrix& PosTransform,
-    float U,
-    float V,
-    float SizeU,
-    float SizeV,
-    const FMatrix& TexTransform,
-    FIntPoint TargetSize,
-    FIntPoint TextureSize
-    )
+	float X,
+	float Y,
+	float SizeX,
+	float SizeY,
+	const FMatrix& PosTransform,
+	float U,
+	float V,
+	float SizeU,
+	float SizeV,
+	const FMatrix& TexTransform,
+	FIntPoint TargetSize,
+	FIntPoint TextureSize
+	)
 {
 	float ClipSpaceQuadZ = 0.0f;
 

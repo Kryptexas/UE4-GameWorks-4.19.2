@@ -1014,8 +1014,6 @@ void FSceneViewport::BeginRenderFrame()
 {
 	check( IsInRenderingThread() );
 	
-	RHIBeginScene();
-
 	if( bUseSeparateRenderTarget )
 	{
 		RHISetRenderTarget( RenderTargetTextureRHI,  FTexture2DRHIRef() );
@@ -1047,8 +1045,6 @@ void FSceneViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
 		// Note: this releases our reference but does not release the resource as it is owned by slate (this is intended)
 		RenderTargetTextureRHI.SafeRelease();
 	}
-
-	RHIEndScene();
 }
 
 void FSceneViewport::Tick( float DeltaTime )

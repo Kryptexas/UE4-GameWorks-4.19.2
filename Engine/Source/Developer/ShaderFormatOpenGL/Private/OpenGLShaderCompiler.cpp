@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 // 
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
@@ -13,7 +13,8 @@
 	#include "Windows/MinWindows.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
-#include "ShaderPreprocessor.h" 
+#include "ShaderPreprocessor.h"
+#include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
 #include "glsl/ir_gen_glsl.h"
 #if PLATFORM_WINDOWS
@@ -44,7 +45,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All);
 
 
 #define ENABLE_IMAGINATION_COMPILER		1
- 
+
 #define MAX_SAMPLERS_PER_SHADER_GLSL_150 16
 #define MAX_SAMPLERS_PER_SHADER_GLSL_430 32
 
@@ -90,7 +91,7 @@ struct FPlatformOpenGLContext
 };
 
 /**
- * A dummy wndproc. 
+ * A dummy wndproc.
  */
 static LRESULT CALLBACK PlatformDummyGLWndproc(HWND hWnd, uint32 Message, WPARAM wParam, LPARAM lParam)
 {
@@ -414,6 +415,7 @@ static uint32 ParseNumber(const ANSICHAR* &Str)
  */
 static void BuildShaderOutput(
 	FShaderCompilerOutput& ShaderOutput,
+	const FShaderCompilerInput& ShaderInput, 
 	const ANSICHAR* InShaderSource,
 	int32 SourceLen,
 	GLSLVersion Version
@@ -423,6 +425,9 @@ static void BuildShaderOutput(
 	const ANSICHAR* ShaderSource = InShaderSource;
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
+
+	TBitArray<> UsedUniformBufferSlots;
+	UsedUniformBufferSlots.Init(false,32);
 
 	// Write out the magic markers.
 	Header.GlslMarker = 0x474c534c;
@@ -579,6 +584,7 @@ static void BuildShaderOutput(
 			verify(Match(ShaderSource, '('));
 			uint16 UBIndex = ParseNumber(ShaderSource);
 			check(UBIndex == Header.Bindings.NumUniformBuffers);
+			UsedUniformBufferSlots[UBIndex] = true;
 			verify(Match(ShaderSource, ')'));
 			ParameterMap.AddParameterAllocation(*BufferName, Header.Bindings.NumUniformBuffers++, 0, 0);
 
@@ -958,6 +964,24 @@ static void BuildShaderOutput(
 		}
 	}
 
+	// Build the SRT for this shader.
+	{
+		// Build the generic SRT for this shader.
+		FShaderResourceTable GenericSRT;
+		BuildResourceTableMapping(ShaderInput.Environment.ResourceTableMap, ShaderInput.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, ShaderOutput.ParameterMap, GenericSRT);
+
+		// Copy over the bits indicating which resource tables are active.
+		Header.Bindings.ShaderResourceTable.ResourceTableBits = GenericSRT.ResourceTableBits;
+
+		Header.Bindings.ShaderResourceTable.ResourceTableLayoutHashes = GenericSRT.ResourceTableLayoutHashes;
+
+		// Now build our token streams.
+		BuildResourceTableTokenStream(GenericSRT.TextureMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.TextureMap);
+		BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.ShaderResourceViewMap);
+		BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.SamplerMap);
+		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
+	}
+
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
 
 	if (Header.Bindings.NumSamplers > MaxSamplers)
@@ -1109,7 +1133,7 @@ static void PrecompileGLSLES2(FShaderCompilerOutput& ShaderOutput, const FShader
 				ShaderOutput.bSucceeded = true;
 				ShaderOutput.Target = ShaderInput.Target;
 
-				BuildShaderOutput(ShaderOutput, ShaderSource, SourceLen, GLSL_ES2);
+				BuildShaderOutput(ShaderOutput, ShaderInput, ShaderSource, SourceLen, GLSL_ES2);
 
 				// Parse the cycle count
 				const int32 CycleCountStringLength = FPlatformString::Strlen(TEXT("Cycle count: "));
@@ -1140,7 +1164,7 @@ static void PrecompileGLSLES2(FShaderCompilerOutput& ShaderOutput, const FShader
 			ShaderOutput.bSucceeded = true;
 			ShaderOutput.Target = ShaderInput.Target;
 
-			BuildShaderOutput(ShaderOutput, ShaderSource, SourceLen, GLSL_ES2);
+			BuildShaderOutput(ShaderOutput, ShaderInput, ShaderSource, SourceLen, GLSL_ES2);
 		}
 	}
 	else
@@ -1148,7 +1172,7 @@ static void PrecompileGLSLES2(FShaderCompilerOutput& ShaderOutput, const FShader
 		ShaderOutput.bSucceeded = true;
 		ShaderOutput.Target = ShaderInput.Target;
 
-		BuildShaderOutput(ShaderOutput, ShaderSource, SourceLen, GLSL_ES2);
+		BuildShaderOutput(ShaderOutput, ShaderInput, ShaderSource, SourceLen, GLSL_ES2);
 	}
 }
 
@@ -1203,6 +1227,7 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 				ShaderOutput.Target = ShaderInput.Target;
 				BuildShaderOutput(
 					ShaderOutput,
+					ShaderInput, 
 					ShaderSource,
 					(int32)SourceLen,
 					Version
@@ -1450,6 +1475,14 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			return;
 		}
 
+/*
+		//@todo-rco: Remove me!
+		if (!RemoveUniformBuffersFromSource(PreprocessedShader))
+		{
+			check(0);
+		}
+
+*/
 		// Write out the preprocessed file and a batch file to compile it if requested (DumpDebugInfoPath is valid)
 		if (bDumpDebugInfo)
 		{
@@ -1485,15 +1518,19 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			}
 		}
 
+/*
+//@todo-rco: Remove me!
+CCFlags &= ~HLSLCC_NoPreprocess;
+*/
 		FGlslCodeBackend GlslBackEnd(CCFlags);
-		FGlslLanguageSpec GLslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
+		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
 		int32 Result = HlslCrossCompile(
 			TCHAR_TO_ANSI(*Input.SourceFilename),
 			TCHAR_TO_ANSI(*PreprocessedShader),
 			TCHAR_TO_ANSI(*Input.EntryPointName),
 			Frequency,
 			&GlslBackEnd,
-			&GLslLanguageSpec,
+			&GlslLanguageSpec,
 			CCFlags,
 			HlslCompilerTarget,
 			&GlslShaderSource,
@@ -1546,11 +1583,22 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 #else // VALIDATE_GLSL_WITH_DRIVER
 			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 			Output.Target = Input.Target;
-			BuildShaderOutput(Output, GlslShaderSource, SourceLen, Version);
+				BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
 #endif // VALIDATE_GLSL_WITH_DRIVER
 		}
 		else
 		{
+			if (bDumpDebugInfo)
+			{
+				// Generate the batch file to help track down cross-compiler issues if necessary
+				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
+				const FString GLBatchFileContents = CreateCommandLineGLSLES2(GLSLFile, (Input.DumpDebugInfoPath / TEXT("Output.asm")), Version, Frequency, false);
+				if (!GLBatchFileContents.IsEmpty())
+				{
+					FFileHelper::SaveStringToFile(GLBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("GLSLCompile.bat")));
+				}
+			}
+
 			FString Tmp = ANSI_TO_TCHAR(ErrorLog);
 			TArray<FString> ErrorLines;
 			Tmp.ParseIntoArray(&ErrorLines, TEXT("\n"), true);

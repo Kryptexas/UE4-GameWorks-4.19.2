@@ -9,9 +9,6 @@
 #include "TonemapCommon.usf"
 
 //
-Texture2D BloomDirtMask;
-SamplerState BloomDirtMaskSampler;
-
 // 64x64 tiling noise texture, optimized to have mostly high frequency content
 Texture2D NoiseTexture;
 SamplerState NoiseTextureSampler;
@@ -20,9 +17,6 @@ SamplerState NoiseTextureSampler;
 float4 ColorScale0;
 // xyz:Bloom1Tint.rgb, w:unused
 float4 ColorScale1;
-
-// xyz:BloomDirtMaskTint.rgb, w:ExposureScale (useful if eyeadaptation is locked)
-float4 BloomDirtMaskTint;
 
 // to scale UV (with border) to NormaizedUV (without border)
 float2 TexScale;
@@ -208,14 +202,14 @@ void MainPS(
 
 		#if USE_BLOOM
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
-			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask, BloomDirtMaskSampler, ScreenSpacePos * float2(0.5, -0.5f) + 0.5f).rgb * BloomDirtMaskTint.rgb; 
-			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor);
+			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, ScreenSpacePos * float2(0.5, -0.5f) + 0.5f).rgb * BloomDirtMask.Tint.rgb; 
+			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
 		#endif
 
 		float ExposureScale = InExposureScaleVignette.x;
 
 		#if NO_EYEADAPTATION_EXPOSURE_FIX
-			ExposureScale = BloomDirtMaskTint.w;
+			ExposureScale = BloomDirtMask.Tint.w;
 		#endif
 
 		LinearColor *= ExposureScale;

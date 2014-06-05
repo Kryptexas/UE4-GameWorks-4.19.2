@@ -62,7 +62,7 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FVector2D* SampleOffsetsValue)
+	void SetParameters(FRHICommandList* RHICmdList, const FVector2D* SampleOffsetsValue)
 	{
 		FVector4 PackedSampleOffsetsValue[NumSampleChunks];
 		for(int32 SampleIndex = 0;SampleIndex < NumSamples;SampleIndex += 2)
@@ -75,7 +75,7 @@ public:
 				PackedSampleOffsetsValue[SampleIndex / 2].Z = SampleOffsetsValue[SampleIndex + 1].Y;
 			}
 		}
-		SetShaderValueArray(GetVertexShader(),SampleOffsets,PackedSampleOffsetsValue,NumSampleChunks);
+		SetShaderValueArray(RHICmdList, GetVertexShader(),SampleOffsets,PackedSampleOffsetsValue,NumSampleChunks);
 	}
 
 private:

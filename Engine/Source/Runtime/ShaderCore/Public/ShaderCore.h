@@ -7,8 +7,9 @@
 #pragma once
 
 #include "Core.h"
-#include "../../RHI/Public/RHI.h"
+#include "../../RHI/Public/RHIDefinitions.h"
 #include "SecureHash.h"
+#include "../../RenderCore/Public/UniformBuffer.h"
 
 /** 
  * Controls whether shader related logs are visible.  
@@ -45,19 +46,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Frame RT Shader Init Time"),STAT_Shaders_FrameRT
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Shader Memory"),STAT_Shaders_ShaderMemory,STATGROUP_Shaders, SHADERCORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Shader Resource Mem"),STAT_Shaders_ShaderResourceMemory,STATGROUP_Shaders, SHADERCORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Shader MapMemory"),STAT_Shaders_ShaderMapMemory,STATGROUP_Shaders, SHADERCORE_API);
-
-enum EShaderFrequency
-{
-	SF_Vertex			= 0,
-	SF_Hull				= 1,
-	SF_Domain			= 2,
-	SF_Pixel			= 3,
-	SF_Geometry			= 4,
-	SF_Compute			= 5,
-
-	SF_NumFrequencies	= 6,
-	SF_NumBits			= 3,
-};
 
 inline TStatId GetMemoryStatType(EShaderFrequency ShaderFrequency)
 {
@@ -132,6 +120,7 @@ public:
 	SHADERCORE_API bool FindParameterAllocation(const TCHAR* ParameterName,uint16& OutBufferIndex,uint16& OutBaseIndex,uint16& OutSize) const;
 	SHADERCORE_API bool ContainsParameterAllocation(const TCHAR* ParameterName) const;
 	SHADERCORE_API void AddParameterAllocation(const TCHAR* ParameterName,uint16 BufferIndex,uint16 BaseIndex,uint16 Size);
+	SHADERCORE_API void RemoveParameterAllocation(const TCHAR* ParameterName);
 	/** Checks that all parameters are bound and asserts if any aren't in a debug build
 	* @param InVertexFactoryType can be 0
 	*/
@@ -228,12 +217,105 @@ private:
 	TMap<FString,FString> Definitions;
 };
 
+struct FBaseShaderResourceTable
+{
+	/** Bits indicating which resource tables contain resources bound to this shader. */
+	uint32 ResourceTableBits;
+
+	/** Mapping of bound SRVs to their location in resource tables. */
+	TArray<uint32> ShaderResourceViewMap;
+
+	/** Mapping of bound sampler states to their location in resource tables. */
+	TArray<uint32> SamplerMap;
+
+	/** Mapping of bound UAVs to their location in resource tables. */
+	TArray<uint32> UnorderedAccessViewMap;
+
+	/** Hash of the layouts of resource tables at compile time, used for runtime validation. */
+	TArray<uint32> ResourceTableLayoutHashes;
+
+	FBaseShaderResourceTable() :
+		ResourceTableBits(0)
+	{
+	}
+
+	friend bool operator==(const FBaseShaderResourceTable &A, const FBaseShaderResourceTable& B)
+	{
+		bool bEqual = true;
+		bEqual &= (A.ResourceTableBits == B.ResourceTableBits);
+		bEqual &= (A.ShaderResourceViewMap.Num() == B.ShaderResourceViewMap.Num());
+		bEqual &= (A.SamplerMap.Num() == B.SamplerMap.Num());
+		bEqual &= (A.UnorderedAccessViewMap.Num() == B.UnorderedAccessViewMap.Num());
+		bEqual &= (A.ResourceTableLayoutHashes.Num() == B.ResourceTableLayoutHashes.Num());
+		if (!bEqual)
+		{
+			return false;
+		}
+		bEqual &= (FMemory::Memcmp(A.ShaderResourceViewMap.GetTypedData(), B.ShaderResourceViewMap.GetTypedData(), A.ShaderResourceViewMap.GetTypeSize()*A.ShaderResourceViewMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.SamplerMap.GetTypedData(), B.SamplerMap.GetTypedData(), A.SamplerMap.GetTypeSize()*A.SamplerMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.UnorderedAccessViewMap.GetTypedData(), B.UnorderedAccessViewMap.GetTypedData(), A.UnorderedAccessViewMap.GetTypeSize()*A.UnorderedAccessViewMap.Num()) == 0);
+		bEqual &= (FMemory::Memcmp(A.ResourceTableLayoutHashes.GetTypedData(), B.ResourceTableLayoutHashes.GetTypedData(), A.ResourceTableLayoutHashes.GetTypeSize()*A.ResourceTableLayoutHashes.Num()) == 0);
+		return bEqual;
+	}
+};
+
+inline FArchive& operator<<(FArchive& Ar, FBaseShaderResourceTable& SRT)
+{
+	Ar << SRT.ResourceTableBits;
+	Ar << SRT.ShaderResourceViewMap;
+	Ar << SRT.SamplerMap;
+	Ar << SRT.UnorderedAccessViewMap;
+	Ar << SRT.ResourceTableLayoutHashes;
+
+	return Ar;
+}
+
+struct FShaderResourceTable
+{
+	/** Bits indicating which resource tables contain resources bound to this shader. */
+	uint32 ResourceTableBits;
+
+	/** The max index of a uniform buffer from which resources are bound. */
+	uint32 MaxBoundResourceTable;
+
+	/** Mapping of bound Textures to their location in resource tables. */
+	TArray<uint32> TextureMap;
+
+	/** Mapping of bound SRVs to their location in resource tables. */
+	TArray<uint32> ShaderResourceViewMap;
+
+	/** Mapping of bound sampler states to their location in resource tables. */
+	TArray<uint32> SamplerMap;
+
+	/** Mapping of bound UAVs to their location in resource tables. */
+	TArray<uint32> UnorderedAccessViewMap;
+
+	/** Hash of the layouts of resource tables at compile time, used for runtime validation. */
+	TArray<uint32> ResourceTableLayoutHashes;
+
+	FShaderResourceTable()
+		: ResourceTableBits(0)
+		, MaxBoundResourceTable(0)
+	{
+	}
+};
+
+inline FArchive& operator<<(FArchive& Ar, FResourceTableEntry& Entry)
+{
+	Ar << Entry.UniformBufferName;
+	Ar << Entry.Type;
+	Ar << Entry.ResourceIndex;
+	return Ar;
+}
+
 /** The environment used to compile a shader. */
 struct FShaderCompilerEnvironment : public FRefCountedObject
 {
 	TMap<FString,FString> IncludeFileNameToContentsMap;
 	TArray<uint32> CompilerFlags;
 	TMap<uint32,uint8> RenderTargetOutputFormatsMap;
+	TMap<FString,FResourceTableEntry> ResourceTableMap;
+	TMap<FString,uint32> ResourceTableLayoutHashes;
 
 	/** Default constructor. */
 	FShaderCompilerEnvironment() 
@@ -279,7 +361,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	{
 		return Definitions.GetDefinitionMap();
 	}
-
+	
 	void SetRenderTargetOutputFormat(uint32 RenderTargetIndex, EPixelFormat PixelFormat)
 	{
 		RenderTargetOutputFormatsMap.Add(RenderTargetIndex, PixelFormat);
@@ -288,7 +370,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerEnvironment& Environment)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Environment.IncludeFileNameToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap;
+		return Ar << Environment.IncludeFileNameToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap << Environment.ResourceTableMap << Environment.ResourceTableLayoutHashes;
 	}
 
 	void Merge(const FShaderCompilerEnvironment& Other)
@@ -310,6 +392,8 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 		}
 
 		CompilerFlags.Append(Other.CompilerFlags);
+		ResourceTableMap.Append(Other.ResourceTableMap);
+		ResourceTableLayoutHashes.Append(Other.ResourceTableLayoutHashes);
 		Definitions.Merge(Other.Definitions);
 		RenderTargetOutputFormatsMap.Append(Other.RenderTargetOutputFormatsMap);
 	}
@@ -327,8 +411,9 @@ struct FShaderCompilerInput
 	FString SourceFilePrefix;
 	FString SourceFilename;
 	FString EntryPointName;
-	FString DumpDebugInfoPath;
-	FString ShaderDebugInfoDirectory;
+	//gilmerge, it isn't clear what the relationship is between these two and what the call sites are supposed to use. I might have botched the call sites.
+	FString DumpDebugInfoRootPath;	// Dump debug path (up to platform)
+	FString DumpDebugInfoPath;		// Dump debug path (platform/groupname)
 	FShaderCompilerEnvironment Environment;
 	TRefCountPtr<FShaderCompilerEnvironment> SharedEnvironment;
 
@@ -345,8 +430,8 @@ struct FShaderCompilerInput
 		Ar << Input.SourceFilePrefix;
 		Ar << Input.SourceFilename;
 		Ar << Input.EntryPointName;
+		Ar << Input.DumpDebugInfoRootPath;
 		Ar << Input.DumpDebugInfoPath;
-		Ar << Input.ShaderDebugInfoDirectory;
 		Ar << Input.Environment;
 
 		bool bHasSharedEnvironment = IsValidRef(Input.SharedEnvironment);

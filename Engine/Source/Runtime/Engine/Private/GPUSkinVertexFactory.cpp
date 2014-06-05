@@ -9,6 +9,7 @@
 #include "SkeletalRenderGPUSkin.h"	// FPreviousPerBoneMotionBlur
 #include "GPUSkinCache.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FAPEXClothUniformShaderParameters,TEXT("APEXClothParam"));
 
@@ -196,7 +197,7 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
 	{
 		check(NumBones * BoneMatrices.GetTypeSize() <= sizeof(GBoneUniformStruct));
 		FMemory::Memcpy(&GBoneUniformStruct, BoneMatrices.GetTypedData(), NumBones * sizeof(BoneMatrices[0]));
-		UniformBuffer = RHICreateUniformBuffer(&GBoneUniformStruct, sizeof(GBoneUniformStruct), UniformBuffer_MultiUse);
+		UniformBuffer = RHICreateUniformBuffer(&GBoneUniformStruct, FBoneMatricesUniformShaderParameters::StaticStruct.GetLayout(), UniformBuffer_MultiFrame);
 	}
 }
 
@@ -425,19 +426,23 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
+		check(!RHICmdList);
+
 		if(Shader->GetVertexShader())
 		{
 			const auto FeatureLevel = View.GetFeatureLevel();
 			const FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
 
 			SetShaderValue(
+				RHICmdList, 
 				Shader->GetVertexShader(), 
 				MeshOriginParameter, 
 				ShaderData.MeshOrigin
 				);
 			SetShaderValue(
+				RHICmdList, 
 				Shader->GetVertexShader(), 
 				MeshExtensionParameter, 
 				ShaderData.MeshExtension
@@ -456,7 +461,7 @@ public:
 			}
 			else
 			{
-				SetUniformBufferParameter(Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FBoneMatricesUniformShaderParameters>(), ShaderData.GetUniformBuffer());
+				SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(), Shader->GetUniformBufferParameter<FBoneMatricesUniformShaderParameters>(), ShaderData.GetUniformBuffer());
 			}
 
 			bool bLocalPerBoneMotionBlur = false;
@@ -491,6 +496,7 @@ public:
 					BoneIndexOffsetValue[3] = 0;
 
 					SetShaderValue(
+						RHICmdList, 
 						Shader->GetVertexShader(), 
 						BoneIndexOffset, 
 						BoneIndexOffsetValue
@@ -510,7 +516,7 @@ public:
 				}
 			}
 
-			SetShaderValue(Shader->GetVertexShader(), PerBoneMotionBlur, bLocalPerBoneMotionBlur);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), PerBoneMotionBlur, bLocalPerBoneMotionBlur);
 		}
 	}
 
@@ -567,13 +573,13 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
-		FGPUSkinVertexFactoryShaderParameters::SetMesh(Shader, VertexFactory, View, BatchElement, DataFlags);
+		FGPUSkinVertexFactoryShaderParameters::SetMesh(RHICmdList, Shader, VertexFactory, View, BatchElement, DataFlags);
 
 		bool bIsGPUCached = false;
 
-		if (GEnableGPUSkinCache && GGPUSkinCache.SetVertexStreamFromCache(BatchElement.UserIndex, Shader, VertexFactory, BatchElement.MinVertexIndex, GPrevPerBoneMotionBlur.IsLocked(), GPUSkinCacheStreamFloatOffset, GPUSkinCacheStreamStride, GPUSkinCacheStreamBuffer))
+		if (GEnableGPUSkinCache && GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, VertexFactory, BatchElement.MinVertexIndex, GPrevPerBoneMotionBlur.IsLocked(), GPUSkinCacheStreamFloatOffset, GPUSkinCacheStreamStride, GPUSkinCacheStreamBuffer))
 		{
 			bIsGPUCached = true;
 		}
@@ -705,12 +711,12 @@ public:
 		Ar << ClothBlendWeightParameter;
 	}
 
-	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList* RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
 		if(Shader->GetVertexShader())
 		{
 			// Call regular GPU skinning shader parameters
-			FGPUSkinVertexFactoryShaderParameters::SetMesh(Shader, VertexFactory, View, BatchElement, DataFlags);
+			FGPUSkinVertexFactoryShaderParameters::SetMesh(RHICmdList, Shader, VertexFactory, View, BatchElement, DataFlags);
 			const auto* GPUSkinVertexFactory = (const FGPUBaseSkinVertexFactory*)VertexFactory;
 			// A little hacky; problem is we can't upcast from FGPUBaseSkinVertexFactory to FGPUBaseSkinAPEXClothVertexFactory as they are unrelated; a nice solution would be
 			// to use virtual inheritance, but that requires RTTI and complicates things further...
@@ -718,7 +724,8 @@ public:
 				? ((const TGPUSkinAPEXClothVertexFactory<true>*)GPUSkinVertexFactory)->GetClothShaderData()
 				: ((const TGPUSkinAPEXClothVertexFactory<false>*)GPUSkinVertexFactory)->GetClothShaderData();
 
-			SetUniformBufferParameter(Shader->GetVertexShader(),Shader->GetUniformBufferParameter<FAPEXClothUniformShaderParameters>(),ClothShaderData.GetClothUniformBuffer());
+			SetUniformBufferParameter(RHICmdList, Shader->GetVertexShader(),Shader->GetUniformBufferParameter<FAPEXClothUniformShaderParameters>(),ClothShaderData.GetClothUniformBuffer());
+			check(!RHICmdList);
 
 			// we tell the shader where to pickup the data
 			if(ClothSimulPositionsParameter.IsBound())
@@ -729,7 +736,7 @@ public:
 				RHISetShaderTexture(Shader->GetVertexShader(), ClothSimulPositionsParameter.GetBaseIndex(), ClothShaderData.GetClothSimulPositionBuffer());
 #endif
 			}
-
+			
 			if(ClothSimulNormalsParameter.IsBound())
 			{
 #if GPUSKIN_USE_DATA_BUFFERS
@@ -740,6 +747,7 @@ public:
 			}
 
 			SetShaderValue(
+				RHICmdList,
 				Shader->GetVertexShader(),
 				ClothBlendWeightParameter,
 				ClothShaderData.ClothBlendWeight
@@ -860,7 +868,7 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothUniformBuff
 		}
 	}
 		
-	APEXClothUniformBuffer = TUniformBufferRef<FAPEXClothUniformShaderParameters>::CreateUniformBufferImmediate(ClothUniformShaderParameters, UniformBuffer_SingleUse);
+	APEXClothUniformBuffer = TUniformBufferRef<FAPEXClothUniformShaderParameters>::CreateUniformBufferImmediate(ClothUniformShaderParameters, UniformBuffer_SingleFrame);
 
 }
 /**

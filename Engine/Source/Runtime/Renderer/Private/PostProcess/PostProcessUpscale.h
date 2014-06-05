@@ -27,7 +27,7 @@ public:
 	virtual void Release() OVERRIDE { delete this; }
 	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 private:
-	template <uint32 Method> static void SetShader(const FRenderingCompositePassContext& Context);
+	template <uint32 Method> static void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
 	uint32 UpscaleMethod;
 };
 

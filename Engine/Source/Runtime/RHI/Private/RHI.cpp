@@ -64,6 +64,11 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
  * RHI configuration settings.
  */
 
+static TAutoConsoleVariable<int32> ResourceTableCachingCvar(
+	TEXT("rhi.ResourceTableCaching"),
+	1,
+	TEXT("If 1, the RHI will cache resource table contents within a frame. Otherwise resource tables are rebuilt for every draw call.")
+	);
 static TAutoConsoleVariable<int32> GSaveScreenshotAfterProfilingGPUCVar(
 	TEXT("RHI.SaveScreenshotAfterProfilingGPU"),
 	1,

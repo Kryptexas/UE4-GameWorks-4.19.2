@@ -907,7 +907,8 @@ void FShader::FinishCleanup()
 void FShader::VerifyBoundUniformBufferParameters()
 {
 	// Support being called on a NULL pointer
-	if (this)
+// TODO: doesn't work with uniform buffer parameters on helper structs like FDeferredPixelShaderParameters
+	if (0&&this)
 	{
 		for (int32 StructIndex = 0; StructIndex < UniformBufferParameters.Num(); StructIndex++)
 		{
@@ -1032,21 +1033,27 @@ FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
 
 
 void DispatchComputeShader(
+	FRHICommandList* RHICmdList, 
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,
 	uint32 ThreadGroupCountZ)
-{	
+{
+	check(!RHICmdList);
+
 	Shader->VerifyBoundUniformBufferParameters();
 	RHIDispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 
 
 void DispatchIndirectComputeShader(
+	FRHICommandList* RHICmdList, 
 	FShader* Shader,
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset)
-{	
+{
+	check(!RHICmdList);
+
 	Shader->VerifyBoundUniformBufferParameters();
 	RHIDispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);
 }

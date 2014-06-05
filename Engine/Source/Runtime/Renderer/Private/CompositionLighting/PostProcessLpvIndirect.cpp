@@ -67,6 +67,7 @@ public:
 	}
 
 	void SetParameters(	
+		FRHICommandList* RHICmdList, 
 #if LPV_VOLUME_TEXTURE
 		FTextureRHIParamRef* LpvBufferSRVsIn, 
 #else
@@ -78,7 +79,9 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		SetUniformBufferParameter( ShaderRHI, GetUniformBufferParameter<FLpvReadUniformBufferParameters>(), LpvUniformBuffer );
+		check(!RHICmdList);
+
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvReadUniformBufferParameters>(), LpvUniformBuffer );
 
 #if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
@@ -86,7 +89,7 @@ public:
 			if ( LpvBufferSRVParameters[i].IsBound() )
 			{
 				RHISetShaderTexture( ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), LpvBufferSRVsIn[i] );
-				SetTextureParameter( ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSRVsIn[i] );
+				SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSRVsIn[i] );
 			}
 		}
 #else
@@ -95,10 +98,10 @@ public:
 			RHISetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), LpvBufferSRVIn );
 		}
 #endif
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
-		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 	}
 	
 	// FShader interface.
@@ -150,6 +153,10 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		DestColorRenderTarget.TargetableTexture,
 	};
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+	check(!RHICmdList);
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTargets(1, RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);
 
@@ -196,7 +203,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	FLpvReadUniformBufferRef LpvReadUniformBuffer;
 
 	LpvReadUniformBufferParams = Lpv->GetReadUniformBufferParams();
-	LpvReadUniformBuffer = FLpvReadUniformBufferRef::CreateUniformBufferImmediate( LpvReadUniformBufferParams, UniformBuffer_SingleUse ); 
+	LpvReadUniformBuffer = FLpvReadUniformBufferRef::CreateUniformBufferImmediate( LpvReadUniformBufferParams, UniformBuffer_SingleDraw ); 
 
 #if LPV_VOLUME_TEXTURE
 	FTextureRHIParamRef LpvBufferSrvs[7];
@@ -204,10 +211,10 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	{
 		LpvBufferSrvs[i] = Lpv->GetLpvBufferSrv(i);
 	}
-	PixelShader->SetParameters(LpvBufferSrvs, LpvReadUniformBuffer, Context );
+	PixelShader->SetParameters(RHICmdList, LpvBufferSrvs, LpvReadUniformBuffer, Context );
 #else
 	FShaderResourceViewRHIParamRef LpvBufferSrv = Lpv->GetLpvBufferSrv();
-	PixelShader->SetParameters(LpvBufferSrv, LpvReadUniformBuffer, Context );
+	PixelShader->SetParameters(RHICmdList, LpvBufferSrv, LpvReadUniformBuffer, Context );
 #endif
 
 	// Draw a quad mapping scene color to the view's render target

@@ -69,7 +69,7 @@ class FSplineMeshVertexFactoryShaderParameters : public FVertexFactoryShaderPara
 {
 	void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE;
 
-	void SetMesh(FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const OVERRIDE;
+	void SetMesh(FRHICommandList* RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const OVERRIDE;
 
 	void Serialize(FArchive& Ar) OVERRIDE
 	{

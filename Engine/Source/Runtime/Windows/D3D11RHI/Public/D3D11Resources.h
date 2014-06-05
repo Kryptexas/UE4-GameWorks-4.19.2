@@ -7,37 +7,7 @@
 #pragma once
 
 #include "BoundShaderStateCache.h"
-
-/**
- * Combined shader state and vertex definition for rendering geometry. 
- * Each unique instance consists of a vertex decl, vertex shader, and pixel shader.
- */
-class FD3D11BoundShaderState : public FRHIBoundShaderState
-{
-public:
-
-	FCachedBoundShaderStateLink CacheLink;
-
-	TRefCountPtr<ID3D11InputLayout> InputLayout;
-	TRefCountPtr<ID3D11VertexShader> VertexShader;
-	TRefCountPtr<ID3D11PixelShader> PixelShader;
-	TRefCountPtr<ID3D11HullShader> HullShader;
-	TRefCountPtr<ID3D11DomainShader> DomainShader;
-	TRefCountPtr<ID3D11GeometryShader> GeometryShader;
-
-	bool bShaderNeedsGlobalConstantBuffer[SF_NumFrequencies];
-
-	/** Initialization constructor. */
-	FD3D11BoundShaderState(
-		FVertexDeclarationRHIParamRef InVertexDeclarationRHI,
-		FVertexShaderRHIParamRef InVertexShaderRHI,
-		FPixelShaderRHIParamRef InPixelShaderRHI,
-		FHullShaderRHIParamRef InHullShaderRHI,
-		FDomainShaderRHIParamRef InDomainShaderRHI,
-		FGeometryShaderRHIParamRef InGeometryShaderRHI,
-		ID3D11Device* Direct3DDevice
-		);
-};
+#include "D3D11ShaderResources.h"
 
 template <>
 struct TTypeTraits<D3D11_INPUT_ELEMENT_DESC> : public TTypeTraitsBase<D3D11_INPUT_ELEMENT_DESC>
@@ -66,113 +36,126 @@ public:
 class FD3D11VertexShader : public FRHIVertexShader
 {
 public:
+	enum { StaticFrequency = SF_Vertex };
 
 	/** The vertex shader resource. */
 	TRefCountPtr<ID3D11VertexShader> Resource;
 
+	FD3D11ShaderResourceTable ShaderResourceTable;
+
 	/** The vertex shader's bytecode, with custom data in the last byte. */
 	TArray<uint8> Code;
 
-	bool bShaderNeedsGlobalConstantBuffer;
+	// TEMP remove with removal of bound shader state
+	int32 Offset;
 
-	/** Initialization constructor. */
-	FD3D11VertexShader(ID3D11VertexShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource),
-		Code(InCode)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 class FD3D11GeometryShader : public FRHIGeometryShader
 {
 public:
+	enum { StaticFrequency = SF_Geometry };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11GeometryShader> Resource;
 
-	bool bShaderNeedsGlobalConstantBuffer;
+	FD3D11ShaderResourceTable ShaderResourceTable;
 
-	/** Initialization constructor. */
-	FD3D11GeometryShader(ID3D11GeometryShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 class FD3D11HullShader : public FRHIHullShader
 {
 public:
+	enum { StaticFrequency = SF_Hull };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11HullShader> Resource;
 
-	bool bShaderNeedsGlobalConstantBuffer;
+	FD3D11ShaderResourceTable ShaderResourceTable;
 
-	/** Initialization constructor. */
-	FD3D11HullShader(ID3D11HullShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 class FD3D11DomainShader : public FRHIDomainShader
 {
 public:
+	enum { StaticFrequency = SF_Domain };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11DomainShader> Resource;
 
-	bool bShaderNeedsGlobalConstantBuffer;
+	FD3D11ShaderResourceTable ShaderResourceTable;
 
-	/** Initialization constructor. */
-	FD3D11DomainShader(ID3D11DomainShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 class FD3D11PixelShader : public FRHIPixelShader
 {
 public:
+	enum { StaticFrequency = SF_Pixel };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11PixelShader> Resource;
 
-	bool bShaderNeedsGlobalConstantBuffer;
+	FD3D11ShaderResourceTable ShaderResourceTable;
 
-	/** Initialization constructor. */
-	FD3D11PixelShader(ID3D11PixelShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	bool bShaderNeedsGlobalConstantBuffer;
 };
 
 class FD3D11ComputeShader : public FRHIComputeShader
 {
 public:
+	enum { StaticFrequency = SF_Compute };
 
 	/** The shader resource. */
 	TRefCountPtr<ID3D11ComputeShader> Resource;
 
+	FD3D11ShaderResourceTable ShaderResourceTable;
+
 	bool bShaderNeedsGlobalConstantBuffer;
+};
+
+/**
+ * Combined shader state and vertex definition for rendering geometry. 
+ * Each unique instance consists of a vertex decl, vertex shader, and pixel shader.
+ */
+class FD3D11BoundShaderState : public FRHIBoundShaderState
+{
+public:
+
+	FCachedBoundShaderStateLink CacheLink;
+
+	TRefCountPtr<ID3D11InputLayout> InputLayout;
+	TRefCountPtr<ID3D11VertexShader> VertexShader;
+	TRefCountPtr<ID3D11PixelShader> PixelShader;
+	TRefCountPtr<ID3D11HullShader> HullShader;
+	TRefCountPtr<ID3D11DomainShader> DomainShader;
+	TRefCountPtr<ID3D11GeometryShader> GeometryShader;
+
+	bool bShaderNeedsGlobalConstantBuffer[SF_NumFrequencies];
+
 
 	/** Initialization constructor. */
-	FD3D11ComputeShader(ID3D11ComputeShader* InResource,const TArray<uint8>& InCode):
-		Resource(InResource)
-	{
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		bShaderNeedsGlobalConstantBuffer = InCode[InCode.Num() - 1] != 0;
-	}
+	FD3D11BoundShaderState(
+		FVertexDeclarationRHIParamRef InVertexDeclarationRHI,
+		FVertexShaderRHIParamRef InVertexShaderRHI,
+		FPixelShaderRHIParamRef InPixelShaderRHI,
+		FHullShaderRHIParamRef InHullShaderRHI,
+		FDomainShaderRHIParamRef InDomainShaderRHI,
+		FGeometryShaderRHIParamRef InGeometryShaderRHI,
+		ID3D11Device* Direct3DDevice
+		);
+
+	/**
+	 * Get the shader for the given frequency.
+	 */
+	FORCEINLINE FD3D11VertexShader*   GetVertexShader() const   { return (FD3D11VertexShader*)CacheLink.GetVertexShader(); }
+	FORCEINLINE FD3D11PixelShader*    GetPixelShader() const    { return (FD3D11PixelShader*)CacheLink.GetPixelShader(); }
+	FORCEINLINE FD3D11HullShader*     GetHullShader() const     { return (FD3D11HullShader*)CacheLink.GetHullShader(); }
+	FORCEINLINE FD3D11DomainShader*   GetDomainShader() const   { return (FD3D11DomainShader*)CacheLink.GetDomainShader(); }
+	FORCEINLINE FD3D11GeometryShader* GetGeometryShader() const { return (FD3D11GeometryShader*)CacheLink.GetGeometryShader(); }
 };
 
 /** The base class of resources that may be bound as shader resources. */
@@ -196,6 +179,7 @@ public:
 		) 
 	: D3DRHI(InD3DRHI)
 	, MemorySize(0)
+	, BaseShaderResource(this)
 	, Resource(InResource)
 	, ShaderResourceView(InShaderResourceView)
 	, RTVArraySize(InRTVArraySize)
@@ -232,6 +216,7 @@ public:
 	// Accessors.
 	ID3D11Resource* GetResource() const { return Resource; }
 	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView; }
+	FD3D11BaseShaderResource* GetBaseShaderResource() const { return BaseShaderResource; }
 
 	/** 
 	 * Get the render target view for the specified mip and array slice.
@@ -278,8 +263,9 @@ protected:
 	/** Amount of memory allocated by this texture, in bytes. */
 	int32 MemorySize;
 
-private:
-	
+	/** Pointer to the base shader resource. Usually the object itself, but not for texture references. */
+	FD3D11BaseShaderResource* BaseShaderResource;
+
 	/** The texture resource. */
 	TRefCountPtr<ID3D11Resource> Resource;
 
@@ -495,6 +481,39 @@ typedef TD3D11Texture2D<FD3D11BaseTexture2D>      FD3D11Texture2D;
 typedef TD3D11Texture2D<FD3D11BaseTexture2DArray> FD3D11Texture2DArray;
 typedef TD3D11Texture2D<FD3D11BaseTextureCube>    FD3D11TextureCube;
 
+/** Texture reference class. */
+class FD3D11TextureReference : public FRHITextureReference, public FD3D11TextureBase
+{
+public:
+	explicit FD3D11TextureReference(class FD3D11DynamicRHI* InD3DRHI)
+		: FRHITextureReference()
+		, FD3D11TextureBase(InD3DRHI,NULL,NULL, 0, false,TArray<TRefCountPtr<ID3D11RenderTargetView> >(),NULL)
+	{
+		BaseShaderResource = NULL;
+	}
+
+	void SetReferencedTexture(FRHITexture* InTexture, FD3D11BaseShaderResource* InBaseShaderResource, ID3D11ShaderResourceView* InSRV)
+	{
+		ShaderResourceView = InSRV;
+		BaseShaderResource = InBaseShaderResource;
+		FRHITextureReference::SetReferencedTexture(InTexture);
+	}
+
+	// IRefCountedObject interface.
+	virtual uint32 AddRef() const
+	{
+		return FRefCountedObject::AddRef();
+	}
+	virtual uint32 Release() const
+	{
+		return FRefCountedObject::Release();
+	}
+	virtual uint32 GetRefCount() const
+	{
+		return FRefCountedObject::GetRefCount();
+	}
+};
+
 /** Given a pointer to a RHI texture that was created by the D3D11 RHI, returns a pointer to the FD3D11TextureBase it encapsulates. */
 inline FD3D11TextureBase* GetD3D11TextureFromRHITexture(FRHITexture* Texture)
 {
@@ -505,6 +524,10 @@ inline FD3D11TextureBase* GetD3D11TextureFromRHITexture(FRHITexture* Texture)
 	else if(Texture->GetTexture2D())
 	{
 		return static_cast<FD3D11Texture2D*>(Texture);
+	}
+	else if(Texture->GetTextureReference())
+	{
+		return static_cast<FD3D11TextureReference*>(Texture);
 	}
 	else if(Texture->GetTexture2DArray())
 	{
@@ -580,14 +603,47 @@ public:
 	/** Allocation in the constants ring buffer if applicable. */
 	FRingAllocation RingAllocation;
 
+	/** Resource table containing RHI references. */
+	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
+
+	/** Cached resources need to retain the associated shader resource for bookkeeping purposes. */
+	struct FResourcePair
+	{
+		FD3D11BaseShaderResource* ShaderResource;
+		IUnknown* D3D11Resource;
+	};
+
+	/** Raw resource table, cached once per frame. */
+	TArray<FResourcePair> RawResourceTable;
+
+	/** The frame in which RawResourceTable was last cached. */
+	uint32 LastCachedFrame;
+
 	/** Initialization constructor. */
-	FD3D11UniformBuffer(uint32 Size,ID3D11Buffer* InResource,const FRingAllocation& InRingAllocation)
-	: FRHIUniformBuffer(Size)
+	FD3D11UniformBuffer(class FD3D11DynamicRHI* InD3D11RHI, const FRHIUniformBufferLayout& InLayout, ID3D11Buffer* InResource,const FRingAllocation& InRingAllocation)
+	: FRHIUniformBuffer(InLayout)
 	, Resource(InResource)
 	, RingAllocation(InRingAllocation)
+	, D3D11RHI(InD3D11RHI)
+	, LastCachedFrame((uint32)-1)
 	{}
 
 	virtual ~FD3D11UniformBuffer();
+
+	/** Cache resources if needed. */
+	inline void CacheResources(uint32 InFrameCounter)
+	{
+		if (InFrameCounter == INDEX_NONE || LastCachedFrame != InFrameCounter)
+		{
+			CacheResourcesInternal();
+			LastCachedFrame = InFrameCounter;
+		}
+	}
+
+private:
+	class FD3D11DynamicRHI* D3D11RHI;
+	/** Actually cache resources. */
+	void CacheResourcesInternal();
 };
 
 /** Index buffer resource class that stores stride information. */

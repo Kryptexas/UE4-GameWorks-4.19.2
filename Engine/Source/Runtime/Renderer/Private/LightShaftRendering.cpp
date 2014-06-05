@@ -105,7 +105,7 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(const ShaderRHIParamRef Shader, const FLightSceneInfo* LightSceneInfo, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
+	void SetParameters(FRHICommandList* RHICmdList, const ShaderRHIParamRef Shader, const FLightSceneInfo* LightSceneInfo, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
 	{
 		const uint32 DownsampleFactor = GetLightShaftDownsampleFactor();
 		FIntPoint DownSampledViewSize(FMath::FloorToInt(View.ViewRect.Width() / DownsampleFactor), FMath::FloorToInt(View.ViewRect.Height() / DownsampleFactor));
@@ -118,7 +118,7 @@ public:
 			1.0f / ViewRatioOfBuffer.X, 
 			(float)FilterBufferSize.Y / (FilterBufferSize.X * ViewRatioOfBuffer.Y));
 
-		SetShaderValue(Shader, AspectRatioAndInvAspectRatioParameter, AspectRatioAndInvAspectRatio);
+		SetShaderValue(RHICmdList, Shader, AspectRatioAndInvAspectRatioParameter, AspectRatioAndInvAspectRatio);
 
 		const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetLightPositionForLightShafts(View.ViewMatrices.ViewOrigin);
 		// Transform into texture coordinates
@@ -135,20 +135,20 @@ public:
 		ScreenSpaceBlurOrigin.Y *= InvBufferSizeY;
 		FVector2D TextureSpaceBlurOrigin(ScreenSpaceBlurOrigin * FVector2D(AspectRatioAndInvAspectRatio.Z, AspectRatioAndInvAspectRatio.W));
 
-		SetShaderValue(Shader, TextureSpaceBlurOriginParameter, TextureSpaceBlurOrigin);
+		SetShaderValue(RHICmdList, Shader, TextureSpaceBlurOriginParameter, TextureSpaceBlurOrigin);
 
-		SetShaderValue(Shader, WorldSpaceBlurOriginAndRadiusParameter, FVector4(WorldSpaceBlurOrigin, LightSceneInfo->Proxy->GetRadius()));
-		SetShaderValue(Shader, LightSourceRadius, LightSceneInfo->Proxy->GetSourceRadius());
+		SetShaderValue(RHICmdList, Shader, WorldSpaceBlurOriginAndRadiusParameter, FVector4(WorldSpaceBlurOrigin, LightSceneInfo->Proxy->GetRadius()));
+		SetShaderValue(RHICmdList, Shader, LightSourceRadius, LightSceneInfo->Proxy->GetSourceRadius());
 
 		const bool bIsSpotLight = LightSceneInfo->Proxy->GetLightType() == LightType_Spot;
 		if (bIsSpotLight)
 		{
-			SetShaderValue(Shader, WorldSpaceSpotDirectionParameter, LightSceneInfo->Proxy->GetDirection());
-			SetShaderValue(Shader, SpotAnglesParameter, LightSceneInfo->Proxy->GetLightShaftConeParams());
+			SetShaderValue(RHICmdList, Shader, WorldSpaceSpotDirectionParameter, LightSceneInfo->Proxy->GetDirection());
+			SetShaderValue(RHICmdList, Shader, SpotAnglesParameter, LightSceneInfo->Proxy->GetLightShaftConeParams());
 		}
 
 		const float DistanceFromLight = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
-		SetShaderValue(Shader, WorldSpaceCameraPositionParameter, FVector4(View.ViewMatrices.ViewOrigin, DistanceFromLight));
+		SetShaderValue(RHICmdList, Shader, WorldSpaceCameraPositionParameter, FVector4(View.ViewMatrices.ViewOrigin, DistanceFromLight));
 
 		const FIntPoint DownSampledXY = View.ViewRect.Min / DownsampleFactor;
 		const uint32 DownsampledSizeX = View.ViewRect.Width() / DownsampleFactor;
@@ -167,17 +167,17 @@ public:
 		}
 
 		FVector4 UVMinMax( MinU, MinV, MaxU, MaxV );
-		SetShaderValue(Shader, UVMinMaxParameter, UVMinMax);
+		SetShaderValue(RHICmdList, Shader, UVMinMaxParameter, UVMinMax);
 
 		const FLinearColor BloomTint = LightSceneInfo->BloomTint;
-		SetShaderValue(Shader, BloomTintAndThresholdParameter, FVector4(BloomTint.R, BloomTint.G, BloomTint.B, LightSceneInfo->BloomThreshold));
+		SetShaderValue(RHICmdList, Shader, BloomTintAndThresholdParameter, FVector4(BloomTint.R, BloomTint.G, BloomTint.B, LightSceneInfo->BloomThreshold));
 
 		float OcclusionMaskDarkness;
 		float OcclusionDepthRange;
 		LightSceneInfo->Proxy->GetLightShaftOcclusionParameters(OcclusionMaskDarkness, OcclusionDepthRange);
 
 		const FVector4 LightShaftParameterValues(1.0f / OcclusionDepthRange, LightSceneInfo->BloomScale, 1, OcclusionMaskDarkness);
-		SetShaderValue(Shader, LightShaftParameters, LightShaftParameterValues);
+		SetShaderValue(RHICmdList, Shader, LightShaftParameters, LightShaftParameterValues);
 
 		float DistanceFade = 0.0f;
 		if (LightSceneInfo->Proxy->GetLightType() != LightType_Directional)
@@ -185,11 +185,12 @@ public:
 			DistanceFade = FMath::Clamp(DistanceFromLight / (LightSceneInfo->Proxy->GetRadius() * PointLightRadiusFadeFactor), 0.0f, 1.0f);
 		}
 
-		SetShaderValue(Shader, DistanceFadeParameter, DistanceFade);
+		SetShaderValue(RHICmdList, Shader, DistanceFadeParameter, DistanceFade);
 
 		if (IsValidRef(PassSource))
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				Shader,
 				SourceTextureParameter, SourceTextureSamplerParameter,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
@@ -237,9 +238,9 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FViewInfo& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 	}
 };
 
@@ -291,15 +292,15 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
+	void SetParameters(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
-		LightShaftParameters.SetParameters(GetPixelShader(), LightSceneInfo, View, PassSource);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		LightShaftParameters.SetParameters(RHICmdList, GetPixelShader(), LightSceneInfo, View, PassSource);
 
 		const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 		FVector2D SampleOffsets(1.0f / BufferSize.X, 1.0f / BufferSize.Y);
-		SetShaderValue(GetPixelShader(),SampleOffsetsParameter,SampleOffsets);
-		SceneTextureParams.Set(GetPixelShader(), View);
+		SetShaderValue(RHICmdList, GetPixelShader(),SampleOffsetsParameter,SampleOffsets);
+		SceneTextureParams.Set(RHICmdList, GetPixelShader(), View);
 	}
 
 private:
@@ -360,13 +361,13 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, int32 PassIndex, TRefCountPtr<IPooledRenderTarget>& PassSource)
+	void SetParameters(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, int32 PassIndex, TRefCountPtr<IPooledRenderTarget>& PassSource)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
-		LightShaftParameters.SetParameters(GetPixelShader(), LightSceneInfo, View, PassSource);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		LightShaftParameters.SetParameters(RHICmdList, GetPixelShader(), LightSceneInfo, View, PassSource);
 
 		const FVector4 Parameters(GLightShaftBlurNumSamples, GLightShaftFirstPassDistance, PassIndex);
-		SetShaderValue(GetPixelShader(), RadialBlurParameters, Parameters);
+		SetShaderValue(RHICmdList, GetPixelShader(), RadialBlurParameters, Parameters);
 	}
 
 private:
@@ -410,10 +411,10 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
+	void SetParameters(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
-		LightShaftParameters.SetParameters(GetPixelShader(), LightSceneInfo, View, PassSource);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
+		LightShaftParameters.SetParameters(RHICmdList, GetPixelShader(), LightSceneInfo, View, PassSource);
 	}
 
 private:
@@ -458,6 +459,9 @@ void DownsamplePass(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo
 	const uint32 DownsampledSizeX = View.ViewRect.Width() / DownsampleFactor;
 	const uint32 DownsampledSizeY = View.ViewRect.Height() / DownsampleFactor;
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	RHISetRenderTarget(LightShaftsDest->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
 	RHISetViewport(DownSampledXY.X, DownSampledXY.Y, 0.0f, DownSampledXY.X + DownsampledSizeX, DownSampledXY.Y + DownsampledSizeY, 1.0f);
 
@@ -471,14 +475,14 @@ void DownsamplePass(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo
 		{
 			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Directional, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
 			SetGlobalBoundShaderState(DownsampleDirectionalLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
-			DownsampleLightShaftsPixelShader->SetParameters(LightSceneInfo, View, UnusedRT);
+			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
 	case LightType_Spot:
 		{
 			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Spot, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
 			SetGlobalBoundShaderState(DownsampleSpotLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
-			DownsampleLightShaftsPixelShader->SetParameters(LightSceneInfo, View, UnusedRT);
+			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
 	default:
@@ -486,12 +490,12 @@ void DownsamplePass(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo
 		{
 			TShaderMapRef<TDownsampleLightShaftsPixelShader<LightType_Point, bDownsampleOcclusion> > DownsampleLightShaftsPixelShader(GetGlobalShaderMap());
 			SetGlobalBoundShaderState(DownsamplePointLightShaftsBoundShaderState[bDownsampleOcclusion], GFilterVertexDeclaration.VertexDeclarationRHI, *DownsampleLightShaftsVertexShader, *DownsampleLightShaftsPixelShader);
-			DownsampleLightShaftsPixelShader->SetParameters(LightSceneInfo, View, UnusedRT);
+			DownsampleLightShaftsPixelShader->SetParameters(RHICmdList, LightSceneInfo, View, UnusedRT);
 		}
 		break;
 	}
 
-	DownsampleLightShaftsVertexShader->SetParameters(View);
+	DownsampleLightShaftsVertexShader->SetParameters(RHICmdList, View);
 
 	// No depth tests, no backface culling.
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -615,7 +619,8 @@ void ApplyRadialBlurPasses(
 		SetGlobalBoundShaderState(BlurLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *BlurLightShaftsPixelShader);
 
 		TRefCountPtr<IPooledRenderTarget>& EffectiveSource = PassIndex == 0 ? FirstPassSource : LightShaftsSource;
-		BlurLightShaftsPixelShader->SetParameters(LightSceneInfo, View, PassIndex, EffectiveSource);
+		/// ?
+		BlurLightShaftsPixelShader->SetParameters(nullptr, LightSceneInfo, View, PassIndex, EffectiveSource);
 
 		{
 			SCOPED_DRAW_EVENT(RadialBlur, DEC_SCENE_ITEMS);
@@ -657,7 +662,8 @@ void FinishOcclusionTerm(const FViewInfo& View, const FLightSceneInfo* const Lig
 
 	TShaderMapRef<FFinishOcclusionPixelShader> MaskOcclusionTermPixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(AccumulateTermBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *MaskOcclusionTermPixelShader);
-	MaskOcclusionTermPixelShader->SetParameters(LightSceneInfo, View, LightShaftsSource);
+	/// ?
+	MaskOcclusionTermPixelShader->SetParameters(nullptr, LightSceneInfo, View, LightShaftsSource);
 
 	{
 		SCOPED_DRAW_EVENT(FinishOcclusion, DEC_SCENE_ITEMS);
@@ -805,11 +811,12 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(), View);
+		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 
 		SetTextureParameter(
+			RHICmdList, 
 			GetPixelShader(),
 			SourceTextureParameter, SourceTextureSamplerParameter,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
@@ -840,7 +847,8 @@ void ApplyLightShaftBloom(const FViewInfo& View, const FLightSceneInfo* const Li
 
 	SetGlobalBoundShaderState(ApplyLightShaftsBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ApplyLightShaftsPixelShader);
 
-	ApplyLightShaftsPixelShader->SetParameters(View, LightShaftsSource);
+	/// ?
+	ApplyLightShaftsPixelShader->SetParameters(nullptr, View, LightShaftsSource);
 
 	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 	const uint32 DownsampleFactor	= GetLightShaftDownsampleFactor();

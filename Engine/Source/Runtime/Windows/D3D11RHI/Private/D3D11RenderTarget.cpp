@@ -28,7 +28,7 @@ namespace
 		}
 		FResolveDepthPS() {}
 
-		void SetParameters(ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
+		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
 		{
 		}
 
@@ -60,7 +60,7 @@ namespace
 		}
 		FResolveDepthNonMSPS() {}
 
-		void SetParameters(ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
+		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
 		{
 		}
 
@@ -92,9 +92,9 @@ namespace
 		}
 		FResolveSingleSamplePS() {}
 
-		void SetParameters(ID3D11DeviceContext* Direct3DDeviceContext,uint32 SingleSampleIndexValue)
+		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,uint32 SingleSampleIndexValue)
 		{
-			SetShaderValue(GetPixelShader(),SingleSampleIndex,SingleSampleIndexValue);
+			SetShaderValue(RHICmdList, GetPixelShader(),SingleSampleIndex,SingleSampleIndexValue);
 		}
 
 		virtual bool Serialize(FArchive& Ar)
@@ -171,6 +171,9 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	typename TPixelShader::FParameter PixelShaderParameter
 	)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Save the current viewport so that it can be restored
 	D3D11_VIEWPORT SavedViewport;
 	uint32 NumSavedViewports = 1;
@@ -248,7 +251,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	TShaderMapRef<TPixelShader> ResolvePixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
-	ResolvePixelShader->SetParameters(Direct3DDeviceContext,PixelShaderParameter);
+	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
 
 	// Set the source texture.
 	const uint32 TextureIndex = ResolvePixelShader->UnresolvedSurface.GetBaseIndex();

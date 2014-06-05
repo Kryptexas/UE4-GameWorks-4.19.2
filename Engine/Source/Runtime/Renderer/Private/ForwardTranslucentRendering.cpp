@@ -25,9 +25,9 @@ public:
 	}
 	FForwardCopySceneAlphaPS() {}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader(), View);
+		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -45,7 +45,7 @@ IMPLEMENT_SHADER_TYPE(,FForwardCopySceneAlphaPS,TEXT("TranslucentLightingShaders
 
 FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 
-void FForwardShadingSceneRenderer::CopySceneAlpha(const FSceneView& View)
+void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandList* RHICmdList, const FSceneView& View)
 {
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
@@ -65,12 +65,12 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(const FSceneView& View)
 	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View);
+	PixelShader->SetParameters(RHICmdList, View);
 
-	DrawRectangle(
-		0, 0,
-		X, Y,
-		0, 0,
+	DrawRectangle( 
+		0, 0, 
+		X, Y, 
+		0, 0, 
 		X, Y,
 		FIntPoint(X, Y),
 		GSceneRenderTargets.GetBufferSizeXY(),
@@ -105,21 +105,22 @@ public:
 		bBackFace(bInBackFace),
 		HitProxyId(InHitProxyId)
 	{}
-
+	
 	inline bool ShouldPackAmbientSH() const
 	{
 		// So shader code can read a single constant to get the ambient term
 		return true;
 	}
 
-	const FLightSceneInfo* GetSimpleDirectionalLight() const
-	{
+	const FLightSceneInfo* GetSimpleDirectionalLight() const 
+	{ 
 		return ((FScene*)View.Family->Scene)->SimpleDirectionalLight;
 	}
 
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
+		FRHICommandList* RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -138,6 +139,7 @@ public:
 			);
 
 		DrawingPolicy.DrawShared(
+			RHICmdList, 
 			&View,
 			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
@@ -145,6 +147,7 @@ public:
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			DrawingPolicy.SetMeshRenderState(
+				RHICmdList, 
 				View,
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
@@ -152,7 +155,7 @@ public:
 				bBackFace,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData)
 				);
-			DrawingPolicy.DrawMesh(Parameters.Mesh, BatchElementIndex);
+			DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex);
 		}
 	}
 };
@@ -162,6 +165,7 @@ public:
  * @return true if the mesh rendered
  */
 bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
+	FRHICommandList* RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -208,6 +212,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
+	FRHICommandList* RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FStaticMesh& StaticMesh,
@@ -220,6 +225,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
 	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 
 	bDirty |= DrawDynamicMesh(
+		RHICmdList, 
 		View,
 		DrawingContext,
 		StaticMesh,
@@ -249,8 +255,8 @@ void FTranslucentPrimSet::DrawPrimitivesForForwardShading(const FViewInfo& View,
 }
 
 void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
-	const FViewInfo& View,
-	FPrimitiveSceneInfo* PrimitiveSceneInfo,
+	const FViewInfo& View, 
+	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
 	const FPrimitiveViewRelevance& ViewRelevance) const
 {
 	checkSlow(ViewRelevance.HasTranslucency());
@@ -273,6 +279,9 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 				);
 		}
 
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )
 		{
@@ -285,6 +294,7 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 					&& StaticMesh.IsTranslucent(View.GetFeatureLevel()) )
 				{
 					FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
+						RHICmdList, 
 						View,
 						FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
 						StaticMesh,
@@ -302,6 +312,9 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 {
 	if (ShouldRenderTranslucency())
 	{
+		//@todo-rco: RHIPacketList
+		FRHICommandList* RHICmdList = nullptr;
+
 		const bool bGammaSpace = !IsMobileHDR();
 		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
@@ -313,14 +326,14 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 
 			const FViewInfo& View = Views[ViewIndex];
 
-#if PLATFORM_HTML5
+			#if PLATFORM_HTML5
 			// Copy the view so emulation of framebuffer fetch works for alpha=depth.
 			// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
 			if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(GRHIShaderPlatform)))
 			{
-				CopySceneAlpha(View);
+				CopySceneAlpha(RHICmdList, View);
 			}
-#endif
+			#endif 
 
 			if (!bGammaSpace)
 			{

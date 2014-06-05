@@ -13,6 +13,7 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 #include "IHeadMountedDisplay.h"
+#include "RHICommandList.h"
 
 
 /** The filter vertex declaration resource type. */
@@ -55,7 +56,7 @@ class FPostProcessHMDVS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		return !IsOpenGLPlatform(Platform);
 	}
 
 	/** Default constructor. */
@@ -71,18 +72,18 @@ public:
 		EyeToSrcUVOffset.Bind(Initializer.ParameterMap, TEXT("EyeToSrcUVOffset"));
 	}
 
-	void SetVS(const FRenderingCompositePassContext& Context, EStereoscopicPass StereoPass)
+	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, EStereoscopicPass StereoPass)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
 		check(GEngine->HMDDevice.IsValid());
 		FVector2D EyeToSrcUVScaleValue;
 		FVector2D EyeToSrcUVOffsetValue;
 		GEngine->HMDDevice->GetEyeRenderParams_RenderThread(StereoPass, EyeToSrcUVScaleValue, EyeToSrcUVOffsetValue);
-		SetShaderValue(ShaderRHI, EyeToSrcUVScale, EyeToSrcUVScaleValue);
-		SetShaderValue(ShaderRHI, EyeToSrcUVOffset, EyeToSrcUVOffsetValue);
+		SetShaderValue(RHICmdList, ShaderRHI, EyeToSrcUVScale, EyeToSrcUVScaleValue);
+		SetShaderValue(RHICmdList, ShaderRHI, EyeToSrcUVOffset, EyeToSrcUVOffsetValue);
 	}
 
 	// FShader interface.
@@ -101,7 +102,7 @@ class FPostProcessHMDPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		return !IsOpenGLPlatform(Platform);
 	}
 
 	/** Default constructor. */
@@ -122,14 +123,14 @@ public:
 
 	}
 
-	void SetPS(const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
+	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
-		DeferredParameters.Set(ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
+		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 	}
 
 	// FShader interface.
@@ -144,6 +145,7 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("USE_TIMEWARP"), uint32(0));
+		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 	}
 };
 
@@ -172,6 +174,9 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 
     const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
@@ -193,8 +198,8 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 		TShaderMapRef<FPostProcessHMDPS> PixelShader(GetGlobalShaderMap());
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-		VertexShader->SetVS(Context, View.StereoPass);
-		PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
+		VertexShader->SetVS(RHICmdList, Context, View.StereoPass);
+		PixelShader->SetPS(RHICmdList, Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 	}
 
 	GEngine->HMDDevice->DrawDistortionMesh_RenderThread(Context, View, SrcSize);

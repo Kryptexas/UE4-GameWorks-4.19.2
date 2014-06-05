@@ -512,17 +512,6 @@ void ApplyDBufferData(FDBufferData DBufferData, inout float3 WorldNormal, inout 
 #endif
 }
 
-// Resolved GBuffer textures
-Texture2D GBufferATexture;
-SamplerState GBufferATextureSampler;
-Texture2D GBufferBTexture;
-SamplerState GBufferBTextureSampler;
-Texture2D GBufferCTexture;
-SamplerState GBufferCTextureSampler;
-Texture2D GBufferDTexture;
-SamplerState GBufferDTextureSampler;
-Texture2D GBufferETexture;
-SamplerState GBufferETextureSampler;
 Texture2D DBufferATexture;
 SamplerState DBufferATextureSampler;
 Texture2D DBufferBTexture;
@@ -543,24 +532,6 @@ SamplerState CustomDepthTextureSampler;
 		#define FMultisampledGBuffer Texture2DMS<float4,MSAA_SAMPLE_COUNT>
 	#endif
 
-	/** Parameters bound and set by FDeferredPixelShaderParameters */
-	// Unresolved multisampled GBuffer textures
-	FMultisampledGBuffer GBufferATextureMS;
-	FMultisampledGBuffer GBufferBTextureMS;
-	FMultisampledGBuffer GBufferCTextureMS;
-	FMultisampledGBuffer GBufferDTextureMS;
-	FMultisampledGBuffer GBufferETextureMS;
-	FMultisampledGBuffer DBufferATextureMS;
-	FMultisampledGBuffer DBufferBTextureMS;
-	FMultisampledGBuffer DBufferCTextureMS;
-	FMultisampledGBuffer ScreenSpaceAOTextureMS;
-
-	// can be renamed, but then GBufferATexture should be renamed first
-	Texture2D<float4> GBufferATextureNonMS;
-	Texture2D<float4> GBufferBTextureNonMS;
-	Texture2D<float4> GBufferCTextureNonMS;
-	Texture2D<float4> GBufferDTextureNonMS;
-	Texture2D<float4> GBufferETextureNonMS;
 	Texture2D<float4> DBufferATextureNonMS;
 	Texture2D<float4> DBufferBTextureNonMS;
 	Texture2D<float2> DBufferCTextureNonMS;
@@ -570,14 +541,14 @@ SamplerState CustomDepthTextureSampler;
 	// @param PixelPos - integer pixel pos (from left top)
 	FGBufferData GetGBufferDataUint(uint2 PixelPos, bool bGetNormalizedNormal = true)
 	{
-		float4 GBufferA = GBufferATextureNonMS.Load(int3(PixelPos, 0));
-		float4 GBufferB = GBufferBTextureNonMS.Load(int3(PixelPos, 0));
-		float4 GBufferC = GBufferCTextureNonMS.Load(int3(PixelPos, 0));
-		float4 GBufferD = GBufferDTextureNonMS.Load(int3(PixelPos, 0));
+		float4 GBufferA = GBuffers.GBufferATextureNonMS.Load(int3(PixelPos, 0));
+		float4 GBufferB = GBuffers.GBufferBTextureNonMS.Load(int3(PixelPos, 0));
+		float4 GBufferC = GBuffers.GBufferCTextureNonMS.Load(int3(PixelPos, 0));
+		float4 GBufferD = GBuffers.GBufferDTextureNonMS.Load(int3(PixelPos, 0));
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(PixelPos, 0)).r;
 
 		#if ALLOW_STATIC_LIGHTING
-			float4 GBufferE = GBufferETextureNonMS.Load(int3(PixelPos, 0));
+			float4 GBufferE = GBuffers.GBufferETextureNonMS.Load(int3(PixelPos, 0));
 		#else
 			float4 GBufferE = 1;
 		#endif
@@ -624,14 +595,14 @@ SamplerState CustomDepthTextureSampler;
 // @param UV - UV space in the GBuffer textures (BufferSize resolution)
 FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 {
-	float4 GBufferA = Texture2DSampleLevel(GBufferATexture, GBufferATextureSampler, UV, 0);
-	float4 GBufferB = Texture2DSampleLevel(GBufferBTexture, GBufferBTextureSampler, UV, 0);
-	float4 GBufferC = Texture2DSampleLevel(GBufferCTexture, GBufferCTextureSampler, UV, 0);
-	float4 GBufferD = Texture2DSampleLevel(GBufferDTexture, GBufferDTextureSampler, UV, 0);
+	float4 GBufferA = Texture2DSampleLevel(GBuffers.GBufferATexture, GBuffers.GBufferATextureSampler, UV, 0);
+	float4 GBufferB = Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0);
+	float4 GBufferC = Texture2DSampleLevel(GBuffers.GBufferCTexture, GBuffers.GBufferCTextureSampler, UV, 0);
+	float4 GBufferD = Texture2DSampleLevel(GBuffers.GBufferDTexture, GBuffers.GBufferDTextureSampler, UV, 0);
 	float CustomNativeDepth = Texture2DSampleLevel(CustomDepthTexture, CustomDepthTextureSampler, UV, 0).r;
 
 	#if ALLOW_STATIC_LIGHTING
-		float4 GBufferE = Texture2DSampleLevel(GBufferETexture, GBufferETextureSampler, UV, 0);
+		float4 GBufferE = Texture2DSampleLevel(GBuffers.GBufferETexture, GBuffers.GBufferETextureSampler, UV, 0);
 	#else
 		float4 GBufferE = 1;
 	#endif
@@ -644,7 +615,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 // Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
 uint GetShadingModelId(float2 UV)
 {
-	float4 GBufferB = Texture2DSampleLevel(GBufferBTexture, GBufferBTextureSampler, UV, 0);
+	float4 GBufferB = Texture2DSampleLevel(GBuffers.GBufferBTexture, GBuffers.GBufferBTextureSampler, UV, 0);
 	return DecodeShadingModelId(GBufferB.a);
 }
 
@@ -675,14 +646,14 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	FGBufferData GetGBufferDataMS(int2 IntUV, uint SampleIndex, bool bGetNormalizedNormal = true)
 	{
-		float4 GBufferA = GBufferATextureMS.Load(IntUV, SampleIndex);
-		float4 GBufferB = GBufferBTextureMS.Load(IntUV, SampleIndex);
-		float4 GBufferC = GBufferCTextureMS.Load(IntUV, SampleIndex);
-		float4 GBufferD = GBufferDTextureMS.Load(IntUV, SampleIndex);
+		float4 GBufferA = GBuffers.GBufferATextureMS.Load(IntUV, SampleIndex);
+		float4 GBufferB = GBuffers.GBufferBTextureMS.Load(IntUV, SampleIndex);
+		float4 GBufferC = GBuffers.GBufferCTextureMS.Load(IntUV, SampleIndex);
+		float4 GBufferD = GBuffers.GBufferDTextureMS.Load(IntUV, SampleIndex);
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(IntUV, 0)).r;
 
 		#if ALLOW_STATIC_LIGHTING
-			float4 GBufferE = GBufferETextureMS.Load(IntUV, SampleIndex);
+			float4 GBufferE = GBuffers.GBufferETextureMS.Load(IntUV, SampleIndex);
 		#else
 			float4 GBufferE = 1;
 		#endif
@@ -698,7 +669,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float2 SurfaceDimensions;
 		float NumSurfaceSamples;
 		// assuming all GBuffers share the same size
-		GBufferCTextureMS.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y, NumSurfaceSamples);
+		GBuffers.GBufferCTextureMS.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y, NumSurfaceSamples);
 
 		int2 IntUV = (int2)trunc(UV * SurfaceDimensions);
 

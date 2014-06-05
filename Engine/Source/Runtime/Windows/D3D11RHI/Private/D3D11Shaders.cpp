@@ -9,50 +9,58 @@
 FVertexShaderRHIRef FD3D11DynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {
 	check(Code.Num());
-	TRefCountPtr<ID3D11VertexShader> D3DShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateVertexShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,D3DShader.GetInitReference()));
-	return new FD3D11VertexShader(D3DShader,Code);
-}
 
-FPixelShaderRHIRef FD3D11DynamicRHI::RHICreatePixelShader(const TArray<uint8>& Code)
-{
-	check(Code.Num());
-	TRefCountPtr<ID3D11PixelShader> D3DShader;
-	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-	VERIFYD3D11RESULT(Direct3DDevice->CreatePixelShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,(ID3D11PixelShader**)D3DShader.GetInitReference()));
-	return new FD3D11PixelShader(D3DShader, Code);
-}
+	FD3D11VertexShader* Shader = new FD3D11VertexShader;
 
-FHullShaderRHIRef FD3D11DynamicRHI::RHICreateHullShader(const TArray<uint8>& Code) 
-{ 
-	check(Code.Num());
-	TRefCountPtr<ID3D11HullShader> D3DShader;
-	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-	VERIFYD3D11RESULT(Direct3DDevice->CreateHullShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,(ID3D11HullShader**)D3DShader.GetInitReference()));
-	return new FD3D11HullShader(D3DShader, Code);
-}
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
 
-FDomainShaderRHIRef FD3D11DynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code) 
-{ 
-	check(Code.Num());
-	TRefCountPtr<ID3D11DomainShader> D3DShader;
+	VERIFYD3D11RESULT( Direct3DDevice->CreateVertexShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-	VERIFYD3D11RESULT(Direct3DDevice->CreateDomainShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,(ID3D11DomainShader**)D3DShader.GetInitReference()));
-	return new FD3D11DomainShader(D3DShader, Code);
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+	
+	// TEMP
+	Shader->Code = Code;
+	Shader->Offset = Offset;
+
+	return Shader;
 }
 
 FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShader(const TArray<uint8>& Code) 
 { 
 	check(Code.Num());
-	TRefCountPtr<ID3D11GeometryShader> D3DShader;
+
+	FD3D11GeometryShader* Shader = new FD3D11GeometryShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
+
+	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-	VERIFYD3D11RESULT(Direct3DDevice->CreateGeometryShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,(ID3D11GeometryShader**)D3DShader.GetInitReference()));
-	return new FD3D11GeometryShader(D3DShader, Code);
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+
+	return Shader;
 }
 
 FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream) 
 { 
 	check(Code.Num());
+
+	FD3D11GeometryShader* Shader = new FD3D11GeometryShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
 
 	uint32 D3DRasterizedStream = RasterizedStream;
 	if (RasterizedStream == -1)
@@ -72,29 +80,102 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 		StreamOutEntries[EntryIndex].OutputSlot = ElementList[EntryIndex].OutputSlot;
 	}
 
-	TRefCountPtr<ID3D11GeometryShader> D3DShader;
-	VERIFYD3D11RESULT(Direct3DDevice->CreateGeometryShaderWithStreamOutput(
-		(const void*)Code.GetTypedData(),
-		// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-		Code.Num() - 1,
+	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShaderWithStreamOutput(
+		(void*)CodePtr,
+		CodeSize,
 		StreamOutEntries,
 		ElementList.Num(),
 		Strides,
 		NumStrides,
 		D3DRasterizedStream,
 		NULL,
-		(ID3D11GeometryShader**)D3DShader.GetInitReference()));
+		Shader->Resource.GetInitReference()
+	) );
+	
+	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
 
-	return new FD3D11GeometryShader(D3DShader, Code);
+	return Shader;
+}
+
+FHullShaderRHIRef FD3D11DynamicRHI::RHICreateHullShader(const TArray<uint8>& Code) 
+{ 
+	check(Code.Num());
+
+	FD3D11HullShader* Shader = new FD3D11HullShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
+
+	VERIFYD3D11RESULT( Direct3DDevice->CreateHullShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
+	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+
+	return Shader;
+}
+
+FDomainShaderRHIRef FD3D11DynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code) 
+{ 
+	check(Code.Num());
+
+	FD3D11DomainShader* Shader = new FD3D11DomainShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
+
+	VERIFYD3D11RESULT( Direct3DDevice->CreateDomainShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
+	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+
+	return Shader;
+}
+
+FPixelShaderRHIRef FD3D11DynamicRHI::RHICreatePixelShader(const TArray<uint8>& Code)
+{
+	check(Code.Num());
+
+	FD3D11PixelShader* Shader = new FD3D11PixelShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
+
+	VERIFYD3D11RESULT( Direct3DDevice->CreatePixelShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
+	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+
+	return Shader;
 }
 
 FComputeShaderRHIRef FD3D11DynamicRHI::RHICreateComputeShader(const TArray<uint8>& Code) 
 { 
 	check(Code.Num());
-	TRefCountPtr<ID3D11ComputeShader> D3DShader;
+
+	FD3D11ComputeShader* Shader = new FD3D11ComputeShader;
+
+	FMemoryReader Ar( Code, true );
+	Ar << Shader->ShaderResourceTable;
+	int32 Offset = Ar.Tell();
+	const uint8* CodePtr = Code.GetTypedData() + Offset;
+	const size_t CodeSize = Code.Num() - Offset - 1;
+
+	VERIFYD3D11RESULT( Direct3DDevice->CreateComputeShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	// bGlobalUniformBufferUsed is in the last byte, see CompileD3D11Shader
-	VERIFYD3D11RESULT(Direct3DDevice->CreateComputeShader((void*)Code.GetTypedData(),Code.Num() - 1,NULL,(ID3D11ComputeShader**)D3DShader.GetInitReference()));
-	return new FD3D11ComputeShader(D3DShader, Code);
+	Shader->bShaderNeedsGlobalConstantBuffer = Code[Code.Num() - 1] != 0;
+
+	return Shader;
 }
 
 void FD3D11DynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) 
@@ -134,8 +215,8 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 	VERIFYD3D11RESULT(Direct3DDevice->CreateInputLayout(
 		InVertexDeclaration ? InVertexDeclaration->VertexElements.GetTypedData() : &NullInputElement,
 		InVertexDeclaration ? InVertexDeclaration->VertexElements.Num() : 0,
-		InVertexShader->Code.GetTypedData(),
-		InVertexShader->Code.Num() - 1,
+		&InVertexShader->Code[ InVertexShader->Offset ],			// TEMP ugly
+		InVertexShader->Code.Num() - 1 - InVertexShader->Offset,
 		InputLayout.GetInitReference()
 		));
 

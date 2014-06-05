@@ -54,6 +54,7 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FMaterial& InMaterialResource,
@@ -62,18 +63,18 @@ public:
 		ESceneRenderTargetsMode::Type TextureMode
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
 
 		if (bAllowGlobalFog)
 		{
-			HeightFogParameters.Set(GetVertexShader(), &View);
-			AtmosphericFogTextureParameters.Set(GetVertexShader(), View);
+			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
+			AtmosphericFogTextureParameters.Set(RHICmdList, GetVertexShader(), View);
 		}
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 
 private:
@@ -180,12 +181,13 @@ public:
 	}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FSceneView& View
 		)
 	{
-		FBaseDS::SetParameters(MaterialRenderProxy, View);
+		FBaseDS::SetParameters(RHICmdList, MaterialRenderProxy, View);
 	}
 };
 
@@ -202,7 +204,7 @@ public:
 	}
 
 	template<typename TParamRef>
-	void SetParameters(const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
+	void SetParameters(FRHICommandList* RHICmdList, const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
 	{
 		FTexture* SkyLightTextureResource = GBlackTextureCube;
 		float ApplySkyLightMask = 0;
@@ -210,9 +212,9 @@ public:
 
 		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount);
 
-		SetTextureParameter(ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
+		SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
 		const FVector2D SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask);
-		SetShaderValue(ShaderRHI, SkyLightParameters, SkyParametersValue);
+		SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
@@ -251,9 +253,9 @@ public:
 		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
-	void Set(FShader* Shader, const FSceneView* View);
+	void Set(FRHICommandList* RHICmdList, FShader* Shader, const FSceneView* View);
 
-	void SetMesh(FShader* Shader, const FPrimitiveSceneProxy* Proxy);
+	void SetMesh(FRHICommandList* RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FTranslucentLightingParameters& P)
@@ -323,6 +325,7 @@ public:
 	TBasePassPixelShaderBaseType() {}
 
 	void SetParameters(
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& MaterialResource, 
 		const FSceneView* View, 
@@ -332,13 +335,13 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, MaterialResource, *View, TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, ShaderRHI, MaterialRenderProxy, MaterialResource, *View, TextureMode);
 
 		if (View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				TranslucentLightingParameters.Set(this, View);
+				TranslucentLightingParameters.Set(RHICmdList, this, View);
 			}
 
 #if WITH_EDITOR
@@ -360,6 +363,7 @@ public:
 					const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
 					check(DepthTexture != NULL);
 					SetTextureParameter(
+						RHICmdList,
 						ShaderRHI,
 						FilteredSceneDepthTexture,
 						FilteredSceneDepthTextureSampler,
@@ -368,22 +372,22 @@ public:
 						);
 				}
 
-				SetShaderValue(ShaderRHI, EditorCompositeDepthTestParameter, bEnableEditorPrimitveDepthTest );
-				SetShaderValue(ShaderRHI, MSAASampleCount, GSceneRenderTargets.EditorPrimitivesColor ? GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples : 0 );
+				SetShaderValue(RHICmdList, ShaderRHI, EditorCompositeDepthTestParameter, bEnableEditorPrimitveDepthTest );
+				SetShaderValue(RHICmdList, ShaderRHI, MSAASampleCount, GSceneRenderTargets.EditorPrimitivesColor ? GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples : 0 );
 			}
 #endif
 		}
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode)
 	{
 		if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4
 			&& IsTranslucentBlendMode(BlendMode))
 		{
-			TranslucentLightingParameters.SetMesh(this, Proxy);
+			TranslucentLightingParameters.SetMesh(RHICmdList, this, Proxy);
 		}
 
-		FMeshMaterialShader::SetMesh(GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -545,24 +549,23 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+	void DrawShared(FRHICommandList* RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
 	{
-		// Set the actual shader & vertex declaration state
-		RHISetBoundShaderState( BoundShaderState);
+		FRHICommandList::SetBoundShaderState(RHICmdList, BoundShaderState);
 
 		// Set the light-map policy.
-		LightMapPolicy.Set(VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
+		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
 
-		VertexShader->SetParameters(MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode);
+		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode);
 
 		if(HullShader)
 		{
-			HullShader->SetParameters(MaterialRenderProxy, *View);
+			HullShader->SetParameters(RHICmdList, MaterialRenderProxy, *View);
 		}
 
 		if (DomainShader)
 		{
-			DomainShader->SetParameters(MaterialRenderProxy, VertexFactory, *View);
+			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *View);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -571,19 +574,18 @@ public:
 			// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				// Add complexity to existing
-				RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_One>::GetRHI());
+				FRHICommandList::SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 			}
 
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions, NumPixelShaderInstructions, View->GetFeatureLevel());
+			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions, NumPixelShaderInstructions, View->GetFeatureLevel());
 		}
 		else
 #endif
 		{
-			PixelShader->SetParameters(MaterialRenderProxy,*MaterialResource,View,BlendMode,bEnableEditorPrimitiveDepthTest,SceneTextureMode);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,View,BlendMode,bEnableEditorPrimitiveDepthTest,SceneTextureMode);
 
 			switch(BlendMode)
 			{
@@ -596,16 +598,17 @@ public:
 				break;
 			case BLEND_Translucent:
 				// Alpha channel is only needed for SeparateTranslucency, before this was preserving the alpha channel but we no longer store depth in the alpha channel so it's no problem
-				RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_InverseSourceAlpha>::GetRHI());
+
+				FRHICommandList::SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				break;
 			case BLEND_Additive:
 				// Add to the existing scene color
 				// Alpha channel is only needed for SeparateTranslucency, before this was preserving the alpha channel but we no longer store depth in the alpha channel so it's no problem
-				RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add,BF_One,BF_One,BO_Add,BF_Zero,BF_InverseSourceAlpha>::GetRHI());
+				FRHICommandList::SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				break;
 			case BLEND_Modulate:
 				// Modulate with the existing scene color, preserve destination alpha.
-				RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_DestColor,BF_Zero>::GetRHI());
+				FRHICommandList::SetBlendState(RHICmdList, TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
 				break;
 			};
 		}
@@ -642,6 +645,7 @@ public:
 	}
 
 	void SetMeshRenderState(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -652,6 +656,7 @@ public:
 	{
 		// Set the light-map policy's mesh-specific settings.
 		LightMapPolicy.SetMesh(
+			RHICmdList, 
 			View,
 			PrimitiveSceneProxy,
 			VertexShader,
@@ -663,12 +668,12 @@ public:
 			ElementData.LightMapElementData);
 
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-		VertexShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 		
 		if(HullShader && DomainShader)
 		{
-			HullShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-			DomainShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+			HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+			DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -678,21 +683,22 @@ public:
 			if (BlendMode != BLEND_Opaque)
 			{
 				// Add complexity to existing, keep alpha
+				check(!RHICmdList);
 				RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
 			TShaderMapRef<FShaderComplexityAccumulatePS> ShaderComplexityPixelShader(GetGlobalShaderMap());
 			const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 			const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
-			ShaderComplexityPixelShader->SetParameters(NumVertexShaderInstructions,NumPixelShaderInstructions, View.GetFeatureLevel());
+			ShaderComplexityPixelShader->SetParameters(RHICmdList, NumVertexShaderInstructions,NumPixelShaderInstructions, View.GetFeatureLevel());
 		}
 		else
 #endif
 		{
-			PixelShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode);
+			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode);
 		}
 
-		FMeshDrawingPolicy::SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)
@@ -754,6 +760,7 @@ public:
 
 	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
@@ -838,6 +845,7 @@ public:
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
 template<typename ProcessActionType>
 void ProcessBasePassMesh(
+	FRHICommandList* RHICmdList, 
 	const FProcessBasePassMeshParameters& Parameters,
 	const ProcessActionType& Action
 	)
@@ -857,17 +865,17 @@ void ProcessBasePassMesh(
 		if (bIsLitMaterial && Action.UseTranslucentSelfShadowing() && Parameters.FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
-				&& Action.AllowIndirectLightingCache()
-				&& Parameters.PrimitiveSceneProxy)
-			{
-				// Apply cached point indirect lighting as well as self shadowing if needed
-				Action.template Process<FSelfShadowedCachedPointIndirectLightingPolicy>(Parameters, FSelfShadowedCachedPointIndirectLightingPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
+					&& Action.AllowIndirectLightingCache()
+					&& Parameters.PrimitiveSceneProxy)
+				{
+					// Apply cached point indirect lighting as well as self shadowing if needed
+					Action.template Process<FSelfShadowedCachedPointIndirectLightingPolicy>(RHICmdList, Parameters, FSelfShadowedCachedPointIndirectLightingPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
+				}
+				else
+				{
+					Action.template Process<FSelfShadowedTranslucencyPolicy>(RHICmdList, Parameters, FSelfShadowedTranslucencyPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
+				}
 			}
-			else
-			{
-				Action.template Process<FSelfShadowedTranslucencyPolicy>(Parameters, FSelfShadowedTranslucencyPolicy(), FSelfShadowedTranslucencyPolicy::ElementDataType(Action.GetTranslucentSelfShadow()));
-			}
-		}
 		else
 		{
 			const FLightMapInteraction LightMapInteraction = (bAllowStaticLighting && Parameters.Mesh.LCI && bIsLitMaterial) 
@@ -889,18 +897,19 @@ void ProcessBasePassMesh(
 						if (ShadowMapInteraction.GetType() == SMIT_Texture)
 						{
 							Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP> >(
+								RHICmdList, 
 								Parameters,
 								TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>(),
 								TDistanceFieldShadowsAndLightMapPolicy<HQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
 						}
 						else
 						{
-							Action.template Process< TLightMapPolicy<HQ_LIGHTMAP> >( Parameters, TLightMapPolicy<HQ_LIGHTMAP>(), LightMapInteraction );
+							Action.template Process< TLightMapPolicy<HQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<HQ_LIGHTMAP>(), LightMapInteraction );
 						}
 					} 
 					else 
 					{ 
-						Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >( Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
+						Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
 					} 
 					break;
 				default:
@@ -910,7 +919,7 @@ void ProcessBasePassMesh(
 						{
 							if (IsSimpleDynamicLightingEnabled())
 							{
-								Action.template Process<FSimpleDynamicLightingPolicy>(Parameters, FSimpleDynamicLightingPolicy(), FSimpleDynamicLightingPolicy::ElementDataType());
+								Action.template Process<FSimpleDynamicLightingPolicy>(RHICmdList, Parameters, FSimpleDynamicLightingPolicy(), FSimpleDynamicLightingPolicy::ElementDataType());
 							}
 							else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
 								&& Action.AllowIndirectLightingCache()
@@ -925,22 +934,22 @@ void ProcessBasePassMesh(
 								if (CanIndirectLightingCacheUseVolumeTexture(Parameters.FeatureLevel) && Action.AllowIndirectLightingCacheVolumeTexture())
 								{
 									// Use a lightmap policy that supports reading indirect lighting from a volume texture for dynamic objects
-									Action.template Process<FCachedVolumeIndirectLightingPolicy>(Parameters,FCachedVolumeIndirectLightingPolicy(),FCachedVolumeIndirectLightingPolicy::ElementDataType());
+									Action.template Process<FCachedVolumeIndirectLightingPolicy>(RHICmdList, Parameters,FCachedVolumeIndirectLightingPolicy(),FCachedVolumeIndirectLightingPolicy::ElementDataType());
 								}
 								else
 								{
 									// Use a lightmap policy that supports reading indirect lighting from a single SH sample
-									Action.template Process<FCachedPointIndirectLightingPolicy>(Parameters,FCachedPointIndirectLightingPolicy(),FCachedPointIndirectLightingPolicy::ElementDataType(false));
+									Action.template Process<FCachedPointIndirectLightingPolicy>(RHICmdList, Parameters,FCachedPointIndirectLightingPolicy(),FCachedPointIndirectLightingPolicy::ElementDataType(false));
 								}
 							}
 							else
 							{
-								Action.template Process<FNoLightMapPolicy>(Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+								Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
 							}
 						}
 						else
 						{
-							Action.template Process<FNoLightMapPolicy>(Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+							Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
 						}
 					}
 					break;

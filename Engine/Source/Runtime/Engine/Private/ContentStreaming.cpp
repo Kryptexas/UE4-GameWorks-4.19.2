@@ -257,7 +257,8 @@ struct FStreamingTexture
 		MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
 		STAT( MaxAllowedOptimalMips = MaxAllowedMips );
 		STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
-		LastRenderTime = (FApp::GetCurrentTime() > Texture->Resource->LastRenderTime) ? float( FApp::GetCurrentTime() - Texture->Resource->LastRenderTime ) : 0.0f;
+		float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
+		LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
 		MinDistance = MAX_STREAMINGDISTANCE;
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (ForceLoadRefCount > 0);
 		TextureLODBias = Texture->GetCachedLODBias();
@@ -2198,7 +2199,7 @@ void FStreamingManagerTexture::CancelForcedResources()
 				StreamingTexture.InstanceRemovedTimestamp = -FLT_MAX;
 				if ( StreamingTexture.Texture->Resource )
 				{
-					StreamingTexture.Texture->Resource->LastRenderTime = -FLT_MAX;
+					StreamingTexture.Texture->InvalidateLastRenderTimeForStreaming();
 				}
 #if STREAMING_LOG_CANCELFORCED
 				UE_LOG(LogContentStreaming, Log, TEXT("Canceling forced texture: %s (had %.1f seconds left)"), *StreamingTexture.Texture->GetFullName(), TimeLeft );
@@ -2299,8 +2300,6 @@ void Renderthread_StreamOutTextureData( TArray<FTextureSortElement>* InCandidate
 {
 	*bSucceeded = false;
 
-	RHIBeginScene();
-
 	// only for debugging?
 	FTextureMemoryStats OldStats;
 	RHIGetTextureMemoryStats(OldStats);
@@ -2362,8 +2361,6 @@ void Renderthread_StreamOutTextureData( TArray<FTextureSortElement>* InCandidate
 
 	// Return the result.
 	*bSucceeded = SavedMemory >= RequiredMemorySize;
-
-	RHIEndScene();
 }
 
 /**

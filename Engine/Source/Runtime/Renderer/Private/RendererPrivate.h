@@ -10,6 +10,7 @@
 #include "Engine.h"
 #include "ShaderCore.h"
 #include "RHI.h"
+#include "RHIStaticStates.h"
 #include "ScenePrivate.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRenderer, Log, All);

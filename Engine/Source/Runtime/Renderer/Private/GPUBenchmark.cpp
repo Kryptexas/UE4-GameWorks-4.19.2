@@ -57,13 +57,13 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 
-		SetTextureParameter(ShaderRHI, InputTexture, InputTextureSampler, TStaticSamplerState<>::GetRHI(), Src->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, InputTexture, InputTextureSampler, TStaticSamplerState<>::GetRHI(), Src->GetRenderTargetItem().ShaderResourceTexture);
 	}
 
 	static const TCHAR* GetSourceFilename()
@@ -113,11 +113,11 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(const FSceneView& View)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		
-		FGlobalShader::SetParameters(ShaderRHI, View);
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
 	}
 };
 
@@ -125,7 +125,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBenchmarkVS,TEXT("GPUBenchmark"),TEXT("MainBe
 
 
 template <uint32 Method>
-void RunBenchmarkShader(const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandList* RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
 {
 	TShaderMapRef<FPostProcessBenchmarkVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBenchmarkPS<Method> > PixelShader(GetGlobalShaderMap());
@@ -134,8 +134,8 @@ void RunBenchmarkShader(const FSceneView& View, TRefCountPtr<IPooledRenderTarget
 
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(View, Src);
-	VertexShader->SetParameters(View);
+	PixelShader->SetParameters(RHICmdList, View, Src);
+	VertexShader->SetParameters(RHICmdList, View);
 
 	for(uint32 i = 0; i < Count; ++i)
 	{
@@ -151,17 +151,17 @@ void RunBenchmarkShader(const FSceneView& View, TRefCountPtr<IPooledRenderTarget
 	}
 }
 
-void RunBenchmarkShader(const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandList* RHICmdList, const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
 {
 	SCOPED_DRAW_EVENTF(Benchmark, DEC_SCENE_ITEMS, TEXT("Benchmark Method:%d"), MethodId);
 
 	switch(MethodId)
 	{
-		case 0: RunBenchmarkShader<0>(View, Src, Count); return;
-		case 1: RunBenchmarkShader<1>(View, Src, Count); return;
-		case 2: RunBenchmarkShader<2>(View, Src, Count); return;
-		case 3: RunBenchmarkShader<3>(View, Src, Count); return;
-		case 4: RunBenchmarkShader<4>(View, Src, Count); return;
+		case 0: RunBenchmarkShader<0>(RHICmdList, View, Src, Count); return;
+		case 1: RunBenchmarkShader<1>(RHICmdList, View, Src, Count); return;
+		case 2: RunBenchmarkShader<2>(RHICmdList, View, Src, Count); return;
+		case 3: RunBenchmarkShader<3>(RHICmdList, View, Src, Count); return;
+		case 4: RunBenchmarkShader<4>(RHICmdList, View, Src, Count); return;
 
 		default:
 			check(0);
@@ -346,6 +346,9 @@ private:
 
 void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList* RHICmdList = nullptr;
+
 	check(IsInRenderingThread());
 	
 	// two RT to ping pong so we force the GPU to flush it's pipeline
@@ -431,7 +434,7 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 				// decide how much work we do in this pass
 				PassCount[Iteration] = (Iteration / 10 + 1) * WorkScale;
 
-				RunBenchmarkShader(View, MethodId, RTItems[SrcRTIndex], PassCount[Iteration]);
+				RunBenchmarkShader(RHICmdList, View, MethodId, RTItems[SrcRTIndex], PassCount[Iteration]);
 
 				RHICopyToResolveTarget(RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, RTItems[DestRTIndex]->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 

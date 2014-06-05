@@ -90,6 +90,35 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLPackedArrayInfo& Info)
 	return Ar;
 }
 
+struct FOpenGLShaderResourceTable : public FBaseShaderResourceTable
+{
+	/** Mapping of bound Textures to their location in resource tables. */
+	TArray<uint32> TextureMap;
+	friend bool operator==(const FOpenGLShaderResourceTable &A, const FOpenGLShaderResourceTable& B)
+	{
+		if (!(((FBaseShaderResourceTable&)A) == ((FBaseShaderResourceTable&)B)))
+		{
+			return false;
+		}
+		if (A.TextureMap.Num() != B.TextureMap.Num())
+		{
+			return false;
+		}
+		if (FMemory::Memcmp(A.TextureMap.GetTypedData(), B.TextureMap.GetTypedData(), A.TextureMap.GetTypeSize()*A.TextureMap.Num()) != 0)
+		{
+			return false;
+		}
+		return true;
+	}
+};
+
+inline FArchive& operator<<(FArchive& Ar, FOpenGLShaderResourceTable& SRT)
+{
+	Ar << ((FBaseShaderResourceTable&)SRT);
+	Ar << SRT.TextureMap;
+	return Ar;
+}
+
 /**
  * Shader binding information.
  */
@@ -97,6 +126,7 @@ struct FOpenGLShaderBindings
 {
 	TArray<TArray<FOpenGLPackedArrayInfo>>	PackedUniformBuffers;
 	TArray<FOpenGLPackedArrayInfo>			PackedGlobalArrays;
+	FOpenGLShaderResourceTable				ShaderResourceTable;
 
 	uint16	InOutMask;
 	uint8	NumSamplers;
@@ -114,7 +144,7 @@ struct FOpenGLShaderBindings
 	{
 	}
 
-	friend bool operator==( const FOpenGLShaderBindings &A, const FOpenGLShaderBindings &B)
+	friend bool operator==( const FOpenGLShaderBindings &A, const FOpenGLShaderBindings& B)
 	{
 		bool bEqual = true;
 
@@ -125,6 +155,7 @@ struct FOpenGLShaderBindings
 		bEqual &= A.bFlattenUB == B.bFlattenUB;
 		bEqual &= A.PackedGlobalArrays.Num() == B.PackedGlobalArrays.Num();
 		bEqual &= A.PackedUniformBuffers.Num() == B.PackedUniformBuffers.Num();
+		bEqual &= A.ShaderResourceTable == B.ShaderResourceTable;
 
 		if ( !bEqual )
 		{
@@ -154,6 +185,8 @@ struct FOpenGLShaderBindings
 		Hash ^= Binding.bFlattenUB << 8;
 		Hash ^= FCrc::MemCrc_DEPRECATED( Binding.PackedGlobalArrays.GetTypedData(), Binding.PackedGlobalArrays.GetTypeSize()*Binding.PackedGlobalArrays.Num());
 
+		//@todo-rco: Do we need to calc Binding.ShaderResourceTable.GetTypeHash()?
+
 		for (int32 Item = 0; Item < Binding.PackedUniformBuffers.Num(); Item++)
 		{
 			const TArray<FOpenGLPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
@@ -167,6 +200,7 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLShaderBindings& Bindings)
 {
 	Ar << Bindings.PackedUniformBuffers;
 	Ar << Bindings.PackedGlobalArrays;
+	Ar << Bindings.ShaderResourceTable;
 	Ar << Bindings.InOutMask;
 	Ar << Bindings.NumSamplers;
 	Ar << Bindings.NumUniformBuffers;
@@ -245,20 +279,24 @@ class FOpenGLLinkedProgram;
 /**
  * OpenGL shader resource.
  */
-template <typename RHIResourceType, GLenum GLTypeEnum>
+template <typename RHIResourceType, GLenum GLTypeEnum, EShaderFrequency FrequencyT>
 class TOpenGLShader : public RHIResourceType
 {
 public:
-
+	enum
+	{
+		StaticFrequency = FrequencyT
+	};
 	static const GLenum TypeEnum = GLTypeEnum;
 
 	/** The OpenGL resource ID. */
 	GLuint Resource;
 	/** true if the shader has compiled successfully. */
 	bool bSuccessfullyCompiled;
+
 	/** External bindings for this shader. */
 	FOpenGLShaderBindings Bindings;
-	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers;
+
 	// List of memory copies from RHIUniformBuffer to packed uniforms
 	TArray<FOpenGLUniformBufferCopyInfo> UniformBuffersCopyInfo;
 
@@ -286,14 +324,14 @@ public:
 };
 
 
-typedef TOpenGLShader<FRHIVertexShader, GL_VERTEX_SHADER> FOpenGLVertexShader;
-typedef TOpenGLShader<FRHIPixelShader, GL_FRAGMENT_SHADER> FOpenGLPixelShader;
-typedef TOpenGLShader<FRHIGeometryShader, GL_GEOMETRY_SHADER> FOpenGLGeometryShader;
-typedef TOpenGLShader<FRHIHullShader, GL_TESS_CONTROL_SHADER> FOpenGLHullShader;
-typedef TOpenGLShader<FRHIDomainShader, GL_TESS_EVALUATION_SHADER> FOpenGLDomainShader;
+typedef TOpenGLShader<FRHIVertexShader, GL_VERTEX_SHADER, SF_Vertex> FOpenGLVertexShader;
+typedef TOpenGLShader<FRHIPixelShader, GL_FRAGMENT_SHADER, SF_Pixel> FOpenGLPixelShader;
+typedef TOpenGLShader<FRHIGeometryShader, GL_GEOMETRY_SHADER, SF_Geometry> FOpenGLGeometryShader;
+typedef TOpenGLShader<FRHIHullShader, GL_TESS_CONTROL_SHADER, SF_Hull> FOpenGLHullShader;
+typedef TOpenGLShader<FRHIDomainShader, GL_TESS_EVALUATION_SHADER, SF_Domain> FOpenGLDomainShader;
 
 
-class FOpenGLComputeShader : public TOpenGLShader<FRHIComputeShader, GL_COMPUTE_SHADER>
+class FOpenGLComputeShader : public TOpenGLShader<FRHIComputeShader, GL_COMPUTE_SHADER, SF_Compute>
 {
 public:
 	FOpenGLComputeShader():
@@ -340,7 +378,7 @@ public:
 	 */
 	void CommitPackedGlobals(const FOpenGLLinkedProgram* LinkedProgram, int32 Stage);
 
-	void CommitPackedUniformBuffers(FOpenGLLinkedProgram* LinkedProgram, int32 Stage, const TArray< TRefCountPtr<FRHIUniformBuffer> >& UniformBuffers, const TArray<FOpenGLUniformBufferCopyInfo>& UniformBuffersCopyInfo);
+	void CommitPackedUniformBuffers(FOpenGLLinkedProgram* LinkedProgram, int32 Stage, FUniformBufferRHIRef* UniformBuffers, const TArray<FOpenGLUniformBufferCopyInfo>& UniformBuffersCopyInfo);
 
 private:
 	/** CPU memory block for storing uniform values. */

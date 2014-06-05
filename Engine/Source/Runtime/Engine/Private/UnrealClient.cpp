@@ -696,14 +696,12 @@ public:
 	virtual void BeginRenderFrame() 
 	{
 		check( IsInRenderingThread() );
-		RHIBeginScene();
 		RHISetRenderTarget( RenderTargetTextureRHI,  FTexture2DRHIRef() );
 	};
 
 	void EndRenderFrame( bool bPresent, bool bLockToVsync )
 	{
 		check( IsInRenderingThread() );
-		RHIEndScene();
 	}
 
 	virtual void*	GetWindow() { return 0; }

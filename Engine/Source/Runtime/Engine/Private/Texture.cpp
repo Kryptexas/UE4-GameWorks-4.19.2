@@ -53,6 +53,18 @@ UTexture::UTexture(const class FPostConstructInitializeProperties& PCIP)
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
 	CompositePower = 1.0f;
 #endif // #if WITH_EDITORONLY_DATA
+
+	if (FApp::CanEverRender() && !IsTemplate())
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			FCreateTextureRefCommand,
+			UTexture*,Texture,this,
+		{
+			FTextureReferenceRHIRef TextureRef = RHICreateTextureReference();
+			TextureRef->AddRef();
+			Texture->TextureRefRHI = TextureRef;
+		});
+	}
 }
 
 void UTexture::ReleaseResource()
@@ -305,11 +317,24 @@ void UTexture::PostLoad()
 void UTexture::BeginDestroy()
 {
 	Super::BeginDestroy();
-	if( !UpdateStreamingStatus() && Resource )
+	if( !UpdateStreamingStatus() && (Resource || TextureRefRHI) )
 	{
 		// Send the rendering thread a release message for the texture's resource.
-		BeginReleaseResource(Resource);
-		Resource->ReleaseFence.BeginFence();
+		if (Resource)
+		{
+			BeginReleaseResource(Resource);
+		}
+		if (TextureRefRHI)
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+				FDestroyTextureRefCommand,
+				UTexture*,Texture,this,
+			{
+				Texture->TextureRefRHI->Release();
+				Texture->TextureRefRHI = NULL;
+			});
+		}
+		ReleaseFence.BeginFence();
 		// Keep track that we already kicked off the async release.
 		bAsyncResourceReleaseHasBeenStarted = true;
 	}
@@ -322,16 +347,29 @@ bool UTexture::IsReadyForFinishDestroy()
 	if( Super::IsReadyForFinishDestroy() && !UpdateStreamingStatus() )
 	{
 		// Kick off async resource release if we haven't already.
-		if( !bAsyncResourceReleaseHasBeenStarted && Resource )
+		if( !bAsyncResourceReleaseHasBeenStarted && (Resource || TextureRefRHI) )
 		{
 			// Send the rendering thread a release message for the texture's resource.
-			BeginReleaseResource(Resource);
-			Resource->ReleaseFence.BeginFence();
+			if (Resource)
+			{
+				BeginReleaseResource(Resource);
+			}
+			if (TextureRefRHI)
+			{
+				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+					FDestroyTextureRefCommand,
+					UTexture*,Texture,this,
+				{
+					Texture->TextureRefRHI->Release();
+					Texture->TextureRefRHI = NULL;
+				});
+			}
+			ReleaseFence.BeginFence();
 			// Keep track that we already kicked off the async release.
 			bAsyncResourceReleaseHasBeenStarted = true;
 		}
 		// Only allow FinishDestroy to be called once the texture resource has finished its rendering thread cleanup.
-		else if( !Resource || Resource->ReleaseFence.IsFenceComplete() )
+		else if( (!Resource && !TextureRefRHI) || ReleaseFence.IsFenceComplete() )
 		{
 			bReadyForFinishDestroy = true;
 		}
@@ -345,7 +383,7 @@ void UTexture::FinishDestroy()
 
 	if(Resource)
 	{
-		check(Resource->ReleaseFence.IsFenceComplete());
+		check(ReleaseFence.IsFenceComplete());
 
 		// Free the resource.
 		delete Resource;
@@ -355,6 +393,7 @@ void UTexture::FinishDestroy()
 	CleanupCachedRunningPlatformData();
 	CleanupCachedCookedPlatformData();
 
+	check(TextureRefRHI == NULL);
 }
 
 void UTexture::PreSave()

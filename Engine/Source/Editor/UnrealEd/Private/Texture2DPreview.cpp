@@ -9,6 +9,8 @@
 #include "SimpleElementShaders.h"
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
+#include "ShaderParameterUtils.h"
+#include "RHIStaticStates.h"
 
 /*------------------------------------------------------------------------------
 	Batched element shaders for previewing 2d textures.
@@ -39,15 +41,15 @@ public:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}
 
-	void SetParameters(const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue, float MipLevel, bool bIsNormalMap)
+	void SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue, float MipLevel, bool bIsNormalMap)
 	{
-		SetTextureParameter(GetPixelShader(),InTexture,InTextureSampler,TextureValue);
-		SetShaderValue(GetPixelShader(),ColorWeights,ColorWeightsValue);
+		SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,TextureValue);
+		SetShaderValue(RHICmdList, GetPixelShader(),ColorWeights,ColorWeightsValue);
 		FVector4 PackedParametersValue(GammaValue, MipLevel, bIsNormalMap ? 1.0 : -1.0f, 0.0f);
-		SetShaderValue(GetPixelShader(), PackedParameters, PackedParametersValue);
+		SetShaderValue(RHICmdList, GetPixelShader(), PackedParameters, PackedParametersValue);
 
-		SetShaderValue(GetPixelShader(),TextureComponentReplicate,TextureValue->bGreyScaleFormat ? FLinearColor(1,0,0,0) : FLinearColor(0,0,0,0));
-		SetShaderValue(GetPixelShader(),TextureComponentReplicateAlpha,TextureValue->bGreyScaleFormat ? FLinearColor(1,0,0,0) : FLinearColor(0,0,0,1));
+		SetShaderValue(RHICmdList, GetPixelShader(),TextureComponentReplicate,TextureValue->bGreyScaleFormat ? FLinearColor(1,0,0,0) : FLinearColor(0,0,0,0));
+		SetShaderValue(RHICmdList, GetPixelShader(),TextureComponentReplicateAlpha,TextureValue->bGreyScaleFormat ? FLinearColor(1,0,0,0) : FLinearColor(0,0,0,1));
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -75,6 +77,7 @@ IMPLEMENT_SHADER_TYPE(,FSimpleElementTexture2DPreviewPS,TEXT("SimpleElementTextu
 
 /** Binds vertex and pixel shaders for this element */
 void FBatchedElementTexture2DPreviewParameters::BindShaders_RenderThread(
+	FRHICommandList* RHICmdList, 
 	const FMatrix& InTransform,
 	const float InGamma,
 	const FMatrix& ColorWeights,
@@ -82,12 +85,13 @@ void FBatchedElementTexture2DPreviewParameters::BindShaders_RenderThread(
 {
 	TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FSimpleElementTexture2DPreviewPS> PixelShader(GetGlobalShaderMap());
+	check(!RHICmdList);
 
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(BoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetParameters(InTransform);
-	PixelShader->SetParameters(Texture, ColorWeights, InGamma, MipLevel, bIsNormalMap);
+	VertexShader->SetParameters(RHICmdList, InTransform);
+	PixelShader->SetParameters(RHICmdList, Texture, ColorWeights, InGamma, MipLevel, bIsNormalMap);
 
 	if( bIsSingleChannelFormat )
 	{

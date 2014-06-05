@@ -45,16 +45,17 @@ public:
 	}
 
 	void SetParameters(		
+		FRHICommandList* RHICmdList, 
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FSceneView& View
 		)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
 	{
-		FMeshMaterialShader::SetMesh(GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 };
 
@@ -158,13 +159,14 @@ public:
 	}
 	TLightMapDensityPS() {}
 
-	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
+	void SetParameters(FRHICommandList* RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, ESceneRenderTargetsMode::SetTextures);
 
 		if (GridTexture.IsBound())
 		{
 			SetTextureParameter(
+				RHICmdList, 
 				GetPixelShader(),
 				GridTexture,
 				GridTextureSampler,
@@ -173,9 +175,9 @@ public:
 		}
 	}
 
-	void SetMesh(const FVertexFactory* VertexFactory,const FPrimitiveSceneProxy* PrimitiveSceneProxy,const FMeshBatchElement& BatchElement,const FSceneView& View,bool bBackFace,FVector& InBuiltLightingAndSelectedFlags,FVector2D& InLightMapResolutionScale, bool bTextureMapped)
+	void SetMesh(FRHICommandList* RHICmdList, const FVertexFactory* VertexFactory,const FPrimitiveSceneProxy* PrimitiveSceneProxy,const FMeshBatchElement& BatchElement,const FSceneView& View,bool bBackFace,FVector& InBuiltLightingAndSelectedFlags,FVector2D& InLightMapResolutionScale, bool bTextureMapped)
 	{
-		FMeshMaterialShader::SetMesh(GetPixelShader(),VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 
 		if (LightMapDensity.IsBound())
 		{
@@ -184,11 +186,11 @@ public:
 				GEngine->MinLightMapDensity * GEngine->MinLightMapDensity,
 				GEngine->IdealLightMapDensity * GEngine->IdealLightMapDensity,
 				GEngine->MaxLightMapDensity * GEngine->MaxLightMapDensity );
-			SetShaderValue(GetPixelShader(),LightMapDensity,DensityParameters,0);
+			SetShaderValue(RHICmdList, GetPixelShader(),LightMapDensity,DensityParameters,0);
 		}
-		SetShaderValue(GetPixelShader(),BuiltLightingAndSelectedFlags,InBuiltLightingAndSelectedFlags,0);
-		SetShaderValue(GetPixelShader(),DensitySelectedColor,GEngine->LightMapDensitySelectedColor,0);
-		SetShaderValue(GetPixelShader(),LightMapResolutionScale,InLightMapResolutionScale,0);
+		SetShaderValue(RHICmdList, GetPixelShader(),BuiltLightingAndSelectedFlags,InBuiltLightingAndSelectedFlags,0);
+		SetShaderValue(RHICmdList, GetPixelShader(),DensitySelectedColor,GEngine->LightMapDensitySelectedColor,0);
+		SetShaderValue(RHICmdList, GetPixelShader(),LightMapResolutionScale,InLightMapResolutionScale,0);
 		if (LightMapDensityDisplayOptions.IsBound())
 		{
 			FVector4 OptionsParameter(
@@ -197,9 +199,9 @@ public:
 				(bTextureMapped == true) ? 1.0f : 0.0f,
 				(bTextureMapped == false) ? 1.0f : 0.0f
 				);
-			SetShaderValue(GetPixelShader(),LightMapDensityDisplayOptions,OptionsParameter,0);
+			SetShaderValue(RHICmdList, GetPixelShader(),LightMapDensityDisplayOptions,OptionsParameter,0);
 		}
-		SetShaderValue(GetPixelShader(),VertexMappedColor,GEngine->LightMapDensityVertexMappedColor,0);
+		SetShaderValue(RHICmdList, GetPixelShader(),VertexMappedColor,GEngine->LightMapDensityVertexMappedColor,0);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -294,28 +296,31 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void DrawShared( const FSceneView* View, FBoundShaderStateRHIRef ShaderState ) const
+	void DrawShared(FRHICommandList* RHICmdList, const FSceneView* View, FBoundShaderStateRHIRef ShaderState ) const
 	{
+		check(!RHICmdList);
+
 		// Set the actual shader & vertex declaration state
 		RHISetBoundShaderState(ShaderState);
 
 		// Set the base pass shader parameters for the material.
-		VertexShader->SetParameters(MaterialRenderProxy,*View);
-		PixelShader->SetParameters(MaterialRenderProxy,View);
+		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,View);
 
 		if(HullShader && DomainShader)
 		{
-			HullShader->SetParameters(MaterialRenderProxy,*View);
-			DomainShader->SetParameters(MaterialRenderProxy,*View);
+			HullShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
+			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 		}
 
 		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 		// Set the light-map policy.
-		LightMapPolicy.Set(VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
+		LightMapPolicy.Set(RHICmdList, VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
 	}
 
 	void SetMeshRenderState(
+		FRHICommandList* RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -326,16 +331,16 @@ public:
 	{
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-		VertexShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 
 		if(HullShader && DomainShader)
 		{
-			HullShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-			DomainShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+			HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+			DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
 		}
 
 		// Set the light-map policy's mesh-specific settings.
-		LightMapPolicy.SetMesh(View,PrimitiveSceneProxy,VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,ElementData.LightMapElementData);
+		LightMapPolicy.SetMesh(RHICmdList, View,PrimitiveSceneProxy,VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,ElementData.LightMapElementData);
 
 		// BuiltLightingAndSelectedFlags informs the shader is lighting is built or not for this primitive
 		FVector BuiltLightingAndSelectedFlags(0.0f,0.0f,0.0f);
@@ -387,8 +392,8 @@ public:
 
 		// Adjust for the grid texture being 2x2 repeating pattern...
 		LMResolutionScale *= 0.5f;
-		PixelShader->SetMesh(VertexFactory,PrimitiveSceneProxy, BatchElement, View, bBackFace, BuiltLightingAndSelectedFlags, LMResolutionScale, bTextureMapped);	
-		FMeshDrawingPolicy::SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
+		PixelShader->SetMesh(RHICmdList, VertexFactory,PrimitiveSceneProxy, BatchElement, View, bBackFace, BuiltLightingAndSelectedFlags, LMResolutionScale, bTextureMapped);	
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
 	}
 
 	/** 
@@ -442,6 +447,7 @@ public:
 	struct ContextType {};
 
 	static bool DrawDynamicMesh(
+		FRHICommandList* RHICmdList, 
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,

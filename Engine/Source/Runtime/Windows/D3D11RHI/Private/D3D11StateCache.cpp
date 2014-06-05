@@ -32,7 +32,7 @@ static FD3D11ToggleStateCacheExecHelper GD3D11ToggleStateCacheExecHelper;
 
 #endif	// D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_RUNTIME_TOGGLE
 
-#if D3D11_STATE_CACHE_DEBUG && DO_CHECK
+#if D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG && DO_CHECK
 
 template <EShaderFrequency ShaderFrequency>
 void FD3D11StateCacheBase::VerifySamplerStates()
@@ -284,7 +284,7 @@ void FD3D11StateCacheBase::VerifyCacheState()
 		VerifyShaderResourceViews<SF_Compute>();
 	}
 }
-#endif	// D3D11_STATE_CACHE_DEBUG && DO_CHECK
+#endif	// D3D11_ALLOW_STATE_CACHE && D3D11_STATE_CACHE_DEBUG && DO_CHECK
 
 void FD3D11StateCacheBase::ClearState()
 {

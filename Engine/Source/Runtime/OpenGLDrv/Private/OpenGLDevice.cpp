@@ -65,10 +65,11 @@ void OnPixelBufferDeletion( GLuint PixelBufferResource )
 	PrivateOpenGLDevicePtr->OnPixelBufferDeletion( PixelBufferResource );
 }
 
-void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 Offset, uint8* Pointer )
+//gilmerge lose more of these args?
+void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 , uint8*  )
 {
 	check(PrivateOpenGLDevicePtr);
-	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw, Offset, Pointer );
+	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw );
 }
 
 void CachedBindArrayBuffer( GLuint Buffer )
@@ -145,10 +146,24 @@ void FOpenGLDynamicRHI::RHIEndFrame()
 
 void FOpenGLDynamicRHI::RHIBeginScene()
 {
+	// Increment the frame counter. INDEX_NONE is a special value meaning "uninitialized", so if
+	// we hit it just wrap around to zero.
+	SceneFrameCounter++;
+	if (SceneFrameCounter == INDEX_NONE)
+	{
+		SceneFrameCounter++;
+	}
+
+	static auto* ResourceTableCachingCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("rhi.ResourceTableCaching"));
+	if (ResourceTableCachingCvar == NULL || ResourceTableCachingCvar->GetValueOnAnyThread() == 1)
+	{
+		ResourceTableFrameCounter = SceneFrameCounter;
+	}
 }
 
 void FOpenGLDynamicRHI::RHIEndScene()
 {
+	ResourceTableFrameCounter = INDEX_NONE;
 }
 
 bool GDisableOpenGLDebugOutput = false;
@@ -787,7 +802,9 @@ static void InitRHICapabilitiesForGL()
 }
 
 FOpenGLDynamicRHI::FOpenGLDynamicRHI()
-:	bRevertToSharedContextAfterDrawingViewport(false)
+:	SceneFrameCounter(0)
+,	ResourceTableFrameCounter(INDEX_NONE)
+,	bRevertToSharedContextAfterDrawingViewport(false)
 ,	bIsRenderingContextAcquired(false)
 ,	PlatformDevice(NULL)
 ,	GPUProfilingData(this)

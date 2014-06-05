@@ -28,6 +28,7 @@ extern float GMinScreenRadiusForLights;
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
+	FRHICommandList* RHICmdList, 
 	const ShaderRHIParamRef ShaderRHI, 
 	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
 	const FLightSceneInfo* LightSceneInfo,
@@ -90,11 +91,12 @@ void SetDeferredLightParameters(
 		DeferredLightUniformsValue.LightColor *= Fade;
 	}
 
-	SetUniformBufferParameterImmediate(ShaderRHI,DeferredLightUniformBufferParameter,DeferredLightUniformsValue);
+	SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI,DeferredLightUniformBufferParameter,DeferredLightUniformsValue);
 }
 
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(
+	FRHICommandList* RHICmdList, 
 	const ShaderRHIParamRef ShaderRHI, 
 	const TShaderUniformBufferParameter<FDeferredLightUniformStruct>& DeferredLightUniformBufferParameter, 
 	const FSimpleLightEntry& SimpleLight,
@@ -114,7 +116,7 @@ void SetSimpleDeferredLightParameters(
 	DeferredLightUniformsValue.SourceRadius = 0;
 	DeferredLightUniformsValue.SourceLength = 0;
 
-	SetUniformBufferParameterImmediate(ShaderRHI, DeferredLightUniformBufferParameter, DeferredLightUniformsValue);
+	SetUniformBufferParameterImmediate(RHICmdList, ShaderRHI, DeferredLightUniformBufferParameter, DeferredLightUniformsValue);
 }
 
 /** Shader parameters needed to render a light function. */
@@ -128,13 +130,14 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(const ShaderRHIParamRef ShaderRHI, const FLightSceneInfo* LightSceneInfo, float ShadowFadeFraction) const
+	void Set(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI, const FLightSceneInfo* LightSceneInfo, float ShadowFadeFraction) const
 	{
 		const bool bIsSpotLight = LightSceneInfo->Proxy->GetLightType() == LightType_Spot;
 		const bool bIsPointLight = LightSceneInfo->Proxy->GetLightType() == LightType_Point;
 		const float TanOuterAngle = bIsSpotLight ? FMath::Tan(LightSceneInfo->Proxy->GetOuterConeAngle()) : 1.0f;
 
 		SetShaderValue( 
+			RHICmdList, 
 			ShaderRHI, 
 			LightFunctionParameters, 
 			FVector4(TanOuterAngle, ShadowFadeFraction, bIsSpotLight ? 1.0f : 0.0f, bIsPointLight ? 1.0f : 0.0f));
@@ -171,19 +174,19 @@ public:
 		StencilingGeometryParameters.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
+	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
-		StencilingGeometryParameters.Set(this, View, LightSceneInfo);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
+		StencilingGeometryParameters.Set(RHICmdList, this, View, LightSceneInfo);
 	}
 
-	void SetSimpleLightParameters(const FViewInfo& View, const FSphere& LightBounds)
+	void SetSimpleLightParameters(FRHICommandList* RHICmdList, const FViewInfo& View, const FSphere& LightBounds)
 	{
-		FGlobalShader::SetParameters(GetVertexShader(),View);
+		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 
 		FVector4 StencilingSpherePosAndScale;
 		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.PreViewTranslation);
-		StencilingGeometryParameters.Set(this, StencilingSpherePosAndScale);
+		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
 	// Begin FShader Interface
