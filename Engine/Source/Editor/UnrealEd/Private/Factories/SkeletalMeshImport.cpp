@@ -201,7 +201,7 @@ bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalD
 	{
 		const VBone & BinaryBone = RefBonesBinary[ b ];
 		const FString BoneName = FSkeletalMeshImportData::FixupBoneName( BinaryBone.Name );
-		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add, true), BinaryBone.ParentIndex);
+		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add, true), BinaryBone.Name, BinaryBone.ParentIndex);
 		const FTransform BoneTransform(BinaryBone.BonePos.Transform);
 
 		if(RefSkeleton.FindBoneIndex(BoneInfo.Name) != INDEX_NONE)

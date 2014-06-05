@@ -162,7 +162,7 @@ void USkeleton::ConvertToFReferenceSkeleton()
 	for(int32 BoneIndex=0; BoneIndex<NumRefBones; BoneIndex++)
 	{
 		const FBoneNode & BoneNode = BoneTree[BoneIndex];
-		FMeshBoneInfo BoneInfo(BoneNode.Name_DEPRECATED, BoneNode.ParentIndex_DEPRECATED);
+		FMeshBoneInfo BoneInfo(BoneNode.Name_DEPRECATED, BoneNode.Name_DEPRECATED.ToString(), BoneNode.ParentIndex_DEPRECATED);
 		const FTransform & BoneTransform = RefLocalPoses_DEPRECATED[BoneIndex];
 
 		// All should be good. Parents before children, no duplicate bones?
