@@ -7,19 +7,13 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FUdpMessageTunnelConnection.
- */
+/** Type definition for shared pointers to instances of FUdpMessageTunnelConnection. */
 typedef TSharedPtr<class FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionPtr;
 
-/**
- * Type definition for shared references to instances of FUdpMessageTunnelConnection.
- */
+/** Type definition for shared references to instances of FUdpMessageTunnelConnection. */
 typedef TSharedRef<class FUdpMessageTunnelConnection> FUdpMessageTunnelConnectionRef;
 
-/**
- * Type definition for thread-safe shared references to byte arrays.
- */
+/** Type definition for thread-safe shared references to byte arrays. */
 typedef TSharedRef<TArray<uint8>, ESPMode::ThreadSafe> FSaveByteArrayRef;
 
 
@@ -83,7 +77,6 @@ public:
 	 * Receives a payload from the connection's inbox.
 	 *
 	 * @param OutPayload Will hold the received payload, if any.
-	 *
 	 * @return true if a payload was returned, false otherwise.
 	 */
 	bool Receive( FArrayReaderPtr& OutPayload )

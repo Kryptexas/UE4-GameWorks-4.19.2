@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IUdpMessageTunnel.
- */
+/** Type definition for shared pointers to instances of IUdpMessageTunnel. */
 typedef TSharedPtr<class IUdpMessageTunnel> IUdpMessageTunnelPtr;
 
-/**
- * Type definition for shared references to instances of IUdpMessageTunnel.
- */
+/** Type definition for shared references to instances of IUdpMessageTunnel. */
 typedef TSharedRef<class IUdpMessageTunnel> IUdpMessageTunnelRef;
 
 
@@ -29,9 +25,7 @@ public:
 	 * Establishes a tunnel with a remote server.
 	 *
 	 * @param RemoteEndpoint The endpoint of the server to connect to.
-	 *
 	 * @return true if the connection has been established, false otherwise.
-	 *
 	 * @see GetConnections
 	 */
 	virtual bool Connect( const FIPv4Endpoint& RemoteEndpoint ) = 0;
@@ -40,17 +34,14 @@ public:
 	 * Starts the tunnel server.
 	 *
 	 * @param LocalEndpoint The IP endpoint to listen for incoming connections on.
-	 *
-	 * @see IsServerRunning
-	 * @see StopServer
+	 * @see IsServerRunning, StopServer
 	 */
 	virtual void StartServer( const FIPv4Endpoint& LocalEndpoint ) = 0;
 
 	/**
 	 * Stops the tunnel server.
 	 *
-	 * @see IsServerRunning
-	 * @see StartServer
+	 * @see IsServerRunning, StartServer
 	 */
 	virtual void StopServer( ) = 0;
 
@@ -60,9 +51,7 @@ public:
 	 * Gets the list of all open tunnel connections.
 	 *
 	 * @param OutConnections Will hold the list of connections.
-	 *
 	 * @return The number of connections returned.
-	 *
 	 * @see Connect
 	 */
 	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) = 0;
@@ -85,9 +74,7 @@ public:
 	 * Checks whether the tunnel server is running.
 	 *
 	 * @return true if the tunnel server is running, false otherwise.
-	 *
-	 * @see StartServer
-	 * @see StopServer
+	 * @see StartServer, StopServer
 	 */
 	virtual bool IsServerRunning( ) const = 0;
 

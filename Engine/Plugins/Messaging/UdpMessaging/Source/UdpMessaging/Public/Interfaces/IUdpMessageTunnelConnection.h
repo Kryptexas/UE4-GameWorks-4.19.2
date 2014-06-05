@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of IUdpMessageTunnelConnection.
- */
+/** Type definition for shared pointers to instances of IUdpMessageTunnelConnection. */
 typedef TSharedPtr<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionPtr;
 
-/**
- * Type definition for shared references to instances of IUdpMessageTunnelConnection.
- */
+/** Type definition for shared references to instances of IUdpMessageTunnelConnection. */
 typedef TSharedRef<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionRef;
 
 

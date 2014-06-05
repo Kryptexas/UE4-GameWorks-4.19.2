@@ -7,6 +7,13 @@
 #pragma once
 
 
+/** Type definition for shared pointers to instances of FUdpMessage. */
+typedef TSharedPtr<class FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessagePtr;
+
+/** Type definition for shared references to instances of FUdpMessage. */
+typedef TSharedRef<class FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessageRef;
+
+
 /**
  * Implements a reassembled message.
  */
@@ -17,7 +24,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FReassembledUdpMessage() { }
+	FReassembledUdpMessage( ) { }
 
 	/**
 	 * Creates and initializes a new inbound message info.
@@ -27,7 +34,7 @@ public:
 	 * @param InSequence The message sequence number.
 	 * @param InSender The IPv4 endpoint of the sender.
 	 */
-	FReassembledUdpMessage(int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender)
+	FReassembledUdpMessage( int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender )
 		: PendingSegments(true, SegmentCount)
 		, PendingSegmentsCount(SegmentCount)
 		, ReceivedBytes(0)
@@ -49,7 +56,7 @@ public:
 	 *
 	 * @return Last receive time.
 	 */
-	FDateTime GetLastSegmentTime() const
+	FDateTime GetLastSegmentTime( ) const
 	{
 		return LastSegmentTime;
 	}
@@ -59,7 +66,7 @@ public:
 	 *
 	 * @return List of pending segment numbers.
 	 */
-	TArray<uint16> GetPendingSegments() const
+	TArray<uint16> GetPendingSegments( ) const
 	{
 		TArray<uint16> Result;
 
@@ -79,7 +86,7 @@ public:
 	 *
 	 * @return Number of pending segments.
 	 */
-	uint16 GetPendingSegmentsCount() const
+	uint16 GetPendingSegmentsCount( ) const
 	{
 		return PendingSegmentsCount;
 	}
@@ -89,7 +96,7 @@ public:
 	 *
 	 * @return Number of retransmit requests.
 	 */
-	int32 GetRetransmitRequestsCount() const
+	int32 GetRetransmitRequestsCount( ) const
 	{
 		return RetransmitRequestsCount;
 	}
@@ -99,7 +106,7 @@ public:
 	 *
 	 * @return true if the message is complete, false otherwise.
 	 */
-	bool IsComplete() const
+	bool IsComplete( ) const
 	{
 		return (PendingSegmentsCount == 0);
 	}
@@ -109,7 +116,7 @@ public:
 	 *
 	 * @return true if the message is initialized, false otherwise.
 	 */
-	bool IsInitialized() const
+	bool IsInitialized( ) const
 	{
 		return (Data.Num() < 0);
 	}
@@ -122,7 +129,7 @@ public:
 	 * @param SegmentData The segment data.
 	 * @param CurrentTime The current time.
 	 */
-	void Reassemble(int32 SegmentNumber, int32 SegmentOffset, const TArray<uint8>& SegmentData, const FDateTime& CurrentTime)
+	void Reassemble( int32 SegmentNumber, int32 SegmentOffset, const TArray<uint8>& SegmentData, const FDateTime& CurrentTime )
 	{
 		if (SegmentNumber >= PendingSegments.Num())
 		{
@@ -153,7 +160,7 @@ public:
 	 *
 	 * @return Message data.
 	 */
-	virtual const TArray<uint8>& GetData() const
+	virtual const TArray<uint8>& GetData( ) const
 	{
 		return Data;
 	}
@@ -163,7 +170,7 @@ public:
 	 *
 	 * @return Sequence number.
 	 */
-	uint64 GetSequence() const
+	uint64 GetSequence( ) const
 	{
 		return Sequence;
 	}
@@ -194,14 +201,3 @@ private:
 	// Holds the message sequence.
 	uint64 Sequence;
 };
-
-
-/**
- * Type definition for shared pointers to instances of FUdpMessage.
- */
-typedef TSharedPtr<FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessagePtr;
-
-/**
- * Type definition for shared references to instances of FUdpMessage.
- */
-typedef TSharedRef<FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessageRef;

@@ -118,7 +118,6 @@ public:
 	 *
 	 * @param Data The segment data.
 	 * @param Sender The sender's network endpoint.
-	 *
 	 * @return true if the segment was queued up, false otherwise.
 	 */
 	bool EnqueueInboundSegment( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );
@@ -128,7 +127,6 @@ public:
 	 *
 	 * @param Data The message data to send.
 	 * @param Recipient The recipient's IPv4 endpoint.
-	 *
 	 * @return true if the message was queued up, false otherwise.
 	 */
 	bool EnqueueOutboundMessage( const IMessageDataRef& Data, const FGuid& Recipient );
@@ -209,7 +207,6 @@ protected:
 	 * @param Header The segment header.
 	 * @param Data The segment data.
 	 * @param Sender The segment sender.
-	 *
 	 * @return true if the segment passed the filter, false otherwise.
 	 */
 	bool FilterSegment( const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );

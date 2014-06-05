@@ -24,12 +24,12 @@ public:
 	 * @param InSocketId The network socket identifier (used to detect unicast endpoint).
 	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
-	FUdpMessageBeacon(FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint);
+	FUdpMessageBeacon( FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint );
 
 	/**
 	 * Destructor.
 	 */
-	virtual ~FUdpMessageBeacon();
+	virtual ~FUdpMessageBeacon( );
 
 public:
 
@@ -38,7 +38,7 @@ public:
 	 *
 	 * @return Beacon interval.
 	 */
-	FTimespan GetBeaconInterval()
+	FTimespan GetBeaconInterval( )
 	{
 		return BeaconInterval;
 	}
@@ -48,19 +48,19 @@ public:
 	 *
 	 * @param EndpointCount The current number of known endpoints.
 	 */
-	void SetEndpointCount(int32 EndpointCount);
+	void SetEndpointCount( int32 EndpointCount );
 
 public:
 
 	// Begin FRunnable interface
 
-	virtual bool Init() OVERRIDE;
+	virtual bool Init( ) OVERRIDE;
 
-	virtual uint32 Run() OVERRIDE;
+	virtual uint32 Run( ) OVERRIDE;
 
-	virtual void Stop() OVERRIDE;
+	virtual void Stop( ) OVERRIDE;
 
-	virtual void Exit() OVERRIDE { }
+	virtual void Exit( ) OVERRIDE { }
 	
 	// End FRunnable interface
 
@@ -71,7 +71,7 @@ protected:
 	 *
 	 * @param SegmentType The type of segment to send (Hello or Bye).
 	 */
-	void SendSegment(EUdpMessageSegments::Type SegmentType);
+	void SendSegment( EUdpMessageSegments::Type SegmentType );
 
 private:
 
