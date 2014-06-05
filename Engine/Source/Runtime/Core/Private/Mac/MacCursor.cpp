@@ -248,6 +248,9 @@ bool FMacCursor::UpdateCursorClipping( FVector2D& CursorPosition )
 
 void FMacCursor::UpdateVisibility()
 {
+	// @TODO: Remove usage of deprecated CGCursorIsVisible function
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 	if (CurrentCursor && bIsVisible)
 	{
 		// Enable the cursor.
@@ -264,6 +267,7 @@ void FMacCursor::UpdateVisibility()
 			CGDisplayHideCursor(kCGDirectMainDisplay);
 		}
 	}
+#pragma clang diagnostic pop
 }
 
 void FMacCursor::WarpCursor( const int32 X, const int32 Y )

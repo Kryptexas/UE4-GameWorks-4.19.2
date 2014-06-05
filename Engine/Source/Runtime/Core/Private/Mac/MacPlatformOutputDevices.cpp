@@ -127,10 +127,14 @@ void FOutputDeviceMacError::HandleError()
 		GLog->Flush();
 
 		// Unhide the mouse.
+		// @TODO: Remove usage of deprecated CGCursorIsVisible function
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		while (!CGCursorIsVisible())
 		{
 			CGDisplayShowCursor(kCGDirectMainDisplay);
 		}
+#pragma clang diagnostic pop
 		// Release capture and allow mouse to freely roam around.
 		CGAssociateMouseAndMouseCursorPosition(true);
 
