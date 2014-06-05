@@ -339,7 +339,7 @@ void SGraphEditorImpl::Tick( const FGeometry& AllottedGeometry, const double InC
 	// If locked to another graph editor, and our panel has moved, synchronise the locked graph editor accordingly
 	if ((EdGraphObj != NULL) && GraphPanel.IsValid())
 	{
-		if(GraphPanel->HasMoved() && LockedGraph.IsValid())
+		if(GraphPanel->HasMoved() && IsLocked())
 		{
 			FocusLockedEditorHere();
 		}
@@ -509,6 +509,18 @@ bool SGraphEditorImpl::IsGraphEditable() const
 	return (EdGraphObj != NULL) && IsEditable.Get();
 }
 
+bool SGraphEditorImpl::IsLocked() const
+{
+	for( auto LockedGraph : LockedGraphs )
+	{
+		if( LockedGraph.IsValid() )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 TSharedPtr<SWidget> SGraphEditorImpl::GetTitleBar() const
 {
 	return TitleBar;
@@ -516,7 +528,7 @@ TSharedPtr<SWidget> SGraphEditorImpl::GetTitleBar() const
 
 void SGraphEditorImpl::SetViewLocation( const FVector2D& Location, float ZoomAmount ) 
 {
-	if( GraphPanel.IsValid() &&  EdGraphObj && (!LockedGraph.IsValid() || !GraphPanel->HasDeferredObjectFocus()))
+	if( GraphPanel.IsValid() &&  EdGraphObj && (!IsLocked() || !GraphPanel->HasDeferredObjectFocus()))
 	{
 		GraphPanel->RestoreViewSettings(Location, ZoomAmount);
 	}
@@ -524,7 +536,7 @@ void SGraphEditorImpl::SetViewLocation( const FVector2D& Location, float ZoomAmo
 
 void SGraphEditorImpl::GetViewLocation( FVector2D& Location, float& ZoomAmount ) 
 {
-	if( GraphPanel.IsValid() &&  EdGraphObj && (!LockedGraph.IsValid() || !GraphPanel->HasDeferredObjectFocus()))
+	if( GraphPanel.IsValid() &&  EdGraphObj && (!IsLocked() || !GraphPanel->HasDeferredObjectFocus()))
 	{
 		Location = GraphPanel->GetViewOffset();
 		ZoomAmount = GraphPanel->GetZoomAmount();
@@ -533,11 +545,24 @@ void SGraphEditorImpl::GetViewLocation( FVector2D& Location, float& ZoomAmount )
 
 void SGraphEditorImpl::LockToGraphEditor( TWeakPtr<SGraphEditor> Other ) 
 {
-	LockedGraph = Other;
+	if( !LockedGraphs.Contains(Other) )
+	{
+		LockedGraphs.Push(Other);
+	}
 
 	if (GraphPanel.IsValid())
 	{
 		FocusLockedEditorHere();
+	}
+}
+
+void SGraphEditorImpl::UnlockFromGraphEditor( TWeakPtr<SGraphEditor> Other )
+{
+	check(Other.IsValid());
+	int idx = LockedGraphs.Find(Other);
+	if( ensureMsgf(idx != INDEX_NONE, TEXT("Attempted to unlock graphs that were not locked together: %s %s"), *GetReadableLocation(), *(Other.Pin()->GetReadableLocation()) ) )
+	{
+		LockedGraphs.RemoveAtSwap(idx);
 	}
 }
 
@@ -555,9 +580,17 @@ void SGraphEditorImpl::AddNotification( FNotificationInfo& Info, bool bSuccess )
 
 void SGraphEditorImpl::FocusLockedEditorHere()
 {
-	if(SGraphEditor* Editor = LockedGraph.Pin().Get())
+	for( int i = 0; i < LockedGraphs.Num(); ++i )
 	{
-		Editor->SetViewLocation(GraphPanel->GetViewOffset(), GraphPanel->GetZoomAmount());	
+		TSharedPtr<SGraphEditor> LockedGraph = LockedGraphs[i].Pin();
+		if (LockedGraph != TSharedPtr<SGraphEditor>())
+		{
+			LockedGraph->SetViewLocation(GraphPanel->GetViewOffset(), GraphPanel->GetZoomAmount());
+		}
+		else
+		{
+			LockedGraphs.RemoveAtSwap(i--);
+		}
 	}
 }
 

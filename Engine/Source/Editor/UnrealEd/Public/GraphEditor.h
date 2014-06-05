@@ -195,6 +195,15 @@ public:
 		}
 	}
 
+	/* Unlock two graph editors from each other */
+	virtual void UnlockFromGraphEditor(TWeakPtr<SGraphEditor> Other)
+	{
+		if (Implementation.IsValid())
+		{
+			Implementation->UnlockFromGraphEditor(Other);
+		}
+	}
+
 	/** Bring the specified node into view */
 	virtual void JumpToNode( const class UEdGraphNode* JumpToMe, bool bRequestRename )
 	{

@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
-#include "UnrealEd.h"
 #include "BlueprintUtilities.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "BlueprintEditorCommands.h"
 #include "BlueprintEditor.h"
 #include "SBlueprintDiff.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "AssetRegistryModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "GraphEditor.h"
 #include "SGraphTitleBar.h"
 #include "GraphDiffControl.h"
@@ -648,8 +643,8 @@ void SBlueprintDiff::ResetGraphEditors()
 		}
 		else
 		{
-			PanelOld.GraphEditor.Pin()->LockToGraphEditor(TWeakPtr<SGraphEditor>());
-			PanelNew.GraphEditor.Pin()->LockToGraphEditor(TWeakPtr<SGraphEditor>());
+			PanelOld.GraphEditor.Pin()->UnlockFromGraphEditor(PanelNew.GraphEditor);
+			PanelNew.GraphEditor.Pin()->UnlockFromGraphEditor(PanelOld.GraphEditor);
 		}	
 	}
 }

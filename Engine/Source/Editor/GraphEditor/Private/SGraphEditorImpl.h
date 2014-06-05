@@ -67,7 +67,7 @@ private:
 	bool bShowPIENotification;
 
 	//FOnViewChanged	OnViewChanged;
-	TWeakPtr<SGraphEditor> LockedGraph;
+	TArray< TWeakPtr<SGraphEditor> > LockedGraphs;
 
 	/** Function to check whether PIE is active to display "Simulating" text in graph panel*/
 	EVisibility PIENotification( ) const;
@@ -125,6 +125,7 @@ public:
 	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount) OVERRIDE;
 	virtual void GetViewLocation(FVector2D& Location, float& ZoomAmount) OVERRIDE;
 	virtual void LockToGraphEditor(TWeakPtr<SGraphEditor> Other) OVERRIDE;
+	virtual void UnlockFromGraphEditor(TWeakPtr<SGraphEditor> Other) OVERRIDE;
 	virtual void AddNotification ( FNotificationInfo& Info, bool bSuccess ) OVERRIDE;
 	virtual void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) OVERRIDE;
 	// End of SGraphEditor interface
@@ -149,5 +150,7 @@ private:
 	FSlateColor GetZoomTextColorAndOpacity() const;
 
 	bool IsGraphEditable() const;
+
+	bool IsLocked() const;
 };
 
