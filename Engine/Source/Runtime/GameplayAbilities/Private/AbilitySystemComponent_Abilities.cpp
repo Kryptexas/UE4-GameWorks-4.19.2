@@ -106,14 +106,14 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 
 	struct local
 	{
-		static void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility * Ignore)
+		static void CancelAbilitiesWithTags(const FGameplayTagContainer InTags, TArray<UGameplayAbility*> Abilities, const FGameplayAbilityActorInfo* InActorInfo, const FGameplayAbilityActivationInfo InActivationInfo, UGameplayAbility* InIgnore)
 		{
 			for (int32 idx=0; idx < Abilities.Num(); ++idx)
 			{
 				UGameplayAbility *Ability = Abilities[idx];
-				if (Ability && (Ability != Ignore) && Ability->AbilityTags.MatchesAny(Tags, false))
+				if (Ability && (Ability != InIgnore) && Ability->AbilityTags.MatchesAny(InTags, false))
 				{
-					Ability->CancelAbility(ActorInfo, ActivationInfo);
+					Ability->CancelAbility(InActorInfo, InActivationInfo);
 					if (!Ability->HasAnyFlags(RF_ClassDefaultObject) && Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 					{
 						Ability->MarkPendingKill();

@@ -3722,17 +3722,16 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 	for(int32 AssetIdx=0; AssetIdx < SkeletalMesh->ClothingAssets.Num(); AssetIdx++)
 	{
 		TArray<FApexClothCollisionVolumeData>& Collisions = SkeletalMesh->ClothingAssets[AssetIdx].ClothCollisionVolumes;
-		int32 NumCollisions = Collisions.Num();
 		int32 SphereCount = 0;
 
-		for(int32 i=0; i<NumCollisions; i++)
+		for (const FApexClothCollisionVolumeData& Collision : Collisions)
 		{
-			if(Collisions[i].BoneIndex < 0)
+			if(Collision.BoneIndex < 0)
 			{
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collisions[i].BoneIndex);
+			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
 			
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3743,9 +3742,9 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 			FMatrix BoneMat = GetBoneMatrix(BoneIndex);
 
-			FMatrix LocalToWorld = Collisions[i].LocalPose * BoneMat;
+			FMatrix LocalToWorld = Collision.LocalPose * BoneMat;
 
-			if(Collisions[i].IsCapsule())
+			if(Collision.IsCapsule())
 			{
 				FColor CapsuleColor = Colors[AssetIdx % 3];
 				if (SphereCount >= MaxSphereCollisions)
@@ -3753,23 +3752,23 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 					CapsuleColor = GrayColor; // Draw in gray to show that these collisions are ignored
 				}
 
-				const int32 CapsuleSides = FMath::Clamp<int32>(Collisions[i].CapsuleRadius/4.f, 16, 64);
-				float CapsuleHalfHeight = (Collisions[i].CapsuleHeight*0.5f+Collisions[i].CapsuleRadius);
-				float CapsuleRadius = Collisions[i].CapsuleRadius*2.f;
+				const int32 CapsuleSides = FMath::Clamp<int32>(Collision.CapsuleRadius/4.f, 16, 64);
+				float CapsuleHalfHeight = (Collision.CapsuleHeight*0.5f+Collision.CapsuleRadius);
+				float CapsuleRadius = Collision.CapsuleRadius*2.f;
 				// swapped Y-axis and Z-axis to convert apex coordinate to UE coordinate
-				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collisions[i].CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
+				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collision.CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
 				SphereCount += 2; // 1 capsule takes 2 spheres
 			}
 			else // convex
 			{
-				int32 NumVerts = Collisions[i].BoneVertices.Num();
+				int32 NumVerts = Collision.BoneVertices.Num();
 
 				TArray<FVector> TransformedVerts;
 				TransformedVerts.AddUninitialized(NumVerts);
 
 				for(int32 VertIdx=0; VertIdx < NumVerts; VertIdx++)
 				{
-					TransformedVerts[VertIdx] = BoneMat.TransformPosition(Collisions[i].BoneVertices[VertIdx]);
+					TransformedVerts[VertIdx] = BoneMat.TransformPosition(Collision.BoneVertices[VertIdx]);
 				}
 
 				// just draw all connected wires to check convex shape
@@ -4069,7 +4068,6 @@ void USkeletalMeshComponent::LoadClothingVisualizationInfo(int32 AssetIndex)
 					verify(NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.boneIndices", BoneIndicesCount));
 					check(BoneIndicesCount == BoneWeightsCount);
 
-					NxParameterized::Handle BoneWeightHandle(*PhysicalMeshParams);
 					for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
 					{
 						for(uint8 WeightIndex=0; WeightIndex < MaxBoneWeights; ++WeightIndex)
@@ -4348,7 +4346,6 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 		FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos[PhysicalMeshLOD];
 
 		uint32 NumPhysicalMeshVerts = VisualInfo.ClothPhysicalMeshVertices.Num();
-		const physx::PxVec3* SimulVertices = NULL;
 
 		bool bUseSimulatedResult = false;
 		// skinning for fixed vertices

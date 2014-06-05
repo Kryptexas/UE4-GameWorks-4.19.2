@@ -120,16 +120,18 @@ FText FEnvTraceData::ToText(FEnvTraceData::EDescriptionMode DescMode) const
 		FNumberFormattingOptions NumberFormatOptions;
 		NumberFormatOptions.MaximumFractionalDigits = 2;
 
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("ExtentX"), FText::AsNumber(ExtentX, &NumberFormatOptions));
-		Args.Add(TEXT("ExtentY"), FText::AsNumber(ExtentY, &NumberFormatOptions));
-		Args.Add(TEXT("ExtentZ"), FText::AsNumber(ExtentZ, &NumberFormatOptions));
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ExtentX"), FText::AsNumber(ExtentX, &NumberFormatOptions));
+			Args.Add(TEXT("ExtentY"), FText::AsNumber(ExtentY, &NumberFormatOptions));
+			Args.Add(TEXT("ExtentZ"), FText::AsNumber(ExtentZ, &NumberFormatOptions));
 
-		Desc = (TraceShape == EEnvTraceShape::Line) ? LOCTEXT("Line", "line") :
-			(TraceShape == EEnvTraceShape::Sphere) ? FText::Format(LOCTEXT("SphereWithRadius", "sphere (radius: {ExtentX})"), Args) :
-			(TraceShape == EEnvTraceShape::Capsule) ? FText::Format(LOCTEXT("CasuleWithRadiusHalfHeight", "capsule (radius: {ExtentX}, half height: {ExtentZ})"), Args) :
-			(TraceShape == EEnvTraceShape::Box) ? FText::Format(LOCTEXT("BoxWithExtents", "box (extent: {ExtentX} {ExtentY} {ExtentZ)"), Args) :
-			LOCTEXT("Unknown", "unknown");
+			Desc = (TraceShape == EEnvTraceShape::Line) ? LOCTEXT("Line", "line") :
+				(TraceShape == EEnvTraceShape::Sphere) ? FText::Format(LOCTEXT("SphereWithRadius", "sphere (radius: {ExtentX})"), Args) :
+				(TraceShape == EEnvTraceShape::Capsule) ? FText::Format(LOCTEXT("CasuleWithRadiusHalfHeight", "capsule (radius: {ExtentX}, half height: {ExtentZ})"), Args) :
+				(TraceShape == EEnvTraceShape::Box) ? FText::Format(LOCTEXT("BoxWithExtents", "box (extent: {ExtentX} {ExtentY} {ExtentZ)"), Args) :
+				LOCTEXT("Unknown", "unknown");
+		}
 
 		if (DescMode == FEnvTraceData::Brief)
 		{

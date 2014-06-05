@@ -309,7 +309,7 @@ void FColorVertexBuffer::GetVertexColors( TArray<FColor>& OutColors )
 }
 
 /** Load from raw color array */
-void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint32 Count, const uint32 Stride )
+void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint32 Count, const uint32 InStride )
 {
 	check( Count > 0 );
 
@@ -329,7 +329,7 @@ void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint3
 		{
 			*Dst++ = *(const FColor*)Src;
 
-			Src += Stride;
+			Src += InStride;
 		}
 	}
 

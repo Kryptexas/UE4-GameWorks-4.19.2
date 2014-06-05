@@ -60,9 +60,9 @@ const FPropertyTypeLayoutCallback& FPropertyTypeLayoutCallbackList::Find( const 
 		FPropertyTypeLayoutCallback* Callback =
 			IdentifierList.FindByPredicate
 			(
-				[&]( const FPropertyTypeLayoutCallback& Callback )
+				[&]( const FPropertyTypeLayoutCallback& InCallback )
 				{
-					return Callback.PropertyTypeIdentifier->IsPropertyTypeCustomized( PropertyHandle );
+					return InCallback.PropertyTypeIdentifier->IsPropertyTypeCustomized( PropertyHandle );
 				}
 			);
 

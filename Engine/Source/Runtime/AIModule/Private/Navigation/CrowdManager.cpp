@@ -751,12 +751,14 @@ void UCrowdManager::DestroyCrowdManager()
 
 void UCrowdManager::DrawDebugCorners(const struct dtCrowdAgent* CrowdAgent) const
 {
-	FVector P0 = Recast2UnrealPoint(CrowdAgent->npos);
-	for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
 	{
-		FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
-		DrawDebugLine(GetWorld(), P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, false, -1.0f, SDPG_World, 2.0f);
-		P0 = P1;
+		FVector P0 = Recast2UnrealPoint(CrowdAgent->npos);
+		for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
+		{
+			FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
+			DrawDebugLine(GetWorld(), P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, false, -1.0f, SDPG_World, 2.0f);
+			P0 = P1;
+		}
 	}
 
 	if (CrowdAgent->ncorners && (CrowdAgent->cornerFlags[CrowdAgent->ncorners - 1] & DT_STRAIGHTPATH_OFFMESH_CONNECTION))
@@ -946,12 +948,14 @@ void UCrowdManager::DebugTick() const
 
 			if (CrowdAgent && LogOwner)
 			{
-				FVector P0 = Recast2UnrealPoint(CrowdAgent->npos);
-				for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
 				{
-					FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
-					UE_VLOG_SEGMENT(LogOwner, LogEngineCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
-					P0 = P1;
+					FVector P0 = Recast2UnrealPoint(CrowdAgent->npos);
+					for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
+					{
+						FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
+						UE_VLOG_SEGMENT(LogOwner, LogEngineCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
+						P0 = P1;
+					}
 				}
 
 				if (CrowdAgent->ncorners && (CrowdAgent->cornerFlags[CrowdAgent->ncorners - 1] & DT_STRAIGHTPATH_OFFMESH_CONNECTION))

@@ -7240,8 +7240,7 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 		// If this net driver has already been unregistered with this world, then don't handle it.
 		if (World)
 		{
-			UNetDriver * NetDriver = FindNamedNetDriver(World, NetDriverName);
-			if (!NetDriver)
+			if (!FindNamedNetDriver(World, NetDriverName))
 			{
 				// This netdriver has already been destroyed (probably waiting for GC)
 				return;

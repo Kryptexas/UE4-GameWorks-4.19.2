@@ -893,9 +893,9 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	if (!bIsCookable)
 	{
-		TArray<FFilePlatformRequest> UnsolicitedFileRequests;
-		UnsolicitedCookedPackages.DequeueAll(UnsolicitedFileRequests);
-		for (const FFilePlatformRequest &Request : UnsolicitedFileRequests)
+		TArray<FFilePlatformRequest> UnsolicitedRequests;
+		UnsolicitedCookedPackages.DequeueAll(UnsolicitedRequests);
+		for (const FFilePlatformRequest &Request : UnsolicitedRequests)
 		{
 			if ( Request.Platformname == PlatformFname )
 			{
@@ -924,9 +924,9 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 
 	UE_LOG( LogCookOnTheFly, Display, TEXT("Cook complete %s"), *FileRequest.Filename)
 
-	TArray<FFilePlatformRequest> UnsolicitedFileRequests;
-	UnsolicitedCookedPackages.DequeueAll(UnsolicitedFileRequests);
-	for (const FFilePlatformRequest &Request : UnsolicitedFileRequests)
+	TArray<FFilePlatformRequest> UnsolicitedRequests;
+	UnsolicitedCookedPackages.DequeueAll(UnsolicitedRequests);
+	for (const FFilePlatformRequest &Request : UnsolicitedRequests)
 	{
 		if ( Request.Filename == FileRequest.Filename )
 		{

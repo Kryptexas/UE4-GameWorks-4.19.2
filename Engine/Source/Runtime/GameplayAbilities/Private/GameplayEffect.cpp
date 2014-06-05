@@ -1419,16 +1419,16 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplay
 	return UGameplayEffect::INFINITE_DURATION;
 }
 
-void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* Owner, FActiveGameplayEffectHandle Handle)
+void FActiveGameplayEffectsContainer::OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* InOwner, FActiveGameplayEffectHandle Handle)
 {
 	for (FActiveGameplayEffect& Effect : GameplayEffects)
 	{
 		if (Effect.Handle == Handle)
 		{
-			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
+			FTimerManager& TimerManager = InOwner->GetWorld()->GetTimerManager();
 			float CurrDuration = Effect.GetDuration();
 			float TimeRemaining = CurrDuration - TimerManager.GetTimerElapsed(Effect.DurationHandle);
-			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Handle);
+			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(InOwner, &UAbilitySystemComponent::CheckDurationExpired, Handle);
 			TimerManager.SetTimer(Effect.DurationHandle, Delegate, CurrDuration, false, FMath::Max(TimeRemaining, 0.f));
 
 			return;

@@ -96,11 +96,13 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	while (EntryIndex < Entries.Num())
 	{
 		float CurrentStartX, CurrentEndX;
-		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
-		if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, CurrentStartX, CurrentEndX))
 		{
-			EntryIndex++;
-			continue;
+			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			if (!Entry.IsValid() || !CalculateEntryGeometry(Entry.Get(), AllottedGeometry, CurrentStartX, CurrentEndX))
+			{
+				EntryIndex++;
+				continue;
+			}
 		}
 
 		// find bar width, connect all contiguous bars to draw them as one geometry (rendering optimization)
@@ -166,7 +168,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	
 	if (bShouldDrawSelection)
 	{
-		int32 EntryIndex = CurrentEntryIndex.IsBound() ? CurrentEntryIndex.Execute() : INDEX_NONE;
+		EntryIndex = CurrentEntryIndex.IsBound() ? CurrentEntryIndex.Execute() : INDEX_NONE;
 		if (Entries.IsValidIndex(EntryIndex) == true)
 		{
 			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];

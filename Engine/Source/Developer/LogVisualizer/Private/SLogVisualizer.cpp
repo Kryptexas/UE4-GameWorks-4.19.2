@@ -688,7 +688,7 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 	}
 }
 
-void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
+void SLogVisualizer::AddLog(int32 LogIndex, const FActorsVisLog* Log)
 {
 	if (Log->Entries.Num() == 0)
 	{
@@ -731,7 +731,7 @@ void SLogVisualizer::AddLog(int32 Index, const FActorsVisLog* Log)
 	}
 
 	LogsList.Add(MakeShareable(new FLogsListItem(Log->Name.ToString()
-		, StartTimestamp, EndTimestamp, Index)));
+		, StartTimestamp, EndTimestamp, LogIndex)));
 }
 
 void SLogVisualizer::DoFullUpdate()

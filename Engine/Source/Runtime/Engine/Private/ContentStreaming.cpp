@@ -341,10 +341,10 @@ struct FStreamingTexture
 	 * @param MipCount	Number of mip-maps to account for
 	 * @return			Total amount of memory used for the specified mip-maps, in bytes
 	 */
-	int32 GetSize( int32 MipCount ) const
+	int32 GetSize( int32 InMipCount ) const
 	{
-		check( MipCount >= 0 && MipCount <= MAX_TEXTURE_MIP_COUNT );
-		return TextureSizes[ MipCount - 1 ];
+		check(InMipCount >= 0 && InMipCount <= MAX_TEXTURE_MIP_COUNT);
+		return TextureSizes[ InMipCount - 1 ];
 	}
 
 	/**
@@ -848,9 +848,9 @@ struct FTextureStreamingStats
  */
 struct FStreamingContext
 {
-	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bCollectTextureStats )
+	FStreamingContext( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )
 	{
-		Reset( bProcessEverything, IndividualStreamingTexture, bCollectTextureStats );
+		Reset( bProcessEverything, IndividualStreamingTexture, bInCollectTextureStats );
 	}
 
 	/**
@@ -4099,11 +4099,13 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 		if ( !WantedMips.IsHandled() || bShouldAlsoUseLastRenderTime )
 		{
 			// Try the handler for textures that has recently lost instance locations.
-			float HandlerDistance = FLT_MAX;
-			FFloatMipLevel HandlerWantedMips = GetWantedMipsForOrphanedTexture( StreamingTexture, HandlerDistance );
-			WantedMips = FMath::Max( WantedMips, HandlerWantedMips );
-			MinDistance = FMath::Min( MinDistance, HandlerDistance );
-			STAT( PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips ) );
+			{
+				float HandlerDistance = FLT_MAX;
+				FFloatMipLevel HandlerWantedMips = GetWantedMipsForOrphanedTexture(StreamingTexture, HandlerDistance);
+				WantedMips = FMath::Max(WantedMips, HandlerWantedMips);
+				MinDistance = FMath::Min(MinDistance, HandlerDistance);
+				STAT(PerfectWantedMips = FMath::Max(PerfectWantedMips, HandlerWantedMips));
+			}
 
 			// Still wasn't handled? Use the LastRenderTime handler as last resort.
 			if (!WantedMips.IsHandled() || bShouldAlsoUseLastRenderTime )
@@ -4962,7 +4964,7 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
  *
  * @param InvestigateTextureName	Partial name to match textures against
  */
-void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTextureName )
+void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateTextureName )
 {
 	bTriggerInvestigateTexture = false;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -4970,7 +4972,7 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 	{
 		FStreamingTexture& StreamingTexture = StreamingTextures[TextureIndex];
 		FString TextureName = StreamingTexture.Texture->GetFullName();
-		if ( TextureName.Contains( InvestigateTextureName) )
+		if (TextureName.Contains(InInvestigateTextureName))
 		{
 			UTexture2D* Texture2D = StreamingTexture.Texture;
 			ETextureStreamingType StreamType = StreamingTexture.GetStreamingType();
@@ -5097,9 +5099,9 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InvestigateTex
 									}
 								}
 								int32 IntWantedMipCount = WantedMipCount.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, false);
-								int32 WantedMipIndex = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
+								int32 WantedMip = FMath::Max(Texture2D->GetNumMips() - IntWantedMipCount, 0);
 								UE_LOG(LogContentStreaming, Log, TEXT("Static: Wanted=%dx%d, Distance=%.1f, TexelFactor=%.2f, Radius=%5.1f, Position=(%d,%d,%d)%s"),
-									Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY,
+									Texture2D->PlatformData->Mips[WantedMip].SizeX, Texture2D->PlatformData->Mips[WantedMip].SizeY,
 									MinDistance, TexelFactor, Radius, int32(Center.X), int32(Center.Y), int32(Center.Z),
 									bInside ? TEXT(" [all mips]") : TEXT(""));
 							}

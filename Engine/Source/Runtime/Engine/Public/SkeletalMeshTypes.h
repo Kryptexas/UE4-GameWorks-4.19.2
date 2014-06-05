@@ -652,7 +652,7 @@ struct FApexClothCollisionVolumeData
 		LocalPose.SetIdentity();
 	}
 
-	bool IsCapsule()
+	bool IsCapsule() const
 	{
 		return (ConvexVerticesCount == 0);
 	}

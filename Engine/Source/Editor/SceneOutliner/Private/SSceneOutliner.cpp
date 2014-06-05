@@ -1751,10 +1751,10 @@ namespace SceneOutliner
 		}
 
 		// Add a mini scene outliner for choosing an existing folder
-		FSceneOutlinerInitializationOptions InitOptions;
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-		InitOptions.bOnlyShowFolders = true;
+		FSceneOutlinerInitializationOptions MiniSceneOutlinerInitOptions;
+		MiniSceneOutlinerInitOptions.bShowHeaderRow = false;
+		MiniSceneOutlinerInitOptions.bFocusSearchBoxWhenOpened = true;
+		MiniSceneOutlinerInitOptions.bOnlyShowFolders = true;
 			
 		{
 			// Don't show any folders that are a child of any of the selected folders
@@ -1780,8 +1780,8 @@ namespace SceneOutliner
 					}
 
 					auto HasSubFolders = [](TWeakPtr<TOutlinerTreeItem> WeakItem){
-						auto Item = WeakItem.Pin();
-						return Item.IsValid() && Item->Type == TOutlinerTreeItem::Folder;
+						auto TreeItem = WeakItem.Pin();
+						return TreeItem.IsValid() && TreeItem->Type == TOutlinerTreeItem::Folder;
 					};
 
 					auto* ParentFolder = FolderToTreeItemMap.Find(Folder);
@@ -1795,8 +1795,8 @@ namespace SceneOutliner
 			if (ExcludedParents->Num())
 			{
 				// Add a filter if necessary
-				auto FilterOutChildFolders = [](FName Path, TSharedRef<TSet<FName>> ExcludedParents){
-					for (const auto& Parent : *ExcludedParents)
+				auto FilterOutChildFolders = [](FName Path, TSharedRef<TSet<FName>> InExcludedParents){
+					for (const auto& Parent : *InExcludedParents)
 					{
 						if (Path == Parent || FActorFolders::PathIsChildOf(Path.ToString(), Parent.ToString()))
 						{
@@ -1807,7 +1807,7 @@ namespace SceneOutliner
 					return true;
 				};
 
-				InitOptions.Filters->AddFilterPredicate(SceneOutliner::FFolderFilterPredicate::CreateStatic(FilterOutChildFolders, ExcludedParents));
+				MiniSceneOutlinerInitOptions.Filters->AddFilterPredicate(SceneOutliner::FFolderFilterPredicate::CreateStatic(FilterOutChildFolders, ExcludedParents));
 			}
 
 			// Actor selector to allow the user to choose a folder
@@ -1817,7 +1817,7 @@ namespace SceneOutliner
 				+ SVerticalBox::Slot()
 				.MaxHeight(400.0f)
 				[
-					SNew(SceneOutliner::SSceneOutliner, InitOptions)
+					SNew(SceneOutliner::SSceneOutliner, MiniSceneOutlinerInitOptions)
 					.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 					.OnItemPickedDelegate(FOnSceneOutlinerItemPicked::CreateSP(this, &SSceneOutliner::MoveSelectionTo))
 				];

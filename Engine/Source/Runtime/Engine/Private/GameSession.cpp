@@ -261,7 +261,7 @@ void AGameSession::ReturnToMainMenuHost()
 	}
 }
 
-bool AGameSession::TravelToSession(int32 ControllerId, FName SessionName)
+bool AGameSession::TravelToSession(int32 ControllerId, FName InSessionName)
 {
 	UWorld* World = GetWorld();
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(World);
@@ -269,7 +269,7 @@ bool AGameSession::TravelToSession(int32 ControllerId, FName SessionName)
 	{
 		FString URL;
 		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid() && SessionInt->GetResolvedConnectString(SessionName, URL))
+		if (SessionInt.IsValid() && SessionInt->GetResolvedConnectString(InSessionName, URL))
 		{
 			APlayerController* PC = UGameplayStatics::GetPlayerController(World, ControllerId);
 			if (PC)
@@ -280,7 +280,7 @@ bool AGameSession::TravelToSession(int32 ControllerId, FName SessionName)
 		}
 		else
 		{
-			UE_LOG(LogGameSession, Warning, TEXT("Failed to resolve session connect string for %s"), *SessionName.ToString());
+			UE_LOG(LogGameSession, Warning, TEXT("Failed to resolve session connect string for %s"), *InSessionName.ToString());
 		}
 	}
 

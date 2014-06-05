@@ -181,9 +181,9 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode, CategoryDescription));
 		InsertionIdx = NodeArray.Add(TagNode);
 
-		FGameplayTag Tag = FGameplayTag(TagNode->GetCompleteTag());
-		GameplayTagMap.Add(TagNode->GetCompleteTag(), Tag);
-		GameplayTagNodeMap.Add(Tag, TagNode);
+		FGameplayTag GameplayTag = FGameplayTag(TagNode->GetCompleteTag());
+		GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
+		GameplayTagNodeMap.Add(GameplayTag, TagNode);
 	}
 
 	return InsertionIdx;

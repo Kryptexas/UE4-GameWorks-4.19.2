@@ -114,9 +114,6 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 		// load all string asset reference targets, and add fake redirectors for them
 		GRedirectCollector.ResolveStringAssetReference();
 
-		// a list of the redirectors that can't be cleaned because a read-only package references them
-		TArray<FString> RedirectorsThatCantBeCleaned;
-
 		for (int32 RedirIndex = 0; RedirIndex < GRedirectCollector.Redirections.Num(); RedirIndex++)
 		{
 			FRedirection& Redir = GRedirectCollector.Redirections[RedirIndex];

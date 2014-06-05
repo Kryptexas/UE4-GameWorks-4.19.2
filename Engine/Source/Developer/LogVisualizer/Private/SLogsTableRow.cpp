@@ -26,10 +26,10 @@ TSharedRef<SWidget> SLogsTableRow::GenerateWidgetForColumn(const FName& ColumnNa
 				.Text(NSLOCTEXT("LogVisualizer", "RowCellError", "ERROR"));
 	}
 
-	FActorsVisLog& Log = *(OwnerVisualizerWidget->LogVisualizer->Logs[LogId]);
-
 	if (ColumnName == SLogVisualizer::NAME_LogName)
 	{	
+		FActorsVisLog& Log = *(OwnerVisualizerWidget->LogVisualizer->Logs[LogId]);
+
 		return SNew(SBox)
 				.VAlign(VAlign_Center)
 				.Padding(2)

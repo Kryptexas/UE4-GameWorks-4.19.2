@@ -308,13 +308,13 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 						{
 							for(int k = 0; k < Polys.Num(); ++k)
 							{
-								uint32 PolyIndex = 0;
-								uint32 TileIndex = 0;
-								NavMesh->GetPolyTileIndex(Polys[k].Ref, PolyIndex, TileIndex);
+								uint32 NavPolyIndex = 0;
+								uint32 NavTileIndex = 0;
+								NavMesh->GetPolyTileIndex(Polys[k].Ref, NavPolyIndex, NavTileIndex);
 
 								CurrentData->DebugLabels.Add(FNavMeshSceneProxyData::FDebugText(
 									/*Location*/Polys[k].Center + CurrentData->NavMeshDrawOffset
-									, /*Text*/FString::Printf(TEXT("[%X:%X]"), TileIndex, PolyIndex)
+									, /*Text*/FString::Printf(TEXT("[%X:%X]"), NavTileIndex, NavPolyIndex)
 									));
 							}
 						}

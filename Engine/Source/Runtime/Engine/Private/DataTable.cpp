@@ -345,12 +345,12 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 }
 
 /** Get array of UProperties that corresponds to columns in the table */
-TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems)
+TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* InRowStruct, TArray<FString>& OutProblems)
 {
 	TArray<UProperty*> ColumnProps;
 
 	// Get list of all expected properties from the struct
-	TArray<FName> ExpectedPropNames = GetStructPropertyNames(RowStruct);	
+	TArray<FName> ExpectedPropNames = GetStructPropertyNames(InRowStruct);
 
 	// Find the column names from first row
 	TArray<FString> ColumnNameStrings;
@@ -372,11 +372,11 @@ TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowStri
 			}
 			else
 			{
-				UProperty* ColumnProp = FindField<UProperty>(RowStruct, PropName);
+				UProperty* ColumnProp = FindField<UProperty>(InRowStruct, PropName);
 				// Didn't find a property with this name, problem..
 				if(ColumnProp == NULL)
 				{
-					OutProblems.Add(FString::Printf(TEXT("Cannot find Property for column '%s' in struct '%s'."), *PropName.ToString(), *RowStruct->GetName()));
+					OutProblems.Add(FString::Printf(TEXT("Cannot find Property for column '%s' in struct '%s'."), *PropName.ToString(), *InRowStruct->GetName()));
 				}
 				// Found one!
 				else
