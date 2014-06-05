@@ -30,5 +30,5 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = MontageAbility)
 	TArray<const UGameplayEffect*>	GameplayEffectsWhileAnimating;
 
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, const FGameplayAbilityActorInfo* OwnerInfo, TArray<struct FActiveGameplayEffectHandle>	AppliedEffects);
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, TWeakObjectPtr<UAbilitySystemComponent> AbilitySystemComponent, TArray<struct FActiveGameplayEffectHandle>	AppliedEffects);
 };

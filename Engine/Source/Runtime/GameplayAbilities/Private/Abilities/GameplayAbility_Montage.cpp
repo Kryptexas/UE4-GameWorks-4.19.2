@@ -42,7 +42,7 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo* 
 		float const Duration = ActorInfo->AnimInstance->Montage_Play(MontageToPlay, PlayRate);
 
 		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &UGameplayAbility_Montage::OnMontageEnded, ActorInfo, AppliedEffects);
+		EndDelegate.BindUObject(this, &UGameplayAbility_Montage::OnMontageEnded, ActorInfo->AbilitySystemComponent, AppliedEffects);
 		ActorInfo->AnimInstance->Montage_SetEndDelegate(EndDelegate);
 
 		if (SectionName != NAME_None)
@@ -52,15 +52,14 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilityActorInfo* 
 	}
 }
 
-void UGameplayAbility_Montage::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, const FGameplayAbilityActorInfo* ActorInfo, TArray<FActiveGameplayEffectHandle> AppliedEffects)
+void UGameplayAbility_Montage::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, TWeakObjectPtr<UAbilitySystemComponent> AbilitySystemComponent, TArray<FActiveGameplayEffectHandle> AppliedEffects)
 {
 	// Remove any GameplayEffects that we applied
-	UAbilitySystemComponent *OwnerComponent = ActorInfo->AbilitySystemComponent.Get();
-	if (OwnerComponent)
+	if (AbilitySystemComponent.IsValid())
 	{
 		for (FActiveGameplayEffectHandle Handle : AppliedEffects)
 		{
-			OwnerComponent->RemoveActiveGameplayEffect(Handle);
+			AbilitySystemComponent->RemoveActiveGameplayEffect(Handle);
 		}
 	}
 }

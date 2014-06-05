@@ -22,8 +22,35 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 };
 
 /** 
+ *	UAbilitySystemComponent	
+ *
+ *	A component to easily interface with the 3 aspects of the AbilitySystem:
+ *		-GameplayAbilities
+ *		-GameplayEffects
+ *		-GameplayAttributes
+ *		
+ *	This component will make life easier for interfacing with these subsystems, but is not completely required. The main functions are:
+ *	
+ *	GameplayAbilities:
+ *		-Provides a way to give/assign abilities that can be used (by a player or AI for example)
+ *		-Provides managment of instanced abilities (something must hold onto them)
+ *		-Provides replication functionality
+ *			-Ability state must always be replicated on the UGameplayAbility itself, but UAbilitySystemComponent can provide RPC replication
+ *			for non-instanced gameplay abilities. (Explained more in GameplayAbility.h).
+ *			
+ *	GameplayEffects:
+ *		-Provides an FActiveGameplayEffectsContainer for holding active GameplayEffects
+ *		-Provides methods for apply GameplayEffect to a target or to self
+ *		-Provides wrappers for querying information in FActiveGameplayEffectsContainers (duration, magnitude, etc)
+ *		-Provides methods for clearing/remove GameplayEffects
+ *		
+ *	GameplayAttributes
+ *		-Provides methods for allocating and initializing attribute sets
+ *		-Provides methods for getting ATtributeSets
+ *  
  * 
  */
+
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 {

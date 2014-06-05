@@ -8,9 +8,13 @@ class UAnimInstance;
 class UAbilitySystemComponent;
 
 /**
-* UGameplayEffect
-*	The GameplayEffect definition. This is the data asset defined in the editor that drives everything.
-*/
+ * UGameplayAbility_Instanced
+ *	
+ *	This is the base class for all instanced abilities. It is fully blueprintable.
+ *	
+ *
+ *
+ */
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API UGameplayAbility_Instanced : public UGameplayAbility
 {
