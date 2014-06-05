@@ -88,7 +88,14 @@ private:
 	 */
 	void ComboBoxSelectionChanged(TSharedPtr<FString> Value, ESelectInfo::Type SelectInfo)
 	{
-		CurrentOption = OptionsSource.Find(Value);
+		CurrentOption = -1;
+		for (int32 OptionId = 0; OptionId < OptionsSource.Num(); ++OptionId)
+		{
+			if (OptionsSource[OptionId]->Equals(*Value))
+			{
+				CurrentOption = OptionId;
+			}
+		}
 
 		OnSelectionChanged.ExecuteIfBound(CurrentOption, SelectInfo);
 	}
@@ -514,7 +521,7 @@ public:
 	 */
 	FString GetLabelName() const OVERRIDE
 	{
-		return "-label=" + LabelsCombo->GetCurrentOption();
+		return LabelsCombo->GetCurrentOption();
 	}
 
 	/**
@@ -780,12 +787,7 @@ bool RunDetachedUS(const FString& USPath, bool bDoNotRunFromCopy, bool bDoNotUpd
 	FString CommandLine = FString()
 		+ (bDoNotRunFromCopy ? TEXT("-DoNotRunFromCopy ") : TEXT(""))
 		+ (bDoNotUpdateOnStartUp ? TEXT("-DoNotUpdateOnStartUp ") : TEXT(""))
-		+ (bPassP4Env
-		? FString::Printf(TEXT("-P4PORT=%s -P4USER=%s -US_FOUND_P4CLIENT=%s"),
-		*FP4Env::Get().GetPort(),
-		*FP4Env::Get().GetUser(),
-		*FP4Env::Get().GetClient())
-		: TEXT(""));
+		+ (bPassP4Env ? *FP4Env::Get().GetCommandLine()	: TEXT(""));
 
 	return RunProcess(USPath, CommandLine);
 }
@@ -978,7 +980,7 @@ private:
 
 		if (!FP4Env::Init(FCommandLine::Get()))
 		{
-			ErrorMsg = TEXT("P4 environment failed.");
+			ErrorMsg = TEXT("P4 environment detection failed.");
 			return false;
 		}
 

@@ -6,6 +6,21 @@
 #include "CoreUObject.h"
 
 /**
+ * Enum describing P4 param type.
+ */
+namespace EP4ParamType
+{
+	enum Type
+	{
+		Path,
+		Port,
+		User,
+		Client,
+		Branch
+	};
+}
+
+/**
  * P4 environment class to connect with P4 executable.
  */
 class FP4Env
@@ -74,6 +89,13 @@ public:
 
 
 	/**
+	 * Gets P4 path.
+	 *
+	 * @returns P4 path.
+	 */
+	const FString& GetPath() const;
+
+	/**
 	 * Gets P4 user.
 	 *
 	 * @returns P4 user.
@@ -101,16 +123,46 @@ public:
 	 */
 	const FString& GetBranch() const;
 
+	/**
+	 * Gets command line string to pass to new UnrealSync process to copy current environment.
+	 *
+	 * @returns Command line string.
+	 */
+	FString GetCommandLine();
+
 private:
+	/* Param serialization delegate. */
+	DECLARE_DELEGATE_TwoParams(FSerializationTask, FString&, EP4ParamType::Type);
+
 	/**
 	 * Constructor
 	 *
-	 * @param Port P4 port.
-	 * @param User P4 user.
-	 * @param Client P4 workspace name.
-	 * @param Branch Current P4 branch.
+	 * @param CommandLine Command line to parse params from.
 	 */
-	FP4Env(const FString& Port, const FString& User, const FString& Client, const FString& Branch);
+	FP4Env(const TCHAR* CommandLine);
+
+	/**
+	 * Serializes all P4Env params.
+	 *
+	 * @param SerializationTask Task to perform serialization.
+	 */
+	void SerializeParams(const FSerializationTask& SerializationTask);
+
+	/**
+	 * Auto-detect missing params.
+	 *
+	 * @returns True if succeeded. False otherwise.
+	 */
+	bool AutoDetectMissingParams();
+
+	/**
+	 * Gets param type name.
+	 *
+	 * @param Type Param type enum id.
+	 *
+	 * @returns Param type name.
+	 */
+	static FString GetParamName(EP4ParamType::Type Type);
 
 	/**
 	 * Parses param either from command line or environment variables.
@@ -125,6 +177,9 @@ private:
 
 	/* Singleton instance pointer. */
 	static TSharedPtr<FP4Env> Env;
+
+	/* Path to P4 executable. */
+	FString Path;
 
 	/* P4 port. */
 	FString Port;

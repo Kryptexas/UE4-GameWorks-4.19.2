@@ -55,4 +55,11 @@ public class UnrealSyncTarget : TargetRules
 
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = false;
 	}
+
+	public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
+	{
+		bInternalToolOnly = true;
+		SeparateNode = false;
+		return true;
+	}
 }
