@@ -760,7 +760,7 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 		if( GroupName == FStatConstants::NAME_ThreadGroup )
 		{
 			uint32 ThreadID = 0;
-			for( auto ThreadsIt = StatsThreadStats.Threads.CreateConstIterator(); It; ++It )
+			for( auto ThreadsIt = StatsThreadStats.Threads.CreateConstIterator(); ThreadsIt; ++ThreadsIt )
 			{
 				if (ThreadsIt.Value() == StatName)
 				{
