@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FSessionConsoleCategoryFilter.
- */
+/** Type definition for shared pointers to instances of FSessionConsoleCategoryFilter. */
 typedef TSharedPtr<class FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterPtr;
 
-/**
- * Type definition for shared references to instances of FSessionConsoleCategoryFilter.
- */
+/** Type definition for shared references to instances of FSessionConsoleCategoryFilter. */
 typedef TSharedRef<class FSessionConsoleCategoryFilter> FSessionConsoleCategoryFilterRef;
 
 
@@ -38,9 +34,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InCategory - The filter category.
-	 * @param InEnabled - Whether this filter is enabled.
-	 * @param InOnStateChanged - A delegate that is executed when the filter's enabled state changed.
+	 * @param InCategory The filter category.
+	 * @param InEnabled Whether this filter is enabled.
+	 * @param InOnStateChanged A delegate that is executed when the filter's enabled state changed.
 	 */
 	FSessionConsoleCategoryFilter( const FName& InCategory, bool InEnabled, FOnSessionConsoleCategoryFilterStateChanged InOnStateChanged )
 		: Category(InCategory)
@@ -48,13 +44,12 @@ public:
 		, OnStateChanged(InOnStateChanged)
 	{ }
 
-
 public:
 
 	/**
 	 * Enables or disables the filter based on the specified check box state.
 	 *
-	 * @param CheckState - The check box state.
+	 * @param CheckState The check box state.
 	 */
 	void EnableFromCheckState( ESlateCheckBoxState::Type CheckState )
 	{
@@ -93,7 +88,6 @@ public:
 		return Enabled;
 	}
 
-
 private:
 
 	// Holds the filter's category.
@@ -101,7 +95,6 @@ private:
 
 	// Holds a flag indicating whether this filter is enabled.
 	bool Enabled;
-
 
 private:
 

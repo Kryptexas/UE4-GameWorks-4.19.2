@@ -33,8 +33,8 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InSessionManager - The session manager to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InSessionManager The session manager to use.
 	 */
 	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
 
@@ -155,7 +155,7 @@ private:
 	FString LastLogFileSaveDirectory;
 
 	// Holds the log list view.
- 	TSharedPtr<SListView<FSessionLogMessagePtr> > LogListView;
+ 	TSharedPtr<SListView<FSessionLogMessagePtr>> LogListView;
 
  	// Holds the filtered list of log messages.
  	TArray<FSessionLogMessagePtr> LogMessages;

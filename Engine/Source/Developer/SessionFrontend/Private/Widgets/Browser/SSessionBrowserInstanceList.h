@@ -41,8 +41,8 @@ public:
 	/**
 	 * Construct this widget.
 	 *
-	 * @param InArgs - The declaration data for this widget.
-	 * @param InSessionManager - The session manager to use.
+	 * @param InArgs The declaration data for this widget.
+	 * @param InSessionManager The session manager to use.
 	 */
 	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager )
 	{
@@ -176,7 +176,7 @@ private:
 	TArray<ISessionInstanceInfoPtr> InstanceList;
 
 	// Holds the instance list view.
-	TSharedPtr<SListView<ISessionInstanceInfoPtr> > InstanceListView;
+	TSharedPtr<SListView<ISessionInstanceInfoPtr>> InstanceListView;
 
 	// Holds a reference to the session manager.
 	ISessionManagerPtr SessionManager;

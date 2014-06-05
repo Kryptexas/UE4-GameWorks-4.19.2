@@ -42,14 +42,14 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
+	 * @param InArgs The declaration data for this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 
 	/**
 	 * Sets the number of selected engine instances.
 	 *
-	 * @param Count - Number of selected instances.
+	 * @param Count Number of selected instances.
 	 */
 	void SetNumSelectedInstances( int Count );
 

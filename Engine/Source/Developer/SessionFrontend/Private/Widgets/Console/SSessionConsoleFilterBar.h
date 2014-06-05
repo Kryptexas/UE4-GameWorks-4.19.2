@@ -29,15 +29,14 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
+	 * @param InArgs The declaration data for this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 
 	/**
 	 * Filters the specified log message based on the current filter settings.
 	 *
-	 * @param LogMessage - The log message to filter.
-	 *
+	 * @param LogMessage The log message to filter.
 	 * @return true if the log message passed the filter, false otherwise.
 	 */
 	bool FilterLogMessage( const FSessionLogMessageRef& LogMessage );
@@ -62,16 +61,16 @@ protected:
 	/**
 	 * Adds a category filter.
 	 *
-	 * @param Category - The filter's category.
+	 * @param Category The filter's category.
 	 */
 	void AddCategoryFilter( const FName& Category );
 
 	/**
 	 * Adds a verbosity filter.
 	 *
-	 * @param Verbosity - The filters verbosity level.
-	 * @param Name - The name of the filter.
-	 * @param Icon - The name of the filter's icon.
+	 * @param Verbosity The filters verbosity level.
+	 * @param Name The name of the filter.
+	 * @param Icon The name of the filter's icon.
 	 */
 	void AddVerbosityFilter( ELogVerbosity::Type Verbosity, const FString& Name, const FName& Icon );
 
@@ -107,7 +106,7 @@ private:
 	TArray<FSessionConsoleCategoryFilterPtr> CategoriesList;
 
 	// Holds the category filters list view.
-	TSharedPtr<SListView<FSessionConsoleCategoryFilterPtr> > CategoriesListView;
+	TSharedPtr<SListView<FSessionConsoleCategoryFilterPtr>> CategoriesListView;
 
 	// Holds the log message counters for category filters.
 	TMap<FName, int32> CategoryCounters;
@@ -128,7 +127,7 @@ private:
 	TArray<FSessionConsoleVerbosityFilterPtr> VerbositiesList;
 
 	// Holds the verbosity filters list view.
-	TSharedPtr< SListView<FSessionConsoleVerbosityFilterPtr> > VerbositiesListView;
+	TSharedPtr< SListView<FSessionConsoleVerbosityFilterPtr>> VerbositiesListView;
 
 	// Holds the log message counters for verbosity filters.
 	TMap<ELogVerbosity::Type, int32> VerbosityCounters;

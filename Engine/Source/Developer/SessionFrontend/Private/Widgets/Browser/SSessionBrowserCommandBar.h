@@ -18,13 +18,12 @@ public:
 	SLATE_BEGIN_ARGS(SSessionBrowserCommandBar) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
+	 * @param InArgs The declaration data for this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 };

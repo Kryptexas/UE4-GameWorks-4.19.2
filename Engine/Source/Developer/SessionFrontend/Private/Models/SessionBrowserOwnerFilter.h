@@ -7,14 +7,10 @@
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FSessionBrowserOwnerFilter.
- */
+/** Type definition for shared pointers to instances of FSessionBrowserOwnerFilter. */
 typedef TSharedPtr<class FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterPtr;
 
-/**
- * Type definition for shared references to instances of FSessionBrowserOwnerFilter.
- */
+/** Type definition for shared references to instances of FSessionBrowserOwnerFilter. */
 typedef TSharedRef<class FSessionBrowserOwnerFilter> FSessionBrowserOwnerFilterRef;
 
 
@@ -38,9 +34,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InOwnerName - The user name of the session owner.
-	 * @param InEnabled - Whether this filter is enabled.
-	 * @param InOnStateChanged - A delegate that is executed when the filter's enabled state changed.
+	 * @param InOwnerName The user name of the session owner.
+	 * @param InEnabled Whether this filter is enabled.
+	 * @param InOnStateChanged A delegate that is executed when the filter's enabled state changed.
 	 */
 	FSessionBrowserOwnerFilter( const FString& InOwnerName, bool InEnabled, FOnSessionBrowserOwnerFilterStateChanged InOnStateChanged )
 		: Enabled(InEnabled)
@@ -48,13 +44,12 @@ public:
 		, OnStateChanged(InOnStateChanged)
 	{ }
 
-
 public:
 
 	/**
 	 * Enables or disables the filter based on the specified check box state.
 	 *
-	 * @param CheckState - The check box state.
+	 * @param CheckState The check box state.
 	 */
 	void EnableFromCheckState( ESlateCheckBoxState::Type CheckState )
 	{
@@ -93,7 +88,6 @@ public:
 		return Enabled;
 	}
 
-
 private:
 
 	// Holds a flag indicating whether this filter is enabled.
@@ -101,7 +95,6 @@ private:
 
 	// Holds the name of the session owner.
 	FString OwnerName;
-
 
 private:
 

@@ -18,7 +18,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FSessionConsoleCommands()
+	FSessionConsoleCommands( )
 		: TCommands<FSessionConsoleCommands>(
 			"SessionConsole",
 			NSLOCTEXT("Contexts", "SessionConsole", "Session Console"),

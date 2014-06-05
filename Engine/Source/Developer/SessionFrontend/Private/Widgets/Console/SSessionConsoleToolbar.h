@@ -26,8 +26,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param CommandList - The command list to use.
+	 * @param InArgs The construction arguments.
+	 * @param CommandList The command list to use.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct( const FArguments& InArgs, const TSharedRef<FUICommandList>& CommandList )

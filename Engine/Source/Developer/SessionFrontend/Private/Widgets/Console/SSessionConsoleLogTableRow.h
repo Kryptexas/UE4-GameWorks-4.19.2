@@ -20,13 +20,12 @@ public:
 		SLATE_ARGUMENT(FSessionLogMessagePtr, LogMessage)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
+	 * @param InArgs The construction arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -36,8 +35,9 @@ public:
 		SMultiColumnTableRow<FSessionLogMessagePtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
-
 public:
+
+	// Begin SMultiColumnTableRow interface
 
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
 	{
@@ -114,6 +114,7 @@ public:
 		return SNullWidget::NullWidget;
 	}
 
+	// End SMultiColumnTableRow interface
 
 private:
 
@@ -140,7 +141,6 @@ private:
 			return FSlateColor::UseForeground();
 		}
 	}
-
 
 private:
 
