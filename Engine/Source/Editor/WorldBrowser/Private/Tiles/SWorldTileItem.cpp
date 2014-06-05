@@ -83,7 +83,7 @@ void FTileItemThumbnail::UpdateThumbnail()
 	}
 	
 	// Load image from a package header
-	if (!LevelModel->IsVisible())
+	if (!LevelModel->IsVisible() || LevelModel->IsSimulating())
 	{
 		TSet<FName> ObjectFullNames;
 		ObjectFullNames.Add(LevelModel->GetAssetName());
