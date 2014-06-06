@@ -811,6 +811,9 @@ int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtra
 
 FString FString::Replace(const TCHAR* From, const TCHAR* To, ESearchCase::Type SearchCase) const
 {
+	// Previous code used to accidentally accept a NULL replacement string - this is no longer accepted.
+	check(To);
+
 	if (IsEmpty() || !From || !*From)
 	{
 		return *this;
