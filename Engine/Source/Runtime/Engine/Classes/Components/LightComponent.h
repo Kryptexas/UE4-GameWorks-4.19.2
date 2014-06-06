@@ -19,13 +19,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	/** Transient shadowmap channel used to preview the results of stationary light shadowmap packing. */
 	int32 PreviewShadowMapChannel;
 	
-	/** 
-	 * Scales the indirect lighting contribution from this light. 
-	 * A value of 0 disables any GI from this light. Default is 1.
-	 */
-	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.0", UIMax = "6.0"))
-	float IndirectLightingIntensity;
-
 	/** Radius of light source shape. Moved to point light */
 	UPROPERTY()
 	float SourceRadius_DEPRECATED;

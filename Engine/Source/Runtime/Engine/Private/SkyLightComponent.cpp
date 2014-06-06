@@ -96,6 +96,7 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 
 	Brightness_DEPRECATED = 1;
 	Intensity = 1;
+	IndirectLightingIntensity = 1.0f;
 	SkyDistanceThreshold = 150000;
 	Mobility = EComponentMobility::Stationary;
 	bCaptureDirty = false;

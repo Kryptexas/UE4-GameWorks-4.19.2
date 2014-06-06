@@ -156,7 +156,7 @@ FLinearColor FStaticLightingSystem::EvaluateEnvironmentLighting(const FVector4& 
 	return IncomingDirection.Z < 0 ? (MaterialSettings.EnvironmentColor / (float)PI) : FLinearColor::Black;
 }
 
-void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const
+void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const
 {
 	for (int32 LightIndex = 0; LightIndex < SkyLights.Num(); LightIndex++)
 	{
@@ -165,7 +165,8 @@ void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirectio
 		if (!bShadowed || !(SkyLight->LightFlags & GI_LIGHT_CASTSHADOWS))
 		{
 			FSHVector3 SH = FSHVector3::SHBasisFunction(IncomingDirection);
-			FLinearColor Lighting = Dot(SkyLight->IrradianceEnvironmentMap, SH) * SkyLight->Brightness * FLinearColor(SkyLight->Color);
+			const float LightingScale = bForDirectLighting ? 1.0f : SkyLight->IndirectLightingScale;
+			FLinearColor Lighting = (Dot(SkyLight->IrradianceEnvironmentMap, SH) * SkyLight->Brightness * LightingScale) * FLinearColor(SkyLight->Color);
 
 			Lighting.R = FMath::Max(Lighting.R, 0.0f);
 			Lighting.G = FMath::Max(Lighting.G, 0.0f);
@@ -558,7 +559,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		}
 	}
 
-	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, Lighting, OutStationarySkyLighting);
+	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, true, Lighting, OutStationarySkyLighting);
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel
@@ -1216,8 +1217,6 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 	//@todo - use cosine sampling if possible to match the indirect integrand, the irradiance caching algorithm assumes uniform sampling
 	for (int32 SampleIndex = 0; SampleIndex < UniformHemisphereSamples.Num(); SampleIndex++)
 	{
-		//const FVector4& SampleDirection = UniformHemisphereSamples[SampleIndex];
-		//const FVector4 TriangleTangentPathDirection = ((FVector)SampleDirection).RotateAngleAxis(RandomStream.GetFraction() * 360, FVector(0, 0, 1));
 		const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
 		checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
 		checkSlow(TriangleTangentPathDirection.IsUnit3());
@@ -1372,7 +1371,7 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 
 		FLinearColor StaticSkyLighting = FLinearColor::Black;
 		FLinearColor StationarySkyLighting = FLinearColor::Black;
-		EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, StaticSkyLighting, StationarySkyLighting);
+		EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, true, StaticSkyLighting, StationarySkyLighting);
 
 		if (StaticSkyLighting != FLinearColor::Black)
 		{

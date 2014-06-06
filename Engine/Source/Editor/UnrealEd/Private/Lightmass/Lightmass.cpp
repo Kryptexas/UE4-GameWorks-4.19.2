@@ -133,6 +133,7 @@ void Copy( const ULightComponentBase* In, Lightmass::FLightData& Out )
 	// Set brightness here for light types that only derive from ULightComponentBase and not from ULightComponent
 	Out.Brightness = In->Intensity;
 	Out.Guid = In->LightGuid;
+	Out.IndirectLightingScale = In->IndirectLightingIntensity;
 }
 
 void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
@@ -891,7 +892,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FDirectionalLightData DirectionalData;
 		Copy( Light, LightData );
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = 0;
@@ -908,7 +908,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FLightData LightData;
 		Lightmass::FPointLightData PointData;
 		Copy( Light, LightData );
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
@@ -927,7 +926,6 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		Lightmass::FPointLightData PointData;
 		Lightmass::FSpotLightData SpotData;
 		Copy( Light, LightData ); 
-		LightData.IndirectLightingScale = Light->IndirectLightingIntensity;
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;

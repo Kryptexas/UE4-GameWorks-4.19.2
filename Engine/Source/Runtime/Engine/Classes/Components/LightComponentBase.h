@@ -69,6 +69,13 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY()
 	uint32 bPrecomputedLightingIsValid:1;
 
+	/** 
+	 * Scales the indirect lighting contribution from this light. 
+	 * A value of 0 disables any GI from this light. Default is 1.
+	 */
+	UPROPERTY(BlueprintReadOnly, interp, Category=Light, meta=(UIMin = "0.0", UIMax = "6.0"))
+	float IndirectLightingIntensity;
+
 #if WITH_EDITORONLY_DATA
 	/** Sprite for static light in the editor. */
 	UPROPERTY(transient)

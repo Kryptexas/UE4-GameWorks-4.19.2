@@ -2175,6 +2175,12 @@ private:
 		FGatheredLightSample& OutToggleableDirectLighting,
 		float& OutToggleableDirectionalLightShadowing) const;
 
+	FGatheredLightSample CalculateApproximateSkyLighting(
+		const FFullStaticLightingVertex& Vertex,
+		float SampleRadius,
+		const TArray<FVector4>& UniformHemisphereSamples,
+		FStaticLightingMappingContext& MappingContext) const;
+
 	/** Calculates incident radiance for a given world space position. */
 	void CalculateVolumeSampleIncidentRadiance(
 		const TArray<FVector4>& UniformHemisphereSamples,
@@ -2251,7 +2257,7 @@ private:
 	FLinearColor EvaluateEnvironmentLighting(const FVector4& IncomingDirection) const;
 
 	/** Evaluates the incoming sky lighting from the scene. */
-	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
+	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, bool bForDirectLighting, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
 
 	/** Returns a light sample that represents the material attribute specified by MaterialSettings.ViewMaterialAttribute at the intersection. */
 	FGatheredLightSample GetVisualizedMaterialAttribute(const FStaticLightingMapping* Mapping, const FLightRayIntersection& Intersection) const;
@@ -2632,6 +2638,8 @@ private:
 	float CachedSamplesMaxUnoccludedLength;
 
 	TArray<FVector2D> CachedHemisphereSampleUniforms;
+
+	TArray<FVector4> CachedHemisphereSamplesForApproximateSkyLighting;
 
 	/** The aggregate mesh used for raytracing. */
 	FStaticLightingAggregateMesh AggregateMesh;

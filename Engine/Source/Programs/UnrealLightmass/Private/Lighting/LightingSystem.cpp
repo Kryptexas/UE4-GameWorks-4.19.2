@@ -1311,6 +1311,19 @@ void FStaticLightingSystem::CacheSamples()
 
 	CachedSamplesMaxUnoccludedLength = (CombinedVector / CachedHemisphereSamples.Num()).Size3();
 
+	{
+		int32 TargetNumApproximateSkyLightingSamples = FMath::Max(FMath::TruncToInt(ImportanceTracingSettings.NumHemisphereSamples / 5 * GeneralSettings.IndirectLightingQuality), 12);
+		CachedHemisphereSamplesForApproximateSkyLighting.Empty(TargetNumApproximateSkyLightingSamples);
+		TArray<FVector2D> Unused;
+		Unused.Empty(TargetNumApproximateSkyLightingSamples);
+
+		const float NumThetaStepsFloat = FMath::Sqrt(TargetNumApproximateSkyLightingSamples / (float)PI);
+		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
+		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
+
+		GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, CachedHemisphereSamplesForApproximateSkyLighting, Unused);
+	}
+
 	// Cache samples on the surface of each light for area shadows
 	for (int32 LightIndex = 0; LightIndex < Lights.Num(); LightIndex++)
 	{
@@ -2001,6 +2014,68 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 			}
 		}
 	}
+}
+
+FGatheredLightSample FStaticLightingSystem::CalculateApproximateSkyLighting(
+	const FFullStaticLightingVertex& Vertex,
+	float SampleRadius,
+	const TArray<FVector4>& UniformHemisphereSamples,
+	FStaticLightingMappingContext& MappingContext) const
+{
+	FGatheredLightSample IncomingRadiance;
+
+	if (SkyLights.Num() > 0)
+	{
+		const float UniformPDF = 1.0f / (2.0f * (float)PI);
+		const float SampleWeight = 1.0f / (UniformPDF * UniformHemisphereSamples.Num());
+
+		for (int32 SampleIndex = 0; SampleIndex < UniformHemisphereSamples.Num(); SampleIndex++)
+		{
+			const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
+			checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
+			checkSlow(TriangleTangentPathDirection.IsUnit3());
+
+			// Generate the uniform hemisphere samples from a hemisphere based around the triangle normal, not the smoothed vertex normal
+			// This is important for cases where the smoothed vertex normal is very different from the triangle normal, in which case
+			// Using the smoothed vertex normal would cause self-intersection even on a plane
+			const FVector4 WorldPathDirection = Vertex.TransformTriangleTangentVectorToWorld(TriangleTangentPathDirection);
+			checkSlow(WorldPathDirection.IsUnit3());
+
+			const FVector4 TangentPathDirection = Vertex.TransformWorldVectorToTangent(WorldPathDirection);
+			checkSlow(TangentPathDirection.IsUnit3());
+
+			const FLightRay PathRay(
+				// Apply various offsets to the start of the ray.
+				// The offset along the ray direction is to avoid incorrect self-intersection due to floating point precision.
+				// The offset along the normal is to push self-intersection patterns (like triangle shape) on highly curved surfaces onto the backfaces.
+				Vertex.WorldPosition 
+				+ WorldPathDirection * SceneConstants.VisibilityRayOffsetDistance 
+				+ Vertex.WorldTangentZ * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale,
+				Vertex.WorldPosition + WorldPathDirection * MaxRayDistance,
+				NULL,
+				NULL
+				);
+
+			FLightRayIntersection RayIntersection;
+			AggregateMesh.IntersectLightRay(PathRay, false, false, false, MappingContext.RayCache, RayIntersection);
+
+			FLinearColor StaticSkyLighting = FLinearColor::Black;
+			FLinearColor StationarySkyLighting = FLinearColor::Black;
+			EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, false, StaticSkyLighting, StationarySkyLighting);
+
+			if (StaticSkyLighting != FLinearColor::Black)
+			{
+				IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(StaticSkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
+			}
+
+			if (StationarySkyLighting != FLinearColor::Black)
+			{
+				IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(StationarySkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
+			}
+		}
+	}
+
+	return IncomingRadiance;
 }
 
 /** Initializes DominantLightShadowInfo and prepares for multithreaded generation of DominantLightShadowInfo.ShadowMap. */
