@@ -534,6 +534,36 @@ protected:
 
 public:
 
+	/**
+	 * Compute remaining time step given remaining time and current iterations.
+	 * The last iteration (limited by MaxSimulationIterations) always returns the remaining time, which may violate MaxSimulationTimeStep.
+	 *
+	 * @see MaxSimulationTimeStep
+	 * @see MaxSimulationIterations
+	 */
+	float GetSimulationTimeStep(float RemainingTime, int32 Iterations) const;
+
+	/**
+	 * Max time delta for each discrete simulation step.
+	 * Used primarily in the the more advanced movement modes that break up larger time steps (usually those applying gravity such as falling and walking).
+	 * Lowering this value can address issues with fast-moving objects or complex collision scenarios, at the cost of performance.
+	 *
+	 * WARNING: if (MaxSimulationTimeStep * MaxSimulationIterations) is too low for the min framerate, the last simulation step may exceed MaxSimulationTimeStep to complete the simulation.
+	 * @see MaxSimulationIterations
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0.02", ClampMax="0.50", UIMin="0.02", UIMax="0.50"))
+	float MaxSimulationTimeStep;
+
+	/**
+	 * Max number of iterations used for each discrete simulation step
+	 * Used primarily in the the more advanced movement modes that break up larger time steps (usually those applying gravity such as falling and walking).
+	 * Increasing this value can address issues with fast-moving objects or complex collision scenarios, at the cost of performance.
+	 *
+	 * WARNING: if (MaxSimulationTimeStep * MaxSimulationIterations) is too low for the min framerate, the last simulation step may exceed MaxSimulationTimeStep to complete the simulation.
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="20", UIMin="1", UIMax="20"))
+	int32 MaxSimulationIterations;
+
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float MaxAcceleration;
@@ -1457,6 +1487,9 @@ protected:
 	void SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration);
 
 public:
+
+	/** Minimum delta time considered when ticking. Delta times below this are not considered. This is a very small non-zero value to avoid potential divide-by-zero in simulation code. */
+	static const float MIN_TICK_TIME;
 
 	/** Minimum acceptable distance for Character capsule to float above floor when walking. */
 	static const float MIN_FLOOR_DIST;
