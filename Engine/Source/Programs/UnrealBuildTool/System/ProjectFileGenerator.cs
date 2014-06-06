@@ -577,7 +577,7 @@ namespace UnrealBuildTool
 		{
 			EngineProject.AddAliasedFileToProject(new AliasedFile(
 					XmlConfigLoader.GetXSDPath(),
-					Path.Combine("Config", "UnrealBuildTool", "Schema")
+					Path.Combine("Programs", "UnrealBuildTool")
 				));
 
 			foreach(var BuildConfigurationPath in XmlConfigLoader.ConfigLocationHierarchy)

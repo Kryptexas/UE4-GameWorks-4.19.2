@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
-	[XmlConfig]
 	abstract class RemoteToolChain : UEToolChain
     {
 		protected void RegisterRemoteToolChain(UnrealTargetPlatform InPlatform, CPPTargetPlatform CPPPlatform)
@@ -25,9 +24,9 @@ namespace UnrealBuildTool
 		}
 
 		/** These two variables will be loaded from XML config file in XmlConfigLoader.Init() */
-		[XmlConfigField]
+		[XmlConfig]
 		public static string RemoteServerName;
-		[XmlConfigField]
+		[XmlConfig]
 		public static string[] PotentialServerNames = new string[] { };
 
 		/** Keep a list of remote files that are potentially copied from local to remote */

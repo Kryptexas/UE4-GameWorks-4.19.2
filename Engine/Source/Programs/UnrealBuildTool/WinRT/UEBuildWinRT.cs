@@ -8,13 +8,12 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	[XmlConfig]
 	class WinRTPlatform : UEBuildPlatform
 	{
 		/// <summary>
 		/// Should the app be compiled as WinRT
 		/// </summary>
-		[XmlConfigField]
+		[XmlConfig]
 		public static bool bCompileWinRT = false;
 
 		public static bool IsVisualStudioInstalled()

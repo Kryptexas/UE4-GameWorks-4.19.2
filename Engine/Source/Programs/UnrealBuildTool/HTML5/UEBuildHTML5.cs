@@ -8,10 +8,9 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-	[XmlConfig]
 	class HTML5Platform : UEBuildPlatform
 	{
-		[XmlConfigField]
+		[XmlConfig]
 		public static string HTML5Architecture = "";
 
 		// The current architecture - affects everything about how UBT operates on HTML5

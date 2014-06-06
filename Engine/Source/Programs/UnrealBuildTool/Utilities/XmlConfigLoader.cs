@@ -14,24 +14,10 @@ using System.Xml.Linq;
 namespace UnrealBuildTool
 {
 	/// <summary>
-	/// Attribute to annotate classes that can be set using xml configuration system.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-	public class XmlConfigAttribute : Attribute
-	{
-		public readonly bool bAllPublicStaticFields;
-
-		public XmlConfigAttribute(bool bAllPublicStaticFields = false)
-		{
-			this.bAllPublicStaticFields = bAllPublicStaticFields;
-		}
-	}
-
-	/// <summary>
-	/// Attribute to annotate fields in type that can be set using xml configuration system.
+	/// Attribute to annotate fields in type that can be set using XML configuration system.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Field)]
-	public class XmlConfigFieldAttribute : Attribute
+	public class XmlConfigAttribute : Attribute
 	{
 
 	}
@@ -595,16 +581,13 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				XmlConfigLoaderClassData ClassData;
-				bool bAllPublicStaticFields = false;
-
-				var Attributes = ClassType.GetCustomAttributes(typeof(XmlConfigAttribute), false);
-				if (Attributes.Length == 0)
+				if (IsConfigurableClass(ClassType))
 				{
 					Log.TraceVerbose("XmlConfig Loading: class '{0}' is not allowed to be configured using XML system.", XmlClass.Name);
 					continue;
 				}
-				bAllPublicStaticFields = ((XmlConfigAttribute)Attributes.First()).bAllPublicStaticFields;
+
+				XmlConfigLoaderClassData ClassData;
 
 				if (!Data.TryGetValue(ClassType, out ClassData))
 				{
@@ -618,7 +601,7 @@ namespace UnrealBuildTool
 				{
 					FieldInfo Field = ClassType.GetField(XmlField.Name);
 
-					if (Field == null || !Field.IsPublic || !Field.IsStatic || (!bAllPublicStaticFields && Field.GetCustomAttributes(typeof(XmlConfigFieldAttribute), false).Length == 0))
+					if (Field == null || !IsConfigurableField(Field))
 					{
 						throw new BuildException("BuildConfiguration Loading: field '{0}' doesn't exist or is either non-public, non-static or not-xml-configurable.", XmlField.Name);
 					}
@@ -741,18 +724,32 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Gets all types that can be configured using this xml system.
+		/// Tells if given class is XML configurable.
+		/// </summary>
+		/// <param name="Class">Class to check.</param>
+		/// <returns>True if the class is configurable using XML system. Otherwise false.</returns>
+		private static bool IsConfigurableClass(Type Class)
+		{
+			return Class.GetFields().Any((Field) => IsConfigurableField(Field));
+		}
+
+		/// <summary>
+		/// Tells if given field is XML configurable.
+		/// </summary>
+		/// <param name="Field">field to check.</param>
+		/// <returns>True if the field is configurable using XML system. Otherwise false.</returns>
+		private static bool IsConfigurableField(FieldInfo Field)
+		{
+			return Field.IsStatic && Field.IsPublic && Field.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0;
+		}
+
+		/// <summary>
+		/// Gets all types that can be configured using this XML system.
 		/// </summary>
 		/// <returns>Enumerable of types that can be configured using this xml system.</returns>
 		private static IEnumerable<Type> GetAllConfigurationTypes()
 		{
-			foreach(var Type in Assembly.GetExecutingAssembly().GetTypes())
-			{
-				if(Type.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0)
-				{
-					yield return Type;
-				}
-			}
+			return Assembly.GetExecutingAssembly().GetTypes().Where((Class) => IsConfigurableClass(Class));
 		}
 
 		/// <summary>
@@ -777,15 +774,7 @@ namespace UnrealBuildTool
 		/// <returns>Enumerable fields that are configurable using this system.</returns>
 		private static IEnumerable<FieldInfo> GetConfigurableFields(Type ClassType)
 		{
-			var bAllPublicStaticFields = ((XmlConfigAttribute) ClassType.GetCustomAttributes(typeof(XmlConfigAttribute), false).First()).bAllPublicStaticFields;
-
-			foreach(var Field in ClassType.GetFields())
-			{
-				if(Field.IsPublic && Field.IsStatic && (bAllPublicStaticFields || Field.GetCustomAttributes(typeof(XmlConfigFieldAttribute), false).Length > 0))
-				{
-					yield return Field;
-				}
-			}
+			return ClassType.GetFields().Where((Field) => IsConfigurableField(Field));
 		}
 
 		/// <summary>
@@ -938,7 +927,8 @@ namespace UnrealBuildTool
 					}
 				}
 
-				return Encoding.UTF8.GetString(MS.ToArray());
+				// Skipping first 3 bytes, that informs about encoding.
+				return Encoding.UTF8.GetString(MS.ToArray().Skip(3).ToArray());
 			}
 		}
 

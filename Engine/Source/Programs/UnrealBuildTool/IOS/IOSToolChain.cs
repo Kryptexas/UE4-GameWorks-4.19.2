@@ -15,7 +15,6 @@ using Ionic.Zlib;
 
 namespace UnrealBuildTool
 {
-	[XmlConfig(true)]
 	class IOSToolChain : RemoteToolChain
 	{
 		public override void RegisterToolChain()
@@ -34,22 +33,28 @@ namespace UnrealBuildTool
 		// If you are looking for where to change the remote compile server name, look in RemoteToolChain.cs
 
 		/** If this is set, then we don't do any post-compile steps except moving the executable into the proper spot on the Mac */
+		[XmlConfig]
 		public static bool bUseDangerouslyFastMode = false;
 
 		/** Which version of the iOS SDK to target at build time */
+		[XmlConfig]
 		public static string IOSSDKVersion = "latest";
 
 		/** The architecture(s) to compile */
+		[XmlConfig]
 		public static string NonShippingArchitectures = "armv7";
+		[XmlConfig]
 		public static string ShippingArchitectures = "armv7";
 
 		// In case the SDK checking fails for some reason, use this version
 		private static string BackupVersion = "6.0";
 
 		/** Which version of the iOS to allow at run time */
+		[XmlConfig]
 		public static string IOSVersion = "6.0";
 
 		/** Which developer directory to root from */
+		[XmlConfig]
 		public static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
 
 		/** Location of the SDKs */
