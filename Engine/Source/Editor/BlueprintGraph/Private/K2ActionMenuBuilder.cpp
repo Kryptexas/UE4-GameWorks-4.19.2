@@ -133,6 +133,19 @@ static void AddSpawnActorNodeAction(FGraphActionListBuilderBase& ContextMenuBuil
 	}
 }
 
+/** Utility for getting a TableRow from a DataTable */
+static void AddGetDataTableRowNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& FunctionCategory)
+{
+	FString const GetDataTableRowCategory = FunctionCategory + K2ActionCategories::SubCategoryDelim + K2ActionCategories::UtilitiesCategory;
+    
+	// Add the new GetDataTableRow node
+	{
+		UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_GetDataTableRow>();
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetDataTableRowCategory, LOCTEXT("GetDataTableRow", "Get Data Table Row"), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+		Action->NodeTemplate = NodeTemplate;
+	}
+}
+
 /** Gets all the input action and axis events and nodes */
 static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const bool bIncludeEvents)
 {
@@ -838,6 +851,8 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 				GetInputNodes(ContextMenuBuilder, true);
 			}
 		}
+        
+        AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
 
 		// Add struct make/break nodes
 		GetStructActions( ContextMenuBuilder );
@@ -1145,6 +1160,8 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 					GetInputNodes(ContextMenuBuilder, bIncludeEvents);
 				}
 			}
+            
+            AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
 
 			// for output pins, add macro flow control as a connection option
 			if ( FromPin.Direction == EGPD_Output )
