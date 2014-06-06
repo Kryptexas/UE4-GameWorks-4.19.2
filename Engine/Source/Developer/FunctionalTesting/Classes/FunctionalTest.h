@@ -108,5 +108,5 @@ public:
 
 protected:
 	uint32 bIsRunning;
-	float TimeLeft;
+	float TotalTime;
 };

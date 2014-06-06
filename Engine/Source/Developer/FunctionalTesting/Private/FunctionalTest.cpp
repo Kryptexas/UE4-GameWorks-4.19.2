@@ -11,7 +11,7 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	, TimesUpMessage( NSLOCTEXT("FunctionalTest", "DefaultTimesUpMessage", "Time's up!") )
 	, bIsEnabled(true)
 	, bIsRunning(false)
-	, TimeLeft(0.f)
+	, TotalTime(0.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -59,8 +59,8 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 		return;
 	}
 
-	TimeLeft -= DeltaSeconds;
-	if (TimeLimit > 0.f && TimeLeft <= 0.f)
+	TotalTime += DeltaSeconds;
+	if (TimeLimit > 0.f && TotalTime > TimeLimit)
 	{
 		FinishTest(TimesUpResult, TimesUpMessage.ToString());
 	}
@@ -74,9 +74,9 @@ bool AFunctionalTest::StartTest()
 {
 	FailureMessage = TEXT("");
 
+	TotalTime = 0.f;
 	if (TimeLimit > 0)
 	{
-		TimeLeft = TimeLimit;
 		SetActorTickEnabled(true);
 	}
 
@@ -112,7 +112,7 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 		, *GetActorLabel()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
-	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult);
+	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult) + FString::Printf(TEXT(", time %.2fs"), TotalTime);
 
 	AutoDestroyActors.Reset();
 
