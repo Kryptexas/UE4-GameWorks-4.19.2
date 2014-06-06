@@ -203,6 +203,8 @@ namespace UnrealBuildTool
 			foreach(var ClassData in Data)
 			{
 				ClassData.Value.ResetData();
+
+				InvokeIfExists(ClassData.Key, "PostReset");
 			}
 		}
 
