@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "ShaderParameters.h"
 #include "GlobalShader.h"
+#include "ShaderParameterUtils.h"
 
 struct FScreenVertex
 {

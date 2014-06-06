@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "MeshParticleVertexFactory.h"
+#include "ShaderParameterUtils.h"
 
 
 class FMeshParticleVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
