@@ -26,6 +26,7 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
 	// End UK2Node interface
 
 

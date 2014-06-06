@@ -103,25 +103,8 @@ UEdGraphNode* FEdGraphSchemaAction_K2NewNode::CreateNode(class UEdGraph* ParentG
 	// auto-wire creates a conversion node to put between them)
 	ResultNode->AutowireNewNode(FromPinPtr);
 
-	// Update Analytics for these nodes
-	if( UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>( ResultNode ))
-	{
-		if( UFunction* TargetFunction = CallFunctionNode->GetTargetFunction() )
-		{
-			FBlueprintEditorUtils::AnalyticsTrackNewNode( ResultNode, FName( *UK2Node_CallFunction::StaticClass()->GetName()), *TargetFunction->GetName() );
-		}
-	}
-	else if( UK2Node_MacroInstance* MacroNode = Cast<UK2Node_MacroInstance>( ResultNode ))
-	{
-		if( UEdGraph* MacroGraph = MacroNode->GetMacroGraph() )
-		{
-			FBlueprintEditorUtils::AnalyticsTrackNewNode( ResultNode, FName( *UK2Node_MacroInstance::StaticClass()->GetName()), FName( *MacroGraph->GetName() ));
-		}
-	}
-	else if( UK2Node_Event* EventNode = Cast<UK2Node_Event>( ResultNode ))
-	{
-		FBlueprintEditorUtils::AnalyticsTrackNewNode( ResultNode, FName( *UK2Node_Event::StaticClass()->GetName() ), EventNode->GetFunctionName() );
-	}
+	// Update Analytics for the new nodes
+	FBlueprintEditorUtils::AnalyticsTrackNewNode( ResultNode );
 	// NOTE: At this point the node may have been reconstructed, depending on node type!
 
 	return ResultNode;
@@ -614,6 +597,9 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComment::PerformAction(class UEdGraph* P
 	}
 
 	UEdGraphNode* NewNode = FEdGraphSchemaAction_NewNode::SpawnNodeFromTemplate<UEdGraphNode_Comment>(ParentGraph, CommentTemplate, SpawnLocation, bSelectNewNode);
+
+	// Update Analytics for these nodes
+	FBlueprintEditorUtils::AnalyticsTrackNewNode( NewNode );
 
 	// Mark Blueprint as structurally modified since
 	// UK2Node_Comment::NodeCausesStructuralBlueprintChange used to return true

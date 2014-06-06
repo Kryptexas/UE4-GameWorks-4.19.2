@@ -55,6 +55,7 @@ public:
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual FText GetActiveBreakpointToolTipText() const OVERRIDE;
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
 	// End UK2Node interface
 
 	void SetMacroGraph(UEdGraph* Graph) { MacroGraphReference.SetGraph(Graph); }

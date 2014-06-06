@@ -423,4 +423,19 @@ bool UK2Node_MacroInstance::HasExternalBlueprintDependencies(TArray<class UStruc
 	return bResult;
 }
 
+void UK2Node_MacroInstance::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	FString MacroName( TEXT( "InvalidMacro" ));
+
+	if( UEdGraph* MacroGraph = GetMacroGraph() )
+	{
+		MacroName = MacroGraph->GetName();
+	}
+
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Macro" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), MacroName ));
+}
+
+
 #undef LOCTEXT_NAMESPACE

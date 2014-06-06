@@ -657,6 +657,13 @@ FText UK2Node_Event::GetToolTipHeading() const
 	return CompleteHeading;
 }
 
+void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Event" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetFunctionName().ToString() ));
+}
+
 bool UK2Node_Event::IsDeprecated() const
 {
 	if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))

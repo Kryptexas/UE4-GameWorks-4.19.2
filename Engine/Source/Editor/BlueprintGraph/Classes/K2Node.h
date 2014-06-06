@@ -278,6 +278,10 @@ class UK2Node : public UEdGraphNode
 
 	/** This function if used for nodes that needs CDO for validation (Called before expansion)*/
 	BLUEPRINTGRAPH_API virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const {}
+
+	/** This function returns an arbitrary number of attributes that describe this node for analytics events */
+	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
+
 protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up

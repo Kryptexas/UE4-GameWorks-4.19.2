@@ -51,6 +51,7 @@ class UK2Node_Timeline : public UK2Node
 	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
 	// End UK2Node interface.
 
 	/** Get the 'play' input pin */

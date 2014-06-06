@@ -88,6 +88,7 @@ public:
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
 	virtual FName GetCornerIcon() const OVERRIDE;
 	virtual FText GetToolTipHeading() const OVERRIDE;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
 	// End of UK2Node interface
 
 	/** Returns the UFunction that this class is pointing to */

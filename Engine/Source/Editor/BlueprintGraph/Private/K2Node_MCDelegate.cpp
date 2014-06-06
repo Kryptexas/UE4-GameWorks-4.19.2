@@ -185,6 +185,13 @@ bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStru
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
+void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "EventDelegate" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
+}
+
 /////// UK2Node_AddDelegate ///////////
 
 UK2Node_AddDelegate::UK2Node_AddDelegate(const class FPostConstructInitializeProperties& PCIP)
@@ -208,8 +215,8 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 FText UK2Node_AddDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("ProeprtyName"), FText::FromName(GetPropertyName()));
-	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {ProeprtyName}"), Args);
+	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
+	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {PropertyName}"), Args);
 }
 
 FString UK2Node_AddDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
@@ -222,6 +229,13 @@ FString UK2Node_AddDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) 
 FNodeHandlingFunctor* UK2Node_AddDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_AddRemoveDelegate(CompilerContext, KCST_AddMulticastDelegate);
+}
+
+void UK2Node_AddDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "AddDelegate" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetPropertyName().ToString() ));
 }
 
 /////// UK2Node_ClearDelegate ///////////

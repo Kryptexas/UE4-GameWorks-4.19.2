@@ -312,6 +312,43 @@ FGraphPanelSelectionSet FBlueprintEditor::GetSelectedNodes() const
 	return CurrentSelection;
 }
 
+void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete ) const
+{
+	if( Blueprint && GraphNode && FEngineAnalytics::IsAvailable() )
+	{
+		// Build Node Details
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		FString ProjectID = ProjectSettings.ProjectID.ToString();
+		TArray< FAnalyticsEventAttribute > NodeAttributes;
+		NodeAttributes.Add( FAnalyticsEventAttribute( TEXT( "ProjectId" ), ProjectID ) );
+		NodeAttributes.Add( FAnalyticsEventAttribute( TEXT( "BlueprintId" ), Blueprint->GetBlueprintGuid().ToString() ) );
+		TArray< TKeyValuePair<FString, FString> > Attributes;
+
+		if( UK2Node* K2Node = Cast<UK2Node>( GraphNode ))
+		{
+			K2Node->GetNodeAttributes( Attributes );
+		}
+		else if( UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>( GraphNode ))
+		{
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Comment" ) ));
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), CommentNode->GetClass()->GetName() ));
+			Attributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), CommentNode->GetName() ));
+		}
+		if( Attributes.Num() > 0 )
+		{
+			// Build Node Attributes
+			for( auto Iter = Attributes.CreateConstIterator(); Iter; ++Iter )
+			{
+				NodeAttributes.Add( FAnalyticsEventAttribute( Iter->Key, Iter->Value ));
+			}
+			// Send Analytics event
+			FString EventType = bNodeDelete ?	TEXT( "Editor.Usage.BlueprintEditor.NodeDeleted" ) :
+												TEXT( "Editor.Usage.BlueprintEditor.NodeCreated" );
+			FEngineAnalytics::GetProvider().RecordEvent( EventType, NodeAttributes );
+		}
+	}
+}
+
 void FBlueprintEditor::RefreshEditors()
 {
 	DocumentManager->CleanInvalidTabs();
@@ -1437,17 +1474,7 @@ FBlueprintEditor::~FBlueprintEditor()
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "PastedNodesCreated" ), AnalyticsStats.NodePasteCreateCount ));
 
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "ProjectId" ), ProjectID ) );
-
-		TArray< FAnalyticsEventAttribute > BPEditorNodeStats;
-		for( auto Iter = AnalyticsStats.CreatedNodeTypes.CreateIterator(); Iter; ++Iter )
-		{
-			const FString NodeType = FString::Printf( TEXT( "%s.%s" ), *Iter->Value.NodeClass.ToString(), *Iter->Key.ToString() ); 
-			BPEditorNodeStats.Add( FAnalyticsEventAttribute( NodeType, Iter->Value.Instances ));
-		}
-		AnalyticsStats.CreatedNodeTypes.Reset();
-
 		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor" ), BPEditorAttribs );
-		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor.NodeCreation" ), BPEditorNodeStats );
 
 		for (auto Iter = AnalyticsStats.GraphDisallowedPinConnections.CreateConstIterator(); Iter; ++Iter)
 		{
@@ -2031,21 +2058,6 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
 
 		FSlateApplication::Get().DismissAllMenus();
-	}
-}
-
-void FBlueprintEditor::AnalyticsTrackNewNode( FName NodeClass, FName NodeType )
-{
-	if( FAnalyticsStatistics::FNodeDetails* Result = AnalyticsStats.CreatedNodeTypes.Find( NodeType ))
-	{
-		Result->Instances++;
-	}
-	else
-	{
-		FAnalyticsStatistics::FNodeDetails NewEntry;
-		NewEntry.NodeClass = NodeClass;
-		NewEntry.Instances = 1;
-		AnalyticsStats.CreatedNodeTypes.Add( NodeType, NewEntry );
 	}
 }
 
@@ -3868,7 +3880,7 @@ void FBlueprintEditor::DeleteSelectedNodes()
 				{
 					DocumentManager->CleanInvalidTabs();
 				}
-
+				AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, true );
 				FBlueprintEditorUtils::RemoveNode(GetBlueprintObj(), Node, true);
 			}
 		}
@@ -4257,6 +4269,8 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 		{
 			bNeedToModifyStructurally = true;
 		}
+		// Log new node created to analytics
+		AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, false );
 	}
 
 	if (bNeedToModifyStructurally)

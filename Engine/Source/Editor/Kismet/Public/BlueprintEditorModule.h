@@ -52,8 +52,8 @@ public:
 	/** Find and select a specific SCS editor tree node associated with the given component */
 	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const class UActorComponent* InComponent, bool IsCntrlDown) = 0;
 
-	/** Used to track node class creation ( event, call function, macro ) and the type */
-	virtual void AnalyticsTrackNewNode( FName NodeClass, FName NodeType ) = 0;
+	/** Used to track node create/delete events for Analytics */
+	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const = 0;
 
 };
 

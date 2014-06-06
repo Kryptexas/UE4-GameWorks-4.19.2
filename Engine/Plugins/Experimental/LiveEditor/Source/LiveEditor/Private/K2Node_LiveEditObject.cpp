@@ -587,6 +587,17 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 	}
 }
 
+void UK2Node_LiveEditObject::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	UClass* ClassToSpawn = GetClassToSpawn();
+	const FString ClassToSpawnStr = ClassToSpawn ? ClassToSpawn->GetName() : TEXT( "UnknownClass" );
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "LiveEditObject" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ClassToSpawn" ), ClassToSpawnStr ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "EventName" ), GetEventName() ));
+}
+
 void UK2Node_LiveEditObject::CreatePinsForClass(UClass* InClass)
 {
 	check(InClass != NULL);

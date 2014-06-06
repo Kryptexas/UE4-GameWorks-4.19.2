@@ -154,6 +154,7 @@ public:
 	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const OVERRIDE;
 	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) OVERRIDE;
 	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
+	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const OVERRIDE;
 	// End of IBlueprintEditor interface
 
 	// FTickableEditorObject interface
@@ -789,8 +790,6 @@ protected:
 	virtual void	PostRedo(bool bSuccess) OVERRIDE;
 	// End of FEditorUndoClient
 
-	virtual void AnalyticsTrackNewNode( FName NodeClass, FName NodeType ) OVERRIDE;
-
 	/** Get graph appearance */
 	virtual FGraphAppearanceInfo GetGraphAppearance() const;
 
@@ -974,9 +973,6 @@ private:
 			FName NodeClass;
 			int32 Instances;
 		};
-
-		/** Stats collected about class/type/instances of user created nodes */
-		TMap<FName,FNodeDetails> CreatedNodeTypes;
 
 		/** Stats collected about warning tooltips */
 		TArray<FDisallowedPinConnection> GraphDisallowedPinConnections;

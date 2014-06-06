@@ -1380,6 +1380,9 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
 		}
 
+		// Create a new blueprint guid
+		Blueprint->GenerateNewGuid();
+
 		// And compile again to make sure they go into the generated class, get cleaned up, etc...
 		FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
 
@@ -5493,14 +5496,14 @@ void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
 	}
 }
 
-void FBlueprintEditorUtils::AnalyticsTrackNewNode( UEdGraphNode* NewNode, FName NodeClass, FName NodeType )
+void FBlueprintEditorUtils::AnalyticsTrackNewNode( UEdGraphNode *NewNode )
 {
 	UBlueprint* Blueprint = FindBlueprintForNodeChecked(NewNode);
-	TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(Blueprint); 
+	TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(Blueprint);
 	if (FoundAssetEditor.IsValid() && FoundAssetEditor->IsBlueprintEditor()) 
 	{ 
 		TSharedPtr<IBlueprintEditor> BlueprintEditor = StaticCastSharedPtr<IBlueprintEditor>(FoundAssetEditor);
-		BlueprintEditor->AnalyticsTrackNewNode(NodeClass, NodeType);
+		BlueprintEditor->AnalyticsTrackNodeEvent(Blueprint, NewNode, false);
 	}
 }
 

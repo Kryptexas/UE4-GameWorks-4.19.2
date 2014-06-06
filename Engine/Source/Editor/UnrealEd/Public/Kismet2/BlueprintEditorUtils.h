@@ -816,9 +816,9 @@ public:
 	static void FindAndSetDebuggableBlueprintInstances();
 
 	/**
-	 * Records new node class and type for analytics submission
+	 * Records node create events for analytics
 	 */
-	static void AnalyticsTrackNewNode( UEdGraphNode* NewNode, FName NodeClass, FName NodeType );
+	static void AnalyticsTrackNewNode( UEdGraphNode* NewNode );
 
 	/**
 	 * Generates a unique graph name for the supplied blueprint (guaranteed to not 

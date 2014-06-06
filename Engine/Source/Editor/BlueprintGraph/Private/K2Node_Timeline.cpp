@@ -546,4 +546,11 @@ FString UK2Node_Timeline::GetDocumentationExcerptName() const
 	return TEXT("UK2Node_Timeline");
 }
 
+void UK2Node_Timeline::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
+{
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "TimeLine" ) ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
+	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+}
+
 #undef LOCTEXT_NAMESPACE
