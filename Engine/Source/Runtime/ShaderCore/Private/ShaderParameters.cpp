@@ -89,7 +89,7 @@ void FShaderUniformBufferParameter::ModifyCompilationEnvironment(const TCHAR* Pa
 		);
 
 	FString& GeneratedUniformBuffersInclude = OutEnvironment.IncludeFileNameToContentsMap.FindOrAdd("GeneratedUniformBuffers.usf");
-	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, ParameterName);
+	GeneratedUniformBuffersInclude += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, ParameterName);
 
 	Struct.AddResourceTableEntries(OutEnvironment.ResourceTableMap, OutEnvironment.ResourceTableLayoutHashes);
 }
@@ -356,7 +356,7 @@ void FShaderType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvironment&
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
 		check(It.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, It.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, It.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
 			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
 			It.Value().Declaration[Platform]
@@ -389,7 +389,7 @@ void FVertexFactoryType::AddReferencedUniformBufferIncludes(FShaderCompilerEnvir
 	for (TMap<const TCHAR*,FCachedUniformBufferDeclaration>::TConstIterator It(ReferencedUniformBufferStructsCache); It; ++It)
 	{
 		check(It.Value().Declaration[Platform].Len() > 0);
-		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"")LINE_TERMINATOR, It.Key());
+		UniformBufferIncludes += FString::Printf(TEXT("#include \"UniformBuffers/%s.usf\"") LINE_TERMINATOR, It.Key());
 		OutEnvironment.IncludeFileNameToContentsMap.Add(
 			*FString::Printf(TEXT("UniformBuffers/%s.usf"),It.Key()),
 			It.Value().Declaration[Platform]
