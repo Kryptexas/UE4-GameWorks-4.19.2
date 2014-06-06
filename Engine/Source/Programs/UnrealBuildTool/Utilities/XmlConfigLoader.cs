@@ -581,7 +581,7 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				if (IsConfigurableClass(ClassType))
+				if (!IsConfigurableClass(ClassType))
 				{
 					Log.TraceVerbose("XmlConfig Loading: class '{0}' is not allowed to be configured using XML system.", XmlClass.Name);
 					continue;
