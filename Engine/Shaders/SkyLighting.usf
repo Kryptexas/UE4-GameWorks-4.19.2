@@ -9,7 +9,6 @@
 #include "ReflectionEnvironmentShared.usf"
 
 float BentNormalUVScale;
-float ApplyShadowing;
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
@@ -32,13 +31,12 @@ void SkyLightDiffusePS(
 		float DotProductFactor = 1;
 		float3 SkyLightingNormal = InGBufferData.WorldNormal;
 
-		BRANCH
-		if (ApplyShadowing > 0)
-		{
+#if APPLY_SHADOWING
 			float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV * BentNormalUVScale, 0).xyz;
-			SkyVisibility = BentNormal.x;
 
 			// Disabled for now as it needs tweaking
+			// Causes artifacts due to only having local occlusion, and distance field representation error (shading point inside distance field)
+			// Have to set matching define in DistanceFieldSurfaceCacheLightingCompute.usf
 			#define USE_DYNAMIC_OCCLUSION_BENT_NORMAL 0
 			#if USE_DYNAMIC_OCCLUSION_BENT_NORMAL
 				SkyVisibility = length(BentNormal);
@@ -51,15 +49,29 @@ void SkyLightDiffusePS(
 				// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
 				// In the mostly occluded case, evaluate sky lighting with the bent normal, because it is a better representation of the incoming lighting
 				// Then treat the lighting evaluated along the bent normal as an area light, so we must apply the lambert term
-				SkyLightingNormal = lerp(NormalizedBentNormal, InGBufferData.WorldNormal, BentNormalWeightFactor);
-				DotProductFactor = lerp(dot(NormalizedBentNormal, InGBufferData.WorldNormal), 1, BentNormalWeightFactor);
+
+				FLATTEN
+				if (InGBufferData.HasDistanceFieldRepresentation != 0)
+				{
+					SkyLightingNormal = lerp(NormalizedBentNormal, InGBufferData.WorldNormal, BentNormalWeightFactor);
+					DotProductFactor = lerp(dot(NormalizedBentNormal, InGBufferData.WorldNormal), 1, BentNormalWeightFactor);
+				}
+				else
+				{
+					SkyVisibility = .5f;
+				}
+
+			#else
+				SkyVisibility = BentNormal.x;
+
+				FLATTEN
+				if (InGBufferData.HasDistanceFieldRepresentation == 0)
+				{
+					SkyVisibility = .5f;
+				}
 			#endif
 
-			if (InGBufferData.HasDistanceFieldRepresentation == 0)
-			{
-				SkyVisibility = .5f;
-			}
-		}
+#endif
 			
 		// Compute the preconvolved incoming lighting with the bent normal direction
 		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;

@@ -729,7 +729,6 @@ public:
 	{
 		CurrentLevelDownsampleFactor.Bind(ParameterMap, TEXT("CurrentLevelDownsampleFactor"));
 		AOBufferSize.Bind(ParameterMap, TEXT("AOBufferSize"));
-		AOScreenPositionScaleBias.Bind(ParameterMap, TEXT("AOScreenPositionScaleBias"));
 		DownsampleFactorToBaseLevel.Bind(ParameterMap, TEXT("DownsampleFactorToBaseLevel"));
 		BaseLevelTexelSize.Bind(ParameterMap, TEXT("BaseLevelTexelSize"));
 	}
@@ -743,34 +742,6 @@ public:
 		const FVector2D AOBufferSizeValue = FIntPoint::DivideAndRoundUp(GSceneRenderTargets.GetBufferSizeXY(), CurrentLevelDownsampleFactorValue);
 		SetShaderValue(RHICmdList, ShaderRHI, AOBufferSize, AOBufferSizeValue);
 
-		const FVector2D InvAOBufferSize(1.0f / AOBufferSizeValue.X, 1.0f / AOBufferSizeValue.Y);
-
-		// Round down, to match how the view was set
-		const FIntPoint AOViewRectMin = FIntPoint(View.ViewRect.Min.X / CurrentLevelDownsampleFactorValue, View.ViewRect.Min.Y / CurrentLevelDownsampleFactorValue);
-		const FIntPoint AOViewRectSize = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), CurrentLevelDownsampleFactorValue);
-
-		/*
-		const FVector4 AOScreenPositionScaleBiasValue(
-			AOViewRectSize.X * InvAOBufferSize.X / +2.0f,
-			AOViewRectSize.Y * InvAOBufferSize.Y / (-2.0f * GProjectionSignY),
-			(AOViewRectSize.X / 2.0f + GPixelCenterOffset + AOViewRectMin.X) * InvAOBufferSize.X,
-			(AOViewRectSize.Y / 2.0f + GPixelCenterOffset + AOViewRectMin.Y) * InvAOBufferSize.Y
-			);*/
-
-		const FIntPoint RoundedDownViewDimensions = AOViewRectSize * CurrentLevelDownsampleFactorValue;
-
-		const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
-		const float InvBufferSizeX = 1.0f / BufferSize.X;
-		const float InvBufferSizeY = 1.0f / BufferSize.Y;
-		const FVector4 ScreenPositionScaleBias(
-			RoundedDownViewDimensions.X * InvBufferSizeX / +2.0f,
-			RoundedDownViewDimensions.Y * InvBufferSizeY / (-2.0f * GProjectionSignY),
-			(RoundedDownViewDimensions.Y / 2.0f + GPixelCenterOffset + AOViewRectMin.Y) * InvBufferSizeY,
-			(RoundedDownViewDimensions.X / 2.0f + GPixelCenterOffset + AOViewRectMin.X) * InvBufferSizeX
-			);
-
-		SetShaderValue(RHICmdList, ShaderRHI, AOScreenPositionScaleBias, ScreenPositionScaleBias);
-
 		SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorToBaseLevel, CurrentLevelDownsampleFactorValue / GAODownsampleFactor);
 
 		const FIntPoint DownsampledBufferSize(GSceneRenderTargets.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor));
@@ -780,14 +751,13 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar,FAOLevelParameters& P)
 	{
-		Ar << P.CurrentLevelDownsampleFactor << P.AOBufferSize << P.AOScreenPositionScaleBias << P.DownsampleFactorToBaseLevel << P.BaseLevelTexelSize;
+		Ar << P.CurrentLevelDownsampleFactor << P.AOBufferSize << P.DownsampleFactorToBaseLevel << P.BaseLevelTexelSize;
 		return Ar;
 	}
 
 private:
 	FShaderParameter CurrentLevelDownsampleFactor;
 	FShaderParameter AOBufferSize;
-	FShaderParameter AOScreenPositionScaleBias;
 	FShaderParameter DownsampleFactorToBaseLevel;
 	FShaderParameter BaseLevelTexelSize;
 };
@@ -1301,15 +1271,11 @@ public:
 		ViewDimensionsParameter.Bind(Initializer.ParameterMap, TEXT("ViewDimensions"));
 		ThreadToCulledTile.Bind(Initializer.ParameterMap, TEXT("ThreadToCulledTile"));
 		TileListGroupSize.Bind(Initializer.ParameterMap, TEXT("TileListGroupSize"));
-		ConeHalfAngle.Bind(Initializer.ParameterMap, TEXT("ConeHalfAngle"));
-		BentNormalNormalizeFactor.Bind(Initializer.ParameterMap, TEXT("BentNormalNormalizeFactor"));
-		DistanceFieldAtlasTexelSize.Bind(Initializer.ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
 		DistanceFieldNormalSampler.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalSampler"));
 		IrradianceCacheSplatTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheSplatTexture"));
 		IrradianceCacheSplatSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceCacheSplatSampler"));
 		AOLevelParameters.Bind(Initializer.ParameterMap);
-		RecordRadiusScale.Bind(Initializer.ParameterMap, TEXT("RecordRadiusScale"));
 	}
 
 	FPopulateCacheCS()
@@ -1351,24 +1317,6 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, TileListGroupSizeValue);
 
-		SetShaderValue(RHICmdList, ShaderRHI, ConeHalfAngle, GAOConeHalfAngle);
-
-		FVector UnoccludedVector(0);
-
-		for (int32 SampleIndex = 0; SampleIndex < NumConeSampleDirections; SampleIndex++)
-		{
-			UnoccludedVector += SampleDirections[SampleIndex];
-		}
-
-		float BentNormalNormalizeFactorValue = 1.0f / (UnoccludedVector / NumConeSampleDirections).Size();
-		SetShaderValue(RHICmdList, ShaderRHI, BentNormalNormalizeFactor, BentNormalNormalizeFactorValue);
-
-		const int32 NumTexelsOneDimX = GDistanceFieldVolumeTextureAtlas.GetSizeX();
-		const int32 NumTexelsOneDimY = GDistanceFieldVolumeTextureAtlas.GetSizeY();
-		const int32 NumTexelsOneDimZ = GDistanceFieldVolumeTextureAtlas.GetSizeZ();
-		const FVector InvTextureDim(1.0f / NumTexelsOneDimX, 1.0f / NumTexelsOneDimY, 1.0f / NumTexelsOneDimZ);
-		SetShaderValue(RHICmdList, ShaderRHI, DistanceFieldAtlasTexelSize, InvTextureDim);
-
 		SetTextureParameter(
 			RHICmdList,
 			ShaderRHI,
@@ -1386,8 +1334,6 @@ public:
 			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
 			DistanceFieldAOIrradianceCacheSplat.ShaderResourceTexture
 			);
-
-		SetShaderValue(RHICmdList, ShaderRHI, RecordRadiusScale, GAORecordRadiusScale);
 	}
 
 	void UnsetParameters(FRHICommandList* RHICmdList)
@@ -1411,14 +1357,10 @@ public:
 		Ar << ViewDimensionsParameter;
 		Ar << ThreadToCulledTile;
 		Ar << TileListGroupSize;
-		Ar << ConeHalfAngle;
-		Ar << BentNormalNormalizeFactor;
-		Ar << DistanceFieldAtlasTexelSize;
 		Ar << DistanceFieldNormalTexture;
 		Ar << DistanceFieldNormalSampler;
 		Ar << IrradianceCacheSplatTexture;
 		Ar << IrradianceCacheSplatSampler;
-		Ar << RecordRadiusScale;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -1434,14 +1376,10 @@ private:
 	FShaderParameter ViewDimensionsParameter;
 	FShaderParameter ThreadToCulledTile;
 	FShaderParameter TileListGroupSize;
-	FShaderParameter ConeHalfAngle;
-	FShaderParameter BentNormalNormalizeFactor;
-	FShaderParameter DistanceFieldAtlasTexelSize;
 	FShaderResourceParameter DistanceFieldNormalTexture;
 	FShaderResourceParameter DistanceFieldNormalSampler;
 	FShaderResourceParameter IrradianceCacheSplatTexture;
 	FShaderResourceParameter IrradianceCacheSplatSampler;
-	FShaderParameter RecordRadiusScale;
 };
 
 IMPLEMENT_SHADER_TYPE(,FPopulateCacheCS,TEXT("DistanceFieldSurfaceCacheLightingCompute"),TEXT("PopulateCacheCS"),SF_Compute);
@@ -1553,7 +1491,7 @@ public:
 		TileHeadDataUnpacked.Bind(Initializer.ParameterMap, TEXT("TileHeadDataUnpacked"));
 		TileArrayData.Bind(Initializer.ParameterMap, TEXT("TileArrayData"));
 		TileListGroupSize.Bind(Initializer.ParameterMap, TEXT("TileListGroupSize"));
-		ConeHalfAngle.Bind(Initializer.ParameterMap, TEXT("ConeHalfAngle"));
+		TanConeHalfAngle.Bind(Initializer.ParameterMap, TEXT("TanConeHalfAngle"));
 		BentNormalNormalizeFactor.Bind(Initializer.ParameterMap, TEXT("BentNormalNormalizeFactor"));
 		DistanceFieldAtlasTexelSize.Bind(Initializer.ParameterMap, TEXT("DistanceFieldAtlasTexelSize"));
 		DistanceFieldNormalTexture.Bind(Initializer.ParameterMap, TEXT("DistanceFieldNormalTexture"));
@@ -1614,7 +1552,7 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, TileListGroupSize, TileListGroupSizeValue);
 
-		SetShaderValue(RHICmdList, ShaderRHI, ConeHalfAngle, GAOConeHalfAngle);
+		SetShaderValue(RHICmdList, ShaderRHI, TanConeHalfAngle, FMath::Tan(GAOConeHalfAngle));
 
 		FVector UnoccludedVector(0);
 
@@ -1679,7 +1617,7 @@ public:
 		Ar << TileHeadData;
 		Ar << TileArrayData;
 		Ar << TileListGroupSize;
-		Ar << ConeHalfAngle;
+		Ar << TanConeHalfAngle;
 		Ar << BentNormalNormalizeFactor;
 		Ar << DistanceFieldAtlasTexelSize;
 		Ar << DistanceFieldNormalTexture;
@@ -1709,7 +1647,7 @@ private:
 	FShaderResourceParameter TileHeadData;
 	FShaderResourceParameter TileArrayData;
 	FShaderParameter TileListGroupSize;
-	FShaderParameter ConeHalfAngle;
+	FShaderParameter TanConeHalfAngle;
 	FShaderParameter BentNormalNormalizeFactor;
 	FShaderParameter DistanceFieldAtlasTexelSize;
 	FShaderResourceParameter DistanceFieldNormalTexture;
@@ -3100,9 +3038,10 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FSceneRend
 	return false;
 }
 
-class FDynamicSkyLightDiffusePS : public FGlobalShader
+template<bool bApplyShadowing>
+class TDynamicSkyLightDiffusePS : public FGlobalShader
 {
-	DECLARE_SHADER_TYPE(FDynamicSkyLightDiffusePS, Global);
+	DECLARE_SHADER_TYPE(TDynamicSkyLightDiffusePS, Global);
 public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
@@ -3114,23 +3053,23 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("DOWNSAMPLE_FACTOR"), GAODownsampleFactor);
+		OutEnvironment.SetDefine(TEXT("APPLY_SHADOWING"), (uint32)(bApplyShadowing ? 1 : 0));
 	}
 
 	/** Default constructor. */
-	FDynamicSkyLightDiffusePS() {}
+	TDynamicSkyLightDiffusePS() {}
 
 	/** Initialization constructor. */
-	FDynamicSkyLightDiffusePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	TDynamicSkyLightDiffusePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		LightAccumulationTexture.Bind(Initializer.ParameterMap, TEXT("BentNormalAOTexture"));
 		LightAccumulationSampler.Bind(Initializer.ParameterMap, TEXT("BentNormalAOSampler"));
 		BentNormalUVScale.Bind(Initializer.ParameterMap, TEXT("BentNormalUVScale"));
-		ApplyShadowing.Bind(Initializer.ParameterMap, TEXT("ApplyShadowing"));
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, FTextureRHIParamRef DynamicBentNormalAO, bool bApplyShadowing)
+	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, FTextureRHIParamRef DynamicBentNormalAO)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
@@ -3139,7 +3078,6 @@ public:
 		SetTextureParameter(RHICmdList, ShaderRHI, LightAccumulationTexture, LightAccumulationSampler, TStaticSamplerState<SF_Point>::GetRHI(), DynamicBentNormalAO);
 
 		SetShaderValue(RHICmdList, ShaderRHI, BentNormalUVScale, 1.0f);
-		SetShaderValue(RHICmdList, ShaderRHI, ApplyShadowing, bApplyShadowing ? 1.0f : 0.0f);
 	}
 
 	// FShader interface.
@@ -3150,7 +3088,6 @@ public:
 		Ar << LightAccumulationTexture;
 		Ar << LightAccumulationSampler;
 		Ar << BentNormalUVScale;
-		Ar << ApplyShadowing;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -3160,10 +3097,10 @@ private:
 	FShaderResourceParameter LightAccumulationTexture;
 	FShaderResourceParameter LightAccumulationSampler;
 	FShaderParameter BentNormalUVScale;
-	FShaderParameter ApplyShadowing;
 };
 
-IMPLEMENT_SHADER_TYPE(,FDynamicSkyLightDiffusePS,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS<true>,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS<false>,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 
 void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting()
 {
@@ -3208,13 +3145,26 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting()
 			RHISetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_One, BF_One >::GetRHI() );
 
 			TShaderMapRef< FPostProcessVS > VertexShader( GetGlobalShaderMap() );
-			TShaderMapRef< FDynamicSkyLightDiffusePS > PixelShader( GetGlobalShaderMap() );
 
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
+			if (bApplyShadowing)
+			{
+				TShaderMapRef<TDynamicSkyLightDiffusePS<true> > PixelShader( GetGlobalShaderMap() );
 
-			PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture, bApplyShadowing);
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
+				PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture);
+			}
+			else
+			{
+				TShaderMapRef<TDynamicSkyLightDiffusePS<false> > PixelShader( GetGlobalShaderMap() );
+
+				static FGlobalBoundShaderState BoundShaderState;
+				SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+				PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture);
+			}
+			
 			DrawRectangle( 
 				0, 0, 
 				View.ViewRect.Width(), View.ViewRect.Height(),

@@ -30,6 +30,7 @@ RWBuffer<uint> RWTileHeadDataUnpacked;
 #define MAX_OBJECTS_PER_TILE 1
 #endif
 
+/** Builds tile depth ranges and bounding cones. */
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void BuildTileConesMain(
 	uint3 GroupId : SV_GroupID,
@@ -335,9 +336,6 @@ void DistanceFieldAOBuildTileListMain(
 
 /** View rect min in xy, max in zw. */
 float2 ThreadToCulledTile;
-float ConeHalfAngle;
-float BentNormalNormalizeFactor;
-float RecordRadiusScale;
 
 RWBuffer<float4> RWIrradianceCachePositionRadius;
 RWBuffer<float4> RWIrradianceCacheNormal;
@@ -360,6 +358,7 @@ groupshared uint2 CachedIrradianceCacheTileCoordinate[THREADGROUP_TOTALSIZE];
 groupshared uint NumQueuedIrradianceCacheRecords;
 groupshared uint BaseRecordIndex;
 
+/** Creates new surface cache records for sample points that don't have valid coverage from existing surface cache records. */
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void PopulateCacheCS(
 	uint3 GroupId : SV_GroupID,
@@ -405,8 +404,10 @@ void PopulateCacheCS(
 			//@todo - offset shading position along normal to avoid incorrect self-occlusion?
 			float3 WorldShadingPosition = OpaqueWorldPosition;
 
+			// For debugging
 			//if (all(DispatchThreadId.xy == uint2(2,1)))
 			{
+				// Allocate a new record and store off attributes of the created record
 				int NextSampleIndex;
 				InterlockedAdd(NumQueuedIrradianceCacheRecords, 1, NextSampleIndex);
 				CachedIrradianceCachePositionRadius[NextSampleIndex] = float4(WorldShadingPosition, SceneDepth * CurrentLevelDownsampleFactor * .005f);
@@ -446,6 +447,10 @@ void PopulateCacheCS(
 	}
 }
 
+float BentNormalNormalizeFactor;
+float TanConeHalfAngle;
+float RecordRadiusScale;
+
 Buffer<float4> IrradianceCachePositionRadius;
 Buffer<uint2> IrradianceCacheTileCoordinate;
 Buffer<float4> IrradianceCacheNormal;
@@ -462,6 +467,7 @@ RWBuffer<float4> RWIrradianceCacheBentNormal;
 groupshared uint SharedConeVisibility[NUM_SAMPLES];
 groupshared uint SharedMinOcclusionDistance;
 
+/** Computes ambient occlusion for a surface cache record by cone stepping through the nearby object distance fields. */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
 void FinalGatherCS(
 	uint3 GroupId : SV_GroupID,
@@ -470,9 +476,6 @@ void FinalGatherCS(
 {
 	uint ThreadIndex = GroupThreadId.x;
 	uint ObjectOffsetIndex = ThreadIndex / THREADS_PER_OBJECT;
-
-	float ShadingConeAngleScale = 1;
-	float ShadingConeTanTheta = tan(ShadingConeAngleScale * ConeHalfAngle);
 
 	if (ThreadIndex == 0)
 	{
@@ -583,7 +586,7 @@ void FinalGatherCS(
 						float DistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, StepVolumeUV, 0).x + DistanceToClamped;
 
 						float EffectiveDistanceToOccluder = DistanceToOccluder;
-						float SphereRadius = LocalStepOffset * ShadingConeTanTheta;
+						float SphereRadius = LocalStepOffset * TanConeHalfAngle;
 						// Allows use of negative distances in the small steps to create full penumbra range, reduces over-occlusion
 						float MinOcclusionFraction = 0;//-.6f * (1 - saturate(4 * StepIndex / (float)NUM_CONE_STEPS));
 						float Visibility = saturate((EffectiveDistanceToOccluder / SphereRadius - MinOcclusionFraction) / (1 - MinOcclusionFraction));
@@ -626,7 +629,13 @@ void FinalGatherCS(
 		Visibility = Visibility / (float)NUM_SAMPLES;
 
 		RWOccluderRadius[RecordIndex] = RecordRadiusScale * asfloat(SharedMinOcclusionDistance);
-		RWIrradianceCacheBentNormal[RecordIndex] = float4(EncodeNormalForAO(Visibility.xxx), 0);
+
+#define USE_DYNAMIC_OCCLUSION_BENT_NORMAL 0
+#if USE_DYNAMIC_OCCLUSION_BENT_NORMAL
+		RWIrradianceCacheBentNormal[RecordIndex] = float4(EncodeNormalForAO(UnoccludedDirection), 0);
+#else
+		RWIrradianceCacheBentNormal[RecordIndex] = float4(Visibility.xxx, 0);
+#endif
 	}
 }
 

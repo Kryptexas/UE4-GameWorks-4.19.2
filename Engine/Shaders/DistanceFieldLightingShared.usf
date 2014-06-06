@@ -112,7 +112,6 @@ SamplerState DistanceFieldNormalSampler;
 
 int CurrentLevelDownsampleFactor;
 float2 AOBufferSize;
-float4 AOScreenPositionScaleBias;
 
 int DownsampleFactorToBaseLevel;
 float2 BaseLevelTexelSize;

@@ -19,7 +19,7 @@ struct FObjectCullVertexOutput
 
 float ConservativeRadiusScale;
 
-/** */
+/** Used when culling objects into screenspace tile lists */
 void ObjectCullVS(
 	float4 InPosition : ATTRIBUTE0,
 	uint ObjectIndex : SV_InstanceID,
@@ -44,6 +44,7 @@ Buffer<float4> TileConeDepthRanges;
 
 float2 NumGroups;
 
+/** Intersects a single object with the tile and adds to the intersection list if needed. */
 void ObjectCullPS(
 	FObjectCullVertexOutput Input, 
 	in float4 SVPos : SV_POSITION,
@@ -104,6 +105,7 @@ void ObjectCullPS(
 
 float2 UVToTileHead;
 
+/** Computes the distance field normal, using a search through all the nearby objects to find the closest one, whose normal is used. */
 void ComputeDistanceFieldNormalPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	in float4 SVPos : SV_POSITION,
@@ -361,7 +363,7 @@ float InterpolationRadiusScale;
 float2 NormalizedOffsetToPixelCenter;
 float HackExpand;
 
-/** */
+/** Expands a screen-facing polygon to cover a surface cache record for splatting. */
 void IrradianceCacheSplatVS(
 	float2 InPosition : ATTRIBUTE0,
 	float2 InUV       : ATTRIBUTE1,
@@ -409,6 +411,7 @@ void IrradianceCacheSplatVS(
 float InterpolationAngleNormalization; 
 float InvMinCosPointBehindPlane;
 
+/** Computes surface cache weighting between the current pixel and the record being splatted. */
 void IrradianceCacheSplatPS(
 	FIrradianceCacheSplatVertexOutput Input, 
 	in float4 SVPos : SV_POSITION,
@@ -483,6 +486,7 @@ void IrradianceCacheSplatPS(
 Texture2D BentNormalAOTexture3;
 SamplerState BentNormalAOSampler3;
 
+/** Normalizes the splatted surface cache values, packs depth in alpha. */
 void AOCombinePS2(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	in float4 SVPos : SV_POSITION,
@@ -533,6 +537,7 @@ SamplerState BentNormalAOSampler;
 
 #define HALF_FILL_KERNEL_SIZE 2
 
+/** Fills in texels with no splatted weight from screenspace neighbors. */
 void FillGapsPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	in float4 SVPos : SV_POSITION,
@@ -572,6 +577,7 @@ Texture2D HistoryTexture;
 SamplerState HistorySampler;
 float HistoryWeight;
 
+/** Reprojection the occlusion history, only correct for pixels belonging to static objects (camera motion only). */
 void UpdateHistoryPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0)
@@ -609,6 +615,7 @@ void UpdateHistoryPS(
 	OutColor.a = NewValue.a;
 }
 
+/** Upsamples the AO results to full resolution using a bilateral filter. */
 void AOUpsamplePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 #define BILATERAL_UPSAMPLE 1
