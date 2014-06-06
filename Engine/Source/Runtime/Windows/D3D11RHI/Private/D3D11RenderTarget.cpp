@@ -7,6 +7,7 @@
 #include "D3D11RHIPrivate.h"
 #include "BatchedElements.h"
 #include "ScreenRendering.h"
+#include "RHIStaticStates.h"
 
 namespace
 {
