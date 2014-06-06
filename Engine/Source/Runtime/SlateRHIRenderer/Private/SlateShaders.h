@@ -7,6 +7,7 @@
 #include "GlobalShader.h"
 #include "ShaderParameters.h"
 #include "UniformBuffer.h"
+#include "ShaderParameterUtils.h"
 
 extern uint32 GSlateShaderColorVisionDeficiencyType;
 
