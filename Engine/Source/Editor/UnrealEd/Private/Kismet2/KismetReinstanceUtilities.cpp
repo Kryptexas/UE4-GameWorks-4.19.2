@@ -288,7 +288,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 					for (auto AttachIt = OldRootComponent->AttachChildren.CreateConstIterator(); AttachIt; ++AttachIt)
 					{
 						USceneComponent* Child = *AttachIt;
-						if (ensure(Child != nullptr))
+						if (Child != nullptr)
 						{
 							OldAttachChildren.Add(Child->GetOwner());
 						}
