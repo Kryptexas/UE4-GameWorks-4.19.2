@@ -40,7 +40,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogSequencer, Log, All );
 
-static bool IsSequencerEnabled()
+bool FSequencer::IsSequencerEnabled()
 {
 	return FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) || FParse::Param( FCommandLine::Get(), TEXT( "umg" ) );
 }

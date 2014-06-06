@@ -3,7 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "WidgetBlueprintEditor.h"
-
+#include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 
 #define LOCTEXT_NAMESPACE "UMG"

@@ -4,6 +4,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "SequencerAssetEditor.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -17,7 +18,7 @@ void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManag
 {
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	if( IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
+	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
 	{
 		TabManager->RegisterTabSpawner( SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FSequencerAssetEditor::SpawnTab_SequencerMain) )
 			.SetDisplayName( LOCTEXT("SequencerMainTab", "Sequencer") )
@@ -28,7 +29,7 @@ void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManag
 
 void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	if( IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
+	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
 	{
 		TabManager->UnregisterTabSpawner( SequencerMainTabId );
 	}

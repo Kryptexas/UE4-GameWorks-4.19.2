@@ -269,6 +269,8 @@ public:
 	/** @return The toolkit that this sequencer is hosted in (if any) */
 	TSharedPtr<IToolkitHost> GetToolkitHost() const { return ToolkitHost.Pin(); }
 
+	static bool IsSequencerEnabled();
+
 protected:
 	/**
 	 * Reset data about a movie scene when pushing or popping a movie scene
