@@ -47,15 +47,7 @@ void SButton::Construct( const FArguments& InArgs )
 
 	ContentPadding = InArgs._ContentPadding;
 
-	/* Get pointer to the button style */
-	const FButtonStyle* const ButtonStyle = InArgs._ButtonStyle;
-
-	NormalImage = &ButtonStyle->Normal;
-	HoverImage = &ButtonStyle->Hovered;
-	PressedImage = &ButtonStyle->Pressed;
-
-	BorderPadding = ButtonStyle->NormalPadding;
-	PressedBorderPadding = ButtonStyle->PressedPadding;
+	SetButtonStyle(InArgs._ButtonStyle);
 
 	bIsFocusable = InArgs._IsFocusable;
 
@@ -63,8 +55,8 @@ void SButton::Construct( const FArguments& InArgs )
 
 	ClickMethod = InArgs._ClickMethod;
 
-	HoveredSound = InArgs._HoveredSoundOverride.Get(ButtonStyle->HoveredSlateSound);
-	PressedSound = InArgs._PressedSoundOverride.Get(ButtonStyle->PressedSlateSound);
+	HoveredSound = InArgs._HoveredSoundOverride.Get(Style->HoveredSlateSound);
+	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
 }
 
 FMargin SButton::GetCombinedPadding() const
@@ -256,4 +248,37 @@ FVector2D SButton::ComputeDesiredSize() const
 	{
 		return SBorder::ComputeDesiredSize();
 	}
+}
+
+void SButton::SetContentPadding(const TAttribute<FMargin>& InContentPadding)
+{
+	ContentPadding = InContentPadding;
+}
+
+void SButton::SetHoveredSound(TOptional<FSlateSound> InHoveredSound)
+{
+	HoveredSound = InHoveredSound.Get(Style->HoveredSlateSound);
+}
+
+void SButton::SetPressedSound(TOptional<FSlateSound> InPressedSound)
+{
+	PressedSound = InPressedSound.Get(Style->PressedSlateSound);
+}
+
+void SButton::SetOnClicked(FOnClicked InOnClicked)
+{
+	OnClicked = InOnClicked;
+}
+
+void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
+{
+	/* Get pointer to the button style */
+	Style = ButtonStyle;
+
+	NormalImage = &Style->Normal;
+	HoverImage = &Style->Hovered;
+	PressedImage = &Style->Pressed;
+
+	BorderPadding = Style->NormalPadding;
+	PressedBorderPadding = Style->PressedPadding;
 }

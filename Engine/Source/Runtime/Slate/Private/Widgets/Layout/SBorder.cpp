@@ -65,7 +65,6 @@ void SBorder::ClearContent()
 	ChildSlot = FSimpleSlot();
 }
 
-
 /**
  * The widget should respond by populating the OutDrawElements array with FDrawElements 
  * that represent it and any of its children.
@@ -206,4 +205,39 @@ FReply SBorder::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPo
 FVector2D SBorder::ComputeDesiredSize() const
 {
 	return DesiredSizeScale.Get() * SCompoundWidget::ComputeDesiredSize();
+}
+
+void SBorder::SetBorderBackgroundColor(const TAttribute<FSlateColor>& InColorAndOpacity)
+{
+	BorderBackgroundColor = InColorAndOpacity;
+}
+
+void SBorder::SetDesiredSizeScale(const TAttribute<FVector2D>& InDesiredSizeScale)
+{
+	DesiredSizeScale = InDesiredSizeScale;
+}
+
+void SBorder::SetHAlign(EHorizontalAlignment HAlign)
+{
+	ChildSlot.HAlignment = HAlign;
+}
+
+void SBorder::SetVAlign(EVerticalAlignment VAlign)
+{
+	ChildSlot.VAlignment = VAlign;
+}
+
+void SBorder::SetPadding(const TAttribute<FMargin>& InPadding)
+{
+	ChildSlot.SlotPadding = InPadding;
+}
+
+void SBorder::SetShowEffectWhenDisabled(const TAttribute<bool>& InShowEffectWhenDisabled)
+{
+	ShowDisabledEffect = InShowEffectWhenDisabled;
+}
+
+void SBorder::SetBorderImage(const TAttribute<const FSlateBrush*>& InBorderImage)
+{
+	BorderImage = InBorderImage;
 }

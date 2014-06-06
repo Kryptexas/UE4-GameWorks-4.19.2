@@ -86,29 +86,26 @@ public:
 	/** Clears out the content for the border */
 	void ClearContent();
 
-	/** Gets the color and opacity of the background image of this border. */
-	FSlateColor GetBorderBackgroundColor()
-	{
-		return BorderBackgroundColor.Get();
-	}
-
 	/** Sets the color and opacity of the background image of this border. */
-	void SetBorderBackgroundColor( const TAttribute<FSlateColor>& InColorAndOpacity )
-	{
-		BorderBackgroundColor = InColorAndOpacity;
-	}
+	void SetBorderBackgroundColor(const TAttribute<FSlateColor>& InColorAndOpacity);
 
 	/** Set the desired size scale multiplier */
-	FVector2D GetDesiredSizeScale()
-	{
-		return DesiredSizeScale.Get();
-	}
+	void SetDesiredSizeScale(const TAttribute<FVector2D>& InDesiredSizeScale);
+	
+	/** See HAlign argument */
+	void SetHAlign(EHorizontalAlignment HAlign);
 
-	/** Set the desired size scale multiplier */
-	void SetDesiredSizeScale( const TAttribute<FVector2D>& InDesiredSizeScale )
-	{
-		DesiredSizeScale = InDesiredSizeScale;
-	}
+	/** See VAlign argument */
+	void SetVAlign(EVerticalAlignment VAlign);
+
+	/** See Padding attribute */
+	void SetPadding(const TAttribute<FMargin>& InPadding);
+
+	/** See ShowEffectWhenDisabled attribute */
+	void SetShowEffectWhenDisabled(const TAttribute<bool>& InShowEffectWhenDisabled);
+
+	/** See BorderImage attribute */
+	void SetBorderImage(const TAttribute<const FSlateBrush*>& InBorderImage);
 
 public:
 	// SWidget interface

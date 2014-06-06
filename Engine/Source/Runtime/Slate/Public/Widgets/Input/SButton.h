@@ -114,17 +114,20 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-	/** Gets the content padding of the button */
-	FMargin GetContentPadding() const
-	{
-		return ContentPadding.Get();
-	}
+	/** See ContentPadding attribute */
+	void SetContentPadding(const TAttribute<FMargin>& InContentPadding);
 
-	/** Sets the content padding of the button */
-	void SetContentPadding(const TAttribute<FMargin>& InContentPadding)
-	{
-		ContentPadding = InContentPadding;
-	}
+	/** See HoveredSound attribute */
+	void SetHoveredSound(TOptional<FSlateSound> InHoveredSound);
+
+	/** See PressedSound attribute */
+	void SetPressedSound(TOptional<FSlateSound> InPressedSound);
+
+	/** See OnClicked event */
+	void SetOnClicked(FOnClicked InOnClicked);
+
+	/** See ButtonStyle attribute */
+	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 
 protected:
 	/** @return combines the user-specified margin and the button's internal margin. */
@@ -144,6 +147,9 @@ protected:
 
 	/** The delegate to execute when the button is clicked */
 	FOnClicked OnClicked;
+
+	/** Style resource for the button */
+	const FButtonStyle* Style;
 
 	/** Brush resource that represents a button */
 	const FSlateBrush* NormalImage;
