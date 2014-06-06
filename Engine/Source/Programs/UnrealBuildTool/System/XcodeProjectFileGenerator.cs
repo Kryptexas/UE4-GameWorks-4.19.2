@@ -651,6 +651,19 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private bool ContainsGameTarget(string Path, string TargetName)
+		{
+			bool retval = false;
+
+			if (File.Exists (Path + "/Source/" + TargetName + ".Target.cs")) 
+			{
+				// read the file
+				string Contents = File.ReadAllText(Path + "/Source/" + TargetName + ".Target.cs");
+				retval = Contents.Contains ("Type = TargetType.Game");
+			}
+			return retval;
+		}
+
 		/// <summary>
 		/// Appends a build configuration section for specific target.
 		/// </summary>
@@ -670,7 +683,7 @@ namespace UnrealBuildTool
 
 			foreach (string GameFolder in GameFolders )
 			{
-				if (GameFolder.EndsWith(Target.TargetName))
+				if (GameFolder.EndsWith(Target.TargetName) || ContainsGameTarget(GameFolder, Target.TargetName))
 				{
 					IsAGame = true;
 					if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
