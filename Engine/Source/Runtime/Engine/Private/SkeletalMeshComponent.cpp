@@ -591,8 +591,8 @@ void USkeletalMeshComponent::FillSpaceBases(const TArray<FTransform>& SourceAtom
 #endif
 		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
 
-		DestSpaceBases[BoneIndex].DiagnosticCheckNaN_All();
-		DestSpaceBases[BoneIndex].DiagnosticCheckUnitQuaternion();
+		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
+		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
 	}
 }
 
@@ -1258,7 +1258,7 @@ bool USkeletalMeshComponent::IsAnySimulatingPhysics() const
  */
 void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) const
 {
-	if (GetWorld()->IsGameWorld() && SkeletalMesh && Canvas && (SpaceBases.Num() > 0) )
+	if (GetWorld()->IsGameWorld() && SkeletalMesh && Canvas)
 	{
 		// draw spacebases, we could cache parent bones, but this is mostly debug feature, I'm not caching it right now
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )

@@ -31,18 +31,6 @@ public:
 	 */
 	static CORE_API const FTransform Identity;
 
-#if ENABLE_UNIT_QUAT_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckUnitQuaternion() const
-	{
-		FQuat QuatRotation;
-		VectorStoreAligned(Rotation, &QuatRotation);
-
-		checkf(QuatRotation.IsNormalized(), TEXT("FTransform Rotation is not Normalized: %s"), *QuatRotation.ToString());
-	}
-#else
-	FORCEINLINE void DiagnosticCheckUnitQuaternion() const {}
-#endif
-
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
