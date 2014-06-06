@@ -27,6 +27,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SScrollBox)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBoxStyle>("ScrollBox") )
+		, _ExternalScrollbar()
 		{}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
@@ -34,6 +35,8 @@ public:
 		/** Style used to draw this scrollbox */
 		SLATE_STYLE_ARGUMENT( FScrollBoxStyle, Style )
 
+		/** Custom scroll bar */
+		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
 	SLATE_END_ARGS()
 
 

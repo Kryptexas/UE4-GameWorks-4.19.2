@@ -12,9 +12,24 @@
 void SSequencerTrackArea::Update( const FSequencerNodeTree& InSequencerNodeTree )
 {
 	// @todo Sequencer: Currently need to recreate the scroll box to remove all its children
+
+	TSharedRef<SScrollBar> ScrollBar =
+		SNew( SScrollBar )
+		.Thickness(FVector2D(5.0f, 5.0f));
+
 	ChildSlot
 	[
-		SAssignNew( ScrollBox, SScrollBox )
+		SNew( SOverlay )
+		+ SOverlay::Slot()
+		[
+			SAssignNew( ScrollBox, SScrollBox )
+			.ExternalScrollbar( ScrollBar )
+		]
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Right)
+		[
+			ScrollBar
+		]
 	];
 
 	const TArray< TSharedRef<FSequencerDisplayNode> >& RootNodes = InSequencerNodeTree.GetRootNodes();

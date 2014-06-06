@@ -50,6 +50,8 @@ void FSequencer::InitSequencer( UMovieScene* InRootMovieScene, TSharedPtr<IToolk
 {
 	if( IsSequencerEnabled() )
 	{
+		bIsEditingWithinLevelEditor = bEditWithinLevelEditor;
+
 		ToolkitHost = InToolKitHost;
 		// Create an object change listener for various systems that need to be notified when objects change
 		ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( SharedThis( this ) ) );
@@ -140,6 +142,7 @@ FSequencer::FSequencer()
 	, bAllowAutoKey( false )
 	, bPerspectiveViewportPossessionEnabled( true )
 	, bNeedTreeRefresh( false )
+	, bIsEditingWithinLevelEditor( false )
 {
 
 }

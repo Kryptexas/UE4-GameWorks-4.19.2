@@ -106,9 +106,10 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	bShowSoftwareCursor = false;
 	SoftwareCursorPosition = FVector2D::ZeroVector;
 
+	TSharedPtr<SHorizontalBox> PanelAndScrollbar;
 	this->ChildSlot
 	[
-		SNew(SHorizontalBox)
+		SAssignNew(PanelAndScrollbar, SHorizontalBox)
 		+SHorizontalBox::Slot()
 		.FillWidth(1)
 		[
@@ -140,14 +141,32 @@ void SScrollBox::Construct( const FArguments& InArgs )
 				.Image( &InArgs._Style->BottomShadowBrush )	
 			]
 		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SAssignNew( ScrollBar, SScrollBar )
-			.Thickness( FVector2D(5.0f, 5.0f) )
-			.OnUserScrolled( this, &SScrollBox::ScrollBar_OnUserScrolled )
-		]
+	
 	];
+
+
+	if (InArgs._ExternalScrollbar.IsValid())
+	{
+		// An external scroll bar was sepecified by the user
+		ScrollBar = InArgs._ExternalScrollbar;
+		ScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SScrollBox::ScrollBar_OnUserScrolled));
+	}
+	else
+	{
+		// Make a scroll bar 
+		ScrollBar = 
+			SNew( SScrollBar)
+			.Thickness(FVector2D(5.0f, 5.0f))
+			.OnUserScrolled(this, &SScrollBox::ScrollBar_OnUserScrolled);
+
+		PanelAndScrollbar->AddSlot()
+			.AutoWidth()
+			[
+				ScrollBar.ToSharedRef()
+			];
+	}
+
+
 
 	ScrollBar->SetState( 0.0f, 1.0f );
 }

@@ -269,8 +269,10 @@ public:
 	/** @return The toolkit that this sequencer is hosted in (if any) */
 	TSharedPtr<IToolkitHost> GetToolkitHost() const { return ToolkitHost.Pin(); }
 
+	/** @return Whether or not this sequencer is used in the level editor */
+	bool IsLevelEditorSequencer() const { return bIsEditingWithinLevelEditor; }
+	
 	static bool IsSequencerEnabled();
-
 protected:
 	/**
 	 * Reset data about a movie scene when pushing or popping a movie scene
@@ -443,12 +445,16 @@ private:
 	TRange<float> TargetViewRange;
 	/** The last time range that was viewed */
 	TRange<float> LastViewRange;
+
 	/** Zoom smoothing curves */
 	FCurveSequence ZoomAnimation;
 	FCurveHandle ZoomCurve;
 	/** Overlay fading curves */
 	FCurveSequence OverlayAnimation;
 	FCurveHandle OverlayCurve;
+
+	/** Whether we are playing, recording, etc. */
+	EMovieScenePlayerStatus::Type PlaybackState;
 
 	/** The current scrub position */
 	// @todo sequencer: Should use FTimespan or "double" for Time Cursor Position! (cascades)
@@ -457,8 +463,6 @@ private:
 	/** Whether the clean sequencer view is enabled */
 	bool bCleanViewEnabled;
 
-	/** Whether we are playing, recording, etc. */
-	EMovieScenePlayerStatus::Type PlaybackState;
 
 	/** Whether looping while playing is enabled for this sequencer */
 	bool bLoopingEnabled;
@@ -467,6 +471,9 @@ private:
 	bool bAllowAutoKey;
 
 	bool bPerspectiveViewportPossessionEnabled;
+
+	/** True if this sequencer is being edited within the level editor */
+	bool bIsEditingWithinLevelEditor;
 
 	/** Stores a dirty bit for whether the sequencer tree (and other UI bits) may need to be refreshed.  We
 	    do this simply to avoid refreshing the UI more than once per frame. (e.g. during live recording where

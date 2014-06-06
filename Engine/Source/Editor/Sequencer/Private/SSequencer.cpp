@@ -138,7 +138,6 @@ private:
 };
 
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
@@ -180,7 +179,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			[
 				SNew( SHorizontalBox )
 				+SHorizontalBox::Slot()
-				.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
+				.Padding( FMargin( 0.0f, 0.0f, 0.0f, 0.0f ) )
 				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
 				.VAlign(VAlign_Center)
 				[
@@ -205,6 +204,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 					[
 						// @todo Sequencer - Temp clean view button
 						SNew( SCheckBox )
+						.Visibility( this, &SSequencer::OnGetCleanViewVisibility )
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
 						.IsChecked( this, &SSequencer::OnGetCleanViewCheckState )
 						.OnCheckStateChanged( this, &SSequencer::OnCleanViewChecked )
@@ -226,13 +226,18 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			[
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
-				.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
+				// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
+				.Padding( FMargin(0) )
 				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
 				.VAlign(VAlign_Center)
 				[
-					// Search box for searching through the outliner
-					SNew( SSearchBox )
-					.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
+					SNew( SBox )
+					.Padding( FMargin( 0,0,4,0) )
+					[
+						// Search box for searching through the outliner
+						SNew( SSearchBox )
+						.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
+					]
 				]
 				+ SHorizontalBox::Slot()
 				.FillWidth(1.0f)
@@ -310,7 +315,6 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SSequencer::~SSequencer()
 {
@@ -403,6 +407,11 @@ ESlateCheckBoxState::Type SSequencer::OnGetAutoKeyCheckState() const
 void SSequencer::OnAutoKeyChecked( ESlateCheckBoxState::Type InState ) 
 {
 	OnToggleAutoKey.ExecuteIfBound( InState == ESlateCheckBoxState::Checked ? true : false );
+}
+
+EVisibility SSequencer::OnGetCleanViewVisibility() const 
+{
+	return Sequencer.Pin()->IsLevelEditorSequencer() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 ESlateCheckBoxState::Type SSequencer::OnGetCleanViewCheckState() const

@@ -106,6 +106,9 @@ private:
 	 */
 	void OnAutoKeyChecked( ESlateCheckBoxState::Type InState );	
 	
+	/** @return The visibility of the clean view button */
+	EVisibility OnGetCleanViewVisibility() const;
+
 	/**
 	 * @return The state of the auto-key check box
 	 */
