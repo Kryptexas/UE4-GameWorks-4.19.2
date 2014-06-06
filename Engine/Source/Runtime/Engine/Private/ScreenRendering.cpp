@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "ScreenRendering.h"
+#include "RHIStaticStates.h"
 
 /** Vertex declaration for screen-space rendering. */
 TGlobalResource<FScreenVertexDeclaration> GScreenVertexDeclaration;
