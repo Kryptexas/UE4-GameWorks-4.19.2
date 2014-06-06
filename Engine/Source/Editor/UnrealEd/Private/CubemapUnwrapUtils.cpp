@@ -124,6 +124,18 @@ void FCubemapTexturePropertiesPS<bHDROutput>::SetParameters( FRHICommandList* RH
 	SetShaderValue(RHICmdList, GetPixelShader(), Gamma, GammaValue);
 }
 
+void FMipLevelBatchedElementParameters::BindShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture)
+{
+	if(bHDROutput)
+	{
+		BindShaders_RenderThread<FCubemapTexturePropertiesPS<true> >(RHICmdList, InTransform, InGamma, ColorWeights, Texture);
+	}
+	else
+	{
+		BindShaders_RenderThread<FCubemapTexturePropertiesPS<false> >(RHICmdList, InTransform, InGamma, ColorWeights, Texture);
+	}
+}
+
 template<typename TPixelShader>
 void FMipLevelBatchedElementParameters::BindShaders_RenderThread( FRHICommandList* RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture )
 {
