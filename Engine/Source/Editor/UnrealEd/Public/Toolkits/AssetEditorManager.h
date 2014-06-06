@@ -44,6 +44,9 @@ public:
 	bool OpenEditorForAsset( UObject* Asset, const EToolkitMode::Type ToolkitMode = EToolkitMode::Standalone, TSharedPtr< class IToolkitHost > OpenedFromLevelEditor = TSharedPtr< IToolkitHost >() );
 	bool OpenEditorForAssets( const TArray< UObject* >& Asset, const EToolkitMode::Type ToolkitMode = EToolkitMode::Standalone, TSharedPtr< class IToolkitHost > OpenedFromLevelEditor = TSharedPtr< IToolkitHost >() );
 
+	// Opens editors for the supplied assets (via OpenEditorForAsset
+	void OpenEditorsForAssets(const TArray<FString>& AssetsToOpen);
+
 	// Returns the primary editor if one is already open for the specified asset.
 	// If there is one open and bFocusIfOpen is true, that editor will be brought to the foreground and focused if possible.
 	IAssetEditorInstance* FindEditorForAsset(UObject* Asset, bool bFocusIfOpen);

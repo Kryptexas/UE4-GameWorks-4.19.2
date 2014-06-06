@@ -383,7 +383,7 @@ void FAssetEditorManager::RestorePreviouslyOpenAssets()
 			if(bAutoRestore)
 			{
 				// Pretend that we showed the notification and that the user clicked "Restore Now"
-				OnConfirmRestorePreviouslyOpenAssets(OpenAssets);
+				OpenEditorsForAssets(OpenAssets);
 			}
 			else
 			{
@@ -487,10 +487,8 @@ void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> A
 		Settings.PostEditChange();
 
 		// we do this inside the condition so that it can only be done once. 
-		for (const FString& AssetName : AssetsToOpen)
-		{
-			OpenEditorForAsset(AssetName);
-		}
+		OpenEditorsForAssets(AssetsToOpen);
+
 	}
 }
 
@@ -535,6 +533,14 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 		GConfig->SetArray(TEXT("AssetEditorManager"), TEXT("OpenAssetsAtExit"), OpenAssets, GEditorUserSettingsIni);
 		GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("CleanShutdown"), bOnShutdown, GEditorUserSettingsIni);
 		GConfig->Flush(false, GEditorUserSettingsIni);
+	}
+}
+
+void FAssetEditorManager::OpenEditorsForAssets(const TArray<FString>& AssetsToOpen)
+{
+	for (const FString& AssetName : AssetsToOpen)
+	{
+		OpenEditorForAsset(AssetName);
 	}
 }
 
