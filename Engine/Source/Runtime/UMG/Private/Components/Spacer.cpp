@@ -14,10 +14,22 @@ USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = false;
 }
 
+void USpacer::SetSize(FVector2D InSize)
+{
+	Size = InSize;
+
+	if ( MySpacer.IsValid() )
+	{
+		MySpacer->SetSize(InSize);
+	}
+}
+
 TSharedRef<SWidget> USpacer::RebuildWidget()
 {
-	return SNew(SSpacer)
+	MySpacer = SNew(SSpacer)
 		.Size(Size);
+
+	return MySpacer.ToSharedRef();
 }
 
 /////////////////////////////////////////////////////

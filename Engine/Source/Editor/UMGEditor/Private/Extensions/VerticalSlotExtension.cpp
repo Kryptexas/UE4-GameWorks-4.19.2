@@ -14,7 +14,7 @@ bool FVerticalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection
 {
 	for ( const FSelectedWidget& Widget : Selection )
 	{
-		if ( !Widget.Template->Slot || !Widget.Template->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
+		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
 		{
 			return false;
 		}
@@ -50,8 +50,8 @@ FReply FVerticalSlotExtension::HandleUpPressed()
 {
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		MoveUp(Selection.Preview);
-		MoveUp(Selection.Template);
+		MoveUp(Selection.GetPreview());
+		MoveUp(Selection.GetTemplate());
 	}
 
 	//TODO UMG Reorder the live slot without rebuilding the structure
@@ -64,8 +64,8 @@ FReply FVerticalSlotExtension::HandleDownPressed()
 {
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		MoveDown(Selection.Preview);
-		MoveDown(Selection.Template);
+		MoveDown(Selection.GetPreview());
+		MoveDown(Selection.GetTemplate());
 	}
 
 	//TODO UMG Reorder the live slot without rebuilding the structure

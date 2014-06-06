@@ -28,6 +28,22 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetPadding(FMargin InPadding);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetSize(FSlateChildSize InSize);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
+	// UPanelSlot interface
+	virtual void Refresh() OVERRIDE;
+	// End of UPanelSlot interface
+
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SVerticalBox> InVerticalBox);
 

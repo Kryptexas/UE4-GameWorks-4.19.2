@@ -4,13 +4,13 @@
 
 #include "HorizontalBox.generated.h"
 
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
 class UMG_API UHorizontalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
-	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
+	UPROPERTY()
 	TArray<UHorizontalBoxSlot*> Slots;
 
 	UHorizontalBoxSlot* AddSlot(UWidget* Content);

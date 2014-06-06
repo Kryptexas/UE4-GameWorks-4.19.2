@@ -10,22 +10,30 @@ class USlateBrushAsset;
  * A border is a container widget that can contain one child widget, providing an opportunity 
  * to surround it with a border image and adjustable padding.
  */
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UBorder : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Horizontal positioning of the content within the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Vertical positioning of the content within the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** The padding to add around the inner content. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Content Layout")
 	FMargin ContentPadding;
+
+	/** The scaling factor for the border content */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
+	FVector2D ContentScale;
+
+	/** Color and opacity multiplier of content in the border */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Content Layout")
+	FLinearColor ContentColorAndOpacity;
 
 	//@TODO: Should these be exposed?
 	// SLATE_EVENT( FPointerEventHandler, OnMouseButtonDown )
@@ -41,21 +49,13 @@ class UMG_API UBorder : public UContentWidget
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FVector2D DesiredSizeScale;
 
-	/** The scaling factor for the border content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FVector2D ContentScale;
-
-	/** Color and opacity multiplier of content in the border */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FLinearColor ContentColorAndOpacity;
-
 	/** Color and opacity of the actual border image */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateColor BorderColorAndOpacity;
+	FLinearColor BorderColorAndOpacity;
 
 	/** The foreground color of text and some glyphs that appear as the border's content. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateColor ForegroundColor;
+	FLinearColor ForegroundColor;
 
 	/** Whether or not to show the disabled effect when this border is disabled */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
@@ -65,17 +65,17 @@ class UMG_API UBorder : public UContentWidget
 	virtual void SetContent(UWidget* Content) OVERRIDE;
 	// End UContentWidget interface
 
+	// UWidget interface
+	void SyncronizeProperties() OVERRIDE;
+	// End of UWidget interface
+
 protected:
-	TWeakPtr<class SBorder> MyBorder;
+	TSharedPtr<SBorder> MyBorder;
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
 
-	FMargin GetContentPadding() const;
-	FLinearColor GetContentColor() const;
 	const FSlateBrush* GetBorderBrush() const;
-	FSlateColor GetBorderColor() const;
-	FSlateColor GetForegroundColor() const;
 };

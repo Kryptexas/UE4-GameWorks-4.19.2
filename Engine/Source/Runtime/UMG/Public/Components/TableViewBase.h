@@ -5,7 +5,7 @@
 #include "TableViewBase.generated.h"
 
 /** The base class for all wrapped table views */
-UCLASS(Abstract, meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(Abstract)
 class UMG_API UTableViewBase : public UWidget
 {
 	GENERATED_UCLASS_BODY()

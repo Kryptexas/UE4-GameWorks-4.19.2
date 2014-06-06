@@ -6,22 +6,33 @@
 
 #include "CanvasPanelSlot.generated.h"
 
+USTRUCT()
+struct FAnchorData
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	/** Offset. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FMargin Offsets;
+	
+	/** Anchors. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FAnchors Anchors;
+
+	/** Alignment. */
+	UPROPERTY(EditAnywhere, Category=AnchorData)
+	FVector2D Alignment;
+};
+
 UCLASS()
 class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Offset. */
+	/** The anchoring information for the slot */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FMargin Offset;
-	
-	/** Anchors. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FAnchors Anchors;
-
-	/** Alignment. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FVector2D Alignment;
+	FAnchorData LayoutData;
 
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
@@ -41,13 +52,22 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetAlignment(FVector2D InAlignment);
 
+	// UPanelSlot interface
+	virtual void Refresh() OVERRIDE;
+	// End of UPanelSlot interface
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
 	// End of UObject interface
 #endif
 
 private:
 	SConstraintCanvas::FSlot* Slot;
+
+#if WITH_EDITOR
+	FGeometry PreEditGeometry;
+	FAnchorData PreEditLayoutData;
+#endif
 };

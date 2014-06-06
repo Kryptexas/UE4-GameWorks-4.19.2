@@ -8,13 +8,13 @@
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
  * vertically.
  */
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
 class UMG_API UVerticalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The slots containing the widgets that are flowed vertically. */
-	UPROPERTY(EditDefaultsOnly, EditInline, Category=Slots)
+	UPROPERTY()
 	TArray<UVerticalBoxSlot*> Slots;
 
 	//TODO UMG Add ways to make adding slots callable by blueprints.

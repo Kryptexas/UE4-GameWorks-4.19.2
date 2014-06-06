@@ -79,28 +79,22 @@ void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 {
-	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);
-	MyVerticalBox = NewCanvas;
+	TSharedRef<SVerticalBox> NewWidget = SNew(SVerticalBox);
+	MyVerticalBox = NewWidget;
 
-	TSharedPtr<SVerticalBox> Canvas = MyVerticalBox.Pin();
-	if ( Canvas.IsValid() )
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
-		Canvas->ClearChildren();
-
-		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+		UVerticalBoxSlot* Slot = Slots[SlotIndex];
+		if ( Slot == NULL )
 		{
-			UVerticalBoxSlot* Slot = Slots[SlotIndex];
-			if ( Slot == NULL )
-			{
-				Slots[SlotIndex] = Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
-			}
-
-			Slot->Parent = this;
-			Slot->BuildSlot(NewCanvas);
+			Slots[SlotIndex] = Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 		}
+
+		Slot->Parent = this;
+		Slot->BuildSlot(NewWidget);
 	}
 
-	return NewCanvas;
+	return NewWidget;
 }
 
 UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)

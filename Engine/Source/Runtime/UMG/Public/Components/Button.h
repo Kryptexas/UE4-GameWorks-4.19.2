@@ -7,7 +7,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
 /** Buttons are clickable widgets */
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Common" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UButton : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -18,15 +18,15 @@ public:
 	USlateWidgetStyleAsset* Style;
 
 	/** Horizontal positioning of the content within the button */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Vertical positioning of the content within the button */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** The padding to add around the button content. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FMargin ContentPadding;
 
 	/** The scaling factor for the button border */
@@ -56,51 +56,32 @@ public:
 	FOnReply OnClickedEvent;
 	
 	/*  */
-	UFUNCTION(BlueprintPure, Category="Appearance")
-	FLinearColor GetButtonColorAndOpacity();
-	
-	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity);
 
 	/*  */
-	UFUNCTION(BlueprintPure, Category="Appearance")
-	FLinearColor GetForegroundColor();
-
-	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetForegroundColor(FLinearColor InForegroundColor);
-	
-	/*  */
-	UFUNCTION(BlueprintPure, Category="Appearance")
-	FMargin GetContentPadding();
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetContentPadding(FMargin InContentPadding);
 
-
 	// UContentWidget interface
 	virtual void SetContent(UWidget* Content) OVERRIDE;
 	// End UContentWidget interface
 
-protected:
-	TSharedPtr<class SButton> ButtonWidget() const
-	{
-		if ( MyWidget.IsValid() )
-		{
-			return StaticCastSharedRef<SButton>(MyWidget.ToSharedRef());
-		}
-
-		return TSharedPtr<class SButton>();
-	}
+	// UWidget interface
+	void SyncronizeProperties() OVERRIDE;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
 
-	FMargin GetContentPadding() const;
-
 	FReply HandleOnClicked();
+
+protected:
+	TSharedPtr<SButton> MyButton;
 };

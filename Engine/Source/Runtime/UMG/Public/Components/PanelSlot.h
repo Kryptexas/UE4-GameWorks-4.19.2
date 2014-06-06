@@ -25,4 +25,20 @@ public:
 	virtual void MoveTo(const FVector2D& Location);
 
 	virtual bool CanMove() const;
+
+	/** Applies all properties to the live slot if possible. */
+	virtual void Refresh()
+	{
+	}
+
+#if WITH_EDITOR
+
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE
+	{
+		Super::PostEditChangeProperty(PropertyChangedEvent);
+
+		Refresh();
+	}
+
+#endif
 };

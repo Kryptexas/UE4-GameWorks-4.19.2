@@ -27,10 +27,20 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
+	MyButton = SNew(SButton);
+	MyButton->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
+	
+	return MyButton.ToSharedRef();
+}
+
+void UButton::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
 	SButton::FArguments ButtonDefaults;
 
 	const FButtonStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FButtonStyle>() : NULL;
-	if (StylePtr == NULL)
+	if ( StylePtr == NULL )
 	{
 		StylePtr = ButtonDefaults._ButtonStyle;
 	}
@@ -47,63 +57,46 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 		OptionalHoveredSound = HoveredSound;
 	}
 
-	TSharedRef<SButton> NewButton = SNew(SButton)
-		.ButtonStyle(StylePtr)
-		.HAlign(HorizontalAlignment)
-		.VAlign(VerticalAlignment)
-		.ContentPadding(ContentPadding)
-		.DesiredSizeScale(DesiredSizeScale)
-		.ContentScale(ContentScale)
-		.ButtonColorAndOpacity(ButtonColorAndOpacity)
-		.ForegroundColor(ForegroundColor)
-		.PressedSoundOverride(OptionalPressedSound)
-		.HoveredSoundOverride(OptionalHoveredSound)
-		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked))
-		;
-
-	NewButton->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
-	
-	return NewButton;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetButtonStyle(StylePtr);
+		MyButton->SetHAlign(HorizontalAlignment);
+		MyButton->SetVAlign(VerticalAlignment);
+		MyButton->SetContentPadding(ContentPadding);
+		MyButton->SetForegroundColor(ForegroundColor);
+		//MyButton->SetColorAndOpacity(ButtonColorAndOpacity);
+		MyButton->SetDesiredSizeScale(DesiredSizeScale);
+		MyButton->SetContentScale(ContentScale);
+		MyButton->SetBorderBackgroundColor(ButtonColorAndOpacity);
+		MyButton->SetPressedSound(OptionalPressedSound);
+		MyButton->SetHoveredSound(OptionalHoveredSound);
+		MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
+	}
 }
 
 void UButton::SetContent(UWidget* InContent)
 {
 	Super::SetContent(InContent);
 
-	if ( ButtonWidget().IsValid() )
+	if ( MyButton.IsValid() )
 	{
-		ButtonWidget()->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
+		MyButton->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
 	}
-}
-
-FLinearColor UButton::GetButtonColorAndOpacity()
-{
-	return ButtonWidget()->GetBorderBackgroundColor().GetSpecifiedColor();
 }
 
 void UButton::SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity)
 {
-	ButtonWidget()->SetBorderBackgroundColor(InButtonColorAndOpacity);
-}
-
-FLinearColor UButton::GetForegroundColor()
-{
-	return ButtonWidget()->GetForegroundColor().GetSpecifiedColor();
+	MyButton->SetBorderBackgroundColor(InButtonColorAndOpacity);
 }
 
 void UButton::SetForegroundColor(FLinearColor InForegroundColor)
 {
-	ButtonWidget()->SetForegroundColor(InForegroundColor);
-}
-
-FMargin UButton::GetContentPadding()
-{
-	return ButtonWidget()->GetContentPadding();
+	MyButton->SetForegroundColor(InForegroundColor);
 }
 
 void UButton::SetContentPadding(FMargin InContentPadding)
 {
-	ButtonWidget()->SetContentPadding(InContentPadding);
+	MyButton->SetContentPadding(InContentPadding);
 }
 
 FReply UButton::HandleOnClicked()

@@ -50,6 +50,7 @@ private:
 	bool GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
 
 	FVector2D GetSelectionDesignerWidgetsLocation() const;
+	FVector2D GetCachedSelectionDesignerWidgetsLocation() const;
 
 private:
 	enum DragHandle
@@ -95,4 +96,6 @@ private:
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 
 	DragHandle CurrentHandle;
+
+	FVector2D CachedDesignerWidgetLocation;
 };

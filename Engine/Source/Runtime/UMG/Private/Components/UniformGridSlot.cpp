@@ -40,3 +40,9 @@ void UUniformGridSlot::SetColumn(int32 InColumn)
 		Slot->Column = InColumn;
 	}
 }
+
+void UUniformGridSlot::Refresh()
+{
+	SetRow(Row);
+	SetColumn(Column);
+}

@@ -21,3 +21,27 @@ void UScrollBoxSlot::BuildSlot(TSharedRef<SScrollBox> ScrollBox)
 			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
 		];
 }
+
+void UScrollBoxSlot::SetPadding(FMargin InPadding)
+{
+	Padding = InPadding;
+	if ( Slot )
+	{
+		Slot->Padding(InPadding);
+	}
+}
+
+void UScrollBoxSlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
+{
+	HorizontalAlignment = InHorizontalAlignment;
+	if ( Slot )
+	{
+		Slot->HAlign(InHorizontalAlignment);
+	}
+}
+
+void UScrollBoxSlot::Refresh()
+{
+	SetPadding(Padding);
+	SetHorizontalAlignment(HorizontalAlignment);
+}

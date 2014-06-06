@@ -158,26 +158,7 @@ void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProper
 
 void SUMGDesigner::ShowDetailsForObjects(TArray<UWidget*> Widgets)
 {
-	// @TODO COde duplication
-
-	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle;
-	TArray<UObject*> InspectorObjects;
-	InspectorObjects.Empty(Widgets.Num());
-	for ( UWidget* Widget : Widgets )
-	{
-		//if ( NodePtr->CanEditDefaults() )
-		{
-			InspectorTitle = "Widget";// Widget->GetDisplayString();
-			InspectorObjects.Add(Widget);
-		}
-	}
-
-	UWidgetBlueprint* Blueprint = GetBlueprint();
-
-	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+	BlueprintEditor.Pin()->SelectWidgets(Widgets);
 }
 
 FSelectedWidget SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
@@ -192,32 +173,29 @@ FSelectedWidget SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, con
 
 	PreviewSurface->SetVisibility(EVisibility::HitTestInvisible);
 
-	FSelectedWidget Selection;
-
 	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
 	if ( WidgetActor )
 	{
+		UWidget* Preview = NULL;
+
 		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
 		{
 			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
-			Selection.Preview = WidgetActor->GetWidgetHandle(Child.Widget);
-			if ( Selection.Preview )
+			Preview = WidgetActor->GetWidgetHandle(Child.Widget);
+			if ( Preview )
 			{
 				ArrangedWidget = Child;
 				break;
 			}
 		}
 
-		UWidgetBlueprint* Blueprint = GetBlueprint();
-
-		if ( Selection.Preview )
+		if ( Preview )
 		{
-			FString Name = Selection.Preview->GetName();
-			Selection.Template = Blueprint->WidgetTree->FindWidget(Name);
+			return FSelectedWidget::FromPreview(BlueprintEditor.Pin(), Preview);
 		}
 	}
 
-	return Selection;
+	return FSelectedWidget();
 }
 
 FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -234,7 +212,8 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
 			// Set the template as selected in the details panel
 			TArray<UWidget*> SelectedTemplates;
-			SelectedTemplates.Add(CurrentSelection.Template);
+			//SelectedTemplates.Add(CurrentSelection.Template);
+			SelectedTemplates.Add(CurrentSelection.GetPreview());
 			ShowDetailsForObjects(SelectedTemplates);
 
 			// Remove all the current extension widgets
@@ -264,7 +243,7 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			}
 
 			ExtensionWidgetCanvas->AddSlot()
-				.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetSelectionDesignerWidgetsLocation))
+				.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
 				.Size(FVector2D(100, 25))
 				[
 					ExtensionBox
@@ -294,14 +273,17 @@ FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEven
 			//@TODO UMG - Implement some system to query slots to know if they support dragging so we can provide visual feedback by hiding handles that wouldnt work and such.
 			//SelectedTemplate->Slot->CanResize(DH_TOP_CENTER)
 
-			if ( CurrentSelection.Preview->Slot )
+			UWidget* Template = CurrentSelection.GetTemplate();
+			UWidget* Preview = CurrentSelection.GetPreview();
+
+			if ( Preview->Slot )
 			{
-				CurrentSelection.Preview->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
+				Preview->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
 			}
 
-			if ( CurrentSelection.Template->Slot )
+			if ( Template->Slot )
 			{
-				CurrentSelection.Template->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
+				Template->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
 			}
 
 			FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
@@ -371,6 +353,11 @@ bool SUMGDesigner::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widge
 	return false;
 }
 
+FVector2D SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation() const
+{
+	return CachedDesignerWidgetLocation;
+}
+
 FVector2D SUMGDesigner::GetSelectionDesignerWidgetsLocation() const
 {
 	if ( SelectedWidget.IsValid() )
@@ -418,7 +405,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 		DrawDragHandles(SelectionGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
 
-		if ( CurrentSelection.IsValid() && CurrentSelection.Template->Slot )
+		if ( CurrentSelection.IsValid() && CurrentSelection.GetTemplate()->Slot )
 		{
 			const float X = AllottedGeometry.AbsolutePosition.X;
 			const float Y = AllottedGeometry.AbsolutePosition.Y;
@@ -437,7 +424,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 			const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
 			FLinearColor KeyColor = FLinearColor(1.0f, 0.0f, 0.0f, 1.f);
 
-			if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CurrentSelection.Template->Slot) )
+			if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(CurrentSelection.GetTemplate()->Slot) )
 			{
 				//Set("UMGEditor.AnchorCenter", new IMAGE_BRUSH("Icons/umg_anchor_center", Icon16x16));
 				//Set("UMGEditor.AnchorTopBottom", new IMAGE_BRUSH("Icons/umg_anchor_top_bottom", FVector2D(16, 32)));
@@ -447,7 +434,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					++LayerId,
-					FPaintGeometry(FVector2D(X + Width * CanvasSlot->Anchors.Minimum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
+					FPaintGeometry(FVector2D(X + Width * CanvasSlot->LayoutData.Anchors.Minimum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
 					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
 					MyClippingRect,
 					ESlateDrawEffect::None,
@@ -458,7 +445,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					++LayerId,
-					FPaintGeometry(FVector2D(X + Width * CanvasSlot->Anchors.Maximum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
+					FPaintGeometry(FVector2D(X + Width * CanvasSlot->LayoutData.Anchors.Maximum.X - LeftRightSize.X * 0.5f, SelectionGeometry.DrawPosition.Y + Selection_Height * 0.5f - LeftRightSize.Y * 0.5f), LeftRightSize, 1.0f),
 					FEditorStyle::Get().GetBrush("UMGEditor.AnchorLeftRight"),
 					MyClippingRect,
 					ESlateDrawEffect::None,
@@ -470,7 +457,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					++LayerId,
-					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->Anchors.Minimum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
+					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->LayoutData.Anchors.Minimum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
 					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
 					MyClippingRect,
 					ESlateDrawEffect::None,
@@ -481,7 +468,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 				FSlateDrawElement::MakeBox(
 					OutDrawElements,
 					++LayerId,
-					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->Anchors.Maximum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
+					FPaintGeometry(FVector2D(SelectionGeometry.DrawPosition.X + Selection_Width * 0.5f - TopBottomSize.X * 0.5f, Y + Height * CanvasSlot->LayoutData.Anchors.Maximum.Y - TopBottomSize.Y * 0.5f), TopBottomSize, 1.0f),
 					FEditorStyle::Get().GetBrush("UMGEditor.AnchorTopBottom"),
 					MyClippingRect,
 					ESlateDrawEffect::None,
@@ -496,7 +483,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
 {
-	if ( CurrentSelection.IsValid() && CurrentSelection.Template->Slot )
+	if ( CurrentSelection.IsValid() && CurrentSelection.GetTemplate()->Slot )
 	{
 		float X = SelectionGeometry.DrawPosition.X;
 		float Y = SelectionGeometry.DrawPosition.Y;
@@ -525,7 +512,7 @@ void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, cons
 		for ( int32 HandleIndex = 0; HandleIndex < Handles.Num(); HandleIndex++ )
 		{
 			const FVector2D& Handle = Handles[HandleIndex];
-			if ( !CurrentSelection.Template->Slot->CanResize(DragDirections[HandleIndex]) )
+			if ( !CurrentSelection.GetTemplate()->Slot->CanResize(DragDirections[HandleIndex]) )
 			{
 				// This isn't a valid handle
 				continue;
@@ -548,7 +535,7 @@ SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& Allot
 {
 	FVector2D LocalPointer = AllottedGeometry.AbsoluteToLocal(PointerEvent.GetScreenSpacePosition());
 
-	if ( CurrentSelection.IsValid() && CurrentSelection.Template->Slot && SelectedWidget.IsValid() )
+	if ( CurrentSelection.IsValid() && CurrentSelection.GetTemplate()->Slot && SelectedWidget.IsValid() )
 	{
 		TSharedRef<SWidget> Widget = SelectedWidget.Pin().ToSharedRef();
 
@@ -581,7 +568,7 @@ SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& Allot
 			FSlateRect Rect(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), Handle + HandleSize);
 			if ( Rect.ContainsPoint(LocalPointer) )
 			{
-				if ( !CurrentSelection.Template->Slot->CanResize(DragDirections[i]) )
+				if ( !CurrentSelection.GetTemplate()->Slot->CanResize(DragDirections[i]) )
 				{
 					// This isn't a valid handle
 					break;
@@ -660,9 +647,11 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 			//@TODO UMG Don't store the transient Widget as the selected object, store the template component and lookup the widget from that.
 			//SelectedWidget = ArrangedWidget.Widget;
 
-			SelectedWidget = WidgetActor->GetWidgetFromName(CurrentSelection.Template->GetName());
+			SelectedWidget = WidgetActor->GetWidgetFromName(CurrentSelection.GetTemplate()->GetName());
 		}
 	}
+
+	CachedDesignerWidgetLocation = GetSelectionDesignerWidgetsLocation();
 
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
@@ -703,9 +692,9 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 
 		UWidgetBlueprint* BP = GetBlueprint();
 
-		if ( Selection.IsValid() && Selection.Template->IsA(UPanelWidget::StaticClass()) )
+		if ( Selection.IsValid() && Selection.GetTemplate()->IsA(UPanelWidget::StaticClass()) )
 		{
-			UPanelWidget* Parent = Cast<UPanelWidget>(Selection.Template);
+			UPanelWidget* Parent = Cast<UPanelWidget>(Selection.GetTemplate());
 
 			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 

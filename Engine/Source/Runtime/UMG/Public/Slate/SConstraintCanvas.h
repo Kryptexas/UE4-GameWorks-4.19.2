@@ -116,6 +116,9 @@ public:
 	 */
 	void ClearChildren();
 
+	/** Get the cached geometry of the canvas. */
+	FGeometry GetCachedGeometry() const { return CachedGeometry; }
+
 public:
 
 	// Begin SWidget overrides
@@ -134,4 +137,6 @@ protected:
 
 	/** The ConstraintCanvas widget's children. */
 	TPanelChildren< FSlot > Children;
+
+	mutable FGeometry CachedGeometry;
 };

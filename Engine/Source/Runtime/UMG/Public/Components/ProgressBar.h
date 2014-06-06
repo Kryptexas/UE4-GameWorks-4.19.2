@@ -5,7 +5,7 @@
 #include "ProgressBar.generated.h"
 
 /** ProgressBar widget */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UProgressBar : public UWidget
 {
 	GENERATED_UCLASS_BODY()

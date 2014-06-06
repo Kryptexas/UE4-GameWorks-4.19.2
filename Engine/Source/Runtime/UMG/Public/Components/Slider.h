@@ -9,7 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMouseCaptureEndEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Value);
 
 /** Slider widget */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()

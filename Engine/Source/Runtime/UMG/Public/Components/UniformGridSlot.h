@@ -41,6 +41,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Layout)
 	void SetColumn(int32 InColumn);
 
+	// UPanelSlot interface
+	virtual void Refresh() OVERRIDE;
+	// End of UPanelSlot interface
+
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SUniformGridPanel> GridPanel);
 

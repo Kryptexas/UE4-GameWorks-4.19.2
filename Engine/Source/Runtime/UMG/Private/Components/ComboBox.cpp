@@ -10,7 +10,6 @@
 UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-
 }
 
 TSharedRef<SWidget> UComboBox::RebuildWidget()

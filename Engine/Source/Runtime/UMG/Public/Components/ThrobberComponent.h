@@ -7,7 +7,7 @@
 class USlateBrushAsset;
 
 /** A Throbber widget that shows several zooming circles in a row. */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UThrobberComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()

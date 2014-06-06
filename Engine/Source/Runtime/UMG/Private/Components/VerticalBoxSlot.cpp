@@ -25,3 +25,47 @@ void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
 
 	Slot->SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
 }
+
+void UVerticalBoxSlot::SetPadding(FMargin InPadding)
+{
+	Padding = InPadding;
+	if ( Slot )
+	{
+		Slot->Padding(InPadding);
+	}
+}
+
+void UVerticalBoxSlot::SetSize(FSlateChildSize InSize)
+{
+	Size = InSize;
+	if ( Slot )
+	{
+		Slot->SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(InSize);
+	}
+}
+
+void UVerticalBoxSlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
+{
+	HorizontalAlignment = InHorizontalAlignment;
+	if ( Slot )
+	{
+		Slot->HAlign(InHorizontalAlignment);
+	}
+}
+
+void UVerticalBoxSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
+{
+	VerticalAlignment = InVerticalAlignment;
+	if ( Slot )
+	{
+		Slot->VAlign(InVerticalAlignment);
+	}
+}
+
+void UVerticalBoxSlot::Refresh()
+{
+	SetPadding(Padding);
+	SetSize(Size);
+	SetHorizontalAlignment(HorizontalAlignment);
+	SetVerticalAlignment(VerticalAlignment);
+}

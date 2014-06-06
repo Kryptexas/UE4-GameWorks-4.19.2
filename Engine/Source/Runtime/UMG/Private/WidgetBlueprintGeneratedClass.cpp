@@ -33,18 +33,18 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 	}
 }
 
-void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* Actor) const
+void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
 	// Duplicate the graph, keeping track of what was duplicated
 	TMap<UObject*, UObject*> DuplicatedObjectList;
 
-	FObjectDuplicationParameters Parameters(const_cast<UWidgetTree*>( WidgetTree ), Actor);
+	FObjectDuplicationParameters Parameters(const_cast<UWidgetTree*>( WidgetTree ), UserWidget);
 	Parameters.CreatedObjects = &DuplicatedObjectList;
 
 	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
 
-	UUserWidget* WidgetActor = CastChecked<UUserWidget>(Actor);
-	UClass* ActorClass = Actor->GetClass();
+	UUserWidget* WidgetActor = CastChecked<UUserWidget>(UserWidget);
+	UClass* ActorClass = UserWidget->GetClass();
 
 	for ( UWidget* Widget : ClonedTree->WidgetTemplates )
 	{
@@ -54,19 +54,19 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* Actor) const
 			continue;
 		}
 
-		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), Actor->Components.Num()) );
+		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), UserWidget->Components.Num()) );
 
 		FString VariableName = Widget->GetName();
 
 		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		Actor->Components.Add(Widget); // Add to array so it gets saved
+		UserWidget->Components.Add(Widget); // Add to array so it gets saved
 //		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
 		// Find property with the same name as the template and assign the new Timeline to it
 		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
 		if ( Prop )
 		{
-			Prop->SetObjectPropertyValue_InContainer(Actor, Widget);
+			Prop->SetObjectPropertyValue_InContainer(UserWidget, Widget);
 		}
 
 		// Perform binding

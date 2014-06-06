@@ -20,6 +20,16 @@ class UMG_API UScrollBoxSlot : public UPanelSlot
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetPadding(FMargin InPadding);
+
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	// UPanelSlot interface
+	virtual void Refresh() OVERRIDE;
+	// End of UPanelSlot interface
+
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SScrollBox> ScrollBox);
 

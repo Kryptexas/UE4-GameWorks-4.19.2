@@ -55,33 +55,21 @@ void UOverlay::ReplaceChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UOverlay::RebuildWidget()
 {
-	TSharedRef<SOverlay> NewCanvas = SNew(SOverlay);
-	MyVerticalBox = NewCanvas;
+	TSharedRef<SOverlay> NewWidget = SNew(SOverlay);
+	MyVerticalBox = NewWidget;
 
-	TSharedPtr<SOverlay> Canvas = MyVerticalBox.Pin();
-	if ( Canvas.IsValid() )
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
-		Canvas->ClearChildren();
-
-		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+		UOverlaySlot* Slot = Slots[SlotIndex];
+		if ( Slot == NULL )
 		{
-			UOverlaySlot* Slot = Slots[SlotIndex];
-			if ( Slot == NULL )
-			{
-				Slots[SlotIndex] = Slot = ConstructObject<UOverlaySlot>(UOverlaySlot::StaticClass(), this);
-			}
-
-			auto& NewSlot = Canvas->AddSlot()
-				.Padding(Slot->Padding)
-				.HAlign(Slot->HorizontalAlignment)
-				.VAlign(Slot->VerticalAlignment)
-				[
-					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-				];
+			Slots[SlotIndex] = Slot = ConstructObject<UOverlaySlot>(UOverlaySlot::StaticClass(), this);
 		}
+
+		Slot->BuildSlot(NewWidget);
 	}
 
-	return NewCanvas;
+	return NewWidget;
 }
 
 UOverlaySlot* UOverlay::AddSlot(UWidget* Content)

@@ -5,7 +5,7 @@
 #include "TileView.generated.h"
 
 /** A flow panel that presents the contents as a set of tiles all uniformly sized. */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()

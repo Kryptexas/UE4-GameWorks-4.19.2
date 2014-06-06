@@ -79,35 +79,22 @@ void UHorizontalBox::InsertChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 {
-	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);
-	MyHorizontalBox = NewCanvas;
+	TSharedRef<SHorizontalBox> NewWidget = SNew(SHorizontalBox);
+	MyHorizontalBox = NewWidget;
 
-	TSharedPtr<SHorizontalBox> Canvas = MyHorizontalBox.Pin();
-	if ( Canvas.IsValid() )
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 	{
-		Canvas->ClearChildren();
-
-		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
+		if ( Slot == NULL )
 		{
-			UHorizontalBoxSlot* Slot = Slots[SlotIndex];
-			if ( Slot == NULL )
-			{
-				Slots[SlotIndex] = Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
-			}
-
-			auto& NewSlot = Canvas->AddSlot()
-				.Padding(Slot->Padding)
-				.HAlign(Slot->HorizontalAlignment)
-				.VAlign(Slot->VerticalAlignment)
-				[
-					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-				];
-
-			NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Slot->Size);
+			Slots[SlotIndex] = Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 		}
+
+		Slot->Parent = this;
+		Slot->BuildSlot(NewWidget);
 	}
 
-	return NewCanvas;
+	return NewWidget;
 }
 
 UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)

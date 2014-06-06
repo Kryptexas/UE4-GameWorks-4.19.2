@@ -11,3 +11,48 @@ UOverlaySlot::UOverlaySlot(const FPostConstructInitializeProperties& PCIP)
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;
 }
+
+void UOverlaySlot::BuildSlot(TSharedRef<SOverlay> Overlay)
+{
+	Slot = &Overlay->AddSlot()
+		.Padding(Padding)
+		.HAlign(HorizontalAlignment)
+		.VAlign(VerticalAlignment)
+		[
+			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
+		];
+}
+
+void UOverlaySlot::SetPadding(FMargin InPadding)
+{
+	Padding = InPadding;
+	if ( Slot )
+	{
+		Slot->Padding(InPadding);
+	}
+}
+
+void UOverlaySlot::SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment)
+{
+	HorizontalAlignment = InHorizontalAlignment;
+	if ( Slot )
+	{
+		Slot->HAlign(InHorizontalAlignment);
+	}
+}
+
+void UOverlaySlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignment)
+{
+	VerticalAlignment = InVerticalAlignment;
+	if ( Slot )
+	{
+		Slot->VAlign(InVerticalAlignment);
+	}
+}
+
+void UOverlaySlot::Refresh()
+{
+	SetPadding(Padding);
+	SetHorizontalAlignment(HorizontalAlignment);
+	SetVerticalAlignment(VerticalAlignment);
+}

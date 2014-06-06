@@ -51,6 +51,11 @@ UWidget* UCanvasPanel::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
+TSharedPtr<SFixedSizeCanvas> UCanvasPanel::GetCanvasWidget() const
+{
+	return MyCanvas.Pin();
+}
+
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
 	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
@@ -94,9 +99,35 @@ UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
 {
 	UCanvasPanelSlot* Slot = AddSlot(Child);
-	Slot->Offset = FMargin(Position.X, Position.Y, 100, 25);
+	Slot->LayoutData.Offsets = FMargin(Position.X, Position.Y, 100, 25);
 
 	return true;
+}
+
+bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
+{
+	if ( Slot->Content == NULL )
+	{
+		return false;
+	}
+
+	TSharedPtr<SFixedSizeCanvas> Canvas = GetCanvasWidget();
+	if ( Canvas.IsValid() )
+	{
+		FArrangedChildren ArrangedChildren(EVisibility::All);
+		Canvas->ArrangeChildren(Canvas->GetCachedGeometry(), ArrangedChildren);
+
+		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
+		{
+			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->GetWidget() )
+			{
+				ArrangedGeometry = ArrangedChildren(ChildIndex).Geometry;
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 #if WITH_EDITOR

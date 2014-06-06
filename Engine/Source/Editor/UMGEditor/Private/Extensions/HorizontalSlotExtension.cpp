@@ -14,7 +14,7 @@ bool FHorizontalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selecti
 {
 	for ( const FSelectedWidget& Widget : Selection )
 	{
-		if ( !Widget.Template->Slot || !Widget.Template->Slot->IsA(UHorizontalBoxSlot::StaticClass()) )
+		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UHorizontalBoxSlot::StaticClass()) )
 		{
 			return false;
 		}
@@ -50,8 +50,8 @@ FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)
 {
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		ShiftHorizontal(Selection.Preview, ShiftAmount);
-		ShiftHorizontal(Selection.Template, ShiftAmount);
+		ShiftHorizontal(Selection.GetPreview(), ShiftAmount);
+		ShiftHorizontal(Selection.GetTemplate(), ShiftAmount);
 	}
 
 	//TODO UMG Reorder the live slot without rebuilding the structure

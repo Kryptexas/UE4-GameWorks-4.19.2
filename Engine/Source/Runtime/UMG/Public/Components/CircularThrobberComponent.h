@@ -7,7 +7,7 @@
 class USlateBrushAsset;
 
 /**  A throbber widget that orients images in a spinning circle. */
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UCircularThrobberComponent : public UWidget
 {
 	GENERATED_UCLASS_BODY()

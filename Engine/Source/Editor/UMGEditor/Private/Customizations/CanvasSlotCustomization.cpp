@@ -50,7 +50,7 @@ void FCanvasSlotCustomization::FillOutChildren(TSharedRef<IPropertyHandle> Prope
 
 void FCanvasSlotCustomization::CustomizeAnchors(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	TSharedPtr<IPropertyHandle> Slot = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UCanvasPanelSlot, Anchors));
+	TSharedPtr<IPropertyHandle> Slot = PropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FAnchorData, Anchors));
 
 	if ( !Slot.IsValid() )
 	{

@@ -21,7 +21,7 @@ public:
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
 	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) OVERRIDE;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
@@ -32,6 +32,8 @@ public:
 
 	/** @return The sequencer used to create widget animations */
 	TSharedPtr<ISequencer>& GetSequencer();
+
+	void SelectWidgets(TArray<UWidget*> Widgets);
 
 private:
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
@@ -56,6 +58,8 @@ private:
 
 	/** Default movie scene for new animations */
 	UMovieScene* DefaultMovieScene;
+
+	TArray<UWidget*> SelectedPreviewWidgets;
 
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
 };

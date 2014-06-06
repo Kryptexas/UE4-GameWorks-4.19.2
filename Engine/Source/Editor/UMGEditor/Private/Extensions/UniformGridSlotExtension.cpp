@@ -13,7 +13,7 @@ bool FUniformGridSlotExtension::IsActive(const TArray< FSelectedWidget >& Select
 {
 	for ( const FSelectedWidget& Widget : Selection )
 	{
-		if ( !Widget.Template->Slot || !Widget.Template->Slot->IsA(UUniformGridSlot::StaticClass()) )
+		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UUniformGridSlot::StaticClass()) )
 		{
 			return false;
 		}
@@ -61,8 +61,8 @@ FReply FUniformGridSlotExtension::HandleShiftRow(int32 ShiftAmount)
 {
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		ShiftRow(Selection.Preview, ShiftAmount);
-		ShiftRow(Selection.Template, ShiftAmount);
+		ShiftRow(Selection.GetPreview(), ShiftAmount);
+		ShiftRow(Selection.GetTemplate(), ShiftAmount);
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
@@ -74,8 +74,8 @@ FReply FUniformGridSlotExtension::HandleShiftColumn(int32 ShiftAmount)
 {
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		ShiftColumn(Selection.Preview, ShiftAmount);
-		ShiftColumn(Selection.Template, ShiftAmount);
+		ShiftColumn(Selection.GetPreview(), ShiftAmount);
+		ShiftColumn(Selection.GetTemplate(), ShiftAmount);
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);

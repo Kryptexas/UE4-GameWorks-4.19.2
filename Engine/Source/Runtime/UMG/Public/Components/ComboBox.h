@@ -4,13 +4,15 @@
 
 #include "ComboBox.generated.h"
 
-UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
+/** The combobox allows you to display a list of options to the user in a dropdown menu for them to select one. */
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UComboBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
+	/** The list of items to be displayed on the combobox. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Content)
 	TArray<UObject*> Items;
 
@@ -19,21 +21,9 @@ public:
 	FGenerateWidgetUObject OnGenerateWidget;
 	
 protected:
-	TSharedPtr< SComboBox<UObject*> > ComboBoxWidget() const
-	{
-		if ( MyWidget.IsValid() )
-		{
-			return StaticCastSharedRef< SComboBox<UObject*> >(MyWidget.ToSharedRef());
-		}
-
-		return TSharedPtr< SComboBox<UObject*> >();
-	}
-
-protected:
 	TSharedRef<SWidget> HandleGenerateWidget(UObject* Item) const;
 
 	// UWidget interface
-
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
 };

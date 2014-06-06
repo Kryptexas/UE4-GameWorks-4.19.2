@@ -6,21 +6,30 @@ class UWidget;
 class SWidget;
 class UWidgetBlueprint;
 
+/**
+ * The Selected widget is a useful way to hold onto the selection in a way that allows for up to date access to the current preview object.
+ * Because the designer could end up rebuilding the preview, it's best to hold onto an FSelectedWidget.
+ */
 struct FSelectedWidget
 {
 public:
-	FSelectedWidget()
-		: Preview(NULL)
-		, Template(NULL)
-	{ }
+	static FSelectedWidget FromTemplate(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+	static FSelectedWidget FromPreview(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget);
 
-	bool IsValid() const
-	{
-		return Template != NULL && Preview != NULL;
-	}
+	FSelectedWidget();
 
-	UWidget* Template;
-	UWidget* Preview;
+	bool IsValid() const;
+
+	UWidget* GetTemplate() const;
+	UWidget* GetPreview() const;
+
+private:
+	FSelectedWidget(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+
+private:
+
+	TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor;
+	UWidget* TemplateWidget;
 };
 
 class FDesignerExtension : public TSharedFromThis<FDesignerExtension>

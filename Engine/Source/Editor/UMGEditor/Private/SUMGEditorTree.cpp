@@ -16,7 +16,7 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
 
@@ -95,26 +95,15 @@ void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProp
 	}
 }
 
-void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> Widgets)
+void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 {
-	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle;
-	TArray<UObject*> InspectorObjects;
-	InspectorObjects.Empty(Widgets.Num());
-	for ( UWidget* Widget : Widgets )
+	TArray<UWidget*> PreviewWidgets;
+	for ( UWidget* TemplateWidget : TemplateWidgets )
 	{
-		//if ( NodePtr->CanEditDefaults() )
-		{
-			InspectorTitle = "Widget";// Widget->GetDisplayString();
-			InspectorObjects.Add(Widget);
-		}
+		PreviewWidgets.Add(FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), TemplateWidget).GetPreview());
 	}
 
-	UWidgetBlueprint* Blueprint = GetBlueprint();
-
-	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+	BlueprintEditor.Pin()->SelectWidgets(PreviewWidgets);
 }
 
 void SUMGEditorTree::BuildWrapWithMenu(FMenuBuilder& Menu)
@@ -256,7 +245,7 @@ FReply SUMGEditorTree::CreateTestUI()
 		Button4->SetContent(Text1);
 
 		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
-		Slot->Offset = FMargin(200, 300, 20, 50);
+		Slot->LayoutData.Offsets = FMargin(200, 300, 20, 50);
 
 		Border->SetContent(Vertical);
 

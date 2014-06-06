@@ -4,13 +4,13 @@
 
 #include "Overlay.generated.h"
 
-UCLASS(meta=( BlueprintSpawnableComponent, Category="Panel" ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
 class UMG_API UOverlay : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
-	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
+	UPROPERTY()
 	TArray<UOverlaySlot*> Slots;
 
 	UOverlaySlot* AddSlot(UWidget* Content);

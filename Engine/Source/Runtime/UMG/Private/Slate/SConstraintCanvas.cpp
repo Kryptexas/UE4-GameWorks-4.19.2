@@ -79,7 +79,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			if ( bIsHorizontalStretch )
 			{
 				LocalPosition.X = AnchorPixels.Left + Offset.Left;
-				LocalSize.X = AnchorPixels.Right - AnchorPixels.Left - Offset.Right;
+				LocalSize.X = AnchorPixels.Right - LocalPosition.X - Offset.Right;
 			}
 			else
 			{
@@ -91,7 +91,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			if ( bIsVerticalStretch )
 			{
 				LocalPosition.Y = AnchorPixels.Top + Offset.Top;
-				LocalSize.Y = AnchorPixels.Bottom - AnchorPixels.Top - Offset.Bottom;
+				LocalSize.Y = AnchorPixels.Bottom - LocalPosition.Y - Offset.Bottom;
 			}
 			else
 			{
@@ -115,6 +115,8 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 
 int32 SConstraintCanvas::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	CachedGeometry = AllottedGeometry;
+
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	this->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 

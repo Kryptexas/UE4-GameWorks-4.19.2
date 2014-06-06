@@ -111,19 +111,35 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
 
-	/** Sets the visiblity of the widget. */
+	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
 
+	/** Gets if the button is currently being hovered by the mouse */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsHovered() const;
+
 	/** Gets the underlying Slate SWidget for this UWidget. */
 	TSharedRef<SWidget> GetWidget();
+
+	/**
+	 * Applies all properties to the native widget if possible.  This is called after a widget is constructed.
+	 * It can also be called by the editor to update modified state, so ensure all initialization to a widgets
+	 * properties are performed here, or the property and visual state may become unsynced.
+	 */
+	virtual void SyncronizeProperties();
 
 #if WITH_EDITOR
 	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
 
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE
+	{
+		Super::PostEditChangeProperty(PropertyChangedEvent);
+
+		SyncronizeProperties();
+	}
 	// End of UObject interface
 #endif
 

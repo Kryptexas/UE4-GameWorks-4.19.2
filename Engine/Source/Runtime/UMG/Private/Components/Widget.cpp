@@ -29,22 +29,37 @@ void UWidget::SetIsEnabled(bool bInIsEnabled)
 
 TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
 {
-	return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
+	if ( MyWidget.IsValid() )
+	{
+		return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
+	}
+
+	return Visiblity;
 }
 
 void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
 {
-	MyWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+	Visiblity = InVisibility;
+
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+	}
 }
 
 void UWidget::SetToolTipText(const FText& InToolTipText)
 {
-	MyWidget->SetToolTipText(ToolTipText);
+	ToolTipText = InToolTipText;
+
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget->SetToolTipText(InToolTipText);
+	}
 }
 
-void UWidget::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+bool UWidget::IsHovered() const
 {
-	// TODO Rename?
+	return MyWidget->IsHovered();
 }
 
 TSharedRef<SWidget> UWidget::GetWidget()
@@ -52,14 +67,7 @@ TSharedRef<SWidget> UWidget::GetWidget()
 	if ( !MyWidget.IsValid() )
 	{
 		MyWidget = RebuildWidget();
-		MyWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
-		MyWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
-		//MyWidget->SetCursor(OPTIONAL_BINDING(EMouseCursor)
-
-		if ( !ToolTipText.IsEmpty() )
-		{
-			MyWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
-		}
+		SyncronizeProperties();
 	}
 
 	return MyWidget.ToSharedRef();
@@ -69,6 +77,21 @@ TSharedRef<SWidget> UWidget::RebuildWidget()
 {
 	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));
 	return SNew(SSpacer);
+}
+
+void UWidget::SyncronizeProperties()
+{
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
+		MyWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+		//MyWidget->SetCursor(OPTIONAL_BINDING(EMouseCursor)
+
+		if ( !ToolTipText.IsEmpty() )
+		{
+			MyWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
+		}
+	}
 }
 
 EVisibility UWidget::ConvertSerializedVisibilityToRuntime(TEnumAsByte<ESlateVisibility::Type> Input)

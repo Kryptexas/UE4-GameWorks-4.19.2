@@ -5,7 +5,7 @@
 #include "ListView.generated.h"
 
 /** Allows thousands of items to be displayed in a list.  Generates widgets dynamically for each item. */
-UCLASS(meta=( BlueprintSpawnableComponent ), ClassGroup=UserInterface)
+UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
 class UMG_API UListView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()

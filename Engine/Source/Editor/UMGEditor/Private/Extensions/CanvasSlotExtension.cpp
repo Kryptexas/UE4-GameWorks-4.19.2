@@ -14,7 +14,7 @@ bool FCanvasSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
 {
 	for ( const FSelectedWidget& Widget : Selection )
 	{
-		if ( !Widget.Template->Slot || !Widget.Template->Slot->IsA(UCanvasPanelSlot::StaticClass()) )
+		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UCanvasPanelSlot::StaticClass()) )
 		{
 			return false;
 		}
@@ -69,8 +69,8 @@ FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPo
 	{
 		for ( FSelectedWidget& Selection : SelectionCache )
 		{
-			MoveByAmount(Selection.Preview, Event.GetCursorDelta());
-			MoveByAmount(Selection.Template, Event.GetCursorDelta());
+			MoveByAmount(Selection.GetPreview(), Event.GetCursorDelta());
+			MoveByAmount(Selection.GetTemplate(), Event.GetCursorDelta());
 		}
 
 		return FReply::Handled();
@@ -86,11 +86,11 @@ void FCanvasSlotExtension::MoveByAmount(UWidget* Widget, FVector2D Delta)
 		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Widget->Slot);
 		UCanvasPanel* Parent = Cast<UCanvasPanel>(CanvasSlot->Parent);
 
-		FMargin Offset = CanvasSlot->Offset;
-		Offset.Left += Delta.X;
-		Offset.Top += Delta.Y;
+		FMargin Offsets = CanvasSlot->LayoutData.Offsets;
+		Offsets.Left += Delta.X;
+		Offsets.Top += Delta.Y;
 
-		CanvasSlot->SetOffset(Offset);
+		CanvasSlot->SetOffset(Offsets);
 	}
 }
 

@@ -12,7 +12,7 @@ public:
 	SLATE_BEGIN_ARGS( SUMGEditorTree ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
+	void Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
 	virtual ~SUMGEditorTree();
 
 private:
@@ -39,7 +39,7 @@ private:
 	
 private:
 
-	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 
 	TArray< UWidget* > RootWidgets;
 

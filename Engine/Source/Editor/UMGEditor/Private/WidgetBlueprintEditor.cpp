@@ -2,6 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
+#include "SKismetInspector.h"
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
@@ -22,6 +23,30 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	{
 		Blueprint->OnChanged().RemoveAll(this);
 	}
+}
+
+void FWidgetBlueprintEditor::SelectWidgets(TArray<UWidget*> Widgets)
+{
+	// Convert the selection set to an array of UObject* pointers
+	FString InspectorTitle;
+	TArray<UObject*> InspectorObjects;
+	InspectorObjects.Empty(Widgets.Num());
+	for ( UWidget* Widget : Widgets )
+	{
+		//if ( NodePtr->CanEditDefaults() )
+		{
+			InspectorTitle = "Widget";// Widget->GetDisplayString();
+			InspectorObjects.Add(Widget);
+		}
+	}
+
+	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+	// Update the details panel
+	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+
+	SelectedPreviewWidgets = Widgets;
 }
 
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
@@ -64,9 +89,64 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 	}
 }
 
-void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
+static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, UProperty* MemberProperty)
 {
-	UpdatePreview(GetWidgetBlueprintObj(), true);
+	FString SourceValue;
+
+	// Get the property addresses for the source and destination objects.
+	uint8* SourceAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(SourceObject);
+	uint8* DestionationAddr = MemberProperty->ContainerPtrToValuePtr<uint8>(DestinationObject);
+
+	if ( SourceAddr == NULL || DestionationAddr == NULL )
+	{
+		return false;
+	}
+
+	// Get the current value from the source object.
+	MemberProperty->ExportText_Direct(SourceValue, SourceAddr, SourceAddr, NULL, PPF_Localized);
+
+	const bool bNotifyObjectOfChange = true;
+
+	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
+	{
+		DestinationObject->PreEditChange(MemberProperty);
+	}
+
+	// Set the value on the destination object.
+	MemberProperty->ImportText(*SourceValue, DestionationAddr, 0, DestinationObject);
+
+	if ( !DestinationObject->HasAnyFlags(RF_ClassDefaultObject) && bNotifyObjectOfChange )
+	{
+		FPropertyChangedEvent PropertyEvent(MemberProperty);
+		DestinationObject->PostEditChangeProperty(PropertyEvent);
+	}
+
+	return true;
+}
+
+static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty)
+{
+	UProperty* CurrentProperty = PropertyChainNode->GetValue();
+
+	if ( PropertyChainNode->GetNextNode() == NULL )
+	{
+		return MigratePropertyValue(SourceObject, DestinationObject, MemberProperty);
+	}
+	
+	if ( UObjectProperty* CurrentObjectProperty = Cast<UObjectProperty>(CurrentProperty) )
+	{
+		// Get the property addresses for the source and destination objects.
+		UObject* SourceObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(SourceObject));
+		UObject* DestionationObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(DestinationObject));
+
+		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue());
+	}
+	else if ( UArrayProperty* CurrentArrayProperty = Cast<UArrayProperty>(CurrentProperty) )
+	{
+		// Arrays!
+	}
+
+	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty);
 }
 
 void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
@@ -75,6 +155,32 @@ void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collecto
 	if( DefaultMovieScene != nullptr )
 	{
 		Collector.AddReferencedObject( DefaultMovieScene );
+	}
+}
+
+void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)
+{
+	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
+
+	if ( PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet )
+	{
+		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+		UUserWidget* PreviewActor = GetPreview();
+		if ( PreviewActor != NULL )
+		{
+			for ( UWidget* PreviewWidget : SelectedPreviewWidgets )
+			{
+				FString PreviewWidgetName = PreviewWidget->GetName();
+				UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
+
+				if ( TemplateWidget )
+				{
+					FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode = PropertyThatChanged->GetHead();
+					MigratePropertyValue(PreviewWidget, TemplateWidget, PropertyChainNode, PropertyChainNode->GetValue());
+				}
+			}
+		}
 	}
 }
 
