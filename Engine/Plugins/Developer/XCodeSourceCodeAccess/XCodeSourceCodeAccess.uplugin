@@ -8,13 +8,13 @@
 	"CreatedByURL" : "http://epicgames.com",
 	"EngineVersion" : "4.2.0",
 	"Description" : "Allows access to source code in XCode.",
-	"Category" : "Editor.Source Code Access",
+	"Category" : "Developer.Source Code Access",
 	
 	"Modules" :
 	[
 		{
 			"Name" : "XCodeSourceCodeAccess",
-			"Type" : "Editor",
+			"Type" : "Developer",
 			"WhitelistPlatforms" : [ "Mac" ]
 		}
 	]
