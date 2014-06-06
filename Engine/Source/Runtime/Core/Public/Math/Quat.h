@@ -809,7 +809,7 @@ FORCEINLINE void FQuat::Normalize(float Tolerance)
 
 FORCEINLINE bool FQuat::IsNormalized( ) const
 {
-	return (FMath::Abs(1.f - SizeSquared()) <= KINDA_SMALL_NUMBER);
+	return (FMath::Abs(1.f - SizeSquared()) < THRESH_QUAT_NORMALIZED);
 }
 
 

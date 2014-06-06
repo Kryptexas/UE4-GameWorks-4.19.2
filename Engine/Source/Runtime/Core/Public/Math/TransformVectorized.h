@@ -927,9 +927,8 @@ public:
 	FORCEINLINE bool IsRotationNormalized() const
 	{		
 		const VectorRegister TestValue = VectorAbs(VectorSubtract(VectorOne(), VectorDot4(Rotation, Rotation)));
-		return !VectorAnyGreaterThan(TestValue, GlobalVectorConstants::FloatOneHundredth);	
+		return !VectorAnyGreaterThan(TestValue, GlobalVectorConstants::ThreshQuatNormalized);
 	}
-
 
 	/**
 	 * Blends the Identity atom with a weighted source atom and accumulates that into a destination atom

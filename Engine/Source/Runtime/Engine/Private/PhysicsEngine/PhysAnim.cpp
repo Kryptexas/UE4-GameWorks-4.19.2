@@ -175,7 +175,16 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		else
 		{
 			const int32 ParentIndex	= SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			SpaceBases[BoneIndex]	= LocalAtoms[BoneIndex] * SpaceBases[ParentIndex];
+			SpaceBases[BoneIndex] = LocalAtoms[BoneIndex] * SpaceBases[ParentIndex];
+
+			/**
+			* Normalize rotations.
+			* We want to remove any loss of precision due to accumulation of error.
+			* i.e. A componentSpace transform is the accumulation of all of its local space parents. The further down the chain, the greater the error.
+			* SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
+			* So this is a good place to make sure all transforms are normalized.
+			*/
+			SpaceBases[BoneIndex].NormalizeRotation();
 		}
 
 		if (bUpdatePhysics && BodyInstance)

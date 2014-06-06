@@ -1346,7 +1346,7 @@ FORCEINLINE bool FVector::Normalize(float Tolerance)
 
 FORCEINLINE bool FVector::IsNormalized() const
 {
-	return (FMath::Abs(1.f - SizeSquared()) <= 0.01f);
+	return (FMath::Abs(1.f - SizeSquared()) < THRESH_VECTOR_NORMALIZED);
 }
 
 FORCEINLINE void FVector::ToDirectionAndLength(FVector &OutDir, float &OutLength)

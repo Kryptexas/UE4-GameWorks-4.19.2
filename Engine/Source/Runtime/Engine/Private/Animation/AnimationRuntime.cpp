@@ -27,6 +27,14 @@ void FAnimationRuntime::NormalizeRotations(const FBoneContainer & RequiredBones,
 	}
 }
 
+void FAnimationRuntime::NormalizeRotations(FTransformArrayA2 & Atoms)
+{
+	for (int32 BoneIndex = 0; BoneIndex < Atoms.Num(); BoneIndex++)
+	{
+		Atoms[BoneIndex].NormalizeRotation();
+	}
+}
+
 void FAnimationRuntime::InitializeTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2 & Atoms)
 {
 	check( Atoms.Num() == RequiredBones.GetNumBones() );

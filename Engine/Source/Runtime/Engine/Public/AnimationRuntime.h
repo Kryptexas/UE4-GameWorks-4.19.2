@@ -16,6 +16,8 @@ class ENGINE_API FAnimationRuntime
 {
 public:
 	static void NormalizeRotations(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
+	static void NormalizeRotations(FTransformArrayA2 & Atoms);
+
 	static void InitializeTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms);
 #if DO_GUARD_SLOW
 	static bool ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices, FA2Pose & Pose);
