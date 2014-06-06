@@ -274,6 +274,7 @@ private:
 	static const uint32 AnyRequestID = 0;
 	static const uint32 InvalidRequestID = uint32(-1);
 
+	UPROPERTY()
 	uint32 RequestID;
 
 public:
