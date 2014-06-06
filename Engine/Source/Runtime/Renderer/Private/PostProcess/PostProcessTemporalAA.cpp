@@ -129,6 +129,9 @@ public:
 			};
 		
 			float Sharpness = CVarTemporalAASharpness.GetValueOnRenderThread();
+			// With the new temporal AA, need to hardcode a value here.
+			// Going to remove this once the new temporal AA is validated.
+			Sharpness = -0.25f;
 			Sharpness = 1.0f + Sharpness * 0.5f;
 
 			float Weights[9];
