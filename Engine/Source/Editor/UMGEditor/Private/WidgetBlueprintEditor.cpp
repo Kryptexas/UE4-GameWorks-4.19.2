@@ -61,9 +61,6 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 {
 	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
 
-	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-	Blueprint->OnChanged().AddSP(this, &FWidgetBlueprintEditor::OnBlueprintChanged);
-
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 }
 

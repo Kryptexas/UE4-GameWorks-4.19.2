@@ -36,7 +36,7 @@ public:
 	void SelectWidgets(TArray<UWidget*> Widgets);
 
 private:
-	void OnBlueprintChanged(UBlueprint* InBlueprint);
+	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) OVERRIDE;
 
 	void DestroyPreview();
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
