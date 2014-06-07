@@ -16,8 +16,6 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 	MaterialOverride = nullptr;
 
 	SpriteColor = FLinearColor::White;
-
-	Mobility = EComponentMobility::Static;
 }
 
 #if WITH_EDITOR

@@ -10,6 +10,8 @@ APaperRenderActor::APaperRenderActor(const FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	RenderComponent = PCIP.CreateDefaultSubobject<UPaperRenderComponent>(this, TEXT("RenderComponent"));
+	RenderComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	RenderComponent->Mobility = EComponentMobility::Static;
 
 	RootComponent = RenderComponent;
 }
