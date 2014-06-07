@@ -102,6 +102,13 @@ public:
 		return FVector(0.0f, FMath::RadiansToDegrees<float>(AngularVelocity), 0.0f);
 	}
 
+	// Converts Unreal torque to torque about the 2D 'Z' axis in Nm
+	static inline float ConvertUnrealTorqueToBox(const FVector& Torque3D)
+	{
+		const FVector ProjectedTorque = Torque3D.ProjectOnTo(FVector(0.0f, -1.0f, 0.0f));
+		return ProjectedTorque.Size() / UnrealUnitsPerMeter;
+	}
+
 	static inline float ConvertUnrealVectorToPerpendicularDistance(const FVector& Vector)
 	{
 		return Vector.Y;
