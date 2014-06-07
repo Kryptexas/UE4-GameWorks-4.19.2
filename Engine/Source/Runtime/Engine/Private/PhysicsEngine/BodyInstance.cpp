@@ -731,7 +731,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 #endif
 }
 
-#if WITH_PHYSX || WITH_BOX2D
+#if UE_WITH_PHYSICS
 void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
 {
 	check(Setup);
@@ -1212,7 +1212,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	}
 #endif // WITH_PHYSX
 }
-#endif // WITH_PHYSX || WITH_BOX2D
+#endif // UE_WITH_PHYSICS
 
 //helper function for TermBody to avoid code duplication between scenes
 #if WITH_PHYSX
@@ -2730,7 +2730,7 @@ FString FBodyInstance::GetBodyDebugName() const
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // COLLISION
 
-bool FBodyInstance::LineTrace(struct FHitResult& OutHit,const FVector& Start,const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial)
+bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_RaycastAny);
 
@@ -2772,7 +2772,7 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit,const FVector& Start,con
 			PxFilterData ShapeFilter = PShape->getQueryFilterData();
 			const bool bShapeIsComplex = (ShapeFilter.word3 & EPDF_ComplexCollision) != 0;
 			const bool bShapeIsSimple = (ShapeFilter.word3 & EPDF_SimpleCollision) != 0;
-			if((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
+			if ((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
 			{
 				const int32 ArraySize = ARRAY_COUNT(PHits);
 				// only care about one hit - not closest hit			
@@ -2797,7 +2797,7 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit,const FVector& Start,con
 			}
 		}
 
-		if(BestHitDistance < BIG_NUMBER)
+		if (BestHitDistance < BIG_NUMBER)
 		{
 			// we just like to make sure if the hit is made, set to test touch
 			PxFilterData QueryFilter;

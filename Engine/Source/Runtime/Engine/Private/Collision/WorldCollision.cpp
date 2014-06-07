@@ -45,27 +45,27 @@ ECollisionChannel DefaultCollisionChannel = (ECollisionChannel) 0;
 
 bool UWorld::LineTraceTest(const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	return RaycastTest(this, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
-#endif // WITH_PHYSX
+#endif
 	return false;
 }
 
 
 bool UWorld::LineTraceSingle(struct FHitResult& OutHit, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	return RaycastSingle(this, OutHit, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
 #else
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
 	return false;
-#endif // WITH_PHYSX
+#endif
 }
 
 bool UWorld::LineTraceMulti(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	return RaycastMulti(this, OutHits, Start, End, TraceChannel, Params, ResponseParam, FCollisionObjectQueryParams::DefaultObjectQueryParam);
 #endif // WITH_PHYSX
 	return false;
@@ -109,6 +109,9 @@ bool UWorld::SweepTest(const FVector& Start, const FVector& End, const FQuat& Ro
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepTest
+
 	return false;
 }
 
@@ -148,6 +151,8 @@ bool UWorld::SweepSingle(struct FHitResult& OutHit, const FVector& Start, const 
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepSingle
 
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
@@ -189,6 +194,9 @@ bool UWorld::SweepMulti( TArray<FHitResult>& OutHits, const FVector& Start, cons
 		ensure(false);
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepMulti
+
 	return false;
 }
 
@@ -224,6 +232,9 @@ bool UWorld::OverlapTest(const FVector& Pos, const FQuat& Rot,ECollisionChannel 
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapTest
+
 	return false;
 }
 
@@ -258,6 +269,9 @@ bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos
 		ensure(false);
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapSingle
+
 	return false;
 }
 
@@ -292,6 +306,9 @@ bool UWorld::OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVec
 		ensure(false);
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapMulti
+
 	return false;
 }
 
@@ -299,7 +316,7 @@ bool UWorld::OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVec
 
 bool UWorld::LineTraceTest(const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	return RaycastTest(this, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 #endif
 	return false;
@@ -307,21 +324,21 @@ bool UWorld::LineTraceTest(const FVector& Start,const FVector& End,const struct 
 
 bool UWorld::LineTraceSingle(struct FHitResult& OutHit,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	return RaycastSingle(this, OutHit, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
 #else
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
 	return false;
-#endif // WITH_PHYSX
+#endif
 }
 
-bool UWorld::LineTraceMulti(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool UWorld::LineTraceMulti(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// object query returns true if any hit is found, not only blocking hit
-#if WITH_PHYSX
+#if UE_WITH_PHYSICS
 	RaycastMulti(this, OutHits, Start, End, DefaultCollisionChannel, Params, FCollisionResponseParams::DefaultResponseParam, ObjectQueryParams);
-#endif // WITH_PHYSX
+#endif
 	return (OutHits.Num() > 0);
 }
 
@@ -363,6 +380,9 @@ bool UWorld::SweepTest(const FVector& Start, const FVector& End, const FQuat& Ro
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepTest
+
 	return false;
 }
 
@@ -402,6 +422,8 @@ bool UWorld::SweepSingle(struct FHitResult& OutHit,const FVector& Start,const FV
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepSingle
 
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
@@ -449,6 +471,9 @@ bool UWorld::SweepMulti(TArray<struct FHitResult>& OutHits,const FVector& Start,
 		}
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::SweepMulti
+
 	return (OutHits.Num() > 0);
 }
 
@@ -484,6 +509,9 @@ bool UWorld::OverlapTest(const FVector& Pos, const FQuat& Rot,const struct FColl
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapTest
+
 	return false;
 }
 
@@ -518,6 +546,9 @@ bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap,const FVector& Pos,
 		ensure(false);
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapSingle
+
 	return false;
 }
 
@@ -555,6 +586,9 @@ bool UWorld::OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps,const FVect
 		ensure(false);
 	}
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::OverlapMulti
+
 	return (OutOverlaps.Num() > 0);
 }
 
@@ -612,6 +646,9 @@ bool UWorld::ComponentOverlapTest(class UPrimitiveComponent* PrimComp, const FVe
 	}
 
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::ComponentOverlapTest
+
 	return false;
 }
 
@@ -659,13 +696,15 @@ bool UWorld::ComponentSweepSingle(struct FHitResult& OutHit,class UPrimitiveComp
 	}
 	
 	ECollisionChannel TraceChannel = PrimComp->GetCollisionObjectType();
-#if WITH_PHYSX
+
 	// if extent is 0, do line trace
 	if (PrimComp->IsZeroExtent())
 	{
 		return RaycastSingle(this, OutHit, Start, End, TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels()));
 	}
 
+	//@TODO: BOX2D: Implement UWorld::ComponentSweepSingle
+#if WITH_PHYSX
 	PxRigidActor* PRigidActor = PrimComp->BodyInstance.GetPxRigidActor();
 	if(PRigidActor == NULL)
 	{
@@ -714,6 +753,7 @@ bool UWorld::ComponentSweepSingle(struct FHitResult& OutHit,class UPrimitiveComp
 
 	return bHaveBlockingHit;
 #endif //WITH_PHYSX
+
 	return false;
 }
 
@@ -732,13 +772,13 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 
 	ECollisionChannel TraceChannel = PrimComp->GetCollisionObjectType();
 
-#if WITH_PHYSX
 	// if extent is 0, do line trace
 	if (PrimComp->IsZeroExtent())
 	{
 		return RaycastMulti(this, OutHits, Start, End, TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels()));
 	}
 
+#if WITH_PHYSX
 	PxRigidActor* PRigidActor = PrimComp->BodyInstance.GetPxRigidActor();
 	if(PRigidActor == NULL)
 	{
@@ -798,6 +838,9 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 
 	return bHaveBlockingHit;
 #endif //WITH_PHYSX
+
+	//@TODO: BOX2D: Implement UWorld::ComponentSweepMulti
+
 	return false;
 }
 

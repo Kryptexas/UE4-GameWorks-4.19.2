@@ -5,6 +5,9 @@
 #include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
+
+#define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
+
 #if WITH_PHYSX
 namespace physx
 {
@@ -255,7 +258,7 @@ public:
 	typedef void* PhysXAggregateType;
 #endif
 
-#if WITH_PHYSX || WITH_BOX2D
+#if UE_WITH_PHYSICS
 	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
 #endif	//WITH_PHYSX
 

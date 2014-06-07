@@ -360,10 +360,10 @@ void UPrimitiveComponent::CreatePhysicsState()
 				return;
 			}
 
-#if WITH_PHYSX || WITH_BOX2D
+#if UE_WITH_PHYSICS
 			// Create the body.
 			BodyInstance.InitBody(BodySetup, ComponentToWorld, this, World->GetPhysicsScene());
-#endif //WITH_PHYSX
+#endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
 			// Make sure we have a valid body instance here. As we do not keep BIs with no collision shapes at all,
