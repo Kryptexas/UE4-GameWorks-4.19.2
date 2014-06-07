@@ -3050,6 +3050,7 @@ void FKismetCompilerContext::Compile()
 		if (NULL == Blueprint->Timelines[TimelineIndex])
 		{
 			Blueprint->Timelines.RemoveAt(TimelineIndex);
+			continue;
 		}
 		++TimelineIndex;
 	}
