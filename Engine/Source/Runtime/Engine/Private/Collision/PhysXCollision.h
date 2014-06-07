@@ -131,20 +131,6 @@ public:
 
 	virtual PxSceneQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxSceneQueryHit& hit) OVERRIDE;
 };
-// RAYCAST
-
-/** Trace a ray against the world and return if a blocking hit is found */
-bool RaycastTest(const UWorld * World, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** Trace a ray against the world and return the first blocking hit */
-bool RaycastSingle(const UWorld * World, struct FHitResult& OutHit, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
-
-/** 
- *  Trace a ray against the world and return touching hits and then first blocking hit
- *  Results are sorted, so a blocking hit (if found) will be the last element of the array
- *  Only the single closest blocking result will be generated, no tests will be done after that
- */
-bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
 
 // GEOM OVERLAP
 
@@ -187,3 +173,23 @@ PxTransform ConvertToPhysXCapsulePose(const FTransform& GeomPose);
 PxFilterData CreateQueryFilterData(const uint8 MyChannel, const bool bTraceComplex, const FCollisionResponseContainer & InCollisionResponseContainer, const struct FCollisionObjectQueryParams & ObjectParam, const bool bMultitrace);
 
 #endif // WITH_PHYX
+
+
+#if UE_WITH_PHYSICS
+
+// RAYCAST
+
+/** Trace a ray against the world and return if a blocking hit is found */
+bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** Trace a ray against the world and return the first blocking hit */
+bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector Start, const FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+/** 
+ *  Trace a ray against the world and return touching hits and then first blocking hit
+ *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+ *  Only the single closest blocking result will be generated, no tests will be done after that
+ */
+bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
+
+#endif

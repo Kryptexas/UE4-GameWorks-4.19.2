@@ -57,23 +57,27 @@ class ENGINE_API UPhysicsSettings
 {
 	GENERATED_UCLASS_BODY()
 
-	/**Default gravity. */
+	/** Default gravity. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultGravityZ;
 
-	/**Default Terminal Velocity. */
+	/** Default Terminal Velocity. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultTerminalVelocity;
 
-	/**Enables the use of an async scene */
+	/** Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;
+
+	/** Can 2D physics be used (Box2D)? */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bEnable2DPhysics;
 
 	/** Friction combine mode, controls how friction is computed for multiple materials. */
 	UPROPERTY(config, EditAnywhere, Category=Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
 
-	/**Max Physics Delta Time to be clamped. */
+	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
 	float MaxPhysicsDeltaTime;
 
@@ -81,7 +85,7 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	bool bSubstepping;
 
-		/**Max delta time for an individual substep simulation. */
+	/** Max delta time for an individual substep simulation. */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0", editcondition = "bSubStepping"), Category=Framerate)
 	float MaxSubstepDeltaTime;
 
@@ -89,15 +93,15 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "1", UIMin = "1", ClampMax = "16", UIMax = "16", editcondition = "bSubstepping"), Category=Framerate)
 	int32 MaxSubsteps;
 
-	/**Physics delta time smoothing factor for sync scene. */
+	/** Physics delta time smoothing factor for sync scene. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float SyncSceneSmoothingFactor;
 
-	/**Physics delta time smoothing factor for async scene. */
+	/** Physics delta time smoothing factor for async scene. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float AsyncSceneSmoothingFactor;
 
-	/**Physics delta time initial average. */
+	/** Physics delta time initial average. */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, meta = (ClampMin = "0.0013", UIMin = "1.0", ClampMax = "1.0", UIMax = "1.0"), Category = Framerate)
 	float InitialAverageFrameRate;
 

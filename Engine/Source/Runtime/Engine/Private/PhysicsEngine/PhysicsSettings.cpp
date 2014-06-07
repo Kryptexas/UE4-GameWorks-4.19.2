@@ -3,17 +3,18 @@
 #include "EnginePrivate.h"
 
 UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP),
-DefaultGravityZ(-980.f),
-DefaultTerminalVelocity(4000.f),
-bEnableAsyncScene(false),
-MaxPhysicsDeltaTime(1.f / 30.f),
-bSubstepping(false),
-MaxSubstepDeltaTime(1.f / 60.f),
-MaxSubsteps(6),
-SyncSceneSmoothingFactor(0.0f),
-AsyncSceneSmoothingFactor(0.99f),
-InitialAverageFrameRate(1.f / 60.f)
+	: Super(PCIP)
+	, DefaultGravityZ(-980.f)
+	, DefaultTerminalVelocity(4000.f)
+	, bEnableAsyncScene(false)
+	, bEnable2DPhysics(false)
+	, MaxPhysicsDeltaTime(1.f / 30.f)
+	, bSubstepping(false)
+	, MaxSubstepDeltaTime(1.f / 60.f)
+	, MaxSubsteps(6)
+	, SyncSceneSmoothingFactor(0.0f)
+	, AsyncSceneSmoothingFactor(0.99f)
+	, InitialAverageFrameRate(1.f / 60.f)
 {
 }
 

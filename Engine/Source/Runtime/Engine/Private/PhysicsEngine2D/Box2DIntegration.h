@@ -102,6 +102,11 @@ public:
 		return FVector(0.0f, FMath::RadiansToDegrees<float>(AngularVelocity), 0.0f);
 	}
 
+	static inline float ConvertUnrealVectorToPerpendicularDistance(const FVector& Vector)
+	{
+		return Vector.Y;
+	}
+
 	// Finds the scene associated with the specified UWorld
 	static TSharedPtr<FPhysicsScene2D> FindAssociatedScene(UWorld* Source);
 
