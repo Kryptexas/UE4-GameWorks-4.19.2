@@ -2959,9 +2959,12 @@ void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TA
 				VisibleVariables.AddUnique(ParentBP->NewVariables[VariableIndex].VarName);
 			}
 
-			for(int32 TimelineIndex = 0; TimelineIndex < ParentBP->Timelines.Num(); ++TimelineIndex)
+			for (auto Timeline : ParentBP->Timelines)
 			{
-				VisibleVariables.AddUnique(ParentBP->Timelines[TimelineIndex]->GetFName());
+				if (Timeline)
+				{
+					VisibleVariables.AddUnique(Timeline->GetFName());
+				}
 			}
 		}
 	}

@@ -201,7 +201,10 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 			TSet<class UCurveBase*> Curves;
 			for (auto Timeline : Blueprint->Timelines)
 			{
-				Timeline->GetAllCurves(Curves);
+				if (Timeline)
+				{
+					Timeline->GetAllCurves(Curves);
+				}
 			}
 			for (auto Component : Blueprint->ComponentTemplates)
 			{
@@ -501,6 +504,12 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 	for (int32 TimelineIndex = 0; TimelineIndex < Blueprint->Timelines.Num(); ++TimelineIndex)
 	{
 		UTimelineTemplate* Timeline = Blueprint->Timelines[TimelineIndex];
+		// Not fatal if NULL, but shouldn't happen
+		if (!Timeline)
+		{
+			continue;
+		}
+
 		FEdGraphPinType TimelinePinType(Schema->PC_Object, TEXT(""), UTimelineComponent::StaticClass(), false, false);
 
 		// Previously UTimelineComponent object has exactly the same name as UTimelineTemplate object (that obj was in blueprint)
@@ -3034,6 +3043,15 @@ void FKismetCompilerContext::Compile()
 				break;
 			}
 		}
+	}
+
+	for (int32 TimelineIndex = 0; TimelineIndex < Blueprint->Timelines.Num(); )
+	{
+		if (NULL == Blueprint->Timelines[TimelineIndex])
+		{
+			Blueprint->Timelines.RemoveAt(TimelineIndex);
+		}
+		++TimelineIndex;
 	}
 
 	CleanAndSanitizeClass(TargetClass, OldCDO);
