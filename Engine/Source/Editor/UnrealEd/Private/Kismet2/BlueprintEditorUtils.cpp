@@ -675,7 +675,7 @@ struct FRegenerationHelper
 		Blueprint->GetAllGraphs(Graphs);
 		for (auto Graph : Graphs)
 		{
-			if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
+			if (Graph && !FBlueprintEditorUtils::IsGraphIntermediate(Graph))
 			{
 				const bool bIsDelegateSignatureGraph = FBlueprintEditorUtils::IsDelegateSignatureGraph(Graph);
 
@@ -683,40 +683,43 @@ struct FRegenerationHelper
 				Graph->GetNodesOfClass(Nodes);
 				for (auto Node : Nodes)
 				{
-					TArray<UStruct*> LocalDependentStructures;
-					if (Node->HasExternalBlueprintDependencies(&LocalDependentStructures))
+					if (Node)
 					{
+						TArray<UStruct*> LocalDependentStructures;
+						if (Node->HasExternalBlueprintDependencies(&LocalDependentStructures))
+						{
+							for (auto Struct : LocalDependentStructures)
+							{
+								ProcessHierarchy(Struct, Dependencies);
+							}
+
+							if (auto MacroNode = Cast<UK2Node_MacroInstance>(Node))
+							{
+								if (UBlueprint* MacroSource = MacroNode->GetSourceBlueprint())
+								{
+									MacroSources.Add(MacroSource);
+								}
+							}
+						}
+
+						LocalDependentStructures.Empty(LocalDependentStructures.Max());
+						Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
 						for (auto Struct : LocalDependentStructures)
 						{
 							ProcessHierarchy(Struct, Dependencies);
 						}
 
-						if (auto MacroNode = Cast<UK2Node_MacroInstance>(Node))
+						auto FunctionEntry = Cast<UK2Node_FunctionEntry>(Node);
+						if (FunctionEntry && !bIsDelegateSignatureGraph)
 						{
-							if (UBlueprint* MacroSource = MacroNode->GetSourceBlueprint())
+							const FName FunctionName = (FunctionEntry->CustomGeneratedFunctionName != NAME_None) 
+								? FunctionEntry->CustomGeneratedFunctionName 
+								: FunctionEntry->SignatureName;
+							UFunction* ParentFunction = Blueprint->ParentClass ? Blueprint->ParentClass->FindFunctionByName(FunctionName) : NULL;
+							if (ParentFunction && (Schema->FN_UserConstructionScript != FunctionName))
 							{
-								MacroSources.Add(MacroSource);
+								ProcessHierarchy(ParentFunction, Dependencies);
 							}
-						}
-					}
-
-					LocalDependentStructures.Empty(LocalDependentStructures.Max());
-					Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
-					for (auto Struct : LocalDependentStructures)
-					{
-						ProcessHierarchy(Struct, Dependencies);
-					}
-
-					auto FunctionEntry = Cast<UK2Node_FunctionEntry>(Node);
-					if (FunctionEntry && !bIsDelegateSignatureGraph)
-					{
-						const FName FunctionName = (FunctionEntry->CustomGeneratedFunctionName != NAME_None) 
-							? FunctionEntry->CustomGeneratedFunctionName 
-							: FunctionEntry->SignatureName;
-						UFunction* ParentFunction = Blueprint->ParentClass ? Blueprint->ParentClass->FindFunctionByName(FunctionName) : NULL;
-						if (ParentFunction && (Schema->FN_UserConstructionScript != FunctionName))
-						{
-							ProcessHierarchy(ParentFunction, Dependencies);
 						}
 					}
 				}
@@ -941,8 +944,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 	bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
 	bool bNeedsSkelRefRemoval = false;
-
-	FBlueprintEditorUtils::PreloadMembers(Blueprint);
 
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
 	{
@@ -2931,39 +2932,42 @@ bool FBlueprintEditorUtils::IsPinTypeValid(const FEdGraphPinType& Type)
 void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TArray<FName>& VisibleVariables, bool bIncludePrivateVars) 
 {
 	// Existing variables in the parent class and above
-	check(Blueprint->SkeletonGeneratedClass != NULL);
-	for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+	check(Blueprint->bIsRegeneratingOnLoad || (Blueprint->SkeletonGeneratedClass != NULL));
+	if (Blueprint->SkeletonGeneratedClass != NULL)
 	{
-		UProperty* Property = *PropertyIt;
-
-		if ((!Property->HasAnyPropertyFlags(CPF_Parm) && (bIncludePrivateVars || Property->HasAllPropertyFlags(CPF_BlueprintVisible))))
+		for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
-			VisibleVariables.Add(Property->GetFName());
-		}
-	}
+			UProperty* Property = *PropertyIt;
 
-	if (bIncludePrivateVars)
-	{
-		// Include SCS node variable names, timelines, and other member variables that may be pending compilation. Consider them to be "private" as they're not technically accessible for editing just yet.
-		TArray<UBlueprint*> ParentBPStack;
-		UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->SkeletonGeneratedClass, ParentBPStack);
-		for (int32 StackIndex = ParentBPStack.Num() - 1; StackIndex >= 0; --StackIndex)
-		{
-			UBlueprint* ParentBP = ParentBPStack[StackIndex];
-			check(ParentBP != NULL);
-
-			GetSCSVariableNameList(ParentBP, VisibleVariables);
-
-			for(int32 VariableIndex = 0; VariableIndex < ParentBP->NewVariables.Num(); ++VariableIndex)
+			if ((!Property->HasAnyPropertyFlags(CPF_Parm) && (bIncludePrivateVars || Property->HasAllPropertyFlags(CPF_BlueprintVisible))))
 			{
-				VisibleVariables.AddUnique(ParentBP->NewVariables[VariableIndex].VarName);
+				VisibleVariables.Add(Property->GetFName());
 			}
+		}
 
-			for (auto Timeline : ParentBP->Timelines)
+		if (bIncludePrivateVars)
+		{
+			// Include SCS node variable names, timelines, and other member variables that may be pending compilation. Consider them to be "private" as they're not technically accessible for editing just yet.
+			TArray<UBlueprint*> ParentBPStack;
+			UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->SkeletonGeneratedClass, ParentBPStack);
+			for (int32 StackIndex = ParentBPStack.Num() - 1; StackIndex >= 0; --StackIndex)
 			{
-				if (Timeline)
+				UBlueprint* ParentBP = ParentBPStack[StackIndex];
+				check(ParentBP != NULL);
+
+				GetSCSVariableNameList(ParentBP, VisibleVariables);
+
+				for (int32 VariableIndex = 0; VariableIndex < ParentBP->NewVariables.Num(); ++VariableIndex)
 				{
-					VisibleVariables.AddUnique(Timeline->GetFName());
+					VisibleVariables.AddUnique(ParentBP->NewVariables[VariableIndex].VarName);
+				}
+
+				for (auto Timeline : ParentBP->Timelines)
+				{
+					if (Timeline)
+					{
+						VisibleVariables.AddUnique(Timeline->GetFName());
+					}
 				}
 			}
 		}
