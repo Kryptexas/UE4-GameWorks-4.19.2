@@ -31,6 +31,11 @@ FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
 	}
 #endif
 
+	if (const UActorComponent* Component = Cast<const UActorComponent>(Object))
+	{
+		return Component->GetReadableName();
+	}
+
 	return Object ? Object->GetName() : FString();
 }
 
