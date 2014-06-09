@@ -140,9 +140,6 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
-		/** Enable inlining */
-		public bool bEnableInlining = true;
-
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
 

@@ -211,9 +211,6 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
-		/** Enable inlining */
-		public bool bEnableInlining = true;
-
 		/** True if the environment contains performance critical code. */
 		public ModuleRules.CodeOptimization OptimizeCode = ModuleRules.CodeOptimization.Default;
 
@@ -272,7 +269,6 @@ namespace UnrealBuildTool
 			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InCopyEnvironment.bEnableExceptions;
-			bEnableInlining                        = InCopyEnvironment.bEnableInlining;
 			OptimizeCode                           = InCopyEnvironment.OptimizeCode;
 			bCreateDebugInfo                       = InCopyEnvironment.bCreateDebugInfo;
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;

@@ -96,8 +96,8 @@ namespace UnrealBuildTool
 				// Favor code size (especially useful for embedded platforms).
 				Result += " /Os";
 
-				// Allow inline method expansion unless E&C support is requested or inlining is explicitly disabled.
-				if (!BuildConfiguration.bSupportEditAndContinue && CompileEnvironment.Config.bEnableInlining)
+				// Allow inline method expansion unless E&C support is requested
+				if (!BuildConfiguration.bSupportEditAndContinue)
 				{
 					// Allow inline method expansion of any suitable.
 					Result += " /Ob2";
@@ -116,11 +116,8 @@ namespace UnrealBuildTool
 				Result += " /Ox";
 				// Enable intrinsics
 				Result += " /Oi";
-				// Allow inline method expansion of any suitable unless it's explicitly disabled.
-				if (CompileEnvironment.Config.bEnableInlining)
-				{
-					Result += " /Ob2";
-				}
+				// Allow inline method expansion
+				Result += " /Ob2";
 
 				//
 				// LTCG

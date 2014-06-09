@@ -1583,7 +1583,6 @@ namespace UnrealBuildTool
 					InFasterWithoutUnity: true,
 					InMinFilesUsingPrecompiledHeaderOverride: 0,
 					InEnableExceptions: false,
-					InEnableInlining: true,
 					bInBuildSourceFiles: true
 					);
 
@@ -2524,7 +2523,6 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableInlining: RulesObject.bEnableInlining,
 							bInBuildSourceFiles: bBuildSourceFiles
 						);
 
@@ -2562,7 +2560,6 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableInlining: RulesObject.bEnableInlining,
 							bInBuildSourceFiles : bBuildSourceFiles
 						);
 

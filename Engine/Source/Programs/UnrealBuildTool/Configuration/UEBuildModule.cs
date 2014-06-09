@@ -871,9 +871,6 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
-		/** Enable inlining */
-		public bool bEnableInlining = true;
-
 		/** Path to this module's redist static library */
 		public string RedistStaticLibraryPath = null;
 
@@ -958,7 +955,6 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining,
 			bool bInBuildSourceFiles
 			)
 			: base(	InTarget,
@@ -1006,7 +1002,6 @@ namespace UnrealBuildTool
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InEnableExceptions;
-			bEnableInlining                        = InEnableInlining;
 		}
 
 		// UEBuildModule interface.
@@ -1567,7 +1562,6 @@ namespace UnrealBuildTool
 			Result.Config.bFasterWithoutUnity                    = bFasterWithoutUnity;
 			Result.Config.MinFilesUsingPrecompiledHeaderOverride = MinFilesUsingPrecompiledHeaderOverride;
 			Result.Config.bEnableExceptions                      = bEnableExceptions;
-			Result.Config.bEnableInlining                        = bEnableInlining;
 			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
 
 			// Switch the optimization flag if we're building a game module
@@ -1953,7 +1947,6 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool InEnableInlining,
 			bool bInBuildSourceFiles
 			)
 		: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIntelliSenseGatherer,
@@ -1962,7 +1955,7 @@ namespace UnrealBuildTool
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
-			InEnableExceptions, InEnableInlining, bInBuildSourceFiles)
+			InEnableExceptions, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = ListFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}
