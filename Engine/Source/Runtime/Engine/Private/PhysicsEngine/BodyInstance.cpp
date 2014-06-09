@@ -1710,6 +1710,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 	return bSuccess;
 }
 
+
 void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 {
 	// In skeletal case, we need both our bone and skelcomponent flag to be true.
@@ -2552,11 +2553,15 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 		{
 			float RadOldMaxAngVel = PRigidDynamic->getMaxAngularVelocity();
 			RadNewMaxAngVel += RadOldMaxAngVel;
+
+			//doing this part so our UI stays in degrees and not lose precision from the conversion
+			float OldMaxAngVel = FMath::RadiansToDegrees(RadOldMaxAngVel);
+			NewMaxAngVel += OldMaxAngVel;
 		}
 
-		PRigidDynamic->setMaxAngularVelocity(RadNewMaxAngVel);
+		PRigidDynamic->setMaxAngularVelocity(NewMaxAngVel);
 
-		MaxAngularVelocity = FMath::RadiansToDegrees(RadNewMaxAngVel);
+		MaxAngularVelocity = NewMaxAngVel;
 	}
 	else
 	{

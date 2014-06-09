@@ -198,7 +198,7 @@ public:
 	float LinearDamping;
 
 	/** The maximum angular velocity for this instance */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta=(editcondition="bSimulatePhysics"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bSimulatePhysics"))
 	float MaxAngularVelocity;
 
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
@@ -278,6 +278,7 @@ public:
 	 * @return true if succeed
 	 */
 	bool UpdateBodyScale(const FVector& InScale3D);
+
 
 	/** Returns the center of mass of this body (in world space) */
 	FVector GetCOMPosition() const;
