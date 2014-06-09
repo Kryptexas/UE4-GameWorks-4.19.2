@@ -167,7 +167,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 						LevelStreamingObject->bShouldBeLoaded		= bNewShouldBeLoaded;
 						LevelStreamingObject->bShouldBeVisible		= bNewShouldBeVisible;
 						LevelStreamingObject->bShouldBlockOnLoad	= bNewShouldBlockOnLoad;
-						LevelStreamingObject->SetLODIndex(GetWorld(), LODIndex);
+						LevelStreamingObject->LevelLODIndex			= LODIndex;
 					}
 					else
 					{

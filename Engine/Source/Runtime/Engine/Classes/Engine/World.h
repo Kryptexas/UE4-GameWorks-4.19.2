@@ -868,12 +868,6 @@ public:
 	UPROPERTY()
 	class UWorldComposition* WorldComposition;
 	
-	/** Streaming level package name to LOD index. 
-	 *	LOD index stored in the persistent world to support consistent LOD between nested streaming levels which could be loaded during gameplay
-	 *  LOD changes affects all streaming levels referring the same level package
-	 */
-	TMap<FName, int32>		StreamingLevelsLOD;
-
 	/** Whether we currently flushing level streaming state */ 
 	bool bFlushingLevelStreaming;
 

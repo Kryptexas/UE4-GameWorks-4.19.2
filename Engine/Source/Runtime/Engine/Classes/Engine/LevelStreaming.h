@@ -97,7 +97,7 @@ class ULevelStreaming : public UObject
 
 	/** This streaming level was not found																						*/
 	uint32 bFailedToLoad:1;
-
+	
 	/** Whether this level should be visible in the Editor																		*/
 	UPROPERTY()
 	uint32 bShouldBeVisibleInEditor:1;
@@ -143,6 +143,9 @@ class ULevelStreaming : public UObject
 	/** List of keywords to filter on in the level browser */
 	UPROPERTY()
 	TArray<FString> Keywords;
+
+	/** Requested LOD */
+	int32 LevelLODIndex;
 
 	// Begin UObject Interface
 	virtual void PostLoad() OVERRIDE;
@@ -193,14 +196,8 @@ class ULevelStreaming : public UObject
 	class ULevel* GetLoadedLevel() const {	return LoadedLevel; }
 	
 	/** Sets the LoadedLevel value to NULL */
-	void ClearLoadedLevel() { SetLoadedLevel(NULL); }
+	void ClearLoadedLevel() { SetLoadedLevel(nullptr); }
 	
-	/** Gets current streaming level LOD index  */
-	int32 GetLODIndex(UWorld* PersistentWorld) const;	
-
-	/** Sets current streaming level LOD index  */
-	void SetLODIndex(UWorld* PersistentWorld, int32 LODIndex);	
-		
 #if WITH_EDITOR
 	/** Override Pre/PostEditUndo functions to handle editor transform */
 	virtual void PreEditUndo();
@@ -276,10 +273,10 @@ class ULevelStreaming : public UObject
 	
 private:
 	/** @return Name of the LOD level package used for loading.																		*/
-	FName GetLODPackageName(UWorld* PersistentWorld) const;
+	FName GetLODPackageName() const;
 
 	/** @return Name of the LOD package on disk to load to the new package named PackageName, Name_None otherwise					*/
-	FName GetLODPackageNameToLoad(UWorld* PersistentWorld) const;
+	FName GetLODPackageNameToLoad() const;
 
 	/** 
 	 * Try to find loaded level in memory, issue a loading request otherwise
@@ -294,38 +291,10 @@ private:
 	/** Sets the value of LoadedLevel */
 	void SetLoadedLevel(class ULevel* Level)
 	{ 
-		// Pending level should be unloaded or hidden at this point
-		check(PendingUnloadLevel == nullptr || PendingUnloadLevel->bIsVisible == false || Level == PendingUnloadLevel);
-
-		SetPendingUnloadLevel(LoadedLevel);
-
-		if (LoadedLevel)
-		{
-			LoadedLevel->DecStreamingLevelRefs();
-		}
-
+		// Pending level should be unloaded at this point
+		check(PendingUnloadLevel == nullptr);
+		PendingUnloadLevel = LoadedLevel;
 		LoadedLevel = Level;
-
-		if (LoadedLevel)
-		{
-			LoadedLevel->IncStreamingLevelRefs();
-		}
-	}
-
-	/** Sets the value of PendingUnloadLevel */
-	void SetPendingUnloadLevel(class ULevel* Level)
-	{ 
-		if (PendingUnloadLevel)
-		{
-			PendingUnloadLevel->DecStreamingLevelRefs();
-		}
-
-		PendingUnloadLevel = Level;
-
-		if (PendingUnloadLevel)
-		{
-			PendingUnloadLevel->IncStreamingLevelRefs();
-		}
 	}
 
 	void DiscardPendingUnloadLevel(UWorld* PersistentWorld);

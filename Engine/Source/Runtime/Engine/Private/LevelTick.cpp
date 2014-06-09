@@ -636,7 +636,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 			bool bOriginalShouldBeLoaded						= LevelStreamingObject->bShouldBeLoaded;
 			bool bOriginalShouldBeVisible						= LevelStreamingObject->bShouldBeVisible;
 			bool bOriginalShouldBlockOnLoad						= LevelStreamingObject->bShouldBlockOnLoad;
-			int32 bOriginalLODIndex								= LevelStreamingObject->GetLODIndex(this);
+			int32 bOriginalLODIndex								= LevelStreamingObject->LevelLODIndex;
 
 			if( bShouldBeLoaded || bShouldAffectLoading )
 			{
@@ -665,7 +665,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 				if( bOriginalShouldBeLoaded		!= LevelStreamingObject->bShouldBeLoaded
 				||	bOriginalShouldBeVisible	!= LevelStreamingObject->bShouldBeVisible 
 				||	bOriginalShouldBlockOnLoad	!= LevelStreamingObject->bShouldBlockOnLoad
-				||  bOriginalLODIndex			!= LevelStreamingObject->GetLODIndex(this))
+				||  bOriginalLODIndex			!= LevelStreamingObject->LevelLODIndex)
 				{
 					for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
@@ -675,7 +675,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 								LevelStreamingObject->bShouldBeLoaded, 
 								LevelStreamingObject->bShouldBeVisible,
 								LevelStreamingObject->bShouldBlockOnLoad,
-								LevelStreamingObject->GetLODIndex(this));
+								LevelStreamingObject->LevelLODIndex);
 					}
 				}
 			}

@@ -248,32 +248,16 @@ void ULevelStreaming::Serialize( FArchive& Ar )
 	}
 }
 
-int32 ULevelStreaming::GetLODIndex(UWorld* PersistentWorld) const
+FName ULevelStreaming::GetLODPackageName() const
 {
-	check(PersistentWorld);
-	auto Entry = PersistentWorld->StreamingLevelsLOD.Find(PackageName);
-	return Entry ? *Entry : INDEX_NONE;
+	return LODPackageNames.IsValidIndex(LevelLODIndex) ? LODPackageNames[LevelLODIndex] : PackageName;
 }
 
-void ULevelStreaming::SetLODIndex(UWorld* PersistentWorld, int32 LODIndex)
+FName ULevelStreaming::GetLODPackageNameToLoad() const
 {
-	check(PersistentWorld);
-	PersistentWorld->StreamingLevelsLOD.Add(PackageName, LODIndex);
-}
-
-FName ULevelStreaming::GetLODPackageName(UWorld* PersistentWorld) const
-{
-	int32 LODCurrentIdx = GetLODIndex(PersistentWorld);
-	return LODPackageNames.IsValidIndex(LODCurrentIdx) ? LODPackageNames[LODCurrentIdx] : PackageName;
-}
-
-FName ULevelStreaming::GetLODPackageNameToLoad(UWorld* PersistentWorld) const
-{
-	int32 LODCurrentIdx = GetLODIndex(PersistentWorld);
-
-	if (LODPackageNames.IsValidIndex(LODCurrentIdx))
+	if (LODPackageNames.IsValidIndex(LevelLODIndex))
 	{
-		return LODPackageNamesToLoad.IsValidIndex(LODCurrentIdx) ? LODPackageNamesToLoad[LODCurrentIdx] : NAME_None;
+		return LODPackageNamesToLoad.IsValidIndex(LevelLODIndex) ? LODPackageNamesToLoad[LevelLODIndex] : NAME_None;
 	}
 	else
 	{
@@ -292,7 +276,8 @@ void ULevelStreaming::DiscardPendingUnloadLevel(UWorld* PersistentWorld)
 
 		if (!PendingUnloadLevel->bIsVisible)
 		{
-			SetPendingUnloadLevel(NULL);
+			FLevelStreamingGCHelper::RequestUnload(PendingUnloadLevel);
+			PendingUnloadLevel = nullptr;
 		}
 	}
 }
@@ -312,8 +297,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	}
 	
 	// Package name we want to load
-	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName(PersistentWorld) : PackageName;
-	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad(PersistentWorld) : PackageNameToLoad;
+	FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : PackageName;
+	FName DesiredPackageNameToLoad = PersistentWorld->IsGameWorld() ? GetLODPackageNameToLoad() : PackageNameToLoad;
 
 	// Check if currently loaded level is what we want right now
 	if (LoadedLevel != NULL && 
@@ -454,12 +439,9 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 				NULL, NAME_None, *PackageNameToLoadFrom
 				).SetPIEInstanceID(PIEInstanceID);
 
-			// Are we sublevel of a persistent level or a sublevel of a streamed-in level?
-			const bool bInnerLevel = PersistentWorld != GetOuter(); 
-
 			// streamingServer: server loads everything?
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
-			if (bBlockOnLoad || (!bInnerLevel && ShouldBeAlwaysLoaded()))
+			if (bBlockOnLoad || ShouldBeAlwaysLoaded())
 			{
 				// Finish all async loading.
 				FlushAsyncLoading( NAME_None );
@@ -669,13 +651,6 @@ void ULevelStreaming::BroadcastLevelLoadedStatus(UWorld* PersistentWorld, FName 
 			}
 		}
 	}
-
-	// traverse inner worlds as well, skip persistent level
-	for (int32 LevelIdx = 1; LevelIdx < PersistentWorld->GetNumLevels(); ++LevelIdx)
-	{
-		UWorld* InnerWorld = Cast<UWorld>(PersistentWorld->GetLevel(LevelIdx)->GetOuter());
-		BroadcastLevelLoadedStatus(InnerWorld, LevelPackageName, bLoaded);
-	}
 }
 	
 void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName LevelPackageName, bool bVisible)
@@ -693,13 +668,6 @@ void ULevelStreaming::BroadcastLevelVisibleStatus(UWorld* PersistentWorld, FName
 				(*It)->OnLevelHidden.Broadcast();
 			}
 		}
-	}
-
-	// traverse inner worlds as well, skip persistent level
-	for (int32 LevelIdx = 1; LevelIdx < PersistentWorld->GetNumLevels(); ++LevelIdx)
-	{
-		UWorld* InnerWorld = Cast<UWorld>(PersistentWorld->GetLevel(LevelIdx)->GetOuter());
-		BroadcastLevelVisibleStatus(InnerWorld, LevelPackageName, bVisible);
 	}
 }
 
@@ -837,6 +805,7 @@ ULevelStreaming::ULevelStreaming(const class FPostConstructInitializeProperties&
 	LevelTransform = FTransform::Identity;
 	MinTimeBetweenVolumeUnloadRequests = 2.0f;
 	bDrawOnLevelStatusMap = true;
+	LevelLODIndex = INDEX_NONE;
 }
 
 #if WITH_EDITOR

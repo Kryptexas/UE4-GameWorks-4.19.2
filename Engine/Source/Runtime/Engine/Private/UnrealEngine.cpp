@@ -9190,7 +9190,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 									StreamingLevel->bShouldBeLoaded, 
 									StreamingLevel->bShouldBeVisible,
 									StreamingLevel->bShouldBlockOnLoad,
-									StreamingLevel->GetLODIndex(Context.World()));							
+									StreamingLevel->LevelLODIndex);							
 						}
 					}
 #endif // WITH_SERVER_CODE
@@ -9227,7 +9227,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 						{
 							LevelStreamingObject->bShouldBeLoaded	= Context.PendingLevelStreamingStatusUpdates[i].bShouldBeLoaded;
 							LevelStreamingObject->bShouldBeVisible	= Context.PendingLevelStreamingStatusUpdates[i].bShouldBeVisible;
-							LevelStreamingObject->SetLODIndex(Context.World(), Context.PendingLevelStreamingStatusUpdates[i].LODIndex);
+							LevelStreamingObject->LevelLODIndex		= Context.PendingLevelStreamingStatusUpdates[i].LODIndex;
 						}
 						else
 						{

@@ -394,10 +394,6 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 	uint32										bAlreadyRoutedActorInitialize:1;
 	/** Whether we already sorted the actor list.											*/
 	uint32										bAlreadySortedActorList:1;
-	/** Whether one or more streaming levels requested to show this level					*/
-	uint32										bHasShowRequest:1;
-	/** Whether one or more streaming levels requested to hide this level					*/
-	uint32										bHasHideRequest:1;
 	/** Whether this level is in the process of being associated with its world				*/
 	uint32										bIsAssociatingLevel:1;
 	/** Whether this level should be fully added to the world before rendering his components	*/
@@ -449,9 +445,6 @@ protected:
 private:
 
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
-
-	/** Number of streaming levels referring this level	*/
-	int32 NumStreamingLevelRefs;
 
 public:
 	/** Called when a level package has been dirtied. */
@@ -672,11 +665,6 @@ public:
 	/** Increments number of steaming objects referring this level */
 	ENGINE_API void IncStreamingLevelRefs();
 	
-	/** Decrements number of steaming objects referring this level */
-	ENGINE_API void DecStreamingLevelRefs();
-
-	/** Returns number of steaming objects referring this level */
-	ENGINE_API int32 GetStreamingLevelRefs() const;
 	
 	// Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;

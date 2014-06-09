@@ -1892,26 +1892,6 @@ void ULevel::PushPendingAutoReceiveInput(APlayerController* InPlayerController)
 	}
 }
 
-void ULevel::IncStreamingLevelRefs()
-{
-	if (NumStreamingLevelRefs == 0)
-	{
-		// Remove from pending unload list if any
-		FLevelStreamingGCHelper::CancelUnloadRequest(this);
-	}
-	NumStreamingLevelRefs++;
-}
-	
-void ULevel::DecStreamingLevelRefs()
-{
-	NumStreamingLevelRefs--;
-}
-
-int32 ULevel::GetStreamingLevelRefs() const
-{
-	return NumStreamingLevelRefs;
-}
-
 void ULevel::AddAssetUserData(UAssetUserData* InUserData)
 {
 	if(InUserData != NULL)

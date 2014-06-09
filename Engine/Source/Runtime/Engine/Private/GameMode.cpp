@@ -1300,7 +1300,7 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						TheLevel->bShouldBeLoaded,
 						TheLevel->bShouldBeVisible,
 						TheLevel->bShouldBlockOnLoad,
-						TheLevel->GetLODIndex(GetWorld()));
+						TheLevel->LevelLODIndex);
 				}
 			}
 			PC->ClientFlushLevelStreaming();

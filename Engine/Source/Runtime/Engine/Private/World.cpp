@@ -1742,14 +1742,6 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			WorldComposition->OnLevelRemovedFromWorld(Level);
 		}
 
-		// Clear inner level streaming references
-		UWorld* LevelWorld = Cast<UWorld>(Level->GetOuter());
-		for (ULevelStreaming* StreamingLevel : LevelWorld->StreamingLevels)
-		{
-			StreamingLevel->ClearLoadedLevel();
-			StreamingLevel->SetPendingUnloadLevel(NULL);
-		}
-		
 		// Make sure level always has OwningWorld in the editor
 		if ( IsGameWorld() )
 		{
@@ -2124,7 +2116,7 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 		if (bShouldBeLoaded)
 		{
 			const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
-			// Try to obtain level
+			// Request to load or duplicate existing level
 			StreamingLevel->RequestLevel(PersistentWorld, bAllowLevelLoadRequests, bBlockOnLoad);
 		}
 		
@@ -2138,8 +2130,6 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 			// Update loaded level visibility
 			if (bShouldBeVisible)
 			{
-				Level->bHasShowRequest = true;
-
 				// Add loaded level to a world if it's not there yet
 				if (!Level->bIsVisible)
 				{
@@ -2155,16 +2145,20 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 			}
 			else
 			{
-				Level->bHasHideRequest = true;
 				// Discard previous LOD level
 				StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
+				// Hide loaded level
+				if (Level->bIsVisible)
+				{
+					PersistentWorld->RemoveFromWorld(Level);
+				}
 			}
 
 			if (!bShouldBeLoaded)
 			{
-				if (!Level->bIsVisible && 
-					!Level->HasVisibilityRequestPending())
+				if (!Level->bIsVisible && !PersistentWorld->IsVisibilityRequestPending())
 				{
+					StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
 					StreamingLevel->ClearLoadedLevel();
 					StreamingLevel->DiscardPendingUnloadLevel(PersistentWorld);
 				}
@@ -2213,24 +2207,8 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	// Store current count of async loading packages
 	const int32	NumAsyncLoadingPackages = GetNumAsyncPackages(); 
 	
-	// In the editor update only streaming levels in the persistent world
-	// "Levels Browser" does not currently correctly supports multiple streaming levels referring to the same level package
-	if (!IsGameWorld())
-	{
-		UpdateLevelStreamingInner(this, ViewFamily);
-	}
-	else
-	{
-		// Make a copy of the current levels list 
-		// because levels count can be changed in the loop below
-		TArray<ULevel*> VisibleLevels = Levels;
-		for (int32 LevelIndex = 0; LevelIndex < VisibleLevels.Num(); ++LevelIndex)
-		{
-			// Update streaming objects in all visible worlds including Persistent world
-			UWorld* InnerWorld = Cast<UWorld>(VisibleLevels[LevelIndex]->GetOuter());
-			InnerWorld->UpdateLevelStreamingInner(this, ViewFamily);
-		}
-	}
+	// Update level streaming objects state
+	UpdateLevelStreamingInner(this, ViewFamily);
 	
 	// Force initial loading to be "bShouldBlockOnLoad".
 	const bool bLevelsHaveLoadRequestPending = NumAsyncLoadingPackages < GetNumAsyncPackages();
@@ -2238,40 +2216,6 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	{
 		// Block till all async requests are finished.
 		FlushAsyncLoading( NAME_None );
-	}
-	
-	TArray<ULevel*> VisibleLevels = Levels;
-	for (int LevelIndex = 1; LevelIndex < VisibleLevels.Num(); ++LevelIndex)
-	{
-		ULevel* Level = VisibleLevels[LevelIndex];
-		
-		// Hide level if we have request to hide it and no request to keep it visible
-		if (Level->bIsVisible &&
-			Level->bHasHideRequest && !Level->bHasShowRequest)
-		{
-			RemoveFromWorld(Level);
-		}
-
-		// Clear visibility request flags for next update
-		Level->bHasShowRequest = false;
-		Level->bHasHideRequest = false;
-				
-		// Process abandoned levels (visible levels with no streaming level objects referring them)
-		if (Level->GetStreamingLevelRefs() <= 0)
-		{
-			if (Level->bIsVisible)
-			{
-				// Hide abandoned level
-				RemoveFromWorld(Level);
-			}
-
-			if (!Level->bIsVisible &&
-				!Level->HasVisibilityRequestPending())
-			{
-				// It's safe to request unload for hidden abandoned level
-				FLevelStreamingGCHelper::RequestUnload(Level);
-			}
-		}
 	}
 	
 	// In case more levels has been requested to unload, force GC on next tick 

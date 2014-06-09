@@ -570,7 +570,7 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	// Quit early in case state is not going to be changed
 	if (StreamingLevel->bShouldBeLoaded == bShouldBeLoaded &&
 		StreamingLevel->bShouldBeVisible == bShouldBeVisible &&
-		StreamingLevel->GetLODIndex(PersistenWorld) == LODIdx)
+		StreamingLevel->LevelLODIndex == LODIdx)
 	{
 		return;
 	}
@@ -591,9 +591,9 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	}
 
 	// Commit new state
-	StreamingLevel->bShouldBeLoaded = bShouldBeLoaded;
-	StreamingLevel->bShouldBeVisible = bShouldBeVisible;
-	StreamingLevel->SetLODIndex(PersistenWorld, LODIdx);
+	StreamingLevel->bShouldBeLoaded		= bShouldBeLoaded;
+	StreamingLevel->bShouldBeVisible	= bShouldBeVisible;
+	StreamingLevel->LevelLODIndex		= LODIdx;
 }
 
 
