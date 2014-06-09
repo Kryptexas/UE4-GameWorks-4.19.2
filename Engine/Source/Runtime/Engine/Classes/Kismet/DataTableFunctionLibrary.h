@@ -6,13 +6,26 @@
 #include "KismetSystemLibrary.h"
 #include "DataTableFunctionLibrary.generated.h"
 
+/** Enum used to indicate success or failure of EvaluateCurveTableRow */
+UENUM()
+namespace EEvaluateCurveTableResult
+{
+    enum Type
+    {
+        /** Found the row successfully */
+        RowFound,
+        /** Failed to find row */
+        RowNotFound,
+    };
+}
+
 UCLASS(MinimalAPI)
 class UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION(BlueprintCallable, Category = "DataTable")
-	static bool EvaluateCurveTableRow(UCurveTable* Table, FName RowName, float InXY, float& OutXY);
+	UFUNCTION(BlueprintCallable, Category = "DataTable", meta=(ExpandEnumAsExecs="OutResult"))
+	static void EvaluateCurveTableRow(UCurveTable* CurveTable, FName RowName, float InXY, TEnumAsByte<EEvaluateCurveTableResult::Type>& OutResult, float& OutXY);
     
     /** Get a Row from a DataTable given a RowName */
     UFUNCTION(BlueprintCallable, CustomThunk, Category = "DataTable", meta=(CustomStructureParam = "OutRow", BlueprintInternalUseOnly="true"))

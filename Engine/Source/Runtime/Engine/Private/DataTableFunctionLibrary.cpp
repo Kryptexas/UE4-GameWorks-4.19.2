@@ -8,13 +8,22 @@ UDataTableFunctionLibrary::UDataTableFunctionLibrary(const FPostConstructInitial
 {
 }
 
-bool UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* Table, FName RowName, float InXY, float& OutXY)
+void UDataTableFunctionLibrary::EvaluateCurveTableRow(UCurveTable* CurveTable, FName RowName, float InXY, TEnumAsByte<EEvaluateCurveTableResult::Type>& OutResult, float& OutXY)
 {
     FCurveTableRowHandle Handle;
-    Handle.CurveTable = Table;
+    Handle.CurveTable = CurveTable;
     Handle.RowName = RowName;
     
-	return Handle.Eval(InXY, &OutXY);
+	bool found = Handle.Eval(InXY, &OutXY);
+    
+    if (found)
+    {
+        OutResult = EEvaluateCurveTableResult::RowFound;
+    }
+    else
+    {
+        OutResult = EEvaluateCurveTableResult::RowNotFound;
+    }
 }
 
 bool UDataTableFunctionLibrary::GetDataTableRowFromName(UDataTable* Table, FName RowName, FTableRowBase& OutRow)
