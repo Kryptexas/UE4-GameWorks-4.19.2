@@ -89,3 +89,22 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::ResetNodeOwner()
 		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
 	}
 }
+
+bool UBehaviorTreeDecoratorGraphNode_Decorator::RefreshNodeClass()
+{
+	bool bUpdated = false;
+	if (NodeInstance == NULL)
+	{
+		if (FClassBrowseHelper::IsClassKnown(ClassData))
+		{
+			PostPlacedNewNode();
+			bUpdated = (NodeInstance != NULL);
+		}
+		else
+		{
+			FClassBrowseHelper::AddUnknownClass(ClassData);
+		}
+	}
+
+	return bUpdated;
+}

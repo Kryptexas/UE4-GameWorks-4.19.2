@@ -33,6 +33,8 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	virtual void PostLoad() OVERRIDE;
 	virtual UEdGraph* GetBoundGraph() const { return BoundGraph; }
 	virtual bool IsSubNode() const OVERRIDE;
+	virtual bool HasErrors() const OVERRIDE;
+	virtual bool RefreshNodeClass() OVERRIDE;
 
 	virtual void PrepareForCopying() OVERRIDE;
 	virtual void PostCopyNode() OVERRIDE;

@@ -23,6 +23,7 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 	virtual void PostEditImport() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
 	void PostCopyNode();
+	bool RefreshNodeClass();
 
 private:
 

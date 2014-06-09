@@ -13,8 +13,11 @@ struct FAbortDrawHelper
 	FAbortDrawHelper() : AbortStart(MAX_uint16), AbortEnd(MAX_uint16), SearchStart(MAX_uint16), SearchEnd(MAX_uint16) {}
 };
 
+USTRUCT()
 struct FClassData
 {
+	GENERATED_USTRUCT_BODY()
+
 	FClassData() {}
 	FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
 		bIsHidden(0), bHideParent(0), Class(InClass), DeprecatedMessage(InDeprecatedMessage)
@@ -25,11 +28,13 @@ struct FClassData
 
 	FString ToString() const;
 	FString GetClassName() const;
-	UClass* GetClass();
+	UClass* GetClass(bool bSilent = false);
 	bool IsAbstract() const;
-
+	
+	FORCEINLINE bool IsBlueprint() const { return AssetName.Len() > 0; }
 	FORCEINLINE bool IsDeprecated() const { return DeprecatedMessage.Len() > 0; }
 	FORCEINLINE FString GetDeprecatedMessage() const { return DeprecatedMessage; }
+	FORCEINLINE FString GetPackageName() const { return GeneratedClassPackage; }
 
 	/** set when child class masked this one out (e.g. always use game specific class instead of engine one) */
 	uint32 bIsHidden : 1;
@@ -43,10 +48,13 @@ private:
 	TWeakObjectPtr<UClass> Class;
 
 	/** path to class if it's not loaded yet */
+	UPROPERTY()
 	FString AssetName;
+	UPROPERTY()
 	FString GeneratedClassPackage;
 
 	/** resolved name of class from asset data */
+	UPROPERTY()
 	FString ClassName;
 
 	/** message for deprecated class */
@@ -60,10 +68,14 @@ struct FClassDataNode
 
 	TSharedPtr<FClassDataNode> ParentNode;
 	TArray<TSharedPtr<FClassDataNode> > SubNodes;
+
+	void AddUniqueSubNode(TSharedPtr<FClassDataNode> SubNode);
 };
 
 struct FClassBrowseHelper
 {
+	DECLARE_MULTICAST_DELEGATE(FOnPackageListUpdated);
+
 	FClassBrowseHelper();
 	~FClassBrowseHelper();
 
@@ -73,10 +85,15 @@ struct FClassBrowseHelper
 	void OnAssetAdded(const class FAssetData& AssetData);
 	void OnAssetRemoved(const class FAssetData& AssetData);
 	void InvalidateCache();
+	
+	static void AddUnknownClass(const FClassData& ClassData);
+	static bool IsClassKnown(const FClassData& ClassData);
+	static FOnPackageListUpdated OnPackageListUpdated;
 
 private:
 
 	TSharedPtr<FClassDataNode> RootNode;
+	static TArray<FName> UnknownPackages;
 	
 	TSharedPtr<FClassDataNode> CreateClassDataNode(const class FAssetData& AssetData);
 	TSharedPtr<FClassDataNode> FindBaseClassNode(TSharedPtr<FClassDataNode> Node, const FString& ClassName);
@@ -87,6 +104,7 @@ private:
 	void AddClassGraphChildren(TSharedPtr<FClassDataNode> Node, TArray<TSharedPtr<FClassDataNode> >& NodeList);
 
 	bool IsHidingParentClass(UClass* Class);
+	bool IsPackageSaved(FName PackageName);
 };
 
 struct FCompareNodeXLocation

@@ -750,6 +750,37 @@ void UBehaviorTreeGraph::UpdateAbortHighlight(struct FAbortDrawHelper& Mode0, st
 	}
 }
 
+bool UBehaviorTreeGraph::UpdateUnknownNodeClasses()
+{
+	bool bUpdated = false;
+	for (int32 NodeIdx = 0; NodeIdx < Nodes.Num(); NodeIdx++)
+	{
+		UBehaviorTreeGraphNode* MyNode = Cast<UBehaviorTreeGraphNode>(Nodes[NodeIdx]);
+		const bool bUpdatedNode = MyNode->RefreshNodeClass();
+		bUpdated = bUpdated || bUpdatedNode;
+
+		for (int32 SubNodeIdx = 0; SubNodeIdx < MyNode->Decorators.Num(); SubNodeIdx++)
+		{
+			if (MyNode->Decorators[SubNodeIdx])
+			{
+				const bool bUpdatedSubNode = MyNode->Decorators[SubNodeIdx]->RefreshNodeClass();
+				bUpdated = bUpdated || bUpdatedSubNode;
+			}
+		}
+
+		for (int32 SubNodeIdx = 0; SubNodeIdx < MyNode->Services.Num(); SubNodeIdx++)
+		{
+			if (MyNode->Services[SubNodeIdx])
+			{
+				const bool bUpdatedSubNode = MyNode->Services[SubNodeIdx]->RefreshNodeClass();
+				bUpdated = bUpdated || bUpdatedSubNode;
+			}
+		}
+	}
+
+	return bUpdated;
+}
+
 bool UBehaviorTreeGraph::UpdateInjectedNodes()
 {
 	bool bHasUpdated = false;

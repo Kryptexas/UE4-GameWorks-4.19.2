@@ -93,6 +93,31 @@ void UBehaviorTreeGraphNode_CompositeDecorator::PostCopyNode()
 	}
 }
 
+bool UBehaviorTreeGraphNode_CompositeDecorator::RefreshNodeClass()
+{
+	bool bUpdated = false;
+
+	if (BoundGraph)
+	{
+		for (int32 i = 0; i < BoundGraph->Nodes.Num(); i++)
+		{
+			UBehaviorTreeDecoratorGraphNode_Decorator* Node = Cast<UBehaviorTreeDecoratorGraphNode_Decorator>(BoundGraph->Nodes[i]);
+			if (Node)
+			{
+				const bool bNodeUpdated = Node->RefreshNodeClass();
+				bUpdated = bUpdated || bNodeUpdated;
+			}
+		}
+	}
+
+	return bUpdated;
+}
+
+bool UBehaviorTreeGraphNode_CompositeDecorator::HasErrors() const
+{
+	return bHasObserverError;
+}
+
 void UBehaviorTreeGraphNode_CompositeDecorator::CreateBoundGraph()
 {
 	// Create a new animation graph

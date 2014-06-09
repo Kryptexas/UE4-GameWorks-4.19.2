@@ -20,6 +20,10 @@ FText UBehaviorTreeGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleT
 	{
 		return FText::FromString(Decorator->GetNodeName());
 	}
+	else if (!ClassData.GetClassName().IsEmpty())
+	{
+		return NSLOCTEXT("BehaviorTreeGraphNode", "UnknownNodeClass", "Can't load class!");
+	}
 
 	return Super::GetNodeTitle(TitleType);
 }

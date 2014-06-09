@@ -138,6 +138,7 @@ FBehaviorTreeEditor::FBehaviorTreeEditor()
 
 	// listen for package change events to update injected nodes
 	UPackage::PackageSavedEvent.AddRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
+	FClassBrowseHelper::OnPackageListUpdated.AddRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
 
 	bShowDecoratorRangeLower = false;
 	bShowDecoratorRangeSelf = false;
@@ -154,6 +155,7 @@ FBehaviorTreeEditor::~FBehaviorTreeEditor()
 	}
 
 	UPackage::PackageSavedEvent.RemoveRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
+	FClassBrowseHelper::OnPackageListUpdated.RemoveRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
 	Debugger.Reset();
 }
 
@@ -293,6 +295,7 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 
 		MyGraph->UpdateBlackboardChange();
 		MyGraph->UpdateInjectedNodes();
+		MyGraph->UpdateUnknownNodeClasses();
 
 		TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(MyGraph);
 		DocumentManager.OpenDocument(Payload, FDocumentTracker::OpenNewDocument);
@@ -1088,6 +1091,22 @@ void FBehaviorTreeEditor::OnPackageSaved(const FString& PackageFileName, UObject
 		const bool bUpdated = MyGraph->UpdateInjectedNodes();
 		if (bUpdated)
 		{
+			MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags);
+		}
+	}
+}
+
+void FBehaviorTreeEditor::OnClassListUpdated()
+{
+	UBehaviorTreeGraph* MyGraph = Script ? Cast<UBehaviorTreeGraph>(Script->BTGraph) : NULL;
+	if (MyGraph)
+	{
+		const bool bUpdated = MyGraph->UpdateUnknownNodeClasses();
+		if (bUpdated)
+		{
+			FGraphPanelSelectionSet CurrentSelection = GetSelectedNodes();
+			OnSelectedNodesChanged(CurrentSelection);
+
 			MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags);
 		}
 	}

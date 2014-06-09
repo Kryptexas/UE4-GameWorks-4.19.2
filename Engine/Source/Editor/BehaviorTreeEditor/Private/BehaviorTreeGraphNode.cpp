@@ -42,7 +42,7 @@ void UBehaviorTreeGraphNode::AllocateDefaultPins()
 
 void UBehaviorTreeGraphNode::PostPlacedNewNode()
 {
-	UClass* NodeClass = ClassData.GetClass();
+	UClass* NodeClass = ClassData.GetClass(true);
 	if (NodeClass)
 	{
 		UBehaviorTree* BT = Cast<UBehaviorTree>(GetBehaviorTreeGraph()->GetOuter());
@@ -108,12 +108,17 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 		return Node->GetStaticDescription();
 	}
 
-	return FString();
+	FString StoredClassName = ClassData.GetClassName();
+	StoredClassName.RemoveFromEnd(TEXT("_C"));
+
+	return FString::Printf(TEXT("%s: %s"), *StoredClassName,
+		*LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString());
 }
 
 FString UBehaviorTreeGraphNode::GetTooltip() const
 {
-	FString TooltipDesc = bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
+	FString TooltipDesc = !NodeInstance ? LOCTEXT("NodeClassError", "Class not found, make sure it's saved!").ToString() :
+		bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
 		(DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : ErrorMessage;
 
 	if (bInjectedNode)
@@ -390,5 +395,30 @@ FName UBehaviorTreeGraphNode::GetNameIcon() const
 {
 	return FName("BTEditor.Graph.BTNode.Icon");
 }
+
+bool UBehaviorTreeGraphNode::RefreshNodeClass()
+{
+	bool bUpdated = false;
+	if (NodeInstance == NULL)
+	{
+		if (FClassBrowseHelper::IsClassKnown(ClassData))
+		{
+			PostPlacedNewNode();
+			bUpdated = (NodeInstance != NULL);
+		}
+		else
+		{
+			FClassBrowseHelper::AddUnknownClass(ClassData);
+		}
+	}
+
+	return bUpdated;
+}
+
+bool UBehaviorTreeGraphNode::HasErrors() const
+{
+	return bHasObserverError || ErrorMessage.Len() > 0 || NodeInstance == NULL;
+}
+
 
 #undef LOCTEXT_NAMESPACE

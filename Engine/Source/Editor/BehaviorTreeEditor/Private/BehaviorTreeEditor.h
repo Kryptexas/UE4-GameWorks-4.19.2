@@ -81,6 +81,7 @@ public:
 	bool IsPropertyEditable() const;
 	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
+	void OnClassListUpdated();
 
 	void UpdateToolbar();
 	bool IsDebuggerReady() const;

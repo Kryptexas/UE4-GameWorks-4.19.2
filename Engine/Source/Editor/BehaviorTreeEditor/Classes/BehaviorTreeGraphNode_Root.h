@@ -14,7 +14,9 @@ class UBehaviorTreeGraphNode_Root : public UBehaviorTreeGraphNode
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
+	virtual bool CanUserDeleteNode() const OVERRIDE{ return false; }
+	virtual bool HasErrors() const OVERRIDE { return false; }
+	virtual bool RefreshNodeClass() OVERRIDE { return false; }
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	/** gets icon resource name for title bar */
 	virtual FName GetNameIcon() const OVERRIDE;

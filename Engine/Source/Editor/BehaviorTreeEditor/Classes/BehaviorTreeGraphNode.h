@@ -74,10 +74,17 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** add subnode */
 	void AddSubNode(UBehaviorTreeGraphNode* NodeTemplate, class UEdGraph* ParentGraph);
 
+	/** reinitialize node instance */
+	virtual bool RefreshNodeClass();
+
 	/** gets icon resource name for title bar */
 	virtual FName GetNameIcon() const;
 
+	/** check if node has any errors, used for assigning colors on graph */
+	virtual bool HasErrors() const;
+
 	/** instance class */
+	UPROPERTY()
 	struct FClassData ClassData;
 
 	/** if set, this node was injected from subtree and shouldn't be edited */

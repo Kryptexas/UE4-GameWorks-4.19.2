@@ -47,7 +47,7 @@ bool FClassData::IsAbstract() const
 	return Class.IsValid() ? Class.Get()->HasAnyClassFlags(CLASS_Abstract) : false;
 }
 
-UClass* FClassData::GetClass()
+UClass* FClassData::GetClass(bool bSilent)
 {
 	UClass* RetClass = Class.Get();
 	if (RetClass == NULL && GeneratedClassPackage.Len())
@@ -64,17 +64,23 @@ UClass* FClassData::GetClass()
 			GWarn->EndSlowTask();
 
 			UBlueprint* BlueprintOb = Cast<UBlueprint>(Object);
-			RetClass = BlueprintOb ? *BlueprintOb->GeneratedClass : Object->GetClass();
+			RetClass = BlueprintOb ? *BlueprintOb->GeneratedClass :
+				Object ? Object->GetClass() : 
+				NULL;
+
 			Class = RetClass;
 		}
 		else
 		{
 			GWarn->EndSlowTask();
 
-			FMessageLog EditorErrors("EditorErrors");
-			EditorErrors.Error(LOCTEXT("PackageLoadFail", "Package Load Failed"));
-			EditorErrors.Info(FText::FromString(GeneratedClassPackage));
-			EditorErrors.Notify(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+			if (!bSilent)
+			{
+				FMessageLog EditorErrors("EditorErrors");
+				EditorErrors.Error(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+				EditorErrors.Info(FText::FromString(GeneratedClassPackage));
+				EditorErrors.Notify(LOCTEXT("PackageLoadFail", "Package Load Failed"));
+			}
 		}
 	}
 
@@ -82,6 +88,21 @@ UClass* FClassData::GetClass()
 }
 
 //////////////////////////////////////////////////////////////////////////
+FClassBrowseHelper::FOnPackageListUpdated FClassBrowseHelper::OnPackageListUpdated;
+TArray<FName> FClassBrowseHelper::UnknownPackages;
+
+void FClassDataNode::AddUniqueSubNode(TSharedPtr<FClassDataNode> SubNode)
+{
+	for (int32 Idx = 0; Idx < SubNodes.Num(); Idx++)
+	{
+		if (SubNode->Data.GetClassName() == SubNodes[Idx]->Data.GetClassName())
+		{
+			return;
+		}
+	}
+
+	SubNodes.Add(SubNode);
+}
 
 FClassBrowseHelper::FClassBrowseHelper()
 {
@@ -148,10 +169,31 @@ FString FClassBrowseHelper::GetDeprecationMessage(const UClass* Class)
 	return DeprecatedMessage;
 }
 
+DEFINE_LOG_CATEGORY_STATIC(LogBTDebug3, Log, All);
+
+bool FClassBrowseHelper::IsClassKnown(const FClassData& ClassData)
+{
+	return !ClassData.IsBlueprint() || !UnknownPackages.Contains(*ClassData.GetPackageName());
+}
+
+void FClassBrowseHelper::AddUnknownClass(const FClassData& ClassData)
+{
+	if (ClassData.IsBlueprint())
+	{
+		UnknownPackages.AddUnique(*ClassData.GetPackageName());
+	}
+}
+
 bool FClassBrowseHelper::IsHidingParentClass(UClass* Class)
 {
 	static FName MetaHideParent = TEXT("HideParentNode");
 	return Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaHideParent);
+}
+
+bool FClassBrowseHelper::IsPackageSaved(FName PackageName)
+{
+	UPackage* Package = LoadPackage(NULL, *PackageName.ToString(), LOAD_None);
+	return Package != NULL;
 }
 
 void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
@@ -162,11 +204,26 @@ void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
 	if (Node.IsValid())
 	{
 		ParentNode = FindBaseClassNode(RootNode, Node->ParentClassName);
+
+		if (!IsPackageSaved(AssetData.PackageName))
+		{
+			UnknownPackages.AddUnique(AssetData.PackageName);
+		}
+		else
+		{
+			const int32 PrevListCount = UnknownPackages.Num();
+			UnknownPackages.RemoveSingleSwap(AssetData.PackageName);
+
+			if (UnknownPackages.Num() != PrevListCount)
+			{
+				FClassBrowseHelper::OnPackageListUpdated.Broadcast();
+			}
+		}
 	}
 
 	if (ParentNode.IsValid())
 	{
-		ParentNode->SubNodes.Add(Node);
+		ParentNode->AddUniqueSubNode(Node);
 		Node->ParentNode = ParentNode;
 	}
 }

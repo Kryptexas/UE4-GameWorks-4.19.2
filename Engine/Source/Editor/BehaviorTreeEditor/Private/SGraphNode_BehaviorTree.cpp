@@ -163,7 +163,7 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 		false;
 
 	FLinearColor NodeColor = BehaviorTreeColors::NodeBody::Default;
-	if (BTGraphNode && (BTGraphNode->ErrorMessage.Len() > 0 || BTGraphNode->bHasObserverError))
+	if (BTGraphNode && BTGraphNode->HasErrors())
 	{
 		NodeColor = BehaviorTreeColors::NodeBody::Error;
 	}

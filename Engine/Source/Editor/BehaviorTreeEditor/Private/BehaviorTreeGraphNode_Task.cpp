@@ -2,8 +2,6 @@
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode_Task"
-
 UBehaviorTreeGraphNode_Task::UBehaviorTreeGraphNode_Task(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 }
@@ -20,6 +18,10 @@ FText UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	{
 		return FText::FromString(MyNode->GetNodeName());
 	}
+	else if (!ClassData.GetClassName().IsEmpty())
+	{
+		return NSLOCTEXT("BehaviorTreeGraphNode", "UnknownNodeClass", "Can't load class!");
+	}
 
 	return Super::GetNodeTitle(TitleType);
 }
@@ -33,5 +35,3 @@ void UBehaviorTreeGraphNode_Task::GetContextMenuActions(const FGraphNodeContextM
 {
 	AddContextMenuActionsDecorators(Context);
 }
-
-#undef LOCTEXT_NAMESPACE
