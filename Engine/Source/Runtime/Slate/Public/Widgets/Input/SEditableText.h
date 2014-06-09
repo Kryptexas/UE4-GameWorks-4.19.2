@@ -29,8 +29,8 @@ public:
 		, _IsCaretMovedWhenGainFocus( true )
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
-		, _ClearKeyboardFocusOnCommit( true )
-		, _MinDesiredWidth( 0.0f )
+		, _ClearKeyboardFocusOnCommit(true)
+		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		{}
 
@@ -131,16 +131,6 @@ public:
 	 * @param  InNewText  The new text
 	 */
 	void SetText( const TAttribute< FText >& InNewText );
-
-	/**
-	 * Checks to see if there is any text selected
-	 *
-	 * @return  True if any text is selected
-	 */
-	bool AnyTextSelected() const
-	{
-		return Selection.StartIndex != INDEX_NONE && Selection.StartIndex != Selection.FinishIndex;
-	}
 
 	/**
 	 * Restores the text to the original state
@@ -279,13 +269,6 @@ protected:
 		}
 	};
 
-	/**
-	 * Gets the height of the largest character in the font
-	 *
-	 * @return  The fonts height
-	 */
-	virtual float GetFontHeight() const;
-
 public:
 	// BEGIN ITextEditorWidget interface
 	virtual void StartChangingText() OVERRIDE;
@@ -295,10 +278,21 @@ public:
 	virtual void DeleteChar() OVERRIDE;
 	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const OVERRIDE;
 	virtual void TypeChar( const int32 Character ) OVERRIDE;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, int8 Direction, ECursorAction::Type Action ) OVERRIDE;
+	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) OVERRIDE;
 	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) OVERRIDE;
 	virtual void ClearSelection() OVERRIDE;
 	virtual void SelectAllText() OVERRIDE;
+	virtual bool SelectAllTextWhenFocused() OVERRIDE;
+	virtual void SelectWordAt(const FVector2D& LocalPosition) OVERRIDE;
+	virtual void BeginDragSelection() OVERRIDE;
+	virtual bool IsDragSelecting() const OVERRIDE;
+	virtual void EndDragSelection() OVERRIDE;
+	virtual bool AnyTextSelected() const OVERRIDE;
+	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const OVERRIDE;
+	virtual void SetWasFocusedByLastMouseDown( bool Value ) OVERRIDE;
+	virtual bool WasFocusedByLastMouseDown() const OVERRIDE;
+	virtual void SetHasDragSelectedSinceFocused( bool Value ) OVERRIDE;
+	virtual bool HasDragSelectedSinceFocused() const OVERRIDE;
 	virtual FReply OnEscape() OVERRIDE;
 	virtual void OnEnter() OVERRIDE;
 	virtual bool CanExecuteCut() const OVERRIDE;
@@ -310,6 +304,9 @@ public:
 	virtual bool CanExecuteUndo() const OVERRIDE;
 	virtual void Undo() OVERRIDE;
 	virtual void Redo() OVERRIDE;
+	virtual TSharedRef< SWidget > GetWidget() OVERRIDE;
+	virtual void SummonContextMenu( const FVector2D& InLocation ) OVERRIDE;
+	virtual void LoadText() OVERRIDE;
 	// END ITextEditorWidget interface
 
 protected:
@@ -348,12 +345,21 @@ protected:
 	/**
 	 * Determines which character was clicked on
 	 *
-	 * @param  InMyGeometry  Widget geometry
-	 * @param  InMouseEvent  Mouse button event
+	 * @param  InMyGeometry				Widget geometry
+	 * @param  InScreenCursorPosition	Click position (in screen space)
 	 *
 	 * @return  The clicked character index
 	 */
 	int32 FindClickedCharacterIndex( const FGeometry& InMyGeometry, const FVector2D& InScreenCursorPosition ) const;
+
+	/**
+	 * Determines which character was clicked on
+	 *
+	 * @param  InLocalCursorPosition	Click position (in local space)
+	 *
+	 * @return  The clicked character index
+	 */
+	int32 FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const;
 
 	/**
 	 * Adds the specified undo state to the undo stack
@@ -376,24 +382,10 @@ protected:
 	 */
 	void MakeUndoState( SEditableText::FUndoState& OutUndoState );
 
-
-	/**
-	 * Loads text for editing, from our text attribute
-	 */
-	void LoadText();
-
 	/**
 	 * Saves edited text into our text attribute, if appropriate
 	 */
 	void SaveText();
-
-	/**
-	 * Summons a context menu that allows the user to perform certain text-related actions
-	 *
-	 * @param	InLocation	Screen space position to show the menu
-	 */
-	void SummonContextMenu( const FVector2D& InLocation );
-
 
 	/**
 	 * Executes action to delete selected text
@@ -430,13 +422,6 @@ protected:
 	 * Called when the content menu window is closed
 	 */
 	void OnWindowClosed(const TSharedRef<SWindow>&);
-
-	/** 
-	 * Calculate the width of the caret 
-	 * @param FontMaxCharHeight The height of the font to calculate the caret width for
-	 * @return The width of the caret (might be clamped for very small fonts)
-	 */
-	float CalculateCaretWidth(const float FontMaxCharHeight) const;
 
 private:
 	/** 
@@ -487,7 +472,7 @@ private:
 	TAttribute< bool > IsCaretMovedWhenGainFocus;
 	
 	/** Whether to select all text when the user clicks to give focus on the widget */
-	TAttribute< bool > SelectAllTextWhenFocused;
+	TAttribute< bool > bSelectAllTextWhenFocused;
 
 	/** Whether to allow the user to back out of changes when they press the escape key */
 	TAttribute< bool > RevertTextOnEscape;

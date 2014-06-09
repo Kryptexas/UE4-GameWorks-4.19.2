@@ -494,7 +494,7 @@ void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVec
 				InvTextureSizeY = 1.0f/FontTexture->GetHeight();
 			}
 
-			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
+			const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
 
 			if( !bIsWhitespace && CharIndex > 0 )
 			{

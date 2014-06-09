@@ -12,6 +12,8 @@ namespace ECursorMoveMethod
 		CharacterVertical,
 		/** Move one word at a time (e.g. ctrl is held down). */
 		Word,
+		/** Move the cursor to the correct character based on the given screen position. */
+		ScreenPosition,
 	};
 }
 
@@ -41,7 +43,7 @@ namespace ETextLocation
 	};
 }
 
-class SLATE_API ITextEditorWidget
+class SLATE_API ITextEditorWidget 
 {
 	public:
 
@@ -91,7 +93,7 @@ class SLATE_API ITextEditorWidget
 	 * @param  Direction    Move forward/backward by number of units specified; usuatlly +/-1.
 	 * @param  Action       Just move or select text.
 	 */
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, int8 Direction, ECursorAction::Type Action ) = 0;
+	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) = 0;
 	
 	/**
 	 * Jump the cursor to a special location: e.g. end of line, beginning of document, etc..
@@ -107,6 +109,26 @@ class SLATE_API ITextEditorWidget
 	 * Selects all text
 	 */
 	virtual void SelectAllText() = 0;
+
+	virtual bool SelectAllTextWhenFocused() = 0;
+
+	virtual void SelectWordAt(const FVector2D& LocalPosition) = 0;
+
+	virtual void BeginDragSelection() = 0;
+
+	virtual bool IsDragSelecting() const = 0;
+
+	virtual void EndDragSelection() = 0;
+
+	virtual bool AnyTextSelected() const = 0;
+
+	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const = 0;
+
+	virtual void SetWasFocusedByLastMouseDown( bool Value ) = 0;
+	virtual bool WasFocusedByLastMouseDown() const = 0;
+
+	virtual void SetHasDragSelectedSinceFocused( bool Value ) = 0;
+	virtual bool HasDragSelectedSinceFocused() const = 0;
 
 	/**
 	 * Executed when the user presses ESC
@@ -170,4 +192,11 @@ class SLATE_API ITextEditorWidget
 	 * Restores cached undo state that was previously rolled back
 	 */
 	virtual void Redo() = 0;
+
+	virtual TSharedRef< SWidget > GetWidget() = 0;
+
+	virtual void SummonContextMenu( const FVector2D& InLocation ) = 0;
+
+	virtual void LoadText() = 0;
+
 };

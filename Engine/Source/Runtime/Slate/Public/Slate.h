@@ -99,6 +99,7 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "MultiBoxBuilder.h"
 #include "MultiBoxExtender.h"
 #include "SMultiLineEditableText.h"
+#include "SMultiLineEditableTextBox.h"
 #include "SEditableText.h"
 #include "SEditableTextBox.h"
 #include "SSearchBox.h"

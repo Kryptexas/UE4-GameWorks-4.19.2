@@ -260,7 +260,7 @@ uint16 FSlateFontMeasure::GetMaxCharacterHeight( const FSlateFontInfo& InFontInf
 	return MaxHeight;
 }
 
-uint8 FSlateFontMeasure::GetKerning( const FSlateFontInfo& InFontInfo, float FontScale, TCHAR PreviousCharacter, TCHAR CurrentCharacter ) const
+int8 FSlateFontMeasure::GetKerning(const FSlateFontInfo& InFontInfo, float FontScale, TCHAR PreviousCharacter, TCHAR CurrentCharacter) const
 {
 	FCharacterList& CharacterList = FontCache->GetCharacterList( InFontInfo, FontScale );
 	return CharacterList.GetKerning( PreviousCharacter, CurrentCharacter );

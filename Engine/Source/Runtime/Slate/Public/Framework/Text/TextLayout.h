@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "LineBreakIterator.h"
-
 #define TEXT_LAYOUT_DEBUG 0
 
 namespace ETextJustify
@@ -15,23 +13,136 @@ namespace ETextJustify
 	};
 }
 
+/** Location within the text model. */
+struct FTextLocation
+{
+public:
+	FTextLocation( const int32 InLineIndex = 0, const int32 InOffset = 0 )
+		: LineIndex( InLineIndex )
+		, Offset( InOffset )
+	{
+
+	}
+
+	FTextLocation( const FTextLocation& InLocation, const int32 InOffset )
+		: LineIndex( InLocation.GetLineIndex() )
+		, Offset(FMath::Max(InLocation.GetOffset() + InOffset, 0))
+	{
+
+	}
+
+	bool operator==( const FTextLocation& Other ) const
+	{
+		return
+			LineIndex == Other.LineIndex &&
+			Offset == Other.Offset;
+	}
+
+	bool operator!=( const FTextLocation& Other ) const
+	{
+		return
+			LineIndex != Other.LineIndex ||
+			Offset != Other.Offset;
+	}
+
+	bool operator<( const FTextLocation& Other ) const
+	{
+		return this->LineIndex < Other.LineIndex || (this->LineIndex == Other.LineIndex && this->Offset < Other.Offset);
+	}
+
+	int32 GetLineIndex() const { return LineIndex; }
+	int32 GetOffset() const { return Offset; }
+	bool IsValid() const { return LineIndex != INDEX_NONE && Offset != INDEX_NONE; }
+
+private:
+	int32 LineIndex;
+	int32 Offset;
+};
+
+class FTextSelection
+{
+
+public:
+
+	FTextLocation LocationA;
+
+	FTextLocation LocationB;
+
+public:
+
+	FTextSelection()
+		: LocationA(INDEX_NONE)
+		, LocationB(INDEX_NONE)
+	{
+	}
+
+	FTextSelection(const FTextLocation& InLocationA, const FTextLocation& InLocationB)
+		: LocationA(InLocationA)
+		, LocationB(InLocationB)
+	{
+	}
+
+	const FTextLocation& GetBeginning() const
+	{
+		if (LocationA.GetLineIndex() == LocationB.GetLineIndex())
+		{
+			if (LocationA.GetOffset() < LocationB.GetOffset())
+			{
+				return LocationA;
+			}
+
+			return LocationB;
+		}
+		else if (LocationA.GetLineIndex() < LocationB.GetLineIndex())
+		{
+			return LocationA;
+		}
+
+		return LocationB;
+	}
+
+	const FTextLocation& GetEnd() const
+	{
+		if (LocationA.GetLineIndex() == LocationB.GetLineIndex())
+		{
+			if (LocationA.GetOffset() > LocationB.GetOffset())
+			{
+				return LocationA;
+			}
+
+			return LocationB;
+		}
+		else if (LocationA.GetLineIndex() > LocationB.GetLineIndex())
+		{
+			return LocationA;
+		}
+
+		return LocationB;
+	}
+};
+
 class SLATE_API FTextLayout
 {
 public:
 
 	struct FBlockDefinition
 	{
-		FTextRange Range;
-		FTextRange VisualRange;
+		/** Range inclusive of trailing whitespace, as used to visually display and interact with the text */
+		FTextRange ActualRange;
+
 		TSharedPtr< IRunHighlighter > Highlighter;
 	};
 
 	struct FBreakCandidate
 	{
-		FTextRange Range; 
-		FTextRange RangeWithoutTrailingWhitespace; 
-		FVector2D Size;
-		FVector2D SizeWithoutTrailingWhitespace;
+		/** Range inclusive of trailing whitespace, as used to visually display and interact with the text */
+		FTextRange ActualRange;
+		/** Range exclusive of trailing whitespace, as used to perform wrapping on a word boundary */
+		FTextRange TrimmedRange;
+		/** Measured size inclusive of trailing whitespace, as used to visually display and interact with the text */
+		FVector2D ActualSize;
+		/** Measured size exclusive of trailing whitespace, as used to perform wrapping on a word boundary */
+		FVector2D TrimmedSize;
 
 		int16 MaxAboveBaseline;
 		int16 MaxBelowBaseline;
@@ -57,6 +168,8 @@ public:
 		void EndLayout();
 
 		FTextRange GetTextRange() const;
+		void SetTextRange( const FTextRange& Value );
+		
 		int16 GetBaseLine( float Scale ) const;
 		int16 GetMaxHeight( float Scale ) const;
 
@@ -71,6 +184,9 @@ public:
 		TSharedRef< ILayoutBlock > CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const;
 
 		void ClearCache();
+
+		void AppendText(FString& Text) const;
+		void AppendText(FString& Text, const FTextRange& Range) const;
 
 	private:
 
@@ -89,13 +205,17 @@ public:
 		TArray< FRunModel > Runs;
 		TArray< FBreakCandidate > BreakCandidates;
 		TArray< FTextHighlight > Highlights;
+		mutable bool HasWrappingInformation;
 	};
 
 	struct FLineView
 	{
 		TArray< TSharedRef< ILayoutBlock > > Blocks;
-		FVector2D Size;
 		FVector2D Offset;
+		FVector2D Size;
+		FVector2D TextSize;
+		FTextRange Range;
+		int32 ModelIndex;
 	};
 
 
@@ -148,14 +268,54 @@ public:
 	*/
 	virtual void UpdateIfNeeded();
 
+	virtual void Update();
+
+	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location);
+
+	/**
+	 * 
+	 */
+	FTextLocation GetTextLocationAt( const FVector2D& Relative );
+
+	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative );
+
+	FVector2D GetLocationAt( const FTextLocation& Location );
+
+	bool SplitLineAt(const FTextLocation& Location);
+
+	bool JoinLineWithNextLine(int32 LineIndex);
+
+	bool InsertAt(const FTextLocation& Location, TCHAR Character);
+
+	bool InsertAt( const FTextLocation& Location, const FString& Text );
+
+	bool RemoveAt( const FTextLocation& Location, int32 Count = 1 );
+
+	bool RemoveLine(int32 LineIndex);
+
+	bool IsEmpty() const;
+
+	void GetAsText(FString& DisplayText) const;
+
+	void GetSelectionAsText(FString& DisplayText, const FTextSelection& Selection) const;
+
+	FTextSelection GetWordAt(const FTextLocation& Location) const;
+
 protected:
 
 	FTextLayout();
 
 	/**
-	* Prepares the cache with the information needed to perform line wrapping if the information does not already exist.
+	* Create the wrapping cache for the current text based upon the current scale
+	* Each line keeps its own cached state, so needs to be cleared when changing the text within a line
+	* When changing the scale, all the lines need to be cleared (see ClearWrappingCache)
 	*/
-	void ReadyForWrapping();
+	void CreateWrappingCache();
+
+	/**
+	 * Clears the current wrapping cache for all lines
+	 */
+	void ClearWrappingCache();
 
 	/**
 	* Clears the current layouts view information.
@@ -184,7 +344,7 @@ private:
 
 	void JustifyLayout();
 
-	void CreateLineViewBlocks( const FLineModel& Line, const int32 StopIndex, const int32 VisualStopIndex, int32& OutRunIndex, int32& OutHighlightIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
+	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutHighlightIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
 	FBreakCandidate CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak );
 
@@ -195,9 +355,6 @@ protected:
 
 	/** The views for the lines of text. A LineView represents a single visual line of text. Multiple LineViews can map to the same LineModel, if for example wrapping occurs. */
 	TArray< FLineView > LineViews;
-
-	/** Whether or not we currently have the information cached to perform line wrapping. */
-	bool HasWrapInformation;
 
 	/** Whether parameters on the layout have changed which requires the view be updated. */
 	bool HasChanged;

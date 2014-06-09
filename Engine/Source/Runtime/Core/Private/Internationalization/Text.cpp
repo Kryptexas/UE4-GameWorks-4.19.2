@@ -296,7 +296,20 @@ FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 
 FText FText::TrimPreceding( const FText& InText )
 {
 	FString TrimmedString = InText.ToString();
-	TrimmedString.Trim();
+	{
+		int32 StartPos = 0;
+		while ( StartPos < TrimmedString.Len() )
+		{
+			if( !FText::IsWhitespace( TrimmedString[StartPos] ) )
+			{
+				break;
+			}
+
+			++StartPos;
+		}
+
+		TrimmedString = TrimmedString.Right( TrimmedString.Len() - StartPos );
+	}
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
 
@@ -318,7 +331,20 @@ FText FText::TrimPreceding( const FText& InText )
 FText FText::TrimTrailing( const FText& InText )
 {
 	FString TrimmedString = InText.ToString();
-	TrimmedString.TrimTrailing();
+	{
+		int32 EndPos = TrimmedString.Len() - 1;
+		while( EndPos >= 0 )
+		{
+			if( !FText::IsWhitespace( TrimmedString[EndPos] ) )
+			{
+				break;
+			}
+
+			EndPos--;
+		}
+
+		TrimmedString = TrimmedString.Left( EndPos + 1 );
+	}
 
 	FText NewText = FText( MoveTemp ( TrimmedString ) );
 
@@ -340,8 +366,31 @@ FText FText::TrimTrailing( const FText& InText )
 FText FText::TrimPrecedingAndTrailing( const FText& InText )
 {
 	FString TrimmedString = InText.ToString();
-	TrimmedString.Trim();
-	TrimmedString.TrimTrailing();
+	{
+		int32 StartPos = 0;
+		while ( StartPos < TrimmedString.Len() )
+		{
+			if( !FText::IsWhitespace( TrimmedString[StartPos] ) )
+			{
+				break;
+			}
+
+			++StartPos;
+		}
+
+		int32 EndPos = TrimmedString.Len() - 1;
+		while( EndPos >= 0 )
+		{
+			if( !FText::IsWhitespace( TrimmedString[EndPos] ) )
+			{
+				break;
+			}
+
+			--EndPos;
+		}
+
+		TrimmedString = TrimmedString.Mid( StartPos, TrimmedString.Len() - EndPos );
+	}
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
 
@@ -358,6 +407,16 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 	}
 
 	return NewText;
+}
+
+bool FText::IsWhitespace( const TCHAR Char )
+{
+#if UE_ENABLE_ICU
+	const UChar32 ICUChar = ICUUtilities::Convert(Char);
+	return u_isWhitespace(ICUChar) != 0;
+#else
+	return FChar::IsWhitespace(Char);
+#endif
 }
 
 FText FText::Format(const FText& Fmt,const FText& v1)

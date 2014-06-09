@@ -133,13 +133,6 @@ public:
 
 protected:
 
-	/**
-	 * Gets the height of the largest character in the font
-	 *
-	 * @return  The fonts height
-	 */
-	virtual float GetFontHeight() const;
-
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;

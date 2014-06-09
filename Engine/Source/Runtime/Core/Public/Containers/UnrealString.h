@@ -400,6 +400,38 @@ public:
 		return *this;
 	}
 
+	FORCEINLINE FString& Append(const FString& Text)
+	{
+		*this += Text;
+		return *this;
+	}
+
+	FString& Append(const TCHAR* Text, int32 Count)
+	{
+		CheckInvariants();
+
+		if (Count != 0)
+		{
+			// position to insert the character.  
+			// At the end of the string if we have existing characters, otherwise at the 0 position
+			int32 InsertIndex = (Data.Num() > 0) ? Data.Num() - 1 : 0;
+
+			// number of characters to add.  If we don't have any existing characters, 
+			// we'll need to append the terminating zero as well.
+			int32 FinalCount = (Data.Num() > 0) ? Count : Count + 1;
+
+			Data.AddUninitialized(FinalCount);
+
+			for (int32 Index = 0; Index < Count; Index++)
+			{
+				Data[InsertIndex + Index] = Text[Index];
+			}
+
+			Data[Data.Num() - 1] = 0;
+		}
+		return *this;
+	}
+
 	/**
 	 * Removes characters within the string.
 	 *
@@ -410,6 +442,30 @@ public:
 	FORCEINLINE void RemoveAt(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
 	{
 		Data.RemoveAt(Index, Count, bAllowShrinking);
+	}
+
+	FORCEINLINE void InsertAt(int32 Index, TCHAR Character)
+	{
+		if (Data.Num() == 0)
+		{
+			*this += Character;
+		}
+		else
+		{
+			Data.Insert(Character, Index);
+		}
+	}
+
+	FORCEINLINE void InsertAt(int32 Index, const FString& Characters)
+	{
+		if (Data.Num() == 0)
+		{
+			*this += Characters;
+		}
+		else
+		{
+			Data.Insert(Characters.Data, Index);
+		}
 	}
 
 	/**

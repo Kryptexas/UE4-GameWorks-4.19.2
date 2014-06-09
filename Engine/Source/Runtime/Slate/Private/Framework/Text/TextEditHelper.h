@@ -62,9 +62,30 @@ class FTextEditHelper
 public:
 
 	/** Someone typed a character, translate the input event into a call to a ITextEditorWidget action */
-	static FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent, class ITextEditorWidget& TextEditor );
+	static FReply OnKeyChar( const FCharacterEvent& InCharacterEvent, const TSharedRef< class ITextEditorWidget >& TextEditor );
 
 	/** Someone pressed a key, translate the input event into a call to a ITextEditorWidget action */
-	static FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent, ITextEditorWidget& TextEditor );
+	static FReply OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
 
+	static FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
+
+	static FReply OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
+
+	static FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
+
+	static FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, const TSharedRef< ITextEditorWidget >& TextEditor);
+
+	/**
+	 * Gets the height of the largest character in the font
+	 *
+	 * @return  The fonts height
+	 */
+	static float GetFontHeight(const FSlateFontInfo& FontInfo);
+
+	/** 
+	 * Calculate the width of the caret 
+	 * @param FontMaxCharHeight The height of the font to calculate the caret width for
+	 * @return The width of the caret (might be clamped for very small fonts)
+	 */
+	static float CalculateCaretWidth(const float FontMaxCharHeight);
 };

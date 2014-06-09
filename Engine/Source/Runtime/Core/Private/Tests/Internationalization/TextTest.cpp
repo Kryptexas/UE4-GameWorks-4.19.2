@@ -2,6 +2,7 @@
 
 #include "CorePrivate.h"
 #include "AutomationTest.h"
+#include "ICUUtilities.h"
 
 // Disable optimization for TextTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
@@ -574,6 +575,80 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 	return true;
 }
+
+
+#if UE_ENABLE_ICU
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUTextTest, "Core.Misc.ICUText", EAutomationTestFlags::ATF_SmokeTest)
+
+bool FICUTextTest::RunTest (const FString& Parameters)
+{
+	// Test to make sure that ICUUtilities converts strings correctly
+
+	const FString SourceString(TEXT("This is a test"));
+	const FString SourceString2(TEXT("This is another test"));
+	icu::UnicodeString ICUString;
+	FString ConversionBackStr;
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::Convert(SourceString, ICUString);
+	if (SourceString.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
+	}
+
+	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString));
+	}
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::Convert(SourceString2, ICUString);
+	if (SourceString2.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString2.Len()));
+	}
+
+	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString2 != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString2));
+	}
+
+	// ---------------------------------------------------------------------
+
+	ICUUtilities::Convert(SourceString, ICUString);
+	if (SourceString.Len() != ICUString.length())
+	{
+		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
+	}
+
+	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	if (ICUString.length() != ConversionBackStr.Len())
+	{
+		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
+	}
+	if (SourceString != ConversionBackStr)
+	{
+		AddError(FString::Printf(TEXT("FString is has the incorrect converted value ('%s'; expected '%s')."), *ConversionBackStr, *SourceString));
+	}
+
+	return true;
+}
+
+#endif // #if UE_ENABLE_ICU
+
 
 #undef LOCTEXT_NAMESPACE 
 

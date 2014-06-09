@@ -3,6 +3,31 @@
 #include "SlatePrivatePCH.h"
 #include "SlateWordWrapper.h"
 
+/** Information about the substring as it would appear as a result of soft-wrapping a line of text. */
+struct FWrappedStringSlice
+{
+	/** 
+		* Create a substring info that sources InSourceString, begins at InFirstCharIndex and ends at InLastCharIndex (exclusive).
+		* The substring measures InSize.X by InSize.Y.
+		*/
+	FWrappedStringSlice( FString& InSourceString, int32 InFirstCharIndex, int32 InLastCharIndex, FVector2D InSize )
+	: SourceString( InSourceString )
+	, FirstCharIndex( InFirstCharIndex )
+	, LastCharIndex( InLastCharIndex )
+	, Size( InSize )
+	{
+	}
+
+	/** The substring sources this string. */
+	FString& SourceString;
+	/** Index of the first character in the substring */
+	int32 FirstCharIndex;
+	/** Index of the last character (exclusive) */
+	int32 LastCharIndex;
+	/** The measured size of this substring given the current font and point size. */
+	FVector2D Size;
+};
+
 namespace
 {
 	class FSlateWordWrapperBase : public FWordWrapper

@@ -10,95 +10,135 @@ namespace ICUUtilities
 {
 	void Convert(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
 	{
-		const char* const SourceEncoding = FPlatformString::GetEncodingName();
-	
-		UErrorCode ICUStatus = U_ZERO_ERROR;
-		
-		UConverter* ICUConverter = ucnv_open(SourceEncoding, &(ICUStatus));
-		if( U_FAILURE(ICUStatus) ) 
+		if( Source.Len() )
 		{
-			return;
+			const char* const SourceEncoding = FPlatformString::GetEncodingName();
+	
+			UErrorCode ICUStatus = U_ZERO_ERROR;
+		
+			UConverter* ICUConverter = ucnv_open(SourceEncoding, &ICUStatus);
+			if( U_SUCCESS(ICUStatus) ) 
+			{
+				// Get the internal buffer of the string, we're going to use it as scratch space
+				const int32_t DestinationCapacityUChars = Source.Len() * 2;
+				UChar* InternalStringBuffer = Destination.getBuffer(DestinationCapacityUChars);
+
+				// Perform the conversion into the string buffer
+				const int32_t SourceSizeBytes = Source.Len() * sizeof(TCHAR);
+				const int32_t DestinationLength = ucnv_toUChars(ICUConverter, InternalStringBuffer, DestinationCapacityUChars, reinterpret_cast<const char*>(*Source), SourceSizeBytes, &ICUStatus);
+
+				// Optionally null terminate the string
+				if( ShouldNullTerminate )
+				{
+					InternalStringBuffer[DestinationLength] = 0;
+				}
+
+				// Size it back down to the correct size and release our lock on the string buffer
+				Destination.releaseBuffer(DestinationLength);
+
+				ucnv_close(ICUConverter);
+			}
+
+			check( U_SUCCESS(ICUStatus) );
 		}
-
-		int32_t DestinationCapacity = Source.Len() * 2;
-		UChar* ICUChars = new UChar[DestinationCapacity];
-		const char* NativeChars = reinterpret_cast<const char*>(*Source);
-		int32_t NativeCharsLen = Source.Len() * sizeof(TCHAR);
-		int32_t DestinationLength = ucnv_toUChars(ICUConverter, ICUChars, DestinationCapacity, NativeChars, NativeCharsLen, &(ICUStatus));
-		Destination.setTo(ICUChars, DestinationLength);
-		delete[] ICUChars;
-
-		ucnv_close(ICUConverter);
+		else
+		{
+			Destination.remove();
+		}
 	}
 
 	icu::UnicodeString Convert(const FString& Source, const bool ShouldNullTerminate)
 	{
-		const char* const SourceEncoding = FPlatformString::GetEncodingName();
-
-		UErrorCode ICUStatus = U_ZERO_ERROR;
-
-		UConverter* ICUConverter = ucnv_open(SourceEncoding, &(ICUStatus));
-		if( U_FAILURE(ICUStatus) ) 
-		{
-			return icu::UnicodeString();
-		}
-
-		int32_t DestinationCapacity = Source.Len() * 2;
-		UChar* ICUChars = new UChar[DestinationCapacity];
-		const char* NativeChars = reinterpret_cast<const char*>(*Source);
-		int32_t NativeCharsLen = Source.Len() * sizeof(TCHAR);
-		int32_t DestinationLength = ucnv_toUChars(ICUConverter, ICUChars, DestinationCapacity, NativeChars, NativeCharsLen, &(ICUStatus));
-		icu::UnicodeString Destination(ICUChars, DestinationLength);
-		delete[] ICUChars;
-
-		ucnv_close(ICUConverter);
-
+		icu::UnicodeString Destination;
+		Convert(Source, Destination, ShouldNullTerminate);
 		return Destination;
 	}
 
 	void Convert(const icu::UnicodeString& Source, FString& Destination)
 	{
-		const char* const DestinationEncoding = FPlatformString::GetEncodingName();
+		if( Source.length() )
+		{
+			const char* const DestinationEncoding = FPlatformString::GetEncodingName();
 
+			UErrorCode ICUStatus = U_ZERO_ERROR;
+
+			UConverter* ICUConverter = ucnv_open(DestinationEncoding, &ICUStatus);
+			if( U_SUCCESS(ICUStatus) ) 
+			{
+				// Get the internal buffer of the string, we're going to use it as scratch space
+				TArray<TCHAR>& InternalStringBuffer = Destination.GetCharArray();
+				
+				// Work out the maximum size required and resize the buffer so it can hold enough data
+				const int32_t DestinationCapacityBytes = UCNV_GET_MAX_BYTES_FOR_STRING(Source.length(), ucnv_getMaxCharSize(ICUConverter));
+				const int32 DestinationCapacityTCHARs = DestinationCapacityBytes / sizeof(TCHAR);
+				InternalStringBuffer.SetNumUninitialized(DestinationCapacityTCHARs);
+
+				// Perform the conversion into the string buffer, and then null terminate the FString and size it back down to the correct size
+				const int32_t DestinationSizeBytes = ucnv_fromUChars(ICUConverter, reinterpret_cast<char*>(InternalStringBuffer.GetData()), DestinationCapacityBytes, Source.getBuffer(), Source.length(), &ICUStatus);
+				const int32 DestinationSizeTCHARs = DestinationSizeBytes / sizeof(TCHAR);
+				InternalStringBuffer[DestinationSizeTCHARs] = 0;
+				InternalStringBuffer.SetNumUninitialized(DestinationSizeTCHARs + 1); // the array size includes null
+
+				ucnv_close(ICUConverter);
+			}
+
+			check( U_SUCCESS(ICUStatus) );
+		}
+		else
+		{
+			Destination.Empty();
+		}
+	}
+
+	FString Convert(const icu::UnicodeString& Source)
+	{
+		FString Destination;
+		Convert(Source, Destination);
+		return Destination;
+	}
+
+	void Convert(const TCHAR Source, UChar32& Destination)
+	{
+		const char* const SourceEncoding = FPlatformString::GetEncodingName();
+	
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-
-		UConverter* ICUConverter = ucnv_open(DestinationEncoding, &(ICUStatus));
+		
+		UConverter* ICUConverter = ucnv_open(SourceEncoding, &ICUStatus);
 		if( U_FAILURE(ICUStatus) ) 
 		{
 			return;
 		}
 
-		int32_t DestinationCapacity = UCNV_GET_MAX_BYTES_FOR_STRING(Source.length(), ucnv_getMaxCharSize(ICUConverter));
-		char* NativeChars = reinterpret_cast<char*>(malloc(DestinationCapacity));
-		int32_t DestinationLength = ucnv_fromUChars(ICUConverter, NativeChars, DestinationCapacity, Source.getBuffer(), Source.length(), &(ICUStatus)) / sizeof(TCHAR);
 
-		Destination = FString(DestinationLength, reinterpret_cast<TCHAR*>(NativeChars));
-		free(NativeChars);
+		const char* NativeChars = reinterpret_cast<const char*>(&Source);
+		const int32_t NativeCharsLen = sizeof(TCHAR);
+		Destination = ucnv_getNextUChar(ICUConverter, &NativeChars, NativeChars + NativeCharsLen, &ICUStatus);
 
 		ucnv_close(ICUConverter);
 	}
 
-	FString Convert(const icu::UnicodeString& Source)
+	UChar32 Convert(const TCHAR Source)
 	{
-		const char* const DestinationEncoding = FPlatformString::GetEncodingName();
+		UChar32 Destination = 0;
+		Convert(Source, Destination);
+		return Destination;
+	}
 
-		UErrorCode ICUStatus = U_ZERO_ERROR;
+	void Convert(const UChar32 Source, TCHAR& Destination)
+	{
+		// ICU has ucnv_getNextUChar as an optimization for converting a single character, but it doesn't seem to have an inverse of this
+		// Because of this we're using the string variants instead (which will be slower)
+		icu::UnicodeString SourceString;
+		SourceString.setTo(Source);
+		FString DestinationString;
+		Convert(SourceString, DestinationString);
+		Destination = DestinationString.Len() ? DestinationString[0] : 0;
+	}
 
-		UConverter* ICUConverter = ucnv_open(DestinationEncoding, &(ICUStatus));
-		if( U_FAILURE(ICUStatus) ) 
-		{
-			return FString();
-		}
-
-		int32_t DestinationCapacity = UCNV_GET_MAX_BYTES_FOR_STRING(Source.length(), ucnv_getMaxCharSize(ICUConverter));
-		char* NativeChars = reinterpret_cast<char*>(malloc(DestinationCapacity));
-		int32_t DestinationLength = ucnv_fromUChars(ICUConverter, NativeChars, DestinationCapacity, Source.getBuffer(), Source.length(), &(ICUStatus)) / sizeof(TCHAR);
-
-		FString Destination(DestinationLength, reinterpret_cast<TCHAR*>(NativeChars));
-		free(NativeChars);
-
-		ucnv_close(ICUConverter);
-
+	TCHAR Convert(const UChar32 Source)
+	{
+		TCHAR Destination = 0;
+		Convert(Source, Destination);
 		return Destination;
 	}
 }

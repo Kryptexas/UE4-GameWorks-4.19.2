@@ -18,6 +18,11 @@ FTextRange FSlateHyperlinkRun::GetTextRange() const
 	return Range;
 }
 
+void FSlateHyperlinkRun::SetTextRange( const FTextRange& Value )
+{
+	Range = Value;
+}
+
 int16 FSlateHyperlinkRun::GetBaseLine( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
@@ -41,7 +46,7 @@ FVector2D FSlateHyperlinkRun::Measure( int32 StartIndex, int32 EndIndex, float S
 	return FontMeasure->Measure( **Text, StartIndex, EndIndex, Style.TextStyle.Font, true, Scale );
 }
 
-uint8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const 
+int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const 
 {
 	return 0;
 }
@@ -80,6 +85,40 @@ void FSlateHyperlinkRun::ArrangeChildren( const TSharedRef< ILayoutBlock >& Bloc
 {
 	const TSharedRef< FWidgetLayoutBlock > WidgetBlock = StaticCastSharedRef< FWidgetLayoutBlock >( Block );
 	ArrangedChildren.AddWidget( AllottedGeometry.MakeChild( WidgetBlock->GetWidget(), Block->GetLocationOffset() * ( 1 / AllottedGeometry.Scale ), Block->GetSize() * ( 1 / AllottedGeometry.Scale ), 1.0f ) );
+}
+
+int32 FSlateHyperlinkRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const
+{
+	return INDEX_NONE;
+}
+
+FVector2D FSlateHyperlinkRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale ) const
+{
+	return Block->GetLocationOffset();
+}
+
+void FSlateHyperlinkRun::Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange)
+{
+	Text = NewText;
+	Range = NewRange;
+}
+
+TSharedRef<IRun> FSlateHyperlinkRun::Clone() const
+{
+	return FSlateHyperlinkRun::Create(Text, Style, Metadata, NavigateDelegate, Range);
+}
+
+void FSlateHyperlinkRun::AppendText(FString& AppendToText) const
+{
+	AppendToText.Append(**Text + Range.BeginIndex, Range.Len());
+}
+
+void FSlateHyperlinkRun::AppendText(FString& AppendToText, const FTextRange& PartialRange) const
+{
+	check(Range.BeginIndex <= PartialRange.BeginIndex);
+	check(Range.EndIndex >= PartialRange.EndIndex);
+
+	AppendToText.Append(**Text + PartialRange.BeginIndex, PartialRange.Len());
 }
 
 FSlateHyperlinkRun::FSlateHyperlinkRun( const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, const FMetadata& InMetadata, FOnClick InNavigateDelegate ) 

@@ -176,7 +176,7 @@ public:
 	 *
 	 * @return the kerning value used between the two specified characters
 	 */
-	uint8 GetKerning( const FSlateFontInfo& InFontInfo, float FontScale, TCHAR PreviousCharacter, TCHAR CurrentCharacter ) const;
+	int8 GetKerning(const FSlateFontInfo& InFontInfo, float FontScale, TCHAR PreviousCharacter, TCHAR CurrentCharacter) const;
 
 	/**
 	 * Returns the baseline for the specified font.

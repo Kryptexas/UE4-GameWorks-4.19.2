@@ -14,10 +14,12 @@ public:
 	virtual ~FSlateTextRun() {}
 
 	virtual FTextRange GetTextRange() const OVERRIDE;
+	virtual void SetTextRange( const FTextRange& Value ) OVERRIDE;
+
 	virtual int16 GetBaseLine( float Scale ) const OVERRIDE;
 	virtual int16 GetMaxHeight( float Scale ) const OVERRIDE;
 	virtual FVector2D Measure( int32 StartIndex, int32 EndIndex, float Scale ) const OVERRIDE;
-	virtual uint8 GetKerning( int32 CurrentIndex, float Scale ) const OVERRIDE;
+	virtual int8 GetKerning(int32 CurrentIndex, float Scale) const OVERRIDE;
 
 	virtual TSharedRef< ILayoutBlock > CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunHighlighter >& Highlighter ) OVERRIDE;
 
@@ -29,6 +31,16 @@ public:
 
 	virtual void BeginLayout() OVERRIDE {}
 	virtual void EndLayout() OVERRIDE {}
+
+	virtual int32 GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const OVERRIDE;
+
+	virtual FVector2D GetLocationAt(const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale) const OVERRIDE;
+
+	virtual void Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange) OVERRIDE;
+	virtual TSharedRef<IRun> Clone() const OVERRIDE;
+
+	virtual void AppendText(FString& Text) const OVERRIDE;
+	virtual void AppendText(FString& AppendToText, const FTextRange& PartialRange) const OVERRIDE;
 
 private:
 

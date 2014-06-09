@@ -64,7 +64,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	IsReadOnly = InArgs._IsReadOnly;
 	IsPassword = InArgs._IsPassword;
 	IsCaretMovedWhenGainFocus = InArgs._IsCaretMovedWhenGainFocus;
-	SelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
+	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	RevertTextOnEscape = InArgs._RevertTextOnEscape;
 	ClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
 	OnIsTypedCharValid = InArgs._OnIsTypedCharValid;
@@ -233,7 +233,7 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	// Make sure the caret is scrolled into view.  Note that even if we don't have keyboard focus (and the caret
 	// is hidden), we still do this to make sure the beginning of the string is in view.
 	{
-		const float CaretWidth = CalculateCaretWidth(FontMaxCharHeight);
+		const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
 		// Grab the caret position in the scrolled area space
 		const float CaretLeft = CaretVisualPositionSpring.GetPosition();
@@ -437,7 +437,7 @@ bool SEditableText::FTextInputMethodContext::GetTextBounds(const uint32 BeginInd
 			IsClipped = true;
 		}
 
-		const float FontHeight = This->GetFontHeight();
+		const float FontHeight = FTextEditHelper::GetFontHeight(FontInfo);
 		const float DrawPositionY = ( CachedGeometry.Size.Y / 2 ) - ( FontHeight / 2 );
 
 		const float TextVertOffset = EditableTextDefs::TextVertOffsetPercent * FontHeight;
@@ -504,22 +504,6 @@ void SEditableText::FTextInputMethodContext::EndComposition()
 
 		IsComposing = false;
 	}
-}
-
-/**
- * Gets the height of the largest character in the font
- *
- * @return  The fonts height
- */
-float SEditableText::GetFontHeight() const
-{
-	// Take a local copy of the FontInfo and remove any flags that could affect the outcome in a negative way
-	FSlateFontInfo FontCopy = Font.Get();
-
-	// Aesthetic choice: editable text can use a little more room, and should never be smaller than a W of the font.
-	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const FVector2D FontSize = FontMeasureService->Measure( FString(TEXT("W")), FontCopy );
-	return FontSize.Y;
 }
 
 void SEditableText::StartChangingText()
@@ -592,8 +576,6 @@ void SEditableText::DeleteChar()
 {
 	if( !IsReadOnly.Get() )
 	{
-		StartChangingText();
-
 		if( AnyTextSelected() )
 		{
 			// Delete selected text
@@ -608,8 +590,6 @@ void SEditableText::DeleteChar()
 				EditedText = FText::FromString(OldText.Left( CaretPosition ) + OldText.Mid( CaretPosition + 1 ));
 			}
 		}
-
-		FinishChangingText();
 	}
 }
 
@@ -654,7 +634,7 @@ static int32 OffsetToTestBasedOnDirection( int8 Direction )
 	return (Direction >= 0) ? 0 : -1;
 }
 
-FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, int8 Direction, ECursorAction::Type Action )
+FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
 {
 	const int32 OldCaretPosition = CaretPosition;
 	int32 NewCaretPosition = OldCaretPosition;
@@ -662,54 +642,65 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, int8 Direction
 	const int32 StringLength = EditedText.ToString().Len();
 	const FString& EditedTextAsString = EditedText.ToString();
 
-
 	// If control is held down, jump to beginning of the current word (or, the previous word, if
 	// the caret is currently on a whitespace character
-	if( Method == ECursorMoveMethod::Word )
+	switch( Method ) 
 	{
-		if (Direction > 0)
+	case ECursorMoveMethod::Word:
 		{
-			// Scan right for text
-			int32 CurCharIndex = CaretPosition;
-			while( CurCharIndex < StringLength && !FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ CurCharIndex ] ) )
-			{
-				++CurCharIndex;
-			}
+			const FString EditedTextString = EditedText.ToString();
 
-			// Scan right for whitespace
-			while( CurCharIndex < StringLength && FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ CurCharIndex ] ) )
+			if (Direction.X > 0)
 			{
-				++CurCharIndex;
-			}
+				// Scan right for text
+				int32 CurCharIndex = CaretPosition;
+				while( CurCharIndex < StringLength && !FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+				{
+					++CurCharIndex;
+				}
 
-			NewCaretPosition = CurCharIndex;
+				// Scan right for whitespace
+				while( CurCharIndex < StringLength && FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+				{
+					++CurCharIndex;
+				}
+
+				NewCaretPosition = CurCharIndex;
+			}
+			else
+			{
+				// Scan left for whitespace
+				int32 CurCharIndex = CaretPosition;
+				while( CurCharIndex > 0 && FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
+				{
+					--CurCharIndex;
+				}
+
+				// Scan left for text
+				while( CurCharIndex > 0 && !FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
+				{
+					--CurCharIndex;
+				}
+
+				NewCaretPosition = CurCharIndex;
+			}
 		}
-		else
-		{
-			// Scan left for whitespace
-			int32 CurCharIndex = CaretPosition;
-			while( CurCharIndex > 0 && FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ CurCharIndex - 1 ] ) )
-			{
-				--CurCharIndex;
-			}
+		break;
 
-			// Scan left for text
-			while( CurCharIndex > 0 && !FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ CurCharIndex - 1 ] ) )
-			{
-				--CurCharIndex;
-			}
-
-			NewCaretPosition = CurCharIndex;
-		}
-	}
-	else if ( Method == ECursorMoveMethod::CharacterHorizontal )
-	{
-		NewCaretPosition = FMath::Clamp( CaretPosition + Direction, 0, StringLength );
-	}
-	else
-	{
-		ensure( Method == ECursorMoveMethod::CharacterVertical );
+	case ECursorMoveMethod::CharacterHorizontal:
+		NewCaretPosition = FMath::Clamp<int32>( CaretPosition + Direction.X, 0, StringLength );
+		break;
+	
+	case ECursorMoveMethod::CharacterVertical:
 		return FReply::Unhandled();
+	
+	case ECursorMoveMethod::ScreenPosition:
+		NewCaretPosition = FindClickedCharacterIndex( Direction );
+		break;
+
+	default:
+		checkSlow(false, "Unknown ECursorMoveMethod value");
+		break;
 	}
 
 	SetCaretPosition( NewCaretPosition );
@@ -781,7 +772,6 @@ void SEditableText::ClearSelection()
 	Selection.Clear();
 }
 
-
 void SEditableText::SelectAllText()
 {
 	// NOTE: Caret position is left unchanged
@@ -797,6 +787,93 @@ void SEditableText::SelectAllText()
 	const float SelectionTargetX = EditableTextDefs::SelectionRectLeftOffset + FontMeasureService->Measure( EditedText.ToString().Left( CaretPosition ), Font.Get() ).X;
 	SelectionTargetLeftSpring.SetPosition( SelectionTargetX );
 	SelectionTargetRightSpring.SetPosition( SelectionTargetX );
+}
+
+bool SEditableText::SelectAllTextWhenFocused()
+{
+	return bSelectAllTextWhenFocused.Get();
+}
+
+void SEditableText::SelectWordAt(const FVector2D& LocalPosition)
+{
+	// Figure out where in the string the user clicked
+	const int32 ClickedCharIndex = FindClickedCharacterIndex( LocalPosition );
+
+	// Deselect any text that was selected
+	ClearSelection();
+
+	// Select the word that the user double-clicked on, and move the caret to the end of that word
+	{
+		const FString EditedTextString = EditedText.ToString();
+
+		// Find beginning of the word
+		int32 FirstWordCharIndex = ClickedCharIndex;
+		while( FirstWordCharIndex > 0 && !FText::IsWhitespace( EditedTextString[ FirstWordCharIndex - 1 ] ) )
+		{
+			--FirstWordCharIndex;
+		}
+
+		// Find end of the word
+		int32 LastWordCharIndex = ClickedCharIndex;
+		while( LastWordCharIndex < EditedText.ToString().Len() && !FText::IsWhitespace( EditedTextString[ LastWordCharIndex ] ) )
+		{
+			++LastWordCharIndex;
+		}
+
+		// Move the caret to the end of the selected word
+		SetCaretPosition( ClickedCharIndex );
+
+		// Select the word!
+		Selection.StartIndex = FirstWordCharIndex;
+		Selection.FinishIndex = LastWordCharIndex;
+		RestartSelectionTargetAnimation();
+	}
+}
+
+void SEditableText::BeginDragSelection() 
+{
+	bIsDragSelecting = true;
+}
+
+bool SEditableText::IsDragSelecting() const
+{
+	return bIsDragSelecting;
+}
+
+void SEditableText::EndDragSelection() 
+{
+	bIsDragSelecting = false;
+}
+
+bool SEditableText::AnyTextSelected() const
+{
+	return Selection.StartIndex != INDEX_NONE && Selection.StartIndex != Selection.FinishIndex;
+}
+
+bool SEditableText::IsTextSelectedAt(const FVector2D& LocalPosition) const
+{
+	const int32 ClickedCharIndex = FindClickedCharacterIndex(LocalPosition);
+	return ClickedCharIndex >= Selection.GetMinIndex() && ClickedCharIndex < Selection.GetMaxIndex();
+}
+
+void SEditableText::SetWasFocusedByLastMouseDown( bool Value )
+{
+	bWasFocusedByLastMouseDown = Value;
+}
+
+bool SEditableText::WasFocusedByLastMouseDown() const
+{
+	return bWasFocusedByLastMouseDown;
+}
+
+bool SEditableText::HasDragSelectedSinceFocused() const
+{
+	return bHasDragSelectedSinceFocused;
+}
+
+void SEditableText::SetHasDragSelectedSinceFocused( bool Value )
+{
+	bHasDragSelectedSinceFocused = Value;
 }
 
 
@@ -1000,46 +1077,46 @@ bool SEditableText::CanExecuteUndo() const
 void SEditableText::Undo()
 {
 	if( !IsReadOnly.Get() && UndoStates.Num() > 0 && !TextInputMethodContext->IsComposing )
-	{
-		// Restore from undo state
-		int32 UndoStateIndex;
-		if( CurrentUndoLevel == INDEX_NONE )
 		{
-			// We haven't undone anything since the last time a new undo state was added
-			UndoStateIndex = UndoStates.Num() - 1;
-
-			// Store an undo state for the current state (before undo was pressed)
-			FUndoState NewUndoState;
-			MakeUndoState( NewUndoState );
-			PushUndoState( NewUndoState );
-		}
-		else
-		{
-			// Move down to the next undo level
-			UndoStateIndex = CurrentUndoLevel - 1;
-		}
-
-		// Is there anything else to undo?
-		if( UndoStateIndex >= 0 )
-		{
+			// Restore from undo state
+			int32 UndoStateIndex;
+			if( CurrentUndoLevel == INDEX_NONE )
 			{
-				// NOTE: It's important the no code called here creates or destroys undo states!
-				const FUndoState& UndoState = UndoStates[ UndoStateIndex ];
-		
-				EditedText = UndoState.Text;
-				CaretPosition = UndoState.CaretPosition;
-				Selection = UndoState.Selection;
+				// We haven't undone anything since the last time a new undo state was added
+				UndoStateIndex = UndoStates.Num() - 1;
 
-				SaveText();
+				// Store an undo state for the current state (before undo was pressed)
+				FUndoState NewUndoState;
+				MakeUndoState( NewUndoState );
+				PushUndoState( NewUndoState );
+			}
+			else
+			{
+				// Move down to the next undo level
+				UndoStateIndex = CurrentUndoLevel - 1;
 			}
 
-			CurrentUndoLevel = UndoStateIndex;
+			// Is there anything else to undo?
+			if( UndoStateIndex >= 0 )
+			{
+				{
+					// NOTE: It's important the no code called here creates or destroys undo states!
+					const FUndoState& UndoState = UndoStates[ UndoStateIndex ];
+		
+					EditedText = UndoState.Text;
+					CaretPosition = UndoState.CaretPosition;
+					Selection = UndoState.Selection;
 
-			// Let outsiders know that the text content has been changed
-			OnTextChanged.ExecuteIfBound( EditedText );
+					SaveText();
+				}
+
+				CurrentUndoLevel = UndoStateIndex;
+
+				// Let outsiders know that the text content has been changed
+				OnTextChanged.ExecuteIfBound( EditedText );
+			}
 		}
 	}
-}
 
 
 void SEditableText::Redo()
@@ -1080,13 +1157,18 @@ void SEditableText::Redo()
 	}
 }
 
+TSharedRef< SWidget > SEditableText::GetWidget()
+{
+	return SharedThis( this );
+}
+
 FVector2D SEditableText::ComputeDesiredSize() const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FSlateFontInfo& FontInfo = Font.Get();
 	
-	const float FontMaxCharHeight = GetFontHeight();
-	const float CaretWidth = CalculateCaretWidth(FontMaxCharHeight);
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
+	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
 	FVector2D TextSize;
 
@@ -1125,7 +1207,7 @@ int32 SEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRec
 	const FString VisibleText = GetStringToRender();
 	const FLinearColor ThisColorAndOpacity = ColorAndOpacity.Get().GetColor(InWidgetStyle);
 	const FColor ColorAndOpacitySRGB = ThisColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint();
-	const float FontMaxCharHeight = GetFontHeight();
+	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(FontInfo);
 	const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 
 	// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
@@ -1301,7 +1383,7 @@ int32 SEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRec
 
 		const float CaretX = CaretVisualPositionSpring.GetPosition();
 		const float CaretY = DrawPositionY + EditableTextDefs::CaretVertOffset;
-		const float CaretWidth = CalculateCaretWidth(FontMaxCharHeight);
+		const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 		const float CaretHeight = EditableTextDefs::CaretHeightPercent * FontMaxCharHeight;
 
 		const FVector2D CaretDrawPosition = ScrollHelper.FromScrollerSpace( FVector2D( CaretX, CaretY ) );
@@ -1388,7 +1470,7 @@ FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, cons
 			if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::OtherWidgetLostFocus )
 			{
 				// Select all text on keyboard focus.  This mirrors mouse focus functionality.
-				if( SelectAllTextWhenFocused.Get() )
+				if( bSelectAllTextWhenFocused.Get() )
 				{
 					SelectAllText();
 				}
@@ -1457,13 +1539,13 @@ void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFo
 
 FReply SEditableText::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
-	return FTextEditHelper::OnKeyChar( MyGeometry, InCharacterEvent, *this );
+	return FTextEditHelper::OnKeyChar( InCharacterEvent, SharedThis( this ) );
 }
 
 
 FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( MyGeometry, InKeyboardEvent, *this );
+	FReply Reply = FTextEditHelper::OnKeyDown( InKeyboardEvent, SharedThis( this ) );
 
 	// Process keybindings if the event wasn't already handled
 	if( !Reply.IsEventHandled() && UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
@@ -1487,117 +1569,27 @@ FReply SEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent
 
 FReply SEditableText::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
-	// If the mouse is already captured, then don't allow a new action to be taken
 	if( !HasMouseCapture() )
 	{
 		if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton ||
 			InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 		{
-			const int32 OldCaretPosition = CaretPosition;
-
-			// Am I getting focus right now?
-			const bool bIsGettingFocus = !HasKeyboardFocus();
-			if( bIsGettingFocus )
-			{
-				// We might be receiving keyboard focus due to this event.  Because the keyboard focus received callback
-				// won't fire until after this function exits, we need to make sure our widget's state is in order early
-
-				// Assume we'll be given keyboard focus, so load text for editing
-				LoadText();
-
-				// Reset 'mouse has moved' state.  We'll use this in OnMouseMove to determine whether we
-				// should reset the selection range to the caret's position.
-				bWasFocusedByLastMouseDown = true;
-			}
-
-			// Figure out where in the string the user clicked
-			const int32 ClickedCharIndex = FindClickedCharacterIndex( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-
-			// Move the caret to this position
-			SetCaretPosition( ClickedCharIndex );
-
 			// Reset 'is drag selecting' state
 			bHasDragSelectedSinceMouseDown = false;
-
-			if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-			{
-				if( InMouseEvent.IsShiftDown() )
-				{
-					SelectText( OldCaretPosition );
-				}
-				else
-				{
-					// Deselect any text that was selected
-					ClearSelection();
-				}
-
-				// Start drag selection
-				bIsDragSelecting = true;
-			}
-			else if( InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
-			{
-				// If the user clicked right clicked on a character that wasn't already selected, we'll clear
-				// the selection
-				if( AnyTextSelected() &&
-					( CaretPosition < Selection.GetMinIndex() || CaretPosition > Selection.GetMaxIndex() ) )
-				{
-					// Deselect any text that was selected
-					ClearSelection();
-				}
-			}
-
-
-			// Right clicking to summon context menu, but we'll do that on mouse-up.
-			Reply = FReply::Handled();
-			Reply.CaptureMouse( AsShared() );
-			Reply.SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
 		}
 	}
 
-	return Reply;
+	return FTextEditHelper::OnMouseButtonDown( InMyGeometry, InMouseEvent, SharedThis( this ) );
 }
 
 
 FReply SEditableText::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
 	// The mouse must have been captured by either left or right button down before we'll process mouse ups
 	if( HasMouseCapture() )
 	{
-		if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
-			bIsDragSelecting )
+		if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bIsDragSelecting )
 		{
-			// No longer drag-selecting
-			bIsDragSelecting = false;
-
-
-			// If we received keyboard focus on this click, then we'll want to select all of the text
-			// when the user releases the mouse button, unless the user actually dragged the mouse
-			// while holding the button down, in which case they've already selected some text and
-			// we'll leave things alone!
-			if( bWasFocusedByLastMouseDown )
-			{
-				if( !bHasDragSelectedSinceFocused )
-				{
-					if( SelectAllTextWhenFocused.Get() )
-					{
-						// User wasn't dragging the mouse, so go ahead and select all of the text now
-						// that we've become focused
-						SelectAllText();
-
-						// Move the cursor to the end of the string
-						SetCaretPosition( EditedText.ToString().Len() );
-
-						// @todo Slate: In this state, the caret should actually stay hidden (until the user interacts again), and we should not move the caret
-					}
-				}
-
-				bWasFocusedByLastMouseDown = false;
-			}
-
 			// If we selected any text while dragging, then kick off the selection target animation
 			if( bHasDragSelectedSinceMouseDown && Selection.StartIndex != Selection.FinishIndex )
 			{
@@ -1609,103 +1601,27 @@ FReply SEditableText::OnMouseButtonUp( const FGeometry& InMyGeometry, const FPoi
 
 				RestartSelectionTargetAnimation();
 			}
-
-
-			// Release mouse capture
-			Reply = FReply::Handled();
-			Reply.ReleaseMouseCapture();
-		}
-		else if( InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
-		{
-			if ( InMyGeometry.IsUnderLocation(InMouseEvent.GetScreenSpacePosition()) )
-			{
-				// Right clicked, so summon a context menu if the cursor is within the widget
-				SummonContextMenu( InMouseEvent.GetScreenSpacePosition() );
-			}
-
-			// Release mouse capture
-			Reply = FReply::Handled();
-			Reply.ReleaseMouseCapture();
 		}
 	}
-	
-	return Reply;
+
+	return FTextEditHelper::OnMouseButtonUp( InMyGeometry, InMouseEvent, SharedThis( this ) );
 }
 
 
 FReply SEditableText::OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
 	if( bIsDragSelecting && HasMouseCapture() )
 	{
-		// Figure out where in the string the user clicked
-		const int32 ClickedCharIndex = FindClickedCharacterIndex( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-
-		// Move the caret to this position
-		const int32 OldCaretPosition = CaretPosition;
-		SetCaretPosition( ClickedCharIndex );
-
-
-		// Check to see if the user dragged far enough to select any characters
-		if( OldCaretPosition != CaretPosition )
-		{
-			// OK, the user has dragged over a character since we received focus
-			bHasDragSelectedSinceFocused = true;
-			bHasDragSelectedSinceMouseDown = true;
-
-			// Select text that the user dragged over
-			SelectText( OldCaretPosition );
-		}
-
-		Reply = FReply::Handled();
+		bHasDragSelectedSinceMouseDown = true;
 	}
 
-	return Reply;
+	return FTextEditHelper::OnMouseMove( InMyGeometry, InMouseEvent, SharedThis( this ) );;
 }
 
 
 FReply SEditableText::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	FReply Reply = FReply::Unhandled();
-
-	if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-	{
-		// Figure out where in the string the user clicked
-		const int32 ClickedCharIndex = FindClickedCharacterIndex( InMyGeometry, InMouseEvent.GetScreenSpacePosition() );
-
-		// Deselect any text that was selected
-		ClearSelection();
-
-		// Select the word that the user double-clicked on, and move the caret to the end of that word
-		{
-			// Find beginning of the word
-			int32 FirstWordCharIndex = ClickedCharIndex;
-			while( FirstWordCharIndex > 0 && !FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ FirstWordCharIndex - 1 ] ) )
-			{
-				--FirstWordCharIndex;
-			}
-
-			// Find end of the word
-			int32 LastWordCharIndex = ClickedCharIndex;
-			while( LastWordCharIndex < EditedText.ToString().Len() && !FChar::IsWhitespace( EditedText.ToString().GetCharArray()[ LastWordCharIndex ] ) )
-			{
-				++LastWordCharIndex;
-			}
-
-			// Select the word!
-			Selection.StartIndex = FirstWordCharIndex;
-			Selection.FinishIndex = LastWordCharIndex;
-			RestartSelectionTargetAnimation();
-
-			// Move the caret to the end of the selected word
-			SetCaretPosition( ClickedCharIndex );
-		}
-
-		Reply = FReply::Handled();
-	}
-
-	return Reply;
+	return FTextEditHelper::OnMouseButtonDoubleClick( InMyGeometry, InMouseEvent, SharedThis( this ) );
 }
 
 
@@ -1766,8 +1682,14 @@ int32 SEditableText::FindClickedCharacterIndex( const FGeometry& InMyGeometry, c
 	const FVector2D& ScreenCursorPosition = InScreenCursorPosition;
 	const FVector2D& LocalCursorPosition = InMyGeometry.AbsoluteToLocal( ScreenCursorPosition );
 
+	return FindClickedCharacterIndex(LocalCursorPosition);
+}
+
+
+int32 SEditableText::FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const
+{
 	// Convert the click position from the local widget space to the scrolled area
-	const FVector2D& PositionInScrollableArea = ScrollHelper.ToScrollerSpace( LocalCursorPosition );
+	const FVector2D& PositionInScrollableArea = ScrollHelper.ToScrollerSpace( InLocalCursorPosition );
 	const float ClampedCursorX = FMath::Max( PositionInScrollableArea.X, 0.0f );
 
 	// Figure out where in the string the user clicked
@@ -2027,12 +1949,6 @@ FString SEditableText::GetStringToRender() const
 	}
 
 	return VisibleText;
-}
-
-float SEditableText::CalculateCaretWidth(const float FontMaxCharHeight) const
-{
-	// The caret with should be at least one pixel. For very small fonts the width could be < 1 which makes it not visible
-	return FMath::Max(1.0f, EditableTextDefs::CaretWidthPercent * FontMaxCharHeight);
 }
 
 void SEditableText::RestartSelectionTargetAnimation()

@@ -1560,7 +1560,7 @@ public:
 	{
 		InlineEditableText = LOCTEXT( "TestingInlineEditableTextBlock", "Testing inline editable text block!" );
 
-		const FText MultiLineText = LOCTEXT("MultiLineTextTest", "He has refused his Assent to Laws, the most wholesome and necessary for the public good.\nHe has forbidden his Governors to pass Laws of immediate and pressing importance, unless suspended in their operation till his Assent should be obtained; and when so suspended, he has utterly neglected to attend to them.\nHe has refused to pass other Laws for the accommodation of large districts of people, unless those people would relinquish the right of Representation in the Legislature, a right inestimable to them and formidable to tyrants only.\n\nHe has called together legislative bodies at places unusual, uncomfortable, and distant from the depository of their public Records, for the sole purpose of fatiguing them into compliance with his measures.\nHe has dissolved Representative Houses repeatedly, for opposing with manly firmness his invasions on the rights of the people.\nHe has refused for a long time, after such dissolutions, to cause others to be elected; whereby the Legislative powers, incapable of Annihilation, have returned to the People at large for their exercise; the State remaining in the mean time exposed to all the dangers of invasion from without, and convulsions within.\nHe has endeavoured to prevent the population of these States; for that purpose obstructing the Laws for Naturalization of Foreigners; refusing to pass others to encourage their migrations hither, and raising the conditions of new Appropriations of Lands.\n");
+		MultilineEditableText = LOCTEXT("MultiLineTextTest", "He has refused his Assent to Laws, the most wholesome and necessary for the public good.\nHe has forbidden his Governors to pass Laws of immediate and pressing importance, unless suspended in their operation till his Assent should be obtained; and when so suspended, he has utterly neglected to attend to them.\nHe has refused to pass other Laws for the accommodation of large districts of people, unless those people would relinquish the right of Representation in the Legislature, a right inestimable to them and formidable to tyrants only.\n\nHe has called together legislative bodies at places unusual, uncomfortable, and distant from the depository of their public Records, for the sole purpose of fatiguing them into compliance with his measures.\nHe has dissolved Representative Houses repeatedly, for opposing with manly firmness his invasions on the rights of the people.\nHe has refused for a long time, after such dissolutions, to cause others to be elected; whereby the Legislative powers, incapable of Annihilation, have returned to the People at large for their exercise; the State remaining in the mean time exposed to all the dangers of invasion from without, and convulsions within.\nHe has endeavoured to prevent the population of these States; for that purpose obstructing the Laws for Naturalization of Foreigners; refusing to pass others to encourage their migrations hither, and raising the conditions of new Appropriations of Lands.\n");
 
 		Animation = FCurveSequence(0, 5);
 		Animation.Play();
@@ -1594,14 +1594,14 @@ public:
 				[
 					SNew( SEditableTextBox )
 					.Text( LOCTEXT( "TestingLongText", "Here is an editable text box with a very long initial string.  Useful to test scrolling.  Remember, this editable text box has many features, such as cursor navigation, text selection with either the mouse or keyboard, and cut, copy and paste.  You can even undo and redo just how you'd expect to." ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldCondensed.ttf" ), 13 ) )
+					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 13 ) )
 					.HintText(LOCTEXT("TestingLongTextHint", "Hint Text"))
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .Padding(5)
 				[
 					SNew( SEditableTextBox )
 					.Text( LOCTEXT( "TestingBigTextBigMargin", "Big text, big margin!" ) )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldCondensed.ttf" ), 40 ) )	// Lucida Console
+					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 40 ) )
 					.RevertTextOnEscape( true )
 					.BackgroundColor( this, &STextEditTest::GetLoopingColor )
 					.HintText(LOCTEXT("TestingBigTextMarginHint", "Hint Text"))
@@ -1618,16 +1618,16 @@ public:
 				[
 					SAssignNew( SearchBox, SSearchBox )
 					//.Text( LOCTEXT("TestingSearchBox", "Testing search boxes tool tip") )
-					//.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldCondensed.ttf" ), 12 ) )
+					//.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf" ), 12 ) )
 					.ToolTipText( LOCTEXT("TestingSearchBox_Tooltip", "Testing search boxes") )
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
 				[
 					SAssignNew( NumericInput, SEditableTextBox )
-					.Text( LOCTEXT( "NumericInput", "This should be an integer" ) )
+					.Text( LOCTEXT( "NumericInput", "This should be a number" ) )
 					.OnTextChanged( this, &STextEditTest::OnNumericInputTextChanged )
 					.RevertTextOnEscape( true )
-					.HintText(LOCTEXT("NumericInputHint", "Enter an integer"))
+					.HintText(LOCTEXT("NumericInputHint", "Enter a number"))
 				]
 				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
 				[
@@ -1650,17 +1650,28 @@ public:
 					SNew(SHorizontalBox)
 					+SHorizontalBox::Slot().AutoWidth() .VAlign(VAlign_Top) .Padding(2)
 					[
-						SNew(SBorder)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("MultiLineTextWrapAt600px", "Multi-line editable text wrapping at 600px"))
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
 							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
+							+ SHorizontalBox::Slot()
 							[
-								SNew(SMultiLineEditableText)
-								.Text(MultiLineText)
-								.ScrollBar( FirstScrollBar )
-								.PreferredSize( FVector2D(100,175) )
+								SNew(SMultiLineEditableTextBox)
+								.Text(this, &STextEditTest::GetMultilineEditableText)
+								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12))
+								.Justification(ETextJustify::Center)
+								.LineHeightPercentage(2.0f)
+								.OnTextCommitted(this, &STextEditTest::HandleMultilineEditableTextCommitted)
+								.WrapTextAt(600.0f)
 							]
-							+SHorizontalBox::Slot() .AutoWidth()
+							+ SHorizontalBox::Slot().AutoWidth()
 							[
 								FirstScrollBar
 							]
@@ -1668,14 +1679,24 @@ public:
 					]
 					+SHorizontalBox::Slot().FillWidth(1).Padding(2)
 					[
-						SNew(SBorder)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("MultiLineTextAutoWrap", "Multi-line editable text auto-wrapping"))
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
 						[
 							SNew(SHorizontalBox)
 							+SHorizontalBox::Slot()
 							[
-								SNew(SMultiLineEditableText)
-								.Text(MultiLineText)
-								.ScrollBar( SecondScrollBar )
+								SNew(SMultiLineEditableTextBox)
+								.Text(MultilineEditableText)
+								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12))
+								.AutoWrapText(true)
+								.HintText(LOCTEXT("TypehereTextHint", "Type Here"))
 							]
 							+SHorizontalBox::Slot() .AutoWidth()
 							[
@@ -1684,10 +1705,45 @@ public:
 						]
 					]
 				]
+				+SVerticalBox::Slot().AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot().AutoWidth() .VAlign(VAlign_Top) .Padding(2)
+					[
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("MultiLineTextNoWrap", "Multi-line editable text without wrapping"))
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							[
+								SNew(SMultiLineEditableTextBox)
+								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12))
+								//.WrapTextAt(300.0f)
+							]
+						]
+					]
+				]
 			]
 		];
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	FText GetMultilineEditableText() const
+	{
+		return MultilineEditableText;
+	}
+
+	void HandleMultilineEditableTextCommitted(const FText& Text, ETextCommit::Type Type)
+	{
+		MultilineEditableText = Text;
+	}
 
 	void FocusDefaultWidget()
 	{
@@ -1787,6 +1843,8 @@ protected:
 
 	TSharedPtr<SInlineEditableTextBlock> InlineEditableTextBlock;
 	FText InlineEditableText;
+
+	FText MultilineEditableText;
  };
 
 /** Demonstrates the brokenness of our current approach to trading smoothness for sharpness. */

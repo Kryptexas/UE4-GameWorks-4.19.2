@@ -232,6 +232,11 @@ public:
 	 */
 	static FText TrimPrecedingAndTrailing( const FText& );
 
+	/**
+	 * Check to see if the given character is considered whitespace by the current culture
+	 */
+	static bool IsWhitespace( const TCHAR Char );
+
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
 
 	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
