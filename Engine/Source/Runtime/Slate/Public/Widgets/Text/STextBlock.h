@@ -136,6 +136,9 @@ public:
 	 */
 	void SetFont(const TAttribute< FSlateFontInfo >& InFont);
 
+	DEPRECATED(4.3, "SetForegroundColor is deprecated use SetColorAndOpacity instead.")
+	void SetForegroundColor(const TAttribute<FSlateColor>& InColorAndOpacity) { SetColorAndOpacity(InColorAndOpacity); }
+
 	/** See ColorAndOpacity attribute */
 	void SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity);
 
