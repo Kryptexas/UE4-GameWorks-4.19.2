@@ -169,6 +169,7 @@ public class UnrealEd : ModuleRules
 				"ViewportSnapping",
 				"UserFeedback",
 				"GameplayTagsEditor",
+                "GameplayAbilitiesEditor",
 				"UndoHistory",
 				"SourceCodeAccess",
 				"ReferenceViewer"
