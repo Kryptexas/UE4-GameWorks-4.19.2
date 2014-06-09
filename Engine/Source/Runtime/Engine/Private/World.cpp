@@ -1638,19 +1638,22 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		CurrentLevelPendingVisibility					= NULL;
 
 		// notify server that the client has finished making this level visible
-		for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		if (!Level->bClientOnlyVisible)
 		{
-			if (It->PlayerController != NULL)
+			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				// Remap packagename for PIE networking before sending out to server
-				FName PackageName = Level->GetOutermost()->GetFName();
-				FString PackageNameStr = PackageName.ToString();
-				if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+				if (It->PlayerController != NULL)
 				{
-					PackageName = FName(*PackageNameStr);
-				}
+					// Remap packagename for PIE networking before sending out to server
+					FName PackageName = Level->GetOutermost()->GetFName();
+					FString PackageNameStr = PackageName.ToString();
+					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+					{
+						PackageName = FName(*PackageNameStr);
+					}
 
-				It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
+					It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
+				}
 			}
 		}
 
@@ -1720,19 +1723,22 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		Level->ClearLevelComponents();
 
 		// notify server that the client has removed this level
-		for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		if (!Level->bClientOnlyVisible)
 		{
-			if (It->PlayerController != NULL)
+			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				// Remap packagename for PIE networking before sending out to server
-				FName PackageName = Level->GetOutermost()->GetFName();
-				FString PackageNameStr = PackageName.ToString();
-				if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+				if (It->PlayerController != NULL)
 				{
-					PackageName = FName(*PackageNameStr);
-				}
+					// Remap packagename for PIE networking before sending out to server
+					FName PackageName = Level->GetOutermost()->GetFName();
+					FString PackageNameStr = PackageName.ToString();
+					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
+					{
+						PackageName = FName(*PackageNameStr);
+					}
 
-				It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
+					It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
+				}
 			}
 		}
 		

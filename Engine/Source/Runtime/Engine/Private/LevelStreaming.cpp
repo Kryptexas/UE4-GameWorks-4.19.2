@@ -484,6 +484,8 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 				if (LODPackageNames.Num() > 0)
 				{
 					Level->bRequireFullVisibilityToRender = true;
+					// LOD levels should not be visible on server
+					Level->bClientOnlyVisible = LODPackageNames.Contains(InLoadedPackage->GetFName());
 				}
 			
 				// In the editor levels must be in the levels array regardless of whether they are visible or not

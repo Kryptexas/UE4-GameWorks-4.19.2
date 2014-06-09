@@ -1503,7 +1503,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		if (LevelStreaming != NULL)
 		{
 			const ULevel* Level = LevelStreaming->GetLoadedLevel();
-			if ( Level != NULL && Level->bIsVisible )
+			if ( Level != NULL && Level->bIsVisible && !Level->bClientOnlyVisible )
 			{
 				// Remap packagename for PIE networking before sending out to server
 				FName PackageName = Level->GetOutermost()->GetFName();

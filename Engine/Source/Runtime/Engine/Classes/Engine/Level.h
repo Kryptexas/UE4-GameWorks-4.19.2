@@ -398,7 +398,8 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 	uint32										bIsAssociatingLevel:1;
 	/** Whether this level should be fully added to the world before rendering his components	*/
 	uint32										bRequireFullVisibilityToRender:1;
-		
+	/** Whether this level is specific to client, visibility state will not be replicated to server	*/
+	uint32										bClientOnlyVisible:1;
 	/** Current index into actors array for updating components.							*/
 	int32										CurrentActorIndexForUpdateComponents;
 
