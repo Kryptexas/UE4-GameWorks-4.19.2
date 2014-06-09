@@ -156,7 +156,7 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
-			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				Result += " -Wno-unused-value";
 			}
@@ -168,7 +168,7 @@ namespace UnrealBuildTool
 			}
 
 			// optimization level
-			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 			{
 				Result += " -O0";
 			}
@@ -178,7 +178,7 @@ namespace UnrealBuildTool
 			}
 
 			//@todo android: these are copied verbatim from UE3 and probably need adjustment
-			if (CompileEnvironment.Config.TargetArchitecture == "-armv7")
+			if (CompileEnvironment.Config.Target.Architecture == "-armv7")
 			{
 		//		Result += " -mthumb-interwork";			// Generates code which supports calling between ARM and Thumb instructions, w/o it you can't reliability use both together 
 				Result += " -funwind-tables";			// Just generates any needed static data, affects no code 
@@ -197,14 +197,14 @@ namespace UnrealBuildTool
 				Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
 
 				Result += " -fsigned-char";				// Treat chars as signed //@todo android: any concerns about ABI compatibility with libs here?
 			}
-			else if (CompileEnvironment.Config.TargetArchitecture == "-x86")
+			else if (CompileEnvironment.Config.Target.Architecture == "-x86")
 			{
 				Result += " -fstrict-aliasing";
 				Result += " -funswitch-loops";
@@ -283,18 +283,18 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			
-			Result += (LinkEnvironment.Config.TargetArchitecture == "-armv7") ? ToolchainParamsArm : ToolchainParamsx86;
+			Result += (LinkEnvironment.Config.Target.Architecture == "-armv7") ? ToolchainParamsArm : ToolchainParamsx86;
 
 			Result += " -nostdlib";
 			Result += " -Wl,-shared,-Bsymbolic";
 			Result += " -Wl,--no-undefined";
 
-			if (LinkEnvironment.Config.TargetArchitecture == "-armv7")
+			if (LinkEnvironment.Config.Target.Architecture == "-armv7")
 			{
 				Result += " -march=armv7-a";
 				Result += " -Wl,--fix-cortex-a8";		// required to route around a CPU bug in some Cortex-A8 implementations
 			}
-			else if (LinkEnvironment.Config.TargetArchitecture == "-x86")
+			else if (LinkEnvironment.Config.Target.Architecture == "-x86")
 			{
 				Result += " -march=atom";
 			}
@@ -437,12 +437,12 @@ namespace UnrealBuildTool
 				// should we disable optimizations on this file?
 				// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
 				bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
-				if (bDisableOptimizations && CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+				if (bDisableOptimizations && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
 				}
 
-				bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug;
+				bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug;
 
 				// Add C or C++ specific compiler arguments.
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
@@ -549,7 +549,7 @@ namespace UnrealBuildTool
 
 			if (LinkEnvironment.Config.bIsBuildingLibrary)
 			{
-				LinkAction.CommandPath = (LinkEnvironment.Config.TargetArchitecture == "-armv7") ? ArPathArm : ArPathx86;
+				LinkAction.CommandPath = (LinkEnvironment.Config.Target.Architecture == "-armv7") ? ArPathArm : ArPathx86;
 			}
 			else
 			{

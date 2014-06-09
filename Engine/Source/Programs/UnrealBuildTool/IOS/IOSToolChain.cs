@@ -232,9 +232,9 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			// What architecture(s) to build for
-			Result += GetArchitectureArgument(CompileEnvironment.Config.TargetConfiguration, CompileEnvironment.Config.TargetArchitecture);
+			Result += GetArchitectureArgument(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
 
-			if (CompileEnvironment.Config.TargetArchitecture == "-simulator")
+			if (CompileEnvironment.Config.Target.Architecture == "-simulator")
 			{
 				Result += " -isysroot " + BaseSDKDirSim + "/iPhoneSimulator" + IOSSDKVersion + ".sdk";
 			}
@@ -246,7 +246,7 @@ namespace UnrealBuildTool
 			Result += " -miphoneos-version-min=" + IOSVersion;
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
 				Result += " -O3";
 			}
@@ -377,14 +377,14 @@ namespace UnrealBuildTool
 		string GetLinkArguments_Global( LinkEnvironment LinkEnvironment )
 		{
 			string Result = "";
-			if (LinkEnvironment.Config.TargetArchitecture == "-simulator")
+			if (LinkEnvironment.Config.Target.Architecture == "-simulator")
 			{
 				Result += " -arch i386";
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator" + IOSSDKVersion + ".sdk";
 			}
 			else
 			{
-				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.TargetConfiguration, LinkEnvironment.Config.TargetArchitecture);
+				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";

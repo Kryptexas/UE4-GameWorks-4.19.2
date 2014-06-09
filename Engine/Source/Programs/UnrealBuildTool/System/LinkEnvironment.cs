@@ -9,7 +9,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Configuration class for LinkEnvironment
 	/// </summary>
-	public class LinkEnvironmentConfiguration
+	public class LinkEnvironmentConfiguration : NativeBuildEnvironmentConfiguration
 	{
 		/** The directory to put the non-executable files in (PDBs, import library, etc) */
 		public string OutputDirectory;
@@ -22,15 +22,6 @@ namespace UnrealBuildTool
 
 		/** The file path for the executable file that is output by the linker. */
 		public string OutputFilePath;
-
-		/** The platform that is being linked for. */
-		public CPPTargetPlatform TargetPlatform;
-
-		/** The architecture that is being linked (empty string by default) */
-		public string TargetArchitecture = "";
-
-		/** The configuration that is being linked for. */
-		public CPPTargetConfiguration TargetConfiguration;
 
 		/** A list of the paths used to find libraries. */
 		public List<string> LibraryPaths = new List<string>();
@@ -104,15 +95,13 @@ namespace UnrealBuildTool
 		}
 
 		/** Copy constructor. */
-		public LinkEnvironmentConfiguration(LinkEnvironmentConfiguration InCopyEnvironment)
+		public LinkEnvironmentConfiguration(LinkEnvironmentConfiguration InCopyEnvironment):
+			base(InCopyEnvironment)
 		{
 			OutputDirectory = InCopyEnvironment.OutputDirectory;
 			IntermediateDirectory = InCopyEnvironment.IntermediateDirectory;
 			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
 			OutputFilePath = InCopyEnvironment.OutputFilePath;
-			TargetPlatform = InCopyEnvironment.TargetPlatform;
-			TargetConfiguration = InCopyEnvironment.TargetConfiguration;
-			TargetArchitecture = InCopyEnvironment.TargetArchitecture;
 			LibraryPaths.AddRange(InCopyEnvironment.LibraryPaths);
 			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
 			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);
@@ -139,11 +128,11 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				return TargetPlatform == CPPTargetPlatform.Win64 &&
+				return Target.Platform == CPPTargetPlatform.Win64 &&
 						bIsBuildingConsoleApplication == false &&
 						bBuildAdditionalConsoleApplication == true &&
 						bIsBuildingDLL == false &&
-						(TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development);
+						(Target.Configuration == CPPTargetConfiguration.Debug || Target.Configuration == CPPTargetConfiguration.Development);
 			}
 		}
 	}
@@ -177,7 +166,7 @@ namespace UnrealBuildTool
 		/** Links the input files into an executable. */
 		public FileItem LinkExecutable( bool bBuildImportLibraryOnly )
 		{
-			return UEToolChain.GetPlatformToolChain(Config.TargetPlatform).LinkFiles(this, bBuildImportLibraryOnly);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).LinkFiles(this, bBuildImportLibraryOnly);
 		}
 
 		/// <summary>

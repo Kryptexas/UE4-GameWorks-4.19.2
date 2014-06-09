@@ -140,7 +140,7 @@ namespace UnrealBuildTool.Linux
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
 
             // shipping builds will cause this warning with "ensure", so disable only in those case
-            if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+            if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
             {
                 Result += " -Wno-unused-value";
 
@@ -149,7 +149,7 @@ namespace UnrealBuildTool.Linux
                 Result += " -fomit-frame-pointer";
                 Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
             }
-            else if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            else if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
             {
                 Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
             }
@@ -163,13 +163,13 @@ namespace UnrealBuildTool.Linux
                 Result += " -fstack-protector";
                 //Result += " -fsanitize=address";  // Preferred clang tool for detecting address based errors but unusable for some reason with Module.Engine.7_of_42.cpp
             }
-            else if (CompileEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
+            else if (CompileEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -gline-tables-only"; // include debug info for meaningful callstacks
             }
 
             // optimization level
-            if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
             {
                 Result += " -O0";
             }
@@ -249,7 +249,7 @@ namespace UnrealBuildTool.Linux
             string Result = "";
 
             // debugging symbols
-            if (LinkEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
+            if (LinkEnvironment.Config.Target.Configuration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -rdynamic";   // needed for backtrace_symbols()...
             }

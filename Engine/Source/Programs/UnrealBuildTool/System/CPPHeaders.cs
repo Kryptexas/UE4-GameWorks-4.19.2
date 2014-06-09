@@ -170,7 +170,7 @@ namespace UnrealBuildTool
 				IncludedFilesMap.Add(CPPFile, IncludedFileList);
 
 				// Gather a list of names of files directly included by this C++ file.
-				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies(CPPFile, Config.TargetPlatform);
+				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies(CPPFile, Config.Target.Platform);
 
 				// Build a list of the unique set of files that are included by this file.
 				string SourceFilesDirectory = Path.GetDirectoryName( CPPFile.AbsolutePath );

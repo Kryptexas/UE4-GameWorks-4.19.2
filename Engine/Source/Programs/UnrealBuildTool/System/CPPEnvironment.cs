@@ -93,8 +93,87 @@ namespace UnrealBuildTool
 		public CPPTargetPlatform EnvironmentTargetPlatform;
 	}
 
+	public abstract class NativeBuildEnvironmentConfiguration
+	{
+		public class TargetInfo
+		{
+			/** The platform to be compiled/linked for. */
+			public CPPTargetPlatform Platform;
+
+			/** The architecture that is being compiled/linked (empty string by default) */
+			public string Architecture;
+
+			/** The configuration to be compiled/linked for. */
+			public CPPTargetConfiguration Configuration;
+
+			public TargetInfo()
+			{
+				Architecture = "";
+			}
+
+			public TargetInfo(TargetInfo Target)
+			{
+				Platform      = Target.Platform;
+				Architecture  = Target.Architecture;
+				Configuration = Target.Configuration;
+			}
+		}
+
+		public TargetInfo Target;
+
+		[Obsolete("Use Target.Platform instead")]
+		public CPPTargetPlatform TargetPlatform
+		{
+			get
+			{
+				return Target.Platform;
+			}
+			set
+			{
+				Target.Platform = value;
+			}
+		}
+
+		[Obsolete("Use Target.Architecture instead")]
+		public string TargetArchitecture
+		{
+			get
+			{
+				return Target.Architecture;
+			}
+			set
+			{
+				Target.Architecture = value;
+			}
+		}
+
+		[Obsolete("Use Target.Configuration instead")]
+		public CPPTargetConfiguration TargetConfiguration
+		{
+			get
+			{
+				return Target.Configuration;
+			}
+			set
+			{
+				Target.Configuration = value;
+			}
+		}
+
+		protected NativeBuildEnvironmentConfiguration()
+		{
+			Target = new TargetInfo();
+		}
+
+		protected NativeBuildEnvironmentConfiguration(NativeBuildEnvironmentConfiguration Configuration)
+		{
+			Target = new TargetInfo(Configuration.Target);
+		}
+		
+	}
+
 	/** Encapsulates the configuration of an environment that a C++ file is compiled in. */
-	public class CPPEnvironmentConfiguration
+	public class CPPEnvironmentConfiguration : NativeBuildEnvironmentConfiguration
 	{
 		/** The directory to put the output object/debug files in. */
 		public string OutputDirectory = null;
@@ -116,15 +195,6 @@ namespace UnrealBuildTool
 		    the "Shared PCH" feature of UnrealBuildTool.  Note that certain platform toolchains *always* force
 		    include PCH header files first. */
 		public bool bForceIncludePrecompiledHeader = false;
-
-		/** The platform to be compiled for. */
-		public CPPTargetPlatform TargetPlatform;
-
-		/** The architecture that is being linked (empty string by default) */
-		public string TargetArchitecture = "";
-
-		/** The configuration to be compiled for. */
-		public CPPTargetConfiguration TargetConfiguration;
 
 		/** Use run time type information */
 		public bool bUseRTTI = false;
@@ -189,7 +259,8 @@ namespace UnrealBuildTool
 		}
 
 		/** Copy constructor. */
-		public CPPEnvironmentConfiguration(CPPEnvironmentConfiguration InCopyEnvironment)
+		public CPPEnvironmentConfiguration(CPPEnvironmentConfiguration InCopyEnvironment):
+			base(InCopyEnvironment)
 		{
 			OutputDirectory                        = InCopyEnvironment.OutputDirectory;
 			LocalShadowDirectory                   = InCopyEnvironment.LocalShadowDirectory;
@@ -197,9 +268,6 @@ namespace UnrealBuildTool
 			PrecompiledHeaderIncludeFilename       = InCopyEnvironment.PrecompiledHeaderIncludeFilename;
 			PrecompiledHeaderAction                = InCopyEnvironment.PrecompiledHeaderAction;
 			bForceIncludePrecompiledHeader         = InCopyEnvironment.bForceIncludePrecompiledHeader;
-			TargetPlatform                         = InCopyEnvironment.TargetPlatform;
-			TargetArchitecture                     = InCopyEnvironment.TargetArchitecture;
-			TargetConfiguration                    = InCopyEnvironment.TargetConfiguration;
 			bUseRTTI                               = InCopyEnvironment.bUseRTTI;
 			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
@@ -280,7 +348,7 @@ namespace UnrealBuildTool
 		 */
 		public CPPOutput CompileFiles(List<FileItem> CPPFiles, string ModuleName)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.TargetPlatform).CompileCPPFiles(this, CPPFiles, ModuleName);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileCPPFiles(this, CPPFiles, ModuleName);
 		}
 
 		/**
@@ -290,7 +358,7 @@ namespace UnrealBuildTool
 		 */
 		public CPPOutput CompileRCFiles(List<FileItem> RCFiles)
 		{
-			return UEToolChain.GetPlatformToolChain(Config.TargetPlatform).CompileRCFiles(this, RCFiles);
+			return UEToolChain.GetPlatformToolChain(Config.Target.Platform).CompileRCFiles(this, RCFiles);
 		}
 
 		/**
@@ -300,7 +368,7 @@ namespace UnrealBuildTool
 		 */
 		public bool ShouldUsePCHs()
 		{
-			return UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Config.TargetPlatform).ShouldUsePCHFiles(Config.TargetPlatform, Config.TargetConfiguration);
+			return UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Config.Target.Platform).ShouldUsePCHFiles(Config.Target.Platform, Config.Target.Configuration);
 		}
 
 		public void AddPrivateAssembly( string FilePath )

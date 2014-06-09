@@ -1152,7 +1152,7 @@ namespace UnrealBuildTool
 			AppBinaries.AddRange( NewBinaries );
 
 			// On Mac AppBinaries paths for non-console targets need to be adjusted to be inside the app bundle
-			if (GlobalLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
+			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
 				MacToolChain.FixBundleBinariesPaths( this, AppBinaries );
 			}
@@ -1347,7 +1347,7 @@ namespace UnrealBuildTool
 			}
 
 			// On Mac we have actions that should be executed after all the binaries are created
-			if (GlobalLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac)
+			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
 			{
 				MacToolChain.SetupBundleDependencies(AppBinaries, GameName);
 			}
@@ -1355,7 +1355,7 @@ namespace UnrealBuildTool
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)
 			{
-                GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.TargetPlatform, SpecialRocketLibFilesThatAreBuildProducts);
+                GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.Target.Platform, SpecialRocketLibFilesThatAreBuildProducts);
                 if (!BuildConfiguration.bXGEExport)
                 {
                     return ECompilationResult.Succeeded;
@@ -2277,8 +2277,8 @@ namespace UnrealBuildTool
 
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
-				GlobalCompileEnvironment.Config.TargetConfiguration,
-				GlobalCompileEnvironment.Config.TargetPlatform,
+				GlobalCompileEnvironment.Config.Target.Configuration,
+				GlobalCompileEnvironment.Config.Target.Platform,
 				GlobalCompileEnvironment.Config.bCreateDebugInfo);
 		}
 
@@ -2288,12 +2288,12 @@ namespace UnrealBuildTool
 
 			CPPTargetPlatform MainCompilePlatform = BuildPlatform.GetCPPTargetPlatform(Platform);
 
-			GlobalLinkEnvironment.Config.TargetPlatform = MainCompilePlatform;
-			GlobalCompileEnvironment.Config.TargetPlatform = MainCompilePlatform;
+			GlobalLinkEnvironment.Config.Target.Platform = MainCompilePlatform;
+			GlobalCompileEnvironment.Config.Target.Platform = MainCompilePlatform;
 
 			string ActiveArchitecture = BuildPlatform.GetActiveArchitecture();
-			GlobalCompileEnvironment.Config.TargetArchitecture = ActiveArchitecture;
-			GlobalLinkEnvironment.Config.TargetArchitecture = ActiveArchitecture;
+			GlobalCompileEnvironment.Config.Target.Architecture = ActiveArchitecture;
+			GlobalLinkEnvironment.Config.Target.Architecture = ActiveArchitecture;
 
 
 			// Set up the platform-specific environment.

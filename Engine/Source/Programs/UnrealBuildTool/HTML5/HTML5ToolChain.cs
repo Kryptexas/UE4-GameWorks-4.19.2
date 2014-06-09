@@ -99,9 +99,9 @@ namespace UnrealBuildTool
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.TargetConfiguration, CompileEnvironment.Config.TargetArchitecture);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
 
-			if (CompileEnvironment.Config.TargetArchitecture != "-win32")
+			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
 				// do we want debug info?
 				/*			if (CompileEnvironment.Config.bCreateDebugInfo)
@@ -111,15 +111,15 @@ namespace UnrealBuildTool
 
 				Result += " -Wno-warn-absolute-paths ";
 
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					Result += " -O0";
 				}
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
 					Result += " -s GL_ASSERTIONS=1 ";
 				}
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
 					if (UEBuildConfiguration.bCompileForSize)
 					{
@@ -130,7 +130,7 @@ namespace UnrealBuildTool
 						Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
 					}
 				}
-				if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					if (UEBuildConfiguration.bCompileForSize)
 					{
@@ -151,7 +151,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (CompileEnvironment.Config.TargetArchitecture != "-win32")
+			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
 				Result = " -std=c++11";
 			}
@@ -167,21 +167,21 @@ namespace UnrealBuildTool
 
 		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.TargetConfiguration, LinkEnvironment.Config.TargetArchitecture);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
 
-			if (LinkEnvironment.Config.TargetArchitecture != "-win32")
+			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
 
 				// enable verbose mode
 				Result += " -v";
 
-				if (LinkEnvironment.Config.TargetConfiguration != CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
 				{
 					// enable caching of intermediate date
 					Result += " --jcache -g";
 				}
 
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					// check for alignment/etc checking
 					//Result += " -s SAFE_HEAP=1";
@@ -192,19 +192,19 @@ namespace UnrealBuildTool
 					Result += " -s ASSERTIONS=1";
 				}
 
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					Result += " -O0";
 				}
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
 					Result += " -s GL_ASSERTIONS=1 ";
 				}
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Development)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
 					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
 				}
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
 				}
@@ -224,7 +224,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (LinkEnvironment.Config.TargetArchitecture == "-win32")
+			if (LinkEnvironment.Config.Target.Architecture == "-win32")
 			{
 				// Prevents the linker from displaying its logo for each invocation.
 				Result += " /NOLOGO";
@@ -241,7 +241,7 @@ namespace UnrealBuildTool
 				//
 				//	Shipping & LTCG
 				//
-				if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
 					// Use link-time code generation.
 					Result += " /ltcg";
@@ -303,7 +303,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			if (CompileEnvironment.Config.TargetArchitecture == "-win32")
+			if (CompileEnvironment.Config.Target.Architecture == "-win32")
 			{
 				return base.CompileCPPFiles(CompileEnvironment, SourceFiles, ModuleName);
 			}
@@ -364,7 +364,7 @@ namespace UnrealBuildTool
 				// Add C or C++ specific compiler arguments.
 				if (bIsPlainCFile)
 				{
-					FileArguments += GetCLArguments_C(CompileEnvironment.Config.TargetArchitecture);
+					FileArguments += GetCLArguments_C(CompileEnvironment.Config.Target.Architecture);
 				}
 				else
 				{
@@ -403,7 +403,7 @@ namespace UnrealBuildTool
 		{
 			CPPOutput Result = new CPPOutput();
 
-			if (Environment.Config.TargetArchitecture == "-win32")
+			if (Environment.Config.Target.Architecture == "-win32")
 			{
 				return base.CompileRCFiles(Environment, RCFiles);
 			}
@@ -468,7 +468,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			if (LinkEnvironment.Config.TargetArchitecture == "-win32")
+			if (LinkEnvironment.Config.Target.Architecture == "-win32")
             {
                 return base.LinkFiles(LinkEnvironment, bBuildImportLibraryOnly);
             }

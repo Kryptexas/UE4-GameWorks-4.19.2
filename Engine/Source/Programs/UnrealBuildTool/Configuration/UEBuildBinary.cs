@@ -580,7 +580,7 @@ namespace UnrealBuildTool
 					// Mark the link environment as cross-referenced.
 					BinaryLinkEnvironment.Config.bIsCrossReferenced = true;
 
-					if (BinaryLinkEnvironment.Config.TargetPlatform != CPPTargetPlatform.Mac)
+					if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac)
 					{
 						// Create the import library.
 						OutputFiles.Add(BinaryLinkEnvironment.LinkExecutable(true));
@@ -608,7 +608,7 @@ namespace UnrealBuildTool
 
 				// if building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
 				if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac &&
-					BinaryLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac)
+					BinaryLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
 				{
 					if (!BinaryLinkEnvironment.Config.bIsBuildingDLL && !BinaryLinkEnvironment.Config.bIsBuildingLibrary)
 					{
@@ -657,8 +657,8 @@ namespace UnrealBuildTool
 		{
 			string LibraryFileName;
 			if (Config.Type == UEBuildBinaryType.StaticLibrary
-                || DependentLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac
-                || DependentLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Linux)
+                || DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac
+                || DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
 			{
 				LibraryFileName = Config.OutputFilePath;
 			}
@@ -724,7 +724,7 @@ namespace UnrealBuildTool
 		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			var ProjectCSharpEnviroment = new CSharpEnvironment();
-			if (LinkEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 			{ 
 				ProjectCSharpEnviroment.TargetConfiguration = CSharpTargetConfiguration.Debug;
 			}
@@ -732,7 +732,7 @@ namespace UnrealBuildTool
 			{
 				ProjectCSharpEnviroment.TargetConfiguration = CSharpTargetConfiguration.Development;
 			}
-			ProjectCSharpEnviroment.EnvironmentTargetPlatform = LinkEnvironment.Config.TargetPlatform;
+			ProjectCSharpEnviroment.EnvironmentTargetPlatform = LinkEnvironment.Config.Target.Platform;
 
 			// Currently only supported by windows...
 			UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Win64).CompileCSharpProject(

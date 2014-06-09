@@ -1135,8 +1135,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			InBuildTarget.GlobalCompileEnvironment.Config.TargetConfiguration = CompileConfiguration;
-			InBuildTarget.GlobalLinkEnvironment.Config.TargetConfiguration = CompileConfiguration;
+			InBuildTarget.GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
+			InBuildTarget.GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo =

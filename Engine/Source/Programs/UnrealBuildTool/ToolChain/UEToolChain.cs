@@ -99,7 +99,7 @@ namespace UnrealBuildTool
 						UnrealBuildTool.GetUProjectPath(), 
 						BuildConfiguration.PlatformIntermediateFolder,
 						Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile()),
-						LinkEnvironment.Config.TargetConfiguration.ToString(),
+						LinkEnvironment.Config.Target.Configuration.ToString(),
 						Path.GetFileName(OutputFile.AbsolutePath) + ".response");
 				}
 			}
