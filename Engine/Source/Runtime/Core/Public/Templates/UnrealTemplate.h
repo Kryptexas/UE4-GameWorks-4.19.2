@@ -468,6 +468,16 @@ struct TForceInitAtBoot
 	}
 };
 
+/** Used to avoid cluttering code with ifdefs. */
+struct FNoopStruct
+{
+	FNoopStruct()
+	{}
+
+	~FNoopStruct()
+	{}
+};
+
 /**
  * Copies the cv-qualifiers from one type to another, e.g.:
  *
