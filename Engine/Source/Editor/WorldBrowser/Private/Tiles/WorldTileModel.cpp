@@ -34,7 +34,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	// Subscribe to tile properties changes
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
 	TileDetails->ParentPackageNameChangedEvent.AddRaw(this, &FWorldTileModel::OnParentPackageNamePropertyChanged);
-	TileDetails->StreamingLevelsChangedEvent.AddRaw(this, &FWorldTileModel::OnStreamingLevelsPropertyChanged);
 	TileDetails->LODSettingsChangedEvent.AddRaw(this, &FWorldTileModel::OnLODSettingsPropertyChanged);
 	TileDetails->ZOrderChangedEvent.AddRaw(this, &FWorldTileModel::OnZOrderPropertyChanged);
 			
@@ -44,7 +43,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 		FWorldCompositionTile& Tile = WorldComposition->GetTilesList()[TileIdx];
 		
 		TileDetails->SetInfo(Tile.Info);
-		TileDetails->SyncStreamingLevels(*this);
 		TileDetails->PackageName = Tile.PackageName;
 		TileDetails->bPersistentLevel = false;
 				
@@ -85,7 +83,6 @@ FWorldTileModel::~FWorldTileModel()
 	{
 		TileDetails->PositionChangedEvent.RemoveAll(this);
 		TileDetails->ParentPackageNameChangedEvent.RemoveAll(this);
-		TileDetails->StreamingLevelsChangedEvent.RemoveAll(this);
 		
 		TileDetails->RemoveFromRoot();
 		TileDetails->MarkPendingKill();
@@ -356,33 +353,6 @@ ALandscapeProxy* FWorldTileModel::GetLandscape() const
 	return Landscape.Get();
 }
 
-void FWorldTileModel::AddStreamingLevel(UClass* InStreamingClass, const FName& InPackageName)
-{
-	if (LevelCollectionModel.IsReadOnly() || !IsEditable() || IsRootTile())
-	{
-		return;
-	}
-
-	UWorld* LevelWorld = CastChecked<UWorld>(GetLevelObject()->GetOuter());
-	// check uniqueness 
-	if (LevelWorld->StreamingLevels.FindMatch(ULevelStreaming::FPackageNameMatcher(InPackageName)) != INDEX_NONE)
-	{
-		return;
-	}
-		
-	ULevelStreaming* StreamingLevel = static_cast<ULevelStreaming*>(StaticConstructObject(InStreamingClass, LevelWorld, NAME_None, RF_NoFlags, NULL));
-	// Associate a package name.
-	StreamingLevel->PackageName			= InPackageName;
-	// Seed the level's draw color.
-	StreamingLevel->DrawColor			= FColor::MakeRandomColor();
-	StreamingLevel->LevelTransform		= FTransform::Identity;
-	StreamingLevel->PackageNameToLoad	= InPackageName;
-
-	// Add the streaming level to level's world
-	LevelWorld->StreamingLevels.Add(StreamingLevel);
-	LevelWorld->GetOutermost()->MarkPackageDirty();
-}
-
 void FWorldTileModel::AssignToLayer(const FWorldTileLayer& InLayer)
 {
 	if (LevelCollectionModel.IsReadOnly())
@@ -523,8 +493,7 @@ void FWorldTileModel::Update()
 		// Receive tile info from world composition
 		FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
 		TileDetails->SetInfo(Info);
-		TileDetails->SyncStreamingLevels(*this);
-	
+			
 		ULevel* Level = GetLevelObject();
 		if (Level != nullptr && Level->bIsVisible)
 		{
@@ -684,26 +653,6 @@ void FWorldTileModel::EnsureLevelHasBoundsActor()
 	}
 }
 
-void FWorldTileModel::FixupStreamingObjects()
-{
-	check(LoadedLevel != NULL);
-
-	// Remove streaming levels that is not part of our world
-	UWorld* LevelWorld = CastChecked<UWorld>(LoadedLevel->GetOuter());
-	for(int32 LevelIndex = LevelWorld->StreamingLevels.Num() - 1; LevelIndex >= 0; --LevelIndex)
-	{
-		FName StreamingPackageName = LevelWorld->StreamingLevels[LevelIndex]->PackageName;
-		TSharedPtr<FLevelModel> LevelModel = LevelCollectionModel.FindLevelModel(StreamingPackageName);
-		if (!LevelModel.IsValid())
-		{
-			LevelWorld->StreamingLevels.RemoveAt(LevelIndex);
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("LevelName"), FText::FromName(StreamingPackageName));
-			FMessageLog("MapCheck").Warning(FText::Format( LOCTEXT("MapCheck_Message_InvalidStreamingLevel", "Streaming level '{LevelName}' is not under the current world root. Fixed by removing from streaming list."), Arguments ) );
-		}
-	}
-}
-
 void FWorldTileModel::SortRecursive()
 {
 	AllChildren.Sort(FCompareByLongPackageName());
@@ -764,31 +713,6 @@ void FWorldTileModel::OnParentPackageNamePropertyChanged()
 	// Restore original parent
 	FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
 	TileDetails->ParentPackageName = FName(*Info.ParentTilePackageName);
-}
-
-void FWorldTileModel::OnStreamingLevelsPropertyChanged()
-{
-	ULevel* Level = GetLevelObject();
-	if (Level == NULL)
-	{
-		TileDetails->StreamingLevels.Empty();
-		return;
-	}
-	
-	// Delete all streaming levels from the world objects
-	CastChecked<UWorld>(Level->GetOuter())->StreamingLevels.Empty();
-
-	// Recreate streaming levels using settings stored in the tile details
-	for (auto It = TileDetails->StreamingLevels.CreateIterator(); It; ++It)
-	{
-		FTileStreamingLevelDetails& StreamingLevelDetails = (*It);
-		FName PackageName = StreamingLevelDetails.PackageName;
-		if (PackageName != NAME_None && FPackageName::DoesPackageExist(PackageName.ToString()))
-		{
-			UClass* StreamingClass = FTileStreamingLevelDetails::StreamingMode2Class(StreamingLevelDetails.StreamingMode);
-			AddStreamingLevel(StreamingClass, PackageName);
-		}
-	}
 }
 
 void FWorldTileModel::OnLODSettingsPropertyChanged()

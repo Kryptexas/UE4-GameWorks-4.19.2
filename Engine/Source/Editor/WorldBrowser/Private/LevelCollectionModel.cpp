@@ -240,24 +240,19 @@ void FLevelCollectionModel::Tick( float DeltaTime )
 		{
 			LevelModel->UpdateSimulationStatus(nullptr);
 		}
-		
-		// Traverse streaming levels in all inner worlds and update simulation status for corresponding level models  
-		for (ULevel* Level : GetSimulationWorld()->GetLevels())
+
+		// Traverse streaming levels and update simulation status for corresponding level models
+		for (ULevelStreaming* StreamingLevel : GetSimulationWorld()->StreamingLevels)
 		{
-			UWorld* InnerWorld = CastChecked<UWorld>(Level->GetOuter());
-			
-			for (ULevelStreaming* StreamingLevel : InnerWorld->StreamingLevels)
-			{
-				// Rebuild the original NonPrefixedPackageName so we can find it
-				const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
-				const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
-						+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
+			// Rebuild the original NonPrefixedPackageName so we can find it
+			const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
+			const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
+					+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
 								
-				TSharedPtr<FLevelModel> LevelModel = FindLevelModel(FName(*NonPrefixedPackageName));
-				if (LevelModel.IsValid())
-				{
-					LevelModel->UpdateSimulationStatus(StreamingLevel);
-				}
+			TSharedPtr<FLevelModel> LevelModel = FindLevelModel(FName(*NonPrefixedPackageName));
+			if (LevelModel.IsValid())
+			{
+				LevelModel->UpdateSimulationStatus(StreamingLevel);
 			}
 		}
 	}

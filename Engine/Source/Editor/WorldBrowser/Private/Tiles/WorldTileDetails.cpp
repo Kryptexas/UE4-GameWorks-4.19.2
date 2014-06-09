@@ -6,45 +6,6 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-/////////////////////////////////////////////////////
-// FStreamingLevelDetails
-
-UClass* FTileStreamingLevelDetails::StreamingMode2Class(EStreamingLevelMode::Type InMode)
-{
-	switch (InMode)
-	{
-	case EStreamingLevelMode::AlwaysLoaded:
-		return ULevelStreamingAlwaysLoaded::StaticClass();
-	case EStreamingLevelMode::Blueprint:
-		return ULevelStreamingKismet::StaticClass();
-	case EStreamingLevelMode::Bounds:
-		return ULevelStreamingBounds::StaticClass();
-	default:
-		check(false); // unsupported mode
-	}
-	return NULL;
-}
-
-EStreamingLevelMode::Type FTileStreamingLevelDetails::StreamingObject2Mode(ULevelStreaming* InLevelStreaming)
-{
-	if (InLevelStreaming->IsA(ULevelStreamingAlwaysLoaded::StaticClass()))
-	{
-		return EStreamingLevelMode::AlwaysLoaded; 
-	}
-
-	if (InLevelStreaming->IsA(ULevelStreamingKismet::StaticClass()))
-	{
-		return EStreamingLevelMode::Blueprint; 
-	}
-
-	if (InLevelStreaming->IsA(ULevelStreamingBounds::StaticClass()))
-	{
-		return EStreamingLevelMode::Bounds; 
-	}
-
-	check(false); // unsupported class
-	return EStreamingLevelMode::AlwaysLoaded;
-}
 
 /////////////////////////////////////////////////////
 // FTileLODEntryDetails
@@ -122,29 +83,6 @@ FWorldTileInfo UWorldTileDetails::GetInfo() const
 	return Info;
 }
 
-void UWorldTileDetails::SyncStreamingLevels(const FWorldTileModel& TileModel)
-{
-	// Clean list if tile streaming details, 
-	// will be refiled with an actual information in a loop bellow
-	StreamingLevels.Empty();
-	
-	const ULevel* Level = TileModel.GetLevelObject();
-	if (Level)
-	{
-		auto WorldStreamingLevels = CastChecked<UWorld>(Level->GetOuter())->StreamingLevels;
-		for (auto It = WorldStreamingLevels.CreateConstIterator(); It; ++It)
-		{
-			ULevelStreaming* LevelStreaming = (*It);
-			
-			FTileStreamingLevelDetails Details;
-			Details.StreamingMode	= FTileStreamingLevelDetails::StreamingObject2Mode(LevelStreaming);
-			Details.PackageName		= LevelStreaming->PackageName;
-
-			StreamingLevels.Add(Details);
-		}
-	}
-}
-
 void UWorldTileDetails::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -160,11 +98,6 @@ void UWorldTileDetails::PostEditChangeProperty( struct FPropertyChangedEvent& Pr
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ParentPackageName))
 	{
 		ParentPackageNameChangedEvent.Broadcast();
-	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels)
-			|| MemberPropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels))
-	{
-		StreamingLevelsChangedEvent.Broadcast();
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, NumLOD))
 	{

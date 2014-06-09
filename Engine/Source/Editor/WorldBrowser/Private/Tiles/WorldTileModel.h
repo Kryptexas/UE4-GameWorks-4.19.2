@@ -178,10 +178,7 @@ private:
 	
 	/** Handler for ParentPackageName event from Tile details object  */
 	void OnParentPackageNamePropertyChanged();
-	
-	/** Handler for StreamingLevels event from Tile details object  */
-	void OnStreamingLevelsPropertyChanged();
-	
+
 	/** Handler for LOD settings changes event from Tile details object  */
 	void OnLODSettingsPropertyChanged();
 	

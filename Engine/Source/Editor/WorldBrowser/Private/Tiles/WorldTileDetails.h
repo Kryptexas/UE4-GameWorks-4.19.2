@@ -5,43 +5,6 @@
 class FWorldTileModel;
 
 /////////////////////////////////////////////////////
-// EStreamingLevelMode
-UENUM()
-namespace EStreamingLevelMode
-{
-	enum Type
-	{
-		AlwaysLoaded,
-		Blueprint,
-		Bounds,
-	};
-}
-
-/////////////////////////////////////////////////////
-// FTileStreamingLevelDetails
-//
-// Helper class to hold tile streaming levels descriptions
-//
-USTRUCT()
-struct FTileStreamingLevelDetails
-{
-	GENERATED_USTRUCT_BODY()
-	
-	// Method(trigger) for streaming this level
-	UPROPERTY(Category=StreamingLevel, EditAnywhere)	
-	TEnumAsByte<EStreamingLevelMode::Type>	StreamingMode;
-	
-	// Level long package name to stream-in
-	UPROPERTY(Category=StreamingLevel, EditAnywhere)
-	FName									PackageName;
-
-	// Helper functions to map streaming method to a streaming class and vice versa
-	static UClass* StreamingMode2Class(EStreamingLevelMode::Type InMode);
-	static EStreamingLevelMode::Type StreamingObject2Mode(ULevelStreaming* InLevelStreaming);
-};
-
-
-/////////////////////////////////////////////////////
 // FTileLODEntryDetails
 //
 // Helper class to hold tile LOD level description
@@ -104,10 +67,6 @@ class UWorldTileDetails : public UObject
 	// Tile sorting order
 	UPROPERTY(Category=Tile, EditAnywhere, meta=(ClampMin = "-1000", ClampMax = "1000", UIMin = "-1000", UIMax = "1000"))
 	int32							ZOrder;
-
-	// List of streaming levels for this tile 
-	UPROPERTY(Category=Tile, EditAnywhere)
-	TArray<FTileStreamingLevelDetails>	StreamingLevels;
 	
 	// LOD entries number
 	UPROPERTY(Category=LODSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "4", UIMin = "0", UIMax = "4"))
@@ -139,7 +98,6 @@ class UWorldTileDetails : public UObject
 
 	FTilePropertyChanged			PositionChangedEvent;
 	FTilePropertyChanged			ParentPackageNameChangedEvent;
-	FTilePropertyChanged			StreamingLevelsChangedEvent;
 	FTilePropertyChanged			LODSettingsChangedEvent;
 	FTilePropertyChanged			ZOrderChangedEvent;
 	
@@ -153,7 +111,5 @@ public:
 	
 	// Gets the initialized FWorldTileInfo from this details values
 	FWorldTileInfo GetInfo() const;
-	
-	// Initialize streaming levels descriptions with values stored in TileModel
-	void SyncStreamingLevels(const FWorldTileModel& TileModel);
+
 };
