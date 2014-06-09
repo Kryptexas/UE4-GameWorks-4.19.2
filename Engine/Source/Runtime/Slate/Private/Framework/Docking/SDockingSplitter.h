@@ -68,7 +68,7 @@ public:
 	TArray< TSharedRef<SDockingNode> > GetChildNodesRecursively() const;
 	
 	/** Recursively searches through all children looking for child tabs */
-	virtual TArray< TSharedRef<SDockTab> > GetAllChildTabs() const OVERRIDE;
+	virtual TArray< TSharedRef<SDockTab> > GetAllChildTabs() const override;
 
 	/** Gets the size coefficient of a given child dock node */
 	float GetSizeCoefficientForSlot(int32 Index) const;
@@ -76,7 +76,7 @@ public:
 	/** Gets the orientation of this splitter */
 	EOrientation GetOrientation() const;
 
-	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const OVERRIDE;
+	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
 protected:
 
@@ -85,7 +85,7 @@ protected:
 
 	static SDockingNode::ECleanupRetVal MostResponsibility( SDockingNode::ECleanupRetVal A, SDockingNode::ECleanupRetVal B );
 
-	virtual SDockingNode::ECleanupRetVal CleanUpNodes() OVERRIDE;
+	virtual SDockingNode::ECleanupRetVal CleanUpNodes() override;
 
 	float ComputeChildCoefficientTotal() const;
 

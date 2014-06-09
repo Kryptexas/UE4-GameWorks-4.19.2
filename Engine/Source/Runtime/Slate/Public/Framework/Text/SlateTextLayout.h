@@ -20,7 +20,7 @@ public:
 	//	LineModels.Add( LineModel );
 	//}
 
-	virtual void EndLayout() OVERRIDE;
+	virtual void EndLayout() override;
 
 
 protected:

@@ -914,69 +914,69 @@ public:
 
 	// Begin FSlateApplicationBase interface
 
-	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) OVERRIDE;
+	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 
-	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) OVERRIDE
+	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) override
 	{
 		FSlateWindowHelper::ArrangeWindowToFront(Windows, WindowToBringToFront);
 	}
 
-	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) OVERRIDE
+	virtual bool FindPathToWidget( TSharedRef<const SWidget> InWidget, FWidgetPath& OutWidgetPath, EVisibility VisibilityFilter = EVisibility::Visible ) override
 	{
 		return FSlateWindowHelper::FindPathToWidget(GetInteractiveTopLevelWindows(), InWidget, OutWidgetPath, VisibilityFilter);
 	}
 
-	virtual const double GetCurrentTime( ) const OVERRIDE
+	virtual const double GetCurrentTime( ) const override
 	{
 		return CurrentTime;
 	}
 
-	virtual TSharedPtr<SWindow> GetActiveTopLevelWindow( ) const OVERRIDE;
+	virtual TSharedPtr<SWindow> GetActiveTopLevelWindow( ) const override;
 
-	virtual const FSlateBrush* GetAppIcon( ) const OVERRIDE;
+	virtual const FSlateBrush* GetAppIcon( ) const override;
 
-	virtual float GetApplicationScale( ) const OVERRIDE
+	virtual float GetApplicationScale( ) const override
 	{
 		return Scale;
 	}
 
-	virtual FVector2D GetCursorPos( ) const OVERRIDE;
+	virtual FVector2D GetCursorPos( ) const override;
 
-	virtual FVector2D GetCursorSize( ) const OVERRIDE;
+	virtual FVector2D GetCursorSize( ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE
+	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override
 	{
 		PlatformApplication->GetDisplayMetrics( OutDisplayMetrics );
 	}
 
-	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const OVERRIDE;
+	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
 
-	virtual TSharedPtr<SWidget> GetMouseCaptor( ) const OVERRIDE;
+	virtual TSharedPtr<SWidget> GetMouseCaptor( ) const override;
 
-	virtual FSlateRect GetPreferredWorkArea( ) const OVERRIDE;
+	virtual FSlateRect GetPreferredWorkArea( ) const override;
 
-	virtual bool HasFocusedDescendants( const TSharedRef<const SWidget>& Widget ) const OVERRIDE;
+	virtual bool HasFocusedDescendants( const TSharedRef<const SWidget>& Widget ) const override;
 
-	virtual bool IsExternalUIOpened() OVERRIDE
+	virtual bool IsExternalUIOpened() override
 	{
 		return bIsExternalUIOpened;
 	}
 
-	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray<TSharedRef<SWindow>>& Windows, bool bIgnoreEnabledStatus = false ) OVERRIDE;
+	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray<TSharedRef<SWindow>>& Windows, bool bIgnoreEnabledStatus = false ) override;
 
-	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const OVERRIDE;
+	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const override;
 
-	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const OVERRIDE;
+	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const override;
 
-	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) OVERRIDE;
+	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) override;
 
-	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FText>& ToolTipText ) OVERRIDE;
+	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FText>& ToolTipText ) override;
 
-	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) OVERRIDE;
+	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) override;
 
-	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) OVERRIDE;
+	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
 
-	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) OVERRIDE;
+	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) override;
 
 	// End FSlateApplicationBase interface
 
@@ -984,83 +984,83 @@ public:
 
 	// Begin FGenericApplicationMessageHandler interface
 
-	virtual bool ShouldProcessUserInputMessages( const TSharedPtr< FGenericWindow >& PlatformWindow ) const OVERRIDE;
+	virtual bool ShouldProcessUserInputMessages( const TSharedPtr< FGenericWindow >& PlatformWindow ) const override;
 
-	virtual bool OnKeyChar( const TCHAR Character, const bool IsRepeat ) OVERRIDE;
+	virtual bool OnKeyChar( const TCHAR Character, const bool IsRepeat ) override;
 
-	virtual bool OnKeyDown( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) OVERRIDE;
+	virtual bool OnKeyDown( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 
-	virtual bool OnKeyUp( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) OVERRIDE;
+	virtual bool OnKeyUp( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 
-	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) OVERRIDE;
+	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
 
-	virtual bool OnMouseUp( const EMouseButtons::Type Button ) OVERRIDE;
+	virtual bool OnMouseUp( const EMouseButtons::Type Button ) override;
 
-	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) OVERRIDE;
+	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
 
-	virtual bool OnMouseWheel( const float Delta ) OVERRIDE;
+	virtual bool OnMouseWheel( const float Delta ) override;
 
-	virtual bool OnMouseMove() OVERRIDE;
+	virtual bool OnMouseMove() override;
 
-	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) OVERRIDE;
+	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) override;
 
-	virtual bool OnCursorSet() OVERRIDE;
+	virtual bool OnCursorSet() override;
 
 	virtual bool OnControllerAnalog( FKey Button, int32 ControllerId, float AnalogValue );
 
-	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue ) OVERRIDE;
+	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue ) override;
 
 	virtual bool OnControllerButtonPressed( FKey Button, int32 ControllerId, bool IsRepeat );
 
-	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) OVERRIDE;
+	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
 
 	virtual bool OnControllerButtonReleased( FKey, int32 ControllerId, bool IsRepeat );
 
-	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) OVERRIDE;
+	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
 
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) OVERRIDE;
+	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) override;
 	
-	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) OVERRIDE;
+	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 
-	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) OVERRIDE;
+	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 
-	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) OVERRIDE;
+	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 
-	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) OVERRIDE;
+	virtual bool OnMotionDetected(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration, int32 ControllerId) override;
 
-	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) OVERRIDE;
+	virtual bool OnSizeChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 Width, const int32 Height, bool bWasMinimized = false ) override;
 
-	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) OVERRIDE;
+	virtual void OnOSPaint( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 
-	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) OVERRIDE;
+	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 
-	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) OVERRIDE;
+	virtual bool BeginReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 
-	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) OVERRIDE;
+	virtual void FinishedReshapingWindow( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 
-	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) OVERRIDE;
+	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 
-	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) OVERRIDE;
+	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
 
-	virtual bool OnApplicationActivationChanged( const bool IsActive ) OVERRIDE;
+	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
 
-	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) OVERRIDE;
+	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 
-	virtual void OnWindowClose( const TSharedRef< FGenericWindow >& PlatformWindow ) OVERRIDE;
+	virtual void OnWindowClose( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 
-	virtual EDropEffect::Type OnDragEnterText( const TSharedRef< FGenericWindow >& Window, const FString& Text ) OVERRIDE;
+	virtual EDropEffect::Type OnDragEnterText( const TSharedRef< FGenericWindow >& Window, const FString& Text ) override;
 
-	virtual EDropEffect::Type OnDragEnterFiles( const TSharedRef< FGenericWindow >& Window, const TArray< FString >& Files ) OVERRIDE;
+	virtual EDropEffect::Type OnDragEnterFiles( const TSharedRef< FGenericWindow >& Window, const TArray< FString >& Files ) override;
 
 	EDropEffect::Type OnDragEnter( const TSharedRef< SWindow >& Window, const TSharedRef<FExternalDragOperation>& DragDropOperation );
 
-	virtual EDropEffect::Type OnDragOver( const TSharedPtr< FGenericWindow >& Window ) OVERRIDE;
+	virtual EDropEffect::Type OnDragOver( const TSharedPtr< FGenericWindow >& Window ) override;
 
-	virtual void OnDragLeave( const TSharedPtr< FGenericWindow >& Window ) OVERRIDE;
+	virtual void OnDragLeave( const TSharedPtr< FGenericWindow >& Window ) override;
 
-	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) OVERRIDE;
+	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) override;
 
-	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) OVERRIDE;
+	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) override;
 
 	// End FGenericApplicationMessageHandler interface
 

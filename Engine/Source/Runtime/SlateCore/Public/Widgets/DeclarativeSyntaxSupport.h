@@ -73,7 +73,7 @@
  *         ] );
  *     }
  *
- *     virtual void DoStuff() OVERRIDE {}
+ *     virtual void DoStuff() override {}
  *     
  *     // Truly private. All handlers can be inlined (less boilerplate).
  *     // All private members are truly private.

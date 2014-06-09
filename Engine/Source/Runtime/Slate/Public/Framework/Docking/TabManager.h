@@ -161,7 +161,7 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		return *this;
 	}
 
-	virtual TSharedPtr<FTabSpawnerEntry> AsSpawnerEntry() OVERRIDE
+	virtual TSharedPtr<FTabSpawnerEntry> AsSpawnerEntry() override
 	{
 		return SharedThis(this);
 	}
@@ -285,7 +285,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 					return SharedThis(this);
 				}
 
-				virtual TSharedPtr<FStack> AsStack() OVERRIDE
+				virtual TSharedPtr<FStack> AsStack() override
 				{
 					return SharedThis(this);
 				}
@@ -333,7 +333,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 					return SharedThis(this);
 				}
 
-				virtual TSharedPtr<FSplitter> AsSplitter() OVERRIDE
+				virtual TSharedPtr<FSplitter> AsSplitter() override
 				{
 					return SharedThis(this);
 				}
@@ -387,7 +387,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 					return SharedThis(this);
 				}
 
-				virtual TSharedPtr<FArea> AsArea() OVERRIDE
+				virtual TSharedPtr<FArea> AsArea() override
 				{
 					return SharedThis(this);
 				}
@@ -726,7 +726,7 @@ public:
 		return MakeShareable( new FGlobalTabmanager() );
 	}
 
-	virtual bool CanCloseManager( const TSet< TSharedRef<SDockTab> >& TabsToIgnore = TSet< TSharedRef<SDockTab> >()) OVERRIDE;
+	virtual bool CanCloseManager( const TSet< TSharedRef<SDockTab> >& TabsToIgnore = TSet< TSharedRef<SDockTab> >()) override;
 
 	/** Draw the user's attention to a child tab manager */
 	void DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager );
@@ -758,10 +758,10 @@ public:
 	int32 GetMaximumWindowCount() const { return AllAreasWindowMaxCount; }
 
 protected:
-	virtual void OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegroundTab, const TSharedPtr<SDockTab>& BackgroundedTab ) OVERRIDE;
-	virtual void OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow ) OVERRIDE;
-	virtual void OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed ) OVERRIDE;
-	virtual void UpdateStats() OVERRIDE;
+	virtual void OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegroundTab, const TSharedPtr<SDockTab>& BackgroundedTab ) override;
+	virtual void OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow ) override;
+	virtual void OnTabClosing( const TSharedRef<SDockTab>& TabBeingClosed ) override;
+	virtual void UpdateStats() override;
 
 public:
 	virtual void OnTabManagerClosing();

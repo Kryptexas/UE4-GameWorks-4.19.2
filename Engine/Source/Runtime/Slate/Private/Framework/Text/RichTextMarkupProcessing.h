@@ -9,7 +9,7 @@ public:
 	static TSharedRef< FRichTextMarkupProcessing > Create();
 
 public:
-	virtual void Process(TArray<FTextLineParseResults>& Results, const FString& Input, FString& Output) OVERRIDE;
+	virtual void Process(TArray<FTextLineParseResults>& Results, const FString& Input, FString& Output) override;
 
 private:
 	FRichTextMarkupProcessing() {}

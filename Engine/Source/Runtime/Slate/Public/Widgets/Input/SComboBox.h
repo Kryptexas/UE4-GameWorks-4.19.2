@@ -244,7 +244,7 @@ protected:
 		return FReply::Unhandled();
 	}
 
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const FKey Key = InKeyboardEvent.GetKey();
 
@@ -274,7 +274,7 @@ protected:
 		return SComboButton::OnKeyDown( MyGeometry, InKeyboardEvent );
 	}
 
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -320,7 +320,7 @@ private:
 	}
 
 	/** Handle clicking on the content menu */
-	virtual FReply OnButtonClicked() OVERRIDE
+	virtual FReply OnButtonClicked() override
 	{
 		// if user clicked to close the combo menu
 		if (this->IsOpen())

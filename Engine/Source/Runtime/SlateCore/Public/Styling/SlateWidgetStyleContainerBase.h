@@ -17,5 +17,5 @@ class SLATECORE_API USlateWidgetStyleContainerBase : public UObject, public ISla
 
 public:
 
-	virtual const struct FSlateWidgetStyle* const GetStyle() const OVERRIDE;
+	virtual const struct FSlateWidgetStyle* const GetStyle() const override;
 };

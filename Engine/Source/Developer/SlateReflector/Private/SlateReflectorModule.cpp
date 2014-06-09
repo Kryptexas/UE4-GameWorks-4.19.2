@@ -21,7 +21,7 @@ public:
 
 	// Begin ISlateReflectorModule interface
 
-	virtual TSharedRef<SWidget> GetWidgetReflector( ) OVERRIDE
+	virtual TSharedRef<SWidget> GetWidgetReflector( ) override
 	{
 		TSharedPtr<SWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
 
@@ -34,7 +34,7 @@ public:
 		return WidgetReflector.ToSharedRef();
 	}
 
-	virtual void RegisterTabSpawner( const TSharedRef<FWorkspaceItem>& WorkspaceGroup ) OVERRIDE
+	virtual void RegisterTabSpawner( const TSharedRef<FWorkspaceItem>& WorkspaceGroup ) override
 	{
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WidgetReflector", FOnSpawnTab::CreateRaw(this, &FSlateReflectorModule::MakeWidgetReflectorTab) )
 			.SetDisplayName(LOCTEXT("WidgetReflectorTitle", "Widget Reflector"))
@@ -54,9 +54,9 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		UnregisterTabSpawner();
 	}

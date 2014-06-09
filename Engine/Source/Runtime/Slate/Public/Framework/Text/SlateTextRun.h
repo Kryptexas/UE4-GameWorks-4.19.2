@@ -13,34 +13,34 @@ public:
 
 	virtual ~FSlateTextRun() {}
 
-	virtual FTextRange GetTextRange() const OVERRIDE;
-	virtual void SetTextRange( const FTextRange& Value ) OVERRIDE;
+	virtual FTextRange GetTextRange() const override;
+	virtual void SetTextRange( const FTextRange& Value ) override;
 
-	virtual int16 GetBaseLine( float Scale ) const OVERRIDE;
-	virtual int16 GetMaxHeight( float Scale ) const OVERRIDE;
-	virtual FVector2D Measure( int32 StartIndex, int32 EndIndex, float Scale ) const OVERRIDE;
-	virtual int8 GetKerning(int32 CurrentIndex, float Scale) const OVERRIDE;
+	virtual int16 GetBaseLine( float Scale ) const override;
+	virtual int16 GetMaxHeight( float Scale ) const override;
+	virtual FVector2D Measure( int32 StartIndex, int32 EndIndex, float Scale ) const override;
+	virtual int8 GetKerning(int32 CurrentIndex, float Scale) const override;
 
-	virtual TSharedRef< ILayoutBlock > CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunHighlighter >& Highlighter ) OVERRIDE;
+	virtual TSharedRef< ILayoutBlock > CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunHighlighter >& Highlighter ) override;
 
-	virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
+	virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
-	virtual FChildren* GetChildren() OVERRIDE;
+	virtual FChildren* GetChildren() override;
 
-	virtual void ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void ArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
-	virtual void BeginLayout() OVERRIDE {}
-	virtual void EndLayout() OVERRIDE {}
+	virtual void BeginLayout() override {}
+	virtual void EndLayout() override {}
 
-	virtual int32 GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const OVERRIDE;
+	virtual int32 GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const override;
 
-	virtual FVector2D GetLocationAt(const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale) const OVERRIDE;
+	virtual FVector2D GetLocationAt(const TSharedRef< ILayoutBlock >& Block, int32 Offset, float Scale) const override;
 
-	virtual void Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange) OVERRIDE;
-	virtual TSharedRef<IRun> Clone() const OVERRIDE;
+	virtual void Move(const TSharedRef<FString>& NewText, const FTextRange& NewRange) override;
+	virtual TSharedRef<IRun> Clone() const override;
 
-	virtual void AppendText(FString& Text) const OVERRIDE;
-	virtual void AppendText(FString& AppendToText, const FTextRange& PartialRange) const OVERRIDE;
+	virtual void AppendText(FString& Text) const override;
+	virtual void AppendText(FString& AppendToText, const FTextRange& PartialRange) const override;
 
 private:
 

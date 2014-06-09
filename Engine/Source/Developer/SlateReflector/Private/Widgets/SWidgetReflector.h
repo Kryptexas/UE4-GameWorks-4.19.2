@@ -38,7 +38,7 @@ public:
 
 	// Begin SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	// End SCompoundWidget overrides
 
@@ -46,36 +46,36 @@ public:
 
 	// Begin IWidgetReflector interface
 
-	virtual bool IsInPickingMode( ) const OVERRIDE
+	virtual bool IsInPickingMode( ) const override
 	{
 		return bIsPicking;
 	}
 
-	virtual bool IsShowingFocus( ) const OVERRIDE
+	virtual bool IsShowingFocus( ) const override
 	{
 		return bShowFocus;
 	}
 
-	virtual bool IsVisualizingLayoutUnderCursor( ) const OVERRIDE
+	virtual bool IsVisualizingLayoutUnderCursor( ) const override
 	{
 		return bIsPicking;
 	}
 
-	virtual void OnWidgetPicked( ) OVERRIDE
+	virtual void OnWidgetPicked( ) override
 	{
 		bIsPicking = false;
 	}
 
-	virtual bool ReflectorNeedsToDrawIn( TSharedRef<SWindow> ThisWindow ) const OVERRIDE;
+	virtual bool ReflectorNeedsToDrawIn( TSharedRef<SWindow> ThisWindow ) const override;
 
-	virtual void SetSourceAccessDelegate( FAccessSourceCode InDelegate ) OVERRIDE
+	virtual void SetSourceAccessDelegate( FAccessSourceCode InDelegate ) override
 	{
 		SourceAccessDelegate = InDelegate;
 	}
 
-	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) OVERRIDE;
+	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) override;
 
-	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) OVERRIDE;
+	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) override;
 
 	// End IWidgetReflector interface
 

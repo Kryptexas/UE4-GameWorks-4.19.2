@@ -47,7 +47,7 @@ class SAppIconWidget
 			];
 	}
 
-	virtual EWindowZone::Type GetWindowZoneOverride() const OVERRIDE
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
 	{
 		// Pretend we are a REAL system menu so the user can click to open a menu, or double-click to close the app on Windows
 		return EWindowZone::SysMenu;

@@ -36,7 +36,7 @@ public:
 
 public:
 
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 	{
 		
 		float CurChildOffset = -PhysicalOffset;
@@ -66,7 +66,7 @@ public:
 
 
 
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		FVector2D ThisDesiredSize = FVector2D::ZeroVector;
 		for(int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
@@ -82,7 +82,7 @@ public:
 
 
 
-	virtual FChildren* GetChildren() OVERRIDE
+	virtual FChildren* GetChildren() override
 	{
 		return &Children;
 	}

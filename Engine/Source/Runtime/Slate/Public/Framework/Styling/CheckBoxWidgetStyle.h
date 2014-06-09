@@ -16,7 +16,7 @@ public:
 	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))
 	FCheckBoxStyle CheckBoxStyle;
 
-	virtual const struct FSlateWidgetStyle* const GetStyle() const OVERRIDE
+	virtual const struct FSlateWidgetStyle* const GetStyle() const override
 	{
 		return static_cast< const struct FSlateWidgetStyle* >( &CheckBoxStyle );
 	}

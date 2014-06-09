@@ -247,7 +247,7 @@ public:
 
 	// Begin SCompoundWidget interface
 
-	virtual FVector2D ComputeDesiredSize( ) const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize( ) const override;
 
 	// End SCompoundWidget interface
 

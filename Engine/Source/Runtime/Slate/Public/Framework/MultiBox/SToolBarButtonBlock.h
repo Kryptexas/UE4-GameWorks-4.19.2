@@ -41,7 +41,7 @@ public:
 	void SetForceSmallIcons( const bool InForceSmallIcons ) { bForceSmallIcons = InForceSmallIcons; }
 
 	/** FMultiBlock interface */
-	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const OVERRIDE;
+	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
 
 private:
 
@@ -106,7 +106,7 @@ public:
 	/**
 	 * Builds this MultiBlock widget up from the MultiBlock associated with it
 	 */
-	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) OVERRIDE;
+	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) override;
 
 
 	/**

@@ -113,7 +113,7 @@ public:
 
 public:
 	// Inherited from SWidget
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
@@ -152,7 +152,7 @@ public:
 
 public:	
 
-	virtual STableViewBase::FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) OVERRIDE
+	virtual STableViewBase::FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) override
 	{
 		// Clear all the items from our panel. We will re-add them in the correct order momentarily.
 		this->ClearWidgets();
@@ -220,7 +220,7 @@ public:
 
 	}
 
-	virtual int32 GetNumItemsBeingObserved() const OVERRIDE
+	virtual int32 GetNumItemsBeingObserved() const override
 	{
 		const int32 NumItemsBeingObserved = this->ItemsSource == NULL ? 0 : this->ItemsSource->Num();
 		const int32 NumItemsWide = GetNumItemsWide();
@@ -240,7 +240,7 @@ public:
 
 protected:
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
 	{
 		// Working around a CLANG bug, where all the base class
 		// members require an explicit namespace resolution.
@@ -270,7 +270,7 @@ protected:
 		}
 	}
 
-	virtual int32 GetNumItemsWide() const OVERRIDE
+	virtual int32 GetNumItemsWide() const override
 	{
 		const float ItemWidth = this->GetItemWidth();
 		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;

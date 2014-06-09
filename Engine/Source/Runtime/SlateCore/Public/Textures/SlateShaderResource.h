@@ -135,7 +135,7 @@ public:
 
 	// Begin FSlateShaderResource interface
 
-	virtual ESlateShaderResource::Type GetType() const OVERRIDE
+	virtual ESlateShaderResource::Type GetType() const override
 	{
 		return ESlateShaderResource::Texture;
 	}

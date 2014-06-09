@@ -120,11 +120,11 @@ protected:
 
 	// Begin SCompoundWidget interface
 
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	
-	virtual FVector2D ComputeDesiredSize( ) const OVERRIDE;
+	virtual FVector2D ComputeDesiredSize( ) const override;
 
-	virtual FChildren* GetChildren( ) OVERRIDE;
+	virtual FChildren* GetChildren( ) override;
 
 	// End SCompoundWidget interface
 
@@ -141,11 +141,11 @@ private:
 			, WidgetIndex( InWidgetIndex )
 		{ }
 		
-		virtual int32 Num() const OVERRIDE { return AllChildren->Num() > 0 ? 1 : 0; }
+		virtual int32 Num() const override { return AllChildren->Num() > 0 ? 1 : 0; }
 		
-		virtual TSharedRef<SWidget> GetChildAt( int32 Index ) OVERRIDE { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
+		virtual TSharedRef<SWidget> GetChildAt( int32 Index ) override { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
 		
-		virtual TSharedRef<const SWidget> GetChildAt( int32 Index ) const OVERRIDE { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
+		virtual TSharedRef<const SWidget> GetChildAt( int32 Index ) const override { check(Index == 0); return (*AllChildren)[WidgetIndex->Get()].Widget; }
 		
 	private:
 

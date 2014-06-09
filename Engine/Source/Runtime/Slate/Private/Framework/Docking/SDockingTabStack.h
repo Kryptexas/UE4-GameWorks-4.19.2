@@ -55,37 +55,37 @@ public:
 	/** Set the content that the DockNode is presenting. */
 	void SetNodeContent( const TSharedRef<SWidget>& InContent, const TSharedRef<SWidget>& InContentLeft, const TSharedRef<SWidget>& InContentRight );
 
-	virtual FReply OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent ) override;
 	
 	/** Recursively searches through all children looking for child tabs */
-	virtual TArray< TSharedRef<SDockTab> > GetAllChildTabs() const OVERRIDE;
+	virtual TArray< TSharedRef<SDockTab> > GetAllChildTabs() const override;
 
-	virtual SSplitter::ESizeRule GetSizeRule() const OVERRIDE;
+	virtual SSplitter::ESizeRule GetSizeRule() const override;
 
 	void SetTabWellHidden( bool bShouldHideTabWell );
 	bool IsTabWellHidden() const;
 
-	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const OVERRIDE;
+	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
 public:
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) OVERRIDE;
+	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) override;
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 protected:
 
-	virtual EWindowZone::Type GetWindowZoneOverride() const OVERRIDE
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
 	{
 		// Pretend we are a title bar so the user can grab the area to move the window around
 		return EWindowZone::TitleBar;
@@ -107,7 +107,7 @@ protected:
 
 	FReply TabWellRightClicked( const FGeometry& TabWellGeometry, const FPointerEvent& MouseEvent );
 
-	virtual SDockingNode::ECleanupRetVal CleanUpNodes() OVERRIDE;
+	virtual SDockingNode::ECleanupRetVal CleanUpNodes() override;
 
 	int32 OpenPersistentTab( const FTabId& TabId, int32 OpenLocationAmongActiveTabs = INDEX_NONE );
 
@@ -116,7 +116,7 @@ protected:
 	void RemovePersistentTab( const FTabId& TabId );
 
 	/** Overridden from SDockingNode */
-	virtual void SetParentNode( TSharedRef<class SDockingSplitter> InParent ) OVERRIDE;
+	virtual void SetParentNode( TSharedRef<class SDockingSplitter> InParent ) override;
 
 private:
 	

@@ -31,18 +31,18 @@ public:
 
 	// Begin IEventLogger interface
 
-	virtual FString GetLog( ) const OVERRIDE
+	virtual FString GetLog( ) const override
 	{
 		return LoggerA->GetLog() + TEXT("\n") + LoggerB->GetLog();
 	}
 
-	virtual void Log(EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget) OVERRIDE
+	virtual void Log(EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget) override
 	{
 		LoggerA->Log(Event, AdditionalContent, Widget);
 		LoggerB->Log(Event, AdditionalContent, Widget);
 	}
 
-	virtual void SaveToFile( ) OVERRIDE
+	virtual void SaveToFile( ) override
 	{
 		LoggerA->SaveToFile();
 		LoggerB->SaveToFile();
@@ -67,11 +67,11 @@ public:
 
 	// Begin IEventLogger interface
 
-	virtual FString GetLog( ) const OVERRIDE;
+	virtual FString GetLog( ) const override;
 
-	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) OVERRIDE;
+	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
 	
-	virtual void SaveToFile( ) OVERRIDE;
+	virtual void SaveToFile( ) override;
 
 	// EndIEventLogger interface
 
@@ -89,11 +89,11 @@ public:
 
 	// Begin IEventLogger interface
 
-	virtual FString GetLog( ) const OVERRIDE;
+	virtual FString GetLog( ) const override;
 
-	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) OVERRIDE;
+	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
 	
-	virtual void SaveToFile( ) OVERRIDE { }
+	virtual void SaveToFile( ) override { }
 	
 	// End IEventLogger interface
 
@@ -111,11 +111,11 @@ public:
 
 	// Begin IEventLogger interface
 	
-	virtual FString GetLog( ) const OVERRIDE;
+	virtual FString GetLog( ) const override;
 
-	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) OVERRIDE;
+	virtual void Log( EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget ) override;
 	
-	virtual void SaveToFile( ) OVERRIDE { }
+	virtual void SaveToFile( ) override { }
 	
 	// End IEventLogger interface
 

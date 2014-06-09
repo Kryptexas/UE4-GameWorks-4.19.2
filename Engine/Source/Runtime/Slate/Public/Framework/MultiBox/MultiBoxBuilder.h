@@ -233,8 +233,8 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
-	virtual void ApplySectionBeginning() OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
+	virtual void ApplySectionBeginning() override;
 
 public:
 	// These classes need access to the AddWrapperSubMenu() methods
@@ -302,7 +302,7 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
 };
 
 
@@ -402,8 +402,8 @@ public:
 
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE;
-	virtual void ApplySectionBeginning() OVERRIDE;
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
+	virtual void ApplySectionBeginning() override;
 
 private:
 	/** Current extension hook name for sections to determine where sections begin and end */
@@ -462,5 +462,5 @@ public:
 	
 protected:
 	/** FMultiBoxBuilder interface */
-	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) OVERRIDE {}
+	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override {}
 };

@@ -35,10 +35,10 @@ struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FCheckBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* > & OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* > & OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FCheckBoxStyle& GetDefault();
 
@@ -163,7 +163,7 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 	virtual ~FTextBlockStyle() {}
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FTextBlockStyle& GetDefault();
 
@@ -219,10 +219,10 @@ struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 
 	virtual ~FButtonStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FButtonStyle& GetDefault();
 
@@ -309,10 +309,10 @@ struct SLATECORE_API FComboButtonStyle : public FSlateWidgetStyle
 
 	virtual ~FComboButtonStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FComboButtonStyle& GetDefault();
 
@@ -358,10 +358,10 @@ struct SLATECORE_API FComboBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FComboBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FComboBoxStyle& GetDefault();
 
@@ -418,10 +418,10 @@ struct SLATECORE_API FHyperlinkStyle : public FSlateWidgetStyle
 
 	virtual ~FHyperlinkStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FHyperlinkStyle& GetDefault();
 
@@ -453,10 +453,10 @@ struct SLATECORE_API FEditableTextStyle : public FSlateWidgetStyle
 
 	virtual ~FEditableTextStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; }
+	virtual const FName GetTypeName() const override { return TypeName; }
 
 	static const FEditableTextStyle& GetDefault();
 
@@ -504,10 +504,10 @@ struct SLATECORE_API FEditableTextBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FEditableTextBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FEditableTextBoxStyle& GetDefault();
 
@@ -571,10 +571,10 @@ struct SLATECORE_API FInlineEditableTextBlockStyle : public FSlateWidgetStyle
 
 	virtual ~FInlineEditableTextBlockStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FInlineEditableTextBlockStyle& GetDefault();
 
@@ -602,10 +602,10 @@ struct SLATECORE_API FProgressBarStyle : public FSlateWidgetStyle
 
 	virtual ~FProgressBarStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FProgressBarStyle& GetDefault();
 
@@ -638,10 +638,10 @@ struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
 
 	virtual ~FScrollBarStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FScrollBarStyle& GetDefault();
 
@@ -684,10 +684,10 @@ struct SLATECORE_API FExpandableAreaStyle : public FSlateWidgetStyle
 
 	virtual ~FExpandableAreaStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FExpandableAreaStyle& GetDefault();
 
@@ -715,10 +715,10 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FSearchBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FSearchBoxStyle& GetDefault();
 
@@ -766,10 +766,10 @@ struct SLATECORE_API FSliderStyle : public FSlateWidgetStyle
 
 	virtual ~FSliderStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FSliderStyle& GetDefault();
 
@@ -797,10 +797,10 @@ struct SLATECORE_API FVolumeControlStyle : public FSlateWidgetStyle
 
 	virtual ~FVolumeControlStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FVolumeControlStyle& GetDefault();
 
@@ -847,10 +847,10 @@ struct SLATECORE_API FInlineTextImageStyle : public FSlateWidgetStyle
 
 	virtual ~FInlineTextImageStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FInlineTextImageStyle& GetDefault();
 
@@ -877,10 +877,10 @@ struct SLATECORE_API FSpinBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FSpinBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FSpinBoxStyle& GetDefault();
 
@@ -933,10 +933,10 @@ struct SLATECORE_API FSplitterStyle : public FSlateWidgetStyle
 
 	virtual ~FSplitterStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FSplitterStyle& GetDefault();
 
@@ -964,10 +964,10 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 
 	virtual ~FTableRowStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FTableRowStyle& GetDefault();
 
@@ -1040,10 +1040,10 @@ struct SLATECORE_API FTableColumnHeaderStyle : public FSlateWidgetStyle
 
 	virtual ~FTableColumnHeaderStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FTableColumnHeaderStyle& GetDefault();
 
@@ -1096,10 +1096,10 @@ struct SLATECORE_API FHeaderRowStyle : public FSlateWidgetStyle
 
 	virtual ~FHeaderRowStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FHeaderRowStyle& GetDefault();
 
@@ -1142,10 +1142,10 @@ struct SLATECORE_API FDockTabStyle : public FSlateWidgetStyle
 
 	virtual ~FDockTabStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FDockTabStyle& GetDefault();
 
@@ -1218,10 +1218,10 @@ struct SLATECORE_API FScrollBoxStyle : public FSlateWidgetStyle
 
 	virtual ~FScrollBoxStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FScrollBoxStyle& GetDefault();
 
@@ -1249,10 +1249,10 @@ struct SLATECORE_API FScrollBorderStyle : public FSlateWidgetStyle
 
 	virtual ~FScrollBorderStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FScrollBorderStyle& GetDefault();
 
@@ -1280,10 +1280,10 @@ struct SLATECORE_API FWindowStyle : public FSlateWidgetStyle
 
 	virtual ~FWindowStyle() {}
 
-	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const OVERRIDE;
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
 	static const FName TypeName;
-	virtual const FName GetTypeName() const OVERRIDE { return TypeName; };
+	virtual const FName GetTypeName() const override { return TypeName; };
 
 	static const FWindowStyle& GetDefault();
 

@@ -7,7 +7,7 @@
 class FGenericPlatformTextField : public IPlatformTextField
 {
 public:
-	virtual void ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget) OVERRIDE {};
+	virtual void ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboardEntry> TextEntryWidget) override {};
 
 };
 

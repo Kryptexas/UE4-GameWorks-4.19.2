@@ -43,12 +43,12 @@ namespace
 	private:
 
 		/** This widget must support keyboard focus */
-		virtual bool SupportsKeyboardFocus() const OVERRIDE
+		virtual bool SupportsKeyboardFocus() const override
 		{
 			return true;
 		}
 
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 		{
 			if (OnKeyDownDelegate.IsBound())
 			{

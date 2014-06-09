@@ -157,7 +157,7 @@ public:
 
 public:
 	// Inherited from SWidget
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
@@ -332,7 +332,7 @@ public:
 		return STableViewBase::OnKeyDown(MyGeometry, InKeyboardEvent);
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
 			&& SelectionMode != ESelectionMode::None
@@ -355,7 +355,7 @@ public:
 		return STableViewBase::OnMouseButtonDown(MyGeometry, MouseEvent);
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( bClearSelectionOnClick
 			&& SelectionMode != ESelectionMode::None
@@ -510,7 +510,7 @@ public:
 	// These handle selection, expansion, and other such properties common to ItemsWidgets.
 	//
 
-	virtual void Private_SetItemSelection( ItemType TheItem, bool bShouldBeSelected, bool bWasUserDirected = false ) OVERRIDE
+	virtual void Private_SetItemSelection( ItemType TheItem, bool bShouldBeSelected, bool bWasUserDirected = false ) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -536,14 +536,14 @@ public:
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_ClearSelection() OVERRIDE
+	virtual void Private_ClearSelection() override
 	{
 		SelectedItems.Empty();
 
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) OVERRIDE
+	virtual void Private_SelectRangeFromCurrentTo( ItemType InRangeSelectionEnd ) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -576,7 +576,7 @@ public:
 		this->InertialScrollManager.ClearScrollVelocity();
 	}
 
-	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) OVERRIDE
+	virtual void Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo) override
 	{
 		if ( SelectionMode == ESelectionMode::None )
 		{
@@ -593,71 +593,71 @@ public:
 		}
 	}
 
-	virtual const ItemType* Private_ItemFromWidget( const ITableRow* TheWidget ) const OVERRIDE
+	virtual const ItemType* Private_ItemFromWidget( const ITableRow* TheWidget ) const override
 	{
 		ItemType const * LookupResult = WidgetGenerator.WidgetMapToItem.Find( TheWidget );
 		return LookupResult == NULL ? NULL : LookupResult;
 	}
 
-	virtual bool Private_UsesSelectorFocus() const OVERRIDE
+	virtual bool Private_UsesSelectorFocus() const override
 	{
 		return true;
 	}
 
-	virtual bool Private_HasSelectorFocus( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_HasSelectorFocus( const ItemType& TheItem ) const override
 	{
 		return SelectorItem == TheItem;
 	}
 
-	virtual bool Private_IsItemSelected( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_IsItemSelected( const ItemType& TheItem ) const override
 	{
 		return NULL != SelectedItems.Find(TheItem);
 	}
 
-	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const OVERRIDE
+	virtual bool Private_IsItemExpanded( const ItemType& TheItem ) const override
 	{
 		// List View does not support item expansion.
 		return false;	
 	}
 
-	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_SetItemExpansion( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		// Do nothing; you cannot expand an item in a list!
 	}
 
-	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) OVERRIDE
+	virtual void Private_OnExpanderArrowShiftClicked( ItemType TheItem, bool bShouldBeExpanded ) override
 	{
 		// Do nothing; you cannot expand an item in a list!
 	}
 
-	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const OVERRIDE
+	virtual bool Private_DoesItemHaveChildren( int32 ItemIndexInList ) const override
 	{
 		// List View items cannot have children
 		return false;
 	}
 
-	virtual int32 Private_GetNumSelectedItems() const OVERRIDE
+	virtual int32 Private_GetNumSelectedItems() const override
 	{
 		return SelectedItems.Num();
 	}
 
-	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const OVERRIDE
+	virtual int32 Private_GetNestingDepth( int32 ItemIndexInList ) const override
 	{
 		// List View items are not indented
 		return 0;
 	}
 
-	virtual ESelectionMode::Type Private_GetSelectionMode() const OVERRIDE
+	virtual ESelectionMode::Type Private_GetSelectionMode() const override
 	{
 		return SelectionMode.Get();
 	}
 
-	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) override
 	{
 		this->OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
 	}
 
-	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) OVERRIDE
+	virtual bool Private_OnItemDoubleClicked( ItemType TheItem ) override
 	{
 		if( OnDoubleClick.ExecuteIfBound( TheItem ) )
 		{
@@ -667,12 +667,12 @@ public:
 		return false;	// Not handled
 	}
 
-	virtual ETableViewMode::Type GetTableViewMode() const OVERRIDE
+	virtual ETableViewMode::Type GetTableViewMode() const override
 	{
 		return TableViewMode;
 	}
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE
+	virtual TSharedRef<SWidget> AsWidget() override
 	{
 		return SharedThis(this);
 	}
@@ -730,7 +730,7 @@ public:
 	 * Update generate Widgets for Items as needed and clean up any Widgets that are no longer needed.
 	 * Re-arrange the visible widget order as necessary.
 	 */
-	virtual FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) OVERRIDE
+	virtual FReGenerateResults ReGenerateItems( const FGeometry& MyGeometry ) override
 	{
 		// Clear all the items from our panel. We will re-add them in the correct order momentarily.
 		this->ClearWidgets();
@@ -1066,7 +1066,7 @@ protected:
 	 * 
 	 * @param ListViewGeometry  The geometry of the listView; can be useful for centering the item.
 	 */
-	virtual void ScrollIntoView( const FGeometry& ListViewGeometry ) OVERRIDE
+	virtual void ScrollIntoView( const FGeometry& ListViewGeometry ) override
 	{
 		if ( TListTypeTraits<ItemType>::IsPtrValid(ItemToScrollIntoView) && ItemsSource != NULL )
 		{
@@ -1103,7 +1103,7 @@ protected:
 		}
 	}
 
-	virtual void NotifyItemScrolledIntoView() OVERRIDE
+	virtual void NotifyItemScrolledIntoView() override
 	{
 		// Notify that an item that came into view
 		if ( TListTypeTraits<ItemType>::IsPtrValid( ItemToNotifyWhenInView ) )
@@ -1116,7 +1116,7 @@ protected:
 		}
 	}
 
-	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) OVERRIDE
+	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll AllowOverscroll ) override
 	{
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;

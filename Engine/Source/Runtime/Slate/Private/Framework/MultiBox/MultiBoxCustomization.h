@@ -13,7 +13,7 @@ public:
 
 	void Construct( const FArguments& InArgs );
 
-	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) OVERRIDE;
+	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) override;
 private:
 	TSharedPtr<SWidget> Content;
 };
@@ -27,10 +27,10 @@ class SMultiBlockDragHandle : public SCompoundWidget
 
 	FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 private:
 	TSharedPtr<const FMultiBlock> Block;
@@ -56,7 +56,7 @@ public:
 	}
 
 	/** FMultiBlock interface */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const OVERRIDE;
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 	TSharedRef<const FMultiBlock> GetActualBlock() const { return ActualBlock.ToSharedRef(); }
 private:
 	TSharedPtr<const FMultiBlock> ActualBlock;

@@ -60,19 +60,19 @@ public:
 
 	// Begin IToolTip interface
 
-	virtual TSharedRef<class SWidget> AsWidget( ) OVERRIDE
+	virtual TSharedRef<class SWidget> AsWidget( ) override
 	{
 		return AsShared();
 	}
 
-	virtual const TSharedRef<SWidget>& GetContentWidget( ) OVERRIDE
+	virtual const TSharedRef<SWidget>& GetContentWidget( ) override
 	{
 		return GetContent();
 	}
 
-	virtual bool IsEmpty( ) const OVERRIDE;
+	virtual bool IsEmpty( ) const override;
 
-	virtual bool IsInteractive( ) const OVERRIDE;
+	virtual bool IsInteractive( ) const override;
 
 	// End IToolTip interface
 

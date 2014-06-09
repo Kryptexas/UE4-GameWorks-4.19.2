@@ -52,7 +52,7 @@ class FMenuBarExtension : public FExtensionBase
 public:
 
 	/** FExtensionBase implementation */
-	virtual EExtensionType::Type GetType() const OVERRIDE
+	virtual EExtensionType::Type GetType() const override
 	{
 		return EExtensionType::MenuBar;
 	}
@@ -69,7 +69,7 @@ class FMenuExtension : public FExtensionBase
 public:
 
 	/** FExtensionBase implementation */
-	virtual EExtensionType::Type GetType() const OVERRIDE
+	virtual EExtensionType::Type GetType() const override
 	{
 		return EExtensionType::Menu;
 	}
@@ -86,7 +86,7 @@ class FToolBarExtension : public FExtensionBase
 public:
 
 	/** FExtensionBase implementation */
-	virtual EExtensionType::Type GetType() const OVERRIDE
+	virtual EExtensionType::Type GetType() const override
 	{
 		return EExtensionType::ToolBar;
 	}

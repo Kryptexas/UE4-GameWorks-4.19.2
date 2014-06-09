@@ -28,12 +28,12 @@ public:
 
 	// IErrorReportingWidget interface
 
-	virtual void SetError( const FText& InErrorText ) OVERRIDE;
-	virtual void SetError( const FString& InErrorText ) OVERRIDE;
+	virtual void SetError( const FText& InErrorText ) override;
+	virtual void SetError( const FString& InErrorText ) override;
 
-	virtual bool HasError() const OVERRIDE;
+	virtual bool HasError() const override;
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> AsWidget() override;
 
 	// IErrorReportingWidget interface
 

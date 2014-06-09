@@ -134,7 +134,7 @@ public:
 		}
 	}
 
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		int32 Result = SBorder::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
@@ -395,7 +395,7 @@ public:
 		return FReply::Unhandled();
 	}
 
-	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) OVERRIDE
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override
 	{
 		bProcessingSelectionTouch = true;
 
@@ -406,7 +406,7 @@ public:
 			.DetectDrag( SharedThis(this), EKeys::LeftMouseButton );
 	}
 
-	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) OVERRIDE
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override
 	{
 		if ( bProcessingSelectionTouch )
 		{
@@ -456,7 +456,7 @@ public:
 		}
 	}
 
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if (bProcessingSelectionTouch)
 		{
@@ -481,7 +481,7 @@ public:
 		}
 	}
 
-	virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDragEnter_Handler.IsBound())
 		{
@@ -493,7 +493,7 @@ public:
 		}
 	}
 
-	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDragLeave_Handler.IsBound())
 		{
@@ -505,7 +505,7 @@ public:
 		}
 	}
 
-	virtual FReply OnDrop(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) OVERRIDE
+	virtual FReply OnDrop(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override
 	{
 		if (OnDrop_Handler.IsBound())
 		{
@@ -517,12 +517,12 @@ public:
 		}
 	}
 
-	virtual void SetIndexInList( int32 InIndexInList ) OVERRIDE
+	virtual void SetIndexInList( int32 InIndexInList ) override
 	{
 		IndexInList = InIndexInList;
 	}
 
-	virtual bool IsItemExpanded() const OVERRIDE
+	virtual bool IsItemExpanded() const override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
@@ -530,7 +530,7 @@ public:
 		return bIsItemExpanded;
 	}
 
-	virtual void ToggleExpansion() OVERRIDE
+	virtual void ToggleExpansion() override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 
@@ -544,22 +544,22 @@ public:
 		}
 	}
 
-	virtual int32 GetIndentLevel() const OVERRIDE
+	virtual int32 GetIndentLevel() const override
 	{
 		return OwnerTablePtr.Pin()->Private_GetNestingDepth( IndexInList );
 	}
 
-	virtual int32 DoesItemHaveChildren() const OVERRIDE
+	virtual int32 DoesItemHaveChildren() const override
 	{
 		return OwnerTablePtr.Pin()->Private_DoesItemHaveChildren( IndexInList );
 	}
 
-	virtual TSharedRef<SWidget> AsWidget() OVERRIDE
+	virtual TSharedRef<SWidget> AsWidget() override
 	{
 		return SharedThis(this);
 	}
 
-	virtual TSharedPtr<SWidget> GetContent() OVERRIDE
+	virtual TSharedPtr<SWidget> GetContent() override
 	{
 		if ( this->Content.IsValid() )
 		{
@@ -571,7 +571,7 @@ public:
 		}
 	}
 
-	virtual void Private_OnExpanderArrowShiftClicked() OVERRIDE
+	virtual void Private_OnExpanderArrowShiftClicked() override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 
@@ -804,7 +804,7 @@ protected:
 		this->GenerateColumns( HeaderRow.ToSharedRef() );
 	}
 
-	virtual void ConstructChildren( ETableViewMode::Type InOwnerTableMode, const TAttribute<FMargin>& InPadding, const TSharedRef<SWidget>& InContent ) OVERRIDE
+	virtual void ConstructChildren( ETableViewMode::Type InOwnerTableMode, const TAttribute<FMargin>& InPadding, const TSharedRef<SWidget>& InContent ) override
 	{
 		STableRow<ItemType>::Content = InContent;
 

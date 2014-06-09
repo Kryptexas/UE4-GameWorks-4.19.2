@@ -21,18 +21,18 @@ public:
 	
 	
 	/** Sets the text for message element */
-	virtual void SetText( const TAttribute< FText >& InText ) OVERRIDE
+	virtual void SetText( const TAttribute< FText >& InText ) override
 	{
 		Text = InText;
 		MyTextBlock->SetText( Text );
 	}
 
-	virtual ECompletionState GetCompletionState() const OVERRIDE
+	virtual ECompletionState GetCompletionState() const override
 	{
 		return CompletionState;
 	}
 
-	virtual void SetCompletionState(ECompletionState State) OVERRIDE
+	virtual void SetCompletionState(ECompletionState State) override
 	{
 		CompletionState = State;
 
@@ -44,7 +44,7 @@ public:
 		}
 	}
 
-	virtual void ExpireAndFadeout() OVERRIDE
+	virtual void ExpireAndFadeout() override
 	{
 		FadeAnimation = FCurveSequence();
 		// Add some space for the expire time
@@ -83,7 +83,7 @@ public:
 	}
 
 	/** Begins the fadeout of this message */
-	virtual void Fadeout() OVERRIDE
+	virtual void Fadeout() override
 	{
 		// Start fade animation
 		FadeAnimation = FCurveSequence();
@@ -91,7 +91,7 @@ public:
 		FadeAnimation.PlayReverse();
 	}
 
-	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -490,7 +490,7 @@ public:
 	}
 
 	/** Sets the text and delegate for the hyperlink */
-	virtual void SetHyperlink( const FSimpleDelegate& InHyperlink, const TAttribute< FText >& InHyperlinkText = TAttribute< FText >() ) OVERRIDE
+	virtual void SetHyperlink( const FSimpleDelegate& InHyperlink, const TAttribute< FText >& InHyperlinkText = TAttribute< FText >() ) override
 	{
 		Hyperlink = InHyperlink;
 

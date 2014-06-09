@@ -43,18 +43,18 @@ public:
 	}
 	
 	/** Returns this dock area */
-	virtual TSharedPtr<SDockingArea> GetDockArea() OVERRIDE;
-	virtual TSharedPtr<const SDockingArea> GetDockArea() const OVERRIDE;
+	virtual TSharedPtr<SDockingArea> GetDockArea() override;
+	virtual TSharedPtr<const SDockingArea> GetDockArea() const override;
 
 	/** Returns the window that this dock area resides in directly and also manages */
 	TSharedPtr<SWindow> GetParentWindow() const;
 
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-	virtual FReply OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent ) override;
 
 	void OnTabFoundNewHome( const TSharedRef<SDockTab>& RelocatedTab, const TSharedRef<SWindow>& NewOwnerWindow );
 
@@ -71,12 +71,12 @@ public:
 
 	void SetParentWindow( const TSharedRef<SWindow>& NewParentWindow );
 
-	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const OVERRIDE;
+	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
 	TSharedRef<FTabManager> GetTabManager() const;
 
 protected:
-	virtual SDockingNode::ECleanupRetVal CleanUpNodes() OVERRIDE;
+	virtual SDockingNode::ECleanupRetVal CleanUpNodes() override;
 
 private:
 	EVisibility TargetCrossVisibility() const;
@@ -87,7 +87,7 @@ private:
 	/** We were placed in a window, and it is being destroyed */
 	void OnOwningWindowBeingDestroyed(const TSharedRef<SWindow>& WindowBeingDestroyed);
 
-	virtual void OnLiveTabAdded() OVERRIDE;
+	virtual void OnLiveTabAdded() override;
 
 private:	
 	

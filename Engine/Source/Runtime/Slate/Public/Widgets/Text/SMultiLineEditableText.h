@@ -80,8 +80,8 @@ public:
 	 */
 	void SetText(const TAttribute< FText >& InText);
 
-	virtual bool GetIsReadOnly() const OVERRIDE;
-	virtual void ClearSelection() OVERRIDE;
+	virtual bool GetIsReadOnly() const override;
+	virtual void ClearSelection() override;
 
 private:
 	
@@ -206,11 +206,11 @@ private:
 
 		virtual ~FSlateCursorRunHighlighter() {}
 
-		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
+		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
-		virtual FChildren* GetChildren() OVERRIDE;
+		virtual FChildren* GetChildren() override;
 
-		virtual void OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+		virtual void OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
 		void SetMode( EMode Mode );
 
@@ -231,62 +231,62 @@ private:
 private:
 
 	// BEGIN ITextEditorWidget interface
-	virtual void StartChangingText() OVERRIDE;
-	virtual void FinishChangingText() OVERRIDE;
-	virtual void BackspaceChar() OVERRIDE;
-	virtual void DeleteChar() OVERRIDE;
-	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const OVERRIDE;
-	virtual void TypeChar( const int32 Character ) OVERRIDE;
-	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) OVERRIDE;
-	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) OVERRIDE;
-	virtual void SelectAllText() OVERRIDE;
-	virtual bool SelectAllTextWhenFocused() OVERRIDE;
-	virtual void SelectWordAt(const FVector2D& LocalPosition) OVERRIDE;
-	virtual void BeginDragSelection() OVERRIDE;
-	virtual bool IsDragSelecting() const OVERRIDE;
-	virtual void EndDragSelection() OVERRIDE;
-	virtual bool AnyTextSelected() const OVERRIDE;
-	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const OVERRIDE;
-	virtual void SetWasFocusedByLastMouseDown( bool Value ) OVERRIDE;
-	virtual bool WasFocusedByLastMouseDown() const OVERRIDE;
-	virtual void SetHasDragSelectedSinceFocused( bool Value ) OVERRIDE;
-	virtual bool HasDragSelectedSinceFocused() const OVERRIDE;
-	virtual FReply OnEscape() OVERRIDE;
-	virtual void OnEnter() OVERRIDE;
-	virtual bool CanExecuteCut() const OVERRIDE;
-	virtual void CutSelectedTextToClipboard() OVERRIDE;
-	virtual bool CanExecuteCopy() const OVERRIDE;
-	virtual void CopySelectedTextToClipboard() OVERRIDE;
-	virtual bool CanExecutePaste() const OVERRIDE;
-	virtual void PasteTextFromClipboard() OVERRIDE;
-	virtual bool CanExecuteUndo() const OVERRIDE;
-	virtual void Undo() OVERRIDE;
-	virtual void Redo() OVERRIDE;
-	virtual TSharedRef< SWidget > GetWidget() OVERRIDE;
-	virtual void SummonContextMenu( const FVector2D& InLocation ) OVERRIDE;
-	virtual void LoadText() OVERRIDE;
+	virtual void StartChangingText() override;
+	virtual void FinishChangingText() override;
+	virtual void BackspaceChar() override;
+	virtual void DeleteChar() override;
+	virtual bool CanTypeCharacter(const TCHAR CharInQuestion) const override;
+	virtual void TypeChar( const int32 Character ) override;
+	virtual FReply MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action ) override;
+	virtual void JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action) override;
+	virtual void SelectAllText() override;
+	virtual bool SelectAllTextWhenFocused() override;
+	virtual void SelectWordAt(const FVector2D& LocalPosition) override;
+	virtual void BeginDragSelection() override;
+	virtual bool IsDragSelecting() const override;
+	virtual void EndDragSelection() override;
+	virtual bool AnyTextSelected() const override;
+	virtual bool IsTextSelectedAt(const FVector2D& LocalPosition) const override;
+	virtual void SetWasFocusedByLastMouseDown( bool Value ) override;
+	virtual bool WasFocusedByLastMouseDown() const override;
+	virtual void SetHasDragSelectedSinceFocused( bool Value ) override;
+	virtual bool HasDragSelectedSinceFocused() const override;
+	virtual FReply OnEscape() override;
+	virtual void OnEnter() override;
+	virtual bool CanExecuteCut() const override;
+	virtual void CutSelectedTextToClipboard() override;
+	virtual bool CanExecuteCopy() const override;
+	virtual void CopySelectedTextToClipboard() override;
+	virtual bool CanExecutePaste() const override;
+	virtual void PasteTextFromClipboard() override;
+	virtual bool CanExecuteUndo() const override;
+	virtual void Undo() override;
+	virtual void Redo() override;
+	virtual TSharedRef< SWidget > GetWidget() override;
+	virtual void SummonContextMenu( const FVector2D& InLocation ) override;
+	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
 
 private:
 	// BEGIN SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
-	virtual void CacheDesiredSize() OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
-	virtual FChildren* GetChildren() OVERRIDE;
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual void CacheDesiredSize() override;
+	virtual FVector2D ComputeDesiredSize() const override;
+	virtual FChildren* GetChildren() override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	// END SWidget interface
 
 private:

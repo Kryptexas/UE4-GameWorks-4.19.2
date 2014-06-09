@@ -366,7 +366,7 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 	
-	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) OVERRIDE
+	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override
 	{
 		// The layout example has its own way of visualizing tool tips.
 		// We show them below the items.
