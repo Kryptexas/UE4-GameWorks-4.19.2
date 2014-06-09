@@ -57,7 +57,7 @@ bool FComponentInstanceDataBase::MatchesComponent(const UActorComponent* Compone
 						&& (SerializedComponent->GetClass() == Component->GetClass())
 						&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 					{
-						bMatches = true;
+						bMatches = (SerializedComponent == Component);
 						break;
 					}
 				}
