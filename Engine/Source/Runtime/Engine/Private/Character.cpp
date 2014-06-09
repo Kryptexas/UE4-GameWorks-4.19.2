@@ -262,10 +262,6 @@ void ACharacter::Crouch(bool bClientSimulation)
 		if (CanCrouch())
 		{
 			CharacterMovement->bWantsToCrouch = true;
-			if (CharacterMovement->CanCrouchInCurrentState())
-			{
-				CharacterMovement->Crouch(bClientSimulation);
-			}
 		}
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		else if (!CharacterMovement->CanEverCrouch())
@@ -281,7 +277,6 @@ void ACharacter::UnCrouch(bool bClientSimulation)
 	if (CharacterMovement)
 	{
 		CharacterMovement->bWantsToCrouch = false;
-		CharacterMovement->UnCrouch(bClientSimulation);
 	}
 }
 
@@ -1129,8 +1124,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,		COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, RelativeMovement,	COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode, COND_SimulatedOnly );
-
-	DOREPLIFETIME( ACharacter, bIsCrouched ); // TODO: used to be !bNetOwner, now it's going to everyone (see change @revision #94)
+	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,		COND_SimulatedOnly );
 }
 
 void ACharacter::UpdateFromCompressedFlags(uint8 Flags)

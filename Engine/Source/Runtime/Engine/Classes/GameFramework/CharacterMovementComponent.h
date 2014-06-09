@@ -1537,6 +1537,8 @@ public:
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
+	float StartCapsuleRadius;
+	float StartCapsuleHalfHeight;
 
 	// Information after the move has been performed
 	FVector SavedLocation;
