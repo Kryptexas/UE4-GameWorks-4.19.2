@@ -445,11 +445,11 @@ static void PutDerivedDataInCache(
 
 #if WITH_EDITORONLY_DATA
 
-class FTextureStatusMessageContext : public FStatusMessageContext
+class FTextureStatusMessageContext : public FScopedSlowTask
 {
 public:
 	explicit FTextureStatusMessageContext(const FText& InMessage)
-		: FStatusMessageContext(InMessage)
+		: FScopedSlowTask(InMessage)
 	{
 		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
 	}

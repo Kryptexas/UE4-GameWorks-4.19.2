@@ -3466,7 +3466,7 @@ namespace ThumbnailTools
 			if ( UMaterial* InMaterial = Cast<UMaterial>(InObject) )
 			{
 				const bool bAllowNewSlowTask = true;
-				FStatusMessageContext SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
+				FScopedSlowTask SlowTaskMessage( NSLOCTEXT( "ObjectTools", "FinishingCompilationStatus", "Finishing Shader Compilation..." ), bAllowNewSlowTask );
 
 				// Block until the shader maps that we will save have finished being compiled
 				InMaterial->GetMaterialResource(GRHIFeatureLevel)->FinishCompilation();

@@ -1121,11 +1121,11 @@ static const FString& GetStaticMeshDerivedDataVersion()
 	return CachedVersionString;
 }
 
-class FStaticMeshStatusMessageContext : public FStatusMessageContext
+class FStaticMeshStatusMessageContext : public FScopedSlowTask
 {
 public:
 	explicit FStaticMeshStatusMessageContext(const FText& InMessage)
-		: FStatusMessageContext(InMessage)
+		: FScopedSlowTask(InMessage)
 	{
 		UE_LOG(LogStaticMesh,Log,TEXT("%s"),*InMessage.ToString());
 	}

@@ -539,7 +539,7 @@ bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FTex
 		const bool bAllowNewSlowTask = false;
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SrcFilename"), FText::FromString(FPaths::GetCleanFilename(SrcFilename)));
-		FStatusMessageContext SlowTaskMessage(FText::Format(LOCTEXT("CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..."), Args), bAllowNewSlowTask);
+		FScopedSlowTask SlowTaskMessage(FText::Format(LOCTEXT("CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..."), Args), bAllowNewSlowTask);
 
 		FString FileRelPath = FPaths::GetPath(SrcFilename);
 		FPaths::MakePathRelativeTo(FileRelPath, *SrcFolder);
@@ -576,7 +576,7 @@ bool GameProjectUtils::CreateProject(const FString& NewProjectFile, const FStrin
 	}
 
 	const bool bAllowNewSlowTask = true;
-	FStatusMessageContext SlowTaskMessage( LOCTEXT( "CreatingProjectStatus", "Creating project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTaskMessage( LOCTEXT( "CreatingProjectStatus", "Creating project..." ), bAllowNewSlowTask );
 
 	bool bProjectCreationSuccessful = false;
 	FString TemplateName;
@@ -607,7 +607,7 @@ bool GameProjectUtils::CreateProject(const FString& NewProjectFile, const FStrin
 bool GameProjectUtils::BuildGameBinaries(const FString& ProjectFilename, FText& OutFailReason)
 {
 	const bool bAllowNewSlowTask = true;
-	FStatusMessageContext SlowTaskMessage( LOCTEXT( "BuildingProjectStatus", "Building project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTaskMessage( LOCTEXT( "BuildingProjectStatus", "Building project..." ), bAllowNewSlowTask );
 
 	// Compile the *editor* for the project
 	if ( FModuleManager::Get().CompileGameProjectEditor(ProjectFilename, *GLog) )
@@ -1037,7 +1037,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		const bool bAllowNewSlowTask = false;
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("SrcFilename"), FText::FromString( FPaths::GetCleanFilename(SrcFilename) ) );
-		FStatusMessageContext SlowTaskMessage( FText::Format( LOCTEXT( "CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..." ), Args ), bAllowNewSlowTask );
+		FScopedSlowTask SlowTaskMessage( FText::Format( LOCTEXT( "CreatingProjectStatus_CopyingFile", "Copying File {SrcFilename}..." ), Args ), bAllowNewSlowTask );
 
 		// Retarget any folders that were chosen to be renamed by choosing a new destination subpath now
 		FString DestFileSubpathWithoutFilename = FPaths::GetPath(SrcFileSubpath) + TEXT("/");
@@ -2568,7 +2568,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	const bool bAllowNewSlowTask = true;
-	FStatusMessageContext SlowTaskMessage( LOCTEXT( "AddingCodeToProject", "Adding code to project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTaskMessage( LOCTEXT( "AddingCodeToProject", "Adding code to project..." ), bAllowNewSlowTask );
 
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;

@@ -59,7 +59,7 @@ bool FGameProjectGenerationModule::UpdateGameProject(const FString& EngineIdenti
 bool FGameProjectGenerationModule::UpdateCodeProject(FText& OutFailReason)
 {
 	const bool bAllowNewSlowTask = true;
-	FStatusMessageContext SlowTaskMessage( LOCTEXT( "UpdatingCodeProject", "Updating code project..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTaskMessage( LOCTEXT( "UpdatingCodeProject", "Updating code project..." ), bAllowNewSlowTask );
 
 	return GameProjectUtils::GenerateCodeProjectFiles(FPaths::GetProjectFilePath(), OutFailReason);
 }

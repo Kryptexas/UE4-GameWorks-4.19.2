@@ -75,14 +75,14 @@ public:
 /**
  * Helper class to display a status update message in the editor.
  */
-class FStatusMessageContext
+class FScopedSlowTask
 {
 public:
 
 	/**
 	 * Updates the status message displayed to the user.
 	 */
-	explicit FStatusMessageContext( const FText& InMessage, bool bAllowNewSlowTask = false )
+	explicit FScopedSlowTask( const FText& InMessage, bool bAllowNewSlowTask = false )
 	{
 		bIsBeginSlowTask = false;
 
@@ -106,7 +106,7 @@ public:
 	/**
 	 * Ensures the status context is popped off the stack.
 	 */
-	~FStatusMessageContext()
+	~FScopedSlowTask()
 	{
 		if ( GIsEditor && !IsRunningCommandlet() && IsInGameThread() )
 		{

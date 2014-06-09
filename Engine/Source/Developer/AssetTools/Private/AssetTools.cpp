@@ -1159,7 +1159,7 @@ void FAssetTools::PerformMigratePackages(TArray<FName> PackageNamesToMigrate) co
 	TSet<FName> AllPackageNamesToMove;
 	{
 		const bool bAllowNewSlowTask = true;
-		FStatusMessageContext SlowTaskGatheringDependenciesMessage( LOCTEXT( "MigratePackages_GatheringDependencies", "Gathering Dependencies..." ) );
+		FScopedSlowTask SlowTaskGatheringDependenciesMessage( LOCTEXT( "MigratePackages_GatheringDependencies", "Gathering Dependencies..." ) );
 
 		for ( auto PackageIt = PackageNamesToMigrate.CreateConstIterator(); PackageIt; ++PackageIt )
 		{
@@ -1256,7 +1256,7 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 
 	// Copy all specified assets and their dependencies to the destination folder
 	const bool bAllowNewSlowTask = true;
-	FStatusMessageContext SlowTaskMessage( LOCTEXT( "MigratePackages_CopyingFiles", "Copying Files..." ), bAllowNewSlowTask );
+	FScopedSlowTask SlowTaskMessage( LOCTEXT( "MigratePackages_CopyingFiles", "Copying Files..." ), bAllowNewSlowTask );
 
 	EAppReturnType::Type LastResponse = EAppReturnType::Yes;
 	TArray<FString> SuccessfullyCopiedFiles;
