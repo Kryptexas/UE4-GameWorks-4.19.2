@@ -528,6 +528,12 @@ void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
 		{
 			FKConvexElem* ConvexElem = &(AggGeom.ConvexElems[i]);
 
+			FTransform ConvexTrans = ConvexElem->GetTransform();
+			FVector ConvexLoc = ConvexTrans.GetLocation();
+			ConvexLoc *= ScaleMultiplier3D;
+			ConvexTrans.SetLocation(ConvexLoc);
+			ConvexElem->SetTransform(ConvexTrans);
+
 			TArray<FVector>& Vertices = ConvexElem->VertexData;
 			for (int32 VertIndex = 0; VertIndex < Vertices.Num(); ++VertIndex)
 			{
