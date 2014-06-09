@@ -71,10 +71,6 @@ struct FAnimNotifyEvent
 	UPROPERTY()
 	int32 TrackIndex;
 
-	/** If notify is selected in editor */
-	UPROPERTY(Transient)
-	bool bSelected;
-
 #endif // WITH_EDITORONLY_DATA
 
 	FAnimNotifyEvent()
@@ -89,7 +85,6 @@ struct FAnimNotifyEvent
 		, Duration(0)
 #if WITH_EDITORONLY_DATA
 		, TrackIndex(0)
-		, bSelected(false)
 #endif // WITH_EDITORONLY_DATA
 	{
 	}
