@@ -173,15 +173,7 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 	{
 		UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 
-		// we will unregister and register components to update materials so we have to notify NavigationSystem that this is "fake" operation and we don't have to update NavMesh
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->BeginFakeComponentChanges();
-			}
-		}
+		FNavigationLockContext NavUpdateLock;
 
 		if(PropertyThatChanged && PropertyThatChanged->GetName()==TEXT("Parent") )
 		{
@@ -196,16 +188,6 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 
 		// Tell our source instance to update itself so the preview updates.
 		SourceInstance->PostEditChangeProperty(PropertyChangedEvent);
-
-		//components are updated and navigation system can work normally
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->EndFakeComponentChanges();
-			}
-		}
 	}
 }
 

@@ -64,6 +64,21 @@ struct FNavigationSystemExec: public FSelfRegisteringExec
 	// End FExec Interface
 };
 
+class ENGINE_API FNavigationLockContext
+{
+public:
+	FNavigationLockContext() : MyWorld(NULL), bSingleWorld(false) { LockUpdates(); }
+	FNavigationLockContext(UWorld* InWorld) : MyWorld(InWorld), bSingleWorld(true) { LockUpdates(); }
+	~FNavigationLockContext() { UnlockUpdates(); }
+
+private:
+	UWorld* MyWorld;
+	bool bSingleWorld;
+
+	void LockUpdates();
+	void UnlockUpdates();
+};
+
 UCLASS(Within=World, config=Engine, defaultconfig)
 class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 {

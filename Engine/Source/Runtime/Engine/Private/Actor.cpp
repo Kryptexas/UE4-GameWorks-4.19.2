@@ -3047,22 +3047,23 @@ void AActor::MarkComponentsAsPendingKill()
 	{
 		UActorComponent* Component = Components[Index];
 
-			// Modify component so undo/ redo works in the editor.
-			if( GIsEditor )
-			{
-				Component->Modify();
-			}
-			Component->OnComponentDestroyed();
-			Component->MarkPendingKill();
+		// Modify component so undo/ redo works in the editor.
+		if( GIsEditor )
+		{
+			Component->Modify();
 		}
+		Component->OnComponentDestroyed();
+		Component->MarkPendingKill();
 	}
+}
 
 void AActor::ReregisterAllComponents()
 {
+	FNavigationLockContext NavUpdateLock(GetWorld());
+
 	UnregisterAllComponents();
 	RegisterAllComponents();
 }
-
 
 void AActor::UpdateComponentTransforms()
 {

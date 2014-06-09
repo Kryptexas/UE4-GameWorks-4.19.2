@@ -99,6 +99,57 @@ namespace NavigationDebugDrawing
 }
 
 //----------------------------------------------------------------------//
+// FNavigationLockContext                                                                
+//----------------------------------------------------------------------//
+void FNavigationLockContext::LockUpdates()
+{
+	if (bSingleWorld)
+	{
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
+		if (NavSys)
+		{
+			NavSys->BeginFakeComponentChanges();
+		}
+	}
+	else
+	{
+		const TArray<FWorldContext>& AllContexts = GEngine->GetWorldContexts();
+		for (int32 Idx = 0; Idx < AllContexts.Num(); Idx++)
+		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(AllContexts[Idx].World());
+			if (NavSys)
+			{
+				NavSys->BeginFakeComponentChanges();
+			}
+		}
+	}
+}
+
+void FNavigationLockContext::UnlockUpdates()
+{
+	if (bSingleWorld)
+	{
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
+		if (NavSys)
+		{
+			NavSys->EndFakeComponentChanges();
+		}
+	}
+	else
+	{
+		const TArray<FWorldContext>& AllContexts = GEngine->GetWorldContexts();
+		for (int32 Idx = 0; Idx < AllContexts.Num(); Idx++)
+		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(AllContexts[Idx].World());
+			if (NavSys)
+			{
+				NavSys->EndFakeComponentChanges();
+			}
+		}
+	}
+}
+
+//----------------------------------------------------------------------//
 // UNavigationSystem                                                                
 //----------------------------------------------------------------------//
 bool UNavigationSystem::bNavigationAutoUpdateEnabled = true;

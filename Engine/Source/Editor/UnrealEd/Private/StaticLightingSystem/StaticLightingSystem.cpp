@@ -104,9 +104,7 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 
 	check(StaticLightingSystem);
 
-	// BEGIN - pass information about lighting update to navigation system (we don't want to dirty navigation - it will re-add components)
-	if (StaticLightingSystem->GetWorld()->GetNavigationSystem() != NULL)
-		StaticLightingSystem->GetWorld()->GetNavigationSystem()->BeginFakeComponentChanges();
+	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld());
 
 	if (!bDiscardResults)
 	{
@@ -119,10 +117,6 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 			FStaticLightingManager::Get()->FailLightingBuild();
 		}
 	}
-
-	// END - pass information about lighting update to navigation system 
-	if (StaticLightingSystem->GetWorld()->GetNavigationSystem() != NULL)
-		StaticLightingSystem->GetWorld()->GetNavigationSystem()->EndFakeComponentChanges();
 
 	FStaticLightingManager::Get()->DestroyStaticLightingSystem();
 	

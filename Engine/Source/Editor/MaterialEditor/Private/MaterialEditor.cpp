@@ -1341,15 +1341,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	// Handle propagation of the material being edited
 	else
 	{
-		// we will unregister and register components to update materials so we have to notify NavigationSystem that this is "fake" operation and we don't have to update NavMesh
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->BeginFakeComponentChanges();
-			}
-		}
+		FNavigationLockContext NavUpdateLock;
 
 		// Create a material update context so we can safely update materials.
 		{
@@ -1424,14 +1416,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			// Leaving this scope will update all dependent material instances.
 		}
 		RebuildMaterialInstanceEditors(NULL);
-		for (auto It=GEditor->GetWorldContexts().CreateConstIterator(); It; ++It)
-		{
-			if (UWorld* World = It->World())
-			{
-				if (World->GetNavigationSystem() != NULL)
-					World->GetNavigationSystem()->EndFakeComponentChanges();
-			}
-		}
 	}
 
 	GWarn->EndSlowTask();
