@@ -261,7 +261,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	GameplayAbilities
 	 *	
 	 *	The role of the AbilitySystemComponent wrt Abilities is to provide:
-	 *		-Management of abiltiy instances (whether per actor or per execution instance).
+	 *		-Management of ability instances (whether per actor or per execution instance).
 	 *			-Someone *has* to keep track of these instances.
 	 *			-Non instanced abilities *could* be executed without any ability stuff in AbilitySystemComponent.
 	 *				They should be able to operate on an GameplayAbilityActorInfo + GameplayAbility.
@@ -276,11 +276,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
 	
-	/** References to non-replicating abilities that we instanced. We need to keep these refernces to avoid GC */
+	/** References to non-replicating abilities that we instanced. We need to keep these references to avoid GC */
 	UPROPERTY()
 	TArray<class UGameplayAbility *>	NonReplicatedInstancedAbilities;
 
-	/** References to replicating abilities that we instanced. We need to keep these refernces to avoid GC */
+	/** References to replicating abilities that we instanced. We need to keep these references to avoid GC */
 	UPROPERTY(Replicated)
 	TArray<class UGameplayAbility *>	ReplicatedInstancedAbilities;
 
@@ -289,7 +289,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *		-This will include CDOs for non instanced abilities and per-execution instanced abilities. 
 	 *		-Actor-instanced abilities will be the actual instance (not CDO)
 	 *		
-	 *	This array is not vital for things to work. It is a convenience thing for 'giving abilties to the actor'. But abilities could also work on things
+	 *	This array is not vital for things to work. It is a convenience thing for 'giving abilities to the actor'. But abilities could also work on things
 	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */ 
@@ -309,10 +309,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	// ----------------------------------------------------------------------------------------------------------------
 
 	/** This is probably temp for testing. We want to think a bit more on the API for outside stuff activating abilities */
-	UFUNCTION(BlueprintCallable, Category = "Abilities")
-	bool	ActivateAbility(int32 AbilityIdx);
+	bool	ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability);
 
-	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requestrs can be queued up, overridden, or ignored. */
+	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requests can be queued up, overridden, or ignored. */
 	UPROPERTY()
 	class UGameplayAbility *	AnimatingAbility;
 
@@ -353,7 +352,7 @@ private:
 
 	const FGlobalCurveDataOverride * GetCurveDataOverride() const
 	{
-		// only return data if we have overrides. NULL if we dont.
+		// only return data if we have overrides. NULL if we don't.
 		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);
 	}
 

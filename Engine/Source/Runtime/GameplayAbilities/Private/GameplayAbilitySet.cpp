@@ -11,7 +11,7 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void InputPressed(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> ActorOwner)
+void InputPressed(TWeakObjectPtr<UGameplayAbility> Ability, int32 InputID, TWeakObjectPtr<AActor> ActorOwner)
 {
 	FGameplayAbilityActorInfo	ActorInfo;
 	ActorInfo.InitFromActor(ActorOwner.Get());
@@ -19,18 +19,14 @@ void InputPressed(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> ActorO
 	UAbilitySystemComponent * AbilitySystemComponent = ActorInfo.AbilitySystemComponent.Get();
 	if (AbilitySystemComponent)
 	{
-		if (AbilitySystemComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
+		if (Ability.IsValid())
 		{
-			UGameplayAbility * Ability = AbilitySystemComponent->ActivatableAbilities[AbilityIdx];
-			if (Ability)
-			{
-				Ability->InputPressed(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
-			}
+			Ability.Get()->InputPressed(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
 		}
 	}
 }
 
-void InputReleased(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> ActorOwner)
+void InputReleased(TWeakObjectPtr<UGameplayAbility> Ability, int32 InputID, TWeakObjectPtr<AActor> ActorOwner)
 {
 	FGameplayAbilityActorInfo	ActorInfo;
 	ActorInfo.InitFromActor(ActorOwner.Get());
@@ -38,13 +34,9 @@ void InputReleased(int32 AbilityIdx, int32 InputID, TWeakObjectPtr<AActor> Actor
 	UAbilitySystemComponent * AbilitySystemComponent = ActorInfo.AbilitySystemComponent.Get();
 	if (AbilitySystemComponent)
 	{
-		if (AbilitySystemComponent->ActivatableAbilities.IsValidIndex(AbilityIdx))
+		if (Ability.IsValid())
 		{
-			UGameplayAbility * Ability = AbilitySystemComponent->ActivatableAbilities[AbilityIdx];
-			if (Ability)
-			{
-				Ability->InputReleased(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
-			}
+			Ability.Get()->InputReleased(InputID, AbilitySystemComponent->AbilityActorInfo.Get());
 		}
 	}
 }
@@ -94,14 +86,14 @@ void UGameplayAbilitySet::BindInputComponentToAbilities(UInputComponent *InputCo
 			// Pressed event
 			{
 				FInputActionBinding AB(FName(*CommandPair.CommandString), IE_Pressed);
-				AB.ActionDelegate.GetDelegateForManualSet().BindStatic(&InputPressed, idx, CommandPair.InputID, TWeakObjectPtr<AActor>(OwnerActor));
+				AB.ActionDelegate.GetDelegateForManualSet().BindStatic(&InputPressed, TWeakObjectPtr<UGameplayAbility>(Ability), CommandPair.InputID, TWeakObjectPtr<AActor>(OwnerActor));
 				InputComponent->AddActionBinding(AB);
 			}
 
 			// Released event
 			{
 				FInputActionBinding AB(FName(*CommandPair.CommandString), IE_Released);
-				AB.ActionDelegate.GetDelegateForManualSet().BindStatic(&InputReleased, idx, CommandPair.InputID, TWeakObjectPtr<AActor>(OwnerActor));
+				AB.ActionDelegate.GetDelegateForManualSet().BindStatic(&InputReleased, TWeakObjectPtr<UGameplayAbility>(Ability), CommandPair.InputID, TWeakObjectPtr<AActor>(OwnerActor));
 				InputComponent->AddActionBinding(AB);
 			}
 		}

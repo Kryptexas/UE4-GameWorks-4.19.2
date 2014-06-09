@@ -78,16 +78,16 @@ UGameplayAbility * UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplay
 	return AbilityInstance;
 }
 
-bool UAbilitySystemComponent::ActivateAbility(int32 AbilityIdx)
+bool UAbilitySystemComponent::ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability)
 {
 	check(AbilityActorInfo.IsValid());
 
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	if (ActivatableAbilities.IsValidIndex(AbilityIdx))
+	if (Ability.IsValid())
 	{
-		ActivatableAbilities[AbilityIdx]->InputPressed(0, AbilityActorInfo.Get());
+		Ability.Get()->InputPressed(0, AbilityActorInfo.Get());
 	}
 
 	return false;
@@ -98,9 +98,9 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 	/**
 	 *	FIXME
 	 *
-	 *	Right now we are cancelling all activatable abilites that match Tags. This includes abilities that might not have been activated in the first place!
+	 *	Right now we are canceling all activatable abilities that match Tags. This includes abilities that might not have been activated in the first place!
 	 *	For instanced-per-actor abilities this is fine. They could check if they were activated/still activating.
-	 *	For non-instanced abilities it is ambigous. We have no way to know 'how many' non-instanced abilities are in flight.
+	 *	For non-instanced abilities it is ambiguous. We have no way to know 'how many' non-instanced abilities are in flight.
 	 *	Likewise for instanced-per-execution abilities. Though they are present in Replicated/NonReplicatedInstancedAbilities list
 	 */
 
