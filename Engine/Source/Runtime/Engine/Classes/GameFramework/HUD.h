@@ -186,10 +186,6 @@ class ENGINE_API AHUD : public AActor
 	UPROPERTY()
 	uint32 bShowHitBoxDebugInfo:1;    
 
-	/** If true, native HUD will not draw.  Allows blueprinted HUDs to totally replace an existing HUD. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=HUD)
-	uint32 bSuppressNativeHUD:1;
-
 	/** If true, render actor overlays. */
 	UPROPERTY()
 	uint32 bShowOverlays:1;

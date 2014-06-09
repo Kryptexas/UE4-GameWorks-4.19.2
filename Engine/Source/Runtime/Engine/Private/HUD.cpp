@@ -125,13 +125,7 @@ void AHUD::PostRender()
 	}
 	else if ( bShowHUD )
 	{
-		if (!bSuppressNativeHUD)
-		{
-			DrawHUD();
-		}
-
-		// Kismet draw
-		ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
+		DrawHUD();
 		
 		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
 
@@ -325,6 +319,9 @@ void AHUD::DrawHUD()
 		PlayerOwner->GetPlayerViewPoint(ViewPoint, ViewRotation);
 		DrawActorOverlays(ViewPoint, ViewRotation);
 	}
+
+	// Blueprint draw
+	ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
 }
 
 
