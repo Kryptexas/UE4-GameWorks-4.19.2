@@ -524,7 +524,7 @@ void SLogVisualizer::OnLogCategoryFiltersChanged()
 	if (LogVisualizer && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
-		if (Log.IsValid())
+		if (Log.IsValid() && Log->Entries.IsValidIndex(LogEntryIndex))
 		{
 			ShowEntry(Log->Entries[LogEntryIndex].Get());
 		}
