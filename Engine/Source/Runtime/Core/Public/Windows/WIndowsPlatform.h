@@ -104,11 +104,8 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #endif
 
 #pragma warning(disable : 4481) // nonstandard extension used: override specifier 'override'
-#define OVERRIDE override
 #if PLATFORM_WINDOWS_CLANG
 	#define CONSTEXPR constexpr
-#else
-	#define FINAL sealed
 #endif
 #define ABSTRACT abstract
 

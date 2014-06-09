@@ -66,8 +66,6 @@ typedef FWinRTTypes FPlatformTypes;
 #define TYPENAME_OUTSIDE_TEMPLATE
 
 #pragma warning(disable : 4481) // nonstandard extension used: override specifier 'override'
-#define OVERRIDE 
-#define FINAL sealed
 #define ABSTRACT abstract
 
 // Strings.

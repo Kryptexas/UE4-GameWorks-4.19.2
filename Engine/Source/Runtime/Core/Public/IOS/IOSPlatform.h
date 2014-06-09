@@ -57,8 +57,6 @@ typedef FIOSPlatformTypes FPlatformTypes;
 #define TEXT_HELPER(a,b)	a ## b
 #define TEXT(s)				TEXT_HELPER(L, s)
 
-#define OVERRIDE override
-#define FINAL
 #define ABSTRACT abstract
 
 // Strings.

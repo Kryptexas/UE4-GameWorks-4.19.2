@@ -288,13 +288,15 @@
 	#define TYPENAME_OUTSIDE_TEMPLATE	typename
 #endif
 
-// Method modifiers
-#ifndef OVERRIDE						
-	#define OVERRIDE
+// Legacy method modifier macros.  You shouldn't use these macros in modern code.  Use the built-in keyword directly.
+#ifndef OVERRIDE
+	#define OVERRIDE override
 #endif
 #ifndef FINAL						
-	#define FINAL
+	#define FINAL final
 #endif
+
+// Method modifiers
 #ifndef ABSTRACT						
 	#define ABSTRACT
 #endif

@@ -64,8 +64,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("optimize(\"\",off)")
 #define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("optimize(\"\",on)")
 
-#define OVERRIDE override
-#define FINAL	 final
 #define ABSTRACT abstract
 
 // DLL export and import definitions

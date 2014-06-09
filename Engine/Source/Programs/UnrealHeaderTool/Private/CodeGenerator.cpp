@@ -1731,7 +1731,7 @@ void FNativeClassHeaderGenerator::ExportInterfaceClassDeclaration( FClass* Class
 		}
 		if (bNeedsRep)
 		{
-			InterfaceBoilerplate.Logf(TEXT("\tvirtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const OVERRIDE;\r\n"));
+			InterfaceBoilerplate.Logf(TEXT("\tvirtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override;\r\n"));
 		}
 		const TCHAR* Suffix = TEXT("_INCLASS_IINTERFACE");
 		FString MacroName = FString(NameLookupCPP.GetNameCPP(Class)) + Suffix;
@@ -1909,7 +1909,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderInner(FClass* Class, bool bVa
 				{
 					if( (It->PropertyFlags & CPF_Net) != 0 )
 					{
-						ClassBoilerplate.Logf(TEXT("\tvirtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const OVERRIDE;\r\n"));
+						ClassBoilerplate.Logf(TEXT("\tvirtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override;\r\n"));
 						break;
 					}
 				}
