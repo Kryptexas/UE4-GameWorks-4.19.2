@@ -1559,13 +1559,13 @@ FNetworkGUID FNetGUIDCache::AssignNewNetGUID( const UObject * Object )
 
 		if ( OuterActor != NULL && IsDynamicObject( OuterActor ) )
 		{
-			check( !NetGUIDLookup.Contains( OuterActor ) );
-
 			TArray< UObject * > Subobjs;
 			const_cast< AActor * >( OuterActor )->GetSubobjectsWithStableNamesForNetworking( Subobjs );
 
 			if ( Subobjs.Contains( const_cast< UObject * >( Object ) ) )
 			{
+				check( !NetGUIDLookup.Contains( OuterActor ) );
+
 				// Assign our owning actor a guid first (which should also assign our net guid if things are working correctly)
 				AssignNewNetGUID( OuterActor );
 
