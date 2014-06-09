@@ -447,6 +447,7 @@ FPersona::FPersona()
 
 FPersona::~FPersona()
 {
+	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
@@ -883,6 +884,9 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	TWeakPtr<FPersona> PersonaPtr = SharedThis(this);
 	Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UAnimGraphNode_Slot::StaticClass(),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphNodeSlotDetails::MakeInstance, PersonaPtr));
+
+	// Register post import callback to catch animation imports when we have the asset open (we need to reinit)
+	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FPersona::OnPostImport);
 }
 
 
@@ -999,13 +1003,24 @@ UDebugSkelMeshComponent* FPersona::GetPreviewMeshComponent()
 
 void FPersona::OnPostReimport(UObject* InObject, bool bSuccess)
 {
+	ConditionalRefreshEditor(InObject);
+}
+
+void FPersona::OnPostImport(UFactory* InFactory, UObject* InObject)
+{
+	ConditionalRefreshEditor(InObject);
+}
+
+void FPersona::ConditionalRefreshEditor(UObject* InObject)
+{
 	// Ignore if this is regarding a different object
-	if ( InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited() )
+	if(InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited())
 	{
 		return;
 	}
 
 	RefreshViewport();
+	ReinitMode();
 }
 
 /** Called when graph editor focus is changed */

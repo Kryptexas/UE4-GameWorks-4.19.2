@@ -911,9 +911,21 @@ namespace AnimationTransformDebug
 bool UnFbx::FFbxImporter::ImportAnimation(USkeleton * Skeleton, UAnimSequence * DestSeq, const FString & FileName, TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, const int32 ResampleRate, const FbxTimeSpan AnimTimeSpan)
 {
 	FbxTime SequenceLength = AnimTimeSpan.GetDuration();
+	float PreviousSequenceLength = DestSeq->SequenceLength;
 
 	// if you have one pose(thus 0.f duration), it still contains animation, so we'll need to consider that as MINIMUM_ANIMATION_LENGTH time length
 	DestSeq->SequenceLength = FGenericPlatformMath::Max<float>(SequenceLength.GetSecondDouble(), MINIMUM_ANIMATION_LENGTH);
+
+	if(PreviousSequenceLength > MINIMUM_ANIMATION_LENGTH && DestSeq->RawCurveData.FloatCurves.Num() > 0)
+	{
+		// The sequence already existed when we began the import. We need to scale the key times for all curves to match the new 
+		// duration before importing over them. This is to catch any user-added curves
+		float ScaleFactor = DestSeq->SequenceLength / PreviousSequenceLength;
+		for(FFloatCurve& Curve : DestSeq->RawCurveData.FloatCurves)
+		{
+			Curve.FloatCurve.ScaleCurve(0.0f, ScaleFactor);
+		}
+	}
 
 	//
 	// shape animation START

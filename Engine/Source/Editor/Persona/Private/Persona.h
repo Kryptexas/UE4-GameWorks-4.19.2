@@ -187,6 +187,9 @@ public:
 	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
 	void ReinitMode();
 
+	/** Called when an asset is imported into the editor */
+	void OnPostImport(UFactory* InFactory, UObject* InObject);
+
 public:
 	// IToolkit interface
 	virtual FName GetToolkitFName() const OVERRIDE;
@@ -267,6 +270,9 @@ protected:
 
 	/** Callback when an object has been reimported, and whether it worked */
 	void OnPostReimport(UObject* InObject, bool bSuccess);
+
+	/** Refreshes the viewport and current editor mode if the passed in object is open in the editor */
+	void ConditionalRefreshEditor(UObject* InObject);
 
 	/** Clear up Preview Mesh's AnimNotifyStates. Called when undo or redo**/
 	void ClearupPreviewMeshAnimNotifyStates();
