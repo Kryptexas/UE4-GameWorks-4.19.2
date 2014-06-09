@@ -106,7 +106,6 @@
 #include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSine.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
-#include "Materials/MaterialExpressionSpeedTreeColorVariation.h"
 #include "Materials/MaterialExpressionSphereMask.h"
 #include "Materials/MaterialExpressionSphericalParticleOpacity.h"
 #include "Materials/MaterialExpressionSquareRoot.h"
@@ -9440,39 +9439,6 @@ bool UMaterialExpressionSpeedTree::CanEditChange(const UProperty* InProperty) co
 }
 
 #endif
-
-/*------------------------------------------------------------------------------
-SpeedTree Color Variation material expression.
-------------------------------------------------------------------------------*/
-UMaterialExpressionSpeedTreeColorVariation::UMaterialExpressionSpeedTreeColorVariation(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
-{
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FString NAME_SpeedTree;
-		FConstructorStatics()
-			: NAME_SpeedTree(LOCTEXT("SpeedTree", "SpeedTree").ToString())
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-	Amount = 0.1f;
-	bPreserveVibrance = true;
-
-	MenuCategories.Add(ConstructorStatics.NAME_SpeedTree);
-}
-
-int32 UMaterialExpressionSpeedTreeColorVariation::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
-{
-	return Compiler->SpeedTreeColorVariation(Input.Compile(Compiler), Amount, bPreserveVibrance);
-}
-
-void UMaterialExpressionSpeedTreeColorVariation::GetCaption(TArray<FString>& OutCaptions) const
-{
-	OutCaptions.Add(TEXT("SpeedTree Color Variation"));
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////

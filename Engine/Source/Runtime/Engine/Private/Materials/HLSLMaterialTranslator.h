@@ -3471,23 +3471,6 @@ protected:
 	}
 
 	/**
-	* Handles SpeedTree color variation between instances
-	*
-	* @return	Code index
-	*/
-	virtual int32 SpeedTreeColorVariation(int32 InputColor, float Amount, bool bPreserveVibrance) OVERRIDE 
-	{ 
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Vertex)
-		{
-			return NonVertexOrPixelShaderExpressionError();
-		}
-		else
-		{
-			return AddCodeChunk(MCT_Float3, TEXT("GetSpeedTreeColorVariation(Parameters, %s, %g, %s)"), *GetParameterCode(InputColor), Amount, bPreserveVibrance ? TEXT("true") : TEXT("false"));
-		}
-	}
-
-	/**
 	 * Adds code for texture coordinate offset to localize large UV
 	 *
 	 * @return	Code index

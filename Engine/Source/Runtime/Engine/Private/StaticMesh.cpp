@@ -2532,6 +2532,13 @@ bool UStaticMesh::CanLODsShareStaticLighting() const
 	{
 		bCanShareData = bCanShareData && SourceModels[LODIndex].RawMeshBulkData->IsEmpty();
 	}
+
+	if (SpeedTreeWind.IsValid())
+	{
+		// SpeedTrees are set up for lighting to share between LODs
+		bCanShareData = true;
+	}
+
 	return bCanShareData;
 }
 

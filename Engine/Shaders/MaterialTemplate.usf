@@ -660,12 +660,17 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 
 	float3 TreePos = GetObjectWorldPosition(Parameters);
 
-	// geometry other than billboads can do smooth lod and wind effects (other than global) 
-	// extra data is required in the texcoords for this, which is only available on SpeedTrees
-	const float DistToTree = length(TreePos - View.ViewOrigin.xyz);
-	//const float LodInterp = saturate((DistToTree - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
-	//@todo - fix smooth LOD
-	const float LodInterp = 0.0f;
+	// compute LOD by finding screen space size
+	float LodInterp = 1.0;
+	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
+	{
+		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndSceneTexelSize.x * View.ViewToClip[0][0],
+												View.ViewSizeAndSceneTexelSize.y * View.ViewToClip[1][1]);
+		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
+									max(1.0, dot(TreePos - View.ViewOrigin, View.ViewForward));
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius / (View.ViewSizeAndSceneTexelSize.x * View.ViewSizeAndSceneTexelSize.y);
+		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
+	}
 
 	TreePos *= 0.001; // The only other use of the tree position is as an offset into trig functions, but big numbers don't play nice there
 
@@ -710,7 +715,7 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 				{
 					float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
 					LODPos = mul(LODPos, LocalToWorld) / TreeScale;
-					FinalPosition = lerp(FinalPosition, LODPos, LodInterp);
+					FinalPosition = lerp(LODPos, FinalPosition, LodInterp);
 				}
 			#endif
 
@@ -741,12 +746,12 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 					{
 						float3 LODPos = float3(Parameters.TexCoords[3].x, Parameters.TexCoords[3].y, Parameters.TexCoords[4].x);
 						LODPos = mul(LODPos, LocalToWorld) / TreeScale - Anchor;
-						FinalPosition = lerp(FinalPosition, LODPos, LodInterp);
+						FinalPosition = lerp(LODPos, FinalPosition, LodInterp);
 					}
 					else
 					{
 						float LODScalar = Parameters.TexCoords[3].x;
-						FinalPosition *= lerp(1.0, LODScalar, LodInterp);
+						FinalPosition *= lerp(LODScalar, 1.0, LodInterp);
 					}
 				}
 			#endif
@@ -791,43 +796,6 @@ float3 GetSpeedTreeVertexOffset(FMaterialVertexParameters Parameters, int Geomet
 }
 
 #endif
-
-float3 GetSpeedTreeColorVariationBase(float3 InputColor, float Amount, bool bPreserveVibrance, float3 RandomColor, float Random) 
-{
-	Random -= 0.25;
-	float3 FinalColor = InputColor + RandomColor * Random * Amount;
-
-	if (bPreserveVibrance)
-	{
-		float OrigVibrance = max(InputColor.x, max(InputColor.y, InputColor.z));
-		float NewVibrance = max(FinalColor.x, max(FinalColor.y, FinalColor.z));
-
-		FinalColor *= OrigVibrance;
-		if (NewVibrance > 0)
-			FinalColor /= NewVibrance;
-	}
-
-	return saturate(FinalColor);
-}
-
-float3 GetSpeedTreeColorVariation(FMaterialVertexParameters Parameters, float3 InputColor, float Amount, bool bPreserveVibrance)
-{
-	#if USE_INSTANCING
-		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(float3(Parameters.PerInstanceParams.x * 100, Parameters.PerInstanceParams.x, Parameters.PerInstanceParams.x * 10)), Parameters.PerInstanceParams.x);
-	#else
-		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(Primitive.ObjectWorldPositionAndRadius.xyz * Primitive.ObjectWorldPositionAndRadius.zxy * 0.001), frac(dot(Primitive.ObjectWorldPositionAndRadius.xyz * 0.001, Primitive.LocalToWorld[0].xyz)));
-	#endif
-}
-
-float3 GetSpeedTreeColorVariation(FMaterialPixelParameters Parameters, float3 InputColor, float Amount, bool bPreserveVibrance)
-{
-	#if USE_INSTANCING
-		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(float3(Parameters.PerInstanceParams.x * 100, Parameters.PerInstanceParams.x, Parameters.PerInstanceParams.x * 10)), Parameters.PerInstanceParams.x);
-	#else
-		return GetSpeedTreeColorVariationBase(InputColor, Amount, bPreserveVibrance, frac(Primitive.ObjectWorldPositionAndRadius.xyz * Primitive.ObjectWorldPositionAndRadius.zxy * 0.001), frac(dot(Primitive.ObjectWorldPositionAndRadius.xyz * 0.001, Primitive.LocalToWorld[0].xyz)));
-	#endif
-}
-
 
 MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 {

@@ -167,6 +167,12 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, uint8 InDepthPr
 	OutMeshElement.CastShadow = true;
 	OutMeshElement.LODIndex = LODIndex;
 	OutMeshElement.LCI = &ProxyLODInfo;
+	OutBatchElement.MinScreenSize = 0.0f;
+	if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+	{
+		OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+	}
+	OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
 
 	return true;
 }
@@ -215,6 +221,12 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uin
 		OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
 		OutMeshElement.CastShadow = bCastShadow && Section.bCastShadow;
 		OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+		OutBatchElement.MinScreenSize = 0.0f;
+		if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+		{
+			OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+		}
+		OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
 		return true;
 	}
 	else
@@ -238,6 +250,12 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, const FMater
 	OutMeshElement.ReverseCulling = IsLocalToWorldDeterminantNegative();
 	OutMeshElement.CastShadow = bCastShadow;
 	OutMeshElement.DepthPriorityGroup = (ESceneDepthPriorityGroup)InDepthPriorityGroup;
+	OutBatchElement.MinScreenSize = 0.0f;
+	if (LODIndex < MAX_STATIC_MESH_LODS - 1)
+	{
+		OutBatchElement.MinScreenSize = GetScreenSize(LODIndex + 1);
+	}
+	OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
 
 	const bool bWireframe = true;
 	const bool bRequiresAdjacencyInformation = false;

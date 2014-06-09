@@ -12,11 +12,12 @@
 #include "Materials/MaterialExpressionPower.h"
 #include "Materials/MaterialExpressionMultiply.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
-#include "Materials/MaterialExpressionSpeedTreeColorVariation.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVertexColor.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunction.h"
 
 #include "MainFrame.h"
 #include "ModuleManager.h"
@@ -422,7 +423,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 	Material->EditorY = 0;
 
 	const int32 Height = 200;
-	const int32 Width = -250;
+	const int32 Width = 250;
 
 	// layout X to make sure each input is 1 step further than output connection
 	bool bContinue = true;
@@ -433,7 +434,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 		for (int32 ExpressionIndex = 0; ExpressionIndex < Material->Expressions.Num(); ++ExpressionIndex)
 		{
 			UMaterialExpression* Expression = Material->Expressions[ExpressionIndex];
-			Expression->MaterialExpressionEditorX = FMath::Min(Expression->MaterialExpressionEditorX, Width);
+			Expression->MaterialExpressionEditorX = FMath::Min(Expression->MaterialExpressionEditorX, -Width);
 
 			TArray<FExpressionInput*> Inputs = Expression->GetInputs();
 			for (int32 InputIndex = 0; InputIndex < Inputs.Num(); ++InputIndex)
@@ -441,9 +442,9 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 				UMaterialExpression* Input = Inputs[InputIndex]->Expression;
 				if (Input != NULL)
 				{
-					if (Input->MaterialExpressionEditorX > Expression->MaterialExpressionEditorX + Width)
+					if (Input->MaterialExpressionEditorX > Expression->MaterialExpressionEditorX - Width)
 					{
-						Input->MaterialExpressionEditorX = FMath::Min(Input->MaterialExpressionEditorX, Expression->MaterialExpressionEditorX + Width);
+						Input->MaterialExpressionEditorX = Expression->MaterialExpressionEditorX - Width;
 						bContinue = true;
 					}
 				}
@@ -461,7 +462,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 		{
 			UMaterialExpression* Expression = Material->Expressions[ExpressionIndex];
 
-			if (Expression->MaterialExpressionEditorX == Width * Column)
+			if (Expression->MaterialExpressionEditorX == -Width * Column)
 			{
 				Expression->MaterialExpressionEditorY = 0;
 				int32 NumOutputs = 0;
@@ -519,7 +520,7 @@ static void LayoutMaterial(UMaterialInterface* MaterialInterface)
 
 		++Column;
 		bContinue = (ColumnExpressions.Num() > 0);
-	};
+	}
 }
 
 static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString MaterialFullName, const SpeedTree::SRenderState* RenderState, TSharedPtr<SSpeedTreeImportOptions> Options, ESpeedTreeWindType WindType, int NumBillboards)
@@ -551,7 +552,7 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 		{
 			UnrealMaterial->BlendMode = BLEND_Masked;
 			UnrealMaterial->SetCastShadowAsMasked(true);
-			UnrealMaterial->TwoSided = !(RenderState->m_bFacingLeavesPresent || RenderState->m_bHorzBillboard || RenderState->m_bVertBillboard);
+			UnrealMaterial->TwoSided = !(RenderState->m_bHorzBillboard || RenderState->m_bVertBillboard);
 		}
 
 		// Notify the asset registry
@@ -779,11 +780,24 @@ static UMaterialInterface* CreateSpeedTreeMaterial(UObject* Parent, FString Mate
 	if (Options->IncludeColorAdjustment->IsChecked() && UnrealMaterial->BaseColor.Expression != NULL && 
 		(RenderState->m_bLeavesPresent || RenderState->m_bFacingLeavesPresent || RenderState->m_bVertBillboard || RenderState->m_bHorzBillboard))
 	{
-		UMaterialExpressionSpeedTreeColorVariation* ColorVariation = ConstructObject<UMaterialExpressionSpeedTreeColorVariation>(UMaterialExpressionSpeedTreeColorVariation::StaticClass(), UnrealMaterial);
-		UnrealMaterial->Expressions.Add(ColorVariation);
+		UMaterialFunction* ColorVariationFunction = LoadObject<UMaterialFunction>(NULL, TEXT("/Engine/Functions/Engine_MaterialFunctions01/SpeedTree/SpeedTreeColorVariation.SpeedTreeColorVariation"), NULL, LOAD_None, NULL);
+		if (ColorVariationFunction)
+		{
+			UMaterialExpressionMaterialFunctionCall* ColorVariation = ConstructObject<UMaterialExpressionMaterialFunctionCall>(UMaterialExpressionMaterialFunctionCall::StaticClass(), UnrealMaterial);
+			UnrealMaterial->Expressions.Add(ColorVariation);
 
-		ColorVariation->Input.Expression = UnrealMaterial->BaseColor.Expression;
-		UnrealMaterial->BaseColor.Expression = ColorVariation;
+			ColorVariation->MaterialFunction = ColorVariationFunction;
+			ColorVariation->UpdateFromFunctionResource( );
+
+			ColorVariation->GetInput(0)->Expression = UnrealMaterial->BaseColor.Expression;
+			ColorVariation->GetInput(0)->Mask = UnrealMaterial->BaseColor.Expression->GetOutputs()[0].Mask;
+			ColorVariation->GetInput(0)->MaskR = 1;
+			ColorVariation->GetInput(0)->MaskG = 1;
+			ColorVariation->GetInput(0)->MaskB = 1;
+			ColorVariation->GetInput(0)->MaskA = 0;
+
+			UnrealMaterial->BaseColor.Expression = ColorVariation;
+		}
 	}
 	
 	LayoutMaterial(UnrealMaterial);
@@ -944,7 +958,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 #ifdef SPEEDTREE_KEY
 		SpeedTree::CCore::Authorize(PREPROCESSOR_TO_STRING(SPEEDTREE_KEY));
 #endif
-
+		
 		SpeedTree::CCore SpeedTree;
 		if (!SpeedTree.LoadTree(Buffer, BufferEnd - Buffer, false, false, Options->TreeScale))
 		{
@@ -961,7 +975,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 			else
 			{
 				// make static mesh object
-				FString MeshName = ObjectTools::SanitizeObjectName(InName.ToString());
+				FString MeshName = ObjectTools::SanitizeObjectName(InName.ToString()) + TEXT("_Mesh");
 				FString NewPackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) + TEXT("/") + MeshName;
 				NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
 				UPackage* Package = CreatePackage(NULL, *NewPackageName);
@@ -1314,7 +1328,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 				if ((Options->ImportGeometryType == SSpeedTreeImportOptions::IGT_Billboards || Options->ImportGeometryType == SSpeedTreeImportOptions::IGT_Both) && 
 					SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards > 0)
 				{
-					UMaterialInterface* Material = CreateSpeedTreeMaterial(InParent, MeshName + "_Billboard", &SpeedTreeGeometry->m_aBillboardRenderStates[SpeedTree::SHADER_PASS_MAIN], Options, WindType, SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards);
+					UMaterialInterface* Material = CreateSpeedTreeMaterial(InParent, MeshName + "_Billboard", &SpeedTreeGeometry->m_aBillboardRenderStates[SpeedTree::RENDER_PASS_MAIN], Options, WindType, SpeedTreeGeometry->m_sVertBBs.m_nNumBillboards);
 					int32 MaterialIndex = StaticMesh->Materials.Num();
 					StaticMesh->Materials.Add(Material);
 
@@ -1356,7 +1370,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary(UClass* InClass, UObject* 
 						FRotationMatrix BillboardRotate(Facing);
 
 						FVector TangentX = BillboardRotate.TransformVector(FVector(1.0f, 0.0f, 0.0f));
-						FVector TangentY = BillboardRotate.TransformVector(FVector(0.0f, 0.0f, 1.0f));
+						FVector TangentY = BillboardRotate.TransformVector(FVector(0.0f, 0.0f, -1.0f));
 						FVector TangentZ = BillboardRotate.TransformVector(FVector(0.0f, 1.0f, 0.0f));
 	
 						const float* TexCoords = &SpeedTreeGeometry->m_sVertBBs.m_pTexCoords[BillboardIndex * 4];

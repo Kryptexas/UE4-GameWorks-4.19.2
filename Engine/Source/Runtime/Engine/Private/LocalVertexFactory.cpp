@@ -33,8 +33,7 @@ public:
 
 				if (LODParameter.IsBound())
 				{
-					//@todo - speedtree smooth LOD
-					FVector LODData(0, 0, 0);
+					FVector LODData(BatchElement.MinScreenSize, BatchElement.MaxScreenSize, BatchElement.MaxScreenSize - BatchElement.MinScreenSize);
 					SetShaderValue(RHICmdList, Shader->GetVertexShader(), LODParameter, LODData);
 				}
 			}

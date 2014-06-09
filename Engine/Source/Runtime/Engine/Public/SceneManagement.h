@@ -1251,6 +1251,8 @@ struct FMeshBatchElement
 	uint32 MaxVertexIndex;
 	int32 UserIndex;
 	void* UserData;
+	float MinScreenSize;
+	float MaxScreenSize;
 
 	/** 
 	 *	DynamicIndexData - pointer to user memory containing the index data.
@@ -1265,6 +1267,8 @@ struct FMeshBatchElement
 	,	NumInstances(1)
 	,	UserIndex(-1)
 	,	UserData(NULL)
+	,	MinScreenSize(0.0f)
+	,	MaxScreenSize(1.0f)
 	,	DynamicIndexData(NULL)
 	{
 	}
