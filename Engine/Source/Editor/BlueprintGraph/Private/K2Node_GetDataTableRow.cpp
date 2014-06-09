@@ -230,7 +230,7 @@ FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("DataTableName"), DataTableString);
-	return FText::Format(NSLOCTEXT("K2Node", "DataTable", "GetDataTableRow {DataTableName}"), Args);
+	return FText::Format(NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}"), Args);
 }
 
 FString UK2Node_GetDataTableRow::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
