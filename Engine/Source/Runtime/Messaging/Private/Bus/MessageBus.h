@@ -32,17 +32,17 @@ public:
 
 	// Begin IMessageBus interface
 
-	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) OVERRIDE
+	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) override
 	{
 		Router->RouteMessage(MakeShareable(new FMessageContext(Context, Forwarder->GetSenderAddress(), Recipients, ForwardingScope, FDateTime::UtcNow(), FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
 
-	virtual IMessageTracerRef GetTracer( ) OVERRIDE
+	virtual IMessageTracerRef GetTracer( ) override
 	{
 		return Router->GetTracer();
 	}
 
-	virtual void Intercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) OVERRIDE
+	virtual void Intercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) override
 	{
 		if (MessageType != NAME_None)
 		{
@@ -53,29 +53,29 @@ public:
 		}
 	}
 
-	virtual FOnMessageBusShutdown& OnShutdown( ) OVERRIDE
+	virtual FOnMessageBusShutdown& OnShutdown( ) override
 	{
 		return ShutdownDelegate;
 	}
 
-	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) OVERRIDE
+	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) override
 	{
 		Router->RouteMessage(MakeShareable(new FMessageContext(Message, TypeInfo, nullptr, Publisher->GetSenderAddress(), TArray<FMessageAddress>(), Scope, FDateTime::UtcNow() + Delay, Expiration, FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
 
-	virtual void Register( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient ) OVERRIDE
+	virtual void Register( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient ) override
 	{
 		Router->AddRecipient(Address, Recipient);
 	}
 
-	virtual void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Sender ) OVERRIDE
+	virtual void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Sender ) override
 	{
 		Router->RouteMessage(MakeShareable(new FMessageContext(Message, TypeInfo, Attachment, Sender->GetSenderAddress(), Recipients, EMessageScope::Network, FDateTime::UtcNow() + Delay, Expiration, FTaskGraphInterface::Get().GetCurrentThreadIfKnown())));
 	}
 
-	virtual void Shutdown( ) OVERRIDE;
+	virtual void Shutdown( ) override;
 
-	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) OVERRIDE
+	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) override
 	{
 		if (MessageType != NAME_None)
 		{
@@ -91,7 +91,7 @@ public:
 		return nullptr;
 	}
 
-	virtual void Unintercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) OVERRIDE
+	virtual void Unintercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) override
 	{
 		if (MessageType != NAME_None)
 		{
@@ -99,7 +99,7 @@ public:
 		}
 	}
 
-	virtual void Unregister( const FMessageAddress& Address ) OVERRIDE
+	virtual void Unregister( const FMessageAddress& Address ) override
 	{
 		if (!RecipientAuthorizer.IsValid() || RecipientAuthorizer->AuthorizeUnregistration(Address))
 		{
@@ -107,7 +107,7 @@ public:
 		}
 	}
 
-	virtual void Unsubscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType ) OVERRIDE
+	virtual void Unsubscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType ) override
 	{
 		if (MessageType != NAME_None)
 		{

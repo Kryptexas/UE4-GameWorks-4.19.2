@@ -51,7 +51,7 @@ public:
 
 	// Begin IMessageAttachment interface
 
-	virtual FArchive* CreateReader( ) OVERRIDE
+	virtual FArchive* CreateReader( ) override
 	{
 		return IFileManager::Get().CreateFileReader(*Filename);
 	}

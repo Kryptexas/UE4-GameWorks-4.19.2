@@ -37,11 +37,11 @@ public:
 
 	// Begin IMessageBridge interface
 
-	virtual void Disable( ) OVERRIDE;
+	virtual void Disable( ) override;
 
-	virtual void Enable( ) OVERRIDE;
+	virtual void Enable( ) override;
 
-	virtual bool IsEnabled( ) const OVERRIDE
+	virtual bool IsEnabled( ) const override
 	{
 		return Enabled;
 	}
@@ -52,27 +52,27 @@ public:
 
 	// Begin IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const OVERRIDE
+	virtual FName GetDebugName( ) const override
 	{
 		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
 	}
 
-	virtual const FGuid& GetRecipientId( ) const OVERRIDE
+	virtual const FGuid& GetRecipientId( ) const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE
+	virtual ENamedThreads::Type GetRecipientThread( ) const override
 	{
 		return ENamedThreads::AnyThread;
 	}
 
-	virtual bool IsLocal( ) const OVERRIDE
+	virtual bool IsLocal( ) const override
 	{
 		return false;
 	}
 
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) OVERRIDE;
+	virtual void ReceiveMessage( const IMessageContextRef& Context ) override;
 
 	// End IReceiveMessages interface
 
@@ -80,12 +80,12 @@ public:
 
 	// Begin ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) OVERRIDE
+	virtual FMessageAddress GetSenderAddress( ) override
 	{
 		return Address;
 	}
 
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) OVERRIDE;
+	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override;
 
 	// End ISendMessages interface
 

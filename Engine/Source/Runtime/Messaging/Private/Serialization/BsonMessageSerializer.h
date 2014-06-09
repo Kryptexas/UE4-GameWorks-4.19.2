@@ -15,13 +15,13 @@ class FBsonMessageSerializer
 {
 	// Begin ISerializeMessages interface
 
-	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) OVERRIDE
+	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) override
 	{
 		// not implemented yet
 		return false;
 	}
 
-	virtual bool SerializeMessage( const IMessageContextRef& Context, FArchive& Archive ) OVERRIDE
+	virtual bool SerializeMessage( const IMessageContextRef& Context, FArchive& Archive ) override
 	{
 		// not implemented yet
 		return false;

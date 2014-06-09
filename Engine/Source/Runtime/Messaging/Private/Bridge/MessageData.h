@@ -48,17 +48,17 @@ public:
 
 	// Begin IMessageAttachment interface
 
-	virtual FArchive* CreateReader( ) OVERRIDE
+	virtual FArchive* CreateReader( ) override
 	{
 		return new FMemoryReader(Data, true);
 	}
 
-	virtual EMessageDataState::Type GetState( ) const OVERRIDE
+	virtual EMessageDataState::Type GetState( ) const override
 	{
 		return State;
 	}
 
-	virtual FSimpleDelegate& OnStateChanged( ) OVERRIDE
+	virtual FSimpleDelegate& OnStateChanged( ) override
 	{
 		return StateChangedDelegate;
 	}

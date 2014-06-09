@@ -116,13 +116,13 @@ public:
 
 	// Begin FRunnable interface
 
-	virtual bool Init( ) OVERRIDE;
+	virtual bool Init( ) override;
 
-	virtual uint32 Run( ) OVERRIDE;
+	virtual uint32 Run( ) override;
 
-	virtual void Stop( ) OVERRIDE;
+	virtual void Stop( ) override;
 
-	virtual void Exit( ) OVERRIDE;
+	virtual void Exit( ) override;
 
 	// End FRunnable interface
 

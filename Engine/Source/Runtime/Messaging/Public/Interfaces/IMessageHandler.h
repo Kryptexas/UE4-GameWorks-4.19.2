@@ -86,12 +86,12 @@ public:
 
 	// Begin IMessageHandler interface
 	
-	virtual const FName GetHandledMessageType( ) const OVERRIDE
+	virtual const FName GetHandledMessageType( ) const override
 	{
 		return MessageType::StaticStruct()->GetFName();
 	}
 
-	virtual void HandleMessage( const IMessageContextRef& Context ) OVERRIDE
+	virtual void HandleMessage( const IMessageContextRef& Context ) override
 	{
 		(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
 	}

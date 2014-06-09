@@ -405,27 +405,27 @@ public:
 
 	// Begin IReceiveMessages interface
 
-	virtual FName GetDebugName( ) const OVERRIDE
+	virtual FName GetDebugName( ) const override
 	{
 		return Name;
 	}
 
-	virtual const FGuid& GetRecipientId( ) const OVERRIDE
+	virtual const FGuid& GetRecipientId( ) const override
 	{
 		return Id;
 	}
 
-	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE
+	virtual ENamedThreads::Type GetRecipientThread( ) const override
 	{
 		return RecipientThread;
 	}
 
-	virtual bool IsLocal( ) const OVERRIDE
+	virtual bool IsLocal( ) const override
 	{
 		return true;
 	}
 
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) OVERRIDE
+	virtual void ReceiveMessage( const IMessageContextRef& Context ) override
 	{
 		if (!Enabled)
 		{
@@ -453,12 +453,12 @@ public:
 
 	// Begin ISendMessages interface
 
-	virtual FMessageAddress GetSenderAddress( ) OVERRIDE
+	virtual FMessageAddress GetSenderAddress( ) override
 	{
 		return Address;
 	}
 
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) OVERRIDE
+	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override
 	{
 		ErrorDelegate.ExecuteIfBound(Context, Error);
 	}

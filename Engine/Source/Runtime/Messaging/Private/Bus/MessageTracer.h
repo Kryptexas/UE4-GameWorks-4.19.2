@@ -225,12 +225,12 @@ public:
 
 	// Begin IMessageTracer interface
 
-	virtual void Break( ) OVERRIDE
+	virtual void Break( ) override
 	{
 		Breaking = true;
 	}
 
-	virtual void Continue( ) OVERRIDE
+	virtual void Continue( ) override
 	{
 		if (!Breaking)
 		{
@@ -241,48 +241,48 @@ public:
 		ContinueEvent->Trigger();
 	}
 
-	virtual int32 GetEndpoints( TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints ) const OVERRIDE;
+	virtual int32 GetEndpoints( TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints ) const override;
 
-	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const OVERRIDE;
+	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const override;
 
-	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const OVERRIDE;
+	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const override;
 
-	virtual bool HasMessages( ) const OVERRIDE
+	virtual bool HasMessages( ) const override
 	{
 		return (MessageInfos.Num() > 0);
 	}
 
-	virtual bool IsBreaking( ) const OVERRIDE
+	virtual bool IsBreaking( ) const override
 	{
 		return Breaking;
 	}
 
-	virtual bool IsRunning( ) const OVERRIDE
+	virtual bool IsRunning( ) const override
 	{
 		return Running;
 	}
 
-	virtual FMessageTracerMessageAdded& OnMessageAdded( ) OVERRIDE
+	virtual FMessageTracerMessageAdded& OnMessageAdded( ) override
 	{
 		return MessagesAddedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnMessagesReset( ) OVERRIDE
+	virtual FSimpleMulticastDelegate& OnMessagesReset( ) override
 	{
 		return MessagesResetDelegate;
 	}
 
-	virtual FMessageTracerTypeAdded& OnTypeAdded( ) OVERRIDE
+	virtual FMessageTracerTypeAdded& OnTypeAdded( ) override
 	{
 		return TypeAddedDelegate;
 	}
 
-	virtual void Reset( ) OVERRIDE
+	virtual void Reset( ) override
 	{
 		ResetPending = true;
 	}
 
-	virtual void Start( ) OVERRIDE
+	virtual void Start( ) override
 	{
 		if (Running)
 		{
@@ -292,7 +292,7 @@ public:
 		Running = true;
 	}
 
-	virtual void Step( ) OVERRIDE
+	virtual void Step( ) override
 	{
 		if (!Breaking)
 		{
@@ -302,7 +302,7 @@ public:
 		ContinueEvent->Trigger();
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		if (!Running)
 		{
@@ -318,7 +318,7 @@ public:
 		}
 	}
 
-	virtual bool Tick( float DeltaTime ) OVERRIDE;
+	virtual bool Tick( float DeltaTime ) override;
 
 	// End IMessageTracer interface
 
