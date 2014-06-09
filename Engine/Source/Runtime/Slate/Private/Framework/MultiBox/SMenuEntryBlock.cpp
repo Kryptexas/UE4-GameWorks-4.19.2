@@ -416,7 +416,6 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			]
 		]
 		+SHorizontalBox::Slot()
-		.AutoWidth()
 		[
 			ButtonContent.ToSharedRef()
 		];
