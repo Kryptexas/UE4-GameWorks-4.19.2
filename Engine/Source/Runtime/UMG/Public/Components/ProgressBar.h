@@ -31,10 +31,6 @@ class UMG_API UProgressBar : public UWidget
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D BorderPadding;
 
-	/** Gets the current value of the ProgressBar. */
-	UFUNCTION(BlueprintPure, Category="Behavior")
-	float GetPercent();
-
 	/** Sets the current value of the ProgressBar. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetPercent(float InPercent);

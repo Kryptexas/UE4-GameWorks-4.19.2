@@ -19,12 +19,20 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 
 	Style = NULL;
 
-	// HACK Special font initialization hack since there are no font assets yet for slate.
+	// @TODO UMG HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
+	MyTextBlock = SNew(STextBlock);
+	return MyTextBlock.ToSharedRef();
+}
+
+void UTextBlock::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
 	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
@@ -37,14 +45,13 @@ TSharedRef<SWidget> UTextBlock::RebuildWidget()
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
-	
-	return SNew(STextBlock)
-		.Text( TextBinding )
-		.TextStyle( StylePtr )
-		.Font( FSlateFontInfo(FontPath, Font.Size) )
-		.ColorAndOpacity( ColorAndOpacityBinding )
-		.ShadowOffset( ShadowOffset )
-		.ShadowColorAndOpacity( ShadowColorAndOpacityBinding );
+
+	MyTextBlock->SetText(TextBinding);
+	MyTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
+	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
+	MyTextBlock->SetTextStyle(StylePtr);
+	MyTextBlock->SetShadowOffset(ShadowOffset);
+	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
 }
 
 /////////////////////////////////////////////////////

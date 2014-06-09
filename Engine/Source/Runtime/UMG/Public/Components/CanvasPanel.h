@@ -18,15 +18,19 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	FVector2D DesiredCanvasSize;
 
 	UCanvasPanelSlot* AddSlot(UWidget* Content);
-	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
 
 	// UPanelWidget
 	virtual int32 GetChildrenCount() const OVERRIDE;
 	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
+	virtual int32 GetChildIndex(UWidget* Content) const OVERRIDE;
+	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
+	virtual bool RemoveChild(UWidget* Child) OVERRIDE;
+	virtual void ReplaceChildAt(int32 Index, UWidget* Child) OVERRIDE;
+	virtual void InsertChildAt(int32 Index, UWidget* Child) OVERRIDE;
 	// End UPanelWidget
 
 	/** Gets the underlying native canvas widget if it has been constructed */
-	TSharedPtr<class SFixedSizeCanvas> GetCanvasWidget() const;
+	TSharedPtr<class SConstraintCanvas> GetCanvasWidget() const;
 
 	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
 	bool GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const;
@@ -43,7 +47,7 @@ class UMG_API UCanvasPanel : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SFixedSizeCanvas> MyCanvas;
+	TSharedPtr<class SFixedSizeCanvas> MyCanvas;
 
 protected:
 	// UWidget interface

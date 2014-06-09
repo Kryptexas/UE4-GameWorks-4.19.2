@@ -51,39 +51,87 @@ UWidget* UCanvasPanel::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
-TSharedPtr<SFixedSizeCanvas> UCanvasPanel::GetCanvasWidget() const
+TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
-	return MyCanvas.Pin();
+	return MyCanvas;
+}
+
+int32 UCanvasPanel::GetChildIndex(UWidget* Content) const
+{
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	{
+		UCanvasPanelSlot* Slot = Slots[SlotIndex];
+
+		if ( Slot->Content == Content )
+		{
+			return SlotIndex;
+		}
+	}
+
+	return -1;
+}
+
+bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
+{
+	UCanvasPanelSlot* Slot = AddSlot(Child);
+	Slot->LayoutData.Offsets = FMargin(Position.X, Position.Y, 100, 25);
+
+	return true;
+}
+
+bool UCanvasPanel::RemoveChild(UWidget* Child)
+{
+	int32 SlotIndex = GetChildIndex(Child);
+	if ( SlotIndex != -1 )
+	{
+		Slots.RemoveAt(SlotIndex);
+		return true;
+	}
+
+	return false;
+}
+
+void UCanvasPanel::ReplaceChildAt(int32 Index, UWidget* Content)
+{
+	UCanvasPanelSlot* Slot = Slots[Index];
+	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+}
+
+void UCanvasPanel::InsertChildAt(int32 Index, UWidget* Content)
+{
+	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
+	Slot->Content = Content;
+	Slot->Parent = this;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
+
+	Slots.Insert(Slot, Index);
 }
 
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
-	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
-	MyCanvas = NewCanvas;
+	MyCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
 
-	TSharedPtr<SFixedSizeCanvas> Canvas = MyCanvas.Pin();
-	if ( Canvas.IsValid() )
+	for ( auto Slot : Slots )
 	{
-		Canvas->ClearChildren();
-
-		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
-		{
-			UCanvasPanelSlot* Slot = Slots[SlotIndex];
-			if ( Slot == NULL )
-			{
-				Slots[SlotIndex] = Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
-			}
-
-			Slot->BuildSlot(Canvas.ToSharedRef());
-		}
+		Slot->Parent = this;
+		Slot->BuildSlot(MyCanvas.ToSharedRef());
 	}
 
-	return NewCanvas;
+	return MyCanvas.ToSharedRef();
 }
 
 UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -96,13 +144,7 @@ UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 	return Slot;
 }
 
-bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
-{
-	UCanvasPanelSlot* Slot = AddSlot(Child);
-	Slot->LayoutData.Offsets = FMargin(Position.X, Position.Y, 100, 25);
 
-	return true;
-}
 
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
 {
@@ -111,7 +153,7 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 		return false;
 	}
 
-	TSharedPtr<SFixedSizeCanvas> Canvas = GetCanvasWidget();
+	TSharedPtr<SConstraintCanvas> Canvas = GetCanvasWidget();
 	if ( Canvas.IsValid() )
 	{
 		FArrangedChildren ArrangedChildren(EVisibility::All);
@@ -143,16 +185,5 @@ void UCanvasPanel::ConnectEditorData()
 
 void UCanvasPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
-
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
-		}
-	}
 }
 #endif

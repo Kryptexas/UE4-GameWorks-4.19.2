@@ -26,6 +26,7 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UUserWidget* NewWidget = ConstructObject<UUserWidget>(WidgetType, World->GetCurrentLevel());
+	NewWidget->SetFlags(RF_Transactional);
 	//UUserWidget* NewWidget = World->SpawnActor<UUserWidget>(WidgetType);
 		
 	return NewWidget;

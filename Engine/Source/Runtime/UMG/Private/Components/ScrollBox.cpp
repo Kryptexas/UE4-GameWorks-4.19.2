@@ -69,6 +69,7 @@ void UScrollBox::ReplaceChildAt(int32 Index, UWidget* Content)
 void UScrollBox::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UScrollBoxSlot* Slot = ConstructObject<UScrollBoxSlot>(UScrollBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -89,14 +90,8 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 	{
 		Canvas->ClearChildren();
 
-		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+		for ( auto Slot : Slots )
 		{
-			UScrollBoxSlot* Slot = Slots[SlotIndex];
-			if ( Slot == NULL )
-			{
-				Slots[SlotIndex] = Slot = ConstructObject<UScrollBoxSlot>(UScrollBoxSlot::StaticClass(), this);
-			}
-
 			Slot->Parent = this;
 			Slot->BuildSlot(NewCanvas);
 		}
@@ -108,6 +103,7 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 UScrollBoxSlot* UScrollBox::AddSlot(UWidget* Content)
 {
 	UScrollBoxSlot* Slot = ConstructObject<UScrollBoxSlot>(UScrollBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -138,17 +134,6 @@ void UScrollBox::ConnectEditorData()
 
 void UScrollBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
-
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UScrollBoxSlot>(UScrollBoxSlot::StaticClass(), this);
-		}
-	}
 }
 #endif
 

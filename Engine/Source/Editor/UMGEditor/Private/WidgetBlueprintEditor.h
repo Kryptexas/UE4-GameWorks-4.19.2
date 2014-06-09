@@ -21,6 +21,7 @@ public:
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
 	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual void NotifyPreChange(class FEditPropertyChain* PropertyAboutToChange) OVERRIDE;
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) OVERRIDE;
 
 	/** FGCObjectInterface */
@@ -40,6 +41,8 @@ private:
 
 	void DestroyPreview();
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
+
+	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
 
 	/**
 	 * Gets the default movie scene which is used when there is no 

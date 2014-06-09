@@ -58,14 +58,9 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 	TSharedRef<SOverlay> NewWidget = SNew(SOverlay);
 	MyVerticalBox = NewWidget;
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	for ( auto Slot : Slots )
 	{
-		UOverlaySlot* Slot = Slots[SlotIndex];
-		if ( Slot == NULL )
-		{
-			Slots[SlotIndex] = Slot = ConstructObject<UOverlaySlot>(UOverlaySlot::StaticClass(), this);
-		}
-
+		Slot->Parent = this;
 		Slot->BuildSlot(NewWidget);
 	}
 
@@ -75,7 +70,9 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 UOverlaySlot* UOverlay::AddSlot(UWidget* Content)
 {
 	UOverlaySlot* Slot = ConstructObject<UOverlaySlot>(UOverlaySlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
+	Slot->Parent = this;
 
 #if WITH_EDITOR
 	Content->Slot = Slot;
@@ -101,16 +98,6 @@ void UOverlay::ConnectEditorData()
 
 void UOverlay::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
 
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UOverlaySlot>(UOverlaySlot::StaticClass(), this);
-		}
-	}
 }
 #endif

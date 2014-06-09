@@ -27,11 +27,6 @@ TSharedRef<SWidget> UProgressBar::RebuildWidget()
 	return MyProgressBar.ToSharedRef();
 }
 
-float UProgressBar::GetPercent()
-{
-	return MyProgressBar->GetPercent().Get(0.0f);
-}
-
 void UProgressBar::SetPercent(float InPercent)
 {
 	return MyProgressBar->SetPercent(InPercent);

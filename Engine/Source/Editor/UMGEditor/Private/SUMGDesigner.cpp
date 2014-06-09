@@ -212,7 +212,7 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
 			// Set the template as selected in the details panel
 			TArray<UWidget*> SelectedTemplates;
-			//SelectedTemplates.Add(CurrentSelection.Template);
+			//SelectedTemplates.Add(CurrentSelection.GetTemplate());
 			SelectedTemplates.Add(CurrentSelection.GetPreview());
 			ShowDetailsForObjects(SelectedTemplates);
 

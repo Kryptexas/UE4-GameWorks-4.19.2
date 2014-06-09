@@ -120,7 +120,7 @@ public:
 			UE_LOG( LiveEditorConfigWindow, Log, TEXT("%s Activated"), *(*n) );
 
 			bIsActive = (Name.Get())? FLiveEditorManager::Get().CheckActive( *Name.Get() ) : false;
-			NameView->SetForegroundColor( GetFontColor() );
+			NameView->SetColorAndOpacity( GetFontColor() );
 		}
 		return FReply::Handled();
 	}
@@ -133,7 +133,7 @@ public:
 			UE_LOG( LiveEditorConfigWindow, Log, TEXT("%s DeActivated"), *(*n) );
 
 			bIsActive = (Name.Get())? FLiveEditorManager::Get().CheckActive( *Name.Get() ) : false;
-			NameView->SetForegroundColor( GetFontColor() );
+			NameView->SetColorAndOpacity(GetFontColor());
 		}
 		return FReply::Handled();
 	}

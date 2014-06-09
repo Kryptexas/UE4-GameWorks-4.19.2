@@ -43,21 +43,30 @@ public:
 	UPROPERTY()
 	FGetSlateColor ColorAndOpacityDelegate;
 
+	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	float WrapTextAt;
+
+	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	bool AutoWrapText;
+
 	/** The style to use to render the text */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
-	//TODO UMG Set text via UFunction.
-	//TODO UMG set all these properties by UFunction as well.
+	///** Called when this text is double clicked */
+	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
+
+	// UWidget interface
+	void SyncronizeProperties() OVERRIDE;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of UWidget interface
 
-	/** Converts the bound FLinearColor to a slate color for the ColorAndOpacityDelegate */
-	FSlateColor GetColorAndOpacity() const;
-
-	/** Converts the bound FLinearColor to a slate color for the ShadowColorAndOpacityDelegate */
-	FLinearColor GetShadowColorAndOpacity() const;
+protected:
+	TSharedPtr<STextBlock> MyTextBlock;
 };

@@ -67,6 +67,7 @@ void UHorizontalBox::ReplaceChildAt(int32 Index, UWidget* Content)
 void UHorizontalBox::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -82,14 +83,8 @@ TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 	TSharedRef<SHorizontalBox> NewWidget = SNew(SHorizontalBox);
 	MyHorizontalBox = NewWidget;
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	for ( auto Slot : Slots )
 	{
-		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
-		if ( Slot == NULL )
-		{
-			Slots[SlotIndex] = Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
-		}
-
 		Slot->Parent = this;
 		Slot->BuildSlot(NewWidget);
 	}
@@ -100,6 +95,7 @@ TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -124,16 +120,5 @@ void UHorizontalBox::ConnectEditorData()
 
 void UHorizontalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
-
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
-		}
-	}
 }
 #endif

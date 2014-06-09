@@ -21,11 +21,6 @@ void SProgressBar::Construct( const FArguments& InArgs )
 	CurveSequence.Play();
 }
 
-TOptional<float> SProgressBar::GetPercent() const
-{
-	return Percent.Get();
-}
-
 void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 {
 	Percent = InPercent;

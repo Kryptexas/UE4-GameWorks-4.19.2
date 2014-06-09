@@ -63,14 +63,9 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	
 	MyUniformGridPanel = NewPanel;
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	for ( auto Slot : Slots )
 	{
-		UUniformGridSlot* Slot = Slots[SlotIndex];
-		if ( Slot == NULL )
-		{
-			Slots[SlotIndex] = Slot = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
-		}
-
+		Slot->Parent = this;
 		Slot->BuildSlot(NewPanel);
 	}
 
@@ -80,6 +75,7 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 UUniformGridSlot* UUniformGridPanel::AddSlot(UWidget* Content)
 {
 	UUniformGridSlot* Slot = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -105,17 +101,6 @@ void UUniformGridPanel::ConnectEditorData()
 
 void UUniformGridPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
-
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UUniformGridSlot>(UUniformGridSlot::StaticClass(), this);
-		}
-	}
 }
 
 #endif

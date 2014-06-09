@@ -100,7 +100,9 @@ void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 	TArray<UWidget*> PreviewWidgets;
 	for ( UWidget* TemplateWidget : TemplateWidgets )
 	{
-		PreviewWidgets.Add(FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), TemplateWidget).GetPreview());
+		FSelectedWidget Selection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), TemplateWidget);
+		PreviewWidgets.Add(Selection.GetPreview());
+		//PreviewWidgets.Add(Selection.GetTemplate());
 	}
 
 	BlueprintEditor.Pin()->SelectWidgets(PreviewWidgets);

@@ -121,13 +121,21 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 	return true;
 }
 
-static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty)
+static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode, UProperty* MemberProperty, bool bIsModify)
 {
 	UProperty* CurrentProperty = PropertyChainNode->GetValue();
 
 	if ( PropertyChainNode->GetNextNode() == NULL )
 	{
-		return MigratePropertyValue(SourceObject, DestinationObject, MemberProperty);
+		if ( bIsModify )
+		{
+			DestinationObject->Modify();
+			return true;
+		}
+		else
+		{
+			return MigratePropertyValue(SourceObject, DestinationObject, MemberProperty);
+		}
 	}
 	
 	if ( UObjectProperty* CurrentObjectProperty = Cast<UObjectProperty>(CurrentProperty) )
@@ -136,14 +144,14 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 		UObject* SourceObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(SourceObject));
 		UObject* DestionationObjectProperty = CurrentObjectProperty->GetObjectPropertyValue(CurrentObjectProperty->ContainerPtrToValuePtr<void>(DestinationObject));
 
-		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue());
+		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue(), bIsModify);
 	}
 	else if ( UArrayProperty* CurrentArrayProperty = Cast<UArrayProperty>(CurrentProperty) )
 	{
 		// Arrays!
 	}
 
-	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty);
+	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty, bIsModify);
 }
 
 void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
@@ -155,29 +163,39 @@ void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collecto
 	}
 }
 
-void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)
+void FWidgetBlueprintEditor::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
 {
-	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
+	MigrateFromChain(PropertyAboutToChange, true);
+}
 
-	if ( PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet )
+void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify)
+{
+	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+	UUserWidget* PreviewActor = GetPreview();
+	if ( PreviewActor != NULL )
 	{
-		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-		UUserWidget* PreviewActor = GetPreview();
-		if ( PreviewActor != NULL )
+		for ( UWidget* PreviewWidget : SelectedPreviewWidgets )
 		{
-			for ( UWidget* PreviewWidget : SelectedPreviewWidgets )
-			{
-				FString PreviewWidgetName = PreviewWidget->GetName();
-				UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
+			FString PreviewWidgetName = PreviewWidget->GetName();
+			UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
 
-				if ( TemplateWidget )
-				{
-					FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode = PropertyThatChanged->GetHead();
-					MigratePropertyValue(PreviewWidget, TemplateWidget, PropertyChainNode, PropertyChainNode->GetValue());
-				}
+			if ( TemplateWidget )
+			{
+				FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode = PropertyThatChanged->GetHead();
+				MigratePropertyValue(PreviewWidget, TemplateWidget, PropertyChainNode, PropertyChainNode->GetValue(), bIsModify);
 			}
 		}
+	}
+}
+
+void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
+{
+	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
+	
+	if ( PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet )
+	{
+		MigrateFromChain(PropertyThatChanged, false);
 	}
 }
 
@@ -267,7 +285,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewBlueprint = InBlueprint;
 
 		PreviewActor = ConstructObject<UUserWidget>(PreviewBlueprint->GeneratedClass, PreviewScene.GetWorld()->GetCurrentLevel());
-		PreviewActor->SetFlags(RF_Standalone);
+		PreviewActor->SetFlags(RF_Standalone | RF_Transactional);
 
 		PreviewWidgetActorPtr = PreviewActor;
 	}

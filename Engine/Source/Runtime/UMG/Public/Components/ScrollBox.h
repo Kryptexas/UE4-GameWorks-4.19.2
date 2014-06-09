@@ -11,7 +11,7 @@ class UMG_API UScrollBox : public UPanelWidget
 	GENERATED_UCLASS_BODY()
 
 	/** The slots containing the widgets that are scrollable. */
-	UPROPERTY(EditDefaultsOnly, EditInline, Category=Slots)
+	UPROPERTY()
 	TArray<UScrollBoxSlot*> Slots;
 
 	//TODO UMG Add ways to make adding slots callable by blueprints.

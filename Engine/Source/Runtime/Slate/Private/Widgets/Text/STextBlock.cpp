@@ -13,7 +13,7 @@ void STextBlock::Construct( const FArguments& InArgs )
 {
 	Text = InArgs._Text;
 
-	const FTextBlockStyle* MyStyle = InArgs._TextStyle;
+	TextStyle = InArgs._TextStyle;
 
 	HighlightText = InArgs._HighlightText;
 	WrapTextAt = InArgs._WrapTextAt;
@@ -22,34 +22,47 @@ void STextBlock::Construct( const FArguments& InArgs )
 	CachedWrapTextWidth = 0.0f;
 	CachedAutoWrapTextWidth = 0.0f;
 
-	Font = (InArgs._Font.IsSet())
-		? InArgs._Font
-		: MyStyle->Font;
-
-	ForegroundColor = InArgs._ColorAndOpacity.IsSet()
-		? InArgs._ColorAndOpacity
-		: MyStyle->ColorAndOpacity;
-
-	ShadowOffset = InArgs._ShadowOffset.IsSet()
-		? InArgs._ShadowOffset
-		: MyStyle->ShadowOffset;
-
-	ShadowColorAndOpacity = InArgs._ShadowColorAndOpacity.IsSet()
-		? InArgs._ShadowColorAndOpacity
-		: MyStyle->ShadowColorAndOpacity;
-
-	HighlightColor = InArgs._HighlightColor.IsSet()
-		? InArgs._HighlightColor
-		: MyStyle->HighlightColor;
-
-	HighlightShape = InArgs._HighlightShape.IsSet()
-		? InArgs._HighlightShape
-		: &MyStyle->HighlightShape;
+	Font = InArgs._Font;
+	ColorAndOpacity = InArgs._ColorAndOpacity;
+	ShadowOffset = InArgs._ShadowOffset;
+	ShadowColorAndOpacity = InArgs._ShadowColorAndOpacity;
+	HighlightColor = InArgs._HighlightColor;
+	HighlightShape = InArgs._HighlightShape;
 
 	OnDoubleClicked = InArgs._OnDoubleClicked;
 
 	// Request text size be cached
 	bRequestCache = true;
+}
+
+FSlateFontInfo STextBlock::GetFont() const
+{
+	return Font.IsSet() ? Font.Get() : TextStyle->Font;
+}
+
+FSlateColor STextBlock::GetColorAndOpacity() const
+{
+	return ColorAndOpacity.IsSet() ? ColorAndOpacity.Get() : TextStyle->ColorAndOpacity;
+}
+
+FVector2D STextBlock::GetShadowOffset() const
+{
+	return ShadowOffset.IsSet() ? ShadowOffset.Get() : TextStyle->ShadowOffset;
+}
+
+FLinearColor STextBlock::GetShadowColorAndOpacity() const
+{
+	return ShadowColorAndOpacity.IsSet() ? ShadowColorAndOpacity.Get() : TextStyle->ShadowColorAndOpacity;
+}
+
+FLinearColor STextBlock::GetHighlightColor() const
+{
+	return HighlightColor.IsSet() ? HighlightColor.Get() : TextStyle->HighlightColor;
+}
+
+const FSlateBrush* STextBlock::GetHighlightShape() const
+{
+	return HighlightShape.IsSet() ? HighlightShape.Get() : &TextStyle->HighlightShape;
 }
 
 void STextBlock::SetText( const TAttribute< FText >& InText )
@@ -66,11 +79,6 @@ void STextBlock::SetText( const TAttribute< FText >& InText )
 	bRequestCache = true;
 }
 
-void STextBlock::SetForegroundColor( const TAttribute<FSlateColor>& InSlateColor )
-{
-	ForegroundColor = InSlateColor;
-}
-
 int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 #if SLATE_HD_STATS
@@ -84,10 +92,10 @@ int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
 	ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	const FVector2D CurShadowOffset = ShadowOffset.Get();
+	const FVector2D CurShadowOffset = GetShadowOffset();
 	const bool ShouldDropShadow = CurShadowOffset.Size() > 0;
 
-	const FSlateFontInfo& FontInfo = Font.Get();
+	FSlateFontInfo FontInfo = GetFont();
 
 	// Perform text auto-wrapping if that was enabled.
 	if( AutoWrapText.Get() )
@@ -147,10 +155,10 @@ int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 							OutDrawElements,
 							++LayerId,
 							AllottedGeometry.ToPaintGeometry(HighlightStartOffset, HighlightSize),
-							HighlightShape.Get(),
+							GetHighlightShape(),
 							ClippingRect,
 							DrawEffects,
-							InWidgetStyle.GetColorAndOpacityTint() * HighlightColor.Get()
+							InWidgetStyle.GetColorAndOpacityTint() * GetHighlightColor()
 							);
 					}
 				}
@@ -169,7 +177,7 @@ int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 			FontInfo,
 			ClippingRect,
 			DrawEffects,
-			ShadowColorAndOpacity.Get()*InWidgetStyle.GetColorAndOpacityTint()
+			GetShadowColorAndOpacity() * InWidgetStyle.GetColorAndOpacityTint()
 		);
 	}
 
@@ -182,7 +190,7 @@ int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 		FontInfo,
 		ClippingRect,
 		DrawEffects,
-		InWidgetStyle.GetColorAndOpacityTint() * ForegroundColor.Get().GetColor(InWidgetStyle)
+		InWidgetStyle.GetColorAndOpacityTint() * GetColorAndOpacity().GetColor(InWidgetStyle)
 	);
 
 	return LayerId;
@@ -219,7 +227,7 @@ void STextBlock::CacheDesiredSize()
 
 	// Get the wrapping width and font to see if they have changed
 	float WrappingWidth = WrapTextAt.Get();
-	const FSlateFontInfo& FontInfo = Font.Get();
+	const FSlateFontInfo& FontInfo = GetFont();
 
 	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText and CachedAutoWrapTextWidth), or a mixture of both
 	// Take whichever has the smallest value (>1)
@@ -261,7 +269,7 @@ void STextBlock::CacheDesiredSize()
 			TextMeasurement.X = FMath::Min(TextMeasurement.X, WrappingWidth);
 		}
 
-		this->Advanced_SetDesiredSize(TextMeasurement + ShadowOffset.Get());
+		this->Advanced_SetDesiredSize(TextMeasurement + GetShadowOffset());
 
 		// Update cached values
 		CachedWrapTextWidth = WrappingWidth;
@@ -270,7 +278,6 @@ void STextBlock::CacheDesiredSize()
 	}
 }
 
-
 FVector2D STextBlock::ComputeDesiredSize() const
 {
 	// Usually widgets just override ComputeDesiredSize(), but STextBlock
@@ -278,4 +285,41 @@ FVector2D STextBlock::ComputeDesiredSize() const
 
 	// Dummy implementation.
 	return FVector2D::ZeroVector;
+}
+
+void STextBlock::SetFont(const TAttribute< FSlateFontInfo >& InFont)
+{
+	Font = InFont;
+	bRequestCache = true;
+}
+
+void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpacity)
+{
+	ColorAndOpacity = InColorAndOpacity;
+}
+
+void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
+{
+	TextStyle = InTextStyle;
+	bRequestCache = true;
+}
+
+void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
+{
+	WrapTextAt = InWrapTextAt;
+}
+
+void STextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
+{
+	AutoWrapText = InAutoWrapText;
+}
+
+void STextBlock::SetShadowOffset(const TAttribute<FVector2D>& InShadowOffset)
+{
+	ShadowOffset = InShadowOffset;
+}
+
+void STextBlock::SetShadowColorAndOpacity(const TAttribute<FLinearColor>& InShadowColorAndOpacity)
+{
+	ShadowColorAndOpacity = InShadowColorAndOpacity;
 }

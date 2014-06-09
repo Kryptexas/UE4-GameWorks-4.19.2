@@ -26,7 +26,8 @@ class UMG_API UWidgetTree : public UObject
 	template< class T >
 	T* ConstructWidget(TSubclassOf<class UWidget> WidgetType)
 	{
-		UWidget* Widget = (UWidget*)ConstructObject<class UWidget>(WidgetType, this);
+		UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
+		Widget->SetFlags(RF_Transactional);
 		WidgetTemplates.Add(Widget);
 
 		return (T*)Widget;

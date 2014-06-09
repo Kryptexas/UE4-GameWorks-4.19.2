@@ -372,25 +372,25 @@ static TSharedRef<IToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 	FFavoritedBlueprintPaletteItem ActionItem(ActionIn);
 	if (ActionItem.IsValid())
 	{
-		FTextBlockStyle PathStyle = FTextBlockStyle()
+		static FTextBlockStyle PathStyle = FTextBlockStyle()
 			.SetFont(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8))
 			.SetColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f));
 
 		NewToolTip = SNew(SToolTip)
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			+ SVerticalBox::Slot()
 			[
 				OldToolTip->GetContentWidget()
 			]
 
-			+SVerticalBox::Slot()
-				.HAlign(EHorizontalAlignment::HAlign_Right)
+			+ SVerticalBox::Slot()
+			.HAlign(EHorizontalAlignment::HAlign_Right)
 			[
 				SNew(STextBlock)
-					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-					.Text(FText::FromString(ActionItem.ToString()))
-					.TextStyle(&PathStyle)
+				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.Text(FText::FromString(ActionItem.ToString()))
+				//.TextStyle(&PathStyle)
 			]
 		];
 	}

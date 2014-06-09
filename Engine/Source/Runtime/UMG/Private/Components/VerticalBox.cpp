@@ -67,6 +67,7 @@ void UVerticalBox::ReplaceChildAt(int32 Index, UWidget* Content)
 void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -82,14 +83,8 @@ TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 	TSharedRef<SVerticalBox> NewWidget = SNew(SVerticalBox);
 	MyVerticalBox = NewWidget;
 
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	for ( auto Slot : Slots )
 	{
-		UVerticalBoxSlot* Slot = Slots[SlotIndex];
-		if ( Slot == NULL )
-		{
-			Slots[SlotIndex] = Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
-		}
-
 		Slot->Parent = this;
 		Slot->BuildSlot(NewWidget);
 	}
@@ -100,6 +95,7 @@ TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
+	Slot->SetFlags(RF_Transactional);
 	Slot->Content = Content;
 	Slot->Parent = this;
 
@@ -130,16 +126,5 @@ void UVerticalBox::ConnectEditorData()
 
 void UVerticalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	// Ensure the slots have unique names
-	int32 SlotNumbering = 1;
-
-	TSet<FName> UniqueSlotNames;
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		if ( Slots[SlotIndex] == NULL )
-		{
-			Slots[SlotIndex] = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
-		}
-	}
 }
 #endif
