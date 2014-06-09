@@ -159,11 +159,7 @@ bool FFunctionalTestingMaps::RunTest(const FString& Parameters)
 		bool bLoadAsTemplate = false;
 		bool bShowProgress = false;
 		FEditorFileUtils::LoadMap(MapName, bLoadAsTemplate, bShowProgress);
-
-		const bool bRunInPIE = MapName.EndsWith(TEXT("_PIE"));
-		UE_LOG(LogFunctionalTesting, Display, TEXT("Running map %s in %s mode"), *MapName, bRunInPIE ? TEXT("PIE") : TEXT("SIMULATION"));
-
-		EditorEngine->PlayInEditor( GWorld, bRunInPIE );
+		EditorEngine->PlayInEditor(GWorld, /*bInSimulateInEditor=*/false);
 	}
 	else
 #endif // WITH_EDITOR

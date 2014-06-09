@@ -44,6 +44,9 @@ class AFunctionalTest : public AActor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FunctionalTesting)
 	FText TimesUpMessage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FunctionalTesting)
+	AActor* ObservationPoint;
+
 	/** Called when the test is started */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestStart;
@@ -54,7 +57,7 @@ class AFunctionalTest : public AActor
 
 	UPROPERTY(Transient)
 	TArray<AActor*> AutoDestroyActors;
-
+	
 	FString FailureMessage;
 	
 #if WITH_EDITORONLY_DATA
@@ -104,6 +107,10 @@ public:
 	virtual void Tick(float DeltaSeconds) OVERRIDE;
 	// AActor interface end
 
+protected:
+	void GoToObservationPoint();
+
+public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
 protected:

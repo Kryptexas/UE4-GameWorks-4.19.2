@@ -81,6 +81,8 @@ bool AFunctionalTest::StartTest()
 	}
 
 	bIsRunning = true;
+
+	GoToObservationPoint();
 	
 	OnTestStart.Broadcast();
 
@@ -91,6 +93,12 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 {
 	const static UEnum* FTestResultTypeEnum = FindObject<UEnum>( NULL, TEXT("FunctionalTesting.FunctionalTest.EFunctionalTestResult") );
 	
+	if (bIsRunning == false)
+	{
+		// ignore
+		return;
+	}
+
 	bIsRunning = false;
 	SetActorTickEnabled(false);
 
@@ -222,3 +230,22 @@ void AFunctionalTest::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 }
 
 #endif // WITH_EDITOR
+
+void AFunctionalTest::GoToObservationPoint()
+{
+	if (ObservationPoint == NULL)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		APlayerController* PC = World->GetFirstPlayerController();
+		if (PC && PC->GetPawn())
+		{
+			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation());
+			PC->SetControlRotation(ObservationPoint->GetActorRotation());
+		}
+	}
+}
