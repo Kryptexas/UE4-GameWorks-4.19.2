@@ -15,6 +15,11 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 	{
 		TileComponent = InTileComponent;
 		Material = TileComponent->Material;
+
+		if (Material)
+		{
+			MaterialRelevance = Material->GetRelevance();
+		}
 	}
 }
 
