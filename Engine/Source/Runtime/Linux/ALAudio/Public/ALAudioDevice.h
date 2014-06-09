@@ -195,7 +195,7 @@ public:
 	FALAudioDevice() {} 
 	virtual ~FALAudioDevice() {} 
 
-	virtual FName GetRuntimeFormat() OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) OVERRIDE
 	{
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;

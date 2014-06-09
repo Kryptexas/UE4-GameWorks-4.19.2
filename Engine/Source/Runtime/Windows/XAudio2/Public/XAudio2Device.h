@@ -91,8 +91,14 @@ class FXAudio2Device : public FAudioDevice
 	/** Creates a new platform specific sound source */
 	virtual FSoundSource* CreateSoundSource() OVERRIDE;
 
-	virtual FName GetRuntimeFormat() OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) OVERRIDE
 	{
+		static FName NAME_OPUS(TEXT("OPUS"));
+
+		if (SoundWave->IsStreaming())
+		{
+			return NAME_OPUS;
+		}
 #if WITH_OGGVORBIS
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;

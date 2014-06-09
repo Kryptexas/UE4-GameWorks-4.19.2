@@ -309,7 +309,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 		}
 
 #if !WITH_EDITOR
-		AudioClassInfo->SizeResident += SoundWave->GetCompressedDataSize(GetRuntimeFormat());
+		AudioClassInfo->SizeResident += SoundWave->GetCompressedDataSize(GetRuntimeFormat(SoundWave));
 		AudioClassInfo->NumResident++;
 #else
 		switch( SoundWave->DecompressionType )
@@ -321,7 +321,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 			break;
 
 		case DTYPE_RealTime:
-			AudioClassInfo->SizeRealTime += SoundWave->GetCompressedDataSize(GetRuntimeFormat());
+			AudioClassInfo->SizeRealTime += SoundWave->GetCompressedDataSize(GetRuntimeFormat(SoundWave));
 			AudioClassInfo->NumRealTime++;
 			break;
 
@@ -2301,7 +2301,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		}
 
 		// Grab the compressed audio data
-		SoundWave->InitAudioResource(GetRuntimeFormat());
+		SoundWave->InitAudioResource(GetRuntimeFormat(SoundWave));
 
 		if (SoundWave->AudioDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native)
 		{
@@ -2320,7 +2320,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			}
 
 			static FName NAME_OGG(TEXT("OGG"));
-			SoundWave->bDecompressedFromOgg = GetRuntimeFormat() == NAME_OGG;
+			SoundWave->bDecompressedFromOgg = GetRuntimeFormat(SoundWave) == NAME_OGG;
 
 			// the audio decompressor will track memory
 			bTrackMemory = false;

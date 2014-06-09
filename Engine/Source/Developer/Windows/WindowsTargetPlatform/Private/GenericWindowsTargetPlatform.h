@@ -156,6 +156,13 @@ public:
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const OVERRIDE
 	{
 		static FName NAME_OGG(TEXT("OGG"));
+		static FName NAME_OPUS(TEXT("OPUS"));
+
+		if (Wave->IsStreaming())
+		{
+			return NAME_OPUS;
+		}
+
 		return NAME_OGG;
 	}
 #endif //WITH_ENGINE

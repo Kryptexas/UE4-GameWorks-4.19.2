@@ -237,6 +237,10 @@ bool FXAudio2Device::HasCompressedAudioInfoClass(USoundWave* SoundWave)
 
 class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave* SoundWave)
 {
+	if (SoundWave->IsStreaming())
+	{
+		return new FOpusAudioInfo();
+	}
 #if WITH_OGGVORBIS
 	return new FVorbisAudioInfo();
 #else
@@ -499,7 +503,7 @@ void FXAudio2Device::TimeTest( FOutputDevice& Ar, const TCHAR* WaveAssetName )
 		}
 		
 		// If the wave loaded in fine, time the decompression
-		Wave->InitAudioResource(GetRuntimeFormat());
+		Wave->InitAudioResource(GetRuntimeFormat(Wave));
 
 		double Start = FPlatformTime::Seconds();
 

@@ -126,7 +126,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 	}
 
 	FWaveModInfo WaveInfo;
-	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat());
+	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat(Wave));
 	FALSoundBuffer* Buffer = nullptr;
 	
 	// Find the existing buffer if any

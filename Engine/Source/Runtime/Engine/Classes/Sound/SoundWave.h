@@ -25,6 +25,84 @@ enum EDecompressionType
 	DTYPE_MAX,
 };
 
+/**
+ * A chunk of streamed audio.
+ */
+struct FStreamedAudioChunk
+{
+	/** Bulk data if stored in the package. */
+	FByteBulkData BulkData;
+
+	/** Default constructor. */
+	FStreamedAudioChunk()
+	{
+	}
+
+	/** Serialization. */
+	void Serialize(FArchive& Ar, UObject* Owner, int32 ChunkIndex);
+
+#if WITH_EDITORONLY_DATA
+	/** Key if stored in the derived data cache. */
+	FString DerivedDataKey;
+
+	/**
+	 * Place chunk data in the derived data cache associated with the provided
+	 * key.
+	 */
+	void StoreInDerivedDataCache(const FString& InDerivedDataKey);
+#endif // #if WITH_EDITORONLY_DATA
+};
+
+/**
+ * Platform-specific data used streaming audio at runtime.
+ */
+USTRUCT()
+struct FStreamedAudioPlatformData
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Number of audio chunks. */
+	int32 NumChunks;
+	/** Format in which audio chunks are stored. */
+	FName AudioFormat;
+	/** audio data. */
+	TIndirectArray<struct FStreamedAudioChunk> Chunks;
+
+#if WITH_EDITORONLY_DATA
+	/** The key associated with this derived data. */
+	FString DerivedDataKey;
+	/** Async cache task if one is outstanding. */
+	struct FStreamedAudioAsyncCacheDerivedDataTask* AsyncTask;
+#endif
+
+	/** Default constructor. */
+	FStreamedAudioPlatformData();
+
+	/** Destructor. */
+	~FStreamedAudioPlatformData();
+
+	/**
+	 * Try to load audio chunks from the derived data cache.
+	 * @param FirstChunkToLoad - The first Chunk index to load.
+	 * @param OutChunkData -	Must point to an array of pointers with at least
+	 *						Audio.Chunks.Num() - FirstChunkToLoad + 1 entries. Upon
+	 *						return those pointers will contain audio chunk data.
+	 * @returns true if all requested chunks have been loaded.
+	 */
+	bool TryLoadChunks(int32 FirstChunkToLoad, void** OutChunkData);
+
+	/** Serialization. */
+	void Serialize(FArchive& Ar, class USoundWave* Owner);
+
+#if WITH_EDITORONLY_DATA
+	void Cache(class USoundWave& InSoundWave, FName AudioFormatName, uint32 InFlags);
+	void FinishCache();
+	ENGINE_API bool TryInlineChunkData();
+	bool AreDerivedChunksAvailable() const;
+#endif
+
+};
+
 UCLASS(hidecategories=Object, editinlinenew, BlueprintType, dependson=USoundGroups)
 class ENGINE_API USoundWave : public USoundBase
 {
@@ -37,6 +115,9 @@ class ENGINE_API USoundWave : public USoundBase
 	/** If set, when played directly (not through a sound cue) the wave will be played looping. */
 	UPROPERTY(EditAnywhere, Category=SoundWave )
 	uint32 bLooping:1;
+
+	UPROPERTY()
+	uint32 bStreaming:1;
 
 	/** Set to true for programmatically-generated, streamed audio. */
 	uint32 bProcedural:1;
@@ -160,6 +241,12 @@ public:
 	/** Cache the total used memory recorded for this SoundWave to keep INC/DEC consistent */
 	int32 TrackedMemoryUsage;
 
+	/** The streaming derived data for this sound on this platform. */
+	FStreamedAudioPlatformData *RunningPlatformData;
+
+	/* cooked streaming platform data for this sound */
+	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
+
 	// Begin UObject interface. 
 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
@@ -261,7 +348,45 @@ public:
 	 */ 
 	void InvalidateCompressedData();
 
+	/**
+	 * Checks whether sound has been categorised as streaming
+	 */
+	bool IsStreaming() const;
 
+	/**
+	 * Attempts to update the cached platform data after any changes that might affect it
+	 */
+	void UpdatePlatformData();
+
+	void CleanupCachedRunningPlatformData();
+	void CleanupCachedCookedPlatformData();
+
+	/**
+	 * Serializes cooked platform data.
+	 */
+	void SerializeCookedPlatformData(class FArchive& Ar);
+
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Caches platform data for the sound.
+	 */
+	void CachePlatformData(bool bAsyncCache = false);
+
+	/**
+	 * Begins caching platform data in the background for the platform requested
+	 */
+	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
+
+	/**
+	 * Begins caching platform data in the background.
+	 */
+	void BeginCachePlatformData();
+
+	/**
+	 * Blocks on async cache tasks and prepares platform data for use.
+	 */
+	void FinishCachePlatformData();
+#endif
 };
 
 

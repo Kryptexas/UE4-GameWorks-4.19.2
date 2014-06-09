@@ -232,6 +232,67 @@ public:
 		return CompressedDataStore.Num();
 	}
 
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const OVERRIDE
+	{
+		// 16K chunks - don't really have an idea of what's best for loading from disc yet
+		const int32 kMaxChunkSizeBytes = 16384;
+		if (SrcBuffer.Num() == 0)
+		{
+			return false;
+		}
+
+		uint32 ReadOffset = 0;
+		uint32 WriteOffset = 0;
+		uint16 ProcessedFrames = 0;
+		const uint8* LockedSrc = SrcBuffer.GetTypedData();
+
+		// Read True Sample Count, Number of channels and Frames to Encode first
+		uint32 TrueSampleCount = *((uint32*)(LockedSrc + ReadOffset));
+		ReadOffset += sizeof(uint32);
+		uint8 NumChannels = *(LockedSrc + ReadOffset);
+		ReadOffset += sizeof(uint8);
+		uint16 SerializedFrames = *((uint16*)(LockedSrc + ReadOffset));
+		ReadOffset += sizeof(uint16);
+
+		// Should always be able to store basic info in a single chunk
+		check(ReadOffset - WriteOffset < kMaxChunkSizeBytes)
+
+		while (ProcessedFrames < SerializedFrames)
+		{
+			uint16 FrameSize = *((uint16*)(LockedSrc + ReadOffset));
+
+			if ( (ReadOffset + sizeof(uint16) + FrameSize) - WriteOffset >= kMaxChunkSizeBytes)
+			{
+				// need to write some data
+				int32 OutIndex = OutBuffers.Num();
+				int32 BytesToCopy = ReadOffset - WriteOffset;
+				OutBuffers.Add(TArray<uint8>());
+				OutBuffers[OutIndex].Empty(BytesToCopy);
+				OutBuffers[OutIndex].AddUninitialized(BytesToCopy);
+				void* NewChunkData = OutBuffers[OutIndex].GetTypedData();
+				FMemory::Memcpy(NewChunkData, LockedSrc+WriteOffset, BytesToCopy);
+				WriteOffset += BytesToCopy;
+			}
+
+			ReadOffset += sizeof(uint16) + FrameSize;
+			ProcessedFrames++;
+		}
+		if (WriteOffset < ReadOffset)
+		{
+			// need to write some data
+			int32 OutIndex = OutBuffers.Num();
+			int32 BytesToCopy = ReadOffset - WriteOffset;
+			OutBuffers.Add(TArray<uint8>());
+			OutBuffers[OutIndex].Empty(BytesToCopy);
+			OutBuffers[OutIndex].AddUninitialized(BytesToCopy);
+			void* NewChunkData = OutBuffers[OutIndex].GetTypedData();
+			FMemory::Memcpy(NewChunkData, LockedSrc + WriteOffset, BytesToCopy);
+			WriteOffset += BytesToCopy;
+		}
+
+		return true;
+	}
+
 	void Destroy(OpusEncoder* Encoder) const
 	{
 #if USE_UE4_MEM_ALLOC

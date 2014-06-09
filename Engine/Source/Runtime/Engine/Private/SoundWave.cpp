@@ -7,6 +7,46 @@
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
 
+/*-----------------------------------------------------------------------------
+	FStreamedAudioChunk
+-----------------------------------------------------------------------------*/
+
+void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkIndex)
+{
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
+
+	BulkData.Serialize(Ar, Owner, ChunkIndex);
+
+#if WITH_EDITORONLY_DATA
+	if (!bCooked)
+	{
+		Ar << DerivedDataKey;
+	}
+#endif // #if WITH_EDITORONLY_DATA
+}
+
+#if WITH_EDITORONLY_DATA
+void FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKey)
+{
+	int32 BulkDataSizeInBytes = BulkData.GetBulkDataSize();
+	check(BulkDataSizeInBytes > 0);
+
+	TArray<uint8> DerivedData;
+	FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
+	Ar << BulkDataSizeInBytes;
+	{
+		void* BulkChunkData = BulkData.Lock(LOCK_READ_ONLY);
+		Ar.Serialize(BulkChunkData, BulkDataSizeInBytes);
+		BulkData.Unlock();
+	}
+
+	GetDerivedDataCacheRef().Put(*InDerivedDataKey, DerivedData);
+	DerivedDataKey = InDerivedDataKey;
+	BulkData.RemoveBulkData();
+}
+#endif // #if WITH_EDITORONLY_DATA
+
 USoundWave::USoundWave(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -27,7 +67,7 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 
 	if (GEngine && GEngine->GetAudioDevice())
 	{
-		CalculatedResourceSize += GetCompressedDataSize(GEngine->GetAudioDevice()->GetRuntimeFormat());
+		CalculatedResourceSize += GetCompressedDataSize(GEngine->GetAudioDevice()->GetRuntimeFormat(this));
 	}
 
 	return CalculatedResourceSize;
@@ -126,6 +166,21 @@ void USoundWave::Serialize( FArchive& Ar )
 	}
 
 	Ar << CompressedDataGuid;
+
+	if (IsStreaming())
+	{
+		if (bCooked)
+		{
+			SerializeCookedPlatformData(Ar);
+		}
+
+#if WITH_EDITORONLY_DATA	
+		if (Ar.IsLoading() && !Ar.IsTransacting() && !bCooked && !(GetOutermost()->PackageFlags & PKG_ReloadingForCooker))
+		{
+			BeginCachePlatformData();
+		}
+#endif // #if WITH_EDITORONLY_DATA
+	}
 }
 
 /**
@@ -242,6 +297,13 @@ void USoundWave::PostLoad()
 		}
 	}
 
+#if WITH_EDITORONLY_DATA
+	if (IsStreaming())
+	{
+		FinishCachePlatformData();
+	}
+#endif // #if WITH_EDITORONLY_DATA
+
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTimeChannels, NumChannels * Duration );
 }
@@ -306,6 +368,7 @@ void USoundWave::CookerWillNeverCookAgain()
 	Super::CookerWillNeverCookAgain();
 	RawData.RemoveBulkData();
 	CompressedFormatData.FlushData();
+	CleanupCachedCookedPlatformData();
 }
 
 void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -313,6 +376,7 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	static FName CompressionQualityFName = FName( TEXT( "CompressionQuality" ) );
+	static FName StreamingFName = GET_MEMBER_NAME_CHECKED(USoundWave, bStreaming);
 
 	// Prevent constant re-compression of SoundWave while properties are being changed interactively
 	if (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
@@ -323,6 +387,13 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		{
 			InvalidateCompressedData();
 			FreeResources();
+			UpdatePlatformData();
+			MarkPackageDirty();
+		}
+		else if (PropertyThatChanged && PropertyThatChanged->GetFName() == StreamingFName)
+		{
+			FreeResources();
+			UpdatePlatformData();
 			MarkPackageDirty();
 		}
 	}
@@ -349,7 +420,6 @@ void USoundWave::FreeResources()
 		}
 	}
 
-	NumChannels = 0;
 	SampleRate = 0;
 	Duration = 0.0f;
 	ResourceID = 0;
@@ -401,6 +471,9 @@ void USoundWave::FinishDestroy()
 	FreeResources();
 
 	Super::FinishDestroy();
+
+	CleanupCachedRunningPlatformData();
+	CleanupCachedCookedPlatformData();
 }
 
 void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
@@ -543,4 +616,23 @@ float USoundWave::GetMaxAudibleDistance()
 float USoundWave::GetDuration()
 {
 	return ( bLooping ? INDEFINITELY_LOOPING_DURATION : Duration);
+}
+
+bool USoundWave::IsStreaming() const
+{
+	// TODO: add in check on whether it's part of a streaming SoundGroup
+	return bStreaming;
+}
+
+void USoundWave::UpdatePlatformData()
+{
+	if (IsStreaming())
+	{
+		// TODO: Check we aren't already streaming before doing this
+
+#if WITH_EDITORONLY_DATA
+		// Recache platform data if the source has changed.
+		CachePlatformData();
+#endif
+	}
 }

@@ -53,7 +53,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	
 	Buffer->DecompressionState = AudioDevice->CreateCompressedAudioInfo(InWave);
 
-	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat() );
+	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat(InWave) );
 	
 	if( Buffer->DecompressionState->ReadCompressedInfo( InWave->ResourceData, InWave->ResourceSize, &QualityInfo ) )
 	{

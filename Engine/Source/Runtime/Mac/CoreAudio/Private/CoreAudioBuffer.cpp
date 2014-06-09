@@ -149,7 +149,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 
 	Buffer->DecompressionState = CoreAudioDevice->CreateCompressedAudioInfo(Wave);
 	
-	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
+	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat(Wave) );
 	
 	if( Buffer->DecompressionState->ReadCompressedInfo( Wave->ResourceData, Wave->ResourceSize, &QualityInfo ) )
 	{

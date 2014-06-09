@@ -328,7 +328,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 
 	Buffer->DecompressionState = XAudio2Device->CreateCompressedAudioInfo(Wave);
 
-	Wave->InitAudioResource(XAudio2Device->GetRuntimeFormat());
+	Wave->InitAudioResource(XAudio2Device->GetRuntimeFormat(Wave));
 
 	if( Buffer->DecompressionState->ReadCompressedInfo( Wave->ResourceData, Wave->ResourceSize, &QualityInfo ) )
 	{
