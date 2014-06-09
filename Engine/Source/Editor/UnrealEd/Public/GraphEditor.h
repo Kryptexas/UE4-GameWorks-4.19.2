@@ -109,7 +109,7 @@ public:
 		, _GraphToEdit(NULL)
 		, _GraphToDiff(NULL)
 		, _AutoExpandActionMenu(false)
-		, _ShowPIENotification(true)
+		, _ShowGraphStateOverlay(true)
 		{}
 
 		SLATE_ARGUMENT( TSharedPtr<FUICommandList>, AdditionalCommands )
@@ -124,7 +124,9 @@ public:
 		SLATE_ARGUMENT( bool, AutoExpandActionMenu )
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryBack)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryForward)
-		SLATE_ARGUMENT(bool, ShowPIENotification)
+
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)				
 	SLATE_END_ARGS()
 
 	/**

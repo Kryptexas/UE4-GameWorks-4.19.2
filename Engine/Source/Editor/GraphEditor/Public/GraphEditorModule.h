@@ -41,7 +41,7 @@ private:
 		UEdGraph* InGraphToDiff,
 		FSimpleDelegate InOnNavigateHistoryBack,
 		FSimpleDelegate InOnNavigateHistoryForward,
-		bool InShowPIENotification);
+		TAttribute<bool> ShowGraphStateOverlay);
 
 private:
 	/** All extender delegates for the graph menus */

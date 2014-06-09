@@ -148,7 +148,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 	TitleBarEnabledOnly = InArgs._TitleBarEnabledOnly;
 	TitleBar	= InArgs._TitleBar;
 	bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
-	bShowPIENotification = InArgs._ShowPIENotification;
+	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
 
 	OnNavigateHistoryBack = InArgs._OnNavigateHistoryBack;
 	OnNavigateHistoryForward = InArgs._OnNavigateHistoryForward;
@@ -241,7 +241,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnSpawnNodeByShortcut( InArgs._GraphEvents.OnSpawnNodeByShortcut )
 			.OnUpdateGraphPanel( this, &SGraphEditorImpl::GraphEd_OnPanelUpdated )
 			.OnDisallowedPinConnection( InArgs._GraphEvents.OnDisallowedPinConnection )
-			.ShowPIENotification( InArgs._ShowPIENotification )
+			.ShowGraphStateOverlay(InArgs._ShowGraphStateOverlay)
 		]
 
 		// Indicator of current zoom level
@@ -317,7 +317,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 
 EVisibility SGraphEditorImpl::PIENotification( ) const
 {
-	if (bShowPIENotification && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
+	if(ShowGraphStateOverlay.Get() && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
 	{
 		return EVisibility::Visible;
 	}
@@ -609,7 +609,7 @@ void SGraphEditorImpl::SetPinVisibility( SGraphEditor::EPinVisibility Visibility
 
 EVisibility SGraphEditorImpl::ReadOnlyVisibility() const
 {
-	if(PIENotification() == EVisibility::Hidden && !IsEditable.Get())
+	if(ShowGraphStateOverlay.Get() && PIENotification() == EVisibility::Hidden && !IsEditable.Get())
 	{
 		return EVisibility::Visible;
 	}

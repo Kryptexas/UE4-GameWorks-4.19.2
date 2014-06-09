@@ -148,8 +148,11 @@ TSharedPtr<SToolTip> SGraphNodeK2Composite::GetComplexTooltip()
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				[
+					// Create preview for the tooltip, make sure to disable state overlays to prevent
+					// PIE and read-only borders obscuring the graph
 					SNew(SGraphPreviewer, BoundGraph)
 					.CornerOverlayText(this, &SGraphNodeK2Composite::GetPreviewCornerText)
+					.ShowGraphStateOverlay(false)
 				]
 			];
 

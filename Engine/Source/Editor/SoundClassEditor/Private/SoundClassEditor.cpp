@@ -228,7 +228,7 @@ TSharedRef<SGraphEditor> FSoundClassEditor::CreateGraphEditorWidget()
 		.Appearance(AppearanceInfo)
 		.GraphToEdit(SoundClass->SoundClassGraph)
 		.GraphEvents(InEvents)
-		.ShowPIENotification(false);
+		.ShowGraphStateOverlay(false);
 }
 
 void FSoundClassEditor::OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection)

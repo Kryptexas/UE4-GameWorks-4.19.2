@@ -528,7 +528,7 @@ TSharedRef<SGraphEditor> FSoundCueEditor::CreateGraphEditorWidget()
 		.GraphToEdit(SoundCue->GetGraph())
 		.GraphEvents(InEvents)
 		.AutoExpandActionMenu(true)
-		.ShowPIENotification(false);
+		.ShowGraphStateOverlay(false);
 }
 
 FGraphPanelSelectionSet FSoundCueEditor::GetSelectedNodes() const

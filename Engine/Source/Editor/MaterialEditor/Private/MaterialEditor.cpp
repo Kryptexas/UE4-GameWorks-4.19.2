@@ -3531,7 +3531,7 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		.Appearance(AppearanceInfo)
 		.GraphToEdit(Material->MaterialGraph)
 		.GraphEvents(InEvents)
-		.ShowPIENotification(false);
+		.ShowGraphStateOverlay(false);
 }
 
 void FMaterialEditor::CleanUnusedExpressions()

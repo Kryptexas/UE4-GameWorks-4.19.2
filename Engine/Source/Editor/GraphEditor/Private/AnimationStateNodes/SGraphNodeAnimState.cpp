@@ -294,8 +294,11 @@ TSharedPtr<SToolTip> SGraphNodeAnimState::GetComplexTooltip()
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
+				// Create the tooltip preview, ensure to disable state overlays to stop
+				// PIE and read-only borders obscuring the graph
 				SNew(SGraphPreviewer, StateNode->GetBoundGraph())
 				.CornerOverlayText(this, &SGraphNodeAnimState::GetPreviewCornerText)
+				.ShowGraphStateOverlay(false)
 			]
 	
 			+SVerticalBox::Slot()

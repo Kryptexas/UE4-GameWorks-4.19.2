@@ -892,8 +892,11 @@ TSharedPtr<SToolTip> SGraphNode_BehaviorTree::GetComplexTooltip()
 	{
 		return SNew(SToolTip)
 			[
+				// Create the tooltip graph preview, make sure to disable state overlays to
+				// prevent the PIE / read-only borders from obscuring the graph
 				SNew(SGraphPreviewer, DecoratorNode->GetBoundGraph())
 				.CornerOverlayText(this, &SGraphNode_BehaviorTree::GetPreviewCornerText)
+				.ShowGraphStateOverlay(false)
 			];
 	}
 	return NULL;

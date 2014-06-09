@@ -34,7 +34,9 @@ public:
 		SLATE_ARGUMENT(bool, AutoExpandActionMenu)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryBack)
 		SLATE_EVENT(FSimpleDelegate, OnNavigateHistoryForward)
-		SLATE_ARGUMENT(bool, ShowPIENotification)
+
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
@@ -64,7 +66,8 @@ private:
 
 	bool bAutoExpandActionMenu;
 
-	bool bShowPIENotification;
+	/** Whether to show the state (read only / PIE etc) Overlay on the panel */
+	TAttribute<bool> ShowGraphStateOverlay;
 
 	//FOnViewChanged	OnViewChanged;
 	TArray< TWeakPtr<SGraphEditor> > LockedGraphs;

@@ -43,8 +43,8 @@ public:
 		, _GraphObjToDiff( static_cast<UEdGraph*>(NULL) )
 		, _InitialZoomToFit( false )
 		, _IsEditable( true )
+		, _ShowGraphStateOverlay(true)
 		, _OnUpdateGraphPanel()
-		, _ShowPIENotification( true )
 		{}
 
 		SLATE_EVENT( FOnGetContextMenuFor, OnGetContextMenuFor )
@@ -56,12 +56,13 @@ public:
 		SLATE_ARGUMENT( class UEdGraph*, GraphObjToDiff )
 		SLATE_ARGUMENT( bool, InitialZoomToFit )
 		SLATE_ATTRIBUTE( bool, IsEditable )
+		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
+		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 		SLATE_EVENT( FOnNodeVerifyTextCommit, OnVerifyTextCommit )
 		SLATE_EVENT( FOnNodeTextCommitted, OnTextCommitted )
 		SLATE_EVENT( SGraphEditor::FOnSpawnNodeByShortcut, OnSpawnNodeByShortcut )
 		SLATE_EVENT( FOnUpdateGraphPanel, OnUpdateGraphPanel )
 		SLATE_EVENT( SGraphEditor::FOnDisallowedPinConnection, OnDisallowedPinConnection )
-		SLATE_ARGUMENT( bool, ShowPIENotification )
 		//SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 	SLATE_END_ARGS()
 
@@ -230,6 +231,9 @@ protected:
 
 	/** Whether to draw the overlay indicating we're in PIE */
 	bool bShowPIENotification;
+
+	/** Whether to draw decorations for graph state (PIE / ReadOnly etc.) */
+	TAttribute<bool> ShowGraphStateOverlay;
 
 private:
 	/** Map of recently added nodes for the panel */

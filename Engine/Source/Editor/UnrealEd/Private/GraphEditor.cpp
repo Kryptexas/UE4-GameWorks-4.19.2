@@ -28,7 +28,7 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 		InArgs._GraphToDiff,
 		InArgs._OnNavigateHistoryBack,
 		InArgs._OnNavigateHistoryForward,
-		InArgs._ShowPIENotification
+		InArgs._ShowGraphStateOverlay
 		);
 
 	this->ChildSlot
