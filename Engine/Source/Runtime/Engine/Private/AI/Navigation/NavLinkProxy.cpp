@@ -12,6 +12,8 @@ ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCI
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("PositionComponent"));
 	RootComponent = SceneComponent;
 
+	bHidden = true;
+
 #if WITH_EDITORONLY_DATA
 	EdRenderComp = PCIP.CreateDefaultSubobject<UNavLinkRenderingComponent>(this, TEXT("EdRenderComp"));
 	EdRenderComp->PostPhysicsComponentTick.bCanEverTick = false;
