@@ -19,6 +19,9 @@ struct FPaperCustomVersion
 		// Moved tile map data out of the component into UPaperTileMap
 		MovedTileMapDataToSeparateClass = 3,
 
+		// Marked sprite UBodySetup to use simple as complex, allowing 3D raycasts to succeed
+		MarkSpriteBodySetupToUseSimpleAsComplex = 4,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

@@ -355,6 +355,7 @@ void UPaperSprite::RebuildCollisionData()
 
 	if (SpriteCollisionDomain != ESpriteCollisionMode::None)
 	{
+		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		switch (CollisionGeometry.GeometryType)
 		{
 		case ESpritePolygonMode::SourceBoundingBox:
@@ -1064,7 +1065,7 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::RemovedBodyInstance2D)
+	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::MarkSpriteBodySetupToUseSimpleAsComplex)
 	{
 		RebuildCollisionData();
 	}
