@@ -1904,6 +1904,11 @@ bool UCharacterMovementComponent::IsCrouching() const
 	return CharacterOwner && CharacterOwner->bIsCrouched;
 }
 
+bool UCharacterMovementComponent::IsWalking() const
+{
+	return IsMovingOnGround();
+}
+
 void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	// Do not update velocity when using root motion

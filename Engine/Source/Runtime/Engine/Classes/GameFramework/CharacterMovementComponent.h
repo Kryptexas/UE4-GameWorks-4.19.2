@@ -816,6 +816,10 @@ public:
 	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) OVERRIDE;
 	//END UMovementComponent Interface
 
+	/** @return true if the character is in the 'Walking' movement mode. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	bool IsWalking() const;
+
 	//BEGIN UNavMovementComponent Interface
 	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) OVERRIDE;
 	virtual bool CanStopPathFollowing() const OVERRIDE;
