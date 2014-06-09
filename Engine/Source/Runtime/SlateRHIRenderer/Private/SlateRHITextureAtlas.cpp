@@ -1,35 +1,69 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHITextureAtlas.h"
+/*=============================================================================
+	SlateRHITextureAtlas.cpp: Implements the FSlateTextureAtlasRHI class.
+=============================================================================*/
 
+#include "SlateRHIRendererPrivatePCH.h"
+
+
+/* FSlateTextureAtlasRHI structors
+ *****************************************************************************/
 
 FSlateTextureAtlasRHI::FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 StrideBytes, uint32 Padding )
-	: FSlateTextureAtlas( Width, Height, StrideBytes, Padding )
-	, AtlasTexture( new FSlateTexture2DRHIRef( Width, Height, PF_B8G8R8A8, NULL, TexCreate_SRGB, true ) ) 
-{
-}
+	: FSlateTextureAtlas(Width, Height, StrideBytes, Padding)
+	, AtlasTexture(new FSlateTexture2DRHIRef(Width, Height, PF_B8G8R8A8, NULL, TexCreate_SRGB, true)) 
+{ }
 
-FSlateTextureAtlasRHI::~FSlateTextureAtlasRHI()
+
+FSlateTextureAtlasRHI::~FSlateTextureAtlasRHI( )
 {
-	if( AtlasTexture )
+	if (AtlasTexture != nullptr)
 	{
 		delete AtlasTexture;
 	}
 }
 
 
-void FSlateTextureAtlasRHI::ReleaseAtlasTexture()
+/* FSlateTextureAtlasRHI interface
+ *****************************************************************************/
+
+void FSlateTextureAtlasRHI::ReleaseAtlasTexture( )
 {
 	bNeedsUpdate = false;
-	BeginReleaseResource( AtlasTexture );
+	BeginReleaseResource(AtlasTexture);
 }
 
-void FSlateTextureAtlasRHI::ConditionalUpdateTexture()
-{
-	check( IsThreadSafeForSlateRendering() );
 
-	if( bNeedsUpdate )
+void FSlateTextureAtlasRHI::UpdateTexture_RenderThread( FSlateTextureData* RenderThreadData )
+{
+	check(IsInRenderingThread());
+
+	if (!AtlasTexture->IsInitialized())
+	{
+		AtlasTexture->InitResource();
+	}
+
+	check(AtlasTexture->IsInitialized());
+
+	uint32 Stride;
+	uint8* TempData = (uint8*)RHILockTexture2D(AtlasTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
+
+	FMemory::Memcpy(TempData, RenderThreadData->GetRawBytes().GetData(), RenderThreadData->GetStride() * RenderThreadData->GetWidth() * RenderThreadData->GetHeight());
+	RHIUnlockTexture2D(AtlasTexture->GetTypedResource(), 0, false);
+
+	delete RenderThreadData;
+}
+
+
+/* FSlateTextureAtlas overrides
+ *****************************************************************************/
+
+void FSlateTextureAtlasRHI::ConditionalUpdateTexture( )
+{
+	check(IsThreadSafeForSlateRendering());
+
+	if (bNeedsUpdate)
 	{
 		// Copy the game thread data. This is deleted on the render thread
 		FSlateTextureData* RenderThreadData = new FSlateTextureData( AtlasWidth, AtlasHeight, Stride, AtlasData ); 
@@ -42,25 +76,4 @@ void FSlateTextureAtlasRHI::ConditionalUpdateTexture()
 
 		bNeedsUpdate = false;
 	}
-
-
-}
-
-void FSlateTextureAtlasRHI::UpdateTexture_RenderThread( FSlateTextureData* RenderThreadData )
-{
-	check( IsInRenderingThread() );
-
-	if( !AtlasTexture->IsInitialized() )
-	{
-		AtlasTexture->InitResource();
-	}
-
-	check( AtlasTexture->IsInitialized() );
-
-	uint32 Stride;
-	uint8* TempData = (uint8*)RHILockTexture2D( AtlasTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false );
-	FMemory::Memcpy( TempData, RenderThreadData->GetRawBytes().GetData(), RenderThreadData->GetStride()*RenderThreadData->GetWidth()*RenderThreadData->GetHeight() );
-	RHIUnlockTexture2D( AtlasTexture->GetTypedResource(),0,false );
-
-	delete RenderThreadData;
 }

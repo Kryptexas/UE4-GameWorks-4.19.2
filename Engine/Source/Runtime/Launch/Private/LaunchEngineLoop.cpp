@@ -44,7 +44,7 @@
 	#include "Commandlets/Commandlet.h"
 
 #if !UE_SERVER
-	#include "SlateRHIRendererModule.h"
+	#include "ISlateRHIRendererModule.h"
 #endif
 
 	#include "MoviePlayer.h"
@@ -1262,7 +1262,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if !UE_SERVER// && !UE_EDITOR
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
-		TSharedRef<FSlateRenderer> SlateRenderer = FModuleManager::Get().GetModuleChecked<FSlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
+		TSharedRef<FSlateRenderer> SlateRenderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
 
 		// If Slate is being used, initialize the renderer after RHIInit 
 		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
@@ -1620,7 +1620,7 @@ void FEngineLoop::LoadPreInitModules()
 	if (!IsRunningDedicatedServer() )
 	{
 		// This needs to be loaded before InitializeShaderTypes is called
-		FModuleManager::Get().LoadModuleChecked<FSlateRHIRendererModule>("SlateRHIRenderer");
+		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
 	}
 #endif
 

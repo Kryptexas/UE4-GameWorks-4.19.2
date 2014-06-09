@@ -1,10 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateShaders.cpp: Implements shader related classes for the Slate RHI Renderer.
+=============================================================================*/
 
 #include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHIRenderingPolicy.h"
-#include "SlateShaders.h"
-#include "ShaderParameterUtils.h"
+
 
 /** Flag to determine if we are running with a color vision deficiency shader on */
 uint32 GSlateShaderColorVisionDeficiencyType = 0;

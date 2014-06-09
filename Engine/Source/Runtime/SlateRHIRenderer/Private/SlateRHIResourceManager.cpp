@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateRHIRenderingPolicy.cpp: Implements the FSlateRHIResourceManager class.
+=============================================================================*/
+
 #include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHIRenderer.h"
-#include "SlateRHIResourceManager.h"
 #include "ImageWrapper.h"
-#include "SlateRHITextureAtlas.h"
+
 
 typedef TMap<FName,FSlateTexture2DRHIRef*> FSlateTextureMap;
 
@@ -609,9 +611,9 @@ public:
 		, SelectedAtlasPage( NULL )
 	{}
 
-	virtual FIntPoint GetSize() const OVERRIDE { return FIntPoint(1024,1024); }
+	virtual FIntPoint GetSize() const override { return FIntPoint(1024,1024); }
 
-	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE
+	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override
 	{
 		if( SelectedAtlasPage.IsValid() )
 		{
@@ -623,7 +625,7 @@ public:
 		}
 	}
 
-	virtual bool RequiresVsync() const OVERRIDE { return false; }
+	virtual bool RequiresVsync() const override { return false; }
 
 	TSharedRef<SWidget> MakeVisualizerWidget()
 	{

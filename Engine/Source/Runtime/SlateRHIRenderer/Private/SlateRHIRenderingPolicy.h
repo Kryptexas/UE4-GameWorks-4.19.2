@@ -103,7 +103,7 @@ public:
 	{
 		RenderTargetTextureRHI = InRenderTargetTexture;
 	}
-	virtual FIntPoint GetSizeXY() const OVERRIDE { return SizeXY; }
+	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
 private:
 	FIntPoint SizeXY;
 };
@@ -114,11 +114,11 @@ public:
 	FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InTextureManager );
 	~FSlateRHIRenderingPolicy();
 	
-	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) OVERRIDE;
+	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
 	virtual void DrawElements( const FIntPoint& InViewportSize, FSlateRenderTarget& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
 	class FSlateShaderResource* GetViewportResource( const ISlateViewport* InViewportInterface );
-	virtual class FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush ) OVERRIDE;
+	virtual class FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush ) override;
 	TSharedPtr<FSlateFontCache>& GetFontCache() { return FontCache; }
 	
 	void InitResources();

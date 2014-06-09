@@ -38,7 +38,7 @@ public class Launch : ModuleRules
         
         if( !UEBuildConfiguration.bBuildDedicatedServer)
         {
-            PrivateDependencyModuleNames.AddRange(
+            PrivateIncludePathModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
 		        }

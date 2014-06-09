@@ -1,22 +1,33 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateRHIRendererModule.cpp: Implements the FSlateRHIRendererModule class.
+=============================================================================*/
+
 #include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHIRendererModule.h"
-#include "SlateRHIRenderer.h"
 
-void FSlateRHIRendererModule::StartupModule()
+
+/**
+ * Implements the Slate RHI Renderer module.
+ */
+class FSlateRHIRendererModule
+	: public ISlateRHIRendererModule
 {
+public:
 
-}
+	// Begin ISlateRHIRendererModule interface
 
-void FSlateRHIRendererModule::ShutdownModule()
-{
+	virtual TSharedRef<FSlateRenderer> CreateSlateRHIRenderer( ) override
+	{
+		return TSharedRef<FSlateRHIRenderer>( new FSlateRHIRenderer );
+	}
 
-}
+	virtual void StartupModule( ) override { }
+	
+	virtual void ShutdownModule( ) override { }
 
-TSharedRef<FSlateRenderer> FSlateRHIRendererModule::CreateSlateRHIRenderer()
-{
-	return TSharedRef<FSlateRHIRenderer>( new FSlateRHIRenderer );
-}
+	// End ISlateRHIRendererModule interface
+};
+
 
 IMPLEMENT_MODULE( FSlateRHIRendererModule, SlateRHIRenderer ) 

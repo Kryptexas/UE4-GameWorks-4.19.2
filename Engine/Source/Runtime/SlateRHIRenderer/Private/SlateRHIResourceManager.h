@@ -149,7 +149,7 @@ private:
 	FSlateShaderResourceProxy* GetDynamicTextureResource( const FSlateBrush& InBrush );
 
 	/** FGCObject */
-	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 	/** Map of all active dynamic texture objects being used for brush resources */

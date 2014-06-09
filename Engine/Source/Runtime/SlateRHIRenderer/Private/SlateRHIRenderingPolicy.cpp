@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateRHIRenderingPolicy.cpp: Implements the FSlateRHIRenderingPolicy class and related classes.
+=============================================================================*/
+
 #include "SlateRHIRendererPrivatePCH.h"
 #include "RenderingPolicy.h"
-#include "SlateRHIRenderingPolicy.h"
-#include "SlateShaders.h"
-#include "SlateRHIResourceManager.h"
 #include "RHIStaticStates.h"
+
 
 static EPrimitiveType GetRHIPrimitiveType( ESlateDrawPrimitive::Type SlateType )
 {

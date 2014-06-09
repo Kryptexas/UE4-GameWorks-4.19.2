@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	FSlateRenderer.h: Declares the FSlateRenderer class.
+	SlateRenderer.h: Declares the FSlateRenderer class.
 =============================================================================*/
 
 #pragma once

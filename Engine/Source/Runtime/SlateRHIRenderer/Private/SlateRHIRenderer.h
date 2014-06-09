@@ -122,22 +122,22 @@ public:
 	~FSlateRHIRenderer();
 
 	/** FSlateRenderer interface */
-	virtual void Initialize() OVERRIDE;
-	virtual void Destroy() OVERRIDE;
-	virtual FSlateDrawBuffer& GetDrawBuffer() OVERRIDE;
-	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) OVERRIDE;
-	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) OVERRIDE;
-	virtual void CreateViewport( const TSharedRef<SWindow> Window ) OVERRIDE;
-	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) OVERRIDE;
-	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) OVERRIDE;
-	virtual void DrawWindows() OVERRIDE;
-	virtual void FlushCommands() const OVERRIDE;
-	virtual void Sync() const OVERRIDE;
-	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) OVERRIDE;
-	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) OVERRIDE;
-	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) OVERRIDE;
-	virtual void* GetViewportResource( const SWindow& Window ) OVERRIDE;
-	virtual void SetColorVisionDeficiencyType( uint32 Type ) OVERRIDE;
+	virtual void Initialize() override;
+	virtual void Destroy() override;
+	virtual FSlateDrawBuffer& GetDrawBuffer() override;
+	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) override;
+	virtual void RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight ) override;
+	virtual void CreateViewport( const TSharedRef<SWindow> Window ) override;
+	virtual void UpdateFullscreenState( const TSharedRef<SWindow> Window, uint32 OverrideResX, uint32 OverrideResY ) override;
+	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
+	virtual void DrawWindows() override;
+	virtual void FlushCommands() const override;
+	virtual void Sync() const override;
+	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) override;
+	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) override;
+	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) override;
+	virtual void* GetViewportResource( const SWindow& Window ) override;
+	virtual void SetColorVisionDeficiencyType( uint32 Type ) override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
 	void DrawWindow_RenderThread( const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync );
@@ -150,16 +150,16 @@ public:
 	virtual void CopyWindowsToDrawBuffer(const TArray<FString>& KeypressBuffer);
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapCrashTrackerBuffer(void** OutImageData, int32* OutWidth, int32* OutHeight) OVERRIDE;
-	virtual void UnmapCrashTrackerBuffer() OVERRIDE;
+	virtual void MapCrashTrackerBuffer(void** OutImageData, int32* OutWidth, int32* OutHeight) override;
+	virtual void UnmapCrashTrackerBuffer() override;
 
 	/**
 	 * Reloads texture resources from disk                   
 	 */
-	virtual void ReloadTextureResources() OVERRIDE;
+	virtual void ReloadTextureResources() override;
 
 
-	virtual void LoadStyleResources( const ISlateStyle& Style ) OVERRIDE;
+	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
 
 	/**
 	 * Creates a window with an atlas visualizer inside it
@@ -183,7 +183,7 @@ public:
 	 */
 	virtual void InvalidateAllViewports();
 
-	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) OVERRIDE;
+	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) override;
 
 private:
 	/** Loads all known textures from Slate styles */

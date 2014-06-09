@@ -1,17 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateRHIRenderer.cpp: Implements the FSlateRenderer class and related classes.
+=============================================================================*/
 
 #include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHIRenderer.h"
-#include "SlateRHIFontTexture.h"
-#include "SlateRHIResourceManager.h"
-#include "SlateCore.h"
-#include "RHIStaticStates.h"
-#include "SlateRHIRenderingPolicy.h"
-#include "ShaderParameterUtils.h"
-#include "Runtime/Engine/Public/ScreenRendering.h"
-#include "Runtime/Engine/Public/ShaderCompiler.h"
-#include "SlateShaders.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
@@ -22,6 +15,7 @@ namespace CrashTrackerConstants
 {
 	static const float ScreenScaling = 0.5f;
 }
+
 
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
@@ -172,7 +166,7 @@ public:
 	}
 
 
-	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const OVERRIDE
+	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
 		return MakeShareable( new FSlateFontAtlasRHI( AtlasSize, AtlasSize ) );
 	}

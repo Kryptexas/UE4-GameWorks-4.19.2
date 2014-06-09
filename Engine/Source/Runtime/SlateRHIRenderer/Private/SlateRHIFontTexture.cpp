@@ -1,14 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateRHIFontTexture.cpp: Implements the FSlateFontTextureRHI class.
+=============================================================================*/
+
 #include "SlateRHIRendererPrivatePCH.h"
-#include "SlateRHIFontTexture.h"
 
 
 FSlateFontTextureRHI::FSlateFontTextureRHI( uint32 InWidth, uint32 InHeight )
 	: FSlateTexture2DRHIRef( InWidth, InHeight, PF_A8, NULL, TexCreate_Dynamic, true )
-{
-
-}
+{ }
 
 
 void FSlateFontTextureRHI::InitDynamicRHI()

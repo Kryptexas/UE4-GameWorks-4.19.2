@@ -19,8 +19,8 @@ public:
 	FSlateFontTextureRHI( uint32 InWidth, uint32 InHeight );
 
 	/** FRenderResource interface */
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 private:
 	/** Temporary data stored between Release and InitDynamicRHI */
 	TArray<uint8> TempData;
@@ -38,9 +38,9 @@ public:
 	/**
 	 * FSlateFontAtlas interface 
 	 */
-	virtual class FSlateShaderResource* GetTexture()  OVERRIDE { return FontTexture; }
-	virtual void ConditionalUpdateTexture()  OVERRIDE;
-	virtual void ReleaseResources() OVERRIDE;
+	virtual class FSlateShaderResource* GetTexture()  override { return FontTexture; }
+	virtual void ConditionalUpdateTexture()  override;
+	virtual void ReleaseResources() override;
 private:
 	FSlateTexture2DRHIRef* FontTexture;
 
