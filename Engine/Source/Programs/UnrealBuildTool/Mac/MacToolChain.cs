@@ -569,7 +569,7 @@ namespace UnrealBuildTool
 			// we gather the list of engine dylibs.
 			List<string> EngineAndGameLibraries = new List<string>();
 
-			string DylibsPath = "@executable_path";
+			string DylibsPath = "@rpath";
 
 			string AbsolutePath = OutputFile.AbsolutePath.Replace("\\", "/");
 			if (!AbsolutePath.Contains("/Engine/Binaries/Mac/"))
@@ -578,7 +578,7 @@ namespace UnrealBuildTool
 			}
 			if (!bIsBuildingLibrary)
 			{
-				LinkCommand += " -rpath @loader_path -rpath @executable_path";
+				LinkCommand += " -rpath @loader_path/ -rpath @executable_path/";
 			}
 
 			List<string> ThirdPartyLibraries = new List<string>();
