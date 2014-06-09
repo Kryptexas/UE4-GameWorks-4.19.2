@@ -24,14 +24,14 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 {
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	
-	UPaperTileMapRenderComponent* TileMap = NULL;
+	UPaperTileMap* TileMap = NULL;
 	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
 		if (AActor* CurrentActor = Cast<AActor>(SelectedObjects[ObjectIndex].Get()))
 		{
 			if (UPaperTileMapRenderComponent* CurrentTileMap = CurrentActor->FindComponentByClass<UPaperTileMapRenderComponent>())
 			{
-				TileMap = CurrentTileMap;
+				TileMap = CurrentTileMap->TileMap;
 				break;
 			}
 		}
@@ -138,7 +138,7 @@ UPaperTileLayer* FPaperTileMapDetailsCustomization::AddLayer(bool bCollisionLaye
 {
 	UPaperTileLayer* NewLayer = NULL;
 
-	if (UPaperTileMapRenderComponent* TileMap = TileMapPtr.Get())
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
 	{
 		const FScopedTransaction Transaction( LOCTEXT("TileMapAddLayer", "Add New Layer") );
 		TileMap->SetFlags(RF_Transactional);

@@ -65,10 +65,13 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = CastChecked<AActor>(*Iter);
-		if (UPaperTileMapRenderComponent* TileMap = Actor->FindComponentByClass<UPaperTileMapRenderComponent>())
+		if (UPaperTileMapRenderComponent* TileMapComponent = Actor->FindComponentByClass<UPaperTileMapRenderComponent>())
 		{
-			CurrentTileSetPtr = TileMap->DefaultLayerTileSet;
-			break;
+			if (TileMapComponent->TileMap != nullptr)
+			{
+				CurrentTileSetPtr = TileMapComponent->TileMap->DefaultLayerTileSet;
+				break;
+			}
 		}
 	}
 

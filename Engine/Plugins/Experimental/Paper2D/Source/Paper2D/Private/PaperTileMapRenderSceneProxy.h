@@ -18,5 +18,5 @@ public:
 
 protected:
 	//@TODO: Not thread safe
-	const UPaperTileMapRenderComponent* TileComponent;
+	const UPaperTileMap* TileMap;
 };

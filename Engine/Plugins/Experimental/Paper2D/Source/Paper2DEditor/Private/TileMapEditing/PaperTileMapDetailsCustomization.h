@@ -18,7 +18,7 @@ public:
 	// End of IDetailCustomization interface
 
 private:
-	TWeakObjectPtr<class UPaperTileMapRenderComponent> TileMapPtr;
+	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
 private:
 	FReply AddLayerClicked();
 	FReply AddCollisionLayerClicked();

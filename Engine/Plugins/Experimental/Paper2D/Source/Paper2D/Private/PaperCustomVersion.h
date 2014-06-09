@@ -16,6 +16,9 @@ struct FPaperCustomVersion
 		// Removed FBodyInstance2D and moved 2D physics support into Engine (requires regenerating 2D agg geom)
 		RemovedBodyInstance2D = 2,
 
+		// Moved tile map data out of the component into UPaperTileMap
+		MovedTileMapDataToSeparateClass = 3,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

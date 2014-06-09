@@ -119,5 +119,6 @@ protected:
 
 	ETileMapEditorTool::Type ActiveTool;
 	ETileMapLayerPaintingMode::Type LayerPaintingMode;
+	mutable FTransform ComponentToWorld;
 };
 

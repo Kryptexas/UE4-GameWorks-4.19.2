@@ -34,7 +34,7 @@ struct FHorizontalSpan
 	}
 
 	// Grows a span horizontally until it reaches something that doesn't match
-	void GrowSpan(int32 RequiredInk, UPaperTileLayer* Layer, TBitArray<>& Reachability)
+	void GrowSpan(const FPaperTileInfo& RequiredInk, UPaperTileLayer* Layer, TBitArray<>& Reachability)
 	{
 		// Go left
 		for (int32 TestX = X0 - 1; TestX >= 0; --TestX)
@@ -315,7 +315,15 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = CastChecked<AActor>(*Iter);
-		if (UPaperTileMapRenderComponent* TileMap = Actor->FindComponentByClass<UPaperTileMapRenderComponent>())
+
+		UPaperTileMap* TileMap = nullptr;
+		UPaperTileMapRenderComponent* TileMapComponent = Actor->FindComponentByClass<UPaperTileMapRenderComponent>();
+		if (TileMapComponent != nullptr)
+		{
+			TileMap = TileMapComponent->TileMap;
+		}
+
+		if (TileMap != nullptr)
 		{
 			// Find the first visible layer
 			int32 LayerIndex = 0;
@@ -336,7 +344,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 				const float WX = TileMap->MapWidth * TileMap->TileWidth;
 				const float WY = TileMap->MapHeight * TileMap->TileHeight;
 
-				const FTransform ComponentToWorld = TileMap->ComponentToWorld;
+				ComponentToWorld = (TileMapComponent != nullptr) ? TileMapComponent->ComponentToWorld : FTransform::Identity;
 				FVector LocalStart = ComponentToWorld.InverseTransformPosition(TraceStart);
 				FVector LocalDirection = ComponentToWorld.InverseTransformVector(TraceDir);
 
@@ -414,7 +422,7 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 
 	if (UPaperTileLayer* Layer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
 	{
-		UPaperTileMapRenderComponent* TileMap = CastChecked<UPaperTileMapRenderComponent>(Layer->GetOuter());
+		UPaperTileMap* TileMap = Layer->GetTileMap();
 
 		FScopedTransaction Transaction( LOCTEXT("TileMapPaintAction", "Tile Painting") );
 
@@ -436,11 +444,11 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 					continue;
 				}
 
-				int32 Ink = 0;
+				FPaperTileInfo Ink;
 				if (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers)
 				{
 					// 1 Means collision, 0 means no collision
-					Ink = 1;
+					Ink.PackedTileIndex = 1;
 				}
 				else
 				{
@@ -457,7 +465,8 @@ bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
 						continue;
 					}
 
-					Ink = SX + (SY * InkSource->GetTileCountX());
+					Ink.PackedTileIndex = SX + (SY * InkSource->GetTileCountX());
+					Ink.TileSet = Layer->TileSet;
 				}
 
 				if (Layer->GetCell(DX, DY) != Ink)
@@ -494,14 +503,14 @@ bool FEdModeTileMap::EraseTiles(const FViewportCursorLocation& Ray)
 	bool bPaintedOnSomething = false;
 	bool bChangedSomething = false;
 
-	const int32 EmptyCellValue = 0; //@TODO: Would really like to use INDEX_NONE for this...
+	const FPaperTileInfo EmptyCellValue;
 
 	int32 DestTileX;
 	int32 DestTileY;
 
 	if (UPaperTileLayer* Layer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
 	{
-		UPaperTileMapRenderComponent* TileMap = CastChecked<UPaperTileMapRenderComponent>(Layer->GetOuter());
+		UPaperTileMap* TileMap = Layer->GetTileMap();
 
 		FScopedTransaction Transaction( LOCTEXT("TileMapEraseAction", "Tile Erasing") );
 
@@ -586,9 +595,9 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 		}
 
 		// The kind of ink we'll replace, starting at the seed point
-		const int32 RequiredInk = Layer->GetCell(DestTileX, DestTileY);
+		const FPaperTileInfo RequiredInk = Layer->GetCell(DestTileX, DestTileY);
 
-		UPaperTileMapRenderComponent* TileMap = CastChecked<UPaperTileMapRenderComponent>(Layer->GetOuter());
+		UPaperTileMap* TileMap = Layer->GetTileMap();
 
 		//@TODO: Unoptimized first-pass approach
 		const int32 NumTiles = TileMap->MapWidth * TileMap->MapHeight;
@@ -648,16 +657,17 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 				{
 					const int32 InsideBrushX = (DX + BrushPatternOffsetX) % BrushWidth;
 
-					int32 NewInk = 0;
-					if ( GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers )
+					FPaperTileInfo NewInk;
+					if (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers)
 					{
-						NewInk = 1;
+						NewInk.PackedTileIndex = 1;
 					}
 					else
 					{
 						const int32 TileSetX = PaintSourceTopLeft.X + InsideBrushX;
 						const int32 TileSetY = PaintSourceTopLeft.Y + InsideBrushY;
-						NewInk = TileSetX + (TileSetY * InkSource->GetTileCountX());
+						NewInk.TileSet = Layer->TileSet;
+						NewInk.PackedTileIndex = TileSetX + (TileSetY * InkSource->GetTileCountX());
 					}
 
 					if (Layer->GetCell(DX, DY) != NewInk)
@@ -711,11 +721,11 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 			const int32 LocalTileX1 = LocalTileX0 + CursorWidth;
 			const int32 LocalTileY1 = LocalTileY0 + CursorHeight;
 
-			UPaperTileMapRenderComponent* TileMap = CastChecked<UPaperTileMapRenderComponent>(TileLayer->GetOuter());
-			const FVector WorldPosition = TileMap->ConvertTilePositionToWorldSpace(LocalTileX0, LocalTileY0);
-			const FVector WorldPositionBR = TileMap->ConvertTilePositionToWorldSpace(LocalTileX1, LocalTileY1);
+			UPaperTileMap* TileMap = TileLayer->GetTileMap();
+			const FVector WorldPosition = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX0, LocalTileY0));
+			const FVector WorldPositionBR = ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LocalTileX1, LocalTileY1));
 
-			DrawPreviewSpace = TileMap->ComponentToWorld;
+			DrawPreviewSpace = ComponentToWorld;
 			DrawPreviewLocation = (WorldPosition + WorldPositionBR) * 0.5f;
 
 			DrawPreviewDimensionsLS = 0.5f*FVector(CursorWidth * TileMap->TileWidth, 0.0f, -CursorHeight * TileMap->TileHeight);

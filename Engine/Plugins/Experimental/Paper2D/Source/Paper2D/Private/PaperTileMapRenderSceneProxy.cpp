@@ -3,18 +3,19 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperTileMapRenderSceneProxy.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/BodySetup2D.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperTileMapRenderSceneProxy
 
 FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMapRenderComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
-	, TileComponent(NULL)
+	, TileMap(nullptr)
 {
 	if (const UPaperTileMapRenderComponent* InTileComponent = Cast<const UPaperTileMapRenderComponent>(InComponent))
 	{
-		TileComponent = InTileComponent;
-		Material = TileComponent->Material;
+		TileMap = InTileComponent->TileMap;
+		Material = (TileMap != nullptr) ? TileMap->Material : nullptr;
 
 		if (Material)
 		{
@@ -29,20 +30,23 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 	// Draw the tile maps
 	//@TODO: RenderThread race condition
-	if (TileComponent != NULL)
+	if (TileMap != NULL)
 	{
 		FColor WireframeColor = FColor(0, 255, 255, 255);
-		bool bIsCollisionEnabled = TileComponent->IsCollisionEnabled();
 
-		if((View->Family->EngineShowFlags.Collision && bIsCollisionEnabled) && AllowDebugViewmodes())
+		if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 		{
-			if(TileComponent->ShapeBodySetup)
+			if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(TileMap->BodySetup))
 			{
-				if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
+				//@TODO: Draw 2D debugging geometry
+			}
+			else if (UBodySetup* BodySetup = TileMap->BodySetup)
+			{
+				if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 				{
 					// Catch this here or otherwise GeomTransform below will assert
 					// This spams so commented out
-					//UE_LOG(LogPaper2D, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
 				}
 				else
 				{
@@ -68,11 +72,11 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 					}
 
 					// Differentiate the color based on bBlockNonZeroExtent.  Helps greatly with skimming a level for optimization opportunities.
-					FColor collisionColor = FColor(157,149,223,255);
+					FColor CollisionColor = FColor(157,149,223,255);
 
 					const bool bPerHullColor = false;
 					const bool bDrawSimpleSolid = false;
-					TileComponent->ShapeBodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(collisionColor, bDrawWireSelected, IsHovered()), &CollisionMaterialInstance, bPerHullColor, bDrawSimpleSolid);
+					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(CollisionColor, bDrawWireSelected, IsHovered()), &CollisionMaterialInstance, bPerHullColor, bDrawSimpleSolid);
 				}
 			}
 		}
@@ -99,31 +103,31 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 			FTransform LocalToWorld(GetLocalToWorld());
 
-			const float TW = TileComponent->TileWidth;
-			const float TH = TileComponent->TileHeight;
+			const float TW = TileMap ->TileWidth;
+			const float TH = TileMap->TileHeight;
 			//@TODO: PAPER: Tiles probably shouldn't be drawn with their pivot at the center - RE: all the 0.5f in here
 
 			if (bUseOverrideColor)
 			{
 				// Draw horizontal lines
-				for (int32 Y = 0; Y <= TileComponent->MapHeight; ++Y)
+				for (int32 Y = 0; Y <= TileMap->MapHeight; ++Y)
 				{
 					int32 X = 0;
 					const FVector Start((X - 0.5f) * TW, 0.0f, -(Y - 0.5f) * TH);
 
-					X = TileComponent->MapWidth;
+					X = TileMap->MapWidth;
 					const FVector End((X - 0.5f) * TW, 0.0f, -(Y - 0.5f) * TH);
 
 					PDI->DrawLine(LocalToWorld.TransformPosition(Start), LocalToWorld.TransformPosition(End), OverrideColor, DPG);
 				}
 
 				// Draw vertical lines
-				for (int32 X = 0; X <= TileComponent->MapWidth; ++X)
+				for (int32 X = 0; X <= TileMap->MapWidth; ++X)
 				{
 					int32 Y = 0;
 					const FVector Start((X - 0.5f) * TW, 0.0f, -(Y - 0.5f) * TH);
 
-					Y = TileComponent->MapHeight;
+					Y = TileMap->MapHeight;
 					const FVector End((X - 0.5f) * TW, 0.0f, -(Y - 0.5f) * TH);
 
 					PDI->DrawLine(LocalToWorld.TransformPosition(Start), LocalToWorld.TransformPosition(End), OverrideColor, DPG);
@@ -133,7 +137,7 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 			// Create a local space bounding box
 			const FVector TopLeft(-TW*0.5f, -2.0f, TH*0.5f);
-			const FVector Dimensions(TileComponent->MapWidth * TW, 4.0f, -TileComponent->MapHeight * TH);
+			const FVector Dimensions(TileMap->MapWidth * TW, 4.0f, -TileMap->MapHeight * TH);
 			const FBox OutlineBox(TopLeft, TopLeft+Dimensions);
 		
 			// Draw it		
@@ -143,12 +147,12 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 
 		const float LayerSeparation = 64.0f;
 
-		const int32 TileSeparationX = TileComponent->TileWidth;
-		const int32 TileSeparationY = TileComponent->TileHeight;
+		const int32 TileSeparationX = TileMap->TileWidth;
+		const int32 TileSeparationY = TileMap->TileHeight;
 
-		for (int32 LayerIndex = 0; LayerIndex < TileComponent->TileLayers.Num(); ++LayerIndex)
+		for (int32 LayerIndex = 0; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
 		{
-			UPaperTileLayer* Layer = TileComponent->TileLayers[LayerIndex];
+			UPaperTileLayer* Layer = TileMap->TileLayers[LayerIndex];
 			if (Layer == NULL)
 			{
 				continue;
@@ -164,34 +168,18 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 				continue;
 			}
 
-			ensure(Layer->LayerWidth == TileComponent->MapWidth);
-			ensure(Layer->LayerHeight == TileComponent->MapHeight);
+			ensure(Layer->LayerWidth == TileMap->MapWidth);
+			ensure(Layer->LayerHeight == TileMap->MapHeight);
 
 			UPaperTileSet* TileSet = Layer->TileSet;
 				
 			int32 TileWidth = 4;
 			int32 TileHeight = 4;
-			UTexture2D* SourceTexture = NULL;
-			if ( Layer->bCollisionLayer )
-			{
-				SourceTexture = UCanvas::StaticClass()->GetDefaultObject<UCanvas>()->DefaultTexture;
-			}
-			else
-			{
-				TileWidth = TileSet->TileWidth;
-				TileHeight = TileSet->TileHeight;
-				SourceTexture = TileSet->TileSheet;
-			}
 
+			UTexture2D* LastSourceTexture = nullptr;
 			FVector2D InverseTextureSize(1.0f, 1.0f);
-			if (SourceTexture != nullptr)
-			{
-				InverseTextureSize = FVector2D(1.0f / SourceTexture->GetSizeX(), 1.0f / SourceTexture->GetSizeY());
-			}
+			FVector2D SourceDimensionsUV(1.0f, 1.0f);
 
-			const FVector2D SourceDimensionsUV(TileWidth * InverseTextureSize.X, TileHeight * InverseTextureSize.Y);
-
-			UPaperTileMapRenderComponent* TileMap = Layer->GetTileMap();
 			FVector2D TileSizeXY(TileMap->TileWidth, TileMap->TileHeight);
 			FLinearColor DrawColor = FLinearColor::White;
 			EBlendMode BlendMode = BLEND_Translucent;
@@ -205,23 +193,48 @@ void FPaperTileMapRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 			{
 				for (int32 X = 0; X < Layer->LayerWidth; ++X)
 				{
-					const int32 TileIndex = Layer->GetCell(X, Y);
+					const FPaperTileInfo TileInfo = Layer->GetCell(X, Y);
+					UTexture2D* SourceTexture = nullptr;
 
 					FVector2D SourceUV = FVector2D::ZeroVector;
 					if (Layer->bCollisionLayer)
 					{
-						if ( TileIndex == 0 )
+						if (TileInfo.PackedTileIndex == 0)
 						{
 							continue;
 						}
+						SourceTexture = UCanvas::StaticClass()->GetDefaultObject<UCanvas>()->DefaultTexture;
 					}
 					else
 					{
-						if (!TileSet->GetTileUV(TileIndex, /*out*/ SourceUV))
+						if (TileInfo.TileSet == nullptr)
+						{
+							continue;
+						}
+
+						if (!TileInfo.TileSet->GetTileUV(TileInfo.PackedTileIndex, /*out*/ SourceUV))
+						{
+							continue;
+						}
+
+						SourceTexture = TileInfo.TileSet->TileSheet;
+						if (SourceTexture == nullptr)
 						{
 							continue;
 						}
 					}
+
+
+					if (SourceTexture != LastSourceTexture)
+					{
+						TileWidth = TileSet->TileWidth;
+						TileHeight = TileSet->TileHeight;
+						InverseTextureSize = FVector2D(1.0f / SourceTexture->GetSizeX(), 1.0f / SourceTexture->GetSizeY());
+						SourceDimensionsUV = FVector2D(TileWidth * InverseTextureSize.X, TileHeight * InverseTextureSize.Y);
+						LastSourceTexture = SourceTexture;
+					}
+
+
 					SourceUV.X *= InverseTextureSize.X;
 					SourceUV.Y *= InverseTextureSize.Y;
 

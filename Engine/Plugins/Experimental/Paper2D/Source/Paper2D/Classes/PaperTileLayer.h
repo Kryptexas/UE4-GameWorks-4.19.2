@@ -4,6 +4,34 @@
 
 #include "PaperTileLayer.generated.h"
 
+USTRUCT(BlueprintType)
+struct FPaperTileInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	UPaperTileSet* TileSet;
+
+	UPROPERTY()
+	int32 PackedTileIndex;
+
+	FPaperTileInfo()
+		: TileSet(nullptr)
+		, PackedTileIndex(INDEX_NONE)
+	{
+	}
+
+	inline bool operator==(const FPaperTileInfo& Other) const
+	{
+		return (Other.TileSet == TileSet) && (Other.PackedTileIndex == PackedTileIndex);
+	}
+
+	inline bool operator!=(const FPaperTileInfo& Other) const
+	{
+		return !(*this == Other);
+	}
+};
+
 UCLASS(DependsOn=UPaperTileSet)
 class PAPER2D_API UPaperTileLayer : public UObject
 {
@@ -38,19 +66,24 @@ protected:
 	int32 AllocatedHeight;
 
 	UPROPERTY()
-	TArray<int32> AllocatedGrid;
+	TArray<int32> AllocatedGrid_DEPRECATED;
+
+	UPROPERTY()
+	TArray<FPaperTileInfo> AllocatedCells;
 
 public:
+	void ConvertToTileSetPerCell();
+
 	// UObject interface
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif
 	// End of UObject interface
 
-	class UPaperTileMapRenderComponent* GetTileMap() const;
+	class UPaperTileMap* GetTileMap() const;
 
-	int32 GetCell(int32 X, int32 Y) const;
-	void SetCell(int32 X, int32 Y, int32 NewValue);
+	FPaperTileInfo GetCell(int32 X, int32 Y) const;
+	void SetCell(int32 X, int32 Y, const FPaperTileInfo& NewValue);
 
 	// This is a destructive operation!
 	void DestructiveAllocateMap(int32 NewWidth, int32 NewHeight);

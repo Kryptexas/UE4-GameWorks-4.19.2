@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(STileLayerList) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UPaperTileMapRenderComponent* TileMap);
+	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap);
 
 protected:
 	typedef SListView<class UPaperTileLayer*> SPaperLayerListView;
