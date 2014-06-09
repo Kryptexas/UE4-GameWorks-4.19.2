@@ -30,7 +30,20 @@ UPaperAnimatedRenderComponent::UPaperAnimatedRenderComponent(const FPostConstruc
 
 FPrimitiveSceneProxy* UPaperAnimatedRenderComponent::CreateSceneProxy()
 {
-	return new FPaperAnimatedRenderSceneProxy(this);
+	FPaperAnimatedRenderSceneProxy* NewProxy = new FPaperAnimatedRenderSceneProxy(this);
+
+	CalculateCurrentFrame();
+	UPaperSprite* SpriteToSend = NULL;
+	if ((SourceFlipbook != NULL) && (CachedFrameIndex >= 0) && (CachedFrameIndex < SourceFlipbook->KeyFrames.Num()))
+	{
+		SpriteToSend = SourceFlipbook->KeyFrames[CachedFrameIndex].Sprite;
+	}
+
+	FSpriteDrawCallRecord DrawCall;
+	DrawCall.BuildFromSprite(SpriteToSend);
+	DrawCall.Color = SpriteColor;
+	NewProxy->SetDrawCall_RenderThread(DrawCall);
+	return NewProxy;
 }
 
 FBoxSphereBounds UPaperAnimatedRenderComponent::CalcBounds(const FTransform & LocalToWorld) const
