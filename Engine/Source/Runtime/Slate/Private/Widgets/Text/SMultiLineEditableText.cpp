@@ -385,8 +385,7 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 		TextLayout->GetAsText(EditedText);
 
 		OnTextCommitted.ExecuteIfBound(FText::FromString(EditedText), TextAction);
-		// todo: jdale - testing
-		//RemoveCursorHighlight();
+		RemoveCursorHighlight();
 	}
 }
 
