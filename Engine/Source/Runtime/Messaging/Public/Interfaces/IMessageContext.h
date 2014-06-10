@@ -63,6 +63,20 @@ typedef TRangeBound<EMessageScope::Type> FMessageScopeRangeBound;
 
 /**
  * Interface for message contexts.
+ *
+ * A message context is created internally by the message bus to store additional information about a
+ * message needed to describe and correctly route the message to recipients. The two most common aspects
+ * of message contexts used by recipients are the sender address and message attachments.
+ *
+ * The sender address (@see GetSender) is often needed to send a reply message to a message sender, i.e.
+ * in response to a published message. The message attachment (@see GetAttchment) is an optional bundle
+ * of binary bulk data that is transferred independently from the message itself and allows for transferring
+ * larger amounts of data that would otherwise clog up the messaging system.
+ *
+ * In case a message was forwarded by another endpoint, the context of the original sender can be accessed
+ * using the @see GetOriginalContext method.
+ *
+ * @see IMessageAttachment
  */
 class IMessageContext
 {
@@ -71,7 +85,7 @@ public:
 	/**
 	 * Gets the message attachment, if present.
 	 *
-	 * @return A pointer to the message attachment, or NULL if no attachment is present.
+	 * @return A pointer to the message attachment, or nullptr if no attachment is present.
 	 */
 	virtual IMessageAttachmentPtr GetAttachment( ) const = 0;
 

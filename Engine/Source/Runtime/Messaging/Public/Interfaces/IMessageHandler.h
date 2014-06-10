@@ -79,7 +79,7 @@ public:
 		: Handler(InHandler)
 		, HandlerFunc(InHandlerFunc)
 	{
-		check(InHandler != NULL);
+		check(InHandler != nullptr);
 	}
 
 public:

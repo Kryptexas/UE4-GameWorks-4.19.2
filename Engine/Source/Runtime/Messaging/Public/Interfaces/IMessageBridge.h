@@ -16,6 +16,17 @@ typedef TSharedRef<class IMessageBridge, ESPMode::ThreadSafe> IMessageBridgeRef;
 
 /**
  * Interface for message bridges.
+ *
+ * A message bridge connects a message bus with another messaging system. It is really just a regular
+ * message endpoint connected to a message bus that translates sent and received messages between the bus
+ * and some underlying transport technology. The transport technology is usually implemented in the form of a 
+ * Message Transport Plug-in, such as the UdpMessaging plug-in that ships with Unreal Engine.
+ *
+ * The most common use case for message bridges is to connect two Unreal Engine message buses running in
+ * separate processes or en different computers. Another common use case is to connect an Unreal Engine
+ * message bus to an entirely different messaging system that is not based on Unreal Engine.
+ *
+ * Message bridge instances can be created with the @see IMessagingModule.CreateBridge method.
  */
 class IMessageBridge
 {

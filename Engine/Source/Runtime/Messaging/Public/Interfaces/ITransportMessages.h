@@ -45,7 +45,7 @@ DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeLost, const FGuid&);
  * Interface for message transport technologies.
  *
  * Licensees can implement this interface to add support for custom message transport
- * technologies that are not supported, i.e. custom network protocols or APIs.
+ * technologies that are not supported out of the box, i.e. custom network protocols or APIs.
  */
 class ITransportMessages
 {
@@ -108,5 +108,8 @@ public:
 
 protected:
 
-	ITransportMessages( ) { }
+	/**
+	 * Virtual constructor.
+	 */
+	~ITransportMessages( ) { }
 };

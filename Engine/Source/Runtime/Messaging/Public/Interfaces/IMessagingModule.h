@@ -9,6 +9,8 @@
 
 /**
  * Interface for messaging modules.
+ *
+ * @see IMessageBridge, IMessageBus
  */
 class IMessagingModule
 	: public IModuleInterface

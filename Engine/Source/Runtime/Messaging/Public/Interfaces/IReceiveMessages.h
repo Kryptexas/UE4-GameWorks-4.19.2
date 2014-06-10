@@ -20,10 +20,14 @@ typedef TWeakPtr<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesWe
 /**
  * Interface for message recipients.
  *
- * This is a low-level interface for message recipients that are subscribed to a message bus.
- * For more convenient messaging functionality it is recommended to use message endpoints instead.
+ * Classes that implement this interface are able to receive messages from a message bus. A message recipient will receive
+ * a call to its ReceiveMessage() method for each message that was sent directly to it (@see IMessageBus.Send) and for each
+ * published message that it subscribed to (@see IMessageBus.Publish).
  *
- * @see IMessageEndpoint
+ * This interface provides a rather low-level mechanism for receiving messages. Instead of implementing it, Most users will
+ * want to use an instance of @see FMessageEndpoint, which provides a much more convenient way of sending and receiving messages.
+ *
+ * @see FMessageEndpoint, IMessageBus, ISendMessages
  */
 class IReceiveMessages
 {
@@ -33,7 +37,7 @@ public:
 	 * Gets the recipient's name (for debugging purposes).
 	 *
 	 * @return The debug name.
-	 * @see GetRecipientId
+	 * @see GetRecipientId, GetRecipientThread
 	 */
 	virtual FName GetDebugName( ) const = 0;
 
@@ -41,7 +45,7 @@ public:
 	 * Gets the recipient's unique identifier (for debugging purposes).
 	 *
 	 * @return The recipient's identifier.
-	 * @see GetRecipientName
+	 * @see GetDebugName, GetRecipientThread
 	 */
 	virtual const FGuid& GetRecipientId( ) const = 0;
 
@@ -51,6 +55,7 @@ public:
 	 * If the recipient's ReceiveMessage() is thread-safe, return ThreadAny for best performance.
 	 *
 	 * @return Name of the receiving thread.
+	 * @see GetDebugName, GetRecipientId
 	 */
 	virtual ENamedThreads::Type GetRecipientThread( ) const = 0;
 
@@ -61,6 +66,7 @@ public:
 	 * other processes on the same machine or on remote machines are considered remote.
 	 *
 	 * @return true if this recipient is local, false otherwise.
+	 * @see IsRemote
 	 */
 	virtual bool IsLocal( ) const = 0;
 
@@ -80,6 +86,7 @@ public:
 	 * other processes on the same machine or on remote machines are considered remote.
 	 *
 	 * @return true if this recipient is remote, false otherwise.
+	 * @see IsLocal
 	 */
 	bool IsRemote( ) const
 	{

@@ -178,6 +178,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMessageTracerTypeAdded, FMessageTracerTypeI
 
 /**
  * Interface for message tracers.
+ *
+ * This interface provides access to the message tracer that is built into a message bus. Message tracers are
+ * able to monitor and record all activities on a message bus. This includes the sending and receiving messages,
+ * the registering and unregistering of message endpoints and interceptors and adding and removal of subscriptions.
  */
 class IMessageTracer
 {

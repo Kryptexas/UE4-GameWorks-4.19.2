@@ -16,6 +16,8 @@ typedef TSharedRef<class IMessageTracerBreakpoint, ESPMode::ThreadSafe> IMessage
 
 /**
  * Interface for message tracer breakpoints.
+ *
+ * @see IMessageTracer
  */
 class IMessageTracerBreakpoint
 {
