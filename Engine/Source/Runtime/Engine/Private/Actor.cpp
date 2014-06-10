@@ -3059,8 +3059,6 @@ void AActor::MarkComponentsAsPendingKill()
 
 void AActor::ReregisterAllComponents()
 {
-	FNavigationLockContext NavUpdateLock(GetWorld());
-
 	UnregisterAllComponents();
 	RegisterAllComponents();
 }

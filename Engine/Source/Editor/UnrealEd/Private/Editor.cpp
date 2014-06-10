@@ -2065,6 +2065,8 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		}
 	}
 
+	FNavigationLockContext LockNavigationUpdates;
+
 	bool bTranslationOnly = true;
 
 	///////////////////
