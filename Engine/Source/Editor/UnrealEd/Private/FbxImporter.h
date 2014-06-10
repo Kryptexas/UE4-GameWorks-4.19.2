@@ -445,8 +445,11 @@ public:
 	 * @param InSkeletalMesh - LOD mesh object
 	 * @param BaseSkeletalMesh - base mesh object
 	 * @param DesiredLOD - LOD level
+	 * @param bNeedToReregister - if true, re-register this skeletal mesh to shut down the skeletal mesh component that is previewing this mesh. 
+									But you can set this to false when in the first loading before rendering this mesh for a performance issue 
+	   @param ReregisterAssociatedComponents - if NULL, just re-registers all SkinnedMeshComponents but if you set the specific components, will only re-registers those components
 	 */
-	void ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD);
+	bool ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister = true, TArray<UActorComponent*>* ReregisterAssociatedComponents = NULL);
 
 	/**
 	 * Empties the FBX scene, releasing its memory.
@@ -585,6 +588,15 @@ private:
 	 * @param LODIndex - LOD index of the skeletal mesh
 	 */
 	void ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, const FString& InFilename, int32 LODIndex );
+
+	/**
+	* sub-method called from ImportSkeletalMeshLOD method
+	*
+	* @param InSkeletalMesh - newly created mesh used as LOD
+	* @param BaseSkeletalMesh - the destination mesh object 
+	* @param DesiredLOD - the LOD index to import into. A new LOD entry is created if one doesn't exist
+	*/
+	void InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD);
 
 public:
 	// current Fbx scene we are importing. Make sure to release it after import

@@ -1501,7 +1501,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 			{
 				USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewMesh);
 				UObject *LODObject = ImportSkeletalMesh( GetTransientPackage(), SkelMeshNodeArray, NAME_None, RF_NoFlags, TemplateImportData, FReimportManager::ResolveImportFilename(TemplateImportData->SourceFilePath, BaseSkeletalMesh) );
-				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex);
+				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex, false);
 
 				// Set LOD Model's DisplayFactor
 				// if this LOD is newly added, then set DisplayFactor
@@ -2260,38 +2260,141 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	return true;
 }
 
-void UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD)
+void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD)
+{
+	FSkeletalMeshResource* ImportedResource = InSkeletalMesh->GetImportedResource();
+	FSkeletalMeshResource* DestImportedResource = BaseSkeletalMesh->GetImportedResource();
+
+	FStaticLODModel& NewLODModel = ImportedResource->LODModels[0];
+
+	// If we want to add this as a new LOD to this mesh - add to LODModels/LODInfo array.
+	if (DesiredLOD == DestImportedResource->LODModels.Num())
+	{
+		new(DestImportedResource->LODModels)FStaticLODModel();
+
+		// Add element to LODInfo array.
+		BaseSkeletalMesh->LODInfo.AddZeroed();
+		check(BaseSkeletalMesh->LODInfo.Num() == DestImportedResource->LODModels.Num());
+		BaseSkeletalMesh->LODInfo[DesiredLOD] = InSkeletalMesh->LODInfo[0];
+	}
+	else
+	{
+		// if it's overwriting existing LOD, need to update section information
+		// update to the right # of sections 
+		// Set up LODMaterialMap to number of materials in new mesh.
+		// ImportedResource->LOD 0 is the newly imported mesh
+		FSkeletalMeshLODInfo& LODInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
+		// if section # has been changed
+		if (LODInfo.TriangleSortSettings.Num() != NewLODModel.Sections.Num())
+		{
+			// Save old information so that I can copy it over
+			TArray<FTriangleSortSettings> OldTriangleSortSettings;
+
+			OldTriangleSortSettings = LODInfo.TriangleSortSettings;
+
+			// resize to the correct number
+			LODInfo.TriangleSortSettings.Empty(NewLODModel.Sections.Num());
+			// fill up data
+			for (int32 SectionIndex = 0; SectionIndex < NewLODModel.Sections.Num(); ++SectionIndex)
+			{
+				// if found from previous data, copy over
+				if (SectionIndex < OldTriangleSortSettings.Num())
+				{
+					LODInfo.TriangleSortSettings.Add(OldTriangleSortSettings[SectionIndex]);
+				}
+				else
+				{
+					// if not add default data
+					LODInfo.TriangleSortSettings.AddZeroed();
+				}
+			}
+		}
+	}
+
+	// Set up LODMaterialMap to number of materials in new mesh.
+	FSkeletalMeshLODInfo& LODInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
+	LODInfo.LODMaterialMap.Empty();
+
+	// Now set up the material mapping array.
+	for (int32 MatIdx = 0; MatIdx < InSkeletalMesh->Materials.Num(); MatIdx++)
+	{
+		// Try and find the auto-assigned material in the array.
+		int32 LODMatIndex = INDEX_NONE;
+		if (InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
+		{
+			LODMatIndex = BaseSkeletalMesh->Materials.Find(InSkeletalMesh->Materials[MatIdx]);
+		}
+
+		// If we didn't just use the index - but make sure its within range of the Materials array.
+		if (LODMatIndex == INDEX_NONE)
+		{
+			LODMatIndex = FMath::Clamp(MatIdx, 0, BaseSkeletalMesh->Materials.Num() - 1);
+		}
+
+		LODInfo.LODMaterialMap.Add(LODMatIndex);
+	}
+
+	// if new LOD has more material slot, add the extra to main skeletal
+	if (BaseSkeletalMesh->Materials.Num() < InSkeletalMesh->Materials.Num())
+	{
+		BaseSkeletalMesh->Materials.AddZeroed(InSkeletalMesh->Materials.Num() - BaseSkeletalMesh->Materials.Num());
+	}
+
+	// same from here as FbxImporter
+
+	// Release all resources before replacing the model
+	BaseSkeletalMesh->PreEditChange(NULL);
+
+	// Index buffer will be destroyed when we copy the LOD model so we must copy the index buffer and reinitialize it after the copy
+	FMultiSizeIndexContainerData Data;
+	NewLODModel.MultiSizeIndexContainer.GetIndexBufferData(Data);
+
+	// Assign new FStaticLODModel to desired slot in selected skeletal mesh.
+	DestImportedResource->LODModels[DesiredLOD] = NewLODModel;
+
+	DestImportedResource->LODModels[DesiredLOD].MultiSizeIndexContainer.RebuildIndexBuffer(Data);
+
+	// rebuild vertex buffers and reinit RHI resources
+	BaseSkeletalMesh->PostEditChange();
+}
+
+bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, USkeletalMesh* BaseSkeletalMesh, int32 DesiredLOD, bool bNeedToReregister, TArray<UActorComponent*>* ReregisterAssociatedComponents)
 {
 	check(InSkeletalMesh);
 	check(BaseSkeletalMesh);
 
 	FSkeletalMeshResource* ImportedResource = InSkeletalMesh->GetImportedResource();
-	FSkeletalMeshResource* BaseImportedResource = BaseSkeletalMesh->GetImportedResource();
+	FSkeletalMeshResource* DestImportedResource = BaseSkeletalMesh->GetImportedResource();
 
 	// Now we copy the base FStaticLODModel from the imported skeletal mesh as the new LOD in the selected mesh.
 	check(ImportedResource->LODModels.Num() == 1);
 
 	// Names of root bones must match.
 	// If the names of root bones don't match, the LOD Mesh does not share skeleton with base Mesh. 
-	if( InSkeletalMesh->RefSkeleton.GetBoneName(0) != BaseSkeletalMesh->RefSkeleton.GetBoneName(0) )
+	if (InSkeletalMesh->RefSkeleton.GetBoneName(0) != BaseSkeletalMesh->RefSkeleton.GetBoneName(0))
 	{
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODRootBoneDoesNotMatch", "RootBone '{0}' not found in base SkeletalMesh '{1}'.\nImport failed."), FText::FromName(InSkeletalMesh->RefSkeleton.GetBoneName(0)), FText::FromString(BaseSkeletalMesh->GetName()))));
-		return;
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODRootNameIncorrect", "Root bone in LOD is '{0}' instead of '{1}'.\nImport failed."),
+			FText::FromName(InSkeletalMesh->RefSkeleton.GetBoneName(0)), FText::FromName(BaseSkeletalMesh->RefSkeleton.GetBoneName(0)))));
+
+		return false;
 	}
 
 	// We do some checking here that for every bone in the mesh we just imported, it's in our base ref skeleton, and the parent is the same.
-	for(int32 i=0; i<InSkeletalMesh->RefSkeleton.GetNum(); i++)
+	for (int32 i = 0; i < InSkeletalMesh->RefSkeleton.GetNum(); i++)
 	{
 		int32 LODBoneIndex = i;
 		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);
 		int32 BaseBoneIndex = BaseSkeletalMesh->RefSkeleton.FindBoneIndex(LODBoneName);
-		if( BaseBoneIndex == INDEX_NONE )
+		if (BaseBoneIndex == INDEX_NONE)
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODBoneDoesNotMatch", "Bone '{0}' not found in base SkeletalMesh '{1}'.\nImport failed."), FText::FromName(LODBoneName), FText::FromString(BaseSkeletalMesh->GetName()))));
-			return;
+			// If we could not find the bone from this LOD in base mesh - we fail.
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODBoneDoesNotMatch", "Bone '{0}' not found in base SkeletalMesh '{1}'.\nImport failed."),
+				FText::FromName(LODBoneName), FText::FromString(BaseSkeletalMesh->GetName()))));
+
+			return false;
 		}
 
-		if(i>0)
+		if (i > 0)
 		{
 			int32 LODParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(LODBoneIndex);
 			FName LODParentName = InSkeletalMesh->RefSkeleton.GetBoneName(LODParentIndex);
@@ -2299,59 +2402,59 @@ void UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 			int32 BaseParentIndex = BaseSkeletalMesh->RefSkeleton.GetParentIndex(BaseBoneIndex);
 			FName BaseParentName = BaseSkeletalMesh->RefSkeleton.GetBoneName(BaseParentIndex);
 
-			if(LODParentName != BaseParentName)
+			if (LODParentName != BaseParentName)
 			{
 				// If bone has different parents, display an error and don't allow import.
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODBoneHasIncorrectParent", "Bone '{0}' in LOD has parent '{1}' instead of '{2}'"),
 					FText::FromName(LODBoneName), FText::FromName(LODParentName), FText::FromName(BaseParentName))));
-				return;
+
+				return false;
 			}
 		}
 	}
 
 	FStaticLODModel& NewLODModel = ImportedResource->LODModels[0];
 
-	// TODO: remove redundant code. When import LOD, some check is unnecessary. Also considerate update workflow!!
-
 	// Enforce LODs having only single-influence vertices.
 	bool bCheckSingleInfluence;
-	GConfig->GetBool( TEXT("AnimSetViewer"), TEXT("CheckSingleInfluenceLOD"), bCheckSingleInfluence, GEditorIni );
-	if( bCheckSingleInfluence && 
-		DesiredLOD > 0 )
+	GConfig->GetBool(TEXT("AnimSetViewer"), TEXT("CheckSingleInfluenceLOD"), bCheckSingleInfluence, GEditorIni);
+	if (bCheckSingleInfluence &&
+		DesiredLOD > 0)
 	{
-		for(int32 ChunkIndex = 0;ChunkIndex < NewLODModel.Chunks.Num();ChunkIndex++)
+		for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
 		{
-			if(NewLODModel.Chunks[ChunkIndex].SoftVertices.Num() > 0)
+			if (NewLODModel.Chunks[ChunkIndex].SoftVertices.Num() > 0)
 			{
-				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("LODHasSoftVertices", "Warning: The mesh LOD you are importing has some vertices with more than one influence.")));
+				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText(LOCTEXT("LODHasSoftVertices", "Warning: The mesh LOD you are importing has some vertices with more than one influence."))));
 			}
 		}
 	}
 
 	// If this LOD is going to be the lowest one, we check all bones we have sockets on are present in it.
-	if( DesiredLOD == BaseImportedResource->LODModels.Num() || 
-		DesiredLOD == BaseImportedResource->LODModels.Num()-1 )
+	if (DesiredLOD == DestImportedResource->LODModels.Num() ||
+		DesiredLOD == DestImportedResource->LODModels.Num() - 1)
 	{
-		const TArray<USkeletalMeshSocket*> Sockets = BaseSkeletalMesh->GetMeshOnlySocketList();
+		const TArray<USkeletalMeshSocket*>& Sockets = BaseSkeletalMesh->GetMeshOnlySocketList();
 
-		for(int32 i=0; i<Sockets.Num(); i++)
+		for (int32 i = 0; i < Sockets.Num(); i++)
 		{
 			// Find bone index the socket is attached to.
 			USkeletalMeshSocket* Socket = Sockets[i];
-			int32 SocketBoneIndex = InSkeletalMesh->RefSkeleton.FindBoneIndex( Socket->BoneName );
+			int32 SocketBoneIndex = InSkeletalMesh->RefSkeleton.FindBoneIndex(Socket->BoneName);
 
 			// If this LOD does not contain the socket bone, abort import.
-			if( SocketBoneIndex == INDEX_NONE )
+			if (SocketBoneIndex == INDEX_NONE)
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("LODMissingSocketBone", "This LOD is missing bone '{0}' used by socket '{1}'.\nAborting import."),
-					FText::FromString(Socket->BoneName.ToString()), FText::FromName(Socket->SocketName))));
-				return;
+					FText::FromName(Socket->BoneName), FText::FromName(Socket->SocketName))));
+
+				return false;
 			}
 		}
 	}
 
 	// Fix up the ActiveBoneIndices array.
-	for(int32 i=0; i<NewLODModel.ActiveBoneIndices.Num(); i++)
+	for (int32 i = 0; i < NewLODModel.ActiveBoneIndices.Num(); i++)
 	{
 		int32 LODBoneIndex = NewLODModel.ActiveBoneIndices[i];
 		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);
@@ -2360,10 +2463,10 @@ void UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// Fix up the chunk BoneMaps.
-	for(int32 ChunkIndex = 0;ChunkIndex < NewLODModel.Chunks.Num();ChunkIndex++)
+	for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
 	{
 		FSkelMeshChunk& Chunk = NewLODModel.Chunks[ChunkIndex];
-		for(int32 i=0; i<Chunk.BoneMap.Num(); i++)
+		for (int32 i = 0; i < Chunk.BoneMap.Num(); i++)
 		{
 			int32 LODBoneIndex = Chunk.BoneMap[i];
 			FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);
@@ -2373,69 +2476,77 @@ void UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// Create the RequiredBones array in the LODModel from the ref skeleton.
-	NewLODModel.RequiredBones.Empty();
-	for(int32 i=0; i<InSkeletalMesh->RefSkeleton.GetNum(); i++)
+	for (int32 i = 0; i < NewLODModel.RequiredBones.Num(); i++)
 	{
-		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(i);
+		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(NewLODModel.RequiredBones[i]);
 		int32 BaseBoneIndex = BaseSkeletalMesh->RefSkeleton.FindBoneIndex(LODBoneName);
-		if(BaseBoneIndex != INDEX_NONE)
+		if (BaseBoneIndex != INDEX_NONE)
 		{
-			NewLODModel.RequiredBones.Add(BaseBoneIndex);
+			NewLODModel.RequiredBones[i] = BaseBoneIndex;
+		}
+		else
+		{
+			NewLODModel.RequiredBones.RemoveAt(i--);
 		}
 	}
-	
+
+	// Also sort the RequiredBones array to be strictly increasing.
+	NewLODModel.RequiredBones.Sort();
+
+	// To be extra-nice, we apply the difference between the root transform of the meshes to the verts.
+	FMatrix LODToBaseTransform = InSkeletalMesh->GetRefPoseMatrix(0).Inverse() * BaseSkeletalMesh->GetRefPoseMatrix(0);
+
+	for (int32 ChunkIndex = 0; ChunkIndex < NewLODModel.Chunks.Num(); ChunkIndex++)
 	{
-		// If we want to add this as a new LOD to this mesh - add to LODModels/LODInfo array.
-		if(DesiredLOD == BaseImportedResource->LODModels.Num())
+		FSkelMeshChunk& Chunk = NewLODModel.Chunks[ChunkIndex];
+		// Fix up rigid verts.
+		for (int32 i = 0; i < Chunk.RigidVertices.Num(); i++)
 		{
-			new(BaseImportedResource->LODModels)FStaticLODModel();
-
-			// Add element to LODInfo array.
-			BaseSkeletalMesh->LODInfo.AddZeroed();
-			check( BaseSkeletalMesh->LODInfo.Num() == BaseImportedResource->LODModels.Num() );
-			BaseSkeletalMesh->LODInfo[DesiredLOD] = InSkeletalMesh->LODInfo[0];
+			Chunk.RigidVertices[i].Position = LODToBaseTransform.TransformPosition(Chunk.RigidVertices[i].Position);
+			Chunk.RigidVertices[i].TangentX = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentX);
+			Chunk.RigidVertices[i].TangentY = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentY);
+			Chunk.RigidVertices[i].TangentZ = LODToBaseTransform.TransformVector(Chunk.RigidVertices[i].TangentZ);
 		}
 
-		// Set up LODMaterialMap to number of materials in new mesh.
-		FSkeletalMeshLODInfo& LODInfo = BaseSkeletalMesh->LODInfo[DesiredLOD];
-		LODInfo.LODMaterialMap.Empty();
-
-		// Now set up the material mapping array.
-		for(int32 MatIdx = 0; MatIdx < InSkeletalMesh->Materials.Num(); MatIdx++)
+		// Fix up soft verts.
+		for (int32 i = 0; i < Chunk.SoftVertices.Num(); i++)
 		{
-			// Try and find the auto-assigned material in the array.
-			int32 LODMatIndex = BaseSkeletalMesh->Materials.Find( InSkeletalMesh->Materials[MatIdx] );
-
-			// If we didn't just use the index - but make sure its within range of the Materials array.
-			if(LODMatIndex == INDEX_NONE)
-			{
-				LODMatIndex = FMath::Clamp(MatIdx, 0, BaseSkeletalMesh->Materials.Num() - 1);
-			}
-
-			LODInfo.LODMaterialMap.Add(LODMatIndex);
+			Chunk.SoftVertices[i].Position = LODToBaseTransform.TransformPosition(Chunk.SoftVertices[i].Position);
+			Chunk.SoftVertices[i].TangentX = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentX);
+			Chunk.SoftVertices[i].TangentY = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentY);
+			Chunk.SoftVertices[i].TangentZ = LODToBaseTransform.TransformVector(Chunk.SoftVertices[i].TangentZ);
 		}
-
-		BaseSkeletalMesh->PreEditChange(NULL);
-
-		// Copy data from the index buffer as it cant be directly copied.
-		FMultiSizeIndexContainerData BufferData;
-		NewLODModel.MultiSizeIndexContainer.GetIndexBufferData( BufferData );
-
-		// Assign new FStaticLODModel to desired slot in selected skeletal mesh.
-		BaseImportedResource->LODModels[DesiredLOD] = NewLODModel;
-
-		// Regenerate the index buffer.
-		BaseImportedResource->LODModels[DesiredLOD].MultiSizeIndexContainer.RebuildIndexBuffer( BufferData );
-		
-		// rebuild vertex buffers and reinit RHI resources
-		
-		BaseSkeletalMesh->PostEditChange();		
-
-		// ReregisterContexts go out of scope here, reregistering skel components to the scene.
 	}
 
-}
+	if (bNeedToReregister)
+	{
+		// Shut down the skeletal mesh component that is previewing this mesh.
+		if (ReregisterAssociatedComponents)
+		{
+			FMultiComponentReregisterContext ReregisterContext(*ReregisterAssociatedComponents);
+			// wait until resources are released
+			FlushRenderingCommands();
 
+			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+
+			// ReregisterContexts go out of scope here, reregistering associated components with the scene.
+		}
+		else
+		{
+			TComponentReregisterContext<USkinnedMeshComponent> ComponentReregisterContext;
+
+			InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+
+			// ReregisterContexts go out of scope here, reregistering skel components with the scene.
+		}
+	}
+	else
+	{
+		InsertNewLODToBaseSkeletalMesh(InSkeletalMesh, BaseSkeletalMesh, DesiredLOD);
+	}
+
+	return true;
+}
 
 /**
  * A class encapsulating morph target processing that occurs during import on a separate thread
