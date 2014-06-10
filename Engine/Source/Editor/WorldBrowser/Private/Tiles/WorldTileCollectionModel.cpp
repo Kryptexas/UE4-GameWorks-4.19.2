@@ -1838,7 +1838,8 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		}
 					
 		// This is texture resolution for a landscape, probably need to be calculated using landscape size
-		LandscapeFlattenMaterial.DiffuseSize = FIntPoint(1024, 1024);
+		LandscapeFlattenMaterial.DiffuseSize	= FIntPoint(1024, 1024);
+		LandscapeFlattenMaterial.NormalSize		= FIntPoint(1024, 1024);
 		ExportMaterial(Landscape, LandscapeFlattenMaterial);
 		
 		// TODO: Disabled landscape mesh simplification, does not really needed since exporting highest landscape LOD already provide low triangle count
@@ -1869,6 +1870,9 @@ bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevel
 		// Construct landscape material
 		UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
 			LandscapeFlattenMaterial, Package, TEXT("FlattenLandscapeMaterial"), RF_Public|RF_Standalone);
+		// Currently landscape exports world space normal map
+		StaticLandscapeMaterial->bTangentSpaceNormal = false;
+		StaticLandscapeMaterial->PostEditChange();
 	
 		// Construct landscape static mesh
 		FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), TEXT("LandscapeStaticMesh"));

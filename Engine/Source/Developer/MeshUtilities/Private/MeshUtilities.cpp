@@ -3062,6 +3062,8 @@ void FMeshUtilities::CreateProxyMesh(
 			MaterialMap.Add(RawMeshId, RawMeshMaterialMap);
 			// This is texture resolution for a landscape, probably need to be calculated using landscape size
 			UniqueMaterials.Last().DiffuseSize = FIntPoint(1024, 1024);
+			// FIXME: Landscape material exporter currently renders world space normal map, so it can't be merged with other meshes normal maps
+			UniqueMaterials.Last().NormalSize = FIntPoint::ZeroValue;
 			MaterialExportUtils::ExportMaterial(Landscape, UniqueMaterials.Last());
 			
 			//Store the bounds for each component
