@@ -9,26 +9,55 @@
  *	Once ACK'd, objects are just serialized as <NetGUID>. The result is higher bandwidth usage upfront for new clients, but minimal bandwidth once
  *	things gets going.
  *
+ *	A further optimization is enabled by default. References will actually be serialized via:
+ *	<NetGUID, <(Outer *), Object Name> >. Where Outer * is a reference to the UObject's Outer.
+ *
  *	The main advantages from this are:
  *		-Flexibility. No precomputed net indices or large package lists need to be exchanged for UObject serialization.
  *		-Cross version communication. The name is all that is needed to exchange references.
- *		-Effeciency in that a very small % of UObjects will ever be serialized. Only Objects that serialized are assigned NetGUIDs.
+ *		-Efficiency in that a very small % of UObjects will ever be serialized. Only Objects that serialized are assigned NetGUIDs.
  */
 
 #pragma once
 #include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
-class FDeferredResolvePath
+/**
+ * A guid that needs to eventually be resolved
+ * GUID's that need to be resolved, but can't yet due to:
+ * 1. They are streaming levels, or levels in general
+ * 	1a. We always expect clients to be in charge of actually loading levels, so we wait for that to happen before we resolve any guids within the level
+ * 2. We are asynchronously loading the object we will assign the net guid to, so we need to wait for the load to finish
+ * 	2a. This is work in progress, we don't have any official async loading code yet
+ * 3. We don't currently do this, but if we were depending on a dynamic outer, but have a stable name (stably named sub-object) we would need to defer the resolve
+ */
+class FPendingResolveGUID
 {
 public:
-	FDeferredResolvePath() {}
+	FPendingResolveGUID() : bNoLoad( false ), StartTimeInSeconds( 0 ) {}
 
-	FName			PathName;
-	FString			FilenameOverride;
-	FNetworkGUID	OuterGUID;
+	FString			PathName;				// Path name of object to load for this guid
+	FNetworkGUID	OuterGUID;				// OuterGUID that this object depends on
+	bool			bNoLoad;				// Whether or not we should load this object, or just wait for it (we wait for levels for example, never load them in package map)
+	double			StartTimeInSeconds;		// When this guid was first deferred (in seconds)
 };
 
+class FMarkSerializeNewActorScoped
+{
+public:
+	FMarkSerializeNewActorScoped( bool & InIsSerializingNewActor ) : IsSerializingNewActorRef( InIsSerializingNewActor )
+	{ 
+		IsSerializingNewActorRef = true; 
+	};
+
+	~FMarkSerializeNewActorScoped()
+	{
+		IsSerializingNewActorRef = false;
+	}
+
+	bool & IsSerializingNewActorRef;
+};
+	
 /** Stores an object with path associated with FNetworkGUID */
 class FNetGuidCacheObject
 {
@@ -71,12 +100,13 @@ class UPackageMapClient : public UPackageMap
 
 	UPackageMapClient( const class FPostConstructInitializeProperties & PCIP, UNetConnection * InConnection, TSharedPtr< FNetGUIDCache > InNetGUIDCache ) : 
 		UPackageMap( PCIP )
-	, Connection(InConnection)
+	,	Connection(InConnection)
 	{
-		GuidCache = InNetGUIDCache;
-		Locked = false;
-		ExportNetGUIDCount = 0;
+		GuidCache				= InNetGUIDCache;
+		Locked					= false;
+		ExportNetGUIDCount		= 0;
 		IsExportingNetGUIDBunch = false;
+		IsSerializingNewActor	= false;
 	}
 
 	virtual ~UPackageMapClient()
@@ -101,7 +131,7 @@ class UPackageMapClient : public UPackageMap
 
 	// UPackageMapClient Connection specific methods
 
-	virtual bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID);
+	bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID);
 
 	virtual void ReceivedNak( const int32 NakPacketId ) OVERRIDE;
 	virtual void ReceivedAck( const int32 AckPacketId ) OVERRIDE;
@@ -129,17 +159,19 @@ protected:
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject * Object, FString PathName, UObject * ObjOuter );
 	void	ExportNetGUIDHeader();
 
-	void	InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );	
-	FNetworkGUID	InternalLoadObject( FArchive & Ar, UObject *& Object, const bool bIsOuterLevel, int InternalLoadObjectRecursionCount );
+	void			InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject * ObjectOuter );	
+	FNetworkGUID	InternalLoadObject( FArchive & Ar, UObject *& Object, const bool bIsInnerLevel, int InternalLoadObjectRecursionCount );
 
-	void		ResolvePathAndAssignNetGUID_Deferred( const FNetworkGUID & NetGUID, const FString & PathName, const FString & FilenameOverride, const FNetworkGUID & OuterGUID );
-	UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, const FNetworkGUID & OuterGUID, const bool bNoLoad = false );
+	void		ResolvePathAndAssignNetGUID_Deferred( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad = false );
+	UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad = false );
 
-	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) OVERRIDE;
-	
+	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bNoLoad = false ) OVERRIDE;
+
+	virtual void UpdatePendingResolveGUIDs() override;
+
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
-
-	bool	IsNetGUIDAuthority();
+	
+	bool IsNetGUIDAuthority();
 
 	bool Locked;
 	bool IsExportingNetGUIDBunch;
@@ -148,20 +180,21 @@ protected:
 
 	bool ObjectLevelHasFinishedLoading(UObject* Obj);
 
-	TSet< FNetworkGUID >			CurrentExportNetGUIDs;				// Current list of NetGUIDs being written to the Export Bunch.
+	TSet< FNetworkGUID >						CurrentExportNetGUIDs;				// Current list of NetGUIDs being written to the Export Bunch.
 
-	TMap< FNetworkGUID, int32 >		NetGUIDAckStatus;
-	TArray< FNetworkGUID >			PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
-
-	// -----------------
+	TMap< FNetworkGUID, int32 >					NetGUIDAckStatus;
+	TArray< FNetworkGUID >						PendingAckGUIDs;					// Quick access to all GUID's that haven't been acked
 
 	// Bunches of NetGUID/path tables to send with the current content bunch
-	TArray<FOutBunch* >				ExportBunches;
-	FOutBunch *						CurrentExportBunch;
+	TArray<FOutBunch* >							ExportBunches;
+	FOutBunch *									CurrentExportBunch;
 
-	int32							ExportNetGUIDCount;
+	int32										ExportNetGUIDCount;
 
-	TMap< FNetworkGUID, FDeferredResolvePath >	DeferredResolvePaths;
+	// A guid that needs to eventually be resolved
+	TMap< FNetworkGUID, FPendingResolveGUID >	PendingResolveGUIDs;
 
-	TSharedPtr< FNetGUIDCache >		GuidCache;
+	TSharedPtr< FNetGUIDCache >					GuidCache;
+
+	bool										IsSerializingNewActor;
 };

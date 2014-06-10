@@ -325,7 +325,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			FNetworkGUID NetGUID;
 			FString Path;
 			FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path);
-			NetDriver->ServerConnection->PackageMap->ResolvePathAndAssignNetGUID( NetGUID, Path, TEXT(""), NULL );
+			NetDriver->ServerConnection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path, NULL);
 			break;
 		}
 		default:

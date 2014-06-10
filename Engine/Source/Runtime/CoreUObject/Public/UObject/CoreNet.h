@@ -124,7 +124,8 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	virtual void		SetLocked( bool L ) { }
 
-	virtual UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
+	virtual UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, UObject * ObjOuter, const bool bNoLoad = false ) { return NULL; }
+	virtual void		UpdatePendingResolveGUIDs() { }
 
 	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }
 

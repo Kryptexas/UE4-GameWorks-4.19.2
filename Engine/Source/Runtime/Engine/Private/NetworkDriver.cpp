@@ -99,13 +99,13 @@ void UNetDriver::PostInitProperties()
 		PacketSimulationSettings.RegisterCommands();
 		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
 #endif
-		RoleProperty       = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
-		RemoteRoleProperty = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
+		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
+		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
 		GuidCache			= TSharedPtr< FNetGUIDCache >( new FNetGUIDCache( this ) );
 		NetCache			= TSharedPtr< FClassNetCacheMgr >( new FClassNetCacheMgr() );
 
-		ProfileStats	   = FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
+		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
 	}
 	// By default we're the game net driver and any child ones must override this
 	NetDriverName = NAME_GameNetDriver;
@@ -301,6 +301,14 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	if (CVar && CVar->GetValueOnGameThread() > 0)
 	{
 		DrawNetDriverDebug();
+	}
+
+	// Update any pending resolves on the server package map
+	// We shouldn't need to do this as the server, since clients should only be sending us names that resolve immediately
+	// Do this before we try to resolve unmapped properties, since this may reduce the number of unmapped properties
+	if ( ServerConnection != NULL && ServerConnection->PackageMap != NULL )
+	{
+		ServerConnection->PackageMap->UpdatePendingResolveGUIDs();
 	}
 
 	// Update properties that are unmapped, try to hook up the object pointers if they exist now
