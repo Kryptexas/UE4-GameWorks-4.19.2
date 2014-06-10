@@ -98,7 +98,7 @@ float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius,
 
 int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, float FactorScale )
 {
-	const int32 NumLODs = MAX_STATIC_MESH_LODS+1;
+	const int32 NumLODs = MAX_STATIC_MESH_LODS;
 
 	const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
 
