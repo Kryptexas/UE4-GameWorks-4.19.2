@@ -8,11 +8,6 @@
 
 @implementation FUE4EditorServicesAppDelegate
 
-@synthesize Window;
-@synthesize EditorMenu;
-@synthesize OKButton;
-@synthesize CancelButton;
-
 - (void)applicationDidFinishLaunching:(NSNotification *)Notification
 {
 	[NSApp setServicesProvider:self];
@@ -226,13 +221,13 @@
 - (IBAction)onCancelButtonPressed:(id)Sender
 {
 	[NSApp stopModalWithCode:NSCancelButton];
-	[Window orderOut:self];
+	[Window close];
 }
 
 - (IBAction)onOKButtonPressed:(id)Sender
 {
 	[NSApp stopModalWithCode:NSOKButton];
-	[Window orderOut:self];
+	[Window close];
 }
 
 - (NSMenuItem*)addEnginePath:(NSString*)EnginePath toEditorMenu:(NSMenu*)Menu withDescription:(NSString*)Suffix
@@ -290,10 +285,9 @@
     {
 		NSURL* FileURL = [NSURL fileURLWithPath: [[PBoard propertyListForType:NSFilenamesPboardType] objectAtIndex:0]];
 
-		NSString* FileDefaultEnginePath = [self enginePathForAppBundle:[self defaultAppForUProjectFile:FileURL]];
 		NSString* GlobalDefaultEnginePath = [self enginePathForAppBundle:[self defaultAppForUProjectFiles]];
 		NSString* RecommendedEnginePath = [self enginePathForAppBundle:[self recommendedAppForUProjectFile:FileURL]];
-		NSString* SelectedEnginePath = FileDefaultEnginePath ? FileDefaultEnginePath : RecommendedEnginePath;
+		NSString* SelectedEnginePath = [self findEngineForUProjectFile:FileURL];
 
 		NSMenu* SubMenu = [NSMenu new];
 		NSMenuItem* SelectedItem = NULL;
@@ -327,8 +321,38 @@
 			}
 		}
 
+		Window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 433, 102) styleMask:NSTitledWindowMask backing:NSBackingStoreBuffered defer:NO];
+
+		NSPopUpButton* EditorMenu = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(18, 58, 398, 26) pullsDown:NO];
 		[EditorMenu setMenu:SubMenu];
 		[EditorMenu selectItem:SelectedItem];
+
+		NSButton* OKButton = [NSButton new];
+		[OKButton setButtonType:NSMomentaryLightButton];
+		[OKButton setTitle:@"OK"];
+		[OKButton setFrame:NSMakeRect(337, 13, 82, 32)];
+		[OKButton setImagePosition:NSNoImage];
+		[OKButton setBezelStyle:NSRoundedBezelStyle];
+		[OKButton setFont:[NSFont systemFontOfSize:0]];
+		[OKButton setAction:@selector(onOKButtonPressed:)];
+		[OKButton setTarget:self];
+
+		NSButton* CancelButton = [NSButton new];
+		[CancelButton setButtonType:NSMomentaryLightButton];
+		[CancelButton setTitle:@"Cancel"];
+		[CancelButton setFrame:NSMakeRect(255, 13, 82, 32)];
+		[CancelButton setImagePosition:NSNoImage];
+		[CancelButton setBezelStyle:NSRoundedBezelStyle];
+		[CancelButton setFont:[NSFont systemFontOfSize:0]];
+		[CancelButton setAction:@selector(onCancelButtonPressed:)];
+		[CancelButton setTarget:self];
+
+		[[Window contentView] addSubview:EditorMenu];
+		[[Window contentView] addSubview:OKButton];
+		[[Window contentView] addSubview:CancelButton];
+
+		[Window center];
+		[NSApp activateIgnoringOtherApps:YES];
 
 		NSInteger Result = [NSApp runModalForWindow:Window];
 		if (Result == NSOKButton)
