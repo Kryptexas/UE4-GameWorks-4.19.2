@@ -389,7 +389,8 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 			--EndPos;
 		}
 
-		TrimmedString = TrimmedString.Mid( StartPos, TrimmedString.Len() - EndPos );
+		const int32 Len = (EndPos + 1) - StartPos;
+		TrimmedString = TrimmedString.Mid( StartPos, Len );
 	}
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
