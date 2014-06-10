@@ -144,7 +144,7 @@ protected:
 
 	bool CanFitCommand(SIZE_T Size) const
 	{
-		return (Size + (Tail - Memory) <= MemSize);
+		return (Size + (Tail - Memory) <= (SIZE_T)MemSize);
 	}
 
 	template <typename TCmd>
