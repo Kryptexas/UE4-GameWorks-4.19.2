@@ -4,6 +4,7 @@
 #include "Slate.h"
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
+#include "UnrealEd.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Common Latent commands
@@ -42,5 +43,21 @@ bool FTakeActiveEditorScreenshotCommand::Update()
 bool FTakeEditorScreenshotCommand::Update()
 {
 	AutomationCommon::SaveWindowAsScreenshot(ScreenshotParameters.CurrentWindow.ToSharedRef(), ScreenshotParameters.ScreenshotName);
+	return true;
+}
+
+bool UndoRedoCommand::Update()
+{
+	if (bUndo == true)
+	{
+		//Undo
+		GEditor->UndoTransaction();
+	}
+	else
+	{
+		//Redo
+		GEditor->RedoTransaction();
+	}
+
 	return true;
 }
