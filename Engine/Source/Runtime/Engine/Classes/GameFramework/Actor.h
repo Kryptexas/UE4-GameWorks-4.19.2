@@ -2045,6 +2045,7 @@ private:
 	UPROPERTY(transient, duplicatetransient)
 	TArray<UActorComponent*> OwnedComponents;
 
+	friend class FBlueprintEditorUtils;
 	void ResetOwnedComponents();
 
 public:

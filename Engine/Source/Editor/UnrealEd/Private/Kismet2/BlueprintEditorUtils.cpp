@@ -1202,8 +1202,14 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			CopyDetails.bAggressiveDefaultSubobjectReplacement = false;
 			CopyDetails.bDoDelta = false;
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(SkeletonCDO, GeneratedCDO, CopyDetails);
-			
+
 			Blueprint->SetLegacyGeneratedClassIsAuthoritative();
+		}
+
+		// Now that the CDO is valid, update the OwnedComponents, in case we've added or removed native components
+		if (AActor* MyActor = Cast<AActor>(Blueprint->GeneratedClass->GetDefaultObject()))
+		{
+			MyActor->ResetOwnedComponents();
 		}
 
 		Blueprint->ClearFlags(RF_BeingRegenerated);
