@@ -193,7 +193,7 @@ public:
 		];
 	
 		WorldModel->AddFilter(SearchBoxLevelFilter.ToSharedRef());
-		RefreshView();
+		OnUpdateSelection();
 	}
 
 	/** Regenerates current items */
@@ -544,7 +544,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 					
 					// Toolbar
 					+SHorizontalBox::Slot()
-					.FillWidth(1.f)
+					.AutoWidth()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Left)
 					[
@@ -586,7 +586,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Right)
+					.HAlign(HAlign_Left)
 					[
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
@@ -605,7 +605,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Right)
+					.HAlign(HAlign_Left)
 					[
 						SNew(SButton)
 						.Visibility(this, &SWorldHierarchy::GetCompositionButtonVisibility)

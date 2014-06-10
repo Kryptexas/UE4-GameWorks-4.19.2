@@ -82,7 +82,7 @@ void SWorldDetails::OnBrowseWorld(UWorld* InWorld)
 					]
 					
 					+SHorizontalBox::Slot()
-					.FillWidth(1.f)
+					.AutoWidth()
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Left)
 					.Padding(4,0,4,0)
@@ -102,7 +102,7 @@ void SWorldDetails::OnBrowseWorld(UWorld* InWorld)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Right)
+					.HAlign(HAlign_Left)
 					[
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
@@ -121,7 +121,7 @@ void SWorldDetails::OnBrowseWorld(UWorld* InWorld)
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Right)
+					.HAlign(HAlign_Left)
 					[
 						SNew(SButton)
 						.Visibility(this, &SWorldDetails::GetCompositionButtonVisibility)
@@ -153,6 +153,9 @@ void SWorldDetails::OnBrowseWorld(UWorld* InWorld)
 		];
 
 		WorldModel->RegisterDetailsCustomization(PropertyModule, DetailsView);
+
+		// Current selection
+		OnSelectionChanged();
 	}
 }
 
