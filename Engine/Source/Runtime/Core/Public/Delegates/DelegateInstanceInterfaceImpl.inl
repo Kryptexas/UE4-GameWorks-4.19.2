@@ -55,7 +55,6 @@ public:
 	 * even if the delegate objects themselves are different.  Also, the delegate types *must* be compatible.
 	 *
 	 * @param  InOtherDelegate
-	 *
 	 * @return  True if delegates match
 	 */
 	virtual bool IsSameFunction( const DELEGATE_INSTANCE_INTERFACE_CLASS< FUNC_TEMPLATE_ARGS >& InOtherDelegate ) const = 0;

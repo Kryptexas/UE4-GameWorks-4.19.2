@@ -83,7 +83,6 @@ protected:
 	 * Gets the delegate instance.
 	 *
 	 * @return The delegate instance.
-	 *
 	 * @see SetDelegateInstance
 	 */
 	IDelegateInstance* GetDelegateInstance( ) const
@@ -95,7 +94,6 @@ protected:
 	 * Sets the delegate instance.
 	 *
 	 * @param InDelegateInstance The delegate instance to set.
-	 *
 	 * @see GetDelegateInstance.
 	 */
 	inline void SetDelegateInstance( IDelegateInstance* InDelegateInstance )
