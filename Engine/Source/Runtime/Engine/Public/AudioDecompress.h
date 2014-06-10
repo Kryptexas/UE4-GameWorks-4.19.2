@@ -138,6 +138,8 @@ public:
 };
 #endif
 
+#define OPUS_ID_STRING "UE4OPUS"
+
 /**
 * Helper class to parse opus data
 */

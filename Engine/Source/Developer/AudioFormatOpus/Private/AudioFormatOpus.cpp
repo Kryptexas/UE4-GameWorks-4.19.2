@@ -27,7 +27,7 @@ class FAudioFormatOpus : public IAudioFormat
 	enum
 	{
 		/** Version for OPUS format, this becomes part of the DDC key. */
-		UE_AUDIO_OPUS_VER = 1,
+		UE_AUDIO_OPUS_VER = 2,
 	};
 
 public:
@@ -145,7 +145,9 @@ public:
 			FramesToEncode++;
 		}
 
-		// Store True Sample Count, Number of channels and Frames to Encode first
+		// Store Identifier, True Sample Count, Number of channels and Frames to Encode first
+		const char* OpusIdentifier = OPUS_ID_STRING;
+		CompressedData.Serialize((void*)OpusIdentifier, FCStringAnsi::Strlen( OpusIdentifier )+1);
 		CompressedData.Serialize(&TrueSampleCount, sizeof(uint32));
 		check(QualityInfo.NumChannels < MAX_uint8)
 		uint8 SerializedChannels = QualityInfo.NumChannels;
@@ -246,7 +248,12 @@ public:
 		uint16 ProcessedFrames = 0;
 		const uint8* LockedSrc = SrcBuffer.GetTypedData();
 
-		// Read True Sample Count, Number of channels and Frames to Encode first
+		// Read Identifier, True Sample Count, Number of channels and Frames to Encode first
+		if (FCStringAnsi::Strcmp((char*)LockedSrc, OPUS_ID_STRING) != 0)
+		{
+			return false;
+		}
+		ReadOffset += FCStringAnsi::Strlen(OPUS_ID_STRING) + 1;
 		uint32 TrueSampleCount = *((uint32*)(LockedSrc + ReadOffset));
 		ReadOffset += sizeof(uint32);
 		uint8 NumChannels = *(LockedSrc + ReadOffset);
