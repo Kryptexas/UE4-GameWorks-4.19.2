@@ -515,6 +515,12 @@ protected:
 	UPROPERTY()
 	FVector Acceleration;
 
+	/**
+	 * Location after last PerformMovement update. Used internally to detect changes in position from outside character movement to try to validate the current floor.
+	 */
+	UPROPERTY()
+	FVector LastUpdateLocation;
+
 	/** Accumulated impulse added this tick */
 	UPROPERTY()
 	FVector PendingImpulseToApply;
