@@ -263,7 +263,7 @@ bool FFileManagerGeneric::Delete( const TCHAR* Filename, bool RequireExists, boo
 		{
 			if (!Quiet)
 			{
-				UE_LOG( LogFileManager, Warning, TEXT( "Error deleting file: %s" ), Filename );
+				UE_LOG( LogFileManager, Warning, TEXT( "Error deleting file: %s (Error Code %i)" ), Filename, FPlatformMisc::GetLastError() );
 			}
 			return false;
 		}

@@ -159,7 +159,8 @@ public:
 	}
 	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
 	{
-		return !!DeleteFileW(*NormalizeFilename(Filename));
+		const FString NormalizedFilename = NormalizeFilename(Filename);
+		return !!DeleteFileW(*NormalizedFilename);
 	}
 	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
 	{
