@@ -152,7 +152,7 @@ public:
 	/**
 	 * Builds the message endpoint as configured.
 	 *
-	 * @return A new message endpoint, or NULL if it couldn't be built.
+	 * @return A new message endpoint, or nullptr if it couldn't be built.
 	 */
 	FMessageEndpointPtr Build( )
 	{

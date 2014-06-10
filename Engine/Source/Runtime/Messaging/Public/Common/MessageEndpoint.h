@@ -583,7 +583,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
 	}
 
 	/**
@@ -597,7 +597,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, FDateTime::MaxValue());
 	}
 
 	/**
@@ -612,7 +612,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay, const FDateTime& Expiration )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
+		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
 	}
 
 	/**
@@ -655,7 +655,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, Recipients, FTimespan::Zero(), FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, FTimespan::Zero(), FDateTime::MaxValue());
 	}
 
 	/**
@@ -669,7 +669,7 @@ public:
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
 	{
-		Send(Message, MessageType::StaticStruct(), NULL, Recipients, Delay, FDateTime::MaxValue());
+		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, Delay, FDateTime::MaxValue());
 	}
 
 	/**

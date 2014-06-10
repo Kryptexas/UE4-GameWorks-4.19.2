@@ -190,7 +190,7 @@ public:
 	 * @param Subscriber The subscriber wishing to receive the messages.
 	 * @param MessageType The type of messages to subscribe to (NAME_All = subscribe to all message types).
 	 * @param ScopeRange The range of message scopes to include in the subscription.
-	 * @return The added subscription, or NULL if the subscription failed.
+	 * @return The added subscription, or nullptr if the subscription failed.
 	 * @see Unsubscribe
 	 */
 	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) = 0;

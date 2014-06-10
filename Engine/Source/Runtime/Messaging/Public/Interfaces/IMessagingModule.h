@@ -27,7 +27,7 @@ public:
 	 * @param Bus The message bus to attach the bridge to.
 	 * @param Serializer The message serializer to use.
 	 * @param Transport The message transport technology to use.
-	 * @return The new message bridge, or NULL if the bridge couldn't be created.
+	 * @return The new message bridge, or nullptr if the bridge couldn't be created.
 	 * @see CreateBus
 	 */
 	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const ITransportMessagesRef& Transport ) = 0;
@@ -36,7 +36,7 @@ public:
 	 * Creates a new message bus.
 	 *
 	 * @param RecipientAuthorizer An optional recipient authorizer.
-	 * @return The new message bus, or NULL if the bus couldn't be created.
+	 * @return The new message bus, or nullptr if the bus couldn't be created.
 	 * @see CreateBridge
 	 */
 	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) = 0;
