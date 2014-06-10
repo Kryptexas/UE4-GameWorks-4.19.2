@@ -815,10 +815,6 @@ public:
 
 	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
 	UFUNCTION(reliable, server, WithValidation)
-	void ServerReplicateMessageToAIDebugView(class APawn* InPawn, uint32 InMessage, uint32 DataView = 0);
-
-	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
-	UFUNCTION(reliable, server, WithValidation)
 	void ServerToggleAILogging();
 
 	/** Add Pitch (look up) input */
@@ -922,10 +918,6 @@ protected:
 	/** The state of the inputs from cinematic mode */
 	uint32 bCinemaDisableInputMove:1;
 	uint32 bCinemaDisableInputLook:1;
-
-	/** debugging controller used to communicate with gameplay debugging components - only for development builds */
-	UPROPERTY(Transient)
-	class UGameplayDebuggingControllerComponent* DebuggingController;
 
 private:
 	/* Whether the PlayerController's input handling is enabled. */
@@ -1166,9 +1158,6 @@ public:
 
 	/** Update the camera manager; this is called after all actors have been ticked.	 */ 
 	virtual void UpdateCameraManager(float DeltaSeconds);
-
-	/** Get instance of debugging component */
-	class UGameplayDebuggingControllerComponent* GetDebuggingController() const { return DebuggingController; }
 
 public:
 	/**

@@ -4,7 +4,7 @@
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "GameFramework/PlayerController.h"
-#include "Debug/GameplayDebuggingControllerComponent.h"
+//#include "Debug/GameplayDebuggingControllerComponent.h"
 #include "AISystem.h"
 
 UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
@@ -68,12 +68,12 @@ void UAISystem::RunEQS(const FString& QueryName)
 	UEnvQueryManager* EQS = GetEnvironmentQueryManager();
 	if (MyPC && EQS)
 	{
-		AActor* Target = NULL;
-		UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		if (DebugComp)
-		{
-			Target = DebugComp->GetCurrentDebugTarget();
-		}
+		//AActor* Target = NULL;
+		//UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		//if (DebugComp)
+		//{
+		//	Target = DebugComp->GetCurrentDebugTarget();
+		//}
 
 //#if WITH_EDITOR
 //		if (Target == NULL && GEditor != NULL)
@@ -95,20 +95,20 @@ void UAISystem::RunEQS(const FString& QueryName)
 //		}
 //#endif // WITH_EDITOR
 
-		if (Target)
-		{
-			UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
+		//if (Target)
+		//{
+		//	UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
 
-			if (QueryTemplate)
-			{
-				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-			}
-			else
-			{
-				MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-			}
-		}
-		else
+		//	if (QueryTemplate)
+		//	{
+		//		EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
+		//	}
+		//	else
+		//	{
+		//		MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
+		//	}
+		//}
+		//else
 		{
 			MyPC->ClientMessage(TEXT("No debugging target"));
 		}

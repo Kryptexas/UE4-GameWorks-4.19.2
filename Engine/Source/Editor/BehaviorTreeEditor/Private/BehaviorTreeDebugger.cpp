@@ -624,17 +624,17 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	APlayerController* LocalPC = GEngine->GetFirstLocalPlayerController(World);
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
-		UGameplayDebuggingControllerComponent* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		const APawn* LockedPawn = DebuggingController != NULL ? DebuggingController->GetCurrentDebugTarget() : NULL;
-		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
-		if (TestInstance)
-		{
-			TreeInstance = TestInstance;
-
-#if USE_BEHAVIORTREE_DEBUGGER
-			ActiveStepIndex = TestInstance->DebuggerSteps.Num() - 1;
-#endif
-		}
+//		UGameplayDebuggingControllerComponent* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
+//		const APawn* LockedPawn = DebuggingController != NULL ? DebuggingController->GetCurrentDebugTarget() : NULL;
+//		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
+//		if (TestInstance)
+//		{
+//			TreeInstance = TestInstance;
+//
+//#if USE_BEHAVIORTREE_DEBUGGER
+//			ActiveStepIndex = TestInstance->DebuggerSteps.Num() - 1;
+//#endif
+//		}
 	}
 }
 

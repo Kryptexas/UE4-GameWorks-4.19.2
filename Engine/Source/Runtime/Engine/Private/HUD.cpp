@@ -127,7 +127,7 @@ void AHUD::PostRender()
 	{
 		DrawHUD();
 		
-		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
+		ULocalPlayer* LocalPlayer = GetOwningPlayerController() ? Cast<ULocalPlayer>(GetOwningPlayerController()->Player) : NULL;
 
 		if (LocalPlayer)
 		{

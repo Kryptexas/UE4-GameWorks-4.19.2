@@ -95,10 +95,10 @@ void AEQSTestingPawn::OnEditorSelectionChanged(UObject* NewSelection)
 	}
 
 #if WITH_EDITOR
-	if (GCurrentLevelEditingViewportClient != NULL && UGameplayDebuggingComponent::ShowFlagIndex != INDEX_NONE)
-	{
-		GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(UGameplayDebuggingComponent::ShowFlagIndex, bEQSPawnSelected);
-	}
+	//if (GCurrentLevelEditingViewportClient != NULL && UGameplayDebuggingComponent::ShowFlagIndex != INDEX_NONE)
+	//{
+	//	GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(UGameplayDebuggingComponent::ShowFlagIndex, bEQSPawnSelected);
+	//}
 #endif // WITH_EDITOR
 }
 

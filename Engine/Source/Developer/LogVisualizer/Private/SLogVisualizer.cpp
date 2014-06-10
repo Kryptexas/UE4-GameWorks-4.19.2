@@ -400,13 +400,13 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 
 	DrawingOnCanvasDelegate = FDebugDrawDelegate::CreateSP(this, &SLogVisualizer::DrawOnCanvas);
 	UDebugDrawService::Register(TEXT("VisLog"), DrawingOnCanvasDelegate);
-	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.AddSP(this, &SLogVisualizer::SelectionChanged);
+	//UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.AddSP(this, &SLogVisualizer::SelectionChanged);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 SLogVisualizer::~SLogVisualizer()
 {
-	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
+	//UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
 }

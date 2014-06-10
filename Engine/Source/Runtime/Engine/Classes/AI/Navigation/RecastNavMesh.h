@@ -278,7 +278,7 @@ struct FRecastDebugGeometry
 	FRecastDebugGeometry() : bGatherPolyEdges(false), bGatherNavMeshEdges(false)
 	{}
 
-	uint32 GetAllocatedSize() const;
+	uint32 ENGINE_API GetAllocatedSize() const;
 };
 
 struct FNavPoly

@@ -3,24 +3,54 @@
 /*=============================================================================
 	HUD.cpp: Heads up Display related functionality
 =============================================================================*/
-
-#include "EnginePrivate.h"
-#include "Debug/GameplayDebuggingComponent.h"
-#include "Debug/GameplayDebuggingHUDComponent.h"
+#include "GameplayDebuggerPrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayDebuggingComponent.h"
+#include "GameplayDebuggingHUDComponent.h"
+#include "GameplayDebuggingControllerComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 
 AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
+	World = NULL;
 }
 
-void AGameplayDebuggingHUDComponent::PostRender()
+void AGameplayDebuggingHUDComponent::Render()
 {
-	Super::PostRender();
+	EngineShowFlags = Canvas && Canvas->SceneView && Canvas->SceneView->Family ? Canvas->SceneView->Family->EngineShowFlags : FEngineShowFlags(GIsEditor ? EShowFlagInitMode::ESFIM_Editor : EShowFlagInitMode::ESFIM_Game);
 	PrintAllData();
+}
+
+AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplicator() const
+{
+	if (CachedDebuggingReplicator.IsValid())
+	{
+		return CachedDebuggingReplicator.Get();
+	}
+	
+	for (FActorIterator It(GetWorld()); It; ++It)
+	{
+		AActor* A = *It;
+		if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+		{
+			return Cast<AGameplayDebuggingReplicator>(A);
+		}
+	}
+
+	return NULL;
+}
+
+void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
+{
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));				// Num1
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));		// Num2
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));					// Num3
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
 }
 
 void AGameplayDebuggingHUDComponent::PrintAllData()
@@ -41,37 +71,22 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	const float MenuX = DefaultContext.CursorX;
 	const float MenuY = DefaultContext.CursorY;
 
-	UGameplayDebuggingComponent* SelectedDebugComponent = NULL;
-	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-	if (MyPC)
+	UGameplayDebuggingComponent* DebugComponent = NULL;
+	if (GetDebuggingReplicator())
 	{
-		UWorld* World = MyPC->GetWorld();
-		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator )
-		{
-			APawn* NewTarget = *Iterator;
-			UGameplayDebuggingComponent* DebugComponent = NewTarget->GetDebugComponent(false);
-			if (DebugComponent)
-			{
-				if (DebugComponent->bIsSelectedForDebugging)
-				{
-					SelectedDebugComponent = DebugComponent;
-				}
-				
-				if (NewTarget->PlayerState == NULL || NewTarget->PlayerState->bIsABot)
-				{
-					DrawDebugComponentData(MyPC, DebugComponent);
-				}
-			}
-		}
+		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
 	}
 
-	APawn* PCPawn = MyPC ? MyPC->GetPawn() : NULL;
-	UGameplayDebuggingComponent* PlayerDebugComp = PCPawn ? PCPawn->GetDebugComponent(false) : NULL;
-	if (PlayerDebugComp)
+	if (DebugComponent && DebugComponent->GetSelectedActor())
 	{
-		DrawDebugComponentData(MyPC, PlayerDebugComp);
+		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+		DrawDebugComponentData(MyPC, DebugComponent);
 	}
-	DrawMenu(MenuX, MenuY, SelectedDebugComponent);
+
+	if (!EngineShowFlags.DebugAI)
+	{
+		DrawMenu(MenuX, MenuY, DebugComponent);
+	}
 #endif
 }
 
@@ -80,13 +95,10 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 	const float OldX = DefaultContext.CursorX;
 	const float OldY = DefaultContext.CursorY;
 
-	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-	APawn* PCPawn = MyPC ? MyPC->GetPawn() : NULL;
-	UGameplayDebuggingComponent* PlayerDebugComp = PCPawn ? PCPawn->GetDebugComponent(false) : NULL;
-	if (PlayerDebugComp/*&& !DebugComponent->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag)*/ && DefaultContext.Canvas != NULL)
+	if (DefaultContext.Canvas != NULL)
 	{
 		TArray<FDebugCategoryView> Categories;
-		PlayerDebugComp->GetKeyboardDesc(Categories);
+		GetKeyboardDesc(Categories);
 
 		UFont* OldFont = DefaultContext.Font;
 		DefaultContext.Font = GEngine->GetMediumFont();
@@ -117,27 +129,19 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, 2, 2);
 
-		if (PlayerDebugComp)
+		float XPos = 20.0f;
+		for (int32 i = 0; i < Categories.Num(); i++)
 		{
-			float XPos = 20.0f;
-			for (int32 i = 0; i < Categories.Num(); i++)
-			{
-				const bool bIsActive = MyPC->GetDebuggingController()->IsViewActive(Categories[i].View) ? true : false;
+			const bool bIsActive = FGameplayDebuggerSettings::CheckFlag(Categories[i].View) ? true : false;
+			const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
 
-				const bool bIsDisabled = (Categories[i].View == EAIDebugDrawDataView::NavMesh) ? 	false : (DebugComponent ? false : true);
-
-				PrintString(DefaultContext, bIsActive ? FColorList::Green : (bIsDisabled ? FColorList::LightGrey : FColorList::White), Categories[i].Desc, XPos, 20);
-				XPos += CategoriesWidth[i];
-			}
+			PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, 20);
+			XPos += CategoriesWidth[i];
 		}
 		DefaultContext.Font = OldFont;
 	}
-	else if (GetWorld()->GetNetMode() == NM_Client)
-	{
-			PrintString(DefaultContext, "\n{red}Waiting for player data to replicate from server....\n");
-	}
 
-	if (PlayerDebugComp && !DebugComponent && GetWorld()->GetNetMode() == NM_Client)
+	if ((!DebugComponent || !DebugComponent->GetSelectedActor()) && GetWorld()->GetNetMode() == NM_Client)
 	{
 		PrintString(DefaultContext, "\n{red}No Pawn selected - waiting for data to replicate from server. {green}Press and hold \" to select Pawn \n");
 	}
@@ -149,39 +153,39 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* MyPC, class UGameplayDebuggingComponent *DebugComponent)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APawn* Pawn = Cast<APawn>(DebugComponent->GetOwner());
-	const FVector ScreenLoc = ProjectLocation(DefaultContext, Pawn->GetActorLocation() + FVector(0.f, 0.f, Pawn->GetSimpleCollisionHalfHeight()));
+	AActor* SelectedActor = DebugComponent->GetSelectedActor();
+	const FVector ScreenLoc = SelectedActor ? ProjectLocation(DefaultContext, SelectedActor->GetActorLocation() + FVector(0.f, 0.f, SelectedActor->GetSimpleCollisionHalfHeight())) : FVector::ZeroVector;
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
-
-	if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::OverHead) || MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag))
+	
+	if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
 	}
 
-	if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::NavMesh))
+	if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::NavMesh))
 	{
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	if (DebugComponent->bIsSelectedForDebugging && DebugComponent->ShowExtendedInformatiomCounter > 0)
+	if (DebugComponent->GetSelectedActor() && DebugComponent->IsSelected())
 	{
-		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::Basic))
+		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::Basic) || EngineShowFlags.DebugAI)
 		{
 			DrawBasicData(MyPC, DebugComponent);
 		}
 
-		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::BehaviorTree))
+		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::BehaviorTree))
 		{
 			DrawBehaviorTreeData(MyPC, DebugComponent);
 		}
 
-		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EQS))
+		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::EQS))
 		{
 			DrawEQSData(MyPC, DebugComponent);
 		}
 
-		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::Perception))
+		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
@@ -196,36 +200,34 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static const FColor Grey(100,100,100);
 	const int32 NumPathVerts = DebugComponent->PathPoints.Num();
-	if (MyPC)
+	UWorld* World = GetWorld();
+
+	for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
 	{
-		UWorld* World = MyPC->GetWorld();
+		FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
+		DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
 
-		for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
-		{
-			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
-			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
-
-			// draw line to next loc
-			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
-			DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
-				, -1.f, 0
-				, NavigationDebugDrawing::PathLineThickness);
-		}
-
-		// draw last vert
-		if (NumPathVerts > 0)
-		{
-			DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
-		}
+		// draw line to next loc
+		FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
+		DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
+			, -1.f, 0
+			, NavigationDebugDrawing::PathLineThickness);
 	}
+
+	// draw last vert
+	if (NumPathVerts > 0)
+	{
+		DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
+	}
+
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APawn* MyPawn = Cast<APawn>(DebugComponent->GetOwner());
-	const FVector Loc3d = MyPawn->GetActorLocation() + FVector(0.f, 0.f, MyPawn->GetSimpleCollisionHalfHeight());
+	APawn* MyPawn = Cast<APawn>(DebugComponent->GetSelectedActor());
+	const FVector Loc3d = MyPawn ? MyPawn->GetActorLocation() + FVector(0.f, 0.f, MyPawn->GetSimpleCollisionHalfHeight()) : FVector::ZeroVector;
 
 	if (OverHeadContext.Canvas->SceneView == NULL || OverHeadContext.Canvas->SceneView->ViewFrustum.IntersectBox(Loc3d, FVector::ZeroVector) == false)
 	{
@@ -240,7 +242,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 	float YL = 0.f;
 	CalulateStringSize(OverHeadContext, OverHeadContext.Font, DebugComponent->PawnName, TextXL, YL);
 
-	bool bDrawFullOverHead = DebugComponent->bIsSelectedForDebugging;
+	bool bDrawFullOverHead = DebugComponent->IsSelected();
 	if (bDrawFullOverHead)
 	{
 		OverHeadContext.DefaultX -= (0.5f*TextXL*FontScale.X);
@@ -269,7 +271,9 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 		OverHeadContext.FontRenderInfo.bEnableShadow = false;
 	}
 
-	if (PC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag))
+	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+	UGameplayDebuggingControllerComponent*  GDC = MyPC ? MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
+	if (EngineShowFlags.DebugAI)
 	{
 		PrintString(OverHeadContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 		DrawPath(PC, DebugComponent);
@@ -288,7 +292,7 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 	}
 
-	if (DebugComponent->bIsSelectedForDebugging)
+	if (DebugComponent->IsSelected())
 	{
 		DrawPath(PC, DebugComponent);
 	}
@@ -439,9 +443,10 @@ void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, 
 	if (DebugComponent && DebugComponent->NavmeshRepData.Num())
 	{
 		float TimeLeft = 0.0f;
-		if (PC && PC->GetDebuggingController())
+		UGameplayDebuggingControllerComponent*  GDC = PC ? PC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
+		if (GDC)
 		{
-			TimeLeft = GetWorldTimerManager().GetTimerRemaining(PC->GetDebuggingController(), &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
+			TimeLeft = GetWorldTimerManager().GetTimerRemaining(GDC, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
 		}
 
 		FString NextUpdateDesc;

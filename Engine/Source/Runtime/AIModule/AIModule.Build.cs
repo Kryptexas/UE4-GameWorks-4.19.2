@@ -22,24 +22,21 @@ namespace UnrealBuildTool.Rules
 				);
 
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 					"CoreUObject",
-					"Engine",
+					"Engine",                   
 				}
 				);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"RHI",
 				}
 				);
 
 			DynamicallyLoadedModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					// ... add any modules that your module loads dynamically here ...
 				}
 				);
@@ -48,6 +45,12 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
 			}
+
+            //@TODO: included always for now. Fortnite extends some classes from GDT and I have to deal with it first. (sebak)
+            //if (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+            {
+                PublicDependencyModuleNames.Add("GameplayDebugger");
+            }
 
             if (UEBuildConfiguration.bCompileRecast)
             {

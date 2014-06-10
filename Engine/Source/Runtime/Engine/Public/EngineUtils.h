@@ -538,7 +538,7 @@ public:
 /**
  * An output device that forwards output to both the log and the console.
  */
-class FConsoleOutputDevice : public FStringOutputDevice
+class ENGINE_API FConsoleOutputDevice : public FStringOutputDevice
 {
 public:
 

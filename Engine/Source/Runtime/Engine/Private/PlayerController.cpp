@@ -675,18 +675,6 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		}
 		UpdateNavigationComponents();
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && GetNetMode() != NM_DedicatedServer)
-	{
-		if (!DebuggingController)
-		{
-			DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-			DebuggingController->RegisterComponent();
-			DebuggingController->InitBasicFuncionality();
-		}
-	}
-#endif
 }
 
 void APlayerController::AcknowledgePossession(APawn* P)
@@ -831,16 +819,6 @@ void APlayerController::PostInitializeComponents()
 
 	bPlayerIsWaiting = true;
 	StateName = NAME_Spectating; // Don't use ChangeState, because we want to defer spawning the SpectatorPawn until the Player is received
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
-	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
-	}
-#endif
-
 }
 
 bool APlayerController::ServerShortTimeout_Validate()
@@ -1046,14 +1024,6 @@ bool APlayerController::ServerAcknowledgePossession_Validate(APawn* P)
 
 void APlayerController::UnPossess()
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebuggingController != NULL)
-	{
-		DebuggingController->UnregisterComponent();
-		DebuggingController = NULL;
-	}
-#endif
-
 	if (GetPawn() != NULL)
 	{
 		if (Role == ROLE_Authority)
@@ -1223,22 +1193,6 @@ void APlayerController::ServerToggleAILogging_Implementation()
 	}
 }
 
-bool APlayerController::ServerReplicateMessageToAIDebugView_Validate(class APawn* InPawn, uint32 InMessage, uint32 DataView)
-{
-	return true;
-}
-
-void APlayerController::ServerReplicateMessageToAIDebugView_Implementation(class APawn* InPawn, uint32 InMessage, uint32 DataView)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	UGameplayDebuggingComponent* DebuggingComponent = InPawn ? InPawn->GetDebugComponent(true) : NULL;
-	if(DebuggingComponent)
-	{
-		DebuggingComponent->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
 void APlayerController::PawnLeavingGame()
 {
 	if (GetPawn() != NULL)
@@ -1295,14 +1249,6 @@ void APlayerController::Destroyed()
 	{
 		Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebuggingController != NULL)
-	{
-		DebuggingController->UnregisterComponent();
-		DebuggingController = NULL;
-	}
-#endif
 
 	Super::Destroyed();
 }
@@ -2176,11 +2122,6 @@ void APlayerController::SetupInputComponent()
 	{
 		InputComponent->bBlockInput = bBlockInput;
 		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
-	}
-
-	if (GetNetMode() != NM_DedicatedServer && InputComponent && DebuggingController)
-	{
-		DebuggingController->BindActivationKeys();
 	}
 }
 

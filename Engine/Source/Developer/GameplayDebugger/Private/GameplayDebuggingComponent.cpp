@@ -1,21 +1,22 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-#include "EnginePrivate.h"
+#include "GameplayDebuggerPrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "BehaviorTreeDelegates.h"
-#include "../AI/Navigation/RecastNavMeshGenerator.h"
-#include "../NavMeshRenderingHelpers.h"
-#include "../../Classes/AI/Navigation/NavigationSystem.h"
+#include "DebugRenderSceneProxy.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
+#include "NavMeshRenderingHelpers.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "AIController.h"
 #include "BrainComponent.h"
-#include "Navigation/NavigationComponent.h"
-#include "Navigation/PathFollowingComponent.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "BehaviorTreeDelegates.h"
+#include "Navigation/NavigationComponent.h"
+
+#include "GameplayDebuggingComponent.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
+//#include "UnrealEd.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogGDT);
@@ -112,7 +113,6 @@ protected:
 
 FName UGameplayDebuggingComponent::DefaultComponentName = TEXT("GameplayDebuggingComponent");
 FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate;
-const uint32 UGameplayDebuggingComponent::ShowFlagIndex = uint32(FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug")));
 
 UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
@@ -122,9 +122,12 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 	, bDrawEQSFailedItems(true)
 #endif // WITH_EQS
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	DebugComponentClassName = TEXT("/Script/GameplayDebugger.GameplayDebuggingComponent");
+		
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
-	bAutoActivate = false;
+	bAutoActivate = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	bIsSelectedForDebugging = false;
@@ -142,10 +145,12 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 #endif // WITH_EQS
 	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
+#endif
 }
 
 void UGameplayDebuggingComponent::Activate(bool bReset)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ActivationCounter++;
 	if (ActivationCounter > 0)
 	{
@@ -155,10 +160,14 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 		}
 		SetComponentTickEnabled(true);
 	}
+#else
+	Super::Activate(bReset);
+#endif
 }
 
 void UGameplayDebuggingComponent::Deactivate()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ActivationCounter--;
 	if (ActivationCounter <= 0)
 	{
@@ -169,12 +178,16 @@ void UGameplayDebuggingComponent::Deactivate()
 		}
 		SetComponentTickEnabled(false);
 	}
+#else
+	Super::Deactivate();
+#endif
 }
 
 void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	DOREPLIFETIME(UGameplayDebuggingComponent, bIsSelectedForDebugging);
 	DOREPLIFETIME( UGameplayDebuggingComponent, ActivationCounter );
 	DOREPLIFETIME( UGameplayDebuggingComponent, ReplicateViewDataCounters );
 	DOREPLIFETIME( UGameplayDebuggingComponent, ShowExtendedInformatiomCounter );
@@ -197,6 +210,8 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSId);
 	DOREPLIFETIME(UGameplayDebuggingComponent, EQSRepData);
 #endif // WITH_EQS
+
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 bool UGameplayDebuggingComponent::ServerEnableTargetSelection_Validate(bool bEnable)
@@ -206,32 +221,65 @@ bool UGameplayDebuggingComponent::ServerEnableTargetSelection_Validate(bool bEna
 
 void UGameplayDebuggingComponent::ServerEnableTargetSelection_Implementation(bool bEnable)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bEnabledTargetSelection = bEnable;
 	if (bEnabledTargetSelection && World && World->GetNetMode() < NM_Client)
 	{
 		NextTargrtSelectionTime = 0;
-		SelectTargetToDebug();
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	TargetActor = Actor;
+	APawn* TargetPawn = Cast<APawn>(TargetActor);
+	if (TargetPawn)
+	{
+		FBehaviorTreeDelegates::OnDebugSelected.Broadcast(TargetPawn);
+	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	if (World && World->GetNetMode() < NM_Client)
 	{
 		if (bEnabledTargetSelection)
 		{
-			SelectTargetToDebug();
+			AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+			if (Replicator)
+			{
+				TArray<FDebugContext>& Clients = Replicator->GetClients();
+				for (int32 Index = 0; Index < Clients.Num(); ++Index)
+				{
+					if (Clients[Index].bEnabledTargetSelection && Clients[Index].PlayerOwner.IsValid())
+					{
+						SelectTargetToDebug(Clients[Index]);
+
+						if (Clients[Index].DebugTarget.IsValid())
+						{
+							SetActorToDebug(Clients[Index].DebugTarget.Get());
+							CollectDataToReplicate(true);
+						}
+					}
+					break;
+				}
+			}
 		}
-		CollectDataToReplicate();
 	}
+
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UGameplayDebuggingComponent::SelectTargetToDebug()
+void UGameplayDebuggingComponent::SelectTargetToDebug(FDebugContext& Context)
 {
-	const APawn* MyPawn = Cast<APawn>(GetOwner());
-	APlayerController* MyPC = Cast<APlayerController>(MyPawn->Controller);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	APlayerController* MyPC = Context.PlayerOwner.Get();
 
 	if (MyPC )
 	{
@@ -242,14 +290,6 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 			if ((BestTarget && BestTarget->PlayerState && !BestTarget->PlayerState->bIsABot) || BestTarget->GetActorEnableCollision() == false)
 			{
 				BestTarget = NULL;
-			}
-			else if (BestTarget)
-			{
-				// always update component for view target
-				if (UGameplayDebuggingComponent *DebuggingComponent = BestTarget->GetDebugComponent(true))
-				{
-					DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
-				}
 			}
 		}
 
@@ -263,11 +303,6 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		check( World );
 
 		APawn* PossibleTarget = NULL;
-		bool bUpdateComponentsToReplicate = GetWorld() && GetWorld()->TimeSeconds > NextTargrtSelectionTime;
-		if (bUpdateComponentsToReplicate)
-		{
-			NextTargrtSelectionTime = GetWorld()->TimeSeconds + 1;
-		}
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator )
 		{
 			APawn* NewTarget = *Iterator;
@@ -277,12 +312,6 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 				continue;
 			}
 			
-			UGameplayDebuggingComponent *DebuggingComponent = NewTarget->GetDebugComponent(true);
-			if (DebuggingComponent && bUpdateComponentsToReplicate)
-			{
-				DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
-			}
-
 			if (BestTarget == NULL && NewTarget && (NewTarget != MyPC->GetPawn()))
 			{
 				// look for best controlled pawn target
@@ -307,36 +336,34 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		if (BestTarget != NULL)
 		{
 			//always update component for best target
-			if (UGameplayDebuggingComponent *DebuggingComponent = BestTarget->GetDebugComponent(true))
-			{
-				if (TargetActor != NULL)
-				{
-					if (UGameplayDebuggingComponent *OldDebuggingComponent = TargetActor->GetDebugComponent())
-					{
-						OldDebuggingComponent->SelectForDebugging(false);
-					}
-				}
-				TargetActor = BestTarget;
-				DebuggingComponent->SelectForDebugging(true);
-				DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
-			}
+			Context.DebugTarget = Cast<AActor>(BestTarget);
+			SetActorToDebug(Context.DebugTarget.Get());
+			SelectForDebugging(true);
+			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 		}
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UGameplayDebuggingComponent::CollectDataToReplicate()
+void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedData)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!GetSelectedActor())
+	{
+		return;
+	}
+
 	if (ShouldReplicateData(EAIDebugDrawDataView::Basic) || ShouldReplicateData(EAIDebugDrawDataView::OverHead))
 	{
 		CollectBasicData();
 	}
 
-	if (bIsSelectedForDebugging || ShouldReplicateData(EAIDebugDrawDataView::EditorDebugAIFlag))
+	if (IsSelected() && ShouldReplicateData(EAIDebugDrawDataView::EditorDebugAIFlag))
 	{
 		CollectPathData();
 	}
 
-	if (ShowExtendedInformatiomCounter > 0)
+	if (bCollectExtendedData && IsSelected())
 	{
 		if (ShouldReplicateData(EAIDebugDrawDataView::BehaviorTree))
 		{
@@ -350,11 +377,13 @@ void UGameplayDebuggingComponent::CollectDataToReplicate()
 		}
 #endif // WITH_EQS
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBasicData()
 {
-	const APawn* MyPawn = Cast<APawn>(GetOwner());
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	PawnName = MyPawn->GetHumanReadableName();
 	PawnClass = MyPawn->GetClass()->GetName();
 	const AAIController* MyController = Cast<const AAIController>(MyPawn->Controller);
@@ -375,25 +404,29 @@ void UGameplayDebuggingComponent::CollectBasicData()
 	{
 		ControllerName = TEXT("No Controller");
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBehaviorTreeData()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!ShouldReplicateData(EAIDebugDrawDataView::BehaviorTree))
 	{
 		return;
 	}
 
-	APawn* MyPawn = Cast<APawn>(GetOwner());
+	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
 		BrainComponentName = MyController->BrainComponent != NULL ? MyController->BrainComponent->GetName() : TEXT(""); 
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectPathData()
 {
-	APawn* MyPawn = Cast<APawn>(GetOwner());
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	PathErrorString.Empty();
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
@@ -416,55 +449,17 @@ void UGameplayDebuggingComponent::CollectPathData()
 			PathPoints.Reset();
 		}
 	}
-}
-
-void UGameplayDebuggingComponent::OnDebugAI(class UCanvas* Canvas, class APlayerController* PC)
-{
-#if WITH_EDITOR
-	if (Canvas->SceneView->Family->EngineShowFlags.DebugAI && !IsPendingKill() && GetOwner() && !GetOwner()->IsPendingKill())
-	{
-		if (!IsComponentTickEnabled() && GetOwnerRole() == ROLE_Authority)
-		{
-			// collecting data manually here - it was activated by DebugAI flag and not by regular usage
-			CollectDataToReplicate();
-		}
-
-		APawn* MyPawn = Cast<APawn>(GetOwner());
-		if (MyPawn && MyPawn->IsSelected())
-		{
-			if (!bWasSelectedInEditor)
-			{
-				ServerReplicateData(EDebugComponentMessage::EnableExtendedView, EAIDebugDrawDataView::Basic);
-				bWasSelectedInEditor = true;
-			}
-			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::EditorDebugAIFlag);
-			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::Basic);
-			SelectForDebugging(true);
-		}
-		else if (!MyPawn || MyPawn && !MyPawn->IsSelected())
-		{
-			if (bWasSelectedInEditor)
-			{
-				ServerReplicateData(EDebugComponentMessage::DisableExtendedView, EAIDebugDrawDataView::Basic);
-				bWasSelectedInEditor = false;
-			}
-			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::EditorDebugAIFlag);
-			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::Basic);
-			SelectForDebugging(false);
-		}
-	}
-#endif
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bIsSelectedForDebugging != bNewStatus)
 	{
 		bIsSelectedForDebugging = bNewStatus;
 		
-		OnDebuggingTargetChangedDelegate.Broadcast(GetOwner(), bNewStatus);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		OnDebuggingTargetChangedDelegate.Broadcast(GetSelectedActor(), bNewStatus);
 
 #if 0
 		// temp: avoidance debug
@@ -485,12 +480,13 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 			MarkRenderStateDirty();
 		}
 #endif // WITH_EQS
-#endif
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedComponent)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bEnable)
 	{
 		SelectForDebugging(InFocusedComponent);
@@ -502,30 +498,15 @@ void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedCo
 		EnableClientEQSSceneProxy(false);
 #endif // WITH_EQS
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-bool UGameplayDebuggingComponent::ServerReplicateData_Validate( EDebugComponentMessage::Type InMessage, EAIDebugDrawDataView::Type DataView )
+void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  InDataView)
 {
-	switch ( InMessage )
-	{
-		case EDebugComponentMessage::EnableExtendedView:
-		case EDebugComponentMessage::DisableExtendedView:
-		case EDebugComponentMessage::ActivateReplication:
-		case EDebugComponentMessage::DeactivateReplilcation:
-		case EDebugComponentMessage::ActivateDataView:
-		case EDebugComponentMessage::DeactivateDataView:
-			break;
-
-		default:
-			return false;
-	}
-
-	return true;
-}
-
-void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComponentMessage::Type InMessage, EAIDebugDrawDataView::Type DataView )
-{
-	switch (InMessage)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	EDebugComponentMessage::Type Message = (EDebugComponentMessage::Type)InMessage;
+	EAIDebugDrawDataView::Type DataView = (EAIDebugDrawDataView::Type) InDataView;
+	switch (Message)
 	{
 	case EDebugComponentMessage::EnableExtendedView:
 		ShowExtendedInformatiomCounter++;
@@ -542,7 +523,7 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 	case EDebugComponentMessage::DeactivateReplilcation:
 		{
 			Deactivate();
-			APawn* MyPawn = Cast<APawn>(GetOwner());
+			APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 			if (MyPawn != NULL && IsActive() == false)
 			{
 				//MyPawn->RemoveDebugComponent();
@@ -567,15 +548,7 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 	default:
 		break;
 	}
-}
-
-void UGameplayDebuggingComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
-{
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));				// Num1
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));		// Num2
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));					// Num3
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 #if WITH_EQS
@@ -929,8 +902,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 #if WITH_RECAST
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	ARecastNavMesh* NavData = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData(FNavigationSystem::DontCreate)) : NULL;
-	const APawn* MyPawn = Cast<APawn>(GetOwner());	
-	if (NavData == NULL || MyPawn == NULL)
+	if (NavData == NULL)
 	{
 		NavmeshRepData.Empty();
 		return;
@@ -945,16 +917,6 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	const int32 DeltaY[] = { 0, 0, 1, 1,  1,  0, -1, -1, -1 };
 
 	NavData->BeginBatchQuery();
-
-	// gather 3x3 neighborhood of player
-	//if (TargetActor == NULL || TargetActor->IsPendingKill())
-	//{
-	//	NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
-	//	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
-	//	{
-	//		NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
-	//	}
-	//}
 
 	// add 3x3 neighborhood of target
 	int32 TargetTileX = 0;
@@ -1050,7 +1012,7 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	NavmeshRepData.SetNum(CompressedSize + HeaderSize, false);
 
 	const double Timer3 = FPlatformTime::Seconds();
-	UE_LOG(LogNavigation, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
+	UE_LOG(LogGDT, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
 		NavmeshRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
 		1000.0f * (Timer2 - Timer1),
 		FMath::TruncToInt(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
@@ -1184,9 +1146,9 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
 
 #if WITH_RECAST	
-	const APawn* MyPawn = Cast<APawn>(GetOwner());
-	const APlayerController* MyPC = MyPawn ? Cast<APlayerController>(MyPawn->Controller) : NULL;
-	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && MyPC && MyPC->IsLocalController())
+	const APawn* MyPawn = Cast<APawn>(GetSelectedActor());
+	//const APlayerController* MyPC = MyPawn ? Cast<APlayerController>(MyPawn->Controller) : NULL;
+	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && World && World->GetNetMode() != NM_DedicatedServer)
 	{
 		TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe> NewNavmeshRenderData = MakeShareable(new FNavMeshSceneProxyData());
 		NewNavmeshRenderData->bNeedsNewData = false;

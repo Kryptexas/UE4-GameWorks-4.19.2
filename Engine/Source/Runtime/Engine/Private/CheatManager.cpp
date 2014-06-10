@@ -1068,37 +1068,6 @@ void UCheatManager::SetWorldOrigin()
 	World->RequestNewWorldOrigin(NewOrigin);
 }
 
-void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
-{
-	static TArray<FString> ViewNames;
-	if (ViewNames.Num() == 0)
-	{
-		const UEnum* ViewlEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIDebugDrawDataView"), true);
-		ViewNames.AddZeroed(EAIDebugDrawDataView::MAX);
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			ViewNames[Index] = ViewlEnum->GetEnumName(Index);
-		}
-	}
-
-	int32 ViewIndex = ViewNames.Find(InViewName);
-	if (ViewIndex != INDEX_NONE)
-	{
-		const bool bIsEnabled = UGameplayDebuggingControllerComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("View %s %s")
-			, *InViewName
-			, bIsEnabled ? TEXT("enabled") : TEXT("disabled")));
-	}
-	else
-	{
-		GetOuterAPlayerController()->ClientMessage(TEXT("Unknown debug view name. Valid options are:"));
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			GetOuterAPlayerController()->ClientMessage(*ViewNames[Index]);
-		}
-	}
-}
-
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )
 {
 #if ALLOW_DEBUG_FILES

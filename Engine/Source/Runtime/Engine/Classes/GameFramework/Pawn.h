@@ -40,10 +40,6 @@ private:
 	/* Whether this Pawn's input handling is enabled.  Pawn must still be possessed to get input even if this is true */
 	uint32 bInputEnabled:1;
 
-	/** Used for debugging gameplay across network connections.  Not present in shipping builds. */
-	UPROPERTY(Replicated, Transient)
-	class UGameplayDebuggingComponent* DebugComponent;
-
 public:
 
 	/** Base eye height above collision center. */
@@ -53,12 +49,6 @@ public:
 	/* Specifies which player controller, if any, should automatically possess the pawn when the level starts or the pawn is spawned */
 	UPROPERTY(EditAnywhere, Category=Pawn)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoPossess;
-
-	/** Class of GameplayDebuggingComponent to instantiate. */
-	UClass* GameplayDebuggingComponentClass;
-
-	virtual class UGameplayDebuggingComponent* GetDebugComponent(bool bCreateIfNotFound=false);
-	virtual void RemoveDebugComponent();
 
 public:
 

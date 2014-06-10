@@ -29,10 +29,6 @@ APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	AIControllerClass = NULL;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	GameplayDebuggingComponentClass = UGameplayDebuggingComponent::StaticClass();
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
 	bCanBeDamaged = true;
 	
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
@@ -127,45 +123,6 @@ void APawn::UpdateNavAgent()
 }
 
 void APawn::PawnStartFire(uint8 FireModeNum) {}
-
-class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFound)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent == NULL)
-	{
-		//let's see if we have it replicated but DebugComponent variable is not 
-		TArray<UGameplayDebuggingComponent*> Components;
-		GetComponents(Components);
-		if (Components.Num() > 0)
-		{
-			DebugComponent = Components[0];
-		}
-
-		if (DebugComponent == NULL && bCreateIfNotFound && GetNetMode() < NM_Client)
-		{
-			UE_VLOG(GetOwner(), LogGDT, Log, TEXT("APawn: Creating GDT Component for Pawn: '%s'"), *GetName());
-			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
-			DebugComponent->SetIsReplicated(true);
-			DebugComponent->Activate();
-			DebugComponent->RegisterComponent();
-		}
-	}
-	return DebugComponent;
-#else
-	return NULL;
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
-void APawn::RemoveDebugComponent()
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent != NULL)
-	{
-		DebugComponent->DestroyComponent();
-		DebugComponent = NULL;
-	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
 
 AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 {
@@ -991,10 +948,6 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 
 	DOREPLIFETIME_CONDITION( APawn, Controller,			COND_OwnerOnly );
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DOREPLIFETIME(APawn, DebugComponent);
-#endif
 }
 
 void APawn::MoveIgnoreActorAdd(AActor * ActorToIgnore)

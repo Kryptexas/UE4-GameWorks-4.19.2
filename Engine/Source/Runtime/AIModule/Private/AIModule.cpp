@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "AISystem.h"
+//#include "Developer/GameplayDebugger/Public/GameplayDebugger.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAIModule, Log, All);
 
@@ -20,6 +21,7 @@ IMPLEMENT_MODULE(FAIModule, AIModule)
 void FAIModule::StartupModule()
 { 
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
+	FModuleManager::LoadModuleChecked< IModuleInterface >("GameplayDebugger");
 }
 
 void FAIModule::ShutdownModule()

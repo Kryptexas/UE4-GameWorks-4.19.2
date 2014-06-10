@@ -5,13 +5,14 @@
  */
 
 #pragma once
-#include "GameplayDebuggingControllerComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "DebugRenderSceneProxy.h"
+#include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingComponent.generated.h"
 
 #define WITH_EQS 0
 
-DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Display, All);
+struct FDebugContext;
 
 UENUM()
 namespace EDebugComponentMessage
@@ -27,15 +28,6 @@ namespace EDebugComponentMessage
 		SetMultipleDataViews,
 	};
 }
-
-struct ENGINE_API FDebugCategoryView
-{
-	FString Desc;
-	TEnumAsByte<EAIDebugDrawDataView::Type> View;
-
-	FDebugCategoryView() {}
-	FDebugCategoryView(EAIDebugDrawDataView::Type InView, const FString& Description) : Desc(Description), View(InView) {}
-};
 
 namespace EQSDebug
 {
@@ -67,12 +59,18 @@ namespace EQSDebug
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
-UCLASS()
-class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, public IEQSQueryResultSourceInterface
+UCLASS(config=Engine)
+class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent//, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
 
 	friend class AGameplayDebuggingHUDComponent;
+
+	UPROPERTY(globalconfig)
+	FString DebugComponentClassName;
+
+	UPROPERTY(Replicated)
+	bool bIsSelectedForDebugging;
 
 	UPROPERTY(Replicated)
 	int32 ActivationCounter;
@@ -136,13 +134,13 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, pub
 	virtual void OnRep_UpdateEQS();
 #endif // WITH_EQS
 
-	virtual bool GetComponentClassCanReplicate() const OVERRIDE{ return true; }
+	virtual bool GetComponentClassCanReplicate() const override{ return true; }
 
 	UFUNCTION()
 	virtual void OnRep_UpdateNavmesh();
 
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerReplicateData( EDebugComponentMessage::Type InMessage, EAIDebugDrawDataView::Type DataView );
+	UFUNCTION(exec)
+	void ServerReplicateData(uint32 InMessage, uint32 DataView);
 
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerCollectNavmeshData(FVector_NetQuantize10 TargetLocation);
@@ -152,10 +150,10 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, pub
 
 	void PrepareNavMeshData(struct FNavMeshSceneProxyData*) const;
 
-	virtual void Activate(bool bReset=false) OVERRIDE;
-	virtual void Deactivate() OVERRIDE;
+	virtual void Activate(bool bReset=false) override;
+	virtual void Deactivate() override;
 
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	virtual void EnableDebugDraw(bool bEnable, bool InFocusedComponent = false);
 
@@ -163,22 +161,23 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, pub
 	/** Will broadcast information that this component is (no longer) being "observed" */
 	void SelectForDebugging(bool bNewStatus);
 
-	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return ReplicateViewDataCounters[InView] > 0; }
-	//=============================================================================
-	// client side debugging
-	//=============================================================================
-	void OnDebugAI(class UCanvas* Canvas, class APlayerController* PC);
-
-	virtual void CollectDataToReplicate();
+	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return true; }
+	virtual void CollectDataToReplicate(bool bCollectExtendedData);
 
 	//=============================================================================
 	// controller related stuff
 	//=============================================================================
 	UPROPERTY(Replicated)
-	APawn* TargetActor;
-
+	AActor* TargetActor;
+	
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerEnableTargetSelection(bool bEnable);
+
+	void SetActorToDebug(AActor* Actor);
+	FORCEINLINE AActor* GetSelectedActor() const
+	{
+		return TargetActor;
+	}
 
 #if WITH_EQS
 	//=============================================================================
@@ -190,11 +189,11 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent//, pub
 	bool IsClientEQSSceneProxyEnabled() { return bEnableClientEQSSceneProxy; }
 
 	// IEQSQueryResultSourceInterface start
-	virtual const struct FEnvQueryResult* GetQueryResult() const OVERRIDE;
-	virtual const struct FEnvQueryInstance* GetQueryInstance() const  OVERRIDE;
+	virtual const struct FEnvQueryResult* GetQueryResult() const override;
+	virtual const struct FEnvQueryInstance* GetQueryInstance() const  override;
 
-	virtual bool GetShouldDebugDrawLabels() const OVERRIDE { return bDrawEQSLabels; }
-	virtual bool GetShouldDrawFailedItems() const OVERRIDE{ return bDrawEQSFailedItems; }
+	virtual bool GetShouldDebugDrawLabels() const override { return bDrawEQSLabels; }
+	virtual bool GetShouldDrawFailedItems() const override{ return bDrawEQSFailedItems; }
 	// IEQSQueryResultSourceInterface end
 protected:
 	virtual void CollectEQSData();
@@ -204,27 +203,24 @@ public:
 	//=============================================================================
 	// Rendering
 	//=============================================================================
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const OVERRIDE;
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 
 protected:
-	void SelectTargetToDebug();
+	void SelectTargetToDebug(FDebugContext& Context);
 
-	APlayerController* PlayerOwner;
+	//APlayerController* PlayerOwner;
 
 protected:
 	virtual void CollectPathData();
 	virtual void CollectBasicData();
 	virtual void CollectBehaviorTreeData();
 
-	virtual void GetKeyboardDesc(TArray<FDebugCategoryView>& Categories);
-
 	FNavPathWeakPtr CurrentPath;
 
 	uint32 bEnabledTargetSelection : 1;
-	uint32 bIsSelectedForDebugging : 1;
 #if WITH_EDITOR
 	uint32 bWasSelectedInEditor : 1;
 #endif
@@ -233,8 +229,9 @@ protected:
 	/** navmesh data passed to rendering component */
 	FBox NavMeshBounds;
 
+	TWeakObjectPtr<APlayerController> PlayerOwner;
+
 public:
 	static FName DefaultComponentName;
 	static FOnDebuggingTargetChanged OnDebuggingTargetChangedDelegate;
-	static const uint32 ShowFlagIndex;
 };

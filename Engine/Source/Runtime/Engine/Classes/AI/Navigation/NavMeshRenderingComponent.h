@@ -4,7 +4,7 @@
 #include "NavMeshRenderingComponent.generated.h"
 
 UCLASS(hidecategories=Object, editinlinenew)
-class UNavMeshRenderingComponent : public UPrimitiveComponent
+class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
