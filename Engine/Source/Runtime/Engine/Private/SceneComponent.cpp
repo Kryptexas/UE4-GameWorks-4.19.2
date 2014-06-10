@@ -431,7 +431,7 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 	if(AttachParent != NULL && !bAbsoluteScale)
 	{
 		FTransform ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
-		NewRelScale = ParentToWorld.InverseTransformVector(NewScale);
+		NewRelScale = NewScale * ParentToWorld.GetSafeScaleReciprocal(ParentToWorld.GetScale3D());
 	}
 
 	SetRelativeScale3D(NewRelScale);
