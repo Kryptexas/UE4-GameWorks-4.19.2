@@ -1628,6 +1628,7 @@ public:
 #if WITH_EDITOR
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
 #endif
+	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 
 	// End UObject Interface
 	
