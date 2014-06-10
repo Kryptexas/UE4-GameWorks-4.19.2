@@ -28,7 +28,7 @@ public:
 	FShaderComplexityAccumulatePS() {}
 
 	void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		uint32 NumVertexInstructions, 
 		uint32 NumPixelInstructions,
 		ERHIFeatureLevel::Type InFeatureLevel);

@@ -1988,7 +1988,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		}
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
 		
 		{

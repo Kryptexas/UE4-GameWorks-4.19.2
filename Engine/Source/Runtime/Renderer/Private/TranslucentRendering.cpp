@@ -146,7 +146,7 @@ public:
 	}
 	FCopySceneColorPS() {}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FViewInfo& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		SceneTextureParameters.Set(RHICmdList, GetPixelShader(), View);
 	}
@@ -183,7 +183,7 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 	SetGlobalBoundShaderState(CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	/// ?
-	PixelShader->SetParameters(nullptr, View);
+	PixelShader->SetParameters(FRHICommandList::GetNullRef(), View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -248,7 +248,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -325,7 +325,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	const EMaterialShadingModel ShadingModel = Material->GetShadingModel();
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))
@@ -391,7 +391,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -417,7 +417,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
  * @return true if the mesh rendered
  */
 bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FStaticMesh& StaticMesh,
@@ -524,7 +524,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 		}
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )

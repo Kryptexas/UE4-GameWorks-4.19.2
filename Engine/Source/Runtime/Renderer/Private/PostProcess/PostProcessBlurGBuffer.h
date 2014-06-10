@@ -18,5 +18,5 @@ public:
 	virtual void Release() OVERRIDE { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
-	static void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, uint32 BlurType);
+	static void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, uint32 BlurType);
 };

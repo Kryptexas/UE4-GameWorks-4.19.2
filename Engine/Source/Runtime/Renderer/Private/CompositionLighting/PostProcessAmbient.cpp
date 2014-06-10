@@ -47,7 +47,7 @@ public:
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FFinalPostProcessSettings::FCubemapEntry& Entry)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -114,8 +114,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 		}
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
-		PixelShader->SetParameters(nullptr, Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
+		PixelShader->SetParameters(FRHICommandList::GetNullRef(), Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
 
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle( 
@@ -168,7 +167,7 @@ template<typename TShaderRHIRef>
 void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// floats to render the cubemap
 	{

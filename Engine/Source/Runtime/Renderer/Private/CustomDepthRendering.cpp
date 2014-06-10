@@ -16,7 +16,7 @@
 	FCustomDepthPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FCustomDepthPrimSet::DrawPrims(FRHICommandList* RHICmdList, const FViewInfo* ViewInfo,bool bInitializeOffsets)
+bool FCustomDepthPrimSet::DrawPrims(FRHICommandList& RHICmdList, const FViewInfo* ViewInfo,bool bInitializeOffsets)
 {
 	bool bDirty=false;
 

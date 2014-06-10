@@ -45,7 +45,7 @@ public:
 		EyeAdapationTemporalParams.Bind(Initializer.ParameterMap, TEXT("EyeAdapationTemporalParams"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, uint32 LoopSizeValue)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, uint32 LoopSizeValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -126,7 +126,7 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 	uint32 LoopSizeValue = ComputeLoopSize(GatherExtent);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	PixelShader->SetPS(RHICmdList, Context, LoopSizeValue);
 
 	// Draw a quad mapping scene color to the view's render target

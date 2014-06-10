@@ -53,7 +53,7 @@ public:
 		}
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -62,7 +62,7 @@ public:
 		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
 	}
 
-	void SetSourceTexture(FRHICommandList* RHICmdList, FTextureRHIRef Texture)
+	void SetSourceTexture(FRHICommandList& RHICmdList, FTextureRHIRef Texture)
 	{
 		if (bDrawingTile && SourceTexture.IsBound())
 		{
@@ -111,7 +111,7 @@ IMPLEMENT_SHADER_TYPE2(FPostProcessVisualizeBufferPS<true>, SF_Pixel);
 IMPLEMENT_SHADER_TYPE2(FPostProcessVisualizeBufferPS<false>, SF_Pixel);
 
 template <bool bDrawingTile>
-FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+FShader* FRCPassPostProcessVisualizeBuffer::SetShaderTempl(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessVisualizeBufferPS<bDrawingTile> > PixelShader(GetGlobalShaderMap());
@@ -146,7 +146,7 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	

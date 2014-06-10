@@ -43,7 +43,7 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters(FRHICommandList* RHICmdList, const FMatrix& InTransform )
+		void SetParameters(FRHICommandList& RHICmdList, const FMatrix& InTransform )
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), TransformParameter, InTransform );
 		}
@@ -103,7 +103,7 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters(FRHICommandList* RHICmdList, const float InGamma, const FMeshPaintShaderParameters& InShaderParams )
+		void SetParameters(FRHICommandList& RHICmdList, const float InGamma, const FMeshPaintShaderParameters& InShaderParams )
 		{
 			const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -206,7 +206,7 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters(FRHICommandList* RHICmdList, const FMatrix& InTransform )
+		void SetParameters(FRHICommandList& RHICmdList, const FMatrix& InTransform )
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), TransformParameter, InTransform );
 		}
@@ -266,7 +266,7 @@ namespace MeshPaintRendering
 			return bShaderHasOutdatedParameters;
 		}
 
-		void SetParameters(FRHICommandList* RHICmdList, const float InGamma, const FMeshPaintDilateShaderParameters& InShaderParams )
+		void SetParameters(FRHICommandList& RHICmdList, const float InGamma, const FMeshPaintDilateShaderParameters& InShaderParams )
 		{
 			const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -348,7 +348,7 @@ namespace MeshPaintRendering
 
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform,
+	void SetMeshPaintShaders_RenderThread(FRHICommandList& RHICmdList, const FMatrix& InTransform,
 										   const float InGamma,
 										   const FMeshPaintShaderParameters& InShaderParams )
 	{
@@ -368,7 +368,7 @@ namespace MeshPaintRendering
 	}
 
 	/** Binds the mesh paint vertex and pixel shaders to the graphics device */
-	void SetMeshPaintDilateShaders_RenderThread(FRHICommandList* RHICmdList, const FMatrix& InTransform,
+	void SetMeshPaintDilateShaders_RenderThread(FRHICommandList& RHICmdList, const FMatrix& InTransform,
 												 const float InGamma,
 												 const FMeshPaintDilateShaderParameters& InShaderParams )
 	{

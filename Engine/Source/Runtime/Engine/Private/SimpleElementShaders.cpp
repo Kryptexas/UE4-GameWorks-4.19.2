@@ -19,7 +19,7 @@ FSimpleElementVS::FSimpleElementVS(const ShaderMetaType::CompiledShaderInitializ
 	SwitchVerticalAxis.Bind(Initializer.ParameterMap,TEXT("SwitchVerticalAxis"), SPF_Optional);
 }
 
-void FSimpleElementVS::SetParameters(FRHICommandList* RHICmdList, const FMatrix& TransformValue, bool bSwitchVerticalAxis)
+void FSimpleElementVS::SetParameters(FRHICommandList& RHICmdList, const FMatrix& TransformValue, bool bSwitchVerticalAxis)
 {
 	SetShaderValue(RHICmdList, GetVertexShader(),Transform,TransformValue);
 	SetShaderValue(RHICmdList, GetVertexShader(),SwitchVerticalAxis, bSwitchVerticalAxis ? -1.0f : 1.0f);
@@ -54,7 +54,7 @@ FSimpleElementPS::FSimpleElementPS(const ShaderMetaType::CompiledShaderInitializ
 	ScreenToPixel.Bind(Initializer.ParameterMap,TEXT("ScreenToPixel"));
 }
 
-void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList* RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture )
+void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList& RHICmdList, const FSceneView* View, FTexture2DRHIRef DepthTexture )
 {
 	if( View )
 	{
@@ -85,7 +85,7 @@ void FSimpleElementPS::SetEditorCompositingParameters(FRHICommandList* RHICmdLis
 	SetTextureParameter(RHICmdList, GetPixelShader(), SceneDepthTextureNonMS, IsValidRef(DepthTexture) ? (FTextureRHIRef)DepthTexture : GWhiteTexture->TextureRHI);
 }
 
-void FSimpleElementPS::SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue)
+void FSimpleElementPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue)
 {
 	SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,TextureValue);
 	
@@ -112,7 +112,7 @@ FSimpleElementGammaPS::FSimpleElementGammaPS(const ShaderMetaType::CompiledShade
 	Gamma.Bind(Initializer.ParameterMap,TEXT("Gamma"));
 }
 
-void FSimpleElementGammaPS::SetParameters(FRHICommandList* RHICmdList, const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode)
+void FSimpleElementGammaPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float GammaValue,ESimpleElementBlendMode BlendMode)
 {
 	FSimpleElementPS::SetParameters(RHICmdList, Texture);
 	SetShaderValue(RHICmdList, GetPixelShader(),Gamma,GammaValue);
@@ -131,7 +131,7 @@ FSimpleElementMaskedGammaPS::FSimpleElementMaskedGammaPS(const ShaderMetaType::C
 	ClipRef.Bind(Initializer.ParameterMap,TEXT("ClipRef"), SPF_Mandatory);
 }
 
-void FSimpleElementMaskedGammaPS::SetParameters(FRHICommandList* RHICmdList, const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode)
+void FSimpleElementMaskedGammaPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* Texture,float Gamma,float ClipRefValue,ESimpleElementBlendMode BlendMode)
 {
 	FSimpleElementGammaPS::SetParameters(RHICmdList, Texture,Gamma,BlendMode);
 	SetShaderValue(RHICmdList, GetPixelShader(),ClipRef,ClipRefValue);
@@ -177,7 +177,7 @@ FSimpleElementDistanceFieldGammaPS::FSimpleElementDistanceFieldGammaPS(const Sha
 * @param BlendMode - current batched element blend mode being rendered
 */
 void FSimpleElementDistanceFieldGammaPS::SetParameters(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FTexture* Texture,
 	float Gamma,
 	float ClipRef,
@@ -239,7 +239,7 @@ FSimpleElementHitProxyPS::FSimpleElementHitProxyPS(const ShaderMetaType::Compile
 	InTextureSampler.Bind(Initializer.ParameterMap,TEXT("InTextureSampler"));
 }
 
-void FSimpleElementHitProxyPS::SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue)
+void FSimpleElementHitProxyPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue)
 {
 	SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,TextureValue);
 }
@@ -269,7 +269,7 @@ FSimpleElementColorChannelMaskPS::FSimpleElementColorChannelMaskPS(const ShaderM
 * @param ColorWeights - reference value to compare with alpha for killing pixels
 * @param Gamma - if gamma != 1.0 then a pow(color,Gamma) is applied
 */
-void FSimpleElementColorChannelMaskPS::SetParameters(FRHICommandList* RHICmdList, const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue)
+void FSimpleElementColorChannelMaskPS::SetParameters(FRHICommandList& RHICmdList, const FTexture* TextureValue, const FMatrix& ColorWeightsValue, float GammaValue)
 {
 	SetTextureParameter(RHICmdList, GetPixelShader(),InTexture,InTextureSampler,TextureValue);
 	SetShaderValue(RHICmdList, GetPixelShader(),ColorWeights,ColorWeightsValue);

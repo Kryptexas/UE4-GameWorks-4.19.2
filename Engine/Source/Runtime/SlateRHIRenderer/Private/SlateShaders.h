@@ -46,14 +46,14 @@ public:
 	 *
 	 * @param InViewProjection	The ViewProjection matrix to use when this shader is bound 
 	 */
-	void SetViewProjection(FRHICommandList* RHICmdList, const FMatrix& InViewProjection );
+	void SetViewProjection(FRHICommandList& RHICmdList, const FMatrix& InViewProjection );
 
 	/** 
 	 * Sets shader parameters for use in this shader
 	 *
 	 * @param ShaderParams	The shader params to be used
 	 */
-	void SetShaderParameters(FRHICommandList* RHICmdList, const FVector4& ShaderParams );
+	void SetShaderParameters(FRHICommandList& RHICmdList, const FVector4& ShaderParams );
 
 	/** Serializes the shader data */
 	virtual bool Serialize( FArchive& Ar );
@@ -100,7 +100,7 @@ public:
 	 * @param Texture	Texture resource to use when this pixel shader is bound
 	 * @param SamplerState	Sampler state to use when sampling this texture
 	 */
-	void SetTexture(FRHICommandList* RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
+	void SetTexture(FRHICommandList& RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
 	{
 		SetTextureParameter(RHICmdList, GetPixelShader(), TextureParameter, TextureParameterSampler, SamplerState, InTexture );
 	}
@@ -110,7 +110,7 @@ public:
 	 *
 	 * @param InDrawEffects		A mask of draw effects that the pixel shader should use.
 	 */
-	void SetDrawEffects(FRHICommandList* RHICmdList, ESlateDrawEffect::Type InDrawEffects )
+	void SetDrawEffects(FRHICommandList& RHICmdList, ESlateDrawEffect::Type InDrawEffects )
 	{
 		SetShaderValue(RHICmdList, GetPixelShader(), DrawEffectsParameter, InDrawEffects );
 	}
@@ -120,7 +120,7 @@ public:
 	 * 
 	 * @param InShaderParams Shader params to use
 	 */
-	void SetShaderParams(FRHICommandList* RHICmdList, const FVector4& InShaderParams )
+	void SetShaderParams(FRHICommandList& RHICmdList, const FVector4& InShaderParams )
 	{
 		SetShaderValue(RHICmdList, GetPixelShader(), ShaderParams, InShaderParams );
 	}
@@ -128,7 +128,7 @@ public:
 	/**
 	 * Set the viewport size.
 	 */
-	void SetViewportSize(FRHICommandList* RHICmdList, const FVector2D& InViewportSize)
+	void SetViewportSize(FRHICommandList& RHICmdList, const FVector2D& InViewportSize)
 	{
 		SetShaderValue(RHICmdList, GetPixelShader(), ViewportSize, InViewportSize);
 	}
@@ -138,7 +138,7 @@ public:
  	 *
 	 * @param DisplayGamma The display gamma to use
 	 */
-	void SetDisplayGamma(FRHICommandList* RHICmdList, float InDisplayGamma)
+	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
 	{
 		SetShaderValue(RHICmdList, GetPixelShader(),DisplayGamma,InDisplayGamma);
 	}

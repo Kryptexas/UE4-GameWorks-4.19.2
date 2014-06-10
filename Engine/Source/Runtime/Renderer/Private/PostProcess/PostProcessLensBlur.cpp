@@ -49,7 +49,7 @@ public:
 	}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, float Threshold)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FIntPoint TileCountValue, uint32 TileSize, float PixelKernelSize, float Threshold)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
@@ -115,7 +115,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float PixelKernelSize)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, float PixelKernelSize)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -209,7 +209,7 @@ void FRCPassPostProcessLensBlur::Process(FRenderingCompositePassContext& Context
 	float PixelKernelSize = PercentKernelSize / 100.0f * ViewSize.X;
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	VertexShader->SetParameters(RHICmdList, Context, TileCount, TileSize, PixelKernelSize, Threshold);
 	PixelShader->SetParameters(RHICmdList, Context, PixelKernelSize);
 

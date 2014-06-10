@@ -83,7 +83,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
+	void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor Value);
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
@@ -107,7 +107,7 @@ public:
 		ClearBufferRW.Bind(Initializer.ParameterMap, TEXT("ClearBufferRW"), SPF_Mandatory);
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
+	void SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef BufferRW, uint32 Dword);
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)

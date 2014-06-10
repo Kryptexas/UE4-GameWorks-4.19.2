@@ -92,7 +92,7 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities()
 }
 
 bool FLightMapDensityDrawingPolicyFactory::DrawDynamicMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,

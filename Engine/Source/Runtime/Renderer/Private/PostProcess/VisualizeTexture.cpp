@@ -73,7 +73,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FVisualizeTextureData& Data)
+	void SetParameters(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
@@ -178,7 +178,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const IPooledRenderTarget& Src)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const IPooledRenderTarget& Src)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -194,7 +194,7 @@ IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT(
 template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualizeTextureData& Data)
 {
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
@@ -493,7 +493,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 	}
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	FPooledRenderTargetDesc Desc = VisualizeTextureDesc;
 

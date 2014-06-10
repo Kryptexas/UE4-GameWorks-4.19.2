@@ -431,7 +431,7 @@ static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjected
 		const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 		VertexShader->SetParameters(RHICmdList, View);
 
 		// Draw the primitive's bounding box, using the occlusion query.
@@ -642,7 +642,7 @@ public:
 		BoundsExtentSampler.Bind( Initializer.ParameterMap, TEXT("BoundsExtentSampler") );
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FHZB& HZB, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FHZB& HZB, FTextureRHIParamRef BoundsCenter, FTextureRHIParamRef BoundsExtent )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -755,7 +755,7 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 		PixelShader->SetParameters(RHICmdList, View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
 
 		RHISetViewport( 0, 0, 0.0f, SizeX, SizeY, 1.0f );
@@ -812,7 +812,7 @@ public:
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("TextureSampler") );
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FIntPoint& Size )
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FIntPoint& Size )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -824,7 +824,7 @@ public:
 		SceneTextureParameters.Set(RHICmdList, ShaderRHI, View );
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -887,7 +887,7 @@ void BuildHZB( const FViewInfo& View )
 	RHISetDepthStencilState( TStaticDepthStencilState< false, CF_Always >::GetRHI() );
 	
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Mip 0
 	{
@@ -1006,7 +1006,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 			TShaderMapRef<FOcclusionQueryVS> VertexShader(GetGlobalShaderMap());
 			SetGlobalBoundShaderState(OcclusionTestBoundShaderState,GetVertexDeclarationFVector3(),*VertexShader,NULL);
 			//@todo-rco: RHIPacketList
-			FRHICommandList* RHICmdList = nullptr;
+			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 			VertexShader->SetParameters(RHICmdList, View);
 
 			// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)

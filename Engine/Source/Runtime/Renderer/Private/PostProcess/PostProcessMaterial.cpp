@@ -31,7 +31,7 @@ public:
 	{
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context )
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context )
 	{
 		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), Context.View);
 	}
@@ -70,7 +70,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FMaterialRenderProxy* Material )
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -155,7 +155,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	RHISetBoundShaderState(BoundShaderState);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	VertexShader->SetParameters(RHICmdList, Context);
 	PixelShader->SetParameters(RHICmdList, Context, MaterialInterface->GetRenderProxy(false));
 

@@ -84,7 +84,7 @@ void FForwardShadingSceneRenderer::Render()
 	RHIClear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	RenderForwardShadingBasePass(RHICmdList);
 
 	// Notify the FX system that opaque primitives have been rendered.

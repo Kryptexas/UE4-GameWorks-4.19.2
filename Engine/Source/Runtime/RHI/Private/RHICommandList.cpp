@@ -46,6 +46,8 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 	);
 
 RHI_API FRHICommandListExecutor GRHICommandList;
+RHI_API FRHICommandList FRHICommandList::NullRHICommandList(0);
+
 
 //@todo-rco: Temp hack!
 static FRHICommandList GCommandList;
@@ -56,9 +58,9 @@ FRHICommandListExecutor::FRHICommandListExecutor() :
 {
 }
 
-void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList* CmdList)
+void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList& CmdList)
 {
-	if (!CmdList)
+	if (CmdList.IsNull())
 	{
 		// HACK!
 		return;
@@ -66,17 +68,16 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList* CmdList)
 
 	SCOPE_CYCLE_COUNTER(STAT_RHICmdListExecuteTime);
 
-	check(CmdList);
-	check(CmdList->CanAddCommand());
+	check(CmdList.CanAddCommand());
 
 	FScopeLock Lock(&CriticalSection);
 	check(bLock);
 	bLock = false;
 
-	CmdList->State = FRHICommandList::Executing;
+	CmdList.State = FRHICommandList::Executing;
 
-	auto* CmdPtr = &CmdList->Mem[0];
-	auto* CmdTail = CmdList->GetTail();
+	auto* CmdPtr = CmdList.Memory;
+	auto* CmdTail = CmdList.GetTail();
 	INC_MEMORY_STAT_BY(STAT_RHICmdListMemory, (CmdTail - CmdPtr));
 
 	static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHISkip"));
@@ -87,7 +88,7 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList* CmdList)
 		static IConsoleVariable* RHIExecCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHIExec"));
 		if (RHIExecCVar && RHIExecCVar->GetInt() != 0)
 		{
-			RHIExecuteCommandList(CmdList);
+			RHIExecuteCommandList(&CmdList);
 		}
 		else
 		{
@@ -262,15 +263,15 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList* CmdList)
 				++NumCommands;
 			}
 
-			check(CmdList->NumCommands == NumCommands);
+			check(CmdList.NumCommands == NumCommands);
 		}
 	}
 
-	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList->NumCommands);
-	CmdList->Reset();
+	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList.NumCommands);
+	CmdList.Reset();
 }
 
-FRHICommandList* FRHICommandListExecutor::CreateList()
+FRHICommandList& FRHICommandListExecutor::CreateList()
 {
 	FScopeLock Lock(&CriticalSection);
 	check(!bLock);
@@ -278,7 +279,7 @@ FRHICommandList* FRHICommandListExecutor::CreateList()
 	check(GCommandList.State == FRHICommandList::Kicked);
 	check(GCommandList.NumCommands == 0);
 	GCommandList.State = FRHICommandList::Ready;
-	return &GCommandList;
+	return GCommandList;
 }
 
 void FRHICommandListExecutor::Verify()

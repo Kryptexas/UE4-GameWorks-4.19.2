@@ -291,7 +291,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 	check(IsInRenderingThread());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	const float DisplayGamma = GEngine ? GEngine->GetDisplayGamma() : 2.2f;
 

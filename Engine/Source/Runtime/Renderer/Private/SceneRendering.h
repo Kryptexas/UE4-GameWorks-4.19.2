@@ -561,7 +561,7 @@ protected:
 	void OnStartFrame();
 
 	/** Renders the scene's distortion */
-	void RenderDistortion(FRHICommandList* RHICmdList);
+	void RenderDistortion(FRHICommandList& RHICmdList);
 };
 
 
@@ -583,10 +583,10 @@ protected:
 	void InitViews();
 
 	/** Renders the opaque base pass for forward shading. */
-	void RenderForwardShadingBasePass(FRHICommandList* RHICmdList);
+	void RenderForwardShadingBasePass(FRHICommandList& RHICmdList);
 
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
-	void CopySceneAlpha(FRHICommandList* RHICmdList, const FSceneView& View);
+	void CopySceneAlpha(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	/** Renders the base pass for translucency. */
 	void RenderTranslucency();

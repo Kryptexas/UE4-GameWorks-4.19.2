@@ -18,7 +18,7 @@ float GetMaxShaderComplexityCount(ERHIFeatureLevel::Type InFeatureType)
 }
 
 void FShaderComplexityAccumulatePS::SetParameters(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	uint32 NumVertexInstructions, 
 	uint32 NumPixelInstructions,
 	ERHIFeatureLevel::Type InFeatureLevel)
@@ -88,7 +88,7 @@ public:
 	}
 
 	virtual void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FRenderingCompositePassContext& Context,
 		const TArray<FLinearColor>& Colors
 		)
@@ -169,7 +169,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	

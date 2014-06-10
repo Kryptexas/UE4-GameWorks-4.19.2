@@ -28,7 +28,7 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
-	void SetParametersWithBoundingSphere(FRHICommandList* RHICmdList, const FSceneView& View, const FSphere& BoundingSphere)
+	void SetParametersWithBoundingSphere(FRHICommandList& RHICmdList, const FSceneView& View, const FSphere& BoundingSphere)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), View);
 
@@ -37,7 +37,7 @@ public:
 		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 

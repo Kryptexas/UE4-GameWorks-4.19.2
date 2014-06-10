@@ -41,7 +41,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -89,7 +89,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FVector2D TexScaleValue)
+	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FVector2D TexScaleValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -156,7 +156,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// setup background (bloom), can be implemented to use additive blending to avoid the read here
 	{
@@ -221,7 +221,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 			
 			// set the individual flare color
 			//@todo-rco: RHIPacketList
-			FRHICommandList* RHICmdList = nullptr;
+			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), PixelShader->FlareColor, FlareColor * LensFlareHDRColor);
 
 			// Draw a quad mapping scene color to the view's render target

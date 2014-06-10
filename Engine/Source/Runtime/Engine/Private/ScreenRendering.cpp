@@ -29,7 +29,7 @@ void DrawScreenQuad( float X0, float Y0, float U0, float V0, float X1, float Y1,
 	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
 	//@todo-rco: RHIPacketList
-	ScreenPixelShader->SetParameters(nullptr, Texture);
+	ScreenPixelShader->SetParameters(FRHICommandList::GetNullRef(), Texture);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];
@@ -65,7 +65,7 @@ void DrawNormalizedScreenQuad( float X, float Y, float U0, float V0, float SizeX
 	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
 	/// ?
-	ScreenPixelShader->SetParameters(nullptr, TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
+	ScreenPixelShader->SetParameters(FRHICommandList::GetNullRef(), TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];

@@ -27,7 +27,7 @@ public:
 	}
 	FDownsampleGS() {}
 
-	void SetParameters(FRHICommandList* RHICmdList, int32 CubeFaceValue)
+	void SetParameters(FRHICommandList& RHICmdList, int32 CubeFaceValue)
 	{
 		SetShaderValue(RHICmdList, GetGeometryShader(), CubeFace, CubeFaceValue);
 	}

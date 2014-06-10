@@ -128,12 +128,12 @@ public:
 	}
 
 	template<typename TShaderRHIRef>
-	inline void SetBuffer(FRHICommandList* RHICmdList, TShaderRHIRef Shader,const FRWBuffer& RWBuffer) const;
+	inline void SetBuffer(FRHICommandList& RHICmdList, TShaderRHIRef Shader,const FRWBuffer& RWBuffer) const;
 
 	template<typename TShaderRHIRef>
-	inline void SetTexture(FRHICommandList* RHICmdList, TShaderRHIRef Shader,const FTextureRHIParamRef Texture,FUnorderedAccessViewRHIParamRef UAV) const;
+	inline void SetTexture(FRHICommandList& RHICmdList, TShaderRHIRef Shader,const FTextureRHIParamRef Texture,FUnorderedAccessViewRHIParamRef UAV) const;
 
-	inline void UnsetUAV(FRHICommandList* RHICmdList, FComputeShaderRHIParamRef ComputeShader) const;
+	inline void UnsetUAV(FRHICommandList& RHICmdList, FComputeShaderRHIParamRef ComputeShader) const;
 
 private:
 

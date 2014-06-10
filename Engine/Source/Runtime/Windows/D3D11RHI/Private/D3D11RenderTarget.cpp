@@ -29,7 +29,7 @@ namespace
 		}
 		FResolveDepthPS() {}
 
-		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
+		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
 		{
 		}
 
@@ -61,7 +61,7 @@ namespace
 		}
 		FResolveDepthNonMSPS() {}
 
-		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
+		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,FParameter)
 		{
 		}
 
@@ -93,7 +93,7 @@ namespace
 		}
 		FResolveSingleSamplePS() {}
 
-		void SetParameters(FRHICommandList* RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,uint32 SingleSampleIndexValue)
+		void SetParameters(FRHICommandList& RHICmdList, ID3D11DeviceContext* Direct3DDeviceContext,uint32 SingleSampleIndexValue)
 		{
 			SetShaderValue(RHICmdList, GetPixelShader(),SingleSampleIndex,SingleSampleIndexValue);
 		}
@@ -173,7 +173,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	)
 {
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Save the current viewport so that it can be restored
 	D3D11_VIEWPORT SavedViewport;

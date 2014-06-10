@@ -26,7 +26,7 @@ private:
 	bool IsInitialPass() const;
 
 	template <uint32 bInitialSetup>
-	void SetShaderSetupTempl(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShaderSetupTempl(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 // ePId_Input0: defines the resolution we compute AO and provides the normal
@@ -78,7 +78,7 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList* RHICmdList, const FSceneView& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
+	void Set(FRHICommandList& RHICmdList, const FSceneView& View, const ShaderRHIParamRef ShaderRHI, FIntPoint InputTextureSize) const
 	{
 		const FFinalPostProcessSettings& Settings = View.FinalPostProcessSettings;
 
@@ -154,7 +154,7 @@ public:
 
 	void Bind(const FShaderParameterMap& ParameterMap);
 
-	void Set(FRHICommandList* RHICmdList, const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const;
+	void Set(FRHICommandList& RHICmdList, const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const;
 
 	friend FArchive& operator<<(FArchive& Ar, FCameraMotionParameters& This);
 

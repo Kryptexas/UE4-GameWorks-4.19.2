@@ -25,7 +25,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 	}
 	
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	const FDepthStencilStateRHIParamRef DepthStencilStateRHI = 
 		(bClearDepth && bClearStencil)

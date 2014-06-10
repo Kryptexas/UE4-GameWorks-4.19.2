@@ -42,7 +42,7 @@ public:
 	{}
 
 	void Set(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -57,7 +57,7 @@ public:
 	}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList,
+		FRHICommandList& RHICmdList,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -105,7 +105,7 @@ public:
 			LightMapCoordinateScaleBiasParameter.Bind(ParameterMap,TEXT("LightMapCoordinateScaleBias"));
 		}
 
-		void SetLightMapScale(FRHICommandList* RHICmdList, FShader* VertexShader,const FLightMapInteraction& LightMapInteraction) const
+		void SetLightMapScale(FRHICommandList& RHICmdList, FShader* VertexShader,const FLightMapInteraction& LightMapInteraction) const
 		{
 			const FVector2D LightmapCoordinateScale = LightMapInteraction.GetCoordinateScale();
 			const FVector2D LightmapCoordinateBias = LightMapInteraction.GetCoordinateBias();
@@ -139,7 +139,7 @@ public:
 			LightMapAddParameter.Bind(ParameterMap,TEXT("LightMapAdd"));
 		}
 
-		void SetLightMapTexture(FRHICommandList* RHICmdList, FShader* PixelShader, const UTexture2D* LightMapTexture) const
+		void SetLightMapTexture(FRHICommandList& RHICmdList, FShader* PixelShader, const UTexture2D* LightMapTexture) const
 		{
 			FTexture* TextureResource = GBlackTexture;
 
@@ -157,7 +157,7 @@ public:
 				);
 		}
 
-		void SetSkyOcclusionTexture(FRHICommandList* RHICmdList, FShader* PixelShader, const UTexture2D* SkyOcclusionTextureValue) const
+		void SetSkyOcclusionTexture(FRHICommandList& RHICmdList, FShader* PixelShader, const UTexture2D* SkyOcclusionTextureValue) const
 		{
 			FTexture* TextureResource = GWhiteTexture;
 
@@ -175,7 +175,7 @@ public:
 				);
 		}
 
-		void SetLightMapScale(FRHICommandList* RHICmdList, FShader* PixelShader,const FLightMapInteraction& LightMapInteraction) const
+		void SetLightMapScale(FRHICommandList& RHICmdList, FShader* PixelShader,const FLightMapInteraction& LightMapInteraction) const
 		{
 			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),LightMapScaleParameter,LightMapInteraction.GetScaleArray(),LightMapInteraction.GetNumLightmapCoefficients());
 			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),LightMapAddParameter,LightMapInteraction.GetAddArray(),LightMapInteraction.GetNumLightmapCoefficients());
@@ -232,7 +232,7 @@ public:
 	}
 
 	void Set(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -247,7 +247,7 @@ public:
 	}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -324,7 +324,7 @@ public:
 			Super::VertexParametersType::Bind(ParameterMap);
 		}
 
-		void SetMesh(FRHICommandList* RHICmdList, FShader* VertexShader, const FShadowMapInteraction& ShadowMapInteraction) const
+		void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader, const FShadowMapInteraction& ShadowMapInteraction) const
 		{
 			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(), ShadowMapCoordinateScaleBias, FVector4(ShadowMapInteraction.GetCoordinateScale(), ShadowMapInteraction.GetCoordinateBias()));
 		}
@@ -353,7 +353,7 @@ public:
 			Super::PixelParametersType::Bind(ParameterMap);
 		}
 
-		void SetMesh(FRHICommandList* RHICmdList, FShader* PixelShader, const FShadowMapInteraction& ShadowMapInteraction, const FVector4& DistanceFieldValues) const
+		void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FShadowMapInteraction& ShadowMapInteraction, const FVector4& DistanceFieldValues) const
 		{
 			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), DistanceFieldParameters, DistanceFieldValues);
 			
@@ -399,7 +399,7 @@ public:
 	TDistanceFieldShadowsAndLightMapPolicy() {}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -438,7 +438,7 @@ public:
 	}
 
 	void Set(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -453,7 +453,7 @@ public:
 	}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -551,7 +551,7 @@ public:
 	FSelfShadowedTranslucencyPolicy() {}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList,
+		FRHICommandList& RHICmdList,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -665,7 +665,7 @@ public:
 	FCachedVolumeIndirectLightingPolicy() {}
 
 	void Set(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -676,7 +676,7 @@ public:
 		) const;
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -749,7 +749,7 @@ public:
 	FCachedPointIndirectLightingPolicy() {}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -811,7 +811,7 @@ public:
 	FSelfShadowedCachedPointIndirectLightingPolicy() {}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,
@@ -911,7 +911,7 @@ public:
 	}
 
 	void Set(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const VertexParametersType* VertexShaderParameters,
 		const PixelParametersType* PixelShaderParameters,
 		FShader* VertexShader,
@@ -926,7 +926,7 @@ public:
 	}
 
 	void SetMesh(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const VertexParametersType* VertexShaderParameters,

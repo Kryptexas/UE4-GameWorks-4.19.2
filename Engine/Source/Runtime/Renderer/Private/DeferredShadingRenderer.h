@@ -45,15 +45,15 @@ public:
     void ClearGBufferAtMaxZ();
 
 	/** Clears LPVs for all views */
-	void ClearLPVs(FRHICommandList* RHICmdList);
+	void ClearLPVs(FRHICommandList& RHICmdList);
 
 	/** Propagates LPVs for all views */
 	void PropagateLPVs();
 
     /** Renders the basepass for the static data of a given View. */
-    bool RenderBasePassStaticData(FRHICommandList* RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataMasked(FRHICommandList* RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataDefault(FRHICommandList* RHICmdList, FViewInfo& View);
+    bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
+	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
+	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
 
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
@@ -174,7 +174,7 @@ private:
 	void RenderAtmosphere(FLightShaftsOutput LightShaftsOutput);
 
 	/** Renders reflections that can be done in a deferred pass. */
-	void RenderDeferredReflections(FRHICommandList* RHICmdList);
+	void RenderDeferredReflections(FRHICommandList& RHICmdList);
 
 	/** Render dynamic sky lighting from Movable sky lights. */
 	void RenderDynamicSkyLighting();
@@ -189,10 +189,10 @@ private:
 	bool ShouldUseTiledDeferred(int32 NumUnshadowedLights, int32 NumSimpleLights) const;
 
 	/** Renders the lights in SortedLights in the range [0, NumUnshadowedLights) using tiled deferred shading. */
-	void RenderTiledDeferredLighting(FRHICommandList* RHICmdList, const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights);
+	void RenderTiledDeferredLighting(FRHICommandList& RHICmdList, const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumUnshadowedLights, const FSimpleLightArray& SimpleLights);
 
 	/** Renders the scene's lighting. */
-	void RenderLights(FRHICommandList* RHICmdList);
+	void RenderLights(FRHICommandList& RHICmdList);
 
 	/** Renders an array of lights for the stationary light overlap viewmode. */
 	void RenderLightArrayForOverlapViewmode(const TSparseArray<FLightSceneInfoCompact>& LightArray);
@@ -240,20 +240,20 @@ private:
 	bool CheckForProjectedShadows( const FLightSceneInfo* LightSceneInfo ) const;
 
 	/** Renders one pass point light shadows. */
-	bool RenderOnePassPointLightShadows(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
+	bool RenderOnePassPointLightShadows(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
 
 	/** Renders the projections of the given Shadows to the appropriate color render target. */
 	void RenderProjections(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FLightSceneInfo* LightSceneInfo, 
 		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& Shadows
 		);
 
 	/** Renders the shadowmaps of translucent shadows and their projections onto opaque surfaces. */
-	bool RenderTranslucentProjectedShadows(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo );
+	bool RenderTranslucentProjectedShadows(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo );
 
 	/** Renders reflective shadowmaps for LPVs */
-	bool RenderReflectiveShadowMaps(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo );
+	bool RenderReflectiveShadowMaps(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo );
 
 	/**
 	  * Used by RenderLights to render projected shadows to the attenuation buffer.
@@ -261,10 +261,10 @@ private:
 	  * @param LightSceneInfo Represents the current light
 	  * @return true if anything got rendered
 	  */
-	bool RenderProjectedShadows(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume );
+	bool RenderProjectedShadows(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume );
 
 	/** Caches the depths of any preshadows that should be cached, and renders their projections. */
-	bool RenderCachedPreshadows(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo);
+	bool RenderCachedPreshadows(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo);
 
 	/**
 	  * Used by RenderLights to figure out if light functions need to be rendered to the attenuation buffer.
@@ -280,13 +280,13 @@ private:
 	  * @param LightSceneInfo Represents the current light
 	  * @param LightIndex The light's index into FScene::Lights
 	  */
-	bool RenderLightFunction(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
+	bool RenderLightFunction(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
 
 	/** Renders a light function indicating that whole scene shadowing being displayed is for previewing only, and will go away in game. */
-	bool RenderPreviewShadowsIndicator(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
+	bool RenderPreviewShadowsIndicator(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
 
 	/** Renders a light function with the given material. */
-	bool RenderLightFunctionForMaterial(FRHICommandList* RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator);
+	bool RenderLightFunctionForMaterial(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator);
 
 	/**
 	  * Used by RenderLights to render a light to the scene color buffer.
@@ -301,13 +301,13 @@ private:
 	void RenderSimpleLightsStandardDeferred(const FSimpleLightArray& SimpleLights);
 
 	/** Clears the translucency lighting volumes before light accumulation. */
-	void ClearTranslucentVolumeLighting(FRHICommandList* RHICmdList);
+	void ClearTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Add AmbientCubemap to the lighting volumes. */
-	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList* RHICmdList);
+	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Renders indirect lighting into the translucent lighting volumes. */
-	void CompositeIndirectTranslucentVolumeLighting(FRHICommandList* RHICmdList);
+	void CompositeIndirectTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Clears the volume texture used to accumulate per object shadows for translucency. */
 	void ClearTranslucentVolumePerObjectShadowing();
@@ -331,10 +331,10 @@ private:
 	void RenderReflectionCaptureSpecularBounceForAllViews();
 
 	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
-	void RenderImageBasedReflectionsSM4ForAllViews(FRHICommandList* RHICmdList, bool bReflectionEnv);
+	void RenderImageBasedReflectionsSM4ForAllViews(FRHICommandList& RHICmdList, bool bReflectionEnv);
 
 	/** Render image based reflections (SSR, Env, SkyLight) with compute shaders */
-	void RenderImageBasedReflectionsSM5ForAllViews(FRHICommandList* RHICmdList);
+	void RenderImageBasedReflectionsSM5ForAllViews(FRHICommandList& RHICmdList);
 
 	bool ShouldDoReflectionEnvironment() const;
 

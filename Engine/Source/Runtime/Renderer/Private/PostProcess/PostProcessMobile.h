@@ -18,7 +18,7 @@ public:
 private:
 	FIntPoint PrePostSourceViewportSize;
 	bool bUsedFramebufferFetch;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessBloomSetupSmallES2 : public TRenderingCompositePassBase<1, 1>
@@ -31,7 +31,7 @@ public:
 private:
 	FIntPoint PrePostSourceViewportSize;
 	bool bUsedFramebufferFetch;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessDofNearES2 : public TRenderingCompositePassBase<1, 1>
@@ -43,7 +43,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessDofDownES2 : public TRenderingCompositePassBase<2, 1>
@@ -56,7 +56,7 @@ public:
 private:
 	FIntPoint PrePostSourceViewportSize;
 	bool bUsedFramebufferFetch;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessDofBlurES2 : public TRenderingCompositePassBase<2, 1>
@@ -106,7 +106,7 @@ public:
 private:
 	FIntPoint PrePostSourceViewportSize;
 	bool bOnChip;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessSunAlphaES2 : public TRenderingCompositePassBase<1, 1>
@@ -118,7 +118,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessSunBlurES2 : public TRenderingCompositePassBase<1, 1>
@@ -141,7 +141,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessSunMergeSmallES2 : public TRenderingCompositePassBase<2, 1>
@@ -153,7 +153,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessSunAvgES2 : public TRenderingCompositePassBase<2, 1>
@@ -165,7 +165,7 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 
 class FRCPassPostProcessAaES2 : public TRenderingCompositePassBase<2, 1>
@@ -177,6 +177,6 @@ public:
 	virtual void Release() { delete this; }
 private:
 	FIntPoint PrePostSourceViewportSize;
-	void SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context);
+	void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
 };
 

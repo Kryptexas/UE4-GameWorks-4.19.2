@@ -623,7 +623,7 @@ public:
 	 * @param NoiseVolumeTextureRHI - The volume texture to use to add noise to the vector field.
 	 */
 	void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FCompositeAnimatedVectorFieldUniformBufferRef& UniformBuffer,
 		FTextureRHIParamRef AtlasTextureRHI,
 		FTextureRHIParamRef NoiseVolumeTextureRHI )
@@ -815,12 +815,12 @@ public:
 			CompositeCS->SetOutput(VolumeTextureUAV);
 			/// ?
 			CompositeCS->SetParameters(
-				nullptr,
+				FRHICommandList::GetNullRef(),
 				UniformBuffer,
 				AnimatedVectorField->Texture->Resource->TextureRHI,
 				NoiseVolumeTextureRHI );
 			DispatchComputeShader(
-				nullptr,
+				FRHICommandList::GetNullRef(),
 				*CompositeCS,
 				SizeX / THREADS_PER_AXIS,
 				SizeY / THREADS_PER_AXIS,

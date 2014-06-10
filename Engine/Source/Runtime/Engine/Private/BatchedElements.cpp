@@ -7,6 +7,8 @@
 #include "ShaderParameters.h"
 #include "RHIStaticStates.h"
 #include "SimpleElementShaders.h"
+#include "RHICommandList.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);
 
@@ -357,7 +359,7 @@ void FBatchedElements::PrepareShaders(
 	) const
 {
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// used to mask individual channels and desaturate
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );

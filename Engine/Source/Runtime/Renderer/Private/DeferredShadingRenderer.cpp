@@ -155,7 +155,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 	}
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	SetGlobalBoundShaderState(GClearMRTBoundShaderState[NumActiveRenderTargets - 1], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
 
@@ -183,7 +183,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandList* RHICmdList, FViewInfo& View)
+bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View)
 {
 	bool bDirty = false;
 
@@ -208,7 +208,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandLi
 	return bDirty;
 }
 
-bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandList* RHICmdList, FViewInfo& View)
+bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View)
 {
 	bool bDirty = false;
 
@@ -258,7 +258,7 @@ void FDeferredShadingSceneRenderer::SortBasePassStaticData(FVector ViewPosition)
 *
 * @return true if anything was rendered to scene color
 */
-bool FDeferredShadingSceneRenderer::RenderBasePassStaticData(FRHICommandList* RHICmdList, FViewInfo& View)
+bool FDeferredShadingSceneRenderer::RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View)
 {
 	bool bDirty = false;
 
@@ -330,7 +330,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FViewInfo& View)
 		SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
 		static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
 		bool bUseRHICmdList = RHICmdListCVar->GetInt() != 0;
-		auto* RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : nullptr;
+		FRHICommandList& RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : FRHICommandList::GetNullRef();
 		bDirty |= RenderBasePassStaticData(RHICmdList, View);
 		GRHICommandList.ExecuteAndFreeList(RHICmdList);
 	}
@@ -516,7 +516,7 @@ void FDeferredShadingSceneRenderer::Render()
 	#endif
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	const bool bIsOcclusionTesting = DoOcclusionQueries() && (!bIsWireframe || bIsViewFrozen || bHasViewParent);
 
@@ -803,7 +803,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass()
 	GSceneRenderTargets.BeginRenderingPrePass();
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Clear the depth buffer.
 	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
@@ -899,7 +899,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass()
 	bool bDirty = false;
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	if(ViewFamily.EngineShowFlags.LightMapDensity && AllowDebugViewmodes())
 	{
@@ -940,7 +940,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass()
 	return bDirty;
 }
 
-void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandList* RHICmdList)
+void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandList& RHICmdList)
 {
 	// clear light propagation volumes
 
@@ -980,7 +980,7 @@ void FDeferredShadingSceneRenderer::PropagateLPVs()
 				SCOPED_DRAW_EVENT(UpdateLPVs, DEC_SCENE_ITEMS);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
 				//@todo-rco: RHIPacketList
-				LightPropagationVolume->Propagate(nullptr);
+				LightPropagationVolume->Propagate(FRHICommandList::GetNullRef());
 			}
 		}
 	}
@@ -1007,7 +1007,7 @@ public:
 	}
 	FDownsampleSceneDepthPS() {}
 
-	void SetParameters(FRHICommandList* RHICmdList, const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 		FGlobalShader::SetParameters(RHICmdList, GetPixelShader(), View);
 
@@ -1054,7 +1054,7 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 	if (GSceneRenderTargets.UseDownsizedOcclusionQueries() && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 	{
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		RHISetRenderTarget(NULL, GSceneRenderTargets.GetSmallDepthSurface());
 

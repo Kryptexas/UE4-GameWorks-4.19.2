@@ -11,6 +11,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
+#include "RHICommandList.h"
 
 
 DEFINE_LOG_CATEGORY(LogShaders);
@@ -1033,13 +1034,13 @@ FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
 
 
 void DispatchComputeShader(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,
 	uint32 ThreadGroupCountZ)
 {
-	check(!RHICmdList);
+	RHICmdList.CheckIsNull();
 
 	Shader->VerifyBoundUniformBufferParameters();
 	RHIDispatchComputeShader(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
@@ -1047,12 +1048,12 @@ void DispatchComputeShader(
 
 
 void DispatchIndirectComputeShader(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	FShader* Shader,
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset)
 {
-	check(!RHICmdList);
+	RHICmdList.CheckIsNull();
 
 	Shader->VerifyBoundUniformBufferParameters();
 	RHIDispatchIndirectComputeShader(ArgumentBuffer, ArgumentOffset);

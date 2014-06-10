@@ -860,7 +860,7 @@ void FSceneRenderer::RenderCustomDepthPass()
 		SCOPED_DRAW_EVENT(CustomDepth, DEC_SCENE_ITEMS);
 
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{

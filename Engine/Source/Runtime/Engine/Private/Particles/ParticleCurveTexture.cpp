@@ -70,7 +70,7 @@ public:
 	/**
 	 * Sets parameters for particle injection.
 	 */
-	void SetParameters(FRHICommandList* RHICmdList, const FVector2D& CurveOffset )
+	void SetParameters(FRHICommandList& RHICmdList, const FVector2D& CurveOffset )
 	{
 		FParticleCurveInjectionParameters Parameters;
 		Parameters.PixelScale.X = 1.0f / GParticleCurveTextureSizeX;
@@ -174,7 +174,7 @@ TGlobalResource<FParticleCurveInjectionVertexDeclaration> GParticleCurveInjectio
  * @param InPendingCurves - Curves to be stored on the GPU.
  */
 static void InjectCurves(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	FTexture2DRHIParamRef CurveTextureRHI,
 	FTexture2DRHIParamRef CurveTextureTargetRHI,
 	TArray<FCurveSamples>& InPendingCurves )
@@ -187,7 +187,7 @@ static void InjectCurves(
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
-	check(!RHICmdList);
+	RHICmdList.CheckIsNull();
 
 	RHISetRenderTarget( CurveTextureTargetRHI, FTextureRHIParamRef() );
 	RHISetScissorRect( false, 0, 0, 0, 0 );
@@ -595,7 +595,7 @@ void FParticleCurveTexture::SubmitPendingCurves()
 		{
 			//@todo-rco: RHIPacketList
 			InjectCurves(
-				nullptr,
+				FRHICommandList::GetNullRef(),
 				ParticleCurveTexture->CurveTextureRHI,
 				ParticleCurveTexture->CurveTextureTargetRHI,
 				PendingCurves

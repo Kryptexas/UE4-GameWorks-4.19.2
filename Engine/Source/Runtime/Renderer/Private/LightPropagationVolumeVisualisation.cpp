@@ -56,7 +56,7 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View )
 	{
 		FGeometryShaderRHIParamRef ShaderRHI = GetGeometryShader();
@@ -78,7 +78,7 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View )
 	{
 		FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
@@ -122,13 +122,13 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				{ FLpvVisualiseBase::ModifyCompilationEnvironment( Platform, OutEnvironment ); }
 
 	void SetParameters(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FLightPropagationVolume* LPV,
 		const FSceneView& View )
 	{
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
-		check(!RHICmdList);
+		RHICmdList.CheckIsNull();
 
 #if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
@@ -262,11 +262,14 @@ void FLightPropagationVolume::Visualise( const FSceneView& View ) const
 	RHISetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 
 	//@todo-rco: RHIPacketList
+
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	SetGlobalBoundShaderState(LpvVisBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
-	VertexShader->SetParameters(nullptr, View );
-	GeometryShader->SetParameters(nullptr, View );
-	PixelShader->SetParameters(nullptr, this, View );
+	VertexShader->SetParameters(RHICmdList, View);
+	GeometryShader->SetParameters(RHICmdList, View);
+	PixelShader->SetParameters(RHICmdList, this, View);
 
 	RHISetStreamSource(0, NULL, 0, 0);
 	RHIDrawPrimitive( PT_PointList, 0, 1, 32*3 );

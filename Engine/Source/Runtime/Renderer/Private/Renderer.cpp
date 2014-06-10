@@ -41,7 +41,7 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 

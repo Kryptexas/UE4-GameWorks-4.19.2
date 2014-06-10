@@ -39,7 +39,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
@@ -92,7 +92,7 @@ public:
 		BloomThreshold.Bind(Initializer.ParameterMap, TEXT("BloomThreshold"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -129,7 +129,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_2,TEXT("PostProces
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessBloomSetupPS_ES2_3,TEXT("PostProcessMobile"),TEXT("BloomPS_ES2"),SF_Pixel);
 
 template <uint32 UseSunDof>
-static void BloomSetup_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void BloomSetup_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBloomSetupPS_ES2<UseSunDof> > PixelShader(GetGlobalShaderMap());
@@ -142,7 +142,7 @@ static void BloomSetup_SetShader(FRHICommandList* RHICmdList, const FRenderingCo
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessBloomSetupES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessBloomSetupES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
@@ -207,7 +207,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(GetGlobalShaderMap());
@@ -271,7 +271,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
@@ -317,7 +317,7 @@ public:
 		BloomThreshold.Bind(Initializer.ParameterMap, TEXT("BloomThreshold"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -347,7 +347,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallVS_ES2,TEXT("PostProcessMobile
 IMPLEMENT_SHADER_TYPE(,FPostProcessBloomSetupSmallPS_ES2,TEXT("PostProcessMobile"),TEXT("BloomSmallPS_ES2"),SF_Pixel);
 
 
-void FRCPassPostProcessBloomSetupSmallES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessBloomSetupSmallES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBloomSetupSmallPS_ES2> PixelShader(GetGlobalShaderMap());
@@ -409,7 +409,7 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(GetGlobalShaderMap());
@@ -477,7 +477,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -518,7 +518,7 @@ public:
 		BloomDownScale.Bind(Initializer.ParameterMap, TEXT("BloomDownScale"));
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, float InScale)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, float InScale)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -570,7 +570,7 @@ void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Con
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	VertexShader->SetVS(RHICmdList, Context, Scale);
 	PixelShader->SetPS(RHICmdList, Context);
 
@@ -643,7 +643,7 @@ public:
 		TintB.Bind(Initializer.ParameterMap, TEXT("BloomTintB"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FVector4& InTintA, FVector4& InTintB)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FVector4& InTintA, FVector4& InTintB)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -686,7 +686,7 @@ public:
 		BloomUpScales.Bind(Initializer.ParameterMap, TEXT("BloomUpScales"));
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context, FVector2D InScale)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FVector2D InScale)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -738,7 +738,7 @@ void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Conte
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	// The 1/8 factor is because bloom is using 8 taps in the filter.
 	VertexShader->SetVS(RHICmdList, Context, FVector2D(ScaleAB.X, ScaleAB.Y));
 	FVector4 TintAScaled = TintA * (1.0f/8.0f);
@@ -816,7 +816,7 @@ public:
 		SunColorApertureDiv2Parameter.Bind(Initializer.ParameterMap, TEXT("SunColorApertureDiv2"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -877,7 +877,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -895,7 +895,7 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessSunMaskVS_ES2,TEXT("PostProcessMobile"),TEXT("SunMaskVS_ES2"),SF_Vertex);
 
 template <uint32 UseFetchSunDof>
-static void SunMask_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void SunMask_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSunMaskPS_ES2<UseFetchSunDof> > PixelShader(GetGlobalShaderMap());
@@ -908,7 +908,7 @@ static void SunMask_SetShader(FRHICommandList* RHICmdList, const FRenderingCompo
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessSunMaskES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessSunMaskES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	uint32 UseSun = Context.View.bLightShaftUse ? 1 : 0;
@@ -951,7 +951,7 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 	const FSceneView& View = Context.View;
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(GetGlobalShaderMap());
 	if(bOnChip)
@@ -1064,7 +1064,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -1107,7 +1107,7 @@ public:
 		LightShaftCenter.Bind(Initializer.ParameterMap, TEXT("LightShaftCenter"));
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -1127,7 +1127,7 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessSunAlphaVS_ES2,TEXT("PostProcessMobile"),TEXT("SunAlphaVS_ES2"),SF_Vertex);
 
 template <uint32 UseDof>
-static void SunAlpha_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void SunAlpha_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSunAlphaPS_ES2<UseDof> > PixelShader(GetGlobalShaderMap());
@@ -1140,7 +1140,7 @@ static void SunAlpha_SetShader(FRHICommandList* RHICmdList, const FRenderingComp
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessSunAlphaES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessSunAlphaES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	if(Context.View.FinalPostProcessSettings.DepthOfFieldScale > 0.0f)
 	{
@@ -1178,7 +1178,7 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
@@ -1249,7 +1249,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -1290,7 +1290,7 @@ public:
 		LightShaftCenter.Bind(Initializer.ParameterMap, TEXT("LightShaftCenter"));
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -1343,7 +1343,7 @@ void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Conte
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	VertexShader->SetVS(RHICmdList, Context);
 	PixelShader->SetPS(RHICmdList, Context);
 
@@ -1422,7 +1422,7 @@ public:
 		BloomColor.Bind(Initializer.ParameterMap, TEXT("BloomColor"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -1482,7 +1482,7 @@ public:
 		LightShaftCenter.Bind(Initializer.ParameterMap, TEXT("LightShaftCenter"));
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -1504,7 +1504,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeVS_ES2,TEXT("PostProcessMobile"),TEXT
 
 
 template <uint32 UseSunBloom>
-static void SunMerge_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void SunMerge_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSunMergePS_ES2<UseSunBloom> > PixelShader(GetGlobalShaderMap());
@@ -1517,7 +1517,7 @@ static void SunMerge_SetShader(FRHICommandList* RHICmdList, const FRenderingComp
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessSunMergeES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessSunMergeES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	uint32 UseBloom = (View.FinalPostProcessSettings.BloomIntensity > 0.0f) ? 1 : 0;
@@ -1559,7 +1559,7 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
@@ -1647,7 +1647,7 @@ public:
 		BloomColor2.Bind(Initializer.ParameterMap, TEXT("BloomColor2"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -1698,7 +1698,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -1715,7 +1715,7 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessSunMergeSmallVS_ES2,TEXT("PostProcessMobile"),TEXT("SunMergeSmallVS_ES2"),SF_Vertex);
 
-void FRCPassPostProcessSunMergeSmallES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessSunMergeSmallES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSunMergeSmallPS_ES2> PixelShader(GetGlobalShaderMap());
@@ -1754,7 +1754,7 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
@@ -1835,7 +1835,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
@@ -1880,7 +1880,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -1904,7 +1904,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_0,TEXT("PostProcessMo
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofDownPS_ES2_1,TEXT("PostProcessMobile"),TEXT("DofDownPS_ES2"),SF_Pixel);
 
 template <uint32 UseSun>
-static void DofDown_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void DofDown_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessDofDownPS_ES2<UseSun> > PixelShader(GetGlobalShaderMap());
@@ -1917,7 +1917,7 @@ static void DofDown_SetShader(FRHICommandList* RHICmdList, const FRenderingCompo
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessDofDownES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessDofDownES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	if(Context.View.bLightShaftUse)
@@ -1979,7 +1979,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(GetGlobalShaderMap());
@@ -2043,7 +2043,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
@@ -2088,7 +2088,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -2112,7 +2112,7 @@ IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_0,TEXT("PostProcessMo
 IMPLEMENT_SHADER_TYPE(template<>,FPostProcessDofNearPS_ES2_1,TEXT("PostProcessMobile"),TEXT("DofNearPS_ES2"),SF_Pixel);
 
 template <uint32 UseSun>
-static void DofNear_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void DofNear_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessDofNearPS_ES2<UseSun> > PixelShader(GetGlobalShaderMap());
@@ -2125,7 +2125,7 @@ static void DofNear_SetShader(FRHICommandList* RHICmdList, const FRenderingCompo
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessDofNearES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessDofNearES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	const FSceneView& View = Context.View;
 	if(Context.View.bLightShaftUse)
@@ -2164,7 +2164,7 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
@@ -2232,7 +2232,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -2271,7 +2271,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -2321,7 +2321,7 @@ void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Conte
 	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	VertexShader->SetVS(RHICmdList, Context);
 	PixelShader->SetPS(RHICmdList, Context);
 
@@ -2391,7 +2391,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -2431,7 +2431,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -2450,7 +2450,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessSunAvgVS_ES2,TEXT("PostProcessMobile"),TEXT("
 
 
 
-static void SunAvg_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void SunAvg_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSunAvgPS_ES2> PixelShader(GetGlobalShaderMap());
@@ -2463,7 +2463,7 @@ static void SunAvg_SetShader(FRHICommandList* RHICmdList, const FRenderingCompos
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessSunAvgES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessSunAvgES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	SunAvg_SetShader(RHICmdList, Context);
 }
@@ -2494,7 +2494,7 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
@@ -2565,7 +2565,7 @@ public:
 		AaBlendAmount.Bind(Initializer.ParameterMap, TEXT("AaBlendAmount"));
 	}
 
-	void SetPS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
@@ -2674,7 +2674,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
-	void SetVS(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
@@ -2693,7 +2693,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessAaVS_ES2,TEXT("PostProcessMobile"),TEXT("AaVS
 
 
 
-static void Aa_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+static void Aa_SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessAaPS_ES2> PixelShader(GetGlobalShaderMap());
@@ -2706,7 +2706,7 @@ static void Aa_SetShader(FRHICommandList* RHICmdList, const FRenderingCompositeP
 	PixelShader->SetPS(RHICmdList, Context);
 }
 
-void FRCPassPostProcessAaES2::SetShader(FRHICommandList* RHICmdList, const FRenderingCompositePassContext& Context)
+void FRCPassPostProcessAaES2::SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
 {
 	Aa_SetShader(RHICmdList, Context);
 }
@@ -2737,7 +2737,7 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShader(RHICmdList, Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize;

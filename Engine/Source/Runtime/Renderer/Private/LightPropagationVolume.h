@@ -126,23 +126,23 @@ public:
 
 	void InitSettings( const FSceneView& View );
 
-	void Clear(FRHICommandList* RHICmdList);
+	void Clear(FRHICommandList& RHICmdList);
 
 	void SetVplInjectionConstants(
 		const FProjectedShadowInfo&	ProjectedShadowInfo,
 		const FLightSceneProxy* LightProxy );
 
 	void InjectDirectionalLightRSM(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FTexture2DRHIRef&		RsmDiffuseTex, 
 		const FTexture2DRHIRef&		RsmNormalTex, 
 		const FTexture2DRHIRef&		RsmDepthTex, 
 		const FProjectedShadowInfo&	ProjectedShadowInfo,
 		const FLinearColor&			LightColour );
 
-	void InjectLightDirect(FRHICommandList* RHICmdList, const FLightSceneProxy& Light );
+	void InjectLightDirect(FRHICommandList& RHICmdList, const FLightSceneProxy& Light );
 
-	void Propagate(FRHICommandList* RHICmdList);
+	void Propagate(FRHICommandList& RHICmdList);
 
 	void Visualise( const FSceneView& View ) const;
 

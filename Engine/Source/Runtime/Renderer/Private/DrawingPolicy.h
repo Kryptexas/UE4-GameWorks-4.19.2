@@ -67,7 +67,7 @@ public:
 	 * @param PrimitiveSceneProxy - The primitive drawing the dynamic mesh.  If this is a view element, this will be NULL.
 	 */
 	void SetMeshRenderState(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
@@ -79,14 +79,14 @@ public:
 	/**
 	 * Executes the draw commands for a mesh.
 	 */
-	void DrawMesh(FRHICommandList* RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const;
+	void DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex) const;
 
 	/**
 	 * Executes the draw commands which can be shared between any meshes using this drawer.
 	 * @param CI - The command interface to execute the draw commands on.
 	 * @param View - The view of the scene being drawn.
 	 */
-	void DrawShared(FRHICommandList* RHICmdList, const FSceneView* View) const;
+	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View) const;
 
 	/**
 	* Get the decl for this mesh policy type and vertexfactory

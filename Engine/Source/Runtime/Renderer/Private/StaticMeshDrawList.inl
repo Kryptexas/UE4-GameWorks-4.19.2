@@ -58,7 +58,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
-	FRHICommandList* RHICmdList,
+	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const FElement& Element,
 	uint64 BatchElementMask,
@@ -238,7 +238,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 template<typename DrawingPolicyType>
 bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
-	FRHICommandList* RHICmdList,
+	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray
@@ -271,7 +271,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 
 template<typename DrawingPolicyType>
 int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
-	FRHICommandList* RHICmdList,
+	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
 	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray,

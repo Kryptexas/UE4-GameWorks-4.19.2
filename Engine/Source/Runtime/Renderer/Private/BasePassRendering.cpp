@@ -70,7 +70,7 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 	}
 }
 
-void FTranslucentLightingParameters::Set(FRHICommandList* RHICmdList, FShader* Shader, const FSceneView* View)
+void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FSceneView* View)
 {
 	SetTextureParameter(
 		RHICmdList, 
@@ -107,7 +107,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList* RHICmdList, FShader* S
 	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 }
 
-void FTranslucentLightingParameters::SetMesh(FRHICommandList* RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy)
+void FTranslucentLightingParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy)
 {
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = GBlackCubeArrayTexture->TextureRHI;
@@ -160,7 +160,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
 	template<typename LightMapPolicyType>
 	void Process(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -209,7 +209,7 @@ void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMes
 	if( !IsTranslucentBlendMode(BlendMode) )
 	{
 		//@todo-rco: RHIPacketList
-		FRHICommandList* RHICmdList = nullptr;
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 		ProcessBasePassMesh(
 			RHICmdList, 
 			FProcessBasePassMeshParameters(
@@ -262,7 +262,7 @@ public:
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
 	template<typename LightMapPolicyType>
 	void Process(
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 		const FProcessBasePassMeshParameters& Parameters,
 		const LightMapPolicyType& LightMapPolicy,
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
@@ -328,7 +328,7 @@ public:
 };
 
 bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
@@ -371,7 +371,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 }
 
 void FCachedVolumeIndirectLightingPolicy::Set(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const VertexParametersType* VertexShaderParameters,
 	const PixelParametersType* PixelShaderParameters,
 	FShader* VertexShader,
@@ -434,7 +434,7 @@ void FCachedVolumeIndirectLightingPolicy::Set(
 }
 
 void FCachedVolumeIndirectLightingPolicy::SetMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,
@@ -476,7 +476,7 @@ void FCachedVolumeIndirectLightingPolicy::SetMesh(
 }
 
 void FCachedPointIndirectLightingPolicy::SetMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,
@@ -559,7 +559,7 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 }
 
 void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
-	FRHICommandList* RHICmdList, 
+	FRHICommandList& RHICmdList, 
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const VertexParametersType* VertexShaderParameters,

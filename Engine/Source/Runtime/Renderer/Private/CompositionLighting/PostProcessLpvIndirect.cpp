@@ -67,7 +67,7 @@ public:
 	}
 
 	void SetParameters(	
-		FRHICommandList* RHICmdList, 
+		FRHICommandList& RHICmdList, 
 #if LPV_VOLUME_TEXTURE
 		FTextureRHIParamRef* LpvBufferSRVsIn, 
 #else
@@ -79,7 +79,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		check(!RHICmdList);
+		RHICmdList.CheckIsNull();
 
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvReadUniformBufferParameters>(), LpvUniformBuffer );
 
@@ -154,8 +154,8 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	};
 
 	//@todo-rco: RHIPacketList
-	FRHICommandList* RHICmdList = nullptr;
-	check(!RHICmdList);
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	RHICmdList.CheckIsNull();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTargets(1, RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), 0, NULL);

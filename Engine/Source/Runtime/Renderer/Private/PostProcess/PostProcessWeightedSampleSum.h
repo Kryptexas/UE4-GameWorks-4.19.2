@@ -62,7 +62,7 @@ public:
 	}
 
 	/** Sets shader parameter values */
-	void SetParameters(FRHICommandList* RHICmdList, const FVector2D* SampleOffsetsValue)
+	void SetParameters(FRHICommandList& RHICmdList, const FVector2D* SampleOffsetsValue)
 	{
 		FVector4 PackedSampleOffsetsValue[NumSampleChunks];
 		for(int32 SampleIndex = 0;SampleIndex < NumSamples;SampleIndex += 2)

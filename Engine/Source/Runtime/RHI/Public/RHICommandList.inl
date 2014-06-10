@@ -198,6 +198,11 @@ struct FRHICommandSetStreamSource : public FRHICommand
 template <typename TShaderRHIParamRef>
 FORCEINLINE void FRHICommandList::SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
 {
+	if (Bypass())
+	{
+		RHISetShaderUniformBuffer(Shader, BaseIndex, UniformBuffer);
+		return;
+	}
 	auto* Cmd = AddCommand<FRHICommandSetShaderUniformBuffer>();
 	Cmd->Set<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
 	Shader->AddRef();
@@ -205,11 +210,25 @@ FORCEINLINE void FRHICommandList::SetShaderUniformBuffer(TShaderRHIParamRef Shad
 }
 
 template <typename TShaderRHIParamRef>
-FORCEINLINE void FRHICommandList::SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV){check(0);}
+FORCEINLINE void FRHICommandList::SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV)
+{
+	if (Bypass())
+	{
+		RHISetShaderResourceViewParameter(Shader, SamplerIndex, SRV);
+		return;
+	}
+	check(0);
+}
 
 template <typename TShaderRHIParamRef>
 FORCEINLINE void FRHICommandList::SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue, bool bValueInStack)
 {
+	if (Bypass())
+	{
+		RHISetShaderParameter(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+		return;
+	}
+
 	if (bValueInStack)
 	{
 		auto* Blob = AddCommand<FRHICommandNopBlob>();
@@ -224,6 +243,12 @@ FORCEINLINE void FRHICommandList::SetShaderParameter(TShaderRHIParamRef Shader, 
 template <typename TShaderRHIParamRef>
 FORCEINLINE void FRHICommandList::SetShaderTexture(TShaderRHIParamRef Shader, uint32 TextureIndex, FTextureRHIParamRef Texture)
 {
+	if (Bypass())
+	{
+		RHISetShaderTexture(Shader, TextureIndex, Texture);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetShaderTexture>();
 	Cmd->Set<TShaderRHIParamRef>(Shader, TextureIndex, Texture);
 	Shader->AddRef();
@@ -233,17 +258,46 @@ FORCEINLINE void FRHICommandList::SetShaderTexture(TShaderRHIParamRef Shader, ui
 template <typename TShaderRHIParamRef>
 FORCEINLINE void FRHICommandList::SetShaderSampler(TShaderRHIParamRef Shader, uint32 SamplerIndex, FSamplerStateRHIParamRef State)
 {
+	if (Bypass())
+	{
+		RHISetShaderSampler(Shader, SamplerIndex, State);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetShaderSampler>();
 	Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, State);
 	Shader->AddRef();
 	State->AddRef();
 }
 
-FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV){check(0);}
-FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount){check(0);}
+FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
+{
+	if (Bypass())
+	{
+		RHISetUAVParameter(Shader, UAVIndex, UAV);
+		return;
+	}
+
+	check(0);
+}
+FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
+{
+	if (Bypass())
+	{
+		RHISetUAVParameter(Shader, UAVIndex, UAV, InitialCount);
+		return;
+	}
+	check(0);
+}
 
 FORCEINLINE void FRHICommandList::SetRasterizerState(FRasterizerStateRHIParamRef State)
 {
+	if (Bypass())
+	{
+		RHISetRasterizerState(State);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetRasterizerState>();
 	Cmd->Set(State);
 	State->AddRef();
@@ -251,12 +305,24 @@ FORCEINLINE void FRHICommandList::SetRasterizerState(FRasterizerStateRHIParamRef
 
 FORCEINLINE void FRHICommandList::DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances)
 {
+	if (Bypass())
+	{
+		RHIDrawPrimitive(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandDrawPrimitive>();
 	Cmd->Set(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
 }
 
 FORCEINLINE void FRHICommandList::DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
 {
+	if (Bypass())
+	{
+		RHIDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandDrawIndexedPrimitive>();
 	Cmd->Set(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
 	IndexBuffer->AddRef();
@@ -264,6 +330,12 @@ FORCEINLINE void FRHICommandList::DrawIndexedPrimitive(FIndexBufferRHIParamRef I
 
 FORCEINLINE void FRHICommandList::SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
 {
+	if (Bypass())
+	{
+		RHISetBoundShaderState(BoundShaderState);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetBoundShaderState>();
 	Cmd->Set(BoundShaderState);
 	BoundShaderState->AddRef();
@@ -271,6 +343,12 @@ FORCEINLINE void FRHICommandList::SetBoundShaderState(FBoundShaderStateRHIParamR
 
 FORCEINLINE void FRHICommandList::SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor)
 {
+	if (Bypass())
+	{
+		RHISetBlendState(State, BlendFactor);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetBlendState>();
 	Cmd->Set(State, BlendFactor);
 	State->AddRef();
@@ -278,6 +356,12 @@ FORCEINLINE void FRHICommandList::SetBlendState(FBlendStateRHIParamRef State, co
 
 FORCEINLINE void FRHICommandList::SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
 {
+	if (Bypass())
+	{
+		RHISetStreamSource(StreamIndex, VertexBuffer, Stride, Offset);
+		return;
+	}
+
 	auto* Cmd = AddCommand<FRHICommandSetStreamSource>();
 	Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
 	VertexBuffer->AddRef();

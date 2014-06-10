@@ -63,7 +63,7 @@ public:
 	}
 
 	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList* RHICmdList, const ShaderRHIParamRef ShaderRHI)
+	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI)
 	{
 		float AOMaxDistanceValue = GetAOMaxDistance();
 		SetShaderValue(RHICmdList, ShaderRHI, AOMaxDistance, AOMaxDistanceValue);
