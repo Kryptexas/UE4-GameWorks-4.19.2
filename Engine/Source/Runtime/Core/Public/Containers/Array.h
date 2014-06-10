@@ -735,6 +735,24 @@ public:
 		return NULL;
 	}
 	/**
+	 * Filters the elements in the array based on a predicate functor. 
+	 * @param  Pred The functor to apply to each element.
+	 * @return      TArray with the same type as this object which contains the subset of elements for which the functor returns true.
+	 */
+	template <typename Predicate>
+	TArray<ElementType> FilterByPredicate(Predicate Pred)
+	{
+		TArray<ElementType> FilterResults;
+		for (ElementType* RESTRICT Data = GetTypedData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
+		{
+			if (Pred(*Data))
+			{
+				FilterResults.Add(*Data);
+			}
+		}
+		return FilterResults;
+	}
+	/**
 	 * @return		true if found
 	 */
 	bool Contains( const ElementType& Item ) const
