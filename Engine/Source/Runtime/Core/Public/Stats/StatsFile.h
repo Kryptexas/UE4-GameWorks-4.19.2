@@ -147,6 +147,13 @@ protected:
 		{
 			bEndOfCompressedData = true;
 		}
+		// This chunk is not compressed.
+		else if( CompressedSize == 0 )
+		{
+			DestData.Reset( UncompressedSize );
+			DestData.AddUninitialized( UncompressedSize );
+			Reader.Serialize( DestData.GetData(), UncompressedSize );
+		}
 		else
 		{
 			SrcData.Reset( CompressedSize );
