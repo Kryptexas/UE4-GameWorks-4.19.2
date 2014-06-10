@@ -392,9 +392,12 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
 
 		// refresh each dependent blueprint
-		for ( auto ObjIt = DependentBPs.CreateConstIterator(); ObjIt; ++ObjIt )
+		for (UBlueprint* Dependent : DependentBPs)
 		{
-			FBlueprintEditorUtils::RefreshAllNodes(*ObjIt);
+			bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
+			Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;
+			FBlueprintEditorUtils::RefreshAllNodes(Dependent);
+			Dependent->bIsRegeneratingOnLoad = bPreviousRegenValue;
 		}
 	}
 
