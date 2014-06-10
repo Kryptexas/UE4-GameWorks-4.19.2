@@ -71,3 +71,23 @@ bool ConvertOverlapResults(int32 NumOverlaps,  PxOverlapHit* POverlapResults, co
 
 
 #endif // WITH_PHYX
+
+
+#if UE_WITH_PHYSICS
+
+struct FCompareFHitResultTime
+{
+	FORCEINLINE bool operator()(const FHitResult& A, const FHitResult& B) const
+	{
+		if (A.Time == B.Time)
+		{
+			// Sort blocking hits after non-blocking hits, if they are at the same time. Also avoid swaps if they are the same.
+			// This is important so initial touches are reported before processing stops on the first blocking hit.
+			return (A.bBlockingHit == B.bBlockingHit) ? true : B.bBlockingHit;
+		}
+
+		return A.Time < B.Time;
+	}
+};
+
+#endif
