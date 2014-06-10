@@ -7,6 +7,9 @@
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeacon.h"
 #include "OnlineBeaconHost.generated.h"
 
+class AOnlineBeaconHostObject;
+class AOnlineBeaconClient;
+
 /**
  * Base class for any actor that would like to communicate outside the normal Unreal Networking gameplay path
  *
@@ -18,24 +21,9 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHost : public AOnlineBeacon
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Custom name for this beacon */
-	UPROPERTY(Transient)
-	FString BeaconName;
-
 	/** Configured listen port for this beacon host */
 	UPROPERTY(Config)
 	int32 ListenPort;
-
-	/** List of client beacon actors with active connections */
-	UPROPERTY()
-	TArray<class AOnlineBeaconClient*> ClientActors;
-
-	/** Delegate to route a connection event to the appropriate beacon host, by type */
-	DECLARE_DELEGATE_TwoParams(FOnBeaconConnected, class AOnlineBeaconClient*, class UNetConnection*);
-	FOnBeaconConnected& OnBeaconConnected(FName BeaconType);
-
-	/** Mapping of beacon types to the OnBeaconConnected delegates */
-	TMap<FName, FOnBeaconConnected> OnBeaconConnectedMapping;
 
 	// Begin AActor Interface
 	virtual void OnNetCleanup(class UNetConnection* Connection) OVERRIDE;
@@ -65,25 +53,67 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHost : public AOnlineBeacon
 	virtual int32 GetListenPort() { return ListenPort; }
 
 	/**
+	 * Register a beacon host and its client actor factory
+	 *
+	 * @param NewHostObject new 
+	 */
+	virtual void RegisterHost(AOnlineBeaconHostObject* NewHostObject);
+
+	/**
+	 * Unregister a beacon host, making future connections of a given type unresponsive
+	 *
+	 * @param BeaconType type of beacon host to unregister
+	 */
+	virtual void UnregisterHost(const FString& BeaconType);
+
+	/**
+	 * Get the host responsible for a given beacon type
+	 *
+	 * @param BeaconType type of beacon host 
+	 * 
+	 * @return BeaconHost for the given type or NULL if that type is not registered
+	 */
+	AOnlineBeaconHostObject* GetHost(const FString& BeaconType);
+
+	/**
+	 * Save actors on seamless travel
+	 * see AGameMode::GetSeamlessTravelActorList
+	 */
+	void GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList);
+
+	/**
 	 * Get a client beacon actor for a given connection
 	 *
 	 * @param Connection connection of interest
 	 *
 	 * @return client beacon actor that owns the connection
 	 */
-	virtual class AOnlineBeaconClient* GetClientActor(class UNetConnection* Connection);
+	virtual AOnlineBeaconClient* GetClientActor(class UNetConnection* Connection);
 
 	/**
 	 * Remove a client beacon actor from the list of active connections
 	 *
 	 * @param ClientActor client beacon actor to remove
 	 */
-	virtual void RemoveClientActor(class AOnlineBeaconClient* ClientActor);
+	virtual void RemoveClientActor(AOnlineBeaconClient* ClientActor);
 
-	/**
-	 * Each beacon host must be able to spawn the appropriate client beacon actor to communicate with the initiating client
-	 *
-	 * @return new client beacon actor that this beacon host knows how to communicate with
-	 */
-	virtual class AOnlineBeaconClient* SpawnBeaconActor() PURE_VIRTUAL(AOnlineBeaconHost::SpawnBeaconActor, return NULL;);
+private:
+
+	/** List of all client beacon actors with active connections */
+	UPROPERTY()
+	TArray<AOnlineBeaconClient*> ClientActors;
+
+	/** Delegate to route a connection attempt to the appropriate beacon host, by type */
+	DECLARE_DELEGATE_RetVal_OneParam(AOnlineBeaconClient*, FOnBeaconSpawned, class UNetConnection*);
+	FOnBeaconSpawned& OnBeaconSpawned(const FString& BeaconType);
+
+	/** Mapping of beacon types to the OnBeaconSpawned delegates */
+	TMap<FString, FOnBeaconSpawned> OnBeaconSpawnedMapping;
+
+	/** Delegate to route a connection event to the appropriate beacon host, by type */
+	DECLARE_DELEGATE_TwoParams(FOnBeaconConnected, AOnlineBeaconClient*, class UNetConnection*);
+	FOnBeaconConnected& OnBeaconConnected(const FString& BeaconType);
+
+	/** Mapping of beacon types to the OnBeaconConnected delegates */
+	TMap<FString, FOnBeaconConnected> OnBeaconConnectedMapping;
 };

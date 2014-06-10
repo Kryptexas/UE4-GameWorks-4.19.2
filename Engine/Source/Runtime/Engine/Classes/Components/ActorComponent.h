@@ -133,7 +133,7 @@ public:
 	/** This signifies the component can be ID'd by name over the network. This only needs to be called by engine code when constructing blueprint components. */
 	void SetNetAddressable();
 
-	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
 	virtual bool IsNameStableForNetworking() const OVERRIDE;
 
 	/** IsSupportedForNetworking means an object can be referenced over the network */

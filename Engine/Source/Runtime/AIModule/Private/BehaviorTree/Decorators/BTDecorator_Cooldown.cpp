@@ -9,8 +9,6 @@ UBTDecorator_Cooldown::UBTDecorator_Cooldown(const class FPostConstructInitializ
 	CoolDownTime = 5.0f;
 	
 	// aborting child nodes doesn't makes sense, cooldown starts after leaving this branch
-	bAllowAbortNone = false;
-	bAllowAbortLowerPri = false;
 	bAllowAbortChildNodes = false;
 
 	bNotifyTick = false;

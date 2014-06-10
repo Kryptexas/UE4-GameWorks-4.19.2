@@ -8,13 +8,14 @@
 // @todo to be addressed when removing AIModule circular dependency
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavLinkCustomComponent.h"
 
-USmartNavLinkComponent::USmartNavLinkComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavLinkCustomComponent::UNavLinkCustomComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NavLinkUserId = 0;
 	LinkRelativeStart = FVector(70, 0, 0);
 	LinkRelativeEnd = FVector(-70, 0, 0);
-	LinkDirection = ESmartNavLinkDir::BothWays;
+	LinkDirection = ENavLinkDirection::BothWays;
 	EnabledAreaClass = UNavArea_Default::StaticClass();
 	DisabledAreaClass = UNavArea_Null::StaticClass();
 	ObstacleAreaClass = UNavArea_Null::StaticClass();
@@ -28,7 +29,88 @@ USmartNavLinkComponent::USmartNavLinkComponent(const class FPostConstructInitial
 	BroadcastInterval = 0.0f;
 }
 
-void USmartNavLinkComponent::SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ESmartNavLinkDir::Type Direction)
+void UNavLinkCustomComponent::GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const
+{
+	LeftPt = LinkRelativeStart;
+	RightPt = LinkRelativeEnd;
+	Direction = LinkDirection;
+}
+
+TSubclassOf<UNavArea> UNavLinkCustomComponent::GetLinkAreaClass() const
+{
+	return bLinkEnabled ? EnabledAreaClass : DisabledAreaClass;
+}
+
+uint32 UNavLinkCustomComponent::GetLinkId() const
+{
+	return NavLinkUserId;
+}
+
+bool UNavLinkCustomComponent::IsLinkPathfindingAllowed(const UObject* Querier) const
+{
+	return true;
+}
+
+bool UNavLinkCustomComponent::OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
+{
+	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
+	MovingAgents.Add(WeakPathComp);
+
+	if (OnMoveReachedLink.IsBound())
+	{
+		OnMoveReachedLink.Execute(this, PathComp, DestPoint);
+		return true;
+	}
+
+	return false;
+}
+
+void UNavLinkCustomComponent::OnLinkMoveFinished(class UPathFollowingComponent* PathComp)
+{
+	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
+	MovingAgents.Remove(WeakPathComp);
+}
+
+void UNavLinkCustomComponent::OnOwnerRegistered()
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys == NULL)
+	{
+		return;
+	}
+
+	if (NavLinkUserId == 0)
+	{
+		NavLinkUserId = INavLinkCustomInterface::GetUniqueId();
+	}
+
+	NavSys->RegisterCustomLink(this);
+}
+
+void UNavLinkCustomComponent::OnOwnerUnregistered()
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys == NULL)
+	{
+		return;
+	}
+
+	// always try to unregister, even if not relevant right now
+	NavSys->UnregisterCustomLink(this);
+}
+
+void UNavLinkCustomComponent::OnApplyModifiers(struct FCompositeNavModifier& Modifiers)
+{
+	FNavigationLink LinkMod = GetLinkModifier();
+	Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
+
+	if (bCreateBoxObstacle)
+	{
+		Modifiers.Add(FAreaNavModifier(FBox::BuildAABB(ObstacleOffset, ObstacleExtent), GetOwner()->GetTransform(), ObstacleAreaClass));
+	}
+}
+
+void UNavLinkCustomComponent::SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction)
 {
 	LinkRelativeStart = RelativeStart;
 	LinkRelativeEnd = RelativeEnd;
@@ -37,37 +119,32 @@ void USmartNavLinkComponent::SetLinkData(const FVector& RelativeStart, const FVe
 	RefreshNavigationModifiers();
 }
 
-FNavigationLink USmartNavLinkComponent::GetLink() const
+FNavigationLink UNavLinkCustomComponent::GetLinkModifier() const
 {
-	FNavigationLink LinkMod(LinkRelativeStart, LinkRelativeEnd);
-	LinkMod.Direction = LinkDirection == ESmartNavLinkDir::OneWay ? ENavLinkDirection::LeftToRight : ENavLinkDirection::BothWays;
-	LinkMod.AreaClass = bLinkEnabled ? EnabledAreaClass : DisabledAreaClass;
-	LinkMod.UserId = NavLinkUserId;
-
-	return LinkMod;
+	return INavLinkCustomInterface::GetModifier(this);
 }
 
-void USmartNavLinkComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaClass)
 {
 	EnabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && bLinkEnabled)
 	{
 		UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-		NavSys->UpdateSmartLink(this);
+		NavSys->UpdateCustomLink(this);
 	}
 }
 
-void USmartNavLinkComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaClass)
 {
 	DisabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && !bLinkEnabled)
 	{
 		UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-		NavSys->UpdateSmartLink(this);
+		NavSys->UpdateCustomLink(this);
 	}
 }
 
-void USmartNavLinkComponent::AddNavigationObstacle(TSubclassOf<class UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
+void UNavLinkCustomComponent::AddNavigationObstacle(TSubclassOf<class UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
 {
 	ObstacleOffset = BoxOffset;
 	ObstacleExtent = BoxExtent;
@@ -77,7 +154,7 @@ void USmartNavLinkComponent::AddNavigationObstacle(TSubclassOf<class UNavArea> A
 	RefreshNavigationModifiers();
 }
 
-void USmartNavLinkComponent::ClearNavigationObstacle()
+void UNavLinkCustomComponent::ClearNavigationObstacle()
 {
 	ObstacleAreaClass = NULL;
 	bCreateBoxObstacle = false;
@@ -85,7 +162,28 @@ void USmartNavLinkComponent::ClearNavigationObstacle()
 	RefreshNavigationModifiers();
 }
 
-void USmartNavLinkComponent::SetEnabled(bool bNewEnabled)
+void UNavLinkCustomComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	const AActor* MyOwner = GetOwner();
+	if (MyOwner)
+	{
+		FBox NewBounds(0);
+		NewBounds += MyOwner->GetActorLocation();
+		NewBounds += MyOwner->GetActorLocation() + LinkRelativeStart;
+		NewBounds += MyOwner->GetActorLocation() + LinkRelativeEnd;
+		
+		if (bCreateBoxObstacle)
+		{
+			NewBounds += FBox::BuildAABB(MyOwner->GetActorLocation() + ObstacleOffset, ObstacleExtent);
+		}
+
+		Bounds = NewBounds;
+	}
+}
+
+void UNavLinkCustomComponent::SetEnabled(bool bNewEnabled)
 {
 	if (bLinkEnabled != bNewEnabled)
 	{
@@ -94,12 +192,12 @@ void USmartNavLinkComponent::SetEnabled(bool bNewEnabled)
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 		if (NavSys)
 		{
-			NavSys->UpdateSmartLink(this);
+			NavSys->UpdateCustomLink(this);
 		}
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().ClearTimer(this, &USmartNavLinkComponent::BroadcastStateChange);
+			GetWorld()->GetTimerManager().ClearTimer(this, &UNavLinkCustomComponent::BroadcastStateChange);
 
 			if ((bLinkEnabled && bNotifyWhenEnabled) || (!bLinkEnabled && bNotifyWhenDisabled))
 			{
@@ -109,17 +207,12 @@ void USmartNavLinkComponent::SetEnabled(bool bNewEnabled)
 	}
 }
 
-void USmartNavLinkComponent::SetMoveReachedLink(FOnMoveReachedLink const& InDelegate)
+void UNavLinkCustomComponent::SetMoveReachedLink(FOnMoveReachedLink const& InDelegate)
 {
 	OnMoveReachedLink = InDelegate;
 }
 
-void USmartNavLinkComponent::ResumePathFollowing(class UPathFollowingComponent* PathComp)
-{
-	PathComp->ResumeMove();
-}
-
-bool USmartNavLinkComponent::HasMovingAgents() const
+bool UNavLinkCustomComponent::HasMovingAgents() const
 {
 	for (int32 i = 0; i < MovingAgents.Num(); i++)
 	{
@@ -132,95 +225,24 @@ bool USmartNavLinkComponent::HasMovingAgents() const
 	return false;
 }
 
-void USmartNavLinkComponent::OnOwnerRegistered()
-{
-	if (GetOwner() == NULL || GetWorld() == NULL || GetWorld()->GetNavigationSystem() == NULL)
-	{
-		return;
-	}
-
-	UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-	if (NavLinkUserId == 0)
-	{
-		NavLinkUserId = NavSys->FindFreeSmartLinkId();
-	}
-
-	NavSys->RegisterSmartLink(this);
-}
-
-void USmartNavLinkComponent::OnOwnerUnregistered()
-{
-	if (GetOwner() == NULL || GetWorld() == NULL || GetWorld()->GetNavigationSystem() == NULL)
-	{
-		return;
-	}
-
-	// always try to unregister, even if not relevant right now
-	UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-	NavSys->UnregisterSmartLink(this);
-}
-
-void USmartNavLinkComponent::OnApplyModifiers(FCompositeNavModifier& Modifiers)
-{
-	FNavigationLink LinkMod = GetLink();
-	Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
-
-	if (bCreateBoxObstacle)
-	{
-		Modifiers.Add(FAreaNavModifier(FBox::BuildAABB(ObstacleOffset, ObstacleExtent), GetOwner()->GetTransform(), ObstacleAreaClass));
-	}
-}
-
-bool USmartNavLinkComponent::IsPathfindingAllowed(const UObject* Querier) const
-{
-	return true;
-}
-
-void USmartNavLinkComponent::NotifyLinkReached(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
-{
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
-	MovingAgents.Add(WeakPathComp);
-
-	if (OnMoveReachedLink.IsBound())
-	{
-		OnMoveReachedLink.Execute(this, PathComp, DestPoint);
-	}
-	else
-	{
-		ResumePathFollowing(PathComp);
-	}
-}
-
-void USmartNavLinkComponent::NotifyLinkFinished(class UPathFollowingComponent* PathComp)
-{
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
-	MovingAgents.Remove(WeakPathComp);
-}
-
-void USmartNavLinkComponent::NotifyMoveAborted(class UPathFollowingComponent* PathComp)
-{
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
-	MovingAgents.Remove(WeakPathComp);
-}
-
-void USmartNavLinkComponent::SetBroadcastData(float Radius, ECollisionChannel TraceChannel, float Interval)
+void UNavLinkCustomComponent::SetBroadcastData(float Radius, ECollisionChannel TraceChannel, float Interval)
 {
 	BroadcastRadius = Radius;
 	BroadcastChannel = TraceChannel;
 	BroadcastInterval = Interval;
 }
 
-void USmartNavLinkComponent::SendBroadcastWhenEnabled(bool bEnabled)
+void UNavLinkCustomComponent::SendBroadcastWhenEnabled(bool bEnabled)
 {
 	bNotifyWhenEnabled = bEnabled;
 }
 
-void USmartNavLinkComponent::SendBroadcastWhenDisabled(bool bEnabled)
+void UNavLinkCustomComponent::SendBroadcastWhenDisabled(bool bEnabled)
 {
 	bNotifyWhenDisabled = bEnabled;
 }
 
-void USmartNavLinkComponent::CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList)
+void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList)
 {
 	AActor* MyOwner = GetOwner();
 	if (BroadcastRadius < KINDA_SMALL_NUMBER || MyOwner == NULL)
@@ -275,7 +297,7 @@ void USmartNavLinkComponent::CollectNearbyAgents(TArray<UNavigationComponent*>& 
 	}
 }
 
-void USmartNavLinkComponent::BroadcastStateChange()
+void UNavLinkCustomComponent::BroadcastStateChange()
 {
 	TArray<UNavigationComponent*> NearbyAgents;
 
@@ -284,21 +306,21 @@ void USmartNavLinkComponent::BroadcastStateChange()
 
 	for (int32 i = 0; i < NearbyAgents.Num(); i++)
 	{
-		NearbyAgents[i]->OnSmartLinkBroadcast(this);
+		NearbyAgents[i]->OnCustomLinkBroadcast(this);
 	}
 
 	if (BroadcastInterval > 0.0f)
 	{
-		GetWorld()->GetTimerManager().SetTimer(this, &USmartNavLinkComponent::BroadcastStateChange, BroadcastInterval);
+		GetWorld()->GetTimerManager().SetTimer(this, &UNavLinkCustomComponent::BroadcastStateChange, BroadcastInterval);
 	}
 }
 
-FVector USmartNavLinkComponent::GetStartPoint() const
+FVector UNavLinkCustomComponent::GetStartPoint() const
 {
 	return GetOwner()->GetTransform().TransformPosition(LinkRelativeStart);
 }
 
-FVector USmartNavLinkComponent::GetEndPoint() const
+FVector UNavLinkCustomComponent::GetEndPoint() const
 {
 	return GetOwner()->GetTransform().TransformPosition(LinkRelativeEnd);
 }

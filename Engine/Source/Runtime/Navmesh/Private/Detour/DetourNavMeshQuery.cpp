@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -1393,9 +1396,11 @@ dtStatus dtNavMeshQuery::findPath(dtPolyRef startRef, dtPolyRef endRef,
 	{
 		node = prev;
 		int n = 0;
+		float prevCost = 0.0f;
 		do
 		{
-			pathSegmentCost[n] = (n > 0) ? (node->cost - pathSegmentCost[n - 1]) : 0.0f;
+			pathSegmentCost[n] = node->cost - prevCost;
+			prevCost = node->cost;
 			n++;
 
 			if (n >= maxPath)

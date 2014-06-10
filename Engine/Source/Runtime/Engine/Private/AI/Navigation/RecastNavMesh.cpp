@@ -4,7 +4,7 @@
 #include "RecastHelpers.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
 
 #if WITH_EDITOR
@@ -811,6 +811,35 @@ FColor ARecastNavMesh::GetAreaIDColor(uint8 AreaID) const
 	return DefArea ? DefArea->DrawColor : NavDataConfig.Color;
 }
 
+void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const
+{
+	// initialize costs for sorting
+	float AreaCosts[RECAST_MAX_AREAS];
+	float AreaFixedCosts[RECAST_MAX_AREAS];
+	DefaultQueryFilter->GetAllAreaCosts(AreaCosts, AreaFixedCosts, RECAST_MAX_AREAS);
+
+	for (int32 Idx = 0; Idx < Areas.Num(); Idx++)
+	{
+		FAreaNavModifier& AreaMod = Areas[Idx];
+		const int32 AreaId = GetAreaID(AreaMod.GetAreaClass());
+		if (AreaId >= 0 && AreaId < RECAST_MAX_AREAS)
+		{
+			AreaMod.Cost = AreaCosts[AreaId];
+			AreaMod.FixedCost = AreaFixedCosts[AreaId];
+		}
+	}
+
+	struct FNavAreaSortPredicate
+	{
+		FORCEINLINE bool operator()(const FAreaNavModifier& A, const FAreaNavModifier& B) const
+		{
+			return A.FixedCost == B.FixedCost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
+		}
+	};
+
+	Areas.Sort(FNavAreaSortPredicate());
+}
+
 void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh)
 {
 	if (!Ar.IsLoading() 
@@ -1158,10 +1187,9 @@ NavNodeRef ARecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Ex
 	return PolyRef;
 }
 
-void ARecastNavMesh::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
+void ARecastNavMesh::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
-	TSubclassOf<UNavArea> AreaClass = LinkComp->IsEnabled() ? LinkComp->GetEnabledArea() : LinkComp->GetDisabledArea();
-	UpdateNavigationLinkArea(LinkComp->GetLinkId(), AreaClass);
+	UpdateNavigationLinkArea(CustomLink->GetLinkId(), CustomLink->GetLinkAreaClass());
 }
 
 void ARecastNavMesh::UpdateNavigationLinkArea(int32 UserId, TSubclassOf<class UNavArea> AreaClass) const

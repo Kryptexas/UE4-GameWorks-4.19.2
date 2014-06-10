@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -251,7 +254,8 @@ If the target is within range, it will be the last corner and have a polygon ref
 */
 int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 							  dtPolyRef* cornerPolys, const int maxCorners,
-							  dtNavMeshQuery* navquery, const dtQueryFilter* /*filter*/)
+							  dtNavMeshQuery* navquery, const dtQueryFilter* filter,
+							  float radius)
 {
 	dtAssert(m_path);
 	dtAssert(m_npath);
@@ -276,7 +280,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			memmove(cornerVerts, cornerVerts+3, sizeof(float)*3*ncorners);
 		}
 	}
-	
+
 	// Prune points after an off-mesh connection.
 	for (int i = 0; i < ncorners; ++i)
 	{
@@ -287,6 +291,52 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		}
 	}
 	
+	// [UE4] Offset path points from corners
+	const dtNavMesh* nav = navquery->getAttachedNavMesh();
+	float v1[3], v2[3], dir[3];
+
+	for (int i = 0; i < ncorners - 1; i++)
+	{
+		int fromIdx = 0;
+		while (m_path[fromIdx] != cornerPolys[i] && fromIdx < m_npath)
+		{
+			fromIdx++;
+		}
+
+		if (m_path[fromIdx] != cornerPolys[i] || fromIdx == 0)
+			continue;
+
+		const dtMeshTile* tile0 = 0;
+		const dtMeshTile* tile1 = 0;
+		const dtPoly* poly0 = 0;
+		const dtPoly* poly1 = 0;
+
+		nav->getTileAndPolyByRefUnsafe(m_path[fromIdx - 1], &tile0, &poly0);
+		nav->getTileAndPolyByRefUnsafe(m_path[fromIdx], &tile1, &poly1);
+
+		if (tile0 != tile1)
+			continue;
+
+		float* corner = &cornerVerts[i * 3];
+
+		unsigned char dummyT1, dummyT2;
+		navquery->getPortalPoints(m_path[fromIdx - 1], m_path[fromIdx], v1, v2, dummyT1, dummyT2);
+
+		const float edgeLen = dtVdist(v1, v2);
+		const float edgeOffset = dtMin(radius, edgeLen * 0.75f) / edgeLen;
+
+		if (dtVequal(corner, v1))
+		{
+			dtVsub(dir, v2, v1);
+			dtVmad(corner, corner, dir, edgeOffset);
+		}
+		else
+		{
+			dtVsub(dir, v1, v2);
+			dtVmad(corner, corner, dir, edgeOffset);
+		}
+	}
+
 	return ncorners;
 }
 

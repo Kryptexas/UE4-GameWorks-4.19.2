@@ -855,7 +855,7 @@ public:
 
 	/** Retrieves the current motion state of the player's input device */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
-	void GetInputMotionState(float& Tilt, float& RotationRate, float& Gravity, float& Acceleration) const;
+	void GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const;
 
 	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if the touch index is not down */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")

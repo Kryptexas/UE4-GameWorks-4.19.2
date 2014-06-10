@@ -15,7 +15,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	CreatePin(EGPD_Input, K2Schema->PC_Struct, TEXT(""), FGameplayTagContainer::StaticStruct(), false, false, TEXT("TagIn"));
+	CreatePin(EGPD_Input, K2Schema->PC_String, TEXT("LiteralGameplayTagContainer"), NULL, false, false, TEXT("TagIn"));
 	CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), FGameplayTagContainer::StaticStruct(), false, false, K2Schema->PN_ReturnValue);
 }
 
@@ -72,7 +72,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 		MakeArrayNode->AllocateDefaultPins();
 		
 		// Connect the output of our MakeArray to the Input of our MakeStruct so it sets the Array Type
-		UEdGraphPin* InPin = MakeStructNode->FindPin( TEXT("Tags") );
+		UEdGraphPin* InPin = MakeStructNode->FindPin( TEXT("GameplayTags") );
 		if( InPin )
 		{
 			InPin->MakeLinkTo( MakeArrayNode->GetOutputPin() );
@@ -86,6 +86,9 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 		{
 			TagString = TagString.LeftChop(1);
 			TagString = TagString.RightChop(1);
+			TagString.Split("=", NULL, &TagString);
+			TagString = TagString.LeftChop(1);
+			TagString = TagString.RightChop(1);
 
 			FString ReadTag;
 			FString Remainder;
@@ -95,8 +98,8 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 				TagString = Remainder;
 
 				ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
-				ArrayInputPin->PinType.PinCategory = TEXT("name");
-				ReadTag.Split( "=", NULL, &ReadTag );
+				ArrayInputPin->PinType.PinCategory = TEXT("struct");
+				ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
 				ArrayInputPin->DefaultValue = ReadTag;
 
 				MakeIndex++;
@@ -109,8 +112,8 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 			if( !Remainder.IsEmpty() )
 			{
 				ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
-				ArrayInputPin->PinType.PinCategory = TEXT("name");
-				Remainder.Split( "=", NULL, &Remainder );
+				ArrayInputPin->PinType.PinCategory = TEXT("struct");
+				ArrayInputPin->PinType.PinSubCategoryObject = FGameplayTag::StaticStruct();
 				ArrayInputPin->DefaultValue = Remainder;
 
 				MakeArrayNode->PostReconstructNode();

@@ -6,18 +6,8 @@ APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCI
 	Super(PCIP),
 	State(NULL)
 {
+	BeaconTypeName = TEXT("PartyBeacon");
 	PrimaryActorTick.bCanEverTick = true;
-}
-
-bool APartyBeaconHost::InitHost()
-{
-	if (AOnlineBeaconHost::InitHost())
-	{
-		OnBeaconConnected(FName(TEXT("PartyBeacon"))).BindUObject(this, &APartyBeaconHost::ClientConnected);
-		return true;
-	}
-
-	return false;
 }
 
 bool APartyBeaconHost::InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32 InMaxReservations, FName InSessionName, int32 InForceTeamNum)
@@ -25,17 +15,10 @@ bool APartyBeaconHost::InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32
 	UE_LOG(LogBeacon, Verbose, TEXT("InitHostBeacon TeamCount:%d TeamSize:%d MaxSize:%d"), InTeamCount, InTeamSize, InMaxReservations);
 	if (InMaxReservations > 0)
 	{
-		if (InitHost())
+		State = ConstructObject<UPartyBeaconState>(GetPartyBeaconHostClass());
+		if (State->InitState(InTeamCount, InTeamSize, InMaxReservations, InSessionName, InForceTeamNum))
 		{
-			State = ConstructObject<UPartyBeaconState>(GetPartyBeaconHostClass());
-			if (State->InitState(InTeamCount, InTeamSize, InMaxReservations, InSessionName, InForceTeamNum))
-			{
-				return true;
-			}
-		}
-		else
-		{
-			UE_LOG(LogBeacon, Warning, TEXT("Failed to initialize beacon"));
+			return true;
 		}
 	}
 
@@ -47,16 +30,8 @@ bool APartyBeaconHost::InitFromBeaconState(UPartyBeaconState* PrevState)
 	if (!State && PrevState)
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("InitFromBeaconState TeamCount:%d TeamSize:%d MaxSize:%d"), PrevState->NumTeams, PrevState->NumPlayersPerTeam, PrevState->MaxReservations);
-
-		if (InitHost())
-		{
-			State = PrevState;
-			return true;
-		}
-		else
-		{
-			UE_LOG(LogBeacon, Warning, TEXT("Failed to initialize beacon"));
-		}
+		State = PrevState;
+		return true;
 	}
 
 	return false;
@@ -65,18 +40,18 @@ bool APartyBeaconHost::InitFromBeaconState(UPartyBeaconState* PrevState)
 bool APartyBeaconHost::ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InNumPlayersPerTeam, int32 InNumReservations)
 {
 	bool bSuccess = false;
-	if (NetDriver != NULL && State != NULL)
+	if (GetOwner() != NULL && State != NULL)
 	{
 		bSuccess = State->ReconfigureTeamAndPlayerCount(InNumTeams, InNumPlayersPerTeam, InNumReservations);
 		UE_LOG(LogBeacon, Log,
 			TEXT("Beacon (%s) reconfiguring team and player count."),
-			*BeaconName);
+			*BeaconTypeName);
 	}
 	else
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, can't change team and player count."),
-			*BeaconName);
+			*BeaconTypeName);
 	}
 
 	return bSuccess;
@@ -228,7 +203,7 @@ void APartyBeaconHost::Tick(float DeltaTime)
 int32 APartyBeaconHost::GetNumPlayersOnTeam(int32 TeamIdx) const
 {
 	int32 Result = 0;
-	if (NetDriver != NULL && State != NULL)
+	if (GetOwner() != NULL && State != NULL)
 	{
 		Result = State->GetNumPlayersOnTeam(TeamIdx);
 	}
@@ -236,7 +211,7 @@ int32 APartyBeaconHost::GetNumPlayersOnTeam(int32 TeamIdx) const
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, can't get team player count."),
-			*BeaconName);
+			*BeaconTypeName);
 	}
 
 	return Result;
@@ -296,7 +271,7 @@ bool APartyBeaconHost::PlayerHasReservation(const FUniqueNetId& PlayerId) const
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, no reservations."),
-			*BeaconName);
+			*BeaconTypeName);
 	}
 
 	return bHasReservation;
@@ -315,7 +290,7 @@ bool APartyBeaconHost::GetPlayerValidation(const FUniqueNetId& PlayerId, FString
 	{
 		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, no validation."),
-			*BeaconName);
+			*BeaconTypeName);
 	}
 
 	return bHasValidation;
@@ -325,7 +300,7 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 {
 	EPartyReservationResult::Type Result = EPartyReservationResult::GeneralError;
 
-	if (!State || BeaconState == EBeaconState::DenyRequests)
+	if (!State || GetBeaconState() == EBeaconState::DenyRequests)
 	{
 		return EPartyReservationResult::ReservationDenied;
 	}
@@ -477,9 +452,21 @@ void APartyBeaconHost::ClientConnected(AOnlineBeaconClient* NewClientActor, UNet
 	UE_LOG(LogBeacon, Verbose, TEXT("ClientConnected %s from (%s)"), 
 		NewClientActor ? *NewClientActor->GetName() : TEXT("NULL"), 
 		NewClientActor ? *NewClientActor->GetNetConnection()->LowLevelDescribe() : TEXT("NULL"));
+
+	ClientActors.Add(NewClientActor);
 }
 
-AOnlineBeaconClient* APartyBeaconHost::SpawnBeaconActor()
+void APartyBeaconHost::RemoveClientActor(AOnlineBeaconClient* ClientActor)
+{
+	if (ClientActor)
+	{
+		ClientActors.RemoveSingleSwap(ClientActor);
+	}
+
+	Super::RemoveClientActor(ClientActor);
+}
+
+AOnlineBeaconClient* APartyBeaconHost::SpawnBeaconActor(UNetConnection* ClientConnection)
 {	
 	FActorSpawnParameters SpawnInfo;
 	APartyBeaconClient* BeaconActor = GetWorld()->SpawnActor<APartyBeaconClient>(APartyBeaconClient::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
@@ -493,7 +480,7 @@ AOnlineBeaconClient* APartyBeaconHost::SpawnBeaconActor()
 
 void APartyBeaconHost::DumpReservations() const
 {
-	UE_LOG(LogBeacon, Display, TEXT("Debug info for Beacon: %s"), *BeaconName);
+	UE_LOG(LogBeacon, Display, TEXT("Debug info for Beacon: %s"), *BeaconTypeName);
 	if (State)
 	{
 		State->DumpReservations();

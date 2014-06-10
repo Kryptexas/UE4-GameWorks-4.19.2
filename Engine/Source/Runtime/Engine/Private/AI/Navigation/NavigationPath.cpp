@@ -104,12 +104,11 @@ float FNavigationPath::GetLengthFromPosition(FVector SegmentStart, uint32 NextPa
 	return PathDistance;
 }
 
-bool FNavigationPath::ContainsSmartLink(class USmartNavLinkComponent* Link) const
+bool FNavigationPath::ContainsCustomLink(uint32 LinkUniqueId) const
 {
 	for (int32 i = 0; i < PathPoints.Num(); i++)
 	{
-		if (PathPoints[i].SmartLink.IsValid() &&
-			PathPoints[i].SmartLink.Get() == Link)
+		if (PathPoints[i].CustomLinkId == LinkUniqueId && LinkUniqueId)
 		{
 			return true;
 		}
@@ -118,11 +117,11 @@ bool FNavigationPath::ContainsSmartLink(class USmartNavLinkComponent* Link) cons
 	return false;
 }
 
-bool FNavigationPath::ContainsAnySmartLink() const
+bool FNavigationPath::ContainsAnyCustomLink() const
 {
 	for (int32 i = 0; i < PathPoints.Num(); i++)
 	{
-		if (PathPoints[i].SmartLink.IsValid())
+		if (PathPoints[i].CustomLinkId)
 		{
 			return true;
 		}

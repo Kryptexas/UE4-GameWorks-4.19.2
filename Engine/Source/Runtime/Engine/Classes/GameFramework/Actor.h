@@ -1443,7 +1443,7 @@ public:
 	// Always called immediately after properties are received from the remote.
 	virtual void PostNetReceive() OVERRIDE;
 
-	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
 	virtual bool IsNameStableForNetworking() const OVERRIDE;
 
 	/** IsSupportedForNetworking means an object can be referenced over the network */

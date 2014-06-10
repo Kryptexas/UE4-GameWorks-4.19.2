@@ -157,8 +157,8 @@ class AIMODULE_API UNavigationComponent : public UActorComponent, public INaviga
 	 */
 	void OnPathInvalid(FNavigationPath* InvalidatedPath);
 
-	/** Called when nearby smart link changes its state */
-	virtual void OnSmartLinkBroadcast(class USmartNavLinkComponent* NearbyLink);
+	/** Called when nearby custom link changes its state */
+	virtual void OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink);
 
 	/** set whether this component should receive update broadcasts from nearby smart links or not */
 	void SetReceiveSmartLinkUpdates(bool bEnabled);
@@ -267,7 +267,10 @@ protected:
 	{
 		TWeakObjectPtr<AActor> GoalActor;
 		FVector GoalLocation;
+		TSharedPtr<const FNavigationQueryFilter> StoredQueryFilter;
 		bool bSimplePath;
+
+		FDeferredRepath() : GoalActor(NULL), GoalLocation(FVector::ZeroVector), StoredQueryFilter(NULL), bSimplePath(false) {}
 	};
 	FDeferredRepath RepathData;
 
@@ -298,7 +301,7 @@ protected:
 
 	void DeferredResumePath();
 	
-	bool RePathTo(const FVector& GoalLocation, TSharedPtr<const FNavigationQueryFilter> StoredQueryFilter = NULL);
+	bool RePathTo(const FVector& GoalLocation, TSharedPtr<const FNavigationQueryFilter> InStoredQueryFilter = NULL);
 
 	/** send notifies about updated path */
 	void NotifyPathUpdate();

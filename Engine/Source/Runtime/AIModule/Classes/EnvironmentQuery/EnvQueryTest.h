@@ -13,14 +13,17 @@ class AIMODULE_API UEnvQueryTest : public UObject
 	UPROPERTY()
 	int32 TestOrder;
 
-	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	UPROPERTY(EditDefaultsOnly, Category=Filter,
+		Meta=(ToolTip="The purpose of this test.  Should it be used for filtering possible results, scoring them, or both?"))
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
 	
-	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	UPROPERTY(EditDefaultsOnly, Category=Filter,
+		Meta=(ToolTip="Does this test filter out results that are below a lower limit, above an upper limit, or both?  Or does it just look for a matching value?"))
 	TEnumAsByte<EEnvTestFilterType::Type> FilterType;
 
 	/** Boolean value that must be matched in order for scoring to occur or filtering test to pass. */
-	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	UPROPERTY(EditDefaultsOnly, Category=Filter,
+		Meta=(ToolTip="Boolean value that must be matched in order for scoring to occur or filtering test to pass."))
 	FEnvBoolParam BoolFilter;
 
 	/** filter for test value; currently this is the ONLY value, because we can only filter in one direction. */
@@ -52,10 +55,6 @@ class AIMODULE_API UEnvQueryTest : public UObject
 	/** Cost of test */
 	TEnumAsByte<EEnvTestCost::Type> Cost;
 
-// 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(DisplayName="Take Absolute Value of Test Result?",
-// 		ToolTip="If checked, the raw value of the test result will be converted to an absolute value BEFORE clamping.  Otherwise, the raw value will reamin as-is."))
-// 	bool bUseAbsoluteValueBeforeClamping;
-
 	UPROPERTY(EditDefaultsOnly, Category=Score,
 		Meta=(ToolTip="How should the lower bound for normalization of the raw test value before applying the scoring formula be determined?  Should it use the lowest value found (tested), the lower threshold for filtering, or a separate specified normalization minimum?"))
 	TEnumAsByte<EEnvQueryTestClamping::Type> ClampMinType;
@@ -72,29 +71,16 @@ class AIMODULE_API UEnvQueryTest : public UObject
 		Meta=(ToolTip="Maximum value to use to normalize the raw test value before applying scoring formula."))
 	FEnvFloatParam ScoreClampingMax;
 
-	// TODO: Should we hide this option for boolean tests?  In those cases, presumably scoring flipped would just
-	// reverse the true/false match we're looking for.
-// 	UPROPERTY(EditDefaultsOnly, Category=Score,
-// 		Meta=(Tooltip="If checked, reverse the normalized score by taking (1.0 - Normalized Score) before applying the curve scoring equation.  Use this if lower test values should result in a higher score."))
-// 	bool bMirrorNormalizedScore;
-
-	UPROPERTY(EditDefaultsOnly, Category=Score)
+	UPROPERTY(EditDefaultsOnly, Category=Score,
+		Meta=(ToolTip="The shape of the curve equation to apply to the normalized score before multiplying by Weight."))
 	TEnumAsByte<EEnvTestScoreEquation::Type> ScoringEquation;
 
 	// For now, I'm keeping "Weight".  TODO: Reconsider Weight vs. "Scoring Factor", Constant, Power, etc. once we have a final plan for what properties are available.
 	/** Weight of test */
-	UPROPERTY(EditDefaultsOnly, Category=Score)
+	UPROPERTY(EditDefaultsOnly, Category=Score,
+		Meta=(ToolTip="The weight (factor) by which to multiply the normalized score after the scoring equation is applied.",
+			  ClampMin="0.001", UIMin="0.001"))
 	FEnvFloatParam Weight;
-
-// 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(DisplayName="Factor"))
-// 	FEnvFloatParam ScoringFactor;
-
-// 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(DisplayName="Constant"))
-// 	FEnvFloatParam ScoringConstant;
-
-// Only need this if we add in support for parametric equations
-// 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(DisplayName="Power"))
-// 	FEnvFloatParam ScoringPower;
 
 	/** Validation: item type that can be used with this test */
 	TSubclassOf<UEnvQueryItemType> ValidItemType;

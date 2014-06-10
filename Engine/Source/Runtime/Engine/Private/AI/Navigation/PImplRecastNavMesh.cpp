@@ -18,7 +18,7 @@
 	#include "RecastNavMeshGenerator.h"
 #endif // WITH_NAVIGATION_GENERATOR
 
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "VisualLog.h"
 
 
@@ -215,8 +215,8 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 
 bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 {
-	USmartNavLinkComponent* LinkComp = NavSys ? NavSys->GetSmartLink(UserId) : NULL;
-	return LinkComp ? LinkComp->IsPathfindingAllowed(SearchOwner) : true;
+	INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
+	return CustomLink ? CustomLink->IsLinkPathfindingAllowed(SearchOwner) : true;
 }
 
 
@@ -1061,9 +1061,9 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 					if (CurNodeFlags.PathFlags & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
 					{
 						const dtOffMeshConnection* OffMeshCon = DetourNavMesh->getOffMeshConnectionByRef(CurVert->NodeRef);
-						if (OffMeshCon && OffMeshCon->userId)
+						if (OffMeshCon)
 						{
-							CurVert->SmartLink = NavSys->GetSmartLink(OffMeshCon->userId);
+							CurVert->CustomLinkId = OffMeshCon->userId;
 						}
 					}
 

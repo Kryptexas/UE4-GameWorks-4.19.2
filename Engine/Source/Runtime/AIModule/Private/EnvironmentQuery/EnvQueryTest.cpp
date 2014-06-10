@@ -21,10 +21,8 @@ UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCI
 	Weight.Value = 1.0f;						// DEPRECATED
 	WeightModifier = EEnvTestWeight::None;		// DEPRECATED
 	Cost = EEnvTestCost::Low;
-// 	bUseAbsoluteValueBeforeClamping = false;
 	ClampMinType = EEnvQueryTestClamping::None;
 	ClampMaxType = EEnvQueryTestClamping::None;
-// 	bMirrorNormalizedScore = false;
 	ScoringEquation = EEnvTestScoreEquation::Linear;
 	
 	bNormalizeFromZero = false;					// DEPRECATED
@@ -34,7 +32,6 @@ UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCI
 
 void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 {
-// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
 	if (!IsScoring())
 	{
 		return;
@@ -46,12 +43,6 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 		return;
 	}
 
-// 	float ScoringFactorValue = 0.0f;
-// 	if (!QueryInstance.GetParamValue(ScoringFactor, ScoringFactorValue, TEXT("Factor")))
-// 	{
-// 		return;
-// 	}
-	
 	float MinScore = 0;
 	float MaxScore = -BIG_NUMBER;
 
@@ -102,11 +93,6 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 			}
 
 			float TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
-// 			if (bUseAbsoluteValueBeforeClamping)
-// 			{
-// 				TestValue = FMath::Abs(TestValue);
-// 			}
-
 			if (TestValue != UEnvQueryTypes::SkippedItemValue)
 			{
 				if (ClampMinType == EEnvQueryTestClamping::None)
@@ -142,9 +128,9 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 			float& TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
 			if (TestValue != UEnvQueryTypes::SkippedItemValue)
 			{
-// 				const float TestValueToNormalize = bUseAbsoluteValueBeforeClamping ? FMath::Abs(TestValue) : TestValue;
-				const float NormalizedScore = (TestValue - MinScore) / (MaxScore - MinScore);
-				// TODO: Add an option to invert the normalized score before applying an equation.
+				const float ClampedScore = FMath::Clamp(TestValue, MinScore, MaxScore);
+				const float NormalizedScore = (ClampedScore - MinScore) / (MaxScore - MinScore);
+				// TODO? Add an option to invert the normalized score before applying an equation.
  				const float NormalizedScoreForEquation = /*bMirrorNormalizedScore ? (1.0f - NormalizedScore) :*/ NormalizedScore;
 				switch (ScoringEquation)
 				{
@@ -339,7 +325,6 @@ FText UEnvQueryTest::DescribeFloatTestParams() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
 	if (!IsScoring())
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
@@ -398,7 +383,6 @@ FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-// 	if (ScoringEquation == EEnvTestScoreEquation::Skip)
 	if (!IsScoring())
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
@@ -448,7 +432,6 @@ void UEnvQueryTest::SetWorkOnFloatValues(bool bWorkOnFloats)
 
 		// Scoring MUST be Constant for boolean tests.
 		ScoringEquation = EEnvTestScoreEquation::Constant;
-// 		bMirrorNormalizedScore = false;
 	}
 }
 

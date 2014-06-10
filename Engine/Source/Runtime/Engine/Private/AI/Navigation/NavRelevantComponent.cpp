@@ -6,7 +6,31 @@
 UNavRelevantComponent::UNavRelevantComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	bNavigationRelevant = true;
+	Bounds = FBox::BuildAABB(FVector::ZeroVector, FVector(100.0f, 100.0f, 100.0f));
 }
+
+void UNavRelevantComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	AActor* MyOwner = GetOwner();
+	if (MyOwner)
+	{
+		Bounds.ShiftBy(MyOwner->GetActorLocation());
+		MyOwner->UpdateNavigationRelevancy();
+	}
+}
+
+void UNavRelevantComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	if (GetOwner())
+	{
+		GetOwner()->UpdateNavigationRelevancy();
+	}
+}
+
 
 void UNavRelevantComponent::OnOwnerRegistered()
 {

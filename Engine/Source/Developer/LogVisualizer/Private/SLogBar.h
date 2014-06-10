@@ -217,7 +217,4 @@ private:
 	int32 RowIndex;
 
 	int32 bShouldDrawSelection : 1;
-
-	/** Color palette for bars coloring */
-	static FColor	ColorPalette[];
 };

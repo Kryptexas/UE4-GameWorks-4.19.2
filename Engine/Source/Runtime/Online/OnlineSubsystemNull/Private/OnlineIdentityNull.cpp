@@ -64,7 +64,7 @@ bool FOnlineIdentityNull::Login(int32 LocalUserNum, const FOnlineAccountCredenti
 
 			FUniqueNetIdString NewUserId(RandomUserId);
 			UserAccountPtr = MakeShareable(new FUserOnlineAccountNull(RandomUserId));
-			UserAccountPtr->UserAttributes.Add(TEXT("epicAccountId"), RandomUserId);
+			UserAccountPtr->UserAttributes.Add(TEXT("id"), RandomUserId);
 
 			// update/add cached entry for user
 			UserAccounts.Add(NewUserId, UserAccountPtr.ToSharedRef());

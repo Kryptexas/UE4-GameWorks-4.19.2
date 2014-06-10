@@ -334,6 +334,7 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 		if (SupportedAreas[i].AreaClassName == AreaClassName)
 		{
 			SupportedAreas[i].AreaClass = NavAreaClass;
+			AreaClassToIdMap.Add(NavAreaClass, SupportedAreas[i].AreaID);
 			UE_LOG(LogNavigation, Verbose, TEXT("%s updated area %s with ID %d"), *GetName(), *AreaClassName, SupportedAreas[i].AreaID);
 			return;
 		}
@@ -352,7 +353,8 @@ void ANavigationData::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentInde
 	NewAgentData.AreaClassName = AreaClassName;
 	NewAgentData.AreaID = GetNewAreaID(NavAreaClass);
 	SupportedAreas.Add(NewAgentData);
-	
+	AreaClassToIdMap.Add(NavAreaClass, NewAgentData.AreaID);
+
 	UE_LOG(LogNavigation, Verbose, TEXT("%s registered area %s with ID %d"), *GetName(), *AreaClassName, NewAgentData.AreaID);
 }
 
@@ -370,6 +372,7 @@ void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
 	{
 		if (SupportedAreas[i].AreaClass == NavAreaClass)
 		{
+			AreaClassToIdMap.Remove(NavAreaClass);
 			SupportedAreas.RemoveAt(i);
 			break;
 		}
@@ -436,18 +439,11 @@ bool ANavigationData::IsAreaAssigned(int32 AreaID) const
 
 int32 ANavigationData::GetAreaID(const UClass* AreaClass) const
 {
-	for (int32 i = 0; i < SupportedAreas.Num(); i++)
-	{
-		if (SupportedAreas[i].AreaClass == AreaClass)
-		{
-			return SupportedAreas[i].AreaID;
-		}
-	}
-
-	return -1;
+	const int32* PtrId = AreaClassToIdMap.Find(AreaClass);
+	return PtrId ? *PtrId : INDEX_NONE;
 }
 
-void ANavigationData::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
+void ANavigationData::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
 	// no implementation for abstract class
 }
@@ -469,7 +465,8 @@ void ANavigationData::RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter
 
 uint32 ANavigationData::LogMemUsed() const
 {
-	const uint32 MemUsed = ActivePaths.GetAllocatedSize() + SupportedAreas.GetAllocatedSize();
+	const uint32 MemUsed = ActivePaths.GetAllocatedSize() + SupportedAreas.GetAllocatedSize() +
+		QueryFilters.GetAllocatedSize() + AreaClassToIdMap.GetAllocatedSize();
 
 	UE_LOG(LogNavigation, Display, TEXT("%s: ANavigationData: %u\n    self: %d"), *GetName(), MemUsed, sizeof(ANavigationData));	
 

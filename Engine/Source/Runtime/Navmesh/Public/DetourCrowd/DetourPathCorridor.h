@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -54,10 +57,12 @@ public:
 	///  @param[in]		maxCorners		The maximum number of corners the buffers can hold.
 	///  @param[in]		navquery		The query object used to build the corridor.
 	///  @param[in]		filter			The filter to apply to the operation.
+	///  @param[in]		radius			[UE4] Agent radius for path offsetting
 	/// @return The number of corners returned in the corner buffers. [0 <= value <= @p maxCorners]
 	int findCorners(float* cornerVerts, unsigned char* cornerFlags,
 					dtPolyRef* cornerPolys, const int maxCorners,
-					dtNavMeshQuery* navquery, const dtQueryFilter* filter);
+					dtNavMeshQuery* navquery, const dtQueryFilter* filter,
+					float radius);
 	
 	/// Attempts to optimize the path if the specified point is visible from the current position.
 	///  @param[in]		next					The point to search toward. [(x, y, z])

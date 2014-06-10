@@ -48,6 +48,13 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	 * @return string representing the type of beacon 
 	 */
 	virtual FString GetBeaconType() PURE_VIRTUAL(AOnlineBeacon::GetBeaconType, return TEXT(""););
+	
+    /**
+	 * Get the current state of the beacon
+	 *
+	 * @return state of the beacon
+	 */
+	EBeaconState::Type GetBeaconState() const { return BeaconState; }
 
 	virtual void HandleNetworkFailure(class UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
 

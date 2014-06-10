@@ -4,6 +4,7 @@
 
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
+#include "../STestFunctionWidget.h"
 
 class FEnvQueryTestDetails : public IDetailCustomization
 {
@@ -36,6 +37,7 @@ protected:
 	TSharedPtr<IPropertyHandle> FloatFilterMinHandle;
 	TSharedPtr<IPropertyHandle> ScoreClampingMaxHandle;
 	TSharedPtr<IPropertyHandle> FloatFilterMaxHandle;
+	TSharedPtr<IPropertyHandle> ScoreHandle;
 
 	bool IsFiltering() const;
 	bool IsScoring() const;
@@ -85,6 +87,7 @@ protected:
 	// Is this a float test that is scoring?
 	EVisibility GetFloatScoreVisibility() const;
 	
+	EVisibility GetTestPreviewVisibility() const;
 	EVisibility GetVisibilityOfFloatFilterMin() const;
 	EVisibility GetVisibilityOfFloatFilterMax() const;
 	EVisibility GetVisibilityOfFilterMinForScoreClamping() const;
@@ -96,6 +99,10 @@ protected:
 	EVisibility GetVisibilityOfScoreClampingMaximum() const;
 
 	void BuildScoreClampingTypeValues(bool bBuildMinValues, TArray<FStringIntPair>& ClampTypeValues) const;
+	
+	void UpdateTestFunctionPreview() const;
+	void FillEquationSamples(uint8 EquationType, bool bInversed, TArray<float>& Samples) const;
+	TSharedPtr<STestFunctionWidget> PreviewWidget;
 
 	TArray<FStringIntPair> ConditionValues;
 

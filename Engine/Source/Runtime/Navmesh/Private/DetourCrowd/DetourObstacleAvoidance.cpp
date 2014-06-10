@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -208,6 +211,8 @@ void dtFreeObstacleAvoidanceQuery(dtObstacleAvoidanceQuery* ptr)
 
 
 dtObstacleAvoidanceQuery::dtObstacleAvoidanceQuery() :
+	m_maxPatterns(0),
+	m_customPatterns(0),
 	m_maxCircles(0),
 	m_circles(0),
 	m_ncircles(0),
@@ -221,9 +226,10 @@ dtObstacleAvoidanceQuery::~dtObstacleAvoidanceQuery()
 {
 	dtFree(m_circles);
 	dtFree(m_segments);
+	dtFree(m_customPatterns);
 }
 
-bool dtObstacleAvoidanceQuery::init(const int maxCircles, const int maxSegments)
+bool dtObstacleAvoidanceQuery::init(const int maxCircles, const int maxSegments, const int maxCustomPatterns)
 {
 	m_maxCircles = maxCircles;
 	m_ncircles = 0;
@@ -238,7 +244,13 @@ bool dtObstacleAvoidanceQuery::init(const int maxCircles, const int maxSegments)
 	if (!m_segments)
 		return false;
 	memset(m_segments, 0, sizeof(dtObstacleSegment)*m_maxSegments);
-	
+
+	m_maxPatterns = maxCustomPatterns;
+	m_customPatterns = (dtObstacleAvoidancePattern*)dtAlloc(sizeof(dtObstacleAvoidancePattern)*m_maxPatterns, DT_ALLOC_PERM);
+	if (!m_customPatterns)
+		return false;
+	memset(m_customPatterns, 0, sizeof(dtObstacleAvoidancePattern)*m_maxPatterns);
+
 	return true;
 }
 
@@ -405,10 +417,37 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 	return penalty;
 }
 
-int dtObstacleAvoidanceQuery::sampleVelocityGrid(const float* pos, const float rad, const float vmax,
-												 const float* vel, const float* dvel, float* nvel,
-												 const dtObstacleAvoidanceParams* params,
-												 dtObstacleAvoidanceDebugData* debug)
+bool dtObstacleAvoidanceQuery::setCustomSamplingPattern(int idx, const float* angles, const float* radii, int nsamples)
+{
+	if (nsamples < 0 || nsamples >= DT_MAX_CUSTOM_SAMPLES)
+		return false;
+
+	if (idx < 0 || idx >= m_maxPatterns)
+		return false;
+
+	memcpy(m_customPatterns[idx].angles, angles, sizeof(float)* nsamples);
+	memcpy(m_customPatterns[idx].radii, radii, sizeof(float)* nsamples);
+	m_customPatterns[idx].nsamples = nsamples;
+
+	return true;
+}
+
+bool dtObstacleAvoidanceQuery::getCustomSamplingPattern(int idx, float* angles, float* radii, int* nsamples)
+{
+	if (idx < 0 || idx >= m_maxPatterns)
+		return false;
+
+	memcpy(angles, m_customPatterns[idx].angles, sizeof(float)* m_customPatterns[idx].nsamples);
+	memcpy(radii, m_customPatterns[idx].radii, sizeof(float)* m_customPatterns[idx].nsamples);
+	*nsamples = m_customPatterns[idx].nsamples;
+
+	return true;
+}
+
+int dtObstacleAvoidanceQuery::sampleVelocityCustom(const float* pos, const float rad, const float vmax,
+												   const float* vel, const float* dvel, float* nvel,
+												   const dtObstacleAvoidanceParams* params,
+											  	   dtObstacleAvoidanceDebugData* debug)
 {
 	prepare(pos, dvel);
 	
@@ -422,38 +461,41 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(const float* pos, const float r
 	if (debug)
 		debug->reset();
 
-	const float cvx = dvel[0] * m_params.velBias;
-	const float cvz = dvel[2] * m_params.velBias;
-	const float cs = vmax * 2 * (1 - m_params.velBias) / (float)(m_params.gridSize-1);
-	const float half = (m_params.gridSize-1)*cs*0.5f;
-		
-	float minPenalty = FLT_MAX;
-	int ns = 0;
-		
-	for (int y = 0; y < m_params.gridSize; ++y)
+	const dtObstacleAvoidancePattern& pattern = m_customPatterns[m_params.patternIdx];
+	const float dang = atan2f(dvel[2], dvel[0]);
+
+	float pat[DT_MAX_CUSTOM_SAMPLES * 2];
+	for (int i = 0; i < pattern.nsamples; i++)
 	{
-		for (int x = 0; x < m_params.gridSize; ++x)
+		float a = dang + pattern.angles[i];
+		pat[i * 2 + 0] = cosf(a) * pattern.radii[i];
+		pat[i * 2 + 1] = sinf(a) * pattern.radii[i];
+	}
+
+	float minPenalty = FLT_MAX;
+	float cr = vmax * (1.0f - m_params.velBias);
+	float res[3];
+	dtVset(res, dvel[0] * m_params.velBias, 0, dvel[2] * m_params.velBias);
+
+	for (int i = 0; i < pattern.nsamples; ++i)
+	{
+		float vcand[3];
+		vcand[0] = res[0] + pat[i * 2 + 0] * cr;
+		vcand[1] = 0;
+		vcand[2] = res[2] + pat[i * 2 + 1] * cr;
+
+		if (dtSqr(vcand[0]) + dtSqr(vcand[2]) > dtSqr(vmax + 0.001f)) continue;
+
+		const float penalty = processSample(vcand, 20.0f, pos, rad, vel, dvel, debug);
+		if (penalty < minPenalty)
 		{
-			float vcand[3];
-			vcand[0] = cvx + x*cs - half;
-			vcand[1] = 0;
-			vcand[2] = cvz + y*cs - half;
-			
-			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+cs/2)) continue;
-			
-			const float penalty = processSample(vcand, cs, pos,rad,vel,dvel, debug);
-			ns++;
-			if (penalty < minPenalty)
-			{
-				minPenalty = penalty;
-				dtVcopy(nvel, vcand);
-			}
+			minPenalty = penalty;
+			dtVcopy(nvel, vcand);
 		}
 	}
-	
-	return ns;
-}
 
+	return pattern.nsamples;
+}
 
 int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
 													 const float* vel, const float* dvel, float* nvel,

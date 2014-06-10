@@ -395,19 +395,16 @@ public:
 	void FindElementsInNavOctree(const FBox& QueryBox, const struct FNavigationOctreeFilter& Filter, TArray<struct FNavigationOctreeElement>& Elements);
 
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
-	void RegisterSmartLink(class USmartNavLinkComponent* LinkComp);
-	void UnregisterSmartLink(class USmartNavLinkComponent* LinkComp);
+	void RegisterCustomLink(class INavLinkCustomInterface* CustomLink);
+	void UnregisterCustomLink(class INavLinkCustomInterface* CustomLink);
 	
-	/** find first available smart link ID */
-	uint32 FindFreeSmartLinkId() const;
+	/** find custom link by unique ID */
+	class INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
 
-	/** find smart link by link ID */
-	class USmartNavLinkComponent* GetSmartLink(uint32 SmartLinkId) const;
-
-	/** updates smart link for all active navigation data instances */
-	void UpdateSmartLink(class USmartNavLinkComponent* LinkComp);
+	/** updates custom link for all active navigation data instances */
+	void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Areas
@@ -540,7 +537,7 @@ protected:
 	TMap<const UObject*, FOctreeElementId> ObjectToOctreeId;
 
 	/** Map of all custom navigation links, that are relevant for path following */
-	TMap<uint32, class USmartNavLinkComponent*> SmartLinksMap;
+	TMap<uint32, class INavLinkCustomInterface*> CustomLinksMap;
 
 	/** List of actors relevant to generation of navigation data */
 	TArray<TWeakObjectPtr<AActor> > GenerationSeeds;

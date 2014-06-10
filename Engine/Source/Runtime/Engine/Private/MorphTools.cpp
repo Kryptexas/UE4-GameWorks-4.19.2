@@ -53,8 +53,6 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 {
 	check(BaseSource.IsValidTarget(TargetSource));
 
-	const float CLOSE_TO_ZERO_DELTA = THRESH_POINTS_ARE_SAME * 4.f;
-
 	// create the LOD entry if it doesn't already exist
 	if( LODIndex == MorphLODModels.Num() )
 	{
@@ -120,7 +118,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 					FVector NormalDeltaZ (VTarget.TanZ - VBase.TanZ);
 
 					// check if position actually changed much
-					if( PositionDelta.Size() > CLOSE_TO_ZERO_DELTA  || NormalDeltaZ.Size() > 0.1f)
+					if( PositionDelta.Size() > THRESH_POINTS_ARE_NEAR || NormalDeltaZ.Size() > 0.1f )
 					{
 						// create a new entry
 						FVertexAnimDelta NewVertex;

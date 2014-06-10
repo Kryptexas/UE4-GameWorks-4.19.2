@@ -4,7 +4,7 @@
 #include "Net/UnrealNetwork.h"
 
 AOnlineBeaconHost::AOnlineBeaconHost(const class FPostConstructInitializeProperties& PCIP) :
-Super(PCIP)
+	Super(PCIP)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
 }
@@ -131,7 +131,13 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 						UWorld* World = GetWorld();
 						Connection->ClientWorldPackageName = World->GetOutermost()->GetFName();
 
-						AOnlineBeaconClient* NewClientActor = SpawnBeaconActor();
+						AOnlineBeaconClient* NewClientActor = NULL;
+						FOnBeaconSpawned* OnBeaconSpawnedDelegate = OnBeaconSpawnedMapping.Find(BeaconType);
+						if (OnBeaconSpawnedDelegate && OnBeaconSpawnedDelegate->IsBound())
+						{
+							NewClientActor = OnBeaconSpawnedDelegate->Execute(Connection);
+						}
+
 						if (NewClientActor && BeaconType == NewClientActor->GetBeaconType())
 						{
 							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID( NewClientActor );
@@ -149,12 +155,12 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 					}
 					else
 					{
-						ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnExistingActorError", "Join failure, existing beacon actor.").ToString();;
+						ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnExistingActorError", "Join failure, existing beacon actor.").ToString();
 					}
 				}
 				else
 				{
-					ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnClientWorldPackageNameError", "Join failure, existing ClientWorldPackageName.").ToString();;
+					ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnClientWorldPackageNameError", "Join failure, existing ClientWorldPackageName.").ToString();
 				}
 
 				if (!ErrorMsg.IsEmpty())
@@ -180,7 +186,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 					// Send an RPC to the client to open the actor channel and guarantee RPCs will work
 					ClientActor->ClientOnConnected();
 					UE_LOG(LogNet, Log, TEXT("Beacon Handshake complete!"));
-					FOnBeaconConnected* OnBeaconConnectedDelegate = OnBeaconConnectedMapping.Find(FName(*BeaconType));
+					FOnBeaconConnected* OnBeaconConnectedDelegate = OnBeaconConnectedMapping.Find(BeaconType);
 					if (OnBeaconConnectedDelegate)
 					{
 						OnBeaconConnectedDelegate->ExecuteIfBound(ClientActor, Connection);
@@ -222,6 +228,19 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 	}
 }
 
+void AOnlineBeaconHost::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList)
+{
+	for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ChildIdx++)
+	{
+		ActorList.Add(Children[ChildIdx]);
+	}
+
+	for (int32 ClientIdx = 0; ClientIdx < ClientActors.Num(); ClientIdx++)
+	{
+		ActorList.Add(ClientActors[ClientIdx]);
+	}
+}
+
 AOnlineBeaconClient* AOnlineBeaconHost::GetClientActor(UNetConnection* Connection)
 {
 	for (int32 ClientIdx=0; ClientIdx < ClientActors.Num(); ClientIdx++)
@@ -244,7 +263,73 @@ void AOnlineBeaconHost::RemoveClientActor(AOnlineBeaconClient* ClientActor)
 	}
 }
 
-AOnlineBeaconHost::FOnBeaconConnected& AOnlineBeaconHost::OnBeaconConnected(FName BeaconType)
+void AOnlineBeaconHost::RegisterHost(AOnlineBeaconHostObject* NewHostObject)
+{
+	const FString& BeaconType = NewHostObject->GetBeaconType();
+
+	bool bFound = false;
+	for (int32 HostIdx=0; HostIdx < Children.Num(); HostIdx++)
+	{
+		AOnlineBeaconHostObject* HostObject = Cast<AOnlineBeaconHostObject>(Children[HostIdx]);
+		if (HostObject && HostObject->GetBeaconType() == BeaconType)
+		{
+			bFound = true;
+			break;
+		}
+	}
+
+	if (!bFound)
+	{
+		NewHostObject->SetOwner(this);
+		OnBeaconSpawned(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::SpawnBeaconActor);
+		OnBeaconConnected(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::ClientConnected);
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning, TEXT("Beacon host type %s already exists"), *BeaconType);
+	}
+}
+
+void AOnlineBeaconHost::UnregisterHost(const FString& BeaconType)
+{
+	AOnlineBeaconHostObject* HostObject = GetHost(BeaconType);
+	if (HostObject)
+	{
+		HostObject->SetOwner(NULL);
+	}
+	
+	OnBeaconSpawned(BeaconType).Unbind();
+	OnBeaconConnected(BeaconType).Unbind();
+}
+
+AOnlineBeaconHostObject* AOnlineBeaconHost::GetHost(const FString& BeaconType)
+{
+	for (int32 HostIdx=0; HostIdx < Children.Num(); HostIdx++)
+	{
+		AOnlineBeaconHostObject* HostObject = Cast<AOnlineBeaconHostObject>(Children[HostIdx]);
+		if (HostObject && HostObject->GetBeaconType() == BeaconType)
+		{
+			return HostObject;
+		}
+	}
+
+	return NULL;
+}
+
+AOnlineBeaconHost::FOnBeaconSpawned& AOnlineBeaconHost::OnBeaconSpawned(const FString& BeaconType)
+{ 
+	FOnBeaconSpawned* BeaconDelegate = OnBeaconSpawnedMapping.Find(BeaconType);
+	if (BeaconDelegate == NULL)
+	{
+		FOnBeaconSpawned NewDelegate;
+		OnBeaconSpawnedMapping.Add(BeaconType, NewDelegate);
+		BeaconDelegate = OnBeaconSpawnedMapping.Find(BeaconType);
+	}
+
+	return *BeaconDelegate; 
+}
+
+AOnlineBeaconHost::FOnBeaconConnected& AOnlineBeaconHost::OnBeaconConnected(const FString& BeaconType)
 { 
 	FOnBeaconConnected* BeaconDelegate = OnBeaconConnectedMapping.Find(BeaconType);
 	if (BeaconDelegate == NULL)
@@ -255,4 +340,32 @@ AOnlineBeaconHost::FOnBeaconConnected& AOnlineBeaconHost::OnBeaconConnected(FNam
 	}
 
 	return *BeaconDelegate; 
+}
+
+
+AOnlineBeaconHostObject::AOnlineBeaconHostObject(const FPostConstructInitializeProperties& PCIP) :
+	Super(PCIP),
+	BeaconTypeName(TEXT("UNDEFINED"))
+{
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+EBeaconState::Type AOnlineBeaconHostObject::GetBeaconState() const
+{
+	AOnlineBeaconHost* BeaconHost = Cast<AOnlineBeaconHost>(GetOwner());
+	if (BeaconHost)
+	{
+		return BeaconHost->GetBeaconState();
+	}
+
+	return EBeaconState::DenyRequests;
+}
+
+void AOnlineBeaconHostObject::RemoveClientActor(AOnlineBeaconClient* ClientActor)
+{
+	AOnlineBeaconHost* BeaconHost = Cast<AOnlineBeaconHost>(GetOwner());
+	if (BeaconHost)
+	{
+		BeaconHost->RemoveClientActor(ClientActor);
+	}
 }

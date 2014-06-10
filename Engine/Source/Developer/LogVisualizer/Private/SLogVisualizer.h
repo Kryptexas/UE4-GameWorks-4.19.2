@@ -137,7 +137,9 @@ public:
 	float LogsEndTime;
 
 	float GetCurrentViewedTime() const { return CurrentViewedTime; }
-	
+
+	static FLinearColor GetColorForUsedCategory(int32 Index);
+
 protected:
 	float GetMaxScrollOffsetFraction() const
 	{
@@ -223,7 +225,8 @@ private:
 	TArray<TSharedPtr<FLogEntryItem> > LogEntryLines;
 	
 	TArray<FString> UsedCategories;
-	FLinearColor GetColorForUsedCategory(int32 Index) const;
+	/** Color palette for bars coloring */
+	static FColor ColorPalette[];
 
 	/** used to filter logs by name */
 	FString LogNameFilterString;

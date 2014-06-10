@@ -193,7 +193,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FVector GetCurrentDirection() const { return MoveSegmentDirection; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
-	FORCEINLINE USmartNavLinkComponent* GetCurrentSmartLink() const { return CurrentSmartLink;  }
+	FORCEINLINE UObject* GetCurrentCustomLinkOb() const { return CurrentCustomLinkOb.Get(); }
 
 	/** will be deprecated soon, please use AIController.GetMoveStatus instead! */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|PathFollowing")
@@ -230,6 +230,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** Called when falling movement ends. */
 	virtual void OnLanded() {}
 
+	/** call when moving agent finishes using custom nav link, returns control back to path following */
+	virtual void FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink);
+
 	// IAIResourceInterface begin
 	virtual void LockResource(EAILockSource::Type LockSource) OVERRIDE;
 	virtual void ClearResourceLock(EAILockSource::Type LockSource) OVERRIDE;
@@ -247,9 +250,8 @@ protected:
 	UPROPERTY(transient)
 	class UNavigationComponent* NavComp;
 
-	/** smart link being currently traversed */
-	UPROPERTY(transient)
-	class USmartNavLinkComponent* CurrentSmartLink;
+	/** currently traversed custom nav link */
+	FWeakObjectPtr CurrentCustomLinkOb;
 
 	/** navigation data for agent described in movement component */
 	UPROPERTY(transient)
@@ -364,8 +366,8 @@ protected:
 	/** check state of path following, update move segment if needed */
 	virtual void UpdatePathSegment();
 
-	/** switch to using smart link */
-	virtual void SetCurrentSmartLink(USmartNavLinkComponent* InLink, const FVector& DestPoint);
+	/** next path segment if custom nav link, try passing control to it */
+	virtual void StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint);
 
 	/** update blocked movement detection, @returns true if new sample was added */
 	virtual bool UpdateBlockDetection();
@@ -398,7 +400,7 @@ protected:
 	virtual int32 DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const;
 
 	/** @return index of path point, that should be target of current move segment */
-	virtual int32 DetermineCurrentTargetPathPoint(int32 StartIndex, bool bResumedFromSmartLink);
+	virtual int32 DetermineCurrentTargetPathPoint(int32 StartIndex);
 
 	/** Visibility tests to skip some path points if possible
 	@param NextSegmentStartIndex Selected next segment to follow

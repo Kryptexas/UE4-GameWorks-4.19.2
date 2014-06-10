@@ -46,7 +46,7 @@ bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<E
 	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
 	for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 	{
-		if (TagManager.GameplayTagsMatch(*It, TagToCheck, TagMatchType, TagToCheckMatchType) == true)
+		if (TagManager.GameplayTagsMatch(*It, TagMatchType, TagToCheck, TagToCheckMatchType) == true)
 		{
 			return true;
 		}
@@ -78,7 +78,7 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 	{
 		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 		{
-			if (TagManager.GameplayTagsMatch(*It, *OtherIt, TagMatchType, OtherTagMatchType) == true)
+			if (TagManager.GameplayTagsMatch(*It, TagMatchType, *OtherIt, OtherTagMatchType) == true)
 			{
 				ResultContainer.AddTag(*It);
 			}
@@ -98,7 +98,7 @@ bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& O
 
 		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 		{
-			if (TagManager.GameplayTagsMatch(*It, *OtherIt, TagMatchType, OtherTagMatchType) == true)
+			if (TagManager.GameplayTagsMatch(*It, TagMatchType, *OtherIt, OtherTagMatchType) == true)
 			{
 				if (ContainerMatchType == EGameplayContainerMatchType::Any)
 				{
@@ -262,9 +262,9 @@ FGameplayTag::FGameplayTag()
 {
 }
 
-bool FGameplayTag::Matches(const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
+bool FGameplayTag::Matches(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
-	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatch(*this, Other, MatchTypeOne, MatchTypeTwo);
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatch(*this, MatchTypeOne, Other, MatchTypeTwo);
 }
 
 bool FGameplayTag::IsValid() const

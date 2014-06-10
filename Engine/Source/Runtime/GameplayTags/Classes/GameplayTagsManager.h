@@ -158,11 +158,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 #endif //WITH_EDITOR
 
 	/** 
-	 * Loads the tag table
-	 *
-	 * @return The data table that has been loaded
+	 * Loads the tag tables
+	 * 
+	 * @param TagTableNames	The names of the tables to load
 	 */
-	const UDataTable* LoadGameplayTagTable();
+	void LoadGameplayTagTables(TArray<FString>& TagTableNames);
 
 	/** Helper function to construct the gameplay tag tree */
 	void ConstructGameplayTagTree();
@@ -220,21 +220,14 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * Check to see if two FGameplayTags match
 	 *
 	 * @param GameplayTagOne	The first tag to compare
-	 * @param GameplayTagTwo	The second tag to compare
 	 * @param MatchTypeOne		How we compare Tag one, Explicitly or a match with any parents as well
+	 * @param GameplayTagTwo	The second tag to compare
 	 * @param MatchTypeTwo		How we compare Tag two, Explicitly or a match with any parents as well
 	 * 
 	 * @return true if there is a match
 	 */
-	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 
-	/** Holds all of the valid gameplay-related tags that can be applied to assets */
-	UPROPERTY()
-	class UDataTable* GameplayTagTable;
-
-	/** Name of the table to load */
-	UPROPERTY(Config)
-	FString GameplayTagTableName;
 private:
 
 	/**
@@ -262,6 +255,10 @@ private:
 
 	/** Map of Names to tags - Internal use only*/
 	TMap<FName, FGameplayTag> GameplayTagMap;
+
+	/** Holds all of the valid gameplay-related tags that can be applied to assets */
+	UPROPERTY()
+	TArray<UDataTable*> GameplayTagTables;
 
 #if WITH_EDITOR
 	/** Flag to say if we have registered the ObjectReimport, this is needed as use of Tags manager can happen before Editor is ready*/

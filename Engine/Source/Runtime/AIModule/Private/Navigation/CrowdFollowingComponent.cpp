@@ -4,7 +4,7 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdManager.h"
 #include "Navigation/NavigationComponent.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "VisualLog.h"
 
@@ -22,6 +22,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructIni
 	bEnableSeparation = false;
 	bEnableOptimizeVisibility = true;
 	bEnableOptimizeTopology = true;
+	bEnablePathOffset = false;
 
 	SeparationWeight = 2.0f;
 	CollisionQueryRange = 400.0f;		// approx: radius * 12.0f
@@ -234,6 +235,13 @@ void UCrowdFollowingComponent::SetCrowdSimulation(bool bEnable)
 		return;
 	}
 
+	UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
+	if (Manager == NULL && bEnable)
+	{
+		UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Crowd manager can't be found, disabling simulation"));
+		bEnable = false;
+	}
+
 	UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetCrowdSimulation: %s"), bEnable ? TEXT("enabled") : TEXT("disabled"));
 	bEnableCrowdSimulation = bEnable;
 
@@ -260,9 +268,11 @@ void UCrowdFollowingComponent::Initialize()
 	if (CrowdManager)
 	{
 		const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
-		// if CrowdManager->RegisterAgent fails we disable the crowd simulation for this guy
-		// @todo might consider re-trying in some time
-		bEnableCrowdSimulation = CrowdManager->RegisterAgent(IAgent);
+		CrowdManager->RegisterAgent(IAgent);
+	}
+	else
+	{
+		bEnableCrowdSimulation = false;
 	}
 
 	if (bEnableCrowdSimulation && NavComp)
@@ -332,6 +342,7 @@ void UCrowdFollowingComponent::Reset()
 {
 	Super::Reset();
 	PathStartIndex = 0;
+	LastPathPolyIndex = 0;
 
 	bFinalPathPart = false;
 	bCheckMovementAngle = false;
@@ -370,6 +381,7 @@ void UCrowdFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 void UCrowdFollowingComponent::OnPathUpdated()
 {
 	PathStartIndex = 0;
+	LastPathPolyIndex = 0;
 }
 
 bool UCrowdFollowingComponent::ShouldCheckPathOnResume() const
@@ -408,18 +420,10 @@ int32 UCrowdFollowingComponent::DetermineStartingPathPoint(const FNavigationPath
 	{
 		StartIdx = PathStartIndex;
 
-		// no path = called from SwitchToNextPathPart, check if agent is already further on path
+		// no path = called from SwitchToNextPathPart
 		if (ConsideredPath == NULL && Path.IsValid())
 		{
-			UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
-			FNavMeshPath* NavPath = Path->CastPath<FNavMeshPath>();
-			if (Manager && NavPath)
-			{
-				int32 AdjustedStartIdx = PathStartIndex;
-				Manager->AdjustAgentPathStart(this, NavPath, AdjustedStartIdx);
-
-				StartIdx = AdjustedStartIdx;
-			}
+			StartIdx = LastPathPolyIndex + 1;
 		}
 	}
 	else
@@ -475,6 +479,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 	}
 
 	PathStartIndex = SegmentStartIndex;
+	LastPathPolyIndex = PathStartIndex;
 	if (!Path.IsValid())
 	{
 		return;
@@ -512,9 +517,10 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		CurrentDestination.Set(Path->Base.Get(), CurrentTargetPt);
 		SuspendCrowdSteering(false);
 
-		UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetMoveSegment, from:%d segments:%d%s"), PathStartIndex, PathPartSize, bFinalPathPart ? TEXT(" (final)") : TEXT(""));
-		UE_VLOG_SEGMENT(GetOwner(), LogCrowdFollowing, Log, MovementComp->GetActorFeetLocation(), CurrentTargetPt, FColor::Red, TEXT("path part"));
 		LogPathPartHelper(GetOwner(), NavMeshPath, PathStartIndex, PathPartEndIdx);
+		UE_VLOG_SEGMENT(GetOwner(), LogCrowdFollowing, Log, MovementComp->GetActorFeetLocation(), CurrentTargetPt, FColor::Red, TEXT("path part"));
+		UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetMoveSegment, from:%d segments:%d%s"),
+			PathStartIndex, (PathPartEndIdx - PathStartIndex)+1, bFinalPathPart ? TEXT(" (final)") : TEXT(""));
 
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
@@ -668,9 +674,23 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 
 void UCrowdFollowingComponent::OnNavNodeChanged(NavNodeRef NewPolyRef, NavNodeRef PrevPolyRef, int32 CorridorSize)
 {
-	if (bEnableCrowdSimulation)
+	if (bEnableCrowdSimulation && Status != EPathFollowingStatus::Idle)
 	{
-		UE_VLOG(GetOwner(), LogCrowdFollowing, Verbose, TEXT("OnNavNodeChanged, CorridorSize:%d"), CorridorSize);
+		// update last visited path poly
+		FNavMeshPath* NavPath = Path.IsValid() ? Path->CastPath<FNavMeshPath>() : NULL;
+		if (NavPath)
+		{
+			for (int32 Idx = LastPathPolyIndex; Idx < NavPath->PathCorridor.Num(); Idx++)
+			{
+				if (NavPath->PathCorridor[Idx] == NewPolyRef)
+				{
+					LastPathPolyIndex = Idx;
+					break;
+				}
+			}
+		}
+
+		UE_VLOG(GetOwner(), LogCrowdFollowing, Verbose, TEXT("OnNavNodeChanged, CorridorSize:%d, LastVisitedIndex:%d"), CorridorSize, LastPathPolyIndex);
 
 		const bool bSwitchPart = ShouldSwitchPathPart(CorridorSize);
 		if (bSwitchPart && !bFinalPathPart)
@@ -702,6 +722,15 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 	Tokens.Add(GetStatusDesc());
 	Flags.Add(EPathFollowingDebugTokens::Description);
 
+	UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
+	if (Manager && !Manager->IsAgentValid(this))
+	{
+		Tokens.Add(TEXT("simulation"));
+		Flags.Add(EPathFollowingDebugTokens::ParamName);
+		Tokens.Add(TEXT("NOT ACTIVE"));
+		Flags.Add(EPathFollowingDebugTokens::FailedValue);
+	}
+
 	if (Status != EPathFollowingStatus::Moving)
 	{
 		return;
@@ -713,7 +742,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 		FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
 		if (NavMeshPath)
 		{
-			StatusDesc += FString::Printf(TEXT(" (path:%d)"), PathStartIndex);
+			StatusDesc += FString::Printf(TEXT(" (path:%d, visited:%d)"), PathStartIndex, LastPathPolyIndex);
 		}
 		else
 		{
@@ -781,15 +810,22 @@ void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapsho
 	FNavMeshPath* NavMeshPath = Path.IsValid() ? Path->CastPath<FNavMeshPath>() : NULL;
 	if (Status == EPathFollowingStatus::Moving)
 	{
-		StatusDesc += FString::Printf(TEXT(" [path:%d]"), PathStartIndex);
+		StatusDesc += FString::Printf(TEXT(" [path:%d, visited:%d]"), PathStartIndex, LastPathPolyIndex);
 	}
 
 	Category.Add(TEXT("Status"), StatusDesc);
 	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : NavMeshPath ? TEXT("navmesh") : TEXT("direct"));
 
-	if (CurrentSmartLink)
+	UObject* CustomLinkOb = GetCurrentCustomLinkOb();
+	if (CustomLinkOb)
 	{
-		Category.Add(TEXT("SmartLink"), CurrentSmartLink->GetName());
+		Category.Add(TEXT("SmartLink"), CustomLinkOb->GetName());
+	}
+
+	UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
+	if (Manager && !Manager->IsAgentValid(this))
+	{
+		Category.Add(TEXT("Simulation"), TEXT("unable to register!"));
 	}
 
 	Snapshot->Status.Add(Category);

@@ -57,7 +57,7 @@ void UBehaviorTreeGraph::UpdateBlackboardChange()
 	}
 }
 
-void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags)
+void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags, bool bBumpVersion)
 {
 	if (bLockUpdates)
 	{
@@ -125,6 +125,11 @@ void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags)
 		if (Node)
 		{
 			CreateBTFromGraph(Node);
+
+			if (bBumpVersion)
+			{
+				GraphVersion++;
+			}
 		}
 	}
 }
@@ -660,8 +665,6 @@ void UBehaviorTreeGraph::CreateBTFromGraph(UBehaviorTreeGraphNode* RootEdNode)
 
 	// Now remove any orphaned nodes left behind after regeneration
 	RemoveOrphanedNodes();
-
-	GraphVersion++;
 }
 
 void UBehaviorTreeGraph::RemoveOrphanedNodes()

@@ -741,56 +741,52 @@ public:
 		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, float Score, float Min, float Max)
 		{
 			bool bPassedTest = true;
-			switch (FilterType)
+
+			if (TestPurpose != EEnvTestPurpose::Score)	// May need to filter results!
 			{
-				case EEnvTestFilterType::Maximum:
-					if (Score > Max)
-					{
-						bPassedTest = false;
-					}
-					break;
-
-				case EEnvTestFilterType::Minimum:
-					if (Score < Min)
-					{
-						bPassedTest = false;
-					}
-					break;
-
-				case EEnvTestFilterType::Range:
-					if ((Score < Min) || (Score > Max))
-					{
-						bPassedTest = false;
-					}
-					break;
-
-				case EEnvTestFilterType::Match:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
-					bPassedTest = false;
-					break;
-
-				default:
-					UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
-					bPassedTest = false;
-					break;
-			}
-
-			if (!bPassedTest)
-			{
-				if (TestPurpose == EEnvTestPurpose::Score)
+				switch (FilterType)
 				{
-					bSkipped = true;
-					NumPartialScores++;
-				}
-				else // We are filtering!
-				{
-					bPassed = false;
+					case EEnvTestFilterType::Maximum:
+						if (Score > Max)
+						{
+							bPassedTest = false;
+						}
+						break;
+
+					case EEnvTestFilterType::Minimum:
+						if (Score < Min)
+						{
+							bPassedTest = false;
+						}
+						break;
+
+					case EEnvTestFilterType::Range:
+						if ((Score < Min) || (Score > Max))
+						{
+							bPassedTest = false;
+						}
+						break;
+
+					case EEnvTestFilterType::Match:
+						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to 'Match' for floating point test.  Will consider test as failed in all cases."));
+						bPassedTest = false;
+						break;
+
+					default:
+						UE_LOG(LogEQS, Error, TEXT("Filtering Type set to invalid value for floating point test.  Will consider test as failed in all cases."));
+						bPassedTest = false;
+						break;
 				}
 			}
-			else
-			{
+
+			if (bPassedTest)
+			{	// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
 				ItemScore += Score;
 				NumPartialScores++;
+			}
+			else
+			{	// We are ONLY filtering, and we failed
+				bPassed = false;
 			}
 		}
 

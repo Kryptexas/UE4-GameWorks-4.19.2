@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -46,7 +49,7 @@ static const int DT_CROWDAGENT_MAX_CORNERS = 4;
 static const int DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS = 8;
 
 /// UE4: The maximum number of unique filters used by crowd agents 
-static const int DT_CROWD_MAX_FILTERS = 5;
+static const int DT_CROWD_MAX_FILTERS = 16;
 
 /// Provides neighbor data for agents managed by the crowd.
 /// @ingroup crowd
@@ -183,12 +186,13 @@ struct NAVMESH_API dtCrowdAgentAnimation
 /// @see dtCrowdAgentParams::updateFlags
 enum UpdateFlags
 {
-	DT_CROWD_ANTICIPATE_TURNS = 1,
-	DT_CROWD_OBSTACLE_AVOIDANCE = 2,
-	DT_CROWD_SEPARATION = 4,
-	DT_CROWD_OPTIMIZE_VIS = 8,			///< Use #dtPathCorridor::optimizePathVisibility() to optimize the agent path.
-	DT_CROWD_OPTIMIZE_TOPO = 16,		///< Use dtPathCorridor::optimizePathTopology() to optimize the agent path.
-	DT_CROWD_OPTIMIZE_VIS_MULTI = 32,	///< Multiple calls for optimizePathVisibility instead of checking last point
+	DT_CROWD_ANTICIPATE_TURNS		= 1 << 0,
+	DT_CROWD_OBSTACLE_AVOIDANCE		= 1 << 1,
+	DT_CROWD_SEPARATION				= 1 << 2,
+	DT_CROWD_OPTIMIZE_VIS			= 1 << 3,	///< Use #dtPathCorridor::optimizePathVisibility() to optimize the agent path.
+	DT_CROWD_OPTIMIZE_TOPO			= 1 << 4,	///< Use dtPathCorridor::optimizePathTopology() to optimize the agent path.
+	DT_CROWD_OPTIMIZE_VIS_MULTI		= 1 << 5,	///< [UE4] Multiple calls for optimizePathVisibility instead of checking last point
+	DT_CROWD_OFFSET_PATH			= 1 << 6,	///< [UE4] Offset path points from corners by agent radius
 };
 
 struct NAVMESH_API dtCrowdAgentDebugInfo
@@ -256,6 +260,13 @@ public:
 	///  @param[in]		nav				The navigation mesh to use for planning.
 	/// @return True if the initialization succeeded.
 	bool init(const int maxAgents, const float maxAgentRadius, dtNavMesh* nav);
+
+	/// [UE4] Initializes the avoidance query.  
+	///  @param[in]		maxNeighbors		The maximum number of processed neighbors
+	///  @param[in]		maxWalls			The maximum number of processed wall segments
+	///  @param[in]		maxCustomPatterns	The maximum number of custom sampling patterns
+	/// @return True if the initialization succeeded.
+	bool initAvoidance(const int maxNeighbors, const int maxWalls, const int maxCustomPatterns);
 	
 	/// Sets the shared avoidance configuration for the specified index.
 	///  @param[in]		idx		The index. [Limits: 0 <= value < #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]
@@ -268,6 +279,21 @@ public:
 	/// @return The requested configuration.
 	const dtObstacleAvoidanceParams* getObstacleAvoidanceParams(const int idx) const;
 	
+	/// [UE4] Sets the shared avoidance sampling pattern for the specified index.
+	///  @param[in]		idx			The index.
+	///  @param[in]		angles		radians from direction of desired velocity [Count: nsamples]
+	///  @param[in]		radii		normalized radii (0..1) for each sample [Count: nsamples]
+	///  @param[in]		nsamples	The number of samples
+	void setObstacleAvoidancePattern(int idx, const float* angles, const float* radii, int nsamples);
+
+	/// [UE4] Gets the shared avoidance sampling pattern for the specified index.
+	///  @param[in]		idx			The index.
+	///  @param[in]		angles		radians from direction of desired velocity [Count: nsamples]
+	///  @param[in]		radii		normalized radii (0..1) for each sample [Count: nsamples]
+	///  @param[in]		nsamples	The number of samples
+	/// @return true if pattern was found
+	bool getObstacleAvoidancePattern(int idx, float* angles, float* radii, int* nsamples);
+
 	/// Gets the specified agent from the pool.
 	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	/// @return The requested agent.

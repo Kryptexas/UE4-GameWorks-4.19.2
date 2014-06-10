@@ -90,7 +90,7 @@ public:
 	/**
 	 *	Finds a key value pair by key name
 	 * @param Key key to search for
-	 * @return index of entry if found, INDEX_NONE otherwise
+	 * @return pointer to value paired with key
 	 */
 	const ValueType* Find(KeyType Key) const
 	{
@@ -110,7 +110,7 @@ public:
 	/**
 	 *	Finds a key value pair by key name
 	 * @param Key key to search for
-	 * @return index of entry if found, INDEX_NONE otherwise
+	 * @return pointer to value paired with key
 	 */
 	ValueType* Find(KeyType Key)
 	{
@@ -128,15 +128,24 @@ public:
 	}
 
 	/**
-	 *	Add an element to the grouping
+	 *	Add an element to the grouping, overwriting existing values
 	 *
 	 * @param Key key to assign to the value
 	 * @param Value value to store
 	 */
 	ValueType* Add(KeyType Key, const ValueType& Value)
 	{
-		int32 Idx = KeyValuePairs.AddUnique(FKeyValuePairInternal(Key, Value));
-		return &KeyValuePairs[Idx].Value;
+		ValueType* ExistingElement = Find(Key);
+		if (ExistingElement)
+		{
+			*ExistingElement = Value;
+			return ExistingElement;
+		}
+		else
+		{
+			int32 Idx = KeyValuePairs.Add(FKeyValuePairInternal(Key, Value));
+			return &KeyValuePairs[Idx].Value;
+		}
 	}
 
 	/**

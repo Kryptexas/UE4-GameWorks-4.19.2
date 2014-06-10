@@ -99,13 +99,13 @@ void UNetDriver::PostInitProperties()
 		PacketSimulationSettings.RegisterCommands();
 		PacketSimulationSettings.ParseSettings(FCommandLine::Get());
 #endif
-		RoleProperty		= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
-		RemoteRoleProperty	= FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
+		RoleProperty       = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("Role"      ) );
+		RemoteRoleProperty = FindObjectChecked<UProperty>( AActor::StaticClass(), TEXT("RemoteRole") );
 
 		GuidCache			= TSharedPtr< FNetGUIDCache >( new FNetGUIDCache( this ) );
 		NetCache			= TSharedPtr< FClassNetCacheMgr >( new FClassNetCacheMgr() );
 
-		ProfileStats		= FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
+		ProfileStats	   = FParse::Param(FCommandLine::Get(),TEXT("profilestats"));
 	}
 	// By default we're the game net driver and any child ones must override this
 	NetDriverName = NAME_GameNetDriver;

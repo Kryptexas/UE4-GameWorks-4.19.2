@@ -208,7 +208,7 @@ void UNavigationQueryFilter::AddEnteringCostOverride(TSubclassOf<class UNavArea>
 	Areas[Idx].EnteringCostOverride = EnteringCost;
 }
 
-void UNavigationQueryFilter::AdExcludedArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavigationQueryFilter::AddExcludedArea(TSubclassOf<class UNavArea> AreaClass)
 {
 	int32 Idx = FindAreaOverride(AreaClass);
 	if (Idx == INDEX_NONE)

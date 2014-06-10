@@ -11,6 +11,9 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent
 	virtual void OnOwnerRegistered();
 	virtual void OnOwnerUnregistered();
 
+	virtual void OnRegister() OVERRIDE;
+	virtual void OnUnregister() OVERRIDE;
+
 	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers);
 
 	void SetNavigationRelevancy(bool bRelevant);

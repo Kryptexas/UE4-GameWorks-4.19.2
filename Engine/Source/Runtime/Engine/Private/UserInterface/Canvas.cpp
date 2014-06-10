@@ -11,6 +11,7 @@
 #include "WordWrapper.h"
 
 #include "IHeadMountedDisplay.h"
+#include "Debug/ReporterGraph.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 
@@ -1618,6 +1619,16 @@ void UCanvas::SetView(FSceneView* InView)
 	}
 }
 
+TWeakObjectPtr<class UReporterGraph> UCanvas::GetReporterGraph()
+{
+	if (!ReporterGraph)
+	{
+		ReporterGraph = Cast<UReporterGraph>(StaticConstructObject(UReporterGraph::StaticClass(), this));
+	}
+
+	return ReporterGraph;
+}
+
 void UCanvas::K2_DrawLine(FVector2D ScreenPositionA, FVector2D ScreenPositionB, float Thickness, FLinearColor RenderColor)
 {
 	if (FMath::Square(ScreenPositionB.X - ScreenPositionA.X) + FMath::Square(ScreenPositionB.Y - ScreenPositionA.Y))
@@ -1747,3 +1758,4 @@ FVector2D UCanvas::K2_TextSize(UFont* RenderFont, const FString& RenderText, FVe
 	
 	return FVector2D::ZeroVector;
 }
+

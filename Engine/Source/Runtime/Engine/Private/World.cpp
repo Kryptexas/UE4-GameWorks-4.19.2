@@ -1640,21 +1640,21 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		// notify server that the client has finished making this level visible
 		if (!Level->bClientOnlyVisible)
 		{
-			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		{
+			if (It->PlayerController != NULL)
 			{
-				if (It->PlayerController != NULL)
+				// Remap packagename for PIE networking before sending out to server
+				FName PackageName = Level->GetOutermost()->GetFName();
+				FString PackageNameStr = PackageName.ToString();
+				if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
 				{
-					// Remap packagename for PIE networking before sending out to server
-					FName PackageName = Level->GetOutermost()->GetFName();
-					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
-					{
-						PackageName = FName(*PackageNameStr);
-					}
-
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
+					PackageName = FName(*PackageNameStr);
 				}
+
+				It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
 			}
+		}
 		}
 
 		Level->InitializeRenderingResources();
@@ -1725,21 +1725,21 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		// notify server that the client has removed this level
 		if (!Level->bClientOnlyVisible)
 		{
-			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+		{
+			if (It->PlayerController != NULL)
 			{
-				if (It->PlayerController != NULL)
+				// Remap packagename for PIE networking before sending out to server
+				FName PackageName = Level->GetOutermost()->GetFName();
+				FString PackageNameStr = PackageName.ToString();
+				if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
 				{
-					// Remap packagename for PIE networking before sending out to server
-					FName PackageName = Level->GetOutermost()->GetFName();
-					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(this, PackageNameStr, false))
-					{
-						PackageName = FName(*PackageNameStr);
-					}
-
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
+					PackageName = FName(*PackageNameStr);
 				}
+
+				It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
 			}
+		}
 		}
 		
 		// Notify world composition: will place a level at original position
@@ -2157,7 +2157,7 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 				if (Level->bIsVisible)
 				{
 					PersistentWorld->RemoveFromWorld(Level);
-				}
+			}
 			}
 
 			if (!bShouldBeLoaded)
@@ -2214,7 +2214,7 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	const int32	NumAsyncLoadingPackages = GetNumAsyncPackages(); 
 	
 	// Update level streaming objects state
-	UpdateLevelStreamingInner(this, ViewFamily);
+		UpdateLevelStreamingInner(this, ViewFamily);
 	
 	// Force initial loading to be "bShouldBlockOnLoad".
 	const bool bLevelsHaveLoadRequestPending = NumAsyncLoadingPackages < GetNumAsyncPackages();
@@ -3338,7 +3338,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				FNetControlMessage<NMT_NetGUIDAssign>::Receive(Bunch, NetGUID, Path);
 
 				UE_LOG(LogNet, Verbose, TEXT("NMT_NetGUIDAssign  NetGUID %s. Path: %s. "), *NetGUID.ToString(), *Path );
-				Connection->PackageMap->ResolvePathAndAssignNetGUID(NetGUID, Path, TEXT(""), NULL);
+				Connection->PackageMap->ResolvePathAndAssignNetGUID( NetGUID, Path, TEXT(""), NULL );
 				break;
 			}
 		}
@@ -4443,7 +4443,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				if (GameMode)
 				{
 					UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
-					
+
 					// Note that AI system will be created only if ai-system-creation conditions are met
 					LoadedWorld->CreateAISystem();
 

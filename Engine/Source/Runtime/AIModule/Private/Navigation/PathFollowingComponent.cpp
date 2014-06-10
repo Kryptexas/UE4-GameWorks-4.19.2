@@ -6,8 +6,8 @@
 #endif
 #include "AI/Navigation/RecastNavMesh.h"
 #include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/NavMovementComponent.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
 #include "GameFramework/Character.h"
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
@@ -243,9 +243,10 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 	{
 		const EPathFollowingResult::Type FinishResult = bSilent ? EPathFollowingResult::Skipped : EPathFollowingResult::Aborted;
 
-		if (CurrentSmartLink)
+		INavLinkCustomInterface* CustomNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+		if (CustomNavLink)
 		{
-			CurrentSmartLink->NotifyMoveAborted(this);
+			CustomNavLink->OnLinkMoveFinished(this);
 		}
 
 		// save data required for observers before reseting temporary variables
@@ -254,6 +255,7 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 
 		Reset();
 		bLastMoveReachedGoal = false;
+		UpdateMoveFocus();
 
 		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
 		{
@@ -493,7 +495,6 @@ void UPathFollowingComponent::Reset()
 	CurrentRequestId = FAIRequestID::InvalidRequest;
 
 	CurrentDestination.Clear();
-	CurrentSmartLink = NULL;
 
 	Status = EPathFollowingStatus::Idle;
 }
@@ -552,13 +553,10 @@ void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationAct
 
 void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
-	const bool bResumedFromSmartLink = (CurrentSmartLink != NULL) && (MoveSegmentStartIndex == SegmentStartIndex);
-	SetCurrentSmartLink(NULL, FVector::ZeroVector);
-
 	int32 EndSegmentIndex = SegmentStartIndex + 1;
 	if (Path.IsValid() && Path->PathPoints.IsValidIndex(SegmentStartIndex) && Path->PathPoints.IsValidIndex(EndSegmentIndex))
 	{
-		EndSegmentIndex = DetermineCurrentTargetPathPoint(SegmentStartIndex, bResumedFromSmartLink);
+		EndSegmentIndex = DetermineCurrentTargetPathPoint(SegmentStartIndex);
 
 		MoveSegmentStartIndex = SegmentStartIndex;
 		MoveSegmentEndIndex = EndSegmentIndex;
@@ -582,10 +580,12 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 			MoveSegmentDirection = (Path->PathPoints[MoveSegmentEndIndex + 1].Location - SegmentStart).SafeNormal();
 		}
 
-		// handle moving through smart links
-		if (!bResumedFromSmartLink && PathPt0.SmartLink.IsValid())
+		// handle moving through custom nav links
+		if (PathPt0.CustomLinkId)
 		{
-			SetCurrentSmartLink(PathPt0.SmartLink.Get(), SegmentEnd);
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+			INavLinkCustomInterface* CustomNavLink = NavSys->GetCustomLink(PathPt0.CustomLinkId);
+			StartUsingCustomLink(CustomNavLink, SegmentEnd);
 		}
 
 		// update move focus in owning AI
@@ -593,12 +593,11 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 	}
 }
 
-int32 UPathFollowingComponent::DetermineCurrentTargetPathPoint(int32 StartIndex, bool bResumedFromSmartLink)
+int32 UPathFollowingComponent::DetermineCurrentTargetPathPoint(int32 StartIndex)
 {
 	if (!bUseVisibilityTestsSimplification ||
-		bResumedFromSmartLink ||
-		Path->PathPoints[StartIndex].SmartLink.IsValid() ||
-		Path->PathPoints[StartIndex + 1].SmartLink.IsValid())
+		Path->PathPoints[StartIndex].CustomLinkId ||
+		Path->PathPoints[StartIndex + 1].CustomLinkId)
 	{
 		return StartIndex + 1;
 	}
@@ -703,10 +702,10 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 #endif
 
 #if WITH_RECAST
-		/** don't move to next point if we are changing area, we are at off mesh connection or it's a smart link*/
+		/** don't move to next point if we are changing area, we are at off mesh connection or it's a custom nav link*/
 		if (FNavMeshNodeFlags(Path->PathPoints[StartIndex].Flags).Area != FNavMeshNodeFlags(PathPt1.Flags).Area ||
 			FNavMeshNodeFlags(PathPt1.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION || 
-			PathPt1.SmartLink.IsValid())
+			PathPt1.CustomLinkId)
 		{
 			return Index;
 		}
@@ -1017,20 +1016,42 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	bHeightFailed = (CurrentHeight > UseHeight) ? 1 : 0;
 }
 
-void UPathFollowingComponent::SetCurrentSmartLink(USmartNavLinkComponent* InLink, const FVector& DestPoint)
+void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
 {
-	if (CurrentSmartLink)
+	INavLinkCustomInterface* PrevNavLink = InterfaceCast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+	if (PrevNavLink)
 	{
-		CurrentSmartLink->NotifyLinkFinished(this);
-		CurrentSmartLink = NULL;
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Force finish custom move using navlink: %s"), *GetNameSafe(CurrentCustomLinkOb.Get()));
+
+		PrevNavLink->OnLinkMoveFinished(this);
+		CurrentCustomLinkOb.Reset();
 	}
 
-	if (InLink)
+	UObject* NewNavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	if (NewNavLinkOb)
 	{
-		PauseMove();
+		CurrentCustomLinkOb = NewNavLinkOb;
 
-		CurrentSmartLink = InLink;
-		CurrentSmartLink->NotifyLinkReached(this, DestPoint);
+		const bool bCustomMove = CustomNavLink->OnLinkMoveStarted(this, DestPoint);
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("%s navlink: %s"),
+			bCustomMove ? TEXT("Custom move using") : TEXT("Notify"), *GetNameSafe(NewNavLinkOb));
+
+		if (!bCustomMove)
+		{
+			CurrentCustomLinkOb = NULL;
+		}
+	}
+}
+
+void UPathFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+{
+	UObject* NavLinkOb = CustomNavLink ? CustomNavLink->GetUObjectInterfaceNavLinkCustomInterface() : NULL;
+	if (CurrentCustomLinkOb == NavLinkOb)
+	{
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Finish custom move using navlink: %s"), *GetNameSafe(NavLinkOb));
+
+		CustomNavLink->OnLinkMoveFinished(this);
+		CurrentCustomLinkOb.Reset();
 	}
 }
 
@@ -1317,9 +1338,10 @@ void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot
 	Category.Add(TEXT("Status"), StatusDesc);
 	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : (Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") : TEXT("direct"));
 	
-	if (CurrentSmartLink)
+	UObject* CustomNavLinkOb = CurrentCustomLinkOb.Get();
+	if (CustomNavLinkOb)
 	{
-		Category.Add(TEXT("SmartLink"), CurrentSmartLink->GetName());
+		Category.Add(TEXT("Custom NavLink"), CustomNavLinkOb->GetName());
 	}
 
 	Snapshot->Status.Add(Category);
@@ -1341,12 +1363,12 @@ void UPathFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TArr
 	{
 		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
 		const bool bIsDirect = (Path->CastPath<FNavMeshPath>() == NULL);
-		const bool bIsSmartLink = (CurrentSmartLink != NULL);
+		const bool bIsCustomLink = CurrentCustomLinkOb.IsValid();
 
 		if (!bIsDirect)
 		{
 			StatusDesc += FString::Printf(TEXT(" (%d..%d/%d)%s"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments,
-				bIsSmartLink ? TEXT(" (SmartLink)") : TEXT(""));
+				bIsCustomLink ? TEXT(" (custom NavLink)") : TEXT(""));
 		}
 		else
 		{

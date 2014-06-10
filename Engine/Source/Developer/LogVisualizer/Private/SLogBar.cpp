@@ -7,39 +7,6 @@ const float SLogBar::SubPixelMinSize = 3.0f;
 const float SLogBar::TimeUnit = 1.f/60.f;
 const float SLogBar::MaxUnitSizePx = 16.f;
 
-FColor SLogBar::ColorPalette[] = {
-	FColor( 0xff00A480 ),
-	FColor( 0xff62E200 ),
-	FColor( 0xff8F04A8 ),
-	FColor( 0xff1F7B67 ),
-	FColor( 0xff62AA2A ),
-	FColor( 0xff70227E ),
-	FColor( 0xff006B53 ),
-	FColor( 0xff409300 ),
-	FColor( 0xff5D016D ),
-	FColor( 0xff34D2AF ),
-	FColor( 0xff8BF13C ),
-	FColor( 0xffBC38D3 ),
-	FColor( 0xff5ED2B8 ),
-	FColor( 0xffA6F16C ),
-	FColor( 0xffC262D3 ),
-	FColor( 0xff0F4FA8 ),
-	FColor( 0xff00AE68 ),
-	FColor( 0xffDC0055 ),
-	FColor( 0xff284C7E ),
-	FColor( 0xff21825B ),
-	FColor( 0xffA52959 ),
-	FColor( 0xff05316D ),
-	FColor( 0xff007143 ),
-	FColor( 0xff8F0037 ),
-	FColor( 0xff4380D3 ),
-	FColor( 0xff36D695 ),
-	FColor( 0xffEE3B80 ),
-	FColor( 0xff6996D3 ),
-	FColor( 0xff60D6A7 ),
-	FColor( 0xffEE6B9E )
-};
-
 void SLogBar::Construct( const FArguments& InArgs )
 {
 	OnSelectionChanged = InArgs._OnSelectionChanged;
@@ -90,7 +57,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 		DrawEffects,
 		ColorAndOpacitySRGB
 	);	
-	
+
 	// Draw all bars
 	int32 EntryIndex = 0;
 	while (EntryIndex < Entries.Num())
@@ -137,7 +104,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 				FillImage,
 				ForegroundClippingRect,
 				DrawEffects,
-				ColorPalette[0]
+				SLogVisualizer::GetColorForUsedCategory(0)
 			);
 		}
 

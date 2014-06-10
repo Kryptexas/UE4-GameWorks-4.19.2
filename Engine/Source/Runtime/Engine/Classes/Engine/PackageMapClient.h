@@ -71,7 +71,7 @@ class UPackageMapClient : public UPackageMap
 
 	UPackageMapClient( const class FPostConstructInitializeProperties & PCIP, UNetConnection * InConnection, TSharedPtr< FNetGUIDCache > InNetGUIDCache ) : 
 		UPackageMap( PCIP )
-	,	Connection(InConnection)
+	, Connection(InConnection)
 	{
 		GuidCache = InNetGUIDCache;
 		Locked = false;
@@ -129,16 +129,16 @@ protected:
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject * Object, FString PathName, UObject * ObjOuter );
 	void	ExportNetGUIDHeader();
 
-	void			InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject * ObjectOuter );	
+	void	InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );	
 	FNetworkGUID	InternalLoadObject( FArchive & Ar, UObject *& Object, const bool bIsOuterLevel, int InternalLoadObjectRecursionCount );
 
 	void		ResolvePathAndAssignNetGUID_Deferred( const FNetworkGUID & NetGUID, const FString & PathName, const FString & FilenameOverride, const FNetworkGUID & OuterGUID );
 	UObject *	ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, const FNetworkGUID & OuterGUID, const bool bNoLoad = false );
 
 	virtual UObject * ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNetGUID, const FString & PathName, const FString & FilenameOverride, UObject * ObjOuter, const bool bNoLoad = false ) OVERRIDE;
-
-	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 	
+	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
+
 	bool	IsNetGUIDAuthority();
 
 	bool Locked;

@@ -225,59 +225,58 @@ void FOnlineAsyncTaskManager::GameTick()
 
 void FOnlineAsyncTaskManager::Tick()
 {
+	// parallel Q.
+	FOnlineAsyncTask* Task = NULL;
 
-		// parallel Q.
-		FOnlineAsyncTask* Task = NULL;
+	// Tick Online services ( possibly callbacks ). 
+	OnlineTick();
 
-		// Tick Online services ( possibly callbacks ). 
-		OnlineTick();
+	// Tick all the parallel tasks - Tick unrelated tasks together. 
 
-		// Tick all the parallel tasks - Tick unrelated tasks together. 
+	// Create a copy of existing tasks. 
+	TArray<FOnlineAsyncTask*> CopyParallelTasks = ParallelTasks;
 
-		// Create a copy of existing tasks. 
-		TArray<FOnlineAsyncTask*> CopyParallelTasks	= ParallelTasks;
-
-		// Iterate. 
-		for ( auto it = CopyParallelTasks.CreateIterator(); it; ++it )
-		{
-			Task = *it;
-			Task->Tick();
-
-			if (Task->IsDone())
-			{
-				UE_LOG(LogOnline, Log, TEXT("Async parallel Task '%s' completed in %f seconds with %d (Parallel)"),
-					*Task->ToString(),
-					Task->GetElapsedTime(),
-					Task->WasSuccessful());
-
-				// Task is done, fixup the original parallel task queue. 
-				RemoveFromParallelTasks( Task );
-				AddToOutQueue( Task );
-			}
-		}
-
-       // Serial Q.
-	   if ( InQueue.Num() == 0 )
-			return; 
-
-		// Pick up the first element in the queue ( "current task" ). 
-		Task = InQueue[0]; 
-
-        // Needed ?
-		if ( Task == NULL )
-			return; 
-
+	// Iterate. 
+	for (auto it = CopyParallelTasks.CreateIterator(); it; ++it)
+	{
+		Task = *it;
 		Task->Tick();
-	
+
 		if (Task->IsDone())
 		{
-			UE_LOG(LogOnline, Log, TEXT("Async serial task '%s' completed in %f seconds with %d"),
+			UE_LOG(LogOnline, Log, TEXT("Async parallel Task '%s' completed in %f seconds with %d (Parallel)"),
 				*Task->ToString(),
 				Task->GetElapsedTime(),
 				Task->WasSuccessful());
 
-			// Task is done, remove from the incoming queue and add to the outgoing queue
-			PopFromInQueue();
+			// Task is done, fixup the original parallel task queue. 
+			RemoveFromParallelTasks(Task);
 			AddToOutQueue(Task);
 		}
-} 
+	}
+
+	// Serial Q.
+	if (InQueue.Num() == 0)
+		return;
+
+	// Pick up the first element in the queue ( "current task" ). 
+	Task = InQueue[0];
+
+	// Needed ?
+	if (Task == NULL)
+		return;
+
+	Task->Tick();
+
+	if (Task->IsDone())
+	{
+		UE_LOG(LogOnline, Log, TEXT("Async serial task '%s' completed in %f seconds with %d"),
+			*Task->ToString(),
+			Task->GetElapsedTime(),
+			Task->WasSuccessful());
+
+		// Task is done, remove from the incoming queue and add to the outgoing queue
+		PopFromInQueue();
+		AddToOutQueue(Task);
+	}
+}

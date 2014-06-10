@@ -59,20 +59,42 @@ struct AIMODULE_API FCrowdAvoidanceConfig
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	float ImpactTimeRange;
 
+	// index in SamplingPatterns array or 0xff for adaptive sampling
+	UPROPERTY(EditAnywhere, Category=Crowd)
+	uint8 CustomPatternIdx;
+
+	// adaptive sampling: number of divisions per ring
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	uint8 AdaptiveDivisions;
 
+	// adaptive sampling: number of rings
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	uint8 AdaptiveRings;
 	
+	// adaptive sampling: number of iterations at best velocity
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	uint8 AdaptiveDepth;
 
 	FCrowdAvoidanceConfig() :
 		VelocityBias(0.4f), DesiredVelocityWeight(2.0f), CurrentVelocityWeight(0.75f),
 		SideBiasWeight(0.75f), ImpactTimeWeight(2.5f), ImpactTimeRange(2.5f),
-		AdaptiveDivisions(7), AdaptiveRings(2), AdaptiveDepth(5)
+		CustomPatternIdx(0xff), AdaptiveDivisions(7), AdaptiveRings(2), AdaptiveDepth(5)
 	{}
+};
+
+USTRUCT()
+struct AIMODULE_API FCrowdAvoidanceSamplingPattern
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category=Crowd)
+	TArray<float> Angles;
+
+	UPROPERTY(EditAnywhere, Category = Crowd)
+	TArray<float> Radii;
+
+	void AddSample(float AngleInDegrees, float NormalizedRadius);
+	void AddSampleWithMirror(float AngleInDegrees, float NormalizedRadius);
 };
 
 struct AIMODULE_API FCrowdAgentData
@@ -88,10 +110,18 @@ struct AIMODULE_API FCrowdAgentData
 	/** index of agent in detour crowd */
 	int32 AgentIndex;
 
+	/** remaining time for next path optimization */
+	float PathOptRemainingTime;
+
 	/** is this agent fully simulated by crowd? */
 	uint32 bIsSimulated : 1;
 
-	FCrowdAgentData() : PrevPoly(0), AgentIndex(-1), bIsSimulated(false) {}
+	/** if set, agent wants path optimizations */
+	uint32 bWantsPathOptimization : 1;
+
+	FCrowdAgentData() : PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false) {}
+
+	bool IsValid() const { return AgentIndex >= 0; }
 };
 
 struct FCrowdTickHelper : FTickableGameObject
@@ -115,7 +145,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	virtual void BeginDestroy() OVERRIDE;
 
 	/** adds new agent to crowd */
-	bool RegisterAgent(const class ICrowdAgentInterface* Agent);
+	void RegisterAgent(const class ICrowdAgentInterface* Agent);
 
 	/** removes agent from crowd */
 	void UnregisterAgent(const class ICrowdAgentInterface* Agent);
@@ -143,6 +173,10 @@ class AIMODULE_API UCrowdManager : public UObject
 
 	/** resumes agent movement */
 	void ResumeAgent(const UCrowdFollowingComponent* AgentComponent, bool bForceReplanPath = true) const;
+
+	/** check if object is a valid crowd agent */
+	bool IsAgentValid(const class UCrowdFollowingComponent* AgentComponent) const;
+	bool IsAgentValid(const class ICrowdAgentInterface* Agent) const;
 
 	/** returns number of nearby agents */
 	int32 GetNumNearbyAgents(const class ICrowdAgentInterface* Agent) const;
@@ -185,6 +219,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Config)
 	TArray<FCrowdAvoidanceConfig> AvoidanceConfig;
 
+	/** obstacle avoidance params */
+	UPROPERTY(EditAnywhere, Category=Config)
+	TArray<FCrowdAvoidanceSamplingPattern> SamplingPatterns;
+
 	/** max number of agents supported by crowd */
 	UPROPERTY(EditAnywhere, Category=Config)
 	int32 MaxAgents;
@@ -193,9 +231,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Config)
 	float MaxAgentRadius;
 
+	/** max number of neighbor agents for velocity avoidance */
+	UPROPERTY(EditAnywhere, Category=Config)
+	int32 MaxAvoidedAgents;
+
+	/** max number of wall segments for velocity avoidance */
+	UPROPERTY(EditAnywhere, Category=Config)
+	int32 MaxAvoidedWalls;
+
 	/** how often should agents check their position after moving off navmesh? */
 	UPROPERTY(EditAnywhere, Category=Config)
 	float NavmeshCheckInterval;
+
+	/** how often should agents try to optimize their paths? */
+	UPROPERTY(EditAnywhere, Category=Config)
+	float PathOptimizationInterval;
 
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;
@@ -230,8 +280,8 @@ protected:
 	void RemoveAgent(const class ICrowdAgentInterface* Agent, const FCrowdAgentData* AgentData) const;
 	void GetAgentParams(const class ICrowdAgentInterface* Agent, struct dtCrowdAgentParams* AgentParams) const;
 
-	/** pass position and velocity to crowd simulation */
-	void UpdateSpatialData(const class ICrowdAgentInterface* Agent, const FCrowdAgentData& AgentData) const;
+	/** prepare agent for next step of simulation */
+	void PrepareAgentStep(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const;
 
 	/** pass new velocity to movement components */
 	void ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;

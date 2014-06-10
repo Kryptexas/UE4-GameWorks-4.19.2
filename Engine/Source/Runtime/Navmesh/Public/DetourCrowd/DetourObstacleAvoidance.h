@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -33,7 +36,6 @@ struct dtObstacleSegment
 	float p[3], q[3];		///< End points of the obstacle segment
 	bool touch;
 };
-
 
 class NAVMESH_API dtObstacleAvoidanceDebugData
 {
@@ -73,8 +75,9 @@ NAVMESH_API dtObstacleAvoidanceDebugData* dtAllocObstacleAvoidanceDebugData();
 NAVMESH_API void dtFreeObstacleAvoidanceDebugData(dtObstacleAvoidanceDebugData* ptr);
 
 
-static const int DT_MAX_PATTERN_DIVS = 32;	///< Max numver of adaptive divs.
-static const int DT_MAX_PATTERN_RINGS = 4;	///< Max number of adaptive rings.
+static const int DT_MAX_PATTERN_DIVS = 32;		///< Max numver of adaptive divs.
+static const int DT_MAX_PATTERN_RINGS = 4;		///< Max number of adaptive rings.
+static const int DT_MAX_CUSTOM_SAMPLES = 16;	///< Max number of custom samples in single pattern
 
 struct NAVMESH_API dtObstacleAvoidanceParams
 {
@@ -84,10 +87,18 @@ struct NAVMESH_API dtObstacleAvoidanceParams
 	float weightSide;
 	float weightToi;
 	float horizTime;
-	unsigned char gridSize;	///< grid
+	unsigned char patternIdx;	///< [UE4] index of custom sampling pattern or 0xff for adaptive
 	unsigned char adaptiveDivs;	///< adaptive
 	unsigned char adaptiveRings;	///< adaptive
 	unsigned char adaptiveDepth;	///< adaptive
+};
+
+// [UE4] custom sampling patterns
+struct dtObstacleAvoidancePattern
+{
+	float angles[DT_MAX_CUSTOM_SAMPLES];	///< sample's angle (radians) from desired velocity direction
+	float radii[DT_MAX_CUSTOM_SAMPLES];		///< sample's radius (0...1)
+	int nsamples;							///< Number of samples
 };
 
 class NAVMESH_API dtObstacleAvoidanceQuery
@@ -96,7 +107,7 @@ public:
 	dtObstacleAvoidanceQuery();
 	~dtObstacleAvoidanceQuery();
 	
-	bool init(const int maxCircles, const int maxSegments);
+	bool init(const int maxCircles, const int maxSegments, const int maxCustomPatterns);
 	
 	void reset();
 
@@ -105,21 +116,42 @@ public:
 				   
 	void addSegment(const float* p, const float* q);
 
-	int sampleVelocityGrid(const float* pos, const float rad, const float vmax,
-						   const float* vel, const float* dvel, float* nvel,
-						   const dtObstacleAvoidanceParams* params,
-						   dtObstacleAvoidanceDebugData* debug = 0);
+	// [UE4] store new sampling pattern
+	bool setCustomSamplingPattern(int idx, const float* angles, const float* radii, int nsamples);
+
+	// [UE4] get custom sampling pattern
+	bool getCustomSamplingPattern(int idx, float* angles, float* radii, int* nsamples);
+
+	// [UE4] sample velocity using custom patterns
+	int sampleVelocityCustom(const float* pos, const float rad, const float vmax,
+							 const float* vel, const float* dvel, float* nvel,
+							 const dtObstacleAvoidanceParams* params,
+							 dtObstacleAvoidanceDebugData* debug = 0);
 
 	int sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
 							   const float* vel, const float* dvel, float* nvel,
 							   const dtObstacleAvoidanceParams* params, 
 							   dtObstacleAvoidanceDebugData* debug = 0);
 	
+	// [UE4] main sampling function
+	inline int sampleVelocity(const float* pos, const float rad, const float vmax,
+		const float* vel, const float* dvel, float* nvel,
+		const dtObstacleAvoidanceParams* params,
+		dtObstacleAvoidanceDebugData* debug = 0)
+	{
+		return (params->patternIdx == 0xff) ?
+			sampleVelocityAdaptive(pos, rad, vmax, vel, dvel, nvel, params, debug) :
+			sampleVelocityCustom(pos, rad, vmax, vel, dvel, nvel, params, debug);
+	}
+
 	inline int getObstacleCircleCount() const { return m_ncircles; }
 	const dtObstacleCircle* getObstacleCircle(const int i) { return &m_circles[i]; }
 
 	inline int getObstacleSegmentCount() const { return m_nsegments; }
 	const dtObstacleSegment* getObstacleSegment(const int i) { return &m_segments[i]; }
+
+	// [UE4] sampling pattern count accessors
+	inline int getCustomPatternCount() const { return m_maxPatterns; }
 
 private:
 
@@ -137,6 +169,9 @@ private:
 	float m_invHorizTime;
 	float m_vmax;
 	float m_invVmax;
+
+	int m_maxPatterns;
+	dtObstacleAvoidancePattern* m_customPatterns;
 
 	int m_maxCircles;
 	dtObstacleCircle* m_circles;

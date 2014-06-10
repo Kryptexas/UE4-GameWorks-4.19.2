@@ -35,7 +35,7 @@
 class FNavDataGenerator;
 class FPImplRecastNavMesh;
 class FRecastQueryFilter;
-class USmartNavLinkComponent;
+class INavLinkCustomInterface;
 class UNavArea;
 
 UENUM()
@@ -741,11 +741,14 @@ public:
 	/** Change forbidden area flags in default query filter */
 	void SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags);
 
+	/** Area sort function */
+	virtual void SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const;
+
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateSmartLink(USmartNavLinkComponent* LinkComp) OVERRIDE;
+	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink) OVERRIDE;
 
 	/** update area class and poly flags for all offmesh links with given UserId */
 	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;

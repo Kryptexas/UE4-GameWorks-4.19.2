@@ -232,7 +232,7 @@ protected:
 	/** helper functions for adding area overrides */
 	void AddTravelCostOverride(TSubclassOf<class UNavArea> AreaClass, float TravelCost);
 	void AddEnteringCostOverride(TSubclassOf<class UNavArea> AreaClass, float EnteringCost);
-	void AdExcludedArea(TSubclassOf<class UNavArea> AreaClass);
+	void AddExcludedArea(TSubclassOf<class UNavArea> AreaClass);
 
 	/** find index of area data */
 	int32 FindAreaOverride(TSubclassOf<class UNavArea> AreaClass) const;

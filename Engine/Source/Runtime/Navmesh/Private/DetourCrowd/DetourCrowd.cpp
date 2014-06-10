@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Modified version of Recast/Detour's source file
+
 //
 // Copyright (c) 2009-2010 Mikko Mononen memon@inside.org
 //
@@ -402,30 +405,9 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 		return false;
 	if (!m_grid->init(m_maxAgents*4, maxAgentRadius*3))
 		return false;
-	
-	m_obstacleQuery = dtAllocObstacleAvoidanceQuery();
-	if (!m_obstacleQuery)
-		return false;
-	if (!m_obstacleQuery->init(6, 8))
-		return false;
 
-	// Init obstacle query params.
-	memset(m_obstacleQueryParams, 0, sizeof(m_obstacleQueryParams));
-	for (int i = 0; i < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS; ++i)
-	{
-		dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[i];
-		params->velBias = 0.4f;
-		params->weightDesVel = 2.0f;
-		params->weightCurVel = 0.75f;
-		params->weightSide = 0.75f;
-		params->weightToi = 2.5f;
-		params->horizTime = 2.5f;
-		params->gridSize = 33;
-		params->adaptiveDivs = 7;
-		params->adaptiveRings = 2;
-		params->adaptiveDepth = 5;
-	}
-	
+	// [UE4] moved avoidance query init to separate function
+
 	// Allocate temp buffer for merging paths.
 	m_maxPathResult = 256;
 	m_pathResult = (dtPolyRef*)dtAlloc(sizeof(dtPolyRef)*m_maxPathResult, DT_ALLOC_PERM);
@@ -475,6 +457,34 @@ bool dtCrowd::init(const int maxAgents, const float maxAgentRadius, dtNavMesh* n
 	return true;
 }
 
+bool dtCrowd::initAvoidance(const int maxNeighbors, const int maxWalls, const int maxCustomPatterns)
+{
+	m_obstacleQuery = dtAllocObstacleAvoidanceQuery();
+	if (!m_obstacleQuery)
+		return false;
+	if (!m_obstacleQuery->init(maxNeighbors, maxWalls, maxCustomPatterns))
+		return false;
+
+	// Init obstacle query params.
+	memset(m_obstacleQueryParams, 0, sizeof(m_obstacleQueryParams));
+	for (int i = 0; i < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS; ++i)
+	{
+		dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[i];
+		params->velBias = 0.4f;
+		params->weightDesVel = 2.0f;
+		params->weightCurVel = 0.75f;
+		params->weightSide = 0.75f;
+		params->weightToi = 2.5f;
+		params->horizTime = 2.5f;
+		params->patternIdx = 0xff;
+		params->adaptiveDivs = 7;
+		params->adaptiveRings = 2;
+		params->adaptiveDepth = 5;
+	}
+
+	return true;
+}
+
 void dtCrowd::setObstacleAvoidanceParams(const int idx, const dtObstacleAvoidanceParams* params)
 {
 	if (idx >= 0 && idx < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS)
@@ -486,6 +496,16 @@ const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int i
 	if (idx >= 0 && idx < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS)
 		return &m_obstacleQueryParams[idx];
 	return 0;
+}
+
+void dtCrowd::setObstacleAvoidancePattern(int idx, const float* angles, const float* radii, int nsamples)
+{
+	m_obstacleQuery->setCustomSamplingPattern(idx, angles, radii, nsamples);
+}
+
+bool dtCrowd::getObstacleAvoidancePattern(int idx, float* angles, float* radii, int* nsamples)
+{
+	return m_obstacleQuery->getCustomSamplingPattern(idx, angles, radii, nsamples);
 }
 
 const int dtCrowd::getAgentCount() const
@@ -1290,7 +1310,7 @@ void dtCrowd::updateStepNextMovePoint(const float dt, dtCrowdAgentDebugInfo* deb
 		// Find corners for steering
 		m_navquery->updateLinkFilter(ag->params.linkFilter);
 		ag->ncorners = ag->corridor.findCorners(ag->cornerVerts, ag->cornerFlags, ag->cornerPolys,
-			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter]);
+			DT_CROWDAGENT_MAX_CORNERS, m_navquery, &m_filters[ag->params.filter], ag->params.radius);
 
 		const int agIndex = getAgentIndex(ag);
 		if (debugIdx == agIndex)
@@ -1506,21 +1526,11 @@ void dtCrowd::updateStepAvoidance(const float dt, dtCrowdAgentDebugInfo* debug)
 				vod = debug->vod;
 
 			// Sample new safe velocity.
-			bool adaptive = true;
-			int ns = 0;
-
 			const dtObstacleAvoidanceParams* params = &m_obstacleQueryParams[ag->params.obstacleAvoidanceType];
+			const int ns = m_obstacleQuery->sampleVelocity(
+					ag->npos, ag->params.radius, ag->desiredSpeed,
+					ag->vel, ag->dvel, ag->nvel, params, vod);
 
-			if (adaptive)
-			{
-				ns = m_obstacleQuery->sampleVelocityAdaptive(ag->npos, ag->params.radius, ag->desiredSpeed,
-					ag->vel, ag->dvel, ag->nvel, params, vod);
-			}
-			else
-			{
-				ns = m_obstacleQuery->sampleVelocityGrid(ag->npos, ag->params.radius, ag->desiredSpeed,
-					ag->vel, ag->dvel, ag->nvel, params, vod);
-			}
 			m_velocitySampleCount += ns;
 		}
 		else

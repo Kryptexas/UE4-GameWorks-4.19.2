@@ -2,7 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "VisualLog.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Navigation/NavigationComponent.h"
 
@@ -103,6 +103,7 @@ void UNavigationComponent::OnPathInvalid(FNavigationPath* InvalidatedPath)
 		RepathData.GoalActor = GoalActor;
 		RepathData.GoalLocation = CurrentGoal;
 		RepathData.bSimplePath = bUseSimplePath;
+		RepathData.StoredQueryFilter = StoredQueryFilter;
 		bIsWaitingForRepath = true;
 
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
@@ -651,6 +652,12 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 		{
 			bPathGenerationSucceeded = GeneratePathTo(DestLocation, QueryFilter);
 		}
+
+		if (bPathGenerationSucceeded)
+		{
+			// if there's a specific query filter store it
+			StoredQueryFilter = QueryFilter;
+		}
 	}
 
 	return bPathGenerationSucceeded;
@@ -728,11 +735,12 @@ void UNavigationComponent::DeferredRepathToGoal()
 
 	GoalActor = RepathData.GoalActor.Get();
 	CurrentGoal = RepathData.GoalLocation;
+	StoredQueryFilter = RepathData.StoredQueryFilter;
 	bUseSimplePath = RepathData.bSimplePath;
 	FMemory::MemZero<FDeferredRepath>(RepathData);
 
 	const FVector GoalLocation = GoalActor ? GetCurrentMoveGoal(GoalActor, GetOwner()) : CurrentGoal;
-	if (RePathTo(GoalLocation))
+	if (RePathTo(GoalLocation, StoredQueryFilter))
 	{
 		OriginalGoalActorLocation = GoalLocation;
 	}
@@ -851,7 +859,7 @@ void UNavigationComponent::SetReceiveSmartLinkUpdates(bool bEnabled)
 	bUpdateForSmartLinks = bEnabled;
 }
 
-void UNavigationComponent::OnSmartLinkBroadcast(class USmartNavLinkComponent* NearbyLink)
+void UNavigationComponent::OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink)
 {
 	// update only when agent is actually moving
 	if (NearbyLink == NULL || !Path.IsValid() ||
@@ -866,7 +874,7 @@ void UNavigationComponent::OnSmartLinkBroadcast(class USmartNavLinkComponent* Ne
 		return;
 	}
 
-	const bool bHasLink = Path->ContainsSmartLink(NearbyLink);
+	const bool bHasLink = Path->ContainsCustomLink(NearbyLink->GetLinkId());
 	const bool bIsEnabled = NearbyLink->IsEnabled();
 	if (bIsEnabled == bHasLink)
 	{
@@ -882,7 +890,7 @@ void UNavigationComponent::OnSmartLinkBroadcast(class USmartNavLinkComponent* Ne
 	FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
 	if (Result.IsSuccessful() || Result.IsPartial())
 	{
-		const bool bNewHasLink = Result.Path->ContainsSmartLink(NearbyLink);
+		const bool bNewHasLink = Result.Path->ContainsCustomLink(NearbyLink->GetLinkId());
 
 		if ((bIsEnabled && !bHasLink && bNewHasLink) ||
 			(!bIsEnabled && bHasLink && !bNewHasLink))

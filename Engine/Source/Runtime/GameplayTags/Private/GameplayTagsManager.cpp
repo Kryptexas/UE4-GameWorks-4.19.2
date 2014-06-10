@@ -15,33 +15,37 @@ UGameplayTagsManager::UGameplayTagsManager(const class FPostConstructInitializeP
 #endif
 }
 
-const UDataTable* UGameplayTagsManager::LoadGameplayTagTable()
+void UGameplayTagsManager::LoadGameplayTagTables(TArray<FString>& TagTableNames)
 {
-	if (!GameplayTagTable && !GameplayTagTableName.IsEmpty())
+	if (GameplayTagTables.Num() == 0 && TagTableNames.Num() > 0)
 	{
-		GameplayTagTable = LoadObject<UDataTable>(NULL, *GameplayTagTableName, NULL, LOAD_None, NULL);
-
-		// Handle case where the module is dynamically-loaded within a LoadPackage stack, which would otherwise
-		// result in the tag table not having its RowStruct serialized in time. Without the RowStruct, the tags manager
-		// will not be initialized correctly.
-		if (GameplayTagTable && IsLoading())
+		for (auto It(TagTableNames.CreateConstIterator()); It; ++It)
 		{
-			ULinkerLoad* TagLinker = GameplayTagTable->GetLinker();
-			if (TagLinker)
+			const FString& FileName = *It;
+			UDataTable* TagTable = LoadObject<UDataTable>(NULL, *FileName, NULL, LOAD_None, NULL);
+
+			// Handle case where the module is dynamically-loaded within a LoadPackage stack, which would otherwise
+			// result in the tag table not having its RowStruct serialized in time. Without the RowStruct, the tags manager
+			// will not be initialized correctly.
+			if (TagTable && IsLoading())
 			{
-				GameplayTagTable->GetLinker()->Preload(GameplayTagTable);
+				ULinkerLoad* TagLinker = TagTable->GetLinker();
+				if (TagLinker)
+				{
+					TagTable->GetLinker()->Preload(TagTable);
+				}
 			}
+			GameplayTagTables.Add(TagTable);
 		}
 	}
 #if WITH_EDITOR
 	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
-	if (GIsEditor && GameplayTagTable && !RegisteredObjectReimport)
+	if (GIsEditor && GameplayTagTables.Num() > 0 && !RegisteredObjectReimport)
 	{
 		RegisteredObjectReimport = true;
 		FEditorDelegates::OnAssetPostImport.AddUObject(this, &UGameplayTagsManager::OnObjectReimported);
 	}
 #endif
-	return GameplayTagTable;
 }
 
 void UGameplayTagsManager::GetAllNodesForTag_Recurse(TArray<FString>& Tags, int32 CurrentTagDepth, TSharedPtr<FGameplayTagNode> CurrentTagNode, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray)
@@ -105,40 +109,43 @@ struct FCompareFGameplayTagNodeByTag
 
 void UGameplayTagsManager::ConstructGameplayTagTree()
 {
-	if (!GameplayRootTag.IsValid() && GameplayTagTable)
+	if (!GameplayRootTag.IsValid() && GameplayTagTables.Num() > 0)
 	{
 		GameplayRootTag = MakeShareable(new FGameplayTagNode());
 		TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 		TSet<FName> RootTags;
 
-		static const FString ContextString(TEXT("UNKNOWN"));
-		const int32 NumRows = GameplayTagTable->RowMap.Num();
-		for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
+		for (auto It(GameplayTagTables.CreateIterator()); It; It++)
 		{
-			FGameplayTagTableRow* TagRow = GameplayTagTable->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
-			if (TagRow)
+			static const FString ContextString(TEXT("UNKNOWN"));
+			const int32 NumRows = (*It)->RowMap.Num();
+			for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
 			{
-				// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
-				// gameplay tag tree
-				TArray<FString> SubTags;
-				TagRow->Tag.ParseIntoArray(&SubTags, TEXT("."), true);
-
-				if (SubTags.Num() > 0)
+				FGameplayTagTableRow* TagRow = (*It)->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
+				if (TagRow)
 				{
-					int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow->CategoryText : FText());
-					TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
+					// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
+					// gameplay tag tree
+					TArray<FString> SubTags;
+					TagRow->Tag.ParseIntoArray(&SubTags, TEXT("."), true);
 
-					for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
+					if (SubTags.Num() > 0)
 					{
-						TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
-						FText Description;
-						if(SubTagIdx == SubTags.Num() - 1)
-						{
-							Description = TagRow->CategoryText;
-						}
-						InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+						int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow->CategoryText : FText());
+						TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
 
-						CurNode = ChildTags[InsertionIdx];
+						for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
+						{
+							TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
+							FText Description;
+							if (SubTagIdx == SubTags.Num() - 1)
+							{
+								Description = TagRow->CategoryText;
+							}
+							InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+
+							CurNode = ChildTags[InsertionIdx];
+						}
 					}
 				}
 			}
@@ -243,7 +250,7 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags( const FString& InFilterS
 void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* InObject)
 {
 	// Re-construct the gameplay tag tree if the base table is re-imported
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GameplayTagTable)
+	if (GIsEditor && !IsRunningCommandlet() && InObject && GameplayTagTables.Contains(Cast<UDataTable>(InObject)))
 	{
 		DestroyGameplayTagTree();
 		ConstructGameplayTagTree();
@@ -321,7 +328,7 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 	}
 }
 
-bool UGameplayTagsManager::GameplayTagsMatch(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
+bool UGameplayTagsManager::GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
 	TSet<FName> Tags1;
 	TSet<FName> Tags2;

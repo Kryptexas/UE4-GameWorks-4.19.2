@@ -231,25 +231,29 @@ bool FSlateRemoteServer::HandleTicker( float DeltaTime )
 //		debugf(TEXT("Received message %d, %d"), Message.MessageID, Message.DataType);
 
 		// handle tilt input
-		if (Message.DataType == DT_Motion)
+		switch(Message.DataType)
 		{
-			ProcessMotionMessage(Message);
-		}
-		if (Message.DataType == DT_Tilt)
-		{
-			ProcessTiltMessage(Message);
-		}
-		else if (Message.DataType == DT_Gyro)
-		{
-			ProcessGyroMessage(Message);
-		}
-		else if (Message.DataType == DT_Ping)
-		{
-			ProcessPingMessage(Message);
-		}
-		else
-		{
-			ProcessTouchMessage(Message);
+			case DT_Motion:
+			{
+				ProcessMotionMessage(Message);
+			} break;
+			case DT_Tilt:
+			{
+				ProcessTiltMessage(Message);
+			} break;
+			case DT_Gyro:
+			{
+				ProcessGyroMessage(Message);
+			} break;
+			case DT_Ping:
+			{
+				ProcessPingMessage(Message);
+			} break;
+			default:
+			{
+				ProcessTouchMessage(Message);
+			} break;
+
 		}
 	}
 

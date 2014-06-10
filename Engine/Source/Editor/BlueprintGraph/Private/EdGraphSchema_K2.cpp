@@ -1853,10 +1853,10 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 		if(GIsEditor)
 		{
 			if( InNewDefaultText.IsCultureInvariant() )
-			{
-				DVSV_RETURN_MSG( TEXT("Invalid text literal, text is culture invariant!") );
-			}
+		{
+			DVSV_RETURN_MSG( TEXT("Invalid text literal, text is culture invariant!") );
 		}
+	}
 	}
 	else if (PinCategory == PC_Struct)
 	{

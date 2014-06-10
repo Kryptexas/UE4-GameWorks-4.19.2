@@ -8,6 +8,7 @@
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingControllerComponent.h"
+#include "Regex.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -75,13 +76,13 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	if (GetDebuggingReplicator())
 	{
 		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
-	}
-
+				}
+				
 	if (DebugComponent && DebugComponent->GetSelectedActor())
-	{
+				{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
-		DrawDebugComponentData(MyPC, DebugComponent);
-	}
+					DrawDebugComponentData(MyPC, DebugComponent);
+				}
 
 	if (!EngineShowFlags.DebugAI)
 	{
@@ -129,15 +130,15 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, 2, 2);
 
-		float XPos = 20.0f;
-		for (int32 i = 0; i < Categories.Num(); i++)
-		{
+			float XPos = 20.0f;
+			for (int32 i = 0; i < Categories.Num(); i++)
+			{
 			const bool bIsActive = FGameplayDebuggerSettings::CheckFlag(Categories[i].View) ? true : false;
 			const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
 
 			PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, 20);
-			XPos += CategoriesWidth[i];
-		}
+				XPos += CategoriesWidth[i];
+			}
 		DefaultContext.Font = OldFont;
 	}
 
@@ -157,7 +158,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 	const FVector ScreenLoc = SelectedActor ? ProjectLocation(DefaultContext, SelectedActor->GetActorLocation() + FVector(0.f, 0.f, SelectedActor->GetSimpleCollisionHalfHeight())) : FVector::ZeroVector;
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
-	
+
 	if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
@@ -202,23 +203,23 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 	const int32 NumPathVerts = DebugComponent->PathPoints.Num();
 	UWorld* World = GetWorld();
 
-	for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
-	{
-		FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
-		DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
+		for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
+		{
+			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
+			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, Grey, false);
 
-		// draw line to next loc
-		FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
-		DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
-			, -1.f, 0
-			, NavigationDebugDrawing::PathLineThickness);
-	}
+			// draw line to next loc
+			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
+			DrawDebugLine(World, VertLoc, NextVertLoc, Grey, false
+				, -1.f, 0
+				, NavigationDebugDrawing::PathLineThickness);
+		}
 
-	// draw last vert
-	if (NumPathVerts > 0)
-	{
-		DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
-	}
+		// draw last vert
+		if (NumPathVerts > 0)
+		{
+			DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
+		}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -240,13 +241,17 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 
 	float TextXL = 0.f;
 	float YL = 0.f;
-	CalulateStringSize(OverHeadContext, OverHeadContext.Font, DebugComponent->PawnName, TextXL, YL);
+	FString ObjectName = FString::Printf( TEXT("{yellow}%s {white}(%s)"), *DebugComponent->ControllerName, *DebugComponent->PawnName);
+	CalulateStringSize(OverHeadContext, OverHeadContext.Font, ObjectName, TextXL, YL);
 
-	bool bDrawFullOverHead = DebugComponent->IsSelected();
+	bool bDrawFullOverHead = DebugComponent->bIsSelectedForDebugging;
+	float IconXLocation = OverHeadContext.DefaultX;
+	float IconYLocation = OverHeadContext.DefaultY;
 	if (bDrawFullOverHead)
 	{
 		OverHeadContext.DefaultX -= (0.5f*TextXL*FontScale.X);
 		OverHeadContext.DefaultY -= (1.2f*YL*FontScale.Y);
+		IconYLocation = OverHeadContext.DefaultY;
 		OverHeadContext.CursorX = OverHeadContext.DefaultX;
 		OverHeadContext.CursorY = OverHeadContext.DefaultY;
 	}
@@ -260,14 +265,14 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 			if (Icon.Texture)
 			{
 				const float DesiredIconSize = bDrawFullOverHead ? 32.f : 16.f;
-				DrawIcon(OverHeadContext, FColor::White, Icon, OverHeadContext.CursorX - DesiredIconSize, OverHeadContext.CursorY, DesiredIconSize / Icon.Texture->GetSurfaceWidth());
+				DrawIcon(OverHeadContext, FColor::White, Icon, IconXLocation, IconYLocation - DesiredIconSize, DesiredIconSize / Icon.Texture->GetSurfaceWidth());
 			}
 		}
 	}
 	if (bDrawFullOverHead)
 	{
 		OverHeadContext.FontRenderInfo.bEnableShadow = bDrawFullOverHead;
-		PrintString(OverHeadContext, bDrawFullOverHead ? FColor::White : FColor(255,255,255,128), FString::Printf(TEXT("%s\n"), *DebugComponent->PawnName));
+		PrintString(OverHeadContext, bDrawFullOverHead ? FColor::White : FColor(255, 255, 255, 128), FString::Printf(TEXT("%s\n"), *ObjectName));
 		OverHeadContext.FontRenderInfo.bEnableShadow = false;
 	}
 
@@ -285,8 +290,13 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrintString(DefaultContext, TEXT("\n{R=0,G=255,B=0,A=255}BASIC DATA\n"));
-	PrintString(DefaultContext, FString::Printf(TEXT("Pawn Name: {yellow}%s, {white}Pawn Class: {yellow}%s\n"), *DebugComponent->PawnName, *DebugComponent->PawnClass));
+
+	UFont* OldFont = DefaultContext.Font;
+	DefaultContext.Font = GEngine->GetMediumFont();
 	PrintString(DefaultContext, FString::Printf(TEXT("Controller Name: {yellow}%s\n"), *DebugComponent->ControllerName));
+	DefaultContext.Font = OldFont;
+
+	PrintString(DefaultContext, FString::Printf(TEXT("Pawn Name: {yellow}%s, {white}Pawn Class: {yellow}%s\n"), *DebugComponent->PawnName, *DebugComponent->PawnClass));
 	if (DebugComponent->PathErrorString.Len() > 0)
 	{
 		PrintString(DefaultContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
@@ -689,23 +699,30 @@ void AGameplayDebuggingHUDComponent::PrintString(FPrintContext& Context, const F
 	Context.DefaultY = OldDY;
 }
 
-
 void AGameplayDebuggingHUDComponent::CalulateStringSize(const AGameplayDebuggingHUDComponent::FPrintContext& DefaultContext, UFont* Font, const FString& InString, float& OutX, float& OutY )
 {
+	FString String = InString;
+	const FRegexPattern ElementRegexPattern(TEXT("\\{.*?\\}"));
+	FRegexMatcher ElementRegexMatcher(ElementRegexPattern, String);
+
+	while (ElementRegexMatcher.FindNext())
+{
+		int32 AttributeListBegin = ElementRegexMatcher.GetCaptureGroupBeginning(0);
+		int32 AttributeListEnd = ElementRegexMatcher.GetCaptureGroupEnding(0);
+		String.RemoveAt(AttributeListBegin, AttributeListEnd - AttributeListBegin);
+		ElementRegexMatcher = FRegexMatcher(ElementRegexPattern, String);
+	}
+
 	OutX = OutY = 0;
 	if (DefaultContext.Canvas != NULL)
 	{
-		DefaultContext.Canvas->StrLen(Font != NULL ? Font : DefaultContext.Font, InString, OutX, OutY);
+		DefaultContext.Canvas->StrLen(Font != NULL ? Font : DefaultContext.Font, String, OutX, OutY);
 	}
 }
 
 void AGameplayDebuggingHUDComponent::CalulateTextSize(const AGameplayDebuggingHUDComponent::FPrintContext& DefaultContext, UFont* Font, const FText& InText, float& OutX, float& OutY)
 {
-	OutX = OutY = 0;
-	if (DefaultContext.Canvas != NULL)
-	{
-		DefaultContext.Canvas->StrLen(Font != NULL ? Font : DefaultContext.Font, InText.ToString(), OutX, OutY);
-	}
+	CalulateStringSize(DefaultContext, Font, InText.ToString(), OutX, OutY);
 }
 
 FVector AGameplayDebuggingHUDComponent::ProjectLocation(const AGameplayDebuggingHUDComponent::FPrintContext& Context, const FVector& Location)

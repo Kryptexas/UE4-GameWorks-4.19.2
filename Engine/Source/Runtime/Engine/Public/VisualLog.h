@@ -134,8 +134,20 @@ struct ENGINE_API FVisLogEntry
 				);
 		}
 	};
-
 	TArray<FElementToDraw> ElementsToDraw;
+
+	struct FHistogramSample
+	{
+		FHistogramSample() : Verbosity(ELogVerbosity::All) {}
+
+		FName Category;
+		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		FName GraphName;
+		FName DataName;
+		FVector2D SampleValue;
+	};
+	TArray<FHistogramSample>	HistogramSamples;
+
 
 	FVisLogEntry(const class AActor* Actor, TArray<TWeakObjectPtr<AActor> >* Children);
 	FVisLogEntry(TSharedPtr<FJsonValue> FromJson);
@@ -150,6 +162,9 @@ struct ENGINE_API FVisLogEntry
 	void AddElement(const FVector& Start, const FVector& End, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// box
 	void AddElement(const FBox& Box, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
+
+	// histogram sample
+	void AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName);
 
 	// find index of status category
 	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
@@ -201,7 +216,7 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-	if (FVisualLog::Get()->IsRecording()) \
+	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
 		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(SegmentStart, SegmentEnd, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Thickness); \
 	} \
@@ -213,9 +228,9 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-if (FVisualLog::Get()->IsRecording()) \
+	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
+		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Location, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__), Radius); \
 	} \
 }
 
@@ -223,9 +238,19 @@ if (FVisualLog::Get()->IsRecording()) \
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-if (FVisualLog::Get()->IsRecording()) \
+	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
 	{ \
-	FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+		FVisualLog::Get()->GetEntryToWrite(Actor)->AddElement(Box, CategoryName.GetCategoryName(), Color, FString::Printf(DescriptionFormat, ##__VA_ARGS__)); \
+	} \
+}
+
+#define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data) \
+{ \
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
+	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
+	if (FVisualLog::Get()->IsRecording() && (!FVisualLog::Get()->IsAllBlocked() || FVisualLog::Get()->InWhitelist(CategoryName.GetCategoryName()))) \
+	{ \
+		FVisualLog::Get()->GetEntryToWrite(Actor)->AddHistogramData(Data, CategoryName.GetCategoryName(), GraphName, DataName); \
 	} \
 }
 
@@ -246,6 +271,12 @@ namespace VisualLogJson
 	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
 	static const FString TAG_POINTS = TEXT("Points");
 	static const FString TAG_ELEMENTSTODRAW = TEXT("ElementsToDraw");
+
+	static const FString TAG_HISTOGRAMSAMPLES = TEXT("HistogramSamples");
+	static const FString TAG_HISTOGRAMSAMPLE = TEXT("Sample");
+	static const FString TAG_HISTOGRAMGRAPHNAME = TEXT("GraphName");
+	static const FString TAG_HISTOGRAMDATANAME = TEXT("DataName");
+
 	static const FString TAG_LOGS = TEXT("Logs");
 }
 
@@ -299,6 +330,12 @@ public:
 	FORCEINLINE bool IsRecordingOnServer() const { return !!bIsRecordingOnServer; }
 	void DumpRecordedLogs();
 
+	FORCEINLINE bool InWhitelist(FName InName) const { return Whitelist.Find(InName) != INDEX_NONE; }
+	FORCEINLINE bool IsAllBlocked() const { return !!bIsAllBlocked; }
+	FORCEINLINE void BlockAllLogs(bool bBlock = true) { bIsAllBlocked = bBlock; }
+	FORCEINLINE void AddCategortyToWhiteList(FName InCategory) { Whitelist.AddUnique(InCategory); }
+	FORCEINLINE void ClearWhiteList() { Whitelist.Reset(); }
+
 	FArchive* FileAr;
 
 	FVisLogEntry* GetEntryToWrite(const class AActor* Actor);
@@ -327,6 +364,8 @@ private:
 
 	FLogRedirectsMap RedirectsMap;
 
+	TArray<FName>	Whitelist;
+
 	FOnNewLogCreatedDelegate OnNewLogCreated;
 
 	float StartRecordingTime;
@@ -335,6 +374,7 @@ private:
 	int32 bIsRecording : 1;
 	int32 bIsRecordingOnServer : 1;
 	int32 bIsRecordingToFile : 1;
+	int32 bIsAllBlocked : 1;
 };
 
 #else

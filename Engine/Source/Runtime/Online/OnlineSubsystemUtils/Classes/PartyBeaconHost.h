@@ -3,6 +3,7 @@
 #pragma once
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconHost.h"
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/PartyBeaconState.h"
+#include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeaconHostObject.h"
 #include "PartyBeaconHost.generated.h"
 
 /**
@@ -41,7 +42,7 @@ DECLARE_DELEGATE(FOnReservationsFull);
  * A beacon host used for taking reservations for an existing game session
  */
 UCLASS(transient, notplaceable, config=Engine)
-class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
+class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -49,9 +50,10 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	virtual void Tick(float DeltaTime) OVERRIDE;
 	// End AActor Interface
 
-	// Begin AOnlineBeaconHost Interface 
-	virtual bool InitHost() OVERRIDE;
-	virtual AOnlineBeaconClient* SpawnBeaconActor() OVERRIDE;
+	// Begin AOnlineBeaconHostObject Interface 
+	virtual AOnlineBeaconClient* SpawnBeaconActor(class UNetConnection* ClientConnection) OVERRIDE;
+	virtual void ClientConnected(class AOnlineBeaconClient* NewClientActor, class UNetConnection* ClientConnection);
+	virtual void RemoveClientActor(class AOnlineBeaconClient* ClientActor);
 	// End AOnlineBeaconHost Interface 
 
 	/**
@@ -183,14 +185,6 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	virtual void ProcessCancelReservationRequest(class APartyBeaconClient* Client, const FUniqueNetIdRepl& PartyLeader);
 
 	/**
-	 * Delegate triggered when a new client connection is made
-	 *
-	 * @param NewClientActor new client beacon actor
-	 * @param ClientConnection new connection established
-	 */
-	virtual void ClientConnected(class AOnlineBeaconClient* NewClientActor, class UNetConnection* ClientConnection);
-
-	/**
 	 * Delegate fired when a the beacon host detects a reservation addition/removal
 	 */
 	FOnReservationsFull& OnReservationsFull() { return ReservationsFull; }
@@ -225,6 +219,10 @@ protected:
 	/** State of the beacon */
 	UPROPERTY()
 	class UPartyBeaconState* State;
+
+	/** List of all party beacon actors with active connections */
+	UPROPERTY()
+	TArray<class AOnlineBeaconClient*> ClientActors;
 
 	/** Delegate fired when the beacon indicates all reservations are taken */
 	FOnReservationsFull ReservationsFull;

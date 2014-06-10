@@ -35,7 +35,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngineCrowdFollowing, Warning, All)
 namespace CrowdDebugDrawing
 {
 	/** if set, debug information will be displayed for agent selected in editor */
-	bool bDebugSelectedActors = true;
+	bool bDebugSelectedActors = false;
 	/** if set, basic debug information will be recorded in VisLog for all agents */
 	bool bDebugVisLog = false;
 
@@ -78,6 +78,18 @@ TStatId FCrowdTickHelper::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FCrowdTickHelper, STATGROUP_Tickables);
 }
 
+void FCrowdAvoidanceSamplingPattern::AddSample(float AngleInDegrees, float NormalizedRadius)
+{
+	Angles.Add(FMath::DegreesToRadians(AngleInDegrees));
+	Radii.Add(NormalizedRadius);
+}
+
+void FCrowdAvoidanceSamplingPattern::AddSampleWithMirror(float AngleInDegrees, float NormalizedRadius)
+{
+	AddSample(AngleInDegrees, NormalizedRadius);
+	AddSample(-AngleInDegrees, NormalizedRadius);
+}
+
 UCrowdManager::UCrowdManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	MyNavData = NULL;
@@ -111,7 +123,10 @@ UCrowdManager::UCrowdManager(const class FPostConstructInitializeProperties& PCI
 
 	MaxAgents = 50;
 	MaxAgentRadius = 100.0f;
+	MaxAvoidedAgents = 6;
+	MaxAvoidedWalls = 8;
 	NavmeshCheckInterval = 1.0f;
+	PathOptimizationInterval = 0.5f;
 	bSingleAreaVisibilityOptimization = true;
 	bPruneStartedOffmeshConnections = false;
 	
@@ -178,11 +193,14 @@ void UCrowdManager::Tick(float DeltaTime)
 		{
 			MyNavData->BeginBatchQuery();
 
-			for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
+			for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 			{
 				// collect position and velocity
-				const FCrowdAgentData& AgentData = It.Value();
-				UpdateSpatialData(It.Key(), AgentData);
+				FCrowdAgentData& AgentData = It.Value();
+				if (AgentData.IsValid())
+				{
+					PrepareAgentStep(It.Key(), AgentData, DeltaTime);
+				}
 			}
 
 			// corridor update from previous step
@@ -228,7 +246,7 @@ void UCrowdManager::Tick(float DeltaTime)
 				for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
 				{
 					const FCrowdAgentData& AgentData = It.Value();
-					if (AgentData.bIsSimulated)
+					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
 						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key()->GetUObjectInterfaceCrowdAgentInterface());
 						ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
@@ -260,7 +278,7 @@ void UCrowdManager::PostEditChangeProperty(struct FPropertyChangedEvent& Propert
 }
 #endif // WITH_EDITOR
 
-bool UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
+void UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
 {
 	UpdateNavData();
 
@@ -273,13 +291,7 @@ bool UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
 	}
 #endif
 
-	const bool bSuccessfullyAdded = (AgentData.AgentIndex >= 0);
-	if (bSuccessfullyAdded)
-	{
-		ActiveAgents.Add(Agent, AgentData);
-	}
-	
-	return bSuccessfullyAdded;
+	ActiveAgents.Add(Agent, AgentData);
 }
 
 void UCrowdManager::UnregisterAgent(const ICrowdAgentInterface* Agent)
@@ -295,16 +307,31 @@ void UCrowdManager::UnregisterAgent(const ICrowdAgentInterface* Agent)
 	ActiveAgents.Remove(Agent);
 }
 
+bool UCrowdManager::IsAgentValid(const class UCrowdFollowingComponent* AgentComponent) const
+{
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
+	return AgentData && AgentData->IsValid();
+}
+
+bool UCrowdManager::IsAgentValid(const class ICrowdAgentInterface* Agent) const
+{
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+	return AgentData && AgentData->IsValid();
+}
+
 void UCrowdManager::UpdateAgentParams(const ICrowdAgentInterface* Agent) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
-	if (DetourCrowd && AgentData)
+	if (DetourCrowd && AgentData && AgentData->IsValid())
 	{
 		dtCrowdAgentParams Params;
 		GetAgentParams(Agent, &Params);
+
+		// store for updating with constant intervals
+		((FCrowdAgentData*)AgentData)->bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
 
 		DetourCrowd->updateAgentParameters(AgentData->AgentIndex, &Params);
 	}
@@ -317,7 +344,7 @@ void UCrowdManager::UpdateAgentState(const class ICrowdAgentInterface* Agent) co
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
-	if (DetourCrowd && AgentData)
+	if (DetourCrowd && AgentData && AgentData->IsValid())
 	{
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);
 	}
@@ -332,7 +359,7 @@ bool UCrowdManager::SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComp
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		FNavLocation ProjectedLoc;
 		MyNavData->ProjectPoint(MoveTarget, ProjectedLoc, MyNavData->GetDefaultQueryExtent(), Filter);
@@ -358,7 +385,7 @@ bool UCrowdManager::SetAgentMoveDirection(const class UCrowdFollowingComponent* 
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);
 
@@ -379,8 +406,9 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
 	ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd &&
-		RecastNavData && Path && (Path->PathPoints.Num() > 1) &&
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && 
+		DetourCrowd && RecastNavData &&
+		Path && (Path->PathPoints.Num() > 1) &&
 		Path->PathCorridor.IsValidIndex(PathSectionStart) && Path->PathCorridor.IsValidIndex(PathSectionEnd))
 	{
 		FVector TargetPos = Path->PathPoints.Last().Location;
@@ -418,7 +446,7 @@ void UCrowdManager::ClearAgentMoveTarget(const UCrowdFollowingComponent* AgentCo
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		DetourCrowd->resetMoveTarget(AgentData->AgentIndex);
 		DetourCrowd->resetAgentVelocity(AgentData->AgentIndex);
@@ -432,7 +460,7 @@ void UCrowdManager::PauseAgent(const UCrowdFollowingComponent* AgentComponent) c
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		DetourCrowd->setAgentWaiting(AgentData->AgentIndex);
 		DetourCrowd->resetAgentVelocity(AgentData->AgentIndex);
@@ -447,7 +475,7 @@ void UCrowdManager::ResumeAgent(const UCrowdFollowingComponent* AgentComponent, 
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, bForceReplanPath);
 	}
@@ -460,7 +488,7 @@ int32 UCrowdManager::GetNumNearbyAgents(const ICrowdAgentInterface* Agent) const
 
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
 	{
 		const dtCrowdAgent* ag = DetourCrowd->getAgent(AgentData->AgentIndex);
 		NumNearby = ag ? ag->nneis : 0;
@@ -507,8 +535,8 @@ void UCrowdManager::AdjustAgentPathStart(const class UCrowdFollowingComponent* A
 {
 #if WITH_RECAST
 	const FCrowdAgentData* AgentData = ActiveAgents.Find(AgentComponent);
-	if (AgentData && AgentData->bIsSimulated && DetourCrowd && 
-		Path && Path->PathCorridor.Num() > PathStartIdx)
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && 
+		DetourCrowd && Path && Path->PathCorridor.Num() > PathStartIdx)
 	{
 		const dtCrowdAgent* ag = DetourCrowd->getAgent(AgentData->AgentIndex);
 		const dtPolyRef* agPath = ag->corridor.getPath();
@@ -560,6 +588,9 @@ void UCrowdManager::AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData&
 
 	dtCrowdAgentParams Params;
 	GetAgentParams(Agent, &Params);
+
+	// store for updating with constant intervals
+	AgentData.bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
 
 	// create link filter for fully simulated agents
 	// (used to determine if agent can traverse smart links)
@@ -613,11 +644,12 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, struct dtC
 			(CrowdComponent->IsCrowdObstacleAvoidanceEnabled() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
 			(CrowdComponent->IsCrowdSeparationEnabled() ? DT_CROWD_SEPARATION : 0) |
 			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
-			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0);
+			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
+			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0);
 	}
 }
 
-void UCrowdManager::UpdateSpatialData(const ICrowdAgentInterface* Agent, const FCrowdAgentData& AgentData) const
+void UCrowdManager::PrepareAgentStep(const ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const
 {
 	dtCrowdAgent* ag = (dtCrowdAgent*)DetourCrowd->getAgent(AgentData.AgentIndex);
 	ag->params.maxSpeed = Agent->GetCrowdAgentMaxSpeed();
@@ -627,6 +659,20 @@ void UCrowdManager::UpdateSpatialData(const ICrowdAgentInterface* Agent, const F
 
 	dtVcopy(ag->npos, &RcLocation.X);
 	dtVcopy(ag->vel, &RcVelocity.X);
+
+	if (AgentData.bWantsPathOptimization)
+	{
+		AgentData.PathOptRemainingTime -= DeltaTime;
+		if (AgentData.PathOptRemainingTime > 0)
+		{
+			ag->params.updateFlags &= ~DT_CROWD_OPTIMIZE_VIS;
+		}
+		else
+		{
+			ag->params.updateFlags |= DT_CROWD_OPTIMIZE_VIS;
+			AgentData.PathOptRemainingTime = PathOptimizationInterval;
+		}
+	}
 }
 
 void UCrowdManager::ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const
@@ -656,7 +702,7 @@ void UCrowdManager::UpdateAgentPaths()
 	for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 	{
 		FCrowdAgentData& AgentData = It.Value();
-		if (AgentData.bIsSimulated)
+		if (AgentData.bIsSimulated && AgentData.IsValid())
 		{
 			UCrowdFollowingComponent* CrowdComponent = (UCrowdFollowingComponent*)Cast<const UCrowdFollowingComponent>(It.Key()->GetUObjectInterfaceCrowdAgentInterface());
 
@@ -672,9 +718,9 @@ void UCrowdManager::UpdateAgentPaths()
 				if (AnimInfo.t == 0)
 				{
 					const uint32 NavLinkId = PImplNavMesh->GetLinkUserId(AnimInfo.polyRef);
-					USmartNavLinkComponent* SmartLink = NavSys->GetSmartLink(NavLinkId);
+					INavLinkCustomInterface* CustomLink = NavSys->GetCustomLink(NavLinkId);
 
-					if (SmartLink)
+					if (CustomLink)
 					{
 						FVector EndPt = Recast2UnrealPoint(AnimInfo.endPos);
 
@@ -685,7 +731,7 @@ void UCrowdManager::UpdateAgentPaths()
 						// start using smart link
 						if (CrowdComponent)
 						{
-							CrowdComponent->SetCurrentSmartLink(SmartLink, EndPt);
+							CrowdComponent->StartUsingCustomLink(CustomLink, EndPt);
 						}
 					}
 				}
@@ -734,6 +780,18 @@ void UCrowdManager::CreateCrowdManager()
 		DetourCrowd->setOffmeshLinkSegmentRemovalRadius(MaxAgentRadius);
 		DetourCrowd->setSingleAreaVisibilityOptimization(bSingleAreaVisibilityOptimization);
 		DetourCrowd->setPruneStartedOffmeshConnections(bPruneStartedOffmeshConnections);
+
+		DetourCrowd->initAvoidance(MaxAvoidedAgents, MaxAvoidedWalls, FMath::Max(SamplingPatterns.Num(), 1));
+
+		for (int32 Idx = 0; Idx < SamplingPatterns.Num(); Idx++)
+		{
+			const FCrowdAvoidanceSamplingPattern& Info = SamplingPatterns[Idx];
+			if (Info.Angles.Num() > 0 && Info.Angles.Num() == Info.Radii.Num())
+			{
+				DetourCrowd->setObstacleAvoidancePattern(Idx, Info.Angles.GetTypedData(), Info.Radii.GetTypedData(), Info.Angles.Num());
+			}
+		}
+
 		UpdateAvoidanceConfig();
 
 		for (auto It = ActiveAgents.CreateIterator(); It; ++It)
@@ -896,7 +954,10 @@ void UCrowdManager::DebugTick() const
 	for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
 	{
 		const FCrowdAgentData& AgentData = It.Value();
-		UpdateSelectedDebug(It.Key(), AgentData.AgentIndex);
+		if (AgentData.IsValid())
+		{
+			UpdateSelectedDebug(It.Key(), AgentData.AgentIndex);
+		}
 	}
 
 	// on screen debugging
@@ -944,7 +1005,7 @@ void UCrowdManager::DebugTick() const
 			const AActor* LogOwner = AgentOb ? Cast<const AActor>(AgentOb->GetOuter()) : NULL;
 
 			const FCrowdAgentData& AgentData = It.Value();
-			const struct dtCrowdAgent* CrowdAgent = DetourCrowd->getAgent(AgentData.AgentIndex);
+			const struct dtCrowdAgent* CrowdAgent = AgentData.IsValid() ? DetourCrowd->getAgent(AgentData.AgentIndex) : NULL;
 
 			if (CrowdAgent && LogOwner)
 			{
@@ -1021,6 +1082,7 @@ void UCrowdManager::UpdateAvoidanceConfig()
 		params.weightSide = ConfigInfo.SideBiasWeight;
 		params.weightToi = ConfigInfo.ImpactTimeWeight;
 		params.horizTime = ConfigInfo.ImpactTimeRange;
+		params.patternIdx = ConfigInfo.CustomPatternIdx;
 		params.adaptiveDivs = ConfigInfo.AdaptiveDivisions;
 		params.adaptiveRings = ConfigInfo.AdaptiveRings;
 		params.adaptiveDepth = ConfigInfo.AdaptiveDepth;

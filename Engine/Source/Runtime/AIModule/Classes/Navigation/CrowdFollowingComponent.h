@@ -74,6 +74,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FORCEINLINE bool IsCrowdSeparationEnabled() const { return bEnableSeparation && !bSuspendCrowdSimulation; }
 	FORCEINLINE bool IsCrowdOptimizeVisibilityEnabled() const { return bEnableOptimizeVisibility; /** don't check suspend here! */ }
 	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology && !bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdPathOffsetEnabled() const { return bEnablePathOffset; }
 	FORCEINLINE float GetCrowdSeparationWeight() const { return SeparationWeight; }
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }
@@ -109,6 +110,7 @@ protected:
 	uint32 bEnableSeparation : 1;
 	uint32 bEnableOptimizeVisibility : 1;
 	uint32 bEnableOptimizeTopology : 1;
+	uint32 bEnablePathOffset : 1;
 
 	/** if set, agent if moving on final path part, skip further updates (runtime flag) */
 	uint32 bFinalPathPart : 1;
@@ -122,6 +124,9 @@ protected:
 
 	/** start index of current path part */
 	int32 PathStartIndex;
+
+	/** last visited poly on path */
+	int32 LastPathPolyIndex;
 
 	TEnumAsByte<ECrowdAvoidanceQuality::Type> AvoidanceQuality;
 

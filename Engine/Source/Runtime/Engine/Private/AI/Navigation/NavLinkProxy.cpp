@@ -4,7 +4,7 @@
 #include "ObjectEditorUtils.h"
 #include "NavigationModifier.h"
 #include "Navigation/PathFollowingComponent.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavLinkProxy.h"
 
 ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
@@ -37,7 +37,7 @@ ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCI
 	}
 #endif
 
-	SmartLinkComp = PCIP.CreateDefaultSubobject<USmartNavLinkComponent>(this, TEXT("SmartLinkComp"));
+	SmartLinkComp = PCIP.CreateDefaultSubobject<UNavLinkCustomComponent>(this, TEXT("SmartLinkComp"));
 	SmartLinkComp->SetNavigationRelevancy(false);
 	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
 	bSmartLinkIsRelevant = false;
@@ -109,7 +109,7 @@ bool ANavLinkProxy::GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TA
 
 	if (SmartLinkComp->IsNavigationRelevant())
 	{
-		OutLink.Add(SmartLinkComp->GetLink());
+		OutLink.Add(SmartLinkComp->GetLinkModifier());
 	}
 
 	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0) || SmartLinkComp->IsNavigationRelevant();
@@ -139,15 +139,14 @@ FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 
 	if (SmartLinkComp->IsNavigationRelevant())
 	{
-		FNavigationLink Link = SmartLinkComp->GetLink();
-		LinksBB += Link.Left;
-		LinksBB += Link.Right;
+		LinksBB += SmartLinkComp->GetStartPoint();
+		LinksBB += SmartLinkComp->GetEndPoint();
 	}
 
 	return LinksBB.TransformBy(RootComponent->ComponentToWorld);
 }
 
-void ANavLinkProxy::NotifySmartLinkReached(USmartNavLinkComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint)
+void ANavLinkProxy::NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
 	AActor* PathOwner = PathComp->GetOwner();
 	AController* ControllerOwner = Cast<AController>(PathOwner);
@@ -176,7 +175,7 @@ void ANavLinkProxy::ResumePathFollowing(AActor* Agent)
 
 		if (PathComp)
 		{
-			SmartLinkComp->ResumePathFollowing(PathComp);
+			PathComp->FinishUsingCustomLink(SmartLinkComp);
 		}
 	}
 }

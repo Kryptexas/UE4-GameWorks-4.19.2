@@ -2,38 +2,45 @@
 
 #pragma once
 #include "NavigationTypes.h"
+#include "NavLinkCustomComponent.generated.h"
 #include "AI/Navigation/NavRelevantComponent.h"
-#include "SmartNavLinkComponent.generated.h"
 
 /**
- *  Navigation smart object
+ *  Encapsulates NavLinkCustomInterface interface, can be used with Actors not relevant for navigation
  *
- *  Creates and manage navigation link (point to point type) that:
- *  - supports custom path following
+ *  Additional functionality:
  *  - can be toggled
+ *  - can create obstacle area for easier/forced separation of link end points
+ *  - can broadcast state changes to nearby agents
  */
 
-UENUM()
-namespace ESmartNavLinkDir
-{
-	enum Type
-	{
-		OneWay,
-		BothWays,
-	};
-}
-
 UCLASS()
-class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
+class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public INavLinkCustomInterface
 {
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, USmartNavLinkComponent* /*ThisComp*/, class UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/); 
-	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, USmartNavLinkComponent* /*ThisComp*/, TArray<class UNavigationComponent*>& /*NotifyList*/); 
+	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, UNavLinkCustomComponent* /*ThisComp*/, class UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/);
+	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<class UNavigationComponent*>& /*NotifyList*/);
+
+	// BEGIN INavLinkCustomInterface
+	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const OVERRIDE;
+	virtual TSubclassOf<UNavArea> GetLinkAreaClass() const OVERRIDE;
+	virtual uint32 GetLinkId() const OVERRIDE;
+	virtual bool IsLinkPathfindingAllowed(const UObject* Querier) const OVERRIDE;
+	virtual bool OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint) OVERRIDE;
+	virtual void OnLinkMoveFinished(class UPathFollowingComponent* PathComp) OVERRIDE;
+	// END INavLinkCustomInterface
+
+	// BEGIN UNavRelevantComponent
+	virtual void OnRegister() OVERRIDE;
+	virtual void OnOwnerRegistered() OVERRIDE;
+	virtual void OnOwnerUnregistered() OVERRIDE;
+	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) OVERRIDE;
+	// END UNavRelevantComponent
 
 	/** set basic link data: end points and direction */
-	void SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ESmartNavLinkDir::Type Direction);
-	virtual FNavigationLink GetLink() const;
+	void SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction);
+	virtual FNavigationLink GetLinkModifier() const;
 
 	/** set area class to use when link is enabled */
 	void SetEnabledArea(TSubclassOf<class UNavArea> AreaClass);
@@ -63,14 +70,8 @@ class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 	void SetEnabled(bool bNewEnabled);
 	bool IsEnabled() const { return bLinkEnabled; }
 	
-	/** get stored link ID */
-	uint32 GetLinkId() const { return NavLinkUserId; }
-
 	/** set delegate to notify about reaching this link during path following */
 	void SetMoveReachedLink(FOnMoveReachedLink const& InDelegate);
-
-	/** pass movement control back to path following component and travel in straight line to other end of navigation link */
-	void ResumePathFollowing(class UPathFollowingComponent* PathComp);
 
 	/** check is any agent is currently moving though this link */
 	bool HasMovingAgents() const;
@@ -80,28 +81,6 @@ class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 
 	/** get link end point in world space */
 	FVector GetEndPoint() const;
-
-	//////////////////////////////////////////////////////////////////////////
-	// notifies from navigation system and path following
-
-	virtual void OnOwnerRegistered() OVERRIDE;
-	virtual void OnOwnerUnregistered() OVERRIDE;
-	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) OVERRIDE;
-
-	/** called during path finding to verify if link can be traversed
-	 *  @param	Querier		owner of path finding request, usually AIController
-	 */
-	virtual bool IsPathfindingAllowed(const UObject* Querier) const;
-
-	/** called by path following when agent needs to go through this link
-	  * will trigger OnMoveReachedLink delegate, or call ResumePathFollowing() when it's not bound */
-	void NotifyLinkReached(class UPathFollowingComponent* PathComp, const FVector& DestPoint);
-
-	/** called by path following when agent finished moving though this link */
-	void NotifyLinkFinished(class UPathFollowingComponent* PathComp);
-
-	/** called by path following when movement gets aborted while agent is moving though this link */
-	void NotifyMoveAborted(class UPathFollowingComponent* PathComp);
 
 	//////////////////////////////////////////////////////////////////////////
 	// helper functions for setting delegates
@@ -152,7 +131,7 @@ protected:
 
 	/** direction of link */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
-	TEnumAsByte<ESmartNavLinkDir::Type> LinkDirection;
+	TEnumAsByte<ENavLinkDirection::Type> LinkDirection;
 
 	/** is link currently in enabled state? (area class) */
 	UPROPERTY(EditAnywhere, Category=SmartLink)

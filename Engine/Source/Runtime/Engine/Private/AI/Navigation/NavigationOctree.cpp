@@ -53,17 +53,6 @@ void FNavigationOctree::AddActor(class AActor* Actor, FNavigationOctreeElement& 
 			{
 				bExportGeometry = NavRelevantActor->GetNavigationRelevantData(Data.Data);
 			}
-
-			TArray<UNavRelevantComponent*> Components;
-			Actor->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
-			{
-				UNavRelevantComponent* NavRelevantComponent = Components[i];
-				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
-				{
-					NavRelevantComponent->OnApplyModifiers(Data.Data.Modifiers);
-				}
-			}
 		}
 
 		if (bExportGeometry)

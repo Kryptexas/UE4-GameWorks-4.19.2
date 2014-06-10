@@ -51,13 +51,13 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/**
 	 * Check to see if two FGameplayTags match
 	 *
-	 * @param Other			The second tag to compare against
 	 * @param MatchTypeOne	How we compare this tag, Explicitly or a match with any parents as well
+	 * @param Other			The second tag to compare against
 	 * @param MatchTypeTwo	How we compare Other tag, Explicitly or a match with any parents as well
 	 * 
 	 * @return True if there is a match according to the specified match types; false if not
 	 */
-	bool Matches(const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+	bool Matches(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 	
 	/** Returns whether the tag is valid or not; Invalid tags are set to NAME_None and do not exist in the game-specific global dictionary */
 	bool IsValid() const;
@@ -236,7 +236,7 @@ private:
 	TArray<FName> Tags;
 
 	/** Array of gameplay tags */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Category=GameplayTags)
 	TArray<FGameplayTag> GameplayTags;
 };
 

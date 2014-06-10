@@ -158,7 +158,8 @@ struct FNavLocation
 	NavNodeRef NodeRef;
 
 	FNavLocation() : Location(FVector::ZeroVector), NodeRef(INVALID_NAVNODEREF) {}
-	FNavLocation(const FVector& InLocation, NavNodeRef InNodeRef = INVALID_NAVNODEREF) : Location(InLocation), NodeRef(InNodeRef) {}
+	FNavLocation(const FVector& InLocation, NavNodeRef InNodeRef = INVALID_NAVNODEREF) 
+		: Location(InLocation), NodeRef(InNodeRef) {}
 };
 
 /** Describes node in navigation path */
@@ -167,14 +168,12 @@ struct FNavPathPoint : public FNavLocation
 	/** extra node flags */
 	uint32 Flags;
 
-	// always add smart link data to path points (8 bytes), if there will be more "edge types" 
-	// we change this implementation to something more generic
+	/** unique Id of custom navigation link starting at this point */
+	uint32 CustomLinkId;
 
-	/** smart link owning this node */
-	TWeakObjectPtr<class USmartNavLinkComponent> SmartLink;
-
-	FNavPathPoint() : Flags(0) {}
-	FNavPathPoint(const FVector& InLocation, NavNodeRef InNodeRef = INVALID_NAVNODEREF, uint32 InFlags = 0) : FNavLocation(InLocation, InNodeRef), Flags(InFlags) {}
+	FNavPathPoint() : Flags(0), CustomLinkId(0) {}
+	FNavPathPoint(const FVector& InLocation, NavNodeRef InNodeRef = INVALID_NAVNODEREF, uint32 InFlags = 0) 
+		: FNavLocation(InLocation, InNodeRef), Flags(InFlags), CustomLinkId(0) {}
 };
 
 /** path type data */
@@ -231,11 +230,11 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	virtual FString GetDescription() const;
 #endif // ENABLE_VISUAL_LOG
 
-	/** check if path contains specific smart nav link */
-	bool ContainsSmartLink(class USmartNavLinkComponent* Link) const;
+	/** check if path contains specific custom nav link */
+	bool ContainsCustomLink(uint32 UniqueLinkId) const;
 
-	/** check if path contains any smart nav link */
-	bool ContainsAnySmartLink() const;
+	/** check if path contains any custom nav link */
+	bool ContainsAnyCustomLink() const;
 
 	/** check if path contains given node */
 	virtual bool ContainsNode(NavNodeRef NodeRef) const;

@@ -3841,12 +3841,12 @@ void APlayerController::GetInputTouchState(ETouchIndex::Type FingerIndex, float&
 	}
 }
 
-void APlayerController::GetInputMotionState(float& Tilt, float& RotationRate, float& Gravity, float& Acceleration) const
+void APlayerController::GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const
 {
-	Tilt = GetInputAnalogKeyState(EKeys::Tilt);
-	RotationRate = GetInputAnalogKeyState(EKeys::RotationRate);
-	Gravity = GetInputAnalogKeyState(EKeys::Gravity);
-	Acceleration = GetInputAnalogKeyState(EKeys::Acceleration);
+	Tilt = GetInputVectorKeyState(EKeys::Tilt);
+	RotationRate = GetInputVectorKeyState(EKeys::RotationRate);
+	Gravity = GetInputVectorKeyState(EKeys::Gravity);
+	Acceleration = GetInputVectorKeyState(EKeys::Acceleration);
 }
 
 float APlayerController::GetInputKeyTimeDown(const FKey Key) const

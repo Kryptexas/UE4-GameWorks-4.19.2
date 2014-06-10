@@ -1862,7 +1862,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
 		if (!bHasRequiredLogins)
 		{
-			UE_LOG(LogOnline, Verbose, TEXT("Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins"));
+			FText ErrorMsg = LOCTEXT("PIELoginFailure", "Not enough login credentials to launch all PIE instances, modify [/Script/UnrealEd.UnrealEdEngine].PIELogins");
+			UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorMsg.ToString());
+			FMessageLog("PIE").Warning(ErrorMsg);
 		}
 
 		if (SupportsOnlinePIE() && bHasRequiredLogins)
@@ -2055,6 +2057,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 			// Dedicated servers don't use a login
 			OnlineSub->SetForceDedicated(true);
 			CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct);
+			FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
 		}
 	}
 
@@ -2111,6 +2114,30 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 
 	// Create the new world
 	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
+
+	// Logging after the create so a new MessageLog Page is created
+	if (bWasSuccessful)
+	{
+		if (DataStruct.bIsServer)
+		{
+			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+		}
+		else
+		{
+			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
+		}
+	}
+	else
+	{
+		if (DataStruct.bIsServer)
+		{
+			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+		}
+		else
+		{
+			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+		}
+	}
 }
 
 UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime)

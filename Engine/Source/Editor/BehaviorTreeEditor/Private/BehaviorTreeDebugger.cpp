@@ -1011,8 +1011,8 @@ FString FBehaviorTreeDebugger::DescribeInstance(class UBehaviorTreeComponent* In
 	if (InstanceToDescribe && InstanceToDescribe->GetOwner())
 	{
 		AController* TestController = Cast<AController>(InstanceToDescribe->GetOwner());
-		ActorDesc = (TestController && TestController->GetPawn()) ?
-			TestController->GetPawn()->GetName() :
+		ActorDesc = TestController ?
+			TestController->GetName() :
 			InstanceToDescribe->GetOwner()->GetName();
 	}
 
@@ -1024,7 +1024,27 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 	if (SelectedInstance)
 	{
 		ClearDebuggerState();
+
+		AController* OldController = TreeInstance.IsValid() ? Cast<AController>(TreeInstance->GetOwner()) : NULL;
+		APawn* OldPawn = OldController != NULL ? OldController->GetPawn() : NULL;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		if (SelectedActors && OldPawn)
+		{
+			SelectedActors->Deselect(OldPawn);
+		}
+
 		TreeInstance = SelectedInstance;
+
+		if (SelectedActors && GEditor && SelectedInstance && SelectedInstance->GetOwner())
+		{
+			AController* TestController = Cast<AController>(SelectedInstance->GetOwner());
+			APawn* Pawn = TestController != NULL ? TestController->GetPawn() : NULL;
+			if (Pawn)
+			{
+				SelectedActors = GEditor->GetSelectedActors();
+				SelectedActors->Select(Pawn);
+			}
+		}
 	}
 }
 

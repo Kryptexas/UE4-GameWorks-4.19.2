@@ -232,7 +232,7 @@ private:
 			FText FiletNameAsText = FText::FromString(GetFilterNameAsString());
 			MenuBuilder.BeginSection("VerbositySelection", LOCTEXT("VerbositySelection", "Current verbosity selection"));
 			{
-				for (int32 Index = ELogVerbosity::NoLogging+1; Index < ELogVerbosity::VeryVerbose; Index++)
+				for (int32 Index = ELogVerbosity::NoLogging+1; Index <= ELogVerbosity::VeryVerbose; Index++)
 				{
 					const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Index);
 					MenuBuilder.AddMenuEntry(

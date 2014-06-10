@@ -22,7 +22,7 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 
 	/** Smart link: can affect path following */
 	UPROPERTY(VisibleAnywhere, Category=SmartLink)
-	TSubobjectPtr<class USmartNavLinkComponent> SmartLinkComp;
+	TSubobjectPtr<class UNavLinkCustomComponent> SmartLinkComp;
 
 	/** Smart link: toggle relevancy */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
@@ -82,5 +82,5 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FSmartLinkReachedSignature OnSmartLinkReached;
 
-	void NotifySmartLinkReached(USmartNavLinkComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint);
+	void NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint);
 };

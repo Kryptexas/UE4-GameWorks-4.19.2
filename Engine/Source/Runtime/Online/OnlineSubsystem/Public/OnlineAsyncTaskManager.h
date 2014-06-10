@@ -346,7 +346,6 @@ public:
 	 */
 	virtual void Tick();
 
-
 };
 
 

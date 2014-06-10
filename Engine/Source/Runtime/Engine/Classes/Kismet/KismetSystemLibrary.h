@@ -919,7 +919,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/** Draw a debug box */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
-	static ENGINE_API void DrawDebugBox(UObject* WorldContextObject, const FVector& Center, const FVector& Extent, FLinearColor LineColor, const FRotator Rotation=FRotator::ZeroRotator, float Duration=-1.f);
+	static ENGINE_API void DrawDebugBox(UObject* WorldContextObject, const FVector& Center, FVector Extent, FLinearColor LineColor, const FRotator Rotation=FRotator::ZeroRotator, float Duration=-1.f);
 
 	/** Draw a debug coordinate system. */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))

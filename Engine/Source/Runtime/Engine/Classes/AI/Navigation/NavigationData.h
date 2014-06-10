@@ -300,10 +300,10 @@ public:
 	void GetSupportedAreas(TArray<FSupportedAreaData>& Areas) const { Areas = SupportedAreas; }
 
 	//----------------------------------------------------------------------//
-	// Smart links
+	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateSmartLink(class USmartNavLinkComponent* LinkComp);
+	virtual void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Filters
@@ -376,6 +376,9 @@ protected:
 	/** serialized area class - ID mapping */
 	UPROPERTY()
 	TArray<FSupportedAreaData> SupportedAreas;
+
+	/** mapping for SupportedAreas */
+	TMap<const UClass*, int32> AreaClassToIdMap;
 
 	/** whether this instance is registered with Navigation System*/
 	uint32 bRegistered : 1;

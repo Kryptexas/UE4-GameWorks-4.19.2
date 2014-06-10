@@ -300,7 +300,8 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(MyGraph);
 		DocumentManager.OpenDocument(Payload, FDocumentTracker::OpenNewDocument);
 
-		MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags);
+		const bool bIncreaseVersionNum = false;
+		MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags, bIncreaseVersionNum);
 
 		FAbortDrawHelper EmptyMode;
 		bShowDecoratorRangeLower = false;

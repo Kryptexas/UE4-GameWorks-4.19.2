@@ -90,7 +90,7 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		FNetworkGUID NetGUID = InternalLoadObject( Ar, Object, false, 0 );
 
 		// Write out NetGUID to caller if necessary
-		if ( OutNetGUID )
+		if (OutNetGUID)
 		{
 			*OutNetGUID = NetGUID;
 		}	
@@ -100,14 +100,14 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		// ----------------	
 
 		// NULL if we haven't finished loading the objects level yet
-		if ( !ObjectLevelHasFinishedLoading( Object ) )
+		if (!ObjectLevelHasFinishedLoading(Object))
 		{
 			UE_LOG(LogNetPackageMap, Log, TEXT("Using None instead of replicated reference to %s because the level it's in has not been made visible"), *Object->GetFullName());
 			Object = NULL;
 		}
 
 		// Check that we got the right class
-		if ( Object && !Object->IsA( Class ) )
+		if( Object && !Object->IsA(Class) )
 		{
 			UE_LOG(LogNetPackageMap, Warning, TEXT("Forged object: got %s, expecting %s"),*Object->GetFullName(),*Class->GetFullName());
 			Object = NULL;
@@ -162,7 +162,7 @@ bool UPackageMapClient::WriteObject( FArchive& Ar, UObject* ObjOuter, FNetworkGU
  */
 bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor)
 {
-	UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "SerializeNewActor START" ) );
+	UE_LOG(LogNetPackageMap, VeryVerbose, TEXT("SerializeNewActor START"));
 
 	uint8 bIsClosingChannel = 0;
 
@@ -309,8 +309,8 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 				check( !PendingAckGUIDs.Contains( SubobjNetGUID ) );
 			}
 
-			Ar << Checksum;
-		}
+				Ar << Checksum;
+			}
 		else
 		{
 			// Load the server checksum, then generate our own, and make sure they match
@@ -318,10 +318,10 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 			uint32 LocalChecksum = 0;
 			Ar << ServerChecksum;
 
-			TArray< FNetworkGUID > SubObjGuids;
+				TArray< FNetworkGUID > SubObjGuids;
 
 			for ( int32 i = 0; i < Subobjs.Num(); i++ )
-			{
+				{
 				// Generate a guid that is relative to our owning actor
 				SubObjGuids.Add( COMPOSE_RELATIVE_NET_GUID( NetGUID, i + 1 ) );
 
@@ -330,39 +330,39 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 				LocalChecksum = FCrc::StrCrc32( *Subobjs[i]->GetName(), LocalChecksum );
 
 				UE_LOG( LogNetPackageMap, Log, TEXT( "SerializeNewActor: [Loading] Assigned NetGUID <%s> to subobject %s" ), *SubObjGuids[i].ToString(), *Subobjs[i]->GetPathName() );
-			}
+					}
 
 			if ( LocalChecksum != ServerChecksum )
-			{
-				UE_LOG( LogNetPackageMap, Error, TEXT( "SerializeNewActor: Subobject checksum FAILED: %s" ), *Actor->GetFullName() );
-			}
-			else
-			{
-				// Everything worked, assign the guids
-				for ( int32 i = 0; i < Subobjs.Num(); i++ )
+					{
+					UE_LOG( LogNetPackageMap, Error, TEXT( "SerializeNewActor: Subobject checksum FAILED: %s" ), *Actor->GetFullName() );
+				}
+				else
 				{
+					// Everything worked, assign the guids
+					for ( int32 i = 0; i < Subobjs.Num(); i++ )
+					{
 					FNetworkGUID OldNetGUID = GuidCache->NetGUIDLookup.FindRef( Subobjs[i] );
 
 					if ( OldNetGUID.IsValid() )
-					{
+{
 						if ( OldNetGUID != SubObjGuids[i] )
-						{
+	{
 							UE_LOG( LogNetPackageMap, Warning, TEXT( "SerializeNewActor: Changing NetGUID on subobject. Name: %s, OldGUID: %s, NewGUID: %s" ), *Subobjs[i]->GetPathName(), *OldNetGUID.ToString(), *SubObjGuids[i].ToString() );
-						}
-					}
+	}
+	}
 
 					GuidCache->AssignNetGUID( Subobjs[i], SubObjGuids[i] );
 
 					UE_LOG( LogNetPackageMap, Log, TEXT( "SerializeNewActor: [Loading] Assigned NetGUID <%s> to subobject %s" ), *SubObjGuids[i].ToString(), *Subobjs[i]->GetPathName() );
-				}
-			}
+	}
+		}
 		}
 	}
 
 	UE_LOG(LogNetPackageMap, Log, TEXT("SerializeNewActor END: Finished Serializing Actor %s <%s> on Channel %d"), Actor ? *Actor->GetName() : TEXT("NULL"), *NetGUID.ToString(), Channel->ChIndex );
 
 	return SpawnedActor;
-}
+		}
 
 //--------------------------------------------------------------------
 //
@@ -376,9 +376,9 @@ struct FExportFlags
 	{
 		struct
 		{
-			uint8 bHasPath			: 1;
-			uint8 bIsLevel			: 1;
-			uint8 bIsPackage		: 1;
+			uint8 bHasPath		: 1;
+			uint8 bIsLevel		: 1;
+			uint8 bIsPackage	: 1;
 			uint8 bIsRenamedPackage	: 1;
 		};
 
@@ -434,30 +434,30 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 
 	if ( ExportFlags.bHasPath )
 	{
-		if ( Object != NULL )
-		{
-			// If the object isn't NULL, expect an empty path name, then fill it out with the actual info
-			check( ObjectOuter == NULL );
-			check( ObjectPathName.IsEmpty() );
-			ObjectPathName = Object->GetName();
-			ObjectOuter = Object->GetOuter();
-		}
-		else
-		{
-			// If we don't have an object, expect an already filled out path name
-			check( ObjectOuter != NULL );
-			check( !ObjectPathName.IsEmpty() );
-		}
+	if ( Object != NULL )
+	{
+		// If the object isn't NULL, expect an empty path name, then fill it out with the actual info
+		check( ObjectOuter == NULL );
+		check( ObjectPathName.IsEmpty() );
+		ObjectPathName = Object->GetName();
+		ObjectOuter = Object->GetOuter();
+	}
+	else
+	{
+		// If we don't have an object, expect an already filled out path name
+		check( ObjectOuter != NULL );
+		check( !ObjectPathName.IsEmpty() );
+	}
 
-		// Serialize reference to outer. This is basically a form of compression.
+	// Serialize reference to outer. This is basically a form of compression.
 		FNetworkGUID OuterNetGUID = GuidCache->GetOrAssignNetGUID( ObjectOuter );
 
-		InternalWriteObject( Ar, OuterNetGUID, ObjectOuter, TEXT( "" ), NULL );
+	InternalWriteObject( Ar, OuterNetGUID, ObjectOuter, TEXT( "" ), NULL );
 
-		GEngine->NetworkRemapPath(Connection->Driver->GetWorld(), ObjectPathName, false);
+	GEngine->NetworkRemapPath(Connection->Driver->GetWorld(), ObjectPathName, false);
 
-		// Serialize Name of object
-		Ar << ObjectPathName;
+	// Serialize Name of object
+	Ar << ObjectPathName;
 
 		if ( ExportFlags.bIsRenamedPackage )
 		{
@@ -467,13 +467,13 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 			//UE_LOG( LogNetPackageMap, Warning, TEXT("UPackageMapClient::InternalWriteObject: Renamed package. Name: %s, Filename: %s"), *Package->GetName(), *FilenameOverride );
 		}
 
-		if ( IsExportingNetGUIDBunch )
-		{
-			CurrentExportNetGUIDs.Add( NetGUID );
+	if ( IsExportingNetGUIDBunch )
+	{
+		CurrentExportNetGUIDs.Add( NetGUID );
 
-			int32 & Count = NetGUIDExportCountMap.FindOrAdd( NetGUID );
-			Count++;
-		}
+		int32& Count = NetGUIDExportCountMap.FindOrAdd(NetGUID);
+		Count++;
+	}
 	}
 }
 
@@ -504,7 +504,7 @@ static void SanityCheckExport( const UObject * Object, const FNetworkGUID & NetG
 		if ( Package == NULL )
 		{
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Expected package. Object:%s, NetGUID: %s" ), *Object->GetPathName(), *NetGUID.ToString() );
-		}
+}
 
 		if ( ExportFlags.bIsRenamedPackage && Package->FileName.ToString() != ExpectedFilename )
 		{
@@ -641,8 +641,8 @@ void UPackageMapClient::ResolvePathAndAssignNetGUID_Deferred( const FNetworkGUID
 	{
 		FDeferredResolvePath DeferredResolvePath;
 
-		DeferredResolvePath.OuterGUID			= OuterGUID;
-		DeferredResolvePath.PathName			= FName( *PathName );
+		DeferredResolvePath.OuterGUID	= OuterGUID;
+		DeferredResolvePath.PathName	= FName( *PathName );
 		DeferredResolvePath.FilenameOverride	= FilenameOverride;
 
 		DeferredResolvePaths.Add( NetGUID, DeferredResolvePath );
@@ -726,20 +726,20 @@ UObject * UPackageMapClient::ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNe
 			}
 			else
 			{
-				UPackage * PackageOuter = Cast< UPackage >( ObjOuter );
+			UPackage * PackageOuter = Cast< UPackage >( ObjOuter );
 
-				// If we have an outer at this point, it only makes sense for it to be a package (or NULL)
-				if ( PackageOuter != NULL || ObjOuter == NULL )
-				{
-					Object = LoadPackage( PackageOuter, *PathName, LOAD_None );
-					UE_LOG( LogNetPackageMap, Log, TEXT( "UPackageMapClient::ResolvePathAndAssignNetGUID: LoadPackage: %s. Found: %s" ), *PathName, Object ? *Object->GetName() : TEXT( "NULL" ) );
-				} 
-				else
-				{
-					UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::ResolvePathAndAssignNetGUID: Outer %s is not a package for object %s" ), ObjOuter ? *ObjOuter->GetName() : TEXT( "NULL" ), *PathName );
-				}
+			// If we have an outer at this point, it only makes sense for it to be a package (or NULL)
+			if ( PackageOuter != NULL || ObjOuter == NULL )
+			{
+				Object = LoadPackage( PackageOuter, *PathName, LOAD_None );
+				UE_LOG( LogNetPackageMap, Log, TEXT( "UPackageMapClient::ResolvePathAndAssignNetGUID: LoadPackage: %s. Found: %s" ), *PathName, Object ? *Object->GetName() : TEXT( "NULL" ) );
+			} 
+			else
+			{
+				UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::ResolvePathAndAssignNetGUID: Outer %s is not a package for object %s" ), ObjOuter ? *ObjOuter->GetName() : TEXT( "NULL" ), *PathName );
 			}
 		}
+	}
 	}
 
 	if ( Object )
@@ -768,15 +768,15 @@ UObject * UPackageMapClient::ResolvePathAndAssignNetGUID( FNetworkGUID & InOutNe
 
 	// Resolve the outer if the guid is valid
 	if ( OuterGUID.IsValid() )
-	{
+{
 		ObjOuter = GetObjectFromNetGUID( OuterGUID );
 
 		// If we have a valid outer guid, we expect it to resolve
 		if ( ObjOuter == NULL )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "ResolvePathAndAssignNetGUID: Unable resolve outer. Path: %s, NetGUID: %s, OuterGUID: %s " ), *PathName, *InOutNetGUID.ToString(), *OuterGUID.ToString() );
-			return NULL;
-		}
+	{
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "ResolvePathAndAssignNetGUID: Unable resolve outer. Path: %s, NetGUID: %s, OuterGUID: %s " ), *PathName, *InOutNetGUID.ToString(), *OuterGUID.ToString() );
+		return NULL;
+	}
 	}
 
 	UObject * Object = ResolvePathAndAssignNetGUID( InOutNetGUID, PathName, FilenameOverride, ObjOuter, bNoLoad );
@@ -1202,7 +1202,7 @@ bool UPackageMapClient::ShouldSendFullPath(const UObject* Object, const FNetwork
 /**
  *	Prints debug info about this package map's state
  */
-void UPackageMapClient::LogDebugInfo( FOutputDevice & Ar )
+void UPackageMapClient::LogDebugInfo(FOutputDevice& Ar)
 {
 	for ( auto It = GuidCache->NetGUIDLookup.CreateIterator(); It; ++It )
 	{
@@ -1458,7 +1458,7 @@ bool FNetGUIDCache::SupportsObject( const UObject * Object )
 	// This should happen for dynamic subobjects.
 	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
 
-	if ( NetGUID.IsValid() )
+	if (NetGUID.IsValid())
 	{
 		return true;
 	}
@@ -1486,27 +1486,27 @@ bool FNetGUIDCache::SupportsObject( const UObject * Object )
  *	referenced with a path name to the client.
  */
 bool FNetGUIDCache::IsDynamicObject( const UObject * Object )
-{
+	{
 	check( Object != NULL );
 	check( Object->IsSupportedForNetworking() );
 
 	// Any non net addressable object is dynamic
 	return !Object->IsFullNameStableForNetworking();
-}
+	}
 
 bool FNetGUIDCache::IsNetGUIDAuthority()
-{
+	{
 	return Driver == NULL || Driver->IsServer();
-}
-
+		}
+		
 /** Gets or assigns a new NetGUID to this object. Returns whether the object is fully mapped or not */
 FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject * Object )
-{
+		{
 	if ( !Object || !SupportsObject( Object ) )
-	{
+			{
 		// Null of unsupported object, leave as default NetGUID and just return mapped=true
 		return FNetworkGUID();
-	}
+			}
 
 	// ----------------
 	// Assign NetGUID if necessary
@@ -1514,31 +1514,31 @@ FNetworkGUID FNetGUIDCache::GetOrAssignNetGUID( const UObject * Object )
 	FNetworkGUID NetGUID = NetGUIDLookup.FindRef( Object );
 
 	if ( NetGUID.IsValid() )
-	{
+			{
 		return NetGUID;
-	}
+			}
 
 	return AssignNewNetGUID( Object );
-}
+		}
 
 static const AActor * GetOuterActor( const UObject * Object )
-{
+		{
 	Object = Object->GetOuter();
 
 	while ( Object != NULL )
-	{
+			{
 		const AActor * Actor = Cast< const AActor >( Object );
 
 		if ( Actor != NULL )
-		{
+				{
 			return Actor;
-		}
+				}
 
 		Object = Object->GetOuter();
-	}
+			}
 
 	return NULL;
-}
+		}
 
 /**
  *	Generate a new NetGUID for this object and assign it.
@@ -1577,9 +1577,12 @@ FNetworkGUID FNetGUIDCache::AssignNewNetGUID( const UObject * Object )
 				return NetGUIDLookup.FindChecked( Object );
 			}
 		}
-	}
+}
 
-#define ALLOC_NEW_NET_GUID( IsStatic ) ( COMPOSE_NET_GUID( ++UniqueNetIDs[ IsStatic ], IsStatic ) )
+#define GET_NET_GUID_INDEX( GUID )				( GUID.Value >> 1 )
+#define GET_NET_GUID_STATIC_MOD( GUID )			( GUID.Value & 1 )
+#define COMPOSE_NET_GUID( Index, IsStatic )		( ( ( Index ) << 1 ) | ( IsStatic ) )
+#define ALLOC_NEW_NET_GUID( IsStatic )			( COMPOSE_NET_GUID( ++UniqueNetIDs[ IsStatic ], IsStatic ) )
 
 	// Generate new NetGUID and assign it
 	const int32 IsStatic = IsDynamicObject( Object ) ? 0 : 1;
@@ -1602,21 +1605,22 @@ FNetworkGUID FNetGUIDCache::AssignNewNetGUID( const UObject * Object )
 			check( GetOuterActor( SubObj ) == Actor );
 
 			if ( NetGUIDLookup.Contains( SubObj ) )		// We should NOT have a guid yet
-			{
+{
 				UE_LOG( LogNetPackageMap, Error, TEXT( "AssignNewNetGUID: Sub object already registered: Actor: %s, SubObj: %s, NetGuid: %s" ), *Actor->GetPathName(), *SubObj->GetPathName(), *NetGUIDLookup.FindChecked( SubObj ).ToString() );
 			}
 			const int32 SubIsStatic = IsDynamicObject( SubObj ) ? 0 : 1;
 			check( SubIsStatic == IsStatic );
 			const FNetworkGUID SubobjNetGUID( ALLOC_NEW_NET_GUID( SubIsStatic ) );
+			check( SubobjNetGUID.Value == COMPOSE_NET_GUID( GET_NET_GUID_INDEX( NewNetGuid ) + 1 + i, GET_NET_GUID_STATIC_MOD( NewNetGuid ) ) );
 			check( SubobjNetGUID.Value == COMPOSE_RELATIVE_NET_GUID( NewNetGuid, i + 1 ) );
 			AssignNetGUID( SubObj, SubobjNetGUID );
 		}
 	}
-
+	
 	return NewNetGuid;
 }
 
-/**
+/**	
  *	Assigns the given UObject the give NetNetworkGUID.
  */
 void FNetGUIDCache::AssignNetGUID( const UObject * Object, const FNetworkGUID & NewNetworkGUID )
@@ -1633,19 +1637,19 @@ void FNetGUIDCache::AssignNetGUID( const UObject * Object, const FNetworkGUID & 
 	CacheObject.FullPath = Object->GetPathName();
 
 	// Remove any existing entries
-	{
+{
 		const FNetGuidCacheObject * ExistingCacheObjectPtr = ObjectLookup.Find( NewNetworkGUID );
 
 		if ( ExistingCacheObjectPtr )
-		{
+	{
 			const UObject * OldObject = ExistingCacheObjectPtr->Object.Get();
 
 			// If we find static guid in the cache, this means we didn't find it in GetObjectFromNetGUID
 			// This is a problem, since we should never get this far if we do find it there
 			if ( !NewNetworkGUID.IsDynamic() )
-			{
+		{
 				UE_LOG( LogNetPackageMap, Warning, TEXT( "AssignNetGUID: NewNetworkGUID was in ObjectLookup cache but is static: <%s> %s" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ) );
-			}
+		}
 
 			// If this net guid was found but the old object is NULL, this can happen due to:
 			//	1. Actor channel was closed locally (but we don't remove the net guid entry, since we can't know for sure if it will be referenced again)
@@ -1658,11 +1662,11 @@ void FNetGUIDCache::AssignNetGUID( const UObject * Object, const FNetworkGUID & 
 			// If the object pointers are different, this can be a problem, 
 			//	since this should only be possible if something gets out of sync during the net guid exchange code
 			if ( OldObject != NULL && OldObject != Object )
-			{
+		{
 				UE_LOG( LogNetPackageMap, Warning, TEXT( "Reassigning NetGUID <%s> to %s (was assigned to object %s)" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ), OldObject ? *OldObject->GetPathName() : TEXT( "NULL" ) );
-			}
-			else
-			{
+		}
+		else
+		{
 				UE_LOG( LogNetPackageMap, Verbose, TEXT( "Reassigning NetGUID <%s> to %s (was assigned to object %s)" ), *NewNetworkGUID.ToString(), Object ? *Object->GetPathName() : TEXT( "NULL" ), OldObject ? *OldObject->GetPathName() : TEXT( "NULL" ) );
 			}
 
@@ -1698,26 +1702,26 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
 	if ( !ensure( !NetGUID.IsDefault() ) )
 	{
 		return NULL;
-	}
+}
 
 	FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObjectPtr == NULL )
-	{
+{
 		// We don't have the object mapped yet
 		return NULL;
-	}
+}
 
 	UObject * Object = CacheObjectPtr->Object.Get();
 
 	if ( Object != NULL )
-	{
+{
 		check( Object->GetPathName() == CacheObjectPtr->FullPath );
 		return Object;
-	}
+}
 
 	if ( CacheObjectPtr->FullPath.IsEmpty() )
-	{
+{
 		// This probably isn't possible, but making it a warning
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: No full path for %s" ), *NetGUID.ToString() );
 		return NULL;
@@ -1749,14 +1753,14 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
 			return NULL;
 		}
 		else
-		{
+	{
 			UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Could not find Object for: NetGUID <%s, %s>"), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
-		}
+	}
 
 		Object = StaticLoadObject( UObject::StaticClass(), NULL, *CacheObjectPtr->FullPath, NULL, LOAD_NoWarn );
 
 		if ( Object )
-		{
+	{
 			UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: StaticLoadObject. Found: %s" ), Object ? *Object->GetName() : TEXT( "NULL" ) );
 		}
 		else

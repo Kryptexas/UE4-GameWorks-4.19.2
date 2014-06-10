@@ -325,6 +325,10 @@ class ENGINE_API UCanvas : public UObject
 	UPROPERTY()
 	class UTexture2D* GradientTexture0; //Default texture to use 
 
+	/** Helper class to render 2d graphs on canvas */
+	UPROPERTY()
+	class UReporterGraph* ReporterGraph;
+
 	int32 UnsafeSizeX;   // Canvas size before safe frame adjustment
 	int32 UnsafeSizeY;	// Canvas size before safe frame adjustment
 
@@ -578,6 +582,9 @@ public:
 	 * @param Y				Y Position to draw item
 	 */
 	void DrawItem( class FCanvasItem& Item, float X, float Y );
+
+	/** Creates if necessary and returns ReporterGraph instance for 2d graph canvas drawing */
+	TWeakObjectPtr<class UReporterGraph>  GetReporterGraph();
 
 	/**
 	 * Draws a line on the Canvas.

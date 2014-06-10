@@ -20,7 +20,7 @@
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavigationSystem.h"
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
@@ -1306,38 +1306,27 @@ void UNavigationSystem::UnregisterNavData(ANavigationData* NavData)
 	NavAreaRemovedObservers.RemoveUObject(NavData, &ANavigationData::OnNavAreaRemovedNotify);
 }
 
-void UNavigationSystem::RegisterSmartLink(class USmartNavLinkComponent* LinkComp)
+void UNavigationSystem::RegisterCustomLink(class INavLinkCustomInterface* CustomLink)
 {
-	SmartLinksMap.Add(LinkComp->GetLinkId(), LinkComp);
+	CustomLinksMap.Add(CustomLink->GetLinkId(), CustomLink);
 }
 
-void UNavigationSystem::UnregisterSmartLink(class USmartNavLinkComponent* LinkComp)
+void UNavigationSystem::UnregisterCustomLink(class INavLinkCustomInterface* CustomLink)
 {
-	SmartLinksMap.Remove(LinkComp->GetLinkId());
+	CustomLinksMap.Remove(CustomLink->GetLinkId());
 }
 
-uint32 UNavigationSystem::FindFreeSmartLinkId() const
+class INavLinkCustomInterface* UNavigationSystem::GetCustomLink(uint32 UniqueLinkId) const
 {
-	uint32 NextFreeId = 1;
-	while (SmartLinksMap.Contains(NextFreeId))
-	{
-		NextFreeId++;
-	}
-
-	return NextFreeId;
+	return CustomLinksMap.FindRef(UniqueLinkId);
 }
 
-class USmartNavLinkComponent* UNavigationSystem::GetSmartLink(uint32 SmartLinkId) const
-{
-	return SmartLinksMap.FindRef(SmartLinkId);
-}
-
-void UNavigationSystem::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
+void UNavigationSystem::UpdateCustomLink(const class INavLinkCustomInterface* CustomLink)
 {
 	for (TMap<FNavAgentProperties, ANavigationData*>::TIterator It(AgentToNavDataMap); It; ++It)
 	{
 		ANavigationData* NavData = It.Value();
-		NavData->UpdateSmartLink(LinkComp);
+		NavData->UpdateCustomLink(CustomLink);
 	}
 }
 
@@ -1809,6 +1798,18 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		}
 		else
 		{
+			TArray<UNavRelevantComponent*> Components;
+			ActorOwner->GetComponents(Components);
+			for (int32 i = 0; i < Components.Num(); i++)
+			{
+				UNavRelevantComponent* NavRelevantComponent = Components[i];
+				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
+				{
+					NavRelevantComponent->OnOwnerRegistered();
+					AddComponentElementToNavOctree(NavRelevantComponent, DirtyElement, NavRelevantComponent->Bounds);
+				}
+			}
+
 			AddActorElementToNavOctree(ActorOwner, DirtyElement);
 		}
 	}
@@ -1942,6 +1943,7 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 			if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
 			{
 				NavRelevantComponent->OnOwnerUnregistered();
+				UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags, NavRelevantComponent->Bounds);
 			}
 		}
 
@@ -2022,6 +2024,19 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor, int32 UpdateFlags)
 					{
 						UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags | OctreeUpdate_Refresh, NavRelevantComponent->Bounds);
 					}
+				}
+			}
+		}
+		else
+		{
+			TArray<UNavRelevantComponent*> Components;
+			Actor->GetComponents(Components);
+			for (int32 i = 0; i < Components.Num(); i++)
+			{
+				UNavRelevantComponent* NavRelevantComponent = Components[i];
+				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
+				{
+					UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags | OctreeUpdate_Refresh, NavRelevantComponent->Bounds);
 				}
 			}
 		}

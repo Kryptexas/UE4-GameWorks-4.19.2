@@ -49,46 +49,20 @@
  *	directly from RecastNavMesh while asyncronously generating navmesh */
 struct FRecastNavMeshCachedData
 {
-	typedef TMap<const UClass*, uint8> TAreaClassIDMap;
-
-	struct FConvexNavAreaModifierRecastSortPredicate
-	{
-		float AreaCosts[RECAST_MAX_AREAS];
-		float AreaFixedCosts[RECAST_MAX_AREAS];
-		TAreaClassIDMap* AreaClassToIDMap;
-
-		FORCEINLINE void Prepare(FAreaNavModifier* Modifier) const
-		{
-			const uint8* AreaID = AreaClassToIDMap->Find(Modifier->GetAreaClass());
-			if (AreaID != NULL)
-			{
-				check(*AreaID < RECAST_MAX_AREAS);
-				Modifier->Cost = AreaCosts[*AreaID];
-				Modifier->FixedCost = AreaFixedCosts[*AreaID];
-			}
-		}
-
-		FORCEINLINE bool operator()( const FAreaNavModifier& A, const FAreaNavModifier& B ) const 
-		{ 
-			return A.FixedCost == B.FixedCost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
-		}
-	};
-
 	ARecastNavMesh::FNavPolyFlags FlagsPerArea[RECAST_MAX_AREAS];
 	ARecastNavMesh::FNavPolyFlags FlagsPerOffMeshLinkArea[RECAST_MAX_AREAS];
-	TAreaClassIDMap AreaClassToIDMap;
+	TMap<const UClass*, int32> AreaClassToIdMap;
+	const ARecastNavMesh* ActorOwner;
+	uint32 bUseSortFunction : 1;
 
-	FConvexNavAreaModifierRecastSortPredicate SortPredicate;
-	uint32 bSortNavigationAreasByCost : 1;
-
-	FRecastNavMeshCachedData(const ARecastNavMesh* RecastNavMeshActor)
+	FRecastNavMeshCachedData(const ARecastNavMesh* RecastNavMeshActor) : ActorOwner(RecastNavMeshActor)
 	{
 		check(RecastNavMeshActor);
 
 		if (RecastNavMeshActor != NULL)
 		{
 			// create copies from crucial ARecastNavMesh data
-			bSortNavigationAreasByCost = RecastNavMeshActor->bSortNavigationAreasByCost;
+			bUseSortFunction = RecastNavMeshActor->bSortNavigationAreasByCost;
 
 			TArray<FSupportedAreaData> Areas;
 			RecastNavMeshActor->GetSupportedAreas(Areas);
@@ -100,7 +74,7 @@ struct FRecastNavMeshCachedData
 				const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 				if (DefArea)
 				{
-					AreaClassToIDMap.Add(AreaClass, Areas[i].AreaID);
+					AreaClassToIdMap.Add(AreaClass, Areas[i].AreaID);
 					FlagsPerArea[Areas[i].AreaID] = DefArea->GetAreaFlags();
 				}
 			}
@@ -115,9 +89,6 @@ struct FRecastNavMeshCachedData
 					*AreaFlag |= NavLinkFlag;
 				}
 			}
-		
-			SortPredicate.AreaClassToIDMap = &AreaClassToIDMap;
-			RecastNavMeshActor->GetDefaultQueryFilter()->GetAllAreaCosts(SortPredicate.AreaCosts, SortPredicate.AreaFixedCosts, RECAST_MAX_AREAS);
 		}
 	}
 
@@ -126,7 +97,7 @@ struct FRecastNavMeshCachedData
 		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 		if (DefArea && AreaID >= 0)
 		{
-			AreaClassToIDMap.Add(AreaClass, AreaID);
+			AreaClassToIdMap.Add(AreaClass, AreaID);
 			FlagsPerArea[AreaID] = DefArea->GetAreaFlags();
 
 			static const ARecastNavMesh::FNavPolyFlags NavLinkFlag = ARecastNavMesh::GetNavLinkFlag();
@@ -134,9 +105,6 @@ struct FRecastNavMeshCachedData
 			{
 				FlagsPerOffMeshLinkArea[AreaID] = FlagsPerArea[AreaID] | NavLinkFlag;
 			}
-
-			SortPredicate.AreaCosts[AreaID] = DefArea->DefaultCost;
-			SortPredicate.AreaFixedCosts[AreaID] = DefArea->FixedAreaEnteringCost;
 		}		
 	}
 };
@@ -415,6 +383,12 @@ static void StoreCollisionCache(FRecastGeometryExport* GeomExport)
 {
 	const int32 NumFaces = GeomExport->IndexBuffer.Num() / 3;
 	const int32 NumVerts = GeomExport->VertexBuffer.Num() / 3;
+
+	if (NumFaces == 0 || NumVerts == 0)
+	{
+		GeomExport->Data->CollisionData.Empty();
+		return;
+	}
 
 	FRecastGeometryCache::FHeader HeaderInfo;
 	HeaderInfo.NumFaces = NumFaces;
@@ -1286,11 +1260,10 @@ FORCEINLINE void GrowConvexHull(const float ExpandBy, const TArray<FVector>& Ver
 struct FOffMeshData
 {
 	TArray<dtOffMeshLinkCreateParams> LinkParams;
-	const FRecastNavMeshCachedData::TAreaClassIDMap* AreaClassToIDMap;
+	const TMap<const UClass*, int32>* AreaClassToIdMap;
 	const ARecastNavMesh::FNavPolyFlags* FlagsPerArea;
 
-
-	FOffMeshData() : AreaClassToIDMap(NULL), FlagsPerArea(NULL) {}
+	FOffMeshData() : AreaClassToIdMap(NULL), FlagsPerArea(NULL) {}
 
 	FORCEINLINE void Reserve(const uint32 ElementsCount)
 	{
@@ -1325,7 +1298,7 @@ struct FOffMeshData
 			NewInfo.snapRadius = Link.SnapRadius;
 			NewInfo.userID = Link.UserId;
 
-			const uint8* AreaID = AreaClassToIDMap->Find(Link.AreaClass ? Link.AreaClass : UNavigationSystem::GetDefaultWalkableArea());
+			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass ? Link.AreaClass : UNavigationSystem::GetDefaultWalkableArea());
 			if (AreaID != NULL)
 			{
 				NewInfo.area = *AreaID;
@@ -1373,7 +1346,7 @@ struct FOffMeshData
 			NewInfo.snapRadius = Link.SnapRadius;
 			NewInfo.userID = Link.UserId;
 
-			const uint8* AreaID = AreaClassToIDMap->Find(Link.AreaClass);
+			const int32* AreaID = AreaClassToIdMap->Find(Link.AreaClass);
 			if (AreaID != NULL)
 			{
 				NewInfo.area = *AreaID;
@@ -2555,15 +2528,9 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 	}
 
 	FRecastNavMeshCachedData* AdditionalCachedDataPtr = AdditionalCachedData.Get();
-	if (AdditionalCachedDataPtr->bSortNavigationAreasByCost && NumAreas > 1)
+	if (AdditionalCachedDataPtr->bUseSortFunction && AdditionalCachedDataPtr->ActorOwner && NumAreas > 1)
 	{
-		FAreaNavModifier* Modifier = PtrStaticAreas->GetTypedData();
-		for (int32 ModifierIndex = 0; ModifierIndex < NumAreas; ++ModifierIndex, ++Modifier)
-		{
-			AdditionalCachedData->SortPredicate.Prepare(Modifier);
-		}
-
-		StaticAreas.Sort(AdditionalCachedDataPtr->SortPredicate);
+		AdditionalCachedDataPtr->ActorOwner->SortAreasForGenerator(*PtrStaticAreas);
 	}
 
 	RECAST_STAT(STAT_Navigation_Async_MarkAreas);
@@ -2572,7 +2539,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 	const FAreaNavModifier* Modifier = PtrStaticAreas->GetTypedData();
 	for (int32 ModifierIndex = 0; ModifierIndex < NumAreas; ++ModifierIndex, ++Modifier)
 	{
-		const uint8* AreaID = AdditionalCachedDataPtr->AreaClassToIDMap.Find(Modifier->GetAreaClass());
+		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
 		if (AreaID == NULL)
 		{
 			// happens when area is not supported by agent owning this navmesh
@@ -2855,7 +2822,7 @@ bool FRecastTileGenerator::GenerateNavigationData(class FNavMeshBuildContext* Bu
 				RECAST_STAT(STAT_Navigation_Async_GatherOffMeshData);
 
 				OffMeshData.Reserve(PtrOffmeshLinks->Num());
-				OffMeshData.AreaClassToIDMap = &AdditionalCachedDataPtr->AreaClassToIDMap;
+				OffMeshData.AreaClassToIdMap = &AdditionalCachedDataPtr->AreaClassToIdMap;
 				OffMeshData.FlagsPerArea = AdditionalCachedDataPtr->FlagsPerOffMeshLinkArea;
 				const uint32 AgentMask = (1 << TileConfig.AgentIndex);
 
@@ -2964,15 +2931,9 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 	CombinedAreas.Append(*PtrDynamicAreas);
 
 	FRecastNavMeshCachedData* AdditionalCachedDataPtr = AdditionalCachedData.Get();
-	if (AdditionalCachedDataPtr->bSortNavigationAreasByCost && CombinedAreas.Num() > 1)
+	if (AdditionalCachedDataPtr->bUseSortFunction && AdditionalCachedDataPtr->ActorOwner && CombinedAreas.Num() > 1)
 	{
-		FAreaNavModifier* Modifier = CombinedAreas.GetTypedData();
-		for (int32 ModifierIndex = 0; ModifierIndex < CombinedAreas.Num(); ++ModifierIndex, ++Modifier)
-		{
-			AdditionalCachedData->SortPredicate.Prepare(Modifier);
-		}
-
-		CombinedAreas.Sort(AdditionalCachedDataPtr->SortPredicate);
+		AdditionalCachedDataPtr->ActorOwner->SortAreasForGenerator(CombinedAreas);
 	}
 
 	RECAST_STAT(STAT_Navigation_Async_MarkAreas);
@@ -2983,7 +2944,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 	const FAreaNavModifier* Modifier = CombinedAreas.GetTypedData();
 	for (int32 ModifierIndex = 0; ModifierIndex < CombinedAreas.Num(); ++ModifierIndex, ++Modifier)
 	{
-		const uint8* AreaID = AdditionalCachedDataPtr->AreaClassToIDMap.Find(Modifier->GetAreaClass());
+		const int32* AreaID = AdditionalCachedDataPtr->AreaClassToIdMap.Find(Modifier->GetAreaClass());
 		if (AreaID == NULL)
 		{
 			// happens when area is not supported by agent owning this navmesh

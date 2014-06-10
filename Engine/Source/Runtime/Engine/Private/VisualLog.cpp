@@ -120,6 +120,27 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 			}
 		}
 	}
+
+	TArray< TSharedPtr<FJsonValue> > JsonHistogramSamples = JsonEntryObject->GetArrayField(VisualLogJson::TAG_HISTOGRAMSAMPLES);
+	if (JsonHistogramSamples.Num() > 0)
+	{
+		HistogramSamples.Reserve(JsonHistogramSamples.Num());
+		for (int32 SampleIndex = 0; SampleIndex < JsonHistogramSamples.Num(); ++SampleIndex)
+		{
+			TSharedPtr<FJsonObject> JsonSampleObject = JsonHistogramSamples[SampleIndex]->AsObject();
+			if (JsonSampleObject.IsValid())
+			{
+				FHistogramSample& Sample = HistogramSamples[HistogramSamples.Add(FHistogramSample())];
+
+				Sample.Category = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_CATEGORY)));
+				Sample.Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::TruncToInt(JsonSampleObject->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
+				Sample.GraphName = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_HISTOGRAMGRAPHNAME)));
+				Sample.DataName = FName(*(JsonSampleObject->GetStringField(VisualLogJson::TAG_HISTOGRAMDATANAME)));
+				Sample.SampleValue.InitFromString(JsonSampleObject->GetStringField(VisualLogJson::TAG_HISTOGRAMSAMPLE));
+			}
+		}
+	}
+
 }
 
 TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
@@ -198,6 +219,27 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 
 	JsonEntryObject->SetArrayField(VisualLogJson::TAG_ELEMENTSTODRAW, JsonElementsToDraw);
 	
+	const int32 HistogramSamplesCount = HistogramSamples.Num();
+	const FVisLogEntry::FHistogramSample* Sample = HistogramSamples.GetTypedData();
+	TArray<TSharedPtr<FJsonValue> > JsonHistogramSamples;
+	JsonHistogramSamples.AddZeroed(HistogramSamplesCount);
+
+	for (int32 SampleIndex = 0; SampleIndex < HistogramSamplesCount; ++SampleIndex, ++Sample)
+	{
+		TSharedPtr<FJsonObject> JsonSampleObject = MakeShareable(new FJsonObject);
+
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_CATEGORY, Sample->Category.ToString());
+		JsonSampleObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, Sample->Verbosity);
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_HISTOGRAMSAMPLE, Sample->SampleValue.ToString());
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_HISTOGRAMGRAPHNAME, Sample->GraphName.ToString());
+		JsonSampleObject->SetStringField(VisualLogJson::TAG_HISTOGRAMDATANAME, Sample->DataName.ToString());
+
+		JsonHistogramSamples[SampleIndex] = MakeShareable(new FJsonValueObject(JsonSampleObject));
+	}
+
+	JsonEntryObject->SetArrayField(VisualLogJson::TAG_HISTOGRAMSAMPLES, JsonHistogramSamples);
+	
+
 	return MakeShareable(new FJsonValueObject(JsonEntryObject));
 }
 
@@ -235,6 +277,17 @@ void FVisLogEntry::AddElement(const FBox& Box, const FName& CategoryName, const 
 	Element.Points.Add(Box.Max);
 	Element.Type = FElementToDraw::Box;
 	ElementsToDraw.Add(Element);
+}
+
+void FVisLogEntry::AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, const FName& GraphName, const FName& DataName)
+{
+	FHistogramSample Sample;
+	Sample.Category = CategoryName;
+	Sample.GraphName = GraphName;
+	Sample.DataName = DataName;
+	Sample.SampleValue = DataSample;
+
+	HistogramSamples.Add(Sample);
 }
 
 //----------------------------------------------------------------------//
@@ -299,6 +352,8 @@ FVisualLog::FVisualLog()
 {
 	FileAr = NULL;
 	bIsRecordingToFile = false;
+	bIsAllBlocked = false;
+	Whitelist.Reserve(10);
 }
 
 FVisualLog::~FVisualLog()
@@ -487,7 +542,7 @@ void FVisualLog::Redirect(AActor* Actor, const AActor* NewRedirection)
 
 void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line)
 {
-	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill())
+	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill() || (IsAllBlocked() && !InWhitelist(CategoryName)))
 	{
 		return;
 	}
@@ -512,27 +567,41 @@ public:
 	/** Console commands, see embeded usage statement **/
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
 	{
-		if (FParse::Command(&Cmd, TEXT("VISLOG record")))
+		if (FParse::Command(&Cmd, TEXT("VISLOG")))
 		{
-			FVisualLog::Get()->SetIsRecording(true);
-			return true;
+			FString Command = FParse::Token(Cmd, 0);
+			if (Command == TEXT("record"))
+			{
+				FVisualLog::Get()->SetIsRecording(true);
+				return true;
+			}
+			else if (Command == TEXT("stop"))
+			{
+				FVisualLog::Get()->SetIsRecording(false);
+				return true;
+			}
+			else if (Command == TEXT("exit"))
+			{
+				FLogVisualizerModule::Get()->CloseUI(InWorld);
+				return true;
+			}
+			else if (Command == TEXT("disableallbut"))
+			{
+				FString Category = FParse::Token(Cmd, 1);
+				FVisualLog* VisLog = FVisualLog::Get();
+				if (VisLog)
+				{
+					VisLog->BlockAllLogs(true);
+					VisLog->AddCategortyToWhiteList(*Category);
+				}
+				return true;
+			}
+			else
+			{
+				FLogVisualizerModule::Get()->SummonUI(InWorld);
+				return true;
+			}
 		}
-		else if (FParse::Command(&Cmd, TEXT("VISLOG stop")))
-		{
-			FVisualLog::Get()->SetIsRecording(false);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("VISLOG exit")))
-		{
-			FLogVisualizerModule::Get()->CloseUI(InWorld);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("VISLOG")))
-		{
-			FLogVisualizerModule::Get()->SummonUI(InWorld);
-			return true;
-		}
-
 		return false;
 	}
 } LogVisualizerExec;

@@ -3,6 +3,7 @@
 #include "LogVisualizerPCH.h"
 #include "SLogBar.h"
 #include "Debug/LogVisualizerCameraController.h"
+#include "Debug/ReporterGraph.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "Json.h"
@@ -34,6 +35,48 @@ namespace LogVisualizer
 	static const FString LogFileExtension = FString::Printf(TEXT("*.%s"), *LogFileExtensionPure);
 	static const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *LogFileDescription, *LogFileExtension, *LogFileExtension );
 }
+
+FColor SLogVisualizer::ColorPalette[] = {
+	FColor(0xff00A480),
+	FColorList::Aquamarine,
+	FColorList::Cyan,
+	FColorList::Brown,
+	FColorList::Green,
+	FColorList::Orange,
+	FColorList::Magenta,
+	FColorList::BrightGold,
+	FColorList::NeonBlue,
+	FColorList::MediumSlateBlue,
+	FColorList::SpicyPink,
+	FColor(0xff62E200),
+	FColor(0xff1F7B67),
+	FColor(0xff62AA2A),
+	FColor(0xff70227E),
+	FColor(0xff006B53),
+	FColor(0xff409300),
+	FColor(0xff5D016D),
+	FColor(0xff34D2AF),
+	FColor(0xff8BF13C),
+	FColor(0xffBC38D3),
+	FColor(0xff5ED2B8),
+	FColor(0xffA6F16C),
+	FColor(0xffC262D3),
+	FColor(0xff0F4FA8),
+	FColor(0xff00AE68),
+	FColor(0xffDC0055),
+	FColor(0xff284C7E),
+	FColor(0xff21825B),
+	FColor(0xffA52959),
+	FColor(0xff05316D),
+	FColor(0xff007143),
+	FColor(0xff8F0037),
+	FColor(0xff4380D3),
+	FColor(0xff36D695),
+	FColor(0xffEE3B80),
+	FColor(0xff6996D3),
+	FColor(0xff60D6A7),
+	FColor(0xffEE6B9E)
+};
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVisualizer)
@@ -508,6 +551,16 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 					break;
 				}
 			}
+
+			for (int32 SampleIndex = 0; SampleIndex < Log->Entries[i]->HistogramSamples.Num(); ++SampleIndex)
+			{
+				const FName CurrentCategory = Log->Entries[i]->HistogramSamples[SampleIndex].Category;
+				if (CurrentCategory == NAME_None || FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All))
+				{
+					OutEntries.AddUnique(Log->Entries[i]);
+					break;
+				}
+			}
 		}
 
 		return;
@@ -672,6 +725,19 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 				}
 			}
 
+			if (!bShouldShow)
+			{
+				for (int32 SampleIndex = 0; SampleIndex < Log->Entries[NewEntryIndex]->HistogramSamples.Num(); ++SampleIndex)
+				{
+					const FName CurrentCategory = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].Category;
+					if (CurrentCategory == NAME_None || FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
 			if (bShouldShow)
 			{
 				break;
@@ -720,6 +786,18 @@ void SLogVisualizer::AddLog(int32 LogIndex, const FActorsVisLog* Log)
 		for (auto Iter(Log->Entries[EntryIndex]->ElementsToDraw.CreateConstIterator()); Iter; Iter++)
 		{
 			const FString CategoryAsString = Iter->Category != NAME_None ? Iter->Category.ToString() : TEXT("ShapeElement");
+
+			int32 Index = UsedCategories.Find(CategoryAsString);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CategoryAsString);
+				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
+			}
+		}
+
+		for (int32 SampleIndex = 0; SampleIndex < Log->Entries[EntryIndex]->HistogramSamples.Num(); ++SampleIndex)
+		{
+			const FString CategoryAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].Category.ToString();
 
 			int32 Index = UsedCategories.Find(CategoryAsString);
 			if (Index == INDEX_NONE)
@@ -812,6 +890,34 @@ void SLogVisualizer::LogsListSelectionChanged(TSharedPtr<FLogsListItem> Selected
 		LogEntryIndex = Log->Entries.Num() - 1;
 	}
 	
+	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		if (USelection* SelectedActors = GEditor->GetSelectedActors())
+		{
+			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+
+			if (UWorld* World = GetWorld())
+			{
+				for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+				{
+					if (APawn* CurrentPawn = *Iterator)
+					{
+						if (AController* CurrentController = CurrentPawn->GetController())
+						{
+							if (CurrentController->GetName() == Log->Name.ToString())
+							{
+								SelectedActors->Select(CurrentPawn);
+							}
+							else
+							{
+								SelectedActors->Deselect(CurrentPawn);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	//SetCurrentViewedTime(CurrentViewedTime, /*bForce=*/true);
 	
@@ -909,23 +1015,14 @@ void SLogVisualizer::ShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVi
 	ShowEntry(LogEntry.Get());
 }
 
-FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index) const
+FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index)
 {
-	switch (Index)
+	if (Index >= 0 && Index < sizeof(ColorPalette) / sizeof(ColorPalette[0]))
 	{
-	case 0: return FLinearColor(FColorList::Aquamarine);
-	case 1: return FLinearColor(FColorList::Cyan);	
-	case 2: return FLinearColor(FColorList::Brown);
-	case 3: return FLinearColor(FColorList::Green);
-	case 4: return FLinearColor(FColorList::Orange);
-	case 5: return FLinearColor(FColorList::Magenta);
-	case 6: return FLinearColor(FColorList::BrightGold);
-	case 7: return FLinearColor(FColorList::NeonBlue);
-	case 8: return FLinearColor(FColorList::MediumSlateBlue);
-	case 9: return FLinearColor(FColorList::SpicyPink);
-	default:
-		return FLinearColor::White;
+		return ColorPalette[Index];
 	}
+
+	return FLinearColor::White;
 }
 
 TSharedRef<ITableRow> SLogVisualizer::HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable)
@@ -1243,6 +1340,99 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			Canvas->DrawText(Font, TimeStampString,EntryScreenLoc.X+1, EntryScreenLoc.Y+1);
 			Canvas->SetDrawColor(FColor::White);
 			Canvas->DrawText(Font, TimeStampString, EntryScreenLoc.X, EntryScreenLoc.Y);
+
+			//let's draw histogram data
+			struct FGraphLineData
+			{
+				FName DataName;
+				TArray<FVector2D> Samples;
+			};
+			typedef TMap<FName, FGraphLineData > FGraphLines;
+
+			struct FGraphData
+			{
+				FGraphData() : Min(FVector2D(FLT_MAX, FLT_MAX)), Max(FVector2D(FLT_MIN, FLT_MIN)) {}
+
+				FVector2D Min, Max;
+				TMap<FName, FGraphLineData > GraphLines;
+			};
+
+			TMap<FName, FGraphData>	CollectedGraphs;
+
+			for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
+			{
+				const TSharedPtr<FVisLogEntry>& CurrentEntry = Entries[EntryIndex];
+				if (CurrentEntry->TimeStamp > Entry->TimeStamp)
+				{
+					break;
+				}
+
+				const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
+				{
+					FVisLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					if (!FilterListPtr.IsValid() || FilterListPtr->IsFilterEnabled(CurrentSample.Category.ToString(), ELogVerbosity::All))
+					{
+						FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
+						FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.Category);
+						LineData.DataName = CurrentSample.DataName;
+						LineData.Samples.Add( CurrentSample.SampleValue );
+
+						GraphData.Min.X = FMath::Min(GraphData.Min.X, CurrentSample.SampleValue.X);
+						GraphData.Min.Y = FMath::Min(GraphData.Min.Y, CurrentSample.SampleValue.Y);
+
+						GraphData.Max.X = FMath::Max(GraphData.Max.X, CurrentSample.SampleValue.X);
+						GraphData.Max.Y = FMath::Max(GraphData.Max.Y, CurrentSample.SampleValue.Y);
+					}
+				}
+			}
+
+			int32 GraphIndex = 0;
+			if (CollectedGraphs.Num() > 0)
+			{
+				for (auto It(CollectedGraphs.CreateConstIterator()); It; ++It)
+				{
+					TWeakObjectPtr<UReporterGraph> HistogramGraph = Canvas->GetReporterGraph();
+					if (!HistogramGraph.IsValid())
+					{
+						break;
+					}
+					HistogramGraph->SetNumGraphLines(It->Value.GraphLines.Num());
+					int32 LineIndex = 0;
+					for (auto LinesIt(It->Value.GraphLines.CreateConstIterator()); LinesIt; ++LinesIt)
+					{
+						int32 ColorIndex = UsedCategories.Find(LinesIt->Value.DataName.ToString());
+						if (ColorIndex == INDEX_NONE)
+						{
+							ColorIndex = UsedCategories.AddUnique(LinesIt->Value.DataName.ToString());
+						}
+
+						HistogramGraph->GetGraphLine(LineIndex)->Color = GetColorForUsedCategory(ColorIndex);
+						HistogramGraph->GetGraphLine(LineIndex)->LineName = LinesIt->Value.DataName.ToString();
+						HistogramGraph->GetGraphLine(LineIndex)->Data.Append(LinesIt->Value.Samples);
+						++LineIndex;
+					}
+
+					float dx = 0.8f / CollectedGraphs.Num();
+					HistogramGraph->SetGraphScreenSize( 0.1f + GraphIndex * (dx+0.02), 0.1f + GraphIndex * dx + dx, (1.0f - dx) * 0.5f,   1.0f - (1 - dx) * 0.5f);
+					HistogramGraph->SetAxesMinMax(It->Value.Min, It->Value.Max);
+
+					HistogramGraph->SetNumThresholds(1);
+					FGraphThreshold* GraphThreshold = HistogramGraph->GetThreshold(0);
+					GraphThreshold->Threshold = 0.f;
+					GraphThreshold->Color = FLinearColor::White;
+					GraphThreshold->ThresholdName = TEXT("     0");
+					HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
+					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 30) );
+					HistogramGraph->SetLegendPosition(ELegendPosition::Inside);
+
+					HistogramGraph->bVisible = true;
+					HistogramGraph->Draw(Canvas);
+
+					++GraphIndex;
+				}
+			}
+
 
 			const FVisLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetTypedData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();

@@ -166,7 +166,7 @@ public:
 	class UWorld* World;
 
 	/** @todo document */
-	TSharedPtr< class FNetGUIDCache >		GuidCache;
+	TSharedPtr< class FNetGUIDCache > GuidCache;
 
 	TSharedPtr< class FClassNetCacheMgr >	NetCache;
 

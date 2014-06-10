@@ -459,10 +459,10 @@ public:
 	/** Returns properties that are replicated for the lifetime of the actor channel */
 	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const;
 
-	/** IsNameStableForNetworking means an object can be referred to by its path name (relative to outer) over the network */
+	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
 	virtual bool IsNameStableForNetworking() const;
 
-	/** IsFullNameStableForNetworking means an object can be referred by to its full path name over the network */
+	/** IsFullNameStableForNetworking means an object can be referred to its full path name over the network */
 	virtual bool IsFullNameStableForNetworking() const;
 
 	/** IsSupportedForNetworking means an object can be referenced over the network */
