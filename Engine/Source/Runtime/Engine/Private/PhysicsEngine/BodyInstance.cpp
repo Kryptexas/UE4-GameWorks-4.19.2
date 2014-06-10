@@ -1794,7 +1794,7 @@ bool FBodyInstance::IsDynamic() const
 	return false;
 }
 
-void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending, bool bIgnoreOwner)
+void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (bSimulate && OwnerComponent.IsValid())
@@ -1831,7 +1831,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 		}
 	}
 
-	UpdateInstanceSimulatePhysics(bIgnoreOwner);
+	UpdateInstanceSimulatePhysics(true);
 }
 
 bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
@@ -1842,16 +1842,10 @@ bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
 
 bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
-	// if I'm simulating or owner is simulating
-	if (BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
+	//If type is set to default inherit whatever the parent does
+	if (OwnerComponent != NULL && BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
 	{
-		// if derive from owner, and owner is simulating, this should simulate
-		if (OwnerComponent != NULL && OwnerComponent->BodyInstance.bSimulatePhysics)
-		{
-			return true;
-		}
-
-		// or else, it should look its own setting
+		return OwnerComponent->BodyInstance.bSimulatePhysics;
 	}
 
 	return bSimulatePhysics;

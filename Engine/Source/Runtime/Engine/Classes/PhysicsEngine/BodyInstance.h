@@ -329,7 +329,7 @@ public:
 
 
 	/** Set this body to be fixed (kinematic) or not. */
-	void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false, bool bIgnoreOwner=false);
+	void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false);
 	/** Makes sure the current kinematic state matches the simulate flag */
 	void UpdateInstanceSimulatePhysics(bool bIgnoreOwner = false);
 	/** Returns true if this body is simulating, false if it is fixed (kinematic) */

@@ -1244,7 +1244,7 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 
 							if (BodySetup->PhysicsType == PhysType_Default) 	//if they set it to unfixed we don't fixup because they are explicitely saying Unfixed
 							{
-								BodyInstance->SetInstanceSimulatePhysics(false, false, true);
+								BodyInstance->SetInstanceSimulatePhysics(false);
 							}
 
 							//and get rid of constraints on the wheels. TODO: right now we remove all wheel constraints, we probably only want to remove parent constraints
