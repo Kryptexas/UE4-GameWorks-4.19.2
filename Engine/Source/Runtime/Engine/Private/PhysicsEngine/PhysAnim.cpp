@@ -12,7 +12,6 @@
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
 
-DECLARE_CYCLE_STAT(TEXT("SkinPerPolyVertices "),STAT_SkinPerPolyVertices,STATGROUP_Physics);
 
 /** Used for drawing pre-phys skeleton if bShowPrePhysBones is true */
 static const FColor AnimSkelDrawColor(255, 64, 64);
