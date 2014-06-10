@@ -351,6 +351,8 @@
 		[[Window contentView] addSubview:OKButton];
 		[[Window contentView] addSubview:CancelButton];
 
+		[Window setTitle:@"Choose UE4 Editor..."];
+
 		[Window center];
 		[NSApp activateIgnoringOtherApps:YES];
 
