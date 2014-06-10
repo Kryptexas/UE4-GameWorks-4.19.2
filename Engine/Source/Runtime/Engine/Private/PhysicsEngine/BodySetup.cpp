@@ -25,6 +25,8 @@
 	}
 #endif // WITH_PHYSX
 
+DECLARE_CYCLE_STAT(TEXT("UpdateTriMeshVertices "),STAT_UpdateTriMeshVertices,STATGROUP_Physics);
+
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
