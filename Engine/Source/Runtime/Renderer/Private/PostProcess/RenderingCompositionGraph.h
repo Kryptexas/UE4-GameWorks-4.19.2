@@ -7,6 +7,7 @@
 #pragma once
 
 #include "RHIStaticStates.h"
+#include "RHICommandList.h"
 
 struct FRenderingCompositePass;
 struct FRenderingCompositeOutputRef;
