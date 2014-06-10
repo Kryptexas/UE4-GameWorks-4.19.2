@@ -4,6 +4,7 @@
 
 #include "ICUUtilities.h"
 #include "ICUCulture.h"
+#include "TextHistory.h"
 #include "unicode/utypes.h"
 #include <unicode/numfmt.h>
 #include "unicode/fmtable.h"
