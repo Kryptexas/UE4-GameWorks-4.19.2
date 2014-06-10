@@ -44,6 +44,9 @@ DEFINE_STAT(STAT_AnimStateMachineUpdate);
 DEFINE_STAT(STAT_AnimStateMachineFindTransition);
 DEFINE_STAT(STAT_AnimStateMachineEvaluate);
 
+DEFINE_STAT(STAT_SkinPerPolyVertices);
+DEFINE_STAT(STAT_UpdateTriMeshVertices);
+
 // Define AnimNotify
 DEFINE_LOG_CATEGORY(LogAnimNotify);
 
