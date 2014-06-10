@@ -258,6 +258,7 @@ void FLauncherProfileManager::LoadProfiles( )
 		if (ProfileFileReader != NULL)
 		{
 			ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
+			delete ProfileFileReader;
 
 			if (LoadedProfile.IsValid())
 			{
@@ -267,8 +268,6 @@ void FLauncherProfileManager::LoadProfiles( )
 			{
 				IFileManager::Get().Delete(*ProfileFilePath);
 			}
-
-			delete ProfileFileReader;
 		}
 	}
 }
