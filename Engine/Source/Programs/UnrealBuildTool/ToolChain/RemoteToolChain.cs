@@ -359,7 +359,7 @@ namespace UnrealBuildTool
 						{
 							string RemoteFilePath = ConvertPath(SyncFile);
 							// an upload command is local name and remote name
-							BatchUploadCommands.Add(SyncFile + " " + RemoteFilePath);
+							BatchUploadCommands.Add(SyncFile + ";" + RemoteFilePath);
 						}
 					}
 				}
