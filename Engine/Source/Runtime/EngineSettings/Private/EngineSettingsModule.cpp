@@ -79,9 +79,11 @@ const FString& UGameMapsSettings::GetGameDefaultMap( )
 
 const FString& UGameMapsSettings::GetGlobalDefaultGameMode( )
 {
-	return IsRunningDedicatedServer()
-		? GetDefault<UGameMapsSettings>()->GlobalDefaultServerGameMode.ClassName 
-		: GetDefault<UGameMapsSettings>()->GlobalDefaultGameMode.ClassName;
+	UGameMapsSettings* GameMapsSettings = Cast<UGameMapsSettings>(UGameMapsSettings::StaticClass()->GetDefaultObject());
+
+	return IsRunningDedicatedServer() && GameMapsSettings->GlobalDefaultServerGameMode.IsValid()
+		? GameMapsSettings->GlobalDefaultServerGameMode.ClassName
+		: GameMapsSettings->GlobalDefaultGameMode.ClassName;
 }
 
 

@@ -110,7 +110,8 @@ private:
 	FStringClassReference GlobalDefaultGameMode;
 
 	/**
-	 * GameMode to use if not specified in any other way. (e.g. per-map DefaultGameMode or on the URL) (DEDICATED SERVERS).
+	 * GameMode to use if not specified in any other way. (e.g. per-map DefaultGameMode or on the URL) (DEDICATED SERVERS)
+	 * If not set, the GlobalDefaultGameMode value will be used.
 	 */
 	UPROPERTY(config, EditAnywhere, Category=DefaultModes, meta=(MetaClass="GameMode"), AdvancedDisplay)
 	FStringClassReference GlobalDefaultServerGameMode;

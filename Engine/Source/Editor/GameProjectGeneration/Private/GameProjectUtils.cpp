@@ -1465,7 +1465,6 @@ bool GameProjectUtils::GenerateConfigFiles(const FString& NewProjectPath, const 
 				if (bShouldGenerateCode)
 				{
 					FileContents += FString::Printf(TEXT("GlobalDefaultGameMode=\"/Script/%s.%sGameMode\"") LINE_TERMINATOR, *NewProjectName, *NewProjectName);
-					FileContents += FString::Printf(TEXT("GlobalDefaultServerGameMode=\"/Script/%s.%sGameMode\"") LINE_TERMINATOR, *NewProjectName, *NewProjectName);
 				}
 			}
 		}
