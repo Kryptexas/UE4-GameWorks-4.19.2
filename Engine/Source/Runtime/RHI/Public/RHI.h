@@ -189,8 +189,6 @@ extern RHI_API volatile int32 GCurrentTextureMemorySize;
 extern RHI_API volatile int32 GCurrentRendertargetMemorySize;
 /** Current texture streaming pool size, in bytes. 0 means unlimited. */
 extern RHI_API int64 GTexturePoolSize;
-/** Whether to read the texture pool size from engine.ini. Can be turned on with -UseTexturePool on the command line. */
-extern RHI_API bool GReadTexturePoolSizeFromIni;
 /** In percent. If non-zero, the texture pool size is a percentage of GTotalGraphicsMemory. */
 extern RHI_API int32 GPoolSizeVRAMPercentage;
 

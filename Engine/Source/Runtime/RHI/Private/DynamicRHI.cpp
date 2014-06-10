@@ -38,14 +38,7 @@ void RHIInit(bool bHasEditorToken)
 	if(!GDynamicRHI)
 	{
 		const TCHAR* CmdLine = FCommandLine::Get();
-		FString Token = FParse::Token(CmdLine, false);
-
-		if ( FParse::Param(FCommandLine::Get(),TEXT("UseTexturePool")) )
-		{
-			/** Whether to read the texture pool size from engine.ini on PC. Can be turned on with -UseTexturePool on the command line. */
-			extern RHI_API bool GReadTexturePoolSizeFromIni;
-			GReadTexturePoolSizeFromIni = true;
-		}
+		FString Token = FParse::Token(CmdLine, false);		
 
 		if(USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || IsRunningCommandlet() || IsRunningDedicatedServer())
 		{

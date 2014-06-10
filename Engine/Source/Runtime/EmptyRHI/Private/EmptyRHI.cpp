@@ -41,7 +41,6 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 // 	GRHISupportsTextureStreaming = true;
 // 	GMaxShadowDepthBufferSizeX = 4096;
 // 	GMaxShadowDepthBufferSizeY = 4096;
-// 	GReadTexturePoolSizeFromIni = true;
 // 
 // 	GMaxTextureDimensions = 16384;
 // 	GMaxTextureMipCount = FPlatformMath::CeilLogTwo( GMaxTextureDimensions ) + 1;

@@ -2089,13 +2089,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 	{
 		OriginalTexturePoolSize =  int64(PoolSizeCVar) * 1024ll * 1024ll;
 		GTexturePoolSize = OriginalTexturePoolSize;
-	}
-	else if ( GReadTexturePoolSizeFromIni )
-	{
-		// Read the texture pool size straight from the .ini
-		OriginalTexturePoolSize = int64(PoolSizeIniSetting) * 1024ll * 1024ll;
-		GTexturePoolSize = OriginalTexturePoolSize;
-	}
+	}	
 	else if ( GPoolSizeVRAMPercentage )
 	{
 		// If GPoolSizeVRAMPercentage is set, the pool size has already been calculated and we're not reading it from the .ini

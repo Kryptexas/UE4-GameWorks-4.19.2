@@ -438,17 +438,7 @@ static void InitRHICapabilitiesForGL()
 	GTexturePoolSize = 0;
 	GPoolSizeVRAMPercentage = 0;
 #if PLATFORM_WINDOWS
-	if ( GReadTexturePoolSizeFromIni )
-	{
-		int32 PoolSize;
-		GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSize"), PoolSize, GEngineIni);
-
-		GTexturePoolSize = int64(PoolSize) * 1024 * 1024;
-	}
-	else
-	{
-		GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );
-	}
+	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );	
 #endif
 
 	// GL vendor and version information.
