@@ -883,9 +883,9 @@ namespace AutomationTool
 
                     Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
 
-                    if (UnrealBuildTool.Utils.IsRunningOnMono && IsProbablyAMacOrIOSExe(DestFile))
+                    if (UnrealBuildTool.Utils.IsRunningOnMono)
                     {
-                        SetExecutableBit(DestFile);
+						FixUnixFilePermissions(DestFile);
                     }
 
                     FileInfo Info = new FileInfo(DestFile);
@@ -919,9 +919,9 @@ namespace AutomationTool
                 foreach (string DestFile in DestFiles)
                 {
                     Robust_FileExists_NoExceptions(true, DestFile, "Could not copy to {0}");
-                    if (UnrealBuildTool.Utils.IsRunningOnMono && IsProbablyAMacOrIOSExe(DestFile))
+                    if (UnrealBuildTool.Utils.IsRunningOnMono)
                     {
-                        SetExecutableBit(DestFile);
+						FixUnixFilePermissions(DestFile);
                     }
                     FileInfo Info = new FileInfo(DestFile);
                     NewDestFiles.Add(Info.FullName);
