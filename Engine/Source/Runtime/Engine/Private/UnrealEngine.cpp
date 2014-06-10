@@ -9501,6 +9501,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	if(NewActor != NULL)
 	{
 		NewActor->SetRootComponent(SavedRootComponent);
+		NewActor->ResetOwnedComponents();
 	}
 
 	bool bDumpProperties = CVarDumpCopyPropertiesForUnrelatedObjects.GetValueOnGameThread() != 0;

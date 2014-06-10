@@ -2046,6 +2046,7 @@ private:
 	TArray<UActorComponent*> OwnedComponents;
 
 	friend class FBlueprintEditorUtils;
+	friend class UEngine;
 	void ResetOwnedComponents();
 
 public:
