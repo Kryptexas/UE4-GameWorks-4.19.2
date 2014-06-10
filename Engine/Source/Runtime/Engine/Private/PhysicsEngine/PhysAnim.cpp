@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "AnimTree.h"
+#include "SkeletalRenderPublic.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
@@ -363,6 +364,21 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 	else
 	{
 		//per poly update requires us to update all vertex positions
+		if (MeshObject)
+		{
+			const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+			TArray<FVector> NewPositions;
+			NewPositions.AddUninitialized(Model.NumVertices);
+			for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+			{
+				NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+			}
+
+			TArray<uint32> Indices;
+			Model.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+			BodyInstance.UpdateTriMeshVertices(NewPositions, Indices);
+			BodyInstance.SetBodyTransform(CurrentLocalToWorld, bTeleport);
+		}
 	}
 
 

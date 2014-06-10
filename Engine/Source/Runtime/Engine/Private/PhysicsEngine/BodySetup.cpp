@@ -732,6 +732,49 @@ void UBodySetup::PostLoad()
 	}
 }
 
+void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices)
+{
+#if WITH_PHYSX
+	if (TriMesh)
+	{
+		const bool bNeedsRemap = true;	//depending on if we clean verts during cooking there can be a 1-1 map or not. Need to benchmark this
+		if (bNeedsRemap)
+		{
+			const PxU32 * RuntimeToOriginal = TriMesh->getTrianglesRemap();
+			bool b16BitIndices = TriMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::e16_BIT_INDICES;
+			const void * PIndices = TriMesh->getTriangles();
+
+			uint32 PNumTris = TriMesh->getNbTriangles();
+			PxVec3 * PNewPositions = TriMesh->getVerticesForModification();
+
+			for (uint32 TriIdx = 0; TriIdx < PNumTris; ++TriIdx)
+			{
+				PxU32 OriginalStartIndex = RuntimeToOriginal[TriIdx] * 3;
+				for (int i = 0; i < 3; ++i)
+				{
+					PxU32 PIndex = TriIdx * 3 + i;
+					PxU32 PVertexIndex = b16BitIndices ? ((PxU16*)PIndices)[PIndex] : ((PxU32*)PIndices)[PIndex];
+					PxVec3 & PRuntimeVertex = PNewPositions[PVertexIndex];
+
+					PxU32 OriginalVertexIndex = Indices[OriginalStartIndex + i];
+					const FVector & OriginalVertex = NewPositions[OriginalVertexIndex];
+					PRuntimeVertex = U2PVector(OriginalVertex);
+				}
+			}
+		}
+		else
+		{
+			PxVec3 * PNewPositions = TriMesh->getVerticesForModification();
+			for (int32 i = 0; i < NewPositions.Num(); ++i)
+			{
+				PNewPositions[i] = U2PVector(NewPositions[i]);
+			}
+		}
+
+		TriMesh->refitBVH();
+	}
+#endif
+}
 
 FByteBulkData* UBodySetup::GetCookedData(FName Format)
 {

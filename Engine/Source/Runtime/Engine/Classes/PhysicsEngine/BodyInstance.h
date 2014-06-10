@@ -279,6 +279,7 @@ public:
 	 */
 	bool UpdateBodyScale(const FVector& InScale3D);
 
+	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices);
 
 	/** Returns the center of mass of this body (in world space) */
 	FVector GetCOMPosition() const;

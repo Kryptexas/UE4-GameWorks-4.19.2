@@ -534,6 +534,13 @@ public:
 	 * @return								true on success, false on failure because of vertex count overflow.
 	 */
 	ENGINE_API void CreateFromModel(class UModel* InModel, bool bRemoveExisting);
+
+	/**
+	 * Converts the skinned data of a skeletal mesh into a tri mesh collision. This is used for per poly scene queries and is quite expensive.
+	 * In 99% of cases you should be fine using a physics asset created for the skeletal mesh
+	 * @param	InSkeletalMeshComponent		The skeletal mesh component we'll be grabbing the skinning information from
+	 */
+	ENGINE_API void UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices);
 #endif // WITH_EDITOR
 
 	/**
