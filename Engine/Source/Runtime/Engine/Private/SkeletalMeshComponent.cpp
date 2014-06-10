@@ -974,7 +974,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(bool bDoInterpolation, bool bDup
 		InvalidateCachedBounds();
 
 		// update physics data from animated data
-		UpdateKinematicBonesToPhysics(false);
+		UpdateKinematicBonesToPhysics(false, true);
 		UpdateRBJointMotors();
 	}
 

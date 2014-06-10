@@ -931,7 +931,7 @@ public:
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
 	 */
-	void UpdateKinematicBonesToPhysics(bool bTeleport);
+	void UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning);
 	
 	/**
 	 * Look up all bodies for broken constraints.

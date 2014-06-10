@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "TargetPlatform.h"
+#include "AnimTree.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
@@ -734,6 +735,7 @@ void UBodySetup::PostLoad()
 
 void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices)
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateTriMeshVertices);
 #if WITH_PHYSX
 	if (TriMesh)
 	{

@@ -241,7 +241,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 }
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
+void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -366,17 +366,24 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 		//per poly update requires us to update all vertex positions
 		if (MeshObject)
 		{
-			const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
-			TArray<FVector> NewPositions;
-			NewPositions.AddUninitialized(Model.NumVertices);
-			for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+			if (bNeedsSkinning)
 			{
-				NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
-			}
+				const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+				TArray<FVector> NewPositions;
+				NewPositions.AddUninitialized(Model.NumVertices);
+				{
+					SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
+					for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+					{
+						NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+					}
+				}
 
-			TArray<uint32> Indices;
-			Model.MultiSizeIndexContainer.GetIndexBuffer(Indices);
-			BodyInstance.UpdateTriMeshVertices(NewPositions, Indices);
+				TArray<uint32> Indices;
+				Model.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+				BodyInstance.UpdateTriMeshVertices(NewPositions, Indices);
+			}
+			
 			BodyInstance.SetBodyTransform(CurrentLocalToWorld, bTeleport);
 		}
 	}
