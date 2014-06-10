@@ -133,7 +133,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			
-			Result += (CompileEnvironment.Config.TargetArchitecture == "-armv7") ? ToolchainParamsArm : ToolchainParamsx86;
+			Result += (CompileEnvironment.Config.Target.Architecture == "-armv7") ? ToolchainParamsArm : ToolchainParamsx86;
 
 			// build up the commandline common to C and C++
 			Result += " -c";
@@ -174,7 +174,14 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				Result += " -O3";
+				if (UEBuildConfiguration.bCompileForSize)
+				{
+					Result += " -Oz";
+				}
+				else
+				{
+					Result += " -O3";
+				}
 			}
 
 			//@todo android: these are copied verbatim from UE3 and probably need adjustment

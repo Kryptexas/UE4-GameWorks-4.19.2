@@ -75,7 +75,7 @@ namespace UnrealBuildTool
 
             // we have to specify the full amount of memory with Asm.JS (1.5 G)
             // I wonder if there's a per game way to change this. 
-			int TotalMemory = 512 * 1024 * 1024;
+			int TotalMemory = 256 * 1024 * 1024;
             Result += " -s TOTAL_MEMORY=" + TotalMemory.ToString();
 
             // no need for exceptions
