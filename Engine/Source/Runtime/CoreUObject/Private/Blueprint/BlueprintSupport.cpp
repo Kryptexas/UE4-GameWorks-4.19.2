@@ -111,11 +111,16 @@ bool UObject::IsInBlueprint() const
  	while (TestObject)
  	{
  		const UClass *ClassObject = Cast<const UClass>(TestObject);
- 		if (ClassObject && ClassObject->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		if (ClassObject 
+			&& ClassObject->HasAnyClassFlags(CLASS_CompiledFromBlueprint) 
+			&& ClassObject->ClassGeneratedBy)
  		{
  			return true;
  		}
- 		else if (TestObject->HasAnyFlags(RF_ClassDefaultObject) && TestObject->GetClass() && TestObject->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+		else if (TestObject->HasAnyFlags(RF_ClassDefaultObject) 
+			&& TestObject->GetClass() 
+			&& TestObject->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint) 
+			&& TestObject->GetClass()->ClassGeneratedBy)
  		{
  			return true;
  		}
