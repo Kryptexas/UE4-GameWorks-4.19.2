@@ -2,8 +2,8 @@
 
 #pragma once
 #include "NavigationTypes.h"
-#include "NavLinkCustomComponent.generated.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "NavLinkCustomComponent.generated.h"
 
 /**
  *  Encapsulates NavLinkCustomInterface interface, can be used with Actors not relevant for navigation

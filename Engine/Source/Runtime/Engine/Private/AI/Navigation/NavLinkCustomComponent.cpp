@@ -4,7 +4,6 @@
 #include "VisualLog.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
-#include "AI/Navigation/SmartNavLinkComponent.h"
 // @todo to be addressed when removing AIModule circular dependency
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"

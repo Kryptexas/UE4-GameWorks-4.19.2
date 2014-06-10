@@ -336,8 +336,8 @@ void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 	if (DebuggingComponent)
 	{
 		const FVector AdditionalTargetLoc =
-			DebugAITargetActor ? DebugAITargetActor->GetNavAgentLocation() :
-			Pawn ? Pawn->GetNavAgentLocation() : 
+			DebugAITargetActor ? DebugAITargetActor->GetActorLocation() :
+			Pawn ? Pawn->GetActorLocation() :
 			FVector::ZeroVector;
 
 		if (AdditionalTargetLoc != FVector::ZeroVector)
