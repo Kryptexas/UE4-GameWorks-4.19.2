@@ -5,6 +5,8 @@
 
 #if WITH_PHYSX
 
+#include "../PhysicsEngine/PhysXSupport.h"
+
 /** 
  * Util to convert single physX hit (raycast or sweep) to our hit result
  *

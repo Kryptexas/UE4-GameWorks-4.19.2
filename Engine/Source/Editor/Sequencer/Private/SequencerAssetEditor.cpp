@@ -4,7 +4,12 @@
 #include "Toolkits/IToolkitHost.h"
 #include "SequencerAssetEditor.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Editor/LevelEditor/Public/ILevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "Sequencer.h"
+#include "MovieScene.h"
+#include "EditorWidgetsModule.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

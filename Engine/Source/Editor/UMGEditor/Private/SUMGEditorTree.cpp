@@ -13,6 +13,7 @@
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
 #include "WidgetTemplateClass.h"
+#include "WidgetBlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

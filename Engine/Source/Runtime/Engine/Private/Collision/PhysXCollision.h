@@ -8,6 +8,7 @@
 
 #if WITH_PHYSX
 
+#include "../PhysicsEngine/PhysXSupport.h"
 
 /** Temporary result buffer size */
 #define HIT_BUFFER_SIZE							512		// Hit buffer size for traces and sweeps. This is the total size allowed for sync + async tests.
