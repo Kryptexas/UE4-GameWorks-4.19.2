@@ -153,7 +153,7 @@ void FLevelEditorModule::StartupModule()
 
 	// Figure out if we recompile the level editor.
 	FString SourcePath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Source/Editor/LevelEditor/Private"));
-	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath);
+	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath) && !GEngineVersion.IsPromotedBuild();
 }
 
 /**
