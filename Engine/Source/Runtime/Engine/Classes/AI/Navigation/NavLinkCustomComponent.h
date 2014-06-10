@@ -3,11 +3,12 @@
 #pragma once
 #include "NavigationTypes.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "NavLinkCustomComponent.generated.h"
 
 /**
  *  Encapsulates NavLinkCustomInterface interface, can be used with Actors not relevant for navigation
- *
+ *  
  *  Additional functionality:
  *  - can be toggled
  *  - can create obstacle area for easier/forced separation of link end points
