@@ -3052,6 +3052,9 @@ bool FHeaderParser::GetVarType
 				// Eat the star that indicates this is a pointer to the UObject
 				if (bExpectStar)
 				{
+					// Const after variable type but before pointer symbol
+					MatchIdentifier(TEXT("const"));
+
 					RequireSymbol(TEXT("*"), TEXT("Expected a pointer type"));
 
 					VarProperty.PointerType = EPointerType::Native;
@@ -3094,6 +3097,15 @@ bool FHeaderParser::GetVarType
 			{
 				FError::Throwf(TEXT("Unrecognized type '%s'"), VarType.Identifier );
 			}
+		}
+	}
+
+	if (VariableCategory != EVariableCategory::Member)
+	{
+		// const after the variable type support (only for params)
+		if (MatchIdentifier(TEXT("const")))
+		{
+			Flags |= CPF_ConstParm;
 		}
 	}
 
