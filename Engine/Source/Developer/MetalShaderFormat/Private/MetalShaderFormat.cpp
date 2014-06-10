@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "UrbanShaderFormat.h"
+#include "MetalShaderFormat.h"
 #include "Core.h"
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
@@ -14,7 +14,7 @@ class FMetalShaderFormat : public IShaderFormat
 {
 	enum
 	{
-		HEADER_VERSION = 2,
+		HEADER_VERSION = 3,
 	};
 	struct FVersion
 	{
@@ -81,4 +81,4 @@ public:
 	}
 };
 
-IMPLEMENT_MODULE( FMetalShaderFormatModule, UrbanShaderFormat);
+IMPLEMENT_MODULE( FMetalShaderFormatModule, MetalShaderFormat);

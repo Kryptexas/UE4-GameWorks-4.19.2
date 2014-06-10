@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 ///
 
-#include "UrbanShaderFormat.h"
+#include "MetalShaderFormat.h"
 #include "Core.h"
 #include "../../../EmptyRHI/Public/EmptyShaderResources.h"
 
@@ -20,7 +20,7 @@
 #include "hlslcc.h"
 #include "Metal/MetalBackend.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogUrbanShaderCompiler, Log, All); 
+DEFINE_LOG_CATEGORY_STATIC(LogMetalShaderCompiler, Log, All); 
 
 /*------------------------------------------------------------------------------
 	Shader compiling.
@@ -593,6 +593,24 @@ static void BuildMetalShaderOutput(
 			// Skip the comma.
 			verify(Match(ShaderSource, ','));
 		}
+	}
+
+	// Build the SRT for this shader.
+	{
+		// Build the generic SRT for this shader.
+		FShaderResourceTable GenericSRT;
+		BuildResourceTableMapping(ShaderInput.Environment.ResourceTableMap, ShaderInput.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, ShaderOutput.ParameterMap, GenericSRT);
+
+		// Copy over the bits indicating which resource tables are active.
+		Header.Bindings.ShaderResourceTable.ResourceTableBits = GenericSRT.ResourceTableBits;
+
+		Header.Bindings.ShaderResourceTable.ResourceTableLayoutHashes = GenericSRT.ResourceTableLayoutHashes;
+
+		// Now build our token streams.
+		BuildResourceTableTokenStream(GenericSRT.TextureMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.TextureMap);
+		BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.ShaderResourceViewMap);
+		BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.SamplerMap);
+		BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, Header.Bindings.ShaderResourceTable.UnorderedAccessViewMap);
 	}
 
 	const int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(GetMaxSupportedFeatureLevel((EShaderPlatform)ShaderOutput.Target.Platform));
