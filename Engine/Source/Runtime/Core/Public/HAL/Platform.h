@@ -235,6 +235,10 @@
 	#define PLATFORM_HAS_128BIT_ATOMICS 0
 #endif
 
+#ifndef PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+	#define PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING 1
+#endif
+
 //These are deprecated old defines that we want to make sure are not used
 #define CONSOLE (#)
 #define MOBILE (#)
