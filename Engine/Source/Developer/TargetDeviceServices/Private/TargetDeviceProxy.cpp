@@ -19,6 +19,14 @@ FTargetDeviceProxy::FTargetDeviceProxy( const FString& InId )
 	, SupportsPowerOn(false)
 	, SupportsReboot(false)
 {
+	FTargetDeviceId DeviceId;
+
+	if (FTargetDeviceId::Parse(InId, DeviceId))
+	{
+		Name = DeviceId.GetDeviceName();
+		Platform = DeviceId.GetPlatformName();
+	}
+
 	InitializeMessaging();
 }
 
@@ -31,8 +39,8 @@ FTargetDeviceProxy::FTargetDeviceProxy( const FString& InId, const FTargetDevice
 	, SupportsPowerOn(false)
 	, SupportsReboot(false)
 {
-	InitializeMessaging();
 	UpdateFromMessage(Message, Context);
+	InitializeMessaging();
 }
 
 
