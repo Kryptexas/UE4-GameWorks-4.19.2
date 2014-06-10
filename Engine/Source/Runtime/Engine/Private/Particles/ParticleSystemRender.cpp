@@ -821,8 +821,8 @@ void FDynamicSpriteEmitterData::Init( bool bInSelected )
 FVector2D GetParticleSize(const FBaseParticle& Particle, const FDynamicSpriteEmitterReplayDataBase& Source)
 {
 	FVector2D Size;
-	Size.X = Particle.Size.X * Source.Scale.X;
-	Size.Y = Particle.Size.Y * Source.Scale.Y;
+	Size.X = FMath::Abs(Particle.Size.X * Source.Scale.X);
+	Size.Y = FMath::Abs(Particle.Size.Y * Source.Scale.Y);
 	if (Source.ScreenAlignment == PSA_Square || Source.ScreenAlignment == PSA_FacingCameraPosition)
 	{
 		Size.Y = Size.X;
@@ -1400,7 +1400,6 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 			}
 			BatchElement.MinVertexIndex = 0;
 			BatchElement.MaxVertexIndex = (ParticleCount * 4) - 1;
-			Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
 			Mesh.CastShadow = Proxy->GetCastShadow();
 			Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
 
