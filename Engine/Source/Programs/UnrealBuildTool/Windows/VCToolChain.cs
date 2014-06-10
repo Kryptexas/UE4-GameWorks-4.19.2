@@ -187,6 +187,10 @@ namespace UnrealBuildTool
 				if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
 				{
 					Result += " /Ox";
+
+					// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
+					// compile times.  The executable code is not affected at all by this switch, only the debugging information.
+					Result += " /d2Zi+";
 				}
 				
 				// Favor code speed.
