@@ -539,7 +539,7 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		FString OutputDirectory = GetOutputDirectoryOverride();
 
 		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
+		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
 
 		CleanSandbox(Platforms);
 

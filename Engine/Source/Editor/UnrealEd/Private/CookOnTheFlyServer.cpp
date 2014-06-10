@@ -697,7 +697,7 @@ void UCookOnTheFlyServer::Initialize( bool inCompressed, bool inIterativeCooking
 	FString OutputDirectory = GetOutputDirectoryOverride(OutputDirectoryOverride);
 
 	// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
+	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=\"%s\""), *OutputDirectory));
 
 	CleanSandbox(Platforms);
 
