@@ -967,19 +967,6 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 				bIsStillStale |= !bRenamed;
 				bMigratedOwner = true;
 			}
-
-			TArray<USCS_Node*> SCSNodes = SCS->GetAllNodes();
-			for (auto SCSNode : SCSNodes)
-			{
-				UActorComponent* Component = SCSNode ? SCSNode->ComponentTemplate : NULL;
-				if (Component && Component->GetOuter() == this)
-				{
-					const bool bRenamed = Component->Rename(*Component->GetName(), BPGClass, REN_ForceNoResetLoaders | REN_DoNotDirty);
-					ensure(bRenamed);
-					bIsStillStale |= !bRenamed;
-					bMigratedOwner = true;
-				}
-			}
 		}
 
 		if (bMigratedOwner)
