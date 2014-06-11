@@ -865,6 +865,12 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 	}
 }
 
+void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects)
+{
+	FBitmap SpriteTextureBitmap(Texture, 0, 0);
+	SpriteTextureBitmap.ExtractRects(/*out*/ OutRects);
+}
+
 void UPaperSprite::InitializeSprite(UTexture2D* Texture)
 {
 	if (Texture != NULL)

@@ -14,6 +14,12 @@ class UPaperSpriteFactory : public UFactory
 	// Initial texture to create the sprite from (Can be NULL)
 	class UTexture2D* InitialTexture;
 
+	// Set bUseSourceRegion to get it to use/set initial sourceUV and dimensions
+	bool bUseSourceRegion;
+	FVector2D InitialSourceUV;
+	FVector2D InitialSourceDimension;
+
+
 	// UFactory interface
 	virtual bool ConfigureProperties() OVERRIDE;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) OVERRIDE;

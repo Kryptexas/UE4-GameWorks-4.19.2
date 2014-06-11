@@ -32,8 +32,16 @@ public:
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 
+
 struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetExtensionBase
 {
+	bool bExtractSprites;
+
+	FCreateSpriteFromTextureExtension()
+		: bExtractSprites(false)
+	{
+	}
+
 	void CreateSpritesFromTextures(TArray<UTexture2D*>& Textures)
 	{
 		const FString DefaultSuffix = TEXT("_Sprite");
@@ -44,32 +52,70 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 		const bool bOneTextureSelected = Textures.Num() == 1;
 		TArray<UObject*> ObjectsToSync;
 
+		FString Name;
+		FString PackageName;
+
 		for (auto TextureIt = Textures.CreateConstIterator(); TextureIt; ++TextureIt)
 		{
 			UTexture2D* Texture = *TextureIt;
-
-			// Get a unique name for the sprite
-			FString Name;
-			FString PackageName;
-			AssetToolsModule.Get().CreateUniqueAssetName(Texture->GetOutermost()->GetName(), DefaultSuffix, /*out*/ PackageName, /*out*/ Name);
-			const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
-
 
 			// Create the factory used to generate the sprite
 			UPaperSpriteFactory* SpriteFactory = ConstructObject<UPaperSpriteFactory>(UPaperSpriteFactory::StaticClass());
 			SpriteFactory->InitialTexture = Texture;
 
 			// Create the sprite
-			if (bOneTextureSelected)
+			if (!bExtractSprites)
 			{
-				ContentBrowserModule.Get().CreateNewAsset(Name, PackagePath, UPaperSprite::StaticClass(), SpriteFactory);
+				if (bOneTextureSelected)
+				{
+					// Get a unique name for the sprite
+					AssetToolsModule.Get().CreateUniqueAssetName(Texture->GetOutermost()->GetName(), DefaultSuffix, /*out*/ PackageName, /*out*/ Name);
+					const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+					ContentBrowserModule.Get().CreateNewAsset(Name, PackagePath, UPaperSprite::StaticClass(), SpriteFactory);
+				}
+				else
+				{
+					// Get a unique name for the sprite
+					AssetToolsModule.Get().CreateUniqueAssetName(Texture->GetOutermost()->GetName(), DefaultSuffix, /*out*/ PackageName, /*out*/ Name);
+					const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+					if (UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, PackagePath, UPaperSprite::StaticClass(), SpriteFactory))
+					{
+						ObjectsToSync.Add(NewAsset);
+					}
+				}
 			}
 			else
 			{
-				if (UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, PackagePath, UPaperSprite::StaticClass(), SpriteFactory))
+				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"), true, true);
+
+				TArray<FIntRect> ExtractedRects;
+				UPaperSprite::ExtractRectsFromTexture(Texture, /*out*/ ExtractedRects);
+				for (int ExtractedRectIndex = 0; ExtractedRectIndex < ExtractedRects.Num(); ++ExtractedRectIndex)
 				{
-					ObjectsToSync.Add(NewAsset);
+					GWarn->StatusUpdate(ExtractedRectIndex, ExtractedRects.Num(), NSLOCTEXT("Paper2D", "Paper2D_ExtractSpritesFromTexture", "Extracting Sprites From Texture"));
+
+					FIntRect& ExtractedRect = ExtractedRects[ExtractedRectIndex];
+					SpriteFactory->bUseSourceRegion = true;
+					SpriteFactory->InitialSourceUV = FVector2D(ExtractedRect.Min.X, ExtractedRect.Min.Y);
+					SpriteFactory->InitialSourceDimension = FVector2D(ExtractedRect.Width(), ExtractedRect.Height());
+
+					// Get a unique name for the sprite
+					AssetToolsModule.Get().CreateUniqueAssetName(Texture->GetOutermost()->GetName(), DefaultSuffix, /*out*/ PackageName, /*out*/ Name);
+					const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+					if (UObject* NewAsset = AssetToolsModule.Get().CreateAsset(Name, PackagePath, UPaperSprite::StaticClass(), SpriteFactory))
+					{
+						ObjectsToSync.Add(NewAsset);
+					}
+
+					if (GWarn->ReceivedUserCancel()) 
+					{
+						break;
+					}
 				}
+
+				GWarn->EndSlowTask();
 			}
 		}
 
@@ -132,10 +178,23 @@ public:
 		FUIAction Action_CreateSpritesFromTextures(
 			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteCreatorFunctor)));
 		Builder.AddMenuEntry(
-			LOCTEXT("CB_Extension_Texture_CreateSprite", "Create Sprite"), 
+			LOCTEXT("CB_Extension_Texture_CreateSprite", "Create Sprite"),
 			LOCTEXT("CB_Extension_Texture_CreateSprite_Tooltip", "Create sprites from selected textures"),
 			FSlateIcon(),
 			Action_CreateSpritesFromTextures,
+			NAME_None,
+			EUserInterfaceActionType::Button);
+	}
+
+	static void ExtractSpritesFromTextureMenuOptions(FMenuBuilder& Builder, TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractorFunctor)
+	{
+		FUIAction Action_ExtractSpritesFromTextures(
+			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteExtractorFunctor)));
+		Builder.AddMenuEntry(
+			LOCTEXT("CB_Extension_Texture_ExtractSprites", "Extract Sprites"),
+			LOCTEXT("CB_Extension_Texture_ExtractSprite_Tooltip", "Detects and extracts sprites from the selected textures using transparency"),
+			FSlateIcon(),
+			Action_ExtractSpritesFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);
 	}
@@ -179,6 +238,16 @@ public:
 				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::CreateSpriteTextureMenuOptions, SpriteCreatorFunctor));
 
 			//@TODO: Already getting nasty, need to refactor the data to be independent of the functor
+			TSharedPtr<FCreateSpriteFromTextureExtension> SpriteExtractorFunctor = MakeShareable(new FCreateSpriteFromTextureExtension());
+			SpriteExtractorFunctor->SelectedAssets = SelectedAssets;
+			SpriteExtractorFunctor->bExtractSprites = true;
+
+			Extender->AddMenuExtension(
+				"GetAssetActions",
+				EExtensionHook::After,
+				NULL,
+				FMenuExtensionDelegate::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExtractSpritesFromTextureMenuOptions, SpriteExtractorFunctor));
+
 			TSharedPtr<FConfigureTexturesForSpriteUsageExtension> TextureConfigFunctor = MakeShareable(new FConfigureTexturesForSpriteUsageExtension());
 			TextureConfigFunctor->SelectedAssets = SelectedAssets;
 

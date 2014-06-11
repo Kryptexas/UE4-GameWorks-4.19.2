@@ -9,6 +9,9 @@
 
 UPaperSpriteFactory::UPaperSpriteFactory(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bUseSourceRegion(false)
+	, InitialSourceUV(0, 0)
+	, InitialSourceDimension(0, 0)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;
@@ -25,7 +28,14 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 {
 	UPaperSprite* NewSprite = ConstructObject<UPaperSprite>(Class, InParent, Name, Flags);
 
-	NewSprite->InitializeSprite(InitialTexture);
+	if (bUseSourceRegion)
+	{
+		NewSprite->InitializeSprite(InitialTexture, InitialSourceUV, InitialSourceDimension);
+	}
+	else
+	{
+		NewSprite->InitializeSprite(InitialTexture);
+	}
 
 	return NewSprite;
 }
