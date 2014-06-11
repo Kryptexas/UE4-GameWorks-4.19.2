@@ -90,7 +90,7 @@ protected:
 			GetMutableDefault<UEngine>()
 		);
 
-		// Audio settings
+		// audio settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Audio",
 			LOCTEXT("EngineAudioSettingsName", "Audio"),
 			LOCTEXT("ProjectAudioSettingsDescription", "Audio settings."),
@@ -104,14 +104,14 @@ protected:
 			GetMutableDefault<UCollisionProfile>()
 		);
 
-		// game console settings
+		// command console settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Console",
 			LOCTEXT("ProjectConsoleSettingsName", "Console"),
 			LOCTEXT("ProjectConsoleSettingsDescription", "Configure the in-game input console."),
-			GetMutableDefault<UConsole>()
+			GetMutableDefault<UConsoleSettings>()
 		);
 
-		// Input settings
+		// input settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Input",
 			LOCTEXT("EngineInputSettingsName", "Input"),
 			LOCTEXT("ProjectInputSettingsDescription", "Input settings, including default input action and axis bindings."),

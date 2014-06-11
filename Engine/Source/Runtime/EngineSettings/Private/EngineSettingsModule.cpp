@@ -33,6 +33,11 @@ public:
 /* Class constructors
  *****************************************************************************/
 
+UConsoleSettings::UConsoleSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{ }
+
+
 UGameMapsSettings::UGameMapsSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, bUseSplitscreen(true)

@@ -9,23 +9,6 @@
 
 
 /**
- * Structure for auto-complete commands and their descriptions.
- */
-USTRUCT()
-struct FAutoCompleteCommand
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	FString Command;
-
-	UPROPERTY()
-	FString Desc;
-
-};
-
-
-/**
  * Node for storing an auto-complete tree based on each char in the command.
  */
 USTRUCT()
@@ -66,7 +49,7 @@ struct FAutoCompleteNode
 };
 
 
-UCLASS(Within=GameViewportClient, config=Input, defaultconfig, transient)
+UCLASS(Within=GameViewportClient, config=Input, transient)
 class ENGINE_API UConsole
 	: public UObject
 	, public FOutputDevice
@@ -82,10 +65,6 @@ class ENGINE_API UConsole
 
 	UPROPERTY()
 	class UTexture2D* DefaultTexture_White;
-
-	/**  Visible Console stuff */
-	UPROPERTY(globalconfig, EditAnywhere, Category=General)
-	int32 MaxScrollbackSize;
 
 	/** Holds the scrollback buffer */
 	TArray<FString> Scrollback;
@@ -127,14 +106,6 @@ class ENGINE_API UConsole
 
 	/** True while a control key is pressed. */
 	uint32 bCtrl:1;
-
-	/** Manual list of auto-complete commands and info specified in BaseInput.ini */
-	UPROPERTY(config, EditAnywhere, Category=AutoComplete)
-	TArray<struct FAutoCompleteCommand> ManualAutoCompleteList;
-
-	/** List of relative paths (e.g. Content/Maps) to search for map names for auto-complete usage. Specified in BaseInput.ini. */
-	UPROPERTY(config, EditAnywhere, Category=AutoComplete)
-	TArray<FString> AutoCompleteMapPaths;
 
 	/** Full list of auto-complete commands and info */
 	TArray<struct FAutoCompleteCommand> AutoCompleteList;

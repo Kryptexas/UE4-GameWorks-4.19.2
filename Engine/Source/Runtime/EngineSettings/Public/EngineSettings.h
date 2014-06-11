@@ -16,6 +16,7 @@
 /* Messages
  *****************************************************************************/
 
+#include "ConsoleSettings.h"
 #include "GameNetworkManagerSettings.h"
 #include "GameMapsSettings.h"
 #include "GameSessionSettings.h"
