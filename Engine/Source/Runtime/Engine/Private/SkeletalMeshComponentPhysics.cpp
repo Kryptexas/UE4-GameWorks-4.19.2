@@ -1682,7 +1682,7 @@ extern float DebugLineLifetime;
 
 bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
 {
-	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 	bool bHaveHit = false;
 
 	float MinTime = MAX_FLT;
@@ -1732,6 +1732,7 @@ bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector S
 
 bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp,const FVector Pos,const FRotator Rot,const struct FCollisionQueryParams& Params)
 {
+	//@TODO: BOX2D: USkeletalMeshComponent::ComponentOverlapComponent is not supported.  Try to rephrase this in terms of agnostic operations on a set of FBodyInstances, reducing the amount of PhysX-specific code
 #if WITH_PHYSX
 	// will have to do per component - default single body or physicsinstance 
 	const PxRigidActor* TargetRigidBody = (PrimComp)? PrimComp->BodyInstance.GetPxRigidActor():NULL;
@@ -1772,7 +1773,7 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 		{
 			for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
 			{
-				bHaveOverlap = Bodies[BodyIdx]->Overlap(*PGeom, PShapeGlobalPose);
+				bHaveOverlap = Bodies[BodyIdx]->OverlapPhysX(*PGeom, PShapeGlobalPose);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
 				{
@@ -1803,127 +1804,40 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 
 bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape)
 {
-
-#if WITH_PHYSX
-	PxSphereGeometry PSphereGeom;
-	PxBoxGeometry PBoxGeom;
-	PxCapsuleGeometry PCapsuleGeom;
-	PxGeometry * PGeom = NULL;
-	PxTransform PShapePose;
-
-	switch (CollisionShape.ShapeType)
+	for (FBodyInstance* Body : Bodies)
 	{
-	case ECollisionShape::Sphere:
+		if (Body->OverlapTest(Pos, Rot, CollisionShape))
 		{
-			PSphereGeom = PxSphereGeometry(CollisionShape.GetSphereRadius()) ;
-			// calculate the test global pose of the actor
-			PShapePose = U2PTransform(FTransform(Rot, Pos));
-			PGeom = &PSphereGeom;
-			break;
-		}
-	case ECollisionShape::Box:
-		{
-			PBoxGeom = PxBoxGeometry(U2PVector(CollisionShape.GetBox()));
-			PShapePose = U2PTransform(FTransform(Rot, Pos));
-			PGeom = &PBoxGeom;
-			break;
-		}
-	case ECollisionShape::Capsule:
-		{
-			PCapsuleGeom = PxCapsuleGeometry( CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength() );
-			PShapePose = ConvertToPhysXCapsulePose( FTransform(Rot,Pos) );
-			PGeom = &PCapsuleGeom;
-			break;
-		}
-	default:
-		// invalid point
-		ensure(false);
-	}
-
-	if (PGeom)
-	{
-		for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
-		{
-			if (Bodies[BodyIdx]->Overlap(*PGeom, PShapePose))
-			{
-				return true;
-			}
+			return true;
 		}
 	}
-#endif //WITH_PHYSX
 
 	return false;
 }
 
 bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-#if WITH_PHYSX
-
 	OutOverlaps.Reset();
 
-	if(!Bodies.IsValidIndex(RootBodyIndex))
+	if (!Bodies.IsValidIndex(RootBodyIndex))
 	{
 		return false;
 	}
 
-	// calculate the test global pose of the actor
-	// because we're using skeletal mesh we need to use relative transform to root body
-	PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
-	check(Bodies[RootBodyIndex]);
-	PxTransform PRootGlobalPoseInv = U2PTransform(Bodies[RootBodyIndex]->GetUnrealWorldTransform()).getInverse();
-	PxTransform PGlobalRootSpacePose = PTestGlobalPose.transform(PRootGlobalPoseInv);
+	const FTransform WorldToComponent(ComponentToWorld.InverseSafe());
+	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
 	bool bHaveBlockingHit = false;
-
-	for(int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
+	for (const FBodyInstance* Body : Bodies)
 	{
-		const FBodyInstance * BodyInstance = Bodies[BodyIdx];
-		PxRigidActor* PRigidActor = BodyInstance->GetPxRigidActor();
-
-		if(PRigidActor == NULL)
+		checkSlow(Body);
+		if (Body->OverlapMulti(/*inout*/ OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, Params, ResponseParams, ObjectQueryParams))
 		{
-			UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) No physics data"), *GetPathName());
-			return false;
-		}
-
-		// Get all the shapes from the actor
-		{
-			SCOPED_SCENE_READ_LOCK(PRigidActor->getScene());
-
-			TArray<PxShape*, TInlineAllocator<8>> PShapes;
-			PShapes.AddZeroed(PRigidActor->getNbShapes());
-			int32 NumShapes = PRigidActor->getShapes(PShapes.GetData(), PShapes.Num());
-
-			// Iterate over each shape
-			for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
-			{
-				PxShape* PShape = PShapes[ShapeIdx];
-				check(PShape);
-				TArray<struct FOverlapResult> Overlaps;
-				// Calc shape global pose
-				PxTransform PLocalPose = PShape->getLocalPose();
-				PxTransform PBodyPoseGlobal = U2PTransform(BodyInstance->GetUnrealWorldTransform());
-				PxTransform PShapeGlobalPose = PGlobalRootSpacePose.transform(PBodyPoseGlobal.transform(PLocalPose));
-
-				GET_GEOMETRY_FROM_SHAPE(PGeom, PShape);
-
-				if(PGeom != NULL)
-				{
-					// if object query param isn't valid, it will use trace channel
-					if (GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams))
-					{
-						bHaveBlockingHit = true;
-					}
-
-					OutOverlaps.Append(Overlaps);
-				}
-			}
+			bHaveBlockingHit = true;
 		}
 	}
 
 	return bHaveBlockingHit;
-#endif //WITH_PHYSX
-	return false;
 }
 
 

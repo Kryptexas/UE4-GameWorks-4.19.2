@@ -723,7 +723,7 @@ void CaptureGeomSweep(const UWorld* World, const FVector& Start, const FVector& 
 	// Do a touch all query to find things we _didn't_ hit
 	bSkipCapture = true;
 	TArray<FHitResult> TouchAllResults;
-	GeomSweepMulti(World, PGeom, PRot, TouchAllResults, Start, End, DefaultCollisionChannel, Params, ResponseParams, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects));
+	GeomSweepMulti_PhysX(World, PGeom, PRot, TouchAllResults, Start, End, DefaultCollisionChannel, Params, ResponseParams, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects));
 	bSkipCapture = false;
 
 	// Now tell analyzer
@@ -1086,16 +1086,12 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 	return bHaveBlockingHit;
 }
 
-#endif //UE_WITH_PHYSICS
-
 //////////////////////////////////////////////////////////////////////////
 // GEOM SWEEP
 
-#if WITH_PHYSX
-
-bool GeomSweepTest(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	if(World == NULL || World->GetPhysicsScene() == NULL)
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
 		return false;
 	}
@@ -1104,9 +1100,14 @@ bool GeomSweepTest(const UWorld* World, const PxGeometry& PGeom, const PxQuat& P
 
 	bool bHaveBlockingHit = false; // Track if we get any 'blocking' hits
 
-	FVector Delta = End - Start;
-	float DeltaMag = Delta.Size();
-	if(DeltaMag > KINDA_SMALL_NUMBER)
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxQuat& PGeomRot = ShapeAdaptor.GetGeomOrientation();
+
+	const FVector Delta = End - Start;
+	const float DeltaMag = Delta.Size();
+	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
 		// Create filter data used to filter collisions
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
@@ -1148,11 +1149,14 @@ bool GeomSweepTest(const UWorld* World, const PxGeometry& PGeom, const PxQuat& P
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Test, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomSweepTest
 
 	return bHaveBlockingHit;
 }
 
-bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat& PGeomRot, FHitResult& OutHit, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, FHitResult& OutHit, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepSingle);
 	STARTQUERYTIMER();
@@ -1160,7 +1164,7 @@ bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
 
-	if(World == NULL || World->GetPhysicsScene() == NULL)
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
 		return false;
 	}
@@ -1168,9 +1172,14 @@ bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat
 	// Track if we get any 'blocking' hits
 	bool bHaveBlockingHit = false;
 
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxQuat& PGeomRot = ShapeAdaptor.GetGeomOrientation();
+
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
-	if(DeltaMag > KINDA_SMALL_NUMBER)
+	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
 		// Create filter data used to filter collisions
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
@@ -1255,35 +1264,28 @@ bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat
 
 	CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Single, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
 #endif
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomSweepSingle
 
 	return bHaveBlockingHit;
 }
 
-
-bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	if(World == NULL || World->GetPhysicsScene() == NULL)
-	{
-		return false;
-	}
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);
 	STARTQUERYTIMER();
-
-	OutHits.Reset();
-
-	// Track if we get any 'blocking' hits
 	bool bBlockingHit = false;
 
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
-	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER| PxSceneQueryFilterFlag::ePOSTFILTER);
+	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 	PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE;
 	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreActors);
 	PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
 
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
-	if(DeltaMag > KINDA_SMALL_NUMBER)
+	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
@@ -1291,7 +1293,7 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		const PxTransform PStartTM(U2PVector(Start), PGeomRot);
-		const PxVec3 PDir = U2PVector(Delta/DeltaMag);
+		const PxVec3 PDir = U2PVector(Delta / DeltaMag);
 
 		// Keep track of closest blocking hit distance.
 		float MinBlockDistance = DeltaMag;
@@ -1302,7 +1304,7 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 
 		bool bBlockingHitSync;
 		PxI32 NumHits = SyncScene->sweepMultiple(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHits, HIT_BUFFER_MAX_SYNC_QUERIES, bBlockingHitSync, PQueryFilterData, &PQueryCallbackSweep);
-		if(NumHits == -1)
+		if (NumHits == -1)
 		{
 			UE_LOG(LogCollision, Warning, TEXT("GeomSweepMulti : Buffer overflow from synchronous scene query"));
 			UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
@@ -1311,29 +1313,29 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 			NumHits = HIT_BUFFER_MAX_SYNC_QUERIES;
 		}
 
-		if(bBlockingHitSync)
+		if (bBlockingHitSync)
 		{
 			/** If we got a blocking hit, it will be the last in the results - get the blocking distance */
-			MinBlockDistance = PHits[NumHits-1].distance;
+			MinBlockDistance = PHits[NumHits - 1].distance;
 			bBlockingHit = true;
 		}
 
 #if VERIFY_GEOMSWEEPMULTI
 		// If we hit something, test we can sweep back...
 		{
-			if(OutHits.Num() == 0)
+			if (OutHits.Num() == 0)
 			{
 				FVector HitLocation = End;
 				float TestLength = DeltaMag;
-				if(bBlockingHitSync)
+				if (bBlockingHitSync)
 				{
-					TestLength = PHits[NumHits-1].distance;
+					TestLength = PHits[NumHits - 1].distance;
 					FHitResult TestHit;
-					ConvertQueryImpactHit(PHits[NumHits-1], TestHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
+					ConvertQueryImpactHit(PHits[NumHits - 1], TestHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
 					HitLocation = TestHit.Location;
 				}
 
-				UE_LOG(LogCollision, Warning, TEXT("%d Start: %s End: %s"), bBlockingHitSync, *Start.ToString(), *HitLocation.ToString() );
+				UE_LOG(LogCollision, Warning, TEXT("%d Start: %s End: %s"), bBlockingHitSync, *Start.ToString(), *HitLocation.ToString());
 
 				PxTransform PEndTM(U2PVector(HitLocation), PGeomRot);
 
@@ -1341,7 +1343,7 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 				bool bTestBlockingHit;
 				PxI32 NumTestHits = SyncScene->sweepMultiple(PGeom, PEndTM, -PDir, TestLength, POutputFlags, PTestHits, HIT_BUFFER_MAX_SYNC_QUERIES, bTestBlockingHit, PQueryFilterData, &PQueryCallbackSweep);
 
-				if(bTestBlockingHit)
+				if (bTestBlockingHit)
 				{
 					UE_LOG(LogCollision, Warning, TEXT("GeomSweepMulti : Cannot sweep back from end location."));
 
@@ -1358,7 +1360,7 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 #endif
 
 		// Test async scene if async tests are requested and there was no overflow
-		if( Params.bTraceAsyncScene && MinBlockDistance > SMALL_NUMBER && PhysScene->HasAsyncScene())
+		if (Params.bTraceAsyncScene && MinBlockDistance > SMALL_NUMBER && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 			SCOPED_SCENE_READ_LOCK(AsyncScene);
@@ -1369,7 +1371,7 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 			check(AsyncBufferSize > 0);
 			bool bBlockingHitAsync = false;
 			PxI32 NumAsyncHits = AsyncScene->sweepMultiple(PGeom, PStartTM, PDir, MinBlockDistance, POutputFlags, PHitsAsync, AsyncBufferSize, bBlockingHitAsync, PQueryFilterData, &PQueryCallbackSweep);
-			if(NumAsyncHits == -1)
+			if (NumAsyncHits == -1)
 			{
 				UE_LOG(LogCollision, Log, TEXT("GeomSweepMulti : Buffer overflow from asynchronous scene query"));
 				UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
@@ -1380,22 +1382,22 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 
 			NumHits += NumAsyncHits;
 
-			if(bBlockingHitAsync)
+			if (bBlockingHitAsync)
 			{
-				MinBlockDistance = FMath::Min<float>(PHits[NumHits-1].distance, MinBlockDistance);
+				MinBlockDistance = FMath::Min<float>(PHits[NumHits - 1].distance, MinBlockDistance);
 				bBlockingHit = true;
 			}
 		}
 
 		// Convert all hits to unreal structs. This will remove any hits further than MinBlockDistance, and sort results.
-		if(NumHits > 0)
+		if (NumHits > 0)
 		{
 			bBlockingHit |= AddSweepResults(NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial);
 		}
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
 		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, OutHits, DebugLineLifetime);
 	}
@@ -1406,12 +1408,39 @@ bool GeomSweepMulti(const UWorld* World, const PxGeometry& PGeom, const PxQuat& 
 	return bBlockingHit;
 }
 
+
+bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FQuat& Rot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
+	{
+		return false;
+	}
+	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);
+
+	OutHits.Reset();
+
+	// Track if we get any 'blocking' hits
+	bool bBlockingHit = false;
+
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxQuat& PGeomRot = ShapeAdaptor.GetGeomOrientation();
+
+	bBlockingHit = GeomSweepMulti_PhysX(World, PGeom, PGeomRot, OutHits, Start, End, TraceChannel, Params, ResponseParams, ObjectParams);
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomSweepMulti
+
+	return bBlockingHit;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // GEOM OVERLAP
 
-bool GeomOverlapTest(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+bool GeomOverlapTest(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	if(World == NULL || World->GetPhysicsScene() == NULL)
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
 		return false;
 	}
@@ -1419,6 +1448,11 @@ bool GeomOverlapTest(const UWorld* World, const PxGeometry& PGeom, const PxTrans
 
 	// Track if we get any 'blocking' hits
 	bool bHaveBlockingHit = false;
+
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
 
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
@@ -1471,19 +1505,28 @@ bool GeomOverlapTest(const UWorld* World, const PxGeometry& PGeom, const PxTrans
 		DrawGeomOverlaps(World, PGeom, PGeomPose, Overlaps, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomOverlapTest
 
 	return bHaveBlockingHit;
 }
 
-bool GeomOverlapSingle(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, FOverlapResult& OutOverlap, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+bool GeomOverlapSingle(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, FOverlapResult& OutOverlap, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	if(World == NULL || World->GetPhysicsScene() == NULL)
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
 	{
 		return false;
 	}
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapSingle);
+
 	// Track if we get any 'blocking' hits
 	bool bHaveBlockingHit = false;
+
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
 
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
@@ -1501,14 +1544,14 @@ bool GeomOverlapSingle(const UWorld* World, const PxGeometry& PGeom, const PxTra
 
 	// if we got a hit, need to see if it was a touch or a block
 	// @todo UE4 james remove this once overlapAny only returns blocking hits
-	if(bHit)
+	if (bHit)
 	{
 		ConvertQueryOverlap( POverlapResult.shape, POverlapResult.actor, OutOverlap, PFilter);
 		bHaveBlockingHit = OutOverlap.bBlockingHit;
 	}
 
 	// Test async scene if async tests are requested and there was no blocking hit was found in the sync scene (since no hit info other than a boolean yes/no is recorded)
-	if( !bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene() )
+	if (!bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 	{
 		PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 		SCOPED_SCENE_READ_LOCK(AsyncScene);
@@ -1516,7 +1559,7 @@ bool GeomOverlapSingle(const UWorld* World, const PxGeometry& PGeom, const PxTra
 		PxOverlapHit PAnotherOverlapResult;
 		bHit = AsyncScene->overlapAny(PGeom, PGeomPose, PAnotherOverlapResult, PQueryFilterData, &PQueryCallback);
 
-		if(bHit)
+		if (bHit)
 		{
 			FOverlapResult NewOverlap;
 			ConvertQueryOverlap(PAnotherOverlapResult.shape, PAnotherOverlapResult.actor, NewOverlap, PFilter);
@@ -1525,7 +1568,7 @@ bool GeomOverlapSingle(const UWorld* World, const PxGeometry& PGeom, const PxTra
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
 		TArray<FOverlapResult> Overlaps;
 		if (bHit)
@@ -1536,19 +1579,16 @@ bool GeomOverlapSingle(const UWorld* World, const PxGeometry& PGeom, const PxTra
 		DrawGeomOverlaps(World, PGeom, PGeomPose, Overlaps, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomOverlapSingle
 
 	return bHaveBlockingHit;
 }
 
-bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+#if WITH_PHYSX
+bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	if(World == NULL || World->GetPhysicsScene() == NULL)
-	{
-		return false;
-	}
-	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
-
-	// Track if we get any 'blocking' hits
 	bool bHaveBlockingHit = false;
 
 	// overlapMultiple only supports sphere/capsule/box 
@@ -1571,7 +1611,7 @@ bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTran
 
 		PxI32 NumHits = SyncScene->overlapMultiple(PGeom, PGeomPose, POverlapArray,  OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES, PQueryFilterData, &PQueryCallback);
 		
-		if(NumHits == -1)
+		if (NumHits == -1)
 		{
 			UE_LOG(LogCollision, Warning, TEXT("GeomOverlapMulti : Buffer overflow from synchronous scene query"));
 			UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
@@ -1582,7 +1622,7 @@ bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTran
 		}
 
 		// Test async scene if async tests are requested and there was no overflow
-		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
+		if (Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{		
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 			SCOPED_SCENE_READ_LOCK(AsyncScene);
@@ -1593,7 +1633,7 @@ bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTran
 			check(AsyncBufferSize > 0);
 			PxI32 NumAsyncHits = AsyncScene->overlapMultiple(PGeom, PGeomPose, PAsyncOverlapArray, AsyncBufferSize, PQueryFilterData, &PQueryCallback);
 
-			if(NumAsyncHits == -1)
+			if (NumAsyncHits == -1)
 			{
 				UE_LOG(LogCollision, Log, TEXT("GeomOverlapMulti : Buffer overflow from asynchronous scene query"));
 				UE_LOG(LogCollision, Warning, TEXT("--------TraceChannel : %d"), (int32)TraceChannel);
@@ -1606,13 +1646,13 @@ bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTran
 			NumHits += NumAsyncHits;
 		}
 
-		if(NumHits > 0)
+		if (NumHits > 0)
 		{
 			bHaveBlockingHit = ConvertOverlapResults(NumHits, POverlapArray, PFilter, OutOverlaps);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
+		if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 		{
 			DrawGeomOverlaps(World, PGeom, PGeomPose, OutOverlaps, DebugLineLifetime);
 		}
@@ -1625,8 +1665,37 @@ bool GeomOverlapMulti(const UWorld* World, const PxGeometry& PGeom, const PxTran
 
 	return bHaveBlockingHit;
 }
+#endif
+
+
+bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
+{
+	if ((World == NULL) || (World->GetPhysicsScene() == NULL))
+	{
+		return false;
+	}
+	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
+
+	// Track if we get any 'blocking' hits
+	bool bHaveBlockingHit = false;
+
+#if WITH_PHYSX
+	FPhysXShapeAdaptor ShapeAdaptor(Rot, CollisionShape);
+	const PxGeometry& PGeom = ShapeAdaptor.GetGeometry();
+	const PxTransform& PGeomPose = ShapeAdaptor.GetGeomPose(Pos);
+	bHaveBlockingHit = GeomOverlapMulti_PhysX(World, PGeom, PGeomPose, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
+
+#endif // WITH_PHYSX
+
+	//@TODO: BOX2D: Implement GeomOverlapMulti
+
+	return bHaveBlockingHit;
+}
+#endif //UE_WITH_PHYSICS
 
 //////////////////////////////////////////////////////////////////////////
+
+#if WITH_PHYSX
 
 static PxQuat CapsuleRotator(0.f, 0.707106781f, 0.f, 0.707106781f );
 

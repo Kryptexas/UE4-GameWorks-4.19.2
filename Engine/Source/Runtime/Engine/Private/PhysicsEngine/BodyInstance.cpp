@@ -2852,141 +2852,130 @@ FString FBodyInstance::GetBodyDebugName() const
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // COLLISION
 
-bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial)
+bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_RaycastAny);
 
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
 
-#if WITH_PHYSX
-	const PxRigidActor* RigidBody = GetPxRigidActor();
-	if (RigidBody == NULL || RigidBody->getNbShapes()==0)
-	{
-		return false;
-	}
+	bool bHitSomething = false;
 
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
-	if( DeltaMag > KINDA_SMALL_NUMBER )
+	if (DeltaMag > KINDA_SMALL_NUMBER)
 	{
-		// Create filter data used to filter collisions, should always return eTOUCH for LineTraceComponent		
-		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::eIMPACT | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE;
-
-		PxRaycastHit BestHit;
-		float BestHitDistance = BIG_NUMBER;
-
-		// Get all the shapes from the actor
-		TArray<PxShape*> PShapes;
-		PShapes.AddZeroed(RigidBody->getNbShapes());
-		int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
-
-		// Iterate over each shape
-		for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
+#if WITH_PHYSX
+		const PxRigidActor* RigidBody = GetPxRigidActor();
+		if ((RigidBody != NULL) && (RigidBody->getNbShapes() != 0))
 		{
-			PxShape* PShape = PShapes[ShapeIdx];
-			check(PShape);
+			// Create filter data used to filter collisions, should always return eTOUCH for LineTraceComponent		
+			PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::eIMPACT | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE;
 
-			const PxU32 HitBufferSize = 1; 
-			PxRaycastHit PHits[HitBufferSize];
+			PxRaycastHit BestHit;
+			float BestHitDistance = BIG_NUMBER;
 
-			// Filter so we trace against the right kind of collision
-			PxFilterData ShapeFilter = PShape->getQueryFilterData();
-			const bool bShapeIsComplex = (ShapeFilter.word3 & EPDF_ComplexCollision) != 0;
-			const bool bShapeIsSimple = (ShapeFilter.word3 & EPDF_SimpleCollision) != 0;
-			if ((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
+			// Get all the shapes from the actor
+			TArray<PxShape*> PShapes;
+			PShapes.AddZeroed(RigidBody->getNbShapes());
+			int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+
+			// Iterate over each shape
+			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
 			{
-				const int32 ArraySize = ARRAY_COUNT(PHits);
-				// only care about one hit - not closest hit			
-				const PxI32 NumHits = PxGeometryQuery::raycast(U2PVector(Start), U2PVector(Delta/DeltaMag), PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody), DeltaMag, POutputFlags, ArraySize, PHits, true);
+				PxShape* PShape = PShapes[ShapeIdx];
+				check(PShape);
 
+				const PxU32 HitBufferSize = 1;
+				PxRaycastHit PHits[HitBufferSize];
 
-				if ( ensure (NumHits <= ArraySize) )
+				// Filter so we trace against the right kind of collision
+				PxFilterData ShapeFilter = PShape->getQueryFilterData();
+				const bool bShapeIsComplex = (ShapeFilter.word3 & EPDF_ComplexCollision) != 0;
+				const bool bShapeIsSimple = (ShapeFilter.word3 & EPDF_SimpleCollision) != 0;
+				if ((bTraceComplex && bShapeIsComplex) || (!bTraceComplex && bShapeIsSimple))
 				{
-					for(int HitIndex = 0; HitIndex < NumHits; HitIndex++)
-					{
-						if(PHits[HitIndex].distance < BestHitDistance)
-						{
-							BestHitDistance = PHits[HitIndex].distance;
-							BestHit = PHits[HitIndex];
+					const int32 ArraySize = ARRAY_COUNT(PHits);
+					// only care about one hit - not closest hit			
+					const PxI32 NumHits = PxGeometryQuery::raycast(U2PVector(Start), U2PVector(Delta / DeltaMag), PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody), DeltaMag, POutputFlags, ArraySize, PHits, true);
 
-							// we don't get Shape information when we access via PShape, so I filled it up
-							BestHit.shape = PShape;
-							BestHit.actor = PShape->getActor();
+
+					if (ensure(NumHits <= ArraySize))
+					{
+						for (int HitIndex = 0; HitIndex < NumHits; HitIndex++)
+						{
+							if (PHits[HitIndex].distance < BestHitDistance)
+							{
+								BestHitDistance = PHits[HitIndex].distance;
+								BestHit = PHits[HitIndex];
+
+								// we don't get Shape information when we access via PShape, so I filled it up
+								BestHit.shape = PShape;
+								BestHit.actor = PShape->getActor();
+							}
 						}
 					}
 				}
 			}
-		}
 
-		if (BestHitDistance < BIG_NUMBER)
-		{
-			// we just like to make sure if the hit is made, set to test touch
-			PxFilterData QueryFilter;
-			QueryFilter.word2 = 0xFFFFF;
+			if (BestHitDistance < BIG_NUMBER)
+			{
+				// we just like to make sure if the hit is made, set to test touch
+				PxFilterData QueryFilter;
+				QueryFilter.word2 = 0xFFFFF;
 
-			PxTransform PStartTM(U2PVector(Start));
-			ConvertQueryImpactHit(BestHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTM, false, bReturnPhysicalMaterial);
-			return true;
+				PxTransform PStartTM(U2PVector(Start));
+				ConvertQueryImpactHit(BestHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTM, false, bReturnPhysicalMaterial);
+				bHitSomething = true;
+			}
 		}
-	}
 #endif //WITH_PHYSX
 
-	//@TODO: BOX2D: Implement LineTrace
-
-	return false;
-}
-
-bool FBodyInstance::Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& CollisionShape, bool bTraceComplex)
-{
-	OutHit.TraceStart = Start;
-	OutHit.TraceEnd = End;
-
-#if WITH_PHYSX
-	const PxRigidActor* RigidBody = GetPxRigidActor();
-	if(RigidBody == NULL || RigidBody->getNbShapes()==0 || OwnerComponent==NULL)
-	{
-		return false;
+#if WITH_BOX2D
+		if (BodyInstancePtr != nullptr)
+		{
+			//@TODO: BOX2D: Implement FBodyInstance::LineTrace
+		}
+#endif
 	}
 
-	if(CollisionShape.IsNearlyZero())
+	return bHitSomething;
+}
+
+bool FBodyInstance::Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& CollisionShape, bool bTraceComplex) const
+{
+	if (CollisionShape.IsNearlyZero())
 	{
 		return LineTrace(OutHit, Start, End, bTraceComplex);
 	}
-
-	switch(CollisionShape.ShapeType)
+	else
 	{
-	case ECollisionShape::Box:
-		{
-			const PxBoxGeometry PBoxGeom(U2PVector(CollisionShape.GetBox()));
-			const PxQuat PGeomRot = PxQuat::createIdentity();
+		OutHit.TraceStart = Start;
+		OutHit.TraceEnd = End;
 
-			return InternalSweep(OutHit, Start, End, CollisionShape, bTraceComplex, RigidBody, &PBoxGeom);
-		}
-	case ECollisionShape::Sphere:
+		bool bSweepHit = false;
+#if WITH_PHYSX
+		const PxRigidActor* RigidBody = GetPxRigidActor();
+		if ((RigidBody != NULL) && (RigidBody->getNbShapes() != 0) && (OwnerComponent != NULL))
 		{
-			PxSphereGeometry PSphereGeom(CollisionShape.GetSphereRadius());
-			PxQuat PGeomRot = PxQuat::createIdentity();
-
-			return InternalSweep(OutHit, Start, End, CollisionShape, bTraceComplex, RigidBody, &PSphereGeom);
+			FPhysXShapeAdaptor ShapeAdaptor(FQuat::Identity, CollisionShape);
+			bSweepHit = InternalSweepPhysX(OutHit, Start, End, CollisionShape, bTraceComplex, RigidBody, &ShapeAdaptor.GetGeometry());
 		}
-
-	case ECollisionShape::Capsule:
-		{
-			PxCapsuleGeometry PCapsuleGeom(CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength());
-			const PxQuat PGeomRot = PxQuat::createIdentity();
-			return InternalSweep(OutHit, Start, End, CollisionShape, bTraceComplex, RigidBody, &PCapsuleGeom);
-		}
-	}
 #endif //WITH_PHYSX
 
-	//@TODO: BOX2D: Implement Sweep
+#if WITH_BOX2D
+		if (BodyInstancePtr != nullptr)
+		{
+			//@TODO: BOX2D: Implement FBodyInstance::Sweep
+		}
+#endif
 
-	return false;
+		return bSweepHit;
+	}
 }
 
 #if WITH_PHYSX
-bool FBodyInstance::InternalSweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const PxRigidActor* RigidBody, const PxGeometry* Geometry)
+bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const PxRigidActor* RigidBody, const PxGeometry* Geometry) const
 {
 	const FVector Delta = End - Start;
 	const float DeltaMag = Delta.Size();
@@ -3113,8 +3102,102 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 	//@TODO: BOX2D: Implement DistanceToBody
 }
 
+bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, const struct FCollisionShape& CollisionShape) const
+{
+	bool bHasOverlap = false;
+
 #if WITH_PHYSX
-bool FBodyInstance::Overlap(const PxGeometry& PGeom, const PxTransform&  ShapePose)
+	FPhysXShapeAdaptor ShapeAdaptor(Rotation, CollisionShape);
+	bHasOverlap = OverlapPhysX(ShapeAdaptor.GetGeometry(), ShapeAdaptor.GetGeomPose(Position));
+#endif
+
+#if WITH_BOX2D
+	if (!bHasOverlap && (BodyInstancePtr != nullptr))
+	{
+		//@TODO: BOX2D: Implement FBodyInstance::OverlapTest
+	}
+#endif
+
+	return bHasOverlap;
+}
+
+bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+{
+	if (!IsValidBodyInstance())
+	{
+		UE_LOG(LogCollision, Log, TEXT("FBodyInstance::OverlapMulti : (%s) No physics data"), *GetBodyDebugName());
+		return false;
+	}
+
+	bool bHaveBlockingHit = false;
+
+	// Determine how to convert the local space of this body instance to the test space
+	const FTransform ComponentSpaceToTestSpace(Rot, Pos);
+
+	FTransform BodyInstanceSpaceToTestSpace;
+	if (pWorldToComponent)
+	{
+		const FTransform ShapeSpaceToComponentSpace = GetUnrealWorldTransform() * (*pWorldToComponent);
+		BodyInstanceSpaceToTestSpace = ShapeSpaceToComponentSpace * ComponentSpaceToTestSpace;
+	}
+	else
+	{
+		BodyInstanceSpaceToTestSpace = ComponentSpaceToTestSpace;
+	}
+
+#if WITH_PHYSX
+	if (PxRigidActor* PRigidActor = GetPxRigidActor())
+	{
+		const PxTransform PBodyInstanceSpaceToTestSpace = U2PTransform(BodyInstanceSpaceToTestSpace);
+
+		// Get all the shapes from the actor
+		{
+			SCOPED_SCENE_READ_LOCK(PRigidActor->getScene());
+
+			TArray<PxShape*, TInlineAllocator<8>> PShapes;
+			PShapes.AddZeroed(PRigidActor->getNbShapes());
+			int32 NumShapes = PRigidActor->getShapes(PShapes.GetData(), PShapes.Num());
+
+			// Iterate over each shape
+			TArray<struct FOverlapResult> TempOverlaps;
+			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+			{
+				PxShape* PShape = PShapes[ShapeIdx];
+				check(PShape);
+
+				// Calc shape global pose
+				const PxTransform PLocalPose = PShape->getLocalPose();
+				const PxTransform PShapeGlobalPose = PBodyInstanceSpaceToTestSpace.transform(PLocalPose);
+
+				GET_GEOMETRY_FROM_SHAPE(PGeom, PShape);
+
+				if (PGeom != NULL)
+				{
+					TempOverlaps.Reset();
+					if (GeomOverlapMulti_PhysX(World, *PGeom, PShapeGlobalPose, TempOverlaps, TestChannel, Params, ResponseParams, ObjectQueryParams))
+					{
+						bHaveBlockingHit = true;
+					}
+					InOutOverlaps.Append(TempOverlaps);
+				}
+			}
+		}
+	}
+#endif
+
+#if WITH_BOX2D
+	if (BodyInstancePtr != nullptr)
+	{
+		//@TODO: BOX2D: Implement FBodyInstance::OverlapMulti
+	}
+#endif
+
+	return bHaveBlockingHit;
+}
+
+
+#if WITH_PHYSX
+bool FBodyInstance::OverlapPhysX(const PxGeometry& PGeom, const PxTransform& ShapePose) const
 {
 	const PxRigidActor* RigidBody = GetPxRigidActor();
 

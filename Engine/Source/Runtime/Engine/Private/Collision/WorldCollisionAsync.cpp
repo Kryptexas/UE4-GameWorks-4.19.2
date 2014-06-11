@@ -87,8 +87,8 @@ namespace
 
 	void RunTraceTask(FTraceDatum* TraceDataBuffer, int32 TotalCount)
 	{
-	#if WITH_PHYSX
-		check (TraceDataBuffer);
+#if UE_WITH_PHYSICS
+		check(TraceDataBuffer);
 
 		for (; TotalCount; --TotalCount)
 		{
@@ -97,109 +97,47 @@ namespace
 
 			if (TraceData.PhysWorld.IsValid())
 			{
-				switch (TraceData.CollisionParams.CollisionShape.ShapeType)
+				if ((TraceData.CollisionParams.CollisionShape.ShapeType == ECollisionShape::Line) || TraceData.CollisionParams.CollisionShape.IsNearlyZero())
 				{
-				case ECollisionShape::Line:
 					if (TraceData.bIsMultiTrace)
 					{
-						RaycastMulti(TraceData.PhysWorld.Get(), TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
+						RaycastMulti(TraceData.PhysWorld.Get(), TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel,
+							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam);
 					}
 					else
 					{
 						TraceData.OutHits.AddZeroed(1);
-						RaycastSingle(TraceData.PhysWorld.Get(), TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
+						RaycastSingle(TraceData.PhysWorld.Get(), TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel,
+							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam);
 					}
-					break;
-				case ECollisionShape::Box:
+				}
+				else
+				{
+					if (TraceData.bIsMultiTrace)
 					{
-						PxBoxGeometry PBoxGeom( U2PVector(TraceData.CollisionParams.CollisionShape.GetBox()) );
-						PxQuat PGeomRot = PxQuat::createIdentity();
-
-						// when extent is nearly zero, just do linetrace, 
-						// thought of changing param, when entered, but if we do, it might confuse users when they get the result. 
-						if (TraceData.CollisionParams.CollisionShape.IsNearlyZero())
-						{
-							if (TraceData.bIsMultiTrace)
-							{
-								RaycastMulti(TraceData.PhysWorld.Get(), TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-							else
-							{
-								TraceData.OutHits.AddZeroed(1);
-								RaycastSingle(TraceData.PhysWorld.Get(), TraceData.OutHits[0], TraceData.Start, TraceData.End,TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-						}
-						else
-						{
-							if (TraceData.bIsMultiTrace)
-							{
-								GeomSweepMulti(TraceData.PhysWorld.Get(), PBoxGeom, PGeomRot, TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-							else
-							{
-								TraceData.OutHits.AddZeroed(1);
-								GeomSweepSingle(TraceData.PhysWorld.Get(), PBoxGeom, PGeomRot, TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-						}
+						GeomSweepMulti(TraceData.PhysWorld.Get(), TraceData.CollisionParams.CollisionShape, FQuat::Identity, TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel,
+							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam);
 					}
-					break;
-				case ECollisionShape::Capsule:
+					else
 					{
-						PxCapsuleGeometry PCapsuleGeom( TraceData.CollisionParams.CollisionShape.Capsule.Radius, TraceData.CollisionParams.CollisionShape.GetCapsuleAxisHalfLength() );
-						FQuat PGeomRot = FQuat::Identity; 
-
-						// when extent is nearly zero, just do linetrace, 
-						// thought of changing param, when entered, but if we do, it might confuse users when they get the result. 
-						if(TraceData.CollisionParams.CollisionShape.IsNearlyZero())
-						{
-							if (TraceData.bIsMultiTrace)
-							{
-								RaycastMulti(TraceData.PhysWorld.Get(), TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-							else
-							{
-								TraceData.OutHits.AddZeroed(1);
-								RaycastSingle(TraceData.PhysWorld.Get(), TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-						}
-						else
-						{
-							if (TraceData.bIsMultiTrace)
-							{
-								GeomSweepMulti(TraceData.PhysWorld.Get(), PCapsuleGeom, ConvertToPhysXCapsuleRot(PGeomRot), TraceData.OutHits, TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-							else
-							{
-								TraceData.OutHits.AddZeroed(1);
-								GeomSweepSingle(TraceData.PhysWorld.Get(), PCapsuleGeom, ConvertToPhysXCapsuleRot(PGeomRot), TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel, 
-									TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam );
-							}
-						}
-						break;
+						TraceData.OutHits.AddZeroed(1);
+						GeomSweepSingle(TraceData.PhysWorld.Get(), TraceData.CollisionParams.CollisionShape, FQuat::Identity, TraceData.OutHits[0], TraceData.Start, TraceData.End, TraceData.TraceChannel,
+							TraceData.CollisionParams.CollisionQueryParam, TraceData.CollisionParams.ResponseParam, TraceData.CollisionParams.ObjectQueryParam);
 					}
 				}
 			}
 		}
-	#endif //WITH_PHYSX
+	#endif //UE_WITH_PHYSICS
 	}
 
 	void RunTraceTask(FOverlapDatum* OverlapDataBuffer, int32 TotalCount)
 	{
-	#if WITH_PHYSX
-		check (OverlapDataBuffer);
+	#if UE_WITH_PHYSICS
+		check(OverlapDataBuffer);
 
 		for (; TotalCount; --TotalCount)
 		{
-			FOverlapDatum & OverlapData = *OverlapDataBuffer++;
+			FOverlapDatum& OverlapData = *OverlapDataBuffer++;
 			OverlapData.OutOverlaps.Empty();
 
 			if (!OverlapData.PhysWorld.IsValid())
@@ -207,101 +145,36 @@ namespace
 				continue;
 			}
 
-			switch (OverlapData.CollisionParams.CollisionShape.ShapeType)
+			if (OverlapData.bIsMultiTrace)
 			{
-			case ECollisionShape::Box:
-				{
-					PxTransform PGeomPose(U2PTransform(FTransform(OverlapData.Rot, OverlapData.Pos)));
-					if (OverlapData.CollisionParams.CollisionShape.IsNearlyZero())
-					{
-						PxSphereGeometry PSphereGeom( 0.f );
-						// put right sphere
-						if (OverlapData.bIsMultiTrace)
-						{
-							GeomOverlapMulti(OverlapData.PhysWorld.Get(), PSphereGeom, PGeomPose, OverlapData.OutOverlaps, OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}
-						else
-						{
-							OverlapData.OutOverlaps.AddZeroed(1);
-							GeomOverlapSingle(OverlapData.PhysWorld.Get(),PSphereGeom, PGeomPose, OverlapData.OutOverlaps[0], OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}					
-					}
-					else
-					{
-						PxBoxGeometry PBoxGeom( U2PVector(OverlapData.CollisionParams.CollisionShape.GetBox()) );
-						if (OverlapData.bIsMultiTrace)
-						{
-							GeomOverlapMulti(OverlapData.PhysWorld.Get(),PBoxGeom, PGeomPose, OverlapData.OutOverlaps, OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}
-						else
-						{
-							OverlapData.OutOverlaps.AddZeroed(1);
-							GeomOverlapSingle(OverlapData.PhysWorld.Get(),PBoxGeom, PGeomPose, OverlapData.OutOverlaps[0], OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}
-					}
-				}
-				break;
-			case ECollisionShape::Capsule:
-				{
-					FTransform CapsulePose(OverlapData.Rot, OverlapData.Pos);
+				GeomOverlapMulti(
+					OverlapData.PhysWorld.Get(),
+					OverlapData.CollisionParams.CollisionShape,
+					OverlapData.Pos,
+					OverlapData.Rot,
+					OverlapData.OutOverlaps,
+					OverlapData.TraceChannel,
+					OverlapData.CollisionParams.CollisionQueryParam,
+					OverlapData.CollisionParams.ResponseParam,
+					OverlapData.CollisionParams.ObjectQueryParam);
+			}
+			else
+			{
+				OverlapData.OutOverlaps.AddZeroed(1);
 
-					if(OverlapData.CollisionParams.CollisionShape.IsNearlyZero())
-					{
-						PxSphereGeometry PSphereGeom( 0.f );
-						// put right sphere
-						if (OverlapData.bIsMultiTrace)
-						{
-							GeomOverlapMulti(OverlapData.PhysWorld.Get(),PSphereGeom, U2PTransform(CapsulePose), OverlapData.OutOverlaps, OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam);
-						}
-						else
-						{
-							OverlapData.OutOverlaps.AddZeroed(1);
-							GeomOverlapSingle(OverlapData.PhysWorld.Get(),PSphereGeom,  U2PTransform(CapsulePose), OverlapData.OutOverlaps[0], OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}					
-					}
-					else
-					{
-						PxCapsuleGeometry PCapsuleGeom( OverlapData.CollisionParams.CollisionShape.Capsule.Radius, OverlapData.CollisionParams.CollisionShape.GetCapsuleAxisHalfLength() );
-						if (OverlapData.bIsMultiTrace)
-						{
-							GeomOverlapMulti(OverlapData.PhysWorld.Get(),PCapsuleGeom, ConvertToPhysXCapsulePose(CapsulePose), OverlapData.OutOverlaps, OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}
-						else
-						{
-							OverlapData.OutOverlaps.AddZeroed(1);
-							GeomOverlapSingle(OverlapData.PhysWorld.Get(),PCapsuleGeom, ConvertToPhysXCapsulePose(CapsulePose), OverlapData.OutOverlaps[0], OverlapData.TraceChannel, 
-								OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-						}
-					}
-				}
-				break;
-			case ECollisionShape::Sphere:
-				{
-					PxSphereGeometry PSphereGeom( OverlapData.CollisionParams.CollisionShape.Sphere.Radius );
-					PxTransform PGeomPose(U2PVector(OverlapData.Pos), PxQuat::createIdentity());
-					if (OverlapData.bIsMultiTrace)
-					{
-						GeomOverlapMulti(OverlapData.PhysWorld.Get(),PSphereGeom, PGeomPose, OverlapData.OutOverlaps, OverlapData.TraceChannel, 
-							OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-					}
-					else
-					{
-						OverlapData.OutOverlaps.AddZeroed(1);
-						GeomOverlapSingle(OverlapData.PhysWorld.Get(),PSphereGeom, PGeomPose, OverlapData.OutOverlaps[0], OverlapData.TraceChannel, 
-							OverlapData.CollisionParams.CollisionQueryParam, OverlapData.CollisionParams.ResponseParam, OverlapData.CollisionParams.ObjectQueryParam );
-					}
-				}
-				break;
+				GeomOverlapSingle(
+					OverlapData.PhysWorld.Get(),
+					OverlapData.CollisionParams.CollisionShape,
+					OverlapData.Pos,
+					OverlapData.Rot,
+					OverlapData.OutOverlaps[0],
+					OverlapData.TraceChannel,
+					OverlapData.CollisionParams.CollisionQueryParam,
+					OverlapData.CollisionParams.ResponseParam,
+					OverlapData.CollisionParams.ObjectQueryParam);
 			}
 		}
-	#endif //WITH_PHYSX
+	#endif //UE_WITH_PHYSICS
 	}
 
 	#if RUN_ASYNC_TRACE

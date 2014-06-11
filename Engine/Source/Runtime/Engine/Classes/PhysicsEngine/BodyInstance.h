@@ -460,7 +460,7 @@ public:
 	 *  @param bReturnPhysicalMaterial	Fill in the PhysMaterial field of OutHit
 	 *  @return true if a hit is found
 	 */
-	bool LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial = false);
+	bool LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial = false) const;
 
 	/** 
 	 *  Trace a box against just this bodyinstance
@@ -471,7 +471,7 @@ public:
 	 *	@param	bTraceComplex	Should we trace against complex or simple collision of this body
 	 *  @return true if a hit is found
 	 */
-	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex);
+	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex) const;
 
 #if WITH_PHYSX
 	/**
@@ -481,8 +481,33 @@ public:
 	 *  @param  ShapePose       Transform information in world. Use U2PTransform to convert from FTransform
 	 *  @return true if PrimComp overlaps this component at the specified location/rotation
 	 */
-	bool Overlap(const physx::PxGeometry& Geom, const physx::PxTransform&  ShapePose);
+	bool OverlapPhysX(const physx::PxGeometry& Geom, const physx::PxTransform&  ShapePose) const;
 #endif	//WITH_PHYSX
+
+	/**
+	 *  Test if the bodyinstance overlaps with the specified shape at the specified position/rotation
+	 *
+	 *  @param  Position		Position to place the shape at before testing
+	 *  @param  Rotation		Rotation to apply to the shape before testing
+	 *	@param	CollisionShape	Shape to test against
+	 *  @return true if the geometry associated with this body instance overlaps the query shape at the specified location/rotation
+	 */
+	bool OverlapTest(const FVector& Position, const FQuat& Rotation, const struct FCollisionShape& CollisionShape) const;
+
+	/**
+	 *  Determines the set of components that this body instance would overlap with at the supplied location/rotation
+	 *  @param  InOutOverlaps   Array of overlaps found between this component in specified pose and the world (new overlaps will be appended, the array is not cleared!)
+	 *  @param  World			World to use for overlap test
+	 *  @param  pWorldToComponent Used to convert the body instance world space position into local space before teleporting it to (Pos, Rot) [optional, use when the body instance isn't centered on the component instance]
+	 *  @param  Pos             Location to place the component's geometry at to test against the world
+	 *  @param  Rot             Rotation to place components' geometry at to test against the world
+	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
+	 *  @param  Params
+	 *  @param  ResponseParams
+	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
+	 *  @return TRUE if OutOverlaps contains any blocking results
+	 */
+	bool OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
 	/**
 	 * Add an impulse to this bodyinstance, radiating out from the specified position.
@@ -541,7 +566,7 @@ private:
 	 *  @param	PGeom			Geometry that will sweep
 	 *  @return true if a hit is found
 	 */
-	bool InternalSweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry);
+	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry) const;
 #endif 
 	/**
 	 * Invalidate Collision Profile Name
