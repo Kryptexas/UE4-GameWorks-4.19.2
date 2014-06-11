@@ -134,12 +134,10 @@ namespace EBTDescriptionVerbosity
 	};
 }
 
-/** @TODO might wanna move this to a dedicated header */
 namespace FBlackboard
 {
 	const FName KeySelf = TEXT("SelfActor");
 
-	/** @todo FBlackboard::FKey needs to be used instead of uint8 for keys */
 	typedef uint8 FKey;
 
 	const FKey InvalidKey = FKey(-1);
@@ -370,6 +368,9 @@ protected:
 	/** ID of selected key */
 	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
 	uint8 SelectedKeyID;
+	// SelectedKeyId type should be FBlackboard::FKey, but typedefs are not supported by UHT
+	// Please also check key id in FOnBlackboardChange delegate
+	checkAtCompileTime(sizeof(FBlackboard::FKey) == 1, FBlackboardKeySelector_SelectedKeyId_should_be_of_FBlackboard_FKey_type);
 
 	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
 	uint32 bNoneIsAllowedValue:1;
@@ -383,7 +384,7 @@ public:
 
 	void AllowNoneAsValue(bool bNewVal ) { bNoneIsAllowedValue = bNewVal; }
 
-	FORCEINLINE uint8 GetSelectedKeyID() const { return SelectedKeyID; }
+	FORCEINLINE FBlackboard::FKey GetSelectedKeyID() const { return SelectedKeyID; }
 
 	/** helper functions for setting basic filters */
 	void AddObjectFilter(UObject* Owner, TSubclassOf<UObject> AllowedClass);

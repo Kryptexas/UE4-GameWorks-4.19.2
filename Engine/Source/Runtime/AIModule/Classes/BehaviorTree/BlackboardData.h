@@ -24,11 +24,6 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	GENERATED_UCLASS_BODY()
 	DECLARE_MULTICAST_DELEGATE_OneParam(FKeyUpdate, UBlackboardData* /*asset*/);
 
-	enum 
-	{
-		InvalidKeyID = 0xFF
-	};
-
 	/** parent blackboard (keys can be overridden) */
 	UPROPERTY(EditAnywhere, Category=Parent)
 	class UBlackboardData* Parent;
@@ -44,21 +39,21 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	TArray<FBlackboardEntry> Keys;
 
 	/** @return key ID from name */
-	uint8 GetKeyID(const FName& KeyName) const;
+	FBlackboard::FKey GetKeyID(const FName& KeyName) const;
 
 	/** @return name of key */
-	FName GetKeyName(uint8 KeyID) const;
+	FName GetKeyName(FBlackboard::FKey KeyID) const;
 
 	/** @return class of value for given key */
-	TSubclassOf<UBlackboardKeyType> GetKeyType(uint8 KeyID) const;
+	TSubclassOf<UBlackboardKeyType> GetKeyType(FBlackboard::FKey KeyID) const;
 
 	/** @return number of defined keys, including parent chain */
 	int32 GetNumKeys() const;
 
-	FORCEINLINE int32 GetFirstKeyID() const { return FirstKeyID; }
+	FORCEINLINE FBlackboard::FKey GetFirstKeyID() const { return FirstKeyID; }
 
 	/** @return key data */
-	const FBlackboardEntry* GetKey(uint8 KeyID) const;
+	const FBlackboardEntry* GetKey(FBlackboard::FKey KeyID) const;
 
 	virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
@@ -76,8 +71,8 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	{
 		T* CreatedKeyType = NULL;
 
-		const uint8 KeyID = InternalGetKeyID(KeyName, DontCheckParentKeys);
-		if (KeyID == InvalidKeyID && Parent == NULL)
+		const FBlackboard::FKey KeyID = InternalGetKeyID(KeyName, DontCheckParentKeys);
+		if (KeyID == FBlackboard::InvalidKey && Parent == NULL)
 		{
 			FBlackboardEntry Entry;
 			Entry.EntryName = KeyName;
@@ -88,9 +83,9 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 			Keys.Add(Entry);
 			MarkPackageDirty();
 		}
-		else if (KeyID != InvalidKeyID && Parent != NULL)
+		else if (KeyID != FBlackboard::InvalidKey && Parent != NULL)
 		{
-			const int32 KeyIndex = KeyID - FirstKeyID;
+			const FBlackboard::FKey KeyIndex = KeyID - FirstKeyID;
 			Keys.RemoveAt(KeyIndex);
 			MarkPackageDirty();
 		}
@@ -111,10 +106,10 @@ protected:
 	};
 
 	/** @return first ID for keys of this asset (parent keys goes first) */
-	int32 FirstKeyID;
+	FBlackboard::FKey FirstKeyID;
 
 	/** @return key ID from name */
-	uint8 InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const;
+	FBlackboard::FKey InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const;
 
 	/** updates parent key cache for editor */
 	void UpdateParentKeys();

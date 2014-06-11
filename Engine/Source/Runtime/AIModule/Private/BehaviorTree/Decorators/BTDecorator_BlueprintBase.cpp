@@ -73,8 +73,8 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerC
 	{
 		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
 		{
-			const uint8 KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
-			if (KeyID != UBlackboardData::InvalidKeyID)
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->RegisterObserver(KeyID, BBKeyObserver);
 			}
@@ -90,8 +90,8 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerCo
 	{
 		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
 		{
-			const uint8 KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
-			if (KeyID != UBlackboardData::InvalidKeyID)
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserver);
 			}

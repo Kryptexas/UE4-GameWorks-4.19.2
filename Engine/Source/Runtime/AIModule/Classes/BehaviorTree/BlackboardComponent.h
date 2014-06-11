@@ -38,13 +38,13 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	/** END UActorComponent overrides */
 
 	/** @return name of key */
-	FName GetKeyName(uint8 KeyID) const;
+	FName GetKeyName(FBlackboard::FKey KeyID) const;
 
 	/** @return key ID from name */
-	uint8 GetKeyID(const FName& KeyName) const;
+	FBlackboard::FKey GetKeyID(const FName& KeyName) const;
 
 	/** @return class of value for given key */
-	TSubclassOf<UBlackboardKeyType> GetKeyType(uint8 KeyID) const;
+	TSubclassOf<UBlackboardKeyType> GetKeyType(FBlackboard::FKey KeyID) const;
 
 	/** @return number of entries in data asset */
 	int32 GetNumKeys() const;
@@ -53,10 +53,10 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	bool HasValidAsset() const;
 
 	/** register observer for blackboard key */
-	void RegisterObserver(uint8 KeyID, FOnBlackboardChange ObserverDelegate);
+	void RegisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate);
 
 	/** unregister observer from blackboard key */
-	void UnregisterObserver(uint8 KeyID, FOnBlackboardChange ObserverDelegate);
+	void UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate);
 
 	/** pause change notifies and add them to queue */
 	void PauseUpdates();
@@ -81,106 +81,106 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UObject* GetValueAsObject(const FName& KeyName) const;
-	UObject* GetValueAsObject(uint8 KeyID) const;
+	UObject* GetValueAsObject(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UClass* GetValueAsClass(const FName& KeyName) const;
-	UClass* GetValueAsClass(uint8 KeyID) const;
+	UClass* GetValueAsClass(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	uint8 GetValueAsEnum(const FName& KeyName) const;
-	uint8 GetValueAsEnum(uint8 KeyID) const;
+	uint8 GetValueAsEnum(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	int32 GetValueAsInt(const FName& KeyName) const;
-	int32 GetValueAsInt(uint8 KeyID) const;
+	int32 GetValueAsInt(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	float GetValueAsFloat(const FName& KeyName) const;
-	float GetValueAsFloat(uint8 KeyID) const;
+	float GetValueAsFloat(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetValueAsBool(const FName& KeyName) const;
-	bool GetValueAsBool(uint8 KeyID) const;
+	bool GetValueAsBool(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FString GetValueAsString(const FName& KeyName) const;
-	FString GetValueAsString(uint8 KeyID) const;
+	FString GetValueAsString(FBlackboard::FKey KeyID) const;
 	
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FName GetValueAsName(const FName& KeyName) const;
-	FName GetValueAsName(uint8 KeyID) const;
+	FName GetValueAsName(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FVector GetValueAsVector(const FName& KeyName) const;
-	FVector GetValueAsVector(uint8 KeyID) const;
+	FVector GetValueAsVector(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
-	void SetValueAsObject(uint8 KeyID, UObject* ObjectValue);
+	void SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsClass(const FName& KeyName, UClass* ClassValue);
-	void SetValueAsClass(uint8 KeyID, UClass* ClassValue);
+	void SetValueAsClass(FBlackboard::FKey KeyID, UClass* ClassValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsEnum(const FName& KeyName, uint8 EnumValue);
-	void SetValueAsEnum(uint8 KeyID, uint8 EnumValue);
+	void SetValueAsEnum(FBlackboard::FKey KeyID, uint8 EnumValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsInt(const FName& KeyName, int32 IntValue);
-	void SetValueAsInt(uint8 KeyID, int32 IntValue);
+	void SetValueAsInt(FBlackboard::FKey KeyID, int32 IntValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsFloat(const FName& KeyName, float FloatValue);
-	void SetValueAsFloat(uint8 KeyID, float FloatValue);
+	void SetValueAsFloat(FBlackboard::FKey KeyID, float FloatValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsBool(const FName& KeyName, bool BoolValue);
-	void SetValueAsBool(uint8 KeyID, bool BoolValue);
+	void SetValueAsBool(FBlackboard::FKey KeyID, bool BoolValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsString(const FName& KeyName, FString StringValue);
-	void SetValueAsString(uint8 KeyID, const FString& StringValue);
+	void SetValueAsString(FBlackboard::FKey KeyID, const FString& StringValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsName(const FName& KeyName, FName NameValue);
-	void SetValueAsName(uint8 KeyID, const FName& NameValue);
+	void SetValueAsName(FBlackboard::FKey KeyID, const FName& NameValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
-	void SetValueAsVector(uint8 KeyID, const FVector& VectorValue);
+	void SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue);
 
 	UFUNCTION(BlueprintCallable, Category="Blackboard")
 	void ClearValueAsVector(const FName& KeyName);
-	void ClearValueAsVector(uint8 KeyID);
+	void ClearValueAsVector(FBlackboard::FKey KeyID);
 
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const;
-	bool GetLocationFromEntry(uint8 KeyID, FVector& ResultLocation) const;
+	bool GetLocationFromEntry(FBlackboard::FKey KeyID, FVector& ResultLocation) const;
 
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="Blackboard")
 	bool GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const;
-	bool GetRotationFromEntry(uint8 KeyID, FRotator& ResultRotation) const;
+	bool GetRotationFromEntry(FBlackboard::FKey KeyID, FRotator& ResultRotation) const;
 
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }
-	FORCEINLINE uint8* GetKeyRawData(uint8 KeyID) { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
+	FORCEINLINE uint8* GetKeyRawData(FBlackboard::FKey KeyID) { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
 
 	FORCEINLINE const uint8* GetKeyRawData(const FName& KeyName) const { return GetKeyRawData(GetKeyID(KeyName)); }
-	FORCEINLINE const uint8* GetKeyRawData(uint8 KeyID) const { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
+	FORCEINLINE const uint8* GetKeyRawData(FBlackboard::FKey KeyID) const { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetTypedData() + ValueOffsets[KeyID]) : NULL; }
 
-	FORCEINLINE bool IsValidKey(uint8 KeyID) const { check(BlackboardAsset); return KeyID != UBlackboardData::InvalidKeyID && BlackboardAsset->Keys.IsValidIndex(KeyID); }
+	FORCEINLINE bool IsValidKey(FBlackboard::FKey KeyID) const { check(BlackboardAsset); return KeyID != FBlackboard::InvalidKey && BlackboardAsset->Keys.IsValidIndex(KeyID); }
 
 	/** compares blackboard's values under specified keys */
-	EBlackboardCompare::Type CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const;
+	EBlackboardCompare::Type CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const;
 
 	FString GetDebugInfoString(EBlackboardDescription::Type Mode) const;
 
 	/** get description of value under given key */
-	FString DescribeKeyValue(uint8 KeyID, EBlackboardDescription::Type Mode) const;
+	FString DescribeKeyValue(FBlackboard::FKey KeyID, EBlackboardDescription::Type Mode) const;
 
 #if ENABLE_VISUAL_LOG
 	/** prepare blackboard snapshot for logs */
@@ -213,7 +213,7 @@ protected:
 	uint32 bPausedNotifies : 1;
 
 	/** notifies behavior tree decorators about change in blackboard */
-	void NotifyObservers(uint8 KeyID) const;
+	void NotifyObservers(FBlackboard::FKey KeyID) const;
 };
 
 //////////////////////////////////////////////////////////////////////////

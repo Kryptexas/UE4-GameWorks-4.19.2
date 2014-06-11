@@ -23,26 +23,26 @@ UBlackboardData::UBlackboardData(const class FPostConstructInitializeProperties&
 	}
 }
 
-uint8 UBlackboardData::GetKeyID(const FName& KeyName) const
+FBlackboard::FKey UBlackboardData::GetKeyID(const FName& KeyName) const
 {
 	return InternalGetKeyID(KeyName, CheckParentKeys);
 }
 
-FName UBlackboardData::GetKeyName(uint8 KeyID) const
+FName UBlackboardData::GetKeyName(FBlackboard::FKey KeyID) const
 {
 	const FBlackboardEntry* KeyEntry = GetKey(KeyID);
 	return KeyEntry ? KeyEntry->EntryName : NAME_None;
 }
 
-TSubclassOf<UBlackboardKeyType> UBlackboardData::GetKeyType(uint8 KeyID) const
+TSubclassOf<UBlackboardKeyType> UBlackboardData::GetKeyType(FBlackboard::FKey KeyID) const
 {
 	const FBlackboardEntry* KeyEntry = GetKey(KeyID);
 	return KeyEntry ? KeyEntry->KeyType->GetClass() : NULL;
 }
 
-const FBlackboardEntry* UBlackboardData::GetKey(uint8 KeyID) const
+const FBlackboardEntry* UBlackboardData::GetKey(FBlackboard::FKey KeyID) const
 {
-	if (KeyID != InvalidKeyID)
+	if (KeyID != FBlackboard::InvalidKey)
 	{
 		if (KeyID >= FirstKeyID)
 		{
@@ -62,7 +62,7 @@ int32 UBlackboardData::GetNumKeys() const
 	return FirstKeyID + Keys.Num();
 }
 
-uint8 UBlackboardData::InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const
+FBlackboard::FKey UBlackboardData::InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const
 {
 	for (int32 i = 0; i < Keys.Num(); i++)
 	{
@@ -72,7 +72,7 @@ uint8 UBlackboardData::InternalGetKeyID(const FName& KeyName, EKeyLookupMode Loo
 		}
 	}
 
-	return Parent && (LookupMode == CheckParentKeys) ? Parent->InternalGetKeyID(KeyName, LookupMode) : InvalidKeyID;
+	return Parent && (LookupMode == CheckParentKeys) ? Parent->InternalGetKeyID(KeyName, LookupMode) : FBlackboard::InvalidKey;
 }
 
 bool UBlackboardData::IsValid() const
@@ -81,8 +81,8 @@ bool UBlackboardData::IsValid() const
 	{
 		for (int32 i = 0; i < Keys.Num(); i++)
 		{
-			const uint8 KeyID = Parent->InternalGetKeyID(Keys[i].EntryName, CheckParentKeys);
-			if (KeyID != InvalidKeyID)
+			const FBlackboard::FKey KeyID = Parent->InternalGetKeyID(Keys[i].EntryName, CheckParentKeys);
+			if (KeyID != FBlackboard::InvalidKey)
 			{
 				UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has duplicated key (%s) in parent chain!"),
 					*GetName(), *Keys[i].EntryName.ToString());

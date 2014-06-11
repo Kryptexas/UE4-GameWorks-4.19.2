@@ -36,11 +36,11 @@ void UBlackboardComponent::CacheBrainComponent(UBrainComponent* BrainComponent)
 
 struct FBlackboardInitializationData
 {
-	uint8 KeyID;
+	FBlackboard::FKey KeyID;
 	uint16 DataSize;
 
 	FBlackboardInitializationData() {}
-	FBlackboardInitializationData(uint8 InKeyID, uint16 InDataSize) : KeyID(InKeyID)
+	FBlackboardInitializationData(FBlackboard::FKey InKeyID, uint16 InDataSize) : KeyID(InKeyID)
 	{
 		DataSize = (InDataSize <= 2) ? InDataSize : ((InDataSize + 3) & ~3);
 	}
@@ -126,17 +126,17 @@ class UBlackboardData* UBlackboardComponent::GetBlackboardAsset() const
 	return BlackboardAsset;
 }
 
-FName UBlackboardComponent::GetKeyName(uint8 KeyID) const
+FName UBlackboardComponent::GetKeyName(FBlackboard::FKey KeyID) const
 {
 	return BlackboardAsset ? BlackboardAsset->GetKeyName(KeyID) : NAME_None;
 }
 
-uint8 UBlackboardComponent::GetKeyID(const FName& KeyName) const
+FBlackboard::FKey UBlackboardComponent::GetKeyID(const FName& KeyName) const
 {
-	return BlackboardAsset ? BlackboardAsset->GetKeyID(KeyName) : 0xFF;
+	return BlackboardAsset ? BlackboardAsset->GetKeyID(KeyName) : FBlackboard::InvalidKey;
 }
 
-TSubclassOf<UBlackboardKeyType> UBlackboardComponent::GetKeyType(uint8 KeyID) const
+TSubclassOf<UBlackboardKeyType> UBlackboardComponent::GetKeyType(FBlackboard::FKey KeyID) const
 {
 	return BlackboardAsset ? BlackboardAsset->GetKeyType(KeyID) : NULL;
 }
@@ -146,12 +146,12 @@ int32 UBlackboardComponent::GetNumKeys() const
 	return BlackboardAsset ? BlackboardAsset->GetNumKeys() : 0;
 }
 
-void UBlackboardComponent::RegisterObserver(uint8 KeyID, FOnBlackboardChange ObserverDelegate)
+void UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
 {
 	Observers.AddUnique(KeyID, ObserverDelegate);
 }
 
-void UBlackboardComponent::UnregisterObserver(uint8 KeyID, FOnBlackboardChange ObserverDelegate)
+void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
 {
 	Observers.RemoveSingle(KeyID, ObserverDelegate);
 }
@@ -173,7 +173,7 @@ void UBlackboardComponent::ResumeUpdates()
 	QueuedUpdates.Empty();
 }
 
-void UBlackboardComponent::NotifyObservers(uint8 KeyID) const
+void UBlackboardComponent::NotifyObservers(FBlackboard::FKey KeyID) const
 {
 	if (bPausedNotifies)
 	{
@@ -202,7 +202,7 @@ bool UBlackboardComponent::IsCompatibileWith(class UBlackboardData* TestAsset) c
 	return false;
 }
 
-EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const
+EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const
 {
 	UBlackboardKeyType* KeyCDO = KeyType->GetDefaultObject<UBlackboardKeyType>();
 	return KeyCDO->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
@@ -242,7 +242,7 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 		
 			for (int32 KeyIndex = 0; KeyIndex < ObserversKeys.Num(); ++KeyIndex)
 			{
-				const uint8 KeyID = ObserversKeys[KeyIndex];
+				const FBlackboard::FKey KeyID = ObserversKeys[KeyIndex];
 				//@todo shouldn't be using a localized value?; GetKeyName() [10/11/2013 justin.sargent]
 				DebugString += FString::Printf(TEXT("  %s:\n"), *BlackboardAsset->GetKeyName(KeyID).ToString());
 			}
@@ -256,7 +256,7 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 	return DebugString;
 }
 
-FString UBlackboardComponent::DescribeKeyValue(uint8 KeyID, EBlackboardDescription::Type Mode) const
+FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackboardDescription::Type Mode) const
 {
 	FString Description;
 
@@ -315,16 +315,16 @@ void UBlackboardComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) c
 
 UObject* UBlackboardComponent::GetValueAsObject(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Object::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsObject(KeyID);
 }
 
-UObject* UBlackboardComponent::GetValueAsObject(uint8 KeyID) const
+UObject* UBlackboardComponent::GetValueAsObject(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Object::GetValue(RawData) : NULL;
@@ -332,16 +332,16 @@ UObject* UBlackboardComponent::GetValueAsObject(uint8 KeyID) const
 
 UClass* UBlackboardComponent::GetValueAsClass(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Class::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsClass(KeyID);
 }
 
-UClass* UBlackboardComponent::GetValueAsClass(uint8 KeyID) const
+UClass* UBlackboardComponent::GetValueAsClass(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Class::GetValue(RawData) : NULL;
@@ -349,17 +349,17 @@ UClass* UBlackboardComponent::GetValueAsClass(uint8 KeyID) const
 
 uint8 UBlackboardComponent::GetValueAsEnum(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Enum::StaticClass() &&
 		GetKeyType(KeyID) != UBlackboardKeyType_NativeEnum::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsEnum(KeyID);
 }
 
-uint8 UBlackboardComponent::GetValueAsEnum(uint8 KeyID) const
+uint8 UBlackboardComponent::GetValueAsEnum(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Enum::GetValue(RawData) : 0;
@@ -367,16 +367,16 @@ uint8 UBlackboardComponent::GetValueAsEnum(uint8 KeyID) const
 
 int32 UBlackboardComponent::GetValueAsInt(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Int::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsInt(KeyID);
 }
 
-int32 UBlackboardComponent::GetValueAsInt(uint8 KeyID) const
+int32 UBlackboardComponent::GetValueAsInt(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Int::GetValue(RawData) : 0;
@@ -384,16 +384,16 @@ int32 UBlackboardComponent::GetValueAsInt(uint8 KeyID) const
 
 float UBlackboardComponent::GetValueAsFloat(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Float::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsFloat(KeyID);
 }
 
-float UBlackboardComponent::GetValueAsFloat(uint8 KeyID) const
+float UBlackboardComponent::GetValueAsFloat(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Float::GetValue(RawData) : 0.0f;
@@ -401,16 +401,16 @@ float UBlackboardComponent::GetValueAsFloat(uint8 KeyID) const
 
 bool UBlackboardComponent::GetValueAsBool(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Bool::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsBool(KeyID);
 }
 
-bool UBlackboardComponent::GetValueAsBool(uint8 KeyID) const
+bool UBlackboardComponent::GetValueAsBool(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Bool::GetValue(RawData) : false;
@@ -418,16 +418,16 @@ bool UBlackboardComponent::GetValueAsBool(uint8 KeyID) const
 
 FString UBlackboardComponent::GetValueAsString(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_String::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsString(KeyID);
 }
 
-FString UBlackboardComponent::GetValueAsString(uint8 KeyID) const
+FString UBlackboardComponent::GetValueAsString(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_String::GetValue(RawData) : FString();
@@ -435,16 +435,16 @@ FString UBlackboardComponent::GetValueAsString(uint8 KeyID) const
 
 FName UBlackboardComponent::GetValueAsName(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Name::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsName(KeyID);
 }
 
-FName UBlackboardComponent::GetValueAsName(uint8 KeyID) const
+FName UBlackboardComponent::GetValueAsName(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Name::GetValue(RawData) : NAME_None;
@@ -452,16 +452,16 @@ FName UBlackboardComponent::GetValueAsName(uint8 KeyID) const
 
 FVector UBlackboardComponent::GetValueAsVector(const FName& KeyName) const
 {
-	uint8 KeyID = GetKeyID(KeyName);
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) != UBlackboardKeyType_Vector::StaticClass())
 	{
-		KeyID = INDEX_NONE;
+		KeyID = FBlackboard::InvalidKey;
 	}
 
 	return GetValueAsVector(KeyID);
 }
 
-FVector UBlackboardComponent::GetValueAsVector(uint8 KeyID) const
+FVector UBlackboardComponent::GetValueAsVector(FBlackboard::FKey KeyID) const
 {
 	const uint8* RawData = GetKeyRawData(KeyID);
 	return RawData ? UBlackboardKeyType_Vector::GetValue(RawData) : FVector::ZeroVector;
@@ -469,14 +469,14 @@ FVector UBlackboardComponent::GetValueAsVector(uint8 KeyID) const
 
 void UBlackboardComponent::SetValueAsObject(const FName& KeyName, UObject* ObjectValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Object::StaticClass())
 	{
 		SetValueAsObject(KeyID, ObjectValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsObject(uint8 KeyID, UObject* ObjectValue)
+void UBlackboardComponent::SetValueAsObject(FBlackboard::FKey KeyID, UObject* ObjectValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -491,14 +491,14 @@ void UBlackboardComponent::SetValueAsObject(uint8 KeyID, UObject* ObjectValue)
 
 void UBlackboardComponent::SetValueAsClass(const FName& KeyName, UClass* ClassValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Class::StaticClass())
 	{
 		SetValueAsClass(KeyID, ClassValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsClass(uint8 KeyID, UClass* ClassValue)
+void UBlackboardComponent::SetValueAsClass(FBlackboard::FKey KeyID, UClass* ClassValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -513,7 +513,7 @@ void UBlackboardComponent::SetValueAsClass(uint8 KeyID, UClass* ClassValue)
 
 void UBlackboardComponent::SetValueAsEnum(const FName& KeyName, uint8 EnumValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Enum::StaticClass() ||
 		GetKeyType(KeyID) == UBlackboardKeyType_NativeEnum::StaticClass())
 	{
@@ -521,7 +521,7 @@ void UBlackboardComponent::SetValueAsEnum(const FName& KeyName, uint8 EnumValue)
 	}
 }
 
-void UBlackboardComponent::SetValueAsEnum(uint8 KeyID, uint8 EnumValue)
+void UBlackboardComponent::SetValueAsEnum(FBlackboard::FKey KeyID, uint8 EnumValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -536,14 +536,14 @@ void UBlackboardComponent::SetValueAsEnum(uint8 KeyID, uint8 EnumValue)
 
 void UBlackboardComponent::SetValueAsInt(const FName& KeyName, int32 IntValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Int::StaticClass())
 	{
 		SetValueAsInt(KeyID, IntValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsInt(uint8 KeyID, int32 IntValue)
+void UBlackboardComponent::SetValueAsInt(FBlackboard::FKey KeyID, int32 IntValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -558,14 +558,14 @@ void UBlackboardComponent::SetValueAsInt(uint8 KeyID, int32 IntValue)
 
 void UBlackboardComponent::SetValueAsFloat(const FName& KeyName, float FloatValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Float::StaticClass())
 	{
 		SetValueAsFloat(KeyID, FloatValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsFloat(uint8 KeyID, float FloatValue)
+void UBlackboardComponent::SetValueAsFloat(FBlackboard::FKey KeyID, float FloatValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -580,14 +580,14 @@ void UBlackboardComponent::SetValueAsFloat(uint8 KeyID, float FloatValue)
 
 void UBlackboardComponent::SetValueAsBool(const FName& KeyName, bool BoolValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Bool::StaticClass())
 	{
 		SetValueAsBool(KeyID, BoolValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsBool(uint8 KeyID, bool BoolValue)
+void UBlackboardComponent::SetValueAsBool(FBlackboard::FKey KeyID, bool BoolValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -602,14 +602,14 @@ void UBlackboardComponent::SetValueAsBool(uint8 KeyID, bool BoolValue)
 
 void UBlackboardComponent::SetValueAsString(const FName& KeyName, FString StringValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_String::StaticClass())
 	{
 		SetValueAsString(KeyID, StringValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsString(uint8 KeyID, const FString& StringValue)
+void UBlackboardComponent::SetValueAsString(FBlackboard::FKey KeyID, const FString& StringValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -624,14 +624,14 @@ void UBlackboardComponent::SetValueAsString(uint8 KeyID, const FString& StringVa
 
 void UBlackboardComponent::SetValueAsName(const FName& KeyName, FName NameValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Name::StaticClass())
 	{
 		SetValueAsName(KeyID, NameValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsName(uint8 KeyID, const FName& NameValue)
+void UBlackboardComponent::SetValueAsName(FBlackboard::FKey KeyID, const FName& NameValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -646,14 +646,14 @@ void UBlackboardComponent::SetValueAsName(uint8 KeyID, const FName& NameValue)
 
 void UBlackboardComponent::SetValueAsVector(const FName& KeyName, FVector VectorValue)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Vector::StaticClass())
 	{
 		SetValueAsVector(KeyID, VectorValue);
 	}
 }
 
-void UBlackboardComponent::SetValueAsVector(uint8 KeyID, const FVector& VectorValue)
+void UBlackboardComponent::SetValueAsVector(FBlackboard::FKey KeyID, const FVector& VectorValue)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -668,14 +668,14 @@ void UBlackboardComponent::SetValueAsVector(uint8 KeyID, const FVector& VectorVa
 
 void UBlackboardComponent::ClearValueAsVector(const FName& KeyName)
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	if (GetKeyType(KeyID) == UBlackboardKeyType_Vector::StaticClass())
 	{
 		ClearValueAsVector(KeyID);
 	}
 }
 
-void UBlackboardComponent::ClearValueAsVector(uint8 KeyID)
+void UBlackboardComponent::ClearValueAsVector(FBlackboard::FKey KeyID)
 {
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
@@ -690,11 +690,11 @@ void UBlackboardComponent::ClearValueAsVector(uint8 KeyID)
 
 bool UBlackboardComponent::GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	return GetLocationFromEntry(KeyID, ResultLocation);
 }
 
-bool UBlackboardComponent::GetLocationFromEntry(uint8 KeyID, FVector& ResultLocation) const
+bool UBlackboardComponent::GetLocationFromEntry(FBlackboard::FKey KeyID, FVector& ResultLocation) const
 {
 	if (BlackboardAsset && ValueOffsets.IsValidIndex(KeyID))
 	{
@@ -711,11 +711,11 @@ bool UBlackboardComponent::GetLocationFromEntry(uint8 KeyID, FVector& ResultLoca
 
 bool UBlackboardComponent::GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const
 {
-	const uint8 KeyID = GetKeyID(KeyName);
+	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
 	return GetRotationFromEntry(KeyID, ResultRotation);
 }
 
-bool UBlackboardComponent::GetRotationFromEntry(uint8 KeyID, FRotator& ResultRotation) const
+bool UBlackboardComponent::GetRotationFromEntry(FBlackboard::FKey KeyID, FRotator& ResultRotation) const
 {
 	if (BlackboardAsset && ValueOffsets.IsValidIndex(KeyID))
 	{
