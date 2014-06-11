@@ -129,7 +129,6 @@ AReverbVolume::AReverbVolume(const class FPostConstructInitializeProperties& PCI
 	bColored = true;
 	BrushColor = FColor(255, 255, 0, 255);
 
-	bWantsInitialize = false;
 	bEnabled = true;
 }
 

@@ -15,7 +15,6 @@
 AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 
 	StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));

@@ -29,7 +29,6 @@ ABrush::ABrush(const class FPostConstructInitializeProperties& PCIP)
 	
 	bHidden = true;
 	bNotForClientOrServer = false;
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 }
 

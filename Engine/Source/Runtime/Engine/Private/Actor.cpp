@@ -60,7 +60,6 @@ AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
 	bActorLabelEditable = true;
 	SpriteScale = 1.0f;
 #endif // WITH_EDITORONLY_DATA
-	bWantsInitialize = true;
 	NetCullDistanceSquared = 225000000.0f;
 	NetDriverName = NAME_GameNetDriver;
 	NetDormancy = DORM_Awake;

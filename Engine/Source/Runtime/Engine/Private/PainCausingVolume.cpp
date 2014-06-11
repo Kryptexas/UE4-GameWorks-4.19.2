@@ -12,7 +12,6 @@ APainCausingVolume::APainCausingVolume(const class FPostConstructInitializePrope
 	DamagePerSec = 1.0f;
 	bEntryPain = true;
 	PainInterval = 1.0f;
-	bWantsInitialize = true;
 }
 
 void APainCausingVolume::PostInitializeComponents()

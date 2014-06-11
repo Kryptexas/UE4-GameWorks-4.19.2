@@ -66,8 +66,6 @@ AReflectionCapture::AReflectionCapture(const class FPostConstructInitializePrope
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
-	
-	bWantsInitialize = false;
 }
 
 #if WITH_EDITOR

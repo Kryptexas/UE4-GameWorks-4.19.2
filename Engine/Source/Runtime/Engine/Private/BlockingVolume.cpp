@@ -10,8 +10,6 @@ ABlockingVolume::ABlockingVolume(const class FPostConstructInitializeProperties&
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	BrushComponent->SetCollisionProfileName(InvisibleWall_NAME);
-
-	bWantsInitialize = false;
 }
 
 bool ABlockingVolume::UpdateNavigationRelevancy() 

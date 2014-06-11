@@ -11,7 +11,6 @@ ALight::ALight(const class FPostConstructInitializeProperties& PCIP)
 	LightComponent = PCIP.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
 
 	bHidden = true;
-	bWantsInitialize = false;
 	bCollideWhenPlacing = true;
 }
 

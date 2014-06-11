@@ -55,6 +55,5 @@ ANote::ANote(const class FPostConstructInitializeProperties& PCIP)
 #endif // WITH_EDITORONLY_DATA
 
 	bHidden = true;
-	bWantsInitialize = false;
 	bCanBeDamaged = false;
 }

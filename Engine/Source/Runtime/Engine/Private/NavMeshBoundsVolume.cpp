@@ -14,8 +14,6 @@ ANavMeshBoundsVolume::ANavMeshBoundsVolume(const class FPostConstructInitializeP
 	BrushColor = FColor(200, 200, 200, 255);
 
 	bColored = true;
-
-	bWantsInitialize = true;
 }
 
 #if WITH_EDITOR

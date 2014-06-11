@@ -138,9 +138,9 @@ public:
 * The functions of interest to initialization order for an Actor is roughly as follows:
 * PostLoad/PostActorCreated - Do any setup of the actor required for construction. PostLoad for serialized actors, PostActorCreated for spawned.  
 * AActor::OnConstruction - The construction of the actor, this is where Blueprint actors have their components created and blueprint variables are initialized
-* AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components (if bWantsInitialize is true)
+* AActor::PreInitializeComponents - Called before InitializeComponent is called on the actor's components
 * UActorComponent::InitializeComponent - Each component in the actor's components array gets an initialize call (if bWantsInitializeComponent is true for that component)
-* AActor::PostInitializeComponents - Called after the actor's components have been initialized (if bWantsInitialize is true)
+* AActor::PostInitializeComponents - Called after the actor's components have been initialized
 * AActor::BeginPlay - Called when the level is started
 */
 UCLASS(abstract, dependson=(UEngineBaseTypes, UActorComponent, UEngineTypes), BlueprintType, Blueprintable, config=Engine)
@@ -176,10 +176,6 @@ public:
 	/** Allows us to only see this Actor in the Editor, and not in the actual game. */
 	UPROPERTY(EditAnywhere, Category=Rendering, BlueprintReadOnly, replicated, meta=(DisplayName = "Actor Hidden In Game"))
 	uint32 bHidden:1;
-
-	/** Whether to route PreInitializeComponents/PostInitializeComponents to this Actor. */
-	UPROPERTY()
-	uint32 bWantsInitialize:1;
 
 	/** Used for replication of our RootComponent's position and velocity */
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedMovement)

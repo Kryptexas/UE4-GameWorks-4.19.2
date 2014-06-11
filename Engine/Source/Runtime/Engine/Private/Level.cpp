@@ -1600,7 +1600,7 @@ void ULevel::RouteActorInitialize()
 		AActor* const Actor = Actors[ActorIndex];
 		if( Actor )
 		{
-			if( !Actor->bActorInitialized && Actor->bWantsInitialize )
+			if( !Actor->bActorInitialized )
 			{
 				Actor->PreInitializeComponents();
 			}
@@ -1621,17 +1621,10 @@ void ULevel::RouteActorInitialize()
 				// Call Initialize on Components.
 				Actor->InitializeComponents();
 
-				if(Actor->bWantsInitialize)
+				Actor->PostInitializeComponents(); // should set Actor->bActorInitialized = true
+				if (!Actor->bActorInitialized && !Actor->IsPendingKill())
 				{
-					Actor->PostInitializeComponents(); // should set Actor->bActorInitialized = true
-					if (!Actor->bActorInitialized && !Actor->IsPendingKill())
-					{
-						UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
-					}
-				}
-				else
-				{
-					Actor->bActorInitialized = true;
+					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *Actor->GetFullName() );
 				}
 
 				if (bCallBeginPlay)

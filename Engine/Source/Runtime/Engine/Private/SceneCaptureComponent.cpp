@@ -19,8 +19,6 @@ ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCI
 	MeshComp->CastShadow = false;
 	MeshComp->PostPhysicsComponentTick.bCanEverTick = false;
 	RootComponent = MeshComp;
-	
-	bWantsInitialize = false;
 }
 // -----------------------------------------------
 
