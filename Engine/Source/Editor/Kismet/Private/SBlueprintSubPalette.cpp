@@ -229,10 +229,22 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 	// has to come after GraphActionMenu has been set
 	BindCommands(CommandList);
 
-	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RefreshActionsList, true);
+	GEditor->OnBlueprintCompiled().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
 	// Register with the Asset Registry to be informed when it is done loading up files.
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RefreshActionsList, true);
+	AssetRegistryModule.Get().OnFilesLoaded().AddSP(this, &SBlueprintSubPalette::RequestRefreshActionsList);
+}
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SGraphPalette::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(bNeedsRefresh)
+	{
+		bNeedsRefresh = false;
+		RefreshActionsList(true);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -344,6 +356,12 @@ void SBlueprintSubPalette::GenerateContextMenuEntries(FMenuBuilder& MenuBuilder)
 {
 	FBlueprintPaletteCommands const& PaletteCommands = FBlueprintPaletteCommands::Get();
 	MenuBuilder.AddMenuEntry(PaletteCommands.RefreshPalette);
+}
+
+//------------------------------------------------------------------------------
+void SBlueprintSubPalette::RequestRefreshActionsList()
+{
+	bNeedsRefresh = true;
 }
 
 /*******************************************************************************
