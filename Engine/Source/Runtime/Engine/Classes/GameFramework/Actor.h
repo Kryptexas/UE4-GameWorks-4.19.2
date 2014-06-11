@@ -2039,15 +2039,12 @@ public:
 #if DO_CHECK
 	bool OwnsComponent(UActorComponent* Component) const;
 #endif
+	void ResetOwnedComponents();
 
 private:
 	UPROPERTY(transient, duplicatetransient)
 	TArray<UActorComponent*> OwnedComponents;
-
-	friend class FBlueprintEditorUtils;
-	friend class UEngine;
-	void ResetOwnedComponents();
-
+	
 public:
 	//=============================================================================
 	// Navigation related functions
