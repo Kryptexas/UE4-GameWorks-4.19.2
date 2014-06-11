@@ -61,7 +61,7 @@ void UGameplayAbilitySet::InitializeAbilities(UAbilitySystemComponent *AbilitySy
 {
 	for (const FGameplayAbilityBindInfo &BindInfo : this->Abilities)
 	{
-		UGameplayAbility * Ability = BindInfo.GameplayAbilityClass ? BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>() : BindInfo.GameplayAbilityInstance;
+		UGameplayAbility * Ability = BindInfo.GameplayAbilityClass ? BindInfo.GameplayAbilityClass->GetDefaultObject<UGameplayAbility>() : NULL;
 		if (Ability)
 		{
 			if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor)

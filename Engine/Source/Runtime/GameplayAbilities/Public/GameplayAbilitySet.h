@@ -27,9 +27,6 @@ struct FGameplayAbilityBindInfo
 
 	UPROPERTY(EditAnywhere, Category=BindInfo)
 	TSubclassOf<UGameplayAbility>	GameplayAbilityClass;
-
-	UPROPERTY(EditAnywhere, Category = BindInfo)
-	class UGameplayAbility * GameplayAbilityInstance;
 };
 
 /**

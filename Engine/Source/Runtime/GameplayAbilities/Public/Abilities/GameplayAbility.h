@@ -85,8 +85,11 @@ Server:		     --                      --                    --                  
 ***/
 
 
+/**
+ *	Abilities define custom gameplay logic that can be activated by players or external game logic.
+ */
 UCLASS(Blueprintable)
-class GAMEPLAYABILITIES_API UGameplayAbility : public UDataAsset
+class GAMEPLAYABILITIES_API UGameplayAbility : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
