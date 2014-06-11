@@ -7,3 +7,7 @@ UAbilityTask::UAbilityTask(const class FPostConstructInitializeProperties& PCIP)
 {
 
 }
+
+void UAbilityTask::Activate()
+{
+}

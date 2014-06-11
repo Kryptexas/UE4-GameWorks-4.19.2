@@ -64,10 +64,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	virtual void K2_EndAbility();
-	
 
 	// -------------------------------------------------
-
 
 	virtual EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const OVERRIDE
 	{
@@ -92,20 +90,30 @@ public:
 
 	// -------------------------------------------------
 
+	const FGameplayAbilityActorInfo* GetCurrentActorInfo() override
+	{
+		return CurrentActorInfo;
+	}
 
+	FGameplayAbilityActivationInfo GetCurrentActivationInfo() override
+	{
+		return CurrentActivationInfo;
+	}
+
+protected:
+
+	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo) OVERRIDE;
+
+	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authorting, confirmed, etc. */
+	UPROPERTY(BlueprintReadOnly, Category = Ability)
+	FGameplayAbilityActivationInfo	CurrentActivationInfo;
+
+private:
 	/** This is shared, cached information about the thing using us
 	 *		E.g, Actor*, MovementComponent*, AnimInstance, etc.
 	 *		This is hopefully allocated once per actor and shared by many abilities.
 	 *		The actual struct may be overridden per game to include game specific data.
 	 *		(E.g, child classes may want to cast to FMyGameAbilityActorInfo)
 	 */
-	mutable const FGameplayAbilityActorInfo * CurrentActorInfo;
-
-	/** This is information specific to this instance of the ability. E.g, whether it is predicting, authorting, confirmed, etc. */
-	UPROPERTY(BlueprintReadOnly, Category=Ability)
-	FGameplayAbilityActivationInfo	CurrentActivationInfo;
-
-protected:
-
-	virtual void EndAbility(const FGameplayAbilityActorInfo* ActorInfo) OVERRIDE;
+	mutable const FGameplayAbilityActorInfo* CurrentActorInfo;
 };

@@ -3,13 +3,13 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
-#include "GameplayAbilityTypes.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
 class UAbilityTask_PlayMontageAndWait;
 class UAbilityTask_WaitMovementModeChange;
 class UAbilityTask_WaitOverlap;
+class UAbilityTask_WaitConfirmCancel;
 
 UCLASS(MinimalAPI)
 class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
@@ -21,6 +21,12 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category=Ability)
 	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
+
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult);
 
 	// -------------------------------------------------------------------------------
 

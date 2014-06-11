@@ -8,13 +8,10 @@ class UGameplayEffect;
 class UAnimInstance;
 class UAbilitySystemComponent;
 
-
 /** 
  *
  *
  */
-
-
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
@@ -163,6 +160,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<AActor>	Actor;
 
+	/** PlayerController associated with this actor. This will often be null! */
+	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
+	TWeakObjectPtr<APlayerController>	PlayerController;
+
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UAnimInstance>	AnimInstance;
 
@@ -171,6 +172,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	TWeakObjectPtr<UMovementComponent>	MovementComponent;
+
+	bool IsLocallyControlled() const;
 
 	virtual void InitFromActor(AActor *Actor);
 };
@@ -258,13 +261,19 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 *
 */
 
+USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 {
+	GENERATED_USTRUCT_BODY()
+
 	virtual ~FGameplayAbilityTargetData() { }
 
 	void ApplyGameplayEffect(UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
 
-	virtual TArray<AActor*>	GetActors() const = 0;
+	virtual TArray<AActor*>	GetActors() const
+	{
+		return TArray<AActor*>();
+	}
 
 	virtual bool HasHitResult() const
 	{
@@ -276,11 +285,22 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return NULL;
 	}
 
+	virtual UScriptStruct * GetScriptStruct()
+	{
+		return FGameplayAbilityTargetData::StaticStruct();
+	}
+
 	virtual FString ToString() const;
 };
 
+USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
 {
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayAbilityTargetData_SingleTargetHit()
+	{ }
+
 	FGameplayAbilityTargetData_SingleTargetHit(const FHitResult InHitResult)
 	: HitResult(InHitResult)
 	{ }
@@ -305,8 +325,26 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		return &HitResult;
 	}
 
+	UPROPERTY()
 	FHitResult	HitResult;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	virtual UScriptStruct * GetScriptStruct()
+	{
+		return FGameplayAbilityTargetData_SingleTargetHit::StaticStruct();
+	}
 };
+
+template<>
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_SingleTargetHit> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true	// Fow now this is REQUIRED for FGameplayAbilityTargetDataHandle net serialization to work
+	};
+};
+
 
 /**
 *	Handle for Targeting Data. This servers two main purposes:
@@ -328,7 +366,41 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 {
 	GENERATED_USTRUCT_BODY()
 
+	FGameplayAbilityTargetDataHandle() { }
+	FGameplayAbilityTargetDataHandle(FGameplayAbilityTargetData* DataPtr)
+		: Data(DataPtr)
+	{
+		
+	}
+
 	TSharedPtr<FGameplayAbilityTargetData>	Data;
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	/** Comparison operator */
+	bool operator==(FGameplayAbilityTargetDataHandle const& Other) const
+	{
+		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
+		bool bBothValid = IsValid() && Other.IsValid();
+		bool bBothInvalid = !IsValid() && !Other.IsValid();
+		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayAbilityTargetDataHandle const& Other) const
+	{
+		return !(FGameplayAbilityTargetDataHandle::operator==(Other));
+	}
 };
 
 template<>
@@ -336,6 +408,11 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOp
 {
 	enum
 	{
-		WithCopy = true		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
 	};
 };
+
+/** Generic callback for returning when target data is available */
+DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityTargetData, FGameplayAbilityTargetDataHandle);

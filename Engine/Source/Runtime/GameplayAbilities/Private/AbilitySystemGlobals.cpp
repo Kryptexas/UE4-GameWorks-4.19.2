@@ -2,7 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayAbilityTypes.h"
+#include "Abilities/GameplayAbilityTypes.h"
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

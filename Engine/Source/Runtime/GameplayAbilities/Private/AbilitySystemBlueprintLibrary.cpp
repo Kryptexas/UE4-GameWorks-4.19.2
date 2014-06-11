@@ -2,17 +2,68 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
+
+#include "AbilitySystemComponent.h"
+
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbility_Instanced.h"
+
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
+#include "Abilities/Tasks/AbilityTask_WaitConfirmCancel.h"
 #include "LatentActions.h"
 
 UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 }
+
+UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AActor *Actor)
+{
+	/**
+	 *	Fixme: This is supposed to be a small optimization but here we are going through module code, then a global uobject, then finally a virtual function - yuck!
+	 *		-think of a better way to have a global, overridable per project function. Thats it!
+	 */
+	return UAbilitySystemGlobals::Get().GetAbilitySystemComponentFromActor(Actor);
+}
+
+void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
+{
+	if (Target.Data.IsValid())
+	{
+		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
+	}
+}
+
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(FHitResult HitResult)
+{
+	// Construct TargetData
+	FGameplayAbilityTargetData_SingleTargetHit * TargetData = new FGameplayAbilityTargetData_SingleTargetHit(HitResult);
+
+	// Give it a handle and return
+	FGameplayAbilityTargetDataHandle	Handle;
+	Handle.Data = TSharedPtr<FGameplayAbilityTargetData>(TargetData);
+
+	return Handle;
+}
+
+FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle TargetData)
+{
+	FGameplayAbilityTargetData * Data = TargetData.Data.Get();
+	if (Data)
+	{
+		const FHitResult * HitResultPtr = Data->GetHitResult();
+		if (HitResultPtr)
+		{
+			return *HitResultPtr;
+		}
+	}
+
+	return FHitResult();
+}
+
+// -------------------------------------------------------------------------------------
 
 UAbilityTask_PlayMontageAndWait* UAbilitySystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
 {
@@ -85,7 +136,7 @@ UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(clas
 		MyObj = NewObject<UAbilityTask_WaitOverlap>();
 
 
-		// TEMP
+		// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
 		UPrimitiveComponent * PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
 		if (!PrimComponent)
 		{			
@@ -100,22 +151,4 @@ UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(clas
 	}
 
 	return NULL;
-}
-
-/**
- *	Fixme: This is supposed to be a small optimization but here we are going through module code, then a global uobject, then finally a virtual function - yuck!
- *		-think of a better way to have a global, overridable per project function. Thats it!
- */
-
-UAbilitySystemComponent* UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AActor *Actor)
-{
-	return UAbilitySystemGlobals::Get().GetAbilitySystemComponentFromActor(Actor);
-}
-
-void UAbilitySystemBlueprintLibrary::ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo)
-{
-	if (Target.Data.IsValid())
-	{
-		Target.Data->ApplyGameplayEffect(GameplayEffect, InstigatorInfo);
-	}
 }

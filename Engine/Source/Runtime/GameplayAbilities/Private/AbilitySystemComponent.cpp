@@ -43,6 +43,8 @@ UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructIniti
 	SetIsReplicated(true);
 	ReplicatedPredictionKey = 0;
 	LocalPredictionKey = 0;
+	UserAbilityActivationInhibited = false;
+	TargetingAbility = NULL;
 }
 
 UAbilitySystemComponent::~UAbilitySystemComponent()

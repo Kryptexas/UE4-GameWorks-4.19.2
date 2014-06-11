@@ -5,7 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
-#include "GameplayAbilityTypes.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayAbility.generated.h"
 
 /**
@@ -61,6 +61,32 @@
  *
  *	
  */
+
+
+
+/***
+ 
+
+
+This is the basic flow of function calls in a networked environment:
+-Client sees if he thinks he can activate the ability.
+-Tells server to try and activate ability, predicts the ability immediately
+-Server runs through Try/Can/Call, tells client if it passed or failed.
+
+
+																			 [If predictive] **Instance Ability** -> CallPredictiveActivateAbility() 
+			  (Optional)                                                     &&
+Client:		InputPressed()  ->  TryActivateAbility() -> CanActivateAbility() -> ServerTryActivateAbility()            --                         --                      --                          --                         --                ClientActivateAbilitySucceed() -> CallActivateAbility()
+																										  \\                                                                                                                                     //
+Server:		     --                      --                    --                          --                ServerTryActivateAbility()	-> CanActivateAbility() -> **Instance Ability** -> CallActivateAbility() -> ClientActivateAbilitySucceed()
+																																								||
+																																								-> ClientActivateAbilityFailed()
+																																																\\
+																																											Client:               ClientActivateAbilityFailed() [Remove and prediction work]
+
+***/
+
+
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbility : public UDataAsset
 {
@@ -187,6 +213,12 @@ public:
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------
+
+	/** Gets the current actor info bound to this ability - can only be called on instanced abilities. */
+	virtual const FGameplayAbilityActorInfo* GetCurrentActorInfo();
+
+	/** Gets the current activation info bound to this ability - can only be called on instanced abilities. */
+	virtual FGameplayAbilityActivationInfo GetCurrentActivationInfo();
 
 	virtual UWorld* GetWorld() const OVERRIDE
 	{

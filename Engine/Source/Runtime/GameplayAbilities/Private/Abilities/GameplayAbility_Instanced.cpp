@@ -48,7 +48,7 @@ void UGameplayAbility_Instanced::CommitExecute(const FGameplayAbilityActorInfo* 
 
 	Super::CommitExecute(ActorInfo, ActivationInfo);
 
-	check(!HasAnyFlags(RF_ClassDefaultObject));
+	ensure(!HasAnyFlags(RF_ClassDefaultObject));
 
 	// Call into blueprint (fixme: cache this)
 	static FName FuncName = FName(TEXT("K2_CommitAbility"));

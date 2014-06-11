@@ -134,7 +134,7 @@ void UAbilitySystemComponent::CancelAbilitiesWithTags(const FGameplayTagContaine
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 DenyClientActivation = 0;
 static FAutoConsoleVariableRef CVarDenyClientActivation(
-	TEXT("AbilitySystem.DenyClientActivations"),
+TEXT("AbilitySystem.DenyClientActivations"),
 	DenyClientActivation,
 	TEXT("Make server deny the next X ability activations from clients. For testing misprediction."),
 	ECVF_Default
@@ -222,9 +222,12 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
-
-	AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+	// Fixme: We need a better way to link up/reconcile preditive replicated abilities.
+	if (AbilityToActivate->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+	{
+		FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
+		AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+	}
 }
 
 void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStop()
@@ -251,6 +254,108 @@ void UAbilitySystemComponent::MontageBranchPoint_AbilityDecisionStart()
 		AnimatingAbility->MontageBranchPoint_AbilityDecisionStart(AbilityActorInfo.Get());
 	}
 }
+
+bool UAbilitySystemComponent::GetUserAbilityActivationInhibited() const
+{
+	return UserAbilityActivationInhibited;
+}
+
+void UAbilitySystemComponent::SetUserAbilityActivationInhibited(bool NewInhibit)
+{
+	if(AbilityActorInfo->IsLocallyControlled())
+	{
+		if (NewInhibit && UserAbilityActivationInhibited)
+		{
+			// This could cause problems if two sources try to inhibit ability activation, it is not clear when the ability should be uninhibited
+			ABILITY_LOG(Warning, TEXT("Call to SetUserAbilityActivationInhibited(true) when UserAbilityActivationInhibited was already true"));
+		}
+
+		UserAbilityActivationInhibited = NewInhibit;
+	}
+}
+
+// --------------------------------------------------------------------------
+
+void UAbilitySystemComponent::BindToInputComponent(UInputComponent *InputComponent)
+{
+	static const FName ConfirmBindName(TEXT("AbilityConfirm"));
+	static const FName CancelBindName(TEXT("AbilityCancel"));
+
+	// Pressed event
+	{
+		FInputActionBinding AB(ConfirmBindName, IE_Pressed);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
+		InputComponent->AddActionBinding(AB);
+	}
+
+	// 
+	{
+		FInputActionBinding AB(CancelBindName, IE_Pressed);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
+		InputComponent->AddActionBinding(AB);
+	}
+}
+
+void UAbilitySystemComponent::InputConfirm()
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		// Tell the server we confirmed input
+		// FIXME TODO: we don't need to do this everytime! just when there is an activae ability waiting for this!
+		// 
+		ServerSetReplicatedConfirm(true);
+	}
+	
+	ConfirmCallbacks.Broadcast();
+}
+
+void UAbilitySystemComponent::InputCancel()
+{
+	CancelCallbacks.Broadcast();
+}
+
+// --------------------------------------------------------------------------
+
+void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Confirmed)
+{
+	ReplicatedConfirmAbility  = Confirmed;
+	ConfirmCallbacks.Broadcast();
+}
+
+bool UAbilitySystemComponent::ServerSetReplicatedConfirm_Validate(bool Confirmed)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilityTargetDataHandle Confirmed)
+{
+	ReplicatedTargetData = Confirmed;
+	ReplicatedTargetDataDelegate.Broadcast(ReplicatedTargetData);
+}
+
+bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAbilityTargetDataHandle Confirmed)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::SetTargetAbility(UGameplayAbility* NewTargetingAbility)
+{
+	TargetingAbility = NewTargetingAbility;
+
+	//ReplicatedConfirmAbility = false;
+	//ReplicatedTargetData.Clear();
+}
+
+void UAbilitySystemComponent::ConsumeAbilityConfirm()
+{
+	ReplicatedConfirmAbility = false;
+}
+
+void UAbilitySystemComponent::ConsumeAbilityTargetData()
+{
+	ReplicatedTargetData.Clear();
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

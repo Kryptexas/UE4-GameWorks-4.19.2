@@ -2,12 +2,16 @@
 #pragma once
 
 #include "GameplayEffect.h"
-#include "GameplayAbilityTypes.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.generated.h"
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
+/** Used for cleaning up predicted data on network clients */
 DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
+
+/** Used to register callbacks to confirm/cancel input */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
 USTRUCT()
 struct GAMEPLAYABILITIES_API FAttributeDefaults
@@ -156,21 +160,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	UFUNCTION()
 	void OnRep_PredictionKey();
 
-	TArray<TPair<int32, FAbilitySystemComponentPredictionKeyClear> >	PredictionDelegates;
-	
+	TArray<TPair<int32, FAbilitySystemComponentPredictionKeyClear> > PredictionDelegates;
 
 	FAbilitySystemComponentPredictionKeyClear &	GetPredictionKeyDelegate(int32 PredictionKey);
-
-	/*
-	virtual void OnSubobjectCreatedFromReplication(UObject *NewSubobject) OVERRIDE;
 	
-	virtual void OnSubobjectDestroyFromReplication(UObject *NewSubobject) OVERRIDE;
-	*/
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
-	//	GameplayEffects
-	//	(maybe should go in a different component?)
+	//	GameplayEffects	
+	//	
 	// ----------------------------------------------------------------------------------------------------------------
 
 	// --------------------------------------------
@@ -272,17 +270,17 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	
 	 */
 
-	class UGameplayAbility * CreateNewInstanceOfAbility(UGameplayAbility* Ability);
+	UGameplayAbility* CreateNewInstanceOfAbility(UGameplayAbility* Ability);
 
 	void CancelAbilitiesWithTags(const FGameplayTagContainer Tags, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ignore);
 	
 	/** References to non-replicating abilities that we instanced. We need to keep these references to avoid GC */
 	UPROPERTY()
-	TArray<class UGameplayAbility *>	NonReplicatedInstancedAbilities;
+	TArray<UGameplayAbility*>	NonReplicatedInstancedAbilities;
 
 	/** References to replicating abilities that we instanced. We need to keep these references to avoid GC */
 	UPROPERTY(Replicated)
-	TArray<class UGameplayAbility *>	ReplicatedInstancedAbilities;
+	TArray<UGameplayAbility*>	ReplicatedInstancedAbilities;
 
 	/**
 	 *	The abilities we can activate. 
@@ -294,10 +292,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */ 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Abilities")
-	TArray<class UGameplayAbility *>	ActivatableAbilities;
+	TArray<UGameplayAbility*>	ActivatableAbilities;
 	
 
-	UFUNCTION(Server, WithValidation, Reliable)
+	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbility(class UGameplayAbility* AbilityToActivate, int32 PredictionKey);
 
 	UFUNCTION(Client, Reliable)
@@ -308,18 +306,41 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	// ----------------------------------------------------------------------------------------------------------------
 
-	/** This is probably temp for testing. We want to think a bit more on the API for outside stuff activating abilities */
+	// This is meant to be used to inhibit activating an ability from an input perspective. (E.g., the menu is pulled up, another game mechanism is consuming all input, etc)
+	// This should only be called on locally owned players.
+	// This should not be used to game mechanics like silences or disables. Those should be done through gameplay effects.
+
+	UFUNCTION(BlueprintCallable, Category="Abilities")
+	bool	GetUserAbilityActivationInhibited() const;
+	
+	/** Disable or Enable a local user from being able to activate abilities. This should only be used for input/UI etc related inhibition. Do not use for game mechanics. */
+	UFUNCTION(BlueprintCallable, Category="Abilities")
+	void	SetUserAbilityActivationInhibited(bool NewInhibit);
+
+	bool	UserAbilityActivationInhibited;
+
+	// ----------------------------------------------------------------------------------------------------------------
+
+	virtual void BindToInputComponent(UInputComponent *InputComponent);
+
+	void InputConfirm();
+	void InputCancel();
+
+	FAbilityConfirmOrCancel	ConfirmCallbacks;
+	FAbilityConfirmOrCancel	CancelCallbacks;
+
+	// ----------------------------------------------------------------------------------------------------------------
+
+	/** This is temp for testing. We want to think a bit more on the API for outside stuff activating abilities */
 	bool	ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability);
 
 	/** There needs to be a concept of an animating ability. Only one may exist at a time. New requests can be queued up, overridden, or ignored. */
 	UPROPERTY()
-	class UGameplayAbility *	AnimatingAbility;
+	UGameplayAbility*	AnimatingAbility;
 
-	void	MontageBranchPoint_AbilityDecisionStop();
+	void MontageBranchPoint_AbilityDecisionStop();
 
-	void	MontageBranchPoint_AbilityDecisionStart();
-
-	
+	void MontageBranchPoint_AbilityDecisionStart();
 
 	// -----------------------------------------------------------------------------
 
@@ -327,6 +348,34 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	TSharedPtr<FGameplayAbilityActorInfo>	AbilityActorInfo;
 
 	void InitAbilityActorInfo();
+
+	// -----------------------------------------------------------------------------
+
+	/**
+	 *	While these appear to be state, this is actually synchronization events w/ some payload data
+	 */
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedConfirm(bool Confirmed);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData);
+
+	void SetTargetAbility(UGameplayAbility* NewTargetingAbility);
+
+	void ConsumeAbilityConfirm();
+
+	void ConsumeAbilityTargetData();
+
+	/** This ability has a 'lock' on replicated targeting data. Only 1 targeting ability can be active at once */
+	UPROPERTY()
+	UGameplayAbility* TargetingAbility;
+
+	bool ReplicatedConfirmAbility;
+
+	FGameplayAbilityTargetDataHandle ReplicatedTargetData;
+
+	FAbilityTargetData	ReplicatedTargetDataDelegate;
 
 private:
 

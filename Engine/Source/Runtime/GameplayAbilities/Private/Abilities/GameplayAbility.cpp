@@ -40,7 +40,20 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 
 bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	// Check cooldowns and resource consumption immediately
+	if (ActorInfo->AbilitySystemComponent->GetUserAbilityActivationInhibited())
+	{
+		/**
+		 *	Input is inhibited (UI is pulled up, another ability may be blocking all other input, etc).
+		 *	When we get into triggered abilities, we may need to better differentiate between CanActviate and CanUserActivate or something.
+		 *	E.g., we would want LMB/RMB to be inhibited while the user is in the menu UI, but we wouldn't want to prevent a 'buff when I am low health'
+		 *	ability to not trigger.
+		 *	
+		 *	Basically: CanActivateAbility is only used by user activated abilities now. If triggered abilities need to check costs/cooldowns, then we may
+		 *	want to split this function up and change the calling API to distinguish between 'can I initiate an ability activation' and 'can this ability be activated'.
+		 */ 
+		false;
+	}
+	
 	if (!CheckCooldown(ActorInfo))
 	{
 		return false;
@@ -171,6 +184,10 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInf
 void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	ActorInfo->AbilitySystemComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
+
+	// Become the 'Targeting Ability'
+	// These may need to be more robust - does every ability that activates become the targeting ability, or only certain ones?
+	ActorInfo->AbilitySystemComponent->SetTargetAbility(this);
 }
 
 void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -262,11 +279,24 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 		if (Durations.Num() > 0)
 		{
 			Durations.Sort();
-			return Durations[0];
+			return Durations[Durations.Num()-1];
 		}
 	}
 
 	return 0.f;
+}
+
+const FGameplayAbilityActorInfo* UGameplayAbility::GetCurrentActorInfo()
+{
+	ABILITY_LOG(Fatal, TEXT("GetCurrentActorInfo called on base UGameplayAbility class"));
+	return NULL;
+}
+
+FGameplayAbilityActivationInfo UGameplayAbility::GetCurrentActivationInfo()
+{
+	ABILITY_LOG(Fatal, TEXT("GetCurrentActivationInfo called on base UGameplayAbility class"));
+
+	return FGameplayAbilityActivationInfo();
 }
 
 // --------------------------------------------------------------------
@@ -298,6 +328,28 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 {
 	Actor = InActor;
 
+	UStruct * Struct = FGameplayAbilityActorInfo::StaticStruct();
+	UScriptStruct * ScriptStruct = FGameplayAbilityActorInfo::StaticStruct();
+
+	// Look for a player controller or pawn in the owner chain.
+	AActor *TestActor = InActor;
+	while(TestActor)
+	{
+		if (APlayerController * CastPC = Cast<APlayerController>(TestActor))
+		{
+			PlayerController = CastPC;
+			break;
+		}
+
+		if (APawn * Pawn = Cast<APawn>(TestActor))
+		{
+			PlayerController = Cast<APlayerController>(Pawn->GetController());
+			break;
+		}
+
+		TestActor = TestActor->GetOwner();
+	}
+
 	// Grab Components that we care about
 	USkeletalMeshComponent * SkelMeshComponent = InActor->FindComponentByClass<USkeletalMeshComponent>();
 	if (SkelMeshComponent)
@@ -308,6 +360,16 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 	AbilitySystemComponent = InActor->FindComponentByClass<UAbilitySystemComponent>();
 
 	MovementComponent = InActor->FindComponentByClass<UMovementComponent>();
+}
+
+bool FGameplayAbilityActorInfo::IsLocallyControlled() const
+{
+	if (PlayerController.IsValid())
+	{
+		return PlayerController->IsLocalController();
+	}
+
+	return false;
 }
 
 void FGameplayAbilityActivationInfo::GeneratePredictionKey(UAbilitySystemComponent * Component) const
@@ -366,3 +428,72 @@ FString FGameplayAbilityTargetData::ToString() const
 {
 	return TEXT("BASE CLASS");
 }
+
+
+bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+
+	UScriptStruct * ScriptStruct = Data.IsValid() ? Data->GetScriptStruct() : NULL;
+	Ar << ScriptStruct;
+
+	if (ScriptStruct)
+	{
+		if (Ar.IsLoading())
+		{
+			// For now, just always reset/reallocate the data when loading.
+			// Longer term if we want to generalize this and use it for property replication, we should support
+			// only reallocating when necessary
+			check(!Data.IsValid());
+
+			FGameplayAbilityTargetData * NewData = (FGameplayAbilityTargetData*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
+			ScriptStruct->InitializeScriptStruct(NewData);
+
+			Data = TSharedPtr<FGameplayAbilityTargetData>(NewData);
+		}
+
+		void* ContainerPtr = Data.Get();
+
+		if (ScriptStruct->StructFlags & STRUCT_NetSerializeNative)
+		{
+			ScriptStruct->GetCppStructOps()->NetSerialize(Ar, Map, bOutSuccess, Data.Get());
+		}
+		else
+		{
+			// This won't work since UStructProperty::NetSerializeItem is deprecrated.
+			//	1) we have to manually crawl through the topmost struct's fields since we don't have a UStructProperty for it (just the UScriptProperty)
+			//	2) if there are any UStructProperties in the topmost struct's fields, we will assert in UStructProperty::NetSerializeItem.
+			
+			ABILITY_LOG(Fatal, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize called on data struct %s without a native NetSerilaize"), *ScriptStruct->GetName());
+
+			for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
+			{
+				if (It->PropertyFlags & CPF_RepSkip)
+				{
+					continue;
+				}
+
+				void * PropertyData = It->ContainerPtrToValuePtr<void*>(ContainerPtr);
+
+				It->NetSerializeItem(Ar, Map, PropertyData);
+			}
+		}
+	}
+	
+
+	ABILITY_LOG(Warning, TEXT("FGameplayAbilityTargetDataHandle Serialized: %s"), ScriptStruct ? *ScriptStruct->GetName() : TEXT("NULL") );
+
+	bOutSuccess = true;
+	return true;
+}
+
+bool FGameplayAbilityTargetData_SingleTargetHit::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << HitResult.Actor;
+
+	HitResult.Location.NetSerialize(Ar, Map, bOutSuccess);
+	HitResult.Normal.NetSerialize(Ar, Map, bOutSuccess);
+
+	bOutSuccess = true;
+	return true;
+}
+
