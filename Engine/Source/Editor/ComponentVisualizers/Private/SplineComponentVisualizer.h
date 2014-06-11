@@ -52,6 +52,8 @@ public:
 
 private:
 
+	void NotifyComponentModified();
+
 	void OnDeleteKey();
 	void OnDuplicateKey();
 	bool IsSelectionValid() const;
