@@ -165,6 +165,9 @@ private:
 	 */
 	bool CanAddStaticMesh(const UStaticMesh* const InStaticMesh) const;
 
+	/** Callback handler when user changes the active streaming level with the level browser */
+	void NotifyNewCurrentLevel();
+
 private:
 	/** The list view object for displaying Static Meshes to use for foliage. */
 	TSharedPtr< SListView< TSharedPtr< struct FFoliageMeshUIInfo > > > MeshListView;

@@ -94,6 +94,9 @@ void FEdModeFoliage::Enter()
 	// Load UI settings from config file
 	UISettings.Load();
 
+	// Bind to editor callbacks
+	FEditorDelegates::NewCurrentLevel.AddSP(this, &FEdModeFoliage::NotifyNewCurrentLevel);
+
 	// Force real-time viewports.  We'll back up the current viewport state so we can restore it when the
 	// user exits this mode.
 	const bool bWantRealTime = true;
@@ -140,6 +143,9 @@ void FEdModeFoliage::Exit()
 {
 	FToolkitManager::Get().CloseToolkit(Toolkit.ToSharedRef());
 	Toolkit.Reset();
+
+	//
+	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 
 	// Remove the brush
 	SphereBrushComponent->UnregisterComponent();

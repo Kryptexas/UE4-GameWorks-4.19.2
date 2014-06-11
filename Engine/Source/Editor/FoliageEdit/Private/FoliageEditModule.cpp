@@ -30,7 +30,7 @@ public:
 		TSharedRef<FEdModeFoliage> NewEditorMode = MakeShareable(new FEdModeFoliage);
 		GEditorModeTools().RegisterMode(NewEditorMode);
 		EdModeFoliage = NewEditorMode;
-		FEditorDelegates::MapChange.AddSP( NewEditorMode, &FEdModeFoliage::NotifyMapRebuild );
+		FEditorDelegates::MapChange.AddSP(NewEditorMode, &FEdModeFoliage::NotifyMapRebuild);
 	}
 
 	/**
@@ -38,9 +38,10 @@ public:
 	 */
 	virtual void ShutdownModule() OVERRIDE
 	{
+		FEditorDelegates::MapChange.RemoveAll(EdModeFoliage.Get());
+
 		GEditorModeTools().UnregisterMode(EdModeFoliage.ToSharedRef());
 		EdModeFoliage = NULL;
-		FEditorDelegates::MapChange.RemoveAll(this);
 	}
 };
 

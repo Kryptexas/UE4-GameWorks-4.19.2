@@ -82,6 +82,8 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 
 	BindCommands();
 
+	FEditorDelegates::NewCurrentLevel.AddSP(this, &SFoliageEdit::NotifyNewCurrentLevel);
+
 	AssetThumbnailPool = MakeShareable( new FAssetThumbnailPool(512, TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP(this, &SFoliageEdit::IsHovered) ) ) );
 
 	bOverlayOverride = false;
@@ -317,6 +319,8 @@ SFoliageEdit::~SFoliageEdit()
 {
 	// Release all rendering resources being held onto
 	AssetThumbnailPool->ReleaseResources();
+	
+	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 }
 
 void SFoliageEdit::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -719,5 +723,11 @@ void SFoliageEdit::EnableDragDropOverlay(void)
 { 
 	bOverlayOverride = true; 
 }
+
+void SFoliageEdit::NotifyNewCurrentLevel()
+{
+	RefreshFullList();
+}
+
 
 #undef LOCTEXT_NAMESPACE
