@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "GameplayDebuggingTypes.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -95,10 +96,10 @@ void AEQSTestingPawn::OnEditorSelectionChanged(UObject* NewSelection)
 	}
 
 #if WITH_EDITOR
-	//if (GCurrentLevelEditingViewportClient != NULL && UGameplayDebuggingComponent::ShowFlagIndex != INDEX_NONE)
-	//{
-	//	GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(UGameplayDebuggingComponent::ShowFlagIndex, bEQSPawnSelected);
-	//}
+	if (GCurrentLevelEditingViewportClient != NULL && FGameplayDebuggerSettings::ShowFlagIndex != INDEX_NONE)
+	{
+		GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, bEQSPawnSelected);
+	}
 #endif // WITH_EDITOR
 }
 

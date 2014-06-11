@@ -7,6 +7,8 @@
 #include "BehaviorTree/BTAuxiliaryNode.h"
 #include "BehaviorTreeDelegates.h"
 #include "SBehaviorTreeDebuggerView.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggingComponent.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 {
@@ -624,17 +626,28 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	APlayerController* LocalPC = GEngine->GetFirstLocalPlayerController(World);
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
-//		UGameplayDebuggingControllerComponent* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-//		const APawn* LockedPawn = DebuggingController != NULL ? DebuggingController->GetCurrentDebugTarget() : NULL;
-//		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
-//		if (TestInstance)
-//		{
-//			TreeInstance = TestInstance;
-//
-//#if USE_BEHAVIORTREE_DEBUGGER
-//			ActiveStepIndex = TestInstance->DebuggerSteps.Num() - 1;
-//#endif
-//		}
+		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* A = *It;
+			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+			{
+				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+				break;
+			}
+		}
+
+		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
+		const APawn* LockedPawn = DebuggingComponent != NULL ? Cast<APawn>(DebuggingComponent->GetSelectedActor()) : NULL;
+		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
+		if (TestInstance)
+		{
+			TreeInstance = TestInstance;
+
+#if USE_BEHAVIORTREE_DEBUGGER
+			ActiveStepIndex = TestInstance->DebuggerSteps.Num() - 1;
+#endif
+		}
 	}
 }
 

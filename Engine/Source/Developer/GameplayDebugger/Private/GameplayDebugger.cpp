@@ -6,6 +6,7 @@
 #include "GameplayDebuggingReplicator.h"
 
 uint32 FGameplayDebuggerSettings::DebuggerShowFlags = (1 << EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead);
+uint32 FGameplayDebuggerSettings::ShowFlagIndex = 0;
 
 class FGameplayDebugger : public IGameplayDebugger
 {

@@ -78,14 +78,14 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 
 		FString InViewName = FParse::Token(Cmd, 0);
 		int32 ViewIndex = ViewNames.Find(InViewName);
-		const static uint32 ShowFlagIndex = FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug"));
+		FGameplayDebuggerSettings::ShowFlagIndex = FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug"));
 		if (ViewIndex != INDEX_NONE)
 		{
 			FGameplayDebuggerSettings::CheckFlag(ViewIndex) ? FGameplayDebuggerSettings::ClearFlag(ViewIndex) : FGameplayDebuggerSettings::SetFlag(ViewIndex);
 #if WITH_EDITOR
 			if (ViewIndex == EAIDebugDrawDataView::EQS && GCurrentLevelEditingViewportClient)
 			{
-				GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(ShowFlagIndex, FGameplayDebuggerSettings::CheckFlag(ViewIndex));
+				GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, FGameplayDebuggerSettings::CheckFlag(ViewIndex));
 			}
 #endif
 			PC->ClientMessage(FString::Printf(TEXT("View %s %s")

@@ -331,13 +331,17 @@ void UGameplayDebuggingControllerComponent::TickComponent(float DeltaTime, enum 
 
 void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 {
-	APawn* Pawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawn() : NULL;
+	const APawn* PlayerPawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawn() : NULL;
 	UGameplayDebuggingComponent* DebuggingComponent = GetDebuggingReplicator() ? GetDebuggingReplicator()->GetDebugComponent() : NULL;
 	if (DebuggingComponent)
 	{
+		const AActor* SelectedActor = DebuggingComponent->GetSelectedActor();
+		const APawn* SelectedActorAsPawn = Cast<APawn>(SelectedActor);
+
 		const FVector AdditionalTargetLoc =
-			DebugAITargetActor ? DebugAITargetActor->GetActorLocation() :
-			Pawn ? Pawn->GetActorLocation() :
+			SelectedActorAsPawn ? SelectedActorAsPawn->GetNavAgentLocation() :
+			SelectedActor ? SelectedActor->GetActorLocation() :
+			PlayerPawn ? PlayerPawn->GetNavAgentLocation() :
 			FVector::ZeroVector;
 
 		if (AdditionalTargetLoc != FVector::ZeroVector)

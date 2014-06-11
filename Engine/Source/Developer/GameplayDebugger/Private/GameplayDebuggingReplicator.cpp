@@ -249,6 +249,8 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 	UWorld* World = GetWorld();
 	if (World && DebugComponent && DebugComponent->GetOwnerRole() == ROLE_Authority)
 	{
+		bool bBroadcastedNewSelection = false;
+
 		// looks like Simulate in UE4 Editor - let's find selected Pawn to debug
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
 		{
@@ -261,7 +263,24 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 			DebugComponent->SelectForDebugging(NewTarget->IsSelected());
 			DebugComponent->CollectDataToReplicate(NewTarget->IsSelected());
 
+			if (NewTarget->IsSelected() && LastSelectedActorInSimulation.Get() != NewTarget)
+			{
+				LastSelectedActorInSimulation = NewTarget;
+				UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.Broadcast(NewTarget, NewTarget->IsSelected());
+				APawn* TargetPawn = Cast<APawn>(NewTarget);
+				if (TargetPawn)
+				{
+					FBehaviorTreeDelegates::OnDebugSelected.Broadcast(TargetPawn);
+				}
+				bBroadcastedNewSelection = true;
+			}
 			DrawDebugData(Canvas, PC);
+		}
+
+		if (!bBroadcastedNewSelection && LastSelectedActorInSimulation.IsValid() && !LastSelectedActorInSimulation->IsSelected() )
+		{
+			UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.Broadcast(LastSelectedActorInSimulation.Get(), false);
+			LastSelectedActorInSimulation = NULL;
 		}
 	}
 #endif

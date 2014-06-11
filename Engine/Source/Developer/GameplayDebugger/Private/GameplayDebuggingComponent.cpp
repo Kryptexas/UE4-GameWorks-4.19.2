@@ -234,11 +234,6 @@ void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	TargetActor = Actor;
-	APawn* TargetPawn = Cast<APawn>(TargetActor);
-	if (TargetPawn)
-	{
-		FBehaviorTreeDelegates::OnDebugSelected.Broadcast(TargetPawn);
-	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -459,8 +454,6 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 	{
 		bIsSelectedForDebugging = bNewStatus;
 		
-		OnDebuggingTargetChangedDelegate.Broadcast(GetSelectedActor(), bNewStatus);
-
 #if 0
 		// temp: avoidance debug
 		UAvoidanceManager* Avoidance = GetWorld()->GetAvoidanceManager();

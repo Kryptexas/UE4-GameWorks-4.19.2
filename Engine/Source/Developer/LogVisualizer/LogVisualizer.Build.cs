@@ -31,6 +31,7 @@ public class LogVisualizer : ModuleRules
 				"Engine",
 				"TaskGraph",
 				"UnrealEd",
+                "GameplayDebugger",
 			}
 		);
 

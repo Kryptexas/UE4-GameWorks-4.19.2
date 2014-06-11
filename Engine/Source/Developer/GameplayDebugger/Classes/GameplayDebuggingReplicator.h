@@ -90,4 +90,5 @@ private:
 	TWeakObjectPtr<AGameplayDebuggingHUDComponent>	DebugRenderer;
 	TArray<FDebugContext> Clients;
 	TWeakObjectPtr<APlayerController> LocalPlayerOwner;
+	TWeakObjectPtr<AActor>	LastSelectedActorInSimulation;
 };

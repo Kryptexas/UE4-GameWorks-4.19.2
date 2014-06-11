@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "EngineUtils.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "GameFramework/PlayerController.h"
-//#include "Debug/GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggingComponent.h"
 #include "AISystem.h"
 
 UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
@@ -68,47 +70,34 @@ void UAISystem::RunEQS(const FString& QueryName)
 	UEnvQueryManager* EQS = GetEnvironmentQueryManager();
 	if (MyPC && EQS)
 	{
-		//AActor* Target = NULL;
-		//UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		//if (DebugComp)
-		//{
-		//	Target = DebugComp->GetCurrentDebugTarget();
-		//}
+		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+		for (FActorIterator It(OuterWorld); It; ++It)
+		{
+			AActor* A = *It;
+			if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+			{
+				DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(A);
+				break;
+			}
+		}
 
-//#if WITH_EDITOR
-//		if (Target == NULL && GEditor != NULL)
-//		{
-//			Target = GEditor->GetSelectedObjects()->GetTop<AActor>();
-//
-//			// this part should not be needed, but is due to gameplay debugging messed up design
-//			if (Target == NULL)
-//			{
-//				for (FObjectIterator It(UGameplayDebuggingComponent::StaticClass()); It && (Target == NULL); ++It)
-//				{
-//					UGameplayDebuggingComponent* Comp = ((UGameplayDebuggingComponent*)*It);
-//					if (Comp->IsSelected())
-//					{
-//						Target = Comp->GetOwner();
-//					}
-//				}
-//			}
-//		}
-//#endif // WITH_EDITOR
+		UGameplayDebuggingComponent* DebuggingComponent = DebuggingReplicator != NULL ? DebuggingReplicator->GetDebugComponent() : NULL;
+		UObject* Target = DebuggingComponent != NULL ? DebuggingComponent->GetSelectedActor() : NULL;
 
-		//if (Target)
-		//{
-		//	UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
+		if (Target)
+		{
+			const UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
 
-		//	if (QueryTemplate)
-		//	{
-		//		EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-		//	}
-		//	else
-		//	{
-		//		MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-		//	}
-		//}
-		//else
+			if (QueryTemplate)
+			{
+				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
+			}
+			else
+			{
+				MyPC->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
+			}
+		}
+		else
 		{
 			MyPC->ClientMessage(TEXT("No debugging target"));
 		}
