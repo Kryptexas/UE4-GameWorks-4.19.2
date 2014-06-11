@@ -264,16 +264,20 @@ public:
 		return Result;
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const
+	virtual uint32 GetMemoryFootprint() const
 	{
-		return sizeof( *this ) + GetAllocatedSize();
+		return sizeof(*this) + GetAllocatedSize();
 	}
-	uint32 GetAllocatedSize( void ) const
+	uint32 GetAllocatedSize() const
 	{
-		uint32 AllocatedSize = FPrimitiveSceneProxy::GetAllocatedSize() + Segments.GetAllocatedSize();
+		uint32 AllocatedSize = FPrimitiveSceneProxy::GetAllocatedSize() + Segments.GetAllocatedSize() + ControlPoints.GetAllocatedSize();
 		for (const FSegmentProxy& Segment : Segments)
 		{
 			AllocatedSize += Segment.Points.GetAllocatedSize();
+		}
+		for (const FControlPointProxy& ControlPoint : ControlPoints)
+		{
+			AllocatedSize += ControlPoint.Points.GetAllocatedSize();
 		}
 		return AllocatedSize;
 	}

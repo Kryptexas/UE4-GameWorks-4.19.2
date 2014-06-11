@@ -225,5 +225,5 @@ uint32 FNavLinkRenderingProxy::GetMemoryFootprint( void ) const
 
 uint32 FNavLinkRenderingProxy::GetAllocatedSize( void ) const 
 { 
-	return( FPrimitiveSceneProxy::GetAllocatedSize() + OffMeshPointLinks.Num() + OffMeshSegmentLinks.Num() ); 
+	return(FPrimitiveSceneProxy::GetAllocatedSize() + OffMeshPointLinks.GetAllocatedSize() + OffMeshSegmentLinks.GetAllocatedSize());
 }
