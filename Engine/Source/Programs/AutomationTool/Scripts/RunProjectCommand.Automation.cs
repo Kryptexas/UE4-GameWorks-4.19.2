@@ -302,6 +302,11 @@ public partial class Project : CommandUtils
 					Thread.Sleep(100);
 				}
 				while (ClientProcess.HasExited == false);
+
+				if (ClientProcess.ExitCode != 0)
+				{
+					throw new AutomationException("Client exited with error code: " + ClientProcess.ExitCode);
+				}
 			}
 		}
 	}
