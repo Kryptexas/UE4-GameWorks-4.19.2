@@ -12,6 +12,7 @@ public class MetalShaderFormat : ModuleRules
 			new string[] {
 				"Core",
 				"ShaderCore",
+				"ShaderCompilerCommon",
 				"ShaderPreprocessor"
 			}
 			);
