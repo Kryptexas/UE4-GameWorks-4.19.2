@@ -1617,7 +1617,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	EditorClearComponents();
 	ClearPreviewComponents();
 	// Remove all active groups, they belong to a map being unloaded
-	ActiveGroupActors.Empty();
+	Context.World()->ActiveGroupActors.Empty();
 
 	// Make sure we don't have any apps open on for assets owned by the world we are closing
 	CloseEditedWorldAssets(Context.World());

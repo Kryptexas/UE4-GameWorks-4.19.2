@@ -485,6 +485,10 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	/** List of all the layers referenced by the world's actors */
 	UPROPERTY()
 	TArray< class ULayer* > Layers; 
+
+	// Group actors currently "active"
+	UPROPERTY(transient)
+	TArray<class AActor*> ActiveGroupActors;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Persistent level containing the world info, default brush and actors spawned during gameplay among other things			*/

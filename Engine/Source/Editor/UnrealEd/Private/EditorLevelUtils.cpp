@@ -334,18 +334,22 @@ namespace EditorLevelUtils
 
 		GEditor->CloseEditedWorldAssets(CastChecked<UWorld>(InLevel->GetOuter()));
 
+		UWorld* OwningWorld = InLevel->OwningWorld;
 		const bool bRemovingCurrentLevel	= InLevel && InLevel->IsCurrentLevel();
 		const bool bRemoveSuccessful		= PrivateRemoveLevelFromWorld( InLevel );
 		if ( bRemoveSuccessful )
 		{
-			// remove all group actors from GEditor in the level we are removing
-			// otherwise, this will cause group actors to not be garbage collected
-			for (int32 GroupIndex = GEditor->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
+			if ( OwningWorld )
 			{
-				AGroupActor* GroupActor = GEditor->ActiveGroupActors[GroupIndex];
-				if (GroupActor && GroupActor->IsInLevel(InLevel))
+				// remove all group actors from the world in the level we are removing
+				// otherwise, this will cause group actors to not be garbage collected
+				for (int32 GroupIndex = OwningWorld->ActiveGroupActors.Num()-1; GroupIndex >= 0; --GroupIndex)
 				{
-					GEditor->ActiveGroupActors.RemoveAt(GroupIndex);
+					AGroupActor* GroupActor = Cast<AGroupActor>(OwningWorld->ActiveGroupActors[GroupIndex]);
+					if (GroupActor && GroupActor->IsInLevel(InLevel))
+					{
+						OwningWorld->ActiveGroupActors.RemoveAt(GroupIndex);
+					}
 				}
 			}
 

@@ -22,7 +22,7 @@ void AGroupActor::PostActorCreated()
 	// Cache our newly created group
 	if( !GetWorld()->IsPlayInEditor() && !IsRunningCommandlet() && GIsEditor )
 	{
-		GEditor->ActiveGroupActors.AddUnique(this);
+		GetWorld()->ActiveGroupActors.AddUnique(this);
 	}
 	Super::PostActorCreated();
 }
@@ -32,7 +32,7 @@ void AGroupActor::PostLoad()
 	if( !GetWorld()->IsPlayInEditor() && !IsRunningCommandlet() && GIsEditor )
 	{
 		// Cache group on de-serialization
-		GEditor->ActiveGroupActors.AddUnique(this);
+		GetWorld()->ActiveGroupActors.AddUnique(this);
 
 		// Fix up references for GetParentForActor()
 		for(int32 i=0; i<GroupActors.Num(); ++i)
@@ -51,11 +51,11 @@ void AGroupActor::PostEditChangeProperty( FPropertyChangedEvent& PropertyChanged
 	// Re-instate group as active if it had children after undo/redo
 	if(GroupActors.Num() || SubGroups.Num())
 	{
-		GEditor->ActiveGroupActors.AddUnique(this);
+		GetWorld()->ActiveGroupActors.AddUnique(this);
 	}
 	else // Otherwise, attempt to remove them
 	{
-		GEditor->ActiveGroupActors.Remove(this);
+		GetWorld()->ActiveGroupActors.Remove(this);
 	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -66,7 +66,7 @@ void AGroupActor::PostEditUndo()
 
 	if (IsPendingKill())
 	{
-		GEditor->ActiveGroupActors.RemoveSwap(this);
+		GetWorld()->ActiveGroupActors.RemoveSwap(this);
 	}
 }
 
@@ -352,30 +352,37 @@ void AGroupActor::DrawBracketsForGroups( FPrimitiveDrawInterface* PDI, FViewport
 	if( GUnrealEd->bGroupingActive )
 	{
 		check(PDI);
-	
-		if(bMustBeSelected)
+		
+		UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+		if (EditorWorld)
 		{
-			// If we're only drawing for selected group, grab only those that have currently selected actors
-			TArray<AGroupActor*> SelectedGroups;
-			for(int32 GroupIndex=0; GroupIndex < GEditor->ActiveGroupActors.Num(); ++GroupIndex)
+			TArray<AGroupActor*> GroupsToDraw;
+			
+			for(int32 GroupIndex=0; GroupIndex < EditorWorld->ActiveGroupActors.Num(); ++GroupIndex)
 			{
-				AGroupActor* SelectedGroupActor = GEditor->ActiveGroupActors[GroupIndex];		
-				if( SelectedGroupActor != NULL )
+				AGroupActor* GroupActor = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[GroupIndex]);
+				if (GroupActor != NULL)
 				{
-					if(SelectedGroupActor->HasSelectedActors())
+					if (bMustBeSelected)
 					{
-						// We want to start drawing groups from the highest root level.
-						// Subgroups will be propagated through during the draw code.
-						SelectedGroupActor = AGroupActor::GetRootForActor(SelectedGroupActor);
-						SelectedGroups.Add(SelectedGroupActor);
+						// If we're only drawing for selected group, grab only those that have currently selected actors
+						if (GroupActor->HasSelectedActors())
+						{
+							// We want to start drawing groups from the highest root level.
+							// Subgroups will be propagated through during the draw code.
+							GroupActor = AGroupActor::GetRootForActor(GroupActor);
+							GroupsToDraw.Add(GroupActor);
+						}
+					}
+					else
+					{
+						// Otherwise, just add all group actors
+						GroupsToDraw.Add(GroupActor);
 					}
 				}
 			}
-			PrivateDrawBracketsForGroups(PDI, Viewport, SelectedGroups);
-		}
-		else
-		{
-			PrivateDrawBracketsForGroups(PDI, Viewport, GEditor->ActiveGroupActors );
+
+			PrivateDrawBracketsForGroups(PDI, Viewport, GroupsToDraw);
 		}
 	}
 }
@@ -445,94 +452,105 @@ AGroupActor* AGroupActor::GetParentForActor(AActor* InActor)
 
 const int32 AGroupActor::NumActiveGroups( bool bSelected/*=false*/, bool bDeepSearch/*=true*/ )
 {
-	if(!bSelected)
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld)
 	{
-		return GEditor->ActiveGroupActors.Num();
-	}
-
-	int32 ActiveSelectedGroups = 0;
-	for(int32 GroupIdx=0; GroupIdx < GEditor->ActiveGroupActors.Num(); ++GroupIdx )
-	{
-		if( GEditor->ActiveGroupActors[GroupIdx] != NULL )
+		if(!bSelected)
 		{
-			if(GEditor->ActiveGroupActors[GroupIdx]->HasSelectedActors(bDeepSearch))
+			return EditorWorld->ActiveGroupActors.Num();
+		}
+
+		int32 ActiveSelectedGroups = 0;
+		for(int32 GroupIdx=0; GroupIdx < EditorWorld->ActiveGroupActors.Num(); ++GroupIdx )
+		{
+			AGroupActor* GroupActor = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[GroupIdx]);
+			if( GroupActor != NULL )
 			{
-				++ActiveSelectedGroups;
+				if(GroupActor->HasSelectedActors(bDeepSearch))
+				{
+					++ActiveSelectedGroups;
+				}
 			}
 		}
+
+		return ActiveSelectedGroups;
 	}
-	return ActiveSelectedGroups;
+	
+	return 0;
 }
 
 
 void AGroupActor::AddSelectedActorsToSelectedGroup()
 {
-
-	int32 SelectedGroupIndex = -1;
-	for(int32 GroupIdx=0; GroupIdx < GEditor->ActiveGroupActors.Num(); ++GroupIdx )
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld)
 	{
-		if( GEditor->ActiveGroupActors[GroupIdx] != NULL )
+		int32 SelectedGroupIndex = -1;
+		for(int32 GroupIdx=0; GroupIdx < EditorWorld->ActiveGroupActors.Num(); ++GroupIdx )
 		{
-			if(GEditor->ActiveGroupActors[GroupIdx]->HasSelectedActors(false))
+			AGroupActor* GroupActor = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[GroupIdx]);
+			if( GroupActor != NULL )
 			{
-				// Assign the index of the selected group.
-				// If this is the second group we find, too many groups are selected, return.
-				if( SelectedGroupIndex == -1 )
+				if(GroupActor->HasSelectedActors(false))
 				{
-					SelectedGroupIndex = GroupIdx;
-				}
-				else
-				{
-					return;
-				}
-			}
-		}
-	}
-
-	if( SelectedGroupIndex != -1 && GEditor->ActiveGroupActors[SelectedGroupIndex] != NULL )
-	{
-		AGroupActor* SelectedGroup = GEditor->ActiveGroupActors[SelectedGroupIndex];
-		
-		ULevel* GroupLevel = SelectedGroup->GetLevel();
-
-		// We've established that only one group is selected, so we can just call Add on all these actors.
-		// Any actors already in the group will be ignored.
-		
-		TArray<AActor*> ActorsToAdd;
-
-		bool bActorsInSameLevel = true;
-		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-		{
-			AActor* Actor = CastChecked<AActor>( *It );
-		
-			if( Actor->GetLevel() == GroupLevel )
-			{
-				ActorsToAdd.Add( Actor );
-			}
-			else
-			{
-				bActorsInSameLevel = false;
-				break;
-			}
-		}
-
-		if( bActorsInSameLevel )
-		{
-			if( ActorsToAdd.Num() > 0 )
-			{
-				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Add", "Add Actors to Group") );
-				for( int32 ActorIndex = 0; ActorIndex < ActorsToAdd.Num(); ++ActorIndex )
-				{
-					if ( ActorsToAdd[ActorIndex] != SelectedGroup )
+					// Assign the index of the selected group.
+					// If this is the second group we find, too many groups are selected, return.
+					if( SelectedGroupIndex == -1 )
 					{
-						SelectedGroup->Add( *ActorsToAdd[ActorIndex] );
+						SelectedGroupIndex = GroupIdx;
+					}
+					else
+					{
+						return;
 					}
 				}
 			}
 		}
-		else
+
+		AGroupActor* SelectedGroup = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[SelectedGroupIndex]);
+		if( SelectedGroupIndex != -1 && SelectedGroup != NULL )
 		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Group_CantCreateGroupMultipleLevels", "Can't group the selected actors because they are in different levels.") );
+			ULevel* GroupLevel = SelectedGroup->GetLevel();
+
+			// We've established that only one group is selected, so we can just call Add on all these actors.
+			// Any actors already in the group will be ignored.
+		
+			TArray<AActor*> ActorsToAdd;
+
+			bool bActorsInSameLevel = true;
+			for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+			{
+				AActor* Actor = CastChecked<AActor>( *It );
+		
+				if( Actor->GetLevel() == GroupLevel )
+				{
+					ActorsToAdd.Add( Actor );
+				}
+				else
+				{
+					bActorsInSameLevel = false;
+					break;
+				}
+			}
+
+			if( bActorsInSameLevel )
+			{
+				if( ActorsToAdd.Num() > 0 )
+				{
+					const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Add", "Add Actors to Group") );
+					for( int32 ActorIndex = 0; ActorIndex < ActorsToAdd.Num(); ++ActorIndex )
+					{
+						if ( ActorsToAdd[ActorIndex] != SelectedGroup )
+						{
+							SelectedGroup->Add( *ActorsToAdd[ActorIndex] );
+						}
+					}
+				}
+			}
+			else
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Group_CantCreateGroupMultipleLevels", "Can't group the selected actors because they are in different levels.") );
+			}
 		}
 	}
 }
@@ -540,73 +558,81 @@ void AGroupActor::AddSelectedActorsToSelectedGroup()
 
 void AGroupActor::LockSelectedGroups()
 {
-	TArray<AGroupActor*> GroupsToLock;
-	for ( int32 GroupIndex=0; GroupIndex<GEditor->ActiveGroupActors.Num(); ++GroupIndex )
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld)
 	{
-		AGroupActor* GroupToLock = GEditor->ActiveGroupActors[GroupIndex];
-		if( GroupToLock != NULL )
+		TArray<AGroupActor*> GroupsToLock;
+		for ( int32 GroupIndex=0; GroupIndex<EditorWorld->ActiveGroupActors.Num(); ++GroupIndex )
 		{
-			if( GroupToLock->HasSelectedActors(false) )
+			AGroupActor* GroupToLock = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[GroupIndex]);
+			if( GroupToLock != NULL )
 			{
-				// If our selected group is already locked, move up a level to add it's potential parent for locking
-				if( GroupToLock->IsLocked() )
+				if( GroupToLock->HasSelectedActors(false) )
 				{
-					AGroupActor* GroupParent = AGroupActor::GetParentForActor(GroupToLock);
-					if(GroupParent && !GroupParent->IsLocked())
+					// If our selected group is already locked, move up a level to add it's potential parent for locking
+					if( GroupToLock->IsLocked() )
 					{
-						GroupsToLock.AddUnique(GroupParent);
+						AGroupActor* GroupParent = AGroupActor::GetParentForActor(GroupToLock);
+						if(GroupParent && !GroupParent->IsLocked())
+						{
+							GroupsToLock.AddUnique(GroupParent);
+						}
 					}
-				}
-				else // if it's not locked, add it instead!
-				{
-					GroupsToLock.AddUnique(GroupToLock);
+					else // if it's not locked, add it instead!
+					{
+						GroupsToLock.AddUnique(GroupToLock);
+					}
 				}
 			}
 		}
-	}
 
-	if( GroupsToLock.Num() > 0 )
-	{
-		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Lock", "Lock Groups") );
-		for ( int32 GroupIndex=0; GroupIndex<GroupsToLock.Num(); ++GroupIndex )
+		if( GroupsToLock.Num() > 0 )
 		{
-			AGroupActor* GroupToLock = GroupsToLock[GroupIndex];
-			GroupToLock->Modify();
-			GroupToLock->Lock();
-			GEditor->SelectGroup(GroupToLock, false );
+			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Lock", "Lock Groups") );
+			for ( int32 GroupIndex=0; GroupIndex<GroupsToLock.Num(); ++GroupIndex )
+			{
+				AGroupActor* GroupToLock = GroupsToLock[GroupIndex];
+				GroupToLock->Modify();
+				GroupToLock->Lock();
+				GEditor->SelectGroup(GroupToLock, false );
+			}
+			GEditor->NoteSelectionChange();
 		}
-		GEditor->NoteSelectionChange();
 	}
 }
 
 
 void AGroupActor::UnlockSelectedGroups()
 {
-	TArray<AGroupActor*> GroupsToUnlock;
-	for ( int32 GroupIndex=0; GroupIndex<GEditor->ActiveGroupActors.Num(); ++GroupIndex )
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld)
 	{
-		AGroupActor* GroupToUnlock = GEditor->ActiveGroupActors[GroupIndex];
-		if( GroupToUnlock != NULL )
+		TArray<AGroupActor*> GroupsToUnlock;
+		for ( int32 GroupIndex=0; GroupIndex<EditorWorld->ActiveGroupActors.Num(); ++GroupIndex )
 		{
-			if( GroupToUnlock->IsSelected() )
+			AGroupActor* GroupToUnlock = Cast<AGroupActor>(EditorWorld->ActiveGroupActors[GroupIndex]);
+			if( GroupToUnlock != NULL )
 			{
-				GroupsToUnlock.Add(GroupToUnlock);
+				if( GroupToUnlock->IsSelected() )
+				{
+					GroupsToUnlock.Add(GroupToUnlock);
+				}
 			}
 		}
-	}
 
-	// Only unlock topmost selected group(s)
-	AGroupActor::RemoveSubGroupsFromArray(GroupsToUnlock);
-	if( GroupsToUnlock.Num() > 0 )
-	{
-		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Unlock", "Unlock Groups") );
-		for ( int32 GroupIndex=0; GroupIndex<GroupsToUnlock.Num(); ++GroupIndex)
+		// Only unlock topmost selected group(s)
+		AGroupActor::RemoveSubGroupsFromArray(GroupsToUnlock);
+		if( GroupsToUnlock.Num() > 0 )
 		{
-			AGroupActor* GroupToUnlock = GroupsToUnlock[GroupIndex];
-			GroupToUnlock->Modify();
-			GroupToUnlock->Unlock();
+			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "Group_Unlock", "Unlock Groups") );
+			for ( int32 GroupIndex=0; GroupIndex<GroupsToUnlock.Num(); ++GroupIndex)
+			{
+				AGroupActor* GroupToUnlock = GroupsToUnlock[GroupIndex];
+				GroupToUnlock->Modify();
+				GroupToUnlock->Unlock();
+			}
+			GEditor->NoteSelectionChange();
 		}
-		GEditor->NoteSelectionChange();
 	}
 }
 
@@ -733,12 +759,13 @@ void AGroupActor::PostRemove()
 			ParentGroup->Remove(*this);
 		}
 
-		// Group is no longer active
-		GEditor->ActiveGroupActors.Remove(this);
-
-		if( GetWorld() )
+		UWorld* MyWorld = GetWorld();
+		if( MyWorld )
 		{
-			GetWorld()->ModifyLevel(GetLevel());
+			// Group is no longer active
+			MyWorld->ActiveGroupActors.Remove(this);
+
+			MyWorld->ModifyLevel(GetLevel());
 			
 			// Mark the group actor for removal
 			MarkPackageDirty();
@@ -751,7 +778,7 @@ void AGroupActor::PostRemove()
 
 				// Destroy group and clear references.
 				GEditor->Layers->DisassociateActorFromLayers( this );
-				GetWorld()->EditorDestroyActor( this, false );			
+				MyWorld->EditorDestroyActor( this, false );			
 				
 				LevelRefreshAllBrowsers.Request();
 			}

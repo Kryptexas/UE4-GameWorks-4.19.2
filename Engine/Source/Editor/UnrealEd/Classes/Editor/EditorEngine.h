@@ -473,9 +473,6 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY(transient)
 	uint32 bDrawParticleHelpers:1;
 
-	UPROPERTY()
-	TArray<class AGroupActor*> ActiveGroupActors;
-
 	/** Brush builders that have been created in the editor */
 	UPROPERTY(transient)
 	TArray<class UBrushBuilder*> BrushBuilders;	
@@ -1261,7 +1258,7 @@ public:
 	// Selection.
 	virtual void SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden=false) {}
 	virtual bool CanSelectActor(AActor* Actor, bool bInSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const { return true; }
-	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
+	virtual void SelectGroup(class AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
 
 	/**
 	 * Replaces the components in ActorsToReplace with an primitive component in Replacement
