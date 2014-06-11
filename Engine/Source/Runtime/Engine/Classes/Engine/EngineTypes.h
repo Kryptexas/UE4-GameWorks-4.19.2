@@ -99,6 +99,15 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+/** Controls the way that the width scale property affects anim trails */
+UENUM()
+enum ETrailWidthMode
+{
+	ETrailWidthMode_FromCentre UMETA(DisplayName = "From Centre"),
+	ETrailWidthMode_FromFirst UMETA(DisplayName = "From First Socket"),
+	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
+};
+
 UENUM()
 enum EMaterialShadingModel
 {
