@@ -109,6 +109,9 @@ private:
 	/** Handler for when the map changed or was rebuilt */
 	void HandleMapChanged(uint32 MapChangeFlags);
 
+	/** Handler for when the current level changes */
+	void HandleNewCurrentLevel();
+
 	/** Handler for light map list view widget creation */
 	TSharedRef<ITableRow> MakeLightMapListViewWidget(TSharedPtr<FLightmapItem> AssetItem, const TSharedRef<STableViewBase>& OwnerTable);
 

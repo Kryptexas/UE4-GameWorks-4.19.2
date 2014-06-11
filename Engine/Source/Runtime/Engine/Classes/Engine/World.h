@@ -2412,8 +2412,8 @@ public:
 	/** Updates all physics constraint actor joint locations.  */
 	virtual void UpdateConstraintActors();
 
-	/** Gets all LightMaps and ShadowMaps associated with this world's persistent level */
-	void GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
+	/** Gets all LightMaps and ShadowMaps associated with this world. Specify the level or leave null for persistent */
+	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);

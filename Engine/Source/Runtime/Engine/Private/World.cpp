@@ -215,7 +215,7 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 {
 	// Rename LightMaps and ShadowMaps to the new location. Keep the old name, since they are not named after the world.
 	TArray<UTexture2D*> LightMapsAndShadowMaps;
-	GetLightMapsAndShadowMaps(LightMapsAndShadowMaps);
+	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 	for (auto* Tex : LightMapsAndShadowMaps)
 	{
 		if ( Tex && !Tex->Rename(*Tex->GetName(), NewOuter, Flags) )
@@ -290,7 +290,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 
 		// Gather the textures
 		TArray<UTexture2D*> LightMapsAndShadowMaps;
-		GetLightMapsAndShadowMaps(LightMapsAndShadowMaps);
+		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 
 		// Duplicate the textures, if any
 		for (auto* Tex : LightMapsAndShadowMaps)
@@ -5032,7 +5032,7 @@ void UWorld::CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState)
 	GameState = FromGameState;
 }
 
-void UWorld::GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShadowMaps)
+void UWorld::GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps)
 {
 	class FFindLightmapsArchive : public FArchiveUObject
 	{
@@ -5056,8 +5056,8 @@ void UWorld::GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShado
 
 		FArchive& operator<<(class UObject*& Obj)
 		{
-			// Don't check null references or objects already visited
-			if (Obj != NULL && Obj->HasAnyMarks(OBJECTMARK_TagExp))
+			// Don't check null references or objects already visited. Also, skip UWorlds as they will pull in more levels than desired
+			if (Obj != NULL && Obj->HasAnyMarks(OBJECTMARK_TagExp) && !Obj->IsA(UWorld::StaticClass()))
 			{
 				if (Obj->IsA(ULightMapTexture2D::StaticClass()) || Obj->IsA(UShadowMapTexture2D::StaticClass()))
 				{
@@ -5076,7 +5076,13 @@ void UWorld::GetLightMapsAndShadowMaps(TArray<UTexture2D*>& OutLightMapsAndShado
 		}
 	};
 
-	FFindLightmapsArchive FindArchive(this, OutLightMapsAndShadowMaps);
+	UObject* SearchObject = Level;
+	if ( !SearchObject )
+	{
+		SearchObject = PersistentLevel;
+	}
+
+	FFindLightmapsArchive FindArchive(SearchObject, OutLightMapsAndShadowMaps);
 }
 
 void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)

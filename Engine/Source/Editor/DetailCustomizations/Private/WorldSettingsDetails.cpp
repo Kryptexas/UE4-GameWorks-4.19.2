@@ -64,6 +64,7 @@ FLightmapCustomNodeBuilder::~FLightmapCustomNodeBuilder()
 {
 	FEditorDelegates::OnLightingBuildKept.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
+	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 }
 
 
@@ -73,6 +74,7 @@ void FLightmapCustomNodeBuilder::SetOnRebuildChildren(FSimpleDelegate InOnRegene
 
 	FEditorDelegates::OnLightingBuildKept.AddSP(this, &FLightmapCustomNodeBuilder::HandleLightingBuildKept);
 	FEditorDelegates::MapChange.AddSP(this, &FLightmapCustomNodeBuilder::HandleMapChanged);
+	FEditorDelegates::NewCurrentLevel.AddSP(this, &FLightmapCustomNodeBuilder::HandleNewCurrentLevel);
 }
 
 
@@ -124,6 +126,12 @@ void FLightmapCustomNodeBuilder::HandleLightingBuildKept()
 
 
 void FLightmapCustomNodeBuilder::HandleMapChanged(uint32 MapChangeFlags)
+{
+	OnRegenerateChildren.ExecuteIfBound();
+}
+
+
+void FLightmapCustomNodeBuilder::HandleNewCurrentLevel()
 {
 	OnRegenerateChildren.ExecuteIfBound();
 }
@@ -254,7 +262,7 @@ void FLightmapCustomNodeBuilder::RefreshLightmapItems()
 	if ( World )
 	{
 		TArray<UTexture2D*> LightMapsAndShadowMaps;
-		World->GetLightMapsAndShadowMaps(LightMapsAndShadowMaps);
+		World->GetLightMapsAndShadowMaps(World->GetCurrentLevel(), LightMapsAndShadowMaps);
 
 		for ( auto ObjIt = LightMapsAndShadowMaps.CreateConstIterator(); ObjIt; ++ObjIt )
 		{
