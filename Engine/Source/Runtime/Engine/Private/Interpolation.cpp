@@ -3010,7 +3010,7 @@ UInterpTrackInst::UInterpTrackInst(const class FPostConstructInitializePropertie
 }
 
 
-AActor* UInterpTrackInst::GetGroupActor()
+AActor* UInterpTrackInst::GetGroupActor() const
 {
 	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
 	return GrInst->GetGroupActor();
@@ -3019,9 +3019,15 @@ AActor* UInterpTrackInst::GetGroupActor()
 
 UWorld* UInterpTrackInst::GetWorld() const
 {
-	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
-	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( GrInst->GetOuter() );
-	return MatineeActor->GetWorld();
+	// find an actor
+	AActor const* Actor = GetGroupActor();
+	if (Actor == nullptr)
+	{
+		// search the outer chain for an actor
+		Actor = GetTypedOuter<AActor>();
+	}
+
+	return Actor ? Actor->GetWorld() : nullptr;
 }
 
 /*-----------------------------------------------------------------------------
