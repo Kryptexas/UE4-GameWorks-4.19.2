@@ -130,42 +130,7 @@ private:
 	int32							NumChildren;
 };
 
-/** 
- * Class used to reference an FSceneViewStateInterface that allows destruction and recreation of all FSceneViewStateInterface's when needed. 
- * This is used to support reloading the renderer module on the fly.
- */
-class FSceneViewStateReference
-{
-public:
-	FSceneViewStateReference() :
-		Reference(NULL)
-	{}
 
-	ENGINE_API virtual ~FSceneViewStateReference();
-
-	/** Allocates the Scene view state. */
-	ENGINE_API void Allocate();
-
-	/** Destorys the Scene view state. */
-	ENGINE_API void Destroy();
-
-	/** Destroys all view states, but does not remove them from the linked list. */
-	ENGINE_API static void DestroyAll();
-
-	/** Recreates all view states in the global list. */
-	ENGINE_API static void AllocateAll();
-
-	FSceneViewStateInterface* GetReference()
-	{
-		return Reference;
-	}
-
-private:
-	FSceneViewStateInterface* Reference;
-	TLinkedList<FSceneViewStateReference*> GlobalListLink;
-
-	static TLinkedList<FSceneViewStateReference*>*& GetSceneViewStateList();
-};
 
 /**
  * The types of interactions between a light and a primitive.
@@ -613,15 +578,6 @@ public:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 };
 
-/** different light component types */
-enum ELightComponentType
-{
-	LightType_Directional = 0,
-	LightType_Point,
-	LightType_Spot,
-	LightType_MAX,
-	LightType_NumBits = 2
-};
 
 /** Encapsulates the data which is used to render a light parallel to the game thread. */
 class ENGINE_API FLightSceneProxy

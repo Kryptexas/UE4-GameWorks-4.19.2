@@ -9,6 +9,7 @@
 #include "Canvas.generated.h"
 
 class FSceneView;
+class FCanvas;
 
 /**
  * Holds texture information with UV coordinates as well.

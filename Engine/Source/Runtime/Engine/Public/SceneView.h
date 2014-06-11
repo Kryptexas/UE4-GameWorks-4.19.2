@@ -4,6 +4,7 @@
 
 #include "Runtime/RenderCore/Public/UniformBuffer.h"
 #include "Engine/GameViewportClient.h"
+#include "Engine/World.h"
 #include "ConvexVolume.h"
 #include "FinalPostProcessSettings.h"
 #include "SceneInterface.h"
@@ -11,6 +12,7 @@
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
 class FViewElementDrawer;
+class FSceneViewFamily;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData

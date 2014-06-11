@@ -9,6 +9,7 @@
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshParticleVertexFactory.h"
+#include "MaterialShared.h"
 
 #include "ParticleHelper.generated.h"
 

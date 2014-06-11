@@ -7,9 +7,12 @@
 #pragma once
 #include "PhysicsEngine/BodyInstance.h"
 #include "Engine/LevelBase.h"
+#include "Engine/World.h"
+#include "Model.h"
 #include "Level.generated.h"
 
 class ALevelBounds;
+class UTexture2D;
 
 /**
  * Structure containing all information needed for determining the screen space

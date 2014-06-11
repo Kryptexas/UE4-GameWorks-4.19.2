@@ -3,6 +3,8 @@
 #pragma once
 #include "ReflectionCaptureComponent.generated.h"
 
+class FReflectionCaptureProxy;
+
 class FReflectionCaptureFullHDRDerivedData
 {
 public:

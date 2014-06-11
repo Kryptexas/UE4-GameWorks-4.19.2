@@ -2,7 +2,8 @@
 
 
 #pragma once
-#include "SceneTypes.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/RenderUtils.h"
 #include "StaticMeshComponent.generated.h"

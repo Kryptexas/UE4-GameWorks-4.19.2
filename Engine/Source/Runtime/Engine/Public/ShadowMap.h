@@ -342,5 +342,8 @@ private:
 };
 
 
+/** A reference to a shadow-map. */
+typedef TRefCountPtr<FShadowMap> FShadowMapRef;
+
 /** Shadowmap reference serializer */
 extern FArchive& operator<<(FArchive& Ar,FShadowMap*& R);

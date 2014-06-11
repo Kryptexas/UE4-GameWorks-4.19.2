@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "SceneTypes.h"
 #include "LightComponent.generated.h"
 
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))

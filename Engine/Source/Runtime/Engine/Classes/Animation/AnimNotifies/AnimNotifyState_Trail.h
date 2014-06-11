@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "ParticleHelper.h"
 #include "AnimNotifyState_Trail.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);

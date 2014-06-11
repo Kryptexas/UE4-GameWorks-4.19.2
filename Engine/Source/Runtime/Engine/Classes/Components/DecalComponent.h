@@ -4,7 +4,7 @@
 #pragma once
 #include "DecalComponent.generated.h"
 
-	// -> will be exported to EngineDecalClasses.h
+class FDeferredDecalProxy;
 
 /** 
  * A material that is rendered onto the surface of a mesh. A kind of 'bumper sticker' for a model.

@@ -5,6 +5,8 @@
 #include "BodySetup.generated.h"
 
 struct FDynamicMeshVertex;
+class FMaterialRenderProxy;
+class FPrimitiveDrawInterface;
 
 namespace physx
 {

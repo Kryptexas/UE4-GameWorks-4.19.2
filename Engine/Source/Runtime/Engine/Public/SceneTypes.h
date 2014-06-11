@@ -4,6 +4,7 @@
 
 class FLightMap;
 class FShadowMap;
+class FSceneViewStateInterface;
 
 /** 
  * Class used to identify UPrimitiveComponents on the rendering thread without having to pass the pointer around, 
@@ -34,6 +35,53 @@ public:
 	uint64 Value;
 };
 
+/** 
+ * Class used to reference an FSceneViewStateInterface that allows destruction and recreation of all FSceneViewStateInterface's when needed. 
+ * This is used to support reloading the renderer module on the fly.
+ */
+class FSceneViewStateReference
+{
+public:
+	FSceneViewStateReference() :
+		Reference(NULL)
+	{}
+
+	ENGINE_API virtual ~FSceneViewStateReference();
+
+	/** Allocates the Scene view state. */
+	ENGINE_API void Allocate();
+
+	/** Destorys the Scene view state. */
+	ENGINE_API void Destroy();
+
+	/** Destroys all view states, but does not remove them from the linked list. */
+	ENGINE_API static void DestroyAll();
+
+	/** Recreates all view states in the global list. */
+	ENGINE_API static void AllocateAll();
+
+	FSceneViewStateInterface* GetReference()
+	{
+		return Reference;
+	}
+
+private:
+	FSceneViewStateInterface* Reference;
+	TLinkedList<FSceneViewStateReference*> GlobalListLink;
+
+	static TLinkedList<FSceneViewStateReference*>*& GetSceneViewStateList();
+};
+
+/** different light component types */
+enum ELightComponentType
+{
+	LightType_Directional = 0,
+	LightType_Point,
+	LightType_Spot,
+	LightType_MAX,
+	LightType_NumBits = 2
+};
+
 /**
  * The types of interactions between a light and a primitive.
  */
@@ -45,9 +93,6 @@ enum ELightMapInteractionType
 	LMIT_NumBits= 3
 };
 
-/** A reference to a light-map. */
-typedef TRefCountPtr<FLightMap> FLightMapRef;
-
 enum EShadowMapInteractionType
 {
 	SMIT_None = 0,
@@ -55,9 +100,6 @@ enum EShadowMapInteractionType
 
 	SMIT_NumBits = 3
 };
-
-/** A reference to a shadow-map. */
-typedef TRefCountPtr<FShadowMap> FShadowMapRef;
 
 /** Quality levels that a material can be compiled for. */
 namespace EMaterialQualityLevel

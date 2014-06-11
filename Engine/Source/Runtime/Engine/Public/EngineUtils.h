@@ -9,6 +9,7 @@
 
 #include "Engine/Level.h"
 #include "GameFramework/WorldSettings.h"
+#include "HitProxies.h"
 
 /*-----------------------------------------------------------------------------
 	Hit proxies.
@@ -569,7 +570,7 @@ private:
  *	@param ViewLocation	Location of camera
  *	@param ViewRotation	Rotation of camera
  */
-ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
+ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<struct FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
 
 /** SubLevel status information */
 struct FSubLevelStatus
