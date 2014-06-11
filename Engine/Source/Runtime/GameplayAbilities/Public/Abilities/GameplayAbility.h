@@ -362,8 +362,7 @@ protected:
 
 	void MontageBranchPoint_AbilityDecisionStart(const FGameplayAbilityActorInfo* ActorInfo) const;
 	
-	UPROPERTY(EditDefaultsOnly, Category = Tags)
-	bool Prediction;
+	
 
 private:
 
