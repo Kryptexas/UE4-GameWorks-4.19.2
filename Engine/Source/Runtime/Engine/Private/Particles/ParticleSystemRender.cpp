@@ -1559,7 +1559,6 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 	, StaticMesh( NULL )
 	, MeshTypeDataOffset(0xFFFFFFFF)
 	, bApplyPreRotation(false)
-	, RollPitchYaw(0.0f, 0.0f, 0.0f)
 	, bUseMeshLockedAxis(false)
 	, bUseCameraFacing(false)
 	, bApplyParticleRotationAsSpin(false)
@@ -1615,11 +1614,14 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 		// offset to the mesh emitter type data
 		MeshTypeDataOffset = InEmitterInstance->TypeDataOffset;
 
-		// Setup pre-rotation values...
-		if ((MeshTD->Pitch != 0.0f) || (MeshTD->Roll != 0.0f) || (MeshTD->Yaw != 0.0f))
+
+		FVector Mins, Maxs;
+		MeshTD->RollPitchYawRange.Distribution->GetRange(Mins, Maxs);
+
+		// Enable/Disable pre-rotation
+		if ( Mins.SizeSquared() || Maxs.SizeSquared() )
 		{
 			bApplyPreRotation = true;
-			RollPitchYaw = FVector(MeshTD->Roll, MeshTD->Pitch, MeshTD->Yaw);
 		}
 		else
 		{
@@ -2214,16 +2216,18 @@ void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, co
 				kRotator = FRotator(MeshRotation);
 		}
 	}
-	else if (Source.bMeshRotationActive)
-	{
-		FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&InParticle + Source.MeshRotationOffset);
-		kRotator = FRotator::MakeFromEuler(PayloadData->Rotation);
-	}
 	else
 	{
 		float fRot = InParticle.Rotation * 180.0f / PI;
 		FVector kRotVec = FVector(fRot, fRot, fRot);
 		kRotator = FRotator::MakeFromEuler(kRotVec);
+
+		// if we're using initial orientation, apply here
+		if (bApplyPreRotation)
+		{
+			FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&InParticle + Source.MeshRotationOffset);
+			kRotator += FRotator::MakeFromEuler(PayloadData->Rotation);
+		}
 	}
 
 	FRotationMatrix kRotMat(kRotator);
@@ -2231,11 +2235,11 @@ void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, co
 	{
 		if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
 		{
-			OutTransformMat = FRotationMatrix(FRotator::MakeFromEuler(RollPitchYaw)) * kScaleMat * FRotationMatrix(kLockedAxisRotator) * kRotMat * kTransMat;
+			OutTransformMat = kScaleMat * FRotationMatrix(kLockedAxisRotator) * kRotMat * kTransMat;
 		}
 		else
 		{
-			OutTransformMat = FRotationMatrix(FRotator::MakeFromEuler(RollPitchYaw)) * kScaleMat * kRotMat * kTransMat;
+			OutTransformMat = kScaleMat * kRotMat * kTransMat;
 		}
 	}
 	else if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))

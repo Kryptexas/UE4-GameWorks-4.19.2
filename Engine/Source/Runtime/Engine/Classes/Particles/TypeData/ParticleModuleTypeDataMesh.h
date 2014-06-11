@@ -89,17 +89,22 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	UPROPERTY(EditAnywhere, Category=Mesh)
 	uint32 bOverrideMaterial:1;
 
+
+	/** deprecated properties for initial orientation */
+	UPROPERTY()
+	float Pitch_DEPRECATED;
+	UPROPERTY()
+	float Roll_DEPRECATED;
+	UPROPERTY()
+	float Yaw_DEPRECATED;
+
+
 	/** The 'pre' rotation pitch (in degrees) to apply to the static mesh used. */
 	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Pitch;
+	FRawDistributionVector RollPitchYawRange;
 
-	/** The 'pre' rotation roll (in degrees) to apply to the static mesh used. */
-	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Roll;
-
-	/** The 'pre' rotation yaw (in degrees) to apply to the static mesh used. */
-	UPROPERTY(EditAnywhere, Category=Orientation)
-	float Yaw;
+	/** Random stream for the initial rotation distribution */
+	FRandomStream RandomStream;
 
 	/**
 	 *	The axis to lock the mesh on. This overrides TypeSpecific mesh alignment as well as the LockAxis module.
@@ -176,7 +181,12 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 #if WITH_EDITOR
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
+
+	virtual void	Serialize(FArchive& Ar) override;
+
 	// End UObject Interface
+
+	void CreateDistribution();
 
 	// Begin UParticleModule Interface
 	virtual void	SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;

@@ -2892,9 +2892,9 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 				FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 				FVector Euler	= Rotation.Euler();
-				PayloadData->Rotation.X	= Euler.X;
-				PayloadData->Rotation.Y	= Euler.Y;
-				PayloadData->Rotation.Z	= Euler.Z;
+				PayloadData->Rotation.X	= PayloadData->InitialOrientation.X + Euler.X;
+				PayloadData->Rotation.Y = PayloadData->InitialOrientation.Y + Euler.Y;
+				PayloadData->Rotation.Z = PayloadData->InitialOrientation.Z + Euler.Z;
 			}
 	    }
 	}
@@ -2911,7 +2911,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 			if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
 			{
 				FMeshRotationPayloadData* PayloadData	 = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				PayloadData->Rotation					+= DeltaTime * PayloadData->RotationRate;
+				PayloadData->Rotation					+= Particle.RelativeTime * PayloadData->RotationRate;
 			}
 		}
 	}
@@ -3074,6 +3074,9 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 {
 	FParticleEmitterInstance::PostSpawn(Particle, InterpolationPercentage, SpawnTime);
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+
+	FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
+
 	if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
 	{
 		// Determine the rotation to the velocity vector and apply it to the mesh
@@ -3084,12 +3087,14 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 		FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 		FVector Euler	= Rotation.Euler();
 
-		FMeshRotationPayloadData* PayloadData	= (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
 		PayloadData->Rotation.X	+= Euler.X;
 		PayloadData->Rotation.Y	+= Euler.Y;
 		PayloadData->Rotation.Z	+= Euler.Z;
-		//
 	}
+
+	FVector InitialOrient = MeshTypeData->RollPitchYawRange.GetValue(SpawnTime, 0, 0, &MeshTypeData->RandomStream);
+	PayloadData->InitialOrientation = InitialOrient;
+	PayloadData->Rotation += InitialOrient;
 }
 
 bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)

@@ -3088,6 +3088,8 @@ FParticleEmitterInstance* UParticleModuleTypeDataMesh::CreateInstance(UParticleE
 
 	Instance->InitParameters(InEmitterParent, InComponent);
 
+	CreateDistribution();
+
 	return Instance;
 }
 
@@ -3098,6 +3100,29 @@ void UParticleModuleTypeDataMesh::SetToSensibleDefaults(UParticleEmitter* Owner)
 		Mesh = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(),NULL,TEXT("/Engine/EngineMeshes/ParticleCube.ParticleCube"),NULL,LOAD_None,NULL);
 	}
 }
+
+void UParticleModuleTypeDataMesh::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION)
+	{
+		FVector oldOrient(Roll_DEPRECATED, Pitch_DEPRECATED, Yaw_DEPRECATED);
+		UDistributionVectorUniform* RPYDistribution = Cast<UDistributionVectorUniform>(RollPitchYawRange.Distribution);
+		RPYDistribution->Min = oldOrient;
+		RPYDistribution->Max = oldOrient;
+		RPYDistribution->bIsDirty = true;
+	}
+}
+
+void UParticleModuleTypeDataMesh::CreateDistribution()
+{
+	if (!RollPitchYawRange.Distribution)
+	{
+		RollPitchYawRange.Distribution = NewNamedObject<UDistributionVectorUniform>(this, TEXT("DistributionRollPitchYaw"));
+	}
+}
+
+
 
 #if WITH_EDITOR
 void UParticleModuleTypeDataMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

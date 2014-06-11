@@ -750,6 +750,7 @@ struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** Mesh rotation data payload										*/
 struct FMeshRotationPayloadData
 {
+	FVector	 InitialOrientation;
 	FVector  Rotation;
 	FVector  RotationRate;
 	FVector  RotationRateBase;
@@ -2018,8 +2019,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	// These don't need to go into the replay data, as they are constant over the life of the emitter
 	/** If true, apply the 'pre-rotation' values to the mesh. */
 	uint32 bApplyPreRotation:1;
-	/** The pitch/roll/yaw to apply in the pre-rotation step */
-	FVector RollPitchYaw;
 	/** If true, then use the locked axis setting supplied. Trumps locked axis module and/or TypeSpecific mesh settings. */
 	uint32 bUseMeshLockedAxis:1;
 	/** If true, then use the camera facing options supplied. Trumps all other settings. */

@@ -554,6 +554,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FIX_MATERIAL_COMMENTS,
 	// Bone names stored as FName mean that we cant guarrentee the correct case on export, now we store a separate string for export purposes only
 	VER_UE4_STORE_BONE_EXPORT_NAMES,
+	// changed mesh emitter initial orientation to distribution
+	VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
