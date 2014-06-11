@@ -1169,6 +1169,10 @@ namespace UnrealBuildTool
 							ToolChain.PostBuildSync(Target);
 						}
 					}
+					else
+					{
+						BuildResult = ECompilationResult.OtherCompilationError;
+					}
 				}
 			}
 			catch (BuildException Exception)
