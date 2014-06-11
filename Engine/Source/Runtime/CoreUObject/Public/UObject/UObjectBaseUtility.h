@@ -494,11 +494,3 @@ struct FScopeCycleCounterUObject
 	}
 };
 #endif
-
-#if STATS
-
-#define SCOPED_UOBJECT_CYCLE_COUNTER(Object)	\
-	FScopeCycleCounter CycleCount_##Stat(Stat);
-#else
-
-#endif
