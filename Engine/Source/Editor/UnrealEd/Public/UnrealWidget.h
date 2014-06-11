@@ -6,6 +6,8 @@
 
 #pragma once
 
+class FEditorViewportClient;
+
 class FWidget : public FGCObject
 {
 public:

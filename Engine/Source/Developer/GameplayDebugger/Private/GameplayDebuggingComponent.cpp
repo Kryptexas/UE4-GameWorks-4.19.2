@@ -12,6 +12,7 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "BehaviorTreeDelegates.h"
 #include "Navigation/NavigationComponent.h"
+#include "GameFramework/PlayerState.h"
 
 #include "GameplayDebuggingComponent.h"
 

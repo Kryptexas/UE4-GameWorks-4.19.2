@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Framework/Commands/UICommandInfo.h"
+
 //
 // COMMAND DECLARATION
 //

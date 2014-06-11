@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "EditorViewportClient.h"
+#include "UnrealWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "Layout/SlateRect.h"
+#include "EditorComponents.h"
+
 class FEditorCameraController;
 class FCameraControllerUserImpulseData;
 class FMouseDeltaTracker;

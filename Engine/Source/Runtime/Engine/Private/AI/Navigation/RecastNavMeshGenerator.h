@@ -10,6 +10,9 @@
 
 #define MAX_VERTS_PER_POLY	6
 
+struct FNavigationRelevantData;
+class FNavigationOctree;
+
 struct FRecastBuildConfig : public rcConfig
 {
 	/** controls whether voxel filterring will be applied (via FRecastTileGenerator::ApplyVoxelFilter) */

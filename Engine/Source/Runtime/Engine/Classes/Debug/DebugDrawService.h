@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ShowFlags.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "DebugDrawService.generated.h"
 
 class FSceneView;

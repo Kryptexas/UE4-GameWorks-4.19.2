@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct FSlateIcon;
+
 /**
  * Tool bar combo button MultiBlock
  */

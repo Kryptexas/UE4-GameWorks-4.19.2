@@ -2,7 +2,9 @@
 #include "GameplayDebuggerPrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/PlayerInput.h"
 #include "BehaviorTreeDelegates.h"
+#include "TimerManager.h"
 #include "VisualLog.h"
 
 #if WITH_EDITOR

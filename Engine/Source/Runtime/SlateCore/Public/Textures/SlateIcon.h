@@ -6,6 +6,7 @@
 
 #pragma once
 
+struct FSlateBrush;
 
 /**
  * Struct used to represent an icon in Slate

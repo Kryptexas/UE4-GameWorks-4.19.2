@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "EditorViewportClient.h"
+
 // Forward declarations.
 
 class IMatineeBase;

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "BatchedElements.h"
+
 class FCanvasItem
 {
 public:

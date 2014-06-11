@@ -3,6 +3,9 @@
 #include "DebugRenderSceneProxy.h"
 #include "DynamicMeshBuilder.h"
 #include "AI/Navigation/RecastHelpers.h"
+#include "BatchedElements.h"
+#include "AI/Navigation/NavMeshRenderingComponent.h"
+#include "Materials/Material.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);

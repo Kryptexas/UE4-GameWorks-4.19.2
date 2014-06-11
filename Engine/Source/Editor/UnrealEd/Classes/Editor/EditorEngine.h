@@ -8,6 +8,10 @@
 #include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
+class FAssetData;
+class UAnimSequence;
+class USkeleton;
+
 //
 // Things to set in mapSetBrush.
 //

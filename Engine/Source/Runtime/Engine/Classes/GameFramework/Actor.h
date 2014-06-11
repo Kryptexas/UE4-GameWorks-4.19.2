@@ -9,6 +9,8 @@
 #include "Components/SceneComponent.h"
 #include "ComponentInstanceDataCache.h"
 
+class FTimerManager; 
+
 UENUM(BlueprintType)
 namespace EEndPlayReason
 {

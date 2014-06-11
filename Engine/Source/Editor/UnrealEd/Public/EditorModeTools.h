@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FViewport;
+class FLevelEditorViewportClient;
 
 enum EGeomSelectionType
 {

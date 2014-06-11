@@ -6,6 +6,8 @@
 
 #pragma once
 #include "Engine/Channel.h"
+#include "Engine/NetConnection.h"
+#include "Engine/ChildConnection.h"
 
 /*-----------------------------------------------------------------------------
 	UControlChannel base class.

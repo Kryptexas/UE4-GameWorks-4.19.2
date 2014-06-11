@@ -8,7 +8,11 @@
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingControllerComponent.h"
+#include "CanvasItem.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "Regex.h"
+#include "DrawDebugHelpers.h"
+#include "TimerManager.h"					// Game play timers
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 

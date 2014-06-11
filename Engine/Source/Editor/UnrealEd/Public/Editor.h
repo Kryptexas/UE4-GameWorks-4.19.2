@@ -11,6 +11,8 @@
 #include "Commandlets/EditorCommandlets.h"
 #include "EditorUndoClient.h"
 #include "TickableEditorObject.h"
+#include "Editor/UnrealEdTypes.h"
+#include "Editor/EditorEngine.h"
 
 #define CAMERA_ZOOM_DAMPEN			200.f
 
@@ -20,6 +22,7 @@ class FGeomEdge;
 class FGeomPoly;
 class FGeomObject;
 class FScopedTransaction;
+class UFactory;
 struct FBlueprintGraphActionListBuilder;
 
 

@@ -7,6 +7,8 @@
 #pragma once
 #include "Net/DataBunch.h"
 #include "Engine/Channel.h"
+#include "Engine/Player.h"
+#include "Engine/NetDriver.h"
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;

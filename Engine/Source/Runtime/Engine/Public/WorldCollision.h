@@ -8,7 +8,7 @@
 
 #include "UniquePtr.h"
 #include "CollisionQueryParams.h"
-#include "Engine/World.h"
+//#include "Engine/World.h"
 
 /**
  * Async Trace Data Structures 

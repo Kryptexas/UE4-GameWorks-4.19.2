@@ -5,6 +5,12 @@
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #include "Misc/CoreMisc.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#include "LevelEditorViewport.h"
+#endif //WITH_EDITOR
+
 struct FGameplayDebuggerExec : public FSelfRegisteringExec
 {
 	FGameplayDebuggerExec()
@@ -25,7 +31,6 @@ FGameplayDebuggerExec GameplayDebuggerExecInstance;
 
 TWeakObjectPtr<AGameplayDebuggingReplicator> FGameplayDebuggerExec::GetDebuggingReplicator(UWorld* InWorld)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (CachedDebuggingReplicator.IsValid() && CachedDebuggingReplicator->GetWorld() == InWorld)
 	{
 		return CachedDebuggingReplicator;
@@ -40,7 +45,7 @@ TWeakObjectPtr<AGameplayDebuggingReplicator> FGameplayDebuggerExec::GetDebugging
 			return CachedDebuggingReplicator;
 		}
 	}
-#endif
+
 	return NULL;
 }
 
@@ -48,7 +53,6 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 {
 	bool bHandled = false;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	APlayerController* PC = Inworld ? Inworld->GetFirstPlayerController() : NULL;
 	if (!Inworld || !PC)
 	{
@@ -102,7 +106,6 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 		}
 		bHandled = true;
 	}
-#endif
 
 	return bHandled;
 }
