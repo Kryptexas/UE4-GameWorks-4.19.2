@@ -22,6 +22,9 @@ private:
 	void OnBrowseWorld(UWorld* InWorld);
 
 	/**  */
+	const FSlateBrush* GetLevelsMenuBrush() const;
+
+	/**  */
 	FReply OnSummonDetails();
 	const FSlateBrush* GetSummonDetailsBrush() const;
 

@@ -566,7 +566,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 							.VAlign(VAlign_Center)
 							[
 								SNew(SImage)
-								.Image(FEditorStyle::GetBrush("ContentBrowser.NewAsset"))
+								.Image(this, &SWorldHierarchy::GetLevelsMenuBrush)
 							]
 
 							// Text
@@ -643,6 +643,11 @@ FReply SWorldHierarchy::OnSummonDetails()
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
 	LevelEditorModule.SummonWorldBrowserDetails();
 	return FReply::Handled();
+}
+
+const FSlateBrush* SWorldHierarchy::GetLevelsMenuBrush() const
+{
+	return FEditorStyle::GetBrush("WorldBrowser.LevelsMenuBrush");
 }
 
 const FSlateBrush* SWorldHierarchy::GetSummonDetailsBrush() const
