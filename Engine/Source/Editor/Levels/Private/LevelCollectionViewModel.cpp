@@ -2073,4 +2073,40 @@ void FLevelCollectionViewModel::CacheCanExecuteSourceControlVars()
 	}
 }
 
+void FLevelCollectionViewModel::AddExistingLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
+{
+	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
+	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
+	{
+		const FAssetData& AssetData = SelectedAssets[0];
+		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
+		{
+			// Close the menu that we were picking from
+			FSlateApplication::Get().DismissAllMenus();
+
+			// Fire ULevel::LevelDirtiedEvent when falling out of scope.
+			FScopedLevelDirtied LevelDirtyCallback;
+
+			// Add the level
+			ULevel* NewLevel = EditorLevelUtils::AddLevelToWorld(CurrentWorld.Get(), *AssetData.PackageName.ToString(), AddedLevelStreamingClass);
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
+
+			// For safety
+			if (GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+			{
+				GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+			}
+
+			// refresh editor windows
+			FEditorDelegates::RefreshAllBrowsers.Broadcast();
+
+			// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
+			GUnrealEd->UpdateVolumeActorVisibility(NULL);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

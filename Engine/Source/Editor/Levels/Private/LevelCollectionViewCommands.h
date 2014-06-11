@@ -43,7 +43,14 @@ PRAGMA_DISABLE_OPTIMIZATION
 		UI_COMMAND( DisplayEditorOffset, "Show Editor Offset", "If enabled, displays the editor offset for each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 		
 		UI_COMMAND( CreateEmptyLevel, "Create Empty Level", "Creates a new empty Level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( AddExistingLevel, "Add Existing Level", "Adds an existing level", EUserInterfaceActionType::Button, FInputGesture() );
+		if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
+		{
+			UI_COMMAND( AddExistingLevel, "Add Other Existing Level...", "Adds an existing level using the file explorer", EUserInterfaceActionType::Button, FInputGesture() );
+		}
+		else
+		{
+			UI_COMMAND( AddExistingLevel, "Add Existing Level", "Adds an existing level", EUserInterfaceActionType::Button, FInputGesture() );
+		}
 		UI_COMMAND( AddSelectedActorsToNewLevel, "Add Selected Actors to New Level", "Adds the actors currently selected in the active viewport to a new Level", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( MergeSelectedLevels, "Merge Levels into New Level", "Merges the selected levels into a new level, removing the original levels from the persistent", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( RemoveSelectedLevels, "Remove Selected Levels", "Removes selected levels from world", EUserInterfaceActionType::Button, FInputGesture() );

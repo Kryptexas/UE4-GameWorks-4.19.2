@@ -187,7 +187,6 @@ FAssetPickerConfig FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig()
 {
 	FAssetPickerConfig AssetPickerConfig;
 	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
 	AssetPickerConfig.bAllowDragging = false;
 	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
@@ -209,6 +208,7 @@ void FLevelEditorActionCallbacks::OpenLevelPickingDialog()
 	// Create the contents of the popup
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 	FAssetPickerConfig AssetPickerConfig = CreateLevelAssetPickerConfig();
+	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
 	TSharedRef<SWidget> ActualWidget = 
 		SNew(SBox)
 		.HeightOverride(AssetPickerSize.X)

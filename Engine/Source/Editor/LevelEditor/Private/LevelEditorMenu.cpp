@@ -164,6 +164,7 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 			{
 				FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 				FAssetPickerConfig AssetPickerConfig = FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig();
+				AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
 				AssetPickerConfig.ThumbnailScale = 0;
 
 				TSharedRef<SWidget> MenuContent =

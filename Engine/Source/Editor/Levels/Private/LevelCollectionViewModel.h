@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
+
 typedef TFilterCollection< const TSharedPtr< FLevelViewModel >& > LevelFilterCollection;
 typedef IFilter< const TSharedPtr< FLevelViewModel >& > LevelFilter;
 
@@ -136,6 +138,9 @@ public:
 
 	/** Caches the variables for which SCC menu options are available */
 	void CacheCanExecuteSourceControlVars();
+
+	/** Directly adds the levels selected from the asset picker to the world */
+	void AddExistingLevelFromAssetPicker(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);
 
 	/********************************************************************
 	 * EVENTS
