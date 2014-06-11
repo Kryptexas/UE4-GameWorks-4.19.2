@@ -2,12 +2,8 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
-
 #include "AbilitySystemComponent.h"
-
 #include "Abilities/GameplayAbility.h"
-#include "Abilities/GameplayAbility_Instanced.h"
-
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
@@ -68,7 +64,7 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 UAbilityTask_PlayMontageAndWait* UAbilitySystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
 {
 	check(WorldContextObject);
-	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
 	if (Ability)
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
@@ -95,7 +91,7 @@ UAbilityTask_PlayMontageAndWait* UAbilitySystemBlueprintLibrary::CreatePlayMonta
 UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
-	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
 	if (Ability)
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
@@ -127,7 +123,7 @@ UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitM
 UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(class UObject* WorldContextObject, EMovementMode NewMode)
 {
 	check(WorldContextObject);
-	UGameplayAbility_Instanced * Ability = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
 	if (Ability)
 	{
 		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());

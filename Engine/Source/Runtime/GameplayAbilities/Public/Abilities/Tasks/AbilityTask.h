@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "GameplayAbility_Instanced.h"
+#include "GameplayAbility.h"
 #include "AbilityTask.Generated.h"
 
 UCLASS(MinimalAPI)

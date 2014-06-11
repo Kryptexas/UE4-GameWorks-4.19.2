@@ -2,7 +2,7 @@
 #pragma once
 
 #include "AbilityTask.h"
-#include "GameplayAbility_Instanced.h"
+#include "GameplayAbility.h"
 #include "AbilityTask_WaitConfirmCancel.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitConfirmCancelDelegate, bool, Test);

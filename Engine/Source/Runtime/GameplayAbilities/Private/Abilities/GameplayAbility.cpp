@@ -18,6 +18,22 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 	CostGameplayEffect = NULL;
 	CooldownGameplayEffect = NULL;
 
+	
+	{
+		static FName FuncName = FName(TEXT("K2_CanActivateAbility"));
+		UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
+		HasBlueprintCanUse = CanActivateFunction && CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+	}
+	{
+		static FName FuncName = FName(TEXT("K2_ActivateAbility"));
+		UFunction* ActivateFunction = GetClass()->FindFunctionByName(FuncName);
+		HasBlueprintActivate = ActivateFunction && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+	}
+	{
+		static FName FuncName = FName(TEXT("K2_PredictiveActivateAbility"));
+		UFunction* PredictiveActivateFunction = GetClass()->FindFunctionByName(FuncName);
+		HasBlueprintPredictiveActivate = PredictiveActivateFunction && PredictiveActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+	}
 }
 
 bool UGameplayAbility::IsSupportedForNetworking() const
@@ -40,6 +56,8 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 
 bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* ActorInfo) const
 {
+	SetCurrentActorInfo(ActorInfo);
+
 	if (ActorInfo->AbilitySystemComponent->GetUserAbilityActivationInhibited())
 	{
 		/**
@@ -64,6 +82,15 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* Actor
 		return false;
 	}
 
+	if (HasBlueprintCanUse)
+	{
+		if (K2_CanActivateAbility(*ActorInfo) == false)
+		{
+			ABILITY_LOG(Log, TEXT("CanActivateAbility %s failed, blueprint refused"), *GetName());
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -75,6 +102,10 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo,
 	}
 
 	CommitExecute(ActorInfo, ActivationInfo);
+
+	// Fixme: Should we always call this or only if it is implemented? A noop may not hurt but could be bad for perf (storing a HasBlueprintCommit per instance isn't good either)
+	K2_CommitExecute();
+
 	return true;
 }
 
@@ -168,16 +199,34 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 
 void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
+	if (InstancingPolicy == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+	{
+		MarkPendingKill();
+	}
 
+	// Remove from owning AbilitySystemComponent?
+	// generic way of releasing all callbacks!
 }
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	// Child classes may want to do stuff here...
+	SetCurrentInfo(ActorInfo, ActivationInfo);
 
-	if (CommitAbility(ActorInfo, ActivationInfo))		// ..then commit the ability...
+	if (HasBlueprintActivate)
 	{
-		//	Then do more stuff...
+		// A Blueprinted ActivateAbility function must call CommitAbility somewhere in its execution chain.
+		K2_ActivateAbility();
+	}
+	else
+	{
+		// Native child classes may want to override ActivateAbility and do something like this:
+
+		// Do stuff...
+
+		if (CommitAbility(ActorInfo, ActivationInfo))		// ..then commit the ability...
+		{			
+			//	Then do more stuff...
+		}
 	}
 }
 
@@ -204,6 +253,14 @@ void UGameplayAbility::CallPredictiveActivateAbility(const FGameplayAbilityActor
 
 void UGameplayAbility::PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	SetCurrentInfo(ActorInfo, ActivationInfo);
+	
+	check(ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting);
+
+	if (HasBlueprintPredictiveActivate)
+	{
+		K2_PredictiveActivateAbility();
+	}
 	
 }
 
@@ -286,17 +343,51 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	return 0.f;
 }
 
-const FGameplayAbilityActorInfo* UGameplayAbility::GetCurrentActorInfo()
+FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo()
 {
-	ABILITY_LOG(Fatal, TEXT("GetCurrentActorInfo called on base UGameplayAbility class"));
-	return NULL;
+	check(CurrentActorInfo);
+	return *CurrentActorInfo;
 }
 
-FGameplayAbilityActivationInfo UGameplayAbility::GetCurrentActivationInfo()
-{
-	ABILITY_LOG(Fatal, TEXT("GetCurrentActivationInfo called on base UGameplayAbility class"));
+/** Fixme: Naming is confusing here */
 
-	return FGameplayAbilityActivationInfo();
+bool UGameplayAbility::K2_CommitAbility()
+{
+	check(CurrentActorInfo);
+	return CommitAbility(CurrentActorInfo, CurrentActivationInfo);
+}
+
+void UGameplayAbility::K2_EndAbility()
+{
+	check(CurrentActorInfo);
+	EndAbility(CurrentActorInfo);
+}
+
+
+int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
+{
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return FunctionCallspace::Local;
+	}
+	check(GetOuter() != NULL);
+	return GetOuter()->GetFunctionCallspace(Function, Parameters, Stack);
+}
+
+bool UGameplayAbility::CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack)
+{
+	check(!HasAnyFlags(RF_ClassDefaultObject));
+	check(GetOuter() != NULL);
+
+	AActor* Owner = CastChecked<AActor>(GetOuter());
+	UNetDriver* NetDriver = Owner->GetNetDriver();
+	if (NetDriver)
+	{
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
+		return true;
+	}
+
+	return false;
 }
 
 // --------------------------------------------------------------------
@@ -319,7 +410,10 @@ void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 Predict
 
 void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey)
 {
-	ABILITY_LOG(Fatal, TEXT("ClientActivateAbilitySucceed_Internal called on base class ability %s"), *GetName());
+	check(CurrentActorInfo);
+	CurrentActivationInfo.SetActivationConfirmed();
+
+	CallActivateAbility(CurrentActorInfo, CurrentActivationInfo);
 }
 
 //----------------------------------------------------------------------

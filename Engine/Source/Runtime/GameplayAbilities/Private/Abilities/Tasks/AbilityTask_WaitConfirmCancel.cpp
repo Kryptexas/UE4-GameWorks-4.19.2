@@ -5,7 +5,6 @@
 #include "AbilitySystemComponent.h"
 
 #include "Abilities/GameplayAbility.h"
-#include "Abilities/GameplayAbility_Instanced.h"
 
 UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -28,7 +27,7 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 UAbilityTask_WaitConfirmCancel* UAbilityTask_WaitConfirmCancel::WaitConfirmCancel(UObject* WorldContextObject)
 {
 	check(WorldContextObject);
-	UGameplayAbility_Instanced* ThisAbility = CastChecked<UGameplayAbility_Instanced>(WorldContextObject);
+	UGameplayAbility* ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
 	if (ThisAbility)
 	{
 		UAbilityTask_WaitConfirmCancel * MyObj = NULL;
