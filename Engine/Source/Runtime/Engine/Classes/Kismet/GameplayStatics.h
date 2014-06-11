@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "../Sound/DialogueTypes.h"
+#include "Sound/DialogueTypes.h"
+#include "Engine/LatentActionManager.h"
 #include "GameplayStatics.generated.h"
 
 //

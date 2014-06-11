@@ -10,6 +10,7 @@
 #define _INC_DEBUGRENDERSCENEPROXY
 
 #include "Debug/DebugDrawService.h"
+#include "PrimitiveSceneProxy.h"
 
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {

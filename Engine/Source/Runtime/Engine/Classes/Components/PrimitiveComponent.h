@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include "Runtime/Engine/Classes/PhysicsEngine/BodyInstance.h"
-#include "PrimitiveSceneProxy.h"
 #include "StaticArray.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
+#include "SceneTypes.h"
+#include "CollisionQueryParams.h"
 
 #include "PrimitiveComponent.generated.h"
 
+class FPrimitiveSceneProxy;
+struct FPrimitiveViewRelevance;
 
 /** Information about a vertex of a primitive's triangle. */
 struct FPrimitiveTriangleVertex
@@ -77,7 +80,7 @@ namespace EHasCustomNavigableGeometry
 
 /** Mirrored from Scene.h */
 USTRUCT()
-struct FMaterialRelevance
+struct ENGINE_API FMaterialRelevance
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -113,37 +116,29 @@ struct FMaterialRelevance
 		,	bDisableDepthTest(false)
 		{}
 
-		/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
-		FMaterialRelevance& operator|=(const FMaterialRelevance& B)
-		{
-			bOpaque |= B.bOpaque;
-			bMasked |= B.bMasked;
-			bDistortion |= B.bDistortion;
-			bUsesSceneColor |= B.bUsesSceneColor;
-			bSeparateTranslucency |= B.bSeparateTranslucency;
-			bNormalTranslucency |= B.bNormalTranslucency;
-			bDisableDepthTest |= B.bDisableDepthTest;
-			return *this;
-		}
+	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
+	FMaterialRelevance& operator|=(const FMaterialRelevance& B)
+	{
+		bOpaque |= B.bOpaque;
+		bMasked |= B.bMasked;
+		bDistortion |= B.bDistortion;
+		bUsesSceneColor |= B.bUsesSceneColor;
+		bSeparateTranslucency |= B.bSeparateTranslucency;
+		bNormalTranslucency |= B.bNormalTranslucency;
+		bDisableDepthTest |= B.bDisableDepthTest;
+		return *this;
+	}
 	
-		/** Binary bitwise OR operator. */
-		friend FMaterialRelevance operator|(const FMaterialRelevance& A,const FMaterialRelevance& B)
-		{
-			FMaterialRelevance Result(A);
-			Result |= B;
-			return Result;
-		}
+	/** Binary bitwise OR operator. */
+	friend FMaterialRelevance operator|(const FMaterialRelevance& A,const FMaterialRelevance& B)
+	{
+		FMaterialRelevance Result(A);
+		Result |= B;
+		return Result;
+	}
 
-		/** Copies the material's relevance flags to a primitive's view relevance flags. */
-		void SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const
-		{
-			OutViewRelevance.bOpaqueRelevance = bOpaque;
-			OutViewRelevance.bMaskedRelevance = bMasked;
-			OutViewRelevance.bDistortionRelevance = bDistortion;
-			OutViewRelevance.bSceneColorRelevance = bUsesSceneColor;
-			OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
-			OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
-		}
+	/** Copies the material's relevance flags to a primitive's view relevance flags. */
+	void SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const;
 };
 
 /** Information about the sprite category */

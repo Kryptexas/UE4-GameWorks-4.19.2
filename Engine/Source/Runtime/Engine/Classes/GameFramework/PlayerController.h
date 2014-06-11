@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include "PlayerMuteList.h"
-#include "../Camera/PlayerCameraManager.h"
-#include "GameMode.h"
+#include "GameFramework/PlayerMuteList.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/GameMode.h"
 #include "Components/InputComponent.h"
-#include "../Engine/GameViewportClient.h"
-#include "SceneManagement.h"
-#include "ForceFeedbackEffect.h"
-#include "OnlineReplStructs.h"
+#include "GameFramework/ForceFeedbackEffect.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
 #include "PlayerController.generated.h"
+
+class FPrimitiveComponentId;
 
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);

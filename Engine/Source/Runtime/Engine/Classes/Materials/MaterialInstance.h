@@ -2,12 +2,17 @@
 
 
 #pragma once
+#include "Materials/MaterialInterface.h"
+#include "StaticParameterSet.h"
 #include "MaterialInstance.generated.h"
 
 //
 // Forward declarations.
 //
 struct FMaterialInstanceBasePropertyOverrides;
+class FMaterialShaderMap;
+class FMaterialShaderMapId;
+class FSHAHash;
 
 /** Editable font parameter. */
 USTRUCT()
@@ -36,16 +41,7 @@ struct FFontParameterValue
 
 
 	typedef const UTexture* ValueType;
-	static ValueType GetValue(const FFontParameterValue& Parameter)
-	{
-		ValueType Value = NULL;
-		if (Parameter.FontValue && Parameter.FontValue->Textures.IsValidIndex(Parameter.FontPage))
-		{
-			// get the texture for the font page
-			Value = Parameter.FontValue->Textures[Parameter.FontPage];
-		}
-		return Value;
-	}
+	static ValueType GetValue(const FFontParameterValue& Parameter);
 };
 
 /** Editable scalar parameter. */

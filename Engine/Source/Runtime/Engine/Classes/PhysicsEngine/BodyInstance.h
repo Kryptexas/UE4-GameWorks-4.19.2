@@ -8,6 +8,8 @@
 
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
+struct FCollisionShape;
+
 #if WITH_PHYSX
 namespace physx
 {

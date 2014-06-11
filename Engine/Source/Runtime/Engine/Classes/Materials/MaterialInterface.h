@@ -2,11 +2,14 @@
 
 
 #pragma once
-
-#include "MaterialShared.h"
+#include "Engine/BlendableInterface.h"
+#include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "SceneTypes.h"
 #include "MaterialInterface.generated.h"
 
 class UMaterial;
+class FMaterialResource;
+class FMaterialCompiler;
 
 UENUM()
 enum EMaterialUsage

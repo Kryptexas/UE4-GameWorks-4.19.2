@@ -10,6 +10,9 @@
 #include "WorldCollision.h"
 #include "PendingNetGame.h"
 #include "GameFramework/MusicTrackDataStructures.h"
+#include "EngineDefines.h"
+#include "Engine/LatentActionManager.h"
+#include "Runtime/RHI/Public/RHIDefinitions.h"
 #include "World.generated.h"
 
 class FPhysScene;

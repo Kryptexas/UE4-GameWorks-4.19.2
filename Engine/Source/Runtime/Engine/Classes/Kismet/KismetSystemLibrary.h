@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/LatentActionManager.h"
 #include "KismetSystemLibrary.generated.h"
 
 UENUM(BlueprintType)

@@ -2,9 +2,12 @@
 
 
 #pragma once
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "SceneTypes.h"
+#include "Components/MeshComponent.h"
+#include "Runtime/RenderCore/Public/RenderUtils.h"
 #include "StaticMeshComponent.generated.h"
+
+class FColorVertexBuffer;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()

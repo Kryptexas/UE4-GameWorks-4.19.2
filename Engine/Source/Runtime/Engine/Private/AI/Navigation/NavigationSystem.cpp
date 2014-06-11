@@ -4,6 +4,7 @@
 #include "NavDataGenerator.h"
 #include "NavigationOctree.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
+#include "AI/Navigation/NavRelevantComponent.h"
 
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"

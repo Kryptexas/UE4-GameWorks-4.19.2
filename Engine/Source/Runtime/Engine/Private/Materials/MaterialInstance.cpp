@@ -12,6 +12,7 @@
 #include "MaterialInstanceSupport.h"
 #include "MaterialShader.h"
 #include "TargetPlatform.h"
+#include "Engine/Font.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -114,6 +115,17 @@ bool UpdateParameterSet(TArray<ParameterType> &Parameters, UMaterial* ParentMate
 	}
 
 	return bChanged;
+}
+
+FFontParameterValue::ValueType FFontParameterValue::GetValue(const FFontParameterValue& Parameter)
+{
+	ValueType Value = NULL;
+	if (Parameter.FontValue && Parameter.FontValue->Textures.IsValidIndex(Parameter.FontPage))
+	{
+		// get the texture for the font page
+		Value = Parameter.FontValue->Textures[Parameter.FontPage];
+	}
+	return Value;
 }
 
 FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,bool bInSelected,bool bInHovered)

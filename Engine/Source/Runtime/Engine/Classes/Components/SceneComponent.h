@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Components.h"
+#include "ActorComponent.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -70,6 +70,8 @@ FORCEINLINE EMoveComponentFlags operator|(EMoveComponentFlags Arg1,EMoveComponen
 FORCEINLINE EMoveComponentFlags operator&(EMoveComponentFlags Arg1,EMoveComponentFlags Arg2)	{ return EMoveComponentFlags(uint32(Arg1) & uint32(Arg2)); }
 FORCEINLINE void operator&=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest & Arg); }
 FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)					{ Dest = EMoveComponentFlags(Dest | Arg); }
+
+DECLARE_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysicsVolume*);
 
 
 /** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "SceneView.h"
 #include "SceneManagement.h"
 #include "EngineModule.h"
 #include "StereoRendering.h"

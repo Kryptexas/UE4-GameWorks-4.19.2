@@ -164,4 +164,3 @@ private:
 	FColorVertexBuffer( const FColorVertexBuffer &rhs );
 };
 
-DECLARE_DELEGATE_OneParam( FPhysicsVolumeChanged , class APhysicsVolume* );

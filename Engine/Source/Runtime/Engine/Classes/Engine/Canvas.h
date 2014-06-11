@@ -8,6 +8,8 @@
 #include "WordWrapper.h"
 #include "Canvas.generated.h"
 
+class FSceneView;
+
 /**
  * Holds texture information with UV coordinates as well.
  */

@@ -6,8 +6,17 @@
 
 #pragma once
 
-#include "SceneManagement.h"
-#include "UniformBuffer.h"
+class FSimpleLightEntry;
+class HHitProxy;
+class FStaticPrimitiveDrawInterface;
+class FPrimitiveSceneInfo;
+class FLightSceneProxy;
+class FLightSceneInfo;
+
+
+#include "SceneView.h"
+#include "PrimitiveUniformShaderParameters.h"
+#include "PrimitiveViewRelevance.h"
 
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry
@@ -31,9 +40,9 @@ class FSimpleLightArray
 {
 public:
 	/** Data per simple dynamic light instance, independent of view */
-	TArray<FSimpleLightEntry, SceneRenderingAllocator> InstanceData;
+	TArray<FSimpleLightEntry, TMemStackAllocator<>> InstanceData;
 	/** Per-view data for each light */
-	TArray<FSimpleLightPerViewEntry, SceneRenderingAllocator> PerViewData;
+	TArray<FSimpleLightPerViewEntry, TMemStackAllocator<>> PerViewData;
 
 public:
 

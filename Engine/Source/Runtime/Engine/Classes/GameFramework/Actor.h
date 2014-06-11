@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
-#include "Runtime/Engine/Classes/Camera/CameraTypes.h"
+#include "Runtime/InputCore/Classes/InputCoreTypes.h"
+#include "Runtime/RenderCore/Public/RenderCommandFence.h"
+
+#include "Camera/CameraTypes.h"
 #include "Components/SceneComponent.h"
-#include "RenderingThread.h"
 #include "ComponentInstanceDataCache.h"
 
 UENUM(BlueprintType)

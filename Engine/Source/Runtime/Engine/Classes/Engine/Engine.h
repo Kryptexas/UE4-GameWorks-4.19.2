@@ -5,10 +5,14 @@
 //=============================================================================
 
 #pragma once
+#include "World.h"
 #include "Engine.generated.h"
 
 class FScreenSaverInhibitor;
 class UDeviceProfileManager;
+class FViewport;
+class FCommonViewportClient;
+class FCanvas;
 
 UENUM()
 enum EFullyLoadPackageType

@@ -4,6 +4,7 @@
 #include "ObjectEditorUtils.h"
 #include "NavigationModifier.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavLinkProxy.h"
 

@@ -10,7 +10,6 @@
 // Each event type will be displayed using the defined color
 #pragma once
 
-#include "DynamicRHI.h"
 
 #define DEC_LIGHT			FColor(255,0,0,255)
 #define DEC_SKEL_MESH		FColor(255,0,255,255)
@@ -38,7 +37,7 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 	 * Class that logs draw events based upon class scope. Draw events can be seen
 	 * in PIX
 	 */
-	struct FDrawEvent
+	struct ENGINE_API FDrawEvent
 	{
 		/** Whether a draw event has been emitted or not. */
 		bool bDrawEventHasBeenEmitted;
@@ -51,31 +50,16 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 		/**
 		 * Terminate the event based upon scope
 		 */
-		~FDrawEvent()
-		{
-			if( bDrawEventHasBeenEmitted )
-			{
-				GDynamicRHI->PopEvent();
-			}
-		}
+		 ~FDrawEvent();
+
 		/**
 		 * Function for logging a PIX event with var args
 		 */
-		void CDECL Start(const FColor& Color,const TCHAR* Fmt, ...)
-		{
-			check( IsInRenderingThread_Internal() );
-			va_list ptr;
-			va_start(ptr, Fmt);
-			TCHAR TempStr[256];
-			// Build the string in the temp buffer
-			FCString::GetVarArgs(TempStr,ARRAY_COUNT(TempStr),ARRAY_COUNT(TempStr)-1,Fmt,ptr);
-			GDynamicRHI->PushEvent(TempStr);
-			bDrawEventHasBeenEmitted = true;		
-		}
+		void CDECL Start(const FColor& Color,const TCHAR* Fmt, ...);
 
 		private:
 		/** Helper function to determine if we are currently int the render thread. This is needed to avoid using IsInRenderThread() in a public header since it comes from RenderCore */
-		ENGINE_API bool IsInRenderingThread_Internal();
+		bool IsInRenderingThread_Internal();
 	};
 
 	// Macros to allow for scoping of draw events

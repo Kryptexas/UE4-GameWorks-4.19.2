@@ -20,7 +20,6 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "CollisionQueryParams.h"
-#include "WorldCollision.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "AI/Navigation/RecastNavMesh.h"

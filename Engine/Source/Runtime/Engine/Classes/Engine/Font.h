@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/FontImportOptions.h"
 #include "Font.generated.h"
 
 /** this struct is serialized using native serialization so any changes to it require a package version bump */
