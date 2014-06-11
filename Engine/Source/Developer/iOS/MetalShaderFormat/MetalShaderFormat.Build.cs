@@ -7,6 +7,7 @@ public class MetalShaderFormat : ModuleRules
 	public MetalShaderFormat(TargetInfo Target)
 	{
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
+		PublicIncludePaths.Add("Runtime/IOS/MetalRHI/Public");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

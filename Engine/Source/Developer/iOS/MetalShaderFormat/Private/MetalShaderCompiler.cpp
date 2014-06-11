@@ -3,7 +3,8 @@
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
-#include "../../../EmptyRHI/Public/EmptyShaderResources.h"
+#include "ShaderCore.h"
+#include "MetalShaderResources.h"
 #include "ShaderCompilerCommon.h"
 
 #if PLATFORM_WINDOWS
