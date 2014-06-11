@@ -964,6 +964,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				bool bHistogramNeeded = View.Family->EngineShowFlags.VisualizeHDR;
 
 				if(View.Family->EngineShowFlags.EyeAdaptation
+					&& View.FinalPostProcessSettings.AutoExposureMinBrightness < View.FinalPostProcessSettings.AutoExposureMaxBrightness
 					&& !View.bIsSceneCapture) // Eye adaption is not available for scene captures.
 				{
 					bHistogramNeeded = true;
