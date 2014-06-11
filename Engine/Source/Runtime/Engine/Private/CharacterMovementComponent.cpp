@@ -975,96 +975,111 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 		return;
 	}
 
-	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
+	FVector OldVelocity;
+	FVector OldLocation;
 
-	if (bIsSimulatedProxy)
+	// Scoped updates can improve performance of multiple MoveComponent calls.
 	{
-		// Handle network changes
-		if (bNetworkUpdateReceived)
+		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
+
+		if (bIsSimulatedProxy)
 		{
-			bNetworkUpdateReceived = false;
-			if (bNetworkMovementModeChanged)
+			// Handle network changes
+			if (bNetworkUpdateReceived)
 			{
-				bNetworkMovementModeChanged = false;
-				ApplyNetworkMovementMode(CharacterOwner->GetReplicatedMovementMode());
-			}
-			else if (bJustTeleported)
-			{
-				// Make sure floor is current. We will continue using the replicated base, if there was one.
-				bJustTeleported = false;
-				UpdateFloorFromAdjustment();
-			}
-		}
-
-		HandlePendingLaunch();
-	}
-
-	if (MovementMode == MOVE_None)
-	{
-		return;
-	}
-
-	Acceleration = Velocity.SafeNormal();	// Not currently used for simulated movement
-	AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
-
-	// simulated pawns predict location
-	MaybeUpdateBasedMovement(DeltaSeconds);
-	FStepDownResult StepDownResult;
-	MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
-
-	// if simulated gravity, find floor and check if falling
-	const bool bEnableFloorCheck = (!CharacterOwner->bSimGravityDisabled || !bIsSimulatedProxy);
-	if (bEnableFloorCheck && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
-	{
-		const FVector CollisionCenter = UpdatedComponent->GetComponentLocation();
-		if (StepDownResult.bComputedFloor)
-		{
-			CurrentFloor = StepDownResult.FloorResult;
-		}
-		else if (Velocity.Z <= 0.f)
-		{
-			FindFloor(CollisionCenter, CurrentFloor, Velocity.IsZero(), NULL);
-		}
-		else
-		{
-			CurrentFloor.Clear();
-		}
-
-		if (!CurrentFloor.IsWalkableFloor())
-		{
-			// No floor, must fall.
-			Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
-			SetMovementMode(MOVE_Falling);
-		}
-		else
-		{
-			// Walkable floor
-			if (MovementMode == MOVE_Walking)
-			{
-				AdjustFloorHeight();
-				SetBase(CurrentFloor.HitResult.Component.Get());
-			}
-			else if (MovementMode == MOVE_Falling)
-			{
-				if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST)
+				bNetworkUpdateReceived = false;
+				if (bNetworkMovementModeChanged)
 				{
-					// Landed
-					SetMovementMode(MOVE_Walking);
+					bNetworkMovementModeChanged = false;
+					ApplyNetworkMovementMode(CharacterOwner->GetReplicatedMovementMode());
 				}
-				else
+				else if (bJustTeleported)
 				{
-					// Continue falling.
-					Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
-					CurrentFloor.Clear();
+					// Make sure floor is current. We will continue using the replicated base, if there was one.
+					bJustTeleported = false;
+					UpdateFloorFromAdjustment();
 				}
 			}
+
+			HandlePendingLaunch();
 		}
-	}
+
+		if (MovementMode == MOVE_None)
+		{
+			return;
+		}
+
+		Acceleration = Velocity.SafeNormal();	// Not currently used for simulated movement
+		AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
+
+		MaybeUpdateBasedMovement(DeltaSeconds);
+
+		// simulated pawns predict location
+		OldVelocity = Velocity;
+		OldLocation = UpdatedComponent->GetComponentLocation();
+		FStepDownResult StepDownResult;
+		MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
+
+		// if simulated gravity, find floor and check if falling
+		const bool bEnableFloorCheck = (!CharacterOwner->bSimGravityDisabled || !bIsSimulatedProxy);
+		if (bEnableFloorCheck && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
+		{
+			const FVector CollisionCenter = UpdatedComponent->GetComponentLocation();
+			if (StepDownResult.bComputedFloor)
+			{
+				CurrentFloor = StepDownResult.FloorResult;
+			}
+			else if (Velocity.Z <= 0.f)
+			{
+				FindFloor(CollisionCenter, CurrentFloor, Velocity.IsZero(), NULL);
+			}
+			else
+			{
+				CurrentFloor.Clear();
+			}
+
+			if (!CurrentFloor.IsWalkableFloor())
+			{
+				// No floor, must fall.
+				Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
+				SetMovementMode(MOVE_Falling);
+			}
+			else
+			{
+				// Walkable floor
+				if (MovementMode == MOVE_Walking)
+				{
+					AdjustFloorHeight();
+					SetBase(CurrentFloor.HitResult.Component.Get());
+				}
+				else if (MovementMode == MOVE_Falling)
+				{
+					if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST)
+					{
+						// Landed
+						SetMovementMode(MOVE_Walking);
+					}
+					else
+					{
+						// Continue falling.
+						Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), DeltaSeconds);
+						CurrentFloor.Clear();
+					}
+				}
+			}
+		}
+
+		OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+	} // End scoped movement update
+
+	// Call custom post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
+	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
 
 	MaybeSaveBaseLocation();
-	
 	UpdateComponentVelocity();
 	bJustTeleported = false;
+
+	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
 }
 
 void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, bool bNotifyActor )
@@ -1245,137 +1260,163 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// Force floor update if we've moved outside of CharacterMovement since last update.
 	bForceNextFloorCheck |= (IsMovingOnGround() && UpdatedComponent->GetComponentLocation() != LastUpdateLocation);
 
+	FVector OldVelocity;
+	FVector OldLocation;
+
 	// Scoped updates can improve performance of multiple MoveComponent calls.
-	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
-
-	MaybeUpdateBasedMovement(DeltaSeconds);
-	ApplyAccumulatedForces(DeltaSeconds);
-
-	FVector OldVelocity = Velocity;
-	FVector OldLocation = CharacterOwner->GetActorLocation();
-
-	// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
-	const bool bAllowedToCrouch = CanCrouchInCurrentState();
-	if ((!bAllowedToCrouch || !bWantsToCrouch) && IsCrouching())
 	{
-		UnCrouch(false);
-	}
-	else if (bWantsToCrouch && bAllowedToCrouch && !IsCrouching()) 
-	{
-		Crouch(false);
-	}
+		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
-	// Character::LaunchCharacter() has been deferred until now.
-	HandlePendingLaunch();
+		MaybeUpdateBasedMovement(DeltaSeconds);
+		ApplyAccumulatedForces(DeltaSeconds);
 
-	// If using RootMotion, tick animations before running physics.
-	if( !CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->Mesh )
-	{
-		CharacterOwner->Mesh->TickPose(DeltaSeconds);
+		OldVelocity = Velocity;
+		OldLocation = CharacterOwner->GetActorLocation();
 
-		// Make sure animation didn't trigger an event that destroyed us
+		// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
+		const bool bAllowedToCrouch = CanCrouchInCurrentState();
+		if ((!bAllowedToCrouch || !bWantsToCrouch) && IsCrouching())
+		{
+			UnCrouch(false);
+		}
+		else if (bWantsToCrouch && bAllowedToCrouch && !IsCrouching()) 
+		{
+			Crouch(false);
+		}
+
+		// Character::LaunchCharacter() has been deferred until now.
+		HandlePendingLaunch();
+
+		// If using RootMotion, tick animations before running physics.
+		if( !CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->Mesh )
+		{
+			CharacterOwner->Mesh->TickPose(DeltaSeconds);
+
+			// Make sure animation didn't trigger an event that destroyed us
+			if (!HasValidData())
+			{
+				return;
+			}
+
+			// For local human clients, save off root motion data so it can be used by movement networking code.
+			if( CharacterOwner->IsLocallyControlled() && (CharacterOwner->Role == ROLE_AutonomousProxy) )
+			{
+				CharacterOwner->ClientRootMotionParams = RootMotionParams;
+			}
+		}
+
+		// if we're about to use root motion, convert it to world space first.
+		if( HasRootMotion() )
+		{
+			USkeletalMeshComponent * SkelMeshComp = CharacterOwner->Mesh;
+			if( SkelMeshComp )
+			{
+				// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
+				RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.RootMotionTransform) );
+				UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s"),
+					*RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotionParams.RootMotionTransform.GetRotation().Rotator().ToCompactString(), *CharacterOwner->GetActorRotation().Vector().ToCompactString());
+			}
+
+			// Then turn root motion to velocity to be used by various physics modes.
+			if( DeltaSeconds > 0.f )
+			{
+				const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation() / DeltaSeconds;
+				// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
+				Velocity = FVector(RootMotionVelocity.X, RootMotionVelocity.Y, (MovementMode == MOVE_Falling ? Velocity.Z : RootMotionVelocity.Z));
+			}
+		}
+
+		// NaN tracking
+		checkf(!Velocity.ContainsNaN(), TEXT("UCharacterMovementComponent::PerformMovement: Velocity contains NaN (%s: %s)\n%s"), *GetPathNameSafe(this), *GetPathNameSafe(GetOuter()), *Velocity.ToString());
+
+		// change position
+		StartNewPhysics(DeltaSeconds, 0);
+
 		if (!HasValidData())
 		{
 			return;
 		}
 
-		// For local human clients, save off root motion data so it can be used by movement networking code.
-		if( CharacterOwner->IsLocallyControlled() && (CharacterOwner->Role == ROLE_AutonomousProxy) )
+		// uncrouch if no longer allowed to be crouched
+		if (IsCrouching() && !CanCrouchInCurrentState())
 		{
-			CharacterOwner->ClientRootMotionParams = RootMotionParams;
-		}
-	}
-
-	// if we're about to use root motion, convert it to world space first.
-	if( HasRootMotion() )
-	{
-		USkeletalMeshComponent * SkelMeshComp = CharacterOwner->Mesh;
-		if( SkelMeshComp )
-		{
-			// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
-			RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.RootMotionTransform) );
-			UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s"),
-				*RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotionParams.RootMotionTransform.GetRotation().Rotator().ToCompactString(), *CharacterOwner->GetActorRotation().Vector().ToCompactString());
+			UnCrouch(false);
 		}
 
-		// Then turn root motion to velocity to be used by various physics modes.
-		if( DeltaSeconds > 0.f )
+		if( CharacterOwner->Controller || bRunPhysicsWithNoController )
 		{
-			const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation() / DeltaSeconds;
-			// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
-			Velocity = FVector(RootMotionVelocity.X, RootMotionVelocity.Y, (MovementMode == MOVE_Falling ? Velocity.Z : RootMotionVelocity.Z));
-		}
-	}
-
-	// NaN tracking
-	checkf(!Velocity.ContainsNaN(), TEXT("UCharacterMovementComponent::PerformMovement: Velocity contains NaN (%s: %s)\n%s"), *GetPathNameSafe(this), *GetPathNameSafe(GetOuter()), *Velocity.ToString());
-
-	// change position
-	StartNewPhysics(DeltaSeconds, 0);
-
-	if (!HasValidData())
-	{
-		return;
-	}
-
-	// uncrouch if no longer allowed to be crouched
-	if (IsCrouching() && !CanCrouchInCurrentState())
-	{
-		UnCrouch(false);
-	}
-
-	if( CharacterOwner->Controller || bRunPhysicsWithNoController )
-	{
-		if (!HasRootMotion() && !CharacterOwner->IsMatineeControlled())
-		{
-			PhysicsRotation(DeltaSeconds);
-		}
-	}
-
-	// Apply Root Motion rotation after movement is complete.
-	if( HasRootMotion() )
-	{
-		const FRotator OldActorRotation = CharacterOwner->GetActorRotation();
-		const FRotator RootMotionRotation = RootMotionParams.RootMotionTransform.GetRotation().Rotator();
-		if( !RootMotionRotation.IsNearlyZero() )
-		{
-			const FRotator NewActorRotation = (OldActorRotation + RootMotionRotation).GetNormalized();
-			MoveUpdatedComponent(FVector::ZeroVector, NewActorRotation, true);
+			if (!HasRootMotion() && !CharacterOwner->IsMatineeControlled())
+			{
+				PhysicsRotation(DeltaSeconds);
+			}
 		}
 
-		// debug
-		if( false )
+		// Apply Root Motion rotation after movement is complete.
+		if( HasRootMotion() )
 		{
-			const FVector ResultingLocation = CharacterOwner->GetActorLocation();
-			const FRotator ResultingRotation = CharacterOwner->GetActorRotation();
+			const FRotator OldActorRotation = CharacterOwner->GetActorRotation();
+			const FRotator RootMotionRotation = RootMotionParams.RootMotionTransform.GetRotation().Rotator();
+			if( !RootMotionRotation.IsNearlyZero() )
+			{
+				const FRotator NewActorRotation = (OldActorRotation + RootMotionRotation).GetNormalized();
+				MoveUpdatedComponent(FVector::ZeroVector, NewActorRotation, true);
+			}
 
-			// Show current position
-			DrawDebugCoordinateSystem(GetWorld(), CharacterOwner->Mesh->GetComponentLocation() + FVector(0,0,1), ResultingRotation, 50.f, false);
+			// debug
+			if( false )
+			{
+				const FVector ResultingLocation = CharacterOwner->GetActorLocation();
+				const FRotator ResultingRotation = CharacterOwner->GetActorRotation();
 
-			// Show resulting delta move.
-			DrawDebugLine(GetWorld(), OldLocation, ResultingLocation, FColor::Red, true, 10.f);
+				// Show current position
+				DrawDebugCoordinateSystem(GetWorld(), CharacterOwner->Mesh->GetComponentLocation() + FVector(0,0,1), ResultingRotation, 50.f, false);
 
-			// Log details.
-			UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaMove Translation: %s, Rotation: %s, MovementBase: %s"),
-				*(ResultingLocation - OldLocation).ToCompactString(), *(ResultingRotation - OldActorRotation).GetNormalized().ToCompactString(), *GetNameSafe(CharacterOwner->GetMovementBase()) );
+				// Show resulting delta move.
+				DrawDebugLine(GetWorld(), OldLocation, ResultingLocation, FColor::Red, true, 10.f);
 
-			const FVector RMTranslation = RootMotionParams.RootMotionTransform.GetTranslation();
-			const FRotator RMRotation = RootMotionParams.RootMotionTransform.GetRotation().Rotator();
-			UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaError Translation: %s, Rotation: %s"),
-				*(ResultingLocation - OldLocation - RMTranslation).ToCompactString(), *(ResultingRotation - OldActorRotation - RMRotation).GetNormalized().ToCompactString() );
+				// Log details.
+				UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaMove Translation: %s, Rotation: %s, MovementBase: %s"),
+					*(ResultingLocation - OldLocation).ToCompactString(), *(ResultingRotation - OldActorRotation).GetNormalized().ToCompactString(), *GetNameSafe(CharacterOwner->GetMovementBase()) );
+
+				const FVector RMTranslation = RootMotionParams.RootMotionTransform.GetTranslation();
+				const FRotator RMRotation = RootMotionParams.RootMotionTransform.GetRotation().Rotator();
+				UE_LOG(LogRootMotion, Warning,  TEXT("PerformMovement Resulting DeltaError Translation: %s, Rotation: %s"),
+					*(ResultingLocation - OldLocation - RMTranslation).ToCompactString(), *(ResultingRotation - OldActorRotation - RMRotation).GetNormalized().ToCompactString() );
+			}
+
+			// Root Motion has been used, clear
+			RootMotionParams.Clear();
 		}
 
-		// Root Motion has been used, clear
-		RootMotionParams.Clear();
-	}
+		OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+	} // End scoped movement update
 
-	// update relative location/rotation
+	// Call external post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
+	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
+
 	MaybeSaveBaseLocation();
-
-	// update component velocity
 	UpdateComponentVelocity();
 
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+}
+
+
+void UCharacterMovementComponent::CallMovementUpdateDelegate(float DeltaTime, const FVector& OldLocation, const FVector& OldVelocity)
+{
+	// Update component velocity in case events want to read it
+	UpdateComponentVelocity();
+
+	// Delegate (for blueprints)
+	if (CharacterOwner)
+	{
+		CharacterOwner->OnCharacterMovementUpdated.Broadcast(DeltaTime, OldLocation, OldVelocity);
+	}
+}
+
+
+void UCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FVector& OldLocation, const FVector& OldVelocity)
+{
+	// empty base implementation, intended for derived classes to override.
 }
 
 

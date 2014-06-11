@@ -5,6 +5,7 @@
 #include "Character.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCharacterMovementUpdatedSignature, float, DeltaSeconds, FVector, OldLocation, FVector, OldVelocity);
 //
 // Forward declarations
 //
@@ -466,6 +467,19 @@ public:
 	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))
 	virtual void K2_UpdateCustomMovement(float DeltaTime);
+
+	/**
+	 * Event triggered at the end of a CharacterMovementComponent movement update.
+	 * This is the preferred event to use rather than the Tick event when performing custom updates to CharacterMovement properties based on the current state.
+	 * This is mainly due to the nature of network updates, where client corrections in position from the server can cause multiple iterations of a movement update,
+	 * which allows this event to update as well, while a Tick event would not.
+	 *
+	 * @param	DeltaSeconds		Delta time in seconds for this update
+	 * @param	InitialLocation		Location at the start of the update. May be different than the current location if movement occurred.
+	 * @param	InitialVelocity		Velocity at the start of the update. May be different than the current velocity.
+	 */
+	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
+	FCharacterMovementUpdatedSignature OnCharacterMovementUpdated;
 
 	/**
 	 * Called when our pawn has landed from a fall.

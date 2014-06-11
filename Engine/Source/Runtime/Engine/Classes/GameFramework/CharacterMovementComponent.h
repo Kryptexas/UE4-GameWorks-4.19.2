@@ -392,7 +392,12 @@ public:
 	UPROPERTY()
 	uint32 bMovementInProgress:1;
 
-	/** If true, high-level movement updates will be wrapped in a movement scope that accumulates updates and defers a bulk of the work until the end. */
+	/**
+	 * If true, high-level movement updates will be wrapped in a movement scope that accumulates updates and defers a bulk of the work until the end.
+	 * When enabled, touch and hit events will not be triggered until the end of multiple moves within an update, which can improve performance.
+	 *
+	 * @see FScopedMovementUpdate
+	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, AdvancedDisplay)
 	uint32 bEnableScopedMovementUpdates:1;
 
@@ -1336,6 +1341,15 @@ protected:
 
 	/** Scale input acceleration, based on movement acceleration rate. */
 	virtual FVector ScaleInputAcceleration(const FVector& InputAcceleration) const;
+
+	/**
+	 * Event triggered at the end of a movement update. If scoped movement updates are enabled (bEnableScopedMovementUpdates), this is within such a scope.
+	 * If that is not desired, bind to the CharacterOwner's OnMovementUpdated event instead, as that is triggered after the scoped movement update.
+	 */
+	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity);
+
+	/** Internal function to call OnMovementUpdated delegate on CharacterOwner. */
+	virtual void CallMovementUpdateDelegate(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity);
 
 public:
 	// Movement functions broken out based on owner's network Role.
