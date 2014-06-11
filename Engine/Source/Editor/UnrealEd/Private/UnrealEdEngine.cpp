@@ -1022,11 +1022,11 @@ void UUnrealEdEngine::UnregisterComponentVisualizer(FName ComponentClassName)
 	ComponentVisualizerMap.Remove(ComponentClassName);
 }
 
-TSharedPtr<FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(FName ComponentClassName)
+TSharedPtr<FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(FName ComponentClassName) const
 {
 	TSharedPtr<FComponentVisualizer> Visualizer = NULL;
 
-	TSharedPtr<FComponentVisualizer>* VisualizerPtr = ComponentVisualizerMap.Find(ComponentClassName);
+	const TSharedPtr<FComponentVisualizer>* VisualizerPtr = ComponentVisualizerMap.Find(ComponentClassName);
 	if(VisualizerPtr != NULL)
 	{
 		Visualizer = *VisualizerPtr;
@@ -1035,6 +1035,18 @@ TSharedPtr<FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(FName 
 	return Visualizer;
 }
 
+/** Find a component visualizer for the given component class (checking parent classes too) */
+TSharedPtr<class FComponentVisualizer> UUnrealEdEngine::FindComponentVisualizer(UClass* ComponentClass) const
+{
+	TSharedPtr<FComponentVisualizer> Visualizer;
+	while (!Visualizer.IsValid() && (ComponentClass != nullptr) && (ComponentClass != UActorComponent::StaticClass()))
+	{
+		Visualizer = FindComponentVisualizer(ComponentClass->GetFName());
+		ComponentClass = ComponentClass->GetSuperClass();
+	}
+
+	return Visualizer;
+}
 
 
 
@@ -1056,7 +1068,8 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 				if(Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass()->GetFName());
+					
+					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
 					if(Visualizer.IsValid())
 					{
 						Visualizer->DrawVisualization(Comp, View, PDI);

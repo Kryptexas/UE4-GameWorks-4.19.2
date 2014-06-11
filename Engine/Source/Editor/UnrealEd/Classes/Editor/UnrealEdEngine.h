@@ -225,7 +225,10 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	/** Unregister component visualizer function */
 	void UnregisterComponentVisualizer(FName ComponentClassName);
 	/** Find a component visualizer for the given component class name */
-	TSharedPtr<class FComponentVisualizer> FindComponentVisualizer(FName ComponentClassName);
+	TSharedPtr<class FComponentVisualizer> FindComponentVisualizer(FName ComponentClassName) const;
+
+	/** Find a component visualizer for the given component class (checking parent classes too) */
+	TSharedPtr<class FComponentVisualizer> FindComponentVisualizer(UClass* ComponentClass) const;
 
 	/** Draw component visualizers for components for selected actors */
 	void DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI);

@@ -11,7 +11,7 @@ bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy
 		const UActorComponent* ClickedComponent = VisProxy->Component.Get();
 		if (ClickedComponent != NULL)
 		{
-			TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(ClickedComponent->GetClass()->GetFName());
+			TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(ClickedComponent->GetClass());
 			if (Visualizer.IsValid())
 			{
 				bool bIsActive = Visualizer->VisProxyHandleClick(VisProxy);
