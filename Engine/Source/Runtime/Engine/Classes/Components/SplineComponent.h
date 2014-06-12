@@ -19,6 +19,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UPROPERTY()
 	FInterpCurveFloat SplineReparamTable;
 
+	/** Number of steps per spline segment to place in the reparameterization table */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Spline, meta=(ClampMin=4, UIMin=4))
+	int32 ReparamStepsPerSegment;
+
 	/** Specifies the duration of the spline in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spline)
 	float Duration;
@@ -92,8 +96,11 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FRotator GetWorldRotationAtTime(float Time, bool bUseConstantVelocity = false) const;
 
-
-
+#if WITH_EDITORONLY_DATA
+	// UObject interface
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+#endif
 
 	/** Walk through keys and set time for each one */
 	void RefreshSplineInputs();
